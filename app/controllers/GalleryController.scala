@@ -26,6 +26,7 @@ class GalleryController @Inject() (
     configService: ConfigService,
     labelService: LabelService,
     panoDataService: PanoDataService,
+    cropService: CropService,
     galleryService: GalleryService,
     regionService: RegionService
 )(implicit assets: AssetsFinder)
@@ -137,20 +138,23 @@ class GalleryController @Inject() (
         labelService
           .getGalleryLabels(n, labelTypes, loadedLabels, valOptions, regionIds, severities, tagsByLabelType,
             aiValOptions, userId, recentFirst, staticImageryOnly)
-          .map { labels =>
-            val jsonList = labels.map { l =>
-              Json.obj(
-                "label" -> (LabelFormats.validationLabelMetadataToJson(
-                  l,
-                  panoDataService.backupImageUrl(l.panoId),
-                  currUsername = request.identity.map(_.username)
-                ) + ("can_edit" -> Json.toJson(l.fromCurrentUser || isAdmin(request.identity)))),
-                "cropUrl"     -> panoDataService.cropUrl(l.labelId, l.labelType),
-                "gsvImageUrl" ->
-                  panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)
-              )
+          .flatMap { labels =>
+            cropService.cropMarkers(labels.map(_.labelId)).map { markers =>
+              val jsonList = labels.map { l =>
+                Json.obj(
+                  "label" -> (LabelFormats.validationLabelMetadataToJson(
+                    l,
+                    panoDataService.backupImageUrl(l.panoId),
+                    currUsername = request.identity.map(_.username)
+                  ) + ("can_edit" -> Json.toJson(l.fromCurrentUser || isAdmin(request.identity)))),
+                  "cropUrl"     -> panoDataService.cropUrl(l.labelId, l.labelType),
+                  "cropMarker"  -> markers.get(l.labelId),
+                  "gsvImageUrl" ->
+                    panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)
+                )
+              }
+              Ok(Json.obj("labelsOfType" -> jsonList))
             }
-            Ok(Json.obj("labelsOfType" -> jsonList))
           }
       }
     )

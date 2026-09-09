@@ -110,15 +110,17 @@ class AdminController @Inject() (
     val userId: String = request.identity.userId
     labelService.getSingleLabelMetadata(labelId, userId).flatMap {
       case Some(metadata) =>
-        labelService.getExtraAdminValidateData(Seq(labelId)).map { adminData =>
-          Ok(
-            labelMetadataWithValidationToJsonAdmin(metadata, adminData.head) ++
-              Json.obj(
-                "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
-                "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
-                "can_edit"         -> true
-              )
-          )
+        labelService.getExtraAdminValidateData(Seq(labelId)).zip(cropService.cropMarker(labelId)).map {
+          case (adminData, marker) =>
+            Ok(
+              labelMetadataWithValidationToJsonAdmin(metadata, adminData.head) ++
+                Json.obj(
+                  "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
+                  "crop_marker"      -> marker,
+                  "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
+                  "can_edit"         -> true
+                )
+            )
         }
       case None => Future.successful(NotFound(s"No label found with ID: $labelId"))
     }

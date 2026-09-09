@@ -2,7 +2,7 @@ package controllers
 
 import controllers.base._
 import models.auth.{DefaultEnv, WithAdmin}
-import models.label.{LabelMetadata, LabelPointTable, LabelTypeEnum, LocationXY}
+import models.label.{CropMarker, LabelMetadata, LabelTypeEnum}
 import models.pano.PanoSource.PanoSource
 import models.story.StoryForView
 import models.user.SidewalkUserWithRole
@@ -13,7 +13,15 @@ import play.api.mvc._
 import play.api.{Configuration, Environment, Logger}
 import play.silhouette.api.Silhouette
 import play.twirl.api.Html
-import service.{AuthenticationService, ConfigService, LabelService, PanoDataService, ShareImageCache, StoryService}
+import service.{
+  AuthenticationService,
+  ConfigService,
+  CropService,
+  LabelService,
+  PanoDataService,
+  ShareImageCache,
+  StoryService
+}
 
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
@@ -46,6 +54,7 @@ class ShareController @Inject() (
     configService: ConfigService,
     labelService: LabelService,
     panoDataService: PanoDataService,
+    cropService: CropService,
     authenticationService: AuthenticationService,
     shareImageCache: ShareImageCache,
     storyService: StoryService
@@ -275,18 +284,30 @@ class ShareController @Inject() (
       case Some(_) if !cropExistedBefore && cropFile.exists() =>
         buildAndCacheShareImage(meta, imagerySource, cacheFile) // Terminates: the retry sees the crop up front.
       case Some(base) =>
-        val composited: BufferedImage = compositeMarker(base, meta.labelType, meta.canvasXY)
-        cacheFile.getParentFile.mkdirs()
-        writeJpeg(composited, cacheFile)
-        if (cacheFile.exists()) {
-          evictStaleShareImages(cacheFile.getParentFile)
-          Future.successful(Some(cacheFile))
-        } else {
-          logger.error(s"Failed to write share image: ${cacheFile.getPath}")
-          Future.successful(None)
+        markerFor(meta, onCrop = cropExistedBefore).map { marker =>
+          val composited: BufferedImage = compositeMarker(base, meta.labelType, marker)
+          cacheFile.getParentFile.mkdirs()
+          writeJpeg(composited, cacheFile)
+          if (cacheFile.exists()) {
+            evictStaleShareImages(cacheFile.getParentFile)
+            Some(cacheFile)
+          } else {
+            logger.error(s"Failed to write share image: ${cacheFile.getPath}")
+            None
+          }
         }
       case None => Future.successful(None)
     }
+  }
+
+  /**
+   * The marker for the base image: the `label_crop` row's for a stored crop (#2660), else the canvas fraction — where
+   * the label is on a Street View still (which reproduces the Explore frame) and on a crop nothing has recorded yet.
+   */
+  private def markerFor(meta: LabelMetadata, onCrop: Boolean): Future[CropMarker] = {
+    val canvasFraction: CropMarker = CropService.exploreFrameMarker(meta.canvasXY.x, meta.canvasXY.y)
+    if (onCrop) cropService.cropMarker(meta.labelId).map(_.getOrElse(canvasFraction))
+    else Future.successful(canvasFraction)
   }
 
   /**
@@ -366,7 +387,7 @@ class ShareController @Inject() (
   private[controllers] def compositeMarker(
       base: BufferedImage,
       labelType: LabelTypeEnum.Base,
-      canvasXY: LocationXY
+      marker: CropMarker
   ): BufferedImage = {
     // RGB (not ARGB): the canvas is fully covered by the base photo, and ImageIO's JPEG writer rejects alpha.
     val out: BufferedImage = new BufferedImage(SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, BufferedImage.TYPE_INT_RGB)
@@ -389,10 +410,8 @@ class ShareController @Inject() (
     val iconFile: File = environment.getFile(s"public/images/icons/label_type_icons/${labelType.name}_small.png")
     if (iconFile.exists()) {
       Option(ImageIO.read(iconFile)).foreach { icon =>
-        // The stored canvas position is a fraction of the label-point canvas; map it through the same
-        // cover-scale + crop transform as the base image so the marker stays on the labeled spot.
-        val centerX: Int = (canvasXY.x.toDouble / LabelPointTable.canvasWidth * scaledW).toInt - offX
-        val centerY: Int = (canvasXY.y.toDouble / LabelPointTable.canvasHeight * scaledH).toInt - offY
+        val centerX: Int = (marker.x * scaledW).toInt - offX
+        val centerY: Int = (marker.y * scaledH).toInt - offY
         // ~65px on the 2x-retina canvas = a 32px marker at display size, matching the map-marker scale.
         val iconW: Int = math.max(24, (SHARE_IMAGE_WIDTH * 0.045).toInt)
         val iconH: Int = (icon.getHeight.toDouble / icon.getWidth * iconW).toInt

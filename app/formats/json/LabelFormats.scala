@@ -326,11 +326,12 @@ object LabelFormats {
    * @param labelType The label type name.
    * @param url The signed serving URL (e.g. /cropImage/<labelType>/<labelId>?exp=...&sig=...).
    */
-  def cropImagePayload(labelId: Int, labelType: String, url: String): JsObject = {
+  def cropImagePayload(labelId: Int, labelType: String, url: String, marker: Option[CropMarker]): JsObject = {
     Json.obj(
-      "labelId"   -> labelId,
-      "labelType" -> labelType,
-      "imageUrl"  -> url
+      "labelId"    -> labelId,
+      "labelType"  -> labelType,
+      "imageUrl"   -> url,
+      "cropMarker" -> marker
     )
   }
 
