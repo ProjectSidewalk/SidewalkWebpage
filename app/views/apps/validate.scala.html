@@ -194,7 +194,11 @@
         <div id="validate-severity-section" class="validation-menu-section">
           @* Header and severity level labels are swapped by DesktopValidationMenu JS based on curr label type. *@
           <div id="validate-severity-header" class="validation-menu-section-header"></div>
-          <div id="severity-radio-holder">
+          @* Named by the header: the radios share a name, so they already form a group for a screen reader, but an
+             unnamed one announces "1, radio button, 1 of 3" without saying what is being rated. The header's text is
+             swapped between severity and quality wording by #renderSeverity, which runs before the section is
+             shown, so the name follows the label type. *@
+          <div id="severity-radio-holder" role="radiogroup" aria-labelledby="validate-severity-header">
             <label class="severity-button" id="severity-button-1" for="validate-severity-radio-1" data-severity="1" data-toggle="tooltip">
               <input type="radio" name="label-severity" id="validate-severity-radio-1" value="1" class="severity-button__radio">
               <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">

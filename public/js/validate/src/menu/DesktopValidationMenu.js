@@ -52,6 +52,12 @@ class DesktopValidationMenu {
       // Add onclick for each severity button.
       const $severityButtons = menuUI.severityMenu.find('.severity-button');
       $severityButtons.click((e) => {
+        // Reachable mid-load by keyboard even though the menu is dimmed and pointer-blocked: each button is a label
+        // around a radio that is only visually hidden, so it still takes focus, and an arrow key roves the group
+        // natively. The viewers stopPropagation those keydowns but nothing preventDefaults them, so the roving still
+        // fires a click here — writing a severity onto the label that isn't on screen yet, where resetMenu hides the
+        // menu but leaves the value on the label, and it is submitted as a change nobody made (#5211).
+        if (svv.labelContainer.dropInputWhileLoading('Severity')) return;
         const currLabel = svv.labelContainer.getCurrentLabel();
         const oldSeverity = currLabel.getProperty('newSeverity');
         const newSeverity = $(e.target).closest('.severity-button').data('severity');
@@ -75,6 +81,11 @@ class DesktopValidationMenu {
           svv.tracker.push('Click=TagSearch');
         },
         onItemAdd: (tagName) => {
+          // Guarded ahead of #addTag's own guard, which is one line too late for this list: mid-load the tag is not
+          // added but would still be remembered as user-added, and #tagsAddedByUser is what suppresses an AI
+          // suggestion to remove a tag. resetMenu has already cleared it for the incoming label by then, so the
+          // entry would be attributed to a label the validator never touched (#5211).
+          if (svv.labelContainer.dropInputWhileLoading('TagAdd')) return;
           this.#tagsAddedByUser.push(tagName);
           this.#addTag(tagName, false);
         },
@@ -92,8 +103,12 @@ class DesktopValidationMenu {
     }
 
     // Add onclick for disagree and unsure reason buttons.
+    // Both loops guard ahead of their tracker push rather than leaving it to the setter they call: the push
+    // would otherwise record the reason as chosen and the drop would be logged right after it, so the one
+    // interaction the load guard exists to refuse is the one that reads in the logs as having landed (#5211).
     for (const reasonButton of this.#disagreeReasonButtons) {
       reasonButton.onclick = (e) => {
+        if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
         if (e.isTrigger) {
           svv.tracker.push(`KeyboardShortcut_DisagreeReason_Option=${$(reasonButton).attr('id')}`);
         } else {
@@ -104,6 +119,7 @@ class DesktopValidationMenu {
     }
     for (const reasonButton of this.#unsureReasonButtons) {
       reasonButton.onclick = (e) => {
+        if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
         if (e.isTrigger) {
           svv.tracker.push(`KeyboardShortcut_UnsureReason_Option=${$(reasonButton).attr('id')}`);
         } else {
@@ -131,7 +147,13 @@ class DesktopValidationMenu {
     });
 
     // Add oninput for disagree and unsure other reason text boxes.
+    // Guarded at the handler, not left to the setter each one calls: the empty branch writes the cleared reason onto
+    // the current label directly, so without this the two branches would answer a mid-load event differently. They
+    // are believed unreachable then — KeyboardManager goes inert while a reason box has focus, so a load cannot start
+    // from there, and once one has the box is only reachable by pointer, which is blocked — but half a guard on a
+    // handler is a trap for whoever changes it next (#5211).
     menuUI.disagreeReasonTextBox.on('input', () => {
+      if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
       if (menuUI.disagreeReasonTextBox.val() === '') {
         menuUI.disagreeReasonTextBox.removeClass('chosen');
         svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
@@ -140,6 +162,7 @@ class DesktopValidationMenu {
       }
     });
     menuUI.unsureReasonTextBox.on('input', () => {
+      if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
       if (menuUI.unsureReasonTextBox.val() === '') {
         menuUI.unsureReasonTextBox.removeClass('chosen');
         svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
@@ -319,6 +342,9 @@ class DesktopValidationMenu {
 
   // TAG SECTION.
   #addTag(tagName, fromAiSuggestion = false) {
+    // Guarded at the write rather than at its two entry points (the tag picker and the AI suggestions), so a third
+    // can't reach the current label mid-load just by not knowing to guard itself (#5211).
+    if (svv.labelContainer.dropInputWhileLoading('TagAdd')) return;
     const currLabel = svv.labelContainer.getCurrentLabel();
 
     // If the tag is mutually exclusive with another tag that's been added, remove the other tag.
@@ -338,6 +364,9 @@ class DesktopValidationMenu {
   }
 
   #removeTag(tagName, label, fromAiSuggestion = false) {
+    // Mid-load `label` is the one that just left the screen and was already submitted, so this write goes nowhere —
+    // while #renderTags below reads getCurrentLabel() instead, drawing the tags of a label nobody can see yet (#5211).
+    if (svv.labelContainer.dropInputWhileLoading('TagRemove')) return;
     svv.tracker.push(`Click=TagRemove_Tag="${tagName}"_FromAiSuggestion=${fromAiSuggestion}`);
     label.setProperty('newTags', label.getProperty('newTags').filter((t) => t !== tagName));
     this.#renderTags();
@@ -502,12 +531,32 @@ class DesktopValidationMenu {
         const sev = Number(button.dataset.severity);
         const img = button.querySelector('.severity-button__icon');
         if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === Number(severity));
+        // The radio is the only thing carrying the selection into the accessibility tree — the smiley above is an
+        // <img> swap, which announces nothing — and the holder is a `radiogroup`, so the checked radio is what a
+        // screen reader reads back as the current rating. Nothing else writes it: a native click on the wrapping
+        // label checks it, and it then stays checked across labels, so an unrated label would announce the previous
+        // one's rating and an undo would announce whatever was clicked last rather than what it stored. NaN when
+        // there is no rating, which no `sev` equals, so the whole group goes unchecked.
+        const radio = button.querySelector('.severity-button__radio');
+        if (radio) radio.checked = sev === Number(severity);
       });
     }
   }
 
   // VALIDATING 'NO' SECTION
+  /**
+   * Records the reason chosen for a disagree verdict.
+   *
+   * Guarded because a reason button keeps focus after a click, and Enter natively activates a focused button whether
+   * or not KeyboardManager is listening — so a second Enter inside the load window writes the reason onto the label
+   * that hasn't appeared on screen yet (#5211). `resetMenu` clears the chosen styling for a new label but not its
+   * properties, so the reason would ride along invisibly and be submitted as the canned comment for a reason nobody
+   * picked for the label it lands on.
+   *
+   * @param {string} id Id of the chosen reason button, or 'other' for the free-text box.
+   */
   #setDisagreeReason(id) {
+    if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
     const menuUI = this.#menuUI;
     this.#disagreeReasonButtons.removeClass('chosen');
     if (id === 'other') {
@@ -522,7 +571,19 @@ class DesktopValidationMenu {
   }
 
   // VALIDATING 'UNSURE' SECTION
+  /**
+   * Records the reason chosen for an unsure verdict.
+   *
+   * Guarded because a reason button keeps focus after a click, and Enter natively activates a focused button whether
+   * or not KeyboardManager is listening — so a second Enter inside the load window writes the reason onto the label
+   * that hasn't appeared on screen yet (#5211). `resetMenu` clears the chosen styling for a new label but not its
+   * properties, so the reason would ride along invisibly and be submitted as the canned comment for a reason nobody
+   * picked for the label it lands on.
+   *
+   * @param {string} id Id of the chosen reason button, or 'other' for the free-text box.
+   */
   #setUnsureReason(id) {
+    if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
     const menuUI = this.#menuUI;
     this.#unsureReasonButtons.removeClass('chosen');
     if (id === 'other') {

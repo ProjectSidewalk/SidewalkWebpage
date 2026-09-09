@@ -2193,6 +2193,16 @@ kbd {
   pointer-events: none;
 }
 
+/* The ring has to go on the wrapping label: the radio is what takes focus, but it has no size and paints nothing,
+   so a ring on the radio itself is a ring around a 0x0 box. Without this the group is fully keyboard-operable —
+   Tab reaches it, arrows rove it, per the radio-group pattern — with nothing on screen to say focus is there.
+   Beside the primitive rather than in a page stylesheet: Explore had this rule and Expert Validate, which uses the
+   same markup, silently did not. */
+.severity-button:has(.severity-button__radio:focus-visible) {
+  outline: calc(2px * var(--ui-scale, 1)) solid var(--color-link-100);
+  outline-offset: calc(-2px * var(--ui-scale, 1));
+}
+
 .severity-button__icon {
   width: calc(24px * var(--ui-scale, 1));
   height: calc(24px * var(--ui-scale, 1));
