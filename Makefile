@@ -344,9 +344,8 @@ lint-vendor-versions:
 	@echo "Finished checking vendor versions";
 
 # Scala formatting (.scalafmt.conf). The sbt thin client (`--jvm-client`) shares the running `sbt ~ run`'s server
-# instead of colliding with it over build locks; the native client (`--client`) can't run in the container at all
-# (docs/dev-environment.md).
-# `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.
+# instead of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats
+# in place.
 scalafmt:
 	@echo "Checking Scala formatting..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --jvm-client scalafmtCheckAll"
 

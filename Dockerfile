@@ -10,10 +10,8 @@ RUN chmod 644 /etc/apt/trusted.gpg.d/scalasbt-release.gpg
 
 RUN apt-get update && apt-get upgrade -y
 
-# The `sbt` package is only the launcher: it downloads and runs whatever version `project/build.properties` asks
-# for. Unpinned, every rebuild grabs the newest sbt published, which is how a 2.x launcher ended up starting our
-# 1.x build (#5268). Pinning it to the version the build already declares means Scala Steward's monthly bump of
-# that file moves the image too, with nothing extra to remember.
+# The `sbt` package is only the launcher, so pin it to the version the build itself declares — unpinned, each
+# rebuild silently grabs whatever sbt shipped most recently (#5268).
 COPY project/build.properties /tmp/build.properties
 
 RUN apt-get install -y \
