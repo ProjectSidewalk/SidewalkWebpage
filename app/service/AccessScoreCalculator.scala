@@ -215,43 +215,26 @@ object AccessScoreCalculator {
   // (a cluster's members, or a street's pooled members for a StreetCondition type). ---
   val tagActiveThreshold: Double = 0.5
 
-  // --- TUNABLE: named weight vectors for the AccessScore tool's stakeholder lenses. Each is a magnitude per scored
-  // type; the type's sign is fixed by its base weight. "default" is the engine's own weights, so the tool can reset
-  // to exactly what the API serves. The other three are starting points from the CHI 2022 design-probe study's
-  // stakeholder interviews (obstacles are dealbreakers for wheelchair users, signals and crosswalks matter most to
-  // blind travelers, missing ramps are what a DOT can fix), pending review with people who have lived experience. ---
-  val presetOrder: Seq[String] = Seq("default", "wheelchair", "low_vision", "dot_curb_ramps")
+  // --- TUNABLE: named weight vectors for the AccessScore tool's lenses. Each is a magnitude per scored type; the
+  // type's sign is fixed by its base weight. "default" is the engine's own weights, so the tool can reset to exactly
+  // what the API serves. The others are described by what they change, not by who they are for: a weighting that
+  // claims to stand for a disability community needs that community's involvement and literature behind it, and
+  // none of these has either yet. Every value is published, so a lens hides nothing. ---
+  val presetOrder: Seq[String] = Seq("default", "barriers", "infrastructure", "missing_ramps")
 
-  val presets: Map[String, Map[String, Double]] = Map(
-    "default"    -> baseWeights.map { case (t, w) => t -> math.abs(w) },
-    "wheelchair" -> Map(
-      LabelTypeEnum.CurbRamp.name       -> 1.00,
-      LabelTypeEnum.NoCurbRamp.name     -> 1.50,
-      LabelTypeEnum.Obstacle.name       -> 1.50,
-      LabelTypeEnum.SurfaceProblem.name -> 1.25,
-      LabelTypeEnum.Crosswalk.name      -> 0.50,
-      LabelTypeEnum.Signal.name         -> 0.25,
-      LabelTypeEnum.NoSidewalk.name     -> 2.00
-    ),
-    "low_vision" -> Map(
-      LabelTypeEnum.CurbRamp.name       -> 0.50,
-      LabelTypeEnum.NoCurbRamp.name     -> 0.75,
-      LabelTypeEnum.Obstacle.name       -> 1.25,
-      LabelTypeEnum.SurfaceProblem.name -> 0.75,
-      LabelTypeEnum.Crosswalk.name      -> 1.25,
-      LabelTypeEnum.Signal.name         -> 1.50,
-      LabelTypeEnum.NoSidewalk.name     -> 2.00
-    ),
-    "dot_curb_ramps" -> Map(
-      LabelTypeEnum.CurbRamp.name       -> 1.00,
-      LabelTypeEnum.NoCurbRamp.name     -> 2.00,
-      LabelTypeEnum.Obstacle.name       -> 1.00,
-      LabelTypeEnum.SurfaceProblem.name -> 1.00,
-      LabelTypeEnum.Crosswalk.name      -> 0.75,
-      LabelTypeEnum.Signal.name         -> 0.50,
-      LabelTypeEnum.NoSidewalk.name     -> 2.00
+  val presets: Map[String, Map[String, Double]] = {
+    val default: Map[String, Double] = baseWeights.map { case (t, w) => t -> math.abs(w) }
+    val problems: Set[String]        = baseWeights.collect { case (t, w) if w < 0 => t }.toSet
+    Map(
+      "default" -> default,
+      // Problems weigh half again as much; features are unchanged.
+      "barriers" -> default.map { case (t, w) => t -> (if (problems.contains(t)) w * 1.5 else w) },
+      // Features weigh half again as much; problems are unchanged.
+      "infrastructure" -> default.map { case (t, w) => t -> (if (problems.contains(t)) w else w * 1.5) },
+      // The one problem a curb-ramp program can fix, doubled, with the ramps themselves credited more too.
+      "missing_ramps" -> (default ++ Map(LabelTypeEnum.NoCurbRamp.name -> 2.0, LabelTypeEnum.CurbRamp.name -> 1.0))
     )
-  )
+  }
 
   /**
    * The per-cluster inputs the calculator needs. Severity is the cluster's median member severity (None if unrated).

@@ -201,6 +201,7 @@ POST    /userapi/logWebpageActivity                     controllers.UserControll
 
 # Team routes
 PUT     /userapi/setUserTeam                            controllers.UserProfileController.setUserTeam(userId: String, teamId: Int)
+PUT     /userapi/leaveTeam                              controllers.UserProfileController.leaveTeam(userId: String)
 POST    /userapi/createTeam                             controllers.UserProfileController.createTeam()
 GET     /userapi/getTeams                               controllers.UserProfileController.getTeams
 

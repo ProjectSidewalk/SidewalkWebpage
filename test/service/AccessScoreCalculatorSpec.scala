@@ -309,6 +309,11 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
     AccessScoreCalculator.presets("default") shouldBe AccessScoreCalculator.baseWeights.map { case (t, w) =>
       t -> math.abs(w)
     }
+    AccessScoreCalculator.presetOrder shouldBe Seq("default", "barriers", "infrastructure", "missing_ramps")
+    AccessScoreCalculator.presets("barriers")("Obstacle") shouldBe (1.5 +- eps)
+    AccessScoreCalculator.presets("barriers")("CurbRamp") shouldBe (0.75 +- eps)
+    AccessScoreCalculator.presets("infrastructure")("CurbRamp") shouldBe (1.125 +- eps)
+    AccessScoreCalculator.presets("missing_ramps")("NoCurbRamp") shouldBe (2.0 +- eps)
   }
 
   test("the scored-type set is exactly the seven expected types, in canonical order") {

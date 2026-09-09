@@ -139,7 +139,7 @@
         <li>An <a href="@routes.ApiDocsController.accessScoreIntersections">intersection</a> is rebuilt the same way from its own <code>severity_counts</code> and <code>tag_adjustments</code>, with no length factor; the street's headline <code>score</code> is then the mean of <code>segment_score</code> and the scores of <code>start_intersection_id</code> and <code>end_intersection_id</code>, over those that are not <code>null</code>.</li>
       </ul>
       <p>The response also carries <code>clusters_updated_at</code>: when the nightly clustering run that every score is computed from last finished (ISO&nbsp;8601, or <code>null</code> before the first run). Labels added after that moment are not in any cluster yet and cannot have changed a score until the next run.</p>
-      <p>The <code>presets</code> object holds named weight vectors (magnitudes; a type's sign is fixed by its base weight) for a few stakeholder lenses; <code>default</code> is the engine's own weights. They are starting points, not validated standards.</p>
+      <p>The <code>presets</code> object holds named weight vectors (magnitudes; a type's sign is fixed by its base weight): <code>default</code> is the engine's own weights, <code>barriers</code> weighs problem types half again as much, <code>infrastructure</code> does the same for feature types, and <code>missing_ramps</code> doubles missing curb ramps. They are named by what they change, not by whom they are for — a weighting that claims to represent a disability community would need that community's involvement and the literature behind it — and every value is published, so a lens hides nothing.</p>
     </div>
   </div>
 

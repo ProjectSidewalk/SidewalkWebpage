@@ -4,7 +4,10 @@
 class Card {
   #params;
   #cropUrl;
+  #cropMarker;
   #gsvImageUrl;
+
+  #markerWrapper;
 
   // UI card element.
   #card = null;
@@ -55,10 +58,13 @@ class Card {
    * @param {*} params Properties of the associated label.
    * @param {string} cropUrl Locally-saved crop image url, or null if no crop exists.
    * @param {string} gsvImageUrl Google Street View static image url, or null if non-GSV imagery.
+   * @param {?{x: number, y: number}} [cropMarker=null] Where the label is in the crop, as fractions of its width and
+   *     height; null when no crop exists or nothing has recorded it yet.
    */
-  constructor(params, cropUrl, gsvImageUrl) {
+  constructor(params, cropUrl, gsvImageUrl, cropMarker = null) {
     this.#params = params;
     this.#cropUrl = cropUrl;
+    this.#cropMarker = cropMarker;
     this.#gsvImageUrl = gsvImageUrl;
 
     this.#status = {
@@ -192,12 +198,10 @@ class Card {
     cardData.appendChild(cardTags);
 
     // Append the overlays for label information on top of the image.
-    const markerLeftPercent = 100 * properties.original_canvas_x / (util.EXPLORE_CANVAS_WIDTH);
-    const markerTopPercent = 100 * properties.original_canvas_y / (util.EXPLORE_CANVAS_HEIGHT);
     const markerWrapper = document.createElement('div');
     markerWrapper.className = 'gallery-marker-wrapper';
-    markerWrapper.style.left = `calc(${markerLeftPercent}% - var(--gallery-marker-size) / 2)`;
-    markerWrapper.style.top = `calc(${markerTopPercent}% - var(--gallery-marker-size) / 2)`;
+    this.#markerWrapper = markerWrapper;
+    this.#positionMarker();
     markerWrapper.appendChild(labelIcon);
     if (properties.ai_generated) {
       const aiIndicator = aiLabelIndicator(['ai-icon', 'ai-icon-marker', 'ai-icon-marker-card']);
@@ -270,6 +274,31 @@ class Card {
     return this.#cropUrl;
   }
 
+  /** @returns {?{x: number, y: number}} The crop marker as fractions; null when nothing recorded it. */
+  getCropMarker() {
+    return this.#cropMarker;
+  }
+
+  /**
+   * Where the label sits in the image being shown (#2660): wherever the crop says, else the canvas fraction — which is
+   * where it is on the Street View still (the Explore frame again) and on a crop nothing has recorded yet.
+   * @returns {{x: number, y: number}} Fractions of the image's width and height.
+   */
+  #markerFraction() {
+    if (this.#status.imageSource === 'crop' && this.#cropMarker) return this.#cropMarker;
+    return {
+      x: this.#properties.original_canvas_x / util.EXPLORE_CANVAS_WIDTH,
+      y: this.#properties.original_canvas_y / util.EXPLORE_CANVAS_HEIGHT,
+    };
+  }
+
+  /** Custom properties rather than offsets, so the marker's centring on the point stays in CSS beside its size. */
+  #positionMarker() {
+    const { x, y } = this.#markerFraction();
+    this.#markerWrapper.style.setProperty('--gallery-marker-x', String(x));
+    this.#markerWrapper.style.setProperty('--gallery-marker-y', String(y));
+  }
+
   getBackupImageData() {
     return buildBackupImageData(this.#params);
   }
@@ -290,8 +319,9 @@ class Card {
         };
         img.onerror = () => {
           if (fallbackUrl) {
-            // Primary failed; try the other source.
+            // Primary failed; try the other source, and place the marker for it.
             this.#status.imageSource = this.#cropUrl ? 'api' : 'crop';
+            this.#positionMarker();
             img.onerror = () => resolve(false); // Prevent infinite loop.
             img.src = fallbackUrl;
           } else {

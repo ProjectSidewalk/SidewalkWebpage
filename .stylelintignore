@@ -1,6 +1,11 @@
-*
-**/*.*
-!**/*.css
-!public/
-!public/css/
-!public/css/*
+# Read with .gitignore semantics, against the `public/**/*.css` glob `make stylelint` and CI pass in. Everything that
+# glob reaches is ours and gets linted, so this file only names the CSS under public/ that isn't: Grunt's concatenated
+# output and vendored libraries.
+#
+# Deny, never allow. This was an allowlist (`*` plus a `!` line per directory) until #5218, and that shape hid 32 of
+# our 66 stylesheets for two months: `*` excludes a path component at *every* depth, and .gitignore can't re-include a
+# file whose parent directory is excluded, so the `!public/css/*` line reached only the direct children of css/ and
+# every pages/<family>/ subdirectory (explore/, validate/, gallery/, api-docs/) went unlinted in silence. A denylist
+# names nothing under public/css/, so moving files around in there can't drop them from the lint again.
+public/js/**/build/
+public/vendor/
