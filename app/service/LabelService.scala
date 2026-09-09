@@ -636,7 +636,10 @@ class LabelServiceImpl @Inject() (
         findValidLabelsForType(
           labelTable.getValidatedLabelsForUserQuery(userId, labelType),
           randomize = false,
-          useCrops = false,
+          // A mistake card shows a still, and the popup behind it falls back to the crop too, so a label whose
+          // provider imagery has since gone still has everything it needs (#4478). Without this the card that most
+          // needs the crop is the one dropped before it can be rendered.
+          useCrops = true,
           nPerType
         )
           .map(labels => (labelType, labels))

@@ -47,4 +47,10 @@ describe('labelMarkerFraction', () => {
     it('centres only the axis that is missing', () => {
         expect(labelMarkerFraction('api', null, 180, null)).toEqual({ x: 0.25, y: 0.5 });
     });
+
+    // Matches CropService.exploreFrameMarker, which clamps the fraction it records for this same frame. Unclamped,
+    // a historic out-of-frame row puts the marker off the card rather than at its edge.
+    it('clamps a canvas position that sits outside the frame', () => {
+        expect(labelMarkerFraction('api', null, 900, -40)).toEqual({ x: 1, y: 0 });
+    });
 });

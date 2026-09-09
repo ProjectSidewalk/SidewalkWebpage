@@ -119,6 +119,18 @@ describe('the dashboard mistake card\'s image', () => {
         expect(photo()).toBeNull();
     });
 
+    // Losing the crop loses what its recorded position described, so the marker can't stay where the crop put it.
+    it('re-places the marker when the crop was the only source and it fails', async () => {
+        mistakes = [mistake({ image_url: null, crop_marker: { x: 0.5, y: 0.5 } })];
+        await renderGallery();
+        expect(marker().style.left).toBe('50%');
+
+        photo().dispatchEvent(new window.Event('error'));
+
+        expect(marker().style.left).toBe('25%');
+        expect(marker().style.top).toBe('75%');
+    });
+
     it('drops the photo when the Street View image fails too, leaving the wrapper\'s gradient', async () => {
         await renderGallery();
         photo().dispatchEvent(new window.Event('error')); // Crop 404s; falls back to the API image.

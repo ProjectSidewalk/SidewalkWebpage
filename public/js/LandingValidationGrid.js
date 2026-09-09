@@ -76,8 +76,7 @@ class LandingValidationGrid {
    * @returns {{x: number, y: number}} Fractions of the image's width and height.
    */
   static #markerFraction(entry, imageSource) {
-    return util.misc.labelMarkerFraction(imageSource, entry.cropMarker,
-      entry.label.canvas_x, entry.label.canvas_y);
+    return util.misc.labelMarkerFraction(imageSource, entry.cropMarker, entry.label.canvas_x, entry.label.canvas_y);
   }
 
   /**

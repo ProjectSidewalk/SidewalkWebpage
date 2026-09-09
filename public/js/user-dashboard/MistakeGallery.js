@@ -99,18 +99,17 @@ class MistakeGallery {
 
     const img = document.createElement('div');
     img.className = 'ud-card-img';
-    const photo = m.crop_url || m.image_url ? MistakeGallery.#photo(m) : null;
+    const marker = iconPath ? document.createElement('img') : null;
+    // The crop's recorded position describes the crop only, so losing it has to re-place the marker.
+    const photo = MistakeGallery.#photo(m,
+      (source) => marker && MistakeGallery.#positionMarker(marker, m, source));
     if (photo) img.appendChild(photo);
-    if (iconPath) {
-      const marker = document.createElement('img');
+    if (marker) {
       marker.className = 'ud-card-label-marker';
       marker.src = iconPath;
       marker.alt = '';
-      MistakeGallery.#positionMarker(marker, m, photo?.dataset.udSource);
+      MistakeGallery.#positionMarker(marker, m, photo?.dataset.udSource ?? null);
       img.appendChild(marker);
-      // The crop's recorded position describes the crop only, so a fall back to the still re-places the marker.
-      photo?.addEventListener('ps:sourcechange', () =>
-        MistakeGallery.#positionMarker(marker, m, photo.dataset.udSource));
     }
     const verdict = document.createElement('span');
     verdict.className = 'ud-card-verdict';
@@ -360,22 +359,11 @@ class MistakeGallery {
   }
 
   /**
-     * The card's image, preferring the label's saved crop (#4478): it is what the labeler saw, and it comes off our
-     * own disk where the Static API image is billed per request. A crop's URL expires, so a failure retries the API
-     * image, and a second failure leaves the wrapper's gradient. Alt is empty: the card's title names the type below
-     * it. Lazy either way — the mistakes section sits well down the dashboard, and an eager crop that failed there
-     * would fetch the billed image for a card nobody scrolled to. A fall back to the still emits `ps:sourcechange`,
-     * since the marker's position depends on which source is showing.
-     *
-     * @param {Object} m - The label record.
-     * @returns {HTMLImageElement}
-     */
-  /**
      * Places the label-type icon over whichever image the card ended up showing.
      *
      * @param {HTMLImageElement} marker - The marker element.
      * @param {Object} m - The label record.
-     * @param {?string} source - Which source is showing: 'crop', 'api', or undefined for the bare gradient.
+     * @param {?string} source - Which source is showing: 'crop', 'api', or null for the bare gradient.
      */
   static #positionMarker(marker, m, source) {
     const { x, y } = util.misc.labelMarkerFraction(source, m.crop_marker, m.canvas_x, m.canvas_y);
@@ -383,7 +371,20 @@ class MistakeGallery {
     marker.style.top = `${100 * y}%`;
   }
 
-  static #photo(m) {
+  /**
+     * The card's image, preferring the label's saved crop (#4478): it is what the labeler saw, and it comes off our
+     * own disk where the Static API image is billed per request. A crop's URL expires, so a failure retries the API
+     * image, and a second failure removes the photo, leaving the wrapper's gradient. Alt is empty: the card's title
+     * names the type below it. Lazy either way — the mistakes section sits well down the dashboard, and an eager crop
+     * that failed there would fetch the billed image for a card nobody scrolled to.
+     *
+     * @param {Object} m - The label record.
+     * @param {function(?string): void} onSourceChange - Called with the source now on screen ('api', or null once
+     *     every source has failed), since the marker's position depends on which image is showing.
+     * @returns {?HTMLImageElement} The image, or null when the label has no source at all.
+     */
+  static #photo(m, onSourceChange) {
+    if (!m.crop_url && !m.image_url) return null;
     const photo = document.createElement('img');
     photo.className = 'ud-card-photo';
     photo.alt = '';
@@ -392,11 +393,12 @@ class MistakeGallery {
     photo.addEventListener('error', () => {
       if (photo.dataset.udSource === 'crop' && m.image_url) {
         photo.dataset.udSource = 'api';
-        photo.dispatchEvent(new CustomEvent('ps:sourcechange'));
         photo.src = m.image_url;
       } else {
         photo.remove();
+        delete photo.dataset.udSource;
       }
+      onSourceChange(photo.dataset.udSource ?? null);
     });
     photo.dataset.udSource = m.crop_url ? 'crop' : 'api';
     photo.src = m.crop_url || m.image_url;

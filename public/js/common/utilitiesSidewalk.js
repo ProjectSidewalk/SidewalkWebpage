@@ -720,9 +720,12 @@ function UtilitiesMisc(JSON) {
    */
   function labelMarkerFraction(imageSource, cropMarker, canvasX, canvasY) {
     if (imageSource === 'crop' && cropMarker) return cropMarker;
+    // Clamped to the image, as CropService.exploreFrameMarker clamps the fraction it records for the same frame: a
+    // historic row can sit outside the canvas, and an unclamped fraction puts the marker off the card entirely.
+    const clamp = (f) => Math.min(1, Math.max(0, f));
     return {
-      x: typeof canvasX === 'number' ? canvasX / util.EXPLORE_CANVAS_WIDTH : 0.5,
-      y: typeof canvasY === 'number' ? canvasY / util.EXPLORE_CANVAS_HEIGHT : 0.5,
+      x: typeof canvasX === 'number' ? clamp(canvasX / util.EXPLORE_CANVAS_WIDTH) : 0.5,
+      y: typeof canvasY === 'number' ? clamp(canvasY / util.EXPLORE_CANVAS_HEIGHT) : 0.5,
     };
   }
 
