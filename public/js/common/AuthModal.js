@@ -1,13 +1,10 @@
 /**
- * Sign-in / sign-up behavior (#4375), shared by the navbar <dialog>, the full-page /signIn·/signUp fallback, and
- * the reset-password page: show-password toggles, live password/username validation, and async submits with inline
- * errors.
+ * Sign-in / sign-up behavior (#4375), shared by the navbar <dialog>, the full-page /signIn·/signUp fallback, and the
+ * reset-password page: show-password toggles, live password/username validation, and async submits with inline errors.
  *
  * Validation rules are NOT declared here — the Twirl template injects them from the backend's PasswordPolicy /
- * UsernamePolicy as data-* attributes (CLAUDE.md: backend is the source of truth), the breach-check endpoint
- * included; this file just compiles and applies them. The `AuthModal` class adds the dialog-only concerns
- * (open/close, panel switching, trigger buttons) and is exposed as `window.psAuthModal` with
- * `.open('signIn'|'signUp')`.
+ * UsernamePolicy as data-* attributes; this file just compiles and applies them. The `AuthModal` class adds the
+ * dialog-only concerns and is exposed as `window.psAuthModal` with `.open('signIn'|'signUp')`.
  */
 
 /**
@@ -78,9 +75,7 @@ function fetchBreachRange(prefix, rangeUrl) {
 /**
  * Asks Have I Been Pwned whether a password is in its breach corpus. Only the first five hex characters of the
  * SHA-1 are sent, and `Add-Padding` keeps the response length from hinting at how many hashes share that prefix;
- * the request still carries the user's IP and this instance's Origin, as any cross-origin call does. Fail-open by
- * design (#4492): offline, blocked, or no Web Crypto all report "not breached" rather than standing between a
- * user and their account.
+ * the request still carries the user's IP and this instance's Origin, as any cross-origin call does.
  *
  * @param {string} password - The candidate password.
  * @param {string} rangeUrl - The range endpoint, from PasswordPolicy.
@@ -176,9 +171,7 @@ function wirePasswordGroup(group) {
   };
 
   /**
-   * Schedules the breach lookup for the current value, once typing pauses. Only a password that already satisfies
-   * the composition rules is looked up; a half-typed one would spend a request to say what the checklist says. A
-   * group with no checklist has no notion of "half-typed", so it never reaches the network.
+   * Schedules the breach lookup for the current value once typing pauses (if composition rules satisfied).
    *
    * @param {boolean} allRulesMet - Whether the current value satisfies every composition rule.
    */
