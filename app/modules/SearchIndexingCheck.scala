@@ -79,13 +79,11 @@ object SearchIndexingCheck {
     val status: String   = config.getOptional[String](s"city-params.status.$cityId").getOrElse("<missing>")
     val panoType: String = config.getOptional[String](s"city-params.pano-viewer-type.$cityId").getOrElse("<missing>")
     val indexable        = SeoUtils.isIndexable(envType, status, panoType)
-    val publicCount: Int = config
-      .get[Seq[String]]("city-params.city-ids")
-      .count(id => config.getOptional[String](s"city-params.status.$id").contains("public"))
-    val totalCount: Int = config.get[Seq[String]]("city-params.city-ids").size
-    val state: String   = if (indexable) "INDEXABLE" else "NOT indexable"
+    val cityIds: Seq[String] = config.get[Seq[String]]("city-params.city-ids")
+    val publicCount: Int = cityIds.count(id => config.getOptional[String](s"city-params.status.$id").contains("public"))
+    val state: String    = if (indexable) "INDEXABLE" else "NOT indexable"
     s"Search indexing: $cityId is $state (environment-type=$envType, status=$status, pano-viewer-type=$panoType); " +
-      s"$publicCount of $totalCount configured cities are public. A vhost X-Robots-Tag header can still override " +
-      s"this — see docs/deployment-and-stages.md."
+      s"$publicCount of ${cityIds.size} configured cities are public. A vhost X-Robots-Tag header can still " +
+      s"override this — see docs/deployment-and-stages.md."
   }
 }
