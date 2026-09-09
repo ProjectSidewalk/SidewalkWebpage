@@ -28,6 +28,19 @@ class CitiesApiSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   implicit lazy val mat: Materializer = app.materializer
 
+  /** Splits a CSV row on commas outside quotes, so a quoted city name like "Washington, DC" stays one cell. */
+  private def splitCsvRow(row: String): Seq[String] = {
+    val cells    = scala.collection.mutable.ListBuffer.empty[String]
+    val cell     = new StringBuilder
+    var inQuotes = false
+    row.foreach {
+      case '"'              => inQuotes = !inQuotes
+      case ',' if !inQuotes => cells += cell.toString; cell.clear()
+      case c                => cell += c
+    }
+    (cells += cell.toString).toSeq
+  }
+
   "GET /v3/api/cities (default JSON)" should {
     "return 200 with the {status, cities:[...]} envelope" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/cities")).get
@@ -52,6 +65,59 @@ class CitiesApiSpec extends PlaySpec with GuiceOneAppPerSuite {
         // camelCase keys must not appear in the output per v3 naming convention (#3871).
         (city \ "cityId").toOption mustBe None
         (city \ "cityNameShort").toOption mustBe None
+      }
+    }
+  }
+
+  "GET /v3/api/cities" should {
+    "publish a url for public cities and null for every other visibility" in {
+      // These deployments are research partnerships and internal UW studies. /cities is in the sitemap and the map
+      // component it loads fetches this endpoint client-side, so a url here is a url a crawler follows (#5259).
+      val cities = (contentAsJson(route(app, FakeRequest(GET, "/v3/api/cities")).get) \ "cities").as[Seq[JsObject]]
+      cities.count(c => (c \ "visibility").as[String] != "public") must be > 0
+      cities.foreach { city =>
+        val cityId: String = (city \ "city_id").as[String]
+        withClue(s"$cityId: ") {
+          // The key stays present either way, so response shape and CSV column layout don't change.
+          (city \ "url").toOption mustBe defined
+          if ((city \ "visibility").as[String] == "public") (city \ "url").as[String] must startWith("http")
+          else (city \ "url").get mustBe play.api.libs.json.JsNull
+        }
+      }
+    }
+
+    "render the withheld url as an empty CSV cell, not the literal \"null\"" in {
+      val body    = contentAsString(route(app, FakeRequest(GET, "/v3/api/cities?filetype=csv")).get)
+      val lines   = body.split("\n").toSeq.filter(_.nonEmpty)
+      val headers = splitCsvRow(lines.head)
+      val urlCol  = headers.indexOf("url")
+      val visCol  = headers.indexOf("visibility")
+      urlCol must be >= 0
+      lines.tail.foreach { row =>
+        val cells = splitCsvRow(row)
+        withClue(s"${cells.head}: ") {
+          if (cells(visCol) == "public") cells(urlCol) must startWith("http")
+          else cells(urlCol) mustBe ""
+        }
+      }
+    }
+
+    "withhold the url in GeoJSON properties too" in {
+      val json     = contentAsJson(route(app, FakeRequest(GET, "/v3/api/cities?filetype=geojson")).get)
+      val features = (json \ "features").as[Seq[JsObject]]
+      features.map(f => (f \ "properties").as[JsObject]).foreach { props =>
+        if ((props \ "visibility").as[String] == "public") (props \ "url").as[String] must startWith("http")
+        else (props \ "url").get mustBe play.api.libs.json.JsNull
+      }
+    }
+
+    "keep publishing the non-url fields for a private city, so counts and geometry still work" in {
+      val cities   = (contentAsJson(route(app, FakeRequest(GET, "/v3/api/cities")).get) \ "cities").as[Seq[JsObject]]
+      val private_ = cities.filter(c => (c \ "visibility").as[String] != "public")
+      private_.foreach { city =>
+        (city \ "city_id").asOpt[String] mustBe defined
+        (city \ "city_name_formatted").asOpt[String] mustBe defined
+        (city \ "visibility").asOpt[String] mustBe defined
       }
     }
   }

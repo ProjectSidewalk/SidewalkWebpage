@@ -193,7 +193,7 @@
           <tr><td><code>country_id</code></td><td><code>string</code></td><td>Identifier for the country where the city is located.</td></tr>
           <tr><td><code>city_name_short</code></td><td><code>string</code></td><td>Short name of the city.</td></tr>
           <tr><td><code>city_name_formatted</code></td><td><code>string</code></td><td>Full formatted name of the city, including state/province or country information.</td></tr>
-          <tr><td><code>url</code></td><td><code>string</code></td><td>URL for the city's Project Sidewalk instance.</td></tr>
+          <tr><td><code>url</code></td><td><code>string | null</code></td><td>URL for the city's Project Sidewalk instance. <code>null</code> unless <code>visibility</code> is <code>public</code>; the CSV renders that as an empty cell.</td></tr>
           <tr><td><code>visibility</code></td><td><code>string</code></td><td>Visibility status of the city: <code>public</code> or <code>private</code>.</td></tr>
           <tr><td><code>center_lat</code></td><td><code>number | null</code></td><td>Latitude of the city's center point. Present only if geographic information is available.</td></tr>
           <tr><td><code>center_lng</code></td><td><code>number | null</code></td><td>Longitude of the city's center point. Present only if geographic information is available.</td></tr>
