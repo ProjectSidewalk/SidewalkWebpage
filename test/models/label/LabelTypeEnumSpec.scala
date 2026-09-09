@@ -1,5 +1,6 @@
 package models.label
 
+import models.label.LabelTypeEnum.AccessImpact
 import org.scalatestplus.play.PlaySpec
 
 import java.io.File
@@ -7,21 +8,32 @@ import java.io.File
 /**
  * Pure unit tests for the label-type enum's derived and declared properties. No app boot or DB required.
  *
- * These pin domain facts that feature code depends on: the issue/feature split drives share copy and severity
+ * These pin domain facts that feature code depends on: the access-impact bucketing drives share copy and severity
  * interpretation (positive access features and problems read severity in opposite directions), `nameKey` must track
  * `descriptionKey`, and the icon files must exist on disk because share-image compositing loads them by convention.
  */
 class LabelTypeEnumSpec extends PlaySpec {
 
-  "isAccessProblem" should {
-    "be true for exactly the accessibility-problem label types" in {
-      val issueTypes = LabelTypeEnum.values.filter(_.isAccessProblem)
-      issueTypes mustBe Set(
+  "accessImpact" should {
+    "put every label type in the right bucket" in {
+      // A type in the wrong bucket silently inverts share copy and every severity interpretation built on this.
+      LabelTypeEnum.byAccessImpact(AccessImpact.Problem) mustBe Set(
         LabelTypeEnum.NoCurbRamp,
         LabelTypeEnum.Obstacle,
         LabelTypeEnum.SurfaceProblem,
         LabelTypeEnum.NoSidewalk
       )
+      LabelTypeEnum.byAccessImpact(AccessImpact.Feature) mustBe Set(
+        LabelTypeEnum.CurbRamp,
+        LabelTypeEnum.Crosswalk,
+        LabelTypeEnum.Signal
+      )
+      LabelTypeEnum.byAccessImpact(AccessImpact.Neutral) mustBe Set(LabelTypeEnum.Occlusion, LabelTypeEnum.Other)
+    }
+
+    "publish a distinct name per bucket, since clients match on those strings" in {
+      val impacts = Seq(AccessImpact.Problem, AccessImpact.Feature, AccessImpact.Neutral)
+      impacts.map(_.name) mustBe Seq("problem", "feature", "neutral")
     }
   }
 

@@ -11,6 +11,28 @@ object LabelTypeEnum {
   private val iconBasePath = "/assets/images/icons/label_type_icons"
 
   /**
+   * What a label type says about accessibility. Anything that interprets a label's severity, or writes copy about it,
+   * has to branch on this rather than on the label type itself.
+   *
+   * @param name The value published to clients (the API's `access_impact`, and our own JSON payloads)
+   */
+  sealed abstract class AccessImpact(val name: String) {
+    override def toString: String = name
+  }
+
+  object AccessImpact {
+
+    /** The thing labeled is a barrier; severity says how bad it is. */
+    case object Problem extends AccessImpact("problem")
+
+    /** The thing labeled helps people get around; severity says how good it is. */
+    case object Feature extends AccessImpact("feature")
+
+    /** Not a statement about accessibility at all, so severity says nothing about quality. */
+    case object Neutral extends AccessImpact("neutral")
+  }
+
+  /**
    * Base class for all label types in the system.
    *
    * This sealed abstract class represents the base type for all label types in the system, providing type safety and
@@ -19,16 +41,13 @@ object LabelTypeEnum {
    * @param name The string representation of this label type, matching the Postgres enum label
    * @param descriptionKey A key to get a human-readable description of this label type from the Messages API
    * @param color Hex color code associated with this label type
-   * @param isAccessProblem Whether this label type marks an accessibility problem (severity means "how bad"), as opposed
-   *                      to a positive access feature like a curb ramp or a neutral meta type like an occlusion. Copy
-   *                      and severity interpretation flip direction on this, so it must come from here, not be
-   *                      re-derived in feature code.
+   * @param accessImpact What this type says about accessibility; see [[AccessImpact]]
    */
   sealed abstract class Base(
       val name: String,
       val descriptionKey: String,
       val color: String,
-      val isAccessProblem: Boolean
+      val accessImpact: AccessImpact
   ) {
     override def toString: String = name
 
@@ -47,16 +66,16 @@ object LabelTypeEnum {
 
   // Representations for the full set of label types in the system.
   // TODO These colors should probably match the colors in our Design System Tokens in main.css.
-  case object CurbRamp   extends Base("CurbRamp", "curb.ramp.description", "#90C31F", isAccessProblem = false)
-  case object NoCurbRamp extends Base("NoCurbRamp", "missing.ramp.description", "#E679B6", isAccessProblem = true)
-  case object Obstacle   extends Base("Obstacle", "obstacle.description", "#78B0EA", isAccessProblem = true)
+  case object CurbRamp   extends Base("CurbRamp", "curb.ramp.description", "#90C31F", AccessImpact.Feature)
+  case object NoCurbRamp extends Base("NoCurbRamp", "missing.ramp.description", "#E679B6", AccessImpact.Problem)
+  case object Obstacle   extends Base("Obstacle", "obstacle.description", "#78B0EA", AccessImpact.Problem)
   case object SurfaceProblem
-      extends Base("SurfaceProblem", "surface.problem.description", "#F68D3E", isAccessProblem = true)
-  case object Crosswalk  extends Base("Crosswalk", "crosswalk.description", "#FABF1C", isAccessProblem = false)
-  case object Signal     extends Base("Signal", "signal.description", "#63C0AB", isAccessProblem = false)
-  case object NoSidewalk extends Base("NoSidewalk", "no.sidewalk.description", "#BE87D8", isAccessProblem = true)
-  case object Occlusion  extends Base("Occlusion", "occlusion.description", "#B3B3B3", isAccessProblem = false)
-  case object Other      extends Base("Other", "other.description", "#B3B3B3", isAccessProblem = false)
+      extends Base("SurfaceProblem", "surface.problem.description", "#F68D3E", AccessImpact.Problem)
+  case object Crosswalk  extends Base("Crosswalk", "crosswalk.description", "#FABF1C", AccessImpact.Feature)
+  case object Signal     extends Base("Signal", "signal.description", "#63C0AB", AccessImpact.Feature)
+  case object NoSidewalk extends Base("NoSidewalk", "no.sidewalk.description", "#BE87D8", AccessImpact.Problem)
+  case object Occlusion  extends Base("Occlusion", "occlusion.description", "#B3B3B3", AccessImpact.Neutral)
+  case object Other      extends Base("Other", "other.description", "#B3B3B3", AccessImpact.Neutral)
 
   // The one canonical order, by prominence: the six primary validate types, then NoSidewalk, then the meta types.
   // API output, CSV columns and error messages sort by position here, never by the Postgres enum's declaration order
@@ -70,6 +89,8 @@ object LabelTypeEnum {
 
   // Lookup map for finding a label type by its string name.
   lazy val byName: Map[String, Base] = values.map(lt => lt.name -> lt).toMap
+
+  lazy val byAccessImpact: Map[AccessImpact, Set[Base]] = values.groupBy(_.accessImpact)
 
   // Maps label type names to their associated colors. Used for retrieving colors by label type name.
   lazy val labelTypeToColor: Map[String, String] = values.map(lt => lt.name -> lt.color).toMap

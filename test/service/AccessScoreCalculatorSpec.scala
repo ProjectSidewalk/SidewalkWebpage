@@ -1,5 +1,7 @@
 package service
 
+import models.label.LabelTypeEnum
+import models.label.LabelTypeEnum.AccessImpact
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import service.AccessScoreCalculator.ClusterScoreInput
@@ -320,6 +322,20 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
     AccessScoreCalculator.orderedScoredTypes shouldBe Seq(
       "CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal", "NoSidewalk"
     )
+  }
+
+  test("the scored types are exactly the ones that say something about access, signed the way they read") {
+    // The weights are tuned by hand, but which types get one, and which way it points, is not a taste call (#4457).
+    val (neutral, meaningful) = LabelTypeEnum.values.partition(_.accessImpact == AccessImpact.Neutral)
+    AccessScoreCalculator.scoredTypeNames shouldBe meaningful.map(_.name)
+    neutral.map(_.name).intersect(AccessScoreCalculator.scoredTypeNames) shouldBe empty
+
+    AccessScoreCalculator.typeWeights.foreach { case (typeName, weight) =>
+      val impact = LabelTypeEnum.byName(typeName).accessImpact
+      withClue(s"$typeName is a $impact but weighs ${weight.baseWeight}: ") {
+        if (impact == AccessImpact.Problem) weight.baseWeight should be < 0.0 else weight.baseWeight should be > 0.0
+      }
+    }
   }
 
   // --- Intersections as a scoring unit, and length normalization (#5095) ---

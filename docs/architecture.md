@@ -328,6 +328,12 @@ canonical color and icon set. The source of truth is the **`/v3/api/labelTypes`*
 `util.misc.getLabelColors(labelType)` rather than hardcoding hex values. See [`CLAUDE.md`](../CLAUDE.md) for the
 canonical color table and icon locations.
 
+Each type also carries an **access impact** (`LabelTypeEnum.AccessImpact`, published as `access_impact`): `problem`
+(a barrier, so a label's severity says how bad it is), `feature` (something that helps, so severity says how good it
+is), or `neutral` (Occlusion and Other, where severity says nothing about quality). Severity means the opposite
+thing on a problem than on a feature, so any code that reads severity — or writes copy about a label — branches on
+this rather than on a hand-written list of type names.
+
 ## Where to go next
 
 - [`docs/dev-environment.md`](dev-environment.md) — get it running locally.

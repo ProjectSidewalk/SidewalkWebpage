@@ -86,6 +86,7 @@
       "small_icon_url": "/assets/images/icons/label_type_icons/CurbRamp_small.png",
       "tiny_icon_url": "/assets/images/icons/label_type_icons/CurbRamp_tiny.png",
       "color": "#90C31F",
+      "access_impact": "feature",
       "is_primary": true,
       "is_primary_validate": true
     },
@@ -97,6 +98,7 @@
       "small_icon_url": "/assets/images/icons/label_type_icons/NoCurbRamp_small.png",
       "tiny_icon_url": "/assets/images/icons/label_type_icons/NoCurbRamp_tiny.png",
       "color": "#E679B6",
+      "access_impact": "problem",
       "is_primary": true,
       "is_primary_validate": true
     },
@@ -159,6 +161,11 @@
             <td><code>label_types[].color</code></td>
             <td><code>string</code></td>
             <td>Hex color code (e.g., "#90C31F") associated with this label type.</td>
+          </tr>
+          <tr>
+            <td><code>label_types[].access_impact</code></td>
+            <td><code>string</code></td>
+            <td>What this label type says about accessibility: <code>"problem"</code> (a barrier, e.g. a missing curb ramp — a label's <code>severity</code> says how bad it is), <code>"feature"</code> (something that helps, e.g. a curb ramp — <code>severity</code> says how good it is), or <code>"neutral"</code> (not an accessibility judgment at all, e.g. an occlusion). Use this rather than a hardcoded list of label types when interpreting severity.</td>
           </tr>
           <tr>
             <td><code>label_types[].is_primary</code></td>

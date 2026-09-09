@@ -92,7 +92,8 @@ file, and this table says which doc to read first:
 Domain values (enum members, ranges, thresholds, and especially the mappings between them) come from the backend, a
 `/v3/api/...` endpoint or a value the controller passes to the view, and are never re-declared as frontend literals.
 Even a "trivial" constant encodes logic: severity 1–3 maps to good/ok/bad in opposite directions for positive
-features (curb ramps) and negative ones (obstacles). Source it; if no source exists, expose one as part of the task;
+features (curb ramps) and negative ones (obstacles) — which direction a type reads is its `access_impact`, from
+`/v3/api/labelTypes`. Source it; if no source exists, expose one as part of the task;
 only if genuinely unavoidable, centralize the literal with a comment saying why it isn't sourced.
 
 ## Label type colors and icons

@@ -15,6 +15,8 @@ import play.api.libs.json.{Json, JsonConfiguration, JsonNaming, OFormat}
  * @param smallIconUrl URL to the small icon image
  * @param tinyIconUrl URL to the tiny icon image
  * @param color Hex color code associated with this label type
+ * @param accessImpact What this type says about accessibility: "problem", "feature", or "neutral". Severity means the
+ *                     opposite thing on a problem than on a feature, so read this rather than hardcode type names.
  * @param isPrimary Whether this is a primary label type
  * @param isPrimaryValidate Whether this type is included in primary validation
  */
@@ -26,6 +28,7 @@ case class LabelTypeForApi(
     smallIconUrl: String,
     tinyIconUrl: String,
     color: String,
+    accessImpact: String,
     isPrimary: Boolean,
     isPrimaryValidate: Boolean
 )

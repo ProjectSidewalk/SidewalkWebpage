@@ -432,6 +432,9 @@ function UtilitiesMisc(JSON) {
     return category ? descriptions[category] : descriptions;
   }
 
+  // Duplicates `access_impact: "feature"` on /v3/api/labelTypes: sourcing it would make every caller of
+  // isPositiveLabelType() wait on a fetch, so it stays hardcoded until this file gets an async bootstrap (#4457).
+  // Signal is a feature too, but carries no severity, so it never reaches these functions.
   const POSITIVE_LABEL_TYPES = ['CurbRamp', 'Crosswalk'];
   const LABEL_TYPES_WITHOUT_SEVERITY = ['NoSidewalk', 'Signal', 'Occlusion'];
 

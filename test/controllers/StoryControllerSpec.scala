@@ -1,6 +1,6 @@
 package controllers
 
-import models.label.LabelTableDef
+import models.label.{LabelTableDef, LabelTypeEnum}
 import models.pano.{PanoDataTableDef, PanoSource}
 import models.story.Story
 import models.utils.MyPostgresProfile.api._
@@ -56,6 +56,7 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
   private val maxTextLength: Int    = app.configuration.get[Int]("stories.max-text-length")
   private val maxAltTextLength: Int = app.configuration.get[Int]("stories.max-alt-text-length")
   private val maxPerDay: Int        = app.configuration.get[Int]("stories.max-per-user-per-day")
+  private val impactNames: Set[String] = LabelTypeEnum.values.map(_.accessImpact.name)
 
   private lazy val labelIds: Seq[Int] =
     Await.result(labelService.getRecentLabelMetadata(50), 60.seconds).map(_.labelId).distinct
@@ -130,8 +131,8 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
           status(resp) mustBe OK
           (contentAsJson(resp) \ "label_id").as[Int] mustBe id
           (contentAsJson(resp) \ "max_text_length").as[Int] mustBe maxTextLength
-          // Real labels always resolve to a boolean (the card's problem-vs-feature prompt switch).
-          (contentAsJson(resp) \ "is_access_problem").asOpt[Boolean] mustBe defined
+          // Real labels always resolve to a bucket (the card's problem-vs-feature prompt switch).
+          impactNames must contain((contentAsJson(resp) \ "access_impact").as[String])
           (contentAsJson(resp) \ "stories").asOpt[JsArray] mustBe defined
       }
     }
@@ -560,7 +561,7 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
             mine mustBe defined
             (mine.get \ "label_id").as[Int] mustBe id
             (mine.get \ "label_type").asOpt[String] mustBe defined
-            (mine.get \ "is_access_problem").asOpt[Boolean] mustBe defined
+            impactNames must contain((mine.get \ "access_impact").as[String])
             (mine.get \ "display_name_mode").as[String] mustBe Story.DisplayNameAnonymous
             // The thumbnail source rides the payload; null is fine (no crop/pano), but the key must be there.
             (mine.get \ "label_image_url").toOption mustBe defined

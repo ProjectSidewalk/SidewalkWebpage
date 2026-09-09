@@ -53,6 +53,15 @@ class MetadataApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       types.find(lt => (lt \ "name").as[String] == "NoCurbRamp").map(lt => (lt \ "display_name").as[String]) mustBe
         Some("Missing Curb Ramp")
     }
+
+    "publish each type's access impact so clients can read severity the right way round" in {
+      // Severity means "how bad" on a problem and "how good" on a feature, so a client has to source this (#4457).
+      val json  = contentAsJson(route(app, FakeRequest(GET, "/v3/api/labelTypes")).get)
+      val types = (json \ "label_types").as[Seq[JsObject]]
+
+      types.map(lt => (lt \ "name").as[String] -> (lt \ "access_impact").as[String]).toMap mustBe
+        LabelTypeEnum.values.map(lt => lt.name -> lt.accessImpact.name).toMap
+    }
   }
 
   "GET /v3/api/cities" should {

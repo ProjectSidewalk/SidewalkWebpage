@@ -276,6 +276,7 @@ class ApiServiceImpl @Inject() (
         smallIconUrl = labelType.smallIconPath,
         tinyIconUrl = labelType.tinyIconPath,
         color = labelType.color,
+        accessImpact = labelType.accessImpact.name,
         isPrimary = LabelTypeEnum.primaryLabelTypes.contains(labelType),
         isPrimaryValidate = LabelTypeEnum.primaryValidateLabelTypes.contains(labelType)
       )
