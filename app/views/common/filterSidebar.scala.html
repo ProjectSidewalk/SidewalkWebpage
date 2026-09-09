@@ -122,11 +122,16 @@
 
 @* A street row. `subI18nKey` hangs a caption under the row name: the three street states share one wrapping
    ("audited"/"unaudited"), and the qualifier that separates two of them is too long for a single line in any
-   language, so it reads as a second line rather than as part of the name. *@
-@streetItem(id: String, streetClass: String, i18nKey: String, text: String, subI18nKey: String = "", subText: String = "") = {
+   language, so it reads as a second line rather than as part of the name.
+
+   `tooltipI18nKey` explains a state the name alone can't. It is declared on BOTH the checkbox and the label because
+   the two halves of the row are siblings, and psTooltip resolves its trigger with `closest()`: the pointer only ever
+   lands on the label, keyboard focus only ever lands on the visually-hidden checkbox, and `aria-describedby` has to
+   end up on whichever of them actually triggered it. *@
+@streetItem(id: String, streetClass: String, i18nKey: String, text: String, subI18nKey: String = "", subText: String = "", tooltipI18nKey: String = "") = {
   <li class="filter-sidebar__item">
-    <input type="checkbox" id="@id" class="filter-sidebar__checkbox" data-filter-type="streets" @if(streetsShownByDefault){checked} disabled>
-    <label class="filter-sidebar__item-label" for="@id">
+    <input type="checkbox" id="@id" class="filter-sidebar__checkbox" data-filter-type="streets" @if(streetsShownByDefault){checked} @if(tooltipI18nKey.nonEmpty){data-i18n-tooltip="@tooltipI18nKey"} disabled>
+    <label class="filter-sidebar__item-label" for="@id" @if(tooltipI18nKey.nonEmpty){data-i18n-tooltip="@tooltipI18nKey"}>
       <span class="filter-sidebar__icon filter-sidebar__icon--badged">
         <svg class="filter-sidebar__street-icon filter-sidebar__street-icon--@streetClass" width="17" height="14" viewBox="0 0 20 20" aria-hidden="true">
           <path d="M 2 10 L 18 10 z"></path>
@@ -217,8 +222,8 @@
           <ul class="filter-sidebar__list">
             @streetItem("audited-street", "audited", "labelmap:audited-street", "Audited Street")
             @if(showOutdatedStreetFilter) {
-              @streetItem("outdated-street", "outdated", "labelmap:audited-street", "Audited Street",
-                "labelmap:outdated-street-note", "Newer imagery available")
+              @streetItem("outdated-street", "outdated", "labelmap:outdated-street-name", "Street Needs Re-Audit",
+                "labelmap:outdated-street-note", "Newer imagery available", "labelmap:outdated-street-tooltip")
             }
             @streetItem("unaudited-street", "unaudited", "labelmap:unaudited-street", "Unaudited Street")
           </ul>

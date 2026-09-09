@@ -14,10 +14,14 @@
  */
 function addStreetsToMap(map, streetData, params) {
   const STREET_LAYER_NAME = 'streets';
-  const AUDITED_STREET_COLOR = getComputedStyle(document.documentElement)
-    .getPropertyValue('--color-asphalt-500').trim();
-  const UNAUDITED_STREET_COLOR = getComputedStyle(document.documentElement)
-    .getPropertyValue('--color-asphalt-300').trim();
+  const rootStyle = getComputedStyle(document.documentElement);
+  const AUDITED_STREET_COLOR = rootStyle.getPropertyValue('--color-street-audited').trim();
+  const UNAUDITED_STREET_COLOR = rootStyle.getPropertyValue('--color-street-unaudited').trim();
+
+  // Which streets take the unaudited treatment: only where the map opted in, and only for streets with no audit at
+  // all — an outdated street has been audited, so it renders audited-and-dashed instead.
+  const IS_UNAUDITED = ['all', params.differentiateUnauditedStreets, ['==', ['get', 'audited'], false],
+    ['!=', ['get', 'outdated'], true]];
 
   // Render street segments.
   map.addSource(STREET_LAYER_NAME, {
@@ -35,10 +39,11 @@ function addStreetsToMap(map, streetData, params) {
       'visibility': 'none', // Hidden by default; shown when the user checks a street filter in the sidebar.
     },
     paint: {
-      'line-opacity': 0.6,
-      'line-color': [ // Grey if unaudited, black if audited or outdated. All black if the map doesn't differentiate.
-        'case', ['all', params.differentiateUnauditedStreets, ['==', ['get', 'audited'], false],
-          ['!=', ['get', 'outdated'], true]],
+      // Unaudited streets carry more of their color than the rest. At the 0.6 the whole layer used to share, any
+      // hue composites against the light basemap to a pastel that reads as another grey.
+      'line-opacity': ['case', IS_UNAUDITED, 0.8, 0.6],
+      'line-color': [ // Warm if unaudited, dark if audited or outdated. All dark if the map doesn't differentiate.
+        'case', IS_UNAUDITED,
         UNAUDITED_STREET_COLOR,
         AUDITED_STREET_COLOR,
       ],
@@ -58,12 +63,19 @@ function addStreetsToMap(map, streetData, params) {
   });
 
   if (params.interactiveStreets) {
+    // Streets needing a re-audit get a card explaining why, on hover (#5258).
+    const reauditCard = new StreetReauditCard(map, {
+      mapName: params.mapName, logClicks: params.logClicks !== false,
+    });
+
     // Add click functionality to the streets.
     const streetPopup = new mapboxgl.Popup({ focusAfterOpen: false });
     map.on('click', STREET_LAYER_NAME, (event) => {
-      const popupContent = i18next.t('common:explore-street-link', {
-        streetId: event.features[0].properties.street_edge_id,
-      });
+      const streetId = event.features[0].properties.street_edge_id;
+      // The re-audit card already carries this street's Explore link, so a second popup would only cover it. On
+      // touch there is no hover, no card, and this stays the only way in.
+      if (reauditCard.isShowingFor(streetId)) return;
+      const popupContent = i18next.t('common:explore-street-link', { streetId });
       streetPopup.setLngLat(event.lngLat).setHTML(popupContent).addTo(map);
     });
 
@@ -82,13 +94,23 @@ function addStreetsToMap(map, streetData, params) {
         hoveredStreet = currStreet;
         document.querySelector('.mapboxgl-canvas').style.cursor = 'pointer';
       }
+      if (currStreet.properties.outdated === true) {
+        reauditCard.scheduleFor(currStreet.properties.street_edge_id, event.lngLat);
+      } else {
+        reauditCard.cancelScheduled();
+        reauditCard.scheduleHide();
+      }
     });
     map.on('mouseleave', STREET_LAYER_NAME, () => {
-      map.setFeatureState(
-        { source: hoveredStreet.layer.id, id: hoveredStreet.properties.street_edge_id }, { hover: false },
-      );
-      hoveredStreet = null;
+      // Guarded: hiding the layer or changing a filter under the pointer fires this with nothing hovered.
+      if (hoveredStreet) {
+        map.setFeatureState(
+          { source: hoveredStreet.layer.id, id: hoveredStreet.properties.street_edge_id }, { hover: false },
+        );
+        hoveredStreet = null;
+      }
       document.querySelector('.mapboxgl-canvas').style.cursor = '';
+      reauditCard.scheduleHide();
     });
 
     // Log clicks on the link to explore a street.
