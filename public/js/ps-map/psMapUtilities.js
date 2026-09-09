@@ -207,10 +207,7 @@ function CreateMapLayerTracker() {
   // One flat array of features and one layer name string per label type.
   mapData.sortedLabels = {};
   mapData.layerNames = {};
-  const labelTypes = [
-    'CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal', 'Other',
-  ];
-  for (const labelType of labelTypes) {
+  for (const labelType of util.misc.VALID_LABEL_TYPES) {
     mapData.sortedLabels[labelType] = [];
     mapData.layerNames[labelType] = '';
     mapData.selectedTags[labelType] = new Set();

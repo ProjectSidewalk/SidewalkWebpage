@@ -2,6 +2,7 @@ package models.utils
 
 import com.google.inject.ImplementedBy
 import models.api.{AggregateStats, LabelTypeStats}
+import models.label.LabelTypeEnum
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -524,10 +525,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           SELECT COUNT(DISTINCT label.label_id) AS label_count,
                  COUNT(DISTINCT label.label_id) FILTER (WHERE user_role.role = 'AI') AS ai_count,
                  COUNT(DISTINCT label.label_id) FILTER (WHERE label.severity IS NOT NULL) AS with_severity,
-                 -- Denominator for "% with severity": only types that CAN take a severity. The three excluded here
-                 -- mirror UtilitiesSidewalk.js LABEL_TYPES_WITHOUT_SEVERITY (NoSidewalk, Signal, Occlusion).
+                 -- Denominator for "% with severity": only types that CAN take a rating, per LabelTypeEnum.
                  COUNT(DISTINCT label.label_id) FILTER (
-                     WHERE NOT #${labelTypeSql.labelIsOneOf(Seq("NoSidewalk", "Signal", "Occlusion"))}
+                     WHERE #${labelTypeSql.labelIsOneOf(LabelTypeEnum.ratedTypeNames)}
                  ) AS severity_eligible,
                  COUNT(DISTINCT label.label_id) FILTER (WHERE cardinality(label.tags) > 0) AS with_tags,
                  -- Denominator for "% with tags": only types that CAN take tags, i.e. types that have any tag defined

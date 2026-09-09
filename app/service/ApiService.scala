@@ -272,10 +272,12 @@ class ApiServiceImpl @Inject() (
         name = labelType.name,
         displayName = messagesApi(labelType.nameKey)(lang),
         description = messagesApi(labelType.descriptionKey)(lang),
-        iconUrl = labelType.iconPath,
-        smallIconUrl = labelType.smallIconPath,
-        tinyIconUrl = labelType.tinyIconPath,
+        iconUrl = labelType.iconUrl,
+        smallIconUrl = labelType.smallIconUrl,
+        tinyIconUrl = labelType.tinyIconUrl,
         color = labelType.color,
+        accessImpact = labelType.accessImpact.name,
+        ratingScale = labelType.ratingScale.name,
         isPrimary = LabelTypeEnum.primaryLabelTypes.contains(labelType),
         isPrimaryValidate = LabelTypeEnum.primaryValidateLabelTypes.contains(labelType)
       )

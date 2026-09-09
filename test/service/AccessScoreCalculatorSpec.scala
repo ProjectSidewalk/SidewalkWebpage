@@ -1,5 +1,7 @@
 package service
 
+import models.label.LabelTypeEnum
+import models.label.LabelTypeEnum.{AccessImpact, RatingScale}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import service.AccessScoreCalculator.ClusterScoreInput
@@ -320,6 +322,36 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
     AccessScoreCalculator.orderedScoredTypes shouldBe Seq(
       "CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal", "NoSidewalk"
     )
+  }
+
+  test("the scored types are exactly the ones that say something about access, signed the way they read") {
+    // The weights are tuned by hand, but which types get one, and which way it points, is not a taste call (#4457).
+    val meaningful = LabelTypeEnum.values.filterNot(_.accessImpact == AccessImpact.Neutral)
+    AccessScoreCalculator.scoredTypeNames shouldBe meaningful.map(_.name)
+
+    AccessScoreCalculator.typeWeights.foreach { case (typeName, weight) =>
+      val impact = LabelTypeEnum.byName(typeName).accessImpact
+      withClue(s"$typeName is a $impact but weighs ${weight.baseWeight}: ") {
+        if (impact == AccessImpact.Problem) weight.baseWeight should be < 0.0 else weight.baseWeight should be > 0.0
+      }
+    }
+  }
+
+  test("each scoring mode agrees with the label type's rating scale") {
+    // Scoring carries what the enum doesn't know (per-cluster vs pooled vs presence-only, length normalization), but
+    // which way a rating reads is LabelTypeEnum's to say. Pin them together so the two can't drift (#4457).
+    AccessScoreCalculator.typeWeights.foreach { case (typeName, weight) =>
+      val scale = LabelTypeEnum.byName(typeName).ratingScale
+      withClue(s"$typeName is $scale but scores as ${weight.scoring}: ") {
+        weight.scoring match {
+          case AccessScoreCalculator.PositiveQuality  => scale shouldBe RatingScale.Quality
+          case AccessScoreCalculator.NegativeSeverity => scale shouldBe RatingScale.Severity
+          // Both ignore the rating entirely, which is only sound for a type that never carries one.
+          case AccessScoreCalculator.PresenceOnly | AccessScoreCalculator.StreetCondition =>
+            scale shouldBe RatingScale.Unrated
+        }
+      }
+    }
   }
 
   // --- Intersections as a scoring unit, and length normalization (#5095) ---
