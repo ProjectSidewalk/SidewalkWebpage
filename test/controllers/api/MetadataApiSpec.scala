@@ -62,6 +62,26 @@ class MetadataApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       types.map(lt => (lt \ "name").as[String] -> (lt \ "access_impact").as[String]).toMap mustBe
         LabelTypeEnum.values.map(lt => lt.name -> lt.accessImpact.name).toMap
     }
+
+    "publish each type's rating scale, which is a separate question from its access impact" in {
+      // Signal is an access feature that carries no rating at all, so a client reading the scale off the impact
+      // would put it on the wrong one (#4457).
+      val json  = contentAsJson(route(app, FakeRequest(GET, "/v3/api/labelTypes")).get)
+      val types = (json \ "label_types").as[Seq[JsObject]]
+
+      types.map(lt => (lt \ "name").as[String] -> (lt \ "rating_scale").as[String]).toMap mustBe
+        LabelTypeEnum.values.map(lt => lt.name -> lt.ratingScale.name).toMap
+    }
+
+    "publish icon URLs that survive a deploy, so a consumer can store one" in {
+      val json  = contentAsJson(route(app, FakeRequest(GET, "/v3/api/labelTypes")).get)
+      val types = (json \ "label_types").as[Seq[JsObject]]
+
+      types.foreach { lt =>
+        val name = (lt \ "name").as[String]
+        (lt \ "icon_url").as[String] mustBe s"/assets/images/icons/label_type_icons/$name.png"
+      }
+    }
   }
 
   "GET /v3/api/cities" should {

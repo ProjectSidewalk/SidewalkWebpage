@@ -408,7 +408,7 @@ class ShareController @Inject() (
 
     // The colored "small" icon variant is the same marker family the Gallery overlays on card photos, carrying the
     // label type's canonical color (the large `{name}.png` illustrations are grayscale).
-    val iconFile: File = environment.getFile(s"public/images/icons/label_type_icons/${labelType.name}_small.png")
+    val iconFile: File = environment.getFile(s"public/${labelType.smallIconPath}")
     if (iconFile.exists()) {
       Option(ImageIO.read(iconFile)).foreach { icon =>
         val centerX: Int = (marker.x * scaledW).toInt - offX

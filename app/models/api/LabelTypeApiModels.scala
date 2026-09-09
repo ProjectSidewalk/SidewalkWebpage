@@ -17,6 +17,8 @@ import play.api.libs.json.{Json, JsonConfiguration, JsonNaming, OFormat}
  * @param color Hex color code associated with this label type
  * @param accessImpact What this type says about accessibility: "problem", "feature", or "neutral". Severity means the
  *                     opposite thing on a problem than on a feature, so read this rather than hardcode type names.
+ * @param ratingScale Which 1-3 rating this type's labels carry: "quality" (1 good, 3 bad), "severity" (1 low, 3 high),
+ *                    or "unrated" for a type whose labels never carry one
  * @param isPrimary Whether this is a primary label type
  * @param isPrimaryValidate Whether this type is included in primary validation
  */
@@ -29,6 +31,7 @@ case class LabelTypeForApi(
     tinyIconUrl: String,
     color: String,
     accessImpact: String,
+    ratingScale: String,
     isPrimary: Boolean,
     isPrimaryValidate: Boolean
 )

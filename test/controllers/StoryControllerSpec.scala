@@ -51,11 +51,11 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
   private val labelTable                 = app.injector.instanceOf[models.label.LabelTable]
 
   // Direct table access for the listing-page fixtures (seed/restore a pano address), per ExploreAddressServiceSpec.
-  private val labelsQ               = TableQuery[LabelTableDef]
-  private val panoDataQ             = TableQuery[PanoDataTableDef]
-  private val maxTextLength: Int    = app.configuration.get[Int]("stories.max-text-length")
-  private val maxAltTextLength: Int = app.configuration.get[Int]("stories.max-alt-text-length")
-  private val maxPerDay: Int        = app.configuration.get[Int]("stories.max-per-user-per-day")
+  private val labelsQ                  = TableQuery[LabelTableDef]
+  private val panoDataQ                = TableQuery[PanoDataTableDef]
+  private val maxTextLength: Int       = app.configuration.get[Int]("stories.max-text-length")
+  private val maxAltTextLength: Int    = app.configuration.get[Int]("stories.max-alt-text-length")
+  private val maxPerDay: Int           = app.configuration.get[Int]("stories.max-per-user-per-day")
   private val impactNames: Set[String] = LabelTypeEnum.values.map(_.accessImpact.name)
 
   private lazy val labelIds: Seq[Int] =
