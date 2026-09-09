@@ -5,7 +5,7 @@ import org.apache.pekko.actor.{Actor, Cancellable}
 import play.api.Logger
 import models.utils.JobRunTrigger
 import play.api.libs.json.{JsObject, Json}
-import service.{ConfigService, JobRunService, OsmWayService}
+import service.{ConfigService, JobRunService, OsmWayRefreshResult, OsmWayService}
 
 import java.time.Instant
 import javax.inject._
@@ -23,10 +23,11 @@ object OsmWayRefreshActor {
    * Defined here rather than at each call site so the nightly refresh and the admin hand-trigger can't record the
    * same job under two different shapes.
    *
-   * @param waysRefreshed Ways re-fetched from Overpass and upserted into `osm_way`.
+   * @param result Ways re-fetched from Overpass and written to `osm_way`, and how many of them are gone from OSM.
    * @return The run's `details` object.
    */
-  def runDetails(waysRefreshed: Int): JsObject = Json.obj("ways_refreshed" -> waysRefreshed)
+  def runDetails(result: OsmWayRefreshResult): JsObject =
+    Json.obj("ways_refreshed" -> result.waysRefreshed, "ways_missing" -> result.waysMissing)
 }
 
 /**
@@ -79,9 +80,9 @@ class OsmWayRefreshActor @Inject() (osmWayService: OsmWayService, jobRunService:
         OsmWayRefreshActor.runDetails
       )
       .onComplete {
-        case Success(waysRefreshed) =>
+        case Success(result) =>
           logger.info(s"OSM way data refresh completed at: ${dateFormatter.format(Instant.now())}")
-          logger.info(s"Ways refreshed: $waysRefreshed")
+          logger.info(s"Ways refreshed: ${result.waysRefreshed}; of those, gone from OSM: ${result.waysMissing}")
         case Failure(e) => logger.error(s"Error refreshing OSM way data: ${e.getMessage}")
       }
   }

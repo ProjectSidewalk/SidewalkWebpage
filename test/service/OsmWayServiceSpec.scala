@@ -57,6 +57,19 @@ class OsmWayServiceSpec extends PlaySpec {
     }
   }
 
+  "truncationRemark" should {
+    "report the remark Overpass attaches to a query it cut short, and nothing for a complete response" in {
+      val cut = Json.obj(
+        "elements" -> Json.arr(wayWithTags(5L, Json.obj("highway" -> "primary"))),
+        "remark"   -> "runtime error: Query timed out in \"query\" at line 1 after 2 seconds."
+      )
+      OsmWayService.truncationRemark(cut) mustBe
+        Some("runtime error: Query timed out in \"query\" at line 1 after 2 seconds.")
+      OsmWayService.truncationRemark(Json.obj("elements" -> Json.arr())) mustBe None
+      OsmWayService.truncationRemark(Json.obj("elements" -> Json.arr(), "remark" -> "")) mustBe None
+    }
+  }
+
   "maxspeedFrom" should {
     "extract the raw maxspeed value" in {
       OsmWayService.maxspeedFrom(Json.obj("maxspeed" -> "30")) mustBe Some("30")
