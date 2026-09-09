@@ -190,14 +190,14 @@ class IntersectionTableSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
         _  <- mapToWay(c1, 9000000004L, """{"highway": "residential"}""")
         _  <- mapToWay(c2, 9000000004L, """{"highway": "residential"}""")
         // A garbage layer tag at (22, 22) is ignored rather than aborting the rebuild.
-        g1     <- insertStreetAt(line(21.999, 22.0, 22.0, 22.0))
-        g2     <- insertStreetAt(line(22.0, 22.0, 22.001, 22.0))
-        h1     <- insertStreetAt(line(22.0, 21.999, 22.0, 22.0))
-        h2     <- insertStreetAt(line(22.0, 22.0, 22.0, 22.001))
-        _      <- mapToWay(g1, 9000000005L, """{"highway": "primary", "layer": "1;2"}""")
-        _      <- mapToWay(g2, 9000000005L, """{"highway": "primary", "layer": "1;2"}""")
-        _      <- mapToWay(h1, 9000000006L, """{"highway": "residential"}""")
-        _      <- mapToWay(h2, 9000000006L, """{"highway": "residential"}""")
+        g1 <- insertStreetAt(line(21.999, 22.0, 22.0, 22.0))
+        g2 <- insertStreetAt(line(22.0, 22.0, 22.001, 22.0))
+        h1 <- insertStreetAt(line(22.0, 21.999, 22.0, 22.0))
+        h2 <- insertStreetAt(line(22.0, 22.0, 22.0, 22.001))
+        _  <- mapToWay(g1, 9000000005L, """{"highway": "primary", "layer": "1;2"}""")
+        _  <- mapToWay(g2, 9000000005L, """{"highway": "primary", "layer": "1;2"}""")
+        _  <- mapToWay(h1, 9000000006L, """{"highway": "residential"}""")
+        _  <- mapToWay(h2, 9000000006L, """{"highway": "residential"}""")
         // At (23, 23) a bridge crosses a road whose way died in OSM before its tags were kept (#5244): the road's layer
         // is unknown, so it cannot vote, and the node stays unflagged until the tags are backfilled.
         k1      <- insertStreetAt(line(22.999, 23.0, 23.0, 23.0))
