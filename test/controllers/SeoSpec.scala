@@ -78,7 +78,7 @@ class SeoSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
     }
   }
 
-  "Every response from a test stage" should {
+  "Responses from a test stage" should {
     "carry X-Robots-Tag: noindex, nofollow" in {
       header("X-Robots-Tag", route(app, FakeRequest(GET, "/robots.txt")).get) mustBe Some("noindex, nofollow")
     }
@@ -244,7 +244,11 @@ class SeoSignInWalledSpec extends PlaySpec with GuiceOneAppPerSuite {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .disable[modules.ActorModule]
-      .configure("environment-type" -> "prod", s"city-params.pano-viewer-type.$cityId" -> "infra3d")
+      .configure(
+        "environment-type"                      -> "prod",
+        s"city-params.status.$cityId"           -> "public",
+        s"city-params.pano-viewer-type.$cityId" -> "infra3d"
+      )
       .build()
 
   implicit lazy val mat: Materializer = app.materializer
@@ -282,7 +286,11 @@ class SeoPrivateCitySpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecH
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .disable[modules.ActorModule]
-      .configure("environment-type" -> "prod", s"city-params.status.$cityId" -> "private")
+      .configure(
+        "environment-type"                      -> "prod",
+        s"city-params.status.$cityId"           -> "private",
+        s"city-params.pano-viewer-type.$cityId" -> "gsv"
+      )
       .build()
 
   "Every response from a private prod city" should {

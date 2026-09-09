@@ -59,7 +59,35 @@ class SearchIndexingCheckSpec extends PlaySpec {
     }
 
     "pass against the bundled cityparams, so the repo's own status block stays lint-checked" in {
-      invalidStatuses(Configuration(ConfigFactory.load())) mustBe empty
+      val real = Configuration(ConfigFactory.load())
+      // Assert the config actually loaded: an empty city list would make the check below vacuously true.
+      real.get[Seq[String]]("city-params.city-ids") must not be empty
+      invalidStatuses(real) mustBe empty
+    }
+
+    "survive a status of the wrong type rather than throwing out of the boot check" in {
+      val config = Configuration.from(
+        Map[String, Any](
+          "city-id"                        -> "a",
+          "environment-type"               -> "prod",
+          "city-params.city-ids"           -> Seq("a"),
+          "city-params.status.a"           -> Map("value" -> "public"),
+          "city-params.pano-viewer-type.a" -> "gsv"
+        )
+      )
+      invalidStatuses(config) mustBe Seq(SearchIndexingCheck.InvalidStatus("a", "<missing>"))
+    }
+
+    "return empty rather than throwing when city-ids is absent" in {
+      invalidStatuses(Configuration.from(Map("city-id" -> "a", "environment-type" -> "prod"))) mustBe empty
+    }
+  }
+
+  "reportsAtBoot" should {
+    "run everywhere except Mode.Test, so the rollout-verification line reaches real deployments" in {
+      SearchIndexingCheck.reportsAtBoot(play.api.Mode.Prod) mustBe true
+      SearchIndexingCheck.reportsAtBoot(play.api.Mode.Dev) mustBe true
+      SearchIndexingCheck.reportsAtBoot(play.api.Mode.Test) mustBe false
     }
   }
 
@@ -85,7 +113,9 @@ class SearchIndexingCheckSpec extends PlaySpec {
       verdict(configFor("a" -> "public", "b" -> "public", "c" -> "private")("a")) must include("2 of 3")
     }
 
-    "degrade rather than throw when a city has no pano-viewer-type, so a config gap can't fail the boot" in {
+    "report NOT indexable when a key is missing, never INDEXABLE off a placeholder" in {
+      // "<missing>" is not "infra3d", so deriving the verdict from the display strings would log INDEXABLE for a
+      // deployment the filter treats as private — and the boot log is what the vhost rollout is verified against.
       val config = Configuration.from(
         Map[String, Any](
           "city-id"                    -> "newcity",
@@ -94,7 +124,9 @@ class SearchIndexingCheckSpec extends PlaySpec {
           "city-params.status.newcity" -> "public"
         )
       )
-      verdict(config) must include("pano-viewer-type=<missing>")
+      val line = verdict(config)
+      line must include("pano-viewer-type=<missing>")
+      line must include("NOT indexable")
     }
 
     "name a missing status rather than throwing" in {

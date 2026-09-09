@@ -18,9 +18,9 @@
 @ogImageUrl = @{commonData.prodUrl.stripSuffix("/") + assets.path("images/psmockup.jpg")}
 
 @if(!commonData.isIndexable) {
-  @* Test/local stages and private-city deployments must never be indexed (#5120). No canonical here: one pointing at
-     prod would conflict with the noindex signal, and on a private city there is no public URL to point at anyway.
-     SeoRobotsFilter sends the same signal as an X-Robots-Tag header so it also covers assets and error responses. *@
+  @* Test/local stages and private-city deployments must never be indexed (#5120). No canonical here: one pointing
+     at prod would conflict with the noindex signal. SeoRobotsFilter sends the same signal as an X-Robots-Tag header,
+     reaching the responses that carry no head at all. *@
   <meta name="robots" content="noindex, nofollow">
 } else {
   <link rel="canonical" href="@canonicalUrl">

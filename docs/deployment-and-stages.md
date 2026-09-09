@@ -40,7 +40,7 @@ one predicate drives every indexing signal:
 | Signal | Where | On a non-indexable deployment |
 |---|---|---|
 | `<meta name="robots">` | `views/common/seoHead.scala.html` | `noindex, nofollow`, and no `rel=canonical` |
-| `X-Robots-Tag` header | `filters/SeoRobotsFilter` | `noindex, nofollow` on responses a `<meta>` tag can't reach — static assets, API bodies, redirects, error pages |
+| `X-Robots-Tag` header | `filters/SeoRobotsFilter` | `noindex, nofollow` on responses a `<meta>` tag can't reach — static assets, API bodies, redirects, routed 4xx |
 | `sitemap.xml` | `SeoController.hasSitemap` | 404, and no `Sitemap:` line in robots.txt |
 
 `robots.txt` is the deliberate exception: a **private prod** city still serves the permissive body (admin/auth/alias
@@ -69,9 +69,13 @@ thing keeping the private cities out of the index (#5120). Removing it is
 [sidewalk-tools !65](https://gitlab.cs.washington.edu/lab/sidewalk-tools/-/merge_requests/65) plus a sweep of the
 existing `/etc/httpd/conf.d/*.cs.conf` files by IT. **Ordering matters:** the app-side predicate must be deployed
 before the header is stripped from a *private* city's vhost, or that city is exposed in the gap. Public cities' vhosts
-can be swept at any time. Note the app-side header is strictly broader than the vhost rule it replaces: `Header set`
-without `always` runs in Apache's fixup phase and so applies to 2xx only, leaving private cities' 3xx/4xx/5xx
-responses unprotected today.
+can be swept at any time.
+
+The vhost header currently covers non-2xx responses too — measured 2026-09-09, a 404 from a private city comes back
+with `X-Robots-Tag: noindex, nofollow` — so do not plan the sweep on the assumption that the app-side header is
+strictly broader. It is broader in one direction (it follows the city's own config instead of the vhost template) and
+narrower in one: a 500 raised by an exception escaping the filter chain is recovered outside the filters and carries
+no header. Google does not index 5xx, so this costs nothing in practice, but the claim "strictly broader" is wrong.
 
 ## How code reaches each stage
 

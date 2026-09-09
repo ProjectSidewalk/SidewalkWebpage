@@ -20,8 +20,8 @@ object SeoUtils {
    *  - the city is launched publicly (`status = "public"` in cityparams; the private deployments are research
    *    partnerships and pilots that are not ours to publish);
    *  - its imagery licence does not put every page behind a sign-in, since a sign-in-walled city has nothing a
-   *    cookie-less crawler can reach (#4643). This conflates "unreachable to a crawler" with "must not be indexed",
-   *    which is worth revisiting if a publicly launched Infra3D city ever ships — none exists today.
+   *    cookie-less crawler can reach (#4643). A publicly launched Infra3D city would therefore be noindexed on the
+   *    strength of its pano source alone; every Infra3D deployment today is private, so the two agree.
    *
    * @param environmentType `environment-type` for this deployment.
    * @param cityStatus      `city-params.status.<cityId>`: "public" or "private".
@@ -40,11 +40,11 @@ object SeoUtils {
    */
   def isIndexable(config: Configuration): Boolean = {
     val cityId: String = config.get[String]("city-id")
-    isIndexable(
-      config.get[String]("environment-type"),
-      config.get[String](s"city-params.status.$cityId"),
-      config.get[String](s"city-params.pano-viewer-type.$cityId")
-    )
+    // getOptional, not get: this runs in SeoRobotsFilter's constructor, so a missing per-city key must read as "not
+    // indexable" rather than take the city offline over a gap whose only consequence is that it shouldn't be indexed.
+    config.get[String]("environment-type") == "prod" &&
+    config.getOptional[String](s"city-params.status.$cityId").contains("public") &&
+    config.getOptional[String](s"city-params.pano-viewer-type.$cityId").exists(_ != PanoSource.Infra3d.toString)
   }
 
   /** Duplicate route aliases collapsed to one canonical path (conf/routes serves both spellings). */

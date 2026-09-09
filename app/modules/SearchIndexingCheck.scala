@@ -1,10 +1,11 @@
 package modules
 
 import models.utils.SeoUtils
-import modules.SearchIndexingCheck.{invalidStatuses, verdict}
+import modules.SearchIndexingCheck.{invalidStatuses, reportsAtBoot, verdict, ValidStatuses}
 import play.api.{Configuration, Environment, Logger, Mode}
 
 import javax.inject.{Inject, Singleton}
+import scala.util.Try
 
 /**
  * Boot-time check on the config that decides whether this deployment is crawled and indexed (#5120).
@@ -22,16 +23,19 @@ import javax.inject.{Inject, Singleton}
 class SearchIndexingCheck @Inject() (config: Configuration, environment: Environment) {
   private val logger = Logger(this.getClass)
 
-  // Skipped under Mode.Test: a suite that boots an application per spec would repeat this in every log.
-  if (environment.mode != Mode.Test) {
-    invalidStatuses(config).foreach { invalid =>
-      logger.error(
-        s"city-params.status.${invalid.cityId} is ${invalid.value}, not one of " +
-          s"${SearchIndexingCheck.ValidStatuses.toSeq.sorted.mkString("/")}. Anything but \"public\" reads as " +
-          s"private, so that city serves noindex and no sitemap."
-      )
-    }
-    logger.info(verdict(config))
+  if (reportsAtBoot(environment.mode)) {
+    // Wrapped so "nothing here is fatal" holds for config shapes we didn't anticipate: a wrongly-typed value throws
+    // out of Configuration, and an eager singleton that throws stops every city built from that config.
+    Try {
+      invalidStatuses(config).foreach { invalid =>
+        logger.error(
+          s"city-params.status.${invalid.cityId} is ${invalid.value}, not one of " +
+            s"${ValidStatuses.toSeq.sorted.mkString("/")}. Anything but \"public\" reads as private, so that city " +
+            s"serves noindex and no sitemap."
+        )
+      }
+      logger.info(verdict(config))
+    }.failed.foreach(e => logger.error(s"Could not report search-indexing config: ${e.getMessage}", e))
   }
 }
 
@@ -60,13 +64,20 @@ object SearchIndexingCheck {
    * @return One entry per offending city, in configured order; empty when every status is valid.
    */
   def invalidStatuses(config: Configuration): Seq[InvalidStatus] =
-    config.get[Seq[String]]("city-params.city-ids").flatMap { cityId =>
-      config.getOptional[String](s"city-params.status.$cityId") match {
+    config.getOptional[Seq[String]]("city-params.city-ids").getOrElse(Seq.empty).flatMap { cityId =>
+      // Try, because a status written as an object or list throws WrongType rather than returning None.
+      Try(config.getOptional[String](s"city-params.status.$cityId")).toOption.flatten match {
         case Some(status) if ValidStatuses.contains(status) => None
         case Some(status)                                   => Some(InvalidStatus(cityId, s""""$status""""))
         case None                                           => Some(InvalidStatus(cityId, "<missing>"))
       }
     }
+
+  /**
+   * Whether this run reports at boot. Test mode is skipped: a suite that boots an app per spec would repeat the
+   * report in every log. Extracted so a test pins the direction of that condition.
+   */
+  def reportsAtBoot(mode: Mode): Boolean = mode != Mode.Test
 
   /**
    * The one-line indexing verdict for this deployment, naming all three inputs so the log answers "why" on its own.
@@ -78,7 +89,9 @@ object SearchIndexingCheck {
     val envType: String  = config.get[String]("environment-type")
     val status: String   = config.getOptional[String](s"city-params.status.$cityId").getOrElse("<missing>")
     val panoType: String = config.getOptional[String](s"city-params.pano-viewer-type.$cityId").getOrElse("<missing>")
-    val indexable        = SeoUtils.isIndexable(envType, status, panoType)
+    // From isIndexable(config), not the display strings below: "<missing>" would sail past the != infra3d test and
+    // log INDEXABLE for a deployment the filter treats as private.
+    val indexable            = SeoUtils.isIndexable(config)
     val cityIds: Seq[String] = config.get[Seq[String]]("city-params.city-ids")
     val publicCount: Int = cityIds.count(id => config.getOptional[String](s"city-params.status.$id").contains("public"))
     val state: String    = if (indexable) "INDEXABLE" else "NOT indexable"
