@@ -25,7 +25,7 @@
 
   <div class="page-section" id="access-score-intersections-preview-section">
     <h2 class="page-heading" id="visual-example">AccessScore: Intersections Preview <a href="#visual-example" class="permalink">#</a></h2>
-    <p>Below is a live preview of intersection AccessScores from a sample region in @cityName, retrieved directly from the API. Each intersection is colored from red (low accessibility) to green (high); gray intersections have no audited street yet, and hollow ones are grade-separated crossings. Hover or click an intersection to see its score and the corner features that produced it.</p>
+    <p>Below is a live preview of intersection AccessScores from a sample region in @cityName, retrieved directly from the API. Each intersection is colored from red (low accessibility) to green (high); gray intersections have no audited street yet, and hollow ones are grade-separated crossings. Hover or click an intersection to see its score, the corner features that produced it, and a link into Explore at that corner.</p>
     <p class="download-note"><strong>One method, not the method.</strong> There is no single correct way to measure whether an intersection is crossable — researchers and practitioners use many different approaches. AccessScore implements just one such algorithm, and it is experimental: the weighting is deliberately simple and subject to change. Treat these scores as one lens rather than a definitive measure, and compute your own index from the <a href="@routes.ApiDocsController.labelClusters">Label Clusters API</a> if a different method suits your needs better.</p>
     <div id="access-score-intersections-preview" class="map-container"></div>
 

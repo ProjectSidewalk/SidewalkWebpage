@@ -131,6 +131,9 @@
         const breakdown = Object.keys(counts).filter((k) => counts[k] > 0).map((k) => `${k}: ${counts[k]}`).join(', ')
           || 'no scored features';
         const kind = p.grade_separated ? ' (grade-separated crossing)' : '';
+        // The intersection's own centroid, not e.lngLat: the click lands wherever in the circle the pointer was, and
+        // Explore's lat/lng drop-in should start the user at the corner the score describes.
+        const [lng, lat] = e.features[0].geometry.coordinates;
 
         ApiDocsMap.popup(map, e.lngLat, `
           <h4>Intersection ${p.intersection_id}${kind}</h4>
@@ -138,6 +141,10 @@
           <p><strong>Streets:</strong> ${p.degree} &nbsp; <strong>Audits:</strong> ${p.audit_count} &nbsp;
             <strong>Labels:</strong> ${p.label_count}</p>
           <p class="as-breakdown"><strong>Clusters:</strong> ${breakdown}</p>
+          <a href="/explore?lat=${lat}&lng=${lng}" class="button-ps button--primary button--tiny"
+            target="_blank" rel="noopener">
+            Explore here
+          </a>
         `);
       });
     },
