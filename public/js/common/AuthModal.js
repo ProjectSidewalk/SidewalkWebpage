@@ -36,23 +36,14 @@ function wireEyeToggle(btn) {
   });
 }
 
-const AU_WARNING_ICON = `
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-         aria-hidden="true">
-      <path d="M10.3 3.9 1.8 18.5a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path>
-      <line x1="12" y1="9" x2="12" y2="13"></line>
-      <line x1="12" y1="17" x2="12.01" y2="17"></line>
-    </svg>`;
-
 /** Long enough that typing a password straight through costs one request rather than one per character. */
 const AU_BREACH_DEBOUNCE_MS = 500;
 
 /**
- * Range responses, keyed by the 5-character hash prefix that fetched them.
- *
- * Keyed and valued entirely by what k-anonymity already makes public, so nothing password-derived is retained: an
- * unsalted SHA-1 of a human-chosen password is the password to anyone holding a wordlist, and a top-level `const`
- * in a classic script is readable by name from every other script on the page.
+ * Range responses, keyed by the 5-character hash prefix that fetched them — both already public under
+ * k-anonymity. Nothing password-derived may live here: an unsalted SHA-1 of a human-chosen password is the
+ * password to anyone with a wordlist, and a top-level `const` in a classic script is readable by name from every
+ * other script on the page.
  */
 const auBreachRanges = new Map();
 
@@ -112,10 +103,9 @@ function wirePasswordGroup(group) {
   let breachWarning = null;
 
   /**
-   * Shows or removes the warning by inserting and dropping the node, not by hiding it: a live region has to be in
-   * the accessibility tree before its content changes for a screen reader to announce it, and one that is always
-   * present would also be read out as part of the field's description before there is anything to say
-   * (docs/accessibility.md → "Announcing what was injected").
+   * Inserts and drops the warning node rather than hiding it: a hidden live region is not in the accessibility
+   * tree, so revealing it announces nothing, and one left in the markup would be read as part of the field's
+   * description before there is anything to say (docs/accessibility.md → "Announcing what was injected").
    *
    * @param {boolean} show - Whether the current password is known-breached.
    */
@@ -129,8 +119,10 @@ function wirePasswordGroup(group) {
     breachWarning = document.createElement('p');
     breachWarning.className = 'au-warning';
     breachWarning.setAttribute('role', 'status');
-    breachWarning.innerHTML = AU_WARNING_ICON;
-    breachWarning.appendChild(document.createTextNode(` ${breachMessage}`));
+    const icon = document.createElement('img');
+    icon.src = window.util.assetPath('images/icons/alert-triangle-feather.svg');
+    icon.alt = '';
+    breachWarning.append(icon, ` ${breachMessage}`);
     (group.querySelector('.au-strength') || pw).insertAdjacentElement('afterend', breachWarning);
   };
 
@@ -303,10 +295,9 @@ function wireAsyncSubmit(form) {
 /**
  * Applies the show-password toggles, live validation, and async submit to every auth form on the page.
  *
- * Deliberately document-wide rather than scoped to the dialog: a page can carry auth fields of its own *and* the
- * navbar dialog (reset-password does), and scoping to the dialog subtree left those fields inert. Pages that
- * render the full-page sign-in/sign-up forms suppress the dialog via navbar's renderAuthDialog, so the shared ids
- * still resolve to one element each.
+ * Document-wide rather than scoped to the dialog, because a page can carry auth fields of its own *and* the navbar
+ * dialog — reset-password does. Pages rendering the full-page sign-in/sign-up forms suppress the dialog via
+ * navbar's renderAuthDialog, so the shared ids still resolve to one element each.
  *
  * @param {ParentNode} root - The subtree to enhance; the whole document in production.
  */

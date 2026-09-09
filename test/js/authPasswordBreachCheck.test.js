@@ -8,7 +8,7 @@
 
 const crypto = require('node:crypto');
 const { TextEncoder } = require('node:util');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadGlobalScript, assetPathStub } = require('./loadGlobalScript');
 
 // jsdom leaves TextEncoder out of the page globals; every browser that runs this code has it.
 if (typeof global.TextEncoder === 'undefined') global.TextEncoder = TextEncoder;
@@ -25,9 +25,8 @@ const PASSWORD_SHA1 = crypto.createHash('sha1').update(PASSWORD).digest('hex').t
 const RULE_REGEXES = ['.{8,}', '[A-Z]', '[a-z]', '\\d'];
 
 /**
- * A reduction of common/authPasswordFields.scala.html, not a copy — it keeps the structure the JS actually walks
- * (the group wrapper, the two .au-field blocks, the eye buttons) so a selector change in either file shows up
- * here, but it is not a markup-regression test for the template.
+ * A reduction of common/authPasswordFields.scala.html, not a copy: it keeps the structure the JS walks, so a
+ * selector change in either file shows up here, but it does not hold the template to its markup.
  */
 const PASSWORD_GROUP = `
   <div class="au-pw-group" data-breach-url="${RANGE_URL}" data-breach-warning="${BREACH_MESSAGE}">
@@ -90,10 +89,8 @@ function renderPasswordGroup({ withDialog = false } = {}) {
 }
 
 /**
- * Types a password, then runs out the debounce and every promise it chains.
- *
- * `advanceTimersByTimeAsync` flushes the microtask queue as it goes, so this stays correct however many awaits the
- * lookup grows.
+ * Types a password, then runs out the debounce and every promise it chains. `advanceTimersByTimeAsync` drains the
+ * microtask queue as it goes, so this stays correct however many awaits the lookup grows.
  *
  * @param {string} value - The password to type.
  */
@@ -127,6 +124,7 @@ function stubWebCrypto(available) {
 beforeEach(() => {
   jest.useFakeTimers();
   stubWebCrypto(true);
+  window.util = { assetPath: assetPathStub };
 });
 
 afterEach(() => {
@@ -136,6 +134,7 @@ afterEach(() => {
   jest.useRealTimers();
   delete window.fetch;
   delete window.PsModal;
+  delete window.util;
 });
 
 describe('advisory breached-password check', () => {

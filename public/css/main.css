@@ -1245,7 +1245,6 @@ kbd {
   flex: 0 0 auto;
   width: 20px;
   height: 20px;
-  color: var(--color-banana-800);
 }
 
 .test-server-banner-text {

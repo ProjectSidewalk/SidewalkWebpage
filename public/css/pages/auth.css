@@ -362,7 +362,7 @@ dialog.au-dialog::backdrop {
   color: var(--color-orange-700);
 }
 
-.au-warning svg {
+.au-warning img {
   flex: 0 0 auto;
   width: 14px;
   height: 14px;
