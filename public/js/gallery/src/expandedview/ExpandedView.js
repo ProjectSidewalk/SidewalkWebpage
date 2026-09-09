@@ -150,6 +150,7 @@ class ExpandedView {
       tags: p.tags,
       ai_generated: p.ai_generated,
       crop_url: card.getCropUrl(),
+      crop_marker: card.getCropMarker(),
       backup_image: card.getBackupImageData(),
       pano_data: p.pano_data,
       from_current_user: p.from_current_user,

@@ -3,9 +3,10 @@
  * contribute useful validations straight from the home page.
  *
  * Borrows the Gallery card pattern: a static image (locally-saved crop preferred, GSV Static API as fallback — the
- * crop is free to serve while the API costs money per image) with the label-type icon overlaid at the label's canvas
- * position. Votes POST to /labelmap/validate, which works for anonymous visitors and creates its own mission
- * server-side. Validated cards are swapped for a fresh label from a prefetched pool, giving the "live" feel.
+ * crop is free to serve while the API costs money per image) with the label-type icon overlaid where the label
+ * actually is in that image (#2660). Votes POST to /labelmap/validate, which works for anonymous visitors and
+ * creates its own mission server-side. Validated cards are swapped for a fresh label from a prefetched pool, giving
+ * the "live" feel.
  *
  * Label data comes from POST /label/labels with sort: 'recent', i.e. a shuffled pool of the newest labels needing
  * validation. Nothing is fetched during page load; the grid fills itself once the visitor interacts with the page.
@@ -70,6 +71,34 @@ class LandingValidationGrid {
   }
 
   /**
+   * Where the label sits in the image a card is showing (#2660). A job-cut crop is a window around the label, not a
+   * snapshot of the labeler's canvas, so only its `label_crop` row places it; the canvas fraction is right on the
+   * Street View still (the Explore frame again) and is the only answer left for a crop nothing has recorded.
+   * @param {Object} entry - One {label, cropUrl, cropMarker, gsvImageUrl} entry from /label/labels.
+   * @param {string} imageSource - Which source the card is actually showing: 'crop' or 'api'.
+   * @returns {{x: number, y: number}} Fractions of the image's width and height.
+   */
+  static #markerFraction(entry, imageSource) {
+    if (imageSource === 'crop' && entry.cropMarker) return entry.cropMarker;
+    return {
+      x: entry.label.canvas_x / util.EXPLORE_CANVAS_WIDTH,
+      y: entry.label.canvas_y / util.EXPLORE_CANVAS_HEIGHT,
+    };
+  }
+
+  /**
+   * @param {?HTMLElement} marker - The marker element, or null for a label type with no icon.
+   * @param {Object} entry - The card's {label, cropUrl, cropMarker, gsvImageUrl} entry.
+   * @param {string} imageSource - Which source the card is actually showing: 'crop' or 'api'.
+   */
+  static #positionMarker(marker, entry, imageSource) {
+    if (!marker) return;
+    const { x, y } = LandingValidationGrid.#markerFraction(entry, imageSource);
+    marker.style.left = `${100 * x}%`;
+    marker.style.top = `${100 * y}%`;
+  }
+
+  /**
    * How many grid slots the CSS actually shows at the current viewport width.
    * @returns {number}
    */
@@ -118,9 +147,9 @@ class LandingValidationGrid {
   }
 
   /**
-   * Builds one card: the label image with the label-type icon marked at its canvas position, the localized
+   * Builds one card: the label image with the label-type icon marked where the label is in it, the localized
    * "Is this a …?" question, and the three validation buttons.
-   * @param {Object} entry - One {label, cropUrl, gsvImageUrl} entry from /label/labels.
+   * @param {Object} entry - One {label, cropUrl, cropMarker, gsvImageUrl} entry from /label/labels.
    * @param {number} index - The card's slot in the grid, which decides whether its image loads eagerly.
    * @returns {HTMLElement}
    */
@@ -149,6 +178,8 @@ class LandingValidationGrid {
       // whose every source fails is dead weight — swap it for a fresh label.
       if (card.dataset.imageSource === 'crop' && entry.gsvImageUrl) {
         card.dataset.imageSource = 'api';
+        // The crop's recorded position describes the crop only; the still is the Explore frame again.
+        LandingValidationGrid.#positionMarker(imgWrap.querySelector('.lvg-card-marker'), entry, 'api');
         img.src = entry.gsvImageUrl;
       } else {
         this.#replaceCard(card);
@@ -163,8 +194,7 @@ class LandingValidationGrid {
       marker.className = 'lvg-card-marker';
       marker.src = iconPath;
       marker.alt = '';
-      marker.style.left = `${(100 * label.canvas_x) / util.EXPLORE_CANVAS_WIDTH}%`;
-      marker.style.top = `${(100 * label.canvas_y) / util.EXPLORE_CANVAS_HEIGHT}%`;
+      LandingValidationGrid.#positionMarker(marker, entry, card.dataset.imageSource);
       imgWrap.appendChild(marker);
     }
     // The credit owed on a still we serve ourselves (#4865, #5202). Only licensed imagery carries a licence, so
@@ -312,7 +342,7 @@ class LandingValidationGrid {
   /**
    * Submits the visitor's validation, shows a brief thanks state, then swaps in a fresh label.
    * @param {HTMLElement} card - The card being validated.
-   * @param {Object} entry - The card's {label, cropUrl, gsvImageUrl} entry.
+   * @param {Object} entry - The card's {label, cropUrl, cropMarker, gsvImageUrl} entry.
    * @param {string} result - 'Agree', 'Disagree', or 'Unsure'.
    */
   async #validate(card, entry, result) {
@@ -324,8 +354,9 @@ class LandingValidationGrid {
     window.logWebpageActivity(`Click_module=LandingValidationGrid_result=${result}_labelId=${label.label_id}`);
 
     // Mirror the Gallery's static-image validation payload: canvas_* describe where the label sits within the
-    // rendered image, scaled from the 720x480 Explore canvas coordinates the label was placed on.
+    // rendered image. Off the same fraction the marker is drawn from, so the two can't disagree (#2660).
     const img = card.querySelector('.lvg-card-photo');
+    const { x: fracX, y: fracY } = LandingValidationGrid.#markerFraction(entry, card.dataset.imageSource);
     const timestamp = new Date();
     const payload = {
       label_id: label.label_id,
@@ -335,8 +366,8 @@ class LandingValidationGrid {
       tags: label.tags,
       canvas_width: Math.round(img.clientWidth),
       canvas_height: Math.round(img.clientHeight),
-      canvas_x: Math.round((label.canvas_x * img.clientWidth) / util.EXPLORE_CANVAS_WIDTH),
-      canvas_y: Math.round((label.canvas_y * img.clientHeight) / util.EXPLORE_CANVAS_HEIGHT),
+      canvas_x: Math.round(fracX * img.clientWidth),
+      canvas_y: Math.round(fracY * img.clientHeight),
       heading: label.heading,
       pitch: label.pitch,
       zoom: label.zoom,

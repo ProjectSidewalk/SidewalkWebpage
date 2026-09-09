@@ -110,15 +110,17 @@ class AdminController @Inject() (
     val userId: String = request.identity.userId
     labelService.getSingleLabelMetadata(labelId, userId).flatMap {
       case Some(metadata) =>
-        labelService.getExtraAdminValidateData(Seq(labelId)).map { adminData =>
-          Ok(
-            labelMetadataWithValidationToJsonAdmin(metadata, adminData.head) ++
-              Json.obj(
-                "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
-                "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
-                "can_edit"         -> true
-              )
-          )
+        labelService.getExtraAdminValidateData(Seq(labelId)).zip(cropService.cropMarker(labelId)).map {
+          case (adminData, marker) =>
+            Ok(
+              labelMetadataWithValidationToJsonAdmin(metadata, adminData.head) ++
+                Json.obj(
+                  "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
+                  "crop_marker"      -> marker,
+                  "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
+                  "can_edit"         -> true
+                )
+            )
         }
       case None => Future.successful(NotFound(s"No label found with ID: $labelId"))
     }
@@ -1035,8 +1037,8 @@ class AdminController @Inject() (
   }
 
   /**
-   * Cuts the missing label crops and downscaled panos from the self-hosted pano store. Same as the nightly
-   * process, for a backfill that shouldn't wait for it (#4865).
+   * Cuts the missing label crops from the self-hosted pano store. Same as the nightly process, for a backfill
+   * that shouldn't wait for it (#4865).
    *
    * Recorded as a `Manual` run of that nightly job (#4928), and answered as soon as the run starts rather than when
    * it ends — alone among these triggers, because a first backfill runs for about an hour, far past any proxy's read

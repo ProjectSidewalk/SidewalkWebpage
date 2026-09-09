@@ -138,10 +138,16 @@ SELECT l.login_info_id AS old_id, nextval('sidewalk_login.login_info_login_info_
 FROM sidewalk_dc_login.login_info l
 WHERE l.login_info_id IN (SELECT login_info_id FROM sidewalk_dc_login.user_login_info WHERE user_id IN (SELECT user_id FROM dc_new_user));
 INSERT INTO sidewalk_login.login_info (login_info_id, provider_id, provider_key) SELECT new_id, provider_id, provider_key FROM dc_li_map;
+-- Inserted users only: dc_li_map can hold a login_info shared with a merged account, which has no sidewalk_user row.
 INSERT INTO sidewalk_login.user_login_info (login_info_id, user_id)
-SELECT m.new_id, uli.user_id FROM sidewalk_dc_login.user_login_info uli JOIN dc_li_map m ON m.old_id = uli.login_info_id;
+SELECT m.new_id, uli.user_id FROM sidewalk_dc_login.user_login_info uli JOIN dc_li_map m ON m.old_id = uli.login_info_id
+WHERE uli.user_id IN (SELECT user_id FROM dc_new_user);
+-- Current password only: DC's legacy schema kept a row per historical password change, so a login_info can have
+-- several, and nothing in the modern schema constrains it to one. Highest user_password_info_id is the newest.
 INSERT INTO sidewalk_login.user_password_info (login_info_id, password, salt, hasher)
-SELECT m.new_id, p.password, p.salt, p.hasher FROM sidewalk_dc_login.user_password_info p JOIN dc_li_map m ON m.old_id = p.login_info_id;
+SELECT DISTINCT ON (m.new_id) m.new_id, p.password, p.salt, p.hasher
+FROM sidewalk_dc_login.user_password_info p JOIN dc_li_map m ON m.old_id = p.login_info_id
+ORDER BY m.new_id, p.user_password_info_id DESC;
 INSERT INTO sidewalk_login.user_role (user_id, role, community_service)
 SELECT r.user_id, r.role::text::sidewalk_login.role, r.community_service FROM sidewalk_dc_login.user_role r WHERE r.user_id IN (SELECT user_id FROM dc_new_user);
 
