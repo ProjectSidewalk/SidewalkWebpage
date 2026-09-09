@@ -297,26 +297,6 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
-   * Panos with a self-hosted backup that may need a downscaled display sidecar: native width over `maxWidth`, or not
-   * recorded at all (#5239). Streamed, because the count is per city and the caller only ever folds it into tallies.
-   *
-   * The width comes back with the id so the caller can tell the two apart. A row recording no width can't be judged
-   * without opening the pano, which is the cost this whole design exists to avoid, so it is reported as unknown
-   * rather than guessed either way.
-   *
-   * @param maxWidth The widest image the pano viewer can be handed.
-   * @return         Pano id and its recorded native width, if any.
-   */
-  def getWideBackupPanos(maxWidth: Int): StreamingDBIO[Seq[(String, Option[Int])], (String, Option[Int])] = {
-    panoDataRecords
-      .filter(p =>
-        p.hasBackup.getOrElse(false: Rep[Boolean]) && p.width.map(_ > maxWidth).getOrElse(true: Rep[Boolean])
-      )
-      .map(p => (p.panoId, p.width))
-      .result
-  }
-
-  /**
    * Sets has_backup = true for the given pano, but only if it isn't already true.
    *
    * @param panoId The ID of the pano whose has_backup flag should be set.

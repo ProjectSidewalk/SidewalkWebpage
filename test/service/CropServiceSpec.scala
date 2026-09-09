@@ -41,17 +41,13 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
   private val prefix    = "CropServiceSpec-4865-"
   private val mediaRoot = Files.createTempDirectory("crop-service-spec").toFile
 
-  /** The pano viewer's width cap, set below the synthetic pano's 1024 so a sidecar at the cap is a real reduction. */
-  private val DownscaledMaxWidth = 512
-
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .configure(
-        "cropped.image.directory"   -> new File(mediaRoot, "crops").getPath,
-        "pano.images.directory"     -> new File(mediaRoot, "panos").getPath,
-        "share.image.directory"     -> new File(mediaRoot, "share").getPath,
-        "pano.downscaled.max-width" -> DownscaledMaxWidth
+        "cropped.image.directory" -> new File(mediaRoot, "crops").getPath,
+        "pano.images.directory"   -> new File(mediaRoot, "panos").getPath,
+        "share.image.directory"   -> new File(mediaRoot, "share").getPath
       )
       .build()
 
@@ -131,7 +127,7 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
   // The run under test happens once, in beforeAll, and every case reads its result — rather than the first case
   // running it and the rest asserting on what it left, which passes vacuously for any case run on its own.
   private var beforeRun: Map[String, (Boolean, Option[Boolean])] = Map.empty
-  private var firstRun: CropRunResult = CropRunResult(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+  private var firstRun: CropRunResult                            = CropRunResult(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
   /** Where `localBackupImageFile` resolves a pano for this city. */
   private def storeFile(panoId: String): File = storeFile(panoId, s"$panoId.png")
@@ -162,16 +158,6 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
     val _     = g.drawImage(ImageIO.read(syntheticPano), 0, 0, NarrowW, NarrowH, null)
     g.dispose()
     ImageUtils.writePng(small, file)
-    file
-  }
-
-  /**
-   * A downscaled sidecar beside the pano, as the scraper leaves it: named for the cap, `width` pixels wide — the two
-   * agree unless a case wants a copy the header check must refuse.
-   */
-  private def plantSidecar(panoId: String, width: Int = DownscaledMaxWidth): File = {
-    val file = storeFile(panoId, s"$panoId.w$DownscaledMaxWidth.jpg")
-    ImageUtils.writeJpeg(new BufferedImage(width, width / 2, BufferedImage.TYPE_INT_RGB), file, 0.85f)
     file
   }
 
@@ -330,9 +316,6 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
     val preexisting = cropFile(preexistingPanoId)
     val _           = preexisting.getParentFile.mkdirs()
     val _           = Files.write(preexisting.toPath, preexistingCropBytes)
-    // Exactly one wide pano arrives at the run with its display sidecar already written, so the coverage count has
-    // both answers to find. Later cases plant and delete their own; the counts here are frozen before any of that.
-    val _ = plantSidecar(backedPanoId)
     // Crops from before label_crop existed, for the reconcile pass to classify.
     val _         = plantCrop(snapshotPanoId, CropService.ExploreFrameCropWidth, CropService.ExploreFrameCropHeight)
     val windowBox = boxFor(512, 300, PanoW, PanoH)
@@ -570,28 +553,6 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
       labelCrop(backedPanoId) mustBe rowBefore
     }
 
-    "count the wide panos that have a display sidecar, and the ones that don't" in {
-      // The app no longer writes these copies, so this count is the only thing that would notice the scraper having
-      // stopped. Only `backedPanoId`'s sidecar exists in the store, and it is the one planted before the run.
-      firstRun.sidecarsPresent mustBe 1
-      firstRun.sidecarsMissing must be > 0
-      // Recorded so a later reader can tell which cap the coverage was measured against, without guessing at the
-      // configuration of the day — the scraper holds the same number and nothing can cross-check the two.
-      firstRun.sidecarMaxWidth mustBe DownscaledMaxWidth
-    }
-
-    "ask only about backed-up panos the cap actually concerns" in {
-      // Membership rather than a total: this database holds rows other specs left behind, so the run's counts are a
-      // floor, and the query is what decides which panos they describe.
-      val wide = runDb(panoDataTable.getWideBackupPanos(DownscaledMaxWidth)).toMap
-      wide.get(backedPanoId) mustBe Some(Some(PanoW))
-      // Under the cap and backed up: nothing to display a copy of, so it is neither present nor missing.
-      wide.contains(narrowPanoId) mustBe false
-      // A row that records no width can't be judged without opening the pano, which is the cost this design avoids.
-      wide.get(unrecordedPanoId) mustBe Some(None)
-      firstRun.sidecarWidthUnknown must be > 0
-    }
-
     "run one at a time, refusing a second call while the first is in flight" in {
       val first = cropService.generateMissingCrops()
       try {
@@ -650,49 +611,12 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
   }
 
   "GET /backupImage/:panoId" should {
-    "serve the scraper's downscaled sidecar when there is one, and the native file otherwise" in {
-      val url     = signingService.signedUrl(s"/backupImage/$backedPanoId")
-      val sidecar = plantSidecar(backedPanoId)
-      try {
-        val withSidecar = route(app, FakeRequest(GET, url)).get
-        status(withSidecar) mustBe OK
-        contentType(withSidecar) mustBe Some("image/jpeg")
-        contentAsBytes(withSidecar).length.toLong mustBe sidecar.length()
-      } finally {
-        val _ = sidecar.delete()
-      }
-
+    "serve the native file when the viewer asks for no particular width" in {
+      val url    = signingService.signedUrl(s"/backupImage/$backedPanoId")
       val native = route(app, FakeRequest(GET, url)).get
       status(native) mustBe OK
       contentType(native) mustBe Some("image/png")
       contentAsBytes(native).length.toLong mustBe syntheticPano.length()
-    }
-
-    "pass over a sidecar that is not at the cap, rather than serve it" in {
-      // The name promises the cap; the header is what proves it, so a mis-sized copy leaves the viewer the native
-      // file rather than a texture it can't map. Truncation is a different matter — a JPEG's SOF marker is in the
-      // first few hundred bytes, so a cut-off file still reports its full width; the scraper's rename prevents that.
-      val url     = signingService.signedUrl(s"/backupImage/$backedPanoId")
-      val sidecar = plantSidecar(backedPanoId, width = DownscaledMaxWidth / 2)
-      try {
-        panoDataService.localDownscaledImageFile(backedPanoId) mustBe None
-        val native = route(app, FakeRequest(GET, url)).get
-        status(native) mustBe OK
-        contentType(native) mustBe Some("image/png")
-      } finally {
-        val _ = sidecar.delete()
-      }
-    }
-
-    "leave the crop job's view of the store unchanged by a sidecar" in {
-      // localBackupImageFile finds a pano by exact name, so the sidecar beside it is never mistaken for the native
-      // file — the property that lets the copy live in the pano store at all.
-      val sidecar = plantSidecar(backedPanoId)
-      try {
-        panoDataService.localBackupImageFile(backedPanoId).map(_.getName) mustBe Some(s"$backedPanoId.png")
-      } finally {
-        val _ = sidecar.delete()
-      }
     }
   }
 }
