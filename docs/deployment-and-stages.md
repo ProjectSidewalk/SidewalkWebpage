@@ -325,9 +325,9 @@ nothing derived and anything copying it can take the directory whole.
 `pano-display/` is derived, disposable and deliberately unpruned. Deleting it, whole or in part, costs a ~2 s re-cut
 the next time a device asks for one. Nothing sweeps it because ordinary use cannot grow it: a copy is cut only for a
 pano too wide for the requesting device, only at one of three allowed widths, and only for the small minority of
-hardware that cannot texture the native file — the five largest cities hold 140,599 wide expired panos between them
-and served 29 views of one in ninety days. The ceiling is three files per wide backed-up pano, which is reachable
-only by walking every pano on purpose through a two-thread cut pool over days. If that ever shows up as disk
+hardware that cannot texture the native file. Those conditions rarely coincide, and an individual pano is seldom
+looked at more than once. The ceiling is three files per wide pano the app can serve locally, reachable only by
+walking every one of them on purpose through a two-thread cut pool over days. If that ever shows up as disk
 pressure, deleting the directory is the entire remedy.
 
 **Moving a crop store is a decision about `label_crop` too.** Where a crop's size cannot say which writer produced
