@@ -40,7 +40,7 @@ class CitiesApiController @Inject() (
    * This endpoint provides details about each city including:
    * - City ID and country
    * - City names (short and formatted)
-   * - URL for the city's Project Sidewalk site
+   * - URL for the city's Project Sidewalk site, or null when the city isn't publicly launched
    * - Visibility status (public, private, etc.)
    * - Geographic center coordinates
    * - Zoom level
@@ -105,9 +105,13 @@ class CitiesApiController @Inject() (
    *
    * `url` is null for any city that isn't publicly launched (#5259). Those deployments are research partnerships and
    * internal UW studies, and this endpoint is how a crawler reaches them: /cities is in the sitemap and the map
-   * component it loads fetches this endpoint client-side, so publishing their addresses here publishes them. The
-   * field stays present rather than being dropped, so response shape and the CSV column layout are unchanged, and
-   * the row itself stays so the city count, map geometry and `visibility` are still available.
+   * component it loads fetches this endpoint client-side, so an address published here lands in a crawlable link
+   * graph. The field stays present rather than being dropped, so response shape and the CSV column layout are
+   * unchanged, and the row itself stays so the city count, map geometry and `visibility` are still available.
+   *
+   * This keeps unlaunched deployments out of link graphs; it does not make their hostnames unguessable. `city_id` is
+   * still published and the deployment hostnames mostly follow from it, so a reader who studies one public row can
+   * infer the rest. Closing that would mean dropping the rows entirely, which costs the city count and the map.
    *
    * @param cityInfo Basic city information from ConfigService.
    * @param mapParamsOpt Optional map parameters for the city from the database.
@@ -120,7 +124,7 @@ class CitiesApiController @Inject() (
       "country_id"          -> cityInfo.countryId,
       "city_name_short"     -> cityInfo.cityNameShort,
       "city_name_formatted" -> cityInfo.cityNameFormatted,
-      "url"                 -> (if (cityInfo.visibility == "public") JsString(cityInfo.URL) else JsNull),
+      "url"                 -> (if (cityInfo.isPublic) JsString(cityInfo.URL) else JsNull),
       "visibility"          -> cityInfo.visibility
     )
 

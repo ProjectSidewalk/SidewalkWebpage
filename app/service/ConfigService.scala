@@ -59,7 +59,17 @@ case class CityInfo(
     cityNameFormatted: String,
     URL: String,
     visibility: String
-)
+) {
+
+  /**
+   * Whether this deployment is publicly launched, i.e. its `city-params.status` entry is `public`.
+   *
+   * The one place the rule lives for callers holding a [[CityInfo]], so a surface that decides whether to publish a
+   * deployment's address can't drift from the others. Any unrecognized status reads as not public: the failure that
+   * matters here is disclosing an unlaunched deployment, not withholding a launched one (#5259).
+   */
+  def isPublic: Boolean = visibility == "public"
+}
 case class CommonPageData(
     cityId: String,
     environmentType: String,
