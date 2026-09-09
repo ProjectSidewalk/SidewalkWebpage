@@ -164,7 +164,6 @@ describe('the dashboard mistake card\'s image', () => {
     });
 
     it('centers the marker on the bare gradient when the label has neither image nor canvas position', async () => {
-        // canvas_x/y are null when the label wasn't in frame at validation time.
         mistakes = [mistake({ crop_url: null, image_url: null, canvas_x: null, canvas_y: null })];
         await renderGallery();
 

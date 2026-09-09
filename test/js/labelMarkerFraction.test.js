@@ -37,9 +37,9 @@ describe('labelMarkerFraction', () => {
         expect(labelMarkerFraction('crop', null, 180, 360)).toEqual({ x: 0.25, y: 0.75 });
     });
 
-    // canvas_x/y are null when the label wasn't in frame at validation time. Dividing that gives NaN, which CSS drops
-    // silently and leaves the marker in the corner.
-    it('centres the marker when the label has no canvas position either', () => {
+    // Defensive only: every card reads label_point.canvas_x, which is NOT NULL. Pinned because the alternative to
+    // centring is dividing null, and NaN is a failure CSS drops silently — the marker just parks in the corner.
+    it('centres the marker rather than dividing a missing canvas position', () => {
         expect(labelMarkerFraction('crop', null, null, null)).toEqual({ x: 0.5, y: 0.5 });
         expect(labelMarkerFraction('api', null, undefined, undefined)).toEqual({ x: 0.5, y: 0.5 });
     });

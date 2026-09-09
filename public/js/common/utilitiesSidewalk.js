@@ -712,9 +712,11 @@ function UtilitiesMisc(JSON) {
    *
    * @param {string} imageSource - Which source is on screen: 'crop' or 'api'.
    * @param {?{x: number, y: number}} cropMarker - The crop's recorded position, when one exists.
-   * @param {?number} canvasX - The label's x on the 720x480 labeling canvas; null when it wasn't in frame.
+   * @param {?number} canvasX - The label's x on the 720x480 labeling canvas. `label_point.canvas_x` is NOT NULL, so
+   *     every payload today supplies it; the centre is a defensive default, not a case any caller reaches. (Note
+   *     `label_validation.canvas_x` IS nullable, but that is the validator's canvas and no card reads it.)
    * @param {?number} canvasY - The label's y on that canvas.
-   * @returns {{x: number, y: number}} Fractions of the image's width and height; the centre when nothing places it.
+   * @returns {{x: number, y: number}} Fractions of the image's width and height.
    */
   function labelMarkerFraction(imageSource, cropMarker, canvasX, canvasY) {
     if (imageSource === 'crop' && cropMarker) return cropMarker;
