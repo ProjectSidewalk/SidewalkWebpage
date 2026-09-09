@@ -51,7 +51,36 @@ const deviceMaxPanoWidth = () => {
 const panoramaUrlFor = (metadata) => {
   const cap = deviceMaxPanoWidth();
   if (!cap || !metadata.width || metadata.width <= cap) return metadata.imageUrl;
-  return `${metadata.imageUrl}${metadata.imageUrl.includes('?') ? '&' : '?'}maxWidth=${cap}`;
+  return withMaxWidth(metadata.imageUrl, cap);
+};
+
+/** @returns {string} `url` with a maxWidth the server will honour. */
+const withMaxWidth = (url, width) => `${url}${url.includes('?') ? '&' : '?'}maxWidth=${width}`;
+
+/** The narrowest copy worth asking for; below this the server's allowlist snaps up anyway. */
+const MIN_FALLBACK_WIDTH = 2048;
+
+/**
+ * The URLs to try for a panorama, widest first.
+ *
+ * The first is what the GPU's advertised limit calls for, and on nearly all hardware it is the only one used. The
+ * rest exist because that limit is a promise about dimensions, not about memory: a device can report a size it
+ * cannot actually allocate — 16384 x 8192 is two 8192-square textures, half a gigabyte of RGBA — and a phone under
+ * memory pressure fails a load its own `MAX_TEXTURE_SIZE` said would work. Nothing readable from the page predicts
+ * that, so the fallback is to be told by the failure and ask for half as much.
+ *
+ * @param {object} metadata Pano metadata; uses `imageUrl` and `width`.
+ * @returns {string[]} Candidate URLs, in the order they should be tried.
+ */
+const panoramaUrlCandidates = (metadata) => {
+  const urls = [panoramaUrlFor(metadata)];
+  const cap = deviceMaxPanoWidth();
+  const start = cap || metadata.width || 0;
+  // Two retries: a device that can't hold a quarter of what it advertised is not going to be rescued by an eighth.
+  for (let w = Math.floor(start / 2); w >= MIN_FALLBACK_WIDTH && urls.length < 3; w = Math.floor(w / 2)) {
+    urls.push(withMaxWidth(metadata.imageUrl, w));
+  }
+  return urls;
 };
 
 class PannellumViewer extends PanoViewer {
@@ -142,21 +171,38 @@ class PannellumViewer extends PanoViewer {
       },
     };
 
-    await new Promise((resolve, reject) => {
-      this.#viewer = pannellum.viewer(canvasElem, pannellumConfig);
-      const onLoad = () => {
-        this.#viewer.off('load', onLoad);
-        this.#viewer.off('error', onError);
-        resolve();
-      };
-      const onError = (err) => {
-        this.#viewer.off('load', onLoad);
-        this.#viewer.off('error', onError);
-        reject(new Error(err || 'Pannellum failed to load image'));
-      };
-      this.#viewer.on('load', onLoad);
-      this.#viewer.on('error', onError);
-    });
+    const candidates = panoramaUrlCandidates(metadata);
+    for (let attempt = 0; attempt < candidates.length; attempt++) {
+      pannellumConfig.scenes[panoId].panorama = candidates[attempt];
+      try {
+        await new Promise((resolve, reject) => {
+          this.#viewer = pannellum.viewer(canvasElem, pannellumConfig);
+          const onLoad = () => {
+            this.#viewer.off('load', onLoad);
+            this.#viewer.off('error', onError);
+            resolve();
+          };
+          const onError = (err) => {
+            this.#viewer.off('load', onLoad);
+            this.#viewer.off('error', onError);
+            reject(new Error(err || 'Pannellum failed to load image'));
+          };
+          this.#viewer.on('load', onLoad);
+          this.#viewer.on('error', onError);
+        });
+        break;
+      } catch (e) {
+        // The viewer holds a WebGL context and a half-built scene either way, so it goes before the next attempt.
+        try {
+          this.#viewer?.destroy();
+        } catch {
+          // Already torn down by the failure itself; nothing left to release.
+        }
+        this.#viewer = null;
+        if (attempt === candidates.length - 1) throw e;
+        console.warn(`Pano ${panoId} failed to load; retrying at a smaller size.`, e);
+      }
+    }
 
     // Tag the rendered canvas so the screenshot helper (Canvas.js) can find it via getCanvasClass().
     const renderedCanvas = canvasElem.querySelector('.pnlm-render-container canvas');
@@ -205,33 +251,47 @@ class PannellumViewer extends PanoViewer {
     const yaw = this.#headingToYaw(pov.heading ?? newCameraHeading, newCameraHeading);
     const hfov = util.pano.zoomToFov(pov.zoom ?? 1);
 
-    this.#viewer.addScene(panoId, {
-      type: 'equirectangular',
-      panorama: panoramaUrlFor(metadata),
-      haov: 360,
-      vaov: 180,
-      northOffset: newCameraHeading,
-    });
-
     // Pause the rAF POV-tracking loop for the duration of the transition to avoid emitting pov_changed events
     // with values that mix the old scene's calibration with the new scene's yaw/pitch.
     this.#loading = true;
     try {
-      await new Promise((resolve, reject) => {
-        const onLoad = () => {
-          this.#viewer.off('load', onLoad);
-          this.#viewer.off('error', onError);
-          resolve();
-        };
-        const onError = (err) => {
-          this.#viewer.off('load', onLoad);
-          this.#viewer.off('error', onError);
-          reject(new Error(err || 'Pannellum failed to load scene'));
-        };
-        this.#viewer.on('load', onLoad);
-        this.#viewer.on('error', onError);
-        this.#viewer.loadScene(panoId, pitch, yaw, hfov);
-      });
+      const candidates = panoramaUrlCandidates(metadata);
+      for (let attempt = 0; attempt < candidates.length; attempt++) {
+        this.#viewer.addScene(panoId, {
+          type: 'equirectangular',
+          panorama: candidates[attempt],
+          haov: 360,
+          vaov: 180,
+          northOffset: newCameraHeading,
+        });
+        try {
+          await new Promise((resolve, reject) => {
+            const onLoad = () => {
+              this.#viewer.off('load', onLoad);
+              this.#viewer.off('error', onError);
+              resolve();
+            };
+            const onError = (err) => {
+              this.#viewer.off('load', onLoad);
+              this.#viewer.off('error', onError);
+              reject(new Error(err || 'Pannellum failed to load scene'));
+            };
+            this.#viewer.on('load', onLoad);
+            this.#viewer.on('error', onError);
+            this.#viewer.loadScene(panoId, pitch, yaw, hfov);
+          });
+          break;
+        } catch (e) {
+          // The failed scene keeps its URL, so it has to go before the same id can be added at a smaller size.
+          try {
+            this.#viewer.removeScene(panoId);
+          } catch {
+            // Pannellum throws when the scene isn't there, which is fine -- we only wanted it gone.
+          }
+          if (attempt === candidates.length - 1) throw e;
+          console.warn(`Pano ${panoId} failed to load; retrying at a smaller size.`, e);
+        }
+      }
     } finally {
       this.#loading = false;
     }
