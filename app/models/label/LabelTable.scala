@@ -1665,10 +1665,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _vc._6
     )
 
-    // Keep only the most recent matching validation for each label: newest first, then one row per label. Sort on the
-    // validation's timestamp (_10), not the label type (_9) -- the query already filters to a single label type, so
-    // every row shares it and sorting on it picks an arbitrary validation.
-    _validations.sortBy(r => (r._1, r._10.desc)).distinctOn(_._1)
+    // One row per label, holding that label's newest validation (_10 is the validation's timestamp). Postgres makes
+    // DISTINCT ON sort by the label id first, which would hand the caller the user's lowest label ids -- their oldest
+    // labels -- when it takes the first n. `.subquery` keeps that sort inside a nested query so the newest-first sort
+    // applies to its results; without it Slick flattens the two into one ORDER BY that Postgres rejects.
+    _validations.sortBy(r => (r._1, r._10.desc)).distinctOn(_._1).subquery.sortBy(_._10.desc)
   }
 
   /**
