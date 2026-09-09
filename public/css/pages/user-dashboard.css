@@ -745,11 +745,16 @@
 }
 
 /* Top-left, opposite the expand hint. The bottom of the image is reserved for the imagery credit (#5254): we're
-   required to show that one, so our own badge is the one that moves. */
+   required to show that one, so our own badge is the one that moves. The two share the top line, so this one gives
+   ground first -- the hint is a handful of characters in every language, and this can be a long phrase. */
 .ud-card-verdict {
   position: absolute;
   top: 8px;
   left: 8px;
+  max-width: calc(100% - 110px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding: 2px 8px;
   border-radius: 10px;
   font: var(--text-caption-semibold);
@@ -891,30 +896,43 @@
   background: var(--color-pine-100);
 }
 
-/* Clickable card image opens the interactive label popup. */
-.ud-card-img-clickable { cursor: pointer; }
+/* Covers the card image and opens the interactive label popup. Transparent, so everything under it still shows; the
+   imagery credit is added after it and so stays on top, where its licence link is still clickable. */
+.ud-card-open {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
 
-.ud-card-img-clickable:focus-visible {
+.ud-card-open:focus-visible {
   outline: 2px solid var(--color-link-200);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
 .ud-card-expand-hint {
   position: absolute;
   top: 8px;
   right: 8px;
+  max-width: calc(50% - 12px);
   padding: 2px 8px;
   border-radius: 10px;
   font: var(--text-caption-semibold);
   color: var(--color-neutral-white);
   background: rgb(0 0 0 / 55%);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   opacity: 0;
   transition: opacity var(--transition-fast);
   pointer-events: none;
 }
 
-.ud-card-img-clickable:hover .ud-card-expand-hint,
-.ud-card-img-clickable:focus-visible .ud-card-expand-hint { opacity: 1; }
+.ud-card-open:hover .ud-card-expand-hint,
+.ud-card-open:focus-visible .ud-card-expand-hint { opacity: 1; }
 
 /* The mistake vote/note panel injected into the label popup dialog so you can respond from the expanded view. It sits
    outside .page-content, so set a readable base font here (children inherit it) and size the heading up. Full-width

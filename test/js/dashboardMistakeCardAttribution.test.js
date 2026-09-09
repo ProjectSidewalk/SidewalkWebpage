@@ -44,9 +44,9 @@ describe('the dashboard mistake card\'s imagery credit', () => {
 
   let mistakes;
 
-  async function renderGallery() {
+  async function renderGallery(opts = {}) {
     document.body.innerHTML = '<div id="ud-mistakes"></div>';
-    const gallery = new window.MistakeGallery(document.getElementById('ud-mistakes'), { userId: 'ada' });
+    const gallery = new window.MistakeGallery(document.getElementById('ud-mistakes'), { userId: 'ada', ...opts });
     await gallery.render();
   }
 
@@ -102,31 +102,43 @@ describe('the dashboard mistake card\'s imagery credit', () => {
     await renderGallery();
 
     expect(photo()).toBeNull();
-    expect(logo().style.display).toBe('none');
-    expect(attribution().hidden).toBe(true);
+    expect(logo()).toBeNull();
+    expect(attribution()).toBeNull();
   });
 
-  // With no backup image, the card falls back to a plain gradient, and there's nothing left to credit.
-  it('retracts the credit when every image source has failed', async () => {
-    await renderGallery();
-    expect(logo().style.display).toBe('flex');
-
-    photo().dispatchEvent(new window.Event('error'));
-
-    expect(document.querySelector('.ud-card-photo')).toBeNull();
-    expect(logo().style.display).toBe('none');
-    expect(attribution().hidden).toBe(true);
-  });
-
-  // The backup image is the same panorama, so the credit already showing is still the right one.
+  // Only a Street View label has a still to fall back to -- the server sends no image_url for any other source -- and
+  // that still is the same panorama as the crop, so the credit already showing is still the right one.
   it('keeps the credit up when an expired crop falls back to the still', async () => {
-    mistakes = [mistake({ image_url: GSV_URL })];
+    mistakes = [mistake({
+      pano_source: 'gsv', image_url: GSV_URL, attribution: { holder: '© 2025 Google', provider: null, license: null },
+    })];
     await renderGallery();
 
     photo().dispatchEvent(new window.Event('error'));
 
     expect(photo().src).toContain(GSV_URL);
     expect(logo().style.display).toBe('flex');
-    expect(attribution().hidden).toBe(false);
+  });
+
+  // A Mapillary crop has no still behind it, so an expired one leaves the card with no image and no credit.
+  it('drops a Mapillary credit when its crop expires, since there is no still behind it', async () => {
+    await renderGallery();
+    expect(logo().style.display).toBe('flex');
+
+    photo().dispatchEvent(new window.Event('error'));
+
+    expect(photo()).toBeNull();
+    expect(logo().style.display).toBe('none');
+    expect(attribution().hidden).toBe(true);
+  });
+
+  // The licence link has to stay reachable, so it must not sit inside the button that opens the label popup.
+  it('keeps the licence link out of the popup button', async () => {
+    await renderGallery({ labelPopup: { open: () => {} } });
+
+    expect(document.querySelector('.ud-card-open')).not.toBeNull();
+
+    expect(attribution().closest('.ud-card-open')).toBeNull();
+    expect(attribution().querySelector('a')).not.toBeNull();
   });
 });
