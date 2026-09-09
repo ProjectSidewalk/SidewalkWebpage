@@ -705,16 +705,13 @@ function UtilitiesMisc(JSON) {
    * Where a label sits in the image a card is showing, as fractions of its width and height (#2660).
    *
    * A crop at `<crops>/<LabelType>/crop_<id>.png` is one of two things: the browser's snapshot of the Explore canvas,
-   * in which the label is at its canvas fraction, or the window the crop job cut around the label, in which it is
-   * near the centre. Only a `label_crop` row tells them apart, so a crop without one falls back to the canvas
-   * fraction — as does the Street View still, which reproduces the Explore frame and where the canvas fraction is
-   * right by construction.
+   * in which the label is at its canvas fraction, or the window the crop job cut around the label, in which it is near
+   * the center. Only a `label_crop` row tells them apart, so a crop without one falls back to the canvas fraction — as
+   * does the Street View still, which reproduces the Explore frame and where the canvas fraction is already correct.
    *
    * @param {string} imageSource - Which source is on screen: 'crop' or 'api'.
    * @param {?{x: number, y: number}} cropMarker - The crop's recorded position, when one exists.
-   * @param {?number} canvasX - The label's x on the 720x480 labeling canvas. `label_point.canvas_x` is NOT NULL, so
-   *     every payload today supplies it; the centre is a defensive default, not a case any caller reaches. (Note
-   *     `label_validation.canvas_x` IS nullable, but that is the validator's canvas and no card reads it.)
+   * @param {?number} canvasX - The label's x on the 720x480 labeling canvas.
    * @param {?number} canvasY - The label's y on that canvas.
    * @returns {{x: number, y: number}} Fractions of the image's width and height.
    */

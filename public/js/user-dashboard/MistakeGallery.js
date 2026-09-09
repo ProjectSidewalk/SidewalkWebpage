@@ -372,11 +372,9 @@ class MistakeGallery {
   }
 
   /**
-     * The card's image, preferring the label's saved crop (#4478): it is what the labeler saw, and it comes off our
-     * own disk where the Static API image is billed per request. A crop's URL expires, so a failure retries the API
-     * image, and a second failure removes the photo, leaving the wrapper's gradient. Alt is empty: the card's title
-     * names the type below it. Lazy either way — the mistakes section sits well down the dashboard, and an eager crop
-     * that failed there would fetch the billed image for a card nobody scrolled to.
+     * The card's image, preferring the label's saved crop (#4478): it's what the labeler saw, and it comes off our own
+     * disk, where the Static API image is billed per request. A crop's URL expires, so a failure retries the API image,
+     * and a second failure removes the photo. Alt is empty: the card's title names the type below it.
      *
      * @param {Object} m - The label record.
      * @param {function(?string): void} onSourceChange - Called with the source now on screen ('api', or null once
