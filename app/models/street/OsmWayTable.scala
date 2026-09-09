@@ -21,8 +21,9 @@ import scala.concurrent.ExecutionContext
  * @param geom      Way geometry, present only on rows discovered by the on-demand point lookup (batch rows are located
  *                  via street_edge geometry instead).
  * @param source       Where the tags came from: "batch" (nightly refresh from the OSM API), "on_demand" (Overpass
- *                     point-lookup fallback), or "history" (recovered from the OSM API's way history after the way died in OSM,
- *                     #5244 -- empty tags under this source mean the history had nothing usable, checked once).
+ *                     point-lookup fallback), or "history" (recovered from the OSM API's way history after the way
+ *                     died in OSM, #5244 -- empty tags under this source mean the history had nothing usable,
+ *                     checked once).
  * @param updatedAt    When the way was last fetched by the refresh; drives the staleness-based re-check.
  * @param missingSince When the refresh first found the way absent from OSM (deleted or merged away); None while it is
  *                     present. The tags of a missing way are its last known ones, kept because they still describe
@@ -107,17 +108,19 @@ class OsmWayTable @Inject() (
    * Gets the distinct way ids from osm_way_street_edge whose osm_way row is missing or last fetched before `cutoff`.
    *
    * Ways marked `missing_since` are included once they go stale like any other: re-asking the OSM API for a few
-   * hundred dead ids a month is one extra request, and it is what clears the mark if a way comes back.
+   * hundred dead ids a month is one extra request, and it is what clears the mark if a way comes back. The one
+   * exception is a 'history' row with empty tags: the API has never held that id, or held it with nothing on it, so
+   * there is nothing to come back, and asking again would 404 the whole chunk and force the narrowing every month.
    */
   def getWayIdsMissingOrStale(cutoff: OffsetDateTime): DBIO[Seq[Long]] = {
-    osmWayStreetEdges
-      .map(_.osmWayId)
-      .distinct
-      .joinLeft(osmWays)
-      .on(_ === _.osmWayId)
-      .filter { case (_, way) => way.map(_.updatedAt < cutoff).getOrElse(true) }
-      .map(_._1)
-      .result
+    sql"""
+      SELECT DISTINCT osm_way_street_edge.osm_way_id
+      FROM osm_way_street_edge
+      LEFT JOIN osm_way ON osm_way_street_edge.osm_way_id = osm_way.osm_way_id
+      WHERE osm_way.osm_way_id IS NULL
+         OR (osm_way.updated_at < $cutoff AND NOT (osm_way.source = 'history' AND osm_way.tags = '{}'::jsonb))
+      ORDER BY osm_way_street_edge.osm_way_id
+    """.as[Long]
   }
 
   /**

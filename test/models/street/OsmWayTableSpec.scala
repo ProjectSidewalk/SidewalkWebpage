@@ -195,4 +195,31 @@ class OsmWayTableSpec
       stored mustBe ((bridgeTags, None, "history", micros(recheckAt), Some(micros(goneAt))))
     }
   }
+
+  "OsmWayTable.getWayIdsMissingOrStale" should {
+    "re-check a stale gone way, recovered or not, but never one the API has nothing for" in {
+      val staleAt = OffsetDateTime.now.minusDays(40)
+      val cutoff  = OffsetDateTime.now.minusDays(30)
+      val listed  = runRolledBack(for {
+        _   <- insertGoneWay(blankedId, Json.obj(), "batch", staleAt)    // gone, blanked: re-check
+        _   <- insertGoneWay(keptTagsId, bridgeTags, "history", staleAt) // gone, recovered: re-check
+        _   <- insertGoneWay(checkedId, Json.obj(), "history", staleAt)  // never held: nothing to come back
+        ids <- osmWayTable.getWayIdsMissingOrStale(cutoff)
+      } yield ids.filter(recoveryIds.contains))
+      listed mustBe Seq(blankedId, keptTagsId)
+    }
+
+    "leave a fresh row alone and list a mapped way with no row at all" in {
+      val cutoff = OffsetDateTime.now.minusDays(30)
+      val listed = runRolledBack(for {
+        _            <- insertGoneWay(blankedId, Json.obj(), "batch", OffsetDateTime.now)
+        streetEdgeId <- insertStreet()
+        _            <- sqlu"""INSERT INTO osm_way_street_edge (osm_way_street_edge_id, osm_way_id, street_edge_id)
+                    VALUES ((SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 1 FROM osm_way_street_edge),
+                            $keptTagsId, $streetEdgeId)"""
+        ids <- osmWayTable.getWayIdsMissingOrStale(cutoff)
+      } yield ids.filter(recoveryIds.contains))
+      listed mustBe Seq(keptTagsId)
+    }
+  }
 }

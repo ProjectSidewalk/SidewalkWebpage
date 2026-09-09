@@ -64,11 +64,15 @@ class OsmWayServiceSpec extends PlaySpec {
       OsmWayService.parseWaysResponse(json) mustBe Map(5L -> Json.obj())
     }
 
-    "ignore non-way elements and tolerate an empty or missing elements array" in {
+    "ignore non-way elements and tolerate an empty elements array" in {
       val json: JsValue = Json.obj("elements" -> Json.arr(Json.obj("type" -> "node", "id" -> 9L)))
       OsmWayService.parseWaysResponse(json) mustBe Map.empty
       OsmWayService.parseWaysResponse(Json.obj("elements" -> Json.arr())) mustBe Map.empty
-      OsmWayService.parseWaysResponse(Json.obj()) mustBe Map.empty
+    }
+
+    "throw on a body with no elements array, rather than read every requested way as gone" in {
+      a[RuntimeException] mustBe thrownBy(OsmWayService.parseWaysResponse(Json.obj()))
+      a[RuntimeException] mustBe thrownBy(OsmWayService.parseWaysResponse(Json.obj("error" -> "Bad Gateway")))
     }
   }
 
@@ -77,35 +81,47 @@ class OsmWayServiceSpec extends PlaySpec {
 
     /**
      * A fake multi-fetch that 404s (None) any request naming a never-existing id, answering the rest with `tags`, and
-     * records every request it gets.
+     * records every request it gets and every pause it is asked for. A request `failing` accepts fails outright.
      */
-    class FakeApi(neverExisted: Set[Long]) {
+    class FakeApi(neverExisted: Set[Long], failing: Seq[Long] => Boolean = _ => false) {
       var requests: List[Seq[Long]]                                  = Nil
+      var pauses: Int                                                = 0
       def fetch(ids: Seq[Long]): Future[Option[Map[Long, JsObject]]] = {
         requests = requests :+ ids
-        Future.successful(if (ids.exists(neverExisted)) None else Some(ids.map(_ -> tags).toMap))
+        if (failing(ids)) Future.failed(new RuntimeException("503"))
+        else Future.successful(if (ids.exists(neverExisted)) None else Some(ids.map(_ -> tags).toMap))
       }
+      def pause(): Future[Unit] = { pauses += 1; Future.unit }
     }
 
-    def fetchAll(ids: Seq[Long], api: FakeApi): Map[Long, JsObject] =
-      Await.result(OsmWayService.fetchSplittingOnNotFound(ids)(api.fetch), 5.seconds)
+    def fetchAll(ids: Seq[Long], api: FakeApi): OsmWayService.ChunkFetch =
+      Await.result(OsmWayService.fetchSplittingOnNotFound(ids)(api.fetch, () => api.pause()), 5.seconds)
 
-    "fetch a chunk with no bad id in one request" in {
-      val api = new FakeApi(Set.empty)
-      fetchAll(1L to 8L, api).keySet mustBe (1L to 8L).toSet
+    "fetch a chunk with no bad id in one request and no pause" in {
+      val api    = new FakeApi(Set.empty)
+      val result = fetchAll(1L to 8L, api)
+      result.live.keySet mustBe (1L to 8L).toSet
+      result.neverHeld mustBe Nil
       api.requests mustBe List(1L to 8L)
+      api.pauses mustBe 0
     }
 
     "narrow a 404 down to the one bad id, keeping every other id, in a bisection rather than one request per id" in {
-      val api = new FakeApi(Set(6L))
-      fetchAll(1L to 8L, api).keySet mustBe Set(1L, 2L, 3L, 4L, 5L, 7L, 8L)
+      val api    = new FakeApi(Set(6L))
+      val result = fetchAll(1L to 8L, api)
+      result.live.keySet mustBe Set(1L, 2L, 3L, 4L, 5L, 7L, 8L)
+      result.neverHeld mustBe Seq(6L)
       // 1-8 → 1-4 (ok), 5-8 → 5-6 → 5 (ok), 6 (404); then 7-8 (ok).
       api.requests mustBe List(1L to 8L, 1L to 4L, 5L to 8L, 5L to 6L, Seq(5L), Seq(6L), 7L to 8L)
+      // One pause before each request after the first.
+      api.pauses mustBe api.requests.size - 1
     }
 
-    "return nothing for a chunk that is all bad ids" in {
-      val api = new FakeApi(Set(1L, 2L))
-      fetchAll(Seq(1L, 2L), api) mustBe Map.empty
+    "name every id in a chunk that is all bad ids" in {
+      val api    = new FakeApi(Set(1L, 2L))
+      val result = fetchAll(Seq(1L, 2L), api)
+      result.live mustBe Map.empty
+      result.neverHeld mustBe Seq(1L, 2L)
       api.requests mustBe List(Seq(1L, 2L), Seq(1L), Seq(2L))
     }
 
@@ -114,6 +130,13 @@ class OsmWayServiceSpec extends PlaySpec {
       val failing: Seq[Long] => Future[Option[Map[Long, JsObject]]] = _ => Future.failed(boom)
       the[RuntimeException] thrownBy
         Await.result(OsmWayService.fetchSplittingOnNotFound(Seq(1L, 2L))(failing), 5.seconds) mustBe boom
+    }
+
+    "propagate a failure in the second half even after the first half succeeded" in {
+      // 1-4 404s because 3 never existed, so it splits: 1-2 is fine, then 3-4 fails on the request itself.
+      val api = new FakeApi(neverExisted = Set(3L), failing = _ == Seq(3L, 4L))
+      a[RuntimeException] mustBe thrownBy(fetchAll(1L to 4L, api))
+      api.requests mustBe List(1L to 4L, 1L to 2L, 3L to 4L)
     }
   }
 
