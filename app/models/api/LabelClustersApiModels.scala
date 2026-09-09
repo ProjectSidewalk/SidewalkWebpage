@@ -134,6 +134,7 @@ case class LabelClusterForApi(
     labelClusterId: Int,
     labelType: String,
     streetEdgeId: Int,
+    intersectionId: Option[Int],
     osmWayId: Long,
     regionId: Int,
     regionName: String,
@@ -166,6 +167,7 @@ case class LabelClusterForApi(
       "label_cluster_id"       -> labelClusterId,
       "label_type"             -> labelType,
       "street_edge_id"         -> streetEdgeId,
+      "intersection_id"        -> intersectionId,
       "osm_way_id"             -> osmWayId,
       "region_id"              -> regionId,
       "region_name"            -> regionName,
@@ -203,6 +205,7 @@ case class LabelClusterForApi(
       labelClusterId.toString,
       escapeCsvField(labelType),
       streetEdgeId.toString,
+      intersectionId.map(_.toString).getOrElse(""),
       osmWayId.toString,
       regionId.toString,
       escapeCsvField(regionName),
@@ -233,7 +236,8 @@ object LabelClusterForApi {
    * CSV header string with field names in the same order as the toCsvRow output.
    * This should be included as the first line when generating CSV output.
    */
-  val csvHeader: String = "label_cluster_id,label_type,street_edge_id,osm_way_id,region_id,region_name," +
-    "avg_image_capture_date,avg_label_date,median_severity,agree_count,disagree_count,unsure_count,cluster_size," +
-    "label_ids,users,tag_counts,avg_latitude,avg_longitude\n"
+  val csvHeader: String =
+    "label_cluster_id,label_type,street_edge_id,intersection_id,osm_way_id,region_id,region_name," +
+      "avg_image_capture_date,avg_label_date,median_severity,agree_count,disagree_count,unsure_count,cluster_size," +
+      "label_ids,users,tag_counts,avg_latitude,avg_longitude\n"
 }

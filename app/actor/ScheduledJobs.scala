@@ -24,8 +24,9 @@ case class ScheduledJob(name: String, label: String, hour: Int, minute: Int) {
  * and each city shifts the whole schedule by its own offset (`ConfigService.getOffsetHours`) so deployments don't
  * contend for the same database and provider quotas.
  *
- * Ordering matters in one place only: the imagery-freshness sync runs at the top of the street-priority sequence, so
- * the imagery-age poll that feeds it has to come earlier in the night.
+ * Ordering matters in two places: the imagery-freshness sync runs at the top of the street-priority sequence, so the
+ * imagery-age poll that feeds it has to come earlier in the night; and the intersection rebuild runs at the top of
+ * clustering, so the OSM way refresh whose tags decide grade separation has to come earlier too.
  */
 object ScheduledJobs {
   val CheckImageExpiry: ScheduledJob = ScheduledJob(CheckImageExpiryActor.Name, "Imagery expiry sweep", 0, 15)
@@ -47,12 +48,19 @@ object ScheduledJobs {
   val FunnelStats: ScheduledJob      = ScheduledJob(FunnelStatActor.Name, "Engagement funnel stats", 3, 15)
   val Clustering: ScheduledJob       = ScheduledJob(ClusteringActor.Name, "Label clustering", 4, 0)
 
+  /** Runs at the top of the clustering job (#5095), so it takes that job's time rather than restating it. */
+  val IntersectionRebuild: ScheduledJob = Clustering.copy(
+    name = service.ClusterServiceImpl.IntersectionRebuildJobName,
+    label = "Intersection rebuild"
+  )
+
   /** After clustering, which can run long in a big city; the two share the CPU-intensive pool. */
   val CropGeneration: ScheduledJob = ScheduledJob(CropGenerationActor.Name, "Crop generation", 5, 0)
 
   /** Every job the Health panel expects to see a recent run of, in the order they run. */
   val All: Seq[ScheduledJob] = Seq(CheckImageExpiry, GetAiValidations, CheckImageryAge, UserStats, ImageryFreshnessSync,
-    RecalculateStreetPriority, OsmWayRefresh, AuthTokenCleaner, FunnelStats, Clustering, CropGeneration)
+    RecalculateStreetPriority, OsmWayRefresh, AuthTokenCleaner, FunnelStats, IntersectionRebuild, Clustering,
+    CropGeneration)
 
   /**
    * How long after a job's last successful run it counts as overdue, in hours.

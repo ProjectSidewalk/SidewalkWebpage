@@ -2,6 +2,7 @@ package models.cluster
 
 import com.google.inject.ImplementedBy
 import models.api.{LabelClusterFiltersForApi, LabelClusterForApi, RawLabelInClusterDataForApi}
+import models.intersection.IntersectionTableDef
 import models.label.LabelTypeEnum
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
@@ -17,13 +18,21 @@ import slick.sql.SqlStreamingAction
 import java.time.{OffsetDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 
+/**
+ * A cluster of nearby labels of one type.
+ *
+ * @param intersectionId The intersection a corner-type cluster is attributed to (#5095): the nearest one within the
+ *                       engine's attribution radius. None for a mid-block cluster and for every along-length type;
+ *                       assigned at insert and re-assigned by the nightly intersection rebuild.
+ */
 case class Cluster(
     clusterId: Int,
     clusteringSessionId: Int,
     labelType: LabelTypeEnum.Base,
     streetEdgeId: Int,
     geom: Point,
-    severity: Option[Int]
+    severity: Option[Int],
+    intersectionId: Option[Int]
 )
 
 /**
@@ -32,14 +41,16 @@ case class Cluster(
  * Deliberately minimal — only what the scoring engine needs — so the query can skip the expensive validation/image-date/
  * user-list aggregation that the general cluster query computes.
  *
- * @param streetEdgeId The street the cluster sits on (clusters are grouped by street to score it).
- * @param labelType    The cluster's label type name (e.g. "CurbRamp").
- * @param severity     Median severity 1..3 of the cluster's labels, or None for presence-only/unrated clusters.
- * @param labelCount   Number of member labels (denominator for the tag-active threshold).
- * @param tagCounts    Map of tag name → number of member labels carrying that tag.
+ * @param streetEdgeId   The street the cluster sits on (a cluster with no intersection scores this street's segment).
+ * @param intersectionId The intersection the cluster is attributed to, which it scores instead of its street (#5095).
+ * @param labelType      The cluster's label type name (e.g. "CurbRamp").
+ * @param severity       Median severity 1..3 of the cluster's labels, or None for presence-only/unrated clusters.
+ * @param labelCount     Number of member labels (denominator for the tag-active threshold).
+ * @param tagCounts      Map of tag name → number of member labels carrying that tag.
  */
 case class ClusterScoreRow(
     streetEdgeId: Int,
+    intersectionId: Option[Int],
     labelType: String,
     severity: Option[Int],
     labelCount: Int,
@@ -53,8 +64,9 @@ class ClusterTableDef(tag: slick.lifted.Tag) extends Table[Cluster](tag, "cluste
   def streetEdgeId: Rep[Int]             = column[Int]("street_edge_id")
   def geom: Rep[Point]                   = column[Point]("geom")
   def severity: Rep[Option[Int]]         = column[Option[Int]]("severity")
+  def intersectionId: Rep[Option[Int]]   = column[Option[Int]]("intersection_id")
 
-  def * = (clusterId, clusteringSessionId, labelType, streetEdgeId, geom, severity) <> (
+  def * = (clusterId, clusteringSessionId, labelType, streetEdgeId, geom, severity, intersectionId) <> (
     (Cluster.apply _).tupled,
     Cluster.unapply
   )
@@ -66,6 +78,11 @@ class ClusterTableDef(tag: slick.lifted.Tag) extends Table[Cluster](tag, "cluste
     )
   def streetEdge =
     foreignKey("cluster_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
+  def intersection =
+    foreignKey("cluster_intersection_id_fkey", intersectionId, TableQuery[IntersectionTableDef])(
+      _.intersectionId.?,
+      onDelete = ForeignKeyAction.SetNull
+    )
 }
 
 @ImplementedBy(classOf[ClusterTable]) trait ClusterTableRepository {
@@ -82,6 +99,10 @@ class ClusterTableDef(tag: slick.lifted.Tag) extends Table[Cluster](tag, "cluste
 
   /**
    * Streams lean per-cluster scoring inputs for the v3 AccessScore endpoints.
+   *
+   * A cluster is in scope when its street is, or when it is attributed to an intersection at the end of an in-scope
+   * street (#5095) — so a street crossing the edge of the bbox still gets its far-end intersection scored from every
+   * cluster there, whatever street those clusters sit on.
    *
    * @param spatialQueryType Whether the bbox filters on region geometry or street geometry.
    * @param bbox             The bounding box to score within.
@@ -114,6 +135,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     val labelClusterId = r.nextInt()
     val labelType      = r.nextString()
     val streetEdgeId   = r.nextInt()
+    val intersectionId = r.nextIntOption()
     val osmWayId       = r.nextLong()
     val regionId       = r.nextInt()
     val regionName     = r.nextString()
@@ -147,17 +169,19 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     }
 
     LabelClusterForApi(
-      labelClusterId = labelClusterId, labelType = labelType, streetEdgeId = streetEdgeId, osmWayId = osmWayId,
-      regionId = regionId, regionName = regionName, avgImageCaptureDate = avgImageCaptureDate,
-      avgLabelDate = avgLabelDate, medianSeverity = medianSeverity, agreeCount = agreeCount,
-      disagreeCount = disagreeCount, unsureCount = unsureCount, clusterSize = clusterSize, labelIds = labelIds,
-      userIds = userIds, tagCounts = tagCounts, labels = labels, avgLatitude = avgLatitude, avgLongitude = avgLongitude
+      labelClusterId = labelClusterId, labelType = labelType, streetEdgeId = streetEdgeId,
+      intersectionId = intersectionId, osmWayId = osmWayId, regionId = regionId, regionName = regionName,
+      avgImageCaptureDate = avgImageCaptureDate, avgLabelDate = avgLabelDate, medianSeverity = medianSeverity,
+      agreeCount = agreeCount, disagreeCount = disagreeCount, unsureCount = unsureCount, clusterSize = clusterSize,
+      labelIds = labelIds, userIds = userIds, tagCounts = tagCounts, labels = labels, avgLatitude = avgLatitude,
+      avgLongitude = avgLongitude
     )
   }
 
   implicit val clusterScoreRowConverter: GetResult[ClusterScoreRow] = GetResult[ClusterScoreRow] { r =>
     ClusterScoreRow(
       streetEdgeId = r.nextInt(),
+      intersectionId = r.nextIntOption(),
       labelType = r.nextString(),
       severity = r.nextIntOption(),
       labelCount = r.nextInt(),
@@ -204,20 +228,31 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
         |) tag_counts ON cluster.cluster_id = tag_counts.cluster_id
         |GROUP BY cluster.cluster_id""".stripMargin
 
+    // The streets the filter selects; a cluster is in scope through its own street or its intersection's streets.
+    val inScopeStreets =
+      s"""SELECT street_edge.street_edge_id
+         |FROM street_edge
+         |INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
+         |INNER JOIN region ON street_edge_region.region_id = region.region_id
+         |WHERE $locationFilter""".stripMargin
+
     sql"""
       SELECT cluster.street_edge_id,
+             cluster.intersection_id,
              cluster.label_type::text,
              cluster.severity,
              label_counts.label_count,
              cluster_tag_counts.tag_counts
       FROM cluster
-      INNER JOIN street_edge ON cluster.street_edge_id = street_edge.street_edge_id
-      INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
-      INNER JOIN region ON street_edge_region.region_id = region.region_id
       INNER JOIN (#$labelCounts) label_counts ON cluster.cluster_id = label_counts.cluster_id
       INNER JOIN (#$tagCounts) cluster_tag_counts ON cluster.cluster_id = cluster_tag_counts.cluster_id
       WHERE #$labelTypeFilter
-          AND #$locationFilter;
+          AND (cluster.street_edge_id IN (#$inScopeStreets)
+               OR cluster.intersection_id IN (
+                   SELECT intersection_street_edge.intersection_id
+                   FROM intersection_street_edge
+                   WHERE intersection_street_edge.street_edge_id IN (#$inScopeStreets)
+               ));
     """.as[ClusterScoreRow]
   }
 
@@ -318,6 +353,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     SELECT cluster.cluster_id AS label_cluster_id,
           cluster.label_type::text,
           cluster.street_edge_id,
+          cluster.intersection_id,
           osm_way_street_edge.osm_way_id,
           street_edge_region.region_id,
           region.name AS region_name,
@@ -375,6 +411,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
             base_query.label_cluster_id,
             base_query.label_type,
             base_query.street_edge_id,
+            base_query.intersection_id,
             base_query.osm_way_id,
             base_query.region_id,
             base_query.region_name,

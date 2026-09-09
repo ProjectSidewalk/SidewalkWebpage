@@ -21,6 +21,7 @@ class LabelClustersApiModelsSpec extends AnyFunSuite with Matchers {
     labelClusterId = 1,
     labelType = "CurbRamp",
     streetEdgeId = 10,
+    intersectionId = Some(7),
     osmWayId = 100L,
     regionId = 5,
     regionName = "Downtown",
