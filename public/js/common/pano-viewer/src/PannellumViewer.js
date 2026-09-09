@@ -12,6 +12,48 @@
  * Internally, the viewer is initialized in Pannellum's tour mode (default + scenes config) so that loadPano() can
  * swap panos via addScene()/loadScene() without destroying and recreating the WebGL context.
  */
+/**
+ * The widest equirectangular panorama this device can actually render, or null if that can't be determined.
+ *
+ * Pannellum uploads an equirect as two halves, so its own refusal test is `max(width / 2, height) > MAX_TEXTURE_SIZE`
+ * — twice the texture limit, which is why a device advertising 8192 renders a 16384-wide pano and most hardware needs
+ * no downscaled copy at all. Asking the GPU is the only honest answer here; guessing a fixed cap server-side either
+ * downscales for devices that never needed it or fails on the ones that did.
+ *
+ * Cached because it costs a throwaway WebGL context, and released immediately so it doesn't count against the
+ * browser's small per-page context budget.
+ *
+ * @returns {?number} Maximum renderable panorama width in pixels, or null when WebGL is unavailable.
+ */
+let cachedMaxPanoWidth;
+const deviceMaxPanoWidth = () => {
+  if (cachedMaxPanoWidth !== undefined) return cachedMaxPanoWidth;
+  cachedMaxPanoWidth = null;
+  try {
+    const gl = document.createElement('canvas').getContext('webgl');
+    if (gl) {
+      cachedMaxPanoWidth = 2 * gl.getParameter(gl.MAX_TEXTURE_SIZE);
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
+    }
+  } catch {
+    // A blocked or unavailable context tells us nothing; fall through to the native image and let Pannellum decide.
+  }
+  return cachedMaxPanoWidth;
+};
+
+/**
+ * The URL to hand Pannellum for a panorama, asking the server for a smaller copy only when this device can't texture
+ * the stored one (#5256). Every device that can render it as stored gets it untouched.
+ *
+ * @param {object} metadata Pano metadata; uses `imageUrl` and `width`.
+ * @returns {string} The image URL, with `maxWidth` appended when a copy is needed.
+ */
+const panoramaUrlFor = (metadata) => {
+  const cap = deviceMaxPanoWidth();
+  if (!cap || !metadata.width || metadata.width <= cap) return metadata.imageUrl;
+  return `${metadata.imageUrl}${metadata.imageUrl.includes('?') ? '&' : '?'}maxWidth=${cap}`;
+};
+
 class PannellumViewer extends PanoViewer {
   /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
   static SOURCE = 'pannellum';
@@ -89,7 +131,7 @@ class PannellumViewer extends PanoViewer {
       scenes: {
         [panoId]: {
           type: 'equirectangular',
-          panorama: metadata.imageUrl,
+          panorama: panoramaUrlFor(metadata),
           haov: 360,
           vaov: 180,
           yaw: this.#headingToYaw(startHeading),
@@ -165,7 +207,7 @@ class PannellumViewer extends PanoViewer {
 
     this.#viewer.addScene(panoId, {
       type: 'equirectangular',
-      panorama: metadata.imageUrl,
+      panorama: panoramaUrlFor(metadata),
       haov: 360,
       vaov: 180,
       northOffset: newCameraHeading,

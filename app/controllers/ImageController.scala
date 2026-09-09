@@ -17,11 +17,13 @@ import java.util.Base64
 import javax.imageio.ImageIO
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 @Singleton
 class ImageController @Inject() (
     cc: CustomControllerComponents,
     panoDataService: service.PanoDataService,
+    displayCopyService: service.PanoDisplayCopyService,
     cropService: service.CropService,
     signingService: ImageSigningService,
     shareImageCache: service.ShareImageCache,
@@ -115,10 +117,15 @@ class ImageController @Inject() (
   }
 
   /**
-   * Serves a self-hosted equirectangular panorama image: the downscaled sidecar when the scraper has written one
-   * (#5239), else the native file. The pano's metadata (`width`/`height`) always describes the native file, since that
-   * is the frame label positions are stored in; the viewer places markers by angle, so a smaller image is transparent
-   * to it.
+   * Serves a self-hosted equirectangular panorama image.
+   *
+   * `?maxWidth=` is how a viewer says what its GPU can actually texture (#5256): Pannellum uploads an equirect as two
+   * halves and refuses outright above `2 x MAX_TEXTURE_SIZE`, so a device advertising 4096 asks for 8192 and gets a
+   * copy cut to it, on demand and cached. Without the parameter — every device that can render the pano as stored —
+   * this serves the scraper's sidecar if there is one and otherwise the native file, exactly as before.
+   *
+   * The pano's metadata (`width`/`height`) always describes the native file, since that is the frame label positions
+   * are stored in; the viewer places markers by angle, so a smaller image is transparent to it.
    *
    * Requires a valid HMAC signature (?exp=...&sig=...) and an allowed Referer/Origin. User-aware (#4643): read-only
    * and already protected by the signature + referer checks, so no session is required to load the image.
@@ -138,9 +145,19 @@ class ImageController @Inject() (
             panoDataService.markHasBackup(panoId).failed.foreach { e =>
               logger.warn(s"Failed to update has_backup for pano $panoId: ${e.getMessage}")
             }
-            val file        = panoDataService.localDownscaledImageFile(panoId).getOrElse(native)
-            val contentType = if (file.getName.toLowerCase.endsWith(".png")) "image/png" else "image/jpeg"
-            Future.successful(Ok.sendFile(file, inline = true).as(contentType))
+            // A width the viewer asked for is snapped down to an allowed one, so a malformed or unknown value
+            // still yields something the device can render rather than a 400 it can't act on.
+            val requested = request.getQueryString("maxWidth").flatMap(w => Try(w.toInt).toOption).filter(_ > 0)
+            val chosen    = requested.map(service.PanoDisplayCopyService.snapToAllowed)
+            val fileF     = chosen match {
+              case Some(maxWidth) =>
+                displayCopyService.displayCopy(panoId, native, maxWidth).map(_.getOrElse(native))
+              case None => Future.successful(panoDataService.localDownscaledImageFile(panoId).getOrElse(native))
+            }
+            fileF.map { file =>
+              val contentType = if (file.getName.toLowerCase.endsWith(".png")) "image/png" else "image/jpeg"
+              Ok.sendFile(file, inline = true).as(contentType)
+            }
           case None =>
             Future.successful(NotFound(s"Pano image not found: $panoId"))
         }

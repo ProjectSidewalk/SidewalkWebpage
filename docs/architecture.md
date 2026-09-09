@@ -100,14 +100,18 @@ against the label's, and never on a signal that disagrees with the others), and 
 on a crop — the Gallery card, the landing validation grid, the popup's crop fallback, the share preview — take it
 from the row (`crop_marker` in the label payloads), falling back to the canvas fraction only while a crop is
 unrecorded or the image on screen is the Street View still. A new crop writer must write that row, and a new surface
-that marks a crop must read it. A pano too wide for a WebGL texture (Pannellum renders one, and 8192 px is a common
-cap) is shown from a downscaled copy the scraper writes beside the native file as `<panoId>.w8192.jpg`;
-`/backupImage/:panoId` serves it in place of the native file when it exists, and the viewer can't tell, because it
-places markers by angle. The app never cuts that copy itself: a whole-pano derivative needs more heap than a city
-stage has, and cutting one nightly for every wide pano OOM-killed prod JVMs (#5239). It does *count* them — the
-nightly job stats the expected sidecar for every wide pano and records `sidecars_present`/`sidecars_missing` on its
-run row, warning when any are missing, because otherwise a scraper that had stopped writing them would show up only
-as a viewer failing to render, months later. Imagery Project Sidewalk shows a copy of — a self-hosted pano or a
+that marks a crop must read it. A pano too wide for the viewer's GPU is shown from a downscaled copy, and
+`/backupImage/:panoId` serves that in place of the native file without the viewer being able to tell, because it
+places markers by angle. **The viewer decides when one is needed**, because only it knows the GPU: Pannellum uploads
+an equirect as two halves, so its limit is `2 x MAX_TEXTURE_SIZE` and a device advertising 8192 renders a 16384-wide
+pano — the widest GSV produces — untouched. When a device can't, it appends `?maxWidth=` and `PanoDisplayCopyService`
+cuts a copy at that width on demand, caching it under the crop store (#5256). The scraper also writes a
+`<panoId>.w8192.jpg` sidecar beside new panos, which is served when present.
+
+The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
+downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,
+never was. On-demand costs ~105 MB and ~2 s per copy, by letting the JPEG decoder subsample rather than decoding and
+rescaling; the trade is pixel-dropping instead of area-averaging, taken deliberately given how rarely it runs. Imagery Project Sidewalk shows a copy of — a self-hosted pano or a
 crop — carries the attribution
 `ImageryAttribution` composes (Mapillary contributors are CC BY-SA 4.0), rendered by `PanoAttribution.js` in the
 label-detail pano box and in Validate's Pannellum fallback (`css/components/pano-attribution.css` is the shared look;

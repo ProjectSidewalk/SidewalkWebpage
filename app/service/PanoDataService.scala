@@ -845,8 +845,9 @@ class PanoDataServiceImpl @Inject() (
     new File(new File(panosBaseDir, panoId.take(2)), s"$panoId.w$downscaledMaxWidth.jpg")
 
   /**
-   * That sidecar when the scraper has written one and its header agrees with the cap (#5239). The app never cuts this
-   * copy itself: a whole-pano derivative needs more heap than a city stage has.
+   * That sidecar when the scraper has written one and its header agrees with the cap (#5239). The app doesn't cut
+   * this one; when a viewer needs a copy the scraper hasn't written, [[PanoDisplayCopyService]] cuts it on demand at
+   * the width that viewer asked for.
    *
    * The header check catches a copy of the wrong size and one whose header won't parse; it does not catch a truncated
    * file, whose SOF marker sits in the first few hundred bytes and still reports the full declared width. Truncation

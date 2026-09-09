@@ -64,6 +64,44 @@ object ImageUtils {
     reader.read(0, param)
   }
 
+  /**
+   * The smallest power-of-two subsampling period that brings a `srcWidth` x `srcHeight` image inside what a pano
+   * viewer can texture, expressed the way Pannellum expresses it (#5256).
+   *
+   * Pannellum uploads an equirectangular pano as two halves, so its own refusal test is
+   * `max(width / 2, height) > MAX_TEXTURE_SIZE` — i.e. a device advertising 8192 renders a 16384-wide pano, which is
+   * exactly the widest GSV produces. `maxWidth` is that doubled figure, so the constraint here is `width <= maxWidth`
+   * *and* `height <= maxWidth / 2`, and the second one binds only on a pano that isn't 2:1.
+   *
+   * Powers of two because that is what a JPEG decoder can drop while decoding; the result may land under the cap
+   * rather than on it (11000 -> 5500), which costs some resolution and no correctness.
+   *
+   * @return The period to hand [[readSubsampled]]; 1 when the image already fits.
+   */
+  def subsamplePeriod(srcWidth: Int, srcHeight: Int, maxWidth: Int): Int = {
+    var period = 1
+    while (srcWidth / period > maxWidth || srcHeight / period > maxWidth / 2) period *= 2
+    period
+  }
+
+  /**
+   * Decodes the reader's image at 1/`period` of its size, taking every `period`-th pixel.
+   *
+   * The reduction happens inside the decode, so the full-size raster never exists: a 16384x8192 pano costs ~105 MB
+   * and ~2 s at period 2, against ~390 MB and ~10 s for the read-in-strips-and-rescale approach it replaces, whose
+   * appetite took prod JVMs down (#5239). What it buys memory with is quality — this drops pixels where an area
+   * average would blend them (PSNR ~30.6 dB against a box-filtered reference), which is the deliberate trade for a
+   * copy that exists only so a low-end GPU can display a pano at all.
+   *
+   * @param reader A reader from [[withReader]].
+   * @param period From [[subsamplePeriod]].
+   */
+  def readSubsampled(reader: ImageReader, period: Int): BufferedImage = {
+    val param = reader.getDefaultReadParam
+    param.setSourceSubsampling(period, period, 0, 0)
+    reader.read(0, param)
+  }
+
   /** Writes the image to the given file as PNG. Atomic, per [[atomically]]. */
   def writePng(img: BufferedImage, file: File): Unit = atomically(file) { tmp =>
     if (!ImageIO.write(img, "png", tmp)) throw new IllegalStateException("No PNG writer available")
