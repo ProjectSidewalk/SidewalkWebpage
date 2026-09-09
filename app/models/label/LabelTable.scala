@@ -1665,6 +1665,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _vc._6
     )
 
+    // Don't drop `.subquery`: without it the two sorts flatten into one ORDER BY that Postgres rejects.
     _validations.sortBy(r => (r._1, r._10.desc)).distinctOn(_._1).subquery.sortBy(_._10.desc)
   }
 
