@@ -18,6 +18,15 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
+/**
+ * What one run of the OSM way refresh did.
+ *
+ * @param waysRefreshed Ways whose row was written, present in OSM or not (0 when everything was fresh).
+ * @param waysMissing   Of those, ways Overpass did not return: deleted or merged away in OSM since our import. Their
+ *                      last known tags are kept and `osm_way.missing_since` is stamped (#5244).
+ */
+case class OsmWayRefreshResult(waysRefreshed: Int, waysMissing: Int)
+
 @ImplementedBy(classOf[OsmWayServiceImpl])
 trait OsmWayService {
 
@@ -25,12 +34,13 @@ trait OsmWayService {
    * Refreshes cached way data for every mapped way whose row is missing or older than `STALENESS_PERIOD`.
    *
    * Fetches tags in chunks of `BATCH_CHUNK_SIZE` ids, sequentially with a delay between chunks. Every requested id is
-   * upserted even when absent from the response (deleted/redacted ways get empty tags), so it won't re-queue nightly.
-   * A failed chunk fails the whole run; the next nightly tick retries from whatever is still stale.
+   * written even when absent from the response, so it won't re-queue nightly: a found way takes its current tags, a
+   * missing one keeps its last known tags and is marked `missing_since`. A failed chunk fails the whole run; the next
+   * nightly tick retries from whatever is still stale.
    *
-   * @return Number of ways refreshed (0 when everything is fresh).
+   * @return How many ways were written, and how many of them are gone from OSM.
    */
-  def refreshOsmWayData(): Future[Int]
+  def refreshOsmWayData(): Future[OsmWayRefreshResult]
 
   /**
    * Gets the speed limit at a point, for positions not on our street network (the /speedLimit fallback).
@@ -72,25 +82,38 @@ class OsmWayServiceImpl @Inject() (
 
   private val logger = Logger(this.getClass)
 
-  def refreshOsmWayData(): Future[Int] = {
+  def refreshOsmWayData(): Future[OsmWayRefreshResult] = {
     db.run(osmWayTable.getWayIdsMissingOrStale(OffsetDateTime.now.minusDays(STALENESS_PERIOD_DAYS))).flatMap { wayIds =>
-      if (wayIds.isEmpty) { Future.successful(0) }
+      if (wayIds.isEmpty) { Future.successful(OsmWayRefreshResult(0, 0)) }
       else {
         logger.info(s"Refreshing OSM way data for ${wayIds.size} ways.")
-        wayIds.grouped(BATCH_CHUNK_SIZE).zipWithIndex.foldLeft(Future.successful(0)) {
-          case (accFuture, (chunk, chunkIdx)) =>
+        wayIds
+          .grouped(BATCH_CHUNK_SIZE)
+          .zipWithIndex
+          .foldLeft(Future.successful(OsmWayRefreshResult(0, 0))) { case (accFuture, (chunk, chunkIdx)) =>
             for {
               acc <- accFuture
               // Space out requests to the shared Overpass instance; no delay before the first chunk.
               _ <- if (chunkIdx == 0) Future.unit else after(BATCH_CHUNK_DELAY, actorSystem.scheduler)(Future.unit)
               fetched <- fetchTagsForWaysWithRetry(chunk)
-              rows = chunk.map { wayId =>
-                val tags = fetched.getOrElse(wayId, Json.obj())
+              split = chunk.partition(fetched.contains)
+              rows  = split._1.map { wayId =>
+                val tags = fetched(wayId)
                 (wayId, tags: JsValue, maxspeedFrom(tags))
               }
-              n <- db.run(osmWayTable.upsertBatch(rows, OffsetDateTime.now))
-            } yield acc + n
-        }
+              n <- db.run(osmWayTable.upsertBatch(rows, split._2, OffsetDateTime.now))
+            } yield OsmWayRefreshResult(acc.waysRefreshed + n, acc.waysMissing + split._2.size)
+          }
+          .map { result =>
+            // A dead way id is normal OSM churn, but a jump in this count means a re-match (#5244) is overdue.
+            if (result.waysMissing > 0) {
+              logger.warn(
+                s"${result.waysMissing} of ${result.waysRefreshed} refreshed OSM ways no longer exist in OSM " +
+                  "(deleted or merged away); kept their last known tags and marked them missing."
+              )
+            }
+            result
+          }
       }
     }
   }
@@ -130,7 +153,11 @@ class OsmWayServiceImpl @Inject() (
   /**
    * Fetches the full tag map for the given way ids from Overpass, keyed by way id.
    *
-   * Ways absent from the response (deleted/redacted) are simply missing from the returned map.
+   * Ways absent from a complete response are gone from OSM (deleted or merged away) and are simply missing from the
+   * returned map. A cut-short response is a failure, not a list of dead ways: Overpass reports a query that timed out
+   * or ran out of memory as HTTP 200 with whatever elements it had reached plus a top-level `remark` (measured: a
+   * 1-second-budget query came back `200`, zero elements, `remark: runtime error: Query timed out ...`), and reading
+   * that as "every requested way is missing" would stamp a whole chunk `missing_since` in one bad night.
    */
   private def fetchTagsForWays(wayIds: Seq[Long]): Future[Map[Long, JsObject]] = {
     val query = s"[out:json][timeout:180];way(id:${wayIds.mkString(",")});out tags;"
@@ -141,7 +168,11 @@ class OsmWayServiceImpl @Inject() (
         if (response.status != 200) {
           throw new RuntimeException(s"Overpass batch query failed with status ${response.status}.")
         }
-        parseBatchResponse(Json.parse(response.body))
+        val json: JsValue = Json.parse(response.body)
+        truncationRemark(json).foreach { remark =>
+          throw new RuntimeException(s"Overpass batch query was cut short: $remark")
+        }
+        parseBatchResponse(json)
       }
   }
 
@@ -161,7 +192,7 @@ class OsmWayServiceImpl @Inject() (
         pickNearestRoad(Json.parse(response.body), lat, lng) match {
           case Some((wayId, tags, geom)) =>
             val maxspeed = maxspeedFrom(tags)
-            db.run(osmWayTable.upsert(OsmWay(wayId, tags, maxspeed, Some(geom), "on_demand", OffsetDateTime.now)))
+            db.run(osmWayTable.upsert(OsmWay(wayId, tags, maxspeed, Some(geom), "on_demand", OffsetDateTime.now, None)))
               .map(_ => maxspeed)
           case None => Future.successful(None)
         }
@@ -202,6 +233,12 @@ object OsmWayService {
   ).map(_.toString)
 
   private val geometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
+
+  /**
+   * The `remark` Overpass attaches to a response it could not complete (a timeout or memory limit hit mid-query), or
+   * None for a complete one. Its presence means the element list is partial, so absence from it proves nothing.
+   */
+  def truncationRemark(json: JsValue): Option[String] = (json \ "remark").asOpt[String].filter(_.nonEmpty)
 
   /**
    * Parses a batch `out tags;` Overpass response into a map from way id to its tag map.

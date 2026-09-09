@@ -1073,7 +1073,7 @@ class AdminController @Inject() (
       .record(OsmWayRefreshActor.Name, JobRunTrigger.Manual)(osmWayService.refreshOsmWayData())(
         OsmWayRefreshActor.runDetails
       )
-      .map { waysRefreshed => Ok(Json.obj("ways_refreshed" -> waysRefreshed)) }
+      .map { result => Ok(OsmWayRefreshActor.runDetails(result)) }
       .recover { case NonFatal(e) =>
         logger.error("OSM way data refresh failed.", e)
         // Chunks upsert as they complete, so partial progress survives and a re-trigger resumes from what's missing.
