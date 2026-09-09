@@ -9,20 +9,19 @@ import play.api.Configuration
 object SeoUtils {
 
   /**
-   * Whether search engines may index this deployment — the single predicate behind every indexing signal (#5120).
+   * Whether search engines may index this deployment — the single predicate behind every indexing signal (#5120):
+   * the robots meta tag, the `X-Robots-Tag` header, the sitemap, and robots.txt's `Sitemap:` line.
    *
-   * Until 2026 the decision lived outside the app entirely: every vhost provisioned by `lab/sidewalk-tools` hardcoded
-   * `X-Robots-Tag: noindex, nofollow`, which Apache applies *after* the backend, so it masked whatever the app said.
-   * That suppressed all of production and, in the other direction, was the *only* thing keeping the private cities
-   * out of the index. Moving it here puts the decision next to the config that already knows a city's status, and
-   * makes it uniform across the meta tag, robots.txt, the sitemap, and the `X-Robots-Tag` header.
+   * A deployment's Apache vhost may still send its own `X-Robots-Tag`, applied after the backend and so masking this;
+   * see docs/deployment-and-stages.md → "Search-engine indexing".
    *
    * Three conditions must all hold for a deployment to be indexable:
    *  - it is production (a test/local/staging host indexed alongside prod outranks it — see #2806);
    *  - the city is launched publicly (`status = "public"` in cityparams; the private deployments are research
    *    partnerships and pilots that are not ours to publish);
    *  - its imagery licence does not put every page behind a sign-in, since a sign-in-walled city has nothing a
-   *    cookie-less crawler can reach (#4643).
+   *    cookie-less crawler can reach (#4643). This conflates "unreachable to a crawler" with "must not be indexed",
+   *    which is worth revisiting if a publicly launched Infra3D city ever ships — none exists today.
    *
    * @param environmentType `environment-type` for this deployment.
    * @param cityStatus      `city-params.status.<cityId>`: "public" or "private".

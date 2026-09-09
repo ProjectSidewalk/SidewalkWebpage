@@ -77,6 +77,12 @@ class SeoSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
       body must not include "rel=\"canonical\""
     }
   }
+
+  "Every response from a test stage" should {
+    "carry X-Robots-Tag: noindex, nofollow" in {
+      header("X-Robots-Tag", route(app, FakeRequest(GET, "/robots.txt")).get) mustBe Some("noindex, nofollow")
+    }
+  }
 }
 
 /**
@@ -86,10 +92,17 @@ class SeoSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
  */
 class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
 
+  private lazy val cityId: String = com.typesafe.config.ConfigFactory.load().getString("city-id")
+
+  // All three inputs to indexability are pinned: on a private or Infra3D city every assertion below would invert.
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .disable[modules.ActorModule]
-      .configure("environment-type" -> "prod")
+      .configure(
+        "environment-type"                      -> "prod",
+        s"city-params.status.$cityId"           -> "public",
+        s"city-params.pano-viewer-type.$cityId" -> "gsv"
+      )
       .build()
 
   "GET /robots.txt on prod" should {
@@ -115,8 +128,7 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
 
   "An indexable prod city" should {
     "send no X-Robots-Tag header at all" in {
-      // The header is what suppressed every production deployment while it was hardcoded in the Apache vhosts
-      // (#5120). An indexable city must send none: "all" says nothing an absent header does not.
+      // An indexable city sends none at all: "X-Robots-Tag: all" says nothing an absent header does not (#5120).
       header("X-Robots-Tag", route(app, FakeRequest(GET, "/robots.txt")).get) mustBe None
       header("X-Robots-Tag", route(app, FakeRequest(GET, "/sitemap.xml")).get) mustBe None
     }
@@ -250,14 +262,18 @@ class SeoSignInWalledSpec extends PlaySpec with GuiceOneAppPerSuite {
       body must not include "Sitemap:"
     }
   }
+
+  "Every response from a sign-in-walled prod city" should {
+    "carry X-Robots-Tag: noindex, nofollow" in {
+      header("X-Robots-Tag", route(app, FakeRequest(GET, "/robots.txt")).get) mustBe Some("noindex, nofollow")
+    }
+  }
 }
 
 /**
- * SEO surface on a private prod city (#5120). Twenty deployments are research partnerships and pilots that run on
- * prod but are not launched publicly (`status = "private"` in cityparams). Nothing but the Apache `X-Robots-Tag`
- * header ever kept them out of the index; once IT strips that header, these assertions are what does it. Overrides
- * the configured city's status rather than hard-coding a private city id, so the spec doesn't depend on which city
- * this environment runs.
+ * SEO surface on a private prod city (#5120) — the research partnerships and pilots that run on prod but are not
+ * launched publicly. These assertions are the whole of what keeps them out of the search index. Overrides the
+ * configured city's status rather than hard-coding a private city id, so the spec runs on any city.
  */
 class SeoPrivateCitySpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
 
@@ -271,12 +287,22 @@ class SeoPrivateCitySpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecH
 
   "Every response from a private prod city" should {
     "carry X-Robots-Tag: noindex, nofollow" in {
-      // Covers what a <meta> tag cannot: assets, API responses, and error pages rendered outside a Twirl view.
-      Seq("/robots.txt", "/sitemap.xml", "/v3/api/labelTypes").foreach { path =>
-        withClue(s"$path: ") {
-          header("X-Robots-Tag", route(app, FakeRequest(GET, path)).get) mustBe Some("noindex, nofollow")
+      // One path per response kind a <meta> tag cannot reach, so narrowing the filter to HTML or to routed actions
+      // can't pass the suite.
+      Seq("/assets/images/psmockup.jpg", "/no-such-path-12345", "/v3/api/labelTypes", "/robots.txt", "/sitemap.xml")
+        .foreach { path =>
+          withClue(s"$path: ") {
+            header("X-Robots-Tag", route(app, FakeRequest(GET, path)).get) mustBe Some("noindex, nofollow")
+          }
         }
-      }
+    }
+
+    "carry it even on a response a security filter short-circuits" in {
+      // AllowedHostsFilter rejects before any action runs, so this holds only while SeoRobotsFilter is the outermost
+      // entry in play.filters.enabled — the regression pin for that ordering.
+      val resp = route(app, FakeRequest(GET, "/robots.txt").withHeaders(HOST -> "evil.example.com")).get
+      status(resp) mustBe BAD_REQUEST
+      header("X-Robots-Tag", resp) mustBe Some("noindex, nofollow")
     }
   }
 

@@ -40,18 +40,25 @@ one predicate drives every indexing signal:
 | Signal | Where | On a non-indexable deployment |
 |---|---|---|
 | `<meta name="robots">` | `views/common/seoHead.scala.html` | `noindex, nofollow`, and no `rel=canonical` |
-| `X-Robots-Tag` header | `filters/SeoRobotsFilter` | `noindex, nofollow` on **every** response — assets, API bodies, error pages |
+| `X-Robots-Tag` header | `filters/SeoRobotsFilter` | `noindex, nofollow` on responses a `<meta>` tag can't reach — static assets, API bodies, redirects, error pages |
 | `sitemap.xml` | `SeoController.hasSitemap` | 404, and no `Sitemap:` line in robots.txt |
 
 `robots.txt` is the deliberate exception: a **private prod** city still serves the permissive body (admin/auth/alias
 `Disallow` lines only), because a URL blocked by robots.txt is never fetched, so the crawler never sees the
 `noindex` and can still list the bare URL from an inbound link. Only non-prod stages get `Disallow: /`.
 
-Until 2026 this lived outside the app: every vhost `lab/sidewalk-tools` provisioned hardcoded
-`Header set X-Robots-Tag "noindex, nofollow"`. Apache applies that *after* the backend, so it masked whatever the app
-said — suppressing all of production, while being the only thing keeping the private cities out of the index (#5120).
-**Ordering matters when removing it:** the app-side predicate must be deployed before the header is stripped from a
-private city's vhost, or that city is exposed in the gap.
+`SeoRobotsFilter` is prepended to `play.filters.enabled` so it is the outermost filter — Play composes that list
+outermost-first, so appending it would leave CSRF and AllowedHosts rejections uncovered.
+
+Every vhost `lab/sidewalk-tools` provisions hardcodes `Header set X-Robots-Tag "noindex, nofollow"`. Apache applies
+that *after* the backend, so it masks whatever the app says — suppressing all of production, while being the only
+thing keeping the private cities out of the index (#5120). Removing it is
+[sidewalk-tools !65](https://gitlab.cs.washington.edu/lab/sidewalk-tools/-/merge_requests/65) plus a sweep of the
+existing `/etc/httpd/conf.d/*.cs.conf` files by IT. **Ordering matters:** the app-side predicate must be deployed
+before the header is stripped from a *private* city's vhost, or that city is exposed in the gap. Public cities' vhosts
+can be swept at any time. Note the app-side header is strictly broader than the vhost rule it replaces: `Header set`
+without `always` runs in Apache's fixup phase and so applies to 2xx only, leaving private cities' 3xx/4xx/5xx
+responses unprotected today.
 
 ## How code reaches each stage
 

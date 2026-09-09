@@ -64,7 +64,12 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
   /** Duplicate-alias Disallow lines, derived from the same alias map that drives canonical URLs (SeoUtils). */
   private val aliasDisallowLines: String = SeoUtils.robotsDisallowedAliases.map(p => s"Disallow: $p").mkString("\n")
 
-  /** A sitemap is served only where there is something crawlable to promote; robots.txt advertises it only then. */
+  /**
+   * A sitemap is served only where there is something crawlable to promote; robots.txt advertises it only then.
+   *
+   * `sitemapPaths.nonEmpty` is redundant against `indexable` today, and kept as the independent statement of the
+   * #4643 contract so a future provider that walls its pages stays covered if only one of the two rules is updated.
+   */
   private val hasSitemap: Boolean = indexable && sitemapPaths.nonEmpty
 
   /**

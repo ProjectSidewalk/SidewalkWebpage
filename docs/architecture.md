@@ -112,7 +112,8 @@ DI is Guice. The app bootstraps via `app/CustomApplicationLoader.scala`; modules
 `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`,
 `SilhouetteModule`, and `StartupChecksModule` — the home for boot-time checks that surface deployment-level
 misconfiguration, like `PersistentMediaDirCheck`). Custom execution contexts live in `app/executors/`; background
-actors in `app/actor/`.
+actors in `app/actor/`; HTTP filters in `app/filters/`, registered through `play.filters.enabled` in
+`conf/application.conf`.
 
 **Views** are Twirl templates (`app/views/*.scala.html`).
 
