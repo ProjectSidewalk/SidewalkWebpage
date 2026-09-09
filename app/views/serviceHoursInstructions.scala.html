@@ -9,8 +9,7 @@
 * real sequence: learn → map an hour → email for feedback → repeat until cleared.
 *@
 
-@* Both come from config so this page, /timeCheck and the address people submit all name the same person; a stale
- * address is a dead end for someone trying to submit hours. Initials derive from the name so they can't drift. *@
+@* Initials derive from the name so the avatar can't drift from it. *@
 @supervisorName = @{commonData.volunteerSupervisor}
 @supervisorEmail = @{commonData.volunteerEmail}
 @supervisorInitials = @{supervisorName.split(" ").map(_.head).mkString}

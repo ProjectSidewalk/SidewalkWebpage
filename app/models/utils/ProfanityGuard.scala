@@ -3,11 +3,7 @@ package models.utils
 import java.text.Normalizer
 
 /**
- * Profanity/abuse guard for user-supplied public text: usernames, team names and descriptions, stories, and route
- * names. One guard for every surface, so the rules can't drift apart (#4375).
- *
- * Matching is per word rather than over the whole string, so ordinary neighbors are never glued into a slur —
- * "Sofa Gallery" must not read as one.
+ * Profanity/abuse guard for user-supplied public text: usernames, team names, stories, and route names (#4375).
  *
  * A first line of defense, NOT comprehensive — pair it with report/rename flows. Keep the list short and
  * unambiguous (the "Scunthorpe problem"); prefer letting a borderline name through over blocking a real word.
@@ -57,8 +53,8 @@ object ProfanityGuard {
 
   private val symbolStandIns: Map[Char, Char] = standIns.filterNot(_._1.isDigit)
 
-  // A "word" this short is more likely one letter of something spelled out than a word of its own.
-  private val maxSpelledOutPieceLength: Int = 2
+  // A "word" this short is more likely a piece of something split up than a word of its own.
+  private val maxShortWordLength: Int = 2
 
   // Reading digits as letters invents letters nobody typed, so a short term turns up by sheer chance — a random hex
   // id reads as "...fag..." often enough to matter. Shorter terms are only matched against what was actually typed.
@@ -115,24 +111,20 @@ object ProfanityGuard {
   }
 
   /**
-   * The ways a word could have been broken up to hide it, glued back together.
+   * The ways a word could have been broken up to hide it, glued back together: "s h i t" and "shi t".
    *
-   * Two shapes, because splitting a term takes two forms: spelled right out ("s h i t"), which leaves a run of tiny
-   * pieces; and snapped once ("shi t", "fuc k"), which leaves one ordinary-looking piece beside a stub. A pair is
-   * only joined when one side is a stub, so ordinary neighbours stay apart — "Sofa Gallery" must not read as a slur.
-   *
-   * Runs of nothing but stubs are the unavoidable cost: "the ramp up is so steep" glues to "...upisso...". Prose that
-   * happens to string short words together can still be refused, which is why the guard is paired with reporting.
+   * Only joins where a short word is involved, so ordinary neighbours stay apart — "Sofa Gallery" must not read as
+   * a slur. The cost is that a run of short words still joins, so "the ramp up is so steep" is refused.
    */
   private def hiddenJoins(words: Seq[String]): Seq[String] = {
-    def isStub(word: String) = word.length <= maxSpelledOutPieceLength
-    val runs                 = words
+    def isShort(word: String) = word.length <= maxShortWordLength
+    val runs                  = words
       .foldRight(List(List.empty[String])) { (word, acc) =>
-        if (isStub(word)) (word :: acc.head) :: acc.tail else Nil :: acc
+        if (isShort(word)) (word :: acc.head) :: acc.tail else Nil :: acc
       }
       .filter(_.length > 1)
       .map(_.mkString)
-    val pairs = words.sliding(2).collect { case Seq(a, b) if isStub(a) || isStub(b) => a + b }.toSeq
+    val pairs = words.sliding(2).collect { case Seq(a, b) if isShort(a) || isShort(b) => a + b }.toSeq
     runs ++ pairs
   }
 

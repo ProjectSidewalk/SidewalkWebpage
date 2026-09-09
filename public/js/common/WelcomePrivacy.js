@@ -1,23 +1,11 @@
 /**
- * The two privacy toggles on the post-signup welcome page (#4375), offered here because a new account's username is
- * about to be public.
+ * The two privacy toggles on the post-signup welcome page (#4375).
  *
  * Each toggle saves the moment it's flipped: there's no Save button, and someone who clicks a box and walks away
- * should get what they clicked. It posts to the Settings endpoint, so one place writes these flags.
- *
- * A save sends both flags, so two of them in flight at once could land out of order and leave the page showing a
- * state the server doesn't hold. Only one runs at a time, and a flip made during one is saved after it settles.
+ * should get what they clicked. Both boxes are disabled while a save is in flight, so two saves can't land out of
+ * order, and a failed save puts the box back rather than leaving a setting on screen that wasn't written.
  */
 class WelcomePrivacy {
-  // The save in flight, or null. A flip while one is running waits for it rather than racing it.
-  #saving = null;
-
-  // Whether a flip arrived mid-save and still needs writing.
-  #pending = false;
-
-  // The last state the server confirmed, so a failed save rolls back to what is actually stored.
-  #saved;
-
   /** @param {Object} opts - Configuration; `saveUrl` is the Settings save endpoint. */
   constructor(opts) {
     this.saveUrl = opts.saveUrl;
@@ -26,59 +14,42 @@ class WelcomePrivacy {
     this.status = document.getElementById('wl-privacy-status');
     if (!this.leaderboard || !this.profile) return;
 
-    // The server rendered these boxes from its own flags, so that is the confirmed state to start from.
-    this.#saved = { onLeaderboard: this.leaderboard.checked, publicProfile: this.profile.checked };
-
     // Rendered disabled so that without JS they are visibly inert rather than silently dropping a privacy choice.
+    this.#setEnabled(true);
     [[this.leaderboard, 'Leaderboard'], [this.profile, 'PublicProfile']].forEach(([box, name]) => {
-      box.disabled = false;
       box.addEventListener('change', () => {
         window.logWebpageActivity?.(`Click_module=WelcomePrivacy_setting=${name}_value=${box.checked}`);
-        this.#queueSave();
+        this.#save(box);
       });
     });
   }
 
   /**
-   * Runs a save, or marks one as owed if a save is already in flight. Both flags are sent every time, so a single
-   * later save covers any flips made while waiting.
-   *
+   * @param {HTMLInputElement} changed - The box that was flipped, so a failed save can put it back.
    * @returns {Promise<void>}
    */
-  async #queueSave() {
-    if (this.#saving) {
-      this.#pending = true;
-      return;
-    }
-    this.#saving = this.#save();
-    await this.#saving;
-    this.#saving = null;
-    if (this.#pending) {
-      this.#pending = false;
-      await this.#queueSave();
-    }
-  }
-
-  /**
-   * Writes both flags and reflects the outcome. On failure the boxes go back to what the server still holds, so the
-   * page never shows a setting we didn't write.
-   *
-   * @returns {Promise<void>}
-   */
-  async #save() {
-    const sent = { onLeaderboard: this.leaderboard.checked, publicProfile: this.profile.checked };
+  async #save(changed) {
+    const wasChecked = changed.checked;
+    this.#setEnabled(false);
     this.#setStatus(i18next.t('dashboard:settings-form.saving'), null);
 
-    const { ok, error } = await saveUserSettings(this.saveUrl, sent);
+    const { ok, error } = await saveUserSettings(this.saveUrl, {
+      onLeaderboard: this.leaderboard.checked,
+      publicProfile: this.profile.checked,
+    });
     if (ok) {
-      this.#saved = sent;
       this.#setStatus(i18next.t('dashboard:settings-form.saved'), true);
-      return;
+    } else {
+      changed.checked = !wasChecked;
+      this.#setStatus(error || i18next.t('dashboard:settings-form.save-failed'), false);
     }
-    // Roll back to the last state the server confirmed, not to the pre-click state: an earlier save may have moved it.
-    this.leaderboard.checked = this.#saved.onLeaderboard;
-    this.profile.checked = this.#saved.publicProfile;
-    this.#setStatus(error || i18next.t('dashboard:settings-form.save-failed'), false);
+    this.#setEnabled(true);
+  }
+
+  /** @param {boolean} enabled - Whether the boxes accept clicks. */
+  #setEnabled(enabled) {
+    this.leaderboard.disabled = !enabled;
+    this.profile.disabled = !enabled;
   }
 
   /**

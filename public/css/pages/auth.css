@@ -940,7 +940,7 @@ dialog.au-dialog::backdrop {
   color: var(--color-error-300);
 }
 
-/* A disabled box means JavaScript hasn't enabled it, so the whole panel reads as unavailable rather than broken. */
+/* Disabled while a save is in flight, and before JS enables them at all. */
 .wl-check input:disabled {
   cursor: not-allowed;
 }
@@ -963,17 +963,12 @@ dialog.au-dialog::backdrop {
 
 /* ---- Service-hours instructions page --------------------------------------------------------------------------- */
 
-/*
- * Two concentric columns: a wide one for prose, a narrow one for the cards. Named so a page can pick one for all of
- * its blocks instead of each block choosing for itself; Bootstrap's global `* { box-sizing: border-box }` means a
- * stated width is already the edge the reader sees.
- */
+/* Two column widths, named so a page can put all of its blocks in one. */
 .sh-page {
   --sh-column: 760px;
   --sh-column-narrow: 560px;
 
-  /* The gutter lives here so every block gets one: the cards set a max-width and centre, which leaves them flush
-     against the screen edge on any viewport narrower than that. Wider than the column it has no visual effect. */
+  /* On the container so every block gets one; no effect once the viewport is wider than the column. */
   padding-inline: 16px;
   background: var(--color-neutral-white);
   color: var(--color-neutral-900);
@@ -1008,9 +1003,8 @@ dialog.au-dialog::backdrop {
   max-width: 62ch;
 }
 
-/* Time Check is cards the whole way down, so it runs entirely in the narrow column, hero included — the hero is the
-   lede for the big number directly below it. Both classes sit on the same element, so this has to out-specify
-   `.sh-page` rather than merely follow it. */
+/* Time Check is cards the whole way down, so all of it runs in the narrow column. Both classes are on the same
+   element, so this has to out-specify `.sh-page` rather than merely follow it. */
 .sh-page.tc-page {
   --sh-column: var(--sh-column-narrow);
 }
@@ -1019,8 +1013,7 @@ dialog.au-dialog::backdrop {
   text-align: center;
 }
 
-/* Cards here, not prose, so they sit on the column edge rather than indented like the instructions page. The page's
-   own gutter keeps them off the screen edge on a narrow viewport. */
+/* Cards, not prose, so they sit on the column edge rather than indented like the instructions page. */
 .tc-page .sh-main {
   padding-inline: 0;
 }

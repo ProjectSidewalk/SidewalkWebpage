@@ -507,9 +507,6 @@ class UserController @Inject() (
    *
    * Rendered only for signed-in, non-anonymous users so a stray hit (or an anonymous auto-signup) can't land here.
    *
-   * Carries the two privacy flags because the username someone just picked is about to be public; school
-   * deployments start people private, so the page can explain the default it actually got.
-   *
    * @param next Same-origin path to resume via the "Keep exploring" CTA; defaults to /explore.
    */
   def welcome(next: Option[String]) = silhouette.UserAwareAction.async { implicit request =>

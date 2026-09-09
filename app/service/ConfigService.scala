@@ -87,8 +87,7 @@ case class CommonPageData(
     buildDescribe: Option[String],
     buildDirty: Boolean,
     allCityInfo: Seq[CityInfo],
-    // Who volunteers contact about service hours, and the name they list as their supervisor (#4375). Config rather
-    // than page copy: it is a real person's address, and a stale one is a dead end for someone submitting hours.
+    // Who volunteers contact about service hours, and the name they list as their supervisor (#4375).
     volunteerEmail: String,
     volunteerSupervisor: String,
     // Content-fingerprint digests for the assets JS builds URLs for, serialized once at startup by
