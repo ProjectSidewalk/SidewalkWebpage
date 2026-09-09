@@ -100,10 +100,25 @@ class MistakeGallery {
     const img = document.createElement('div');
     img.className = 'ud-card-img';
     const marker = iconPath ? document.createElement('img') : null;
+    // We show our own copy of the image, so we have to credit whoever it came from (#5254). Made now so the image's
+    // error handler can take them back down, but shown only once an image is up: a card that lost every image is a
+    // plain gradient, and there's nothing left to credit.
+    const logo = createPanoViewerLogo(img, m.pano_source);
+    const attribution = createPanoAttribution(img, { compact: true });
     // The crop's recorded position describes the crop only, so losing it has to re-place the marker.
-    const photo = MistakeGallery.#photo(m,
-      (source) => marker && MistakeGallery.#positionMarker(marker, m, source));
-    if (photo) img.appendChild(photo);
+    const photo = MistakeGallery.#photo(m, (source) => {
+      if (marker) MistakeGallery.#positionMarker(marker, m, source);
+      // The backup image is the same panorama, so it needs the same credit. Only losing every image takes it down.
+      if (!source) {
+        logo.hide();
+        attribution.hide();
+      }
+    });
+    if (photo) {
+      img.appendChild(photo);
+      logo.showSourceLogo();
+      attribution.show(m.attribution);
+    }
     if (marker) {
       marker.className = 'ud-card-label-marker';
       marker.src = iconPath;

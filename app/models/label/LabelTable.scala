@@ -192,6 +192,8 @@ case class LabelMetadataUserDash(
     labelId: Int,
     panoId: String,
     panoSource: PanoSource,
+    copyright: Option[String],
+    license: Option[String],
     pov: POV,
     canvasX: Int,
     canvasY: Int,
@@ -349,12 +351,25 @@ object LabelTable {
 
   // Type aliases for the tuple representation of LabelMetadataUserDash and queries for them.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
-  type LabelMetadataUserDashTuple =
-    (Int, String, PanoSource, (Double, Double, Double), Int, Int, String, OffsetDateTime, Option[String])
+  type LabelMetadataUserDashTuple = (
+      Int,
+      String,
+      PanoSource,
+      Option[String],
+      Option[String],
+      (Double, Double, Double),
+      Int,
+      Int,
+      String,
+      OffsetDateTime,
+      Option[String]
+  )
   type LabelMetadataUserDashTupleRep = (
       Rep[Int],                                // labelId
       Rep[String],                             // panoId
       Rep[PanoSource],                         // panoSource
+      Rep[Option[String]],                     // copyright
+      Rep[Option[String]],                     // license
       (Rep[Double], Rep[Double], Rep[Double]), // pov (heading, pitch, zoom)
       Rep[Int],                                // canvasX
       Rep[Int],                                // canvasY
@@ -367,7 +382,8 @@ object LabelTable {
   implicit val labelMetadataUserDashConverter: TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] =
     new TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] {
       def fromTuple(t: LabelMetadataUserDashTuple): LabelMetadataUserDash =
-        LabelMetadataUserDash(t._1, t._2, t._3, POV.tupled(t._4), t._5, t._6, LabelTypeEnum.byName(t._7), t._8, t._9)
+        LabelMetadataUserDash(t._1, t._2, t._3, t._4, t._5, POV.tupled(t._6), t._7, t._8, LabelTypeEnum.byName(t._9),
+          t._10, t._11)
     }
 
   // Type alias for the tuple representation of LabelForLabelMap query results. Includes streetEdgeId (2nd element,
@@ -1639,6 +1655,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lb.labelId,
       _lb.panoId,
       _pd.source,
+      _pd.copyright,
+      _pd.license,
       (_lp.heading.asColumnOf[Double], _lp.pitch.asColumnOf[Double], _lp.zoom.asColumnOf[Double]),
       _lp.canvasX,
       _lp.canvasY,
@@ -1648,7 +1666,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     )
 
     // Get the most recent matching validation for each label.
-    _validations.sortBy(r => (r._1, r._7.desc)).distinctOn(_._1)
+    _validations.sortBy(r => (r._1, r._9.desc)).distinctOn(_._1)
   }
 
   /**
