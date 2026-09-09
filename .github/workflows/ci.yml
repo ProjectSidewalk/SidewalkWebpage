@@ -135,6 +135,14 @@ jobs:
         if: always()
         run: node tools/check-asset-paths.mjs
 
+      # Blocking: the self-hosted libraries in public/vendor/ (#4399) are listed in docs/upgrading-libraries.md at
+      # the versions in their filenames. Dependabot only reads package.json (build tooling), so that doc is their
+      # whole inventory and it drifts silently when a file is swapped without it. Run locally with
+      # `make lint-vendor-versions`.
+      - name: Vendor versions (blocking)
+        if: always()
+        run: node tools/check-vendor-versions.mjs
+
       # Blocking: the jsdom unit suite (test/js/). Thin *coverage* is why there's no `coverageThreshold`
       # (jest.config.js says why); it is not a reason to let a suite that does exist go red.
       - name: Jest unit tests (blocking)

@@ -1,17 +1,73 @@
 # Upgrading libraries
 
-This is the **canonical inventory** of the third-party libraries Project Sidewalk depends on, with the version we're
-on and how to check for and apply updates to each. We update libraries periodically; this page exists so that the
-next person scanning the list can tell at a glance whether something has a newer release available.
+This is the **canonical inventory** of everything Project Sidewalk depends on — the third-party libraries, and the
+runtimes, base images, and database server underneath them — with the version we're on and how to check for and apply
+updates to each. We update these periodically; this page exists so that the next person scanning the list can tell at
+a glance whether something has a newer release available, or has gone end-of-life.
 
-**Keep the versions here in sync with the code, and keep this the _only_ place full versions live.** Other docs
+**Keep the versions here in sync with the code, and keep this the only _doc_ that carries full versions.** Other docs
 ([`CLAUDE.md`](../CLAUDE.md), [`docs/architecture.md`](architecture.md), the README) mention only stable *major*
 versions (Scala 2.13, Play 3.0, Java 17) and point here for the exact numbers — so a patch bump only has to be
-recorded once. When you upgrade a library, bump its version number below in the same change.
+recorded once. When you upgrade something, bump its version number below in the same change.
 
 > Many entries carry a **note** explaining *why* we're pinned where we are (a known incompatibility, an abandoned
 > upstream, a migration we haven't taken on yet). Those notes are institutional knowledge — preserve and update them
 > rather than dropping them.
+
+## Platform (runtimes, base images, database server)
+
+What the app runs *on*, as opposed to what it links against. **Prod isn't containerized** — it's bare-metal Rocky
+Linux 9.8 on makelab1 ([#4398](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4398)) — so dev and prod are
+listed separately and are *expected* to differ; the goal is skew that's written down, not a parity we can't reach.
+**The "latest" and EOL columns were checked on 2026-09-09** — re-check and re-date them rather than trusting them.
+
+### Runtimes and base images
+
+| | Ours | Latest | Upstream EOL | Set in |
+|---|---|---|---|---|
+| Java (JDK) | Temurin **17** | 25 LTS | Oct 2027 | web base image, `build.sbt`, `ci.yml` |
+| Node (+ npm) | **24.x** (npm ≥ 11) | 26.x | Apr 2028 | `Dockerfile`, `package.json` `engines`, `ci.yml` |
+| Python (app) | **3.8** | 3.14.7 | **Oct 2024 — past** | web base image ([why two](#interpreters)) |
+| Python (tooling) | **3.13.15** | 3.14.7 | Oct 2029 | `Dockerfile`, via uv |
+| web image | **`eclipse-temurin:17-jdk-focal`** | jammy / noble | **May 2025 — past** | `Dockerfile` |
+| db image | **`postgis/postgis:16-3.5`** | (see below) | **Aug 2026 — past** | `db/Dockerfile` |
+
+- **Focal does more than it looks.** It's what makes `python3` mean 3.8 (retiring that is
+  [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)), and its glibc 2.31 is older than the 2.32
+  sbt's `sbtn` needs, so `sbt --client` can't run in the container at all. Jammy (glibc 2.35, `python3` 3.10) or
+  noble (2.39, 3.12) fixes both, but a move has to say what happens to 3.8 first.
+- **The `16-3.5` image line is a dead end.** apt.postgresql.org's bullseye pool stops at PostGIS 3.5.2, and
+  docker-postgis publishes no `16-3.6` tag (3.6 images start at Postgres 17) or bookworm variant for 16 — so newer
+  geospatial libraries in dev means moving the Postgres major *and* the base OS together, not a version bump.
+- **Java 17** is two LTS lines behind but patched through 2027, so it's a planned migration rather than an exposure;
+  prod's JVM version has never been collected (#4398 captured its OS and DB stack only). Dependabot deliberately
+  ignores major `eclipse-temurin` bumps. **Node 24** is LTS until Apr 2028, with 26 taking over as LTS in Oct 2026.
+
+### Database server
+
+Prod is the target dev tracks. Prod's column was read off makelab1 on 2026-07-01 (#4398); re-check either side with
+`SELECT version();` and `SELECT PostGIS_Full_Version();` (in dev, `docker exec projectsidewalk-db psql -U
+readonly_user -d sidewalk`).
+
+| | dev (`projectsidewalk-db`) | prod (makelab1) | Latest |
+|---|---|---|---|
+| OS | Debian 11 bullseye (EOL Aug 2026) | Rocky Linux 9.8 (EOL May 2032) | — |
+| Postgres | **16.15** | **16.14** | 18.6 |
+| PostGIS | **3.5.2** | **3.4.6** | 3.6.4 |
+| GEOS | **3.9.0** | **3.14.1** | 3.15.0 |
+| PROJ | **7.2.1** | **9.8.1** | 9.8.1 |
+| GDAL | **3.2.2** (`libgdal28`) | not collected | 3.13.3 |
+
+- **Dev is both ahead and years behind**: newer PostGIS, but a 2020 GEOS/PROJ out of bullseye's system packages
+  against prod's hand-built ones. Geometry output can genuinely differ across that GEOS gap, so a spatial result that
+  reproduces in only one environment starts here. The same skew breaks dev's JIT — PostGIS bitcode built with LLVM 16
+  against a runtime linked to LLVM 11, so an expensive spatial query segfaults the backend
+  ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)) — hence `withJitOff` in `ConfigTable`.
+- **Dev's Postgres is what a fresh build gets:** the base image ships 16.4 and `db/Dockerfile` upgrades it, so an old
+  container reports an older patch. The geospatial libraries are fixed by the base image and that upgrade never moves
+  them. **Prod's PostGIS is half-upgraded** — library 3.4.6, SQL functions still 3.4.1, which is the `need upgrade`
+  at the end of its `PostGIS_Full_Version()`; it wants an `ALTER EXTENSION postgis UPDATE`. **GDAL** isn't reported
+  by that function in either place (no raster support), so dev's comes from the installed package.
 
 ## Scala / sbt / Play
 
@@ -53,6 +109,9 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
   [Releases](https://mvnrepository.com/artifact/com.iheart/ficus)
 
 ### Database (Slick + Postgres + PostGIS)
+
+These are the JVM libraries we talk to the database *through*; the database server's own versions are under
+[Database server](#database-server) above.
 
 - **postgresql (JDBC driver): 42.7.10** — the `org.postgresql` driver in `build.sbt`.
   [Releases](https://mvnrepository.com/artifact/org.postgresql/postgresql) · [Changelog](https://jdbc.postgresql.org/)
@@ -122,8 +181,14 @@ edited or linted.**
 include the version number** (e.g. `turf-7.3.4.min.js`) for clarity, update every reference to the old filename across
 the code, and delete the old file. The version baked into each filename under `vendor/` is the real source of truth for
 the frontend — it names in the URL what a reader would otherwise have to diff for, and lets two versions sit side by
-side mid-upgrade — keep this list matching it.
+side mid-upgrade — keep this list matching it. `make lint-vendor-versions` (part of `make lint`, and a
+blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn't listed here at all.
 
+- **animate.css: unversioned (a 3.x from 2015)** — CSS keyframe animations; the only user is Explore's
+  compass message. **Note:** this copy predates our filename rule and carries no version in its name or header, so
+  which 3.x it is can't be recovered. v4 renamed every class to an `animate__` prefix, so an upgrade means editing
+  the markup that uses it, not just swapping the file.
+  [Changelog](https://github.com/animate-css/animate.css/releases)
 - **async-lock: 1.4.1** — **note:** a fresh download probably needs the trailing `module.export` line removed.
   [Download](https://cdn.jsdelivr.net/npm/async-lock@1.4.1/lib/index.min.js) ·
   [Versions](https://github.com/rogierschouten/async-lock/releases)
@@ -209,6 +274,11 @@ side mid-upgrade — keep this list matching it.
   [Changelog](https://github.com/mrdoob/three.js/releases)
 - **turf.js: 7.3.4** — [Download (set version in URL)](https://unpkg.com/@turf/turf@7.3.4/turf.min.js) ·
   [Changelog](https://github.com/Turfjs/turf/releases)
+- **vega: 5.30.0, vega-lite: 5.21.0, vega-embed: 6.29.0** — the coverage charts on the admin dashboard. We
+  write Vega-Lite specs and hand them to `vegaEmbed`, which pulls in Vega itself as the renderer, so all three move
+  together. **Note:** each has a major out (6 / 6 / 7) that we haven't looked at.
+  [Download](https://github.com/vega/vega-embed?tab=readme-ov-file#directly-in-the-browser) ·
+  [Changelog](https://github.com/vega/vega-lite/releases)
 - **jquery.magnific-popup** — **TODO:** unclear status; resolve the jQuery situation first. Tied to jQuery removal.
 
 > **jQuery / Bootstrap removal:** several entries above (Bootstrap, magnific-popup, selectize) are part of

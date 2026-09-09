@@ -57,9 +57,9 @@ file, and this table says which doc to read first:
 - **Scala:** `make scalafmt-fix` (a blocking CI gate). Compile check without fighting the developer's `sbt ~ run`:
   `docker exec projectsidewalk-web bash -lc "cd /home && sbt --client compile"`. `-Xfatal-warnings` is on, so a
   success is warning-clean.
-- **Frontend:** `make lint` (ESLint, Stylelint, HTMLHint, locale parity, CSS layout, asset paths, evolutions lint;
-  all blocking CI gates), or scope it with `make eslint dir=…` / `make stylelint dir=…`. `make lint-fix` handles the
-  mechanical fixes. The tree is lint-clean, so any finding is from your change.
+- **Frontend:** `make lint` (ESLint, Stylelint, HTMLHint, locale parity, CSS layout, asset paths, vendor versions,
+  evolutions lint; all blocking CI gates), or scope it with `make eslint dir=…` / `make stylelint dir=…`.
+  `make lint-fix` handles the mechanical fixes. The tree is lint-clean, so any finding is from your change.
 - **Tests:** `sbt --client test` (same `docker exec`; needs the db container), `make test-js` (jsdom unit suite),
   `make test-e2e` against a running app, `make test-python`. Details and what CI gates: `docs/testing-and-ci.md`.
 
