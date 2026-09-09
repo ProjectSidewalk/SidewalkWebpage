@@ -343,13 +343,14 @@ lint-vendor-versions:
 	@docker exec $(web-container) bash -lc "cd /home && node tools/check-vendor-versions.mjs"
 	@echo "Finished checking vendor versions";
 
-# Scala formatting (.scalafmt.conf). The sbt thin client (`--client`) shares the running `sbt ~ run`'s server instead
-# of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.
+# Scala formatting (.scalafmt.conf). The sbt thin client (`--jvm-client`) shares the running `sbt ~ run`'s server
+# instead of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats
+# in place.
 scalafmt:
-	@echo "Checking Scala formatting..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --client scalafmtCheckAll"
+	@echo "Checking Scala formatting..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --jvm-client scalafmtCheckAll"
 
 scalafmt-fix:
-	@echo "Formatting Scala..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --client scalafmtAll"
+	@echo "Formatting Scala..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --jvm-client scalafmtAll"
 
 # The JS/CSS/HTML linters run in the web container, where their node_modules live (no host-side npm install).
 # `-e FORCE_COLOR=1` (not `docker exec -t`) restores colorized output while keeping the targets pipeable.

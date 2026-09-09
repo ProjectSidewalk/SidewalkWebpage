@@ -34,8 +34,9 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 
 - **Focal does more than it looks.** It's what makes `python3` mean 3.8 (retiring that is
   [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)), and its glibc 2.31 is older than the
-  2.32 and 2.34 that sbt's `sbtn` needs, so `sbt --client` can't run in the container at all. Jammy (glibc 2.35,
-  `python3` 3.10) or noble (2.39, 3.12) fixes both, but a move has to say what happens to 3.8 first.
+  2.32 and 2.34 that sbt's `sbtn` needs, so `sbt --client` can't run in the container at all and everything uses
+  `sbt --jvm-client` instead (#5268). Jammy (glibc 2.35, `python3` 3.10) or noble (2.39, 3.12) fixes both, but a
+  move has to say what happens to 3.8 first.
 - **The `16-3.5` image line is a dead end.** apt.postgresql.org's bullseye pool stops at PostGIS 3.5.2, and
   docker-postgis publishes no `16-3.6` tag (3.6 images start at Postgres 17) or bookworm variant for 16 — so newer
   geospatial libraries in dev means moving the Postgres major *and* the base OS together, not a version bump.
@@ -73,7 +74,7 @@ readonly_user -d sidewalk`).
 
 These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`](../project/build.properties), and
 [`project/plugins.sbt`](../project/plugins.sbt). After changing any of them, rerun `npm start` (or
-`sbt --client compile`) so the new versions download and the build re-resolves.
+`sbt --jvm-client compile`) so the new versions download and the build re-resolves.
 
 ### Core toolchain
 
@@ -81,8 +82,11 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
   [#3936](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3936) (unclear if all our libraries support it
   yet). Edit `scalaVersion` in `build.sbt`.
   [Releases](https://www.scala-lang.org/download/all.html) · [Changelog](https://github.com/scala/scala/releases)
-- **sbt: 1.12.13** — set in `project/build.properties`; downloaded automatically on the next `npm start`. You may need
-  to bump Play at the same time for major sbt updates. [Releases](https://github.com/sbt/sbt/releases)
+- **sbt: 1.12.13** — set in `project/build.properties`; downloaded automatically on the next `npm start`. The
+  `Dockerfile` pins the apt `sbt` launcher to that same version, so also `docker compose build web` after a bump
+  (Compose won't rebuild on its own). sbt **2.x** is gated on Play: its `sbt-plugin` has no sbt 2 build outside the
+  3.1.0 milestones, and sbt 2 build definitions are Scala 3, so it's a tracked migration rather than a bump. You may
+  need to bump Play at the same time for major sbt updates. [Releases](https://github.com/sbt/sbt/releases)
 - **Play Framework: 3.0.11** — to update: (1) change the version in `project/plugins.sbt` (the `sbt-plugin`
   dependency), and (2) change it in `build.sbt` for the Play-provided libraries that share Play's versioning scheme
   (`play-guice`, `play-cache`, `play-ws`, `play-caffeine-cache`).
