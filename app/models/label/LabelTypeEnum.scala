@@ -19,8 +19,9 @@ object LabelTypeEnum {
   private val assetUrlPrefix = "/assets/"
 
   /**
-   * What a label type says about accessibility. Anything that interprets a label's severity, or writes copy about it,
-   * has to branch on this rather than on the label type itself.
+   * What a label type says about accessibility: how we frame it in copy, not how its rating reads. Anything writing
+   * copy about a label branches on this rather than on the label type itself; how to read a label's 1-3 rating is a
+   * separate question, answered by [[RatingScale]].
    *
    * @param name The value published to clients (the API's `access_impact`, and our own JSON payloads)
    */
@@ -30,13 +31,13 @@ object LabelTypeEnum {
 
   object AccessImpact {
 
-    /** The thing labeled is a barrier; severity says how bad it is. */
+    /** The thing labeled is a barrier: finding one is bad news. */
     case object Problem extends AccessImpact("problem")
 
-    /** The thing labeled helps people get around; severity says how good it is. */
+    /** The thing labeled helps people get around: finding one is good news. */
     case object Feature extends AccessImpact("feature")
 
-    /** Not a statement about accessibility at all, so severity says nothing about quality. */
+    /** Says nothing either way — a meta note about the imagery or a catch-all. */
     case object Neutral extends AccessImpact("neutral")
   }
 
@@ -135,12 +136,8 @@ object LabelTypeEnum {
   // Lookup map for finding a label type by its string name.
   lazy val byName: Map[String, Base] = values.map(lt => lt.name -> lt).toMap
 
-  lazy val byAccessImpact: Map[AccessImpact, Set[Base]] = values.groupBy(_.accessImpact)
-
   // Types whose labels carry a 1-3 rating. The denominator for any "% rated" stat, in SQL as well as on the page.
-  lazy val ratedTypes: Seq[Base]                      = ordered.filter(_.ratingScale != RatingScale.Unrated)
-  lazy val ratedTypeNames: Seq[String]                = ratedTypes.map(_.name)
-  lazy val byRatingScale: Map[RatingScale, Set[Base]] = values.groupBy(_.ratingScale)
+  lazy val ratedTypeNames: Seq[String] = ordered.filter(_.ratingScale != RatingScale.Unrated).map(_.name)
 
   // Maps label type names to their associated colors. Used for retrieving colors by label type name.
   lazy val labelTypeToColor: Map[String, String] = values.map(lt => lt.name -> lt.color).toMap

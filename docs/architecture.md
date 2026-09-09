@@ -328,11 +328,21 @@ canonical color and icon set. The source of truth is the **`/v3/api/labelTypes`*
 `util.misc.getLabelColors(labelType)` rather than hardcoding hex values. See [`CLAUDE.md`](../CLAUDE.md) for the
 canonical color table and icon locations.
 
-Each type also carries an **access impact** (`LabelTypeEnum.AccessImpact`, published as `access_impact`): `problem`
-(a barrier, so a label's severity says how bad it is), `feature` (something that helps, so severity says how good it
-is), or `neutral` (Occlusion and Other, where severity says nothing about quality). Severity means the opposite
-thing on a problem than on a feature, so any code that reads severity — or writes copy about a label — branches on
-this rather than on a hand-written list of type names.
+Each type carries two independent domain facts, both published by that endpoint:
+
+- **access impact** (`LabelTypeEnum.AccessImpact`, `access_impact`) — `problem` (a barrier), `feature` (something
+  that helps), or `neutral` (Occlusion and Other). This drives framing and copy.
+- **rating scale** (`LabelTypeEnum.RatingScale`, `rating_scale`) — `quality` (1 is good, 3 is bad), `severity`
+  (1 is low, 3 is high), or `unrated` for a type whose labels never carry a 1–3 rating. Anything that *reads* a
+  label's severity branches on this.
+
+Neither derives from the other: Other is `neutral` but rated on the severity scale, NoSidewalk is a `problem` that
+is unrated, and Signal is a `feature` that is unrated. Source both rather than hand-writing a list of type names —
+`util.misc.isPositiveLabelType` is `rating_scale === 'quality'`, not an access-impact check.
+
+`main.scala.html` stamps this whole table onto every page as `window.labelTypes` (like `window.assetDigests`), and
+`utilitiesSidewalk.js` builds every frontend label-type list, colour and rating flag from it. A page that doesn't
+stamp it gets an empty table, so `util.misc`'s lists come back empty rather than erroring.
 
 ## Where to go next
 

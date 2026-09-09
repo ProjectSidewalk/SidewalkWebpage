@@ -4,10 +4,10 @@ util.misc = util.misc || {};
 function UtilitiesMisc(JSON) {
   const self = { className: 'UtilitiesMisc' };
 
-  // The label-type table LabelTypeEnum stamps onto every page (main.scala.html), in canonical order. It is the only
-  // copy the frontend has: every list, colour and behavior flag below is derived from it, so none of them can drift
-  // from the backend. A page that doesn't stamp it (jsdom, the error pages) leaves these empty rather than serving a
-  // stale duplicate — the surfaces that read them don't render on such a page.
+  // The label-type table LabelTypeEnum stamps onto every page (main.scala.html), in canonical order. Every list,
+  // colour and behavior flag below is derived from it, so none of them can drift from the backend — anything else
+  // in the frontend that needs the set of label types should read util.misc rather than write its own copy.
+  // A page that doesn't stamp it (jsdom, the error pages) leaves these empty rather than serving a stale duplicate.
   const labelTypes = Array.isArray(window.labelTypes) ? window.labelTypes : [];
   const byName = new Map(labelTypes.map((lt) => [lt.name, lt]));
 
@@ -461,12 +461,15 @@ function UtilitiesMisc(JSON) {
 
   /**
    * Whether a label type's labels carry a 1-3 rating at all.
+   *
+   * A type we have no entry for answers false, so an unstamped page hides its rating controls rather than offering
+   * a scale it can't name. Callers use the answer to decide whether to render the rating UI at all.
+   *
    * @param {string} labelType
    * @returns {boolean}
    */
   function labelTypeHasSeverity(labelType) {
-    const scale = byName.get(labelType)?.ratingScale;
-    return scale !== undefined && scale !== 'unrated';
+    return (byName.get(labelType)?.ratingScale ?? 'unrated') !== 'unrated';
   }
 
   /**

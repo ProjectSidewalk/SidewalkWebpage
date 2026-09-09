@@ -167,7 +167,7 @@
           <tr>
             <td><code>label_types[].access_impact</code></td>
             <td><code>string</code></td>
-            <td>What this label type says about accessibility: <code>"problem"</code> (a barrier, e.g. a missing curb ramp — a label's <code>severity</code> says how bad it is), <code>"feature"</code> (something that helps, e.g. a curb ramp — <code>severity</code> says how good it is), or <code>"neutral"</code> (not an accessibility judgment at all, e.g. an occlusion). Use this rather than a hardcoded list of label types when interpreting severity.</td>
+            <td>What this label type says about accessibility: <code>"problem"</code> (a barrier, e.g. a missing curb ramp), <code>"feature"</code> (something that helps, e.g. a curb ramp), or <code>"neutral"</code> (not an accessibility judgment at all, e.g. an occlusion). This is about framing, not ratings — to interpret a label's <code>severity</code>, use <code>rating_scale</code>.</td>
           </tr>
           <tr>
             <td><code>label_types[].rating_scale</code></td>

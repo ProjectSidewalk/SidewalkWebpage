@@ -1,8 +1,20 @@
+@import models.label.LabelTypeEnum
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@* The types that carry no rating, named from LabelTypeEnum so the "% w/ severity" caveats below can't outlive a
+   change to it — they are the same types ConfigTable excludes from that column's denominator. *@
+@unratedTypeNames = @{
+  LabelTypeEnum.ordered.filter(_.ratingScale == LabelTypeEnum.RatingScale.Unrated).map(lt => Messages(lt.nameKey))
+}
+@unratedList = @{unratedTypeNames.mkString(", ")}
+@unratedProse = @{
+  if (unratedTypeNames.size > 1) unratedTypeNames.init.mkString(", ") + ", and " + unratedTypeNames.last
+  else unratedTypeNames.mkString
+}
 
 @* Across Cities page for the redesigned admin dashboard (#4329). A cross-deployment overview comparing every Project Sidewalk city across four lenses — coverage (how much is left), activity (what's happening and when), data patterns (the label-type mix, city vs city), and data quality (how trustworthy the data is) — plus a "Today & this week" band of current-activity tiles, a top-cities table, and daily bar charts (#4758), a GA-backed web-traffic table (Planning#8), a "needs attention" panel of server-computed anomalies, and overview line charts of labels / validations / active users over time. Owner-only. Driven entirely client-side from /adminapi/cityScorecards (traffic from /adminapi/cityTraffic). *@
 
@@ -310,7 +322,7 @@
             <th>% validated</th>
             <th>Validations / label</th>
             <th title="Share of HUMAN agree/disagree validations that agreed. AI verdicts are excluded here and shown in the AI validations column.">Agreement <span class="ac-fn">†</span></th>
-            <th title="Calculated only over label types that can have a severity (excludes No Sidewalk, Signal, Occlusion).">% w/ severity <span class="ac-fn">†</span></th>
+            <th title="Calculated only over label types that can have a severity (excludes @unratedList).">% w/ severity <span class="ac-fn">†</span></th>
             <th title="Calculated only over label types that have tags defined for this deployment (e.g. excludes Occlusion).">% w/ tags <span class="ac-fn">†</span></th>
             <th>AI labels</th>
             <th>AI validations</th>
@@ -320,7 +332,7 @@
         <tbody id="ac-quality-tbody"></tbody>
       </table>
     </div>
-    <p class="ac-note"><span class="ac-fn">†</span> <strong>% w/ severity</strong> and <strong>% w/ tags</strong> are calculated only over the labels whose type <em>can</em> have them, not all labels. Severity excludes No&nbsp;Sidewalk, Signal, and Occlusion; tags exclude types with no tags defined for the deployment (e.g. Occlusion). So a city can reach 100% even though some label types never carry a severity or tag. <strong>Agreement</strong> (and the High-disagreement flag) counts only <strong>human</strong> validators — AI verdicts are excluded and shown separately in <strong>AI validations</strong>.</p>
+    <p class="ac-note"><span class="ac-fn">†</span> <strong>% w/ severity</strong> and <strong>% w/ tags</strong> are calculated only over the labels whose type <em>can</em> have them, not all labels. Severity excludes @unratedProse; tags exclude types with no tags defined for the deployment (e.g. Occlusion). So a city can reach 100% even though some label types never carry a severity or tag. <strong>Agreement</strong> (and the High-disagreement flag) counts only <strong>human</strong> validators — AI verdicts are excluded and shown separately in <strong>AI validations</strong>.</p>
   </div>
 
   <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")">

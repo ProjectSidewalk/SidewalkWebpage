@@ -15,8 +15,9 @@ import play.api.libs.json.{Json, JsonConfiguration, JsonNaming, OFormat}
  * @param smallIconUrl URL to the small icon image
  * @param tinyIconUrl URL to the tiny icon image
  * @param color Hex color code associated with this label type
- * @param accessImpact What this type says about accessibility: "problem", "feature", or "neutral". Severity means the
- *                     opposite thing on a problem than on a feature, so read this rather than hardcode type names.
+ * @param accessImpact What this type says about accessibility: "problem" (a barrier), "feature" (something that
+ *                     helps), or "neutral". This is about framing, not ratings — to read a label's severity, use
+ *                     `ratingScale`
  * @param ratingScale Which 1-3 rating this type's labels carry: "quality" (1 good, 3 bad), "severity" (1 low, 3 high),
  *                    or "unrated" for a type whose labels never carry one
  * @param isPrimary Whether this is a primary label type

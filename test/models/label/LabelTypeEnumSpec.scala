@@ -18,18 +18,21 @@ class LabelTypeEnumSpec extends PlaySpec {
   "accessImpact" should {
     "put every label type in the right bucket" in {
       // A type in the wrong bucket silently inverts share copy and every severity interpretation built on this.
-      LabelTypeEnum.byAccessImpact(AccessImpact.Problem) mustBe Set(
+      LabelTypeEnum.values.filter(_.accessImpact == AccessImpact.Problem) mustBe Set(
         LabelTypeEnum.NoCurbRamp,
         LabelTypeEnum.Obstacle,
         LabelTypeEnum.SurfaceProblem,
         LabelTypeEnum.NoSidewalk
       )
-      LabelTypeEnum.byAccessImpact(AccessImpact.Feature) mustBe Set(
+      LabelTypeEnum.values.filter(_.accessImpact == AccessImpact.Feature) mustBe Set(
         LabelTypeEnum.CurbRamp,
         LabelTypeEnum.Crosswalk,
         LabelTypeEnum.Signal
       )
-      LabelTypeEnum.byAccessImpact(AccessImpact.Neutral) mustBe Set(LabelTypeEnum.Occlusion, LabelTypeEnum.Other)
+      LabelTypeEnum.values.filter(_.accessImpact == AccessImpact.Neutral) mustBe Set(
+        LabelTypeEnum.Occlusion,
+        LabelTypeEnum.Other
+      )
     }
 
     "publish a distinct name per bucket, since clients match on those strings" in {
@@ -40,14 +43,17 @@ class LabelTypeEnumSpec extends PlaySpec {
 
   "ratingScale" should {
     "put every label type on the right scale" in {
-      LabelTypeEnum.byRatingScale(RatingScale.Quality) mustBe Set(LabelTypeEnum.CurbRamp, LabelTypeEnum.Crosswalk)
-      LabelTypeEnum.byRatingScale(RatingScale.Severity) mustBe Set(
+      LabelTypeEnum.values.filter(_.ratingScale == RatingScale.Quality) mustBe Set(
+        LabelTypeEnum.CurbRamp,
+        LabelTypeEnum.Crosswalk
+      )
+      LabelTypeEnum.values.filter(_.ratingScale == RatingScale.Severity) mustBe Set(
         LabelTypeEnum.NoCurbRamp,
         LabelTypeEnum.Obstacle,
         LabelTypeEnum.SurfaceProblem,
         LabelTypeEnum.Other
       )
-      LabelTypeEnum.byRatingScale(RatingScale.Unrated) mustBe Set(
+      LabelTypeEnum.values.filter(_.ratingScale == RatingScale.Unrated) mustBe Set(
         LabelTypeEnum.Signal,
         LabelTypeEnum.NoSidewalk,
         LabelTypeEnum.Occlusion

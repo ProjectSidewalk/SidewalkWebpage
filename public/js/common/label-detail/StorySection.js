@@ -13,7 +13,6 @@ class StorySection {
   #composer;
   #labelId = null;
   #maxTextLength = null;
-  #accessImpact = null; // From the /stories payload (LabelTypeEnum-sourced); flips the composer's phrasing.
   #fetchToken = 0; // Guards against a stale response landing after a newer label was opened.
   #highlightStoryId = null; // Pending story deep link (#4722); the first render that could show it consumes it.
 
@@ -78,7 +77,6 @@ class StorySection {
   setLabel(labelId, labelTypeName = null) {
     this.#labelId = labelId;
     this.#composer.setLabelType(labelTypeName);
-    this.#accessImpact = null;
     this.#els.list.replaceChildren();
     this.#els.count.hidden = true;
     // Empty posture until the fetch lands (most labels have no stories): section hidden, footer CTA up. This is
@@ -116,11 +114,10 @@ class StorySection {
       const data = await res.json();
       if (token !== this.#fetchToken) return;
       this.#maxTextLength = data.max_text_length;
-      this.#accessImpact = data.access_impact;
       // Positive access features (curb ramps, signals, ...) get "story about a feature" phrasing instead of "has a
       // problem affected you". Applied on every fetch so paging between label types re-picks the right copy — and
       // reaches the composer even if it was opened before this response landed (the sign-in resume path).
-      this.#composer.setCopyVariant(this.#accessImpact);
+      this.#composer.setCopyVariant(data.access_impact);
       this.#render(data.stories);
     } catch (err) {
       console.error(err);
