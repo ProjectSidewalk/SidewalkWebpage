@@ -113,4 +113,24 @@ class AuthFormsSpec extends AnyFunSuite with Matchers {
       ResetPasswordForm.form.bind(Map("passwordReset" -> "TestPass1", "passwordResetConfirm" -> "TestPass2"))
     mismatch.errors.map(_.message) should contain("authenticate.error.password.mismatch")
   }
+
+  test("every reset-password error key is one the message files define") {
+    // resetPassword.scala.html is the only place these surface — the page has no per-field error slots — so a key
+    // with no message would render raw to the user rather than failing anywhere first.
+    val defined = Set(
+      "error.required",
+      "error.minLength",
+      "authenticate.error.password.requirements",
+      "authenticate.error.password.mismatch"
+    )
+    val cases = Seq(
+      Map("passwordReset" -> "", "passwordResetConfirm"              -> ""),
+      Map("passwordReset" -> "Ab1", "passwordResetConfirm"           -> "Ab1"),
+      Map("passwordReset" -> "alllowercase1", "passwordResetConfirm" -> "alllowercase1"),
+      Map("passwordReset" -> "TestPass1", "passwordResetConfirm"     -> "TestPass2")
+    )
+    cases.flatMap(ResetPasswordForm.form.bind(_).errors.map(_.message)).distinct.foreach { key =>
+      defined should contain(key)
+    }
+  }
 }

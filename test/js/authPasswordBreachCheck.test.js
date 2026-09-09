@@ -24,11 +24,14 @@ const PASSWORD_SHA1 = crypto.createHash('sha1').update(PASSWORD).digest('hex').t
 /** The four PasswordPolicy rules, as the Twirl template injects them. */
 const RULE_REGEXES = ['.{8,}', '[A-Z]', '[a-z]', '\\d'];
 
+const ruleItems = () => RULE_REGEXES
+  .map((r) => `<li data-rule-regex="${r}"><span class="au-dot"></span>rule</li>`).join('');
+
 /**
  * A reduction of common/authPasswordFields.scala.html, not a copy: it keeps the structure the JS walks, so a
  * selector change in either file shows up here, but it does not hold the template to its markup.
  */
-const PASSWORD_GROUP = `
+const passwordGroup = (withChecklist) => `
   <div class="au-pw-group" data-breach-url="${RANGE_URL}" data-breach-warning="${BREACH_MESSAGE}">
     <div class="au-field">
       <div class="au-input-wrap">
@@ -38,7 +41,7 @@ const PASSWORD_GROUP = `
                 data-label-hide="hide"></button>
       </div>
       <ul class="au-checklist" id="sign-up-pw-rules">
-        ${RULE_REGEXES.map((r) => `<li data-rule-regex="${r}"><span class="au-dot"></span>rule</li>`).join('')}
+        ${withChecklist ? ruleItems() : ''}
       </ul>
       <div class="au-strength">
         <div class="au-slabs au-pw-slabs"><span></span><span></span><span></span><span></span></div>
@@ -69,9 +72,10 @@ const AUTH_DIALOG = `
  * jsdom keeps one window for the whole file, so the DOMContentLoaded listener is intercepted rather than left to
  * accumulate: each test then runs exactly one freshly-loaded copy, with its own range cache.
  *
- * @param {{withDialog?: boolean}} [options] - `withDialog` also renders the navbar sign-in dialog on the page.
+ * @param {{withDialog?: boolean, withChecklist?: boolean}} [options] - `withDialog` also renders the navbar
+ *   sign-in dialog on the page; `withChecklist: false` renders the group with no composition rules.
  */
-function renderPasswordGroup({ withDialog = false } = {}) {
+function renderPasswordGroup({ withDialog = false, withChecklist = true } = {}) {
   let domReady;
   jest.spyOn(window, 'addEventListener').mockImplementation((type, handler) => {
     if (type === 'DOMContentLoaded') domReady = handler;
@@ -83,7 +87,7 @@ function renderPasswordGroup({ withDialog = false } = {}) {
   };
   document.body.innerHTML = `
     ${withDialog ? AUTH_DIALOG : ''}
-    <div class="au-page"><form id="sign-up-form" class="au-form">${PASSWORD_GROUP}</form></div>`;
+    <div class="au-page"><form id="sign-up-form" class="au-form">${passwordGroup(withChecklist)}</form></div>`;
   loadGlobalScript('public/js/common/AuthModal.js');
   domReady();
 }
@@ -255,6 +259,33 @@ describe('advisory breached-password check', () => {
     await typePassword(PASSWORD);
 
     expect(window.fetch).toHaveBeenCalledTimes(afterDetour);
+  });
+
+  test('restores a known verdict immediately, without a full-strength flash while it re-checks', async () => {
+    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => `${PASSWORD_SHA1.slice(5)}:4823\r\n` });
+    renderPasswordGroup();
+    await typePassword(PASSWORD);
+    expect(warningShown()).toBe(true);
+
+    const pw = document.getElementById('sign-up-password');
+    pw.value = PASSWORD.slice(0, -1);
+    pw.dispatchEvent(new window.Event('input'));
+    expect(warningShown()).toBe(false); // A shorter value is a different password with no verdict yet.
+
+    pw.value = PASSWORD;
+    pw.dispatchEvent(new window.Event('input'));
+
+    // Same keystroke, before any debounce: the earlier verdict still stands, so no "Strong" flash.
+    expect(warningShown()).toBe(true);
+    expect(strengthWord()).toBe('Weak');
+  });
+
+  test('never reaches the network for a group that has no checklist to satisfy', async () => {
+    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => '' });
+    renderPasswordGroup({ withChecklist: false });
+    await typePassword('a');
+
+    expect(window.fetch).not.toHaveBeenCalled();
   });
 
   test('does nothing at all without Web Crypto (an insecure origin)', async () => {

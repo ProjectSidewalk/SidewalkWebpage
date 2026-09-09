@@ -29,8 +29,10 @@ object PasswordPolicy {
 
   /**
    * Endpoint for the advisory breached-password check (#4492). The frontend appends the first five hex characters
-   * of the password's SHA-1 and matches the returned suffixes locally, so nothing identifying leaves the browser
-   * (Have I Been Pwned's k-anonymity model). The host must also be in `connect-src` in `conf/application.conf`.
+   * of the password's SHA-1 and matches the returned suffixes locally, so neither the password nor enough of its
+   * hash to identify it leaves the browser (Have I Been Pwned's k-anonymity model). The request is still an
+   * ordinary cross-origin one — the user's IP and this instance's Origin reach the endpoint like any third-party
+   * call. The host must also be in `connect-src` in `conf/application.conf`.
    */
   val breachRangeUrl: String = "https://api.pwnedpasswords.com/range/"
 }

@@ -141,7 +141,7 @@
     @if(commonData.environmentType != "prod") {
       <aside class="test-server-banner" aria-label="@Messages("test.server.warning.label")">
         <div class="test-server-banner-content">
-          <img class="test-server-banner-icon" src='@assets.path("images/icons/alert-triangle-feather.svg")' alt="">
+          <span class="test-server-banner-icon" aria-hidden="true"></span>
           <p class="test-server-banner-text">
             @Html(Messages("test.server.warning.message")): <a class="test-server-banner-link" href="@commonData.prodUrl">@commonData.prodUrl</a>
           </p>

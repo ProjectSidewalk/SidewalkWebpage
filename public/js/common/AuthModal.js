@@ -10,7 +10,11 @@
  * `.open('signIn'|'signUp')`.
  */
 
-/** The `.au-icon` span the auth stylesheet masks its glyph onto; the context class picks the shape and tint. */
+/**
+ * The `.au-icon` span the auth stylesheet masks its glyph onto; the context class picks the shape and tint.
+ *
+ * @returns {HTMLSpanElement} A decorative icon span.
+ */
 const auIcon = () => {
   const icon = document.createElement('span');
   icon.className = 'au-icon';
@@ -39,19 +43,44 @@ function wireEyeToggle(btn) {
 /** Long enough that typing a password straight through costs one request rather than one per character. */
 const AU_BREACH_DEBOUNCE_MS = 500;
 
+/** A padded range response runs to ~80KB, so the cache below is capped rather than left to grow with typing. */
+const AU_BREACH_RANGE_CACHE_MAX = 8;
+
 /**
- * Range responses, keyed by the 5-character hash prefix that fetched them — both already public under
- * k-anonymity. Nothing password-derived may live here: an unsalted SHA-1 of a human-chosen password is the
- * password to anyone with a wordlist, and a top-level `const` in a classic script is readable by name from every
- * other script on the page.
+ * In-flight and settled range requests, keyed by the 5-character hash prefix that fetched them — both already
+ * public under k-anonymity. Nothing password-derived may live here: an unsalted SHA-1 of a human-chosen password
+ * is the password to anyone with a wordlist, and a top-level `const` in a classic script is readable by name from
+ * every other script on the page. Promises rather than text, so two lookups sharing a prefix share one request.
  */
 const auBreachRanges = new Map();
 
 /**
+ * Fetches one k-anonymity range, reusing an in-flight or recent request for the same prefix.
+ *
+ * @param {string} prefix - The first five hex characters of a SHA-1.
+ * @param {string} rangeUrl - The range endpoint, from PasswordPolicy.
+ * @returns {Promise<string>} The response body, or an empty string if the request failed.
+ */
+function fetchBreachRange(prefix, rangeUrl) {
+  const cached = auBreachRanges.get(prefix);
+  if (cached) return cached;
+  const pending = fetch(rangeUrl + prefix, { headers: { 'Add-Padding': 'true' } })
+    .then((res) => (res.ok ? res.text() : Promise.reject(new Error(String(res.status)))));
+  // A failure is dropped rather than cached: only a real answer is worth keeping.
+  pending.catch(() => auBreachRanges.delete(prefix));
+  if (auBreachRanges.size >= AU_BREACH_RANGE_CACHE_MAX) {
+    auBreachRanges.delete(auBreachRanges.keys().next().value);
+  }
+  auBreachRanges.set(prefix, pending);
+  return pending;
+}
+
+/**
  * Asks Have I Been Pwned whether a password is in its breach corpus. Only the first five hex characters of the
- * SHA-1 are sent, and `Add-Padding` keeps the response length from hinting at how many hashes share that prefix.
- * Fail-open by design (#4492): offline, blocked, or no Web Crypto all report "not breached" rather than standing
- * between a user and their account.
+ * SHA-1 are sent, and `Add-Padding` keeps the response length from hinting at how many hashes share that prefix;
+ * the request still carries the user's IP and this instance's Origin, as any cross-origin call does. Fail-open by
+ * design (#4492): offline, blocked, or no Web Crypto all report "not breached" rather than standing between a
+ * user and their account.
  *
  * @param {string} password - The candidate password.
  * @param {string} rangeUrl - The range endpoint, from PasswordPolicy.
@@ -61,14 +90,7 @@ async function isBreachedPassword(password, rangeUrl) {
   try {
     const digest = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(password));
     const hash = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-    const prefix = hash.slice(0, 5);
-    let range = auBreachRanges.get(prefix);
-    if (range === undefined) {
-      const res = await fetch(rangeUrl + prefix, { headers: { 'Add-Padding': 'true' } });
-      if (!res.ok) return false; // Uncached, like a thrown request: only a real answer is worth keeping.
-      range = await res.text();
-      auBreachRanges.set(prefix, range);
-    }
+    const range = await fetchBreachRange(hash.slice(0, 5), rangeUrl);
     const suffix = hash.slice(5);
     // Padding entries are real-looking suffixes with a count of 0, so only a positive count is a hit.
     return range.split('\n').some((line) => {
@@ -99,8 +121,13 @@ function wirePasswordGroup(group) {
   const breachUrl = group.dataset.breachUrl;
   const breachMessage = group.dataset.breachWarning;
   let breachTimer;
-  let breachedValue = null;
   let breachWarning = null;
+  /**
+   * Verdicts for values this field has already judged, so backspacing into one does not flash a full-strength
+   * meter for the debounce's length before the warning comes back. Closure-scoped and never exported: the values
+   * are the ones already sitting in `pw.value`, so this reaches no further than the input element itself.
+   */
+  const verdicts = new Map();
 
   /**
    * Inserts and drops the warning node rather than hiding it: a hidden live region is not in the accessibility
@@ -132,7 +159,7 @@ function wirePasswordGroup(group) {
       if (ok) met++;
     });
     // A password in a breach corpus is weak however many composition rules it passes, so the meter says so too.
-    const breached = breachedValue !== null && breachedValue === pw.value;
+    const breached = verdicts.get(pw.value) === true;
     const shown = breached ? Math.min(met, 1) : met;
     renderBreachWarning(breached);
     slabs.forEach((slab, i) => slab.classList.toggle('paved', i < shown));
@@ -150,7 +177,8 @@ function wirePasswordGroup(group) {
 
   /**
    * Schedules the breach lookup for the current value, once typing pauses. Only a password that already satisfies
-   * the composition rules is looked up; a half-typed one would spend a request to say what the checklist says.
+   * the composition rules is looked up; a half-typed one would spend a request to say what the checklist says. A
+   * group with no checklist has no notion of "half-typed", so it never reaches the network.
    *
    * @param {boolean} allRulesMet - Whether the current value satisfies every composition rule.
    */
@@ -158,19 +186,17 @@ function wirePasswordGroup(group) {
     clearTimeout(breachTimer);
     const value = pw.value;
     if (!breachUrl || !breachMessage || !window.crypto?.subtle || !allRulesMet) return;
+    if (verdicts.has(value)) return;
     breachTimer = setTimeout(async () => {
-      if (await isBreachedPassword(value, breachUrl) && pw.value === value) {
-        breachedValue = value;
-        update();
-      }
+      const breached = await isBreachedPassword(value, breachUrl);
+      verdicts.set(value, breached);
+      if (pw.value === value) update();
     }, AU_BREACH_DEBOUNCE_MS);
   };
 
   pw.addEventListener('input', () => {
-    // A verdict only speaks for the exact value it was fetched for, so it is dropped before the redraw reads it.
-    if (breachedValue !== pw.value) breachedValue = null;
     const met = update();
-    scheduleBreachCheck(met === rules.length);
+    scheduleBreachCheck(rules.length > 0 && met === rules.length);
   });
   pw2?.addEventListener('input', update);
 }
@@ -178,16 +204,14 @@ function wirePasswordGroup(group) {
 /**
  * Wires every new-password group on the page plus the username-rule indicator, all from backend-injected
  * data-rule-regex attributes. No-ops on surfaces without those fields (e.g. the sign-in-only ones).
- *
- * @param {ParentNode} root - The subtree holding the auth forms.
  */
-function wireLiveValidation(root) {
-  root.querySelectorAll('.au-pw-group').forEach(wirePasswordGroup);
+function wireLiveValidation() {
+  document.querySelectorAll('.au-pw-group').forEach(wirePasswordGroup);
 
-  const username = root.querySelector('#sign-up-username');
+  const username = document.getElementById('sign-up-username');
   if (username?.dataset.ruleRegex) {
     const usernameRegex = new RegExp(username.dataset.ruleRegex);
-    const rule = root.querySelector('#sign-up-username-rule');
+    const rule = document.getElementById('sign-up-username-rule');
     username.addEventListener('input', () => {
       const ok = usernameRegex.test(username.value);
       rule?.classList.toggle('met', ok);
@@ -298,11 +322,11 @@ function wireAsyncSubmit(form) {
  *
  * @param {ParentNode} root - The subtree to enhance; the whole document in production.
  */
-function enhanceAuthForms(root) {
-  root.querySelectorAll('.au-eye').forEach(wireEyeToggle);
-  wireLiveValidation(root);
-  wireAsyncSubmit(root.querySelector('#sign-in-form'));
-  wireAsyncSubmit(root.querySelector('#sign-up-form'));
+function enhanceAuthForms() {
+  document.querySelectorAll('.au-eye').forEach(wireEyeToggle);
+  wireLiveValidation();
+  wireAsyncSubmit(document.getElementById('sign-in-form'));
+  wireAsyncSubmit(document.getElementById('sign-up-form'));
 }
 
 /**
@@ -396,7 +420,7 @@ class AuthModal {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  enhanceAuthForms(document);
+  enhanceAuthForms();
   const dialog = document.getElementById('sign-in-modal-container');
   if (dialog instanceof HTMLDialogElement) {
     window.psAuthModal = new AuthModal(dialog);

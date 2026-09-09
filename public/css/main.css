@@ -1240,11 +1240,17 @@ kbd {
   flex-wrap: wrap;
 }
 
-/* Warning triangle: the severity cue, so the message text can stay calm and informative. */
+/* Warning triangle: the severity cue, so the message text can stay calm and informative. Masked rather than an
+   <img> so the tint stays a token instead of being baked into the file (auth.css's .au-icon masks the same
+   shape). No autoprefixer in this build, hence the -webkit- siblings. */
 .test-server-banner-icon {
   flex: 0 0 auto;
   width: 20px;
   height: 20px;
+  background-color: currentcolor;
+  color: var(--color-banana-800);
+  -webkit-mask: url("../images/icons/alert-triangle-feather.svg") center / contain no-repeat;
+  mask: url("../images/icons/alert-triangle-feather.svg") center / contain no-repeat;
 }
 
 .test-server-banner-text {
