@@ -268,7 +268,9 @@ object LabelFormats {
       "validator_comment" -> label.validatorComment,
       "crop_url"          -> cropUrl,
       "crop_marker"       -> cropMarker,
-      "image_url"         -> imageUrl
+      "image_url"         -> imageUrl,
+      "pano_source"       -> label.panoSource.toString,
+      "attribution"       -> ImageryAttribution.line(label.panoSource, label.copyright, label.license).map(_.toJson)
     )
   }
 

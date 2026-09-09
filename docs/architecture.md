@@ -96,22 +96,22 @@ different places — the snapshot at its canvas fraction, the job's window where
 says (the centre, unless the window shifted off a pole) — and the files look alike, so **every crop's provenance is a
 `label_crop` row** (#2660): which writer, and the label's position as fractions of the image. Each writer records its
 row as it writes, the job's reconcile pass classifies any crop found without one (by size, then by the file's age
-against the label's, and never on a signal that disagrees with the others), and the four surfaces that draw a marker
-on a crop — the Gallery card, the landing validation grid, the popup's crop fallback, the share preview — take it
-from the row (`crop_marker` in the label payloads), falling back to the canvas fraction only while a crop is
-unrecorded or the image on screen is the Street View still. A new crop writer must write that row, and a new surface
-that marks a crop must read it. A pano too wide for a WebGL texture (Pannellum renders one, and 8192 px is a common
-cap) is shown from a downscaled copy the scraper writes beside the native file as `<panoId>.w8192.jpg`;
+against the label's, and never on a signal that disagrees with the others), and the five surfaces that draw a marker on
+a crop — the Gallery card, the landing validation grid, the dashboard's mistake cards, the popup's crop fallback, the
+share preview — take it from the row (`crop_marker` in the label payloads), falling back to the canvas fraction only
+while a crop is unrecorded or the image on screen is the Street View still. A new crop writer must write that row, and a
+new surface that marks a crop must read it. A pano too wide for a WebGL texture (Pannellum renders one, and 8192 px is a
+common cap) is shown from a downscaled copy the scraper writes beside the native file as `<panoId>.w8192.jpg`;
 `/backupImage/:panoId` serves it in place of the native file when it exists, and the viewer can't tell, because it
-places markers by angle. The app never cuts that copy itself: a whole-pano derivative needs more heap than a city
-stage has, and cutting one nightly for every wide pano OOM-killed prod JVMs (#5239). It does *count* them — the
-nightly job stats the expected sidecar for every wide pano and records `sidecars_present`/`sidecars_missing` on its
-run row, warning when any are missing, because otherwise a scraper that had stopped writing them would show up only
-as a viewer failing to render, months later. Imagery Project Sidewalk shows a copy of — a self-hosted pano or a
-crop — carries the attribution
-`ImageryAttribution` composes (Mapillary contributors are CC BY-SA 4.0), rendered by `PanoAttribution.js` in the
-label-detail pano box and in Validate's Pannellum fallback (`css/components/pano-attribution.css` is the shared look;
-each host positions the pill).
+places markers by angle. The app never cuts that copy itself: a whole-pano derivative needs more heap than a city stage
+has, and cutting one nightly for every wide pano OOM-killed prod JVMs (#5239). It does *count* them — the nightly job
+stats the expected sidecar for every wide pano and records `sidecars_present`/`sidecars_missing` on its run row, warning
+when any are missing, because otherwise a scraper that had stopped writing them would show up only as a viewer failing
+to render, months later. Imagery Project Sidewalk shows a copy of — a self-hosted pano or a crop — carries the
+attribution `ImageryAttribution` composes (Mapillary contributors are CC BY-SA 4.0), rendered by `PanoAttribution.js`
+alongside the source logo `PanoViewerLogo.js` draws: in the label-detail pano box, in Validate's Pannellum fallback, and
+on every card that shows a crop — the Gallery card, the landing validation grid, and the dashboard's mistake cards
+(`css/components/pano-attribution.css` is the shared look; each host positions the pill).
 
 If either category outgrows its lane — thousands of files, multi-MB originals, a CDN or on-the-fly transforms in
 front — the move is to object storage (S3/MinIO), never the local filesystem.
@@ -122,7 +122,8 @@ DI is Guice. The app bootstraps via `app/CustomApplicationLoader.scala`; modules
 `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`,
 `SilhouetteModule`, and `StartupChecksModule` — the home for boot-time checks that surface deployment-level
 misconfiguration, like `PersistentMediaDirCheck`). Custom execution contexts live in `app/executors/`; background
-actors in `app/actor/`.
+actors in `app/actor/`; HTTP filters in `app/filters/`, registered through `play.filters.enabled` in
+`conf/application.conf`.
 
 **Views** are Twirl templates (`app/views/*.scala.html`).
 
