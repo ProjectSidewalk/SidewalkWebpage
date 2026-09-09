@@ -14,7 +14,7 @@ import java.time.temporal.ChronoUnit
 import java.time.{Instant, OffsetDateTime}
 
 /**
- * DB-backed contract test for how the nightly refresh records a way that Overpass does not return (#5244, evolution
+ * DB-backed contract test for how the nightly refresh records a way the OSM API reports gone (#5244, evolution
  * 380) and how the lost tags of such a way are recovered from the OSM history (step 2, evolution 382).
  *
  * A mapped way id can die in OSM (the way deleted or merged away) while the street it described stays in our
@@ -143,7 +143,7 @@ class OsmWayTableSpec
   }
 
   "OsmWayTable.recordHistoryTags" should {
-    "store recovered tags under source 'history', keeping the way marked missing and its Overpass fetch time" in {
+    "store recovered tags under source 'history', keeping the way marked missing and its refresh fetch time" in {
       val goneAt                = OffsetDateTime.now.minusDays(3)
       val (stored, listedAfter) = runRolledBack(for {
         _      <- insertGoneWay(blankedId, Json.obj(), "batch", goneAt)
@@ -193,6 +193,33 @@ class OsmWayTableSpec
         stored <- storedRow(blankedId)
       } yield stored)
       stored mustBe ((bridgeTags, None, "history", micros(recheckAt), Some(micros(goneAt))))
+    }
+  }
+
+  "OsmWayTable.getWayIdsMissingOrStale" should {
+    "re-check a stale gone way, recovered or not, but never one the API has nothing for" in {
+      val staleAt = OffsetDateTime.now.minusDays(40)
+      val cutoff  = OffsetDateTime.now.minusDays(30)
+      val listed  = runRolledBack(for {
+        _   <- insertGoneWay(blankedId, Json.obj(), "batch", staleAt)    // gone, blanked: re-check
+        _   <- insertGoneWay(keptTagsId, bridgeTags, "history", staleAt) // gone, recovered: re-check
+        _   <- insertGoneWay(checkedId, Json.obj(), "history", staleAt)  // never held: nothing to come back
+        ids <- osmWayTable.getWayIdsMissingOrStale(cutoff)
+      } yield ids.filter(recoveryIds.contains))
+      listed mustBe Seq(blankedId, keptTagsId)
+    }
+
+    "leave a fresh row alone and list a mapped way with no row at all" in {
+      val cutoff = OffsetDateTime.now.minusDays(30)
+      val listed = runRolledBack(for {
+        _            <- insertGoneWay(blankedId, Json.obj(), "batch", OffsetDateTime.now)
+        streetEdgeId <- insertStreet()
+        _            <- sqlu"""INSERT INTO osm_way_street_edge (osm_way_street_edge_id, osm_way_id, street_edge_id)
+                    VALUES ((SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 1 FROM osm_way_street_edge),
+                            $keptTagsId, $streetEdgeId)"""
+        ids <- osmWayTable.getWayIdsMissingOrStale(cutoff)
+      } yield ids.filter(recoveryIds.contains))
+      listed mustBe Seq(keptTagsId)
     }
   }
 }

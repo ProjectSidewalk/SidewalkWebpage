@@ -50,7 +50,7 @@ import scala.concurrent.Future
  * and read the row back.
  *
  * The work itself is stubbed. Left alone these recompute a whole city's user stats, funnels and street priorities,
- * shell out to the Python clusterer, and call out to Overpass and the imagery providers; the assertion here is about
+ * shell out to the Python clusterer, and call out to the OSM API and the imagery providers; the assertion here is about
  * the bookkeeping around the call, not the call's arithmetic, which each service's own spec covers.
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the

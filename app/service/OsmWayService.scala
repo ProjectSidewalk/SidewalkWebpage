@@ -23,7 +23,7 @@ import scala.util.{Failure, Success}
  * What one run of the OSM way refresh did.
  *
  * @param waysRefreshed     Ways whose row was written, present in OSM or not (0 when everything was fresh).
- * @param waysMissing       Of those, ways Overpass did not return: deleted or merged away in OSM since our import.
+ * @param waysMissing       Of those, ways the OSM API reports gone: deleted or merged away in OSM since our import.
  *                          Their last known tags are kept and `osm_way.missing_since` is stamped (#5244).
  * @param tagsRecovered     Gone ways whose lost tags were recovered from the OSM history in this run.
  * @param tagsUnrecoverable Gone ways looked up in the OSM history this run that had nothing usable there. Marked so
@@ -49,9 +49,9 @@ trait OsmWayService {
    * Refreshes cached way data for every mapped way whose row is missing or older than `STALENESS_PERIOD`, then
    * recovers the tags of gone ways that lost them.
    *
-   * The refresh fetches tags from Overpass in chunks of `BATCH_CHUNK_SIZE` ids, sequentially with a delay between
-   * chunks. Every requested id is written even when absent from the response, so it won't re-queue nightly: a found
-   * way takes its current tags, a missing one keeps its last known tags and is marked `missing_since`.
+   * The refresh fetches tags from the main OSM API by id, in chunks of `BATCH_CHUNK_SIZE`, sequentially with a delay
+   * between chunks. Every requested id is written, so it won't re-queue nightly: a found way takes its current tags,
+   * a way the API reports deleted (or never held) keeps its last known tags and is marked `missing_since`.
    *
    * The backfill then takes every mapped way that is marked missing but still has empty tags -- blanked before the
    * refresh learned to keep them, or gone before it ever saw them -- and asks the OSM API for the way's history, one
@@ -90,10 +90,12 @@ trait OsmWayService {
 /**
  * Maintains the cached OSM way data (osm_way table) that backs the speed-limit sign (#4654).
  *
- * Two write paths, both polite to the shared community Overpass instance: a nightly batch refresh that bulk-fetches
- * tags for every way mapped in osm_way_street_edge (monthly per way, via a staleness cutoff), and an on-demand point
- * lookup used when a user wanders onto a street outside our network — checked against our DB first so each unknown
- * spot costs Overpass at most one query ever, across all users.
+ * Two write paths. A nightly batch refresh fetches tags for every way mapped in osm_way_street_edge (monthly per way,
+ * via a staleness cutoff) from the main OSM API, whose multi-fetch is built for exactly this fetch-by-id and reports
+ * a deleted way as such; the shared community Overpass instance is a query engine, and asking it for ids was what
+ * got ~57 deployments refused (#5237). An on-demand point lookup, used when a user wanders onto a street outside
+ * our network, is the one thing that still needs Overpass (a spatial query) — checked against our DB first so each
+ * unknown spot costs Overpass at most one query ever, across all users.
  */
 @Singleton
 class OsmWayServiceImpl @Inject() (
@@ -110,12 +112,12 @@ class OsmWayServiceImpl @Inject() (
   private val logger = Logger(this.getClass)
 
   def refreshOsmWayData(): Future[OsmWayRefreshResult] = {
-    // The two phases talk to different hosts, and Overpass refuses a good share of our runs (#5237), so a failure in
-    // one must not cost the other its work: both run, and the run fails afterwards if either did. The run record
-    // then carries the first failure and no counts (JobRunService stores details on success only), so each phase
-    // logs its own counts, and a second failure is logged here rather than lost behind the first.
+    // Either phase can fail on the network, and a failure in one must not cost the other its work: both run, and the
+    // run fails afterwards if either did. The run record then carries the first failure and no counts (JobRunService
+    // stores details on success only), so each phase logs its own counts, and a second failure is logged here rather
+    // than lost behind the first.
     for {
-      refreshed <- refreshFromOverpass().transform(Success(_))
+      refreshed <- refreshFromOsmApi().transform(Success(_))
       recovered <- backfillMissingTags().transform(Success(_))
       result    <- (refreshed, recovered) match {
         case (Failure(first), Failure(second)) =>
@@ -131,10 +133,10 @@ class OsmWayServiceImpl @Inject() (
   }
 
   /**
-   * Phase one: re-fetches every stale mapped way's tags from Overpass, chunked and paced, marking the ways it no
-   * longer returns as missing.
+   * Phase one: re-fetches every stale mapped way's tags from the main OSM API, chunked and paced, marking the ways
+   * it reports deleted (or never held) as missing.
    */
-  private def refreshFromOverpass(): Future[OsmWayRefreshResult] = {
+  private def refreshFromOsmApi(): Future[OsmWayRefreshResult] = {
     db.run(osmWayTable.getWayIdsMissingOrStale(OffsetDateTime.now.minusDays(STALENESS_PERIOD_DAYS))).flatMap { wayIds =>
       if (wayIds.isEmpty) { Future.successful(OsmWayRefreshResult.empty) }
       else {
@@ -145,12 +147,28 @@ class OsmWayServiceImpl @Inject() (
           .foldLeft(Future.successful(OsmWayRefreshResult.empty)) { case (accFuture, (chunk, chunkIdx)) =>
             for {
               acc <- accFuture
-              // Space out requests to the shared Overpass instance; no delay before the first chunk.
+              // Space out requests to the shared API; no delay before the first chunk.
               _ <- if (chunkIdx == 0) Future.unit else after(BATCH_CHUNK_DELAY, actorSystem.scheduler)(Future.unit)
-              fetched <- fetchTagsForWaysWithRetry(chunk)
-              split = chunk.partition(fetched.contains)
+              fetched <- fetchSplittingOnNotFound(chunk)(
+                fetchTagsForWaysWithRetry(_),
+                () => after(BATCH_CHUNK_DELAY, actorSystem.scheduler)(Future.unit)
+              )
+              // Every id in a multi-id chunk answering 404 is an API that is not itself (a maintenance page, a
+              // proxy), not a chunk of ids that never existed; treating it as the latter would mark a whole city
+              // missing in one night. A lone bad id is a real data defect and is named.
+              _ = if (chunk.size > 1 && fetched.neverHeld.size == chunk.size) {
+                throw new RuntimeException(
+                  s"The OSM API answered 404 for every one of ${chunk.size} ways in a chunk; treating the API as down."
+                )
+              }
+              _ = if (fetched.neverHeld.nonEmpty) {
+                logger.warn(
+                  s"The OSM API has never held mapped way ids ${fetched.neverHeld.mkString(", ")}; marked missing."
+                )
+              }
+              split = chunk.partition(fetched.live.contains)
               rows  = split._1.map { wayId =>
-                val tags = fetched(wayId)
+                val tags = fetched.live(wayId)
                 (wayId, tags: JsValue, maxspeedFrom(tags))
               }
               n <- db.run(osmWayTable.upsertBatch(rows, split._2, OffsetDateTime.now))
@@ -235,46 +253,44 @@ class OsmWayServiceImpl @Inject() (
   }
 
   /**
-   * Fetches a chunk's tags, retrying transient failures — the shared Overpass instance sheds load with 429s/504s
-   * routinely, so one bad response shouldn't sink a whole run. Waits BATCH_RETRY_DELAY x attempt between tries to
-   * give a loaded server breathing room.
+   * Fetches a chunk's tags, retrying transient failures (a 429, a 5xx, a timeout) so one bad response doesn't sink a
+   * whole run. Waits BATCH_RETRY_DELAY x attempt between tries to give a loaded server breathing room. A 404 is an
+   * answer, not a failure, and is passed through for the caller to split on.
    */
-  private def fetchTagsForWaysWithRetry(wayIds: Seq[Long], attempt: Int = 1): Future[Map[Long, JsObject]] = {
+  private def fetchTagsForWaysWithRetry(wayIds: Seq[Long], attempt: Int = 1): Future[Option[Map[Long, JsObject]]] = {
     fetchTagsForWays(wayIds).recoverWith {
       case NonFatal(e) if attempt < BATCH_MAX_ATTEMPTS =>
-        logger.warn(s"Overpass batch attempt $attempt/$BATCH_MAX_ATTEMPTS failed (${e.getMessage}); retrying.")
+        logger.warn(s"OSM API batch attempt $attempt/$BATCH_MAX_ATTEMPTS failed (${e.getMessage}); retrying.")
         after(BATCH_RETRY_DELAY * attempt.toLong, actorSystem.scheduler)(fetchTagsForWaysWithRetry(wayIds, attempt + 1))
     }
   }
 
   /**
-   * Fetches the full tag map for the given way ids from Overpass, keyed by way id.
+   * Fetches the current version of each given way from the main OSM API's multi-fetch, keyed by way id.
    *
-   * Ways absent from a complete response are gone from OSM (deleted or merged away) and are simply missing from the
-   * returned map. A cut-short response is a failure, not a list of dead ways: Overpass reports a query that timed out
-   * or ran out of memory as HTTP 200 with whatever elements it had reached plus a top-level `remark` (measured: a
-   * 1-second-budget query came back `200`, zero elements, `remark: runtime error: Query timed out ...`), and reading
-   * that as "every requested way is missing" would stamp a whole chunk `missing_since` in one bad night.
+   * A way that has been deleted comes back with `visible: false` and no tags, and is left out of the returned map,
+   * which is how the caller learns it is gone. A way id the API has never held makes the whole request a 404 without
+   * saying which id (measured 2026-09-09: one bad id among live ones, 404), so that is reported as None for
+   * `fetchSplittingOnNotFound` to narrow down rather than treated as an error.
+   *
+   * @return The live ways' tag maps, or None when some requested id has never existed.
    */
-  private def fetchTagsForWays(wayIds: Seq[Long]): Future[Map[Long, JsObject]] = {
-    val query = s"[out:json][timeout:180];way(id:${wayIds.mkString(",")});out tags;"
-    ws.url(OVERPASS_URL)
-      .withRequestTimeout(3.minutes)
-      .post(Map("data" -> Seq(query)))
+  private def fetchTagsForWays(wayIds: Seq[Long]): Future[Option[Map[Long, JsObject]]] = {
+    ws.url(s"$OSM_API_URL/ways.json?ways=${wayIds.mkString(",")}")
+      .addHttpHeaders("User-Agent" -> OutboundHttp.UserAgent)
+      .withRequestTimeout(1.minute)
+      .get()
       .map { response =>
-        if (response.status != 200) {
-          throw new RuntimeException(s"Overpass batch query failed with status ${response.status}.")
+        response.status match {
+          case 200   => Some(parseWaysResponse(Json.parse(response.body)))
+          case 404   => None
+          case other => throw new RuntimeException(s"OSM API batch query failed with status $other.")
         }
-        val json: JsValue = Json.parse(response.body)
-        truncationRemark(json).foreach { remark =>
-          throw new RuntimeException(s"Overpass batch query was cut short: $remark")
-        }
-        parseBatchResponse(json)
       }
   }
 
   /**
-   * Fetches a way's history, retrying transient failures with the same budget and spacing as the Overpass chunks.
+   * Fetches a way's history, retrying transient failures with the same budget and spacing as the batch chunks.
    * A 404 is an answer (the id never existed), not a failure, and is not retried.
    */
   private def fetchWayHistoryWithRetry(wayId: Long, attempt: Int = 1): Future[Option[JsValue]] = {
@@ -322,6 +338,7 @@ class OsmWayServiceImpl @Inject() (
   private def queryAndStoreNearestRoad(lat: Double, lng: Double): Future[Option[String]] = {
     val query = s"[out:json][timeout:10];way['highway'](around:$SEARCH_RADIUS_M,$lat,$lng);out geom;"
     ws.url(OVERPASS_URL)
+      .addHttpHeaders("User-Agent" -> OutboundHttp.UserAgent)
       .withRequestTimeout(15.seconds)
       .post(Map("data" -> Seq(query)))
       .flatMap { response =>
@@ -340,7 +357,7 @@ class OsmWayServiceImpl @Inject() (
 }
 
 /**
- * Pure parsing/selection logic for Overpass API responses, kept free of I/O so it can be unit-tested directly.
+ * Pure parsing/selection logic for OSM API and Overpass responses, kept free of I/O so it can be unit-tested directly.
  */
 object OsmWayService {
   val OVERPASS_URL = "https://overpass-api.de/api/interpreter"
@@ -351,7 +368,7 @@ object OsmWayService {
   /** Refresh each way monthly; OSM speed limits change slowly. */
   val STALENESS_PERIOD_DAYS: Long = 30
 
-  /** Way ids per Overpass batch request, and the pause between consecutive requests. */
+  /** Way ids per OSM API multi-fetch request, and the pause between consecutive requests. */
   val BATCH_CHUNK_SIZE: Int             = 300
   val BATCH_CHUNK_DELAY: FiniteDuration = 2.seconds
 
@@ -380,21 +397,59 @@ object OsmWayService {
   private val geometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
   /**
-   * The `remark` Overpass attaches to a response it could not complete (a timeout or memory limit hit mid-query), or
-   * None for a complete one. Its presence means the element list is partial, so absence from it proves nothing.
+   * Parses an OSM API multi-fetch (`/ways.json?ways=…`) response into a map from way id to its tag map, for the
+   * ways that still exist. A deleted way is returned with `visible: false` and no tags; it is left out, so absence
+   * from the result means "gone from OSM". A live way with no `tags` field maps to an empty tag map.
+   *
+   * A body with no `elements` array is not a multi-fetch response (a gateway page, a truncated body) and throws, so
+   * the caller retries rather than reading every requested way as gone.
    */
-  def truncationRemark(json: JsValue): Option[String] = (json \ "remark").asOpt[String].filter(_.nonEmpty)
-
-  /**
-   * Parses a batch `out tags;` Overpass response into a map from way id to its tag map.
-   */
-  def parseBatchResponse(json: JsValue): Map[Long, JsObject] = {
+  def parseWaysResponse(json: JsValue): Map[Long, JsObject] = {
     (json \ "elements")
       .asOpt[Seq[JsObject]]
-      .getOrElse(Seq.empty)
-      .filter(el => (el \ "type").asOpt[String].contains("way"))
+      .getOrElse(throw new RuntimeException("OSM API multi-fetch response has no elements array."))
+      .filter { el => (el \ "type").asOpt[String].contains("way") && (el \ "visible").asOpt[Boolean].getOrElse(true) }
       .flatMap { el => (el \ "id").asOpt[Long].map { id => id -> (el \ "tags").asOpt[JsObject].getOrElse(Json.obj()) } }
       .toMap
+  }
+
+  /**
+   * What a chunk fetch settled: the live ways' tags, and the ids the API has never held.
+   *
+   * A way that is neither live nor never-held was deleted (returned with `visible: false`). The caller marks both
+   * kinds missing, but only the never-held ones are worth a warning and the whole-chunk sanity check.
+   */
+  case class ChunkFetch(live: Map[Long, JsObject], neverHeld: Seq[Long])
+
+  /**
+   * Fetches a chunk of way ids, narrowing down any id the API has never held.
+   *
+   * The multi-fetch answers 404 for the whole request when one requested id has never existed, without naming it. A
+   * chunk that comes back None is split in two and each half fetched in turn, with `pause` before each of those
+   * extra requests, down to a single id whose 404 names it. A bad id costs about 2·log2(chunk size) extra requests
+   * (both halves at each level are fetched); once its row is marked, `getWayIdsMissingOrStale` stops re-asking.
+   *
+   * @param wayIds The chunk to fetch.
+   * @param fetch  One request: the live ways' tags by id, or None when the API answered 404.
+   * @param pause  Run before every request after the first, so a narrowing is paced like the chunks are.
+   * @return       The live ways' tags for every id the API holds, and the ids it has never held.
+   */
+  def fetchSplittingOnNotFound(wayIds: Seq[Long])(
+      fetch: Seq[Long] => Future[Option[Map[Long, JsObject]]],
+      pause: () => Future[Unit] = () => Future.unit
+  )(implicit ec: ExecutionContext): Future[ChunkFetch] = {
+    fetch(wayIds).flatMap {
+      case Some(found)              => Future.successful(ChunkFetch(found, Nil))
+      case None if wayIds.size <= 1 => Future.successful(ChunkFetch(Map.empty, wayIds))
+      case None                     =>
+        val (left, right) = wayIds.splitAt(wayIds.size / 2)
+        for {
+          _ <- pause()
+          l <- fetchSplittingOnNotFound(left)(fetch, pause)
+          _ <- pause()
+          r <- fetchSplittingOnNotFound(right)(fetch, pause)
+        } yield ChunkFetch(l.live ++ r.live, l.neverHeld ++ r.neverHeld)
+    }
   }
 
   /**
