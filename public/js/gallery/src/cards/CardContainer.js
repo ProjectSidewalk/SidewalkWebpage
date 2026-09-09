@@ -264,7 +264,7 @@ class CardContainer {
           const labels = response.labelsOfType;
           for (let i = 0; i < labels.length; i++) {
             const labelProp = labels[i];
-            const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl);
+            const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl, labelProp.cropMarker);
             this.push(card);
             this.#loadedLabelIds.add(card.getLabelId());
           }

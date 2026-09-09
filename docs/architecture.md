@@ -81,22 +81,34 @@ the app dir, #4925):
   photos and audio today. These sit outside the app dir, are validated at boot by `PersistentMediaDirCheck`, and
   need their own provisioning and backup path on every host.
 
-`cropped.image.directory` additionally holds the **derived imagery** (#4865), all of it cut from the self-hosted
-panorama store (`pano.images.directory`, which the nightly panorama-tools scraper fills) by the nightly
-`CropGenerationActor` via `CropService`: per-label crops under `<city-id>/<LabelType>/`, and downscaled copies of
-whole panoramas under `<city-id>/pano-downscaled/`. Both are disposable — delete either and the next run rebuilds —
-which is why they share the crop store rather than earning directories of their own, and why neither may live in the
-panorama store, which the app only reads.
+`cropped.image.directory` additionally holds the **label crops** (#4865), cut from the self-hosted panorama store
+(`pano.images.directory`, which the nightly panorama-tools scraper fills) by the nightly `CropGenerationActor` via
+`CropService`, under `<city-id>/<LabelType>/`. They are disposable — delete the store and the next run rebuilds it —
+which is why they live beside the app's other derived media rather than in the panorama store, which the app only
+reads.
 
 Crops are the image the Gallery, the landing validation grid and label popups fall back to when live imagery is
 unavailable; they are written by the browser's `POST /saveImage` canvas snapshot at labeling time and by the job for
 every label that has none (AI submissions, failed uploads, any past city). The geometry — `CropSizingRule` (the
 swappable, versioned sizing rule) and `CropGeometry` (equirectangular mechanics) — is a port of panorama-tools'
-`CropRunner.py`, pinned to it by golden fixtures under `test/resources/crops/`. The downscaled copies exist because
-Pannellum renders a pano as one WebGL texture and 8192 px is a common cap; `/backupImage/:panoId` serves one in place
-of the native file when it exists, and the viewer can't tell, because it places markers by angle. The job also prunes
-a copy the current cap no longer calls for, so raising `pano.downscaled.max-width` reaches the store as surely as
-lowering it. Imagery Project Sidewalk shows a copy of — a self-hosted pano or a crop — carries the attribution
+`CropRunner.py`, pinned to it by golden fixtures under `test/resources/crops/`. The two writers put the label in
+different places — the snapshot at its canvas fraction, the job's window wherever `CropGeometry.labelPositionInCrop`
+says (the centre, unless the window shifted off a pole) — and the files look alike, so **every crop's provenance is a
+`label_crop` row** (#2660): which writer, and the label's position as fractions of the image. Each writer records its
+row as it writes, the job's reconcile pass classifies any crop found without one (by size, then by the file's age
+against the label's, and never on a signal that disagrees with the others), and the four surfaces that draw a marker
+on a crop — the Gallery card, the landing validation grid, the popup's crop fallback, the share preview — take it
+from the row (`crop_marker` in the label payloads), falling back to the canvas fraction only while a crop is
+unrecorded or the image on screen is the Street View still. A new crop writer must write that row, and a new surface
+that marks a crop must read it. A pano too wide for a WebGL texture (Pannellum renders one, and 8192 px is a common
+cap) is shown from a downscaled copy the scraper writes beside the native file as `<panoId>.w8192.jpg`;
+`/backupImage/:panoId` serves it in place of the native file when it exists, and the viewer can't tell, because it
+places markers by angle. The app never cuts that copy itself: a whole-pano derivative needs more heap than a city
+stage has, and cutting one nightly for every wide pano OOM-killed prod JVMs (#5239). It does *count* them — the
+nightly job stats the expected sidecar for every wide pano and records `sidecars_present`/`sidecars_missing` on its
+run row, warning when any are missing, because otherwise a scraper that had stopped writing them would show up only
+as a viewer failing to render, months later. Imagery Project Sidewalk shows a copy of — a self-hosted pano or a
+crop — carries the attribution
 `ImageryAttribution` composes (Mapillary contributors are CC BY-SA 4.0), rendered by `PanoAttribution.js` in the
 label-detail pano box and in Validate's Pannellum fallback (`css/components/pano-attribution.css` is the shared look;
 each host positions the pill).
@@ -237,9 +249,9 @@ tool bundles resolve icon URLs in module-level constants at script-eval time. Fr
 `util.assetPath('images/icons/openhand.cur')`, building the whole path inside one template literal when part of it
 varies. Under dev `sbt run` nothing is fingerprinted, so the stamp is empty and every lookup falls back to the plain
 `/assets/<path>`. Neither half of a mistake fails at runtime, so `tools/check-asset-paths.mjs`
-(`make lint-asset-paths`, a blocking CI step) is the gate: no hardcoded `/assets/` URLs under `public/js/`, and every
-`util.assetPath` argument names a real file in a manifest family. Full caching contract:
-[`deployment-and-stages.md`](deployment-and-stages.md) → "Asset caching".
+(`make lint-asset-paths`, a blocking CI step) is the gate: no hardcoded `/assets/` URLs under `public/js/`, every
+`util.assetPath` argument names a real file in a manifest family, and no code edits an element's resolved `src` as a
+string. Full caching contract: [`deployment-and-stages.md`](deployment-and-stages.md) → "Asset caching".
 
 **Styling comes from the design-system tokens in `main.css` `:root`** — color ramps (`--color-*`), composite type
 tokens (`--text-*`, complete `font` shorthands that bake in the tool-UI zoom factor `--ui-scale`), spacing, radii,

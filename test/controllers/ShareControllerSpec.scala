@@ -1,6 +1,6 @@
 package controllers
 
-import models.label.{LabelMetadata, LabelPointTable, LabelTypeEnum, LocationXY}
+import models.label.{CropMarker, LabelMetadata, LabelTypeEnum}
 import models.story.Story
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.PlaySpec
@@ -368,7 +368,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     val bg           = 0xcc0000 // Solid red; no label-type icon is red, so any non-red pixel is the marker.
-    val canvasCenter = LocationXY(LabelPointTable.canvasWidth / 2, LabelPointTable.canvasHeight / 2)
+    val canvasCenter = CropMarker(0.5, 0.5)
 
     "output the fixed share dimensions and keep a centered marker centered for a 4:3 GSV-sized base" in {
       // 640x480 is what the GSV Static API actually returns; cover-cropping 4:3 to 3:2 trims top/bottom, and a
@@ -388,9 +388,9 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       cy must be(480 +- 3)
     }
 
-    "map an off-center canvas position through the cover-crop transform" in {
-      // Canvas x at 1/4 width on a 3:2 base (scale-only, no crop): marker center must land at 1/4 output width.
-      val quarter  = LocationXY(LabelPointTable.canvasWidth / 4, LabelPointTable.canvasHeight / 2)
+    "map an off-center marker through the cover-crop transform" in {
+      // A marker at 1/4 width on a 3:2 base (scale-only, no crop): marker center must land at 1/4 output width.
+      val quarter  = CropMarker(0.25, 0.5)
       val out      = controller.compositeMarker(solidBase(1440, 960, bg), LabelTypeEnum.Obstacle, quarter)
       val (cx, cy) = markerCenter(out, bg)
       cx must be(360 +- 3)

@@ -72,6 +72,7 @@ press.keys = 點擊 「{0}」 鍵
 
 city.state = {1}{0}
 
+city.name.washington-dc = 華盛頓
 city.name.newberg-or = 紐伯格
 city.name.seattle-wa = 西雅圖
 city.name.columbus-oh = 哥倫布
@@ -128,6 +129,7 @@ city.name.newport-ky = 紐波特
 city.name.bayonne = 巴約訥
 city.name.laurens-ia = 勞倫斯
 
+state.name.dc = 特區
 state.name.oregon = 奧勒岡州
 state.name.washington = 華盛頓州
 state.name.ohio = 俄亥俄州
@@ -747,6 +749,7 @@ dashboard.team.join.existing = 加入現有團隊
 dashboard.team.choose = 選擇團隊…
 dashboard.team.choose.aria = 選擇要加入的團隊
 dashboard.team.join = 加入團隊
+dashboard.team.leave = 離開團隊
 dashboard.team.see.board = 查看團隊排行榜 →
 dashboard.team.nudge = 👋 邀請同學或朋友加入您的團隊——一起標記更有趣，也能更快在團隊榜上攀升！
 dashboard.team.dialog.sub = 為您的班級、社團或朋友建立團隊——您會自動加入。
@@ -789,8 +792,7 @@ dashboard.settings.service.hours.help = 為您報名正式認可（您的督導�
 dashboard.settings.service.hours.link = 服務時數如何運作
 dashboard.settings.team = 團隊
 dashboard.settings.team.label = 您的團隊
-dashboard.settings.team.none = 無團隊
-dashboard.settings.team.help = 加入團隊或班級，一起標記並出現在團隊排行榜上。選擇「無團隊」即可離開目前的團隊。
+dashboard.settings.team.help = 加入團隊或班級，一起標記並出現在團隊排行榜上。
 dashboard.settings.privacy = 隱私
 dashboard.settings.privacy.default.note = 此部署預設將個人檔案設為私人。若您想與社群分享您的名稱與進度，請開啟這些選項。
 dashboard.settings.leaderboard.toggle = 在排行榜上顯示我

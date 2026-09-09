@@ -55,8 +55,8 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     // Regression guard for #3981: the per-label-type breakdown must reconcile with the headline total. This held only
-    // for overallStats before; aggregateStats derived the two from differently-filtered queries (and a legacy DC
-    // constant whose total didn't match its own breakdown), so they drifted. Data-independent: holds for any test DB.
+    // for overallStats before; aggregateStats derived the two from differently-filtered queries, so they drifted.
+    // Data-independent: holds for any test DB.
     "report total_labels equal to the sum of by_label_type label counts" in {
       val json          = contentAsJson(route(app, FakeRequest(GET, "/v3/api/aggregateStats")).get)
       val totalLabels   = (json \ "total_labels").as[Long]

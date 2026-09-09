@@ -28,6 +28,7 @@ file, and this table says which doc to read first:
 | A new or changed user interaction | `docs/logged-events.md` |
 | Releases, deploys, asset caching, persistent media dirs | `docs/deployment-and-stages.md` |
 | Storing uploaded media (DB row vs. media dir) | `docs/architecture.md` → "Media storage" |
+| Label crops, or a marker drawn on one (`label_crop` provenance, #2660) | `docs/architecture.md` → "Media storage" |
 | Tests or CI | `docs/testing-and-ci.md`, `test/e2e/README.md` |
 | `scripts/*.py` | `scripts/README.md` |
 | Onboarding a new city (streets, regions, schema, configs) | `docs/onboarding-a-city.md` (and the `onboard-city` skill) |
@@ -38,6 +39,7 @@ file, and this table says which doc to read first:
 
 - `develop` is the main branch and the PR target; `master` is the release branch. Branch names start with the
   issue number (`1234-fix-label-popup`).
+- Start a ticket by branching from an up-to-date `develop`, unless the maintainer says otherwise.
 - **Never open a pull request, merge, tag, or release without the maintainer's explicit OK.** Do the work, run the
   checks, push the branch if useful, then stop and ask. Filing GitHub issues is fine. Maintainers: @jonfroehlich
   and @misaugstad.

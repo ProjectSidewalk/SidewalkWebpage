@@ -743,6 +743,7 @@ class LabelDetail {
       pov: labelPov,
       streetEdgeId: meta.street_edge_id,
       aiGenerated: meta.ai_generated,
+      cropMarker: meta.crop_marker || null,
     };
     this.panoManager.setLabel(popupLabel);
     // Accept a pre-constructed backup_image object (Gallery path) or build from server fields (API path).
@@ -1146,7 +1147,7 @@ class LabelDetail {
    *
    * Filters by identity rather than trusting the stored #myCommentIdx, since that index is only valid for the list as
    * it stood when it was computed and this runs a network round-trip later. Filtering also matches the breadth of
-   * `ValidationTaskCommentTable.deleteIfExists`, which clears by (label, user) rather than by row id.
+   * `ValidationTaskCommentTable.archive`, which clears by (label, user) rather than by row id.
    *
    * @returns {boolean} Whether anything was actually removed.
    */
@@ -1217,7 +1218,7 @@ class LabelDetail {
       confirmText: i18next.t('labelmap:comment-delete'),
       cancelText: i18next.t('common:cancel'),
       danger: true,
-      confirmIconSrc: util.assetPath('images/icons/delete-white-material.svg'),
+      confirmIconSrc: util.assetPath('images/icons/trash-2-white-feather.svg'),
     });
     if (!confirmed) return;
     const labelId = this.panoManager.label.labelId;

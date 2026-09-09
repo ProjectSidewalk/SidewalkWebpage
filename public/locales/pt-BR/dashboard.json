@@ -81,6 +81,9 @@
     "create-failed": "Não foi possível criar a equipe. Tente novamente.",
     "network-error": "Erro de rede — tente novamente."
   },
+  "team-leave-confirm-open": "Sair de \"{{name}}\"? Você poderá entrar novamente mais tarde por esta mesma lista.",
+  "team-leave-confirm-closed": "Sair de \"{{name}}\"? A equipe não está aceitando novos membros, então você não poderá entrar novamente por conta própria.",
+  "team-leave": "Sair da equipe",
   "stories": {
     "none": "Você ainda não escreveu nenhuma história. Abra um rótulo no mapa e escolha “Escreva sua história”."
   },
