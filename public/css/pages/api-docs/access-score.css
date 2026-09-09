@@ -7,8 +7,8 @@
 
 /* ---- Preview Container ---- */
 
-/* The toolbar (where a preview has one) stacks above the map inside the shared .map-container frame, which sets the
-   frame's height; without a rule of its own the map element is a zero-height block and nothing renders. */
+/* .map-container carries the frame's height; the map element has none of its own, so it has to be told to fill the
+   column, and a toolbar (where a preview has one) stacks above it. */
 #access-score-streets-preview,
 #access-score-regions-preview,
 #access-score-intersections-preview {
