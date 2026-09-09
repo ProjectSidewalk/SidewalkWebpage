@@ -72,7 +72,8 @@ class AdminJobTriggerSpec
   private val CropResult     = CropRunResult(
     panosOpened = 4616, panosWithoutBackup = 4617, cropsWritten = 4618, shiftedVertically = 4619, outOfFrame = 4620,
     dimsMismatch = 4621, dimsUnverified = 4622, sidecarsPresent = 4625, sidecarsMissing = 4626,
-    sidecarWidthUnknown = 4627, sidecarMaxWidth = 8192, errors = 4624
+    sidecarWidthUnknown = 4627, sidecarMaxWidth = 8192, provenanceExplore = 4628, provenanceWindow = 4629,
+    provenanceUnresolved = 4630, errors = 4624
   )
 
   /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */

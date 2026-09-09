@@ -3,7 +3,7 @@ package models.utils
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
-import models.label.{AiImageSource, ComputationMethod, LabelTypeEnum, StreetSide}
+import models.label.{AiImageSource, ComputationMethod, CropSource, LabelTypeEnum, StreetSide}
 import models.mission.MissionType
 import models.pano.{PanoImageryChangeSource, PanoSource}
 import models.street.{StreetEdgeIssueType, StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetImagerySource, WayType}
@@ -139,6 +139,9 @@ trait MyPostgresProfile
         PanoImageryChangeSource.withName,
         quoteName = false
       )
+
+    implicit val cropSourceMapper: BaseColumnType[CropSource.Value] =
+      createEnumJdbcType[CropSource.Value]("crop_source", _.toString, CropSource.withName, quoteName = false)
 
     // Mapper for ui_source enum type.
     implicit val uiSourceMapper: BaseColumnType[UiSource.Value] =

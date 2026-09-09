@@ -314,12 +314,23 @@ same env file as the media paths, so the incomplete-env-file mistake behind #492
 it is needed. Dev and test runs (`sbt run`, the test suites) skip the check.
 
 `SIDEWALK_IMAGES_DIR` is the one the app writes on its own schedule — the nightly crop job cuts the crops — so it has
-to be local and writable by the app's user. The pano store they are cut *from* is read-only to that user, which is
-right for a store nothing in the app writes. The downscaled display copies of panos too wide for a WebGL texture live
-in that store too, as `<panoId>.w8192.jpg` sidecars the scraper writes beside the native file (#5239); the app only
-reads them, and finds a native pano by exact name, so a sidecar is never mistaken for one. They are the one derived
-thing in an otherwise irreplaceable directory — a `.w*.jpg` costs a re-run of the scraper's backfill, nothing more, so
+to be local and writable by the app's user. The same job also records each crop's provenance in `label_crop` (#2660),
+and its first run after that table lands walks every crop the city has to classify it (a header read and a stat per
+file); to have that done before the next night, trigger the job from the Management page or
+`POST /adminapi/generateCrops`. The pano store they are cut *from* is read-only to that user, which is right for a
+store nothing in the app writes. The downscaled display copies of panos too wide for a WebGL texture live in that
+store too, as `<panoId>.w8192.jpg` sidecars the scraper writes beside the native file (#5239); the app only reads
+them, and finds a native pano by exact name, so a sidecar is never mistaken for one. They are the one derived thing
+in an otherwise irreplaceable directory — a `.w*.jpg` costs a re-run of the scraper's backfill, nothing more, so
 anything copying that directory can skip them.
+
+**Moving a crop store is a decision about `label_crop` too.** Where a crop's size cannot say which writer produced
+it, the reconcile pass falls back to the file's mtime against the label's own timestamp (`CropService`'s
+`ExploreUploadWindow`). A store restored from backup, `cp`'d, or `rsync`'d without `-t`/`-a` carries the copy's time
+on every file, so every browser snapshot then reads as job-cut and gets its marker moved to the window's centre —
+wrongly, and the row it writes stops the pass looking again. Preserve mtimes when you move one; if that is not
+possible, reconcile the store *before* the move (or `DELETE FROM label_crop` after it, so the pass starts over
+against files it can still date).
 
 The fatal tier is deliberate for irreplaceable content: accepting a photo we already know the next release will
 delete is worse than not starting, and since `develop` redeploys **test** while prod waits for a release tag, a

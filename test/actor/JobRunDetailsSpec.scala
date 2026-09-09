@@ -42,7 +42,7 @@ class JobRunDetailsSpec extends PlaySpec {
       CropRunResult(
         panosOpened = 20, panosWithoutBackup = 21, cropsWritten = 22, shiftedVertically = 23, outOfFrame = 24,
         dimsMismatch = 25, dimsUnverified = 26, sidecarsPresent = 27, sidecarsMissing = 28, sidecarWidthUnknown = 30,
-        sidecarMaxWidth = 8192, errors = 29
+        sidecarMaxWidth = 8192, provenanceExplore = 31, provenanceWindow = 32, provenanceUnresolved = 33, errors = 29
       ).runDetails mustBe Json.obj(
         "crop_rule_version"     -> CropSizingRule.Version,
         "panos_opened"          -> 20,
@@ -56,6 +56,9 @@ class JobRunDetailsSpec extends PlaySpec {
         "sidecars_missing"      -> 28,
         "sidecar_width_unknown" -> 30,
         "sidecar_max_width"     -> 8192,
+        "provenance_explore"    -> 31,
+        "provenance_window"     -> 32,
+        "provenance_unresolved" -> 33,
         "errors"                -> 29
       )
     }

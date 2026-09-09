@@ -91,14 +91,24 @@ Crops are the image the Gallery, the landing validation grid and label popups fa
 unavailable; they are written by the browser's `POST /saveImage` canvas snapshot at labeling time and by the job for
 every label that has none (AI submissions, failed uploads, any past city). The geometry — `CropSizingRule` (the
 swappable, versioned sizing rule) and `CropGeometry` (equirectangular mechanics) — is a port of panorama-tools'
-`CropRunner.py`, pinned to it by golden fixtures under `test/resources/crops/`. A pano too wide for a WebGL texture
-(Pannellum renders one, and 8192 px is a common cap) is shown from a downscaled copy the scraper writes beside the
-native file as `<panoId>.w8192.jpg`; `/backupImage/:panoId` serves it in place of the native file when it exists,
-and the viewer can't tell, because it places markers by angle. The app never cuts that copy itself: a whole-pano
-derivative needs more heap than a city stage has, and cutting one nightly for every wide pano OOM-killed prod JVMs
-(#5239). It does *count* them — the nightly job stats the expected sidecar for every wide pano and records
-`sidecars_present`/`sidecars_missing` on its run row, warning when any are missing, because otherwise a scraper that
-had stopped writing them would show up only as a viewer failing to render, months later. Imagery Project Sidewalk shows a copy of — a self-hosted pano or a crop — carries the attribution
+`CropRunner.py`, pinned to it by golden fixtures under `test/resources/crops/`. The two writers put the label in
+different places — the snapshot at its canvas fraction, the job's window wherever `CropGeometry.labelPositionInCrop`
+says (the centre, unless the window shifted off a pole) — and the files look alike, so **every crop's provenance is a
+`label_crop` row** (#2660): which writer, and the label's position as fractions of the image. Each writer records its
+row as it writes, the job's reconcile pass classifies any crop found without one (by size, then by the file's age
+against the label's, and never on a signal that disagrees with the others), and the four surfaces that draw a marker
+on a crop — the Gallery card, the landing validation grid, the popup's crop fallback, the share preview — take it
+from the row (`crop_marker` in the label payloads), falling back to the canvas fraction only while a crop is
+unrecorded or the image on screen is the Street View still. A new crop writer must write that row, and a new surface
+that marks a crop must read it. A pano too wide for a WebGL texture (Pannellum renders one, and 8192 px is a common
+cap) is shown from a downscaled copy the scraper writes beside the native file as `<panoId>.w8192.jpg`;
+`/backupImage/:panoId` serves it in place of the native file when it exists, and the viewer can't tell, because it
+places markers by angle. The app never cuts that copy itself: a whole-pano derivative needs more heap than a city
+stage has, and cutting one nightly for every wide pano OOM-killed prod JVMs (#5239). It does *count* them — the
+nightly job stats the expected sidecar for every wide pano and records `sidecars_present`/`sidecars_missing` on its
+run row, warning when any are missing, because otherwise a scraper that had stopped writing them would show up only
+as a viewer failing to render, months later. Imagery Project Sidewalk shows a copy of — a self-hosted pano or a
+crop — carries the attribution
 `ImageryAttribution` composes (Mapillary contributors are CC BY-SA 4.0), rendered by `PanoAttribution.js` in the
 label-detail pano box and in Validate's Pannellum fallback (`css/components/pano-attribution.css` is the shared look;
 each host positions the pill).

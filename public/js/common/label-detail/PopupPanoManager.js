@@ -515,8 +515,10 @@ class PopupPanoManager {
     if (W === 0 || H === 0) return;
 
     const t = this.#fallbackPanzoom.getTransform();
-    const fracX = this.label.canvasX / this.label.originalCanvasWidth;
-    const fracY = this.label.canvasY / this.label.originalCanvasHeight;
+    // The canvas fraction is only right for an Explore snapshot; a recorded crop says where its label is (#2660).
+    const marker = this.label.cropMarker;
+    const fracX = marker ? marker.x : this.label.canvasX / this.label.originalCanvasWidth;
+    const fracY = marker ? marker.y : this.label.canvasY / this.label.originalCanvasHeight;
     this.#fallbackMarker.style.left = `${t.x + fracX * W * t.scale}px`;
     this.#fallbackMarker.style.top = `${t.y + fracY * H * t.scale}px`;
   }
@@ -525,7 +527,7 @@ class PopupPanoManager {
    * Renders a PanoMarker (label) onto a Streetview Panorama.
    * @param {Object} label - Plain-object label shape produced by LabelPopup.
    *   Expected fields: labelId, label_type, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight, pov,
-   *   streetEdgeId, aiGenerated.
+   *   streetEdgeId, aiGenerated, and cropMarker ({x, y} fractions of the crop image, or null).
    */
   renderLabel(label) {
     const pos = util.pano.canvasCoordToCenteredPov(
