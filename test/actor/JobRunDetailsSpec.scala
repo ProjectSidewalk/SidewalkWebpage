@@ -30,8 +30,8 @@ class JobRunDetailsSpec extends PlaySpec {
     }
 
     "record the OSM way refresh under the key its readers use" in {
-      OsmWayRefreshActor.runDetails(OsmWayRefreshResult(13, 2)) mustBe
-        Json.obj("ways_refreshed" -> 13, "ways_missing" -> 2)
+      OsmWayRefreshActor.runDetails(OsmWayRefreshResult(13, 2, 3, 1)) mustBe
+        Json.obj("ways_refreshed" -> 13, "ways_missing" -> 2, "tags_recovered" -> 3, "tags_unrecoverable" -> 1)
     }
 
     "record clustering under the keys its readers use" in {

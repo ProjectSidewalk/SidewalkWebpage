@@ -20,7 +20,9 @@ import scala.concurrent.ExecutionContext
  * @param maxspeed  Raw OSM `maxspeed` tag (e.g. "25 mph", "30"); None if the way carries no maxspeed tag.
  * @param geom      Way geometry, present only on rows discovered by the on-demand point lookup (batch rows are located
  *                  via street_edge geometry instead).
- * @param source       How the row was written: "batch" (nightly refresh) or "on_demand" (point-lookup fallback).
+ * @param source       Where the tags came from: "batch" (nightly Overpass refresh), "on_demand" (point-lookup
+ *                     fallback), or "history" (recovered from the OSM API's way history after the way died in OSM,
+ *                     #5244 -- empty tags under this source mean the history had nothing usable, checked once).
  * @param updatedAt    When the way was last fetched from Overpass; drives the staleness-based refresh.
  * @param missingSince When the refresh first found the way absent from OSM (deleted or merged away); None while it is
  *                     present. The tags of a missing way are its last known ones, kept because they still describe
@@ -41,7 +43,7 @@ class OsmWayTableDef(tag: Tag) extends Table[OsmWay](tag, "osm_way") {
   def tags: Rep[JsValue]            = column[JsValue]("tags", O.Default(Json.obj()))
   def maxspeed: Rep[Option[String]] = column[Option[String]]("maxspeed")
   def geom: Rep[Option[LineString]] = column[Option[LineString]]("geom")
-  // CHECK (source IN ('batch', 'on_demand')) in the DB (no Slick DSL for CHECK constraints).
+  // CHECK (source IN ('batch', 'on_demand', 'history')) in the DB (no Slick DSL for CHECK constraints).
   def source: Rep[String]                       = column[String]("source")
   def updatedAt: Rep[OffsetDateTime]            = column[OffsetDateTime]("updated_at")
   def missingSince: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("missing_since")
@@ -116,6 +118,41 @@ class OsmWayTable @Inject() (
       .filter { case (_, way) => way.map(_.updatedAt < cutoff).getOrElse(true) }
       .map(_._1)
       .result
+  }
+
+  /**
+   * Gets the mapped way ids that are gone from OSM and whose tags were lost before the refresh learned to keep them:
+   * marked missing, still empty, and not yet looked up in the OSM history (#5244). Each is a candidate for one
+   * history fetch; `recordHistoryTags` takes it out of this set whatever the history held.
+   */
+  def getWayIdsToBackfill: DBIO[Seq[Long]] = {
+    sql"""
+      SELECT DISTINCT osm_way.osm_way_id
+      FROM osm_way
+      INNER JOIN osm_way_street_edge ON osm_way.osm_way_id = osm_way_street_edge.osm_way_id
+      WHERE osm_way.missing_since IS NOT NULL AND osm_way.tags = '{}'::jsonb AND osm_way.source <> 'history'
+      ORDER BY osm_way.osm_way_id
+    """.as[Long]
+  }
+
+  /**
+   * Stores what the OSM history held for a way that is gone from OSM: the tags of its last visible version, or
+   * nothing. Either way the row's source becomes 'history', so the way is looked up once; with tags recovered the
+   * readers see a bridge again, with none they keep treating the way as unknown.
+   *
+   * Leaves `missing_since` (the way is still gone), `geom`, and `updated_at` alone: `updated_at` is the last
+   * Overpass fetch and drives the monthly re-check, which is what lets a reappearing way overwrite this with live
+   * tags.
+   *
+   * @return 1 if the row exists, else 0.
+   */
+  def recordHistoryTags(wayId: Long, tags: Option[JsValue], maxspeed: Option[String]): DBIO[Int] = {
+    val storedTags = Json.stringify(tags.getOrElse(Json.obj()))
+    sqlu"""
+      UPDATE osm_way
+      SET tags = $storedTags::jsonb, maxspeed = $maxspeed, source = 'history'
+      WHERE osm_way_id = $wayId
+    """
   }
 
   /**

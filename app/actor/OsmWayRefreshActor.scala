@@ -23,11 +23,16 @@ object OsmWayRefreshActor {
    * Defined here rather than at each call site so the nightly refresh and the admin hand-trigger can't record the
    * same job under two different shapes.
    *
-   * @param result Ways re-fetched from Overpass and written to `osm_way`, and how many of them are gone from OSM.
+   * @param result Ways re-fetched from Overpass and written to `osm_way`, how many of them are gone from OSM, and
+   *               how many gone ways had their lost tags recovered from the OSM history or turned out unrecoverable.
    * @return The run's `details` object.
    */
-  def runDetails(result: OsmWayRefreshResult): JsObject =
-    Json.obj("ways_refreshed" -> result.waysRefreshed, "ways_missing" -> result.waysMissing)
+  def runDetails(result: OsmWayRefreshResult): JsObject = Json.obj(
+    "ways_refreshed"     -> result.waysRefreshed,
+    "ways_missing"       -> result.waysMissing,
+    "tags_recovered"     -> result.tagsRecovered,
+    "tags_unrecoverable" -> result.tagsUnrecoverable
+  )
 }
 
 /**
@@ -82,7 +87,10 @@ class OsmWayRefreshActor @Inject() (osmWayService: OsmWayService, jobRunService:
       .onComplete {
         case Success(result) =>
           logger.info(s"OSM way data refresh completed at: ${dateFormatter.format(Instant.now())}")
-          logger.info(s"Ways refreshed: ${result.waysRefreshed}; of those, gone from OSM: ${result.waysMissing}")
+          logger.info(
+            s"Ways refreshed: ${result.waysRefreshed}; of those, gone from OSM: ${result.waysMissing}. " +
+              s"Tags recovered from OSM history: ${result.tagsRecovered}; unrecoverable: ${result.tagsUnrecoverable}."
+          )
         case Failure(e) => logger.error(s"Error refreshing OSM way data: ${e.getMessage}")
       }
   }

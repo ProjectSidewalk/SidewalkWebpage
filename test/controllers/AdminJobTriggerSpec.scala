@@ -65,9 +65,10 @@ class AdminJobTriggerSpec
     with Eventually {
 
   // Distinctive values, so an assertion can tell the stub's answer from anything the connected city really holds.
-  private val UsersUpdated   = 4611
-  private val FunnelRows     = 4612
-  private val WaysRefreshed  = OsmWayRefreshResult(waysRefreshed = 4613, waysMissing = 27)
+  private val UsersUpdated  = 4611
+  private val FunnelRows    = 4612
+  private val WaysRefreshed =
+    OsmWayRefreshResult(waysRefreshed = 4613, waysMissing = 27, tagsRecovered = 19, tagsUnrecoverable = 2)
   private val ImageryResult  = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1, reconciled = Some(3))
   private val ClusterResults = ClusteringResults(labelCount = 4614, clusterCount = 4615)
   private val CropResult     = CropRunResult(
@@ -78,7 +79,7 @@ class AdminJobTriggerSpec
   )
 
   /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */
-  @volatile private var osmWayAnswer: Future[OsmWayRefreshResult] = Future.successful(OsmWayRefreshResult(0, 0))
+  @volatile private var osmWayAnswer: Future[OsmWayRefreshResult] = Future.successful(OsmWayRefreshResult.empty)
 
   /** Set per test: whether the crop service reports a run in flight, which is the trigger's refusal path. */
   @volatile private var cropRunning: Boolean = false
