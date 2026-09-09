@@ -82,8 +82,11 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
   [#3936](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3936) (unclear if all our libraries support it
   yet). Edit `scalaVersion` in `build.sbt`.
   [Releases](https://www.scala-lang.org/download/all.html) · [Changelog](https://github.com/scala/scala/releases)
-- **sbt: 1.12.13** — set in `project/build.properties`; downloaded automatically on the next `npm start`. You may need
-  to bump Play at the same time for major sbt updates. [Releases](https://github.com/sbt/sbt/releases)
+- **sbt: 1.12.13** — set in `project/build.properties`; downloaded automatically on the next `npm start`. The
+  `Dockerfile` pins the apt `sbt` launcher to that same version, so also `docker compose build web` after a bump
+  (Compose won't rebuild on its own). sbt **2.x** is gated on Play: its `sbt-plugin` has no sbt 2 build outside the
+  3.1.0 milestones, and sbt 2 build definitions are Scala 3, so it's a tracked migration rather than a bump. You may
+  need to bump Play at the same time for major sbt updates. [Releases](https://github.com/sbt/sbt/releases)
 - **Play Framework: 3.0.11** — to update: (1) change the version in `project/plugins.sbt` (the `sbt-plugin`
   dependency), and (2) change it in `build.sbt` for the Play-provided libraries that share Play's versioning scheme
   (`play-guice`, `play-cache`, `play-ws`, `play-caffeine-cache`).
