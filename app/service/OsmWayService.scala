@@ -16,8 +16,8 @@ import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Success
 import scala.util.control.NonFatal
+import scala.util.{Failure, Success}
 
 /**
  * What one run of the OSM way refresh did.
@@ -57,8 +57,9 @@ trait OsmWayService {
    * refresh learned to keep them, or gone before it ever saw them -- and asks the OSM API for the way's history, one
    * id at a time with a delay between requests, storing the tags of its last visible version (#5244 step 2). A
    * deleted way's final tags describe the same geometry we imported, so a bridge comes back as a bridge; nothing is
-   * matched to whatever OSM holds there now. A way whose history has nothing usable is marked too, so each id costs
-   * one lookup ever.
+   * matched to whatever OSM holds there now. That includes `maxspeed`: the sign then shows the last limit OSM
+   * recorded for that road, which is also what the refresh keeps for a way that dies from now on. A way whose
+   * history has nothing usable is marked too, so each id costs one lookup ever.
    *
    * A failed chunk or lookup fails the whole run; the next nightly tick resumes from whatever is still stale or
    * unrecovered.
@@ -110,14 +111,22 @@ class OsmWayServiceImpl @Inject() (
 
   def refreshOsmWayData(): Future[OsmWayRefreshResult] = {
     // The two phases talk to different hosts, and Overpass refuses a good share of our runs (#5237), so a failure in
-    // one must not cost the other its work: both run, and the run fails afterwards if either did.
+    // one must not cost the other its work: both run, and the run fails afterwards if either did. The run record
+    // then carries the first failure and no counts (JobRunService stores details on success only), so each phase
+    // logs its own counts, and a second failure is logged here rather than lost behind the first.
     for {
       refreshed <- refreshFromOverpass().transform(Success(_))
       recovered <- backfillMissingTags().transform(Success(_))
-      result    <- Future.fromTry(for {
-        r <- refreshed
-        b <- recovered
-      } yield r + b)
+      result    <- (refreshed, recovered) match {
+        case (Failure(first), Failure(second)) =>
+          logger.error("The OSM history backfill failed too, behind the refresh's own failure.", second)
+          Future.failed(first)
+        case _ =>
+          Future.fromTry(for {
+            r <- refreshed
+            b <- recovered
+          } yield r + b)
+      }
     } yield result
   }
 
@@ -181,12 +190,18 @@ class OsmWayServiceImpl @Inject() (
               _       <- if (idx == 0) Future.unit else after(HISTORY_REQUEST_DELAY, actorSystem.scheduler)(Future.unit)
               history <- fetchWayHistoryWithRetry(wayId)
               tags = history.flatMap(lastVisibleTags)
-              _ <- db.run(osmWayTable.recordHistoryTags(wayId, tags, tags.flatMap(maxspeedFrom)))
+              written <- db.run(osmWayTable.recordHistoryTags(wayId, tags, tags.flatMap(maxspeedFrom)))
             } yield {
-              if (tags.isEmpty) {
-                logger.warn(s"OSM way $wayId is gone from OSM and its history holds no tags; nothing to recover.")
+              if (written == 0) {
+                // Another run's refresh got to the row first (the way came back, or its history was already read).
+                logger.info(s"OSM way $wayId was no longer waiting for its history by the time it was read; skipped.")
+                acc
+              } else {
+                if (tags.isEmpty) {
+                  logger.warn(s"OSM way $wayId is gone from OSM and its history holds no tags; nothing to recover.")
+                }
+                acc + OsmWayRefreshResult(0, 0, if (tags.isDefined) 1 else 0, if (tags.isEmpty) 1 else 0)
               }
-              acc + OsmWayRefreshResult(0, 0, if (tags.isDefined) 1 else 0, if (tags.isEmpty) 1 else 0)
             }
           }
           .map { result =>
@@ -275,6 +290,10 @@ class OsmWayServiceImpl @Inject() (
   /**
    * Fetches every version of a way from the main OSM API, deleted versions included.
    *
+   * A 200 whose body is not a history document (no `elements` array: a gateway page, a truncated body) is a failure
+   * to retry, not an empty history. Reading it as "nothing to recover" would mark the way checked and never ask
+   * again, which is the one outcome of this phase that no later run corrects.
+   *
    * @return The history document, or None when the API has never held a way with this id (404).
    */
   private def fetchWayHistory(wayId: Long): Future[Option[JsValue]] = {
@@ -284,7 +303,12 @@ class OsmWayServiceImpl @Inject() (
       .get()
       .map { response =>
         response.status match {
-          case 200   => Some(Json.parse(response.body))
+          case 200 =>
+            val json = Json.parse(response.body)
+            if ((json \ "elements").asOpt[Seq[JsValue]].isEmpty) {
+              throw new RuntimeException(s"OSM history response for way $wayId has no elements array.")
+            }
+            Some(json)
           case 404   => None
           case other => throw new RuntimeException(s"OSM history query for way $wayId failed with status $other.")
         }

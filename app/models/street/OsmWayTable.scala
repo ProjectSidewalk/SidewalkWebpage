@@ -140,18 +140,22 @@ class OsmWayTable @Inject() (
    * nothing. Either way the row's source becomes 'history', so the way is looked up once; with tags recovered the
    * readers see a bridge again, with none they keep treating the way as unknown.
    *
+   * Writes only a row that still qualifies for the lookup (gone, empty, not yet 'history'). The nightly actor and the
+   * admin hand-trigger can overlap, and if the other run's refresh found the way alive and wrote live tags in the
+   * meantime, those must win: a historical tag map landing on a present way would otherwise stand for a month.
+   *
    * Leaves `missing_since` (the way is still gone), `geom`, and `updated_at` alone: `updated_at` is the last
-   * Overpass fetch and drives the monthly re-check, which is what lets a reappearing way overwrite this with live
+   * refresh fetch and drives the monthly re-check, which is what lets a reappearing way overwrite this with live
    * tags.
    *
-   * @return 1 if the row exists, else 0.
+   * @return 1 if the row was still a lookup candidate and is now written, else 0.
    */
   def recordHistoryTags(wayId: Long, tags: Option[JsValue], maxspeed: Option[String]): DBIO[Int] = {
     val storedTags = Json.stringify(tags.getOrElse(Json.obj()))
     sqlu"""
       UPDATE osm_way
       SET tags = $storedTags::jsonb, maxspeed = $maxspeed, source = 'history'
-      WHERE osm_way_id = $wayId
+      WHERE osm_way_id = $wayId AND missing_since IS NOT NULL AND tags = '{}'::jsonb AND source <> 'history'
     """
   }
 

@@ -170,5 +170,29 @@ class OsmWayTableSpec
     "write nothing for a way that has no row" in {
       runRolledBack(osmWayTable.recordHistoryTags(unseenId + 100, Some(bridgeTags), None)) mustBe 0
     }
+
+    "leave a way alone that came back to life while its history was being read" in {
+      val (written, stored) = runRolledBack(for {
+        _ <- insertGoneWay(blankedId, Json.obj(), "batch", OffsetDateTime.now)
+        // Another run's refresh found the way in OSM again and wrote its live tags.
+        _       <- osmWayTable.upsertBatch(Seq((blankedId, bridgeTags, Some("40 mph"))), Nil, OffsetDateTime.now)
+        written <- osmWayTable.recordHistoryTags(blankedId, Some(Json.obj("highway" -> "footway")), None)
+        stored  <- storedRow(blankedId)
+      } yield (written, stored))
+      written mustBe 0
+      stored._1 mustBe bridgeTags
+      stored._3 mustBe "batch"
+    }
+
+    "keep recovered tags and the 'history' source through a later refresh that still finds the way gone" in {
+      val goneAt    = OffsetDateTime.now.minusDays(40)
+      val recheckAt = OffsetDateTime.now
+      val stored    = runRolledBack(for {
+        _      <- insertGoneWay(blankedId, bridgeTags, "history", goneAt)
+        _      <- osmWayTable.upsertBatch(Nil, Seq(blankedId), recheckAt)
+        stored <- storedRow(blankedId)
+      } yield stored)
+      stored mustBe ((bridgeTags, None, "history", micros(recheckAt), Some(micros(goneAt))))
+    }
   }
 }
