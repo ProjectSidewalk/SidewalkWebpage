@@ -107,7 +107,7 @@ fi
 echo "==> building bundles (grunt concat concat_css)"
 node_modules/.bin/grunt concat concat_css >/dev/null
 
-# 3. A stray `sbt --client` server (or a hung `sbtn` task, e.g. a wedged `scalafmtAll`) whose cwd is this worktree
+# 3. A stray thin-client sbt server (or a hung task, e.g. a wedged `scalafmtAll`) whose cwd is this worktree
 #    shares target/ and deadlocks `~ run` on compile locks. Reap them.
 reap_in_worktree KILL 'sbt-launch|sbtn' "thin-client / hung sbt task (shares target/)"
 
