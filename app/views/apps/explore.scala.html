@@ -559,7 +559,10 @@
                 </div>
                 @* Radios, not toggle buttons: a rating is pick-one where tags are pick-any, and the segmented
                    enclosure in CSS is the visual half of that same statement. *@
-                <div id="severity-radio-holder" class="severity-segments">
+                @* Named by the header text alone, not the whole header: aria-labelledby on the header div would pull
+                   the info icon's alt into the announcement. Unnamed, the group announces "1, radio button, 1 of 3"
+                   without saying what is being rated. *@
+                <div id="severity-radio-holder" class="severity-segments" role="radiogroup" aria-labelledby="severity-header-text">
                   <label class="severity-button" for="explore-severity-radio-1" data-severity="1" data-toggle="tooltip">
                     <input type="radio" name="label-severity" id="explore-severity-radio-1" value="1" class="severity-button__radio">
                     <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
