@@ -14,6 +14,8 @@ const { loadGlobalScript } = require('./loadGlobalScript');
 if (typeof global.TextEncoder === 'undefined') global.TextEncoder = TextEncoder;
 
 const RANGE_URL = 'https://api.pwnedpasswords.com/range/';
+const BREACH_MESSAGE = 'This password has shown up in a known data breach.';
+const DEBOUNCE_MS = 500;
 
 // A password that satisfies every PasswordPolicy rule, so the checklist can't be what suppresses the lookup.
 const PASSWORD = 'TestPass1';
@@ -23,44 +25,75 @@ const PASSWORD_SHA1 = crypto.createHash('sha1').update(PASSWORD).digest('hex').t
 const RULE_REGEXES = ['.{8,}', '[A-Z]', '[a-z]', '\\d'];
 
 /**
- * Renders the markup common/authPasswordFields.scala.html produces and starts AuthModal.js against it.
+ * A reduction of common/authPasswordFields.scala.html, not a copy — it keeps the structure the JS actually walks
+ * (the group wrapper, the two .au-field blocks, the eye buttons) so a selector change in either file shows up
+ * here, but it is not a markup-regression test for the template.
+ */
+const PASSWORD_GROUP = `
+  <div class="au-pw-group" data-breach-url="${RANGE_URL}" data-breach-warning="${BREACH_MESSAGE}">
+    <div class="au-field">
+      <div class="au-input-wrap">
+        <input class="au-input au-pw" id="sign-up-password" name="password" type="password"
+               aria-describedby="sign-up-pw-rules">
+        <button type="button" class="au-eye" data-eye="sign-up-password" data-label-show="show"
+                data-label-hide="hide"></button>
+      </div>
+      <ul class="au-checklist" id="sign-up-pw-rules">
+        ${RULE_REGEXES.map((r) => `<li data-rule-regex="${r}"><span class="au-dot"></span>rule</li>`).join('')}
+      </ul>
+      <div class="au-strength">
+        <div class="au-slabs au-pw-slabs"><span></span><span></span><span></span><span></span></div>
+        <span class="au-pw-strength-word" data-word1="Weak" data-word2="Okay" data-word3="Good"
+              data-word4="Strong"></span>
+      </div>
+    </div>
+    <div class="au-field">
+      <div class="au-input-wrap">
+        <input class="au-input au-pw-confirm" id="sign-up-password-confirm" name="passwordConfirm" type="password">
+      </div>
+      <div class="au-match au-pw-match" data-label-match="match" data-label-no-match="no match">
+        <span class="au-match-text">match</span>
+      </div>
+    </div>
+  </div>`;
+
+/** The navbar's sign-in dialog, which sits alongside a page's own auth fields on e.g. /resetPassword. */
+const AUTH_DIALOG = `
+  <dialog id="sign-in-modal-container" class="au-dialog">
+    <div class="au-panel" id="sign-in-modal"><form id="sign-in-form" class="au-form"></form></div>
+    <div class="au-panel" id="sign-up-modal"></div>
+  </dialog>`;
+
+/**
+ * Renders a password group and starts AuthModal.js against it.
  *
  * jsdom keeps one window for the whole file, so the DOMContentLoaded listener is intercepted rather than left to
- * accumulate: each test then runs exactly one freshly-loaded copy, with its own breach cache.
+ * accumulate: each test then runs exactly one freshly-loaded copy, with its own range cache.
+ *
+ * @param {{withDialog?: boolean}} [options] - `withDialog` also renders the navbar sign-in dialog on the page.
  */
-function renderPasswordGroup() {
+function renderPasswordGroup({ withDialog = false } = {}) {
   let domReady;
   jest.spyOn(window, 'addEventListener').mockImplementation((type, handler) => {
     if (type === 'DOMContentLoaded') domReady = handler;
   });
+  window.PsModal = class {
+    open() {}
+
+    close() {}
+  };
   document.body.innerHTML = `
-    <div class="au-page">
-      <form id="sign-up-form" class="au-form">
-        <div class="au-pw-group" data-breach-url="${RANGE_URL}">
-          <input class="au-input au-pw" id="sign-up-password" name="password" type="password">
-          <ul class="au-checklist" id="sign-up-pw-rules">
-            ${RULE_REGEXES.map((r) => `<li data-rule-regex="${r}"><span class="au-dot"></span>rule</li>`).join('')}
-          </ul>
-          <div class="au-strength">
-            <div class="au-slabs au-pw-slabs"><span></span><span></span><span></span><span></span></div>
-            <span class="au-pw-strength-word" data-word1="Weak" data-word2="Okay" data-word3="Good"
-                  data-word4="Strong"></span>
-          </div>
-          <p class="au-warning au-pw-breach ps-hidden" id="sign-up-pw-breach"><span>breached</span></p>
-          <div class="au-match au-pw-match" data-label-match="match" data-label-no-match="no match">
-            <span class="au-match-text">match</span>
-          </div>
-          <input class="au-input au-pw-confirm" id="sign-up-password-confirm" name="passwordConfirm" type="password">
-        </div>
-      </form>
-    </div>`;
+    ${withDialog ? AUTH_DIALOG : ''}
+    <div class="au-page"><form id="sign-up-form" class="au-form">${PASSWORD_GROUP}</form></div>`;
   loadGlobalScript('public/js/common/AuthModal.js');
-  window.addEventListener.mockRestore();
   domReady();
 }
 
 /**
- * Types a password and lets the debounced lookup and its promise chain settle.
+ * Types a password, then runs out the debounce and every promise it chains.
+ *
+ * `advanceTimersByTimeAsync` flushes the microtask queue as it goes, so this stays correct however many awaits the
+ * lookup grows.
  *
  * @param {string} value - The password to type.
  */
@@ -68,15 +101,11 @@ async function typePassword(value) {
   const pw = document.getElementById('sign-up-password');
   pw.value = value;
   pw.dispatchEvent(new window.Event('input'));
-  jest.advanceTimersByTime(500);
-  // The lookup awaits digest → fetch → text, so drain that many microtask ticks before asserting on the DOM.
-  await Promise.resolve();
-  await Promise.resolve();
-  await Promise.resolve();
-  await Promise.resolve();
+  await jest.advanceTimersByTimeAsync(DEBOUNCE_MS);
 }
 
-const warningShown = () => !document.getElementById('sign-up-pw-breach').classList.contains('ps-hidden');
+const warning = () => document.querySelector('.au-warning');
+const warningShown = () => warning() !== null;
 const strengthWord = () => document.querySelector('.au-pw-strength-word').textContent;
 
 /**
@@ -101,8 +130,12 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // Restores the window.addEventListener spy however the test body exited; leaving it installed would swallow
+  // every later load's DOMContentLoaded registration and misattribute the failures.
+  jest.restoreAllMocks();
   jest.useRealTimers();
   delete window.fetch;
+  delete window.PsModal;
 });
 
 describe('advisory breached-password check', () => {
@@ -128,8 +161,22 @@ describe('advisory breached-password check', () => {
     await typePassword(PASSWORD);
 
     expect(warningShown()).toBe(true);
+    expect(warning().textContent).toContain(BREACH_MESSAGE);
     expect(strengthWord()).toBe('Weak');
     expect(document.querySelectorAll('.au-pw-slabs span.paved')).toHaveLength(1);
+  });
+
+  test('announces the warning by inserting it, as a live region rather than a field description', async () => {
+    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => `${PASSWORD_SHA1.slice(5)}:9\r\n` });
+    renderPasswordGroup();
+    // Nothing to announce and nothing in the description before a verdict lands.
+    expect(warningShown()).toBe(false);
+    expect(document.getElementById('sign-up-password').getAttribute('aria-describedby'))
+      .toBe('sign-up-pw-rules');
+
+    await typePassword(PASSWORD);
+
+    expect(warning().getAttribute('role')).toBe('status');
   });
 
   test('treats a padding entry for the same suffix as no hit', async () => {
@@ -142,7 +189,8 @@ describe('advisory breached-password check', () => {
   });
 
   test('stays silent when the password is not in the corpus', async () => {
-    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => 'ABCDEF0123456789ABCDEF0123456789ABC:9\r\n' });
+    window.fetch = jest.fn()
+      .mockResolvedValue({ ok: true, text: async () => 'ABCDEF0123456789ABCDEF0123456789ABC:9\r\n' });
     renderPasswordGroup();
     await typePassword(PASSWORD);
 
@@ -176,10 +224,7 @@ describe('advisory breached-password check', () => {
   });
 
   test('clears the warning once the user edits the flagged password', async () => {
-    window.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: async () => `${PASSWORD_SHA1.slice(5)}:4823\r\n`,
-    });
+    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => `${PASSWORD_SHA1.slice(5)}:4823\r\n` });
     renderPasswordGroup();
     await typePassword(PASSWORD);
     expect(warningShown()).toBe(true);
@@ -197,12 +242,22 @@ describe('advisory breached-password check', () => {
     for (let i = 1; i <= PASSWORD.length; i++) {
       pw.value = PASSWORD.slice(0, i);
       pw.dispatchEvent(new window.Event('input'));
-      jest.advanceTimersByTime(50);
+      await jest.advanceTimersByTimeAsync(50);
     }
-    jest.advanceTimersByTime(500);
-    await Promise.resolve();
+    await jest.advanceTimersByTimeAsync(DEBOUNCE_MS);
 
     expect(window.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  test('caches the range, so returning to a checked password costs no second request', async () => {
+    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => '' });
+    renderPasswordGroup();
+    await typePassword(PASSWORD);
+    await typePassword(`${PASSWORD}!`); // Same 5-char prefix is not guaranteed, so this may fetch again.
+    const afterDetour = window.fetch.mock.calls.length;
+    await typePassword(PASSWORD);
+
+    expect(window.fetch).toHaveBeenCalledTimes(afterDetour);
   });
 
   test('does nothing at all without Web Crypto (an insecure origin)', async () => {
@@ -213,5 +268,17 @@ describe('advisory breached-password check', () => {
 
     expect(window.fetch).not.toHaveBeenCalled();
     expect(warningShown()).toBe(false);
+  });
+
+  test('wires the page\'s own fields even when the navbar dialog is on the page too', async () => {
+    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => `${PASSWORD_SHA1.slice(5)}:4823\r\n` });
+    renderPasswordGroup({ withDialog: true });
+    await typePassword(PASSWORD);
+
+    expect(window.fetch).toHaveBeenCalledTimes(1);
+    expect(warningShown()).toBe(true);
+    // The eye toggle is wired from the same pass, so it stands in for the rest of enhanceAuthForms.
+    document.querySelector('.au-eye').dispatchEvent(new window.Event('click'));
+    expect(document.getElementById('sign-up-password').type).toBe('text');
   });
 });

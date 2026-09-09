@@ -36,11 +36,25 @@ function wireEyeToggle(btn) {
   });
 }
 
+const AU_WARNING_ICON = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+         aria-hidden="true">
+      <path d="M10.3 3.9 1.8 18.5a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path>
+      <line x1="12" y1="9" x2="12" y2="13"></line>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </svg>`;
+
 /** Long enough that typing a password straight through costs one request rather than one per character. */
 const AU_BREACH_DEBOUNCE_MS = 500;
 
-/** Keyed by SHA-1, not by password, so no candidate password is retained past the lookup that used it. */
-const auBreachCache = new Map();
+/**
+ * Range responses, keyed by the 5-character hash prefix that fetched them.
+ *
+ * Keyed and valued entirely by what k-anonymity already makes public, so nothing password-derived is retained: an
+ * unsalted SHA-1 of a human-chosen password is the password to anyone holding a wordlist, and a top-level `const`
+ * in a classic script is readable by name from every other script on the page.
+ */
+const auBreachRanges = new Map();
 
 /**
  * Asks Have I Been Pwned whether a password is in its breach corpus. Only the first five hex characters of the
@@ -56,17 +70,20 @@ async function isBreachedPassword(password, rangeUrl) {
   try {
     const digest = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(password));
     const hash = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-    if (auBreachCache.has(hash)) return auBreachCache.get(hash);
-    const res = await fetch(rangeUrl + hash.slice(0, 5), { headers: { 'Add-Padding': 'true' } });
-    if (!res.ok) return false; // Uncached, like a thrown request: only a real answer is worth keeping.
+    const prefix = hash.slice(0, 5);
+    let range = auBreachRanges.get(prefix);
+    if (range === undefined) {
+      const res = await fetch(rangeUrl + prefix, { headers: { 'Add-Padding': 'true' } });
+      if (!res.ok) return false; // Uncached, like a thrown request: only a real answer is worth keeping.
+      range = await res.text();
+      auBreachRanges.set(prefix, range);
+    }
     const suffix = hash.slice(5);
     // Padding entries are real-looking suffixes with a count of 0, so only a positive count is a hit.
-    const breached = (await res.text()).split('\n').some((line) => {
+    return range.split('\n').some((line) => {
       const [lineSuffix, count] = line.trim().split(':');
       return lineSuffix === suffix && Number(count) > 0;
     });
-    auBreachCache.set(hash, breached);
-    return breached;
   } catch {
     return false;
   }
@@ -86,13 +103,38 @@ function wirePasswordGroup(group) {
     .map((li) => ({ li, regex: new RegExp(li.dataset.ruleRegex) }));
   const slabs = [...group.querySelectorAll('.au-pw-slabs span')];
   const strengthWord = group.querySelector('.au-pw-strength-word');
-  const breachWarning = group.querySelector('.au-pw-breach');
   const match = group.querySelector('.au-pw-match');
   const matchText = group.querySelector('.au-match-text');
   const breachUrl = group.dataset.breachUrl;
+  const breachMessage = group.dataset.breachWarning;
   let breachTimer;
   let breachedValue = null;
+  let breachWarning = null;
 
+  /**
+   * Shows or removes the warning by inserting and dropping the node, not by hiding it: a live region has to be in
+   * the accessibility tree before its content changes for a screen reader to announce it, and one that is always
+   * present would also be read out as part of the field's description before there is anything to say
+   * (docs/accessibility.md → "Announcing what was injected").
+   *
+   * @param {boolean} show - Whether the current password is known-breached.
+   */
+  const renderBreachWarning = (show) => {
+    if (show === !!breachWarning) return;
+    if (!show) {
+      breachWarning.remove();
+      breachWarning = null;
+      return;
+    }
+    breachWarning = document.createElement('p');
+    breachWarning.className = 'au-warning';
+    breachWarning.setAttribute('role', 'status');
+    breachWarning.innerHTML = AU_WARNING_ICON;
+    breachWarning.appendChild(document.createTextNode(` ${breachMessage}`));
+    (group.querySelector('.au-strength') || pw).insertAdjacentElement('afterend', breachWarning);
+  };
+
+  /** @returns {number} How many composition rules the current password meets. */
   const update = () => {
     let met = 0;
     rules.forEach(({ li, regex }) => {
@@ -103,7 +145,7 @@ function wirePasswordGroup(group) {
     // A password in a breach corpus is weak however many composition rules it passes, so the meter says so too.
     const breached = breachedValue !== null && breachedValue === pw.value;
     const shown = breached ? Math.min(met, 1) : met;
-    breachWarning?.classList.toggle('ps-hidden', !breached);
+    renderBreachWarning(breached);
     slabs.forEach((slab, i) => slab.classList.toggle('paved', i < shown));
     if (strengthWord) {
       strengthWord.textContent = pw.value ? strengthWord.dataset[`word${shown}`] || '' : '';
@@ -114,19 +156,19 @@ function wirePasswordGroup(group) {
       match.classList.toggle('unmet', pw2.value.length > 0 && !same);
       matchText.textContent = pw2.value && !same ? match.dataset.labelNoMatch : match.dataset.labelMatch;
     }
+    return met;
   };
 
   /**
    * Schedules the breach lookup for the current value, once typing pauses. Only a password that already satisfies
    * the composition rules is looked up; a half-typed one would spend a request to say what the checklist says.
+   *
+   * @param {boolean} allRulesMet - Whether the current value satisfies every composition rule.
    */
-  const scheduleBreachCheck = () => {
+  const scheduleBreachCheck = (allRulesMet) => {
     clearTimeout(breachTimer);
     const value = pw.value;
-    if (breachedValue !== null && breachedValue !== value) {
-      breachedValue = null; // A verdict only speaks for the exact value it was fetched for.
-    }
-    if (!breachUrl || !window.crypto?.subtle || !rules.every(({ regex }) => regex.test(value))) return;
+    if (!breachUrl || !breachMessage || !window.crypto?.subtle || !allRulesMet) return;
     breachTimer = setTimeout(async () => {
       if (await isBreachedPassword(value, breachUrl) && pw.value === value) {
         breachedValue = value;
@@ -136,8 +178,10 @@ function wirePasswordGroup(group) {
   };
 
   pw.addEventListener('input', () => {
-    scheduleBreachCheck();
-    update();
+    // A verdict only speaks for the exact value it was fetched for, so it is dropped before the redraw reads it.
+    if (breachedValue !== pw.value) breachedValue = null;
+    const met = update();
+    scheduleBreachCheck(met === rules.length);
   });
   pw2?.addEventListener('input', update);
 }
@@ -257,10 +301,14 @@ function wireAsyncSubmit(form) {
 }
 
 /**
- * Applies the show-password toggles, live validation, and async submit to whatever auth forms live under `root`.
- * Used for both the dialog (root = the <dialog>) and the full-page fallback (root = document).
+ * Applies the show-password toggles, live validation, and async submit to every auth form on the page.
  *
- * @param {ParentNode} root - The subtree to enhance.
+ * Deliberately document-wide rather than scoped to the dialog: a page can carry auth fields of its own *and* the
+ * navbar dialog (reset-password does), and scoping to the dialog subtree left those fields inert. Pages that
+ * render the full-page sign-in/sign-up forms suppress the dialog via navbar's renderAuthDialog, so the shared ids
+ * still resolve to one element each.
+ *
+ * @param {ParentNode} root - The subtree to enhance; the whole document in production.
  */
 function enhanceAuthForms(root) {
   root.querySelectorAll('.au-eye').forEach(wireEyeToggle);
@@ -271,7 +319,7 @@ function enhanceAuthForms(root) {
 
 /**
  * Controller for the navbar sign-in / sign-up <dialog>: open/close, sign-in↔sign-up panel switching, and trigger
- * buttons. Form behavior is shared with the full-page fallback via the module functions above.
+ * buttons only. The forms inside it are enhanced by `enhanceAuthForms(document)`, like every other auth form.
  */
 class AuthModal {
   #modal;
@@ -288,7 +336,6 @@ class AuthModal {
     dialog.querySelectorAll('.au-close').forEach((btn) => btn.addEventListener('click', () => this.#modal.close()));
     this.#wireOpeners();
     this.#wirePanelLinks();
-    enhanceAuthForms(dialog);
   }
 
   /**
@@ -361,11 +408,9 @@ class AuthModal {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+  enhanceAuthForms(document);
   const dialog = document.getElementById('sign-in-modal-container');
   if (dialog instanceof HTMLDialogElement) {
     window.psAuthModal = new AuthModal(dialog);
-  } else if (document.querySelector('.au-page')) {
-    // Full-page /signIn·/signUp (no dialog): progressively enhance the same forms.
-    enhanceAuthForms(document);
   }
 });

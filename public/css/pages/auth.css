@@ -232,11 +232,9 @@ dialog.au-dialog::backdrop {
   outline-offset: 2px;
 }
 
-/* Wrapping the pair costs it .au-form's row gap — it is one flex child now — so re-supply the same gap here. */
+/* No box of its own: the two fields stay direct flex children of .au-form, so they keep its row gap. */
 .au-pw-group {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: contents;
 }
 
 /* ---- Live validation (new-password fields) ----------------------------------------------------------------------- */
