@@ -105,8 +105,7 @@ that marks a crop must read it. A pano too wide for the viewer's GPU is shown fr
 places markers by angle. **The viewer decides when one is needed**, because only it knows the GPU: Pannellum uploads
 an equirect as two halves, so its limit is `2 x MAX_TEXTURE_SIZE` and a device advertising 8192 renders a 16384-wide
 pano — the widest GSV produces — untouched. When a device can't, it appends `?maxWidth=` and `PanoDisplayCopyService`
-cuts a copy at that width on demand, caching it under the crop store (#5256). The scraper also writes a
-`<panoId>.w8192.jpg` sidecar beside new panos, which is served when present.
+cuts a copy at that width on demand, caching it under the crop store (#5256).
 
 The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
 downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,

@@ -122,7 +122,7 @@ class ImageController @Inject() (
    * `?maxWidth=` is how a viewer says what its GPU can actually texture (#5256): Pannellum uploads an equirect as two
    * halves and refuses outright above `2 x MAX_TEXTURE_SIZE`, so a device advertising 4096 asks for 8192 and gets a
    * copy cut to it, on demand and cached. Without the parameter — every device that can render the pano as stored —
-   * this serves the scraper's sidecar if there is one and otherwise the native file, exactly as before.
+   * this serves the native file.
    *
    * The pano's metadata (`width`/`height`) always describes the native file, since that is the frame label positions
    * are stored in; the viewer places markers by angle, so a smaller image is transparent to it.
@@ -152,7 +152,7 @@ class ImageController @Inject() (
             val fileF     = chosen match {
               case Some(maxWidth) =>
                 displayCopyService.displayCopy(panoId, native, maxWidth).map(_.getOrElse(native))
-              case None => Future.successful(panoDataService.localDownscaledImageFile(panoId).getOrElse(native))
+              case None => Future.successful(native)
             }
             fileF.map { file =>
               val contentType = if (file.getName.toLowerCase.endsWith(".png")) "image/png" else "image/jpeg"

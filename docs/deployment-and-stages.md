@@ -318,11 +318,9 @@ to be local and writable by the app's user. The same job also records each crop'
 and its first run after that table lands walks every crop the city has to classify it (a header read and a stat per
 file); to have that done before the next night, trigger the job from the Management page or
 `POST /adminapi/generateCrops`. The pano store they are cut *from* is read-only to that user, which is right for a
-store nothing in the app writes. The downscaled display copies of panos too wide for a WebGL texture live in that
-store too, as `<panoId>.w8192.jpg` sidecars the scraper writes beside the native file (#5239); the app only reads
-them, and finds a native pano by exact name, so a sidecar is never mistaken for one. They are the one derived thing
-in an otherwise irreplaceable directory — a `.w*.jpg` costs a re-run of the scraper's backfill, nothing more, so
-anything copying that directory can skip them.
+store nothing in the app writes. The downscaled display copies of panos too wide for a WebGL texture are cut on
+demand into `SIDEWALK_IMAGES_DIR` instead, under `pano-display/` beside the crops (#5256), so the pano store holds
+nothing derived and anything copying it can take the directory whole.
 
 **Moving a crop store is a decision about `label_crop` too.** Where a crop's size cannot say which writer produced
 it, the reconcile pass falls back to the file's mtime against the label's own timestamp (`CropService`'s
