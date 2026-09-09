@@ -371,22 +371,14 @@ class MistakeGallery {
      * @returns {HTMLImageElement}
      */
   /**
-     * Places the label-type icon over whichever image the card ended up showing (#2660). A job-cut crop is a window
-     * around the label rather than a snapshot of the labeler's canvas, so only its `label_crop` row places it; the
-     * canvas fraction is right on the Street View still (the Explore frame again) and is the only answer left for a
-     * crop nothing has recorded.
+     * Places the label-type icon over whichever image the card ended up showing.
      *
      * @param {HTMLImageElement} marker - The marker element.
      * @param {Object} m - The label record.
      * @param {?string} source - Which source is showing: 'crop', 'api', or undefined for the bare gradient.
      */
   static #positionMarker(marker, m, source) {
-    const { x, y } = source === 'crop' && m.crop_marker
-      ? m.crop_marker
-      : {
-          x: typeof m.canvas_x === 'number' ? m.canvas_x / util.EXPLORE_CANVAS_WIDTH : 0.5,
-          y: typeof m.canvas_y === 'number' ? m.canvas_y / util.EXPLORE_CANVAS_HEIGHT : 0.5,
-        };
+    const { x, y } = util.misc.labelMarkerFraction(source, m.crop_marker, m.canvas_x, m.canvas_y);
     marker.style.left = `${100 * x}%`;
     marker.style.top = `${100 * y}%`;
   }

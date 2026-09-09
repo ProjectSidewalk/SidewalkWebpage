@@ -71,19 +71,13 @@ class LandingValidationGrid {
   }
 
   /**
-   * Where the label sits in the image a card is showing (#2660). A job-cut crop is a window around the label, not a
-   * snapshot of the labeler's canvas, so only its `label_crop` row places it; the canvas fraction is right on the
-   * Street View still (the Explore frame again) and is the only answer left for a crop nothing has recorded.
    * @param {Object} entry - One {label, cropUrl, cropMarker, gsvImageUrl} entry from /label/labels.
    * @param {string} imageSource - Which source the card is actually showing: 'crop' or 'api'.
    * @returns {{x: number, y: number}} Fractions of the image's width and height.
    */
   static #markerFraction(entry, imageSource) {
-    if (imageSource === 'crop' && entry.cropMarker) return entry.cropMarker;
-    return {
-      x: entry.label.canvas_x / util.EXPLORE_CANVAS_WIDTH,
-      y: entry.label.canvas_y / util.EXPLORE_CANVAS_HEIGHT,
-    };
+    return util.misc.labelMarkerFraction(imageSource, entry.cropMarker,
+      entry.label.canvas_x, entry.label.canvas_y);
   }
 
   /**

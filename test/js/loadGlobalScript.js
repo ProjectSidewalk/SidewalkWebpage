@@ -12,6 +12,7 @@
  * the next (these modules keep a module-scoped `config` singleton).
  */
 
+const fs = require('fs');
 const path = require('path');
 
 // Repo root is two levels up from test/js/.
@@ -41,4 +42,16 @@ function loadGlobalScript(relativePath) {
  */
 const assetPathStub = (logicalPath) => `/assets/${logicalPath}`;
 
-module.exports = { loadGlobalScript, REPO_ROOT, assetPathStub };
+/**
+ * Installs the real `util.misc` (public/js/common/utilitiesSidewalk.js) onto an already-stubbed `window.util`.
+ *
+ * For suites that want the genuine helper rather than a copy of its logic — `labelMarkerFraction` above all, which
+ * three separate card surfaces share, so a stub in each would be three chances to drift from the thing they call.
+ * `window.util = window.util || {}` at the top of the source means the caller's own fields survive; `util.assetPath`
+ * must already be set, since `getIconImagePaths` builds its paths through it.
+ */
+function installUtilitiesMisc() {
+    window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/utilitiesSidewalk.js'), 'utf8'));
+}
+
+module.exports = { loadGlobalScript, REPO_ROOT, assetPathStub, installUtilitiesMisc };

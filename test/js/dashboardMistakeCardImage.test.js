@@ -15,6 +15,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
+
 const GALLERY_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/user-dashboard/MistakeGallery.js'), 'utf8'
 );
@@ -53,10 +55,11 @@ describe('the dashboard mistake card\'s image', () => {
     beforeAll(() => {
         window.i18next = { t: (key) => key };
         window.util = {
+            assetPath: assetPathStub,
             EXPLORE_CANVAS_WIDTH: 720,
             EXPLORE_CANVAS_HEIGHT: 480,
-            misc: { getIconImagePaths: (type) => ({ iconImagePath: `/assets/images/${type}_small.svg` }) },
         };
+        installUtilitiesMisc(); // The real util.misc, so labelMarkerFraction under test is the shipped one.
         window.eval(`${GALLERY_SRC}\nwindow.MistakeGallery = MistakeGallery;`);
     });
 
