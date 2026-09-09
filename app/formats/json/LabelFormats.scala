@@ -243,9 +243,6 @@ object LabelFormats {
    * Serializes a label for the user dashboard's mistake cards. Both image URLs go out because the card prefers the
    * crop (#4478) but a crop's signed URL expires, leaving `image_url` as the fallback.
    *
-   * The crop is our own copy of the provider's image, so the card has to say who to credit for it (#5254). These two
-   * sit at the top level rather than inside `pano_data` like other pages do, since the card needs nothing else.
-   *
    * @param label      The validated label.
    * @param cropUrl    The label's saved crop, if one is on disk.
    * @param cropMarker Where the label sits in that crop (#2660); absent for a crop no `label_crop` row describes.

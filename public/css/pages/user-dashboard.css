@@ -744,9 +744,6 @@
   pointer-events: none;
 }
 
-/* Top-left, opposite the expand hint. The bottom of the image is reserved for the imagery credit (#5254): we're
-   required to show that one, so our own badge is the one that moves. The two share the top line, so this one gives
-   ground first -- the hint is a handful of characters in every language, and this can be a long phrase. */
 .ud-card-verdict {
   position: absolute;
   top: 8px;
@@ -762,8 +759,6 @@
   background: var(--color-error-200);
 }
 
-/* Who to credit for the card's image (#5254; the look lives in css/components/pano-attribution.css). Nothing else
-   sits along the bottom edge, so the logo and the credit both sit flush there, like on a Gallery card. */
 .ud-card-img .pano-viewer-logo {
   --ui-scale: 0.72; /* Card-sized: the 29px logo row down to ~21px. Only the logo — the pill sets its own type. */
 }
