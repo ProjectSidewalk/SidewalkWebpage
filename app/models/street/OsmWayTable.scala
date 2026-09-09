@@ -12,7 +12,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 /**
- * Cached data about an OSM way, refreshed periodically from the Overpass API (#4654).
+ * Cached data about an OSM way, refreshed periodically from the OSM API (#4654).
  *
  * @param osmWayId  OSM way identifier.
  * @param tags      The way's full OSM tag map, so future features can read name/sidewalk/surface/etc. without
@@ -20,10 +20,10 @@ import scala.concurrent.ExecutionContext
  * @param maxspeed  Raw OSM `maxspeed` tag (e.g. "25 mph", "30"); None if the way carries no maxspeed tag.
  * @param geom      Way geometry, present only on rows discovered by the on-demand point lookup (batch rows are located
  *                  via street_edge geometry instead).
- * @param source       Where the tags came from: "batch" (nightly Overpass refresh), "on_demand" (point-lookup
- *                     fallback), or "history" (recovered from the OSM API's way history after the way died in OSM,
+ * @param source       Where the tags came from: "batch" (nightly refresh from the OSM API), "on_demand" (Overpass
+ *                     point-lookup fallback), or "history" (recovered from the OSM API's way history after the way died in OSM,
  *                     #5244 -- empty tags under this source mean the history had nothing usable, checked once).
- * @param updatedAt    When the way was last fetched from Overpass; drives the staleness-based refresh.
+ * @param updatedAt    When the way was last fetched by the refresh; drives the staleness-based re-check.
  * @param missingSince When the refresh first found the way absent from OSM (deleted or merged away); None while it is
  *                     present. The tags of a missing way are its last known ones, kept because they still describe
  *                     the street geometry we imported (#5244).
@@ -106,8 +106,8 @@ class OsmWayTable @Inject() (
   /**
    * Gets the distinct way ids from osm_way_street_edge whose osm_way row is missing or last fetched before `cutoff`.
    *
-   * Ways marked `missing_since` are included once they go stale like any other: re-asking Overpass for a few hundred
-   * dead ids a month is one extra request, and it is what clears the mark if a way comes back.
+   * Ways marked `missing_since` are included once they go stale like any other: re-asking the OSM API for a few
+   * hundred dead ids a month is one extra request, and it is what clears the mark if a way comes back.
    */
   def getWayIdsMissingOrStale(cutoff: OffsetDateTime): DBIO[Seq[Long]] = {
     osmWayStreetEdges
@@ -179,7 +179,7 @@ class OsmWayTable @Inject() (
   def upsert(way: OsmWay): DBIO[Int] = osmWays.insertOrUpdate(way)
 
   /**
-   * Records one refresh chunk: the ways Overpass returned, as (osm_way_id, tags, maxspeed) triples written with source
+   * Records one refresh chunk: the ways the OSM API holds, as (osm_way_id, tags, maxspeed) triples written with source
    * 'batch', and the requested ids it did not return, which are marked missing.
    *
    * A found way takes the new tags and loses any `missing_since` mark. A missing way keeps its tags, maxspeed, and

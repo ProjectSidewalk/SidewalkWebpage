@@ -23,7 +23,7 @@ object OsmWayRefreshActor {
    * Defined here rather than at each call site so the nightly refresh and the admin hand-trigger can't record the
    * same job under two different shapes.
    *
-   * @param result Ways re-fetched from Overpass and written to `osm_way`, how many of them are gone from OSM, and
+   * @param result Ways re-fetched from the OSM API and written to `osm_way`, how many of them are gone from OSM, and
    *               how many gone ways had their lost tags recovered from the OSM history or turned out unrecoverable.
    * @return The run's `details` object.
    */
@@ -52,7 +52,7 @@ class OsmWayRefreshActor @Inject() (osmWayService: OsmWayService, jobRunService:
 
   override def preStart(): Unit = {
     super.preStart()
-    // Per-city hour offset staggers computation/resource use across deployments (and their Overpass requests).
+    // Per-city hour offset staggers computation/resource use across deployments (and their OSM API requests).
     configService.getOffsetHours.foreach { hoursOffset =>
       // Scheduled time comes from ScheduledJobs, shifted by this city's offset.
       cancellable = Some(

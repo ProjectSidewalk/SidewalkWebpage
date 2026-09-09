@@ -14,7 +14,7 @@ import java.time.temporal.ChronoUnit
 import java.time.{Instant, OffsetDateTime}
 
 /**
- * DB-backed contract test for how the nightly refresh records a way that Overpass does not return (#5244, evolution
+ * DB-backed contract test for how the nightly refresh records a way the OSM API reports gone (#5244, evolution
  * 380) and how the lost tags of such a way are recovered from the OSM history (step 2, evolution 382).
  *
  * A mapped way id can die in OSM (the way deleted or merged away) while the street it described stays in our
@@ -143,7 +143,7 @@ class OsmWayTableSpec
   }
 
   "OsmWayTable.recordHistoryTags" should {
-    "store recovered tags under source 'history', keeping the way marked missing and its Overpass fetch time" in {
+    "store recovered tags under source 'history', keeping the way marked missing and its refresh fetch time" in {
       val goneAt                = OffsetDateTime.now.minusDays(3)
       val (stored, listedAfter) = runRolledBack(for {
         _      <- insertGoneWay(blankedId, Json.obj(), "batch", goneAt)
