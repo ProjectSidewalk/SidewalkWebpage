@@ -136,8 +136,8 @@ jobs:
         run: node tools/check-asset-paths.mjs
 
       # Blocking: the self-hosted libraries in public/vendor/ (#4399) are listed in docs/upgrading-libraries.md at
-      # the versions in their filenames. Dependabot only reads package.json (build tooling), so that doc is their
-      # whole inventory and it drifts silently when a file is swapped without it. Run locally with
+      # the versions in their filenames. No Dependabot ecosystem watches that folder (the npm one reads
+      # package.json, which is build tooling), so that doc is their whole inventory and it drifts silently. Run locally with
       # `make lint-vendor-versions`.
       - name: Vendor versions (blocking)
         if: always()

@@ -335,8 +335,9 @@ lint-asset-paths:
 	@echo "Finished checking asset paths";
 
 # Self-hosted libraries in public/vendor/ (#4399): every folder is listed in docs/upgrading-libraries.md, and the
-# versions there match the ones in the filenames. Dependabot never sees these, so that doc is the only inventory we
-# have and it's hand-copied. Pure node, run in the web container so node is present. Also a blocking CI step.
+# versions there match the ones in the filenames. No Dependabot ecosystem watches that folder, so that doc is the
+# only inventory these libraries have, and it's hand-copied. Pure node, run in the web container so node is
+# present. Also a blocking CI step.
 lint-vendor-versions:
 	@echo "Checking vendor versions...";
 	@docker exec $(web-container) bash -lc "cd /home && node tools/check-vendor-versions.mjs"

@@ -33,9 +33,9 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 | db image | **`postgis/postgis:16-3.5`** | (see below) | **Aug 2026 — past** | `db/Dockerfile` |
 
 - **Focal does more than it looks.** It's what makes `python3` mean 3.8 (retiring that is
-  [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)), and its glibc 2.31 is older than the 2.32
-  sbt's `sbtn` needs, so `sbt --client` can't run in the container at all. Jammy (glibc 2.35, `python3` 3.10) or
-  noble (2.39, 3.12) fixes both, but a move has to say what happens to 3.8 first.
+  [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)), and its glibc 2.31 is older than the
+  2.32 and 2.34 that sbt's `sbtn` needs, so `sbt --client` can't run in the container at all. Jammy (glibc 2.35,
+  `python3` 3.10) or noble (2.39, 3.12) fixes both, but a move has to say what happens to 3.8 first.
 - **The `16-3.5` image line is a dead end.** apt.postgresql.org's bullseye pool stops at PostGIS 3.5.2, and
   docker-postgis publishes no `16-3.6` tag (3.6 images start at Postgres 17) or bookworm variant for 16 — so newer
   geospatial libraries in dev means moving the Postgres major *and* the base OS together, not a version bump.
@@ -184,10 +184,10 @@ the frontend — it names in the URL what a reader would otherwise have to diff 
 side mid-upgrade — keep this list matching it. `make lint-vendor-versions` (part of `make lint`, and a
 blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn't listed here at all.
 
-- **animate.css: unversioned (a 3.x from 2015)** — CSS keyframe animations; the only user is Explore's
-  compass message. **Note:** this copy predates our filename rule and carries no version in its name or header, so
-  which 3.x it is can't be recovered. v4 renamed every class to an `animate__` prefix, so an upgrade means editing
-  the markup that uses it, not just swapping the file.
+- **animate.css: unversioned (a 3.x from 2015)** — CSS keyframe animations, used by Explore's compass message
+  and the tutorial's fades (`Onboarding.js`). **Note:** this copy predates our filename rule and carries no version
+  in its name or header, so which 3.x it is can't be recovered. v4 renamed every class to an `animate__` prefix, so
+  an upgrade means editing the markup that uses it, not just swapping the file.
   [Changelog](https://github.com/animate-css/animate.css/releases)
 - **async-lock: 1.4.1** — **note:** a fresh download probably needs the trailing `module.export` line removed.
   [Download](https://cdn.jsdelivr.net/npm/async-lock@1.4.1/lib/index.min.js) ·
@@ -233,7 +233,8 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Changelog](https://github.com/mapbox/mapbox-gl-js/blob/main/CHANGELOG.md)
 - **mapbox-gl-language: 1.0.1** — [Download](https://unpkg.com/@mapbox/mapbox-gl-language) ·
   [Changelog](https://github.com/mapbox/mapbox-gl-language/releases)
-- **mapbox-search-js: 1.5.0** — [Install/download](https://docs.mapbox.com/mapbox-search-js/guides/install/) ·
+- **mapbox-search-js: 1.5.0** — ships in `public/vendor/mapbox-gl/` with the rest of the Mapbox stack.
+  [Install/download](https://docs.mapbox.com/mapbox-search-js/guides/install/) ·
   [Changelog](https://docs.mapbox.com/mapbox-search-js/guides/changelog/)
 - **mapillary: 4.1.2** — Mapillary imagery provider.
   [Downloads](https://mapillary.github.io/mapillary-js/docs/intro/try/#using-a-cdn) ·
@@ -296,15 +297,16 @@ rebuild the web image (`docker compose build web`) and run `make test-python`.
 The web image carries two, and **which one a package targets decides which file it goes in**
 ([#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)):
 
-- **Python 3.8** (`python3`) — the `eclipse-temurin:17-jdk-focal` base image's own. **Note:** EOL since October 2024,
-  kept only because the deployed app shells out to it for in-band clustering (prod runs on Rocky's system Python).
+- **Python 3.8** (`python3`) — the base image's own, and past EOL. **Note:** kept only because the deployed app
+  shells out to it for in-band clustering (prod runs on Rocky's system Python).
   Retiring it means changing the base image, gated on the prod-environment audit
   ([#4385](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4385)) — until then, don't add libraries to
   `requirements.txt`, because current releases have all dropped 3.8.
-- **Python 3.13.15** (`python3.13`) — a [python-build-standalone](https://github.com/astral-sh/python-build-standalone)
+- **Python 3.13** (`python3.13`) — a [python-build-standalone](https://github.com/astral-sh/python-build-standalone)
   CPython fetched by **uv 0.12.5** at image build time, since no PPA carries 3.13 for focal. Where offline tooling
-  runs. Both versions are pinned exactly in the `Dockerfile` (the installer URL and the `uv python install` argument),
-  so bump them there and here together. [Python releases](https://www.python.org/downloads/) ·
+  runs. Both interpreters are pinned to exact patch versions in the `Dockerfile` (the installer URL and the
+  `uv python install` argument); those patches are in the [runtimes table](#runtimes-and-base-images), so bump the
+  `Dockerfile` and that table together. [Python releases](https://www.python.org/downloads/) ·
   [uv releases](https://github.com/astral-sh/uv/releases)
 
 ### Packages
