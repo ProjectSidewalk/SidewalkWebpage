@@ -176,6 +176,9 @@ GET     /neighborhoods/completionRate                   controllers.RegionContro
 # User status
 GET     /contribution/streets                           controllers.UserProfileController.getAuditedStreets(userId: String)
 GET     /contribution/streets/all                       controllers.UserProfileController.getAllStreets(filterLowQuality: Boolean ?= false, regions: Option[String] ?= None, routes: Option[String] ?= None)
+# Deliberately its own request rather than more properties on the feed above: only the hovered street needs these,
+# and per-street label breakdowns for a whole city would multiply an already-uncached payload.
+GET     /contribution/street/:streetEdgeId/reauditSummary  controllers.UserProfileController.getStreetReauditSummary(streetEdgeId: Int)
 # User dashboard, settings, and public profiles (redesigned in #4323, cut over in #4474; /leaderboard is up top).
 GET     /dashboard                                      controllers.UserDashboardController.dashboard
 GET     /dashboard/settings                             controllers.UserDashboardController.settings

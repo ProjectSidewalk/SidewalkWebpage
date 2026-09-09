@@ -137,6 +137,34 @@ class UserProfileController @Inject() (
   }
 
   /**
+   * What a street that still needs a re-audit was last mapped as, for the map's hover card (#5258).
+   *
+   * 404 rather than an empty body for a street that is not stale: the card is only ever requested for a street the
+   * map drew as needing a re-audit, so "no summary" means the client's copy of the street layer has gone out of
+   * date, not that the street is uninteresting.
+   *
+   * Kept off `/v3/api` on purpose, following the same call for per-street priority data (#4908): this shape is
+   * expected to change as the re-audit UI develops, and publishing it would freeze it into the public contract.
+   */
+  def getStreetReauditSummary(streetEdgeId: Int) = Action.async { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    streetService.getReauditSummary(streetEdgeId).map {
+      case Some(summary) =>
+        Ok(
+          Json.obj(
+            "street_edge_id"   -> summary.streetEdgeId,
+            "last_audited_at"  -> summary.lastAuditedAt,
+            "new_imagery_date" -> summary.newImageryDate,
+            "label_counts"     -> summary.labelCounts.map { case (labelType, count) =>
+              Json.obj("label_type" -> labelType, "count" -> count)
+            }
+          )
+        )
+      case None => NotFound(Json.obj("status" -> "not-outdated"))
+    }
+  }
+
+  /**
    * Get the list of labels submitted by the given user. Only include labels in the given region if supplied.
    */
   def getSubmittedLabels(userId: String, regionId: Option[Int]) =

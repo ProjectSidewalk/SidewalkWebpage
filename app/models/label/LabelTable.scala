@@ -1012,6 +1012,23 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param userIds The users to break down.
    * @return DBIO[Seq[(userId, labelType, count)]].
    */
+  /**
+   * Label counts broken down by label type for a single street (#5258).
+   *
+   * Uses the `labels` subquery, so deleted/tutorial/excluded-user labels are already excluded -- the same population
+   * the map and the Gallery report, so the street's card can't claim labels the rest of the site won't show.
+   *
+   * @param streetEdgeId The street to break down.
+   * @return DBIO[Seq[(labelType, count)]], for the label types actually present on the street.
+   */
+  def getLabelTypeCountsForStreet(streetEdgeId: Int): DBIO[Seq[(String, Int)]] = {
+    labels
+      .filter(_.streetEdgeId === streetEdgeId)
+      .groupBy(_.labelTypeName)
+      .map { case (labelType, group) => (labelType, group.length) }
+      .result
+  }
+
   def getLabelTypeCountsForUsers(userIds: Seq[String]): DBIO[Seq[(String, String, Int)]] = {
     (for {
       _label <- labels if _label.userId inSet userIds
