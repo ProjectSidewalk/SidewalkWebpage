@@ -54,11 +54,9 @@ function addStreetsToMap(map, streetData, params) {
         ['literal', [2, 2]],
         ['literal', [1, 0]],
       ],
-      'line-width': [ // Twice the thickness if hovered. Increase thickness as we zoom in.
-        'interpolate', ['linear'], ['zoom'],
-        12, ['case', ['boolean', ['feature-state', 'hover'], false], 3, 1],
-        15, ['case', ['boolean', ['feature-state', 'hover'], false], 7, 3],
-      ],
+      // Twice the thickness if hovered, and thicker as we zoom in. Shared with the sidebar's row emphasis, which
+      // rebuilds this expression rather than keeping a second copy of the sizes.
+      'line-width': streetLineWidth(),
     },
   });
 
