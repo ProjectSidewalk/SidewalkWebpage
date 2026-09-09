@@ -397,6 +397,7 @@ authenticate.close = Cerrar
 authenticate.show.password = Mostrar contraseña
 authenticate.hide.password = Ocultar contraseña
 authenticate.username.rule = 3–30 caracteres — letras, números, guiones y guiones bajos
+authenticate.username.hint = Elige un apodo: no hace falta que uses tu nombre real. Se muestra públicamente en la tabla de clasificación y en tu perfil, y puedes cambiarlo cuando quieras.
 authenticate.pw.rule.length = Al menos {0} caracteres
 authenticate.pw.rule.uppercase = Una letra mayúscula
 authenticate.pw.rule.lowercase = Una letra minúscula
@@ -428,9 +429,64 @@ welcome.card.leaderboard.title = La clasificación
 welcome.card.leaderboard.body = Mira cómo se compara tu mapeo en la ciudad, en solitario o en equipo.
 welcome.cta.resume = Volver a donde lo dejaste
 welcome.cta.dashboard = Ver mi panel
+welcome.privacy.title = Quién puede verte
+welcome.privacy.body = Tu nombre de usuario «{0}» y tu progreso pueden aparecer en la tabla de clasificación pública y en tu página de perfil, que cualquiera puede visitar. Tú decides, y puedes cambiar de opinión cuando quieras en Configuración.
+welcome.privacy.default.private = Esta implementación mantiene las cuentas nuevas privadas de forma predeterminada, así que no se comparte nada de lo siguiente hasta que lo actives.
+welcome.privacy.noscript = Para activar y desactivar estas opciones hace falta JavaScript. Puedes cambiarlas cuando quieras en <a href="{0}">Panel → Configuración</a>.
 welcome.hint.username = Puedes cambiar tu nombre de usuario cuando quieras en <a href="{0}">Panel → Configuración</a>.
 welcome.service.prompt = ¿Mapeas por créditos escolares o de voluntariado?
 welcome.service.button = Inscribirme en horas de servicio
+timecheck.eyebrow = Tu impacto hasta ahora
+timecheck.heading = ¡Buen trabajo, {0}!
+timecheck.intro = Cada hora que dedicas a etiquetar hace que las aceras sean más fáciles de recorrer para las personas con discapacidad. Este es el tiempo que Project Sidewalk ha registrado para ti.
+timecheck.hours.one = hora mapeando y validando
+timecheck.hours.many = horas mapeando y validando
+timecheck.scope = En {0} ciudades de Project Sidewalk: tu cuenta es la misma en todas, así que este es tu total completo.
+timecheck.cheer.none = Tu primera hora te está esperando: ¡anímate y deja tu huella en el mapa!
+timecheck.cheer.started = Ya has empezado, y cada etiqueta cuenta.
+timecheck.cheer.momentum = Estás tomando impulso de verdad. ¡Sigue así!
+timecheck.cheer.dedication = Eso es dedicación de verdad: tu ciudad es más accesible gracias a ti.
+timecheck.cheer.commitment = Un compromiso increíble. Eres una fuerza a favor de la accesibilidad.
+timecheck.cheer.legend = Eres una leyenda de Project Sidewalk. Toda la comunidad te lo agradece.
+timecheck.breakdown.title = De dónde viene tu tiempo
+timecheck.breakdown.city = Ciudad
+timecheck.breakdown.hours = Horas
+timecheck.breakdown.here = estás aquí
+timecheck.incomplete.one = Aviso: ahora mismo no hemos podido consultar 1 ciudad, así que tu total podría quedarse corto. Vuelve a cargar la página en unos minutos o escribe a <a href="mailto:{0}">{0}</a> si no se resuelve.
+timecheck.incomplete.many = Aviso: ahora mismo no hemos podido consultar {0} ciudades, así que tu total podría quedarse corto. Vuelve a cargar la página en unos minutos o escribe a <a href="mailto:{1}">{1}</a> si no se resuelve.
+timecheck.fact.loading = Calcular los números puede tardar un momento; gracias por tu paciencia mientras carga esta página.
+timecheck.fact.wrong.total = ¿El total no cuadra? Lo más habitual es haber mapeado sin haber iniciado sesión. Escribe a <a href="mailto:{0}">{0}</a> indicando cuándo trabajaste y qué páginas usaste, y te ayudaremos a resolverlo.
+timecheck.service.on.title = Estás inscrito para horas de servicio
+timecheck.service.on.body = Recuerda escribir a tu supervisor para recibir comentarios en cada ronda: consulta <a href="{0}">cómo funcionan las horas de servicio</a>.
+timecheck.service.off.title = ¿Buscas créditos escolares o de voluntariado?
+timecheck.service.off.body = Inscríbete para que estas horas sean reconocidas oficialmente y verificadas por un supervisor.
+timecheck.service.off.cta = Cómo funciona
+timecheck.cta.explore = Seguir mapeando
+servicehours.eyebrow = Colabora con Project Sidewalk
+servicehours.title = Cómo conseguir horas de servicio comunitario
+servicehours.intro = Mapear aceras cuenta como voluntariado real: mucho estudiantado consigue aquí horas de servicio para su centro o su organización. Registramos tu tiempo automáticamente; tú mapeas, recibes comentarios y entregas tus horas al terminar.
+servicehours.anon.title = Regístrate para conseguir horas de servicio
+servicehours.anon.body = Crea una cuenta gratuita y luego activa el reconocimiento oficial de tus horas de voluntariado.
+servicehours.anon.cta = Crear una cuenta
+servicehours.optedin.title = Estás inscrito para horas de servicio
+servicehours.optedin.body = Actualmente participas en el programa de horas de servicio comunitario de Project Sidewalk. Puedes darte de baja cuando quieras o gestionarlo en <a href="{0}">Configuración</a>.
+servicehours.optedin.cta = Darme de baja
+servicehours.optedout.title = No estás inscrito para horas de servicio
+servicehours.optedout.body = Actívalo para que tus horas de voluntariado o de clase se reconozcan oficialmente y las verifique tu supervisor.
+servicehours.optedout.cta = Inscribirme
+servicehours.supervisor = Tu supervisor de voluntariado: {0}
+servicehours.step1.title = Aprende cómo son las buenas etiquetas
+servicehours.step1.body = Lee primero <a href="{0}" target="_blank">la guía de errores comunes</a>: unos minutos aquí te ahorran horas de correcciones después.
+servicehours.step2.title = Mapea durante una hora
+servicehours.step2.body = Con la sesión iniciada, pulsa <strong>{0}</strong> más abajo y etiqueta durante una hora. Tu tiempo se registra automáticamente mientras trabajas.
+servicehours.step3.title = Escríbenos para recibir comentarios
+servicehours.step3.body = Envía tu nombre de usuario y el correo con el que te registraste a tu supervisor, a la dirección de arriba. {0} revisa tus etiquetas y responde en un par de días con comentarios y consejos.
+servicehours.step4.title = Sigue mapeando, ronda a ronda
+servicehours.step4.body = Haz otra hora, responde en el mismo hilo de correo y repite. Cuando tus etiquetas estén bien, podrás trabajar todas las horas que necesites.
+servicehours.warning = <strong>Los correos de comentarios son obligatorios.</strong> Las horas entregadas sin ellos suelen rechazarse: las rondas de formación son lo que mantiene fiable el mapa.
+servicehours.fact.timecheck = Consulta tu tiempo registrado cuando quieras en la <a href="{0}">página de comprobación de tiempo</a>, que también está en tu menú de cuenta, junto al enlace de vuelta a esta página.
+servicehours.fact.submit = ¿Vas a entregar tus horas? Indica a <strong>{0}</strong> como tu supervisor, con la dirección de correo de arriba.
+servicehours.cta.timecheck = Comprobar mi tiempo
 authenticate.is.member = ¿Ya eres miembro? <a href="{0}">Iniciar sesión ahora</a>
 
 user.exists = El correo electrónico ya existe

@@ -41,11 +41,12 @@
           <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
           <div class="au-field">
             <label class="au-label" for="sign-up-username">@Messages("username")</label>
-            <input class="au-input" id="sign-up-username" name="username" type="text" autocomplete="username" spellcheck="false" maxlength="@forms.UsernamePolicy.maxLength" data-rule-regex="@forms.UsernamePolicy.jsPattern" aria-describedby="sign-up-username-rule" required>
+            <input class="au-input" id="sign-up-username" name="username" type="text" autocomplete="username" spellcheck="false" maxlength="@forms.UsernamePolicy.maxLength" data-rule-regex="@forms.UsernamePolicy.jsPattern" aria-describedby="sign-up-username-rule sign-up-username-hint" required>
             <div class="au-match" id="sign-up-username-rule">
               @common.authDot(withCross = true)
               <span>@Messages("authenticate.username.rule")</span>
             </div>
+            <p class="au-hint" id="sign-up-username-hint">@Messages("authenticate.username.hint")</p>
           </div>
           <div class="au-field">
             <label class="au-label" for="sign-up-email">@Messages("authenticate.email")</label>

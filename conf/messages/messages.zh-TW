@@ -461,6 +461,7 @@ authenticate.close = 關閉
 authenticate.show.password = 顯示密碼
 authenticate.hide.password = 隱藏密碼
 authenticate.username.rule = 3–30 個字元 — 字母、數字、連字號和底線
+authenticate.username.hint = 請選一個暱稱 — 您不需要使用真實姓名。它會公開顯示在排行榜和您的個人檔案上，而且隨時可以變更。
 authenticate.pw.rule.length = 至少 {0} 個字元
 authenticate.pw.rule.uppercase = 一個大寫字母
 authenticate.pw.rule.lowercase = 一個小寫字母
@@ -492,9 +493,64 @@ welcome.card.leaderboard.title = 排行榜
 welcome.card.leaderboard.body = 看看您的標記在整座城市中的表現 — 個人或團隊皆可。
 welcome.cta.resume = 回到你剛才的進度
 welcome.cta.dashboard = 查看我的儀表板
+welcome.privacy.title = 誰可以看到您
+welcome.privacy.body = 您的使用者名稱「{0}」和您的進度可能會顯示在公開排行榜和您的個人檔案頁面上，任何人都可以瀏覽。由您決定 — 而且隨時可以在設定中變更。
+welcome.privacy.default.private = 此部署的新帳號預設為私人，因此在您開啟之前，以下內容都不會分享。
+welcome.privacy.noscript = 開啟或關閉這些選項需要 JavaScript。您隨時可以在 <a href="{0}">儀表板 → 設定</a> 中變更。
 welcome.hint.username = 您隨時可以在 <a href="{0}">儀表板 → 設定</a> 中變更使用者名稱。
 welcome.service.prompt = 為了學校或志工時數而標記嗎？
 welcome.service.button = 報名服務時數
+timecheck.eyebrow = 您目前的貢獻
+timecheck.heading = 做得好，{0}！
+timecheck.intro = 您花在標記上的每一小時，都讓行動不便者更容易通行人行道。以下是 Project Sidewalk 為您記錄的時間。
+timecheck.hours.one = 小時的標記與驗證
+timecheck.hours.many = 小時的標記與驗證
+timecheck.scope = 橫跨 {0} 個 Project Sidewalk 城市 — 您在每個城市使用的都是同一個帳號，所以這是您的完整總時數。
+timecheck.cheer.none = 您的第一個小時正在等著您 — 快加入，在地圖上留下您的印記！
+timecheck.cheer.started = 您已經起步了，每一個標記都已經算數。
+timecheck.cheer.momentum = 您正在累積真正的動能。繼續加油！
+timecheck.cheer.dedication = 這是相當認真的投入 — 因為有您，您的城市更無障礙了。
+timecheck.cheer.commitment = 令人驚嘆的投入。您是推動無障礙的一股力量。
+timecheck.cheer.legend = 您是 Project Sidewalk 的傳奇人物。整個社群都感謝您。
+timecheck.breakdown.title = 您的時間從哪裡來
+timecheck.breakdown.city = 城市
+timecheck.breakdown.hours = 小時
+timecheck.breakdown.here = 您在這裡
+timecheck.incomplete.one = 提醒：我們剛才無法查詢 1 個城市，因此總時數可能偏低。請過幾分鐘重新載入，若仍未解決，請來信 <a href="mailto:{0}">{0}</a>。
+timecheck.incomplete.many = 提醒：我們剛才無法查詢 {0} 個城市，因此總時數可能偏低。請過幾分鐘重新載入，若仍未解決，請來信 <a href="mailto:{1}">{1}</a>。
+timecheck.fact.loading = 計算數字需要一點時間 — 感謝您耐心等待本頁載入。
+timecheck.fact.wrong.total = 總時數看起來不對嗎？最常見的原因是在未登入的情況下標記。請來信 <a href="mailto:{0}">{0}</a>，說明您工作的時間與使用的頁面，我們會協助處理。
+timecheck.service.on.title = 您已報名服務時數
+timecheck.service.on.body = 記得每一輪都寫信給您的督導取得回饋 — 請參閱<a href="{0}">服務時數如何運作</a>。
+timecheck.service.off.title = 需要學校學分或志工時數嗎？
+timecheck.service.off.body = 報名後，這些時數就能獲得正式認可並由督導驗證。
+timecheck.service.off.cta = 運作方式
+timecheck.cta.explore = 繼續標記
+servicehours.eyebrow = 加入 Project Sidewalk 志工行列
+servicehours.title = 累積社區服務時數
+servicehours.intro = 標記人行道是實實在在的志工服務，許多學生在這裡累積學校或機構的服務時數。我們會自動記錄您的時間：您負責標記、接收回饋，完成後再提交時數。
+servicehours.anon.title = 註冊以累積服務時數
+servicehours.anon.body = 建立免費帳號，然後選擇加入，讓您的志工時數獲得正式認可。
+servicehours.anon.cta = 建立帳號
+servicehours.optedin.title = 您已報名服務時數
+servicehours.optedin.body = 您目前已加入 Project Sidewalk 的社區服務時數計畫。您可以隨時退出，或在<a href="{0}">設定</a>中管理。
+servicehours.optedin.cta = 退出
+servicehours.optedout.title = 您尚未報名服務時數
+servicehours.optedout.body = 選擇加入後，您的志工或學校時數就能獲得正式認可，並由督導驗證。
+servicehours.optedout.cta = 我要報名
+servicehours.supervisor = 您的志工督導：{0}
+servicehours.step1.title = 先了解什麼是好的標記
+servicehours.step1.body = 請先閱讀<a href="{0}" target="_blank">常見錯誤指南</a>，在這裡花幾分鐘，之後可以省下好幾小時的修正時間。
+servicehours.step2.title = 標記一小時
+servicehours.step2.body = 登入後點選下方的<strong>{0}</strong>，並標記一小時。作業期間會自動記錄您的時間。
+servicehours.step3.title = 來信索取回饋
+servicehours.step3.body = 請將您的使用者名稱與註冊用電子郵件寄到上方的督導信箱。{0} 會檢視您的標記，並在幾天內回覆回饋與建議。
+servicehours.step4.title = 一輪一輪持續標記
+servicehours.step4.body = 再做一小時，於同一封郵件討論串回覆，並重複這個流程。等您的標記品質沒問題後，就可以依需要累積任意時數。
+servicehours.warning = <strong>回饋郵件是必要的。</strong>未附上回饋郵件的時數通常會被退回，這些練習輪次正是我們維持地圖可信度的方式。
+servicehours.fact.timecheck = 您隨時可以在<a href="{0}">時間查詢頁面</a>查看已記錄的時間，該頁面也在您的帳號選單中，就在返回本頁的連結旁邊。
+servicehours.fact.submit = 要提交時數嗎？請填寫 <strong>{0}</strong> 為您的督導，並附上上方的電子郵件地址。
+servicehours.cta.timecheck = 查詢我的時間
 authenticate.is.member = 已經是會員了嗎？ <a href="{0}">請登入</a>
 
 user.exists = 電子郵件已存在

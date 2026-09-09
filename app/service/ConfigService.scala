@@ -87,6 +87,9 @@ case class CommonPageData(
     buildDescribe: Option[String],
     buildDirty: Boolean,
     allCityInfo: Seq[CityInfo],
+    // Who volunteers contact about service hours, and the name they list as their supervisor (#4375).
+    volunteerEmail: String,
+    volunteerSupervisor: String,
     // Content-fingerprint digests for the assets JS builds URLs for, serialized once at startup by
     // AssetManifestService; stamped on every page for util.assetPath (#4893).
     assetDigestsJson: Html
@@ -2113,13 +2116,16 @@ class ConfigServiceImpl @Inject() (
         // Panoramax's API is public and keyless (#5185); the viewer ignores the token.
         else if (imagerySource == PanoSource.Panoramax) Future.successful("")
         else Future.failed(new Exception("No valid imagery source specified"))
-      gMapsApiKey: String        = config.get[String]("google-maps-api-key")
-      mapboxApiKey: String       = config.get[String]("mapbox-api-key")
-      allCityInfo: Seq[CityInfo] = getAllCityInfo(lang)
+      gMapsApiKey: String         = config.get[String]("google-maps-api-key")
+      mapboxApiKey: String        = config.get[String]("mapbox-api-key")
+      allCityInfo: Seq[CityInfo]  = getAllCityInfo(lang)
+      volunteerEmail: String      = config.get[String]("volunteer-email-address")
+      volunteerSupervisor: String = config.get[String]("volunteer-supervisor-name")
     } yield {
       CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imagerySource, imageryAccessToken, gMapsApiKey,
         mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime, BuildInfo.gitSha,
-        BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, assetManifestService.assetDigestsJson)
+        BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, volunteerEmail, volunteerSupervisor,
+        assetManifestService.assetDigestsJson)
     }
   }
 }

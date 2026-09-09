@@ -195,7 +195,7 @@ class UserDashboardController @Inject() (
       privacy    <- userService.getPrivacySettings(user.userId)
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Settings")
-      val (onLeaderboard, publicProfile) = privacy.getOrElse((true, true))
+      val (onLeaderboard, publicProfile) = privacy.getOrElse(configService.defaultPrivacyFlags)
       Ok(
         views.html.userDashboard.settings(commonData, user, openTeams, currTeam, onLeaderboard, publicProfile,
           unitsChoice, configService.getPrivateProfilesByDefault)

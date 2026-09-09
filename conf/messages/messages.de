@@ -387,6 +387,7 @@ authenticate.close = Schließen
 authenticate.show.password = Passwort anzeigen
 authenticate.hide.password = Passwort verbergen
 authenticate.username.rule = 3–30 Zeichen — Buchstaben, Zahlen, Bindestriche und Unterstriche
+authenticate.username.hint = Wähle einen Spitznamen — du musst nicht deinen echten Namen verwenden. Er erscheint öffentlich in der Bestenliste und in deinem Profil, und du kannst ihn jederzeit ändern.
 authenticate.pw.rule.length = Mindestens {0} Zeichen
 authenticate.pw.rule.uppercase = Ein Großbuchstabe
 authenticate.pw.rule.lowercase = Ein Kleinbuchstabe
@@ -418,9 +419,64 @@ welcome.card.leaderboard.title = Die Bestenliste
 welcome.card.leaderboard.body = Sieh, wie sich dein Kartieren in der Stadt schlägt – allein oder im Team.
 welcome.cta.resume = Zurück zu deinem letzten Stand
 welcome.cta.dashboard = Mein Dashboard ansehen
+welcome.privacy.title = Wer dich sehen kann
+welcome.privacy.body = Dein Benutzername „{0}“ und dein Fortschritt können in der öffentlichen Bestenliste und auf deiner Profilseite erscheinen, die alle besuchen können. Du entscheidest — und du kannst es jederzeit in den Einstellungen ändern.
+welcome.privacy.default.private = Diese Installation hält neue Konten standardmäßig privat, es wird also nichts davon geteilt, bis du es einschaltest.
+welcome.privacy.noscript = Zum Ein- und Ausschalten wird JavaScript gebraucht. Du kannst das jederzeit unter <a href="{0}">Dashboard → Einstellungen</a> ändern.
 welcome.hint.username = Du kannst deinen Benutzernamen jederzeit unter <a href="{0}">Dashboard → Einstellungen</a> ändern.
 welcome.service.prompt = Kartierst du für Schul- oder Ehrenamtsstunden?
 welcome.service.button = Für Servicestunden anmelden
+timecheck.eyebrow = Deine bisherige Wirkung
+timecheck.heading = Gut gemacht, {0}!
+timecheck.intro = Jede Stunde, die du mit Labeln verbringst, macht Gehwege für Menschen mit Behinderungen leichter passierbar. Das ist die Zeit, die Project Sidewalk für dich erfasst hat.
+timecheck.hours.one = Stunde Kartieren und Validieren
+timecheck.hours.many = Stunden Kartieren und Validieren
+timecheck.scope = Über {0} Project-Sidewalk-Städte hinweg — dein Konto ist überall dasselbe, das ist also deine Gesamtsumme.
+timecheck.cheer.none = Deine allererste Stunde wartet — leg los und hinterlasse deine Spur auf der Karte!
+timecheck.cheer.started = Du hast den Anfang gemacht, und jedes einzelne Label zählt bereits.
+timecheck.cheer.momentum = Du kommst richtig in Fahrt. Weiter so!
+timecheck.cheer.dedication = Das ist echter Einsatz — deine Stadt ist deinetwegen barrierefreier.
+timecheck.cheer.commitment = Unglaublicher Einsatz. Du bist eine Kraft für Barrierefreiheit.
+timecheck.cheer.legend = Du bist eine Project-Sidewalk-Legende. Die ganze Gemeinschaft dankt dir.
+timecheck.breakdown.title = Woher deine Zeit kommt
+timecheck.breakdown.city = Stadt
+timecheck.breakdown.hours = Stunden
+timecheck.breakdown.here = du bist hier
+timecheck.incomplete.one = Hinweis: 1 Stadt konnten wir gerade nicht abfragen, deine Gesamtsumme könnte also zu niedrig sein. Lade die Seite in ein paar Minuten neu oder schreib an <a href="mailto:{0}">{0}</a>, falls es sich nicht von selbst klärt.
+timecheck.incomplete.many = Hinweis: {0} Städte konnten wir gerade nicht abfragen, deine Gesamtsumme könnte also zu niedrig sein. Lade die Seite in ein paar Minuten neu oder schreib an <a href="mailto:{1}">{1}</a>, falls es sich nicht von selbst klärt.
+timecheck.fact.loading = Das Zusammenrechnen kann einen Moment dauern — danke für deine Geduld, während diese Seite lädt.
+timecheck.fact.wrong.total = Sieht die Summe falsch aus? Meistens liegt es daran, dass abgemeldet kartiert wurde. Schreib an <a href="mailto:{0}">{0}</a>, wann du gearbeitet hast und welche Seiten du genutzt hast, dann helfen wir weiter.
+timecheck.service.on.title = Du bist für Servicestunden angemeldet
+timecheck.service.on.body = Denk daran, deine Betreuungsperson jede Runde per E-Mail um Rückmeldung zu bitten — siehe <a href="{0}">wie Servicestunden funktionieren</a>.
+timecheck.service.off.title = Schul- oder Ehrenamtsnachweis gesucht?
+timecheck.service.off.body = Melde dich an, damit diese Stunden offiziell anerkannt und von einer Betreuungsperson bestätigt werden.
+timecheck.service.off.cta = So funktioniert es
+timecheck.cta.explore = Weiter kartieren
+servicehours.eyebrow = Engagiere dich bei Project Sidewalk
+servicehours.title = Servicestunden sammeln
+servicehours.intro = Gehwege zu kartieren zählt als echte ehrenamtliche Arbeit — viele Schülerinnen und Schüler sammeln hier Stunden für Schule oder Organisation. Wir erfassen deine Zeit automatisch: du kartierst, bekommst Rückmeldung und reichst deine Stunden am Ende ein.
+servicehours.anon.title = Melde dich an, um Servicestunden zu sammeln
+servicehours.anon.body = Erstelle ein kostenloses Konto und melde dich dann an, damit deine ehrenamtlichen Stunden offiziell anerkannt werden.
+servicehours.anon.cta = Konto erstellen
+servicehours.optedin.title = Du bist für Servicestunden angemeldet
+servicehours.optedin.body = Du nimmst derzeit am Servicestunden-Programm von Project Sidewalk teil. Du kannst dich jederzeit abmelden oder das in den <a href="{0}">Einstellungen</a> verwalten.
+servicehours.optedin.cta = Abmelden
+servicehours.optedout.title = Du bist nicht für Servicestunden angemeldet
+servicehours.optedout.body = Melde dich an, damit deine ehrenamtlichen oder schulischen Stunden offiziell anerkannt und von deiner Betreuungsperson bestätigt werden.
+servicehours.optedout.cta = Anmelden
+servicehours.supervisor = Deine Betreuungsperson: {0}
+servicehours.step1.title = Lerne, wie gute Labels aussehen
+servicehours.step1.body = Lies zuerst <a href="{0}" target="_blank">den Leitfaden zu häufigen Fehlern</a> — ein paar Minuten hier sparen dir später Stunden an Korrekturen.
+servicehours.step2.title = Kartiere eine Stunde lang
+servicehours.step2.body = Klicke angemeldet unten auf <strong>{0}</strong> und labele eine Stunde lang. Deine Zeit wird währenddessen automatisch erfasst.
+servicehours.step3.title = Schreib uns für Rückmeldung
+servicehours.step3.body = Schick deinen Benutzernamen und deine Anmelde-E-Mail-Adresse an die Adresse oben. {0} sieht sich deine Labels an und antwortet innerhalb von ein paar Tagen mit Rückmeldung und Tipps.
+servicehours.step4.title = Kartiere weiter, Runde für Runde
+servicehours.step4.body = Mach noch eine Stunde, antworte im selben E-Mail-Verlauf und wiederhole das. Sobald deine Labels gut aussehen, kannst du so viele Stunden arbeiten, wie du brauchst.
+servicehours.warning = <strong>Die Rückmeldungs-E-Mails sind Pflicht.</strong> Ohne sie eingereichte Stunden werden meist abgelehnt — die Übungsrunden sind das, was die Karte verlässlich hält.
+servicehours.fact.timecheck = Deine erfasste Zeit siehst du jederzeit auf der <a href="{0}">Zeitübersicht</a> — sie steht auch in deinem Kontomenü, neben dem Link zurück auf diese Seite.
+servicehours.fact.submit = Reichst du deine Stunden ein? Gib <strong>{0}</strong> als Betreuungsperson an, mit der E-Mail-Adresse von oben.
+servicehours.cta.timecheck = Meine Zeit prüfen
 authenticate.is.member = Schon ein Mitglied? <a href="{0}">Jetzt anmelden</a>
 
 user.exists = E-Mail-Adresse wird bereits verwendet
