@@ -26,7 +26,7 @@
         </div>
         @request.flash.get("error").map { msgKey =>
           <div class="au-summary" role="alert">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span class="au-icon" aria-hidden="true"></span>
             <p>@Messages(msgKey)</p>
           </div>
         }
@@ -34,7 +34,7 @@
           @CSRF.formField
           @if(signUpForm.hasGlobalErrors) {
             <div class="au-summary" role="alert">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              <span class="au-icon" aria-hidden="true"></span>
               <p>@signUpForm.globalErrors.map(e => Messages(e.message)).mkString(" ")</p>
             </div>
           }

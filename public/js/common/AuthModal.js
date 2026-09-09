@@ -10,13 +10,13 @@
  * `.open('signIn'|'signUp')`.
  */
 
-const AU_ALERT_ICON = `
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-         aria-hidden="true">
-      <circle cx="12" cy="12" r="10"></circle>
-      <line x1="12" y1="8" x2="12" y2="12"></line>
-      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-    </svg>`;
+/** The `.au-icon` span the auth stylesheet masks its glyph onto; the context class picks the shape and tint. */
+const auIcon = () => {
+  const icon = document.createElement('span');
+  icon.className = 'au-icon';
+  icon.setAttribute('aria-hidden', 'true');
+  return icon;
+};
 
 /**
  * Wires one show/hide-password toggle: flips the input type and swaps the icon + aria state.
@@ -119,10 +119,7 @@ function wirePasswordGroup(group) {
     breachWarning = document.createElement('p');
     breachWarning.className = 'au-warning';
     breachWarning.setAttribute('role', 'status');
-    const icon = document.createElement('img');
-    icon.src = window.util.assetPath('images/icons/alert-triangle-feather.svg');
-    icon.alt = '';
-    breachWarning.append(icon, ` ${breachMessage}`);
+    breachWarning.append(auIcon(), ` ${breachMessage}`);
     (group.querySelector('.au-strength') || pw).insertAdjacentElement('afterend', breachWarning);
   };
 
@@ -227,8 +224,9 @@ function renderAuthErrors(form, errors) {
       const banner = document.createElement('div');
       banner.className = 'au-summary';
       banner.setAttribute('role', 'alert');
-      banner.innerHTML = `${AU_ALERT_ICON}<p></p>`;
-      banner.querySelector('p').textContent = message;
+      const text = document.createElement('p');
+      text.textContent = message;
+      banner.append(auIcon(), text);
       form.parentElement.insertBefore(banner, form);
       form.addEventListener('input', () => banner.remove(), { once: true });
       return;
@@ -240,8 +238,7 @@ function renderAuthErrors(form, errors) {
     const msg = document.createElement('p');
     msg.className = 'au-field-error';
     msg.setAttribute('role', 'alert');
-    msg.innerHTML = AU_ALERT_ICON;
-    msg.appendChild(document.createTextNode(` ${message}`));
+    msg.append(auIcon(), ` ${message}`);
     (input.closest('.au-input-wrap') || input).insertAdjacentElement('afterend', msg);
     input.addEventListener('input', () => {
       input.classList.remove('au-input--error');

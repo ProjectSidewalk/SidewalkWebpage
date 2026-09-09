@@ -8,7 +8,7 @@
 
 const crypto = require('node:crypto');
 const { TextEncoder } = require('node:util');
-const { loadGlobalScript, assetPathStub } = require('./loadGlobalScript');
+const { loadGlobalScript } = require('./loadGlobalScript');
 
 // jsdom leaves TextEncoder out of the page globals; every browser that runs this code has it.
 if (typeof global.TextEncoder === 'undefined') global.TextEncoder = TextEncoder;
@@ -124,7 +124,6 @@ function stubWebCrypto(available) {
 beforeEach(() => {
   jest.useFakeTimers();
   stubWebCrypto(true);
-  window.util = { assetPath: assetPathStub };
 });
 
 afterEach(() => {
@@ -134,7 +133,6 @@ afterEach(() => {
   jest.useRealTimers();
   delete window.fetch;
   delete window.PsModal;
-  delete window.util;
 });
 
 describe('advisory breached-password check', () => {

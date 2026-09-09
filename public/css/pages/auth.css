@@ -362,11 +362,12 @@ dialog.au-dialog::backdrop {
   color: var(--color-orange-700);
 }
 
-.au-warning img {
-  flex: 0 0 auto;
+.au-warning .au-icon {
   width: 14px;
   height: 14px;
   margin-top: 1px;
+  color: var(--color-banana-800);
+  mask-image: url("../../images/icons/alert-triangle-feather.svg");
 }
 
 /* ---- Inline errors ------------------------------------------------------------------------------------------ */
@@ -380,8 +381,26 @@ dialog.au-dialog::backdrop {
   border-radius: 8px;
 }
 
-.au-summary svg {
+/*
+ * The auth card's icons are masked from their files rather than inlined: the same alert glyph is tinted three ways
+ * (error banner, field error, info banner) and an <img> cannot take currentcolor. Each context picks its glyph
+ * with mask-image and its tint with color.
+ */
+.au-icon {
+  display: inline-block;
   flex: 0 0 auto;
+  background-color: currentcolor;
+  mask-position: center;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+}
+
+.au-summary .au-icon,
+.au-field-error .au-icon {
+  mask-image: url("../../images/icons/alert-circle.svg");
+}
+
+.au-summary .au-icon {
   width: 18px;
   height: 18px;
   color: var(--color-error-200);
@@ -403,10 +422,9 @@ dialog.au-dialog::backdrop {
   color: var(--color-error-300);
 }
 
-.au-field-error svg {
+.au-field-error .au-icon {
   width: 14px;
   height: 14px;
-  flex: 0 0 auto;
 }
 
 /* ---- Checkbox + submit ---------------------------------------------------------------------------------------- */
@@ -515,7 +533,7 @@ dialog.au-dialog::backdrop {
   border-left-color: var(--color-pine-700);
 }
 
-.au-summary--info svg {
+.au-summary--info .au-icon {
   color: var(--color-pine-700);
 }
 
