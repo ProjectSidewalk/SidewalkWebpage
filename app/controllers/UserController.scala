@@ -507,19 +507,29 @@ class UserController @Inject() (
    *
    * Rendered only for signed-in, non-anonymous users so a stray hit (or an anonymous auto-signup) can't land here.
    *
+   * Carries the two privacy flags because the username someone just picked is about to be public; school
+   * deployments start people private, so the page can explain the default it actually got.
+   *
    * @param next Same-origin path to resume via the "Keep exploring" CTA; defaults to /explore.
    */
   def welcome(next: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) if user.role != Role.Anonymous =>
-        configService.getCommonPageData(request2Messages.lang).map { commonData =>
+        for {
+          commonData <- configService.getCommonPageData(request2Messages.lang)
+          privacy    <- userService.getPrivacySettings(user.userId)
+        } yield {
           cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Welcome")
           val resumeUrl = safeLocalPath(next.getOrElse("/explore"), "/explore")
           // Landing on a generic entry point isn't an interruption worth naming; anything else is a page the user
           // was pulled out of mid-task, and the CTA should say so rather than read as "go start something new".
-          val resumedPath = resumeUrl.takeWhile(_ != '?')
-          val resumed     = resumedPath != "/" && resumedPath != "/explore"
-          Ok(views.html.authentication.welcome(commonData, user, resumeUrl, resumed))
+          val resumedPath                    = resumeUrl.takeWhile(_ != '?')
+          val resumed                        = resumedPath != "/" && resumedPath != "/explore"
+          val (onLeaderboard, publicProfile) = privacy.getOrElse((true, true))
+          Ok(
+            views.html.authentication.welcome(commonData, user, resumeUrl, resumed, onLeaderboard, publicProfile,
+              configService.getPrivateProfilesByDefault)
+          )
         }
       case _ => Future.successful(Redirect("/"))
     }

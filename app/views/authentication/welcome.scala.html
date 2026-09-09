@@ -2,16 +2,21 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @import views.html.helper.CSRF
-@(commonData: CommonPageData, user: SidewalkUserWithRole, resumeUrl: String, resumed: Boolean
+@(commonData: CommonPageData, user: SidewalkUserWithRole, resumeUrl: String, resumed: Boolean,
+  onLeaderboard: Boolean, publicProfile: Boolean, privateByDefault: Boolean
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
 * Post-registration welcome page (#4375): confirms the new account and shows what it unlocks (dashboard, badges,
 * leaderboard). "Keep exploring" resumes the page sign-up interrupted (the controller passes a same-origin-guarded
 * resumeUrl). Confetti is CSS-only, in the seven canonical label-type colors, and gated on prefers-reduced-motion.
+*
+* The privacy panel is here rather than only in Settings because the username someone just picked is about to be
+* public. It saves through the Settings endpoint, so one place writes these two flags.
 *@
 
-@common.main(commonData, Messages("seo.title.welcome")) {
+@* dashboard namespace: WelcomePrivacy.js reuses the Settings page's save-status strings. *@
+@common.main(commonData, Messages("seo.title.welcome"), i18Namespaces = Seq("common", "dashboard")) {
   @common.navbar(commonData, Some(user))
   <div class="wl-page">
     <div class="wl-hero play">
@@ -67,7 +72,38 @@
           </form>
         </div>
       </div>
+      <div class="wl-privacy">
+        <h2 class="wl-privacy-title">@Messages("welcome.privacy.title")</h2>
+        <p class="wl-privacy-body">@Messages("welcome.privacy.body", user.username)</p>
+        @if(privateByDefault){
+          <p class="wl-privacy-body">@Messages("welcome.privacy.default.private")</p>
+        }
+        <div class="wl-privacy-toggles">
+          <label class="wl-check" for="wl-on-leaderboard">
+            <input type="checkbox" id="wl-on-leaderboard" @if(onLeaderboard){checked}>
+            <span>
+              <strong>@Messages("dashboard.settings.leaderboard.toggle")</strong>
+              <span class="wl-check-help">@Messages("dashboard.settings.leaderboard.help")</span>
+            </span>
+          </label>
+          <label class="wl-check" for="wl-public-profile">
+            <input type="checkbox" id="wl-public-profile" @if(publicProfile){checked}>
+            <span>
+              <strong>@Messages("dashboard.settings.public.toggle")</strong>
+              <span class="wl-check-help">@Messages("dashboard.settings.public.help")</span>
+            </span>
+          </label>
+        </div>
+        <p class="wl-privacy-status" id="wl-privacy-status" role="status" aria-live="polite"></p>
+      </div>
       <p class="wl-hint">@Html(Messages("welcome.hint.username", routes.UserDashboardController.settings.url))</p>
     </div>
   </div>
+  <script src="@assets.path("js/common/WelcomePrivacy.js")"></script>
+  <script>
+    // appManager.ready (not DOMContentLoaded) so i18next is initialized before a save status string can be shown.
+    window.appManager.ready(function () {
+      new WelcomePrivacy({ saveUrl: '@routes.UserDashboardController.saveSettings' });
+    });
+  </script>
 }

@@ -400,6 +400,7 @@ authenticate.close = Close
 authenticate.show.password = Show password
 authenticate.hide.password = Hide password
 authenticate.username.rule = 3–30 characters — letters, numbers, hyphens, and underscores
+authenticate.username.hint = Pick a nickname — you don''t have to use your real name. It''s shown publicly on the leaderboard and your profile, and you can change it anytime.
 authenticate.pw.rule.length = At least {0} characters
 authenticate.pw.rule.uppercase = One uppercase letter
 authenticate.pw.rule.lowercase = One lowercase letter
@@ -431,9 +432,63 @@ welcome.card.leaderboard.title = The leaderboard
 welcome.card.leaderboard.body = See how your mapping stacks up across the city — solo or with a team.
 welcome.cta.resume = Back to where you left off
 welcome.cta.dashboard = See my dashboard
+welcome.privacy.title = Who can see you
+welcome.privacy.body = Your username “{0}” and your progress can show up on the public leaderboard and on your profile page, which anyone can visit. You choose — and you can change your mind anytime in Settings.
+welcome.privacy.default.private = This deployment keeps new accounts private by default, so nothing below is shared until you turn it on.
 welcome.hint.username = You can change your username anytime in <a href="{0}">Dashboard → Settings</a>.
 welcome.service.prompt = Mapping for school or volunteer credit?
 welcome.service.button = Sign me up for service hours
+timecheck.eyebrow = Your impact so far
+timecheck.heading = Nice work, {0}!
+timecheck.intro = Every hour you spend labeling makes sidewalks easier to navigate for people with disabilities. Here''s the time Project Sidewalk has logged for you.
+timecheck.hours.one = hour mapping & validating
+timecheck.hours.many = hours mapping & validating
+timecheck.scope = Across {0} Project Sidewalk cities — your account is the same one in every city, so this is your full total.
+timecheck.cheer.none = Your very first hour is waiting — jump in and make your mark on the map!
+timecheck.cheer.started = You''re off the mark, and every single label already counts.
+timecheck.cheer.momentum = You''re building real momentum. Keep it going!
+timecheck.cheer.dedication = That''s serious dedication — your city is more accessible because of you.
+timecheck.cheer.commitment = Incredible commitment. You''re a force for accessibility.
+timecheck.cheer.legend = You''re a Project Sidewalk legend. The whole community thanks you.
+timecheck.breakdown.title = Where your time came from
+timecheck.breakdown.city = City
+timecheck.breakdown.hours = Hours
+timecheck.breakdown.here = you''re here
+timecheck.incomplete.one = Heads up: we couldn''t check 1 city just now, so your total may be low. Try reloading in a few minutes, or email <a href="mailto:{0}">{0}</a> if it doesn''t sort itself out.
+timecheck.incomplete.many = Heads up: we couldn''t check {0} cities just now, so your total may be low. Try reloading in a few minutes, or email <a href="mailto:{1}">{1}</a> if it doesn''t sort itself out.
+timecheck.fact.loading = Crunching the numbers can take a moment — thanks for your patience while this page loads.
+timecheck.fact.wrong.total = Total looks off? The usual cause is mapping while signed out. Email <a href="mailto:{0}">{0}</a> with when you worked and which pages you used, and we''ll help sort it out.
+timecheck.service.on.title = You''re signed up for service hours
+timecheck.service.on.body = Remember to email your supervisor for feedback each round — see <a href="{0}">how service hours work</a>.
+timecheck.service.off.title = Earning school or volunteer credit?
+timecheck.service.off.body = Sign up to have these hours officially recognized and verified by a supervisor.
+timecheck.service.off.cta = How it works
+timecheck.cta.explore = Keep mapping
+servicehours.eyebrow = Volunteer with Project Sidewalk
+servicehours.title = Earning community service hours
+servicehours.intro = Mapping sidewalks counts as real volunteer work — many students earn school or organization service hours here. We track your time automatically; you map, get feedback, and submit your hours when you''re done.
+servicehours.anon.title = Sign up to earn service hours
+servicehours.anon.body = Create a free account, then opt in to have your volunteer hours officially recognized.
+servicehours.anon.cta = Create an account
+servicehours.optedin.title = You''re signed up for service hours
+servicehours.optedin.body = You have currently opted in to earning community service hours with Project Sidewalk. You can opt out anytime, or manage this in <a href="{0}">Settings</a>.
+servicehours.optedin.cta = Opt out
+servicehours.optedout.title = You''re not signed up for service hours
+servicehours.optedout.body = Opt in to have your volunteer or school hours officially recognized and verified by your supervisor.
+servicehours.optedout.cta = Sign me up
+servicehours.supervisor = Your volunteer supervisor: {0}
+servicehours.step1.title = Learn what good labels look like
+servicehours.step1.body = Read <a href="{0}" target="_blank">the common-mistakes guide</a> first — a few minutes here saves hours of corrections later.
+servicehours.step2.title = Map for one hour
+servicehours.step2.body = Signed in, click <strong>{0}</strong> below and label for an hour. Your time is tracked automatically while you work.
+servicehours.step3.title = Email us for feedback
+servicehours.step3.body = Send your username and sign-up email address to your supervisor at the address above. {0} reviews your labels and replies within a couple of days with feedback and tips.
+servicehours.step4.title = Keep mapping, round by round
+servicehours.step4.body = Do another hour, reply to the same email thread, and repeat. Once your labels look great, you''re cleared to work as many hours as you need.
+servicehours.warning = <strong>The feedback emails are required.</strong> Hours submitted without them are usually rejected — the training rounds are how we keep the map trustworthy.
+servicehours.fact.timecheck = See your logged time anytime on the <a href="{0}">Time Check page</a> — it''s also in your account menu, next to the link back to this page.
+servicehours.fact.submit = Submitting your hours? List <strong>{0}</strong> as your supervisor, with the email address above.
+servicehours.cta.timecheck = Check my time
 
 
 reset.pw.forgot.title = Forgot your password?

@@ -6,9 +6,17 @@
 @*
 * Instructions for earning community/volunteer service hours (#4375). Reached from the Settings opt-in toggle and the
 * "Service hours" account-menu item (both gated on user_role.community_service). Copy is deliberately structured as a
-* real sequence: learn → map an hour → email for feedback → repeat until cleared. English-only today, like the page
-* it restyles; keys come with the epic's i18n pass.
+* real sequence: learn → map an hour → email for feedback → repeat until cleared.
 *@
+
+@* One place for the supervisor's details: the copy names them in four spots, and a stale address is a dead end for
+ * someone trying to submit hours. Initials are derived so the avatar can't drift from the name. *@
+@supervisorName = @{"Mikey Saugstad"}
+@supervisorEmail = @{"volunteer.sidewalk@gmail.com"}
+@supervisorInitials = @{supervisorName.split(" ").map(_.head).mkString}
+
+@* Step 2 tells the reader to click the button by name, so both read the same key. *@
+@exploreLabel = @{Messages("landing.start.exploring")}
 
 @common.main(commonData, Messages("seo.title.service.hours")) {
   @if(!isMobile) {
@@ -16,18 +24,17 @@
   }
   <div class="sh-page">
     <div class="sh-hero">
-      <p class="sh-eyebrow">Volunteer with Project Sidewalk</p>
-      <h1>Earning community service hours</h1>
-      <p>Mapping sidewalks counts as real volunteer work — many students earn school or organization service hours
-      here. We track your time automatically; you map, get feedback, and submit your hours when you're done.</p>
+      <p class="sh-eyebrow">@Messages("servicehours.eyebrow")</p>
+      <h1>@Messages("servicehours.title")</h1>
+      <p>@Messages("servicehours.intro")</p>
     </div>
     @if(user.role == Role.Anonymous) {
       <div class="sh-track sh-track--off">
         <div class="sh-track-body">
-          <strong>Sign up to earn service hours</strong>
-          <span>Create a free account, then opt in to have your volunteer hours officially recognized.</span>
+          <strong>@Messages("servicehours.anon.title")</strong>
+          <span>@Messages("servicehours.anon.body")</span>
         </div>
-        <a class="button-ps button--primary button--medium" href="@routes.UserController.signUp()">Create an account</a>
+        <a class="button-ps button--primary button--medium" href="@routes.UserController.signUp()">@Messages("servicehours.anon.cta")</a>
       </div>
     } else {
       @if(user.communityService) {
@@ -36,88 +43,81 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </span>
           <div class="sh-track-body">
-            <strong>You're signed up for service hours</strong>
-            <span>You have currently opted in to earning community service hours with Project Sidewalk. You can opt out
-            anytime, or manage this in <a href="@routes.UserDashboardController.settings.url#service-hours">Settings</a>.</span>
+            <strong>@Messages("servicehours.optedin.title")</strong>
+            <span>@Html(Messages("servicehours.optedin.body", s"${routes.UserDashboardController.settings.url}#service-hours"))</span>
           </div>
           <form method="post" action="@routes.UserController.setServiceHours(false, Some("/serviceHoursInstructions"))">
             @CSRF.formField
-            <button type="submit" class="button-ps button--secondary button--medium">Opt out</button>
+            <button type="submit" class="button-ps button--secondary button--medium">@Messages("servicehours.optedin.cta")</button>
           </form>
         </div>
       } else {
         <div class="sh-track sh-track--off">
           <div class="sh-track-body">
-            <strong>You're not signed up for service hours</strong>
-            <span>Opt in to have your volunteer or school hours officially recognized and verified by your supervisor.</span>
+            <strong>@Messages("servicehours.optedout.title")</strong>
+            <span>@Messages("servicehours.optedout.body")</span>
           </div>
           <form method="post" action="@routes.UserController.setServiceHours(true, Some("/serviceHoursInstructions"))">
             @CSRF.formField
-            <button type="submit" class="button-ps button--primary button--medium">Sign me up</button>
+            <button type="submit" class="button-ps button--primary button--medium">@Messages("servicehours.optedout.cta")</button>
           </form>
         </div>
       }
     }
     <div class="sh-super">
-      <span class="sh-avatar" aria-hidden="true">MS</span>
-      <p><strong>Your volunteer supervisor: Mikey Saugstad</strong>
-      <a href="mailto:volunteer.sidewalk@@gmail.com">volunteer.sidewalk@@gmail.com</a></p>
+      <span class="sh-avatar" aria-hidden="true">@supervisorInitials</span>
+      <p><strong>@Messages("servicehours.supervisor", supervisorName)</strong>
+      <a href="mailto:@supervisorEmail">@supervisorEmail</a></p>
     </div>
     <div class="sh-main">
       <ol class="sh-steps">
         <li>
           <span class="sh-num">1</span>
           <div>
-            <h2>Learn what good labels look like</h2>
-            <p>Read <a href="https://docs.google.com/presentation/d/1uO5jECSbULaC_nfX3Z5_WCIlrOv8dxATp0naabFLFog" target="_blank">the common-mistakes guide</a>
-            first — a few minutes here saves hours of corrections later.</p>
+            <h2>@Messages("servicehours.step1.title")</h2>
+            <p>@Html(Messages("servicehours.step1.body",
+            "https://docs.google.com/presentation/d/1uO5jECSbULaC_nfX3Z5_WCIlrOv8dxATp0naabFLFog"))</p>
           </div>
         </li>
         <li>
           <span class="sh-num">2</span>
           <div>
-            <h2>Map for one hour</h2>
-            <p>Signed in, click <strong>Start Exploring</strong> below and label for an hour. Your time is tracked
-            automatically while you work.</p>
+            <h2>@Messages("servicehours.step2.title")</h2>
+            <p>@Html(Messages("servicehours.step2.body", exploreLabel))</p>
           </div>
         </li>
         <li>
           <span class="sh-num">3</span>
           <div>
-            <h2>Email us for feedback</h2>
-            <p>Send your username and sign-up email address to your supervisor at the address above. Mikey reviews
-            your labels and replies within a couple of days with feedback and tips.</p>
+            <h2>@Messages("servicehours.step3.title")</h2>
+            <p>@Messages("servicehours.step3.body", supervisorName)</p>
           </div>
         </li>
         <li>
           <span class="sh-num">4</span>
           <div>
-            <h2>Keep mapping, round by round</h2>
-            <p>Do another hour, reply to the same email thread, and repeat. Once your labels look great, you're
-            cleared to work as many hours as you need.</p>
+            <h2>@Messages("servicehours.step4.title")</h2>
+            <p>@Messages("servicehours.step4.body")</p>
           </div>
         </li>
       </ol>
       <div class="sh-warn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-        <p><strong>The feedback emails are required.</strong> Hours submitted without them are usually rejected —
-        the training rounds are how we keep the map trustworthy.</p>
+        <p>@Html(Messages("servicehours.warning"))</p>
       </div>
       <div class="sh-facts">
         <div class="sh-fact">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-          <span>See your logged time anytime on the <a href="@routes.ApplicationController.timeCheck">Time Check page</a>
-          — it's also in your account menu, next to the link back to this page.</span>
+          <span>@Html(Messages("servicehours.fact.timecheck", routes.ApplicationController.timeCheck.url))</span>
         </div>
         <div class="sh-fact">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-          <span>Submitting your hours? List <strong>Mikey Saugstad</strong> as your supervisor, with the email
-          address above.</span>
+          <span>@Html(Messages("servicehours.fact.submit", supervisorName))</span>
         </div>
       </div>
       <div class="sh-ctas">
-        <a class="button-ps button--primary button--large" id="service-hours-explore-btn" href="@routes.ExploreController.explore()">Start Exploring</a>
-        <a class="button-ps button--secondary button--large" id="service-hours-time-check-btn" href="@routes.ApplicationController.timeCheck">Check my time</a>
+        <a class="button-ps button--primary button--large" id="service-hours-explore-btn" href="@routes.ExploreController.explore()">@exploreLabel</a>
+        <a class="button-ps button--secondary button--large" id="service-hours-time-check-btn" href="@routes.ApplicationController.timeCheck">@Messages("servicehours.cta.timecheck")</a>
       </div>
     </div>
   </div>

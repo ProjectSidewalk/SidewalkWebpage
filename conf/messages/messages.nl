@@ -384,6 +384,7 @@ authenticate.close = Sluiten
 authenticate.show.password = Wachtwoord tonen
 authenticate.hide.password = Wachtwoord verbergen
 authenticate.username.rule = 3–30 tekens — letters, cijfers, koppeltekens en underscores
+authenticate.username.hint = Kies een bijnaam — je hoeft niet je echte naam te gebruiken. Hij is openbaar zichtbaar op het scoreboard en op je profiel, en je kunt hem altijd wijzigen.
 authenticate.pw.rule.length = Minstens {0} tekens
 authenticate.pw.rule.uppercase = Eén hoofdletter
 authenticate.pw.rule.lowercase = Eén kleine letter
@@ -415,9 +416,63 @@ welcome.card.leaderboard.title = Het scorebord
 welcome.card.leaderboard.body = Zie hoe jouw werk zich verhoudt in de stad — alleen of met een team.
 welcome.cta.resume = Terug naar waar je gebleven was
 welcome.cta.dashboard = Mijn dashboard bekijken
+welcome.privacy.title = Wie jou kan zien
+welcome.privacy.body = Je gebruikersnaam “{0}” en je voortgang kunnen verschijnen op het openbare scoreboard en op je profielpagina, die iedereen kan bekijken. Jij kiest, en je kunt je keuze altijd wijzigen bij Instellingen.
+welcome.privacy.default.private = Deze omgeving houdt nieuwe accounts standaard privé, dus hieronder wordt niets gedeeld totdat je het aanzet.
 welcome.hint.username = Je kunt je gebruikersnaam altijd wijzigen in <a href="{0}">Dashboard → Instellingen</a>.
 welcome.service.prompt = Breng je in kaart voor school- of vrijwilligersuren?
 welcome.service.button = Aanmelden voor serviceuren
+timecheck.eyebrow = Jouw impact tot nu toe
+timecheck.heading = Goed bezig, {0}!
+timecheck.intro = Elk uur dat je labelt maakt stoepen begaanbaarder voor mensen met een beperking. Dit is de tijd die Project Sidewalk voor je heeft geregistreerd.
+timecheck.hours.one = uur karteren en valideren
+timecheck.hours.many = uur karteren en valideren
+timecheck.scope = Verspreid over {0} Project Sidewalk-steden — je account is overal hetzelfde, dus dit is je volledige totaal.
+timecheck.cheer.none = Je allereerste uur wacht op je — duik erin en zet je stempel op de kaart!
+timecheck.cheer.started = Je bent begonnen, en elk label telt al mee.
+timecheck.cheer.momentum = Je bouwt echt vaart op. Ga zo door!
+timecheck.cheer.dedication = Dat is serieuze toewijding — jouw stad is toegankelijker dankzij jou.
+timecheck.cheer.commitment = Ongelooflijke inzet. Je bent een kracht voor toegankelijkheid.
+timecheck.cheer.legend = Je bent een Project Sidewalk-legende. De hele gemeenschap bedankt je.
+timecheck.breakdown.title = Waar je tijd vandaan komt
+timecheck.breakdown.city = Stad
+timecheck.breakdown.hours = Uren
+timecheck.breakdown.here = je bent hier
+timecheck.incomplete.one = Let op: we konden 1 stad zojuist niet controleren, dus je totaal kan te laag zijn. Laad de pagina over een paar minuten opnieuw of mail naar <a href="mailto:{0}">{0}</a> als het niet vanzelf goed komt.
+timecheck.incomplete.many = Let op: we konden {0} steden zojuist niet controleren, dus je totaal kan te laag zijn. Laad de pagina over een paar minuten opnieuw of mail naar <a href="mailto:{1}">{1}</a> als het niet vanzelf goed komt.
+timecheck.fact.loading = Het uitrekenen kan even duren — bedankt voor je geduld terwijl deze pagina laadt.
+timecheck.fact.wrong.total = Klopt het totaal niet? Meestal komt dat doordat er uitgelogd is gekarteerd. Mail naar <a href="mailto:{0}">{0}</a> met wanneer je hebt gewerkt en welke pagina''s je gebruikte, dan helpen we je verder.
+timecheck.service.on.title = Je bent aangemeld voor maatschappelijke uren
+timecheck.service.on.body = Denk eraan je begeleider elke ronde te mailen voor feedback — zie <a href="{0}">hoe maatschappelijke uren werken</a>.
+timecheck.service.off.title = Studiepunten of vrijwilligersuren nodig?
+timecheck.service.off.body = Meld je aan om deze uren officieel te laten erkennen en door een begeleider te laten bevestigen.
+timecheck.service.off.cta = Hoe het werkt
+timecheck.cta.explore = Blijf karteren
+servicehours.eyebrow = Word vrijwilliger bij Project Sidewalk
+servicehours.title = Maatschappelijke uren verdienen
+servicehours.intro = Stoepen karteren telt als echt vrijwilligerswerk — veel scholieren en studenten halen hier uren voor school of hun organisatie. Wij houden je tijd automatisch bij: jij karteert, krijgt feedback en levert je uren in als je klaar bent.
+servicehours.anon.title = Meld je aan om uren te verdienen
+servicehours.anon.body = Maak een gratis account en meld je daarna aan om je vrijwilligersuren officieel te laten erkennen.
+servicehours.anon.cta = Account aanmaken
+servicehours.optedin.title = Je bent aangemeld voor maatschappelijke uren
+servicehours.optedin.body = Je doet op dit moment mee aan het urenprogramma van Project Sidewalk. Je kunt je altijd afmelden of dit beheren bij <a href="{0}">Instellingen</a>.
+servicehours.optedin.cta = Afmelden
+servicehours.optedout.title = Je bent niet aangemeld voor maatschappelijke uren
+servicehours.optedout.body = Meld je aan om je vrijwilligers- of schooluren officieel te laten erkennen en door je begeleider te laten bevestigen.
+servicehours.optedout.cta = Meld me aan
+servicehours.supervisor = Je begeleider: {0}
+servicehours.step1.title = Leer hoe goede labels eruitzien
+servicehours.step1.body = Lees eerst <a href="{0}" target="_blank">de gids met veelgemaakte fouten</a> — een paar minuten hier scheelt je later uren corrigeren.
+servicehours.step2.title = Karteer een uur lang
+servicehours.step2.body = Klik ingelogd hieronder op <strong>{0}</strong> en label een uur lang. Je tijd wordt automatisch bijgehouden terwijl je werkt.
+servicehours.step3.title = Mail ons voor feedback
+servicehours.step3.body = Stuur je gebruikersnaam en het e-mailadres waarmee je je hebt aangemeld naar het adres hierboven. {0} bekijkt je labels en reageert binnen een paar dagen met feedback en tips.
+servicehours.step4.title = Blijf karteren, ronde na ronde
+servicehours.step4.body = Doe nog een uur, reageer in dezelfde e-mailconversatie en herhaal. Zodra je labels er goed uitzien, mag je zoveel uren maken als je nodig hebt.
+servicehours.warning = <strong>De feedbackmails zijn verplicht.</strong> Uren die zonder die mails worden ingeleverd, worden meestal afgewezen — de oefenrondes houden de kaart betrouwbaar.
+servicehours.fact.timecheck = Je geregistreerde tijd zie je altijd op de <a href="{0}">urenpagina</a> — die staat ook in je accountmenu, naast de link terug naar deze pagina.
+servicehours.fact.submit = Lever je je uren in? Vermeld <strong>{0}</strong> als je begeleider, met het e-mailadres hierboven.
+servicehours.cta.timecheck = Mijn tijd bekijken
 authenticate.is.member = Al lid? <a href="{0}">Log direct in</a>
 
 user.exists = E-mail bestaat al
