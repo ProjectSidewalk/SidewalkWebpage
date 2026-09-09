@@ -1,22 +1,25 @@
 /**
  * AccessScore API Documentation - Specific Styles.
  *
- * The AccessScore (streets + regions) preview frames and their feature popups; toolbar, legend, and status messages
- * use the shared map classes in api-docs.css.
+ * The AccessScore (streets, regions, and intersections) preview frames and their feature popups; toolbar, legend,
+ * and status messages use the shared map classes in api-docs.css.
  */
 
 /* ---- Preview Container ---- */
 
-/* The toolbar stacks above the map inside the shared .map-container frame. */
+/* The toolbar (where a preview has one) stacks above the map inside the shared .map-container frame, which sets the
+   frame's height; without a rule of its own the map element is a zero-height block and nothing renders. */
 #access-score-streets-preview,
-#access-score-regions-preview {
+#access-score-regions-preview,
+#access-score-intersections-preview {
   display: flex;
   flex-direction: column;
   background-color: var(--color-neutral-white);
 }
 
 #access-score-streets-map,
-#access-score-regions-map {
+#access-score-regions-map,
+#access-score-intersections-map {
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
