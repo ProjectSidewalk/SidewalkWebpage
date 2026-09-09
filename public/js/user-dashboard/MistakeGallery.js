@@ -100,9 +100,15 @@ class MistakeGallery {
     const img = document.createElement('div');
     img.className = 'ud-card-img';
     const marker = iconPath ? document.createElement('img') : null;
+    // Filled in further down, once the image is on the card. The photo's error handler runs on a later event, so the
+    // overlays are always built by the time it fires.
+    let credit = null;
     // The crop's recorded position describes the crop only, so losing it has to re-place the marker.
-    const photo = MistakeGallery.#photo(m,
-      (source) => marker && MistakeGallery.#positionMarker(marker, m, source));
+    const photo = MistakeGallery.#photo(m, (source) => {
+      if (marker) MistakeGallery.#positionMarker(marker, m, source);
+      // The backup image is the same panorama, so it needs the same credit. Only losing every image takes it down.
+      if (!source) credit?.hide();
+    });
     if (photo) img.appendChild(photo);
     if (marker) {
       marker.className = 'ud-card-label-marker';
@@ -116,25 +122,37 @@ class MistakeGallery {
     verdict.textContent = i18next.t('dashboard:mistake-cards.marked-incorrect');
     img.appendChild(verdict);
 
-    // Clicking the image opens the shared interactive label popup (pano + detail), when available.
+    // A real button covering the image opens the shared interactive label popup (pano + detail), when available. It
+    // has to be its own element rather than a role on the wrapper: the licence link in the credit below sits inside
+    // that wrapper, and a link inside a button is unreachable for screen readers and fires both on a click.
     if (this.labelPopup) {
-      img.classList.add('ud-card-img-clickable');
-      img.setAttribute('role', 'button');
-      img.setAttribute('tabindex', '0');
-      img.title = i18next.t('dashboard:mistake-cards.open-title');
-      img.setAttribute('aria-label', i18next.t('dashboard:mistake-cards.open-title'));
-      const open = () => this.#openPopup(m);
-      img.addEventListener('click', open);
-      img.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          open();
-        }
-      });
+      const openButton = document.createElement('button');
+      openButton.type = 'button';
+      openButton.className = 'ud-card-open';
+      openButton.title = i18next.t('dashboard:mistake-cards.open-title');
+      openButton.setAttribute('aria-label', i18next.t('dashboard:mistake-cards.open-title'));
+      openButton.addEventListener('click', () => this.#openPopup(m));
       const hint = document.createElement('span');
       hint.className = 'ud-card-expand-hint';
       hint.textContent = i18next.t('dashboard:mistake-cards.open-hint');
-      img.appendChild(hint);
+      openButton.appendChild(hint);
+      img.appendChild(openButton);
+    }
+
+    // We show our own copy of the image, so we have to credit whoever it came from (#5254). Added last so that the
+    // marker, the badges and the open button can't paint over it, and so the licence link lands outside that button.
+    // Nothing to credit when no image loaded: the card is then just a plain gradient.
+    if (photo) {
+      const logo = createPanoViewerLogo(img, m.pano_source);
+      const attribution = createPanoAttribution(img, { compact: true });
+      logo.showSourceLogo();
+      attribution.show(m.attribution);
+      credit = {
+        hide: () => {
+          logo.hide();
+          attribution.hide();
+        },
+      };
     }
     card.appendChild(img);
 

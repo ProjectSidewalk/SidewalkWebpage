@@ -2,10 +2,11 @@
  * Creates an imagery-source logo overlay at the bottom-left of the given pano container.
  *
  * The container must establish a CSS positioning context (position: relative, absolute, or fixed) so that
- * the absolutely-positioned logo is scoped to the pano area. Returns an object with two methods:
+ * the absolutely-positioned logo is scoped to the pano area. Returns an object with three methods:
  *   - showPrimaryLogo() — use when the primary viewer (GSV/Mapillary/Infra3D) is active.
  *   - showSourceLogo()  — use when Pannellum is active as a backup, and on a still we render ourselves (a crop on
- *     a Gallery or landing card), where no live viewer brands the imagery at all.
+ *     a Gallery, landing or dashboard card), where no live viewer brands the imagery at all.
+ *   - hide()            — use when the image is gone, e.g. a card where every image source failed to load.
  *
  * The overlay also publishes where the logo's pixels end, as the --pano-logo-width CSS variable on the container,
  * so that overlays sitting to its right (the pano capture date and info button) can clear it.
@@ -16,7 +17,7 @@
  * @param {Element} container The positioned pano container element.
  * @param {string} primarySource The imagery source ('gsv', 'mapillary', 'infra3d', 'panoramax'); a viewer class
  *     exposes its own as the static SOURCE.
- * @returns {{ showPrimaryLogo: Function, showSourceLogo: Function }}
+ * @returns {{ showPrimaryLogo: Function, showSourceLogo: Function, hide: Function }}
  */
 function createPanoViewerLogo(container, primarySource) {
   /**
@@ -165,19 +166,21 @@ function createPanoViewerLogo(container, primarySource) {
     publishLogoWidth();
   }
 
+  /** Also forgets the logo's width, so anything sitting to its right goes back to its default spot. */
+  function hideLogo() {
+    holder.style.display = 'none';
+    activeLogo = null;
+    container.style.removeProperty('--pano-logo-width');
+  }
+
   return {
     /**
      * Shows the logo for the primary viewer, or hides the overlay for GSV (which provides its own branding).
      */
     showPrimaryLogo() {
-      if (primarySource === 'gsv') {
-        holder.style.display = 'none';
-        activeLogo = null;
-        // Google draws its own logo, so overlays to its right fall back to the offset that clears that one.
-        container.style.removeProperty('--pano-logo-width');
-      } else {
-        showLogo(primarySource);
-      }
+      // Google draws its own logo, so overlays to its right fall back to the offset that clears that one.
+      if (primarySource === 'gsv') hideLogo();
+      else showLogo(primarySource);
     },
 
     /**
@@ -185,6 +188,11 @@ function createPanoViewerLogo(container, primarySource) {
      */
     showSourceLogo() {
       showLogo(primarySource);
+    },
+
+    /** Use when the image this logo credits is no longer on screen. */
+    hide() {
+      hideLogo();
     },
   };
 }
