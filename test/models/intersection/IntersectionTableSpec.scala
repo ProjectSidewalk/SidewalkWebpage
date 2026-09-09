@@ -91,11 +91,11 @@ class IntersectionTableSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
   }
 
   "the intersection rebuild" should {
-    "reproduce exactly what evolution 377 populated, so the two copies of the derivation agree" in {
+    "reproduce exactly what evolution 380 populated, so the two copies of the derivation agree" in {
       // The evolution's data statements, run on the schema as it stands, then the Scala rebuild over the same
       // streets: a derivation that drifted would insert, update, or delete something.
       val ups: String = {
-        val source = Source.fromFile("conf/evolutions/default/377.sql", "UTF-8")
+        val source = Source.fromFile("conf/evolutions/default/380.sql", "UTF-8")
         try source.mkString.split("# --- !Downs").head
         finally source.close()
       }

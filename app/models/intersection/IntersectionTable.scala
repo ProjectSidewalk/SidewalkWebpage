@@ -37,7 +37,8 @@ object StreetEnd {
  * One street's end meeting one intersection.
  *
  * @param streetEnd `start` or `end` ([[StreetEnd]]), which end of the street's geometry sits at the intersection. A
- *                  loop street has both ends at the same intersection, two rows.
+ *                  street has at most one row per intersection: an edge with both ends in one node is a sliver
+ *                  inside it (Seattle's 865 such edges are 0–0.8 m long) and the derivation drops it.
  */
 case class IntersectionStreetEdge(
     intersectionStreetEdgeId: Int,
@@ -147,7 +148,7 @@ trait IntersectionTableRepository {
 /**
  * The derived intersections of the street graph and their links to streets and clusters (#5095).
  *
- * The derivation is raw SQL held once in [[IntersectionTable.derivationSql]]; evolution 377 carries a pasted copy for
+ * The derivation is raw SQL held once in [[IntersectionTable.derivationSql]]; evolution 380 carries a pasted copy for
  * the one-time population of existing cities, and `IntersectionTableSpec` checks the two still agree.
  */
 @Singleton
@@ -260,8 +261,12 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
   }
 
   /**
-   * The streets a bbox/region filter selects, as `StreetEdgeTable.selectStreetsIntersecting` selects them: open,
-   * not the tutorial street, in a region, and intersecting the bbox (or in a region within it).
+   * The streets a bbox/region filter selects, as `StreetEdgeTable.selectStreetsIntersecting` selects them (it builds on
+   * the open, non-tutorial `streets` query): open, not the tutorial street, in a region, and intersecting the bbox (or
+   * in a region within it). It must stay identical to that query: `AccessScoreService` joins streets, their ends, and
+   * clusters by id, so a street scored there but omitted here would have no intersections and its corner clusters
+   * would score nothing. `ClusterTable.getClusterScoreRows` scopes clusters more widely (any status); its extra rows
+   * belong to no scored unit and are dropped.
    */
   private def inScopeStreetsSql(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): String = {
     val envelope: String = s"ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326)"
@@ -279,7 +284,8 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
 
   def getIntersectionsForStreets(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): DBIO[Seq[IntersectionInfo]] = {
     val inScope: String = inScopeStreetsSql(spatialQueryType, bbox)
-    // Audits are counted per incident street first, so a loop street (two links) is counted once.
+    // Audits are counted per incident street, and each street links to a node once (the derivation drops any edge
+    // with both ends in one node), so the DISTINCT is a guard on that invariant rather than a working de-duplication.
     sql"""SELECT intersection.intersection_id,
                  intersection.geom,
                  intersection.degree,
@@ -320,7 +326,7 @@ object IntersectionTable {
   /**
    * The derivation of intersections from the street graph, as a `WITH` prefix defining `member` (each street end at a
    * node, minus sliver edges), `node` (each node of degree >= 3 with its centroid), `node_region`, and `node_grade`.
-   * Held once so [[IntersectionTable.rebuild]] and the specs use exactly what evolution 377 ran; see that file for
+   * Held once so [[IntersectionTable.rebuild]] and the specs use exactly what evolution 380 ran; see that file for
    * the reasoning behind each step.
    */
   val derivationSql: String =
