@@ -47,6 +47,19 @@ one predicate drives every indexing signal:
 `Disallow` lines only), because a URL blocked by robots.txt is never fetched, so the crawler never sees the
 `noindex` and can still list the bare URL from an inbound link. Only non-prod stages get `Disallow: /`.
 
+`SearchIndexingCheck` (a `StartupChecksModule` check) logs each instance's verdict at boot, so the rollout below is
+verifiable from the deploy log rather than by curling every host:
+
+```
+INFO m.SearchIndexingCheck - Search indexing: seattle-wa is INDEXABLE (environment-type=prod, status=public,
+pano-viewer-type=gsv); 37 of 60 configured cities are public. A vhost X-Robots-Tag header can still override this.
+```
+
+It also sweeps every city's `status` and logs an error for any value that isn't `public` or `private`. Nothing there
+is fatal: an unrecognised value reads as private, which costs a launched city its search traffic silently, but
+refusing to boot over it would take the city offline instead. The public/total count is a tripwire for a bulk flip —
+the Taiwan deployments all read `${city-params.status.taipei}`, so editing one entry moves six.
+
 `SeoRobotsFilter` is prepended to `play.filters.enabled` so it is the outermost filter — Play composes that list
 outermost-first, so appending it would leave CSRF and AllowedHosts rejections uncovered.
 
