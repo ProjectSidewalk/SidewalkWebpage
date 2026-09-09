@@ -148,7 +148,7 @@ trait IntersectionTableRepository {
 /**
  * The derived intersections of the street graph and their links to streets and clusters (#5095).
  *
- * The derivation is raw SQL held once in [[IntersectionTable.derivationSql]]; evolution 380 carries a pasted copy for
+ * The derivation is raw SQL held once in [[IntersectionTable.derivationSql]]; evolution 381 carries a pasted copy for
  * the one-time population of existing cities, and `IntersectionTableSpec` checks the two still agree.
  */
 @Singleton
@@ -326,7 +326,7 @@ object IntersectionTable {
   /**
    * The derivation of intersections from the street graph, as a `WITH` prefix defining `member` (each street end at a
    * node, minus sliver edges), `node` (each node of degree >= 3 with its centroid), `node_region`, and `node_grade`.
-   * Held once so [[IntersectionTable.rebuild]] and the specs use exactly what evolution 380 ran; see that file for
+   * Held once so [[IntersectionTable.rebuild]] and the specs use exactly what evolution 381 ran; see that file for
    * the reasoning behind each step.
    */
   val derivationSql: String =
@@ -364,7 +364,8 @@ object IntersectionTable {
       |    SELECT member.node_group,
       |           COALESCE(osm_way_street_edge.osm_way_id, -member.street_edge_id) AS way_key,
       |           COUNT(*) AS edges_at_node,
-      |           CASE WHEN osm_way.tags ->> 'layer' ~ '^-?[0-9]+$' THEN (osm_way.tags ->> 'layer')::INTEGER
+      |           CASE WHEN osm_way.missing_since IS NOT NULL AND osm_way.tags = '{}'::jsonb THEN NULL
+      |                WHEN osm_way.tags ->> 'layer' ~ '^-?[0-9]+$' THEN (osm_way.tags ->> 'layer')::INTEGER
       |                WHEN COALESCE(osm_way.tags ->> 'bridge', 'no') <> 'no' THEN 1
       |                WHEN COALESCE(osm_way.tags ->> 'tunnel', 'no') <> 'no' THEN -1
       |                ELSE 0 END AS layer

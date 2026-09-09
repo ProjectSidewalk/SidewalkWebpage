@@ -51,6 +51,15 @@ class IntersectionTableSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
              VALUES ((SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 1 FROM osm_way_street_edge),
                      $osmWayId, $streetEdgeId)"""
 
+  /** Maps a street to a way that is gone from OSM and whose tags were blanked before #5244 kept them: layer unknown. */
+  private def mapToMissingWay(streetEdgeId: Int, osmWayId: Long): DBIO[Int] =
+    sqlu"""INSERT INTO osm_way (osm_way_id, tags, maxspeed, geom, source, updated_at, missing_since)
+           VALUES ($osmWayId, CAST('{}' AS jsonb), NULL, NULL, 'batch', now(), now())
+           ON CONFLICT (osm_way_id) DO NOTHING""" andThen
+      sqlu"""INSERT INTO osm_way_street_edge (osm_way_street_edge_id, osm_way_id, street_edge_id)
+             VALUES ((SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 1 FROM osm_way_street_edge),
+                     $osmWayId, $streetEdgeId)"""
+
   private def insertSession(regionId: Int): DBIO[Int] =
     sql"""INSERT INTO clustering_session (clustering_session_id, region_id, thresholds, timestamp)
           VALUES ((SELECT COALESCE(MAX(clustering_session_id), 0) + 1 FROM clustering_session), $regionId,
@@ -91,11 +100,11 @@ class IntersectionTableSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
   }
 
   "the intersection rebuild" should {
-    "reproduce exactly what evolution 380 populated, so the two copies of the derivation agree" in {
+    "reproduce exactly what evolution 381 populated, so the two copies of the derivation agree" in {
       // The evolution's data statements, run on the schema as it stands, then the Scala rebuild over the same
       // streets: a derivation that drifted would insert, update, or delete something.
       val ups: String = {
-        val source = Source.fromFile("conf/evolutions/default/380.sql", "UTF-8")
+        val source = Source.fromFile("conf/evolutions/default/381.sql", "UTF-8")
         try source.mkString.split("# --- !Downs").head
         finally source.close()
       }
@@ -163,7 +172,7 @@ class IntersectionTableSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
       })
     }
 
-    "flag a bridge passing over a road as grade-separated, but not a bridge ending at a real intersection" in {
+    "flag a bridge passing over a road as grade-separated, but not a bridge ending at a real intersection, nor one over a road whose way is gone from OSM" in {
       runRolledBack(for {
         b1 <- insertStreetAt(line(19.999, 20.0, 20.0, 20.0))
         b2 <- insertStreetAt(line(20.0, 20.0, 20.001, 20.0))
@@ -189,14 +198,26 @@ class IntersectionTableSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
         _      <- mapToWay(g2, 9000000005L, """{"highway": "primary", "layer": "1;2"}""")
         _      <- mapToWay(h1, 9000000006L, """{"highway": "residential"}""")
         _      <- mapToWay(h2, 9000000006L, """{"highway": "residential"}""")
-        _      <- table.rebuild
-        bridge <- intersectionsNear(20.0, 20.0)
-        abut   <- intersectionsNear(21.0, 21.0)
-        garble <- intersectionsNear(22.0, 22.0)
+        // At (23, 23) a bridge crosses a road whose way died in OSM before its tags were kept (#5244): the road's layer
+        // is unknown, so it cannot vote, and the node stays unflagged until the tags are backfilled.
+        k1      <- insertStreetAt(line(22.999, 23.0, 23.0, 23.0))
+        k2      <- insertStreetAt(line(23.0, 23.0, 23.001, 23.0))
+        m1      <- insertStreetAt(line(23.0, 22.999, 23.0, 23.0))
+        m2      <- insertStreetAt(line(23.0, 23.0, 23.0, 23.001))
+        _       <- mapToWay(k1, 9000000007L, """{"highway": "primary", "bridge": "yes", "layer": "1"}""")
+        _       <- mapToWay(k2, 9000000007L, """{"highway": "primary", "bridge": "yes", "layer": "1"}""")
+        _       <- mapToMissingWay(m1, 9000000008L)
+        _       <- mapToMissingWay(m2, 9000000008L)
+        _       <- table.rebuild
+        bridge  <- intersectionsNear(20.0, 20.0)
+        abut    <- intersectionsNear(21.0, 21.0)
+        garble  <- intersectionsNear(22.0, 22.0)
+        unknown <- intersectionsNear(23.0, 23.0)
       } yield {
         bridge.map(n => (n._2, n._3)) mustBe Seq((4, true))
         abut.map(n => (n._2, n._3)) mustBe Seq((3, false))
         garble.map(n => (n._2, n._3)) mustBe Seq((4, false))
+        unknown.map(n => (n._2, n._3)) mustBe Seq((4, false))
       })
     }
 

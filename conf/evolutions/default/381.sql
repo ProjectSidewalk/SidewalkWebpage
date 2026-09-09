@@ -84,12 +84,15 @@ node_region AS (
 ),
 -- Per OSM way at the node: how many of its edges meet there, and its layer. A layer tag that isn't an integer is
 -- ignored rather than aborting the deploy for every city after it. An edge with no way maps to a key of its own, so
--- it can never create a separation.
+-- it can never create a separation. A way that is gone from OSM with no last known tags (missing_since set and tags
+-- blanked before #5244 kept them) has an unknown layer, NULL, which COUNT(DISTINCT) skips: it neither creates nor
+-- prevents a separation, and the node cannot be flagged either way until the tags are backfilled.
 way_layer AS (
     SELECT member.node_group,
            COALESCE(osm_way_street_edge.osm_way_id, -member.street_edge_id) AS way_key,
            COUNT(*) AS edges_at_node,
-           CASE WHEN osm_way.tags ->> 'layer' ~ '^-?[0-9]+$' THEN (osm_way.tags ->> 'layer')::INTEGER
+           CASE WHEN osm_way.missing_since IS NOT NULL AND osm_way.tags = '{}'::jsonb THEN NULL
+                WHEN osm_way.tags ->> 'layer' ~ '^-?[0-9]+$' THEN (osm_way.tags ->> 'layer')::INTEGER
                 WHEN COALESCE(osm_way.tags ->> 'bridge', 'no') <> 'no' THEN 1
                 WHEN COALESCE(osm_way.tags ->> 'tunnel', 'no') <> 'no' THEN -1
                 ELSE 0 END AS layer

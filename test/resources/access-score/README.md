@@ -1,7 +1,7 @@
 # AccessScore snapshot fixture (Teaneck, NJ)
 
 A snapshot of the per-cluster scoring inputs the v3 AccessScore endpoints read, taken from the `sidewalk_teaneck`
-schema on **2026-09-07** (with evolution 380's intersections applied). `AccessScoreTeaneckSnapshotSpec` scores every audited street from it with the pure
+schema on **2026-09-07** (with evolution 381's intersections applied). `AccessScoreTeaneckSnapshotSpec` scores every audited street from it with the pure
 `AccessScoreCalculator` and asserts distributional properties of the model on real labeling behavior — the things a
 hand-built unit case can't show, such as how the NoSidewalk street-condition term behaves across 660 real streets
 with anywhere from 1 to 69 clusters each (#5093).
@@ -16,7 +16,7 @@ All files are gzipped CSV with a header row.
 
 The cluster rows are exactly what `ClusterTable.getClusterScoreRows` streams to `AccessScoreService`, minus the bbox
 filter. To refresh the snapshot, run the three `COPY` queries below against a city schema (whose evolutions include
-380, so the intersection tables exist) and gzip the output with `gzip -n` (the spec assumes a city with a few hundred
+381, so the intersection tables exist) and gzip the output with `gzip -n` (the spec assumes a city with a few hundred
 audited NoSidewalk streets, at least one cluster of every scored type, and a few hundred scored intersections; its
 thresholds are loose enough for any city with that much data).
 
