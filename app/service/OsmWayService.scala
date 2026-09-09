@@ -153,7 +153,11 @@ class OsmWayServiceImpl @Inject() (
   /**
    * Fetches the full tag map for the given way ids from Overpass, keyed by way id.
    *
-   * Ways absent from the response (deleted/redacted) are simply missing from the returned map.
+   * Ways absent from a complete response are gone from OSM (deleted or merged away) and are simply missing from the
+   * returned map. A cut-short response is a failure, not a list of dead ways: Overpass reports a query that timed out
+   * or ran out of memory as HTTP 200 with whatever elements it had reached plus a top-level `remark` (measured: a
+   * 1-second-budget query came back `200`, zero elements, `remark: runtime error: Query timed out ...`), and reading
+   * that as "every requested way is missing" would stamp a whole chunk `missing_since` in one bad night.
    */
   private def fetchTagsForWays(wayIds: Seq[Long]): Future[Map[Long, JsObject]] = {
     val query = s"[out:json][timeout:180];way(id:${wayIds.mkString(",")});out tags;"
@@ -164,7 +168,11 @@ class OsmWayServiceImpl @Inject() (
         if (response.status != 200) {
           throw new RuntimeException(s"Overpass batch query failed with status ${response.status}.")
         }
-        parseBatchResponse(Json.parse(response.body))
+        val json: JsValue = Json.parse(response.body)
+        truncationRemark(json).foreach { remark =>
+          throw new RuntimeException(s"Overpass batch query was cut short: $remark")
+        }
+        parseBatchResponse(json)
       }
   }
 
@@ -225,6 +233,12 @@ object OsmWayService {
   ).map(_.toString)
 
   private val geometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
+
+  /**
+   * The `remark` Overpass attaches to a response it could not complete (a timeout or memory limit hit mid-query), or
+   * None for a complete one. Its presence means the element list is partial, so absence from it proves nothing.
+   */
+  def truncationRemark(json: JsValue): Option[String] = (json \ "remark").asOpt[String].filter(_.nonEmpty)
 
   /**
    * Parses a batch `out tags;` Overpass response into a map from way id to its tag map.

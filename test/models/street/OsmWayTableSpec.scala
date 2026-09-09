@@ -18,7 +18,7 @@ import scala.concurrent.duration._
 
 /**
  * DB-backed contract test for how the nightly refresh records a way that Overpass no longer returns (#5244, evolution
- * 378).
+ * 380).
  *
  * A mapped way id can die in OSM (the way deleted or merged away) while the street it described stays in our
  * network. The refresh must keep that way's last known tags -- they still describe the geometry we imported, and
