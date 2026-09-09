@@ -537,7 +537,7 @@ class ImageryFreshnessServiceImpl @Inject() (
     val (dLat, dLng) = bboxHalfWidths(lat, SampleRadiusMeters)
     val bbox         = s"${lng - dLng},${lat - dLat},${lng + dLng},${lat + dLat}"
     ws.url(s"https://api.panoramax.xyz/api/search?bbox=$bbox&filter=field_of_view%3D360&sortby=-ts&limit=100")
-      .addHttpHeaders("User-Agent" -> PanoDataService.PanoramaxUserAgent)
+      .addHttpHeaders("User-Agent" -> OutboundHttp.UserAgent)
       .withRequestTimeout(5.seconds)
       .get()
       .map { response =>

@@ -17,28 +17,55 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
+import scala.util.{Failure, Success}
 
 /**
  * What one run of the OSM way refresh did.
  *
- * @param waysRefreshed Ways whose row was written, present in OSM or not (0 when everything was fresh).
- * @param waysMissing   Of those, ways Overpass did not return: deleted or merged away in OSM since our import. Their
- *                      last known tags are kept and `osm_way.missing_since` is stamped (#5244).
+ * @param waysRefreshed     Ways whose row was written, present in OSM or not (0 when everything was fresh).
+ * @param waysMissing       Of those, ways Overpass did not return: deleted or merged away in OSM since our import.
+ *                          Their last known tags are kept and `osm_way.missing_since` is stamped (#5244).
+ * @param tagsRecovered     Gone ways whose lost tags were recovered from the OSM history in this run.
+ * @param tagsUnrecoverable Gone ways looked up in the OSM history this run that had nothing usable there. Marked so
+ *                          they are not asked about again.
  */
-case class OsmWayRefreshResult(waysRefreshed: Int, waysMissing: Int)
+case class OsmWayRefreshResult(waysRefreshed: Int, waysMissing: Int, tagsRecovered: Int, tagsUnrecoverable: Int) {
+  def +(other: OsmWayRefreshResult): OsmWayRefreshResult = OsmWayRefreshResult(
+    waysRefreshed + other.waysRefreshed,
+    waysMissing + other.waysMissing,
+    tagsRecovered + other.tagsRecovered,
+    tagsUnrecoverable + other.tagsUnrecoverable
+  )
+}
+
+object OsmWayRefreshResult {
+  val empty: OsmWayRefreshResult = OsmWayRefreshResult(0, 0, 0, 0)
+}
 
 @ImplementedBy(classOf[OsmWayServiceImpl])
 trait OsmWayService {
 
   /**
-   * Refreshes cached way data for every mapped way whose row is missing or older than `STALENESS_PERIOD`.
+   * Refreshes cached way data for every mapped way whose row is missing or older than `STALENESS_PERIOD`, then
+   * recovers the tags of gone ways that lost them.
    *
-   * Fetches tags in chunks of `BATCH_CHUNK_SIZE` ids, sequentially with a delay between chunks. Every requested id is
-   * written even when absent from the response, so it won't re-queue nightly: a found way takes its current tags, a
-   * missing one keeps its last known tags and is marked `missing_since`. A failed chunk fails the whole run; the next
-   * nightly tick retries from whatever is still stale.
+   * The refresh fetches tags from Overpass in chunks of `BATCH_CHUNK_SIZE` ids, sequentially with a delay between
+   * chunks. Every requested id is written even when absent from the response, so it won't re-queue nightly: a found
+   * way takes its current tags, a missing one keeps its last known tags and is marked `missing_since`.
    *
-   * @return How many ways were written, and how many of them are gone from OSM.
+   * The backfill then takes every mapped way that is marked missing but still has empty tags -- blanked before the
+   * refresh learned to keep them, or gone before it ever saw them -- and asks the OSM API for the way's history, one
+   * id at a time with a delay between requests, storing the tags of its last visible version (#5244 step 2). A
+   * deleted way's final tags describe the same geometry we imported, so a bridge comes back as a bridge; nothing is
+   * matched to whatever OSM holds there now. That includes `maxspeed`: the sign then shows the last limit OSM
+   * recorded for that road, which is also what the refresh keeps for a way that dies from now on. A way whose
+   * history has nothing usable is marked too, so each id costs one lookup ever.
+   *
+   * A failed chunk or lookup fails the whole run; the next nightly tick resumes from whatever is still stale or
+   * unrecovered.
+   *
+   * @return How many ways were written and how many of them are gone from OSM, plus how many gone ways had their
+   *         tags recovered and how many turned out unrecoverable.
    */
   def refreshOsmWayData(): Future[OsmWayRefreshResult]
 
@@ -83,14 +110,39 @@ class OsmWayServiceImpl @Inject() (
   private val logger = Logger(this.getClass)
 
   def refreshOsmWayData(): Future[OsmWayRefreshResult] = {
+    // The two phases talk to different hosts, and Overpass refuses a good share of our runs (#5237), so a failure in
+    // one must not cost the other its work: both run, and the run fails afterwards if either did. The run record
+    // then carries the first failure and no counts (JobRunService stores details on success only), so each phase
+    // logs its own counts, and a second failure is logged here rather than lost behind the first.
+    for {
+      refreshed <- refreshFromOverpass().transform(Success(_))
+      recovered <- backfillMissingTags().transform(Success(_))
+      result    <- (refreshed, recovered) match {
+        case (Failure(first), Failure(second)) =>
+          logger.error("The OSM history backfill failed too, behind the refresh's own failure.", second)
+          Future.failed(first)
+        case _ =>
+          Future.fromTry(for {
+            r <- refreshed
+            b <- recovered
+          } yield r + b)
+      }
+    } yield result
+  }
+
+  /**
+   * Phase one: re-fetches every stale mapped way's tags from Overpass, chunked and paced, marking the ways it no
+   * longer returns as missing.
+   */
+  private def refreshFromOverpass(): Future[OsmWayRefreshResult] = {
     db.run(osmWayTable.getWayIdsMissingOrStale(OffsetDateTime.now.minusDays(STALENESS_PERIOD_DAYS))).flatMap { wayIds =>
-      if (wayIds.isEmpty) { Future.successful(OsmWayRefreshResult(0, 0)) }
+      if (wayIds.isEmpty) { Future.successful(OsmWayRefreshResult.empty) }
       else {
         logger.info(s"Refreshing OSM way data for ${wayIds.size} ways.")
         wayIds
           .grouped(BATCH_CHUNK_SIZE)
           .zipWithIndex
-          .foldLeft(Future.successful(OsmWayRefreshResult(0, 0))) { case (accFuture, (chunk, chunkIdx)) =>
+          .foldLeft(Future.successful(OsmWayRefreshResult.empty)) { case (accFuture, (chunk, chunkIdx)) =>
             for {
               acc <- accFuture
               // Space out requests to the shared Overpass instance; no delay before the first chunk.
@@ -102,7 +154,7 @@ class OsmWayServiceImpl @Inject() (
                 (wayId, tags: JsValue, maxspeedFrom(tags))
               }
               n <- db.run(osmWayTable.upsertBatch(rows, split._2, OffsetDateTime.now))
-            } yield OsmWayRefreshResult(acc.waysRefreshed + n, acc.waysMissing + split._2.size)
+            } yield acc + OsmWayRefreshResult(n, split._2.size, 0, 0)
           }
           .map { result =>
             // A dead way id is normal OSM churn, but a jump in this count means a re-match (#5244) is overdue.
@@ -112,6 +164,51 @@ class OsmWayServiceImpl @Inject() (
                   "(deleted or merged away); kept their last known tags and marked them missing."
               )
             }
+            result
+          }
+      }
+    }
+  }
+
+  /**
+   * Phase two: recovers the tags of gone ways that have none, from the OSM API's way history (#5244 step 2).
+   *
+   * One request per way, sequential, with `HISTORY_REQUEST_DELAY` between them: the main OSM API is not built for
+   * bulk reads, and the candidate set is a few hundred ids per city once, then whatever dies before its first fetch.
+   * Each way is written as soon as its history is read, so a failure partway keeps what was recovered and the next
+   * run resumes from the rest.
+   */
+  private def backfillMissingTags(): Future[OsmWayRefreshResult] = {
+    db.run(osmWayTable.getWayIdsToBackfill).flatMap { wayIds =>
+      if (wayIds.isEmpty) { Future.successful(OsmWayRefreshResult.empty) }
+      else {
+        logger.info(s"Recovering tags for ${wayIds.size} OSM ways that are gone from OSM, from their history.")
+        wayIds.zipWithIndex
+          .foldLeft(Future.successful(OsmWayRefreshResult.empty)) { case (accFuture, (wayId, idx)) =>
+            for {
+              acc     <- accFuture
+              _       <- if (idx == 0) Future.unit else after(HISTORY_REQUEST_DELAY, actorSystem.scheduler)(Future.unit)
+              history <- fetchWayHistoryWithRetry(wayId)
+              tags = history.flatMap(lastVisibleTags)
+              written <- db.run(osmWayTable.recordHistoryTags(wayId, tags, tags.flatMap(maxspeedFrom)))
+            } yield {
+              if (written == 0) {
+                // Another run's refresh got to the row first (the way came back, or its history was already read).
+                logger.info(s"OSM way $wayId was no longer waiting for its history by the time it was read; skipped.")
+                acc
+              } else {
+                if (tags.isEmpty) {
+                  logger.warn(s"OSM way $wayId is gone from OSM and its history holds no tags; nothing to recover.")
+                }
+                acc + OsmWayRefreshResult(0, 0, if (tags.isDefined) 1 else 0, if (tags.isEmpty) 1 else 0)
+              }
+            }
+          }
+          .map { result =>
+            logger.info(
+              s"Recovered tags for ${result.tagsRecovered} gone OSM ways from their history; " +
+                s"${result.tagsUnrecoverable} had nothing to recover."
+            )
             result
           }
       }
@@ -177,6 +274,48 @@ class OsmWayServiceImpl @Inject() (
   }
 
   /**
+   * Fetches a way's history, retrying transient failures with the same budget and spacing as the Overpass chunks.
+   * A 404 is an answer (the id never existed), not a failure, and is not retried.
+   */
+  private def fetchWayHistoryWithRetry(wayId: Long, attempt: Int = 1): Future[Option[JsValue]] = {
+    fetchWayHistory(wayId).recoverWith {
+      case NonFatal(e) if attempt < BATCH_MAX_ATTEMPTS =>
+        logger.warn(
+          s"OSM history attempt $attempt/$BATCH_MAX_ATTEMPTS for way $wayId failed (${e.getMessage}); retrying."
+        )
+        after(BATCH_RETRY_DELAY * attempt.toLong, actorSystem.scheduler)(fetchWayHistoryWithRetry(wayId, attempt + 1))
+    }
+  }
+
+  /**
+   * Fetches every version of a way from the main OSM API, deleted versions included.
+   *
+   * A 200 whose body is not a history document (no `elements` array: a gateway page, a truncated body) is a failure
+   * to retry, not an empty history. Reading it as "nothing to recover" would mark the way checked and never ask
+   * again, which is the one outcome of this phase that no later run corrects.
+   *
+   * @return The history document, or None when the API has never held a way with this id (404).
+   */
+  private def fetchWayHistory(wayId: Long): Future[Option[JsValue]] = {
+    ws.url(s"$OSM_API_URL/way/$wayId/history.json")
+      .addHttpHeaders("User-Agent" -> OutboundHttp.UserAgent)
+      .withRequestTimeout(30.seconds)
+      .get()
+      .map { response =>
+        response.status match {
+          case 200 =>
+            val json = Json.parse(response.body)
+            if ((json \ "elements").asOpt[Seq[JsValue]].isEmpty) {
+              throw new RuntimeException(s"OSM history response for way $wayId has no elements array.")
+            }
+            Some(json)
+          case 404   => None
+          case other => throw new RuntimeException(s"OSM history query for way $wayId failed with status $other.")
+        }
+      }
+  }
+
+  /**
    * Queries Overpass for roads within `SEARCH_RADIUS_M` of the point, stores the nearest one (with geometry, so later
    * lookups nearby hit our DB), and returns its maxspeed tag.
    */
@@ -223,6 +362,12 @@ object OsmWayService {
   /** Per-coordinate cache TTL for the on-demand point lookup (doubles as a negative cache for "no road here"). */
   val POINT_CACHE_TTL: FiniteDuration = 10.minutes
 
+  /** The main OSM API (not Overpass): the one place a deleted way's history can still be read (#5244). */
+  val OSM_API_URL = "https://api.openstreetmap.org/api/0.6"
+
+  /** Pause between consecutive history requests; they go one way at a time to an API not meant for bulk reads. */
+  val HISTORY_REQUEST_DELAY: FiniteDuration = 500.millis
+
   /**
    * OSM highway values that count as drivable roads for the speed-limit sign; footpaths/cycleways etc. are excluded.
    */
@@ -250,6 +395,31 @@ object OsmWayService {
       .filter(el => (el \ "type").asOpt[String].contains("way"))
       .flatMap { el => (el \ "id").asOpt[Long].map { id => id -> (el \ "tags").asOpt[JsObject].getOrElse(Json.obj()) } }
       .toMap
+  }
+
+  /**
+   * Picks, from an OSM API way-history document, the tags that best describe the way as it was last mapped.
+   *
+   * A deleted version carries `visible: false` and no tags, and a live one omits `visible`. Of the visible versions
+   * with tags, the highest-numbered one that still carries `highway` wins, so a way retagged out of the road network
+   * just before deletion is read as the road it was (our street is still one); failing that, the highest-numbered one
+   * with any tags at all.
+   *
+   * @return The chosen version's tag map, or None when no visible version carried tags.
+   */
+  def lastVisibleTags(history: JsValue): Option[JsObject] = {
+    val tagged = (history \ "elements")
+      .asOpt[Seq[JsObject]]
+      .getOrElse(Seq.empty)
+      .filter { el => (el \ "type").asOpt[String].contains("way") && (el \ "visible").asOpt[Boolean].getOrElse(true) }
+      .flatMap { el =>
+        for {
+          version <- (el \ "version").asOpt[Long]
+          tags    <- (el \ "tags").asOpt[JsObject] if tags.keys.nonEmpty
+        } yield (version, tags)
+      }
+    val roads = tagged.filter { case (_, tags) => tags.keys.contains("highway") }
+    (if (roads.nonEmpty) roads else tagged).maxByOption(_._1).map(_._2)
   }
 
   /**

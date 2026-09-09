@@ -70,6 +70,51 @@ class OsmWayServiceSpec extends PlaySpec {
     }
   }
 
+  "lastVisibleTags" should {
+
+    /** One version of a way in an OSM API history document; `tags = None` with `visible = false` is a deletion. */
+    def version(n: Long, tags: Option[JsObject], visible: Boolean = true): JsObject = {
+      Json.obj("type" -> "way", "id" -> 116721547L, "version" -> n) ++
+        (if (visible) Json.obj() else Json.obj("visible" -> false)) ++
+        tags.map(t => Json.obj("tags" -> t)).getOrElse(Json.obj())
+    }
+    def history(versions: JsObject*): JsValue = Json.obj("elements" -> versions)
+
+    val bridgeV17 = Json.obj("highway" -> "trunk", "bridge" -> "yes", "layer" -> "1", "maxspeed" -> "40 mph")
+    val bridgeV18 = bridgeV17 ++ Json.obj("parking:lane:both" -> "no_stopping")
+
+    "take the last visible version's tags of a deleted way" in {
+      val aurora = history(version(17, Some(bridgeV17)), version(18, Some(bridgeV18)), version(19, None, false))
+      OsmWayService.lastVisibleTags(aurora) mustBe Some(bridgeV18)
+    }
+
+    "prefer the last version that was still a road over a later one retagged out of the network" in {
+      val retagged = history(
+        version(3, Some(bridgeV18)),
+        version(4, Some(Json.obj("landuse" -> "construction"))),
+        version(5, None, false)
+      )
+      OsmWayService.lastVisibleTags(retagged) mustBe Some(bridgeV18)
+    }
+
+    "fall back to the last tagged version when no version carried highway" in {
+      val noRoad = history(version(1, Some(Json.obj("name" -> "Old"))), version(2, Some(Json.obj("name" -> "New"))))
+      OsmWayService.lastVisibleTags(noRoad) mustBe Some(Json.obj("name" -> "New"))
+    }
+
+    "order by version number, not document order" in {
+      val shuffled = history(version(18, Some(bridgeV18)), version(17, Some(bridgeV17)))
+      OsmWayService.lastVisibleTags(shuffled) mustBe Some(bridgeV18)
+    }
+
+    "skip versions with no tags and return None when nothing is left" in {
+      OsmWayService.lastVisibleTags(history(version(1, Some(Json.obj())), version(2, None, false))) mustBe None
+      OsmWayService.lastVisibleTags(history(version(1, None))) mustBe None
+      OsmWayService.lastVisibleTags(Json.obj("elements" -> Json.arr())) mustBe None
+      OsmWayService.lastVisibleTags(Json.obj()) mustBe None
+    }
+  }
+
   "maxspeedFrom" should {
     "extract the raw maxspeed value" in {
       OsmWayService.maxspeedFrom(Json.obj("maxspeed" -> "30")) mustBe Some("30")
