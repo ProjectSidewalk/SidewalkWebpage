@@ -20,8 +20,11 @@ import scala.concurrent.ExecutionContext
  * @param maxspeed  Raw OSM `maxspeed` tag (e.g. "25 mph", "30"); None if the way carries no maxspeed tag.
  * @param geom      Way geometry, present only on rows discovered by the on-demand point lookup (batch rows are located
  *                  via street_edge geometry instead).
- * @param source    How the row was written: "batch" (nightly refresh) or "on_demand" (point-lookup fallback).
- * @param updatedAt When the way was last fetched from Overpass; drives the staleness-based refresh.
+ * @param source       How the row was written: "batch" (nightly refresh) or "on_demand" (point-lookup fallback).
+ * @param updatedAt    When the way was last fetched from Overpass; drives the staleness-based refresh.
+ * @param missingSince When the refresh first found the way absent from OSM (deleted or merged away); None while it is
+ *                     present. The tags of a missing way are its last known ones, kept because they still describe
+ *                     the street geometry we imported (#5244).
  */
 case class OsmWay(
     osmWayId: Long,
@@ -29,7 +32,8 @@ case class OsmWay(
     maxspeed: Option[String],
     geom: Option[LineString],
     source: String,
-    updatedAt: OffsetDateTime
+    updatedAt: OffsetDateTime,
+    missingSince: Option[OffsetDateTime]
 )
 
 class OsmWayTableDef(tag: Tag) extends Table[OsmWay](tag, "osm_way") {
@@ -38,10 +42,11 @@ class OsmWayTableDef(tag: Tag) extends Table[OsmWay](tag, "osm_way") {
   def maxspeed: Rep[Option[String]] = column[Option[String]]("maxspeed")
   def geom: Rep[Option[LineString]] = column[Option[LineString]]("geom")
   // CHECK (source IN ('batch', 'on_demand')) in the DB (no Slick DSL for CHECK constraints).
-  def source: Rep[String]            = column[String]("source")
-  def updatedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("updated_at")
+  def source: Rep[String]                       = column[String]("source")
+  def updatedAt: Rep[OffsetDateTime]            = column[OffsetDateTime]("updated_at")
+  def missingSince: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("missing_since")
 
-  def * = (osmWayId, tags, maxspeed, geom, source, updatedAt) <> ((OsmWay.apply _).tupled, OsmWay.unapply)
+  def * = (osmWayId, tags, maxspeed, geom, source, updatedAt, missingSince) <> ((OsmWay.apply _).tupled, OsmWay.unapply)
 }
 
 @ImplementedBy(classOf[OsmWayTable])
@@ -98,6 +103,9 @@ class OsmWayTable @Inject() (
 
   /**
    * Gets the distinct way ids from osm_way_street_edge whose osm_way row is missing or last fetched before `cutoff`.
+   *
+   * Ways marked `missing_since` are included once they go stale like any other: re-asking Overpass for a few hundred
+   * dead ids a month is one extra request, and it is what clears the mark if a way comes back.
    */
   def getWayIdsMissingOrStale(cutoff: OffsetDateTime): DBIO[Seq[Long]] = {
     osmWayStreetEdges
@@ -130,22 +138,45 @@ class OsmWayTable @Inject() (
   def upsert(way: OsmWay): DBIO[Int] = osmWays.insertOrUpdate(way)
 
   /**
-   * Inserts or updates a batch of ways as (osm_way_id, tags, maxspeed) triples with source 'batch'.
+   * Records one refresh chunk: the ways Overpass returned, as (osm_way_id, tags, maxspeed) triples written with source
+   * 'batch', and the requested ids it did not return, which are marked missing.
+   *
+   * A found way takes the new tags and loses any `missing_since` mark. A missing way keeps its tags, maxspeed, and
+   * source untouched -- the last known tags still describe the geometry we imported, and blanking them silently turned
+   * every bridge on a dead way id into a surface street (#5244) -- and gets `missing_since` stamped on the first miss
+   * only, so the column dates the disappearance. A missing way never seen before is inserted with empty tags so it is
+   * not re-queued nightly. Both paths bump `updated_at`, which is what drives the staleness scan.
    *
    * Raw SQL rather than Slick's insertOrUpdate so that an existing row's geom survives: the nightly batch fetches tags
    * only, and overwriting geom with NULL would throw away the geometry an earlier on-demand lookup stored.
+   *
+   * @return Number of rows written, found and missing together.
    */
-  def upsertBatch(ways: Seq[(Long, JsValue, Option[String])], timestamp: OffsetDateTime): DBIO[Int] = {
-    if (ways.isEmpty) DBIO.successful(0)
+  def upsertBatch(
+      found: Seq[(Long, JsValue, Option[String])],
+      missingWayIds: Seq[Long],
+      timestamp: OffsetDateTime
+  ): DBIO[Int] = {
+    val foundActions = found.map { case (wayId, tags, maxspeed) =>
+      sqlu"""
+        INSERT INTO osm_way (osm_way_id, tags, maxspeed, source, updated_at, missing_since)
+        VALUES ($wayId, ${Json.stringify(tags)}::jsonb, $maxspeed, 'batch', $timestamp, NULL)
+        ON CONFLICT (osm_way_id) DO UPDATE
+        SET tags = EXCLUDED.tags, maxspeed = EXCLUDED.maxspeed, source = 'batch', updated_at = EXCLUDED.updated_at,
+            missing_since = NULL
+      """
+    }
+    val missingActions = missingWayIds.map { wayId =>
+      sqlu"""
+        INSERT INTO osm_way (osm_way_id, tags, maxspeed, source, updated_at, missing_since)
+        VALUES ($wayId, '{}'::jsonb, NULL, 'batch', $timestamp, $timestamp)
+        ON CONFLICT (osm_way_id) DO UPDATE
+        SET updated_at = EXCLUDED.updated_at, missing_since = COALESCE(osm_way.missing_since, EXCLUDED.missing_since)
+      """
+    }
+    val actions = foundActions ++ missingActions
+    if (actions.isEmpty) DBIO.successful(0)
     else {
-      val actions = ways.map { case (wayId, tags, maxspeed) =>
-        sqlu"""
-          INSERT INTO osm_way (osm_way_id, tags, maxspeed, source, updated_at)
-          VALUES ($wayId, ${Json.stringify(tags)}::jsonb, $maxspeed, 'batch', $timestamp)
-          ON CONFLICT (osm_way_id) DO UPDATE
-          SET tags = EXCLUDED.tags, maxspeed = EXCLUDED.maxspeed, source = 'batch', updated_at = EXCLUDED.updated_at
-        """
-      }
       // One transaction per chunk: a single commit instead of one per row, and a failed chunk leaves no partial rows.
       DBIO.sequence(actions).map(_.sum).transactionally
     }

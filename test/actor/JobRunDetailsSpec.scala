@@ -3,7 +3,7 @@ package actor
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsNull, Json}
 import service.CropService.CropRunResult
-import service.{ClusteringResults, CropSizingRule}
+import service.{ClusteringResults, CropSizingRule, OsmWayRefreshResult}
 
 /**
  * The wire shape of the run details each multi-trigger job records (#5044).
@@ -30,7 +30,8 @@ class JobRunDetailsSpec extends PlaySpec {
     }
 
     "record the OSM way refresh under the key its readers use" in {
-      OsmWayRefreshActor.runDetails(13) mustBe Json.obj("ways_refreshed" -> 13)
+      OsmWayRefreshActor.runDetails(OsmWayRefreshResult(13, 2)) mustBe
+        Json.obj("ways_refreshed" -> 13, "ways_missing" -> 2)
     }
 
     "record clustering under the keys its readers use" in {
