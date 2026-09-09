@@ -199,7 +199,10 @@ class LabelContainer {
       // later tap and keypress into a ValidateInputDropped_Loading — unusable for the validator, but at least loud.
       // Releasing the lock in the finally takes that away: the caller either swallows the rejection (Form) or drops
       // it on the floor (moveToNextLabel), so without this the tool would come back looking healthy and say nothing.
-      svv.tracker?.push('ValidateRenderFailed', { error: error.message });
+      // Read defensively rather than as a plain `error.message`: a rejection carrying something other than an Error
+      // — a bare `Promise.reject()`, a string thrown by a viewer SDK — would make this line a TypeError of its own,
+      // losing the event and handing the caller an exception unrelated to what actually failed.
+      svv.tracker?.push('ValidateRenderFailed', { error: error?.message ?? String(error) });
       throw error;
     } finally {
       // The out-of-labels path releases early on purpose, so that the modal's own disableKeyboard is what stands;

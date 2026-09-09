@@ -2224,7 +2224,7 @@ kbd {
    Beside the primitive rather than in a page stylesheet: Explore had this rule and Expert Validate, which uses the
    same markup, silently did not. */
 .severity-button:has(.severity-button__radio:focus-visible) {
-  outline: 2px solid var(--color-link-100);
+  outline: calc(2px * var(--ui-scale, 1)) solid var(--color-link-100);
   outline-offset: calc(-2px * var(--ui-scale, 1));
 }
 

@@ -271,6 +271,7 @@ describe('every menu path that writes onto the current label refuses one that is
     ['desktop', 'the disagree "other" box', "menuUI.disagreeReasonTextBox.on('input', () => {", 'DisagreeReason'],
     ['desktop', 'the unsure "other" box', "menuUI.unsureReasonTextBox.on('input', () => {", 'UnsureReason'],
     ['desktop', 'the tag adder', '#addTag(tagName, fromAiSuggestion = false) {', 'TagAdd'],
+    ['desktop', 'the tag picker', 'onItemAdd: (tagName) => {', 'TagAdd'],
     ['desktop', 'the tag remover', '#removeTag(tagName, label, fromAiSuggestion = false) {', 'TagRemove'],
     ['mobile', 'the disagree reason setter', '#setDisagreeReason(id) {', 'DisagreeReason'],
     ['mobile', 'the unsure reason setter', '#setUnsureReason(id) {', 'UnsureReason'],
@@ -294,6 +295,27 @@ describe('every menu path that writes onto the current label refuses one that is
       .find((line) => line !== '' && !line.startsWith('//'));
 
     expect(firstStatement).toBe(`if (svv.labelContainer.dropInputWhileLoading('${source}')) return;`);
+  });
+
+  // The setters these call are guarded, but each handler pushes its own tracker event first, so a guard that lived
+  // only in the setter would log the reason as chosen and then log the drop — the double-Enter case docs/logged-events
+  // asks analysts to read is the one that would appear in the log twice, once as having worked. Both handlers open
+  // with the same line, so every occurrence is checked rather than whichever one comes first.
+  test.each([['desktop'], ['mobile']])('%s: a reason button refuses before it logs', (layout) => {
+    const lines = fs.readFileSync(MENU_PATHS[layout], 'utf8').split('\n');
+    const openers = lines.reduce(
+      (acc, line, i) => (line.trim() === 'reasonButton.onclick = (e) => {' ? [...acc, i] : acc), [],
+    );
+
+    expect(openers).toHaveLength(2); // One for disagree, one for unsure.
+    for (const opener of openers) {
+      const firstStatement = lines.slice(opener + 1)
+        .map((line) => line.trim())
+        .find((line) => line !== '' && !line.startsWith('//'));
+
+      expect(firstStatement)
+        .toMatch(/^if \(svv\.labelContainer\.dropInputWhileLoading\('(Disagree|Unsure)Reason'\)\) return;$/);
+    }
   });
 });
 

@@ -50,8 +50,12 @@ class MobileValidationMenu {
     });
 
     // Add onclick for disagree and unsure reason buttons.
+    // Both loops guard ahead of their tracker push rather than leaving it to the setter they call: the push
+    // would otherwise record the reason as chosen and the drop would be logged right after it, so the one
+    // interaction the load guard exists to refuse is the one that reads in the logs as having landed (#5211).
     for (const reasonButton of this.#disagreeReasonButtons) {
       reasonButton.onclick = (e) => {
+        if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
         if (e.isTrigger) {
           svv.tracker.push(`KeyboardShortcut_DisagreeReason_Option=${$(reasonButton).attr('id')}`);
         } else {
@@ -62,6 +66,7 @@ class MobileValidationMenu {
     }
     for (const reasonButton of this.#unsureReasonButtons) {
       reasonButton.onclick = (e) => {
+        if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
         if (e.isTrigger) {
           svv.tracker.push(`KeyboardShortcut_UnsureReason_Option=${$(reasonButton).attr('id')}`);
         } else {

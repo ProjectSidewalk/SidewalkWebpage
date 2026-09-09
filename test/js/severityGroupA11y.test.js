@@ -8,7 +8,7 @@
  * tab order and the accessibility tree. That makes the group fully keyboard-operable: Tab reaches it and arrow keys
  * rove the selection, which is the radio-group pattern working as intended.
  *
- * Two things have to hold for that to be usable, and both failed silently, because neither leaves a trace in a
+ * Three things have to hold for that to be usable, and each failed silently, because none leaves a trace in a
  * rendered page a reviewer looks at with a mouse:
  *
  *   - The focus ring has to be drawn on the wrapping label. The radio is what takes focus, but it paints nothing and
@@ -17,6 +17,10 @@
  *     the keyboard with no visible focus at all (WCAG 2.4.7). The rule now sits in main.css beside the primitive.
  *   - The group needs an accessible name, or it announces as "1, radio button, 1 of 3" with no indication of what is
  *     being rated.
+ *   - Whichever radio is `checked` is what a screen reader reads back as the current rating, and the visible
+ *     selection — a smiley `<img>` swap — announces nothing. Explore is safe by construction: its radios are the
+ *     source of truth and the icons are derived from them. Expert Validate runs the other way round, off the label's
+ *     `newSeverity`, so its renderer has to write `checked` too or a rating stays announced under the next label.
  */
 
 const fs = require('fs');
@@ -81,5 +85,19 @@ describe('the severity rating group is operable and announced', () => {
     expect(holder).toContain('role="radiogroup"');
     expect(holder).toContain(`aria-labelledby="${headerId}"`);
     expect(view).toContain(`id="${headerId}"`);
+  });
+
+  // Only Expert Validate: Explore reads `checked` to pick its icons, so the two cannot disagree there, while Validate
+  // derives both from the label's newSeverity and so has to write each. The two writes are pinned to one loop body
+  // rather than to the file, since a checked write somewhere else in the class is what a drift would look like.
+  // Source-level because the renderer is a #private method on a class that needs jQuery, i18next and Bootstrap.
+  test('Expert Validate writes the checked state alongside the smiley it swaps', () => {
+    const lines = fs.readFileSync(
+      path.join(REPO_ROOT, 'public/js/validate/src/menu/DesktopValidationMenu.js'), 'utf8',
+    ).split('\n');
+    const iconSwap = lines.findIndex((line) => line.includes('getSmileyIconPath('));
+
+    expect(iconSwap).toBeGreaterThan(-1);
+    expect(lines.slice(iconSwap, iconSwap + 10).join('\n')).toContain('radio.checked = ');
   });
 });

@@ -81,6 +81,11 @@ class DesktopValidationMenu {
           svv.tracker.push('Click=TagSearch');
         },
         onItemAdd: (tagName) => {
+          // Guarded ahead of #addTag's own guard, which is one line too late for this list: mid-load the tag is not
+          // added but would still be remembered as user-added, and #tagsAddedByUser is what suppresses an AI
+          // suggestion to remove a tag. resetMenu has already cleared it for the incoming label by then, so the
+          // entry would be attributed to a label the validator never touched (#5211).
+          if (svv.labelContainer.dropInputWhileLoading('TagAdd')) return;
           this.#tagsAddedByUser.push(tagName);
           this.#addTag(tagName, false);
         },
@@ -98,8 +103,12 @@ class DesktopValidationMenu {
     }
 
     // Add onclick for disagree and unsure reason buttons.
+    // Both loops guard ahead of their tracker push rather than leaving it to the setter they call: the push
+    // would otherwise record the reason as chosen and the drop would be logged right after it, so the one
+    // interaction the load guard exists to refuse is the one that reads in the logs as having landed (#5211).
     for (const reasonButton of this.#disagreeReasonButtons) {
       reasonButton.onclick = (e) => {
+        if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
         if (e.isTrigger) {
           svv.tracker.push(`KeyboardShortcut_DisagreeReason_Option=${$(reasonButton).attr('id')}`);
         } else {
@@ -110,6 +119,7 @@ class DesktopValidationMenu {
     }
     for (const reasonButton of this.#unsureReasonButtons) {
       reasonButton.onclick = (e) => {
+        if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
         if (e.isTrigger) {
           svv.tracker.push(`KeyboardShortcut_UnsureReason_Option=${$(reasonButton).attr('id')}`);
         } else {
@@ -521,6 +531,14 @@ class DesktopValidationMenu {
         const sev = Number(button.dataset.severity);
         const img = button.querySelector('.severity-button__icon');
         if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === Number(severity));
+        // The radio is the only thing carrying the selection into the accessibility tree — the smiley above is an
+        // <img> swap, which announces nothing — and the holder is a `radiogroup`, so the checked radio is what a
+        // screen reader reads back as the current rating. Nothing else writes it: a native click on the wrapping
+        // label checks it, and it then stays checked across labels, so an unrated label would announce the previous
+        // one's rating and an undo would announce whatever was clicked last rather than what it stored. NaN when
+        // there is no rating, which no `sev` equals, so the whole group goes unchecked.
+        const radio = button.querySelector('.severity-button__radio');
+        if (radio) radio.checked = sev === Number(severity);
       });
     }
   }
