@@ -198,7 +198,7 @@ object CropService {
  * and a change to the crop geometry is a matter of deleting the store and letting the job rebuild it. The job cuts
  * label-sized windows only — never a whole-pano display copy. Precomputing one for every wide pano nightly is what
  * OOM-killed prod JVMs (#5239): not because the app can't downscale a pano ([[PanoDisplayCopyService]] does it in
- * ~105 MB) but because doing it for a whole store, for copies almost nothing displays, never was.
+ * ~105 MB) but because doing it for a whole store, for copies almost nothing displays, was never worth it.
  */
 @ImplementedBy(classOf[CropServiceImpl])
 trait CropService {

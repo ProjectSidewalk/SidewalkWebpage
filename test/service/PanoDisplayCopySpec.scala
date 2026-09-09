@@ -35,11 +35,24 @@ class PanoDisplayCopySpec extends PlaySpec {
     }
   }
 
+  "PanoDisplayCopyService.AllowedWidths" should {
+    "stay ascending, since snapToAllowed reads the last one at or under the request" in {
+      PanoDisplayCopyService.AllowedWidths mustBe PanoDisplayCopyService.AllowedWidths.sorted
+    }
+
+    "stop below the width whose raster would not fit the heap the concurrency cap is sized for" in {
+      // 16384 x 8192 x 3 bytes is 384 MiB, against the ~105 MB two concurrent cuts are budgeted at.
+      PanoDisplayCopyService.AllowedWidths.max mustBe 8192
+    }
+  }
+
   "PanoDisplayCopyService.snapToAllowed" should {
     "never hand back more than the device asked for" in {
       PanoDisplayCopyService.snapToAllowed(8192) mustBe 8192
       PanoDisplayCopyService.snapToAllowed(8191) mustBe 4096
-      PanoDisplayCopyService.snapToAllowed(99999) mustBe 16384
+      // Above the range it saturates at the widest allowed, which is 8192: cutting at 16384 could only ever apply
+      // to a source wider than anything GSV produces, and would cost a 384 MiB raster to do it.
+      PanoDisplayCopyService.snapToAllowed(99999) mustBe 8192
     }
 
     "give the smallest allowed width to a device below the whole range" in {

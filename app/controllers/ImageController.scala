@@ -18,6 +18,7 @@ import javax.imageio.ImageIO
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
+import scala.util.control.NonFatal
 
 @Singleton
 class ImageController @Inject() (
@@ -151,7 +152,12 @@ class ImageController @Inject() (
             val chosen    = requested.map(service.PanoDisplayCopyService.snapToAllowed)
             val fileF     = chosen match {
               case Some(maxWidth) =>
-                displayCopyService.displayCopy(panoId, native, maxWidth).map(_.getOrElse(native))
+                // The service answers None rather than failing, but the fallback is the route's contract, so it is
+                // stated here too: no way for a copy to go wrong should cost the caller the file it asked for.
+                displayCopyService
+                  .displayCopy(panoId, native, maxWidth)
+                  .map(_.getOrElse(native))
+                  .recover { case NonFatal(_) => native }
               case None => Future.successful(native)
             }
             fileF.map { file =>

@@ -322,6 +322,14 @@ store nothing in the app writes. The downscaled display copies of panos too wide
 demand into `SIDEWALK_IMAGES_DIR` instead, under `pano-display/` beside the crops (#5256), so the pano store holds
 nothing derived and anything copying it can take the directory whole.
 
+`pano-display/` is derived, disposable and deliberately unpruned. Deleting it, whole or in part, costs a ~2 s re-cut
+the next time a device asks for one. Nothing sweeps it because ordinary use cannot grow it: a copy is cut only for a
+pano too wide for the requesting device, only at one of three allowed widths, and only for the small minority of
+hardware that cannot texture the native file — the five largest cities hold 140,599 wide expired panos between them
+and served 29 views of one in ninety days. The ceiling is three files per wide backed-up pano, which is reachable
+only by walking every pano on purpose through a two-thread cut pool over days. If that ever shows up as disk
+pressure, deleting the directory is the entire remedy.
+
 **Moving a crop store is a decision about `label_crop` too.** Where a crop's size cannot say which writer produced
 it, the reconcile pass falls back to the file's mtime against the label's own timestamp (`CropService`'s
 `ExploreUploadWindow`). A store restored from backup, `cp`'d, or `rsync`'d without `-t`/`-a` carries the copy's time

@@ -51,14 +51,17 @@ const deviceMaxPanoWidth = () => {
 const panoramaUrlFor = (metadata) => {
   const cap = deviceMaxPanoWidth();
   if (!cap || !metadata.width || metadata.width <= cap) return metadata.imageUrl;
-  return withMaxWidth(metadata.imageUrl, cap);
+  return panoUrlWithMaxWidth(metadata.imageUrl, cap);
 };
 
+// These are top-level declarations in a file Grunt concatenates into one bundle with a dozen others, so a name that
+// reads generically here is a site-wide SyntaxError if any of them ever declares it too. Hence the pano- prefixes.
+
 /** @returns {string} `url` with a maxWidth the server will honour. */
-const withMaxWidth = (url, width) => `${url}${url.includes('?') ? '&' : '?'}maxWidth=${width}`;
+const panoUrlWithMaxWidth = (url, width) => `${url}${url.includes('?') ? '&' : '?'}maxWidth=${width}`;
 
 /** The narrowest copy worth asking for; below this the server's allowlist snaps up anyway. */
-const MIN_FALLBACK_WIDTH = 2048;
+const PANO_MIN_FALLBACK_WIDTH = 2048;
 
 /**
  * The URLs to try for a panorama, widest first.
@@ -69,16 +72,24 @@ const MIN_FALLBACK_WIDTH = 2048;
  * memory pressure fails a load its own `MAX_TEXTURE_SIZE` said would work. Nothing readable from the page predicts
  * that, so the fallback is to be told by the failure and ask for half as much.
  *
+ * The ladder steps down from the width the first candidate is actually served at, which is the pano's own width
+ * whenever that is under the cap. Stepping down from the cap instead spends rungs on widths at or above the pano,
+ * and the server answers those with the native file — so the "retry" re-fetches, re-decodes and re-uploads the
+ * image that just failed, making the next allocation likelier to fail rather than less.
+ *
  * @param {object} metadata Pano metadata; uses `imageUrl` and `width`.
  * @returns {string[]} Candidate URLs, in the order they should be tried.
  */
 const panoramaUrlCandidates = (metadata) => {
   const urls = [panoramaUrlFor(metadata)];
   const cap = deviceMaxPanoWidth();
-  const start = cap || metadata.width || 0;
+  const start = Math.min(cap || Infinity, metadata.width || Infinity);
+  // With neither a cap nor a width there is nothing to step down from, and a guess would ask for a width the
+  // allowlist would only snap back up.
+  if (!Number.isFinite(start)) return urls;
   // Two retries: a device that can't hold a quarter of what it advertised is not going to be rescued by an eighth.
-  for (let w = Math.floor(start / 2); w >= MIN_FALLBACK_WIDTH && urls.length < 3; w = Math.floor(w / 2)) {
-    urls.push(withMaxWidth(metadata.imageUrl, w));
+  for (let w = Math.floor(start / 2); w >= PANO_MIN_FALLBACK_WIDTH && urls.length < 3; w = Math.floor(w / 2)) {
+    urls.push(panoUrlWithMaxWidth(metadata.imageUrl, w));
   }
   return urls;
 };
@@ -282,13 +293,14 @@ class PannellumViewer extends PanoViewer {
           });
           break;
         } catch (e) {
-          // The failed scene keeps its URL, so it has to go before the same id can be added at a smaller size.
-          try {
-            this.#viewer.removeScene(panoId);
-          } catch {
-            // Pannellum throws when the scene isn't there, which is fine -- we only wanted it gone.
+          // No teardown between rungs: addScene overwrites the entry, and removeScene would refuse anyway, since
+          // loadScene has already made this the current scene and Pannellum will not remove that one.
+          if (attempt === candidates.length - 1) {
+            // Pannellum is showing its own error table with the render container hidden. Leaving the id here would
+            // let a later label on this same pano take the "already loaded" path and draw its marker over that.
+            this.#currentSceneId = undefined;
+            throw e;
           }
-          if (attempt === candidates.length - 1) throw e;
           console.warn(`Pano ${panoId} failed to load; retrying at a smaller size.`, e);
         }
       }
@@ -301,13 +313,9 @@ class PannellumViewer extends PanoViewer {
     this.currPanoData = this.#buildPanoData(panoId, metadata);
     this.#currentSceneId = panoId;
 
-    if (oldSceneId) {
-      try {
-        this.#viewer.removeScene(oldSceneId);
-      } catch {
-        // Pannellum throws if the scene doesn't exist; safe to ignore since we only wanted it gone anyway.
-      }
-    }
+    // Safe unguarded: removeScene returns false for an id it won't drop rather than throwing, and the one id it
+    // refuses is the current scene, which by here is the new pano rather than this one.
+    if (oldSceneId) this.#viewer.removeScene(oldSceneId);
 
     for (const listener of this.panoChangedListeners) await listener();
     return this.currPanoData;

@@ -109,9 +109,11 @@ cuts a copy at that width on demand, caching it under the crop store (#5256).
 
 The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
 downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,
-never was. On-demand costs ~105 MB and ~2 s per copy, by letting the JPEG decoder subsample rather than decoding and
-rescaling; the trade is pixel-dropping instead of area-averaging, taken deliberately given how rarely it runs. Imagery Project Sidewalk shows a copy of — a self-hosted pano or a
-crop — carries the attribution
+was never worth it. On-demand costs ~105 MB and ~2 s per copy, by letting the JPEG decoder subsample rather than
+decoding and rescaling; the trade is pixel-dropping instead of area-averaging, taken deliberately given how rarely
+it runs.
+
+Imagery Project Sidewalk shows a copy of — a self-hosted pano or a crop — carries the attribution
 `ImageryAttribution` composes (Mapillary contributors are CC BY-SA 4.0), rendered by `PanoAttribution.js` in the
 label-detail pano box and in Validate's Pannellum fallback (`css/components/pano-attribution.css` is the shared look;
 each host positions the pill).
