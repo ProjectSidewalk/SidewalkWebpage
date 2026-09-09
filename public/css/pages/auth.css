@@ -932,8 +932,22 @@ dialog.au-dialog::backdrop {
   color: var(--color-neutral-700);
 }
 
+.wl-privacy-status.saved {
+  color: var(--color-pine-800);
+}
+
 .wl-privacy-status.failed {
   color: var(--color-error-300);
+}
+
+/* A disabled box means JavaScript hasn't enabled it, so the whole panel reads as unavailable rather than broken. */
+.wl-check input:disabled {
+  cursor: not-allowed;
+}
+
+.wl-check:has(input:disabled) {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .wl-hint {
@@ -950,27 +964,20 @@ dialog.au-dialog::backdrop {
 /* ---- Service-hours instructions page --------------------------------------------------------------------------- */
 
 /*
- * Two concentric columns: a wide one for prose, a narrow one for the cards. Blocks in one are border-box so a stated
- * width is the edge the reader sees — under content-box each block's own padding pushed its edge out by a different
- * amount and the column read as ragged.
+ * Two concentric columns: a wide one for prose, a narrow one for the cards. Named so a page can pick one for all of
+ * its blocks instead of each block choosing for itself; Bootstrap's global `* { box-sizing: border-box }` means a
+ * stated width is already the edge the reader sees.
  */
 .sh-page {
-  --sh-column: 828px;
-  --sh-column-narrow: 608px;
+  --sh-column: 760px;
+  --sh-column-narrow: 560px;
 
+  /* The gutter lives here so every block gets one: the cards set a max-width and centre, which leaves them flush
+     against the screen edge on any viewport narrower than that. Wider than the column it has no visual effect. */
+  padding-inline: 16px;
   background: var(--color-neutral-white);
   color: var(--color-neutral-900);
   font: var(--text-body-regular);
-}
-
-.sh-hero,
-.sh-track,
-.sh-super,
-.sh-main,
-.tc-stat,
-.tc-cities,
-.tc-incomplete {
-  box-sizing: border-box;
 }
 
 .sh-hero {
@@ -1002,8 +1009,9 @@ dialog.au-dialog::backdrop {
 }
 
 /* Time Check is cards the whole way down, so it runs entirely in the narrow column, hero included — the hero is the
-   lede for the big number directly below it. */
-.tc-page {
+   lede for the big number directly below it. Both classes sit on the same element, so this has to out-specify
+   `.sh-page` rather than merely follow it. */
+.sh-page.tc-page {
   --sh-column: var(--sh-column-narrow);
 }
 
@@ -1011,7 +1019,8 @@ dialog.au-dialog::backdrop {
   text-align: center;
 }
 
-/* Cards here, not prose, so they sit on the column edge rather than indented like the instructions page. */
+/* Cards here, not prose, so they sit on the column edge rather than indented like the instructions page. The page's
+   own gutter keeps them off the screen edge on a narrow viewport. */
 .tc-page .sh-main {
   padding-inline: 0;
 }

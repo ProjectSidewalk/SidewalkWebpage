@@ -80,25 +80,31 @@
         }
         <div class="wl-privacy-toggles">
           <label class="wl-check" for="wl-on-leaderboard">
-            <input type="checkbox" id="wl-on-leaderboard" @if(onLeaderboard){checked}>
+            <input type="checkbox" id="wl-on-leaderboard" disabled @if(onLeaderboard){checked}>
             <span>
               <strong>@Messages("dashboard.settings.leaderboard.toggle")</strong>
               <span class="wl-check-help">@Messages("dashboard.settings.leaderboard.help")</span>
             </span>
           </label>
           <label class="wl-check" for="wl-public-profile">
-            <input type="checkbox" id="wl-public-profile" @if(publicProfile){checked}>
+            <input type="checkbox" id="wl-public-profile" disabled @if(publicProfile){checked}>
             <span>
               <strong>@Messages("dashboard.settings.public.toggle")</strong>
               <span class="wl-check-help">@Messages("dashboard.settings.public.help")</span>
             </span>
           </label>
         </div>
+        @* These toggles save over fetch, so without scripting they would tick and silently write nothing — a bad
+         * failure for a privacy control. They render disabled and JS enables them; this names the way out. *@
+        <noscript>
+          <p class="wl-privacy-body">@Html(Messages("welcome.privacy.noscript", routes.UserDashboardController.settings.url))</p>
+        </noscript>
         <p class="wl-privacy-status" id="wl-privacy-status" role="status" aria-live="polite"></p>
       </div>
       <p class="wl-hint">@Html(Messages("welcome.hint.username", routes.UserDashboardController.settings.url))</p>
     </div>
   </div>
+  <script src="@assets.path("js/common/saveUserSettings.js")"></script>
   <script src="@assets.path("js/common/WelcomePrivacy.js")"></script>
   <script>
     // appManager.ready (not DOMContentLoaded) so i18next is initialized before a save status string can be shown.

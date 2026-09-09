@@ -419,6 +419,7 @@ welcome.cta.dashboard = Mijn dashboard bekijken
 welcome.privacy.title = Wie jou kan zien
 welcome.privacy.body = Je gebruikersnaam “{0}” en je voortgang kunnen verschijnen op het openbare scoreboard en op je profielpagina, die iedereen kan bekijken. Jij kiest, en je kunt je keuze altijd wijzigen bij Instellingen.
 welcome.privacy.default.private = Deze omgeving houdt nieuwe accounts standaard privé, dus hieronder wordt niets gedeeld totdat je het aanzet.
+welcome.privacy.noscript = Voor het aan- en uitzetten hiervan is JavaScript nodig. Je kunt het altijd wijzigen in <a href="{0}">Dashboard → Instellingen</a>.
 welcome.hint.username = Je kunt je gebruikersnaam altijd wijzigen in <a href="{0}">Dashboard → Instellingen</a>.
 welcome.service.prompt = Breng je in kaart voor school- of vrijwilligersuren?
 welcome.service.button = Aanmelden voor serviceuren

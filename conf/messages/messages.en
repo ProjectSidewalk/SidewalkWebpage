@@ -435,6 +435,7 @@ welcome.cta.dashboard = See my dashboard
 welcome.privacy.title = Who can see you
 welcome.privacy.body = Your username “{0}” and your progress can show up on the public leaderboard and on your profile page, which anyone can visit. You choose — and you can change your mind anytime in Settings.
 welcome.privacy.default.private = This deployment keeps new accounts private by default, so nothing below is shared until you turn it on.
+welcome.privacy.noscript = Turning these on and off needs JavaScript. You can change them anytime in <a href="{0}">Dashboard → Settings</a>.
 welcome.hint.username = You can change your username anytime in <a href="{0}">Dashboard → Settings</a>.
 welcome.service.prompt = Mapping for school or volunteer credit?
 welcome.service.button = Sign me up for service hours

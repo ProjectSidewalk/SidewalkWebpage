@@ -66,4 +66,10 @@ class ProfanityGuardSpec extends AnyFunSuite with Matchers {
     ProfanityGuard.isClean("Beacon Hill Walkers") shouldBe true
     ProfanityGuard.isClean("map-nerd-42") shouldBe true
   }
+
+  test("a run of nothing but tiny words is still glued, false positives included") {
+    // The known cost of catching "s h i t": prose that strings short words together can be refused, and the author
+    // isn't told which ones did it. Pinned so the limitation stays visible rather than being assumed fixed.
+    ProfanityGuard.isClean("The ramp up is so steep.") shouldBe false
+  }
 }

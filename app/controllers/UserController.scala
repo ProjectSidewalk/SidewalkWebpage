@@ -525,7 +525,7 @@ class UserController @Inject() (
           // was pulled out of mid-task, and the CTA should say so rather than read as "go start something new".
           val resumedPath                    = resumeUrl.takeWhile(_ != '?')
           val resumed                        = resumedPath != "/" && resumedPath != "/explore"
-          val (onLeaderboard, publicProfile) = privacy.getOrElse((true, true))
+          val (onLeaderboard, publicProfile) = privacy.getOrElse(configService.defaultPrivacyFlags)
           Ok(
             views.html.authentication.welcome(commonData, user, resumeUrl, resumed, onLeaderboard, publicProfile,
               configService.getPrivateProfilesByDefault)

@@ -37,7 +37,7 @@ object ProfanityGuard {
     'b' -> "8вβ",
     'c' -> "(<с",
     'd' -> "đ",
-    'e' -> "3£€еёε",
+    'e' -> "3£€еε",
     'g' -> "69",
     'h' -> "нħ",
     'i' -> "1!|іιı",
@@ -64,21 +64,34 @@ object ProfanityGuard {
   // id reads as "...fag..." often enough to matter. Shorter terms are only matched against what was actually typed.
   private val minLeetspeakTermLength: Int = 4
 
-  /** Squashes each run of the same letter down to one, so "fuuuuck" reads as "fuck". */
-  private def squashRepeats(s: String): String =
-    s.foldLeft(new StringBuilder)((out, c) => if (out.lastOption.contains(c)) out else out += c).toString
+  // Only a run longer than any a real word doubles up is treated as stretching. Collapsing doubles instead would
+  // read "shiitake" as "shitake", "snazziest" as "snaziest" and "whittler" as "whitler" — all blocked, none diagnosable.
+  private val minStretchedRun: Int = 3
+
+  /** Collapses runs of 3+ of the same letter to one, so "shiiiiit" reads as "shit" but "shiitake" is left alone. */
+  private def unstretch(s: String): String = {
+    val out = new StringBuilder
+    var i   = 0
+    while (i < s.length) {
+      var run = 1
+      while (i + run < s.length && s(i + run) == s(i)) run += 1
+      out ++= s(i).toString * (if (run >= minStretchedRun) 1 else run)
+      i += run
+    }
+    out.toString
+  }
 
   /**
-   * @param literal  Every term, looked for in the word as-is.
-   * @param squashed Only terms spelling no doubled letter: squashing "kkk" leaves "k", which matches almost anything.
+   * @param literal   Every term, looked for in the word as-is.
+   * @param unstretched Only terms spelling no doubled letter: collapsing "kkk" leaves "k", which matches anything.
    */
-  private case class TermSet(literal: Set[String], squashed: Set[String]) {
+  private case class TermSet(literal: Set[String], unstretched: Set[String]) {
     def matches(word: String): Boolean =
-      literal.exists(word.contains) || squashed.exists(squashRepeats(word).contains)
+      literal.exists(word.contains) || unstretched.exists(unstretch(word).contains)
   }
 
   private object TermSet {
-    def of(terms: Set[String]): TermSet = TermSet(terms, terms.filter(term => squashRepeats(term) == term))
+    def of(terms: Set[String]): TermSet = TermSet(terms, terms.filter(term => unstretch(term) == term))
   }
 
   private val typedTerms: TermSet     = TermSet.of(blockedRot13.map(rot13))
@@ -101,14 +114,26 @@ object ProfanityGuard {
       .toSeq
   }
 
-  /** Glues each stretch of very short words together, so "s h i t" reads as what it spells. */
-  private def spelledOutRuns(words: Seq[String]): Seq[String] = {
-    words
-      .foldRight(List(List.empty[String])) { (word, runs) =>
-        if (word.length > maxSpelledOutPieceLength) Nil :: runs else (word :: runs.head) :: runs.tail
+  /**
+   * The ways a word could have been broken up to hide it, glued back together.
+   *
+   * Two shapes, because splitting a term takes two forms: spelled right out ("s h i t"), which leaves a run of tiny
+   * pieces; and snapped once ("shi t", "fuc k"), which leaves one ordinary-looking piece beside a stub. A pair is
+   * only joined when one side is a stub, so ordinary neighbours stay apart — "Sofa Gallery" must not read as a slur.
+   *
+   * Runs of nothing but stubs are the unavoidable cost: "the ramp up is so steep" glues to "...upisso...". Prose that
+   * happens to string short words together can still be refused, which is why the guard is paired with reporting.
+   */
+  private def hiddenJoins(words: Seq[String]): Seq[String] = {
+    def isStub(word: String) = word.length <= maxSpelledOutPieceLength
+    val runs                 = words
+      .foldRight(List(List.empty[String])) { (word, acc) =>
+        if (isStub(word)) (word :: acc.head) :: acc.tail else Nil :: acc
       }
       .filter(_.length > 1)
       .map(_.mkString)
+    val pairs = words.sliding(2).collect { case Seq(a, b) if isStub(a) || isStub(b) => a + b }.toSeq
+    runs ++ pairs
   }
 
   /**
@@ -118,7 +143,7 @@ object ProfanityGuard {
   def isClean(text: String): Boolean = {
     def clean(readDigitsAsLetters: Boolean, terms: TermSet): Boolean = {
       val words = toWords(text, readDigitsAsLetters)
-      !(words ++ spelledOutRuns(words)).exists(terms.matches)
+      !(words ++ hiddenJoins(words)).exists(terms.matches)
     }
     clean(readDigitsAsLetters = false, typedTerms) && clean(readDigitsAsLetters = true, leetspeakTerms)
   }

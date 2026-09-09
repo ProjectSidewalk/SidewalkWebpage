@@ -441,6 +441,7 @@ welcome.cta.dashboard = Voir mon tableau de bord
 welcome.privacy.title = Qui peut vous voir
 welcome.privacy.body = Votre nom d''utilisateur « {0} » et votre progression peuvent apparaître au classement public et sur votre page de profil, que tout le monde peut consulter. C''est vous qui décidez, et vous pouvez changer d''avis à tout moment dans les Paramètres.
 welcome.privacy.default.private = Ce déploiement garde les nouveaux comptes privés par défaut : rien de ce qui suit n''est partagé tant que vous ne l''activez pas.
+welcome.privacy.noscript = Activer ou désactiver ces options nécessite JavaScript. Vous pouvez les changer à tout moment dans <a href="{0}">Tableau de bord → Paramètres</a>.
 welcome.hint.username = Vous pouvez changer votre nom d''utilisateur à tout moment dans <a href="{0}">Tableau de bord → Paramètres</a>.
 welcome.service.prompt = Vous cartographiez pour l''école ou pour des heures de bénévolat ?
 welcome.service.button = M''inscrire aux heures de bénévolat

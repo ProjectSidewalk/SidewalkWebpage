@@ -432,6 +432,7 @@ welcome.cta.dashboard = Ver mi panel
 welcome.privacy.title = Quién puede verte
 welcome.privacy.body = Tu nombre de usuario «{0}» y tu progreso pueden aparecer en la tabla de clasificación pública y en tu página de perfil, que cualquiera puede visitar. Tú decides, y puedes cambiar de opinión cuando quieras en Configuración.
 welcome.privacy.default.private = Esta implementación mantiene las cuentas nuevas privadas de forma predeterminada, así que no se comparte nada de lo siguiente hasta que lo actives.
+welcome.privacy.noscript = Para activar y desactivar estas opciones hace falta JavaScript. Puedes cambiarlas cuando quieras en <a href="{0}">Panel → Configuración</a>.
 welcome.hint.username = Puedes cambiar tu nombre de usuario cuando quieras en <a href="{0}">Panel → Configuración</a>.
 welcome.service.prompt = ¿Mapeas por créditos escolares o de voluntariado?
 welcome.service.button = Inscribirme en horas de servicio

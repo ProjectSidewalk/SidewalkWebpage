@@ -9,10 +9,10 @@
 * real sequence: learn → map an hour → email for feedback → repeat until cleared.
 *@
 
-@* One place for the supervisor's details: the copy names them in four spots, and a stale address is a dead end for
- * someone trying to submit hours. Initials are derived so the avatar can't drift from the name. *@
-@supervisorName = @{"Mikey Saugstad"}
-@supervisorEmail = @{"volunteer.sidewalk@gmail.com"}
+@* Both come from config so this page, /timeCheck and the address people submit all name the same person; a stale
+ * address is a dead end for someone trying to submit hours. Initials derive from the name so they can't drift. *@
+@supervisorName = @{commonData.volunteerSupervisor}
+@supervisorEmail = @{commonData.volunteerEmail}
 @supervisorInitials = @{supervisorName.split(" ").map(_.head).mkString}
 
 @* Step 2 tells the reader to click the button by name, so both read the same key. *@

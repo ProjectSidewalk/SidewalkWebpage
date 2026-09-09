@@ -496,6 +496,7 @@ welcome.cta.dashboard = 查看我的儀表板
 welcome.privacy.title = 誰可以看到您
 welcome.privacy.body = 您的使用者名稱「{0}」和您的進度可能會顯示在公開排行榜和您的個人檔案頁面上，任何人都可以瀏覽。由您決定 — 而且隨時可以在設定中變更。
 welcome.privacy.default.private = 此部署的新帳號預設為私人，因此在您開啟之前，以下內容都不會分享。
+welcome.privacy.noscript = 開啟或關閉這些選項需要 JavaScript。您隨時可以在 <a href="{0}">儀表板 → 設定</a> 中變更。
 welcome.hint.username = 您隨時可以在 <a href="{0}">儀表板 → 設定</a> 中變更使用者名稱。
 welcome.service.prompt = 為了學校或志工時數而標記嗎？
 welcome.service.button = 報名服務時數
