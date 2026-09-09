@@ -1665,8 +1665,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _vc._6
     )
 
-    // Get the most recent matching validation for each label.
-    _validations.sortBy(r => (r._1, r._9.desc)).distinctOn(_._1)
+    // Keep only the most recent matching validation for each label: newest first, then one row per label. Sort on the
+    // validation's timestamp (_10), not the label type (_9) -- the query already filters to a single label type, so
+    // every row shares it and sorting on it picks an arbitrary validation.
+    _validations.sortBy(r => (r._1, r._10.desc)).distinctOn(_._1)
   }
 
   /**
