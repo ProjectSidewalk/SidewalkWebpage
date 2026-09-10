@@ -559,7 +559,10 @@
                 </div>
                 @* Radios, not toggle buttons: a rating is pick-one where tags are pick-any, and the segmented
                    enclosure in CSS is the visual half of that same statement. *@
-                <div id="severity-radio-holder" class="severity-segments">
+                @* Named by the header text alone, not the whole header: aria-labelledby on the header div would pull
+                   the info icon's alt into the announcement. Unnamed, the group announces "1, radio button, 1 of 3"
+                   without saying what is being rated. *@
+                <div id="severity-radio-holder" class="severity-segments" role="radiogroup" aria-labelledby="severity-header-text">
                   <label class="severity-button" for="explore-severity-radio-1" data-severity="1" data-toggle="tooltip">
                     <input type="radio" name="label-severity" id="explore-severity-radio-1" value="1" class="severity-button__radio">
                     <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
@@ -866,6 +869,9 @@
   <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
   <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
   <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  } else if (commonData.imagerySource == PanoSource.Panoramax) {
+  <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
+  <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
   }
   <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
   <script src='@assets.path("vendor/floating-ui/floating-ui.core-1.7.5.umd.min.js")'></script>
@@ -975,6 +981,12 @@
     mainParam.routeResumed = @data.routeResumed;
     }
 
+    @* A ?routeId= naming no live route was dropped rather than obeyed, so the session is not the one the link asked
+       for (#5156). Emitted only when it happened, so the ordinary page carries nothing extra. *@
+    @if(data.routeUnavailable) {
+    mainParam.routeUnavailable = true;
+    }
+
     @* Optional pano seed: an admin auditing a specific street from a pano/lat-lng, or an address drop-in (#4451). *@
     @if(lat.isDefined && lng.isDefined) {
     mainParam.startLat = @lat.get;
@@ -1004,7 +1016,8 @@
        the server-side one. *@
     mainParam.latLngEstimation = @jsonForScript(service.PanoDataService.LatLngEstimation.asJson);
     const imagerySrc = "@commonData.imagerySource.toString";
-    mainParam.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+    mainParam.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
+      : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
     mainParam.viewerAccessToken = "@commonData.imageryAccessToken";
 
     window.appManager.ready(function () {

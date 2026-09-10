@@ -22,8 +22,8 @@ not install Scala, Node, or Postgres directly — you only need Docker, Git, and
   [Mapbox](https://docs.mapbox.com/help/getting-started/access-tokens/) keys and add them to the override file.
 
 The dev setup is geared toward team members. If you're outside the team and want to stand up a server for a city we
-don't support, start with the [Creating a database for a new city](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Creating-database-for-a-new-city)
-wiki page — that's a substantial GIS task on its own.
+don't support, start with [Onboarding a city](onboarding-a-city.md) — the tooling builds the streets and regions from
+open data and fills a schema; the server side is still on you.
 
 ---
 
@@ -154,11 +154,15 @@ npm start         # (inside that shell) build assets + run the app
 
 Then visit http://localhost:9000. To stop everything: `make docker-stop`.
 
+`make dev` also keeps `node_modules` in step with `package-lock.json`, reinstalling only when the two have diverged.
+See [npm dependencies](#npm-dependencies).
+
 Other handy targets:
 
 | Command | What it does |
 |---------|--------------|
-| `make docker-up` | Start all services detached (no shell). |
+| `make docker-up` | Start all services detached (no shell). Useful for `db` only: the web container exits at once, its image command being `jshell`, which reads EOF without a TTY. |
+| `make npm-sync` | Reinstall `node_modules` from `package-lock.json` if they've diverged. |
 | `make ssh target=web` | Open a shell in a running container (`target=web` or `target=db`). |
 
 ---
@@ -183,33 +187,36 @@ truth**; the snapshot below is a convenience copy (it may lag as new cities are 
 
 | City ID | Database User | | City ID | Database User |
 | --- | --- | --- | --- | --- |
-| seattle-wa | sidewalk_seattle | | madison-wi | sidewalk_madison |
-| columbus-oh | sidewalk_columbus | | tainan-nj | sidewalk_tainan |
-| cdmx | sidewalk_cdmx | | niagara-falls-nj | sidewalk_niagara_falls |
-| spgg | sidewalk_spgg | | chandigarh-india | sidewalk_chandigarh |
-| pittsburgh-pa | sidewalk_pittsburgh | | vancouver-wa | sidewalk_vancouver |
-| newberg-or | sidewalk_newberg | | rancagua-chile | sidewalk_rancagua |
-| washington-dc | sidewalk | | santiago-chile | sidewalk_santiago |
-| chicago-il | sidewalk_chicago | | tucson-az | sidewalk_tucson |
-| amsterdam | sidewalk_amsterdam | | paterson-nj | sidewalk_paterson |
-| la-piedad | sidewalk_la_piedad | | richmond-va | sidewalk_richmond |
-| oradell-nj | sidewalk_oradell | | fort-wayne-in | sidewalk_fort_wayne |
-| validation-study | sidewalk_validation | | virden-il | sidewalk_virden |
-| zurich | sidewalk_zurich | | gainesville-fl | sidewalk_gainesville |
-| taipei | sidewalk_taipei | | sao-paulo-brazil | sidewalk_sao_paulo |
-| new-taipei-tw | sidewalk_new_taipei | | winterthur-infra3d | sidewalk_winterthur_infra3d |
-| keelung-tw | sidewalk_keelung | | waltham-ma | sidewalk_waltham |
-| auckland | sidewalk_auckland | | knox-oh | sidewalk_knox |
-| cuenca | sidewalk_cuenca | | kaohsiung-tw | sidewalk_kaohsiung |
-| crowdstudy | sidewalk_crowdstudy | | taichung-tw | sidewalk_taichung |
-| burnaby | sidewalk_burnaby | | cliffside-park-nj | sidewalk_cliffside_park |
-| teaneck-nj | sidewalk_teaneck | | blackhawk-hills-il | sidewalk_blackhawk_hills |
-| walla-walla-wa | sidewalk_walla_walla | | columbia-sc | sidewalk_columbia |
-| st-louis-mo | sidewalk_st_louis | | west-chester-pa | sidewalk_west_chester |
-| la-ca | sidewalk_la | | danville-il | sidewalk_danville |
-| mendota-il | sidewalk_mendota | | detroit-mi | sidewalk_detroit |
-| hackensack-nj | sidewalk_hackensack | | clifton-nj | sidewalk_clifton |
-| maywood-nj | sidewalk_maywood | | newport-ky | sidewalk_newport_ky |
+| seattle-wa | sidewalk_seattle | | taichung-tw | sidewalk_taichung |
+| columbus-oh | sidewalk_columbus | | cliffside-park-nj | sidewalk_cliffside_park |
+| cdmx | sidewalk_cdmx | | blackhawk-hills-il | sidewalk_blackhawk_hills |
+| spgg | sidewalk_spgg | | columbia-sc | sidewalk_columbia |
+| pittsburgh-pa | sidewalk_pittsburgh | | west-chester-pa | sidewalk_west_chester |
+| newberg-or | sidewalk_newberg | | danville-il | sidewalk_danville |
+| washington-dc | sidewalk | | detroit-mi | sidewalk_detroit |
+| chicago-il | sidewalk_chicago | | hackensack-nj | sidewalk_hackensack |
+| amsterdam | sidewalk_amsterdam | | clifton-nj | sidewalk_clifton |
+| la-piedad | sidewalk_la_piedad | | maywood-nj | sidewalk_maywood |
+| la-piedad-old | sidewalk_la_piedad_old | | madison-wi | sidewalk_madison |
+| oradell-nj | sidewalk_oradell | | tainan-tw | sidewalk_tainan |
+| validation-study | sidewalk_validation | | niagara-falls-ny | sidewalk_niagara_falls |
+| zurich | sidewalk_zurich | | chandigarh-india | sidewalk_chandigarh |
+| zurich-infra3d | sidewalk_zurich_infra3d | | rancagua-chile | sidewalk_rancagua |
+| taipei | sidewalk_taipei | | vancouver-wa | sidewalk_vancouver |
+| new-taipei-tw | sidewalk_new_taipei | | santiago-chile | sidewalk_santiago |
+| keelung-tw | sidewalk_keelung | | tucson-az | sidewalk_tucson |
+| auckland | sidewalk_auckland | | paterson-nj | sidewalk_paterson |
+| cuenca | sidewalk_cuenca | | staging | sidewalk_zurich |
+| crowdstudy | sidewalk_crowdstudy | | richmond-va | sidewalk_richmond |
+| burnaby | sidewalk_burnaby | | fort-wayne-in | sidewalk_fort_wayne |
+| teaneck-nj | sidewalk_teaneck | | virden-il | sidewalk_virden |
+| walla-walla-wa | sidewalk_walla_walla | | gainesville-fl | sidewalk_gainesville |
+| st-louis-mo | sidewalk_st_louis | | sao-paulo-brazil | sidewalk_sao_paulo |
+| la-ca | sidewalk_la | | winterthur-infra3d | sidewalk_winterthur_infra3d |
+| mendota-il | sidewalk_mendota | | waltham-ma | sidewalk_waltham |
+| knox-oh | sidewalk_knox | | houston-tx | sidewalk_houston |
+| kaohsiung-tw | sidewalk_kaohsiung | | newport-ky | sidewalk_newport_ky |
+| bayonne | sidewalk_bayonne | | laurens-ia | sidewalk_laurens_ia |
 
 ---
 
@@ -255,17 +262,48 @@ The dev server hot-reloads, so you rarely restart it.
   and its libraries live. Run offline scripts as `python3.13 scripts/...`. Details in
   [`scripts/README.md`](../scripts/README.md); pins in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
 
-### Checking that backend changes compile
+### npm dependencies
 
-The quickest pass/fail on a Scala change is a compile. The sbt **thin client** uses its own server, so it won't
-collide with a running `sbt ~ run`:
+`package-lock.json` is committed, and it — not `package.json` — decides which versions actually get installed. CI
+runs `npm ci`, which installs it exactly and refuses to run if it disagrees with `package.json`, so every developer
+and every required check share one toolchain.
+
+To add or change a dependency, edit `package.json`, run `npm install` inside the container, and **commit the
+resulting `package-lock.json` alongside it**. Don't hand-edit the lockfile. On a rootful Docker daemon, run that
+install as `docker exec -u $(id -u) projectsidewalk-web …` — npm rewrites the lockfile by rename, so the new file
+lands owned by container root, and a tracked root-owned file makes the next host-side `git checkout` of it fail.
+
+`package.json`'s `engines` records the Node and npm the container and CI use. There's no `.npmrc`, so it's advisory:
+npm prints an `EBADENGINE` warning and installs anyway. It's there to tell you what the supported pair is,
+which matters for `make test-e2e-host` — the one path that installs on your host rather than in the container.
+
+The container never uses your checkout's `node_modules`. The bind mount would otherwise lay a host-built copy — the
+one `make test-e2e-host` needs — over the container's, so `docker-compose.yml` mounts a named volume over that path.
+The volume outlives the container and so isn't refreshed by rebuilding the image; `make dev` and `make npm-sync` are
+what refresh it, against a stamp covering `package.json`, `package-lock.json` and the container's node/npm versions.
+To start completely clean:
 
 ```bash
-docker exec projectsidewalk-web bash -lc "cd /home && sbt --client compile"
+make docker-stop
+docker volume rm "$(basename "$PWD" | tr '[:upper:]' '[:lower:]')_node_modules"   # your checkout dir, lowercased
+make dev
+```
+
+### Checking that backend changes compile
+
+The quickest pass/fail on a Scala change is a compile. The sbt **thin client** hands the command to a background
+sbt server, so it won't collide with a running `sbt ~ run` over build locks:
+
+```bash
+docker exec projectsidewalk-web bash -lc "cd /home && sbt --jvm-client compile"
 ```
 
 The first call after a container boot starts the compile server (~30s); later calls are near-instant. `build.sbt`
 sets `-Xfatal-warnings`, so a `[success]` is also warning-clean.
+
+Use `--jvm-client`, not `--client`: the native client (`sbtn`) needs a newer glibc than the container's focal base,
+so it dies on startup, though `sbt --client --version` still prints happily (#5268). A server belongs to one project
+directory, so each worktree gets its own; `sbt shutdownall` stops every one of them, the running `~ run` included.
 
 ### Running the backend tests
 
@@ -273,8 +311,8 @@ ScalaTest specs live under `test/` — mostly functional specs for the public AP
 specs. They boot the real app against Postgres+PostGIS, so the `db` container has to be up:
 
 ```bash
-docker exec projectsidewalk-web bash -lc "cd /home && sbt --client test"
-docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly controllers.api.PublicApiSpec\""
+docker exec projectsidewalk-web bash -lc "cd /home && sbt --jvm-client test"
+docker exec projectsidewalk-web bash -lc "cd /home && sbt --jvm-client \"testOnly controllers.api.PublicApiSpec\""
 ```
 
 The `backend-tests` CI job is a required check and runs **all of `test/`** (`sbt coverage test`, since #5042), so a
@@ -319,8 +357,8 @@ make qa-worktree wt=<worktree-name>
 A worktree needs more setup than the main repo (its `node_modules` and built asset bundles aren't checked in, and
 sbt's caches and config have to be pointed at the right places), so this target handles all of it: it links the main
 repo's `node_modules`, builds that branch's JS/CSS bundles, starts a backgrounded `grunt watch` so later edits
-rebuild automatically, frees `:9000`, kills any stray `sbt --client` server or hung `sbtn` task sharing the worktree's
-`target/` (either deadlocks `~ run` on compile locks), and launches `sbt ~ run` against the worktree's own config
+rebuild automatically, frees `:9000`, kills any stray sbt server or hung sbt task sharing the worktree's `target/`
+(either deadlocks `~ run` on compile locks), and launches `sbt ~ run` against the worktree's own config
 while reusing the main repo's warm sbt caches. The first request triggers the dev compile; `Ctrl+C` stops it and
 reaps the grunt watch. To tear a session down out-of-band, run `make qa-worktree-stop wt=<name>` (add `clean=1` to
 also drop the `node_modules` symlink). It behaves the same on macOS, Linux, and WSL because the work runs inside the

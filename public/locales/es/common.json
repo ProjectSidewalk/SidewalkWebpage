@@ -31,6 +31,11 @@
   "continue": "Continuar",
   "delete": "Eliminar",
   "done": "Listo",
+  "unsaved-changes": {
+    "message": "Tienes cambios sin guardar. ¿Quieres guardarlos antes de salir de esta página?",
+    "save": "Guardar y salir",
+    "leave": "Salir"
+  },
   "badges": {
     "congratulations": "¡Felicidades!",
     "you-earned": "¡Has ganado la insignia “{{badge}}”!",
@@ -89,6 +94,7 @@
   "only": "Solo",
   "image-capture-date": "Fecha de captura de imagen",
   "drag-to-look-around": "Arrastra para mirar alrededor",
+  "loading-imagery": "Cargando imágenes...",
   "hide-label": "Ocultar etiqueta",
   "show-label": "Mostrar etiqueta",
   "hide-label-tooltip": "Oculta temporalmente la etiqueta para ver lo que hay debajo.",
@@ -200,9 +206,13 @@
     "pano-address": "Dirección",
     "view-in-gsv": "Ver en Google Street View",
     "view-in-mapillary": "Ver en Mapillary",
+    "view-in-panoramax": "Ver en Panoramax",
     "city": "Ciudad",
     "copy-to-clipboard": "Copiar al portapapeles",
     "copied-to-clipboard": "¡Datos copiados a su portapapeles!"
+  },
+  "pano-attribution": {
+    "opens-new-tab": "(se abre en una pestaña nueva)"
   },
   "mission-start-tutorial": {
     "example-type-label-correct": "EJEMPLO CORRECTO",

@@ -24,7 +24,7 @@ const SECTION_SRC = fs.readFileSync(
 /** One story payload, shaped like an entry from GET /userapi/stories/mine. */
 function story(overrides = {}) {
     return {
-        story_id: 11, label_id: 501, label_type: 'SurfaceProblem', is_access_problem: true,
+        story_id: 11, label_id: 501, label_type: 'SurfaceProblem', access_impact: 'problem',
         text: 'The cracked panel here tips my chair.', display_name_mode: 'anonymous', hidden: false,
         created_at: '2026-07-01T12:00:00Z', media: null, label_image_url: null, ...overrides,
     };
@@ -124,17 +124,17 @@ describe('the dashboard\'s "Your stories" list', () => {
 
         document.querySelector('.ud-story-edit').click();
 
-        expect(composer.setCopyVariant).toHaveBeenCalledWith(true);
+        expect(composer.setCopyVariant).toHaveBeenCalledWith('problem');
         expect(composer.openForEdit).toHaveBeenCalledWith(expect.objectContaining({ story_id: 11 }), 1200);
     });
 
     it('passes a positive access feature\'s phrasing through unchanged', async () => {
-        stories = [story({ label_type: 'CurbRamp', is_access_problem: false })];
+        stories = [story({ label_type: 'CurbRamp', access_impact: 'feature' })];
         await renderSection();
 
         document.querySelector('.ud-story-edit').click();
 
-        expect(composer.setCopyVariant).toHaveBeenCalledWith(false);
+        expect(composer.setCopyVariant).toHaveBeenCalledWith('feature');
     });
 
     it('re-fetches the list on the story-changed signal, so an edited story\'s row shows the new text', async () => {

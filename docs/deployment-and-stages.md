@@ -30,6 +30,53 @@ mechanism as `application.local.conf` in local dev). For example, the Silhouette
 `prod-authenticator` in the base config and is overridden in the test/local overlays, so sessions don't collide
 across environments.
 
+### Search-engine indexing
+
+The app decides whether a deployment may be indexed, from static config only. `SeoUtils.isIndexable` requires all
+three of: `environment-type = "prod"`, `city-params.status.<cityId> = "public"`, and a pano source that isn't
+Infra3D (whose imagery licence puts every page behind a sign-in, so a cookie-less crawler can reach nothing). That
+one predicate drives every indexing signal:
+
+| Signal | Where | On a non-indexable deployment |
+|---|---|---|
+| `<meta name="robots">` | `views/common/seoHead.scala.html` | `noindex, nofollow`, and no `rel=canonical` |
+| `X-Robots-Tag` header | `filters/SeoRobotsFilter` | `noindex, nofollow` on responses a `<meta>` tag can't reach — static assets, API bodies, redirects, routed 4xx |
+| `sitemap.xml` | `SeoController.hasSitemap` | 404, and no `Sitemap:` line in robots.txt |
+
+`robots.txt` is the deliberate exception: a **private prod** city still serves the permissive body (admin/auth/alias
+`Disallow` lines only), because a URL blocked by robots.txt is never fetched, so the crawler never sees the
+`noindex` and can still list the bare URL from an inbound link. Only non-prod stages get `Disallow: /`.
+
+`SearchIndexingCheck` (a `StartupChecksModule` check) logs each instance's verdict at boot, so the rollout below is
+verifiable from the deploy log rather than by curling every host:
+
+```
+INFO m.SearchIndexingCheck - Search indexing: seattle-wa is INDEXABLE (environment-type=prod, status=public,
+pano-viewer-type=gsv); 37 of 60 configured cities are public. A vhost X-Robots-Tag header can still override this.
+```
+
+It also sweeps every city's `status` and logs an error for any value that isn't `public` or `private`. Nothing there
+is fatal: an unrecognised value reads as private, which costs a launched city its search traffic silently, but
+refusing to boot over it would take the city offline instead. The public/total count is a tripwire for a bulk flip —
+the Taiwan deployments all read `${city-params.status.taipei}`, so editing one entry moves six.
+
+`SeoRobotsFilter` is prepended to `play.filters.enabled` so it is the outermost filter — Play composes that list
+outermost-first, so appending it would leave CSRF and AllowedHosts rejections uncovered.
+
+Every vhost `lab/sidewalk-tools` provisions hardcodes `Header set X-Robots-Tag "noindex, nofollow"`. Apache applies
+that *after* the backend, so it masks whatever the app says — suppressing all of production, while being the only
+thing keeping the private cities out of the index (#5120). Removing it is
+[sidewalk-tools !65](https://gitlab.cs.washington.edu/lab/sidewalk-tools/-/merge_requests/65) plus a sweep of the
+existing `/etc/httpd/conf.d/*.cs.conf` files by IT. **Ordering matters:** the app-side predicate must be deployed
+before the header is stripped from a *private* city's vhost, or that city is exposed in the gap. Public cities' vhosts
+can be swept at any time.
+
+The vhost header currently covers non-2xx responses too — measured 2026-09-09, a 404 from a private city comes back
+with `X-Robots-Tag: noindex, nofollow` — so do not plan the sweep on the assumption that the app-side header is
+strictly broader. It is broader in one direction (it follows the city's own config instead of the vhost template) and
+narrower in one: a 500 raised by an exception escaping the filter chain is recovered outside the filters and carries
+no header. Google does not index 5xx, so this costs nothing in practice, but the claim "strictly broader" is wrong.
+
 ## How code reaches each stage
 
 Deployment is driven by what you push to the [`SidewalkWebpage`](https://github.com/ProjectSidewalk/SidewalkWebpage)
@@ -79,7 +126,11 @@ before choosing: the number is public and permanent.
 ```bash
 git fetch origin
 git switch -c prep-v<X.Y.Z>-release origin/develop
+git merge origin/master
 ```
+
+Merging `master` in here keeps the release PR a fast-forward-able diff: hotfixes tagged straight off `master`, and
+the merge commits GitHub writes when closing a release PR, otherwise show up as phantom conflicts in step 6.
 
 ### 3. Bump the app version
 
@@ -300,7 +351,7 @@ outside the build tree** via its environment variable (a variable that is set bu
 |---|---|---|---|
 | `story.media.directory` | `SIDEWALK_STORY_MEDIA_DIR` | User-uploaded story photos (**irreplaceable**) | **App refuses to start** |
 | `pano.images.directory` | `SIDEWALK_PANO_DIR` | Self-hosted pano store — the only copies of GSV imagery Google has expired (**irreplaceable**) | **App refuses to start** |
-| `cropped.image.directory` | `SIDEWALK_IMAGES_DIR` | Label crops (re-derivable from pano imagery) | Error logged at boot |
+| `cropped.image.directory` | `SIDEWALK_IMAGES_DIR` | Label crops (re-cut from pano imagery) | Error logged at boot |
 | `share.image.directory` | `SIDEWALK_SHARE_IMAGES_DIR` | Cached social-share previews (regenerable) | Error logged at boot |
 
 `PersistentMediaDirCheck` enforces this at boot in **prod mode** — what every staged binary runs in — so it covers
@@ -309,11 +360,36 @@ every deployed stage *and* a staged binary run by hand (export the four variable
 same env file as the media paths, so the incomplete-env-file mistake behind #4925 would disarm the guard exactly when
 it is needed. Dev and test runs (`sbt run`, the test suites) skip the check.
 
+`SIDEWALK_IMAGES_DIR` is the one the app writes on its own schedule — the nightly crop job cuts the crops — so it has
+to be local and writable by the app's user. The same job also records each crop's provenance in `label_crop` (#2660),
+and its first run after that table lands walks every crop the city has to classify it (a header read and a stat per
+file); to have that done before the next night, trigger the job from the Management page or
+`POST /adminapi/generateCrops`. The pano store they are cut *from* is read-only to that user, which is right for a
+store nothing in the app writes. The downscaled display copies of panos too wide for a WebGL texture are cut on
+demand into `SIDEWALK_IMAGES_DIR` instead, under `pano-display/` beside the crops (#5256), so the pano store holds
+nothing derived and anything copying it can take the directory whole.
+
+`pano-display/` is derived, disposable and deliberately unpruned. Deleting it, whole or in part, costs a ~2 s re-cut
+the next time a device asks for one. Nothing sweeps it because ordinary use cannot grow it: a copy is cut only for a
+pano too wide for the requesting device, only at one of three allowed widths, and only for the small minority of
+hardware that cannot texture the native file. Those conditions rarely coincide, and an individual pano is seldom
+looked at more than once. The ceiling is three files per wide pano the app can serve locally, reachable only by
+walking every one of them on purpose through a two-thread cut pool over days. If that ever shows up as disk
+pressure, deleting the directory is the entire remedy.
+
+**Moving a crop store is a decision about `label_crop` too.** Where a crop's size cannot say which writer produced
+it, the reconcile pass falls back to the file's mtime against the label's own timestamp (`CropService`'s
+`ExploreUploadWindow`). A store restored from backup, `cp`'d, or `rsync`'d without `-t`/`-a` carries the copy's time
+on every file, so every browser snapshot then reads as job-cut and gets its marker moved to the window's centre —
+wrongly, and the row it writes stops the pass looking again. Preserve mtimes when you move one; if that is not
+possible, reconcile the store *before* the move (or `DELETE FROM label_crop` after it, so the pass starts over
+against files it can still date).
+
 The fatal tier is deliberate for irreplaceable content: accepting a photo we already know the next release will
 delete is worse than not starting, and since `develop` redeploys **test** while prod waits for a release tag, a
 forgotten variable surfaces on test long before it can reach prod.
 
-**Adding a fifth one?** Resolve it through `MediaDirs` (never a hand-rolled path concat — the check's verdict is only
+**Adding another?** Resolve it through `MediaDirs` (never a hand-rolled path concat — the check's verdict is only
 meaningful while it models the exact resolution the write paths use), add it to `persistentDirs` in
 `PersistentMediaDirCheck`, decide whether its contents are irreplaceable (fatal) or derived (logged), and have the
 deployment tooling export its variable. Losing a story photo this way (#4925) took three weeks to notice, so the
@@ -352,8 +428,8 @@ browser refetches the page on every navigation, so a deploy's new asset URLs are
 nobody is left holding stale HTML that points at a fingerprinted file the new build no longer contains, and there is
 no window in which current markup references an outdated cached asset.
 
-Originals stay in place too, so hardcoded `/assets/...` paths and relative `url(...)` in CSS keep resolving — but only
-`assets.path(...)` yields the long-lived URL, which is why it's preferred everywhere.
+Originals stay in place too, so a hardcoded `/assets/...` path keeps resolving — but only `assets.path(...)` yields the
+long-lived URL, which is why it's preferred everywhere.
 
 **Frontend JS gets there through a stamped manifest** (#4893). A `.js` file can't call `assets.path(...)`, so the app
 publishes the answers instead: `build.sbt` generates `models.utils.AssetInventory` — every file under the
@@ -365,8 +441,30 @@ and a missing entry falls back to the plain `/assets/<path>`, so dev, jsdom, and
 as they would with the path written out by hand. `make lint-asset-paths` (a blocking CI step) keeps hardcoded
 `/assets/...` URLs out of `public/js/` and checks every `util.assetPath` argument: a literal one has to name a real
 file in a manifest family, and an interpolated one has to open with a literal family directory that is in the manifest
-(which is also why a path is built inside one template literal rather than concatenated). All necessary because
-neither half of a mistake raises anything at runtime.
+(which is also why a path is built inside one template literal rather than concatenated). It also rejects string
+surgery on an element's resolved `src`: that URL carries *its own* file's digest, so editing the filename inside it
+fingerprints the wrong file. All necessary because neither half of a mistake raises anything at runtime.
+
+**CSS gets there by rewriting the stylesheet** (#5094). A stylesheet offers no interpolation point for either
+mechanism above, so the `fingerprintCssAssetUrls` pipeline stage
+([`project/CssAssetUrls.scala`](../project/CssAssetUrls.scala)) rewrites its `url(...)` targets to the `<md5>-<name>`
+form at stage time, deriving the name from the file's bytes as sbt-digest does. Absolute stays absolute and relative
+stays relative (the digested copy sits in the original's directory), and a query string or fragment rides along, which
+keeps Bootstrap's `...eot?#iefix` glyphicons working. **A new reference needs nothing registered**: unlike
+`util.assetPath` and its `assetManifestPrefixes`, the stage resolves each `url()` against the file itself. Just name a
+file that exists.
+
+Two things about that stage are load-bearing:
+
+- **It runs before `digest`** (`pipelineStages := Seq(fingerprintCssAssetUrls, digest)`), which folds each referenced
+  asset's digest into the referring stylesheet's own, so a change to either gives the stylesheet a new URL. Reversed, a
+  stylesheet's fingerprint covers only its pre-rewrite text, so swapping a font leaves the CSS naming it at an
+  unchanged, year-cached URL pointing at a path the new build lacks.
+- **An unresolvable `url()` fails the build**, like the asset-manifest generator: passing it through means a broken
+  reference or an asset silently left on the one-hour cache, neither of which shows up at runtime.
+  `make lint-asset-paths` applies the same rule to `public/css/` (rule 5 in
+  [`tools/check-asset-paths.mjs`](../tools/check-asset-paths.mjs)), so in practice this fails a fast CI step instead.
+  Bundles under `public/js/*/build/` are left to the stage, which sees them on disk.
 
 Stage/dist only: local `sbt run` serves plain paths and `no-cache` as before, so exercising the real behavior means
 staging the app and running the binary directly rather than `npm start`. That depends on `pipelineStages` in

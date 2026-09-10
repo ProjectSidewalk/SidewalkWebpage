@@ -1,4 +1,6 @@
 {
+  "name": "sidewalk-webpage",
+  "private": true,
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
@@ -15,13 +17,18 @@
     "htmlhint": "^1.9.2",
     "jest": "^30.0.0",
     "jest-environment-jsdom": "^30.0.0",
+    "pngjs": "^7.0.0",
     "stylelint": "^17.14.0",
     "stylelint-config-standard": "^40.0.0",
     "stylelint-plugin-use-baseline": "^1.4.4"
   },
+  "engines": {
+    "node": ">=24 <25",
+    "npm": ">=11"
+  },
   "scripts": {
     "grunt-concat": "grunt concat && grunt concat_css",
-    "build": "npm install && grunt",
+    "build": "npm ci && grunt",
     "debug": "npm run grunt-concat && grunt watch & sbt -jvm-debug 9998 run",
     "start": "npm run grunt-concat && grunt watch & sbt -Dconfig.file=/home/conf/application.local.conf -Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' -Dsbt.repository.config='.sbt/repositories' -J-Xmx1536m \"~ run\"",
     "start-no-docker": "npm run grunt-concat && grunt watch & sbt -Dhttp.port=$SIDEWALK_HTTP_PORT -Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' -Dsbt.repository.config='.sbt/repositories' $SBT_MEM_ARG \"~ run\"",

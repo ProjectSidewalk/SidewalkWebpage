@@ -31,6 +31,11 @@
   "continue": "Doorgaan",
   "delete": "Verwijderen",
   "done": "Klaar",
+  "unsaved-changes": {
+    "message": "Je hebt niet-opgeslagen wijzigingen. Wil je ze opslaan voordat je deze pagina verlaat?",
+    "save": "Opslaan en verlaten",
+    "leave": "Verlaten"
+  },
   "badges": {
     "congratulations": "Gefeliciteerd!",
     "you-earned": "Je hebt de “{{badge}}”-badge verdiend!",
@@ -89,6 +94,7 @@
   "only": "Alleen",
   "image-capture-date": "Opnamedatum afbeelding",
   "drag-to-look-around": "Sleep om rond te kijken",
+  "loading-imagery": "Beelden laden...",
   "hide-label": "Verberg Label",
   "show-label": "Toon Label",
   "hide-label-tooltip": "Verbergt het label tijdelijk om te zien wat eronder ligt.",
@@ -200,9 +206,13 @@
     "pano-address": "Adres",
     "view-in-gsv": "Bekijken in Google Streetview",
     "view-in-mapillary": "Bekijken in Mapillary",
+    "view-in-panoramax": "Bekijken in Panoramax",
     "city": "Stad",
     "copy-to-clipboard": "Kopiëren naar klembord",
     "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
+  },
+  "pano-attribution": {
+    "opens-new-tab": "(opent in een nieuw tabblad)"
   },
   "mission-start-tutorial": {
     "example-type-label-correct": "JUISTE VOORBEELD",

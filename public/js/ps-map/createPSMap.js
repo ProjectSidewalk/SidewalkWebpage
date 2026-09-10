@@ -107,11 +107,23 @@ function createPSMap($, params) {
   // Render the neighborhoods on the map if applicable. The fetches are kept inside the guard so callers that omit
   // these URLs (e.g. the shared-label minimap) don't fire a stray $.getJSON(undefined) at the current page.
   let renderNeighborhoods;
+  // Extent the labels live in; ViewportLabelLoader stops fetching once covered. Streets and neighborhoods both,
+  // since /labels/all joins street_edge_region without excluding deleted regions — it serves labels the
+  // neighborhoods feed has no polygon for (3.9k of them in Seattle, up to 1.7 km outside its live extent).
+  // Empty feeds (a city before its regions are imported, ?regions= naming none) leave it null, and the loader
+  // then simply never latches.
+  let labelDataBounds = null;
+  const extendLabelDataBounds = (featureCollection) => {
+    const bounds = featureCollectionBounds(featureCollection);
+    if (bounds.isEmpty()) return;
+    labelDataBounds = labelDataBounds ? labelDataBounds.extend(bounds) : bounds;
+  };
   if (params.neighborhoodsURL && params.completionRatesURL) {
     const loadNeighborhoods = $.getJSON(params.neighborhoodsURL);
     const loadCompletionRates = $.getJSON(params.completionRatesURL);
     renderNeighborhoods = Promise.all([mapLoaded, loadNeighborhoods, loadCompletionRates]).then((data) => {
       addNeighborhoodsToMap(map, data[1], data[2], params);
+      extendLabelDataBounds(data[1]);
     });
   }
 
@@ -128,22 +140,25 @@ function createPSMap($, params) {
   let renderStreets;
   if (params.streetsURL) {
     const loadStreets = $.getJSON(params.streetsURL);
-    renderStreets = Promise.all([mapLoaded, renderNeighborhoods, loadStreets]).then(
-      (data) => addStreetsToMap(map, data[2], params),
-    );
+    renderStreets = Promise.all([mapLoaded, renderNeighborhoods, loadStreets]).then((data) => {
+      extendLabelDataBounds(data[2]);
+      return addStreetsToMap(map, data[2], params);
+    });
   }
 
   // Render the labels on the map if applicable.
   let renderLabels;
   if (params.labelsURL && params.viewportLabelLoading) {
-    renderLabels = Promise.all([mapLoaded, renderStreets]).then(async (data) => {
+    // Neighborhoods are awaited directly, not just via renderStreets, which callers may omit.
+    renderLabels = Promise.all([mapLoaded, renderStreets, renderNeighborhoods]).then(async (data) => {
       // Layers are created empty and filled by the loader, so filters, visibility, and the popup handlers bind
       // once and persist across viewport refetches.
       const mapData = await addLabelsToMap(map, { type: 'FeatureCollection', features: [] }, params);
       // Streets carry no label filters, so their counts are settled the moment they load; park them on the tracker
       // for the sidebar to render alongside the counts it facets itself.
       mapData.streetCounts = data[1];
-      const loader = new ViewportLabelLoader(map, params.labelsURL, params.viewportLabelOptions);
+      const loader = new ViewportLabelLoader(map, params.labelsURL,
+        { dataBounds: labelDataBounds, ...params.viewportLabelOptions });
       loader.onData((featureCollection) => setLabelData(map, mapData, featureCollection));
       // The page drives its own UI (loading overlay, counts, retry, zoom hint) off the loader's events.
       mapData.labelLoader = loader;

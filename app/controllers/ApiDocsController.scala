@@ -101,6 +101,17 @@ class ApiDocsController @Inject() (
   }
 
   /**
+   * Displays API documentation for the intersection-level AccessScore (#5095).
+   */
+  def accessScoreIntersections = cc.securityService.UserAwareAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService
+        .insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_AccessScoreIntersections")
+      Ok(views.html.apiDocs.accessScoreIntersections(commonData, request.identity))
+    }
+  }
+
+  /**
    * Displays API documentation for the region-level AccessScore.
    */
   def accessScoreRegions = cc.securityService.UserAwareAction { implicit request =>

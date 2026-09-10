@@ -2,7 +2,8 @@ package actor
 
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsNull, Json}
-import service.ClusteringResults
+import service.CropService.CropRunResult
+import service.{ClusteringResults, CropSizingRule, IntersectionRebuildResult, OsmWayRefreshResult}
 
 /**
  * The wire shape of the run details each multi-trigger job records (#5044).
@@ -29,12 +30,46 @@ class JobRunDetailsSpec extends PlaySpec {
     }
 
     "record the OSM way refresh under the key its readers use" in {
-      OsmWayRefreshActor.runDetails(13) mustBe Json.obj("ways_refreshed" -> 13)
+      OsmWayRefreshActor.runDetails(OsmWayRefreshResult(13, 2, 3, 1)) mustBe
+        Json.obj("ways_refreshed" -> 13, "ways_missing" -> 2, "tags_recovered" -> 3, "tags_unrecoverable" -> 1)
     }
 
     "record clustering under the keys its readers use" in {
       ClusteringResults(labelCount = 14, clusterCount = 15).runDetails mustBe
         Json.obj("labels_clustered" -> 14, "clusters_created" -> 15)
+    }
+
+    "record the intersection rebuild's every count" in {
+      IntersectionRebuildResult(
+        intersections = 30, inserted = 31, updated = 32, deleted = 33, clustersAttributed = 34
+      ).runDetails mustBe Json.obj(
+        "intersections"       -> 30,
+        "inserted"            -> 31,
+        "updated"             -> 32,
+        "deleted"             -> 33,
+        "clusters_attributed" -> 34
+      )
+    }
+
+    "record crop generation's every count, and the rule that cut the store" in {
+      CropRunResult(
+        panosOpened = 20, panosWithoutBackup = 21, cropsWritten = 22, shiftedVertically = 23, outOfFrame = 24,
+        dimsMismatch = 25, dimsUnverified = 26, provenanceExplore = 31, provenanceWindow = 32,
+        provenanceUnresolved = 33, errors = 29
+      ).runDetails mustBe Json.obj(
+        "crop_rule_version"     -> CropSizingRule.Version,
+        "panos_opened"          -> 20,
+        "panos_without_backup"  -> 21,
+        "crops_written"         -> 22,
+        "shifted_vertically"    -> 23,
+        "out_of_frame"          -> 24,
+        "dims_mismatch"         -> 25,
+        "dims_unverified"       -> 26,
+        "provenance_explore"    -> 31,
+        "provenance_window"     -> 32,
+        "provenance_unresolved" -> 33,
+        "errors"                -> 29
+      )
     }
 
     "record the street-priority rebuild's count, or a null where no rebuild ran" in {

@@ -19,6 +19,9 @@
   <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
   <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
   <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  } else if (commonData.imagerySource == PanoSource.Panoramax) {
+  <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
+  <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
   }
   <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
   <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
@@ -81,8 +84,7 @@
     <div class="paging" id="page-number"></div>
     <button type="button" class="paging" id="next-page">&gt</button>
   </div>
-  <div class="gallery-footer">@Messages("gallery.cards")<br></div>
-  @common.miniFooter(commonData)
+  <div class="gallery-footer">@Messages("gallery.cards")</div>
 
   <script>
     // Get translations and such set up, then begin initializing the Gallery app.
@@ -108,13 +110,15 @@
          account's name reaches the story composer. *@
       params.currUsername = @if(user.exists(_.role != Role.Anonymous)) {"@user.map(_.username)"} else {null};
       const imagerySrc = "@commonData.imagerySource.toString";
-      params.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+      params.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
+        : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
       params.viewerAccessToken = "@commonData.imageryAccessToken";
       sg.main = Main.create(params);
     });
   </script>
 
   <link rel="stylesheet" href='@assets.path("css/components/label-detail.css")'>
+  <link rel="stylesheet" href='@assets.path("css/components/pano-attribution.css")'>
   <link rel="stylesheet" href='@assets.path("css/components/tag-pills.css")'>
   <link rel="stylesheet" href='@assets.path("css/components/filter-sidebar.css")'>
   <link rel="stylesheet" href='@assets.path("js/gallery/build/gallery.css")'>

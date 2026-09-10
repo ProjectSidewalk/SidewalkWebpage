@@ -90,19 +90,15 @@ class ValidationMenu {
     valInfoDisplay.disagreeContainer.onclick = this.validateOnClickOrKeyPress('validate-disagree', true, false);
 
     // Hover preview: swap the thumb icon to its filled variant to hint that it's clickable.
-    const addHoverSwap = (container, valKey) => {
-      const img = container.querySelector('.validation-info-image');
-      if (!img) return;
+    const addHoverSwap = (container, action) => {
       container.addEventListener('mouseenter', () => {
-        if (this.#currSelected === valKey) return;
-        img.src = img.src.replace('-outline', '-filled');
+        if (this.#currSelected === ValidationMenu.#validationOptionToClass[action]) return;
+        valInfoDisplay.setVoteIconFilled(action, true);
       });
-      container.addEventListener('mouseleave', () => {
-        img.src = img.src.replace('-filled', '-outline');
-      });
+      container.addEventListener('mouseleave', () => valInfoDisplay.setVoteIconFilled(action, false));
     };
-    addHoverSwap(valInfoDisplay.agreeContainer, 'validate-agree');
-    addHoverSwap(valInfoDisplay.disagreeContainer, 'validate-disagree');
+    addHoverSwap(valInfoDisplay.agreeContainer, 'Agree');
+    addHoverSwap(valInfoDisplay.disagreeContainer, 'Disagree');
   }
 
   /**
@@ -163,10 +159,8 @@ class ValidationMenu {
     // Reset thumb icons to outline state so that they don't blend into the background after validation.
     const valInfo = this.#refCard.validationInfoDisplay;
     if (valInfo) {
-      for (const c of [valInfo.agreeContainer, valInfo.disagreeContainer]) {
-        const img = c.querySelector('.validation-info-image');
-        if (img) img.src = img.src.replace('-filled', '-outline');
-      }
+      valInfo.setVoteIconFilled('Agree', false);
+      valInfo.setVoteIconFilled('Disagree', false);
     }
   }
 

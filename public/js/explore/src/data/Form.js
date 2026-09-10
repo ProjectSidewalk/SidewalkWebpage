@@ -79,6 +79,7 @@ class Form {
         description: link.description || null,
       })),
       copyright: props.copyright || null,
+      license: props.license || null,
       address: props.address || null,
       history: props.history.map((prevPano) => ({
         pano_id: prevPano.panoId,

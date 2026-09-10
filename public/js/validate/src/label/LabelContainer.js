@@ -23,6 +23,12 @@ class LabelContainer {
   // undo button is live, and the button is disabled the moment an undo lands, so one undo can't be applied twice.
   #lastLabelFormData;
 
+  // True from the moment renderCurrentLabel starts until the label it loads is on screen. In that window #currLabel
+  // has already advanced but the panorama has not, so anything acting on "the current label" would be acting on one
+  // the validator cannot see yet (#5211). Only #setUiBusy writes it, so what the code checks and what the validator
+  // is shown can't drift apart.
+  #loading = false;
+
   #properties = {
     validationTimestamp: new Date(),
   };
@@ -84,15 +90,36 @@ class LabelContainer {
   }
 
   /**
+   * Whether input aimed at the current label has to be dropped because that label's pano is still loading.
+   *
+   * Between advancing to a label and its imagery arriving — 1.7 s on average on the Pannellum fallback path, and up
+   * to 4.5 s — `getCurrentLabel()` already returns the new label while the pano on screen is still the old one. A
+   * validation cast in that window is stored against imagery the validator never saw: its POV and canvas coordinates
+   * are read off the previous label's pano, and its endTimestamp predates the label appearing (#5211). The busy state
+   * blocks the pointer; this covers what CSS can't, including a keypress on a button that kept focus after a click.
+   *
+   * @param {string} source What was dropped, for the tracker: a verdict, a submit, an undo, or a label advance.
+   * @returns {boolean} True if the caller must return without touching the current label.
+   */
+  dropInputWhileLoading(source) {
+    if (!this.#loading) return false;
+    svv.tracker.push('ValidateInputDropped_Loading', { source });
+    return true;
+  }
+
+  /**
    * Goes back to the last label.
    *
    * Imagery can fail on the way back (#4810), in which case that label is dropped like any other and the user stays
    * on the one they undid from. Reporting that as a failed undo is what keeps mission progress in step: the caller
    * only rolls back a validation the user can actually redo.
    *
-   * @returns {Promise<boolean>} True if the previous label is now showing.
+   * @returns {Promise<boolean>} True if the previous label is now showing. False also covers an undo dropped for
+   * arriving mid-load, which is likewise an undo the caller must not count.
    */
   async undoLabel() {
+    if (this.dropInputWhileLoading('Undo')) return false;
+
     const previousLabel = this.#labels[this.#currLabelIndex - 1];
     this.#currLabelIndex -= 1;
     this.#currLabel = previousLabel;
@@ -106,6 +133,8 @@ class LabelContainer {
    * @returns {Promise<void>}
    */
   async moveToNextLabel() {
+    if (this.dropInputWhileLoading('NextLabel')) return;
+
     this.#currLabelIndex += 1;
     this.#currLabel = this.#labels[this.#currLabelIndex];
     await this.renderCurrentLabel();
@@ -128,57 +157,79 @@ class LabelContainer {
    * Renders the current label on the pano, updating the UI accordingly.
    */
   async renderCurrentLabel() {
-    this.#setUiBusy(true);
+    try {
+      this.#setUiBusy(true);
 
-    if (this.#currLabelIndex > 0) {
-      svv.undoValidation.enableUndo();
-    }
+      if (this.#currLabelIndex > 0) {
+        svv.undoValidation.enableUndo();
+      }
 
-    // Render the new pano and the label on it, updating the surrounding UI given the new label's info.
-    await this.#loadPanoForCurrentLabel();
-
-    // Dropping labels emptied the queue, so ask the backend to replace what it can and carry on.
-    while (!this.#currLabel && await this.#topUpLabelQueue()) {
+      // Render the new pano and the label on it, updating the surrounding UI given the new label's info.
       await this.#loadPanoForCurrentLabel();
+
+      // Dropping labels emptied the queue, so ask the backend to replace what it can and carry on.
+      while (!this.#currLabel && await this.#topUpLabelQueue()) {
+        await this.#loadPanoForCurrentLabel();
+      }
+
+      // Out of labels. Which modal depends on why: labels we still owe the mission mean imagery is the problem, and
+      // a reload retries them, since the labels dropped this session are only excluded for as long as it lasts.
+      if (!this.#currLabel) {
+        this.#setUiBusy(false);
+        svv.modalNoNewMission.show({ imageryUnavailable: this.#labelsOwed > 0 });
+        return;
+      }
+
+      // The card is anchored to the marker of the label we're leaving, so it can't carry over to the next one.
+      // (Undefined on the very first render, which happens while LabelContainer itself is still being constructed.)
+      svv.labelVisibilityControl?.hideLabelCard();
+      svv.labelCard.render(this.#currLabel);
+      svv.validationMenu.resetMenu(this.#currLabel);
+      if (svv.adminVersion) svv.adminInfo.updateAdminInfo(this.#currLabel);
+      svv.panoManager.renderPanoMarker(this.#currLabel);
+      // Tell the sign here rather than leave it waiting on a pano_changed: the label that just loaded may have swapped
+      // the active viewer, and the viewer the sign last heard from is then the one that stays silent (#4828). Absent
+      // on mobile, and on the first label, whose render runs inside LabelContainer.create — before SpeedLimit exists.
+      svv.speedLimit?.refresh();
+      // Every label starts visible. Without this the toggle keeps saying "Show Label" over a marker that
+      // renderPanoMarker just drew in full — you'd have to hide and re-show to get the two back in agreement.
+      svv.labelVisibilityControl?.unhideLabel();
+    } catch (error) {
+      // The only trace a render failure leaves. It used to announce itself by stranding the lock, which turned every
+      // later tap and keypress into a ValidateInputDropped_Loading — unusable for the validator, but at least loud.
+      // Releasing the lock in the finally takes that away: the caller either swallows the rejection (Form) or drops
+      // it on the floor (moveToNextLabel), so without this the tool would come back looking healthy and say nothing.
+      // Read defensively rather than as a plain `error.message`: a rejection carrying something other than an Error
+      // — a bare `Promise.reject()`, a string thrown by a viewer SDK — would make this line a TypeError of its own,
+      // losing the event and handing the caller an exception unrelated to what actually failed.
+      svv.tracker?.push('ValidateRenderFailed', { error: error?.message ?? String(error) });
+      throw error;
+    } finally {
+      // The out-of-labels path releases early on purpose, so that the modal's own disableKeyboard is what stands;
+      // the condition is what keeps this from re-enabling the keyboard behind it. Every other way out lands here,
+      // a throw included — leaving #loading set would drop every tap and keypress for the rest of the session.
+      if (this.#loading) this.#setUiBusy(false);
     }
-
-    // Out of labels. Which modal depends on why: labels we still owe the mission mean imagery is the problem, and
-    // a reload retries them, since the labels dropped this session are only excluded for as long as it lasts.
-    if (!this.#currLabel) {
-      this.#setUiBusy(false);
-      svv.modalNoNewMission.show({ imageryUnavailable: this.#labelsOwed > 0 });
-      return;
-    }
-
-    // The card is anchored to the marker of the label we're leaving, so it can't carry over to the next one.
-    // (Undefined on the very first render, which happens while LabelContainer itself is still being constructed.)
-    svv.labelVisibilityControl?.hideLabelCard();
-    svv.labelCard.render(this.#currLabel);
-    svv.validationMenu.resetMenu(this.#currLabel);
-    if (svv.adminVersion) svv.adminInfo.updateAdminInfo(this.#currLabel);
-    svv.panoManager.renderPanoMarker(this.#currLabel);
-    // Tell the sign here rather than leave it waiting on a pano_changed: the label that just loaded may have swapped
-    // the active viewer, and the viewer the sign last heard from is then the one that stays silent (#4828). Absent
-    // on mobile, and on the first label, whose render runs inside LabelContainer.create — before SpeedLimit exists.
-    svv.speedLimit?.refresh();
-    // Every label starts visible. Without this the toggle keeps saying "Show Label" over a marker that renderPanoMarker
-    // just drew in full — you'd have to hide and re-show to get the two back in agreement.
-    svv.labelVisibilityControl?.unhideLabel();
-
-    this.#setUiBusy(false);
   }
 
   /**
    * Locks or releases the tool while a label is being loaded.
    *
-   * Every path out of renderCurrentLabel has to release it, including the ones that end at a modal: the modals live
-   * inside #svv-application-holder, so the `validate-disabled` class on that holder disables their buttons too.
+   * Both halves of the lock are set here: `#loading`, which every path that acts on the current label checks, and the
+   * busy state the validator sees. Setting them together is what keeps a tool that is refusing input from reading as
+   * one that has simply stopped responding.
+   *
+   * Every path out of renderCurrentLabel has to release it, including the ones that end at a modal: on desktop the
+   * modals live inside #svv-application-holder, so the `validate-disabled` class on that holder disables their
+   * buttons too.
    *
    * @param {boolean} busy True to lock the UI, false to hand it back.
    */
   #setUiBusy(busy) {
-    svv.ui.validationMenu.holder.toggleClass('validate-disabled', busy);
-    svv.ui.viewer.holder.toggleClass('validate-disabled', busy);
+    this.#loading = busy;
+    svv.ui.busyRegion.toggleClass('validate-disabled', busy);
+    // The class is only opacity and pointer-events, so on its own it says nothing to a screen reader.
+    svv.ui.busyRegion.attr('aria-busy', busy ? 'true' : null);
     svv.ui.holder.css('cursor', busy ? 'wait' : '');
     if (busy) {
       if (svv.keyboard) svv.keyboard.disableKeyboard();
@@ -286,8 +337,17 @@ class LabelContainer {
 
   /**
    * Validates the current label.
+   *
+   * The last gate before a validation is recorded: a verdict that arrives while the label's pano is still loading is
+   * dropped here even if it got past the menu that raised it (#5211).
+   *
+   * @param {string} action The verdict cast: Agree, Disagree, or Unsure.
+   * @param {Date} timestamp When the verdict was cast.
+   * @param {string} comment The comment submitted with it, if any.
    */
   validateCurrentLabel(action, timestamp, comment) {
+    if (this.dropInputWhileLoading(`Validate=${action}`)) return;
+
     this.#currLabel.validate(action, comment);
     this.setProperty('validationTimestamp', timestamp);
   }

@@ -8,6 +8,8 @@
 --
 -- Other tables touched by this script (no FK to label_validation, but logically tied):
 --   validation_task_comment (label_id + user_id + mission_id match the validation)
+--   validation_task_comment_history (superseded versions of those comments; erased with them, or they would outlive
+--                            the only comment they are versions of)
 --   label                   (agree_count / disagree_count / unsure_count / correct need a refresh)
 --   user_stat               (own_labels_validated + accuracy derive from label.correct)
 --   mission                 (labels_validated / labels_progress — NOT updated here; see note below)
@@ -65,6 +67,18 @@ SELECT 'matching_comments',        COUNT(*) FROM validation_task_comment c
         SELECT 1 FROM label_validation lv
         JOIN validations_to_remove USING (label_validation_id)
         WHERE lv.label_id = c.label_id AND lv.user_id = c.user_id AND lv.mission_id = c.mission_id
+    )
+UNION ALL
+SELECT 'matching_comment_versions', COUNT(*) FROM validation_task_comment_history
+    WHERE EXISTS (
+        SELECT 1 FROM validation_task_comment
+        INNER JOIN label_validation
+            ON validation_task_comment.label_id = label_validation.label_id
+            AND validation_task_comment.user_id = label_validation.user_id
+            AND validation_task_comment.mission_id = label_validation.mission_id
+        INNER JOIN validations_to_remove USING (label_validation_id)
+        WHERE validation_task_comment.label_id = validation_task_comment_history.label_id
+            AND validation_task_comment.user_id = validation_task_comment_history.user_id
     );
 
 -- ---------------------------------------------------------------------
@@ -89,14 +103,29 @@ DELETE FROM label_edit
 WHERE label_edit_id IN (SELECT label_edit_id FROM edits_to_remove);
 
 -- ---------------------------------------------------------------------
--- 5. Delete the validation_task_comment rows tied to these validations (by label_id + user_id + mission_id).
+-- 5. Delete the validation_task_comment rows tied to these validations (by label_id + user_id + mission_id), and the
+--    superseded versions of those same comments (#5076).
+--
+--    Both deletes work off one candidate list so they cannot disagree. A version carries the mission its own wording
+--    was written under, which routinely differs from the validation's: scoping versions by mission would spare part
+--    of a doomed comment's history, and ignoring the mission would wipe the history of a comment this script keeps.
 -- ---------------------------------------------------------------------
-DELETE FROM validation_task_comment c
-USING label_validation lv
-JOIN validations_to_remove USING (label_validation_id)
-WHERE c.label_id = lv.label_id
-    AND c.user_id = lv.user_id
-    AND c.mission_id = lv.mission_id;
+CREATE TEMP TABLE comments_to_remove (label_id INT NOT NULL, user_id TEXT NOT NULL,
+                                      PRIMARY KEY (label_id, user_id)) ON COMMIT DROP;
+INSERT INTO comments_to_remove (label_id, user_id)
+SELECT DISTINCT validation_task_comment.label_id, validation_task_comment.user_id
+FROM validation_task_comment
+INNER JOIN label_validation
+    ON validation_task_comment.label_id = label_validation.label_id
+    AND validation_task_comment.user_id = label_validation.user_id
+    AND validation_task_comment.mission_id = label_validation.mission_id
+INNER JOIN validations_to_remove USING (label_validation_id);
+
+DELETE FROM validation_task_comment_history
+WHERE (label_id, user_id) IN (SELECT label_id, user_id FROM comments_to_remove);
+
+DELETE FROM validation_task_comment
+WHERE (label_id, user_id) IN (SELECT label_id, user_id FROM comments_to_remove);
 
 -- ---------------------------------------------------------------------
 -- 6. Delete the validations themselves.
@@ -214,6 +243,12 @@ WHERE user_stat.user_id = accuracy_subquery.user_id
 -- ---------------------------------------------------------------------
 SELECT 'still_in_label_validation'     AS where_found, COUNT(*) FROM label_validation
     WHERE label_validation_id IN (SELECT label_validation_id FROM validations_to_remove)
+UNION ALL
+SELECT 'still_in_validation_comment',                  COUNT(*) FROM validation_task_comment
+    WHERE (label_id, user_id) IN (SELECT label_id, user_id FROM comments_to_remove)
+UNION ALL
+SELECT 'still_in_comment_history',                     COUNT(*) FROM validation_task_comment_history
+    WHERE (label_id, user_id) IN (SELECT label_id, user_id FROM comments_to_remove)
 UNION ALL
 SELECT 'still_linked_in_label_edit',                   COUNT(*) FROM label_edit
     WHERE label_validation_id IN (SELECT label_validation_id FROM validations_to_remove)

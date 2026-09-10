@@ -1,9 +1,11 @@
-.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop worktree-remove \
+.PHONY: dev docker-up docker-up-db docker-run docker-stop npm-sync ssh qa-worktree qa-worktree-stop worktree-remove \
         test-js test-e2e test-e2e-host \
         test-python test-python-app test-python-tools \
-        import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
+        import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
+        hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
-        lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths scalafmt scalafmt-fix \
+        lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-vendor-versions \
+        scalafmt scalafmt-fix \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
         lint-eslint lint-htmlhint lint-stylelint lint-fix-eslint lint-fix-stylelint
 
@@ -46,14 +48,17 @@ RESET := \033[0m
 css-glob = $(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css)
 
 # The browser smoke suite's runner image (docker/e2e/Dockerfile), tagged from the tool versions read out of
-# package.json — the base image bundles the matching Chromium, so deriving both from one pin is what keeps the
-# runner and the browser from drifting apart when Dependabot bumps it. The sed expression is plain BRE for macOS.
-# Simply-expanded so the subprocess runs once per make invocation rather than once per expansion.
-pw-version := $(shell sed -n 's/.*"@playwright\/test"[^0-9]*\([0-9][0-9.]*\)".*/\1/p' package.json)
+# package-lock.json — the base image bundles the matching Chromium, so deriving both from one pin is what keeps the
+# runner and the browser from drifting apart when Dependabot bumps it. Read from the lockfile rather than
+# package.json's `^` range, whose floor is only coincidentally what npm resolved: CI's e2e-smoke runs the suite out
+# of the lockfile's node_modules, so anything else here puts a different Playwright in front of the same specs. The
+# sed expression is plain BRE for macOS. Simply-expanded so the subprocess runs once per make invocation rather
+# than once per expansion.
+pw-version := $(shell sed -n '/"node_modules\/@playwright\/test": {/,/}/ s/.*"version": "\([0-9][0-9.]*\)".*/\1/p' package-lock.json | head -1)
 # @axe-core/playwright drives the accessibility gate (a11y.spec.js, #5060) and is installed into the image for the
 # same reason the runner is — the repo's node_modules is masked at run time. Read from the same one pin, and folded
 # into the image tag below so a bump rebuilds the image instead of silently reusing the old axe.
-axe-version := $(shell sed -n 's/.*"@axe-core\/playwright"[^0-9]*\([0-9][0-9.]*\)".*/\1/p' package.json)
+axe-version := $(shell sed -n '/"node_modules\/@axe-core\/playwright": {/,/}/ s/.*"version": "\([0-9][0-9.]*\)".*/\1/p' package-lock.json | head -1)
 e2e-image   = projectsidewalk/e2e
 e2e-tag      = $(pw-version)-axe$(axe-version)
 # The main repo is the container's /home, so a worktree's specs are just a different working directory.
@@ -107,7 +112,8 @@ stylelint-fix: | lint-fix-stylelint
 # then prints a ✓/✗ per linter and a colored summary. Exits non-zero if any failed.
 lint:
 	@fail=0; \
-	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-asset-paths lint-evolutions; do \
+	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-asset-paths \
+			lint-vendor-versions lint-evolutions; do \
 		if $(MAKE) --no-print-directory $$t; then \
 			printf "$(GREEN)✓ %s passed$(RESET)\n" "$$t"; \
 		else \
@@ -137,8 +143,18 @@ docker-stop:
 	@docker compose stop
 	@docker compose rm -fv
 
+# The sync runs inline because this line is what creates the container -- there is nothing to `docker exec` into
+# until it does.
 docker-run:
-	@docker compose run --rm --service-ports --name $(web-container) web /bin/bash
+	@docker compose run --rm --service-ports --name $(web-container) web \
+		/bin/bash -c "bash /home/tools/npm-sync.sh || echo '!! npm-sync failed -- node_modules may be incomplete'; exec /bin/bash"
+
+# For a container that is already up; `make dev` does this for you. `npm ci` empties node_modules before refilling
+# it, so stop a running `npm start` first. See tools/npm-sync.sh.
+npm-sync:
+	@docker inspect -f '{{.State.Running}}' $(web-container) 2>/dev/null | grep -q true \
+	  || { echo "error: $(web-container) is not running — start it with 'make dev'"; exit 2; }
+	@docker exec $(web-container) bash /home/tools/npm-sync.sh
 
 # Usage: make ssh target=web|db.
 ssh:
@@ -169,11 +185,39 @@ import-users:
 import-dump:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-dump.sh $(db)"
 
+# The repo's highest evolution number, so create-new-schema.sh can refuse a donor schema that another branch's QA
+# pushed ahead of this checkout (cloning it would carry that branch's evolution into the new city).
+max-evolution = $(shell ls conf/evolutions/default | sed 's/\.sql$$//' | grep -E '^[0-9]+$$' | sort -n | tail -1)
+# Play's hash of that evolution's file: a donor whose top evolution carries the same hash is certainly on this
+# checkout's evolution, not another branch's under the same number (see create-new-schema.sh).
+max-evolution-hash = $(shell python3 -c 'import sys; sys.path.insert(0, "tools"); import setup_new_city; print(setup_new_city.highest_evolution_hash())')
+
+# Clone a live city's structure (+ seed rows) into a new empty schema. e.g.
+# `make create-new-schema name=sidewalk_laurens_ia donor=sidewalk_richmond`; donor defaults to the active dev city.
 create-new-schema:
-	@docker exec -it $(db-container) sh -c "/opt/scripts/create-new-schema.sh $(name)"
+	@docker exec -it $(db-container) sh -c "/opt/scripts/create-new-schema.sh $(name) $(or $(donor),$$(docker exec $(web-container) printenv DATABASE_USER 2>/dev/null)) $(max-evolution) $(max-evolution-hash)"
 
 fill-new-schema:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/fill-new-schema.sh"
+
+# Host-side (edits conf/ and pauses for you to start the app), so no docker exec wrapper.
+onboard-city:
+	@python3 tools/setup_new_city.py $(id)
+
+# Build a city's street/region staging data + QA GeoPackage (scripts/onboard_city.py, in the web container), passing
+# the script's flags via args=. The same target re-exports the SQL after hand edits: a bare --from-gpkg targets the
+# city's own QA GeoPackage.
+# e.g. `make build-city-data id=newport-ky args="--place 'Newport, Kentucky, USA'"`
+#      `make build-city-data id=newport-ky args="--from-gpkg"`
+build-city-data:
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/onboard_city.py --city-id $(id) $(args)"
+
+# Imagery preflight or full scan for a city's streets (scripts/check_streets_for_imagery.py, in the web container,
+# which holds the provider keys). A preflight samples the build artifacts before the city has a database:
+# e.g. `make check-imagery id=laurens-ia args="--sample 150 --mapillary"`; the full scan (`args="--mapillary"`) is
+# what `make onboard-city` runs for you.
+check-imagery:
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/check_streets_for_imagery.py --city-id $(id) $(args)"
 
 hide-streets-without-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/hide-streets-without-imagery.sh"
@@ -183,11 +227,13 @@ import-street-imagery:
 
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
 # Split by interpreter because the scripts are: label_clustering.py runs in-band on prod's `python3` (3.8), while the
-# offline tooling needs >= 3.11. Each half runs the whole directory minus the one file the other owns, so a new test
-# file runs in both by default instead of silently in neither. COVERAGE_OMIT is explained in pyproject.toml.
-pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py
+# offline tooling needs >= 3.11. Each half runs the whole directory minus the files only the other's interpreter can
+# import, so a new test file runs in both by default instead of silently in neither. COVERAGE_OMIT/COVERAGE_OMIT2 are
+# explained in pyproject.toml.
+pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py \
+                    --ignore=test/python/test_onboard_city.py
 pytest-args-tools = test/python --ignore=test/python/test_label_clustering.py
-cov-omit-app      = -e COVERAGE_OMIT=scripts/check_streets_for_imagery.py
+cov-omit-app      = -e COVERAGE_OMIT=scripts/check_streets_for_imagery.py -e COVERAGE_OMIT2=scripts/onboard_city.py
 cov-omit-tools    = -e COVERAGE_OMIT=scripts/label_clustering.py
 
 # Both halves run even when the first fails, matching CI's `fail-fast: false`; prerequisites would stop at the first.
@@ -230,9 +276,9 @@ test-e2e:
 	@docker inspect -f '{{.State.Running}}' $(web-container) 2>/dev/null | grep -q true \
 	  || { echo "error: $(web-container) is not running — start it with 'make docker-up', and make sure the app is up on :9000"; exit 2; }
 	@[ -n "$(pw-version)" ] \
-	  || { echo "error: no @playwright/test version found in package.json — is it still listed as a devDependency?"; exit 2; }
+	  || { echo "error: no @playwright/test version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
 	@[ -n "$(axe-version)" ] \
-	  || { echo "error: no @axe-core/playwright version found in package.json — is it still listed as a devDependency?"; exit 2; }
+	  || { echo "error: no @axe-core/playwright version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
 	@[ -z "$(wt)" ] || docker exec $(web-container) test -d $(e2e-workdir) \
 	  || { echo "error: no worktree at $(e2e-workdir) (from wt=$(wt))"; exit 2; }
 	@docker exec $(web-container) sh -c '$(e2e-fix-artifact-owner)'
@@ -248,14 +294,14 @@ test-e2e:
 	  -w $(e2e-workdir) $(e2e-image):$(e2e-tag) playwright test $(args)
 
 # Host-side run of the same suite, for `--headed`, `--ui`, and `show-trace` — those need a display the container
-# doesn't have. Needs a host toolchain the containerized path does not: Node 23, `npm install` at the repo root
+# doesn't have. Needs a host toolchain the containerized path does not: Node 24, `npm ci` at the repo root
 # (the container's node_modules is a Docker volume, invisible from the host), and `npx playwright install chromium`,
 # plus `sudo npx playwright install-deps` on Linux/WSL. See test/e2e/README.md.
 test-e2e-host:
 	@command -v npx > /dev/null \
 	  || { echo "error: no host Node — this target needs one (see test/e2e/README.md); 'make test-e2e' needs none"; exit 2; }
 	@[ -d node_modules/@playwright/test ] \
-	  || { echo "error: @playwright/test isn't installed on the host — run 'npm install && npx playwright install chromium'"; exit 2; }
+	  || { echo "error: @playwright/test isn't installed on the host — run 'npm ci && npx playwright install chromium'"; exit 2; }
 	@npx playwright test $(args)
 
 reveal-or-hide-neighborhoods:
@@ -288,13 +334,23 @@ lint-asset-paths:
 	@docker exec $(web-container) bash -lc "cd /home && node tools/check-asset-paths.mjs"
 	@echo "Finished checking asset paths";
 
-# Scala formatting (.scalafmt.conf). The sbt thin client (`--client`) shares the running `sbt ~ run`'s server instead
-# of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.
+# Self-hosted libraries in public/vendor/ (#4399): every folder is listed in docs/upgrading-libraries.md, and the
+# versions there match the ones in the filenames. No Dependabot ecosystem watches that folder, so that doc is the
+# only inventory these libraries have, and it's hand-copied. Pure node, run in the web container so node is
+# present. Also a blocking CI step.
+lint-vendor-versions:
+	@echo "Checking vendor versions...";
+	@docker exec $(web-container) bash -lc "cd /home && node tools/check-vendor-versions.mjs"
+	@echo "Finished checking vendor versions";
+
+# Scala formatting (.scalafmt.conf). The sbt thin client (`--jvm-client`) shares the running `sbt ~ run`'s server
+# instead of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats
+# in place.
 scalafmt:
-	@echo "Checking Scala formatting..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --client scalafmtCheckAll"
+	@echo "Checking Scala formatting..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --jvm-client scalafmtCheckAll"
 
 scalafmt-fix:
-	@echo "Formatting Scala..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --client scalafmtAll"
+	@echo "Formatting Scala..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --jvm-client scalafmtAll"
 
 # The JS/CSS/HTML linters run in the web container, where their node_modules live (no host-side npm install).
 # `-e FORCE_COLOR=1` (not `docker exec -t`) restores colorized output while keeping the targets pipeable.

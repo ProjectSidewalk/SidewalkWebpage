@@ -3,6 +3,9 @@
  * Docs: https://developers.google.com/maps/documentation/javascript/reference/street-view
  */
 class GsvViewer extends PanoViewer {
+  /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
+  static SOURCE = 'gsv';
+
   // If GSV's internal pano load never fires position_changed (e.g. its metadata RPC 502s), fail the load after this
   // long so the in-flight move can recover instead of hanging the UI forever. Generous, so it won't abort slow loads.
   static #PANO_LOAD_TIMEOUT_MS = 10000;
@@ -13,6 +16,17 @@ class GsvViewer extends PanoViewer {
     this.gsvPano = undefined;
     this.prevPanoData = undefined;
     this.currPanoData = undefined;
+  }
+
+  /**
+   * Pulls in the Maps JS core + Street View modules without building a panorama. Google bills the
+   * StreetViewPanorama constructor, not the library download, so this is free to run for visitors who never
+   * open a pano — it just takes the ~400 KB script chain off the click path when they do (#5128).
+   * @returns {Promise<void>}
+   */
+  static async preloadLibrary() {
+    await google.maps.importLibrary('core');
+    await google.maps.importLibrary('streetView');
   }
 
   async initialize(canvasElem, panoOptions = {}) {

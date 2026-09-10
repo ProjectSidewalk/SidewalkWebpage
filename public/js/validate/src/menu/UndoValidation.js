@@ -34,6 +34,10 @@ class UndoValidation {
    * Goes back to the previous label (decrements user's progress).
    */
   #undo = async () => {
+    // Guarded before saveValidationState, which writes the reason text boxes onto the current label — mid-load that
+    // is the label being stepped back to, not the one whose text is in the boxes (#5211).
+    if (svv.labelContainer.dropInputWhileLoading('Undo')) return;
+
     svv.tracker.push('ModalUndo_Click');
     svv.validationMenu.saveValidationState();
 

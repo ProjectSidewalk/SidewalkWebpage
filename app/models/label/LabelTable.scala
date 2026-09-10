@@ -146,7 +146,8 @@ case class LabelMetadata(
     aiGenerated: Boolean,
     expired: Boolean,
     fromCurrentUser: Boolean,
-    panoMetadata: Option[PanoViewerMetadata]
+    panoMetadata: Option[PanoViewerMetadata],
+    panoSource: PanoSource
 )
 
 /**
@@ -191,6 +192,8 @@ case class LabelMetadataUserDash(
     labelId: Int,
     panoId: String,
     panoSource: PanoSource,
+    copyright: Option[String],
+    license: Option[String],
     pov: POV,
     canvasX: Int,
     canvasY: Int,
@@ -348,12 +351,25 @@ object LabelTable {
 
   // Type aliases for the tuple representation of LabelMetadataUserDash and queries for them.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
-  type LabelMetadataUserDashTuple =
-    (Int, String, PanoSource, (Double, Double, Double), Int, Int, String, OffsetDateTime, Option[String])
+  type LabelMetadataUserDashTuple = (
+      Int,
+      String,
+      PanoSource,
+      Option[String],
+      Option[String],
+      (Double, Double, Double),
+      Int,
+      Int,
+      String,
+      OffsetDateTime,
+      Option[String]
+  )
   type LabelMetadataUserDashTupleRep = (
       Rep[Int],                                // labelId
       Rep[String],                             // panoId
       Rep[PanoSource],                         // panoSource
+      Rep[Option[String]],                     // copyright
+      Rep[Option[String]],                     // license
       (Rep[Double], Rep[Double], Rep[Double]), // pov (heading, pitch, zoom)
       Rep[Int],                                // canvasX
       Rep[Int],                                // canvasY
@@ -366,7 +382,8 @@ object LabelTable {
   implicit val labelMetadataUserDashConverter: TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] =
     new TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] {
       def fromTuple(t: LabelMetadataUserDashTuple): LabelMetadataUserDash =
-        LabelMetadataUserDash(t._1, t._2, t._3, POV.tupled(t._4), t._5, t._6, LabelTypeEnum.byName(t._7), t._8, t._9)
+        LabelMetadataUserDash(t._1, t._2, t._3, t._4, t._5, POV.tupled(t._6), t._7, t._8, LabelTypeEnum.byName(t._9),
+          t._10, t._11)
     }
 
   // Type alias for the tuple representation of LabelForLabelMap query results. Includes streetEdgeId (2nd element,
@@ -423,8 +440,9 @@ object LabelTable {
           Option[Double],
           Option[Double],
           Option[String],
+          Option[String],
           Option[String]
-      ) // 22. pano dims, camera & address
+      ) // 22. pano dims, camera, attribution & address
   )
   type LabelValidationMetadataTupleRep = (
       Rep[Int],                                   // 1.  labelId
@@ -455,7 +473,7 @@ object LabelTable {
       Rep[Boolean],                               // 19. aiGenerated
       Rep[Option[String]],                        // 20. comments (JSON-aggregated)
       Rep[Boolean],                               // 21. fromCurrentUser
-      (                                           // 22. pano dims, camera & address
+      (                                           // 22. pano dims, camera, attribution & address
           Rep[Option[Int]],                       // 1. width
           Rep[Option[Int]],                       // 2. height
           Rep[Option[Int]],                       // 3. tileWidth
@@ -464,7 +482,8 @@ object LabelTable {
           Rep[Option[Double]],                    // 6. cameraPitch
           Rep[Option[Double]],                    // 7. cameraRoll
           Rep[Option[String]],                    // 8. copyright
-          Rep[Option[String]]                     // 9. address
+          Rep[Option[String]],                    // 9. license
+          Rep[Option[String]]                     // 10. address
       )
   )
 
@@ -513,10 +532,19 @@ object LabelTable {
         comments = t._20.map(parseCommentsJson).getOrElse(Seq.empty),
         fromCurrentUser = t._21,
         panoMetadata = Some(
-          PanoViewerMetadata(t._22._1, t._22._2, t._22._3, t._22._4, t._22._5, t._22._6, t._22._7, t._22._8, t._22._9)
+          PanoViewerMetadata(t._22._1, t._22._2, t._22._3, t._22._4, t._22._5, t._22._6, t._22._7, t._22._8, t._22._9,
+            t._22._10)
         )
       )
     }
+
+  // One row of getCropCandidates: label id and type, pano id, the label's pano_x/pano_y, and the pano's recorded
+  // width/height. Mapped to service.CropService.CropCandidate by the crop job.
+  type CropCandidateTuple = (Int, LabelTypeEnum.Base, String, Int, Int, Option[Int], Option[Int])
+
+  /** (labelId, labelType, timeCreated, panoId, panoX, panoY, canvasX, canvasY, panoWidth, panoHeight, aiGenerated). */
+  type CropProvenanceTuple =
+    (Int, LabelTypeEnum.Base, OffsetDateTime, String, Int, Int, Int, Int, Option[Int], Option[Int], Boolean)
 
   // Type alias for the tuple representation of LabelCVMetadata.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
@@ -573,6 +601,8 @@ object LabelTable {
       osmWayId = r.nextLong(),
       regionId = r.nextInt(),
       regionName = r.nextString(),
+      streetSide = r.nextStringOption().flatMap(StreetSide.fromString),
+      centerlineOffsetM = r.nextDoubleOption(),
       correct = r.nextBooleanOption(),
       agreeCount = r.nextInt(),
       disagreeCount = r.nextInt(),
@@ -646,6 +676,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val auditTasks             = TableQuery[AuditTaskTableDef]
   val panoData               = TableQuery[PanoDataTableDef]
   val labelPoints            = TableQuery[LabelPointTableDef]
+  val labelCrops             = TableQuery[LabelCropTableDef]
   val labelValidations       = TableQuery[LabelValidationTableDef]
   val labelAiAssessments     = TableQuery[LabelAiAssessmentTableDef]
   val labelAiFailures        = TableQuery[LabelAiFailureTableDef]
@@ -752,9 +783,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           r.nextDoubleOption(), // cameraPitch
           r.nextDoubleOption(), // cameraRoll
           r.nextStringOption(), // copyright
+          r.nextStringOption(), // license
           r.nextStringOption()  // address
         )
-      )
+      ),
+      PanoSource.withName(r.nextString())
     )
   }
 
@@ -979,6 +1012,23 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param userIds The users to break down.
    * @return DBIO[Seq[(userId, labelType, count)]].
    */
+  /**
+   * Label counts broken down by label type for a single street (#5258).
+   *
+   * Uses the `labels` subquery, so deleted/tutorial/excluded-user labels are already excluded -- the same population
+   * the map and the Gallery report, so the street's card can't claim labels the rest of the site won't show.
+   *
+   * @param streetEdgeId The street to break down.
+   * @return DBIO[Seq[(labelType, count)]], for the label types actually present on the street.
+   */
+  def getLabelTypeCountsForStreet(streetEdgeId: Int): DBIO[Seq[(String, Int)]] = {
+    labels
+      .filter(_.streetEdgeId === streetEdgeId)
+      .groupBy(_.labelTypeName)
+      .map { case (labelType, group) => (labelType, group.length) }
+      .result
+  }
+
   def getLabelTypeCountsForUsers(userIds: Seq[String]): DBIO[Seq[(String, String, Int)]] = {
     (for {
       _label <- labels if _label.userId inSet userIds
@@ -1152,7 +1202,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              pano_data.camera_pitch,
              pano_data.camera_roll,
              pano_data.copyright,
-             pano_data.address
+             pano_data.license,
+             pano_data.address,
+             pano_data.source
       FROM label AS lb1
       INNER JOIN pano_data ON lb1.pano_id = pano_data.pano_id
       INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
@@ -1376,7 +1428,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           None.asInstanceOf[Option[String]].asColumnOf[Option[String]], // Comments not needed for validation rn.
           false.bind,
           (pd.width, pd.height, pd.tileWidth, pd.tileHeight, pd.cameraHeading, pd.cameraPitch, pd.cameraRoll,
-            pd.copyright, pd.address)
+            pd.copyright, pd.license, pd.address)
         )
       }
 
@@ -1527,7 +1579,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       comments.flatMap(_.comments), // pre-aggregated comments string from VIEW
       lb.userId === userId.bind,
       (pd.width, pd.height, pd.tileWidth, pd.tileHeight, pd.cameraHeading, pd.cameraPitch, pd.cameraRoll, pd.copyright,
-        pd.address)
+        pd.license, pd.address)
     )
 
     // Remove duplicates if needed, then order newest-first or randomized. Callers that batch through this query
@@ -1620,6 +1672,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lb.labelId,
       _lb.panoId,
       _pd.source,
+      _pd.copyright,
+      _pd.license,
       (_lp.heading.asColumnOf[Double], _lp.pitch.asColumnOf[Double], _lp.zoom.asColumnOf[Double]),
       _lp.canvasX,
       _lp.canvasY,
@@ -1628,8 +1682,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _vc._6
     )
 
-    // Get the most recent matching validation for each label.
-    _validations.sortBy(r => (r._1, r._7.desc)).distinctOn(_._1)
+    // Don't drop `.subquery`: without it the two sorts flatten into one ORDER BY that Postgres rejects.
+    _validations.sortBy(r => (r._1, r._10.desc)).distinctOn(_._1).subquery.sortBy(_._10.desc)
   }
 
   /**
@@ -2052,6 +2106,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              osm_way_street_edge.osm_way_id,
              region.region_id,
              region.name,
+             label_point.street_side::text,
+             label_point.centerline_offset_m,
              label.correct,
              label.agree_count,
              label.disagree_count,
@@ -2669,6 +2725,54 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _pd.cameraPitch.asColumnOf[Double],
       _pd.cameraRoll
     )).sortBy(_._1).result
+  }
+
+  /**
+   * Every label the crop job could cut a crop for, with the pano's recorded dimensions — the frame `pano_x`/`pano_y`
+   * are expressed in. Streamed rather than materialized because it is the whole label table; the job filters against
+   * the crop store as rows arrive (#4865).
+   *
+   * Built on `labelsWithExcludedUsers`: an excluded user's labels are cropped like anyone else's, because they are
+   * what an admin looks at to judge the exclusion and what a study of poor labeling behaviour is made of — and the
+   * pano they were cut from expires long before the research does. Deleted and tutorial labels are left out; no
+   * surface displays either.
+   */
+  def getCropCandidates: StreamingDBIO[Seq[CropCandidateTuple], CropCandidateTuple] = {
+    (for {
+      _l  <- labelsWithExcludedUsers
+      _lp <- labelPoints if _l.labelId === _lp.labelId
+      _pd <- panoData if _l.panoId === _pd.panoId
+    } yield (_l.labelId, _l.labelType, _l.panoId, _lp.panoX, _lp.panoY, _pd.width, _pd.height)).result
+  }
+
+  /**
+   * Every label with no `label_crop` row, with what the crop job's reconcile pass needs to classify a crop it finds on
+   * disk (#2660). Streamed like [[getCropCandidates]] — the whole label table on the first run — and on the same
+   * roster, so the two passes agree on which labels have crops at all.
+   */
+  def getLabelsWithoutCropProvenance: StreamingDBIO[Seq[CropProvenanceTuple], CropProvenanceTuple] = {
+    (for {
+      ((_l, _lc), _ur) <- labelsWithExcludedUsers
+        .joinLeft(labelCrops)
+        .on(_.labelId === _.labelId)
+        .joinLeft(userRoles)
+        .on(_._1.userId === _.userId)
+      if _lc.isEmpty
+      _lp <- labelPoints if _l.labelId === _lp.labelId
+      _pd <- panoData if _l.panoId === _pd.panoId
+    } yield (
+      _l.labelId,
+      _l.labelType,
+      _l.timeCreated,
+      _l.panoId,
+      _lp.panoX,
+      _lp.panoY,
+      _lp.canvasX,
+      _lp.canvasY,
+      _pd.width,
+      _pd.height,
+      _ur.map(_.role === Role.Ai).getOrElse(false)
+    )).result
   }
 
   /**

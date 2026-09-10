@@ -123,10 +123,18 @@
   border-bottom: 1px solid var(--color-neutral-200);
 }
 
-.about-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+/* Each stat is sized to its own content, with the leftover width shared out evenly. Nothing but the content decides
+   how wide a stat gets, so the widest value always fits: a seven-figure count and a locale whose caption runs long
+   each take the room they need, and the band wraps to another line rather than letting one stat overlap the next
+   (#5151). Intrinsic on purpose — no track floor and no breakpoints to keep in step with the translations. */
+.about-stats-row {
+  display: flex;
+  flex-wrap: wrap;
   gap: 28px 20px;
+}
+
+.about-stat {
+  flex: 1 1 auto;
 }
 
 .about-stat-number {
@@ -135,6 +143,10 @@
   font-size: clamp(28px, 3.2vw, 44px);
   line-height: 1.1;
   color: var(--color-asphalt-500);
+
+  /* A grouped number is one unbreakable token, whatever separator the locale uses. That also makes the value the
+     flex item's minimum width, so it can never be shrunk into its neighbour. */
+  white-space: nowrap;
 }
 
 .about-stat-label {

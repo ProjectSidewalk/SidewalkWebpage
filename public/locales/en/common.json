@@ -30,6 +30,11 @@
   "continue": "Continue",
   "delete": "Delete",
   "done": "Done",
+  "unsaved-changes": {
+    "message": "You have unsaved changes. Would you like to save them before leaving this page?",
+    "save": "Save and leave",
+    "leave": "Leave"
+  },
   "badges": {
     "congratulations": "Congratulations!",
     "you-earned": "You earned the “{{badge}}” badge!",
@@ -89,6 +94,7 @@
   "only": "Only",
   "image-capture-date": "Image Capture Date",
   "drag-to-look-around": "Drag to look around",
+  "loading-imagery": "Loading imagery...",
   "hide-label": "Hide Label",
   "show-label": "Show Label",
   "hide-label-tooltip": "Temporarily hide the label to see what's underneath.",
@@ -200,9 +206,13 @@
     "pano-address": "Address",
     "view-in-gsv": "View in Google Street View",
     "view-in-mapillary": "View in Mapillary",
+    "view-in-panoramax": "View in Panoramax",
     "city": "City",
     "copy-to-clipboard": "Copy to clipboard",
     "copied-to-clipboard": "Data copied to your clipboard!"
+  },
+  "pano-attribution": {
+    "opens-new-tab": "(opens in a new tab)"
   },
   "mission-start-tutorial": {
     "example-type-label-correct": "CORRECT EXAMPLE",

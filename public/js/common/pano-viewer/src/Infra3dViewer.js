@@ -3,6 +3,9 @@
  * Docs: https://developers.infra3d.com/javascript-api/reference/classes/Viewer.Viewer.html
  */
 class Infra3dViewer extends PanoViewer {
+  /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
+  static SOURCE = 'infra3d';
+
   constructor() {
     super();
     this.viewer = undefined;

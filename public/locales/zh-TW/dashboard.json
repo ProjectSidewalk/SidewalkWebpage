@@ -78,6 +78,9 @@
     "create-failed": "無法建立團隊。請再試一次。",
     "network-error": "網路錯誤——請再試一次。"
   },
+  "team-leave-confirm-open": "確定要離開「{{name}}」嗎？之後可以從同一份清單再次加入。",
+  "team-leave-confirm-closed": "確定要離開「{{name}}」嗎？該團隊不接受新成員，你將無法自行再次加入。",
+  "team-leave": "離開團隊",
   "stories": {
     "none": "您尚未撰寫任何故事。在地圖上開啟一個標記，然後選擇「撰寫您的故事」。"
   },

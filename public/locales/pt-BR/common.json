@@ -30,6 +30,11 @@
   "continue": "Continuar",
   "delete": "Excluir",
   "done": "Concluído",
+  "unsaved-changes": {
+    "message": "Você tem alterações não salvas. Deseja salvá-las antes de sair desta página?",
+    "save": "Salvar e sair",
+    "leave": "Sair"
+  },
   "badges": {
     "congratulations": "Parabéns!",
     "you-earned": "Você ganhou a insígnia “{{badge}}”!",
@@ -89,6 +94,7 @@
   "only": "Somente",
   "image-capture-date": "Data de Captura da Imagem",
   "drag-to-look-around": "Arraste para olhar ao redor",
+  "loading-imagery": "Carregando imagens...",
   "hide-label": "Ocultar rótulo",
   "show-label": "Mostrar rótulo",
   "hide-label-tooltip": "Oculta temporariamente o rótulo para ver o que está embaixo.",
@@ -200,9 +206,13 @@
     "pano-address": "Endereço",
     "view-in-gsv": "Ver no Google Street View",
     "view-in-mapillary": "Ver no Mapillary",
+    "view-in-panoramax": "Ver no Panoramax",
     "city": "Cidade",
     "copy-to-clipboard": "Copiar para a área de transferência",
     "copied-to-clipboard": "Dados copiados para a área de transferência!"
+  },
+  "pano-attribution": {
+    "opens-new-tab": "(abre em uma nova aba)"
   },
   "mission-start-tutorial": {
     "example-type-label-correct": "EXEMPLO CORRETO",

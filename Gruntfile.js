@@ -99,6 +99,7 @@ module.exports = function (grunt) {
         src: [
           'public/js/common/Toast.js',
           'public/js/common/ConfirmDialog.js',
+          'public/js/common/UnsavedChangesGuard.js',
           'public/js/common/mapboxSearchBoxA11y.js',
           'public/js/route-builder/src/*.js'
         ],
@@ -141,10 +142,21 @@ module.exports = function (grunt) {
           'public/js/common/pano-viewer/src/MapillaryViewer.js',
           'public/js/common/pano-viewer/src/Infra3dViewer.js',
           'public/js/common/pano-viewer/src/PannellumViewer.js',
+          'public/js/common/pano-viewer/src/PanoramaxViewer.js',
           'public/js/common/pano-viewer/src/PanoViewerLogo.js',
+          'public/js/common/pano-viewer/src/PanoAttribution.js',
           'public/js/common/pano-viewer/src/PanoInfoPopover.js'
         ],
         dest: 'public/js/common/pano-viewer/build/pano-viewer.js'
+      },
+      // The imagery-credit overlays alone, for a page with stills but no viewer (the landing grid, #5202). Neither
+      // file may reference a viewer class — that is what lets them stand alone. A page loads one bundle or the other.
+      dist_pano_credit: {
+        src: [
+          'public/js/common/pano-viewer/src/PanoViewerLogo.js',
+          'public/js/common/pano-viewer/src/PanoAttribution.js'
+        ],
+        dest: 'public/js/common/pano-credit/build/pano-credit.js'
       }
     },
     concat_css: {
@@ -163,6 +175,7 @@ module.exports = function (grunt) {
         src: [
           'public/css/components/label-anchored-panel.css',
           'public/css/components/label-hover-card.css',
+          'public/css/components/pano-attribution.css',
           'public/css/pages/validate/*.css',
           'public/css/components/mission-start-tutorial.css'
         ],
@@ -202,6 +215,7 @@ module.exports = function (grunt) {
           'public/js/shared-label/*.js',
           'public/css/components/label-anchored-panel.css',
           'public/css/components/label-hover-card.css',
+          'public/css/components/pano-attribution.css',
           'public/css/components/mission-start-tutorial.css'
         ],
         tasks: [

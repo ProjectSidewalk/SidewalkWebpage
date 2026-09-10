@@ -15,6 +15,7 @@ class ActorModule extends AbstractModule with PekkoGuiceSupport {
     bindActor[AuthTokenCleanerActor]("auth-token-cleaner-actor")
     bindActor[ClusteringActor]("clustering-actor")
     bindActor[OsmWayRefreshActor]("osm-way-refresh-actor")
+    bindActor[CropGenerationActor]("crop-generation-actor")
     bind(classOf[ActorInitializer]).asEagerSingleton()
   }
 }

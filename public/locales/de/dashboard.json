@@ -81,6 +81,9 @@
     "create-failed": "Das Team konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
     "network-error": "Netzwerkfehler — bitte versuchen Sie es erneut."
   },
+  "team-leave-confirm-open": "\"{{name}}\" verlassen? Sie können später über dieselbe Liste wieder beitreten.",
+  "team-leave-confirm-closed": "\"{{name}}\" verlassen? Das Team nimmt keine neuen Mitglieder auf, Sie können also nicht selbst wieder beitreten.",
+  "team-leave": "Team verlassen",
   "stories": {
     "none": "Sie haben noch keine Geschichten geschrieben. Öffnen Sie eine Beschriftung auf der Karte und wählen Sie „Geschichte schreiben“."
   },

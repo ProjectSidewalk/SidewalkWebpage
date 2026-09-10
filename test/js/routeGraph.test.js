@@ -178,4 +178,29 @@ describe('RouteGraph', () => {
             expect(snapped.distanceM).toBeLessThan(30);
         });
     });
+
+    describe('isNearStreet()', () => {
+        // A ~1.1 km straight street with vertices only at its ends, so mid-block the nearest VERTEX is ~555 m
+        // away even for a point sitting right on the line.
+        const longStreet = () => [street(40, [[0, 0], [0.01, 0]])];
+
+        it('detects a point on a long street mid-block, where snapToStreet\'s vertex proxy cannot', () => {
+            const graph = new RouteGraph(longStreet());
+            const midBlock = { lng: 0.005, lat: 0.00005 }; // ~5.5 m off the centerline.
+            expect(graph.isNearStreet(midBlock, 1, 25)).toBe(true);
+            expect(graph.snapToStreet(midBlock, 1, 25)).toBeNull();
+        });
+
+        it('rejects a point beyond the tolerance', () => {
+            const graph = new RouteGraph(longStreet());
+            expect(graph.isNearStreet({ lng: 0.005, lat: 0.0005 }, 1, 25)).toBe(false); // ~55 m off.
+        });
+
+        it('honors the region filter', () => {
+            const graph = new RouteGraph(gridStreets());
+            const onE = { lng: 0.0015, lat: 0.001 }; // Mid-block on street e (region 2).
+            expect(graph.isNearStreet(onE, 2, 25)).toBe(true);
+            expect(graph.isNearStreet(onE, 1, 25)).toBe(false);
+        });
+    });
 });

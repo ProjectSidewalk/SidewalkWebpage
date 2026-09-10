@@ -41,11 +41,8 @@ class ValidationInfoDisplay {
     disagreeCountContainer.className = 'validation-info-count-container';
 
     // Build the agree/disagree icons. There is a `-ai` variant of each icon.
-    const agreeIcon = this.#makeVoteIcon('Agree', this.#aiValidation === 'Agree');
-    agreeCountContainer.appendChild(agreeIcon);
-
-    const disagreeIcon = this.#makeVoteIcon('Disagree', this.#aiValidation === 'Disagree');
-    disagreeCountContainer.appendChild(disagreeIcon);
+    agreeCountContainer.appendChild(this.#makeVoteIcon('Agree'));
+    disagreeCountContainer.appendChild(this.#makeVoteIcon('Disagree'));
 
     // Create the agree and disagree count text elements.
     this.agreeText = document.createElement('div');
@@ -68,18 +65,44 @@ class ValidationInfoDisplay {
   }
 
   /**
-   * Builds an <img> for the agree/disagree vote icon, using the `-ai` variant when the AI validated this option.
-   * The icon carries no tooltip of its own; hovering it falls through to the one on its container, so the icon and
-   * the count beside it explain the vote the same way.
+   * Builds an <img> for the agree/disagree vote icon. The icon carries no tooltip of its own; hovering it falls
+   * through to the one on its container, so the icon and the count beside it explain the vote the same way.
    * @param {string} action 'Agree' or 'Disagree'.
-   * @param {boolean} isAi Whether to use the AI variant of the icon.
+   * @returns {HTMLImageElement} The icon, in its outline state.
    */
-  #makeVoteIcon(action, isAi) {
+  #makeVoteIcon(action) {
     const icon = document.createElement('img');
     icon.className = 'validation-info-image';
-    icon.src = util.assetPath(`images/icons/validation/${action.toLowerCase()}-outline${isAi ? '-ai' : ''}.svg`);
+    icon.src = this.#voteIconSrc(action, false);
     icon.alt = '';
     return icon;
+  }
+
+  /**
+   * A vote icon's URL, in the requested fill state and with the `-ai` variant when our AI validated this option.
+   *
+   * Rebuilt from the logical path rather than edited out of the <img>'s current `src`, which carries the outline
+   * file's content fingerprint and so can't name the filled one (#5204).
+   *
+   * @param {string} action 'Agree' or 'Disagree'.
+   * @param {boolean} filled Whether to use the filled variant rather than the outline one.
+   * @returns {string} The icon's URL.
+   */
+  #voteIconSrc(action, filled) {
+    const fill = filled ? 'filled' : 'outline';
+    const ai = this.#aiValidation === action ? '-ai' : '';
+    return util.assetPath(`images/icons/validation/${action.toLowerCase()}-${fill}${ai}.svg`);
+  }
+
+  /**
+   * Fills or unfills one thumb's icon — the hover hint that the thumb can be clicked to vote.
+   * @param {string} action 'Agree' or 'Disagree'.
+   * @param {boolean} filled Whether the icon should show its filled variant.
+   */
+  setVoteIconFilled(action, filled) {
+    const container = action === 'Agree' ? this.agreeContainer : this.disagreeContainer;
+    const icon = container?.querySelector('.validation-info-image');
+    if (icon) icon.src = this.#voteIconSrc(action, filled);
   }
 
   /**

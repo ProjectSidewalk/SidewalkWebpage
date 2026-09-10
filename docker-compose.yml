@@ -9,7 +9,11 @@ services:
       - db
     volumes:
       - "./:/home/:delegated"
-      - "/home/node_modules"
+      # Masks the host's node_modules, which the bind mount above would otherwise lay over the image's — the host
+      # copy is built for the host's OS/arch. Named, not anonymous: an anonymous one is created per `docker compose
+      # run` and orphaned on exit. The cost is that it no longer re-seeds from a rebuilt image, which is why
+      # `make dev` runs tools/npm-sync.sh.
+      - "node_modules:/home/node_modules"
     ports:
       - "9000:9000"
     # No `platform:` here — the web image builds on both amd64 and arm64, so each host builds natively instead of
@@ -54,6 +58,7 @@ services:
       - POSTGRES_PASSWORD=sidewalk
 
 volumes:
-  # Leave this unprefixed. Compose namespaces it per project — your checkout directory, lowercased — so an explicit
-  # `name:` would point every Sidewalk checkout on the machine at one shared database.
+  # Leave these unprefixed. Compose namespaces them per project — your checkout directory, lowercased — so an explicit
+  # `name:` would point every Sidewalk checkout on the machine at one shared database (or one shared node_modules).
   pgdata:
+  node_modules:

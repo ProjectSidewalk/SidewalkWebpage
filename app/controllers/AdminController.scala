@@ -25,7 +25,7 @@ import java.util.concurrent.ThreadPoolExecutor
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
 
 @Singleton
@@ -40,6 +40,7 @@ class AdminController @Inject() (
     labelService: LabelService,
     streetService: StreetService,
     panoDataService: PanoDataService,
+    cropService: CropService,
     osmWayService: service.OsmWayService,
     userService: service.UserService,
     jobRunService: JobRunService,
@@ -109,15 +110,17 @@ class AdminController @Inject() (
     val userId: String = request.identity.userId
     labelService.getSingleLabelMetadata(labelId, userId).flatMap {
       case Some(metadata) =>
-        labelService.getExtraAdminValidateData(Seq(labelId)).map { adminData =>
-          Ok(
-            labelMetadataWithValidationToJsonAdmin(metadata, adminData.head) ++
-              Json.obj(
-                "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
-                "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
-                "can_edit"         -> true
-              )
-          )
+        labelService.getExtraAdminValidateData(Seq(labelId)).zip(cropService.cropMarker(labelId)).map {
+          case (adminData, marker) =>
+            Ok(
+              labelMetadataWithValidationToJsonAdmin(metadata, adminData.head) ++
+                Json.obj(
+                  "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
+                  "crop_marker"      -> marker,
+                  "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
+                  "can_edit"         -> true
+                )
+            )
         }
       case None => Future.successful(NotFound(s"No label found with ID: $labelId"))
     }
@@ -708,7 +711,7 @@ class AdminController @Inject() (
           "labels_validated_share"   -> (if (sc.totalLabels > 0) sc.labelsValidated.toDouble / sc.totalLabels else 0.0),
           "labels_with_severity"     -> sc.labelsWithSeverity,
           "labels_severity_eligible" -> sc.labelsSeverityEligible,
-          // Share computed only over types that CAN have a severity (NoSidewalk/Signal/Occlusion excluded).
+          // Share computed only over types that CAN have a rating, i.e. RatingScale other than Unrated.
           "severity_share" -> (if (sc.labelsSeverityEligible > 0)
                                  sc.labelsWithSeverity.toDouble / sc.labelsSeverityEligible
                                else 0.0),
@@ -1034,6 +1037,31 @@ class AdminController @Inject() (
   }
 
   /**
+   * Cuts the missing label crops from the self-hosted pano store. Same as the nightly process, for a backfill
+   * that shouldn't wait for it (#4865).
+   *
+   * Recorded as a `Manual` run of that nightly job (#4928), and answered as soon as the run starts rather than when
+   * it ends — alone among these triggers, because a first backfill runs for about an hour, far past any proxy's read
+   * timeout, and a timed-out request reads as a failed job while the run carries on unseen. The Health panel is
+   * where it reports; `isRunning` is what keeps a second click from starting a second pass over the same store.
+   */
+  def generateCrops = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    // Checked before the run is recorded, so a refused trigger doesn't leave a failed run on the Health panel.
+    if (cropService.isRunning) {
+      Future.successful(Conflict("A crop generation run is already in progress."))
+    } else {
+      jobRunService
+        .record(CropGenerationActor.Name, JobRunTrigger.Manual)(cropService.generateMissingCrops())(_.runDetails)
+        .onComplete {
+          case Success(results) => logger.info(results.summary)
+          case Failure(e)       => logger.error(s"Manually triggered crop generation failed: ${e.getMessage}")
+        }
+      Future.successful(Accepted("Crop generation started. It reports to the Health panel when it finishes."))
+    }
+  }
+
+  /**
    * Refreshes the cached OSM way data (speed limits etc.). Same as the nightly process, for QA and initial backfill.
    *
    * Recorded as a `Manual` run of that nightly job (#4928). This one runs for tens of minutes and can half-fail, so
@@ -1045,7 +1073,7 @@ class AdminController @Inject() (
       .record(OsmWayRefreshActor.Name, JobRunTrigger.Manual)(osmWayService.refreshOsmWayData())(
         OsmWayRefreshActor.runDetails
       )
-      .map { waysRefreshed => Ok(Json.obj("ways_refreshed" -> waysRefreshed)) }
+      .map { result => Ok(OsmWayRefreshActor.runDetails(result)) }
       .recover { case NonFatal(e) =>
         logger.error("OSM way data refresh failed.", e)
         // Chunks upsert as they complete, so partial progress survives and a re-trigger resumes from what's missing.

@@ -111,11 +111,53 @@ function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
 }
 
 /**
+ * The Mapbox expression matching each of a street's three audit states (#4384): audited (has an audit on current
+ * imagery), outdated (audited before, but newer imagery exists), or unaudited (neither property set). Held in one
+ * place because both the layer's filter and its width read them, and a street matching two would be a contradiction.
+ */
+const STREET_STATE_FILTERS = {
+  audited: ['==', ['get', 'audited'], true],
+  outdated: ['==', ['get', 'outdated'], true],
+  unaudited: ['all', ['!=', ['get', 'audited'], true], ['!=', ['get', 'outdated'], true]],
+};
+
+/**
+ * The street layer's line-width expression, thickening one audit state if asked.
+ *
+ * Emphasis borrows the pointer-hover thickness rather than a size of its own, so a state called out from the sidebar
+ * looks like the same street a mapper would get by hovering it on the map.
+ *
+ * @param {?string} [emphasizedState=null] An audit state to thicken (a `STREET_STATE_FILTERS` key), or null for none.
+ * @returns {Array} A Mapbox zoom-interpolated line-width expression.
+ */
+function streetLineWidth(emphasizedState = null) {
+  const emphasized = emphasizedState ? STREET_STATE_FILTERS[emphasizedState] : null;
+  const atZoom = (thick, thin) => (emphasized
+    ? ['case', ['boolean', ['feature-state', 'hover'], false], thick, emphasized, thick, thin]
+    : ['case', ['boolean', ['feature-state', 'hover'], false], thick, thin]);
+
+  return ['interpolate', ['linear'], ['zoom'], 12, atZoom(3, 1), 15, atZoom(7, 3)];
+}
+
+/**
+ * Thickens every street in one audit state, for as long as its sidebar row is hovered or focused (#5258).
+ *
+ * A repaint rather than per-feature state: the three states cover the whole city, and setting feature-state on
+ * thousands of features per pointer entry would cost far more than swapping one paint expression. Mapbox transitions
+ * the width for free, so the change reads as a swell rather than a jump.
+ *
+ * @param {object} map The Mapbox map object.
+ * @param {?string} streetState The audit state to thicken, or null to return every street to its normal width.
+ */
+function emphasizeStreetState(map, streetState) {
+  if (!map.getLayer('streets')) return;
+  map.setPaintProperty('streets', 'line-width', streetLineWidth(streetState));
+}
+
+/**
  * Filters the street layer based on the audited/outdated/unaudited street checkboxes.
  *
- * Streets carry a three-state status (#4384): audited (has an audit on current imagery), outdated (audited before,
- * but newer imagery exists), or unaudited (neither property set). On pages without the outdated checkbox, outdated
- * streets follow the audited checkbox.
+ * On pages without the outdated checkbox, outdated streets follow the audited checkbox.
  * @param {object} map The Mapbox map object.
  */
 function filterStreetLayer(map) {
@@ -124,9 +166,9 @@ function filterStreetLayer(map) {
   const includeUnaudited = document.getElementById('unaudited-street').checked;
 
   const included = [];
-  if (includeAudited) included.push(['==', ['get', 'audited'], true]);
-  if (includeOutdated) included.push(['==', ['get', 'outdated'], true]);
-  if (includeUnaudited) included.push(['all', ['!=', ['get', 'audited'], true], ['!=', ['get', 'outdated'], true]]);
+  if (includeAudited) included.push(STREET_STATE_FILTERS.audited);
+  if (includeOutdated) included.push(STREET_STATE_FILTERS.outdated);
+  if (includeUnaudited) included.push(STREET_STATE_FILTERS.unaudited);
 
   if (included.length === 0) {
     map.setLayoutProperty('streets', 'visibility', 'none');
@@ -165,10 +207,7 @@ function CreateMapLayerTracker() {
   // One flat array of features and one layer name string per label type.
   mapData.sortedLabels = {};
   mapData.layerNames = {};
-  const labelTypes = [
-    'CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal', 'Other',
-  ];
-  for (const labelType of labelTypes) {
+  for (const labelType of util.misc.VALID_LABEL_TYPES) {
     mapData.sortedLabels[labelType] = [];
     mapData.layerNames[labelType] = '';
     mapData.selectedTags[labelType] = new Set();
@@ -205,5 +244,16 @@ function geometryBounds(geometry) {
     else coords.forEach(extend);
   };
   extend(geometry.coordinates);
+  return bounds;
+}
+
+/**
+ * Returns the bounds enclosing every feature in a GeoJSON FeatureCollection.
+ * @param {object} featureCollection The collection.
+ * @returns {mapboxgl.LngLatBounds} Bounds covering all of its features.
+ */
+function featureCollectionBounds(featureCollection) {
+  const bounds = new mapboxgl.LngLatBounds();
+  for (const feature of featureCollection.features ?? []) bounds.extend(geometryBounds(feature.geometry));
   return bounds;
 }

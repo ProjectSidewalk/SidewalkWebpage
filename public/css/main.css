@@ -138,6 +138,13 @@
   --color-label-crosswalk: var(--color-yellow-500);
   --color-label-signal: var(--color-mint-500);
 
+  /* Street audit-state colors. The map layer and the legend swatch both read these, so a swatch can't drift from
+     the line it stands for. Unaudited is warm rather than grey: the greys it used to sit in are already spoken for
+     by the region outline, the region fill and the basemap's own roads, so the streets most in need of a mapper
+     were the ones that receded. */
+  --color-street-audited: var(--color-asphalt-500);
+  --color-street-unaudited: var(--color-orange-600);
+
   /* Font stacks. Mulish handles ~all type (body, UI, headings H3 and below); Raleway is reserved for top-level H1/H2
        and the Small-Accent style. Mulish doesn't ship CJK glyphs, so its stack ends with Traditional-Chinese system
        fonts (PingFang TC on macOS/iOS, Microsoft JhengHei on Windows; Linux/Android fall through via sans-serif). The
@@ -313,10 +320,6 @@ body.no-navbar-offset {
 .spacer10 { height: 10px; }
 .spacer20 { height: 20px; }
 
-footer {
-  padding: 30px 0;
-}
-
 /*
  * Accessibility styling updates.
  */
@@ -403,7 +406,8 @@ a {
 }
 
 .button--primary:focus {
-  outline: 1px solid var(--color-banana-800);
+  outline: 2px solid var(--color-banana-900);
+  outline-offset: 2px;
   color: var(--color-neutral-black);
 }
 
@@ -424,7 +428,7 @@ a {
 }
 
 .button--secondary:focus {
-  outline: 1px solid var(--color-banana-600);
+  outline: 2px solid var(--color-banana-900);
   color: var(--color-neutral-900);
 }
 
@@ -823,22 +827,6 @@ textarea.ps-input {
   overflow: hidden;
 }
 
-#mini-footer {
-  position: relative;
-  width: 100%;
-  min-height: 40px;
-  text-align: center;
-  color: #585c63;
-  font-size: 12px;
-  line-height: 1.6em;
-  font-family: raleway, sans-serif;
-}
-
-#mini-footer a {
-  color:#585c63;
-  text-decoration:underline;
-}
-
 #footer-container {
   position: relative;
   top: 0;
@@ -856,7 +844,7 @@ textarea.ps-input {
   color: var(--color-asphalt-500);
   font-size: 12px;
   line-height: 1.8em;
-  font-family: raleway, sans-serif;
+  font-family: var(--font-accent);
 }
 
 #footer-container a {
@@ -883,25 +871,19 @@ textarea.ps-input {
   min-height: 220px;
   background-color: var(--color-asphalt-500);
   text-align: center;
-  font-family: raleway, sans-serif;
+  font-family: var(--font-accent);
   font-size: 12px;
   color: var(--color-neutral-white);
   line-height: 1.6em;
+}
 
+#application-version {
+  font-family: var(--font-primary);
 }
 
 #info-footer a {
   color:var(--color-neutral-white);
   text-decoration:underline;
-}
-
-/* Landing/desktop footer layout (markup in common/main.scala.html). The .filler spacer's rendered height is read
-   by labelingGuidePanelResize.js, so keep the class and its min-height. */
-.filler {
-  position: relative;
-  top: 0;
-  background-color: var(--color-neutral-white);
-  min-height: 20px;
 }
 
 /* The three columns don't fill the 900px evenly, so centering the row alone leaves the group visibly left of centre;
@@ -1265,12 +1247,17 @@ kbd {
   flex-wrap: wrap;
 }
 
-/* Warning triangle: the severity cue, so the message text can stay calm and informative. */
+/* Warning triangle: the severity cue, so the message text can stay calm and informative. Masked rather than an
+   <img> so the tint stays a token instead of being baked into the file (auth.css's .au-icon masks the same
+   shape). No autoprefixer in this build, hence the -webkit- siblings. */
 .test-server-banner-icon {
   flex: 0 0 auto;
   width: 20px;
   height: 20px;
+  background-color: currentcolor;
   color: var(--color-banana-800);
+  -webkit-mask: url("../images/icons/alert-triangle-feather.svg") center / contain no-repeat;
+  mask: url("../images/icons/alert-triangle-feather.svg") center / contain no-repeat;
 }
 
 .test-server-banner-text {
@@ -2216,6 +2203,16 @@ kbd {
   width: 0;
   height: 0;
   pointer-events: none;
+}
+
+/* The ring has to go on the wrapping label: the radio is what takes focus, but it has no size and paints nothing,
+   so a ring on the radio itself is a ring around a 0x0 box. Without this the group is fully keyboard-operable —
+   Tab reaches it, arrows rove it, per the radio-group pattern — with nothing on screen to say focus is there.
+   Beside the primitive rather than in a page stylesheet: Explore had this rule and Expert Validate, which uses the
+   same markup, silently did not. */
+.severity-button:has(.severity-button__radio:focus-visible) {
+  outline: calc(2px * var(--ui-scale, 1)) solid var(--color-link-100);
+  outline-offset: calc(-2px * var(--ui-scale, 1));
 }
 
 .severity-button__icon {

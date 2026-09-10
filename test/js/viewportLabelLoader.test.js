@@ -103,6 +103,119 @@ describe('ViewportLabelLoader', () => {
         expect(fetches[0].url.searchParams.get('regions')).toBe('5');
     });
 
+    // #5170: zoomed out past maxBounds the fetched bbox is the clamped box, which a raw viewport can never be
+    // contained in — so every pan refetched a Seattle-sized feed while nothing on screen changed.
+    test('a viewport wider than maxBounds is contained by the clamped bbox, so panning refetches nothing', async () => {
+        const maxBounds = bounds(-0.15, -0.12, 0.15, 0.12);
+        const map = stubMap({ view: bounds(-0.3, -0.2, 0.3, 0.2), maxBounds });
+        const { seen } = build(map);
+        expect(bboxOf(0)).toEqual([-0.15, -0.12, 0.15, 0.12]);
+        fetches[0].resolve(FC);
+        await flush();
+
+        map.view = bounds(-0.28, -0.18, 0.32, 0.22); // Panned, but still showing everything inside maxBounds.
+        await settleMove(map);
+        expect(fetches).toHaveLength(1);
+        expect(seen.states).toEqual(['loading', 'idle']);
+    });
+
+    // maxBounds edges rarely land on 5 decimals, and an edge pinned to them must not round out of containment.
+    test('unrounded maxBounds edges still contain the view they clamped', async () => {
+        const maxBounds = bounds(-0.150000004, -0.120000004, 0.150000004, 0.120000004);
+        const map = stubMap({ view: bounds(-0.3, -0.2, 0.3, 0.2), maxBounds });
+        build(map);
+        expect(bboxOf(0)).toEqual([-0.15, -0.12, 0.15, 0.12]);
+        fetches[0].resolve(FC);
+        await flush();
+
+        await settleMove(map);
+        expect(fetches).toHaveLength(1);
+    });
+
+    // #5170: the maxBounds clamp alone can't give this — Seattle's are drawn 4° x 1°, ~20x the city — so
+    // without the extent every pan refetched the entire feed.
+    test('once a fetch covers the data extent, no later move fetches again', async () => {
+        const map = stubMap({ view: bounds(-0.1, -0.1, 0.1, 0.1) });
+        const { seen } = build(map, { dataBounds: bounds(-0.05, -0.05, 0.05, 0.05) });
+        expect(bboxOf(0)).toEqual([-0.2, -0.2, 0.2, 0.2]);
+        fetches[0].resolve(FC);
+        await flush();
+
+        map.view = bounds(0.5, 0.5, 0.7, 0.7); // Nowhere near the fetched bbox, but there's no data out there.
+        await settleMove(map);
+        expect(fetches).toHaveLength(1);
+        expect(seen.states).toEqual(['loading', 'idle']);
+    });
+
+    test('a fetch that only partly covers the data extent still refetches on the next escape', async () => {
+        const map = stubMap({ view: bounds(-0.1, -0.1, 0.1, 0.1) });
+        build(map, { dataBounds: bounds(-0.5, -0.5, 0.5, 0.5) });
+        fetches[0].resolve(FC);
+        await flush();
+
+        map.view = bounds(0.3, 0.3, 0.5, 0.5);
+        await settleMove(map);
+        expect(fetches).toHaveLength(2);
+    });
+
+    // Labels sit slightly outside their neighborhood polygons, so the extent is covered only with slack.
+    test('the data extent must be covered with its margin before fetching stops', async () => {
+        const map = stubMap({ view: bounds(-0.1, -0.1, 0.1, 0.1) });
+        build(map, { dataBounds: bounds(-0.195, -0.195, 0.195, 0.195) }); // Inside the bbox, but by < 0.01.
+        fetches[0].resolve(FC);
+        await flush();
+
+        map.view = bounds(0.15, 0.15, 0.35, 0.35);
+        await settleMove(map);
+        expect(fetches).toHaveLength(2);
+    });
+
+    // A shared link opens zoomed in, so the first fetch is a few blocks; zooming back out to the city buys the
+    // whole feed once, and from there the map is free to move.
+    test('zooming out from a deep link buys the whole feed once, then moves are free', async () => {
+        const map = stubMap({ view: bounds(-0.001, -0.001, 0.001, 0.001) });
+        const { seen } = build(map, { dataBounds: bounds(-0.05, -0.05, 0.05, 0.05) });
+        fetches[0].resolve(FC);
+        await flush();
+
+        map.view = bounds(-0.1, -0.1, 0.1, 0.1); // Zoomed out to the whole city.
+        await settleMove(map);
+        expect(fetches).toHaveLength(2);
+        fetches[1].resolve(FC);
+        await flush();
+
+        map.view = bounds(-0.06, -0.06, 0.04, 0.04);
+        await settleMove(map);
+        map.view = bounds(0.5, 0.5, 0.7, 0.7);
+        await settleMove(map);
+        expect(fetches).toHaveLength(2);
+        expect(seen.states).toEqual(['loading', 'idle', 'loading', 'idle']);
+    });
+
+    // A city whose maxBounds hug it can't be fetched past them, so the extent's slack must not push the
+    // coverage target outside what any fetch could reach.
+    test('the coverage target is held inside maxBounds', async () => {
+        const cityBounds = bounds(-0.15, -0.12, 0.15, 0.12);
+        const map = stubMap({ view: bounds(-0.3, -0.2, 0.3, 0.2), maxBounds: cityBounds });
+        build(map, { dataBounds: cityBounds });
+        fetches[0].resolve(FC);
+        await flush();
+
+        map.view = bounds(-0.1, -0.1, 0.1, 0.1);
+        await settleMove(map);
+        expect(fetches).toHaveLength(1);
+    });
+
+    test('a retry after the extent was covered fetches again', async () => {
+        const map = stubMap({ view: bounds(-0.1, -0.1, 0.1, 0.1) });
+        const { loader } = build(map, { dataBounds: bounds(-0.05, -0.05, 0.05, 0.05) });
+        fetches[0].resolve(FC);
+        await flush();
+
+        loader.refetch();
+        expect(fetches).toHaveLength(2);
+    });
+
     test('a move that stays inside the fetched bbox fetches nothing; escaping it fetches once', async () => {
         const map = stubMap({ view: bounds(-0.1, -0.1, 0.1, 0.1) });
         const { seen } = build(map);

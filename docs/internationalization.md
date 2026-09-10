@@ -6,7 +6,7 @@ how to add a whole new language.
 
 ## Supported languages
 
-`en` (default), `es`, `nl`, `de`, `pt-BR`, `zh-TW`, plus the regional English variants `en-US` and `en-NZ`. The
+`en` (default), `es`, `nl`, `de`, `pt-BR`, `zh-TW`, `fr`, plus the regional English variants `en-US` and `en-NZ`. The
 authoritative list is **`play.i18n.langs`** in [`conf/application.conf`](../conf/application.conf) — that's what
 determines the languages the app offers.
 
@@ -98,9 +98,9 @@ whose *language* is US English.
 
 1. **Add the key** to the appropriate backend message file or frontend namespace JSON, for the languages you can. For
    backend keys, the English goes in **`messages.en`** (never the base `messages` — see the callout above).
-2. **Add temporary machine translations** for Spanish, Dutch, German, and Mandarin (`zh-TW`, traditional) — Google
-   Translate is fine. A maintainer periodically sends the accumulated machine translations to our partners for proper
-   ones, so don't block on official translations.
+2. **Add temporary machine translations** for Spanish, Dutch, German, Portuguese, French, and Mandarin (`zh-TW`,
+   traditional) — Google Translate is fine. A maintainer periodically sends the accumulated machine translations to our
+   partners for proper ones, so don't block on official translations.
 3. **Default to the generic `en`** files, and add **regional English overrides only where the wording actually
    differs**:
    - **`en-US`** — American spellings and phrasing. **Not** the place for imperial units: those are a measurement-system

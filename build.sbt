@@ -1,8 +1,10 @@
 import com.typesafe.sbt.packager.MappingsHelper.directory
+import com.typesafe.sbt.web.PathMapping
+import com.typesafe.sbt.web.pipeline.Pipeline
 
 name := """sidewalk-webpage"""
 
-version := "11.10.0"
+version := "11.11.0"
 
 scalaVersion := "2.13.18"
 
@@ -58,11 +60,10 @@ libraryDependencies ++= Seq(
   // TODO no releases since Play 2.8. Seems to continue to work, but should consider other options.
   "com.adrianhurt" %% "play-bootstrap" % "1.6.1-P28-B3",
 
-  // Used to create shapefiles. The jai_core lib isn't available from maven, so we're setting a separate download link.
-  "javax.media" % "jai_core" % "1.1.3" from "https://repo.osgeo.org/repository/release/javax/media/jai_core/1.1.3/jai_core-1.1.3.jar",
-  "org.geotools" % "gt-shapefile" % "29.6" exclude ("javax.media", "jai_core"),
-  "org.geotools" % "gt-epsg-hsql" % "29.6" exclude ("javax.media", "jai_core"),
-  "org.geotools" % "gt-geopkg"    % "29.6" exclude ("javax.media", "jai_core"),
+  // Used to create the shapefile and GeoPackage exports (ShapefilesCreatorHelper). Served by the OSGeo resolver above.
+  "org.geotools" % "gt-shapefile" % "35.1",
+  "org.geotools" % "gt-epsg-hsql" % "35.1",
+  "org.geotools" % "gt-geopkg"    % "35.1",
 
   // Testing. scalatestplus-play pulls in ScalaTest + Play's test helpers (FakeRequest, route, etc.).
   "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.2" % Test
@@ -87,7 +88,18 @@ Universal / mappings ++= directory(baseDirectory.value / "scripts")
 // `Assets / pipelineStages` into `Assets / mappings` -> `Assets / assets`, which Play's dev build link runs on every
 // request. Scoping it to Assets therefore fingerprints during `run` as well, which buys nothing (dev serves
 // `no-cache`) and grows `target/web` from 290MB to ~880MB in every checkout and QA worktree.
-pipelineStages := Seq(digest)
+pipelineStages := Seq(fingerprintCssAssetUrls, digest)
+
+// Points every `url(...)` in a CSS asset at the fingerprinted copy `digest` is about to write (#5094): a stylesheet is
+// static text out of the assets jar, so no interpolation point reaches those URLs. Must precede `digest` above — see
+// project/CssAssetUrls.scala.
+val fingerprintCssAssetUrls = taskKey[Pipeline.Stage]("Rewrite CSS url(...) references to their fingerprinted names.")
+
+fingerprintCssAssetUrls := {
+  val targetDir = WebKeys.webTarget.value / "css-asset-urls"
+  val log       = streams.value.log
+  (mappings: Seq[PathMapping]) => CssAssetUrls(mappings, targetDir, log)
+}
 
 // Stamp git metadata into the binary at build time (generates models.utils.BuildInfo), so the running app can report
 // exactly what code it was built from (surfaced on the admin pages' deployment-info strip). Deploy builds run from

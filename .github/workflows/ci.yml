@@ -73,11 +73,11 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: '24'
-          # No npm cache and `npm install` (not `npm ci`) because the repo has no committed package-lock.json yet.
-          # Adding a lockfile later enables `npm ci` + caching and tighter Dependabot npm updates.
+          cache: npm
 
+      # Not `npm install`: it would re-resolve the versions behind every blocking gate in this job on each run (#5152).
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       # Exercises the grunt concat/concat_css asset build (the project's `default` grunt task).
       - name: Build assets
@@ -94,7 +94,7 @@ jobs:
         run: npx eslint public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js
 
       # Blocking: the CSS tree is kept stylelint-clean (#2487), the CSS counterpart to the ESLint gate above. Same glob
-      # `make stylelint` defaults to; vendored/generated CSS is carved out by stylelint.config.mjs's own `ignoreFiles`.
+      # `make stylelint` defaults to; vendored/generated CSS is carved out by `.stylelintignore`.
       # The glob is single-quoted so Stylelint's own globber expands `**` (not the shell). Like ESLint, no
       # `--max-warnings` flag: the one `warning` rule (max-line-length) is deliberately advisory — CLAUDE.md sanctions
       # long-line exceptions — so an over-limit line nags but doesn't block. `if: always()` runs it even when an earlier
@@ -134,6 +134,14 @@ jobs:
       - name: Asset paths (blocking)
         if: always()
         run: node tools/check-asset-paths.mjs
+
+      # Blocking: the self-hosted libraries in public/vendor/ (#4399) are listed in docs/upgrading-libraries.md at
+      # the versions in their filenames. No Dependabot ecosystem watches that folder (the npm one reads
+      # package.json, which is build tooling), so that doc is their whole inventory and it drifts silently. Run locally with
+      # `make lint-vendor-versions`.
+      - name: Vendor versions (blocking)
+        if: always()
+        run: node tools/check-vendor-versions.mjs
 
       # Blocking: the jsdom unit suite (test/js/). Thin *coverage* is why there's no `coverageThreshold`
       # (jest.config.js says why); it is not a reason to let a suite that does exist go red.
@@ -225,7 +233,8 @@ jobs:
         uses: sbt/setup-sbt@v1
 
       # Bring up Postgres+PostGIS exactly as dev does (db/Dockerfile + init.sh, which restores the shared
-      # sidewalk_login schema and the sidewalk_init template). No data volume is mounted, so init runs fresh each run.
+      # sidewalk_login schema and the sidewalk_init template). A runner starts with the `pgdata` volume empty, which is
+      # what makes the entrypoint run init.sh — locally, an existing volume makes it skip, and you get your own dev DB.
       - name: Start database
         run: docker compose up -d --build db
 
@@ -376,9 +385,10 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: '24'
+          cache: npm
 
       - name: Install npm dependencies
-        run: npm install
+        run: npm ci
 
       # MUST precede `sbt stage`: the staged app serves public/ from the packaged assets jar, and the grunt bundles
       # (public/js/*/build/) are git-ignored — without them every page 404s its own JS/CSS.
@@ -501,7 +511,8 @@ jobs:
       # One leg per interpreter the web container ships, testing each script on the Python that runs it (#4396):
       # label_clustering.py is shelled out to by the app, so it stays on prod's EOL 3.8; the offline tooling needs
       # >= 3.11. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
-      # directory minus the one file the other owns, so a new test file runs in both rather than in neither.
+      # directory minus the files only the other's interpreter can import (shapely/geopandas are 3.13-only here), so a
+      # new test file runs in both rather than in neither.
       # `half` also spells the check name, and `Python tests (in-band script)` is a required check — renaming a half
       # renames the check, which branch protection then waits forever for. Update both together.
       matrix:
@@ -510,8 +521,11 @@ jobs:
             advisory: false
             python: '3.8'
             requirements: -r requirements.txt -r requirements-dev.txt
-            pytest-args: test/python --ignore=test/python/test_check_streets_for_imagery.py
+            pytest-args: >-
+              test/python --ignore=test/python/test_check_streets_for_imagery.py
+              --ignore=test/python/test_onboard_city.py
             coverage-omit: scripts/check_streets_for_imagery.py
+            coverage-omit-2: scripts/onboard_city.py
           - half: offline tooling
             advisory: true
             python: '3.13'
@@ -534,3 +548,4 @@ jobs:
         run: pytest ${{ matrix['pytest-args'] }}
         env:
           COVERAGE_OMIT: ${{ matrix['coverage-omit'] }}
+          COVERAGE_OMIT2: ${{ matrix['coverage-omit-2'] }}
