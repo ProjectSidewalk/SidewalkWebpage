@@ -244,17 +244,10 @@ class UserStatTable @Inject() (
       r.nextInt(),
       r.nextInt(),
       r.nextInt(),
-      Map(
-        LabelTypeEnum.CurbRamp.name       -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-        LabelTypeEnum.NoCurbRamp.name     -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-        LabelTypeEnum.Obstacle.name       -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-        LabelTypeEnum.SurfaceProblem.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-        LabelTypeEnum.NoSidewalk.name     -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-        LabelTypeEnum.Crosswalk.name      -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-        LabelTypeEnum.Signal.name         -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-        LabelTypeEnum.Occlusion.name      -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-        LabelTypeEnum.Other.name          -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
-      )
+      // Read by position, so this must follow the column order getStatsForApiWithFilters writes.
+      LabelTypeEnum.ordered.map { lt =>
+        lt.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
+      }.toMap
     )
   )
 
@@ -1166,6 +1159,24 @@ class UserStatTable @Inject() (
     val minAccuracyClause =
       minAccuracy.map(min => s"AND user_stat.accuracy IS NOT NULL AND user_stat.accuracy >= $min").getOrElse("")
 
+    // Four counts per label type, in the order userStatApiConverter reads them.
+    val labelTypeStatCols: Seq[(String, String)] = LabelTypeEnum.ordered.flatMap { lt =>
+      val col    = lt.name.toLowerCase
+      val isType = s"label_type = '${lt.name}'"
+      Seq(
+        s"${col}_labels"              -> s"COUNT(CASE WHEN $isType THEN 1 END)",
+        s"${col}_validated_correct"   -> s"COUNT(CASE WHEN $isType AND correct THEN 1 END)",
+        s"${col}_validated_incorrect" -> s"COUNT(CASE WHEN $isType AND NOT correct THEN 1 END)",
+        s"${col}_not_validated"       -> s"COUNT(CASE WHEN $isType AND correct IS NULL THEN 1 END)"
+      )
+    }
+    val labelTypeSelectCols: String = labelTypeStatCols
+      .map { case (alias, _) => s"COALESCE(label_counts.$alias, 0) AS $alias" }
+      .mkString(",\n             ")
+    val labelTypeCountCols: String = labelTypeStatCols
+      .map { case (alias, expr) => s"$expr AS $alias" }
+      .mkString(",\n                 ")
+
     sql"""
       SELECT user_stat.user_id,
              COALESCE(label_counts.labels, 0) AS labels,
@@ -1184,42 +1195,7 @@ class UserStatTable @Inject() (
              COALESCE(validations.agree_validations_given, 0) AS agree_validations_given,
              COALESCE(validations.disagree_validations_given, 0) AS disagree_validations_given,
              COALESCE(validations.unsure_validations_given, 0) AS unsure_validations_given,
-             COALESCE(label_counts.curb_ramp_labels, 0) AS curb_ramp_labels,
-             COALESCE(label_counts.curb_ramp_validated_correct, 0) AS curb_ramp_validated_correct,
-             COALESCE(label_counts.curb_ramp_validated_incorrect, 0) AS curb_ramp_validated_incorrect,
-             COALESCE(label_counts.curb_ramp_not_validated, 0) AS curb_ramp_not_validated,
-             COALESCE(label_counts.no_curb_ramp_labels, 0) AS no_curb_ramp_labels,
-             COALESCE(label_counts.no_curb_ramp_validated_correct, 0) AS no_curb_ramp_validated_correct,
-             COALESCE(label_counts.no_curb_ramp_validated_incorrect, 0) AS no_curb_ramp_validated_incorrect,
-             COALESCE(label_counts.no_curb_ramp_not_validated, 0) AS no_curb_ramp_not_validated,
-             COALESCE(label_counts.obstacle_labels, 0) AS obstacle_labels,
-             COALESCE(label_counts.obstacle_validated_correct, 0) AS obstacle_validated_correct,
-             COALESCE(label_counts.obstacle_validated_incorrect, 0) AS obstacle_validated_incorrect,
-             COALESCE(label_counts.obstacle_not_validated, 0) AS obstacle_not_validated,
-             COALESCE(label_counts.surface_problem_labels, 0) AS surface_problem_labels,
-             COALESCE(label_counts.surface_problem_validated_correct, 0) AS surface_problem_validated_correct,
-             COALESCE(label_counts.surface_problem_validated_incorrect, 0) AS surface_problem_validated_incorrect,
-             COALESCE(label_counts.surface_problem_not_validated, 0) AS surface_problem_not_validated,
-             COALESCE(label_counts.no_sidewalk_labels, 0) AS no_sidewalk_labels,
-             COALESCE(label_counts.no_sidewalk_validated_correct, 0) AS no_sidewalk_validated_correct,
-             COALESCE(label_counts.no_sidewalk_validated_incorrect, 0) AS no_sidewalk_validated_incorrect,
-             COALESCE(label_counts.no_sidewalk_not_validated, 0) AS no_sidewalk_not_validated,
-             COALESCE(label_counts.marked_crosswalk_labels, 0) AS marked_crosswalk_labels,
-             COALESCE(label_counts.marked_crosswalk_validated_correct, 0) AS marked_crosswalk_validated_correct,
-             COALESCE(label_counts.marked_crosswalk_validated_incorrect, 0) AS marked_crosswalk_validated_incorrect,
-             COALESCE(label_counts.marked_crosswalk_not_validated, 0) AS marked_crosswalk_not_validated,
-             COALESCE(label_counts.pedestrian_signal_labels, 0) AS pedestrian_signal_labels,
-             COALESCE(label_counts.pedestrian_signal_validated_correct, 0) AS pedestrian_signal_validated_correct,
-             COALESCE(label_counts.pedestrian_signal_validated_incorrect, 0) AS pedestrian_signal_validated_incorrect,
-             COALESCE(label_counts.pedestrian_signal_not_validated, 0) AS pedestrian_signal_not_validated,
-             COALESCE(label_counts.cant_see_sidewalk_labels, 0) AS cant_see_sidewalk_labels,
-             COALESCE(label_counts.cant_see_sidewalk_validated_correct, 0) AS cant_see_sidewalk_validated_correct,
-             COALESCE(label_counts.cant_see_sidewalk_validated_incorrect, 0) AS cant_see_sidewalk_validated_incorrect,
-             COALESCE(label_counts.cant_see_sidewalk_not_validated, 0) AS cant_see_sidewalk_not_validated,
-             COALESCE(label_counts.other_labels, 0) AS other_labels,
-             COALESCE(label_counts.other_validated_correct, 0) AS other_validated_correct,
-             COALESCE(label_counts.other_validated_incorrect, 0) AS other_validated_incorrect,
-             COALESCE(label_counts.other_not_validated, 0) AS other_not_validated
+             #$labelTypeSelectCols
       FROM user_stat
       INNER JOIN user_role ON user_stat.user_id = user_role.user_id
       -- Validations given.
@@ -1251,42 +1227,7 @@ class UserStatTable @Inject() (
                  COUNT(CASE WHEN correct THEN 1 END) AS labels_validated_correct,
                  COUNT(CASE WHEN NOT correct THEN 1 END) AS labels_validated_incorrect,
                  COUNT(CASE WHEN correct IS NULL THEN 1 END) AS labels_not_validated,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' THEN 1 END) AS curb_ramp_labels,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND correct THEN 1 END) AS curb_ramp_validated_correct,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND NOT correct THEN 1 END) AS curb_ramp_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND correct IS NULL THEN 1 END) AS curb_ramp_not_validated,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' THEN 1 END) AS no_curb_ramp_labels,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct THEN 1 END) AS no_curb_ramp_validated_correct,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND NOT correct THEN 1 END) AS no_curb_ramp_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct IS NULL THEN 1 END) AS no_curb_ramp_not_validated,
-                 COUNT(CASE WHEN label_type = 'Obstacle' THEN 1 END) AS obstacle_labels,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND correct THEN 1 END) AS obstacle_validated_correct,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND NOT correct THEN 1 END) AS obstacle_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND correct IS NULL THEN 1 END) AS obstacle_not_validated,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' THEN 1 END) AS surface_problem_labels,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct THEN 1 END) AS surface_problem_validated_correct,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND NOT correct THEN 1 END) AS surface_problem_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct IS NULL THEN 1 END) AS surface_problem_not_validated,
-                 COUNT(CASE WHEN label_type = 'NoSidewalk' THEN 1 END) AS no_sidewalk_labels,
-                 COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct THEN 1 END) AS no_sidewalk_validated_correct,
-                 COUNT(CASE WHEN label_type = 'NoSidewalk' AND NOT correct THEN 1 END) AS no_sidewalk_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct IS NULL THEN 1 END) AS no_sidewalk_not_validated,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' THEN 1 END) AS marked_crosswalk_labels,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND correct THEN 1 END) AS marked_crosswalk_validated_correct,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND NOT correct THEN 1 END) AS marked_crosswalk_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND correct IS NULL THEN 1 END) AS marked_crosswalk_not_validated,
-                 COUNT(CASE WHEN label_type = 'Signal' THEN 1 END) AS pedestrian_signal_labels,
-                 COUNT(CASE WHEN label_type = 'Signal' AND correct THEN 1 END) AS pedestrian_signal_validated_correct,
-                 COUNT(CASE WHEN label_type = 'Signal' AND NOT correct THEN 1 END) AS pedestrian_signal_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'Signal' AND correct IS NULL THEN 1 END) AS pedestrian_signal_not_validated,
-                 COUNT(CASE WHEN label_type = 'Occlusion' THEN 1 END) AS cant_see_sidewalk_labels,
-                 COUNT(CASE WHEN label_type = 'Occlusion' AND correct THEN 1 END) AS cant_see_sidewalk_validated_correct,
-                 COUNT(CASE WHEN label_type = 'Occlusion' AND NOT correct THEN 1 END) AS cant_see_sidewalk_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'Occlusion' AND correct IS NULL THEN 1 END) AS cant_see_sidewalk_not_validated,
-                 COUNT(CASE WHEN label_type = 'Other' THEN 1 END) AS other_labels,
-                 COUNT(CASE WHEN label_type = 'Other' AND correct THEN 1 END) AS other_validated_correct,
-                 COUNT(CASE WHEN label_type = 'Other' AND NOT correct THEN 1 END) AS other_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'Other' AND correct IS NULL THEN 1 END) AS other_not_validated
+                 #$labelTypeCountCols
           FROM audit_task
           INNER JOIN label ON audit_task.audit_task_id = label.audit_task_id
           WHERE deleted = FALSE

@@ -2,7 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import models.audit.{AuditTaskComment, AuditTaskInteractionTable, AuditTaskTable, OutdatedStreetForUser}
-import models.label.{LabelLocation, LabelTable}
+import models.label.{LabelLocation, LabelTable, LabelTypeEnum}
 import models.mission.MissionTable
 import models.region.Region
 import models.street.StreetEdge
@@ -288,7 +288,7 @@ object UserService {
 
   /** Label types shown in the per-type accuracy bars (the ones with canonical `--color-label-*` colors), in order. */
   private val PrimaryLabelTypes: Seq[String] =
-    Seq("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "NoSidewalk", "Crosswalk", "Signal")
+    LabelTypeEnum.ordered.filter(LabelTypeEnum.primaryLabelTypes.contains).map(_.name)
 
   /**
    * Minimum validated labels of a type before it's eligible to be flagged as the user's "weakest" (avoids flagging a
