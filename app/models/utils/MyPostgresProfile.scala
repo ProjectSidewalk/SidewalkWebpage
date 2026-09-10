@@ -6,7 +6,15 @@ import com.github.tminglei.slickpg.geom.PgPostGISExtensions
 import models.label.{AiImageSource, ComputationMethod, CropSource, LabelTypeEnum, StreetSide}
 import models.mission.MissionType
 import models.pano.{PanoImageryChangeSource, PanoSource}
-import models.street.{StreetEdgeIssueType, StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetImagerySource, WayType}
+import models.street.{
+  SidewalkPresenceBasis,
+  SidewalkPresenceStatus,
+  StreetEdgeIssueType,
+  StreetEdgeStatus,
+  StreetEdgeStatusChangeSource,
+  StreetImagerySource,
+  WayType
+}
 import models.user.Role
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.{ValidationCommentChangeType, ValidationOption}
@@ -219,6 +227,24 @@ trait MyPostgresProfile
     // Mapper for street_side enum type.
     implicit val streetSideMapper: BaseColumnType[StreetSide.Value] =
       createEnumJdbcType[StreetSide.Value]("street_side", _.toString, StreetSide.withName, quoteName = false)
+
+    // Mapper for sidewalk_presence_status enum type.
+    implicit val sidewalkPresenceStatusMapper: BaseColumnType[SidewalkPresenceStatus.Value] =
+      createEnumJdbcType[SidewalkPresenceStatus.Value](
+        "sidewalk_presence_status",
+        _.toString,
+        SidewalkPresenceStatus.withName,
+        quoteName = false
+      )
+
+    // Mapper for sidewalk_presence_basis enum type.
+    implicit val sidewalkPresenceBasisMapper: BaseColumnType[SidewalkPresenceBasis.Value] =
+      createEnumJdbcType[SidewalkPresenceBasis.Value](
+        "sidewalk_presence_basis",
+        _.toString,
+        SidewalkPresenceBasis.withName,
+        quoteName = false
+      )
 
     // Mapper for street_edge_issue_type enum type.
     implicit val streetEdgeIssueTypeMapper: BaseColumnType[StreetEdgeIssueType.Value] =

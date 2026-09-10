@@ -45,6 +45,7 @@ class AdminController @Inject() (
     userService: service.UserService,
     jobRunService: JobRunService,
     trafficService: TrafficService,
+    sidewalkPresenceService: SidewalkPresenceService,
     actorSystem: ActorSystem
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
@@ -1059,6 +1060,19 @@ class AdminController @Inject() (
         }
       Future.successful(Accepted("Crop generation started. It reports to the Health panel when it finishes."))
     }
+  }
+
+  /**
+   * Rebuilds the derived `sidewalk_presence` table now, as the nightly job does (#5279).
+   *
+   * Recorded as a manual run of that job, so the Health panel charts both triggers as one. The rebuild takes seconds,
+   * so unlike crop generation the response waits for it and answers with the counts.
+   */
+  def rebuildSidewalkPresence = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    jobRunService
+      .record(SidewalkPresenceActor.Name, JobRunTrigger.Manual)(sidewalkPresenceService.rebuild())(_.runDetails)
+      .map(result => Ok(result.runDetails))
   }
 
   /**

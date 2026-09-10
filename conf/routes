@@ -110,6 +110,7 @@ PUT     /adminapi/updateTeamStatus/:teamId              controllers.AdminControl
 PUT     /adminapi/updateTeamVisibility/:teamId          controllers.AdminController.updateTeamVisibility(teamId: Int)
 GET     /adminapi/checkImagery                          controllers.AdminController.checkImagery()
 POST    /adminapi/generateCrops                         controllers.AdminController.generateCrops
+POST    /adminapi/rebuildSidewalkPresence               controllers.AdminController.rebuildSidewalkPresence
 
 # Community-partner logos on the landing page (#4516). Global (all-cities) scope is Owner-only; the reorder routes
 # must precede the :partnerId ones so "order" isn't captured as an id.
@@ -278,6 +279,7 @@ GET     /v3/api/aggregateStatsByDay                     controllers.api.StatsApi
 GET     /v3/api/labelClusters                           controllers.api.LabelClustersApiController.getLabelClustersV3(bbox: Option[String], labelType: Option[String], regionId: Option[Int], regionName: Option[String], includeRawLabels: Option[Boolean], clusterSize: Option[Int], avgImageCaptureDate: Option[String], avgLabelDate: Option[String], minSeverity: Option[Int], maxSeverity: Option[Int], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streets                                 controllers.api.StreetsApiController.getStreets(bbox: Option[String], regionId: Option[Int], regionName: Option[String], minLabelCount: Option[Int], minAuditCount: Option[Int], minUserCount: Option[Int], wayType: Option[String], status: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streetTypes                             controllers.api.StreetsApiController.getStreetTypes
+GET     /v3/api/sidewalkPresence                        controllers.api.StreetsApiController.getSidewalkPresence(bbox: Option[String], regionId: Option[Int], regionName: Option[String], presence: Option[String], minNoSidewalkLabels: Option[Int], minAuditCount: Option[Int], wayType: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/regions                                 controllers.api.RegionApiController.getRegions(bbox: Option[String], regionId: Option[Int], regionName: Option[String], minLabelCount: Option[Int], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/validations                             controllers.api.ValidationApiController.getValidations(labelId: Option[Int], userId: Option[String], validationResult: Option[String], labelType: Option[String], validationTimestamp: Option[String], source: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/validationResultTypes                   controllers.api.ValidationApiController.getValidationResultTypes
@@ -296,6 +298,7 @@ GET     /v3/api-docs/rawLabels                          controllers.ApiDocsContr
 GET     /v3/api-docs/labelClusters                      controllers.ApiDocsController.labelClusters
 GET     /v3/api-docs/streets                            controllers.ApiDocsController.streets
 GET     /v3/api-docs/streetTypes                        controllers.ApiDocsController.streetTypes
+GET     /v3/api-docs/sidewalkPresence                   controllers.ApiDocsController.sidewalkPresence
 GET     /v3/api-docs/regions                            controllers.ApiDocsController.regions
 GET     /v3/api-docs/accessScoreStreets                 controllers.ApiDocsController.accessScoreStreets
 GET     /v3/api-docs/accessScoreIntersections           controllers.ApiDocsController.accessScoreIntersections

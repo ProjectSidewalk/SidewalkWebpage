@@ -136,9 +136,11 @@ actors in `app/actor/`; HTTP filters in `app/filters/`, registered through `play
 ### Background jobs
 
 Each deployment runs a set of nightly jobs as pekko actors in `app/actor/` — the imagery expiry sweep, the
-imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, label clustering (which
-opens with the intersection rebuild that re-derives the `intersection` table from the street graph and attributes
-corner-feature clusters to it, #5095), crop generation, OSM way refresh, AI validations, and auth-token cleanup. The schedule lives in one place,
+imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, the sidewalk presence
+rebuild (which re-derives the `sidewalk_presence` table, one verdict per side of each street, from the day's labels
+and audits, #5279), label clustering (which opens with the intersection rebuild that re-derives the `intersection`
+table from the street graph and attributes corner-feature clusters to it, #5095), crop generation, OSM way refresh,
+AI validations, and auth-token cleanup. The schedule lives in one place,
 `app/actor/ScheduledJobs.scala`: each actor reads its own time from there, staggered across the small hours and
 shifted per city by `ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and
 provider quotas.
@@ -148,6 +150,12 @@ and the job's own counts as JSONB (#4928). Without it, a job that silently stops
 that found nothing to do, since the absence of a log line is not something anyone notices. `/admin/health` renders
 the roster, flagging any job that is overdue, failed, or has never run. The wrapper is strictly subordinate to the
 job: a bookkeeping failure is logged and swallowed, and a job's own failure propagates unchanged.
+
+The two derived tables, `intersection` and `sidewalk_presence`, share one pattern: the derivation is raw SQL held once
+in the DAO (`IntersectionTable.derivationSql`, `SidewalkPresenceTable.derivationSql`), the evolution that created the
+table carries a pasted copy for the one-time population of existing cities, the nightly rebuild re-runs the DAO's copy
+into a temp table and touches only the rows that changed, and a spec (`IntersectionTableSpec`,
+`SidewalkPresenceTableSpec`) runs the evolution's statement and then the rebuild to prove the two copies still agree.
 
 A job that both the scheduler and an admin can trigger has exactly one definition of its counts — a `runDetails` on
 the job's result type, or next to the actor's `Name` when the result is a bare count — which both call sites pass to

@@ -132,6 +132,16 @@ class ApiDocsController @Inject() (
   }
 
   /**
+   * Displays API documentation for sidewalk presence per block face (#5279).
+   */
+  def sidewalkPresence = cc.securityService.UserAwareAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_SidewalkPresence")
+      Ok(views.html.apiDocs.sidewalkPresence(commonData, request.identity))
+    }
+  }
+
+  /**
    * Displays API documentation for the deployed cities.
    */
   def cities = cc.securityService.UserAwareAction { implicit request =>

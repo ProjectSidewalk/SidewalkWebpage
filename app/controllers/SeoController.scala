@@ -56,8 +56,8 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
         "/labelingGuide/surfaceProblems", "/labelingGuide/obstacles", "/labelingGuide/noSidewalk",
         "/labelingGuide/occlusion", "/api", "/leaderboard", "/routeBuilder", "/terms", "/cities"
       ) ++ Seq(
-        "labelTypes", "cities", "labelTags", "rawLabels", "labelClusters", "streets", "streetTypes", "regions",
-        "accessScoreStreets", "accessScoreRegions", "validations", "validation-result-types", "user-stats",
+        "labelTypes", "cities", "labelTags", "rawLabels", "labelClusters", "streets", "streetTypes", "sidewalkPresence",
+        "regions", "accessScoreStreets", "accessScoreRegions", "validations", "validation-result-types", "user-stats",
         "overall-stats", "overall-stats-by-day", "aggregate-stats", "aggregate-stats-by-day"
       ).map(p => s"/v3/api-docs/$p")
 

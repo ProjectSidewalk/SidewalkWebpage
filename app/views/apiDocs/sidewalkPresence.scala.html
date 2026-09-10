@@ -1,0 +1,395 @@
+@import models.utils.SeoUtils
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@cityName = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head.cityNameFormatted}
+
+@content = {
+  <script>
+    // Read by the Quick Download buttons in apiDocs.js.
+    document.documentElement.setAttribute('data-api-base-url', '/v3/api');
+    document.documentElement.setAttribute('data-api-endpoint', 'sidewalkPresence');
+  </script>
+
+  <div class="page-section" id="sidewalk-presence-intro-section">
+    <h1 class="page-heading" id="sidewalk-presence-api">Sidewalk Presence API <a href="#sidewalk-presence-api" class="permalink">#</a></h1>
+    <p>The Sidewalk Presence API says, for each side of each street, whether Project Sidewalk's labels indicate a sidewalk is there. The unit is a <strong>block face</strong>: one side of one street segment. Every street segment yields two records, <code>left</code> and <code>right</code>, both carrying the segment's geometry, so a consumer can draw the two verdicts side by side or roll them up however suits.</p>
+    <p>The verdict comes from the <a href="/v3/api-docs/labelTypes">NoSidewalk</a> labels our contributors place, resolved to a side of the street using each label's position relative to the street's centerline. It is inferred, not surveyed: treat it as a strong prior with a stated confidence rather than ground truth, and see <a href="#how-it-is-inferred">how it is inferred</a> for what the confidence means.</p>
+    <p>Street geometry and <code>way_type</code> come from <a href="https://www.openstreetmap.org/">OpenStreetMap</a> and are &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>, available under the <a href="https://opendatacommons.org/licenses/odbl/">Open Database License</a>.</p>
+  </div>
+
+  <div class="page-section" id="how-it-is-inferred-section">
+    <h2 class="page-heading" id="how-it-is-inferred">How it is inferred <a href="#how-it-is-inferred" class="permalink">#</a></h2>
+    <p>Each face gets one of three verdicts, and a <code>presence_basis</code> saying which evidence produced it. The rules are tried in this order and the first that applies wins:</p>
+    <ol>
+      <li><strong><code>absent</code> from <code>no_sidewalk_labels</code>:</strong> at least one NoSidewalk label sits on this side of the street. The label count is the confidence, and <code>no_sidewalk_label_count</code> carries it.</li>
+      <li><strong><code>absent</code> from <code>other_side_tag</code>:</strong> this side has no NoSidewalk label, but the other side has one tagged <em>street has no sidewalks</em>.</li>
+      <li><strong><code>present</code> from <code>audited_no_labels</code>:</strong> the street has been audited (virtually walked) at least once and nobody placed a NoSidewalk label on this side.</li>
+      <li><strong><code>unknown</code> from <code>unaudited</code>:</strong> the street has never been audited, so the absence of a label means nothing.</li>
+    </ol>
+    <p>Obstacle and SurfaceProblem labels never override a NoSidewalk label. On a face without a sidewalk they describe the roadway people walk in (a parked car, gravel, a bin), not a sidewalk. Curb ramp labels are corner features whose side is ambiguous and are not used as evidence either way. A label within a meter of the street's centerline has no side and does not count.</p>
+    <p>We measured this rule against Seattle's per-face sidewalk inventory (about 41,000 audited faces). The figures are for Seattle and will differ elsewhere, but they are the best available guide to what each tier means:</p>
+    <div class="ps-table-wrapper" tabindex="0" role="region" aria-labelledby="how-it-is-inferred">
+      <table class="ps-table">
+        <thead>
+          <tr>
+            <th>Verdict and evidence</th>
+            <th>Precision</th>
+            <th>Recall</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>absent</code>, 1 or more NoSidewalk labels on the face</td><td>69%</td><td>79%</td></tr>
+          <tr><td><code>absent</code>, 2 or more (<code>minNoSidewalkLabels=2</code>)</td><td>80%</td><td>67%</td></tr>
+          <tr><td><code>absent</code>, 3 or more (<code>minNoSidewalkLabels=3</code>)</td><td>84%</td><td>55%</td></tr>
+          <tr><td><code>absent</code> from the other side's tag only</td><td>78%</td><td>&mdash;</td></tr>
+          <tr><td><code>present</code>, audited with no NoSidewalk label</td><td>96%</td><td>93%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Pooling NoSidewalk labels per street rather than per side, which is how <a href="/v3/api-docs/accessScoreStreets">AccessScore</a> currently treats them, is right on only 56% of its "no sidewalk" calls, because most streets that lack a sidewalk lack it on one side only. Divided roads and arterials are the weakest class: labels placed from a median can read as a missing sidewalk on the far side.</p>
+    <p>The table behind this endpoint is rebuilt nightly, so a label placed today appears here tomorrow.</p>
+  </div>
+
+  <div class="page-section" id="sidewalk-presence-preview-section">
+    <h2 class="page-heading" id="visual-example">Sidewalk Presence API Preview <a href="#visual-example" class="permalink">#</a></h2>
+    <p>Below is a live preview of sidewalk presence for a sample region in @cityName, retrieved directly from the API. Each street is drawn twice, its left and right side offset to either side of the centerline and colored by verdict. Hover and click a side to see the evidence behind its verdict and what the other side says.</p>
+
+    <p class="download-note">Note: This preview shows a single region; the API can return every street in the city or just a selected region or bounding box. See the <a href="#query-parameters">API Query Parameters</a> below.</p>
+
+    <div id="sidewalk-presence-preview" class="map-container"></div>
+
+    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")'>
+    <link rel="stylesheet" href='@assets.path("css/pages/api-docs/streets.css")'>
+    @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
+       set: the language plugin and the preview both read the mapboxgl global as they parse. *@
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")' defer></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
+    <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
+    <script src='@assets.path("js/api-docs/sidewalkPresencePreview.js")' defer></script>
+    <script>
+      // Waits on appManager so the map's language control can read the page's locale out of i18next.
+      window.appManager.ready(function() {
+        SidewalkPresencePreview.setup({
+          mapboxApiKey: '@commonData.mapboxApiKey'
+        }).init();
+      });
+    </script>
+  </div>
+
+  <div class="page-section" id="endpoint-section">
+    <h2 class="page-heading" id="endpoint">Endpoint<a href="#endpoint" class="permalink">#</a></h2>
+    <p>Retrieves one record per block face (street side), optionally filtered by the <a href="#query-parameters">Query Parameters</a> below.</p>
+    <p><code>GET /v3/api/sidewalkPresence</code></p>
+    <div class="api-subsection" id="endpoint-example-section">
+      <h3 class="page-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+      <p><code><a href="/v3/api/sidewalkPresence?filetype=geojson">/v3/api/sidewalkPresence?filetype=geojson</a></code> Get every street side in GeoJSON format (default)</p>
+      <p><code><a target="_blank" href="/v3/api/sidewalkPresence?filetype=geojson&inline=true">/v3/api/sidewalkPresence?filetype=geojson&inline=true</a></code> The same, opened in the browser</p>
+      <p><code><a href="/v3/api/sidewalkPresence?filetype=csv">/v3/api/sidewalkPresence?filetype=csv</a></code> Get every street side in CSV format</p>
+      <p><code><a href="/v3/api/sidewalkPresence?presence=absent">/v3/api/sidewalkPresence?presence=absent</a></code> Only the sides called <code>absent</code></p>
+      <p><code><a href="/v3/api/sidewalkPresence?presence=absent&minNoSidewalkLabels=2">/v3/api/sidewalkPresence?presence=absent&minNoSidewalkLabels=2</a></code> Only <code>absent</code> calls backed by two or more labels (the 80% tier)</p>
+      <p><code><a href="/v3/api/sidewalkPresence?presence=present,absent">/v3/api/sidewalkPresence?presence=present,absent</a></code> Every audited side, leaving out the unknowns</p>
+      <p><code><a href="/v3/api/sidewalkPresence?wayType=residential&minAuditCount=2">/v3/api/sidewalkPresence?wayType=residential&minAuditCount=2</a></code> Residential streets audited at least twice</p>
+    </div>
+  </div>
+
+  <div class="page-section" id="quick-download-section">
+    <h2 class="page-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
+    <p>Download sidewalk presence data directly in your preferred format:</p>
+
+    <div class="download-buttons">
+      <button type="button" class="download-btn" data-format="geojson">
+        <span class="format-icon">📝</span> GeoJSON
+        <span class="format-hint">Web mapping standard</span>
+      </button>
+      <button type="button" class="download-btn" data-format="csv">
+        <span class="format-icon">📊</span> CSV
+        <span class="format-hint">For Excel, Google Sheets</span>
+      </button>
+      <button type="button" class="download-btn" data-format="shapefile">
+        <span class="format-icon">🗺️</span> Shapefile
+        <span class="format-hint">For ArcGIS, QGIS</span>
+      </button>
+      <button type="button" class="download-btn" data-format="geopackage">
+        <span class="format-icon">📦</span> GeoPackage
+        <span class="format-hint">Open GIS format</span>
+      </button>
+    </div>
+
+    <div id="download-status" class="status-container status-loading ps-hidden">
+      <div class="loading-spinner"></div>
+      <div class="status-message">Generating your download...</div>
+      <div class="status-progress">This may take anywhere from a few seconds to a few minutes depending on the data size.</div>
+    </div>
+
+    <p class="download-note">Note: This downloads every street side in the city, including the unknowns. For filtered data, use the <a href="#query-parameters">API Query Parameters</a> described below.</p>
+  </div>
+
+  <div class="page-section" id="query-parameters-section">
+    <h2 class="page-heading" id="query-parameters">Query Parameters<a href="#query-parameters" class="permalink">#</a></h2>
+    <p>Filter the street sides returned by this endpoint using the following query parameters. All parameters are optional. Combine multiple filter parameters to narrow down results (filters are applied using AND logic).</p>
+    <p>Note: When multiple location filters are provided (<code>bbox</code>, <code>regionId</code>, and <code>regionName</code>), <code>bbox</code> takes precedence over region filters, and <code>regionId</code> takes precedence over <code>regionName</code>.</p>
+
+    <div class="ps-table-wrapper" tabindex="0" role="region" aria-labelledby="query-parameters">
+      <table class="ps-table">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Type</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>bbox</code></td>
+            <td><code>string</code></td>
+            <td>Filter by bounding box, keeping the sides of every street that intersects it. Coordinates should be provided as a comma-separated string in the format: <code>minLongitude,minLatitude,maxLongitude,maxLatitude</code> (e.g., <code>-74.01,40.71,-74.00,40.72</code>). Uses WGS84 (EPSG:4326) coordinates. If omitted, results are not spatially filtered (potentially very large response).</td>
+          </tr>
+          <tr>
+            <td><code>regionId</code></td>
+            <td><code>integer</code></td>
+            <td>Filter by region ID. Returns only the sides of streets within the specified region. Note: If both <code>bbox</code> and <code>regionId</code> are provided, <code>bbox</code> takes precedence.</td>
+          </tr>
+          <tr>
+            <td><code>regionName</code></td>
+            <td><code>string</code></td>
+            <td>Filter by region name. Note: If <code>bbox</code> or <code>regionId</code> are provided, they take precedence over <code>regionName</code>.</td>
+          </tr>
+          <tr>
+            <td><code>presence</code></td>
+            <td><code>string</code></td>
+            <td>Keep only the given verdicts. Provide comma-separated values from <code>present</code>, <code>absent</code>, <code>unknown</code> (e.g., <code>presence=present,absent</code> for every audited side). By default all three are returned. Unrecognized values return a 400 error.</td>
+          </tr>
+          <tr>
+            <td><code>minNoSidewalkLabels</code></td>
+            <td><code>integer</code></td>
+            <td>Keep only sides with at least this many NoSidewalk labels: the confidence dial for <code>absent</code> calls. <code>2</code> selects the 80%-precision tier and <code>3</code> the 84% tier (Seattle figures). Any value above <code>0</code> also drops every <code>present</code> and <code>unknown</code> side, since those have no NoSidewalk labels by definition.</td>
+          </tr>
+          <tr>
+            <td><code>minAuditCount</code></td>
+            <td><code>integer</code></td>
+            <td>Keep only the sides of streets that have been audited (virtually walked) at least this many times. A <code>present</code> call on a street audited several times is stronger than one audited once.</td>
+          </tr>
+          <tr>
+            <td><code>wayType</code></td>
+            <td><code>string</code></td>
+            <td>Filter by one or more way types (road classifications, mostly following OSM's <code>highway</code> values), as comma-separated values (e.g., <code>wayType=residential,primary</code>). The types present in a given city are listed by the <a href="/v3/api-docs/streetTypes">Street Types API</a>; the full list of valid values is on the <a href="/v3/api-docs/streets#query-parameters">Streets API</a>. Unrecognized values return a 400 error.</td>
+          </tr>
+          <tr>
+            <td><code>filetype</code></td>
+            <td><code>string</code></td>
+            <td>Specify the output format. Options: <code>geojson</code> (default), <code>csv</code>, <code>shapefile</code>, <code>geopackage</code>.</td>
+          </tr>
+          <tr>
+            <td><code>inline</code></td>
+            <td><code>boolean</code></td>
+            <td>Whether to display the file inline or as an attachment. Default: <code>false</code> (attachment). Set to <code>true</code> to view data in the browser instead of downloading.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="page-section" id="responses-section">
+    <h2 class="page-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
+
+    <h3 class="page-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
+    <p>On success, the API returns an HTTP <code>200 OK</code> status code and the requested data in the specified <code>filetype</code> format.</p>
+
+    <h4 id="response-geojson">GeoJSON Format (Default) <a href="#response-geojson" class="permalink">#</a></h4>
+    <p>Returns a GeoJSON FeatureCollection where each feature represents one side of one street segment. The two sides of a segment carry the same LineString; <code>street_side</code> tells them apart. Coordinate Reference System (CRS) is WGS84 (EPSG:4326).</p>
+    <pre><code class="language-json">{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.3546715, 47.5309889],
+          [-122.3546693, 47.5319025]
+        ]
+      },
+      "properties": {
+        "street_edge_id": 10425,
+        "street_side": "left",
+        "osm_way_id": 6479562,
+        "region_id": 44,
+        "region_name": "Highland Park",
+        "way_type": "residential",
+        "presence": "absent",
+        "presence_basis": "no_sidewalk_labels",
+        "no_sidewalk_label_count": 3,
+        "no_sidewalk_user_count": 2,
+        "label_count": 5,
+        "audit_count": 2,
+        "first_no_sidewalk_label_date": "2019-11-04T22:31:07Z",
+        "last_no_sidewalk_label_date": "2023-02-18T17:05:44Z"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.3546715, 47.5309889],
+          [-122.3546693, 47.5319025]
+        ]
+      },
+      "properties": {
+        "street_edge_id": 10425,
+        "street_side": "right",
+        "osm_way_id": 6479562,
+        "region_id": 44,
+        "region_name": "Highland Park",
+        "way_type": "residential",
+        "presence": "present",
+        "presence_basis": "audited_no_labels",
+        "no_sidewalk_label_count": 0,
+        "no_sidewalk_user_count": 0,
+        "label_count": 2,
+        "audit_count": 2,
+        "first_no_sidewalk_label_date": null,
+        "last_no_sidewalk_label_date": null
+      }
+    },
+    ...
+  ]
+}</code></pre>
+
+    <h5 id="geojson-fields">GeoJSON Field Descriptions <a href="#geojson-fields" class="permalink">#</a></h5>
+    <p>Each feature in the GeoJSON response represents one side of one street segment, with the segment's LineString geometry and these properties:</p>
+
+    <div class="ps-table-wrapper" tabindex="0" role="region" aria-labelledby="geojson-fields">
+      <table class="ps-table">
+        <thead>
+          <tr>
+            <th class="api-field-col">Field Path</th>
+            <th class="api-type-col">Type</th>
+            <th class="api-desc-col">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>geometry.coordinates</code></td>
+            <td><code>array[number]</code></td>
+            <td>Array of coordinate pairs forming the street segment's path, in <code>[longitude, latitude]</code> format using WGS84 (EPSG:4326). Identical for the segment's two sides.</td>
+          </tr>
+          <tr>
+            <td><code>properties.street_edge_id</code></td>
+            <td><code>integer</code></td>
+            <td>Project Sidewalk's unique identifier for the street segment. Shared by the segment's two sides; the pair <code>(street_edge_id, street_side)</code> identifies a face.</td>
+          </tr>
+          <tr>
+            <td><code>properties.street_side</code></td>
+            <td><code>string</code></td>
+            <td><code>left</code> or <code>right</code>, relative to the direction the geometry's coordinates run in (its digitized direction), not to a compass bearing: walking the segment from its first coordinate to its last, <code>left</code> is on your left. This is the same convention as <code>street_side</code> on the <a href="/v3/api-docs/rawLabels">Raw Labels API</a>.</td>
+          </tr>
+          <tr>
+            <td><code>properties.osm_way_id</code></td>
+            <td><code>integer</code></td>
+            <td><a href="https://wiki.openstreetmap.org/wiki/Way">OpenStreetMap Way ID</a> for the street segment.</td>
+          </tr>
+          <tr>
+            <td><code>properties.region_id</code></td>
+            <td><code>integer</code></td>
+            <td>Identifier for the region where the street segment is located.</td>
+          </tr>
+          <tr>
+            <td><code>properties.region_name</code></td>
+            <td><code>string</code></td>
+            <td>Name of the region where the street segment is located, as defined in Project Sidewalk's regions.</td>
+          </tr>
+          <tr>
+            <td><code>properties.way_type</code></td>
+            <td><code>string</code></td>
+            <td>OpenStreetMap classification of the road type (e.g., <code>residential</code>, <code>primary</code>, <code>secondary</code>, <code>service</code>, <code>footway</code>).</td>
+          </tr>
+          <tr>
+            <td><code>properties.presence</code></td>
+            <td><code>string</code></td>
+            <td>The verdict for this side: <code>present</code>, <code>absent</code>, or <code>unknown</code>. <code>unknown</code> means the street has never been audited, not that there is no sidewalk.</td>
+          </tr>
+          <tr>
+            <td><code>properties.presence_basis</code></td>
+            <td><code>string</code></td>
+            <td>The evidence behind the verdict, one of <code>no_sidewalk_labels</code> (<code>absent</code>: NoSidewalk labels on this side), <code>other_side_tag</code> (<code>absent</code>: the other side's label is tagged "street has no sidewalks"), <code>audited_no_labels</code> (<code>present</code>: audited, no NoSidewalk label here), or <code>unaudited</code> (<code>unknown</code>). See <a href="#how-it-is-inferred">how it is inferred</a>.</td>
+          </tr>
+          <tr>
+            <td><code>properties.no_sidewalk_label_count</code></td>
+            <td><code>integer</code></td>
+            <td>Number of NoSidewalk labels on this side of the street. The confidence behind an <code>absent</code> call; always <code>0</code> for <code>present</code> and <code>unknown</code>.</td>
+          </tr>
+          <tr>
+            <td><code>properties.no_sidewalk_user_count</code></td>
+            <td><code>integer</code></td>
+            <td>Number of distinct contributors who placed those NoSidewalk labels. A call backed by one contributor is weaker than one several contributors agree on.</td>
+          </tr>
+          <tr>
+            <td><code>properties.label_count</code></td>
+            <td><code>integer</code></td>
+            <td>Number of labels of any type on this side of the street (labels within a meter of the centerline have no side and are not counted on either).</td>
+          </tr>
+          <tr>
+            <td><code>properties.audit_count</code></td>
+            <td><code>integer</code></td>
+            <td>Number of completed audits of the street segment. Shared by its two sides.</td>
+          </tr>
+          <tr>
+            <td><code>properties.first_no_sidewalk_label_date</code></td>
+            <td><code>string</code></td>
+            <td>Timestamp of the first NoSidewalk label on this side, in ISO 8601 format. <code>null</code> when there are none.</td>
+          </tr>
+          <tr>
+            <td><code>properties.last_no_sidewalk_label_date</code></td>
+            <td><code>string</code></td>
+            <td>Timestamp of the most recent NoSidewalk label on this side, in ISO 8601 format. <code>null</code> when there are none.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
+    <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus geometry representation. CRS is WGS84 (EPSG:4326).</p>
+    <pre tabindex="0"><code class="language-csv">street_edge_id,street_side,osm_way_id,region_id,region_name,way_type,presence,presence_basis,no_sidewalk_label_count,no_sidewalk_user_count,label_count,audit_count,first_no_sidewalk_label_date,last_no_sidewalk_label_date,start_point,end_point
+10425,left,6479562,44,Highland Park,residential,absent,no_sidewalk_labels,3,2,5,2,2019-11-04T22:31:07Z,2023-02-18T17:05:44Z,"-122.3546715,47.5309889","-122.3546693,47.5319025"
+10425,right,6479562,44,Highland Park,residential,present,audited_no_labels,0,0,2,2,,,"-122.3546715,47.5309889","-122.3546693,47.5319025"
+...</code></pre>
+
+    <p>Note: The complete LineString geometry is simplified to start and end points in the CSV format due to the tabular nature of CSV. For full geometry data, use the GeoJSON format.</p>
+
+    <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
+    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj). The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object, with names abbreviated to the format's ten-character limit (<code>streetId</code>, <code>side</code>, <code>presence</code>, <code>basis</code>, <code>nsLabels</code>, <code>nsUsers</code>, <code>labelCount</code>, <code>auditCount</code>, <code>firstNsLbl</code>, <code>lastNsLbl</code>). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), WGS84 (EPSG:4326).</p>
+
+    <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
+    <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage (.gpkg) file containing every street side with full geometry and the same field names as the GeoJSON properties. GeoPackage is a modern, open standard geospatial format that supports complex geometries and is widely supported by GIS software.</p>
+
+    <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
+    <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
+    <ul>
+      <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values (e.g., malformed bounding box, invalid region ID, an unrecognized <code>presence</code> or <code>wayType</code> value).</li>
+      <li><strong><code>404 Not Found</code>:</strong> The requested resource does not exist (e.g., incorrect base URL path).</li>
+      <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
+    </ul>
+
+    @apiDocs.errorResponseBody()
+  </div>
+
+  <div class="page-section" id="best-practices-section">
+    <h2 class="page-heading" id="best-practices">Best Practices<a href="#best-practices" class="permalink">#</a></h2>
+    <p>When working with the Sidewalk Presence API, consider these recommendations:</p>
+    <ul>
+      <li><strong>Read <code>unknown</code> as unknown:</strong> it means nobody has audited the street, not that it has no sidewalk. Pass <code>presence=present,absent</code> to work with audited sides only.</li>
+      <li><strong>Pick a confidence tier:</strong> a single NoSidewalk label is right about 7 times in 10; when precision matters more than coverage, filter with <code>minNoSidewalkLabels=2</code> or weight by <code>no_sidewalk_label_count</code> and <code>no_sidewalk_user_count</code> yourself.</li>
+      <li><strong>Sides are relative to the geometry:</strong> <code>left</code> and <code>right</code> follow the coordinate order of the LineString, so draw each side by offsetting the line in that frame (Mapbox GL's <code>line-offset</code>, for instance, is positive to the right of the line's direction) rather than by compass direction.</li>
+      <li><strong>Treat divided roads with care:</strong> arterials with medians are the weakest class for this inference, since a label placed from the median can read as a missing sidewalk on the far side. Use <code>wayType</code> to set them aside if your analysis is sensitive to that.</li>
+      <li><strong>Combine with other APIs:</strong> the <a href="/v3/api-docs/rawLabels">Raw Labels API</a> returns the NoSidewalk labels behind each call, with their own <code>street_side</code>, tags, and validation results; the <a href="/v3/api-docs/streets">Streets API</a> carries the street's audit history.</li>
+    </ul>
+  </div>
+}
+
+@common.main(commonData, SeoUtils.apiDocsTitle("Sidewalk Presence API")) {
+  @common.navbar(commonData, user)
+  @apiDocs.layout("sidewalk-presence")(content)
+}

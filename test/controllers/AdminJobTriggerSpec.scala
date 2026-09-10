@@ -7,6 +7,7 @@ import actor.{
   FunnelStatActor,
   OsmWayRefreshActor,
   RecalculateStreetPriorityActor,
+  SidewalkPresenceActor,
   UserStatActor
 }
 import models.user.Role
@@ -34,6 +35,8 @@ import service.{
   OsmWayRefreshResult,
   OsmWayService,
   PanoDataService,
+  SidewalkPresenceRebuildResult,
+  SidewalkPresenceService,
   StreetService
 }
 import util.{AnonSession, RoleSession, RolledBackDb, StubService}
@@ -41,7 +44,7 @@ import util.{AnonSession, RoleSession, RolledBackDb, StubService}
 import scala.concurrent.Future
 
 /**
- * Functional tests for the seven admin routes that hand-trigger a nightly job (#4946).
+ * Functional tests for the eight admin routes that hand-trigger a nightly job (#4946).
  *
  * Each wraps its service call in `jobRunService.record(..., Manual)` so a hand-run leaves the same counts and error
  * trail the scheduler's run would (#4932). Nothing else asserts that a given controller method still *calls* it: drop
@@ -76,6 +79,9 @@ class AdminJobTriggerSpec
     dimsMismatch = 4621, dimsUnverified = 4622, provenanceExplore = 4628, provenanceWindow = 4629,
     provenanceUnresolved = 4630, errors = 4624
   )
+
+  private val PresenceResult =
+    SidewalkPresenceRebuildResult(faces = 4631, inserted = 4632, updated = 4633, deleted = 4634)
 
   /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */
   @volatile private var osmWayAnswer: Future[OsmWayRefreshResult] = Future.successful(OsmWayRefreshResult.empty)
@@ -119,6 +125,9 @@ class AdminJobTriggerSpec
         ),
         bind[OsmWayService].toInstance(
           StubService.answeringWith[OsmWayService](Map("refreshOsmWayData" -> (() => osmWayAnswer)))
+        ),
+        bind[SidewalkPresenceService].toInstance(
+          StubService.answering[SidewalkPresenceService](Map("rebuild" -> Future.successful(PresenceResult)))
         )
       )
       .build()
@@ -224,6 +233,17 @@ class AdminJobTriggerSpec
       jobRun.triggeredBy mustBe JobRunTrigger.Manual
       jobRun.status mustBe JobRunStatus.Succeeded
       jobRun.details.value mustBe ImageryResult.runDetails
+    }
+  }
+
+  "POST /adminapi/rebuildSidewalkPresence" should {
+    "record the rebuild as a manual run of the nightly sidewalk-presence job, with its counts" in {
+      val (code, body, jobRun) = trigger("/adminapi/rebuildSidewalkPresence", SidewalkPresenceActor.Name, POST)
+      code mustBe OK
+      body must include(PresenceResult.faces.toString)
+      jobRun.triggeredBy mustBe JobRunTrigger.Manual
+      jobRun.status mustBe JobRunStatus.Succeeded
+      jobRun.details.value mustBe PresenceResult.runDetails
     }
   }
 

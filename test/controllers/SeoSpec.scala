@@ -144,6 +144,7 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
       body must include("<urlset")
       body must include("/about</loc>")
       body must include("/v3/api-docs/rawLabels</loc>")
+      body must include("/v3/api-docs/sidewalkPresence</loc>")
       // Still-SecuredAction pages 303 crawlers into the disallowed /anonSignUp, so promoting them would only
       // manufacture crawl errors; they return to the sitemap if their shells go sessionless (#4643 phase 3).
       body must not include "/explore</loc>"
