@@ -164,7 +164,16 @@ where a person is needed and skips whatever a previous run already did:
   `update_offset_hours`). AccessScore reads zero until then. An admin can force the intersections and clusters early
   from `/clustering`; the `osm_way` tags come from their own nightly refresh, and until they land every intersection
   is `grade_separated = FALSE`, which is why deriving them during onboarding would not help (#5297).
-- **Server.** `scp db/<schema>-dump makelab1.cs.washington.edu:/www/sidewalk/new-city-dumps/`, then the IT tooling
+- **Server.** `scp db/<schema>-dump makelab1:/www/sidewalk/new-city-dumps/<schema>-empty-dump` — the destination
+  follows the convention every file in that directory uses, while the local name stays `<schema>-dump`, which is
+  what `make import-dump` restores and what a populated prod pull is called too; use the `makelab1` ssh alias, since
+  the full hostname misses the `Host` block in `~/.ssh/config`. **If you QA'd the city locally, clear the session
+  data first** — one walk in Explore leaves an `audit_task` and thousands of `audit_task_interaction` rows, and the
+  dump carries all of it into the launched city. `TRUNCATE label, label_history, label_point, label_validation,
+  audit_task, audit_task_environment, audit_task_interaction, audit_task_interaction_small, mission, cluster,
+  cluster_label, clustering_session, gallery_task_environment, gallery_task_interaction, webpage_activity,
+  user_stat, user_current_region, background_job_run, funnel_stat, street_reopen_candidate, pano_data, pano_link
+  RESTART IDENTITY CASCADE;` as the city role, then rerun the dump step. Then the IT tooling
   (`uwcseit-sidewalk-tools`: `bin/setup-new.pl`, test stage first), the Maps-key referrers for both URLs
   (`docs/google-cloud.md`), DNS, and the PR with the config, message, and docs changes. Where the tooling can't be
   used, the fallback is an email to CS support asking for the test and prod servers, with both URLs, any redirect

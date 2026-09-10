@@ -257,7 +257,10 @@ def handoff_checklist(city_id, schema, prod_url, test_url):
     """The steps outside this repo that stand between a finished local schema and a live city."""
     return f'''
 Server handoff for {city_id}:
-  1. Copy the dump to the server:  scp db/{schema}-dump makelab1.cs.washington.edu:/www/sidewalk/new-city-dumps/
+  1. Copy the dump to the server, renaming it to the convention every file there follows (the local name stays
+     `{schema}-dump`, which is what `make import-dump` restores, and which a populated prod pull also uses):
+       scp db/{schema}-dump makelab1:/www/sidewalk/new-city-dumps/{schema}-empty-dump
+     Use the `makelab1` ssh alias, not the full hostname — the full name misses the Host block in ~/.ssh/config.
   2. On the server, register the city with the IT tooling (uwcseit-sidewalk-tools: bin/setup-new.pl), which creates the
      DB role, restores the dump into sidewalk_test / sidewalk_prod, and writes the vhost — test stage first.
   3. DNS + Google Cloud: add {test_url} and {prod_url} as referrers on the Maps API key (docs/google-cloud.md).
@@ -535,6 +538,34 @@ def run_imagery_scan(schema, city_id, pano_type):
               f'onboarding/{city_id}/street_imagery_summary.csv', check=True)
 
 
+# What a city that has only been onboarded holds no rows in. A local QA pass fills them — one walk in Explore writes
+# an audit_task and thousands of audit_task_interaction rows — and they would ride into the launched city inside the
+# dump, so the dump step says so rather than letting them ship unnoticed (#5297).
+QA_RESIDUE_TABLES = ('label', 'audit_task', 'mission', 'cluster', 'webpage_activity', 'user_stat',
+                     'gallery_task_interaction', 'background_job_run')
+
+
+def qa_residue(schema):
+    """
+    The session data a local QA pass left in the schema, as ``[(table, rows), ...]`` for the non-empty ones.
+
+    Returns:
+        A list of (table name, row count) pairs, empty for a schema nothing has been done in, or None when the
+        counts could not be read at all — a schema old enough to be missing one of the tables fails the whole
+        query, and "couldn't tell" must not read as "clean".
+    """
+    counts = db_query(' UNION ALL '.join(
+        f"SELECT '{table}', count(*) FROM {schema}.{table}" for table in QA_RESIDUE_TABLES))
+    if counts is None:
+        return None
+    rows = []
+    for line in counts.split('\n'):
+        table, _, n = line.strip().partition('|')
+        if n.isdigit() and int(n):
+            rows.append((table, int(n)))
+    return rows
+
+
 def dump_schema(schema):
     """
     Dumps the finished schema to db/<schema>-dump in the format import-dump.sh and the server restore (-Fc).
@@ -548,6 +579,16 @@ def dump_schema(schema):
     n_objects = sum(1 for line in listing.stdout.split('\n') if line and not line.startswith(';'))
     size = docker_db('stat', '-c', '%s', dump_path, capture_output=True, text=True, check=True).stdout.strip()
     print(f'  Wrote db/{schema}-dump ({int(size) / 1e6:.1f} MB, {n_objects} objects).')
+    residue = qa_residue(schema)
+    if residue is None:
+        print('  Could not check the schema for leftover QA data; look before handing the dump over.')
+    elif residue:
+        print('  Careful: this schema holds data from a local QA pass, and the dump carries all of it into the '
+              'launched city —')
+        for table, n_rows in residue:
+            print(f'    {table}: {n_rows}')
+        print('  Clear it (TRUNCATE ... RESTART IDENTITY CASCADE as the city role) and rerun this step before '
+              'handing the dump over; docs/onboarding-a-city.md lists the tables.')
     return n_objects
 
 

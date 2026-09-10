@@ -264,12 +264,43 @@ def test_web_env_and_db_query_read_through_docker(monkeypatch):
     assert snc.db_query('SELECT boom') is None
 
 
+def _dump_env(monkeypatch, residue):
+    """Fakes the dump step's three docker calls, with ``residue`` as the QA-residue query's raw psql output."""
+    return _fake_run(monkeypatch, {'pg_restore --list': (0, ';\n; Archive header\n1; 0 0 TABLE x\n2; 0 0 TABLE y\n'),
+                                   'stat -c %s': (0, '2500000\n'),
+                                   'UNION ALL': residue})
+
+
 def test_dump_schema_counts_the_objects(monkeypatch, capsys):
-    calls = _fake_run(monkeypatch, {'pg_restore --list': (0, ';\n; Archive header\n1; 0 0 TABLE x\n2; 0 0 TABLE y\n'),
-                                    'stat -c %s': (0, '2500000\n')})
+    clean = '\n'.join(f'{table}|0' for table in snc.QA_RESIDUE_TABLES) + '\n'
+    calls = _dump_env(monkeypatch, (0, clean))
     assert snc.dump_schema('sidewalk_testville_wa') == 2
     assert any('pg_dump' in ' '.join(map(str, cmd)) and '/opt/sidewalk_testville_wa-dump' in cmd for cmd in calls)
-    assert 'db/sidewalk_testville_wa-dump (2.5 MB, 2 objects)' in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert 'db/sidewalk_testville_wa-dump (2.5 MB, 2 objects)' in out
+    assert 'QA pass' not in out
+
+
+def test_dump_schema_flags_qa_data_that_would_ship_with_the_city(monkeypatch, capsys):
+    """A city QA'd locally carries session data the dump would hand to the launched site (#5297)."""
+    _dump_env(monkeypatch, (0, 'label|5\naudit_task|7\nmission|0\ncluster|5\nwebpage_activity|155\n'))
+    snc.dump_schema('sidewalk_bayonne')
+    out = capsys.readouterr().out
+    assert 'holds data from a local QA pass' in out
+    assert 'label: 5' in out and 'audit_task: 7' in out and 'webpage_activity: 155' in out
+    assert 'mission' not in out  # zero rows, so not listed
+    # A schema too old to have one of the tables fails the whole query; that must not read as an all-clear.
+    _dump_env(monkeypatch, (1, ''))
+    snc.dump_schema('sidewalk_ancient')
+    assert 'Could not check the schema' in capsys.readouterr().out
+
+
+def test_handoff_renames_the_dump_to_the_servers_convention():
+    """The local name is what import-dump.sh restores; the server's own files are all `-empty-dump` (#5297)."""
+    text = snc.handoff_checklist('bayonne', 'sidewalk_bayonne', 'https://p', 'https://t')
+    assert 'scp db/sidewalk_bayonne-dump makelab1:' in text
+    assert text.count('sidewalk_bayonne-empty-dump') == 1
+    assert 'makelab1.cs.washington.edu:/www/sidewalk' not in text
 
 
 def test_run_imagery_scan_skips_unknown_providers_and_missing_credentials(monkeypatch, capsys):
