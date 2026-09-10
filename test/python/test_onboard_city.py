@@ -980,6 +980,18 @@ def test_main_says_so_when_single_region_name_cannot_apply(tmp_path, monkeypatch
     assert 'Ignored Me' not in (tmp_path / 'report.md').read_text()
 
 
+def test_main_single_region_name_overrides_a_hand_picked_name(tmp_path, monkeypatch):
+    _patch_pipeline(monkeypatch, _empty_regions())
+    regions_path = tmp_path / 'hoods.geojson'
+    gpd.GeoDataFrame({'name': ['Westside']}, geometry=[_W], crs='EPSG:4326').to_file(regions_path, driver='GeoJSON')
+    oc.main(['--city-id', 'testville', '--place', 'Testville, USA', '--regions-file', str(regions_path),
+             '--regions-source', 'https://data.testville.gov/hoods', '--single-region-name', 'Laurens',
+             '--out-dir', str(tmp_path / 'out')])
+    report = (tmp_path / 'out' / 'report.md').read_text()
+    assert '| 1 | Laurens |' in report
+    assert 'Westside' not in report
+
+
 def test_main_keeps_a_regions_file_name_when_the_city_collapses_to_one_region(tmp_path, monkeypatch, caplog):
     _patch_pipeline(monkeypatch, _empty_regions())
     boundary_path = tmp_path / 'boundary.geojson'

@@ -1788,8 +1788,9 @@ def main(argv=None):
     if args.single_region_name and len(regions) != 1:
         logger.warning('Ignoring --single-region-name "%s": it names the lone region of a city small enough to be '
                        'one region, and this city has %d.', args.single_region_name, len(regions))
-    # A hand-picked name always wins, and a hand-picked name is never second-guessed: a --regions-file dataset and
-    # a --merge-regions target were both named on purpose, so only an automatically sourced lone region is renamed.
+    # Precedence: --single-region-name first, then the city name derived from --place -- but the derived one only
+    # when nothing else picked the names. A --regions-file dataset and a --merge-regions target were named on
+    # purpose, so a name we worked out ourselves must not displace them; a name typed on this command line may.
     deliberate_names = bool(args.regions_file or merge_mapping)
     city_name = args.single_region_name or (None if deliberate_names else place_city_name(args.place))
     regions = name_single_region(regions, city_name, deliberate_names)
