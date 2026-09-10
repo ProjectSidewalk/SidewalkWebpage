@@ -18,7 +18,7 @@
       <span class="api-callout-icon" aria-hidden="true"></span>
       <div>
         <p><strong id="experimental-notice">Experimental.</strong> This endpoint is new and its data is <em>inferred</em> from crowdsourced labels, not surveyed. The inference has been measured against a ground-truth sidewalk inventory in one city (Seattle; see <a href="#how-it-is-inferred">how it is inferred</a>) and will perform differently elsewhere. Field names, enum values, and the inference rule may change as we learn, and because the <code>/v3</code> API is a preview surface, such changes are made in place rather than under a new version.</p>
-        <p>Use it to explore and to compare, pin your expectations if you build on it, and tell us what you find on <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5279">GitHub issue #5279</a>.</p>
+        <p>Use it to explore and to compare, and pin your expectations if you build on it.</p>
       </div>
     </div>
     <p>The Sidewalk Presence API says, for each side of each street, whether Project Sidewalk's labels indicate a sidewalk is there. The unit is a <strong>block face</strong>: one side of one street segment. Every street segment yields two records, <code>left</code> and <code>right</code>, both carrying the segment's geometry, so a consumer can draw the two verdicts side by side or roll them up however suits.</p>
