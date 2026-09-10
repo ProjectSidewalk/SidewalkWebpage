@@ -230,20 +230,37 @@ body {
   letter-spacing: 0.04em;
 }
 
-/* The shared smiley is drawn in strokes, so it takes the chip's own ink and would otherwise fill in solid black. */
+/* Masking lets the example's correct/incorrect class pick the face, the same class that sets the verdict color.
+   No autoprefixer in this build, so the -webkit- siblings are written out. */
 .mv-example__verdict-icon {
   width: 16px;
   height: 16px;
-  fill: none;
-  stroke: currentcolor;
+  flex: 0 0 auto;
+  background-color: currentcolor;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.mv-example--correct .mv-example__verdict-icon {
+  -webkit-mask-image: url("../../images/icons/smileys/smile-outline-positive.svg");
+  mask-image: url("../../images/icons/smileys/smile-outline-positive.svg");
+}
+
+.mv-example--incorrect .mv-example__verdict-icon {
+  -webkit-mask-image: url("../../images/icons/smileys/smile-outline-negative.svg");
+  mask-image: url("../../images/icons/smileys/smile-outline-negative.svg");
 }
 
 .mv-example--correct .mv-example__verdict {
-  color: var(--color-pine-800);
+  color: var(--color-pine-700);
 }
 
 .mv-example--incorrect .mv-example__verdict {
-  color: var(--color-orange-700);
+  color: var(--color-error-300);
 }
 
 .mv-example__caption {
@@ -284,12 +301,12 @@ body {
 
 .mv-example--correct .mv-example__callout {
   border-color: var(--color-pine-700);
-  color: var(--color-pine-800);
+  color: var(--color-pine-700);
 }
 
 .mv-example--incorrect .mv-example__callout {
-  border-color: var(--color-orange-700);
-  color: var(--color-orange-700);
+  border-color: var(--color-error-300);
+  color: var(--color-error-300);
 }
 
 .mv-dots {

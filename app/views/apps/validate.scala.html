@@ -14,7 +14,6 @@
 @common.main(commonData, title, defaultI18nNamespace = "validate", i18Namespaces = Seq("validate", "common"), url,
   pageMeta = service.PageMeta(description = Some(Messages("seo.description.validate", currentCity.cityNameShort)))) {
   @common.navbar(commonData, Some(user))
-  @common.icons()
 
   <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
   <script src='@assets.path("vendor/selectize/selectize-0.15.2.min.js")'></script>
@@ -57,9 +56,7 @@
     @* JS clones them, adjusts the attributes and then appends to DOM. *@
     <div class="current-tag tag-pill tag-pill--interactive tag-pill--active template">
       <div class="tag-name tag-pill__label"></div>
-      <div class="remove-tag-x">
-        <svg viewBox="0 0 22 22"><use xlink:href="#close-icon"></use></svg>
-      </div>
+      <div class="remove-tag-x"></div>
     </div>
     <template id="admin-info-template">
       <div id="admin-info-content">

@@ -87,9 +87,7 @@ class ModalMission {
           <div class="mv-example__photo">
             <img src="${slide.imageURL}" alt=""${loading} decoding="async">
             <span class="mv-example__verdict">
-              <svg class="mv-example__verdict-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <use xlink:href="#smile-${correct ? 'positive' : 'negative'}"></use>
-              </svg>
+              <span class="mv-example__verdict-icon" aria-hidden="true"></span>
               ${verdict}
             </span>
             <span class="mv-example__callout" style="left: ${left.toFixed(2)}%; top: ${top.toFixed(2)}%;">

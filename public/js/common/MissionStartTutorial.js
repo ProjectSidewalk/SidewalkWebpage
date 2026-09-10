@@ -136,12 +136,6 @@ class MissionStartTutorial {
     });
   }
 
-  // Map of exampleType to ID of the smiley icon to be used.
-  static #SMILEYS = {
-    [MissionStartTutorial.#EXAMPLE_TYPES.CORRECT]: '#smile-positive',
-    [MissionStartTutorial.#EXAMPLE_TYPES.INCORRECT]: '#smile-negative',
-  };
-
   #missionType;
   #labelType;
   #data;
@@ -284,19 +278,16 @@ class MissionStartTutorial {
     /**
      * Renders the 'on-image label' and positions it.
      * @param {object} position Position of the on-image label as top and left attributes in px.
-     * @param {string} iconID ID of the SVG icon to be shown on the label.
      * @param {string} labelOnImageTitle Title to be shown on the label.
      * @param {string} labelOnImageDescription Description to be shown on the label.
      */
-    const renderLabelOnImage = (position, iconID, labelOnImageTitle, labelOnImageDescription) => {
+    const renderLabelOnImage = (position, labelOnImageTitle, labelOnImageDescription) => {
       $labelOnImage.css({
         top: `calc(${position.top} * var(--ui-scale))`,
         left: `calc(${position.left} * var(--ui-scale))`,
       });
       $('.label-on-image-type-title', $labelOnImage).html(labelOnImageTitle);
       $('.label-on-image-description', $labelOnImage).html(labelOnImageDescription);
-
-      $('.label-on-image-type-icon').find('use').attr('xlink:href', iconID);
 
       $labelOnImage.show();
     };
@@ -326,13 +317,11 @@ class MissionStartTutorial {
       $mstSlide.addClass('incorrect');
     }
 
-    // The icon is the same on the left panel and the labelOnImage.
-    let iconID;
+    // Both smileys are drawn by the correct/incorrect class set above, leaving only the wording to pick here.
     let exampleTypeLabel;
     let labelOnImageTitle;
     let labelOnImageDescription;
     if (slide.isExampleCorrect) {
-      iconID = MissionStartTutorial.#SMILEYS[MissionStartTutorial.#EXAMPLE_TYPES.CORRECT];
       exampleTypeLabel = i18next.t('common:mission-start-tutorial.example-type-label-correct');
 
       labelOnImageTitle = i18next.t('common:mission-start-tutorial.label-on-image-title-correct');
@@ -340,7 +329,6 @@ class MissionStartTutorial {
         `${this.#messagesPrefix}:mission-start-tutorial.label-on-image-description-correct`,
       );
     } else {
-      iconID = MissionStartTutorial.#SMILEYS[MissionStartTutorial.#EXAMPLE_TYPES.INCORRECT];
       exampleTypeLabel = i18next.t(`${this.#messagesPrefix}:mission-start-tutorial.example-type-label-incorrect`);
 
       labelOnImageTitle = i18next.t(`${this.#messagesPrefix}:mission-start-tutorial.label-on-image-title-incorrect`);
@@ -351,7 +339,6 @@ class MissionStartTutorial {
 
     // Now that the variables have been initiated, let's set them for the UI.
     $('.example-type-label').text(exampleTypeLabel);
-    $('.example-type-icon').find('use').attr('xlink:href', iconID);
 
     // Note: we should set this as HTML as some strings may contain HTML tags.
     $('.label-type-title').html(slide.slideTitle);
@@ -366,7 +353,7 @@ class MissionStartTutorial {
     $(`.mst-carousel-location-indicator[data-idx=${idx}]`).addClass('current-location');
 
     if (slide.labelOnImage) { // Just a defensive check.
-      renderLabelOnImage(slide.labelOnImage.position, iconID, labelOnImageTitle, labelOnImageDescription);
+      renderLabelOnImage(slide.labelOnImage.position, labelOnImageTitle, labelOnImageDescription);
     }
 
     // Disable the previous/next buttons based on the current slide idx

@@ -198,17 +198,15 @@
   cursor: default;
 }
 
+/* Masked so the tint stays a token. The path is absolute because Grunt concatenates this file into
+   js/validate/build/ without rewriting relative ones. No autoprefixer here, so the -webkit- sibling is spelled out. */
 .remove-tag-x {
   cursor: pointer;
   width: calc(9px * var(--ui-scale));
   height: calc(9px * var(--ui-scale));
-  fill: var(--color-neutral-black);
-}
-
-.remove-tag-x svg {
-  display: block;
-  width: 100%;
-  height: 100%;
+  background-color: var(--color-neutral-black);
+  -webkit-mask: url("/assets/images/icons/close-x-bold.svg") center / contain no-repeat;
+  mask: url("/assets/images/icons/close-x-bold.svg") center / contain no-repeat;
 }
 
 .selectize-dropdown-content {
