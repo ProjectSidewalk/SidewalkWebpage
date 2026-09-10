@@ -21,8 +21,7 @@
     colors: {}, // Default chart colors (will be overridden by colors from labelTypes API).
   };
 
-  // Label type name -> localized display name (populated from the labelTypes API). userStats keys
-  // stats_by_label_type by the same canonical names, so no translation is needed between the two.
+  // Label type name -> localized display name (populated from the labelTypes API).
   const labelTypeMapping = {};
 
   // Public API.

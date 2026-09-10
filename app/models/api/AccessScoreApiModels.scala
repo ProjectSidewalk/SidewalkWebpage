@@ -189,7 +189,6 @@ object StreetAccessScoreForApi extends ApiFields[StreetAccessScoreForApi] {
     AccessScoreApiModels.orderedTypes, _.clusterCounts, _.subScores, _.severityCounts, _.tagAdjustments
   )
 
-  // The GeoJSON holds the full LineString; the CSV can only summarize it as its two endpoints.
   override val csvOnlyFields: Seq[ApiField[StreetAccessScoreForApi]] = Seq(
     field("start_point")(s => s"${s.geometry.getStartPoint.getX},${s.geometry.getStartPoint.getY}"),
     field("end_point")(s => s"${s.geometry.getEndPoint.getX},${s.geometry.getEndPoint.getY}")
@@ -263,7 +262,6 @@ object IntersectionAccessScoreForApi extends ApiFields[IntersectionAccessScoreFo
     AccessScoreApiModels.orderedIntersectionTypes, _.clusterCounts, _.subScores, _.severityCounts, _.tagAdjustments
   )
 
-  // The GeoJSON holds the position in its Point geometry; the CSV needs it as ordinary columns.
   override val csvOnlyFields: Seq[ApiField[IntersectionAccessScoreForApi]] = Seq(
     field("lat")(_.geometry.getY),
     field("lng")(_.geometry.getX)
@@ -330,7 +328,6 @@ object RegionAccessScoreForApi extends ApiFields[RegionAccessScoreForApi] {
     field(s"avg_cluster_counts.$labelType")(_.avgClusterCounts.getOrElse(labelType, 0.0))
   }
 
-  // The GeoJSON holds the full polygon; the CSV can only summarize it as its centroid.
   override val csvOnlyFields: Seq[ApiField[RegionAccessScoreForApi]] = Seq(
     field("center_point")(r => s"${r.geometry.getCentroid.getX},${r.geometry.getCentroid.getY}")
   )

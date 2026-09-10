@@ -30,7 +30,6 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       contentType(resp) mustBe Some("application/json")
 
       val json = contentAsJson(resp)
-      // The response is the stats themselves, with no envelope: a hardcoded "OK" alongside them read as a metric.
       (json \ "status").toOption mustBe None
       (json \ "km_explored").asOpt[Double] mustBe defined
       (json \ "total_labels").asOpt[Long] mustBe defined

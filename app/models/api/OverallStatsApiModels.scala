@@ -22,7 +22,6 @@ object LabelSevStats {
     (__ \ "count").write[Int] and
       (__ \ "count_with_severity").write[Option[Int]] and
       (__ \ "severity_mean").write[Option[Double]] and
-      // "stddev", not "sd", so the endpoint spells standard deviation one way (see the label stddev_* fields).
       (__ \ "severity_stddev").write[Option[Double]]
   )(unlift(LabelSevStats.unapply))
 }
@@ -34,7 +33,6 @@ object LabelAccuracy {
     (__ \ "validated").write[Int] and
       (__ \ "agreed").write[Int] and
       (__ \ "disagreed").write[Int] and
-      // Written as an explicit null rather than dropped, so a label type with no validations still has the key.
       (__ \ "accuracy").write[Option[Double]] and
       (__ \ "has_a_validation").write[Int]
   )(unlift(LabelAccuracy.unapply))
@@ -58,8 +56,6 @@ object AiConcurrence {
     if (i < 0) Int.MaxValue else i
   }
 
-  // "maj_vote" rather than "human": the key one level up says whose majority vote this is, and "human" there means a
-  // specific source of votes (every non-AI validator), not admins.
   implicit val aiConcurrenceWrites: Writes[AiConcurrence] = (
     (__ \ "ai_yes_maj_vote_concurs").write[Int] and
       (__ \ "ai_yes_maj_vote_differs").write[Int] and
@@ -150,7 +146,6 @@ case class ProjectSidewalkStats(
       ),
       "labels" -> JsObject(
         Seq(
-          // Named to match the same two measures on each label type below.
           ("count", JsNumber(nLabels)),
           ("count_with_severity", JsNumber(nLabelsWithSeverity)),
           ("avg_label_timestamp", avgLabelTimestamp.map(t => JsString(t.toString)).getOrElse(JsNull)),

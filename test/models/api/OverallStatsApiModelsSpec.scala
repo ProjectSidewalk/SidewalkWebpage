@@ -143,7 +143,6 @@ class OverallStatsApiModelsSpec extends AnyFunSuite with Matchers {
     (other \ "validated").as[Int] shouldBe 0
     (other \ "has_a_validation").as[Int] shouldBe 0
 
-    // The CSV row set must not vary with the data.
     sampleStats.toCsvRows should contain("validations.combined.Other.accuracy,")
   }
 
@@ -174,7 +173,6 @@ class OverallStatsApiModelsSpec extends AnyFunSuite with Matchers {
       case _ => Seq(prefix)
     }
 
-    // The two formats are one list of fields in one order, not two lists that happen to agree.
     sampleStats.toCsvRows.map(_.split(",", 2).head) shouldBe jsonPaths("", sampleStats.toJson)
   }
 

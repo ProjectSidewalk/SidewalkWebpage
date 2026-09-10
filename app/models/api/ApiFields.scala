@@ -7,12 +7,10 @@ import models.api.ApiModelUtils.csvCell
 import play.api.libs.json.{JsObject, JsValue, Writes}
 
 /**
- * One output field: its name, and how to read its value off a record.
+ * One output field.
  *
- * A dotted name (`stats_by_label_type.CurbRamp.labels`) is a CSV column of exactly that name and a nested key in the
- * JSON, so a field lives at the same address in both formats.
- *
- * @param name  The field's canonical snake_case name, dotted for a value the JSON nests.
+ * @param name  Canonical snake_case name. A dotted name (`stats_by_label_type.CurbRamp.labels`) is a nested key in
+ *              the JSON and a CSV column of exactly that name, so the field sits at the same address in both.
  * @param value Reads the field off a record.
  */
 case class ApiField[T](name: String, value: T => JsValue) {
@@ -22,21 +20,16 @@ case class ApiField[T](name: String, value: T => JsValue) {
 }
 
 /**
- * A record type's fields, in output order.
- *
- * The list is the single source for the JSON keys, the CSV header, and the CSV cells, so a field cannot be named one
- * thing in one format and something else in the other (#3871, #4320); renaming it here renames it everywhere.
- * Endpoints that serve GeoJSON put this list in the Feature's `properties` and pass the geometry separately.
+ * A record type's fields, in output order: the single source for its JSON keys, CSV header, and CSV cells, so a
+ * field cannot be named one thing in one format and something else in the other (#3871, #4320). A GeoJSON endpoint
+ * puts [[toJson]] in the Feature's `properties` and passes the geometry separately.
  */
 trait ApiFields[T] {
 
   /** The fields carried by both formats. */
   def fields: Seq[ApiField[T]]
 
-  /**
-   * Fields only the CSV carries, appended after [[fields]] — for values the JSON already expresses another way, such
-   * as a geometry the CSV can only summarize as endpoints.
-   */
+  /** Fields only the CSV carries, for values the JSON expresses another way — a geometry it can only summarize. */
   def csvOnlyFields: Seq[ApiField[T]] = Seq.empty
 
   /** Override only where the CSV needs an order the JSON doesn't have. */
@@ -45,10 +38,7 @@ trait ApiFields[T] {
   /** The CSV header line, without a trailing newline. */
   final lazy val csvHeader: String = csvFields.map(_.name).mkString(",")
 
-  /**
-   * The shape the dotted field names describe, resolved once: the nesting depends only on the names, which never
-   * change, so a streaming endpoint shouldn't re-derive it for every record it writes.
-   */
+  // Resolved once: the nesting depends only on the names, so a streaming endpoint needn't redo it per record.
   private lazy val jsonShape: Seq[(String, ApiFields.Node[T])] = ApiFields.shapeOf(fields)
 
   /** @return The record as JSON, with dotted field names expanded back into nested objects. */
@@ -64,7 +54,7 @@ object ApiFields {
   def field[T, V](name: String)(get: T => V)(implicit writes: Writes[V]): ApiField[T] =
     ApiField(name, record => writes.writes(get(record)))
 
-  /** One position in a field list's JSON shape: either a value to read, or an object with its own shape. */
+  /** A position in a field list's JSON shape: a value to read, or an object with its own shape. */
   sealed private[api] trait Node[T]
   private[api] case class Leaf[T](read: T => JsValue)                 extends Node[T]
   private[api] case class Branch[T](children: Seq[(String, Node[T])]) extends Node[T]
@@ -74,8 +64,8 @@ object ApiFields {
    *
    * @param fields The fields, in output order.
    * @return Each top-level key with its node, keys in the order their names first appear.
-   * @throws IllegalArgumentException if a name is used twice, or is both a value and an object — either would drop
-   *         a field from the JSON while the CSV still carried its column, the drift this whole design prevents.
+   * @throws IllegalArgumentException if a name is used twice, or is both a value and an object — either would drop a
+   *         field from the JSON while the CSV kept its column.
    */
   private[api] def shapeOf[T](fields: Seq[ApiField[T]]): Seq[(String, Node[T])] = {
     val (leaves, nested) = fields.partition(!_.name.contains('.'))
@@ -100,11 +90,7 @@ object ApiFields {
     }
   }
 
-  /**
-   * @param shape  A resolved field-name shape.
-   * @param record The record to read values from.
-   * @return The record as a JSON object of that shape.
-   */
+  /** @return `record` as a JSON object of the given shape. */
   private[api] def buildJson[T](shape: Seq[(String, Node[T])], record: T): JsObject = JsObject(shape.map {
     case (key, Leaf(read))     => key -> read(record)
     case (key, Branch(nested)) => key -> buildJson(nested, record)

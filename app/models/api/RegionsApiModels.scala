@@ -91,7 +91,6 @@ object RegionDataForApi extends ApiFields[RegionDataForApi] {
     field("last_label_date")(_.lastLabelDate.map(_.toString))
   )
 
-  // The GeoJSON holds the full polygon; the CSV can only summarize it as its centroid.
   override val csvOnlyFields: Seq[ApiField[RegionDataForApi]] = Seq(
     field("center_point")(r => s"${r.geometry.getCentroid.getX},${r.geometry.getCentroid.getY}")
   )

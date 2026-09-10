@@ -32,12 +32,7 @@ class ApiFieldsSpec extends AnyFunSuite with Matchers {
     correct = Some(true), imageCaptureDate = None
   )
 
-  /**
-   * Every case-class field reaches the output.
-   *
-   * A hand-written field list can silently omit a constructor parameter, dropping it from both formats at once with
-   * nothing failing. These three map one parameter to one field, so arity is the check that catches it.
-   */
+  /** These three map one constructor parameter to one field, so arity catches a parameter the list forgot. */
   test("each field list covers every parameter of the case class it serializes") {
     withClue("DailyStatRecord: ")(DailyStatRecord.fields.size shouldBe sampleDailyStat.productArity)
     withClue("LabelCVMetadata: ")(LabelCVMetadata.fields.size shouldBe sampleCvMetadata.productArity)
@@ -47,7 +42,6 @@ class ApiFieldsSpec extends AnyFunSuite with Matchers {
   test("a geometry-backed model's CSV carries its own columns on top of the shared fields") {
     StreetDataForApi.csvFields.size shouldBe StreetDataForApi.fields.size + 2
     StreetDataForApi.csvHeader should endWith("start_point,end_point")
-    // The GeoJSON properties must not gain the CSV's stand-in columns.
     StreetDataForApi.fields.map(_.name) should not contain "start_point"
   }
 
@@ -68,8 +62,6 @@ class ApiFieldsSpec extends AnyFunSuite with Matchers {
       override val fields: Seq[ApiField[Sample]] = Seq(field("score")(_.a), field("score.CurbRamp")(_.b))
     }
 
-    // Left unchecked, the leaf would win and `score.CurbRamp` would vanish from the JSON while the CSV kept its
-    // column — the JSON/CSV drift this design exists to prevent, failing silently.
     the[IllegalArgumentException] thrownBy Collides.toJson(Sample(1, 2)) should have message
       "requirement failed: field is both a value and an object: List(score)"
   }

@@ -56,7 +56,6 @@ class AggregateStatsApiModelsSpec extends AnyFunSuite with Matchers {
     rows should contain("total_users,60")
     rows should contain("num_countries,5")
 
-    // Label types keep the JSON's spelling rather than a second, re-cased version of the name.
     rows should contain("by_label_type.CurbRamp.labels,200")
     rows should contain("by_label_type.NoSidewalk.labels_validated_disagree,5")
   }

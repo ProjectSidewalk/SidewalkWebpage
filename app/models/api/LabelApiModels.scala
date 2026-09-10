@@ -371,7 +371,6 @@ object LabelDataForApi extends ApiFields[LabelDataForApi] {
     field("pano_url")(_.panoUrl)
   )
 
-  // The GeoJSON holds the position in its Point geometry; the CSV needs it as ordinary columns.
   override val csvOnlyFields: Seq[ApiField[LabelDataForApi]] = Seq(
     field("latitude")(_.latitude),
     field("longitude")(_.longitude)

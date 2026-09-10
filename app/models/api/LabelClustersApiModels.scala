@@ -68,10 +68,7 @@ case class RawLabelInClusterDataForApi(
     imageCaptureDate: Option[String]
 )
 
-/**
- * These labels are only ever written nested inside a cluster's GeoJSON, or as their own CSV file via [[InCluster]] —
- * never as a CSV of their own — so the field list lives here and the CSV shape lives there.
- */
+/** These labels are written nested in a cluster's GeoJSON, or as their own CSV file via [[InCluster]]. */
 private[api] object RawLabelFields extends ApiFields[RawLabelInClusterDataForApi] {
   import ApiFields.field
 
@@ -184,7 +181,6 @@ object LabelClusterForApi extends ApiFields[LabelClusterForApi] {
     field("tag_counts")(_.tagCounts)
   )
 
-  // The GeoJSON holds the position in its Point geometry; the CSV needs it as ordinary columns.
   override val csvOnlyFields: Seq[ApiField[LabelClusterForApi]] = Seq(
     field("avg_latitude")(_.avgLatitude),
     field("avg_longitude")(_.avgLongitude)

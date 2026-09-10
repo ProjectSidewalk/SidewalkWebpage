@@ -43,7 +43,6 @@ class UserStatsApiModelsSpec extends AnyFunSuite with Matchers {
     (json \ "high_quality_manual").asOpt[Boolean] shouldBe None // None serializes as JSON null, key present
     json.keys.filter(k => k != k.toLowerCase) shouldBe empty
 
-    // Label types are keyed by the canonical names from /v3/api/labelTypes, so this breakdown joins against them.
     val byType = (json \ "stats_by_label_type").as[JsObject]
     byType.keys should contain allOf ("CurbRamp", "NoCurbRamp", "Crosswalk", "Signal", "Occlusion")
     (byType \ "CurbRamp" \ "validated_correct").as[Int] shouldBe 1
@@ -74,7 +73,6 @@ class UserStatsApiModelsSpec extends AnyFunSuite with Matchers {
 
     (json \ "label_id").as[Int] shouldBe 1
     (json \ "pano_height").as[Int] shouldBe 8192
-    // Present-as-null rather than dropped, so the key set doesn't vary with the data (matching the CSV's columns).
     (json \ "pano_width").get shouldBe JsNull
     (json \ "camera_roll").get shouldBe JsNull
     json.as[JsObject].keys.filter(k => k != k.toLowerCase) shouldBe empty

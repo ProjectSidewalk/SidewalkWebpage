@@ -22,19 +22,17 @@ object ApiModelUtils {
     )
   }
 
+  /** The two columns of the CSVs [[toCsvKeyValueRows]] produces. */
+  val keyValueCsvHeader: String = "metric,value"
+
   /**
    * Flattens a nested JSON object into the "key,value" lines used by the endpoints whose response is a single object.
    *
-   * Deriving the rows from the JSON is what keeps the two formats naming every field identically (#3871, #4320). Path
-   * pieces are copied exactly as the JSON spells them, since a second spelling of a name is a second name to keep in
-   * sync. Missing values become empty cells, as in every v3 CSV.
+   * Deriving the rows from the JSON is what keeps the two formats naming every field identically (#3871, #4320).
    *
    * @param json The JSON object to flatten.
    * @return One "key,value" line per value, keyed by its dotted path (`labels.CurbRamp.count`), in JSON field order.
    */
-  /** The two columns of the CSVs [[toCsvKeyValueRows]] produces. */
-  val keyValueCsvHeader: String = "metric,value"
-
   def toCsvKeyValueRows(json: JsObject): Seq[String] = {
     def flatten(path: String, value: JsValue): Seq[(String, JsValue)] = value match {
       case obj: JsObject => obj.fields.toSeq.flatMap { case (key, v) => flatten(s"$path.$key", v) }

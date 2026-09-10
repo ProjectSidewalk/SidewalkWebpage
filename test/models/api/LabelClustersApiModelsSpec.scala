@@ -68,7 +68,6 @@ class LabelClustersApiModelsSpec extends AnyFunSuite with Matchers {
     (withSource \ "pano_source").as[String] shouldBe "gsv"
     (withSource \ "panoSource").toOption shouldBe None
 
-    // Present-as-null rather than dropped, so the key set doesn't vary with the data (matching the CSV's columns).
     val withoutSource = Json.toJson(sampleRawLabel(None)).as[JsObject]
     (withoutSource \ "pano_source").get shouldBe JsNull
   }

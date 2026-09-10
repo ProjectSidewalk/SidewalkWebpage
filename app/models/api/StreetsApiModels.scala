@@ -48,7 +48,6 @@ case class StreetDataForApi(
     geometry: LineString
 ) extends StreamingApiType {
 
-  /** @return This street as an RFC 7946 GeoJSON Feature. */
   override def toJson: JsObject = {
     Json.obj(
       "type"       -> "Feature",
@@ -80,7 +79,6 @@ object StreetDataForApi extends ApiFields[StreetDataForApi] {
     field("last_label_date")(_.lastLabelDate.map(_.toString))
   )
 
-  // The GeoJSON holds the full LineString; the CSV can only summarize it as its two endpoints.
   override val csvOnlyFields: Seq[ApiField[StreetDataForApi]] = Seq(
     field("start_point")(s => s"${s.geometry.getStartPoint.getX},${s.geometry.getStartPoint.getY}"),
     field("end_point")(s => s"${s.geometry.getEndPoint.getX},${s.geometry.getEndPoint.getY}")

@@ -33,7 +33,7 @@ const GOOD_STATS = {
 // The pre-restructure shape the buggy code expected: a flat total_validations with no `combined` sub-object.
 const OLD_FLAT_STATS = {
     km_explored: 1234,
-    labels: { label_count: 21649 },
+    labels: { count: 21649 },
     validations: { total_validations: 32747 },
 };
 

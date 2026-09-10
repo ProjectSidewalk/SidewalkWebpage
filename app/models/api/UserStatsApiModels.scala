@@ -82,7 +82,6 @@ object UserStatForApi extends ApiFields[UserStatForApi] {
     field("agree_validations_given")(_.agreeValidationsGiven),
     field("disagree_validations_given")(_.disagreeValidationsGiven),
     field("unsure_validations_given")(_.unsureValidationsGiven)
-    // Label types keyed by their canonical /v3/api/labelTypes name, so this breakdown joins against other endpoints.
   ) ++ LabelTypeEnum.orderedNames.flatMap { labelType =>
     Seq(
       field(s"stats_by_label_type.$labelType.labels")(_.statsByLabelType(labelType).labels),
