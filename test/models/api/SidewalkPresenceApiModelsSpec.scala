@@ -24,8 +24,8 @@ class SidewalkPresenceApiModelsSpec extends AnyFunSuite with Matchers {
   /** A face called absent, so every property is populated. */
   private def absentFace: SidewalkPresenceForApi = SidewalkPresenceForApi(
     streetEdgeId = 10425, streetSide = "left", osmWayId = 6479562L, regionId = 44, regionName = "Highland Park",
-    wayType = "residential", presence = "absent", presenceBasis = "no_sidewalk_labels", noSidewalkLabelCount = 3,
-    noSidewalkUserCount = 2, labelCount = 5, auditCount = 2,
+    wayType = "residential", status = "open", presence = "absent", presenceBasis = "no_sidewalk_labels",
+    noSidewalkLabelCount = 3, noSidewalkUserCount = 2, labelCount = 5, auditCount = 2,
     firstNoSidewalkLabelDate = Some(OffsetDateTime.parse("2019-11-04T22:31:07Z")),
     lastNoSidewalkLabelDate = Some(OffsetDateTime.parse("2023-02-18T17:05:44Z")), geometry = line
   )
@@ -62,7 +62,7 @@ class SidewalkPresenceApiModelsSpec extends AnyFunSuite with Matchers {
 
   test("the CSV header names the JSON properties plus the geometry's two endpoints, in order") {
     SidewalkPresenceForApi.csvHeader shouldBe
-      "street_edge_id,street_side,osm_way_id,region_id,region_name,way_type,presence,presence_basis," +
+      "street_edge_id,street_side,osm_way_id,region_id,region_name,way_type,status,presence,presence_basis," +
       "no_sidewalk_label_count,no_sidewalk_user_count,label_count,audit_count,first_no_sidewalk_label_date," +
       "last_no_sidewalk_label_date,start_point,end_point"
   }

@@ -20,6 +20,7 @@ import java.time.OffsetDateTime
  * @param regionId                  Region ID where the street is located
  * @param regionName                Name of the region where the street is located
  * @param wayType                   Type of way (e.g., "residential", "primary", etc.)
+ * @param status                    The street's availability: `open`, `no_imagery`, `closed`, or `disabled`
  * @param presence                  `present`, `absent`, or `unknown`
  * @param presenceBasis             The evidence behind the call: `no_sidewalk_labels`, `other_side_tag`,
  *                                  `audited_no_labels`, or `unaudited`
@@ -38,6 +39,7 @@ case class SidewalkPresenceForApi(
     regionId: Int,
     regionName: String,
     wayType: String,
+    status: String,
     presence: String,
     presenceBasis: String,
     noSidewalkLabelCount: Int,
@@ -68,6 +70,7 @@ object SidewalkPresenceForApi extends ApiFields[SidewalkPresenceForApi] {
     field("region_id")(_.regionId),
     field("region_name")(_.regionName),
     field("way_type")(_.wayType),
+    field("status")(_.status),
     field("presence")(_.presence),
     field("presence_basis")(_.presenceBasis),
     field("no_sidewalk_label_count")(_.noSidewalkLabelCount),
@@ -93,6 +96,8 @@ object SidewalkPresenceForApi extends ApiFields[SidewalkPresenceForApi] {
  * @param regionId            Optional region ID to filter by geographic region
  * @param regionName          Optional region name to filter by geographic region
  * @param presence            Optional verdicts to keep (`present`, `absent`, `unknown`); all three by default
+ * @param statuses            Optional street statuses to keep (`open`, `no_imagery`, `closed`, `disabled`); all by
+ *                            default, as on the Streets API
  * @param minNoSidewalkLabels Optional minimum NoSidewalk label count, the confidence dial for `absent` calls
  * @param minAuditCount       Optional minimum number of completed audits of the street
  * @param wayTypes            Optional list of way types to include (e.g., "residential", "primary")
@@ -102,6 +107,7 @@ case class SidewalkPresenceFiltersForApi(
     regionId: Option[Int] = None,
     regionName: Option[String] = None,
     presence: Option[Seq[String]] = None,
+    statuses: Option[Seq[String]] = None,
     minNoSidewalkLabels: Option[Int] = None,
     minAuditCount: Option[Int] = None,
     wayTypes: Option[Seq[String]] = None

@@ -13,7 +13,7 @@ import play.api.test.Helpers._
 /**
  * Locks the response contract of the Sidewalk Presence API (#5279): GET /v3/api/sidewalkPresence returns a GeoJSON
  * FeatureCollection by default, a snake_case CSV header for filetype=csv, 400 INVALID_PARAMETER on a bad
- * `presence`, bbox, or regionId, and the two GIS exports assemble end to end. Asserts shape, not data.
+ * `presence`, `status`, bbox, or regionId, and the two GIS exports assemble end to end. Asserts shape, not data.
  *
  * Boots the real application (real Slick/PostGIS) and exercises the route end to end. The endpoint is
  * `UserAwareAction` (no auth needed) and makes no external WS calls on the request path. The eager scheduling actors
@@ -61,7 +61,7 @@ class SidewalkPresenceApiSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       val body = contentAsString(resp)
       body must include(
-        "street_edge_id,street_side,osm_way_id,region_id,region_name,way_type,presence,presence_basis," +
+        "street_edge_id,street_side,osm_way_id,region_id,region_name,way_type,status,presence,presence_basis," +
           "no_sidewalk_label_count,no_sidewalk_user_count,label_count,audit_count,first_no_sidewalk_label_date," +
           "last_no_sidewalk_label_date,start_point,end_point"
       )
@@ -78,6 +78,17 @@ class SidewalkPresenceApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/v3/api/sidewalkPresence?presence=bogus")).get
       status(resp) mustBe BAD_REQUEST
       (contentAsJson(resp) \ "parameter").as[String] mustBe "presence"
+    }
+
+    "accept a valid status filter" in {
+      val resp = route(app, FakeRequest(GET, s"/v3/api/sidewalkPresence?$tinyBbox&status=open")).get
+      status(resp) mustBe OK
+    }
+
+    "return 400 INVALID_PARAMETER for an unrecognized status value" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/sidewalkPresence?status=bogus")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "status"
     }
 
     "return 400 INVALID_PARAMETER for an unrecognized wayType value" in {

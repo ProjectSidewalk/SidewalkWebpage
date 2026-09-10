@@ -998,6 +998,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         + "regionId:Integer,"
         + "regionName:String,"
         + "wayType:String,"
+        + "status:String,"
         + "presence:String,"
         + "basis:String,"     // presence_basis
         + "nsLabels:Integer," // no_sidewalk_label_count
@@ -1016,6 +1017,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(face.regionId)
       featureBuilder.add(face.regionName)
       featureBuilder.add(face.wayType)
+      featureBuilder.add(face.status)
       featureBuilder.add(face.presence)
       featureBuilder.add(face.presenceBasis)
       featureBuilder.add(face.noSidewalkLabelCount)
@@ -1045,6 +1047,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         + "region_id:Integer,"
         + "region_name:String,"
         + "way_type:String,"
+        + "status:String,"
         + "presence:String,"
         + "presence_basis:String,"
         + "no_sidewalk_label_count:Integer,"
@@ -1063,6 +1066,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(face.regionId)
       featureBuilder.add(face.regionName)
       featureBuilder.add(face.wayType)
+      featureBuilder.add(face.status)
       featureBuilder.add(face.presence)
       featureBuilder.add(face.presenceBasis)
       featureBuilder.add(face.noSidewalkLabelCount)

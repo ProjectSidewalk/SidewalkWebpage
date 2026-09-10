@@ -114,6 +114,7 @@ class StreetsApiController @Inject() (
    * @param minNoSidewalkLabels Optional minimum number of NoSidewalk labels on the face
    * @param minAuditCount       Optional minimum number of completed audits of the street
    * @param wayType             Comma-separated list of way types to include (e.g., "residential,primary")
+   * @param status              Comma-separated list of street statuses to include (e.g., "open,no_imagery")
    * @param filetype            Output format: "geojson" (default), "csv", "shapefile", "geopackage"
    * @param inline              Whether to display the file inline or as an attachment
    */
@@ -125,11 +126,13 @@ class StreetsApiController @Inject() (
       minNoSidewalkLabels: Option[Int],
       minAuditCount: Option[Int],
       wayType: Option[String],
+      status: Option[String],
       filetype: Option[String],
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
     val parsedBbox     = parseBBoxString(bbox)
     val parsedWayTypes = parseCommaSeparated(wayType)
+    val parsedStatuses = parseCommaSeparated(status).map(_.map(_.toLowerCase))
     // Allowlisted rather than merely parsed: the tokens are spliced into raw SQL as enum literals.
     val parsedPresence =
       parseAllowlistedList(presence, SidewalkPresenceStatus.values.map(_.toString).toSet, "presence")
@@ -138,6 +141,7 @@ class StreetsApiController @Inject() (
       validateBBoxParam(bbox, parsedBbox),
       validateRegionId(regionId),
       validateWayTypes(parsedWayTypes),
+      validateStreetStatuses(parsedStatuses),
       parsedPresence.left.toOption
     ).flatten.headOption
 
@@ -150,8 +154,8 @@ class StreetsApiController @Inject() (
 
           val filters = SidewalkPresenceFiltersForApi(
             bbox = finalBbox, regionId = finalRegionId, regionName = finalRegionName,
-            presence = parsedPresence.toOption.flatten, minNoSidewalkLabels = minNoSidewalkLabels,
-            minAuditCount = minAuditCount, wayTypes = parsedWayTypes
+            presence = parsedPresence.toOption.flatten, statuses = parsedStatuses,
+            minNoSidewalkLabels = minNoSidewalkLabels, minAuditCount = minAuditCount, wayTypes = parsedWayTypes
           )
 
           val dbDataStream: Source[SidewalkPresenceForApi, _] =
