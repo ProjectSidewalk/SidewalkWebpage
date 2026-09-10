@@ -966,7 +966,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "regionId:Integer,"              // Region ID
       + "name:String,"                   // Region name
       + "labelCount:Integer,"            // Number of labels in this region
-      + "streetCount:Integer,"           // Number of streets in this region
+      + "streetCnt:Integer,"             // Number of streets in this region
       + "userCount:Integer,"             // Number of unique users who labeled in this region
       + "auditCount:Integer,"            // Number of completed audits in this region
       + "totalDistM:Double,"             // Total street distance in this region, meters (DBF caps names at 10 chars)
