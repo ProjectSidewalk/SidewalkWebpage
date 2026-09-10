@@ -12,6 +12,11 @@
 -- the roadway people walk in. CurbRamp and NoCurbRamp are corner features whose face is ambiguous, and they are not
 -- evidence either way.
 --
+-- Contributors flagged user_stat.excluded count for nothing here -- neither their labels nor their audits, the same
+-- population LabelTable.labels serves everywhere else. It has to be both: an audit with no labels is exactly what
+-- calls a face 'present', so dropping only the labels would let a banned contributor flip the faces they mislabeled.
+-- COALESCE(excluded, FALSE) rather than an inner join, so a user with no user_stat row yet still counts.
+--
 -- The derivation below is the same one SidewalkPresenceTable.derivationSql holds, so the nightly rebuild reproduces
 -- these rows exactly (SidewalkPresenceTableSpec checks that). Both faces of every street get a row, whatever the
 -- street's status, so an unaudited face can answer "unknown" rather than be missing.
@@ -66,7 +71,9 @@ sided_label AS (
            label.tags
     FROM label
     INNER JOIN label_point ON label.label_id = label_point.label_id
+    LEFT JOIN user_stat ON label.user_id = user_stat.user_id
     WHERE NOT label.deleted AND NOT label.tutorial AND label_point.street_side IS NOT NULL
+      AND NOT COALESCE(user_stat.excluded, FALSE)
 ),
 face_label AS (
     SELECT street_edge_id, street_side,
@@ -81,10 +88,11 @@ face_label AS (
     GROUP BY street_edge_id, street_side
 ),
 street_audit AS (
-    SELECT street_edge_id, COUNT(*) AS audit_count
+    SELECT audit_task.street_edge_id, COUNT(*) AS audit_count
     FROM audit_task
-    WHERE completed
-    GROUP BY street_edge_id
+    LEFT JOIN user_stat ON audit_task.user_id = user_stat.user_id
+    WHERE audit_task.completed AND NOT COALESCE(user_stat.excluded, FALSE)
+    GROUP BY audit_task.street_edge_id
 ),
 -- Precedence is the study's tiering: the face's own NoSidewalk labels, then a "street has no sidewalks" tag on the
 -- other face (78% when the face itself is unlabeled), then audited-without-labels means present.

@@ -20,6 +20,9 @@ import scala.io.Source
  * derives is the input here; `StreetSideSpec` covers the geometry that produces the offset. The seeded rows borrow
  * an existing label's task, mission and pano for their foreign keys, so a schema without any label (CI's) cancels
  * the label-bearing cases rather than failing them.
+ *
+ * A [[util.StreetFixtures.insertUser]] mapper has no `user_stat` row, which the derivation reads as not-excluded, so
+ * every case here counts unless it calls `excludeUser`.
  */
 class SidewalkPresenceTableSpec
     extends PlaySpec
@@ -184,6 +187,44 @@ class SidewalkPresenceTableSpec
 
       untagged(StreetSide.Right).presence mustBe SidewalkPresenceStatus.Present
       untagged(StreetSide.Right).presenceBasis mustBe SidewalkPresenceBasis.AuditedNoLabels
+    }
+
+    "ignore an excluded contributor's labels and their audit, leaving the street unknown rather than present" in {
+      // Dropping only the labels would leave the audit standing, and an audit with no labels is what calls a face
+      // `present` -- so a banned contributor would flip the very faces they mislabeled.
+      val (excludedOnly, alsoAudited) = runRolledBack(for {
+        excludedOnlyStreet <- insertStreet()
+        alsoAuditedStreet  <- insertStreet()
+        banned             <- insertUser()
+        good               <- insertUser()
+        _                  <- excludeUser(banned)
+        // Everything on this street came from the banned contributor: no evidence at all remains.
+        _ <- audit(excludedOnlyStreet, banned)
+        _ <- insertLabel(excludedOnlyStreet, banned, "NoSidewalk", Some(3.0))
+        // Here a good contributor also walked it, so the street stays audited and its counts hold only their work.
+        _            <- audit(alsoAuditedStreet, banned)
+        _            <- audit(alsoAuditedStreet, good)
+        _            <- insertLabel(alsoAuditedStreet, banned, "NoSidewalk", Some(3.0))
+        _            <- insertLabel(alsoAuditedStreet, good, "Obstacle", Some(3.0))
+        _            <- table.rebuild
+        excludedOnly <- facesOf(excludedOnlyStreet)
+        alsoAudited  <- facesOf(alsoAuditedStreet)
+      } yield (excludedOnly, alsoAudited))
+
+      excludedOnly.values.foreach { face =>
+        face.presence mustBe SidewalkPresenceStatus.Unknown
+        face.presenceBasis mustBe SidewalkPresenceBasis.Unaudited
+        face.auditCount mustBe 0
+        face.labelCount mustBe 0
+      }
+
+      val left = alsoAudited(StreetSide.Left)
+      left.presence mustBe SidewalkPresenceStatus.Present
+      left.presenceBasis mustBe SidewalkPresenceBasis.AuditedNoLabels
+      left.noSidewalkLabelCount mustBe 0
+      left.labelCount mustBe 1
+      left.auditCount mustBe 1
+      left.firstNoSidewalkLabelAt mustBe None
     }
 
     "count a labeled face absent even before any audit completes, and leave the other side unknown" in {

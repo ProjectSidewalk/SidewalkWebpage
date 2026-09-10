@@ -180,11 +180,12 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
     val regionNameFilter = filters.regionName
       .map(name => s"AND LOWER(region.name) = LOWER('${name.replace("'", "''")}')")
       .getOrElse("")
-    // wayType and presence are validated against their enums in the controller, so the literals are valid enum labels
-    // (an invalid one would be a Postgres error rather than an empty result).
+    // wayType, presence, and status are validated against their enums in the controller, so the literals are valid
+    // enum labels (an invalid one would be a Postgres error rather than an empty result).
     val wayTypeFilter  = filters.wayTypes.map(w => s"AND street_edge.way_type IN (${quotedList(w)})").getOrElse("")
     val presenceFilter =
       filters.presence.map(p => s"AND sidewalk_presence.presence IN (${quotedList(p)})").getOrElse("")
+    val statusFilter = filters.statuses.map(st => s"AND street_edge.status IN (${quotedList(st)})").getOrElse("")
     val minNoSidewalkLabelsFilter = filters.minNoSidewalkLabels
       .map(n => s"AND sidewalk_presence.no_sidewalk_label_count >= $n")
       .getOrElse("")
@@ -192,11 +193,14 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
       filters.minAuditCount.map(n => s"AND sidewalk_presence.audit_count >= $n").getOrElse("")
 
     // Region and OSM way are joined at read time rather than stored: both are one-to-one with the street, and the
-    // Streets API resolves them the same way. Only the tutorial street is excluded, as there. User-supplied strings
-    // are single-quote-escaped above and numeric filters are safe; see #2756 for moving these to bound parameters.
+    // Streets API resolves them the same way. Only the tutorial street is excluded, as there; every other street is
+    // returned tagged with its `status` (#3888), so a consumer who wants only the live ones — the table also covers
+    // streets closed with their neighborhood, whose `region_id` /v3/api/regions never returns — asks for
+    // `status=open`. User-supplied strings are single-quote-escaped above and numeric filters are safe; see #2756
+    // for moving these to bound parameters.
     val queryStr = s"""
       SELECT sidewalk_presence.street_edge_id, sidewalk_presence.street_side, osm_way_street_edge.osm_way_id,
-             region.region_id, region.name, street_edge.way_type, sidewalk_presence.presence,
+             region.region_id, region.name, street_edge.way_type, street_edge.status, sidewalk_presence.presence,
              sidewalk_presence.presence_basis, sidewalk_presence.no_sidewalk_label_count,
              sidewalk_presence.no_sidewalk_user_count, sidewalk_presence.label_count, sidewalk_presence.audit_count,
              sidewalk_presence.first_no_sidewalk_label_at, sidewalk_presence.last_no_sidewalk_label_at,
@@ -211,6 +215,7 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
         $regionIdFilter
         $regionNameFilter
         $wayTypeFilter
+        $statusFilter
         $presenceFilter
         $minNoSidewalkLabelsFilter
         $minAuditCountFilter
@@ -225,6 +230,7 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
         regionId = r.nextInt(),
         regionName = r.nextString(),
         wayType = r.nextString(),
+        status = r.nextString(),
         presence = r.nextString(),
         presenceBasis = r.nextString(),
         noSidewalkLabelCount = r.nextInt(),
@@ -255,6 +261,12 @@ object SidewalkPresenceTable {
    * a completed audit of the street calls it `present`; and an unaudited street is `unknown`. Obstacle and
    * SurfaceProblem labels never veto a NoSidewalk call — on a face without a sidewalk they describe the roadway.
    * Labels within a meter of the centerline have no side (`street_side` is NULL) and carry no face evidence.
+   *
+   * Labels *and* audits from `user_stat.excluded` contributors are dropped, the population [[models.label.LabelTable.labels]]
+   * serves everywhere else. It has to be both: dropping only their labels would leave their audit behind, and an audit with no labels
+   * is exactly what calls a face `present` — a banned contributor would flip the very faces they mislabeled.
+   * `COALESCE(..., FALSE)` rather than an inner join so a row with no `user_stat` yet still counts (prod has none,
+   * but a spec's seeded user does).
    */
   val derivationSql: String =
     """WITH face AS (
@@ -267,7 +279,9 @@ object SidewalkPresenceTable {
       |           label.tags
       |    FROM label
       |    INNER JOIN label_point ON label.label_id = label_point.label_id
+      |    LEFT JOIN user_stat ON label.user_id = user_stat.user_id
       |    WHERE NOT label.deleted AND NOT label.tutorial AND label_point.street_side IS NOT NULL
+      |      AND NOT COALESCE(user_stat.excluded, FALSE)
       |),
       |face_label AS (
       |    SELECT street_edge_id, street_side,
@@ -282,10 +296,11 @@ object SidewalkPresenceTable {
       |    GROUP BY street_edge_id, street_side
       |),
       |street_audit AS (
-      |    SELECT street_edge_id, COUNT(*) AS audit_count
+      |    SELECT audit_task.street_edge_id, COUNT(*) AS audit_count
       |    FROM audit_task
-      |    WHERE completed
-      |    GROUP BY street_edge_id
+      |    LEFT JOIN user_stat ON audit_task.user_id = user_stat.user_id
+      |    WHERE audit_task.completed AND NOT COALESCE(user_stat.excluded, FALSE)
+      |    GROUP BY audit_task.street_edge_id
       |),
       |face_basis AS (
       |    SELECT face.street_edge_id, face.street_side,
