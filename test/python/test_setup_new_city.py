@@ -92,6 +92,34 @@ def _append_key(file_name, key, value='x'):
     path.write_text(path.read_text() + f'{key} = {value}\n')
 
 
+def test_prompt_takes_the_cautious_default_when_nothing_can_answer(monkeypatch, capsys):
+    """
+    An unattended run must not die on an EOFError traceback — the failure this whole PR removed from the boot gate,
+    which the dump step's "dump it anyway?" would otherwise reintroduce (#5297).
+    """
+    def no_stdin(text):
+        raise EOFError
+
+    monkeypatch.setattr('builtins.input', no_stdin)
+    assert snc.prompt('Drop and recreate it? (y/n)', 'n') == 'n'
+    assert 'taking the default: n' in capsys.readouterr().out
+    with pytest.raises(SystemExit, match='has no default and there is nothing on stdin'):
+        snc.prompt('Donor schema to clone')
+
+
+def test_dump_schema_will_not_write_a_dirty_dump_unattended(monkeypatch, capsys):
+    """The cautious default means an unattended run stops rather than shipping the QA data (#5297)."""
+    calls = _dump_env(monkeypatch, (0, 'label|5\n'))
+
+    def no_stdin(text):
+        raise EOFError
+
+    monkeypatch.setattr('builtins.input', no_stdin)
+    with pytest.raises(SystemExit, match='Stopped before writing the dump'):
+        snc.dump_schema('sidewalk_bayonne')
+    assert not any('pg_dump' in ' '.join(map(str, cmd)) for cmd in calls)
+
+
 def test_translation_todo_asks_only_for_what_english_defines(repo_copy):
     """A key with no base line has nothing to translate from, so it is never owed (#5297)."""
     # Nothing anywhere yet: the city is not in the base file, so it is not asked for.

@@ -126,10 +126,23 @@ def valid_city_id(value):
 
 
 def prompt(text, default=None):
-    """Prompts on the terminal; empty input takes the default (re-prompts when there is none)."""
+    """
+    Prompts on the terminal; empty input takes the default (re-prompts when there is none).
+
+    With nothing on stdin to answer — CI, a scripted rebuild, an agent — a question that has a default takes it and
+    says so, so the run is still readable afterwards, and one that does not stops with a usable message instead of
+    an EOFError traceback. Every default here is the cautious answer (#5297).
+    """
     suffix = f' [{default}]' if default is not None else ''
     while True:
-        value = input(f'{text}{suffix}: ').strip()
+        try:
+            value = input(f'{text}{suffix}: ').strip()
+        except EOFError:
+            if default is None:
+                sys.exit(f'\nerror: "{text}" has no default and there is nothing on stdin to answer it. '
+                         'Rerun attached to a terminal.')
+            print(f'\n  (nothing on stdin; taking the default: {default})')
+            return default
         if value:
             return value
         if default is not None:
