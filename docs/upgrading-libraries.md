@@ -73,8 +73,8 @@ readonly_user -d sidewalk`).
 ## Scala / sbt / Play
 
 These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`](../project/build.properties), and
-[`project/plugins.sbt`](../project/plugins.sbt). After changing any of them, rerun `npm start` (or
-`sbt --jvm-client compile`) so the new versions download and the build re-resolves.
+[`project/plugins.sbt`](../project/plugins.sbt). After changing any of them, rerun `npm start` so the new versions
+download and the build re-resolves (a running sbt, which `make compile` reuses, ignores the change until it reloads).
 
 ### Core toolchain
 
