@@ -117,12 +117,15 @@ Make sure Docker is running (you'll see the whale icon in your tray; you can set
 4. **Import users and data** from a *second* terminal on your host (outside the web-container shell):
 
    ```bash
-   make import-users                   # load sidewalk_users-dump (the login schema)
+   make import-users replace=1         # load sidewalk_users-dump (the login schema)
    make import-dump db=<database_user> # load <database_user>-dump; db= defaults to "sidewalk"
    ```
 
-   Both restore from a binary dump and show a live elapsed-time clock — the users dump is ~900 MB, so it runs for a
-   couple of minutes (the restore is parallelized to keep that short); a city dump varies with its size. Read the
+   Both restore from a binary dump and show a live elapsed-time clock — the users dump is ~1 GB, so it runs for a
+   couple of minutes (the restore is parallelized to keep that short); a city dump varies with its size.
+   `replace=1` is for this first import only: a fresh DB has no accounts of its own to keep, and merging all ~6M
+   accounts one by one takes about 20 minutes. Later imports merge (see
+   [Switching / adding another city](#switching--adding-another-city)). Read the
    output carefully — if it errors, **don't** continue; check [Troubleshooting](#troubleshooting) and ask. (A
    `schema "public" already exists` notice is the one error you can safely ignore.) For what each script does and the
    full set of DB lifecycle/maintenance targets, see [`db/scripts/README.md`](../db/scripts/README.md).
@@ -172,8 +175,11 @@ Other handy targets:
 Each city is a separate database. To switch:
 
 1. Put the new dump in `db/`, renamed to `<database_user>-dump` (see the [City IDs table](#city-ids)).
-2. If that dump is newer than your existing ones, also re-import users with a fresh `sidewalk_users-dump`
-   (ask a maintainer if unsure — the creation date is in the original filename).
+2. If that dump is newer than your users dump, get a users dump at least as new, rename it `sidewalk_users-dump`,
+   and run `make import-users` (ask a maintainer if unsure — the creation date is in the original filename). It
+   merges: accounts you're missing are added, and the ones you have, including local test accounts your other cities
+   point at, are kept, so the cities you already imported keep working. `make import-users replace=1` wipes the login
+   schema and restores the dump from scratch instead; after that, re-import every other city you have.
 3. `make import-dump db=<database_user>` (from the host, outside the Docker shell).
 4. Update **`DATABASE_USER`** and **`SIDEWALK_CITY_ID`** in `docker-compose.override.yml` to match.
 5. `make dev` again.
