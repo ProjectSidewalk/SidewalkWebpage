@@ -14,7 +14,7 @@
  */
 const auIcon = () => {
   const icon = document.createElement('span');
-  icon.className = 'au-icon';
+  icon.className = 'au-icon ps-mask-icon';
   icon.setAttribute('aria-hidden', 'true');
   return icon;
 };

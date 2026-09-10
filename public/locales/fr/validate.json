@@ -15,6 +15,7 @@
     "visibility-control-tooltip-show": "Afficher de nouveau l'étiquette (<u>H</u>)."
   },
   "validate-menu": {
+    "remove-tag": "Retirer le tag : {{tag}}",
     "disagree-reason": {
       "curb-ramp": {
         "no-button-1": "C'est une entrée charretière",

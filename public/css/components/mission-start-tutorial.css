@@ -60,12 +60,12 @@
   height: 100%;
   width: var(--arrow-button-width);
   display: flex;
-  fill: var(--color-neutral-700);
+  color: var(--color-neutral-700);
   cursor: pointer;
 }
 
 .previous-slide-button:not(.disabled):hover, .next-slide-button:not(.disabled):hover {
-  fill: var(--color-neutral-black);
+  color: var(--color-neutral-black);
 }
 
 .previous-slide-button {
@@ -74,6 +74,25 @@
 
 .next-slide-button {
   margin-left: var(--arrow-button-margin);
+}
+
+/* A mask rather than an <img> so the arrow picks up the button's hover color. The chevron fills only the middle third
+   of its file, so the mask is drawn wider than the button to make the arrow span it. */
+.mst-arrow-icon {
+  width: 100%;
+  height: 100%;
+  -webkit-mask-size: calc(84px * var(--ui-scale, 1));
+  mask-size: calc(84px * var(--ui-scale, 1));
+}
+
+.previous-slide-button .mst-arrow-icon {
+  -webkit-mask-image: url("../../images/icons/chevron-left-feather.svg");
+  mask-image: url("../../images/icons/chevron-left-feather.svg");
+}
+
+.next-slide-button .mst-arrow-icon {
+  -webkit-mask-image: url("../../images/icons/chevron-right-feather.svg");
+  mask-image: url("../../images/icons/chevron-right-feather.svg");
 }
 
 .mst-slide {
@@ -161,7 +180,7 @@
 
 /* correct/incorrect classes are added to the slide element */
 .incorrect .label-on-image {
-  border-color: var(--color-error-200);
+  border-color: var(--color-error-300);
 }
 
 .label-on-image-type {
@@ -173,17 +192,7 @@
 .label-on-image-type-icon {
   height: calc(24px * var(--ui-scale, 1));
   width: calc(24px * var(--ui-scale, 1));
-  fill: none;
-  display: flex;
   margin-right: calc(3px * var(--ui-scale, 1));
-}
-
-.correct .label-on-image-type-icon {
-  stroke: var(--color-pine-700);
-}
-
-.incorrect .label-on-image-type-icon {
-  stroke: var(--color-error-200);
 }
 
 .label-on-image-type-title {
@@ -197,7 +206,7 @@
 }
 
 .incorrect .label-on-image-type-title {
-  color: var(--color-error-200);
+  color: var(--color-error-300);
 }
 
 .label-on-image-description {
@@ -229,23 +238,27 @@
 }
 
 .incorrect .example-type-area::after {
-  background: var(--color-error-200);
+  background: var(--color-error-300);
 }
 
 .example-type-icon {
   height: calc(24px * var(--ui-scale, 1));
   width: calc(24px * var(--ui-scale, 1));
-  display: inline-block;
   margin-right: calc(5px * var(--ui-scale, 1));
-  fill: none;
 }
 
+.correct .label-on-image-type-icon,
 .correct .example-type-icon {
-  stroke: var(--color-pine-700);
+  color: var(--color-pine-700);
+  -webkit-mask-image: url("../../images/icons/smileys/sev-1-positive.svg");
+  mask-image: url("../../images/icons/smileys/sev-1-positive.svg");
 }
 
+.incorrect .label-on-image-type-icon,
 .incorrect .example-type-icon {
-  stroke: var(--color-error-200);
+  color: var(--color-error-300);
+  -webkit-mask-image: url("../../images/icons/smileys/sev-3-positive.svg");
+  mask-image: url("../../images/icons/smileys/sev-3-positive.svg");
 }
 
 .example-type-label {
@@ -259,7 +272,7 @@
 }
 
 .incorrect .example-type-label {
-  color: var(--color-error-200);
+  color: var(--color-error-300);
 }
 
 .mst-carousel-location-indicator-area {
@@ -400,11 +413,13 @@
   align-items: center;
 }
 
-/* Let the SVG overflow rather than clip. When floating point widths, they can slightly flow outside the box. */
-.explore-mission-start-tab-icon svg {
+/* The map-marker badges have no ring of their own, so the tabs' dark ring is drawn here. */
+.explore-mission-start-tab-icon img {
+  box-sizing: border-box;
   width: 100%;
   height: 100%;
-  overflow: visible;
+  border: calc(2px * var(--ui-scale, 1)) solid var(--color-neutral-black);
+  border-radius: 50%;
 }
 
 .explore-mission-start-tab-text {

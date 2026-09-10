@@ -403,8 +403,8 @@ class DesktopValidationMenu {
       const translatedTagName = i18next.t(`common:tag.${tag.replace(/:/g, '-')}`);
       $tagDiv.children('.tag-name').text(translatedTagName);
 
-      // Add the removal onclick function.
-      $tagDiv.children('.remove-tag-x').click((e) => this.#removeTagListener(e, label));
+      const removeLabel = i18next.t('validate:validate-menu.remove-tag', { tag: translatedTagName });
+      $tagDiv.children('.remove-tag-x').attr('aria-label', removeLabel).click((e) => this.#removeTagListener(e, label));
 
       // Add an example image tooltip to the tag.
       const tagId = allTagOptions.find((t) => t.tag_name === tag).tag_id;
