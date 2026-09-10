@@ -221,7 +221,7 @@
         "severity": 1,
         "tags": [],
         "description": null,
-        "time_created": 1692227245041,
+        "time_created": "2023-08-16T23:47:25.041Z",
         "high_quality_user": true,
         "street_edge_id": 951,
         "osm_way_id": 11584845,
@@ -278,7 +278,7 @@
         "severity": 1,
         "tags": [],
         "description": null,
-        "time_created": 1692227248747,
+        "time_created": "2023-08-16T23:47:28.747Z",
         "street_edge_id": 95,
         "osm_way_id": 11566031,
         "region_id": 1,
@@ -378,8 +378,8 @@
           </tr>
           <tr>
             <td><code>properties.time_created</code></td>
-            <td><code>long</code></td>
-            <td>Unix timestamp (milliseconds since epoch) when the label was created.</td>
+            <td><code>string</code></td>
+            <td>ISO 8601 timestamp of when the label was created.</td>
           </tr>
           <tr>
             <td><code>properties.high_quality_user</code></td>
@@ -583,8 +583,8 @@
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus <code>latitude</code> and <code>longitude</code> columns derived from the geometry. CRS is WGS84 (EPSG:4326).</p>
     <pre tabindex="0"><code class="language-csv">label_id,user_id,pano_id,pano_source,label_type,severity,tags,description,...,region_name,street_side,centerline_offset_m,correct,...,latitude,longitude
-115,18b26a38-...,YQScv...,gsv,CurbRamp,2,[missing tactile warning],,...,Teaneck,left,4.62,true,...,40.715,-74.005
-116,...,...,gsv,Obstacle,4,[construction],"Temporary fence",...,Teaneck,right,-3.1,true,...,40.7151,-74.0051
+115,18b26a38-...,YQScv...,gsv,CurbRamp,2,"[""missing tactile warning""]",,...,Teaneck,left,4.62,true,...,40.715,-74.005
+116,...,...,gsv,Obstacle,4,"[""construction""]","Temporary fence",...,Teaneck,right,-3.1,true,...,40.7151,-74.0051
 ...</code></pre>
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
     <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj). The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326). </p>

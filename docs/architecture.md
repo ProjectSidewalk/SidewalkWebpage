@@ -162,9 +162,11 @@ The `/v3` API is the canonical public surface (handlers in `app/controllers/api/
 - **Query/REST parameters are camelCase** (`minSeverity`, `regionId`, `validationStatus`). `ApiError.parameter`
   names a query param, so it stays camelCase too.
 - **All output field names are snake_case** — JSON bodies, GeoJSON `properties`, CSV headers, and
-  GeoPackage fields (`label_id`, `region_name`, `city_id`) — one canonical field name across those formats. For
-  macro serializers, use a scoped `JsonConfiguration(JsonNaming.SnakeCase)` so `Json.format`/`Json.writes` emit
-  snake_case; hand-build the `JsObject` with snake_case keys for nested/custom shapes.
+  GeoPackage fields (`label_id`, `region_name`, `city_id`) — one canonical field name across those formats. A
+  response DTO declares its fields once, in the `ApiFields` list on its companion (below), and every format is
+  built from that list, so a field cannot be named one thing in one format and something else in another. A value
+  the JSON nests gets a dotted name (`labels.CurbRamp.count`), which is a nested key in the JSON and a CSV column
+  of exactly that name. (GeoPackage is the one format not yet driven from the list — see #5273.)
 - **Shapefile is the exception:** its fields stay **camelCase and abbreviated** (`labelId`, `regionName`,
   `neighborhd`, `cameraHdng`). The DBF format hard-truncates field names to 10 chars, so shapefiles can't carry the
   canonical snake_case names regardless of casing; camelCase reclaims the byte the underscore would waste. Shapefile
@@ -180,9 +182,16 @@ home: a `*Table.scala` DAO *produces* its DTOs but never *defines* them (issue #
 - **Streaming:** response DTOs extend `StreamingApiType` (`app/models/api/StreamingApiType.scala`) and implement
   `toJson` / `toCsvRow` inline on the case class, so `BaseApiController`'s `outputJSON`/`outputCSV`/`outputGeoJSON`
   helpers can serialize a stream of them uniformly. Serialization lives *on the DTO*, not as free functions elsewhere.
-- **Companion object** holds the `csvHeader` string (next to `toCsvRow`, so columns can't drift) and the JSON writers.
+- **Companion object extends `ApiFields[T]`** and declares `fields`: one ordered list of `field("name")(_.accessor)`
+  entries, from which `csvHeader`, `toCsvRow`, and `toJson` are all derived. `csvOnlyFields` adds columns the CSV
+  carries but the JSON expresses another way — a geometry the CSV can only summarize as `start_point`/`end_point`,
+  say — and `csvFields` can be overridden where the CSV needs an order the JSON doesn't have. A GeoJSON DTO puts
+  `toJson(this)` in the Feature's `properties` and passes the geometry separately.
+- **Single-object endpoints** (`overallStats`, `aggregateStats`) return one object rather than a list of records, so
+  their CSV lists stats down the page: `ApiModelUtils.toCsvKeyValueRows(toJson)` under `keyValueCsvHeader`, keying
+  each row by its dotted path.
 - **Shared helpers:** reuse `ApiModelUtils` (`escapeCsvField`, `createGeoJsonPointGeometry`, `labelTypeOrdering`,
-  `toSnakeKey`, …) rather than re-rolling CSV/GeoJSON logic.
+  `csvCell`, …) rather than re-rolling CSV/GeoJSON logic.
 - **Every `/v3` DTO's serialization lives in `models.api`.** There is no shared formats object for API output and no
   API serialization inline in a controller. The `app/formats/json/*Formats.scala` files serve the internal (non-`/v3`)
   endpoints only (issue #3891).

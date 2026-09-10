@@ -115,7 +115,6 @@
     <p>Returns a JSON object with comprehensive project statistics:</p>
     <pre><code class="language-json">{
   "launch_date": "2021-06-15T00:00:00Z",
-  "avg_timestamp_last_100_labels": "2023-09-25T14:32:47Z",
   "km_explored": 1834.26,
   "km_explored_no_overlap": 1523.75,
   "km_explored_multiple_users": 412.08,
@@ -138,9 +137,10 @@
     "researcher": 42
   },
   "labels": {
-    "label_count": 183427,
-    "label_count_with_severity": 162320,
+    "count": 183427,
+    "count_with_severity": 162320,
     "avg_label_timestamp": "2021-05-10T20:20:25.147504Z",
+    "avg_timestamp_last_100_labels": "2023-09-25T14:32:47Z",
     "avg_age_of_image_when_labeled": "672 days",
     "stddev_label_timestamp": "188 days",
     "stddev_age_of_image_when_labeled": "543 days",
@@ -148,20 +148,20 @@
       "count": 72964,
       "count_with_severity": 61837,
       "severity_mean": 1.2,
-      "severity_sd": 0.5
+      "severity_stddev": 0.5
     },
     "NoCurbRamp": {
       "count": 35682,
       "count_with_severity": 31245,
       "severity_mean": 3.8,
-      "severity_sd": 0.9
+      "severity_stddev": 0.9
     },
     // Some label types like NoSidewalk and Signal don't have severity ratings, so severity fields are null.
     "NoSidewalk": {
       "count": 61837,
       "count_with_severity": null,
       "severity_mean": null,
-      "severity_sd": null
+      "severity_stddev": null
     },
     ... // Remaining label types
   },
@@ -212,30 +212,30 @@
   "ai_stats": {
     "Overall": {
       "human_majority_vote": {
-        "ai_yes_human_concurs": 37,
-        "ai_yes_human_differs": 3,
-        "ai_no_human_differs": 2,
-        "ai_no_human_concurs": 37
+        "ai_yes_maj_vote_concurs": 37,
+        "ai_yes_maj_vote_differs": 3,
+        "ai_no_maj_vote_differs": 2,
+        "ai_no_maj_vote_concurs": 37
       },
       "admin_majority_vote": {
-        "ai_yes_human_concurs": 127,
-        "ai_yes_human_differs": 54,
-        "ai_no_human_differs": 27,
-        "ai_no_human_concurs": 134
+        "ai_yes_maj_vote_concurs": 127,
+        "ai_yes_maj_vote_differs": 54,
+        "ai_no_maj_vote_differs": 27,
+        "ai_no_maj_vote_concurs": 134
       }
     },
     "CurbRamp": {
       "human_majority_vote": {
-        "ai_yes_human_concurs": 20,
-        "ai_yes_human_differs": 0,
-        "ai_no_human_differs": 0,
-        "ai_no_human_concurs": 2
+        "ai_yes_maj_vote_concurs": 20,
+        "ai_yes_maj_vote_differs": 0,
+        "ai_no_maj_vote_differs": 0,
+        "ai_no_maj_vote_concurs": 2
       },
       "admin_majority_vote": {
-        "ai_yes_human_concurs": 42,
-        "ai_yes_human_differs": 2,
-        "ai_no_human_differs": 6,
-        "ai_no_human_concurs": 48
+        "ai_yes_maj_vote_concurs": 42,
+        "ai_yes_maj_vote_differs": 2,
+        "ai_no_maj_vote_differs": 6,
+        "ai_no_maj_vote_concurs": 48
       }
     },
     ... // Remaining label types
@@ -256,7 +256,6 @@
         </thead>
         <tbody>
           <tr><td><code>launch_date</code></td><td><code>string</code></td><td>ISO 8601 formatted date when Project Sidewalk was launched in this city.</td></tr>
-          <tr><td><code>avg_timestamp_last_100_labels</code></td><td><code>string</code></td><td>ISO 8601 formatted average timestamp of the 100 most recent labels, indicating data recency.</td></tr>
           <tr><td><code>km_explored</code></td><td><code>number</code></td><td>Total kilometers of streets explored by all users, counting a street once per user who completed it (i.e. with overlap — the total auditing work done).</td></tr>
           <tr><td><code>km_explored_no_overlap</code></td><td><code>number</code></td><td>Total kilometers of unique streets with at least one completed audit, each street counted once regardless of how many users explored it or how old its imagery is. Monotonic: it never decreases when newer street-view imagery lands on an audited street — <code>km_needs_reaudit</code> carries that freshness signal as a subset.</td></tr>
           <tr><td><code>km_explored_multiple_users</code></td><td><code>number</code></td><td>Kilometers of unique streets that have been completely audited by two or more distinct (non-excluded) users — i.e. redundantly covered. A street counts here only if each of the ≥2 users completed the whole street.</td></tr>
@@ -272,16 +271,17 @@
           <tr><td><code>user_counts.turker</code></td><td><code>integer</code></td><td>Number of users from crowdsourcing platforms.</td></tr>
           <tr><td><code>user_counts.researcher</code></td><td><code>integer</code></td><td>Number of users with the researcher role (includes all Admins).</td></tr>
           <tr><td><code>labels</code></td><td><code>object</code></td><td>Statistics about label counts and severity ratings by label type.</td></tr>
-          <tr><td><code>labels.label_count</code></td><td><code>integer</code></td><td>Total number of accessibility labels placed by all users.</td></tr>
-          <tr><td><code>labels.label_count_with_severity</code></td><td><code>integer</code></td><td>Total number of labels placed by all users with an associated severity rating.</td></tr>
-          <tr><td><code>avg_label_timestamp</code></td><td><code>string</code></td><td>ISO 8601 formatted average timestamp when labels were created.</td></tr>
+          <tr><td><code>labels.count</code></td><td><code>integer</code></td><td>Total number of accessibility labels placed by all users.</td></tr>
+          <tr><td><code>labels.count_with_severity</code></td><td><code>integer</code></td><td>Total number of labels placed by all users with an associated severity rating.</td></tr>
+          <tr><td><code>labels.avg_label_timestamp</code></td><td><code>string</code></td><td>ISO 8601 formatted average timestamp when labels were created.</td></tr>
+          <tr><td><code>labels.avg_timestamp_last_100_labels</code></td><td><code>string</code></td><td>ISO 8601 formatted average timestamp of the 100 most recent labels, indicating data recency.</td></tr>
           <tr><td><code>labels.avg_age_of_image_when_labeled</code></td><td><code>string</code></td><td>The average, across all labels, of the age of the image when the label was placed (in days).</td></tr>
           <tr><td><code>labels.stddev_label_timestamp</code></td><td><code>string</code></td><td>Standard deviation (spread) of label creation timestamps, expressed as a duration in days. A standard deviation of dates is a duration, not a date.</td></tr>
           <tr><td><code>labels.stddev_age_of_image_when_labeled</code></td><td><code>string</code></td><td>Standard deviation (spread), in days, of the age of the image when each label was placed.</td></tr>
           <tr><td><code>labels.[type].count</code></td><td><code>integer</code></td><td>Total number of labels of this type.</td></tr>
           <tr><td><code>labels.[type].count_with_severity</code></td><td><code>integer | null</code></td><td>Number of labels of this type that have severity ratings, or null if no severity ratings exist.</td></tr>
           <tr><td><code>labels.[type].severity_mean</code></td><td><code>number | null</code></td><td>Mean severity rating for this label type, or null if no severity ratings exist.</td></tr>
-          <tr><td><code>labels.[type].severity_sd</code></td><td><code>number | null</code></td><td>Standard deviation of severity ratings for this label type, or null if insufficient data.</td></tr>
+          <tr><td><code>labels.[type].severity_stddev</code></td><td><code>number | null</code></td><td>Standard deviation of severity ratings for this label type, or null if insufficient data.</td></tr>
           <tr><td><code>validations</code></td><td><code>object</code></td><td>Validation statistics split into three parallel blocks by vote source: <code>combined</code> (all votes), <code>human</code> (votes cast by people), and <code>ai</code> (votes cast by Project Sidewalk's AI). Each block has the identical structure described below. Note that <code>combined</code> includes AI votes, so it is not the same as <code>human</code>.</td></tr>
           <tr><td><code>validations.[source]</code></td><td><code>object</code></td><td>One of <code>combined</code>, <code>human</code>, or <code>ai</code>. Holds the validation breakdown computed using only that source's votes.</td></tr>
           <tr><td><code>validations.[source].total_validations</code></td><td><code>integer</code></td><td>Total number of individual validation judgments made by this source across all labels.</td></tr>
@@ -292,80 +292,82 @@
           <tr><td><code>validations.[source].[type].accuracy</code></td><td><code>number | null</code></td><td>Calculated accuracy rate (agreed / validated) for this label type and source, or null if no validations. Note that for the <code>ai</code> source this measures how often AI's own majority verdict was "agree", which is distinct from <code>ai_stats</code> (AI vs. human agreement).</td></tr>
           <tr><td><code>validations.[source].[type].has_a_validation</code></td><td><code>integer</code></td><td>Number of labels of this type that have received at least one validation vote from this source.</td></tr>
           <tr><td><code>ai_stats</code></td><td><code>object</code></td><td>Statistics human agreement with AI validations.</td></tr>
-          <tr><td><code>ai_stats.[type].[vote]</code></td><td><code>object</code></td><td>Vote can be either "human" for majority vote across all users, or "admin" for majority vote across admin users.</td></tr>
-          <tr><td><code>ai_stats.[type].[vote].ai_yes_human_concurs</code></td><td><code>object</code></td><td>Number of labels where AI voted yes and human users voted yes more often than no.</td></tr>
-          <tr><td><code>ai_stats.[type].[vote].ai_yes_human_differs</code></td><td><code>object</code></td><td>Number of labels where AI voted yes but human users voted no more often than yes.</td></tr>
-          <tr><td><code>ai_stats.[type].[vote].ai_no_human_differs</code></td><td><code>object</code></td><td>Number of labels where AI voted no but human users voted yes more often than no.</td></tr>
-          <tr><td><code>ai_stats.[type].[vote].ai_no_human_concurs</code></td><td><code>object</code></td><td>Number of labels where AI voted no and human users voted no more often than yes.</td></tr>
+          <tr><td><code>ai_stats.[type].[vote]</code></td><td><code>object</code></td><td>Which majority vote the AI is compared against: <code>human_majority_vote</code> for the majority vote across all users, or <code>admin_majority_vote</code> for the majority vote across admin users. The <code>maj_vote</code> in the field names below refers to whichever of the two this block is.</td></tr>
+          <tr><td><code>ai_stats.[type].[vote].ai_yes_maj_vote_concurs</code></td><td><code>integer</code></td><td>Number of labels where AI voted yes and the majority vote was also yes.</td></tr>
+          <tr><td><code>ai_stats.[type].[vote].ai_yes_maj_vote_differs</code></td><td><code>integer</code></td><td>Number of labels where AI voted yes but the majority vote was no.</td></tr>
+          <tr><td><code>ai_stats.[type].[vote].ai_no_maj_vote_differs</code></td><td><code>integer</code></td><td>Number of labels where AI voted no but the majority vote was yes.</td></tr>
+          <tr><td><code>ai_stats.[type].[vote].ai_no_maj_vote_concurs</code></td><td><code>integer</code></td><td>Number of labels where AI voted no and the majority vote was also no.</td></tr>
         </tbody>
       </table>
     </div>
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
-    <p>If <code>filetype=csv</code> is specified, the response body will be CSV data with key-value pairs. Each row represents a different statistic or metric:</p>
-    <pre><code class="language-csv">launch_date,2021-06-15
-recent_labels_average_timestamp,2023-09-25T14:32:47Z
+    <p>If <code>filetype=csv</code> is specified, the response body is CSV data with one metric per row, under a <code>metric,value</code> header. Each metric is named for its path through the JSON above, joined with dots, so <code>labels.CurbRamp.count</code> in the CSV is the value you would read as <code>labels.CurbRamp.count</code> from the JSON. Every field carries the same name in both formats.</p>
+    <pre><code class="language-csv">metric,value
+launch_date,2021-06-15
 km_explored,1834.26
-km_explored_without_overlap,1523.75
+km_explored_no_overlap,1523.75
 km_explored_multiple_users,412.08
 km_explored_single_user,1111.67
 km_needs_reaudit,86.42
 km_explorable,1987.40
-total_user_count,4287
-explore_user_count,3892
-validate_user_count,895
-registered_user_count,3456
-anonymous_user_count,831
-turker_user_count,214
-researcher_user_count,42
-total_label_count,183427
-total_label_count_with_severity,162320
-average_label_timestamp,2021-05-10T20:20:25.147504Z
-average_age_of_image_when_labeled,672 days
-curb_ramp_count,72964
-curb_ramp_count_with_severity,61837
-curb_ramp_severity_mean,1.2
-curb_ramp_severity_sd,0.5
+km_by_status.open,1987.40
+km_by_status.no_imagery,142.13
+km_by_status.closed,38.55
+km_by_status.disabled,6.20
+user_counts.all_users,4287
+user_counts.labelers,3892
+user_counts.validators,895
+user_counts.registered,3456
+user_counts.anonymous,831
+user_counts.turker,214
+user_counts.researcher,42
+labels.count,183427
+labels.count_with_severity,162320
+labels.avg_label_timestamp,2021-05-10T20:20:25.147504Z
+labels.avg_timestamp_last_100_labels,2023-09-25T14:32:47Z
+labels.avg_age_of_image_when_labeled,672 days
+labels.stddev_label_timestamp,188 days
+labels.stddev_age_of_image_when_labeled,543 days
+labels.CurbRamp.count,72964
+labels.CurbRamp.count_with_severity,61837
+labels.CurbRamp.severity_mean,1.2
+labels.CurbRamp.severity_stddev,0.5
+... // Remaining label types
+validations.combined.total_validations,125834
+validations.combined.Overall.validated,151196
+validations.combined.Overall.agreed,127564
+validations.combined.Overall.disagreed,23632
+validations.combined.Overall.accuracy,0.84
+validations.combined.Overall.has_a_validation,162974
+validations.combined.CurbRamp.validated,54321
 ...
-combined_total_validations,125834
-combined_overall_labels_validated,151196
-combined_overall_agreed_count,127564
-combined_overall_disagreed_count,23632
-combined_overall_accuracy,0.84
-combined_overall_labels_with_a_validation,162974
-combined_curb_ramp_labels_validated,54321
+validations.human.total_validations,119032
+validations.human.Overall.validated,142880
 ...
-human_total_validations,119032
-human_overall_labels_validated,142880
+validations.ai.total_validations,6802
+validations.ai.Overall.validated,8316
 ...
-ai_total_validations,6802
-ai_overall_labels_validated,8316
-...
-overall_ai_yes_and_human_majority_vote_concurs,37
-overall_ai_yes_but_human_majority_vote_differs,3
-overall_ai_no_but_human_majority_vote_differs,2
-overall_ai_no_and_human_majority_vote_concurs,37
-overall_ai_yes_and_admin_majority_vote_concurs,127
-overall_ai_yes_but_admin_majority_vote_differs,54
-overall_ai_no_but_admin_majority_vote_differs,27
-overall_ai_no_and_admin_majority_vote_concurs,134
-curb_ramp_ai_yes_and_human_majority_vote_concurs,20
-curb_ramp_ai_yes_but_human_majority_vote_differs,0
-curb_ramp_ai_no_but_human_majority_vote_differs,0
-curb_ramp_ai_no_and_human_majority_vote_concurs,2
-curb_ramp_ai_yes_and_admin_majority_vote_concurs,42
-curb_ramp_ai_yes_but_admin_majority_vote_differs,2
-curb_ramp_ai_no_but_admin_majority_vote_differs,6
-curb_ramp_ai_no_and_admin_majority_vote_concurs,48
+ai_stats.Overall.human_majority_vote.ai_yes_maj_vote_concurs,37
+ai_stats.Overall.human_majority_vote.ai_yes_maj_vote_differs,3
+ai_stats.Overall.human_majority_vote.ai_no_maj_vote_differs,2
+ai_stats.Overall.human_majority_vote.ai_no_maj_vote_concurs,37
+ai_stats.Overall.admin_majority_vote.ai_yes_maj_vote_concurs,127
+ai_stats.Overall.admin_majority_vote.ai_yes_maj_vote_differs,54
+ai_stats.Overall.admin_majority_vote.ai_no_maj_vote_differs,27
+ai_stats.Overall.admin_majority_vote.ai_no_maj_vote_concurs,134
+ai_stats.CurbRamp.human_majority_vote.ai_yes_maj_vote_concurs,20
 ...</code></pre>
+    <p>A value that is null in the JSON is an empty cell in the CSV. Every field is always present in both formats, so the row set does not vary between cities.</p>
 
     <h5 id="csv-fields">CSV Format Description <a href="#csv-fields" class="permalink">#</a></h5>
-    <p>In CSV format, each row represents a specific metric in a key-value format:</p>
+    <p>In CSV format, each row is one metric in a key-value format:</p>
     <ul>
-      <li>Top-level statistics are represented directly as named rows (e.g., "KM Explored,1834.26")</li>
-      <li>Nested statistics like <code>user_counts</code> and <code>labels</code> are flattened into multiple rows with descriptive names</li>
-      <li>For each label type, label severity stats are presented as four rows: Count, Count With Severity, Severity Mean, and Severity SD</li>
-      <li>For each label type, validation stats are presented as four rows: Labels Validated, Agreed Count, Disagreed Count, and Accuracy</li>
+      <li>Top-level statistics are named rows (e.g., <code>km_explored,1834.26</code>)</li>
+      <li>Nested statistics like <code>user_counts</code> and <code>labels</code> are flattened into one row per value, each named for its dotted path (e.g., <code>user_counts.labelers</code>)</li>
+      <li>For each label type, severity stats are four rows: <code>count</code>, <code>count_with_severity</code>, <code>severity_mean</code>, and <code>severity_stddev</code>, under <code>labels.[type]</code></li>
+      <li>For each source and label type, validation stats are five rows: <code>validated</code>, <code>agreed</code>, <code>disagreed</code>, <code>accuracy</code>, and <code>has_a_validation</code>, under <code>validations.[source].[type]</code></li>
+      <li>Rows appear in the same order as the fields of the JSON response</li>
       <li>This flat structure makes the data easy to parse and analyze in spreadsheet applications</li>
     </ul>
 
@@ -388,7 +390,7 @@ curb_ramp_ai_no_and_admin_majority_vote_concurs,48
       <li><strong>Consider using filterLowQuality=true</strong> for more reliable analysis, especially when examining severity ratings</li>
       <li><strong>Compare accuracy rates across label types</strong> to identify which accessibility issues might be more ambiguous or difficult to detect</li>
       <li><strong>Use km_explored vs. km_explored_no_overlap</strong> to understand the level of redundancy in data collection</li>
-      <li><strong>Look at avg_timestamp_last_100_labels</strong> to gauge how recently the data has been updated</li>
+      <li><strong>Look at labels.avg_timestamp_last_100_labels</strong> to gauge how recently the data has been updated</li>
       <li><strong>Analyze the ratio of validators to explorers</strong> to understand community participation patterns</li>
     </ul>
 

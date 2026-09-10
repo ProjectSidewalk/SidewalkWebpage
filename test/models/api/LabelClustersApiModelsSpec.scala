@@ -3,7 +3,7 @@ package models.api
 import models.pano.PanoSource
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsNull, JsObject, Json}
 
 import java.time.OffsetDateTime
 
@@ -63,24 +63,25 @@ class LabelClustersApiModelsSpec extends AnyFunSuite with Matchers {
       correct = Some(true), imageCaptureDate = None
     )
 
-  test("raw label JSON carries snake_case pano_source when known and omits it when unknown") {
+  test("raw label JSON carries snake_case pano_source, null when the provider is unknown") {
     val withSource = Json.toJson(sampleRawLabel(Some(PanoSource.Gsv))).as[JsObject]
     (withSource \ "pano_source").as[String] shouldBe "gsv"
     (withSource \ "panoSource").toOption shouldBe None
 
     val withoutSource = Json.toJson(sampleRawLabel(None)).as[JsObject]
-    (withoutSource \ "pano_source").toOption shouldBe None
+    (withoutSource \ "pano_source").get shouldBe JsNull
   }
 
   test("raw label CSV rows keep the pano_source column position, empty when the provider is unknown") {
-    val header        = RawLabelInClusterDataForApi.csvHeader.trim.split(",")
+    val header        = RawLabelInClusterDataForApi.InCluster.csvHeader.split(",")
     val panoSourceIdx = header.indexOf("pano_source")
     panoSourceIdx should be > 0
 
-    val withSource = RawLabelInClusterDataForApi.toCsvRow(1, sampleRawLabel(Some(PanoSource.Gsv))).split(",", -1)
+    val withSource =
+      RawLabelInClusterDataForApi.InCluster.toCsvRow((1, sampleRawLabel(Some(PanoSource.Gsv)))).split(",", -1)
     withSource(panoSourceIdx) shouldBe "gsv"
 
-    val withoutSource = RawLabelInClusterDataForApi.toCsvRow(1, sampleRawLabel(None)).split(",", -1)
+    val withoutSource = RawLabelInClusterDataForApi.InCluster.toCsvRow((1, sampleRawLabel(None))).split(",", -1)
     withoutSource(panoSourceIdx) shouldBe ""
     // The row must keep the same column count as the header even with the field empty.
     withoutSource.length shouldBe header.length

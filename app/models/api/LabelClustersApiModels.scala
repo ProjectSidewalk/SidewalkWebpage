@@ -6,10 +6,10 @@
  */
 package models.api
 
-import models.api.ApiModelUtils.{createGeoJsonPoint, escapeCsvField}
+import models.api.ApiModelUtils.createGeoJsonPoint
 import models.pano.PanoSource.PanoSource
 import models.utils.LatLngBBox
-import play.api.libs.json.{JsObject, Json, JsonConfiguration, JsonNaming, Writes}
+import play.api.libs.json.{JsObject, Json, Writes}
 
 import java.time.OffsetDateTime
 
@@ -68,42 +68,33 @@ case class RawLabelInClusterDataForApi(
     imageCaptureDate: Option[String]
 )
 
-/**
- * Companion object for RawLabelInClusterDataForApi containing JSON formatter and CSV utilities.
- */
+/** These labels are written nested in a cluster's GeoJSON, or as their own CSV file via [[InCluster]]. */
+private[api] object RawLabelFields extends ApiFields[RawLabelInClusterDataForApi] {
+  import ApiFields.field
+
+  override val fields: Seq[ApiField[RawLabelInClusterDataForApi]] = Seq(
+    field("label_id")(_.labelId),
+    field("user_id")(_.userId),
+    field("pano_id")(_.panoId),
+    field("pano_source")(_.panoSource),
+    field("severity")(_.severity),
+    field("time_created")(_.timeCreated),
+    field("latitude")(_.latitude),
+    field("longitude")(_.longitude),
+    field("correct")(_.correct),
+    field("image_capture_date")(_.imageCaptureDate)
+  )
+
+}
+
 object RawLabelInClusterDataForApi {
-  // snake_case JSON output per the v3 API convention (#3871).
-  implicit private val config: JsonConfiguration                           = JsonConfiguration(JsonNaming.SnakeCase)
-  implicit val clusterLabelDataWrites: Writes[RawLabelInClusterDataForApi] = Json.writes[RawLabelInClusterDataForApi]
+  implicit val clusterLabelDataWrites: Writes[RawLabelInClusterDataForApi] = RawLabelFields.toJson _
 
-  /**
-   * CSV header for raw labels within clusters. Includes label_cluster_id to link back to the parent cluster.
-   */
-  val csvHeader: String = "label_cluster_id,label_id,user_id,pano_id,pano_source,severity,time_created," +
-    "latitude,longitude,correct,image_capture_date\n"
-
-  /**
-   * Converts a raw label (the minimal version for cluster API) to a CSV row string, prefixed with parent cluster ID.
-   *
-   * @param clusterId The ID of the parent label cluster.
-   * @param label The raw label data to convert.
-   * @return A comma-separated string representing this label's data.
-   */
-  def toCsvRow(clusterId: Int, label: RawLabelInClusterDataForApi): String = {
-    val fields = Seq(
-      clusterId.toString,
-      label.labelId.toString,
-      escapeCsvField(label.userId),
-      escapeCsvField(label.panoId),
-      label.panoSource.map(_.toString).getOrElse(""),
-      label.severity.map(_.toString).getOrElse(""),
-      label.timeCreated.toString,
-      label.latitude.toString,
-      label.longitude.toString,
-      label.correct.map(_.toString).getOrElse(""),
-      label.imageCaptureDate.getOrElse("")
-    )
-    fields.mkString(",")
+  /** The same labels as their own CSV file, which names each label's parent cluster in a column of its own. */
+  object InCluster extends ApiFields[(Int, RawLabelInClusterDataForApi)] {
+    override val fields: Seq[ApiField[(Int, RawLabelInClusterDataForApi)]] =
+      ApiFields.field[(Int, RawLabelInClusterDataForApi), Int]("label_cluster_id")(_._1) +:
+        RawLabelFields.csvFields.map(_.on[(Int, RawLabelInClusterDataForApi)](_._2))
   }
 }
 
@@ -153,91 +144,45 @@ case class LabelClusterForApi(
     avgLongitude: Double
 ) extends StreamingApiType {
 
-  /**
-   * Converts this LabelClusterForApi object to a GeoJSON Feature object.
-   *
-   * The GeoJSON structure follows RFC 7946 and includes:
-   * - A Point geometry with [longitude, latitude] coordinates
-   * - Properties containing all cluster metadata
-   *
-   * @return A JsObject containing the GeoJSON Feature representation
-   */
+  /** @return This cluster as an RFC 7946 GeoJSON Feature, its centroid the Point geometry. */
   override def toJson: JsObject = {
-    val baseProperties: JsObject = Json.obj(
-      "label_cluster_id"       -> labelClusterId,
-      "label_type"             -> labelType,
-      "street_edge_id"         -> streetEdgeId,
-      "intersection_id"        -> intersectionId,
-      "osm_way_id"             -> osmWayId,
-      "region_id"              -> regionId,
-      "region_name"            -> regionName,
-      "avg_image_capture_date" -> avgImageCaptureDate.map(_.toString),
-      "avg_label_date"         -> avgLabelDate.map(_.toString),
-      "median_severity"        -> medianSeverity,
-      "agree_count"            -> agreeCount,
-      "disagree_count"         -> disagreeCount,
-      "unsure_count"           -> unsureCount,
-      "cluster_size"           -> clusterSize,
-      "label_ids"              -> labelIds,
-      "users"                  -> userIds,
-      "tag_counts"             -> tagCounts
-    )
+    val properties: JsObject = LabelClusterForApi.toJson(this)
 
-    // Add labels to properties if they exist.
-    val propertiesWithLabels: JsObject = labels match {
-      case Some(labelsList) => baseProperties + ("labels" -> Json.toJson(labelsList))
-      case None             => baseProperties
-    }
+    // Only the GeoJSON carries the member labels; they can't fit in one cell, so the CSV gives them their own file.
+    val propertiesWithLabels: JsObject =
+      labels.map(labelsList => properties + ("labels" -> Json.toJson(labelsList))).getOrElse(properties)
 
     createGeoJsonPoint(avgLongitude, avgLatitude, propertiesWithLabels)
   }
 
-  /**
-   * Converts this LabelClusterForApi object to a CSV row string.
-   *
-   * The fields are ordered to match the header defined in the companion object.
-   * Complex fields like arrays are serialized as JSON strings.
-   *
-   * @return A comma-separated string representing this cluster's data
-   */
-  override def toCsvRow: String = {
-    val fields = Seq(
-      labelClusterId.toString,
-      escapeCsvField(labelType),
-      streetEdgeId.toString,
-      intersectionId.map(_.toString).getOrElse(""),
-      osmWayId.toString,
-      regionId.toString,
-      escapeCsvField(regionName),
-      avgImageCaptureDate.map(_.toString).getOrElse(""),
-      avgLabelDate.map(_.toString).getOrElse(""),
-      medianSeverity.map(_.toString).getOrElse(""),
-      agreeCount.toString,
-      disagreeCount.toString,
-      unsureCount.toString,
-      clusterSize.toString,
-      escapeCsvField(labelIds.mkString("[", ",", "]")),
-      escapeCsvField(userIds.mkString("[", ",", "]")),
-      escapeCsvField(Json.stringify(Json.toJson(tagCounts))),
-      // We don't include the raw labels in CSV format as it would be too complex.
-      avgLatitude.toString,
-      avgLongitude.toString
-    )
-    fields.mkString(",")
-  }
+  override def toCsvRow: String = LabelClusterForApi.toCsvRow(this)
 }
 
-/**
- * Companion object for LabelClusterForApi containing CSV header definition
- */
-object LabelClusterForApi {
+object LabelClusterForApi extends ApiFields[LabelClusterForApi] {
+  import ApiFields.field
 
-  /**
-   * CSV header string with field names in the same order as the toCsvRow output.
-   * This should be included as the first line when generating CSV output.
-   */
-  val csvHeader: String =
-    "label_cluster_id,label_type,street_edge_id,intersection_id,osm_way_id,region_id,region_name," +
-      "avg_image_capture_date,avg_label_date,median_severity,agree_count,disagree_count,unsure_count,cluster_size," +
-      "label_ids,users,tag_counts,avg_latitude,avg_longitude\n"
+  override val fields: Seq[ApiField[LabelClusterForApi]] = Seq(
+    field("label_cluster_id")(_.labelClusterId),
+    field("label_type")(_.labelType),
+    field("street_edge_id")(_.streetEdgeId),
+    field("intersection_id")(_.intersectionId),
+    field("osm_way_id")(_.osmWayId),
+    field("region_id")(_.regionId),
+    field("region_name")(_.regionName),
+    field("avg_image_capture_date")(_.avgImageCaptureDate.map(_.toString)),
+    field("avg_label_date")(_.avgLabelDate.map(_.toString)),
+    field("median_severity")(_.medianSeverity),
+    field("agree_count")(_.agreeCount),
+    field("disagree_count")(_.disagreeCount),
+    field("unsure_count")(_.unsureCount),
+    field("cluster_size")(_.clusterSize),
+    field("label_ids")(_.labelIds),
+    field("users")(_.userIds),
+    field("tag_counts")(_.tagCounts)
+  )
+
+  override val csvOnlyFields: Seq[ApiField[LabelClusterForApi]] = Seq(
+    field("avg_latitude")(_.avgLatitude),
+    field("avg_longitude")(_.avgLongitude)
+  )
 }
