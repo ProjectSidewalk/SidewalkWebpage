@@ -1653,6 +1653,13 @@ def parse_args(argv=None):
     if args.from_gpkg and args.single_region_name:
         parser.error('--single-region-name needs a fetch run (--place/--boundary-file): a re-export takes its '
                      'region names from the edited GeoPackage.')
+    if args.single_region_name is not None:
+        # Normalized here rather than where it is used, because this string becomes region.name verbatim: an
+        # untrimmed one ships padding into the load SQL, and an all-whitespace one survives to validate_staging,
+        # whose "every region needs a non-empty name" reads as a bug in the generator rather than in the flag.
+        args.single_region_name = args.single_region_name.strip()
+        if not args.single_region_name:
+            parser.error('--single-region-name needs an actual name.')
     if args.from_gpkg and args.merge_regions:
         parser.error('--merge-regions needs a fetch run (--place/--boundary-file): streets must be re-assigned and '
                      're-healed against the merged boundaries, which a re-export cannot do.')
@@ -1778,6 +1785,9 @@ def main(argv=None):
         # passes see the final boundaries.
         regions = merge_regions(regions, merge_mapping)
         logger.info('Merged regions: %s', ', '.join(f'"{s}" into "{t}"' for s, t in merge_mapping.items()))
+    if args.single_region_name and len(regions) != 1:
+        logger.warning('Ignoring --single-region-name "%s": it names the lone region of a city small enough to be '
+                       'one region, and this city has %d.', args.single_region_name, len(regions))
     # A hand-picked name always wins, and a hand-picked name is never second-guessed: a --regions-file dataset and
     # a --merge-regions target were both named on purpose, so only an automatically sourced lone region is renamed.
     deliberate_names = bool(args.regions_file or merge_mapping)

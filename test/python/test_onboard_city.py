@@ -963,6 +963,36 @@ def test_single_region_name_is_rejected_in_re_export_mode():
         oc.parse_args(['--city-id', 'x', '--from-gpkg', 'edited.gpkg', '--single-region-name', 'Laurens'])
 
 
+def test_single_region_name_is_trimmed_and_must_not_be_blank():
+    args = oc.parse_args(['--city-id', 'x', '--place', 'a', '--single-region-name', '  Laurens  '])
+    assert args.single_region_name == 'Laurens'
+    for blank in ['', '   ']:
+        with pytest.raises(SystemExit):
+            oc.parse_args(['--city-id', 'x', '--place', 'a', '--single-region-name', blank])
+
+
+def test_main_says_so_when_single_region_name_cannot_apply(tmp_path, monkeypatch, caplog):
+    _patch_pipeline(monkeypatch, _two_hoods())
+    with caplog.at_level(logging.WARNING):
+        oc.main(['--city-id', 'testville', '--place', 'Testville, USA', '--out-dir', str(tmp_path),
+                 '--single-region-name', 'Ignored Me'])
+    assert any('Ignoring --single-region-name' in record.message for record in caplog.records)
+    assert 'Ignored Me' not in (tmp_path / 'report.md').read_text()
+
+
+def test_main_keeps_a_regions_file_name_when_the_city_collapses_to_one_region(tmp_path, monkeypatch, caplog):
+    _patch_pipeline(monkeypatch, _empty_regions())
+    boundary_path = tmp_path / 'boundary.geojson'
+    _CITY_GDF.to_file(boundary_path, driver='GeoJSON')
+    regions_path = tmp_path / 'hoods.geojson'
+    gpd.GeoDataFrame({'name': ['Westside']}, geometry=[_W], crs='EPSG:4326').to_file(regions_path, driver='GeoJSON')
+    with caplog.at_level(logging.WARNING):
+        oc.main(['--city-id', 'testville', '--place', 'Testville, USA', '--regions-file', str(regions_path),
+                 '--regions-source', 'https://data.testville.gov/hoods', '--out-dir', str(tmp_path / 'out')])
+    assert '| 1 | Westside |' in (tmp_path / 'out' / 'report.md').read_text()
+    assert not any('--single-region-name' in record.message for record in caplog.records)
+
+
 def test_main_uses_regions_file_and_warns_on_low_coverage(tmp_path, monkeypatch, caplog):
     _patch_pipeline(monkeypatch, _empty_regions())
     boundary_path = tmp_path / 'boundary.geojson'
