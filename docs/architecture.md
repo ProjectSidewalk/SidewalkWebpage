@@ -243,7 +243,10 @@ corresponding Twirl view:
   (`ApiDocsTheme.color(token, alpha?)`, the one way preview code reads a CSS color token for Chart.js/Mapbox so
   chart colors follow the design system). Served file-by-file — no Grunt bundle.
 - **`access-score/`** — the AccessScore tool (`/accessScore`, #5217): a pure scoring model that re-runs the engine's
-  math in the browser (`AccessScoreModel.js`, pinned to the Scala engine through `test/fixtures/accessScoreParity.json`),
+  math in the browser (`AccessScoreModel.js`, pinned to the Scala engine through `test/fixtures/accessScoreParity.json`;
+  it reproduces a street's `segment_score`, length normalization included, but not yet the headline `score` that
+  #5095 averages with the end intersections — until the tool ingests `/v3/api/accessScoreIntersections` a street's
+  color is its segment score, and the sidebar says so),
   the map view (streets and a neighborhood choropleth colored from feature-state), the cluster evidence layer
   (`AccessScoreClusterLayer.js`, fed by `/v3/api/labelClusters` — the clusters the engine actually scores, not the
   raw labels), the cluster sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop

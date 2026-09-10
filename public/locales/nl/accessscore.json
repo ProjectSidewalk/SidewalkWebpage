@@ -10,6 +10,7 @@
   "unit": "Toon",
   "unit-streets": "Straten",
   "unit-regions": "Buurten",
+  "unit-help": "De kleur van een straat is de score van het wegvak zelf: de problemen en voorzieningen langs de straat. De kruisingen aan de uiteinden worden apart beoordeeld en zijn hier nog niet te zien.",
   "preset": "Perspectief",
   "preset-help": "Een startpunt, geen norm. Verschuif een schuifregelaar om de gewichten van uzelf te maken.",
   "preset-default": "Standaard van Project Sidewalk",

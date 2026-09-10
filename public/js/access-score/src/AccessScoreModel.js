@@ -5,14 +5,20 @@
  * `tag_adjustments`, `audit_count`, `length_meters`, `region_id`) plus the engine constants from
  * `/v3/api/accessScoreConfig`, and rebuilds every street's score under whatever weights the user picks:
  *
- *   term(type)  = weight(type) × units(type) + tagAdjustment(type)
+ *   term(type)  = (weight(type) × units(type) + tagAdjustment(type)) × lengthFactor(type, street)
  *   score       = sigmoid(Σ terms)                       (audited streets only; unaudited have no score)
  *
  * where `units` is the rating-weighted cluster count for per-cluster types (`Σ_bucket count × multiplier`), the
  * count itself for presence-only types, and the saturating extent `min(1, n / saturation)` for a street-condition
- * type. With the engine's own weights this reproduces the API's `score` and `sub_scores` exactly — the committed
- * fixture `test/fixtures/accessScoreParity.json` holds both sides to that (test/js/accessScoreModel.test.js and
- * test/service/AccessScoreParitySpec.scala).
+ * type. `lengthFactor` is `per_meters / max(length, min_length_meters)` for the types the config marks
+ * `length_normalized` (Obstacle, SurfaceProblem: a problem is a density along the street, so a long street is not
+ * punished for being long) and 1 for every other type. With the engine's own weights this reproduces the API's
+ * `segment_score` and `sub_scores` exactly — the committed fixture `test/fixtures/accessScoreParity.json` holds
+ * both sides to that (test/js/accessScoreModel.test.js and test/service/AccessScoreParitySpec.scala).
+ *
+ * What it does NOT yet reproduce is the API's headline `score`, which since #5095 averages the segment score with
+ * the scores of the intersections at the street's ends. Until the tool ingests `/v3/api/accessScoreIntersections`,
+ * a street's color here is its segment score, and the page says so.
  *
  * No DOM, no Mapbox: inputs in, typed arrays out, so a slider move costs one pass over the arrays (~28k streets
  * in Seattle, about a millisecond) and the map/chart adapters read the results.
@@ -41,12 +47,18 @@ class AccessScoreModel {
   #signs;
   #scoring;
   #saturation;
+  /** Per type: 1 when the engine scales the type's segment term to a per-`per_meters` density, else 0. */
+  #normalized;
+  #lengthPerMeters;
+  #lengthMinMeters;
 
   // Per-street inputs, laid out type-major so a street's T values sit together: index i * T + t.
   #n = 0;
   #ids;
   #regionIds;
   #lengths;
+  /** Per street: the factor a length-normalized type's term is scaled by (`per_meters / max(length, min)`). */
+  #lengthFactors;
   #audited;
   /** Cluster counts per (street, type, bucket): index (i * T + t) * B + b. */
   #counts;
@@ -86,6 +98,9 @@ class AccessScoreModel {
     this.#saturation = config.street_condition_saturation_count;
     this.#signs = this.#types.map((t) => (config.type_weights[t].base_weight < 0 ? -1 : 1));
     this.#scoring = this.#types.map((t) => config.type_weights[t].scoring);
+    this.#normalized = Uint8Array.from(this.#types, (t) => (config.type_weights[t].length_normalized ? 1 : 0));
+    this.#lengthPerMeters = config.length_normalization?.per_meters ?? 0;
+    this.#lengthMinMeters = config.length_normalization?.min_length_meters ?? 0;
 
     this.#loadStreets(streets.features || []);
     this.#loadRegions(regions || []);
@@ -202,7 +217,8 @@ class AccessScoreModel {
    *
    * @param {number} streetId - The street's `street_edge_id`.
    * @returns {?object} `{streetId, regionId, lengthM, audited, score, preSigmoid, terms}` where `terms` maps each
-   *   scored type to `{clusterCount, buckets, units, weight, weighted, tagAdjustment, term}`; null for an unknown id.
+   *   scored type to `{clusterCount, buckets, units, weight, weighted, tagAdjustment, lengthFactor, term}` —
+   *   `term` is `(weighted + tagAdjustment) × lengthFactor`; null for an unknown id.
    */
   explainStreet(streetId) {
     const i = this.#indexById.get(streetId);
@@ -220,11 +236,12 @@ class AccessScoreModel {
       const weight = this.signedWeight(type);
       const weighted = weight * this.#units[base];
       const tagAdjustment = this.#state.tagsEnabled ? this.#tagAdjustments[base] : 0;
-      const term = this.#clusterCounts[base] > 0 ? weighted + tagAdjustment : 0;
+      const lengthFactor = this.#normalized[t] ? this.#lengthFactors[i] : 1;
+      const term = this.#clusterCounts[base] > 0 ? (weighted + tagAdjustment) * lengthFactor : 0;
       preSigmoid += term;
       terms[type] = {
         clusterCount: this.#clusterCounts[base], buckets, units: this.#units[base], weight, weighted, tagAdjustment,
-        term,
+        lengthFactor, term,
       };
     });
     return {
@@ -565,6 +582,7 @@ class AccessScoreModel {
     this.#ids = new Int32Array(this.#n);
     this.#regionIds = new Int32Array(this.#n);
     this.#lengths = new Float64Array(this.#n);
+    this.#lengthFactors = new Float64Array(this.#n);
     this.#audited = new Uint8Array(this.#n);
     this.#counts = new Int32Array(this.#n * T * B);
     this.#clusterCounts = new Int32Array(this.#n * T);
@@ -574,6 +592,7 @@ class AccessScoreModel {
       this.#ids[i] = p.street_edge_id;
       this.#regionIds[i] = p.region_id;
       this.#lengths[i] = p.length_meters || 0;
+      this.#lengthFactors[i] = this.#lengthFactor(this.#lengths[i]);
       this.#audited[i] = p.audit_count > 0 ? 1 : 0;
       this.#indexById.set(p.street_edge_id, i);
       this.#types.forEach((type, t) => {
@@ -610,6 +629,18 @@ class AccessScoreModel {
     return 1 + this.#state.severityEmphasis * (m - 1);
   }
 
+  /**
+   * The engine's length factor for a street: a length-normalized type's term is stated per `per_meters` of street,
+   * the length floored at `min_length_meters` so a stub can't multiply one problem without bound. 1 when the config
+   * carries no normalization block (an engine from before #5095).
+   * @param {number} lengthMeters - The street's geodesic length.
+   * @returns {number} The factor.
+   */
+  #lengthFactor(lengthMeters) {
+    if (!(this.#lengthPerMeters > 0)) return 1;
+    return this.#lengthPerMeters / Math.max(lengthMeters, this.#lengthMinMeters);
+  }
+
   /** Rebuilds the rating-weighted cluster counts; only the emphasis slider changes them. */
   #recomputeUnits() {
     const T = this.#types.length;
@@ -638,8 +669,9 @@ class AccessScoreModel {
       let x = 0;
       for (let t = 0; t < T; t++) {
         const base = i * T + t;
+        const factor = this.#normalized[t] ? this.#lengthFactors[i] : 1;
         const term = this.#clusterCounts[base] > 0
-          ? weights[t] * this.#units[base] + tags * this.#tagAdjustments[base]
+          ? (weights[t] * this.#units[base] + tags * this.#tagAdjustments[base]) * factor
           : 0;
         this.#terms[base] = term;
         x += term;

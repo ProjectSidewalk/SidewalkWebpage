@@ -10,6 +10,7 @@
   "unit": "Mostrar",
   "unit-streets": "Ruas",
   "unit-regions": "Bairros",
+  "unit-help": "A cor de uma rua é a pontuação do próprio trecho: os problemas e recursos ao longo dela. Os cruzamentos nas extremidades são pontuados separadamente e ainda não aparecem aqui.",
   "preset": "Perspectiva",
   "preset-help": "Um ponto de partida, não um padrão. Mova qualquer controle para tornar os pesos seus.",
   "preset-default": "Padrão do Project Sidewalk",

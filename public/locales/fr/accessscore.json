@@ -10,6 +10,7 @@
   "unit": "Afficher",
   "unit-streets": "Rues",
   "unit-regions": "Quartiers",
+  "unit-help": "La couleur d'une rue est le score de son propre tronçon : les problèmes et les aménagements le long de celle-ci. Les intersections à ses extrémités sont notées séparément et ne sont pas encore affichées ici.",
   "preset": "Point de vue",
   "preset-help": "Un point de départ, pas une norme. Déplacez un curseur pour faire vôtres les pondérations.",
   "preset-default": "Réglage par défaut de Project Sidewalk",

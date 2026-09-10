@@ -10,6 +10,7 @@
   "unit": "顯示",
   "unit-streets": "街道",
   "unit-regions": "社區",
+  "unit-help": "街道的顏色是該路段本身的分數：沿線的問題與設施。兩端的路口另行評分，目前尚未在此顯示。",
   "preset": "觀點",
   "preset-help": "這是起點，不是標準。移動任一滑桿即可自訂權重。",
   "preset-default": "Project Sidewalk 預設",

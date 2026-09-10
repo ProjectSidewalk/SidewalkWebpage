@@ -10,6 +10,7 @@
   "unit": "Anzeigen",
   "unit-streets": "Straßen",
   "unit-regions": "Stadtviertel",
+  "unit-help": "Die Farbe einer Straße ist ihr eigener Abschnittswert: die Probleme und Merkmale entlang der Straße. Die Kreuzungen an ihren Enden werden getrennt bewertet und hier noch nicht angezeigt.",
   "preset": "Perspektive",
   "preset-help": "Ein Ausgangspunkt, kein Standard. Bewegen Sie einen Regler, um die Gewichte selbst zu bestimmen.",
   "preset-default": "Project-Sidewalk-Standard",

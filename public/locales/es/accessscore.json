@@ -10,6 +10,7 @@
   "unit": "Mostrar",
   "unit-streets": "Calles",
   "unit-regions": "Vecindarios",
+  "unit-help": "El color de una calle es la puntuación de su propio tramo: los problemas y elementos a lo largo de ella. Los cruces en sus extremos se puntúan por separado y todavía no se muestran aquí.",
   "preset": "Perspectiva",
   "preset-help": "Un punto de partida, no un estándar. Mueva cualquier control para hacer suyos los pesos.",
   "preset-default": "Predeterminado de Project Sidewalk",

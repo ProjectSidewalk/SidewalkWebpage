@@ -207,7 +207,9 @@ describe('AccessScoreDock', () => {
         expect(callbacks.log).toHaveBeenCalledWith('ClusterType', 'Obstacle_shown=false');
         expect(toggle.getAttribute('aria-pressed')).toBe('false');
         expect(toggle.closest('.acs-drivers__row').classList.contains('acs-drivers__row--hidden')).toBe(true);
-        document.querySelector('.acs-rank__row').click();
-        expect(callbacks.onRankSelect).toHaveBeenCalledWith(1);
+        // Whichever region ranks first (the fixture's cases decide), clicking its row selects that region.
+        const first = document.querySelector('.acs-rank__row');
+        first.click();
+        expect(callbacks.onRankSelect).toHaveBeenCalledWith(Number(first.dataset.regionId));
     });
 });

@@ -24,7 +24,7 @@ function feature(c, i, extra = {}) {
             street_edge_id: i + 1,
             region_id: 1,
             audit_count: 1,
-            length_meters: 100,
+            length_meters: c.length_meters ?? 100,
             severity_counts: c.severity_counts,
             tag_adjustments: c.tag_adjustments,
             cluster_counts: c.cluster_counts,
@@ -77,6 +77,33 @@ describe('AccessScoreModel', () => {
                 }
             });
         }
+    });
+
+    test('length normalization: a problem is a density per 100 m, floored at 25 m, and only for the marked types', () => {
+        const lengths = [10, 25, 50, 100, 400];
+        const obstacle = FIXTURE.streets.find((c) => c.cluster_counts.Obstacle === 1 && c.cluster_counts.SurfaceProblem === 0
+            && c.cluster_counts.CurbRamp === 0);
+        const ramp = FIXTURE.streets.find((c) => c.cluster_counts.CurbRamp === 1 && c.cluster_counts.Obstacle === 0);
+        const features = lengths.flatMap((length, k) => [
+            feature(obstacle, 2 * k, { length_meters: length }),
+            feature(ramp, 2 * k + 1, { length_meters: length }),
+        ]);
+        const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features }, [REGION]);
+        const { per_meters: per, min_length_meters: min } = FIXTURE.config.length_normalization;
+        const at100 = model.explainStreet(2 * lengths.indexOf(100) + 1).terms.Obstacle;
+        lengths.forEach((length, k) => {
+            const o = model.explainStreet(2 * k + 1).terms.Obstacle;
+            expect(o.lengthFactor).toBeCloseTo(per / Math.max(length, min), 12);
+            expect(o.term).toBeCloseTo(at100.term * o.lengthFactor, 12);
+            const r = model.explainStreet(2 * k + 2).terms.CurbRamp;
+            expect(r.lengthFactor).toBe(1);
+            expect(r.term).toBeCloseTo(model.explainStreet(2 * lengths.indexOf(100) + 2).terms.CurbRamp.term, 12);
+        });
+        // An engine that publishes no normalization block scales nothing.
+        const older = { ...FIXTURE.config };
+        delete older.length_normalization;
+        const legacy = new AccessScoreModel(older, { type: 'FeatureCollection', features }, [REGION]);
+        expect(legacy.explainStreet(1).terms.Obstacle.lengthFactor).toBe(1);
     });
 
     test('region roll-up matches the engine on the fixture region cases', () => {

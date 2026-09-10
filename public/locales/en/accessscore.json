@@ -10,6 +10,7 @@
   "unit": "Show",
   "unit-streets": "Streets",
   "unit-regions": "Neighborhoods",
+  "unit-help": "A street's color is its own segment score: the problems and features along it. The crossings at its ends are scored separately and are not shown here yet.",
   "preset": "Lens",
   "preset-help": "A starting point, not a standard. Move any slider to make the weights your own.",
   "preset-default": "Project Sidewalk default",
