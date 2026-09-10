@@ -38,19 +38,30 @@ walks points along the street (added roughly every 15 m) and flags the street on
 Imagery age: the responses we already fetch also carry a capture date, so for no extra API calls we record each
 street's imagery capture-date range (oldest/newest) into the summary file — telling us not just whether a street has
 imagery but how old it is. GSV and Infra3d each answer with one pano, so their date is simply that pano's. A Mapillary
-bbox query instead returns every image in the box, and the one whose date we record is the one the Explore/Validate
-viewer would actually display: ``score_pano`` is a port of ``MapillaryViewer.#scorePano``, sharing its weights through
-``conf/mapillary-pano-scoring.json``. Taking the newest image instead would let us record a fresh date for a street
-whose imagery the viewer never shows, so we would stop flagging it as outdated while users still saw the old panos
-(#4411). Two known differences from the viewer remain, both deliberate: its sequence-continuity term has no offline
-meaning (there is no current pano when sampling a street cold) and is a uniform 0, which cannot change a ranking; and
-it always searches a 25 m box, whereas along-street points here use 15 m (see ``POINT_RADIUS_KM``) to avoid picking up
-a parallel street. The narrower box is a subset of the viewer's candidates, so it leaves only near-tie disagreement —
-widening it would change which streets are reported as having imagery at all.
+bbox query instead returns every image in the box, and the one whose date we record is the one Explore's pano viewer
+would actually display: ``score_pano`` is a port of ``MapillaryViewer.#scorePano``, sharing its weights through
+``conf/pano-scoring.json``. Taking the newest image instead would let us record a fresh date for a street whose
+imagery the viewer never shows, so we would stop flagging it as outdated while users still saw the old panos
+(#4411). The formula matches; the candidate set the formula runs over does not, in five ways, so treat the recorded
+date as the viewer's pick at a sampled point rather than as the pano a user will see:
 
-Panoramax searches return a box of pictures too, and ``panoramax_capture_date`` still takes the newest of them rather
-than the one ``PanoramaxViewer.#scorePano`` would pick — the same mismatch this port removed for Mapillary, tracked
-separately (#4411 covers Mapillary only).
+  * The sequence-continuity term has no offline meaning — there is no current pano when sampling a street cold — so it
+    is a uniform 0 here. This one cannot change a ranking, being a constant shift.
+  * The viewer searches a 25 m box; along-street points here search 15 m (``POINT_RADIUS_KM``). The narrower box is a
+    subset, but an argmax over a subset can move in *either* direction, by years: distance is only 45% of the score,
+    so a fresh high-resolution pano just outside 15 m routinely outranks a stale one inside it. Aligning the two radii
+    is #5091, which also replaces the box with an along/cross-track test; this module's dates stop diverging on that
+    axis when it lands.
+  * ``#selectBestPano`` filters out panos the session has already rejected (``excludedPanoIds``,
+    ``excludedTimestamps``) before scoring, so the viewer's pick is often the runner-up here.
+  * ``#findNearestPrefetch`` reuses a search centred up to 5 m away, so the viewer's box is frequently not centred on
+    the target at all.
+  * ``#fetchImages`` narrows its radius and retries when Mapillary reports too many images in the box, so a dense
+    location's viewer box can be smaller than 25 m.
+
+Panoramax searches return a box of pictures too, and ``panoramax_capture_date`` takes the newest of them rather than
+the one ``PanoramaxViewer.#scorePano`` would pick, so its dates carry the mismatch this port removes for Mapillary
+(#5284).
 
 Infra3d has no metadata endpoint of its own; the check uses the same nearest-frame query (``framegate``'s
 ``knn/query``) that the vendored Infra3d viewer SDK issues on every ``setLocation``, authenticated with the same
@@ -169,11 +180,36 @@ DISTANCE = 0.000135
 
 # Weights and decay scales for ranking the Mapillary panos at a point, shared with MapillaryViewer.#scorePano so the
 # date we record for a street is the date of the pano Explore would actually show (see the JSON file's own comment,
-# and score_pano below). Loaded at import: it is a checked-in repo file, not network or user I/O, and every consumer
-# of this module needs it.
-PANO_SCORING_FILE = 'conf/mapillary-pano-scoring.json'
-with open(os.path.join(REPO_ROOT, PANO_SCORING_FILE), encoding='utf-8') as _pano_scoring_file:
-    PANO_SCORING = json.load(_pano_scoring_file)
+# and score_pano below). Loaded at import so a malformed file fails once, at startup, rather than as a KeyError from
+# inside a worker thread forty minutes into a scan; the browser half gets the same guarantee from
+# models.utils.PanoScoring.
+PANO_SCORING_FILE = 'conf/pano-scoring.json'
+PANO_SCORING_KEYS = ('distanceWeight', 'resolutionWeight', 'recencyWeight', 'distanceDecayMeters', 'recencyDecayYears')
+
+
+def _load_pano_scoring(provider: str = 'mapillary') -> dict:
+    """
+    Reads one provider's ranking parameters out of ``conf/pano-scoring.json``.
+
+    Args:
+        provider: Key of the file's ``providers`` object.
+
+    Returns:
+        The shared weights and decay scales with that provider's own parameters merged over them.
+
+    Raises:
+        KeyError: If the file is missing a key this module ranks on.
+    """
+    with open(os.path.join(REPO_ROOT, PANO_SCORING_FILE), encoding='utf-8') as handle:
+        raw = json.load(handle)
+    scoring = {**raw, **raw['providers'][provider]}
+    missing = [key for key in (*PANO_SCORING_KEYS, 'maxImageWidthPx') if key not in scoring]
+    if missing:
+        raise KeyError('%s is missing %s for %s' % (PANO_SCORING_FILE, ', '.join(missing), provider))
+    return scoring
+
+
+PANO_SCORING = _load_pano_scoring()
 
 # Milliseconds in an average (Julian) year, for converting a captured_at delta into the age in years that the recency
 # term decays over. Matches the constant MapillaryViewer.#scorePano uses.
@@ -461,10 +497,10 @@ def mapillary_has_imagery(response_json: dict) -> bool:
 
 def score_pano(image: dict, lat: float, lng: float, now_ms: float) -> float | None:
     """
-    Scores one candidate Mapillary image for a location, the way the Explore/Validate viewer does.
+    Scores one candidate Mapillary image for a location, the way Explore's pano viewer does.
 
     This is a port of ``MapillaryViewer.#scorePano`` (``public/js/common/pano-viewer/src/MapillaryViewer.js``); the
-    weights and decay scales come from ``conf/mapillary-pano-scoring.json`` so the two can't drift. Recency is only a
+    weights and decay scales come from ``conf/pano-scoring.json`` so the two can't drift. Recency is only a
     quarter of the decision and distance dominates it, so the newest image at a point is frequently *not* the one the
     viewer shows — which is the whole reason this port exists (#4411).
 
@@ -482,16 +518,24 @@ def score_pano(image: dict, lat: float, lng: float, now_ms: float) -> float | No
         now_ms: Current time as a Unix epoch timestamp in milliseconds, for the recency term.
 
     Returns:
-        A score in ``[0, 1]``, higher being better, or ``None`` if the image can't be scored (no coordinates or no
-        ``captured_at`` — both are requested via ``fields=``, so this is a defensive path).
+        A score in ``[0, 1]``, higher being better, or ``None`` if the image can't be scored: no position, or a
+        ``captured_at`` that is absent or not a number. Both fields are requested via ``fields=``, but Mapillary
+        answers with the key present and ``null`` where it has no value, so this is a real path rather than a
+        defensive one. The viewer reaches the same outcome by arithmetic rather than by a guard — an unparseable
+        ``captured_at`` makes its score ``NaN``, which loses every ``>`` comparison in ``#selectBestPano`` — so a
+        dropped candidate here is one the viewer would not have chosen either.
     """
     geometry = image.get('computed_geometry') or image.get('geometry')
-    if not geometry or 'captured_at' not in image:
+    coordinates = (geometry or {}).get('coordinates') or ()
+    captured_at = image.get('captured_at')
+    # bool is a subclass of int, so it would otherwise pass as a timestamp of 0 or 1.
+    if len(coordinates) < 2 or isinstance(captured_at, bool) or not isinstance(captured_at, (int, float)):
         return None
 
     # Distance to the sampled point (dominant factor). Exponential decay, so at the default 10 m scale:
-    # 0 m -> 1.0, 10 m -> 0.37, 25 m -> 0.08.
-    image_lng, image_lat = geometry['coordinates']
+    # 0 m -> 1.0, 10 m -> 0.37, 25 m -> 0.08. GeoJSON positions may carry an altitude the viewer's turf.point also
+    # ignores, so only the first two ordinates are read.
+    image_lng, image_lat = coordinates[0], coordinates[1]
     distance_m = geodesic((lat, lng), (image_lat, image_lng)).meters
     distance_score = math.exp(-distance_m / PANO_SCORING['distanceDecayMeters'])
 
@@ -501,7 +545,7 @@ def score_pano(image: dict, lat: float, lng: float, now_ms: float) -> float | No
 
     # Recency: exponential decay by age in years, so at the default 5-year scale: fresh -> 1.0, 3 yr -> 0.55.
     # captured_at is a Unix epoch timestamp in milliseconds, UTC.
-    age_years = (now_ms - image['captured_at']) / MS_PER_YEAR
+    age_years = (now_ms - captured_at) / MS_PER_YEAR
     recency_score = math.exp(-age_years / PANO_SCORING['recencyDecayYears'])
 
     return (PANO_SCORING['distanceWeight'] * distance_score

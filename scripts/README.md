@@ -121,7 +121,7 @@ each street's capture-date range (oldest/newest) and pano count into `street_ima
 street has imagery but how old it is. GSV and Infra3d each answer with a single pano, so its date is the one recorded.
 Mapillary instead returns every image in the queried box, and the date recorded belongs to the image Explore would
 actually display: `score_pano` ports the viewer's ranking (distance, resolution, recency), reading its weights from
-`conf/mapillary-pano-scoring.json` so the two can't drift. Recording the *newest* image instead would let a street look
+`conf/pano-scoring.json` so the two can't drift. Recording the *newest* image instead would let a street look
 freshly imaged while the viewer went on serving older panos (#4411). Persisting this into the database — to power a
 "stale imagery" signal alongside the `street_edge_status` work (#3888) — is tracked as a separate follow-up (#4348).
 

@@ -2,9 +2,9 @@
 Unit tests for scripts/check_streets_for_imagery.py.
 
 Covers the pure helpers (bounding box, vertex interpolation, response parsers, capture-date parsing, Mapillary
-pano ranking, decision thresholds), the retry/fetch and per-street worker (including imagery-age capture), the checkpoint/output persistence
-(no-imagery list + imagery summary), and the `main` scan end-to-end with the HTTP layer mocked (happy path, no-imagery
-flagging, resume, fail-soft + retry, and interrupt). See test/python/README.md.
+pano ranking, decision thresholds), the retry/fetch and per-street worker (including imagery-age capture), the
+checkpoint/output persistence (no-imagery list + imagery summary), and the `main` scan end-to-end with the HTTP layer
+mocked (happy path, no-imagery flagging, resume, fail-soft + retry, and interrupt). See test/python/README.md.
 """
 
 import base64
@@ -48,6 +48,7 @@ def _image(captured_at=_JUL_2021_MS, lat=_LAT, lng=_LNG, width=8192, image_id=1,
 # create_bounding_box / redistribute_vertices
 # --------------------------------------------------------------------------------------------------------------------
 
+
 def test_create_bounding_box_is_ordered_and_radius_scales():
     west, south, east, north = cs.create_bounding_box(47.6, -122.3, 0.025)
     assert west < east
@@ -70,6 +71,7 @@ def test_redistribute_vertices_long_line_adds_points_every_distance():
 # --------------------------------------------------------------------------------------------------------------------
 # response parsers + capture-date parsing
 # --------------------------------------------------------------------------------------------------------------------
+
 
 def test_gsv_has_imagery():
     assert cs.gsv_has_imagery({'status': 'OK', 'location': {'lat': 47.6, 'lng': -122.3}}) is True
@@ -153,11 +155,42 @@ def test_gsv_capture_date():
 # Mapillary pano ranking (score_pano / best_pano / mapillary_capture_date)
 # --------------------------------------------------------------------------------------------------------------------
 
+
 def test_pano_scoring_config_holds_four_weights_summing_to_one():
     # The docstrings promise a score in [0, 1], and the JS port relies on the same four names.
     weights = {key: value for key, value in cs.PANO_SCORING.items() if key.endswith('Weight')}
     assert set(weights) == {'distanceWeight', 'resolutionWeight', 'recencyWeight', 'sequenceWeight'}
     assert sum(weights.values()) == pytest.approx(1.0)
+
+
+def test_pano_scoring_config_matches_the_values_the_viewers_document():
+    # Pin the numbers, not just their shape: the viewers' own comments quote these decay curves ("10m -> 0.37",
+    # "3yr -> 0.55"), and the whole point of the shared file is that a change here is a change to Explore.
+    assert cs.PANO_SCORING['distanceWeight'] == 0.45
+    assert cs.PANO_SCORING['resolutionWeight'] == 0.25
+    assert cs.PANO_SCORING['recencyWeight'] == 0.25
+    assert cs.PANO_SCORING['sequenceWeight'] == 0.05
+    assert cs.PANO_SCORING['distanceDecayMeters'] == 10
+    assert cs.PANO_SCORING['recencyDecayYears'] == 5
+    assert cs.PANO_SCORING['maxImageWidthPx'] == 16384
+
+
+def test_pano_scoring_loader_merges_the_providers_own_parameters():
+    # Panoramax's fleet caps lower than Mapillary's; everything else is shared, so the merge must keep both halves.
+    panoramax = cs._load_pano_scoring('panoramax')
+    assert panoramax['maxImageWidthPx'] == 12288
+    assert panoramax['distanceWeight'] == cs.PANO_SCORING['distanceWeight']
+
+
+def test_pano_scoring_loader_names_the_key_a_malformed_file_is_missing(tmp_path, monkeypatch):
+    # A typo must fail once at import rather than as a KeyError from a worker thread mid-scan, and must say which key.
+    conf = tmp_path / 'conf'
+    conf.mkdir()
+    (conf / 'pano-scoring.json').write_text(json.dumps(
+        {'distanceWeight': 0.45, 'providers': {'mapillary': {'maxImageWidthPx': 16384}}}))
+    monkeypatch.setattr(cs, 'REPO_ROOT', str(tmp_path))
+    with pytest.raises(KeyError, match='recencyDecayYears'):
+        cs._load_pano_scoring()
 
 
 def test_score_pano_is_the_weighted_sum_of_its_terms():
@@ -190,6 +223,24 @@ def test_score_pano_prefers_computed_geometry_over_raw_geometry():
                      computed_geometry={'type': 'Point', 'coordinates': [_LNG, _lat_north_of_origin(1)]})
     raw_only = _image(lat=_lat_north_of_origin(25))
     assert cs.score_pano(refined, _LAT, _LNG, _NOW_MS) > cs.score_pano(raw_only, _LAT, _LNG, _NOW_MS)
+
+
+@pytest.mark.parametrize('captured_at', [None, '2021-07-15', True, float('nan')])
+def test_score_pano_drops_an_image_whose_timestamp_is_not_a_number(captured_at):
+    # fields=captured_at returns the key present-and-null when Mapillary has no timestamp, so this is a live path:
+    # before the guard covered the value as well as the key, one such image aborted the whole scan with a TypeError.
+    image = _image()
+    image['captured_at'] = captured_at
+    score = cs.score_pano(image, _LAT, _LNG, _NOW_MS)
+    assert score is None or math.isnan(score)
+
+
+def test_score_pano_ignores_an_altitude_in_the_position():
+    # GeoJSON positions may carry a third ordinate; the viewer's turf.point drops it, and unpacking it used to raise.
+    flat = _image()
+    with_altitude = _image()
+    with_altitude['geometry'] = {'type': 'Point', 'coordinates': [*flat['geometry']['coordinates'], 55.0]}
+    assert cs.score_pano(with_altitude, _LAT, _LNG, _NOW_MS) == pytest.approx(cs.score_pano(flat, _LAT, _LNG, _NOW_MS))
 
 
 def test_score_pano_unscorable_image_returns_none():
@@ -247,6 +298,7 @@ def test_pano_info():
 # --------------------------------------------------------------------------------------------------------------------
 # Infra3d: nearest-frame interpretation + token handling
 # --------------------------------------------------------------------------------------------------------------------
+
 
 def _frame(lat, lng, timestamp='2024-06-17T11:23:09.795417+00:00'):
     return {'latitude': lat, 'longitude': lng, 'timestamp': timestamp, 'type': 'cubemap'}
@@ -506,6 +558,7 @@ def test_street_has_no_imagery_lazy_iterable_stops_early():
 # make_fetch (retry) + rate limiter
 # --------------------------------------------------------------------------------------------------------------------
 
+
 def test_make_fetch_retries_then_succeeds(monkeypatch):
     calls = {'n': 0}
 
@@ -616,6 +669,7 @@ def test_rate_limiter_throttles_when_depleted():
 # --------------------------------------------------------------------------------------------------------------------
 # process_street (fetch stubbed directly, no network)
 # --------------------------------------------------------------------------------------------------------------------
+
 
 def _street(line, street_edge_id=100, region_id=1):
     x1, y1 = line.coords[0]
@@ -755,6 +809,7 @@ def test_process_street_infra3d_nearest_frame_too_far_is_no_imagery():
 def test_process_street_infra3d_bad_response_is_failed():
     assert _run_process_infra3d(_LINE_60, lambda url, **kw: {'message': 'Unauthorized'}).outcome == cs.FAILED
 
+
 def test_process_street_request_error_is_failed():
     def boom(url):
         raise requests.exceptions.ConnectionError('down')
@@ -780,6 +835,7 @@ def test_process_street_point_error_is_failed():
 # --------------------------------------------------------------------------------------------------------------------
 # persistence: load_processed / append_checkpoint / _write_ids_csv / finalize_outputs
 # --------------------------------------------------------------------------------------------------------------------
+
 
 def test_load_processed_no_file(tmp_path):
     assert cs.load_processed(str(tmp_path / 'missing.csv')) == set()
@@ -1127,6 +1183,7 @@ def test_main_unexpected_worker_error_still_finalizes_outputs(monkeypatch, tmp_p
         cs.main(['--city-id', _CITY, '--gsv', '--workers', '1', '--max-qps', '1000'])
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]  # ...but the settled streets are written out.
 
+
 def test_main_keyboard_interrupt_finalizes_and_returns_1(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)])
     monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'OK'})
@@ -1142,6 +1199,7 @@ def test_main_keyboard_interrupt_finalizes_and_returns_1(monkeypatch, tmp_path):
 # --------------------------------------------------------------------------------------------------------------------
 # --sample preflight
 # --------------------------------------------------------------------------------------------------------------------
+
 
 def _summary_frame(rows):
     return pd.DataFrame(rows, columns=cs.SUMMARY_COLUMNS)
