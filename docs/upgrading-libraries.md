@@ -117,7 +117,7 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
 These are the JVM libraries we talk to the database *through*; the database server's own versions are under
 [Database server](#database-server) above.
 
-- **postgresql (JDBC driver): 42.7.10** — the `org.postgresql` driver in `build.sbt`.
+- **postgresql (JDBC driver): 42.7.12** — the `org.postgresql` driver in `build.sbt`.
   [Releases](https://mvnrepository.com/artifact/org.postgresql/postgresql) · [Changelog](https://jdbc.postgresql.org/)
 - **play-slick / play-slick-evolutions: 6.2.0**.
   [Releases](https://mvnrepository.com/artifact/org.playframework/play-slick) ·
@@ -142,7 +142,10 @@ These are the JVM libraries we talk to the database *through*; the database serv
   mechanical. **Note:** 35.x replaced Oracle JAI with Eclipse ImageN, which is why the old `jai_core` download line
   and its exclusions are gone; 34.x+ needs Java 17 (we're on it), and the packages were renamed in 30.x
   (`org.opengis.*` → `org.geotools.api.*`, datastore interfaces → `org.geotools.api.data`), so an old snippet from the
-  GeoTools docs may need its imports adjusted. Check both exports after any bump (#4393).
+  GeoTools docs may need its imports adjusted. Check both exports after any bump (#4393). New transitives worth
+  knowing about since 35.x: `gt-coverage` and the Eclipse ImageN modules (unused by us), `org.xerial:sqlite-jdbc`
+  (what actually writes the GeoPackage), and `tools.jackson.core:jackson-core` 3.x, which is Jackson 3 under its
+  new package name, so it sits beside Play's Jackson 2 without colliding.
   [Releases](https://mvnrepository.com/artifact/org.geotools/gt-shapefile?repo=geotools-releases) ·
   [Changelog](https://github.com/geotools/geotools/releases) ·
   [Upgrade notes](https://docs.geotools.org/latest/userguide/welcome/upgrade.html)

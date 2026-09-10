@@ -102,13 +102,15 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
       val typeName = store.getTypeNames()(0)
       val names    = store.getSchema(typeName).getAttributeDescriptors.asScala.map(_.getLocalName).toSeq
       val reader   = store.getFeatureSource(typeName).getFeatures.features()
-      val features = Iterator
-        .continually(if (reader.hasNext) Some(reader.next()) else None)
-        .takeWhile(_.isDefined)
-        .flatten
-        .map(f => f.getAttribute(labelIdField).asInstanceOf[Number].intValue() -> f)
-        .toMap
-      reader.close()
+      val features =
+        try
+          Iterator
+            .continually(if (reader.hasNext) Some(reader.next()) else None)
+            .takeWhile(_.isDefined)
+            .flatten
+            .map(f => f.getAttribute(labelIdField).asInstanceOf[Number].intValue() -> f)
+            .toMap
+        finally reader.close()
       (names, features)
     } finally store.dispose()
 

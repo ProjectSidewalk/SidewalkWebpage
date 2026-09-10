@@ -22,8 +22,7 @@ import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.geotools.geopkg.GeoPkgDataStoreFactory
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
-import play.api.i18n.Lang.logger
-import play.api.libs.json.JsResult.Exception
+import play.api.Logger
 import play.api.libs.json.Json
 
 import java.io.{BufferedInputStream, File}
@@ -31,7 +30,7 @@ import java.nio.file.{Files, Path}
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 
 /**
  * This class handles the creation of Shapefile archives to be used by the ApiController.
@@ -41,6 +40,44 @@ import scala.jdk.CollectionConverters.MapHasAsJava
  */
 @Singleton
 class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: Materializer) {
+  private val logger = Logger(this.getClass)
+
+  /**
+   * Opens (creating if needed) the GeoPackage at the given path as a GeoTools data store.
+   *
+   * `DataStoreFinder` returns null rather than throwing when no registered factory accepts the params, which is what a
+   * packaging step that drops gt-geopkg's service registration would look like; fail with a message instead of an NPE.
+   *
+   * @param geopackagePath Where the .gpkg file lives.
+   * @return An open data store; the caller disposes it.
+   */
+  private def openGeoPackage(geopackagePath: Path): DataStore = {
+    val params = Map(
+      GeoPkgDataStoreFactory.DBTYPE.key   -> "geopkg",
+      GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
+    ).asJava
+    Option(DataStoreFinder.getDataStore(params)).getOrElse {
+      throw new IllegalStateException(
+        "No GeoTools DataStore factory accepted the GeoPackage params (is gt-geopkg on " +
+          "the classpath with its META-INF/services entry?)"
+      )
+    }
+  }
+
+  /**
+   * Fails fast on a shapefile schema with an attribute name over the DBF format's 10-character limit. GeoTools would
+   * otherwise write the file with the name silently cut short (`streetCount` shipped as `streetCoun` for years), so
+   * every schema is checked here at the one choke point rather than per export.
+   *
+   * @param featureType The schema about to be written to a shapefile.
+   */
+  private def requireDbfSafeNames(featureType: SimpleFeatureType): Unit = {
+    val tooLong = featureType.getAttributeDescriptors.asScala.map(_.getLocalName).filter(_.length > 10)
+    require(
+      tooLong.isEmpty,
+      s"Shapefile schema ${featureType.getTypeName} has attribute names over DBF's 10-char limit: ${tooLong.mkString(", ")}"
+    )
+  }
 
   /**
    * Writes a batch of features to a feature store inside a transaction.
@@ -87,16 +124,11 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       buildFeature: (A, SimpleFeatureBuilder) => SimpleFeature
   ): Future[Option[Path]] = {
     val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
+    var dataStore: DataStore = null
 
     try {
       // Set up everything we need to create and store features before saving them.
-      val params = Map(
-        GeoPkgDataStoreFactory.DBTYPE.key   -> "geopkg",
-        GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
-      ).asJava
-      val dataStore: DataStore = DataStoreFinder.getDataStore(params)
-
-      // Create the schema in the GeoPackage.
+      dataStore = openGeoPackage(geopackagePath)
       dataStore.createSchema(featureType)
 
       // Get feature store for writing.
@@ -132,6 +164,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         }
     } catch {
       case e: Exception =>
+        Option(dataStore).foreach(_.dispose())
         logger.error(s"Error setting up GeoPackage: ${e.getMessage}", e)
         Future.successful(None)
     }
@@ -154,12 +187,15 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureType: SimpleFeatureType,
       buildFeature: (A, SimpleFeatureBuilder) => SimpleFeature
   ): Future[Option[Path]] = {
-    val shapefilePath: Path = new File(outputFile + ".shp").toPath
+    val shapefilePath: Path     = new File(outputFile + ".shp").toPath
+    var newDataStore: DataStore = null
 
     try {
+      requireDbfSafeNames(featureType)
+
       // Set up everything we need to create and store features.
       val dataStoreFactory = new ShapefileDataStoreFactory()
-      val newDataStore     = dataStoreFactory.createNewDataStore(
+      newDataStore = dataStoreFactory.createNewDataStore(
         Map(
           "url"                  -> shapefilePath.toUri.toURL,
           "create spatial index" -> java.lang.Boolean.FALSE // Disable so we don't run out of memory.
@@ -202,6 +238,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         }
     } catch {
       case e: Exception =>
+        Option(newDataStore).foreach(_.dispose())
         logger.error(s"Error setting up shapefile: ${e.getMessage}", e)
         Future.successful(None)
     }
@@ -218,24 +255,25 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     val zipOut  = new ZipOutputStream(Files.newOutputStream(zipPath))
 
     // For each shapefile, add all component files to the zip archive.
-    files.foreach { f =>
-      val shapefile = f.toFile
-      val directory = shapefile.getParentFile
-      val basename  = shapefile.getName.substring(0, shapefile.getName.length - 4)
+    try {
+      files.foreach { f =>
+        val shapefile = f.toFile
+        val directory = shapefile.getParentFile
+        val basename  = shapefile.getName.substring(0, shapefile.getName.length - 4)
 
-      // Find all shapefile component files.
-      val extensions = Seq(".shp", ".dbf", ".shx", ".prj", ".sbn", ".sbx", ".cpg", ".fix")
-      extensions.foreach { ext =>
-        val file = new File(directory, basename + ext)
-        if (file.exists()) {
-          zipOut.putNextEntry(new ZipEntry(file.getName))
-          Files.copy(file.toPath, zipOut)
-          zipOut.closeEntry()
-          file.delete()
+        // Find all shapefile component files.
+        val extensions = Seq(".shp", ".dbf", ".shx", ".prj", ".sbn", ".sbx", ".cpg", ".fix")
+        extensions.foreach { ext =>
+          val file = new File(directory, basename + ext)
+          if (file.exists()) {
+            zipOut.putNextEntry(new ZipEntry(file.getName))
+            Files.copy(file.toPath, zipOut)
+            zipOut.closeEntry()
+            file.delete()
+          }
         }
       }
-    }
-    zipOut.close()
+    } finally zipOut.close()
 
     // Set up a stream of the zip archive as a ByteString, setting it up to be deleted afterward.
     StreamConverters
@@ -466,10 +504,15 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     val labelShapefilePath: Path   = new File(outputFile + "_labels.shp").toPath
     val geometryFactory            = JTSFactoryFinder.getGeometryFactory
 
+    var clusterDataStore: DataStore = null
+
     try {
+      requireDbfSafeNames(clusterShapefileFeatureType)
+      requireDbfSafeNames(labelFeatureType)
+
       // Set up clusters shapefile.
       val clusterDataStoreFactory = new ShapefileDataStoreFactory()
-      val clusterDataStore        = clusterDataStoreFactory.createNewDataStore(
+      clusterDataStore = clusterDataStoreFactory.createNewDataStore(
         Map("url" -> clusterShapefilePath.toUri.toURL, "create spatial index" -> java.lang.Boolean.FALSE).asJava
       )
       clusterDataStore.createSchema(clusterShapefileFeatureType)
@@ -513,29 +556,30 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
             val labelBuilder  = new SimpleFeatureBuilder(labelFeatureType)
             val labelFeatures = new java.util.ArrayList[SimpleFeature](batchSize)
 
-            val labelIter = allRawLabels.iterator()
-            while (labelIter.hasNext) {
-              labelFeatures.clear()
-              var count = 0
-              while (labelIter.hasNext && count < batchSize) {
-                val (clusterId, label) = labelIter.next()
-                labelBuilder.reset()
-                labelBuilder.add(geometryFactory.createPoint(new Coordinate(label.longitude, label.latitude)))
-                labelBuilder.add(label.labelId)
-                labelBuilder.add(clusterId)
-                labelBuilder.add(label.userId)
-                labelBuilder.add(label.panoId)
-                labelBuilder.add(label.panoSource.map(_.toString).orNull)
-                labelBuilder.add(label.severity.map(Integer.valueOf).orNull)
-                labelBuilder.add(label.timeCreated.toString)
-                labelBuilder.add(label.correct.map(_.toString).orNull)
-                labelBuilder.add(label.imageCaptureDate.orNull)
-                labelFeatures.add(labelBuilder.buildFeature(null))
-                count += 1
+            try {
+              val labelIter = allRawLabels.iterator()
+              while (labelIter.hasNext) {
+                labelFeatures.clear()
+                var count = 0
+                while (labelIter.hasNext && count < batchSize) {
+                  val (clusterId, label) = labelIter.next()
+                  labelBuilder.reset()
+                  labelBuilder.add(geometryFactory.createPoint(new Coordinate(label.longitude, label.latitude)))
+                  labelBuilder.add(label.labelId)
+                  labelBuilder.add(clusterId)
+                  labelBuilder.add(label.userId)
+                  labelBuilder.add(label.panoId)
+                  labelBuilder.add(label.panoSource.map(_.toString).orNull)
+                  labelBuilder.add(label.severity.map(Integer.valueOf).orNull)
+                  labelBuilder.add(label.timeCreated.toString)
+                  labelBuilder.add(label.correct.map(_.toString).orNull)
+                  labelBuilder.add(label.imageCaptureDate.orNull)
+                  labelFeatures.add(labelBuilder.buildFeature(null))
+                  count += 1
+                }
+                writeFeatureBatch(labelStore, labelFeatures, rethrow = true)
               }
-              writeFeatureBatch(labelStore, labelFeatures, rethrow = true)
-            }
-            labelDataStore.dispose()
+            } finally labelDataStore.dispose()
             Some(Seq(clusterShapefilePath, labelShapefilePath))
           } else {
             Some(Seq(clusterShapefilePath))
@@ -548,6 +592,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         }
     } catch {
       case e: Exception =>
+        Option(clusterDataStore).foreach(_.dispose())
         logger.error(s"Error setting up shapefile: ${e.getMessage}", e)
         Future.successful(None)
     }
@@ -603,13 +648,10 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     )
 
     val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
+    var dataStore: DataStore = null
 
     try {
-      val params = Map(
-        GeoPkgDataStoreFactory.DBTYPE.key   -> "geopkg",
-        GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
-      ).asJava
-      val dataStore: DataStore = DataStoreFinder.getDataStore(params)
+      dataStore = openGeoPackage(geopackagePath)
 
       // Create both schemas.
       dataStore.createSchema(clusterFeatureType)
@@ -704,6 +746,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         }
     } catch {
       case e: Exception =>
+        Option(dataStore).foreach(_.dispose())
         logger.error(s"Error setting up GeoPackage: ${e.getMessage}", e)
         Future.successful(None)
     }
@@ -949,6 +992,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
   /**
    * Creates a shapefile from RegionDataForApi objects.
    *
+   * Column names are kept to 10 characters because the DBF format cuts anything longer short (`streetCnt`,
+   * `totalDistM`, `complRate`, …); the GeoJSON, CSV, and GeoPackage formats keep the full snake_case names.
+   *
    * @param source Stream of RegionDataForApi objects
    * @param outputFile Base filename for the output file (without extension)
    * @param batchSize Number of features to process in each batch
@@ -969,7 +1015,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "streetCnt:Integer,"             // Number of streets in this region
       + "userCount:Integer,"             // Number of unique users who labeled in this region
       + "auditCount:Integer,"            // Number of completed audits in this region
-      + "totalDistM:Double,"             // Total street distance in this region, meters (DBF caps names at 10 chars)
+      + "totalDistM:Double,"             // Total street distance in this region, meters
       + "audDistM:Double,"               // Distance audited with current imagery in this region, meters
       + "outdDistM:Double,"              // Distance needing re-audit (all audits predate newer imagery), meters
       + "complRate:Double,"              // Fraction of street distance audited with current imagery (0.0–1.0)
