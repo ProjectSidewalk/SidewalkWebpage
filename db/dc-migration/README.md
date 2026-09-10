@@ -60,8 +60,9 @@ harness/postclean.sh                 # shape it like a city; prints the remainin
   at boot. The merge now re-points both at `sidewalk_login` first and refuses to drop the schema while anything in
   the city schema still depends on it. Re-running the merge after a fresh `make import-dump db=sidewalk_dc` over an
   already-merged `sidewalk_login` is a no-op for accounts (everything maps by id or email, nothing is inserted), so
-  a re-import never needs `make import-users`. Avoid that anyway: the July users dump predates 372, and nothing
-  would re-convert the restored login schema since every city's `play_evolutions` is already past it.
+  a re-import never needs `make import-users`. If you run it anyway, keep to its default merge: `replace=1` would
+  restore the July users dump, which predates 372, and nothing would re-convert that login schema since every city's
+  `play_evolutions` is already past it.
 
 ### Legacy-data decisions the overlay encodes (all Mikey's, 2026-09-02)
 
