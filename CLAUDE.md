@@ -55,12 +55,12 @@ file, and this table says which doc to read first:
 ## Before a change is done
 
 - **Scala:** `make scalafmt-fix` (a blocking CI gate). Compile check without fighting the developer's `sbt ~ run`:
-  `docker exec projectsidewalk-web bash -lc "cd /home && sbt --client compile"`. `-Xfatal-warnings` is on, so a
+  `docker exec projectsidewalk-web bash -lc "cd /home && sbt --jvm-client compile"`. `-Xfatal-warnings` is on, so a
   success is warning-clean.
-- **Frontend:** `make lint` (ESLint, Stylelint, HTMLHint, locale parity, CSS layout, asset paths, evolutions lint;
-  all blocking CI gates), or scope it with `make eslint dir=…` / `make stylelint dir=…`. `make lint-fix` handles the
-  mechanical fixes. The tree is lint-clean, so any finding is from your change.
-- **Tests:** `sbt --client test` (same `docker exec`; needs the db container), `make test-js` (jsdom unit suite),
+- **Frontend:** `make lint` (ESLint, Stylelint, HTMLHint, locale parity, CSS layout, asset paths, vendor versions,
+  evolutions lint; all blocking CI gates), or scope it with `make eslint dir=…` / `make stylelint dir=…`.
+  `make lint-fix` handles the mechanical fixes. The tree is lint-clean, so any finding is from your change.
+- **Tests:** `sbt --jvm-client test` (same `docker exec`; needs the db container), `make test-js` (jsdom unit suite),
   `make test-e2e` against a running app, `make test-python`. Details and what CI gates: `docs/testing-and-ci.md`.
 
 ## Conventions the linters can't check
@@ -92,7 +92,8 @@ file, and this table says which doc to read first:
 Domain values (enum members, ranges, thresholds, and especially the mappings between them) come from the backend, a
 `/v3/api/...` endpoint or a value the controller passes to the view, and are never re-declared as frontend literals.
 Even a "trivial" constant encodes logic: severity 1–3 maps to good/ok/bad in opposite directions for positive
-features (curb ramps) and negative ones (obstacles). Source it; if no source exists, expose one as part of the task;
+features (curb ramps) and negative ones (obstacles) — which direction a type reads, or whether it's rated at all, is
+its `rating_scale`, from `/v3/api/labelTypes`. Source it; if no source exists, expose one as part of the task;
 only if genuinely unavoidable, centralize the literal with a comment saying why it isn't sourced.
 
 ## Label type colors and icons

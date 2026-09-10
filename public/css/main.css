@@ -138,6 +138,13 @@
   --color-label-crosswalk: var(--color-yellow-500);
   --color-label-signal: var(--color-mint-500);
 
+  /* Street audit-state colors. The map layer and the legend swatch both read these, so a swatch can't drift from
+     the line it stands for. Unaudited is warm rather than grey: the greys it used to sit in are already spoken for
+     by the region outline, the region fill and the basemap's own roads, so the streets most in need of a mapper
+     were the ones that receded. */
+  --color-street-audited: var(--color-asphalt-500);
+  --color-street-unaudited: var(--color-orange-600);
+
   /* Font stacks. Mulish handles ~all type (body, UI, headings H3 and below); Raleway is reserved for top-level H1/H2
        and the Small-Accent style. Mulish doesn't ship CJK glyphs, so its stack ends with Traditional-Chinese system
        fonts (PingFang TC on macOS/iOS, Microsoft JhengHei on Windows; Linux/Android fall through via sans-serif). The

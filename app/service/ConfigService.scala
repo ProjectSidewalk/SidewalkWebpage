@@ -59,7 +59,17 @@ case class CityInfo(
     cityNameFormatted: String,
     URL: String,
     visibility: String
-)
+) {
+
+  /**
+   * Whether this deployment is publicly launched, i.e. its `city-params.status` entry is `public`.
+   *
+   * The one place the rule lives for callers holding a [[CityInfo]], so a surface that decides whether to publish a
+   * deployment's address can't drift from the others. Any unrecognized status reads as not public: the failure that
+   * matters here is disclosing an unlaunched deployment, not withholding a launched one (#5259).
+   */
+  def isPublic: Boolean = visibility == "public"
+}
 case class CommonPageData(
     cityId: String,
     environmentType: String,
@@ -77,6 +87,9 @@ case class CommonPageData(
     buildDescribe: Option[String],
     buildDirty: Boolean,
     allCityInfo: Seq[CityInfo],
+    // Who volunteers contact about service hours, and the name they list as their supervisor (#4375).
+    volunteerEmail: String,
+    volunteerSupervisor: String,
     // Content-fingerprint digests for the assets JS builds URLs for, serialized once at startup by
     // AssetManifestService; stamped on every page for util.assetPath (#4893).
     assetDigestsJson: Html
@@ -387,8 +400,8 @@ case class CrossCityActivityWindows(byCity: Map[String, CityActivityWindow], tot
  * @param totalLabels             Non-tutorial, non-excluded labels (reconciles with the city's single-city total).
  * @param aiLabels                Subset of totalLabels authored by the AI role.
  * @param labelsWithSeverity      Subset of totalLabels that have a severity rating (a data-completeness signal).
- * @param labelsSeverityEligible  Labels whose type CAN take a severity (excludes NoSidewalk/Signal/Occlusion) — the
- *                                correct denominator for "% with severity".
+ * @param labelsSeverityEligible  Labels whose type CAN take a rating (LabelTypeEnum.ratedTypeNames) — the correct
+ *                                denominator for "% with severity".
  * @param labelsWithTags          Subset of totalLabels that have at least one tag applied.
  * @param labelsTagEligible       Labels whose type CAN take tags (types present in this deployment's tag table) — the
  *                                correct denominator for "% with tags".
@@ -2103,13 +2116,16 @@ class ConfigServiceImpl @Inject() (
         // Panoramax's API is public and keyless (#5185); the viewer ignores the token.
         else if (imagerySource == PanoSource.Panoramax) Future.successful("")
         else Future.failed(new Exception("No valid imagery source specified"))
-      gMapsApiKey: String        = config.get[String]("google-maps-api-key")
-      mapboxApiKey: String       = config.get[String]("mapbox-api-key")
-      allCityInfo: Seq[CityInfo] = getAllCityInfo(lang)
+      gMapsApiKey: String         = config.get[String]("google-maps-api-key")
+      mapboxApiKey: String        = config.get[String]("mapbox-api-key")
+      allCityInfo: Seq[CityInfo]  = getAllCityInfo(lang)
+      volunteerEmail: String      = config.get[String]("volunteer-email-address")
+      volunteerSupervisor: String = config.get[String]("volunteer-supervisor-name")
     } yield {
       CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imagerySource, imageryAccessToken, gMapsApiKey,
         mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime, BuildInfo.gitSha,
-        BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, assetManifestService.assetDigestsJson)
+        BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, volunteerEmail, volunteerSupervisor,
+        assetManifestService.assetDigestsJson)
     }
   }
 }

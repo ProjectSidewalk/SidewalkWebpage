@@ -3,15 +3,20 @@ package service
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, JsValue, Json}
 
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
+
 /**
- * Unit tests for OsmWayService's pure Overpass-response parsing and nearest-road selection (#4654). No application,
- * DB, or network required — the functions under test live on the companion object and take parsed JSON.
+ * Unit tests for OsmWayService's pure response parsing, chunk splitting, and nearest-road selection (#4654). No
+ * application, DB, or network required — the functions under test live on the companion object and take parsed JSON
+ * or a fake fetch.
  */
 class OsmWayServiceSpec extends PlaySpec {
+  implicit private val ec: ExecutionContext = ExecutionContext.global
 
-  /** Builds an Overpass `out tags;` batch response element for a way. */
+  /** Builds an OSM API multi-fetch response element for a live way. */
   private def wayWithTags(id: Long, tags: JsObject): JsObject = {
-    Json.obj("type" -> "way", "id" -> id, "tags" -> tags)
+    Json.obj("type" -> "way", "id" -> id, "version" -> 3, "tags" -> tags)
   }
 
   /** Builds an Overpass `out geom;` response element for a way along the given (lat, lon) points. */
@@ -28,15 +33,15 @@ class OsmWayServiceSpec extends PlaySpec {
     )
   }
 
-  "parseBatchResponse" should {
-    "map way ids to their full tag maps" in {
+  "parseWaysResponse" should {
+    "map live way ids to their full tag maps" in {
       val json: JsValue = Json.obj(
         "elements" -> Json.arr(
           wayWithTags(1L, Json.obj("maxspeed" -> "25 mph", "name" -> "Main St", "sidewalk" -> "both")),
           wayWithTags(2L, Json.obj("highway" -> "residential"))
         )
       )
-      val parsed = OsmWayService.parseBatchResponse(json)
+      val parsed = OsmWayService.parseWaysResponse(json)
       parsed.keySet mustBe Set(1L, 2L)
       (parsed(1L) \ "maxspeed").as[String] mustBe "25 mph"
       (parsed(1L) \ "name").as[String] mustBe "Main St"
@@ -44,29 +49,139 @@ class OsmWayServiceSpec extends PlaySpec {
       (parsed(2L) \ "maxspeed").asOpt[String] mustBe None
     }
 
-    "return an empty tag map for a way with no tags field" in {
-      val json: JsValue = Json.obj("elements" -> Json.arr(Json.obj("type" -> "way", "id" -> 5L)))
-      OsmWayService.parseBatchResponse(json) mustBe Map(5L -> Json.obj())
+    "leave out a deleted way, which the API returns with visible false and no tags" in {
+      val json: JsValue = Json.obj(
+        "elements" -> Json.arr(
+          wayWithTags(1L, Json.obj("highway" -> "primary")),
+          Json.obj("type" -> "way", "id" -> 116721547L, "version" -> 19, "visible" -> false)
+        )
+      )
+      OsmWayService.parseWaysResponse(json).keySet mustBe Set(1L)
     }
 
-    "ignore non-way elements and tolerate an empty or missing elements array" in {
+    "return an empty tag map for a live way with no tags field" in {
+      val json: JsValue = Json.obj("elements" -> Json.arr(Json.obj("type" -> "way", "id" -> 5L, "version" -> 1)))
+      OsmWayService.parseWaysResponse(json) mustBe Map(5L -> Json.obj())
+    }
+
+    "ignore non-way elements and tolerate an empty elements array" in {
       val json: JsValue = Json.obj("elements" -> Json.arr(Json.obj("type" -> "node", "id" -> 9L)))
-      OsmWayService.parseBatchResponse(json) mustBe Map.empty
-      OsmWayService.parseBatchResponse(Json.obj("elements" -> Json.arr())) mustBe Map.empty
-      OsmWayService.parseBatchResponse(Json.obj()) mustBe Map.empty
+      OsmWayService.parseWaysResponse(json) mustBe Map.empty
+      OsmWayService.parseWaysResponse(Json.obj("elements" -> Json.arr())) mustBe Map.empty
+    }
+
+    "throw on a body with no elements array, rather than read every requested way as gone" in {
+      a[RuntimeException] mustBe thrownBy(OsmWayService.parseWaysResponse(Json.obj()))
+      a[RuntimeException] mustBe thrownBy(OsmWayService.parseWaysResponse(Json.obj("error" -> "Bad Gateway")))
     }
   }
 
-  "truncationRemark" should {
-    "report the remark Overpass attaches to a query it cut short, and nothing for a complete response" in {
-      val cut = Json.obj(
-        "elements" -> Json.arr(wayWithTags(5L, Json.obj("highway" -> "primary"))),
-        "remark"   -> "runtime error: Query timed out in \"query\" at line 1 after 2 seconds."
+  "fetchSplittingOnNotFound" should {
+    val tags = Json.obj("highway" -> "residential")
+
+    /**
+     * A fake multi-fetch that 404s (None) any request naming a never-existing id, answering the rest with `tags`, and
+     * records every request it gets and every pause it is asked for. A request `failing` accepts fails outright.
+     */
+    class FakeApi(neverExisted: Set[Long], failing: Seq[Long] => Boolean = _ => false) {
+      var requests: List[Seq[Long]]                                  = Nil
+      var pauses: Int                                                = 0
+      def fetch(ids: Seq[Long]): Future[Option[Map[Long, JsObject]]] = {
+        requests = requests :+ ids
+        if (failing(ids)) Future.failed(new RuntimeException("503"))
+        else Future.successful(if (ids.exists(neverExisted)) None else Some(ids.map(_ -> tags).toMap))
+      }
+      def pause(): Future[Unit] = { pauses += 1; Future.unit }
+    }
+
+    def fetchAll(ids: Seq[Long], api: FakeApi): OsmWayService.ChunkFetch =
+      Await.result(OsmWayService.fetchSplittingOnNotFound(ids)(api.fetch, () => api.pause()), 5.seconds)
+
+    "fetch a chunk with no bad id in one request and no pause" in {
+      val api    = new FakeApi(Set.empty)
+      val result = fetchAll(1L to 8L, api)
+      result.live.keySet mustBe (1L to 8L).toSet
+      result.neverHeld mustBe Nil
+      api.requests mustBe List(1L to 8L)
+      api.pauses mustBe 0
+    }
+
+    "narrow a 404 down to the one bad id, keeping every other id, in a bisection rather than one request per id" in {
+      val api    = new FakeApi(Set(6L))
+      val result = fetchAll(1L to 8L, api)
+      result.live.keySet mustBe Set(1L, 2L, 3L, 4L, 5L, 7L, 8L)
+      result.neverHeld mustBe Seq(6L)
+      // 1-8 → 1-4 (ok), 5-8 → 5-6 → 5 (ok), 6 (404); then 7-8 (ok).
+      api.requests mustBe List(1L to 8L, 1L to 4L, 5L to 8L, 5L to 6L, Seq(5L), Seq(6L), 7L to 8L)
+      // One pause before each request after the first.
+      api.pauses mustBe api.requests.size - 1
+    }
+
+    "name every id in a chunk that is all bad ids" in {
+      val api    = new FakeApi(Set(1L, 2L))
+      val result = fetchAll(Seq(1L, 2L), api)
+      result.live mustBe Map.empty
+      result.neverHeld mustBe Seq(1L, 2L)
+      api.requests mustBe List(Seq(1L, 2L), Seq(1L), Seq(2L))
+    }
+
+    "propagate a failed request rather than treating it as a 404" in {
+      val boom                                                      = new RuntimeException("503")
+      val failing: Seq[Long] => Future[Option[Map[Long, JsObject]]] = _ => Future.failed(boom)
+      the[RuntimeException] thrownBy
+        Await.result(OsmWayService.fetchSplittingOnNotFound(Seq(1L, 2L))(failing), 5.seconds) mustBe boom
+    }
+
+    "propagate a failure in the second half even after the first half succeeded" in {
+      // 1-4 404s because 3 never existed, so it splits: 1-2 is fine, then 3-4 fails on the request itself.
+      val api = new FakeApi(neverExisted = Set(3L), failing = _ == Seq(3L, 4L))
+      a[RuntimeException] mustBe thrownBy(fetchAll(1L to 4L, api))
+      api.requests mustBe List(1L to 4L, 1L to 2L, 3L to 4L)
+    }
+  }
+
+  "lastVisibleTags" should {
+
+    /** One version of a way in an OSM API history document; `tags = None` with `visible = false` is a deletion. */
+    def version(n: Long, tags: Option[JsObject], visible: Boolean = true): JsObject = {
+      Json.obj("type" -> "way", "id" -> 116721547L, "version" -> n) ++
+        (if (visible) Json.obj() else Json.obj("visible" -> false)) ++
+        tags.map(t => Json.obj("tags" -> t)).getOrElse(Json.obj())
+    }
+    def history(versions: JsObject*): JsValue = Json.obj("elements" -> versions)
+
+    val bridgeV17 = Json.obj("highway" -> "trunk", "bridge" -> "yes", "layer" -> "1", "maxspeed" -> "40 mph")
+    val bridgeV18 = bridgeV17 ++ Json.obj("parking:lane:both" -> "no_stopping")
+
+    "take the last visible version's tags of a deleted way" in {
+      val aurora = history(version(17, Some(bridgeV17)), version(18, Some(bridgeV18)), version(19, None, false))
+      OsmWayService.lastVisibleTags(aurora) mustBe Some(bridgeV18)
+    }
+
+    "prefer the last version that was still a road over a later one retagged out of the network" in {
+      val retagged = history(
+        version(3, Some(bridgeV18)),
+        version(4, Some(Json.obj("landuse" -> "construction"))),
+        version(5, None, false)
       )
-      OsmWayService.truncationRemark(cut) mustBe
-        Some("runtime error: Query timed out in \"query\" at line 1 after 2 seconds.")
-      OsmWayService.truncationRemark(Json.obj("elements" -> Json.arr())) mustBe None
-      OsmWayService.truncationRemark(Json.obj("elements" -> Json.arr(), "remark" -> "")) mustBe None
+      OsmWayService.lastVisibleTags(retagged) mustBe Some(bridgeV18)
+    }
+
+    "fall back to the last tagged version when no version carried highway" in {
+      val noRoad = history(version(1, Some(Json.obj("name" -> "Old"))), version(2, Some(Json.obj("name" -> "New"))))
+      OsmWayService.lastVisibleTags(noRoad) mustBe Some(Json.obj("name" -> "New"))
+    }
+
+    "order by version number, not document order" in {
+      val shuffled = history(version(18, Some(bridgeV18)), version(17, Some(bridgeV17)))
+      OsmWayService.lastVisibleTags(shuffled) mustBe Some(bridgeV18)
+    }
+
+    "skip versions with no tags and return None when nothing is left" in {
+      OsmWayService.lastVisibleTags(history(version(1, Some(Json.obj())), version(2, None, false))) mustBe None
+      OsmWayService.lastVisibleTags(history(version(1, None))) mustBe None
+      OsmWayService.lastVisibleTags(Json.obj("elements" -> Json.arr())) mustBe None
+      OsmWayService.lastVisibleTags(Json.obj()) mustBe None
     }
   }
 

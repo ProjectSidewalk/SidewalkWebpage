@@ -60,6 +60,9 @@ describe('the dashboard mistake card\'s image', () => {
             EXPLORE_CANVAS_HEIGHT: 480,
         };
         installUtilitiesMisc(); // The real util.misc, so labelMarkerFraction under test is the shipped one.
+        // The imagery-credit overlays; dashboardMistakeCardAttribution.test.js checks them for real.
+        window.createPanoViewerLogo = () => ({ showSourceLogo: () => {}, hide: () => {} });
+        window.createPanoAttribution = () => ({ show: () => {}, hide: () => {} });
         window.eval(`${GALLERY_SRC}\nwindow.MistakeGallery = MistakeGallery;`);
     });
 

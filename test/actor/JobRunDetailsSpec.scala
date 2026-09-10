@@ -30,8 +30,8 @@ class JobRunDetailsSpec extends PlaySpec {
     }
 
     "record the OSM way refresh under the key its readers use" in {
-      OsmWayRefreshActor.runDetails(OsmWayRefreshResult(13, 2)) mustBe
-        Json.obj("ways_refreshed" -> 13, "ways_missing" -> 2)
+      OsmWayRefreshActor.runDetails(OsmWayRefreshResult(13, 2, 3, 1)) mustBe
+        Json.obj("ways_refreshed" -> 13, "ways_missing" -> 2, "tags_recovered" -> 3, "tags_unrecoverable" -> 1)
     }
 
     "record clustering under the keys its readers use" in {
@@ -54,8 +54,8 @@ class JobRunDetailsSpec extends PlaySpec {
     "record crop generation's every count, and the rule that cut the store" in {
       CropRunResult(
         panosOpened = 20, panosWithoutBackup = 21, cropsWritten = 22, shiftedVertically = 23, outOfFrame = 24,
-        dimsMismatch = 25, dimsUnverified = 26, sidecarsPresent = 27, sidecarsMissing = 28, sidecarWidthUnknown = 30,
-        sidecarMaxWidth = 8192, provenanceExplore = 31, provenanceWindow = 32, provenanceUnresolved = 33, errors = 29
+        dimsMismatch = 25, dimsUnverified = 26, provenanceExplore = 31, provenanceWindow = 32,
+        provenanceUnresolved = 33, errors = 29
       ).runDetails mustBe Json.obj(
         "crop_rule_version"     -> CropSizingRule.Version,
         "panos_opened"          -> 20,
@@ -65,10 +65,6 @@ class JobRunDetailsSpec extends PlaySpec {
         "out_of_frame"          -> 24,
         "dims_mismatch"         -> 25,
         "dims_unverified"       -> 26,
-        "sidecars_present"      -> 27,
-        "sidecars_missing"      -> 28,
-        "sidecar_width_unknown" -> 30,
-        "sidecar_max_width"     -> 8192,
         "provenance_explore"    -> 31,
         "provenance_window"     -> 32,
         "provenance_unresolved" -> 33,

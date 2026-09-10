@@ -1,7 +1,7 @@
 /**
  * Saves the User Dashboard Settings form (#4323) in one request: an optional username change plus the two privacy
  * flags, the service-hours opt-in (#4375), the measurement-units choice (#4404), and the user's team. Posts JSON to
- * the settings save endpoint; CSRF is added by the global fetch wrapper.
+ * the settings save endpoint through the shared `saveUserSettings` helper.
  * A rejected username (taken, too short, disallowed characters, profanity) comes back as a 400 with a message that
  * is shown inline without applying the rest.
  * Nothing saves as you type, so an UnsavedChangesGuard offers to save pending edits on the way out (#5226).
@@ -70,13 +70,8 @@ class Settings {
     this.saveBtn.setAttribute('disabled', 'disabled');
     this.#setStatus(i18next.t('dashboard:settings-form.saving'), null);
     try {
-      const res = await fetch(this.saveUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.success) {
+      const { ok, error } = await saveUserSettings(this.saveUrl, payload);
+      if (ok) {
         this.currentUsername = payload.username || this.currentUsername;
         // Hand the written team to the controls, so a second save skips it and Leave speaks for it, not the old one.
         if (payload.teamId !== null) TeamActions.settingsTeamSaved(payload.teamId);
@@ -94,12 +89,7 @@ class Settings {
         this.#setStatus(i18next.t('dashboard:settings-form.saved'), true);
         return true;
       }
-      // Server errors arrive already localized (Play messages keyed off the request language).
-      this.#setStatus(data.error || i18next.t('dashboard:settings-form.save-failed'), false);
-      return false;
-    } catch (e) {
-      console.error('Failed to save settings', e);
-      this.#setStatus(i18next.t('dashboard:settings-form.save-failed'), false);
+      this.#setStatus(error || i18next.t('dashboard:settings-form.save-failed'), false);
       return false;
     } finally {
       this.saveBtn.removeAttribute('disabled');

@@ -192,6 +192,8 @@ case class LabelMetadataUserDash(
     labelId: Int,
     panoId: String,
     panoSource: PanoSource,
+    copyright: Option[String],
+    license: Option[String],
     pov: POV,
     canvasX: Int,
     canvasY: Int,
@@ -349,12 +351,25 @@ object LabelTable {
 
   // Type aliases for the tuple representation of LabelMetadataUserDash and queries for them.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
-  type LabelMetadataUserDashTuple =
-    (Int, String, PanoSource, (Double, Double, Double), Int, Int, String, OffsetDateTime, Option[String])
+  type LabelMetadataUserDashTuple = (
+      Int,
+      String,
+      PanoSource,
+      Option[String],
+      Option[String],
+      (Double, Double, Double),
+      Int,
+      Int,
+      String,
+      OffsetDateTime,
+      Option[String]
+  )
   type LabelMetadataUserDashTupleRep = (
       Rep[Int],                                // labelId
       Rep[String],                             // panoId
       Rep[PanoSource],                         // panoSource
+      Rep[Option[String]],                     // copyright
+      Rep[Option[String]],                     // license
       (Rep[Double], Rep[Double], Rep[Double]), // pov (heading, pitch, zoom)
       Rep[Int],                                // canvasX
       Rep[Int],                                // canvasY
@@ -367,7 +382,8 @@ object LabelTable {
   implicit val labelMetadataUserDashConverter: TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] =
     new TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] {
       def fromTuple(t: LabelMetadataUserDashTuple): LabelMetadataUserDash =
-        LabelMetadataUserDash(t._1, t._2, t._3, POV.tupled(t._4), t._5, t._6, LabelTypeEnum.byName(t._7), t._8, t._9)
+        LabelMetadataUserDash(t._1, t._2, t._3, t._4, t._5, POV.tupled(t._6), t._7, t._8, LabelTypeEnum.byName(t._9),
+          t._10, t._11)
     }
 
   // Type alias for the tuple representation of LabelForLabelMap query results. Includes streetEdgeId (2nd element,
@@ -996,6 +1012,23 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param userIds The users to break down.
    * @return DBIO[Seq[(userId, labelType, count)]].
    */
+  /**
+   * Label counts broken down by label type for a single street (#5258).
+   *
+   * Uses the `labels` subquery, so deleted/tutorial/excluded-user labels are already excluded -- the same population
+   * the map and the Gallery report, so the street's card can't claim labels the rest of the site won't show.
+   *
+   * @param streetEdgeId The street to break down.
+   * @return DBIO[Seq[(labelType, count)]], for the label types actually present on the street.
+   */
+  def getLabelTypeCountsForStreet(streetEdgeId: Int): DBIO[Seq[(String, Int)]] = {
+    labels
+      .filter(_.streetEdgeId === streetEdgeId)
+      .groupBy(_.labelTypeName)
+      .map { case (labelType, group) => (labelType, group.length) }
+      .result
+  }
+
   def getLabelTypeCountsForUsers(userIds: Seq[String]): DBIO[Seq[(String, String, Int)]] = {
     (for {
       _label <- labels if _label.userId inSet userIds
@@ -1639,6 +1672,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lb.labelId,
       _lb.panoId,
       _pd.source,
+      _pd.copyright,
+      _pd.license,
       (_lp.heading.asColumnOf[Double], _lp.pitch.asColumnOf[Double], _lp.zoom.asColumnOf[Double]),
       _lp.canvasX,
       _lp.canvasY,
@@ -1647,8 +1682,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _vc._6
     )
 
-    // Get the most recent matching validation for each label.
-    _validations.sortBy(r => (r._1, r._7.desc)).distinctOn(_._1)
+    // Don't drop `.subquery`: without it the two sorts flatten into one ORDER BY that Postgres rejects.
+    _validations.sortBy(r => (r._1, r._10.desc)).distinctOn(_._1).subquery.sortBy(_._10.desc)
   }
 
   /**

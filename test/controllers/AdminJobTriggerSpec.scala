@@ -50,7 +50,7 @@ import scala.concurrent.Future
  * and read the row back.
  *
  * The work itself is stubbed. Left alone these recompute a whole city's user stats, funnels and street priorities,
- * shell out to the Python clusterer, and call out to Overpass and the imagery providers; the assertion here is about
+ * shell out to the Python clusterer, and call out to the OSM API and the imagery providers; the assertion here is about
  * the bookkeeping around the call, not the call's arithmetic, which each service's own spec covers.
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the
@@ -65,20 +65,20 @@ class AdminJobTriggerSpec
     with Eventually {
 
   // Distinctive values, so an assertion can tell the stub's answer from anything the connected city really holds.
-  private val UsersUpdated   = 4611
-  private val FunnelRows     = 4612
-  private val WaysRefreshed  = OsmWayRefreshResult(waysRefreshed = 4613, waysMissing = 27)
+  private val UsersUpdated  = 4611
+  private val FunnelRows    = 4612
+  private val WaysRefreshed =
+    OsmWayRefreshResult(waysRefreshed = 4613, waysMissing = 27, tagsRecovered = 19, tagsUnrecoverable = 2)
   private val ImageryResult  = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1, reconciled = Some(3))
   private val ClusterResults = ClusteringResults(labelCount = 4614, clusterCount = 4615)
   private val CropResult     = CropRunResult(
     panosOpened = 4616, panosWithoutBackup = 4617, cropsWritten = 4618, shiftedVertically = 4619, outOfFrame = 4620,
-    dimsMismatch = 4621, dimsUnverified = 4622, sidecarsPresent = 4625, sidecarsMissing = 4626,
-    sidecarWidthUnknown = 4627, sidecarMaxWidth = 8192, provenanceExplore = 4628, provenanceWindow = 4629,
+    dimsMismatch = 4621, dimsUnverified = 4622, provenanceExplore = 4628, provenanceWindow = 4629,
     provenanceUnresolved = 4630, errors = 4624
   )
 
   /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */
-  @volatile private var osmWayAnswer: Future[OsmWayRefreshResult] = Future.successful(OsmWayRefreshResult(0, 0))
+  @volatile private var osmWayAnswer: Future[OsmWayRefreshResult] = Future.successful(OsmWayRefreshResult.empty)
 
   /** Set per test: whether the crop service reports a run in flight, which is the trigger's refusal path. */
   @volatile private var cropRunning: Boolean = false

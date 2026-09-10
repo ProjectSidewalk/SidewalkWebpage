@@ -152,7 +152,7 @@ class StoriesSection {
       edit.setAttribute('aria-label', i18next.t('labelmap:story.edit-aria', { labelType: typeName, date: postedDate }));
       edit.addEventListener('click', () => {
         // Problem-vs-feature phrasing comes from the payload's LabelTypeEnum-sourced flag, never derived here.
-        this.#composer.setCopyVariant(story.is_access_problem);
+        this.#composer.setCopyVariant(story.access_impact);
         this.#composer.openForEdit(story, this.#maxTextLength);
       });
       meta.appendChild(edit);

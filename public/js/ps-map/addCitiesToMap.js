@@ -140,9 +140,10 @@ function addCitiesToMap(map, citiesData, params) {
       const properties = feature.properties;
       const coordinates = feature.geometry.coordinates.slice();
 
-      // On localhost, for testing, I've just been using the following (otherwise we run into CORS issues):
-      // const statsUrl = `v3/api/overallStats`;
-      const statsUrl = `${properties.url}/v3/api/overallStats`;
+      // The API withholds a url for every deployment that isn't publicly launched (#5259), so branch on the url
+      // rather than on `visibility`. That keeps the client from disagreeing with the server about which cities
+      // those are: a third status value would otherwise land here still reaching for a url that isn't there.
+      const isPublicDeployment = Boolean(properties.url);
 
       // Immediately show a simple loading message.
       const loadingMessage = i18next.t('common:cities-map.loading-stats');
@@ -154,34 +155,41 @@ function addCitiesToMap(map, citiesData, params) {
       // Populate the parts of the template that do not depend on the stats API.
       popupContent.querySelector('.popup-title').textContent = properties.city_name_formatted;
       const exploreLink = popupContent.querySelector('.popup-link');
-      if (properties.visibility === 'private') {
+      if (!isPublicDeployment) {
         const privateMessage = document.createElement('div');
         privateMessage.className = 'popup-private-message';
         privateMessage.textContent = i18next.t('common:cities-map.private-deployment');
         exploreLink.replaceWith(privateMessage);
+        // The stats come from the deployment's own API, so with no url there is nothing to ask. Drop the grid
+        // rather than leave three placeholder dashes standing where numbers used to be.
+        popupContent.querySelector('.popup-stats-grid').remove();
       } else {
         exploreLink.href = `${properties.url}/explore`;
         exploreLink.setAttribute('cityId', properties.city_id);
         exploreLink.textContent = i18next.t('common:cities-map.explore', { cityName: properties.city_name_short });
       }
 
-      try {
-        // We only TRY to fetch and populate the stats.
-        const response = await fetch(statsUrl);
-        if (!response.ok) throw new Error('Network response was not ok');
-        const stats = await response.json();
+      if (isPublicDeployment) {
+        try {
+          // We only TRY to fetch and populate the stats.
+          // On localhost, for testing, I've just been using the following (otherwise we run into CORS issues):
+          // const response = await fetch(`v3/api/overallStats`);
+          const response = await fetch(`${properties.url}/v3/api/overallStats`);
+          if (!response.ok) throw new Error('Network response was not ok');
+          const stats = await response.json();
 
-        // If successful, fill in the stat values.
-        popupContent.querySelector('[data-stat="distance"]').textContent = formatDistance(stats.km_explored || 0);
-        popupContent.querySelector('[data-stat="labels"]').textContent = formatNumber(stats.labels.label_count || 0);
-        // overallStats nests validation totals under combined/human/ai; "combined" is the human+AI total (#4591).
-        popupContent.querySelector('[data-stat="validations"]').textContent = formatNumber(
-          stats.validations.combined?.total_validations || 0,
-        );
-      } catch (error) {
-        // If the fetch fails, just log the error. The popup will still be shown,
-        // but the stats will be the default placeholder values from the template.
-        console.error('Failed to fetch city stats:', error);
+          // If successful, fill in the stat values.
+          popupContent.querySelector('[data-stat="distance"]').textContent = formatDistance(stats.km_explored || 0);
+          popupContent.querySelector('[data-stat="labels"]').textContent = formatNumber(stats.labels.label_count || 0);
+          // overallStats nests validation totals under combined/human/ai; "combined" is the human+AI total (#4591).
+          popupContent.querySelector('[data-stat="validations"]').textContent = formatNumber(
+            stats.validations.combined?.total_validations || 0,
+          );
+        } catch (error) {
+          // If the fetch fails, just log the error. The popup will still be shown,
+          // but the stats will be the default placeholder values from the template.
+          console.error('Failed to fetch city stats:', error);
+        }
       }
 
       // Finally, update the popup with the content, which will have stats if they loaded.

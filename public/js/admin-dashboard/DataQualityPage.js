@@ -260,14 +260,6 @@ class DataQualityPage {
   #renderTagSeverity(rows) {
     const el = document.getElementById('dq-tag-severity');
     if (!el) return;
-    const hasSeverity = (t) => {
-      try {
-        return util.misc.labelTypeHasSeverity(t);
-      } catch {
-        return true;
-      }
-    };
-
     const byType = new Map();
     for (const r of rows) {
       if (!byType.has(r.label_type)) byType.set(r.label_type, new Map());
@@ -279,7 +271,7 @@ class DataQualityPage {
     }
 
     const blocks = this.#order
-      .filter((type) => byType.has(type) && hasSeverity(type))
+      .filter((type) => byType.has(type) && this.#hasSeverity(type))
       .map((type) => {
         const color = this.#color(type);
         const tags = [...byType.get(type).entries()]

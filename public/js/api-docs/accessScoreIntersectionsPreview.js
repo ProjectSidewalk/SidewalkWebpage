@@ -125,7 +125,8 @@
     /** Wire up the click popup for the intersection layer, including a compact per-type cluster breakdown. */
     addIntersectionPopups(map) {
       map.on('click', INTERSECTION_LAYER, (e) => {
-        const p = e.features[0].properties;
+        const feature = e.features[0];
+        const p = feature.properties;
         const score = (p.score === null || p.score === undefined) ? 'N/A (unscored)' : p.score.toFixed(3);
         const counts = ApiDocsMap.featureProp(p, 'cluster_counts') || {};
         const breakdown = Object.keys(counts).filter((k) => counts[k] > 0).map((k) => `${k}: ${counts[k]}`).join(', ')
@@ -138,8 +139,30 @@
           <p><strong>Streets:</strong> ${p.degree} &nbsp; <strong>Audits:</strong> ${p.audit_count} &nbsp;
             <strong>Labels:</strong> ${p.label_count}</p>
           <p class="as-breakdown"><strong>Clusters:</strong> ${breakdown}</p>
+          ${this.exploreHereLink(feature)}
         `);
       });
+    },
+
+    /**
+     * Builds the popup's call to action into Explore, or an empty string where it would be a dead end.
+     *
+     * @param {object} feature - The clicked intersection feature.
+     * @returns {string} The link's HTML, or '' on mobile.
+     */
+    exploreHereLink(feature) {
+      // /explore sends a mobile visitor to /mobileLanding before reading any of this, and these docs pages are read
+      // on phones, so the link can only take the reader somewhere they didn't ask to go. LabelDetail hides its own
+      // "Explore here" for the same reason.
+      if (util.isMobile()) return '';
+      // The intersection's own centroid, not e.lngLat: the click lands wherever in the circle the pointer was, and
+      // Explore's lat/lng drop-in should start the user at the corner the score describes.
+      const [lng, lat] = feature.geometry.coordinates;
+      return `
+        <a href="/explore?lat=${lat}&amp;lng=${lng}" class="button-ps button--primary button--tiny"
+          target="_blank" rel="noopener">
+          Explore here<span class="map-popup__sr-only"> (opens in a new tab)</span>
+        </a>`;
     },
 
     /** Show an on-map message (e.g. when there is no data). */

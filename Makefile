@@ -4,7 +4,8 @@
         import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
         hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
-        lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths scalafmt scalafmt-fix \
+        lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-vendor-versions \
+        scalafmt scalafmt-fix \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
         lint-eslint lint-htmlhint lint-stylelint lint-fix-eslint lint-fix-stylelint
 
@@ -111,7 +112,8 @@ stylelint-fix: | lint-fix-stylelint
 # then prints a ✓/✗ per linter and a colored summary. Exits non-zero if any failed.
 lint:
 	@fail=0; \
-	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-asset-paths lint-evolutions; do \
+	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-asset-paths \
+			lint-vendor-versions lint-evolutions; do \
 		if $(MAKE) --no-print-directory $$t; then \
 			printf "$(GREEN)✓ %s passed$(RESET)\n" "$$t"; \
 		else \
@@ -332,13 +334,23 @@ lint-asset-paths:
 	@docker exec $(web-container) bash -lc "cd /home && node tools/check-asset-paths.mjs"
 	@echo "Finished checking asset paths";
 
-# Scala formatting (.scalafmt.conf). The sbt thin client (`--client`) shares the running `sbt ~ run`'s server instead
-# of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.
+# Self-hosted libraries in public/vendor/ (#4399): every folder is listed in docs/upgrading-libraries.md, and the
+# versions there match the ones in the filenames. No Dependabot ecosystem watches that folder, so that doc is the
+# only inventory these libraries have, and it's hand-copied. Pure node, run in the web container so node is
+# present. Also a blocking CI step.
+lint-vendor-versions:
+	@echo "Checking vendor versions...";
+	@docker exec $(web-container) bash -lc "cd /home && node tools/check-vendor-versions.mjs"
+	@echo "Finished checking vendor versions";
+
+# Scala formatting (.scalafmt.conf). The sbt thin client (`--jvm-client`) shares the running `sbt ~ run`'s server
+# instead of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats
+# in place.
 scalafmt:
-	@echo "Checking Scala formatting..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --client scalafmtCheckAll"
+	@echo "Checking Scala formatting..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --jvm-client scalafmtCheckAll"
 
 scalafmt-fix:
-	@echo "Formatting Scala..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --client scalafmtAll"
+	@echo "Formatting Scala..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --jvm-client scalafmtAll"
 
 # The JS/CSS/HTML linters run in the web container, where their node_modules live (no host-side npm install).
 # `-e FORCE_COLOR=1` (not `docker exec -t`) restores colorized output while keeping the targets pipeable.

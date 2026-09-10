@@ -6,7 +6,7 @@ import models.label.{LabelPointTable, LabelTypeEnum, POV}
 import models.pano.PanoSource.PanoSource
 import models.pano._
 import models.street.StreetEdge
-import models.utils.{CommonUtils, ImageUtils, MyPostgresProfile}
+import models.utils.{CommonUtils, MyPostgresProfile}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import org.locationtech.jts.geom.Point
@@ -50,13 +50,6 @@ object PanoDataService {
    * label was placed.
    */
   val LiveImageryTtlDays: Long = 7
-
-  /**
-   * How we identify ourselves to Panoramax (#5185). Its API is keyless and community-run, so unlike GSV and
-   * Mapillary — where the key already says who is calling — nothing else tells the operators whose traffic this is
-   * or where to write if it misbehaves.
-   */
-  val PanoramaxUserAgent: String = "ProjectSidewalk/1.0 (+https://projectsidewalk.org; sidewalk@cs.uw.edu)"
 
   /**
    * How many panos the nightly expiry sweep may have in flight at once (#4559).
@@ -381,9 +374,6 @@ trait PanoDataService {
   def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean
   def cropUrl(labelId: Int, labelType: LabelTypeEnum.Base): Option[String]
   def localBackupImageFile(panoId: String): Option[File]
-  def downscaledImageFile(panoId: String): File
-  def localDownscaledImageFile(panoId: String): Option[File]
-  def downscaledMaxWidth: Int
   def getLocalBackupImage(panoId: String): Future[Option[PanoData]]
 }
 
@@ -419,10 +409,6 @@ class PanoDataServiceImpl @Inject() (
   // Both resolved through MediaDirs, the same resolver PersistentMediaDirCheck models the write paths with (#4925).
   private val cropsDir: File     = MediaDirs.cityDir(config, environment, "cropped.image.directory")
   private val panosBaseDir: File = MediaDirs.cityDir(config, environment, "pano.images.directory")
-
-  // The app's half of a constant the scraper also holds (its DOWNSCALED_MAX_WIDTH). Nothing can cross-check them, so
-  // it lives in one place on this side and the nightly job reports it with the coverage it measured.
-  val downscaledMaxWidth: Int = config.get[Int]("pano.downscaled.max-width")
 
   def getInfra3dToken(cityId: String): Future[String] = {
     // Token expires after 60 minutes, so we don't need to get a new token every time.
@@ -576,7 +562,7 @@ class PanoDataServiceImpl @Inject() (
    */
   private def panoramaxPanoExists(panoId: String): Future[Option[Boolean]] = {
     ws.url(s"https://api.panoramax.xyz/api/pictures/$panoId")
-      .addHttpHeaders("User-Agent" -> PanoDataService.PanoramaxUserAgent)
+      .addHttpHeaders("User-Agent" -> OutboundHttp.UserAgent)
       .withRequestTimeout(5.seconds)
       .get()
       .flatMap { response =>
@@ -835,28 +821,6 @@ class PanoDataServiceImpl @Inject() (
       .map(ext => new File(dir, s"$panoId.$ext"))
       .find(_.exists())
   }
-
-  /**
-   * Where a pano's downscaled display sidecar is, or would be: `<panoId>.w<cap>.jpg` beside the native file (#5239).
-   * The width is in the name, so a cap change looks for a different sidecar rather than trusting a stale one — and
-   * so the nightly job's coverage count can stat the name without opening anything.
-   */
-  def downscaledImageFile(panoId: String): File =
-    new File(new File(panosBaseDir, panoId.take(2)), s"$panoId.w$downscaledMaxWidth.jpg")
-
-  /**
-   * That sidecar when the scraper has written one and its header agrees with the cap (#5239). The app never cuts this
-   * copy itself: a whole-pano derivative needs more heap than a city stage has.
-   *
-   * The header check catches a copy of the wrong size and one whose header won't parse; it does not catch a truncated
-   * file, whose SOF marker sits in the first few hundred bytes and still reports the full declared width. Truncation
-   * is prevented at the source instead, by the scraper writing through a temporary name and renaming.
-   */
-  def localDownscaledImageFile(panoId: String): Option[File] =
-    Some(downscaledImageFile(panoId)).filter(_.isFile).filter { file =>
-      try ImageUtils.withReader(file)((_, width, _) => width == downscaledMaxWidth)
-      catch { case NonFatal(_) => false }
-    }
 
   /**
    * Returns the pano_data row for a pano if a self-hosted image exists AND all required fields are populated.

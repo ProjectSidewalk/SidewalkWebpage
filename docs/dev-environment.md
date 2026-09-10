@@ -291,15 +291,19 @@ make dev
 
 ### Checking that backend changes compile
 
-The quickest pass/fail on a Scala change is a compile. The sbt **thin client** uses its own server, so it won't
-collide with a running `sbt ~ run`:
+The quickest pass/fail on a Scala change is a compile. The sbt **thin client** hands the command to a background
+sbt server, so it won't collide with a running `sbt ~ run` over build locks:
 
 ```bash
-docker exec projectsidewalk-web bash -lc "cd /home && sbt --client compile"
+docker exec projectsidewalk-web bash -lc "cd /home && sbt --jvm-client compile"
 ```
 
 The first call after a container boot starts the compile server (~30s); later calls are near-instant. `build.sbt`
 sets `-Xfatal-warnings`, so a `[success]` is also warning-clean.
+
+Use `--jvm-client`, not `--client`: the native client (`sbtn`) needs a newer glibc than the container's focal base,
+so it dies on startup, though `sbt --client --version` still prints happily (#5268). A server belongs to one project
+directory, so each worktree gets its own; `sbt shutdownall` stops every one of them, the running `~ run` included.
 
 ### Running the backend tests
 
@@ -307,8 +311,8 @@ ScalaTest specs live under `test/` — mostly functional specs for the public AP
 specs. They boot the real app against Postgres+PostGIS, so the `db` container has to be up:
 
 ```bash
-docker exec projectsidewalk-web bash -lc "cd /home && sbt --client test"
-docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly controllers.api.PublicApiSpec\""
+docker exec projectsidewalk-web bash -lc "cd /home && sbt --jvm-client test"
+docker exec projectsidewalk-web bash -lc "cd /home && sbt --jvm-client \"testOnly controllers.api.PublicApiSpec\""
 ```
 
 The `backend-tests` CI job is a required check and runs **all of `test/`** (`sbt coverage test`, since #5042), so a
@@ -353,8 +357,8 @@ make qa-worktree wt=<worktree-name>
 A worktree needs more setup than the main repo (its `node_modules` and built asset bundles aren't checked in, and
 sbt's caches and config have to be pointed at the right places), so this target handles all of it: it links the main
 repo's `node_modules`, builds that branch's JS/CSS bundles, starts a backgrounded `grunt watch` so later edits
-rebuild automatically, frees `:9000`, kills any stray `sbt --client` server or hung `sbtn` task sharing the worktree's
-`target/` (either deadlocks `~ run` on compile locks), and launches `sbt ~ run` against the worktree's own config
+rebuild automatically, frees `:9000`, kills any stray sbt server or hung sbt task sharing the worktree's `target/`
+(either deadlocks `~ run` on compile locks), and launches `sbt ~ run` against the worktree's own config
 while reusing the main repo's warm sbt caches. The first request triggers the dev compile; `Ctrl+C` stops it and
 reaps the grunt watch. To tear a session down out-of-band, run `make qa-worktree-stop wt=<name>` (add `clean=1` to
 also drop the `node_modules` symlink). It behaves the same on macOS, Linux, and WSL because the work runs inside the
