@@ -127,8 +127,8 @@ class LabelClustersApiController @Inject() (
               val clusterWriter  = Files.newBufferedWriter(clusterCsvPath)
               val labelWriter    = Files.newBufferedWriter(labelCsvPath)
 
-              clusterWriter.write(LabelClusterForApi.csvHeader)
-              labelWriter.write(RawLabelInClusterDataForApi.csvHeader)
+              clusterWriter.write(LabelClusterForApi.csvHeader + "\n")
+              labelWriter.write(RawLabelInClusterDataForApi.InCluster.csvHeader + "\n")
 
               dbDataStream
                 .grouped(DEFAULT_BATCH_SIZE)
@@ -138,7 +138,9 @@ class LabelClustersApiController @Inject() (
                     clusterWriter.write("\n")
                     cluster.labels.foreach { labelsList =>
                       labelsList.foreach { label =>
-                        labelWriter.write(RawLabelInClusterDataForApi.toCsvRow(cluster.labelClusterId, label))
+                        labelWriter.write(
+                          RawLabelInClusterDataForApi.InCluster.toCsvRow((cluster.labelClusterId, label))
+                        )
                         labelWriter.write("\n")
                       }
                     }

@@ -2,7 +2,7 @@ package models.api
 
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import play.api.libs.json.{JsObject, JsValue}
+import play.api.libs.json.{JsNull, JsObject, JsValue}
 
 import java.time.Duration
 
@@ -52,9 +52,9 @@ class OverallStatsApiModelsSpec extends AnyFunSuite with Matchers {
       avgImageAgeByLabel = None,
       stddevLabelTimestamp = Some(Duration.ofDays(120)),
       stddevImageAgeByLabel = Some(Duration.ofDays(365)),
-      severityByLabelType = Map.empty,
+      severityByLabelType = Map("CurbRamp" -> LabelSevStats(30, Some(25), Some(1.2), Some(0.5))),
       validations = ValidationStats(
-        // "Other" has accuracy = None on purpose, to assert the null-accuracy key is omitted (writeNullable behavior).
+        // "Other" has accuracy = None on purpose, so the null-accuracy assertions have something to bite on.
         combined = source(
           100,
           LabelAccuracy(80, 70, 10, Some(0.875), 90),
@@ -136,31 +136,44 @@ class OverallStatsApiModelsSpec extends AnyFunSuite with Matchers {
     (labels \ "stddev_age_of_image_when_labeled").as[String] shouldBe "365 days"
   }
 
-  test("null accuracy is omitted, but the other fields remain") {
+  test("a label type with no validations keeps every key, with a null accuracy") {
     val json  = sampleStats.toJson
     val other = json \ "validations" \ "combined" \ "Other"
-    (other \ "accuracy").toOption shouldBe None
+    (other \ "accuracy").get shouldBe JsNull
     (other \ "validated").as[Int] shouldBe 0
     (other \ "has_a_validation").as[Int] shouldBe 0
+
+    sampleStats.toCsvRows should contain("validations.combined.Other.accuracy,")
   }
 
-  test("CSV output is snake_case key/value rows covering the same stats as the JSON (#3871)") {
+  test("CSV keys are the dotted JSON path of the value they carry (#3871, #4320)") {
     val rows = sampleStats.toCsvRows
 
     rows.head shouldBe "launch_date,2021-06-15"
     rows should contain("km_explored,10.0")
     rows should contain("km_needs_reaudit,1.5")
-    rows should contain("registered_user_count,2")
-    rows should contain("stddev_label_timestamp,120 Days")
+    rows should contain("km_by_status.open,12.0")
+    rows should contain("user_counts.registered,2")
+    rows should contain("labels.count,50")
+    rows should contain("labels.stddev_label_timestamp,120 days")
+    rows should contain("labels.CurbRamp.severity_stddev,0.5")
 
-    // Each validation source is prefixed, so the three blocks stay distinguishable in the flat CSV.
-    rows should contain("combined_total_validations,100")
-    rows should contain("human_total_validations,90")
-    rows should contain("ai_total_validations,10")
-    rows should contain("combined_curb_ramp_labels_validated,40")
+    rows should contain("validations.combined.total_validations,100")
+    rows should contain("validations.human.total_validations,90")
+    rows should contain("validations.ai.total_validations,10")
+    rows should contain("validations.combined.CurbRamp.validated,40")
 
-    rows should contain("combined_other_accuracy,NA")
-    rows should contain("average_label_timestamp,NA")
+    rows should contain("labels.avg_label_timestamp,") // A missing value is an empty cell.
+  }
+
+  test("every CSV key names a real path into the JSON, and vice versa (#4320)") {
+    def jsonPaths(prefix: String, value: JsValue): Seq[String] = value match {
+      case obj: JsObject =>
+        obj.fields.toSeq.flatMap { case (key, v) => jsonPaths(if (prefix.isEmpty) key else s"$prefix.$key", v) }
+      case _ => Seq(prefix)
+    }
+
+    sampleStats.toCsvRows.map(_.split(",", 2).head) shouldBe jsonPaths("", sampleStats.toJson)
   }
 
   test("ai_stats orders label types and vote types the same way in JSON and CSV") {
@@ -169,8 +182,9 @@ class OverallStatsApiModelsSpec extends AnyFunSuite with Matchers {
     (aiStats \ "Overall").as[JsObject].fields.map(_._1) shouldBe Seq("human_majority_vote", "admin_majority_vote")
 
     val rows         = sampleStats.toCsvRows
-    val overallHuman = rows.indexOf("overall_ai_yes_and_human_majority_vote_concurs,80")
-    overallHuman should be < rows.indexOf("overall_ai_yes_and_admin_majority_vote_concurs,40")
-    overallHuman should be < rows.indexOf("curb_ramp_ai_yes_and_human_majority_vote_concurs,8")
+    val overallHuman = rows.indexOf("ai_stats.Overall.human_majority_vote.ai_yes_maj_vote_concurs,80")
+    overallHuman should be >= 0
+    overallHuman should be < rows.indexOf("ai_stats.Overall.admin_majority_vote.ai_yes_maj_vote_concurs,40")
+    overallHuman should be < rows.indexOf("ai_stats.CurbRamp.human_majority_vote.ai_yes_maj_vote_concurs,8")
   }
 }

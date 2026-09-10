@@ -186,8 +186,8 @@
     </div>
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
-    <p>If <code>filetype=csv</code>, the first row is the header. The per-type <code>avg_cluster_counts</code> are flattened into one <code>avg_n_*</code> column per label type, and the geometry is simplified to the region centroid.</p>
-    <pre tabindex="0"><code class="language-csv">region_id,name,score,coverage,audited_street_count,total_street_count,intersection_score,intersection_count,scored_intersection_count,avg_n_curb_ramp,avg_n_no_curb_ramp,avg_n_obstacle,avg_n_surface_problem,avg_n_crosswalk,avg_n_signal,avg_n_no_sidewalk,center_point
+    <p>If <code>filetype=csv</code>, the first row is the header. The per-type <code>avg_cluster_counts</code> are flattened into one <code>avg_cluster_counts.&lt;type&gt;</code> column per label type, and the geometry is simplified to the region centroid.</p>
+    <pre tabindex="0"><code class="language-csv">region_id,name,score,coverage,audited_street_count,total_street_count,intersection_score,intersection_count,scored_intersection_count,avg_cluster_counts.CurbRamp,avg_cluster_counts.NoCurbRamp,avg_cluster_counts.Obstacle,avg_cluster_counts.SurfaceProblem,avg_cluster_counts.Crosswalk,avg_cluster_counts.Signal,avg_cluster_counts.NoSidewalk,center_point
 8,Terhune Park,0.5623,1.0,52,52,0.7412,31,31,2.1,0.3,0.4,0.6,0.9,0.1,0.5,"-74.012,40.895"
 ...</code></pre>
 

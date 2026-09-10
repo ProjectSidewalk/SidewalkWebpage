@@ -53,11 +53,15 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       // Per-type columns are generated from AccessScoreCalculator.orderedScoredTypes; assert the leading + trailing run.
       body must include(
         "street_edge_id,osm_way_id,region_id,score,segment_score,start_intersection_id,end_intersection_id," +
-          "start_intersection_score,end_intersection_score,audit_count,length_meters,label_count,n_curb_ramp"
+          "start_intersection_score,end_intersection_score,audit_count,length_meters,label_count," +
+          "cluster_counts.CurbRamp"
       )
-      body must include("score_no_sidewalk,n_curb_ramp_sev1,n_curb_ramp_sev2,n_curb_ramp_sev3,n_curb_ramp_sev_null")
-      body must include("tag_adj_curb_ramp")
-      body must include("tag_adj_no_sidewalk,start_point,end_point")
+      body must include(
+        "sub_scores.NoSidewalk,severity_counts.CurbRamp.1,severity_counts.CurbRamp.2,severity_counts.CurbRamp.3," +
+          "severity_counts.CurbRamp.null"
+      )
+      body must include("tag_adjustments.CurbRamp")
+      body must include("tag_adjustments.NoSidewalk,start_point,end_point")
       body must not include "streetEdgeId"
       body must not include "lengthMeters"
     }
@@ -150,7 +154,7 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val body = contentAsString(resp)
       body must include(
         "region_id,name,score,coverage,audited_street_count,total_street_count,intersection_score," +
-          "intersection_count,scored_intersection_count,avg_n_curb_ramp"
+          "intersection_count,scored_intersection_count,avg_cluster_counts.CurbRamp"
       )
       body must include("center_point")
       body must not include "regionId"
@@ -181,11 +185,15 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       val body = contentAsString(resp)
       body must include(
-        "intersection_id,region_id,degree,grade_separated,street_edge_ids,audit_count,score,label_count,n_curb_ramp," +
-          "n_no_curb_ramp,n_crosswalk,n_signal,score_curb_ramp"
+        "intersection_id,region_id,degree,grade_separated,street_edge_ids,audit_count,score,label_count," +
+          "cluster_counts.CurbRamp,cluster_counts.NoCurbRamp,cluster_counts.Crosswalk,cluster_counts.Signal," +
+          "sub_scores.CurbRamp"
       )
-      body must include("n_curb_ramp_sev1,n_curb_ramp_sev2,n_curb_ramp_sev3,n_curb_ramp_sev_null")
-      body must include("tag_adj_signal,lat,lng")
+      body must include(
+        "severity_counts.CurbRamp.1,severity_counts.CurbRamp.2,severity_counts.CurbRamp.3," +
+          "severity_counts.CurbRamp.null"
+      )
+      body must include("tag_adjustments.Signal,lat,lng")
       // Along-length types never score an intersection, so they have no columns here.
       body must not include "n_obstacle"
       body must not include "intersectionId"
