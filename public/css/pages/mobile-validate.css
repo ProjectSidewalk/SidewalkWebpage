@@ -230,21 +230,12 @@ body {
   letter-spacing: 0.04em;
 }
 
-/* Masking lets the example's correct/incorrect class pick the face, the same class that sets the verdict color.
-   No autoprefixer in this build, so the -webkit- siblings are written out. */
 .mv-example__verdict-icon {
   width: 16px;
   height: 16px;
-  flex: 0 0 auto;
-  background-color: currentcolor;
-  -webkit-mask-position: center;
-  mask-position: center;
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
 }
 
+/* The example's correct/incorrect class picks the smiley's face; its color comes from the verdict text's. */
 .mv-example--correct .mv-example__verdict-icon {
   -webkit-mask-image: url("../../images/icons/smileys/smile-outline-positive.svg");
   mask-image: url("../../images/icons/smileys/smile-outline-positive.svg");

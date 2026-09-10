@@ -24,7 +24,7 @@
         </div>
         @request.flash.get("error").map { msg =>
           <div class="au-summary" role="alert">
-            <span class="au-icon" aria-hidden="true"></span>
+            <span class="au-icon ps-mask-icon" aria-hidden="true"></span>
             <p>@msg</p>
           </div>
         }

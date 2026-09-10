@@ -452,7 +452,9 @@ form at stage time, deriving the name from the file's bytes as sbt-digest does. 
 stays relative (the digested copy sits in the original's directory), and a query string or fragment rides along, which
 keeps Bootstrap's `...eot?#iefix` glyphicons working. **A new reference needs nothing registered**: unlike
 `util.assetPath` and its `assetManifestPrefixes`, the stage resolves each `url()` against the file itself. Just name a
-file that exists.
+file that exists, by relative path: a stylesheet Grunt bundles into `public/js/*/build/` has its relative `url()`s
+rewritten to `/assets/` paths first (`concat_css`'s `assetBaseUrl` in `Gruntfile.js`), which would double up an
+absolute one.
 
 Two things about that stage are load-bearing:
 

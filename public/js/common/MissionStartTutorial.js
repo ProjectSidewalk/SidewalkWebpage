@@ -311,17 +311,12 @@ class MissionStartTutorial {
 
     const slide = this.#labelTypeModule.slides[idx];
 
-    if (slide.isExampleCorrect) {
-      $mstSlide.addClass('correct');
-    } else {
-      $mstSlide.addClass('incorrect');
-    }
-
-    // Both smileys are drawn by the correct/incorrect class set above, leaving only the wording to pick here.
+    // The slide's correct/incorrect class also picks both smileys, in mission-start-tutorial.css.
     let exampleTypeLabel;
     let labelOnImageTitle;
     let labelOnImageDescription;
     if (slide.isExampleCorrect) {
+      $mstSlide.addClass(MissionStartTutorial.#EXAMPLE_TYPES.CORRECT);
       exampleTypeLabel = i18next.t('common:mission-start-tutorial.example-type-label-correct');
 
       labelOnImageTitle = i18next.t('common:mission-start-tutorial.label-on-image-title-correct');
@@ -329,6 +324,7 @@ class MissionStartTutorial {
         `${this.#messagesPrefix}:mission-start-tutorial.label-on-image-description-correct`,
       );
     } else {
+      $mstSlide.addClass(MissionStartTutorial.#EXAMPLE_TYPES.INCORRECT);
       exampleTypeLabel = i18next.t(`${this.#messagesPrefix}:mission-start-tutorial.example-type-label-incorrect`);
 
       labelOnImageTitle = i18next.t(`${this.#messagesPrefix}:mission-start-tutorial.label-on-image-title-incorrect`);
