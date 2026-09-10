@@ -105,7 +105,9 @@ make onboard-city id=laurens-ia
 ```
 
 `tools/setup_new_city.py` is host-side and stdlib-only; it edits repo files and drives the two containers. It pauses
-where a person is needed and skips whatever a previous run already did:
+where a person is needed and skips whatever a previous run already did. **Run it from the main checkout**, not a
+worktree — the db container mounts the main checkout's `db/` at `/opt` and the app boot compiles `/home`, so a
+worktree's artifacts and evolutions are not the ones the steps would use; it refuses to start from one.
 
 0. **Review** — prints the report's headline numbers and the preflight table, asks to continue.
 1. **Configs** — asks for the display name, country/state, provider, status (default `private`), launch date (the
@@ -131,8 +133,11 @@ where a person is needed and skips whatever a previous run already did:
 4. **Evolutions** — boots the app once as the new city and waits for `play_evolutions` to reach the repo's highest.
    Right after a clone it boots even when the donor was current, because Play is the one reliable check that every
    applied evolution is this checkout's (it compares hashes and, with `autoApplyDowns`, reverts and re-applies from a
-   mismatch). On a rerun that kept the schema, a current schema skips the boot. Your own `npm start` must be stopped
-   for this step.
+   mismatch). A schema kept from a run that stopped before the fill is verified the same way, since its hashes were
+   never checked either; a kept schema that already holds streets skips the boot. The boot needs `:9000` and the
+   build locks of the checkout it compiles, so the step checks both first — stop your `npm start` (and any
+   `make qa-worktree`, which serves a worktree's app on `:9000` too). Without a terminal to ask, it stops and names
+   what is in the way; `--allow-running-apps` boots anyway.
 5. **Load** — `qgis_tables.sql` into the schema.
 6. **Fill** — `fill-new-schema.sh` with the tutorial region and which regions open at launch (`all`,
    `include:1 2 3`, `exclude:4`). It sets the city center, map bounds (region extent + 0.5°), and default zoom from the
@@ -140,8 +145,10 @@ where a person is needed and skips whatever a previous run already did:
 7. **Imagery scan** — exports the endpoints from the database, runs `check_streets_for_imagery.py` for the city's
    provider (resumable; an hour or so for a mid-sized city), hides the no-imagery streets, and imports the imagery-age
    summary into `street_imagery`. `--skip-scan` defers it; a rerun picks it up.
-8. **Dump** — `pg_dump -Fc` of the finished schema to `db/<schema>-dump`, the file `make import-dump` and the server
-   both restore, and the handoff checklist.
+8. **Dump** — counts the tables an onboarded-only city has no rows in and stops if any are populated (a local QA
+   pass leaves session data the dump would carry into the launched city; the message hands you the `TRUNCATE`), then
+   `pg_dump -Fc` of the finished schema to `db/<schema>-dump`, the file `make import-dump` and the server both
+   restore, and the handoff checklist.
 
 ## 4. What stays on a person
 

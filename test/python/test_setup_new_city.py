@@ -87,22 +87,45 @@ def test_preflight_table_returns_rows_only_when_a_provider_was_sampled():
     assert snc.preflight_table('\n'.join(header + ['| gsv | 150 |'])) == header + ['| gsv | 150 |']
 
 
-def test_translation_todo_lists_only_the_keys_that_are_still_missing(repo_copy):
-    lines = snc.translation_todo('nowhere-xx', None, None)
-    assert len(lines) == len(snc.TRANSLATED_MESSAGE_FILES)
-    assert lines[0] == '  conf/messages/messages.zh-TW: city.name.nowhere-xx'
-    every_key = snc.translation_todo('x', 'nowhere-state', 'nowhere-country')
-    assert every_key[0].endswith('city.name.x, state.name.nowhere-state, country.name.nowhere-country')
-    # A state and country the files already carry drop off the same way the city does.
-    assert snc.translation_todo('x', 'iowa', 'france')[0].endswith('city.name.x')
-    # A file that already has the key drops off the list, so a rerun of a translated city is owed nothing (#5297).
-    zh_tw = snc.MESSAGES_DIR / 'messages.zh-TW'
-    zh_tw.write_text(zh_tw.read_text() + 'city.name.nowhere-xx = 無處\n')
-    assert not any('messages.zh-TW' in line for line in snc.translation_todo('nowhere-xx', None, None))
-    for name in snc.TRANSLATED_MESSAGE_FILES:
-        path = snc.MESSAGES_DIR / name
-        path.write_text(path.read_text() + 'city.name.nowhere-xx = x\n')
+def _append_key(file_name, key, value='x'):
+    path = snc.MESSAGES_DIR / file_name
+    path.write_text(path.read_text() + f'{key} = {value}\n')
+
+
+def test_translation_todo_asks_only_for_what_english_defines(repo_copy):
+    """A key with no base line has nothing to translate from, so it is never owed (#5297)."""
+    # Nothing anywhere yet: the city is not in the base file, so it is not asked for.
     assert snc.translation_todo('nowhere-xx', None, None) == []
+    # A territory outside US_STATES gets no base state.name line, so it stays unasked even alongside a real city.
+    _append_key('messages', 'city.name.nowhere-xx', 'Nowhere')
+    owed = snc.translation_todo('nowhere-xx', 'guam', None)
+    assert len(owed) == len(snc.TRANSLATED_MESSAGE_FILES)
+    assert all(line.endswith('city.name.nowhere-xx') for line in owed)
+
+
+def test_translation_todo_treats_a_key_zh_tw_already_has_as_settled(repo_copy):
+    """
+    zh-TW is the file that always transliterates, so a key it carries is done being decided; the Latin-script files
+    that lack it are omitting it because the name reads the same in English, and must not be re-reported forever.
+    """
+    _append_key('messages', 'city.name.nowhere-xx', 'Nowhere')
+    assert len(snc.translation_todo('nowhere-xx', None, None)) == len(snc.TRANSLATED_MESSAGE_FILES)
+    _append_key('messages.zh-TW', 'city.name.nowhere-xx', '無處')
+    assert snc.translation_todo('nowhere-xx', None, None) == []
+    # Washington is the real-world case: base + zh-TW carry it, the five Latin-script files deliberately do not.
+    assert snc.translation_todo('nowhere-xx', 'washington', 'usa') == []
+
+
+def test_translation_todo_survives_a_run_that_died_after_adding_the_english_line(repo_copy):
+    """
+    The English line being present is not evidence the translations were done: an earlier run can add it and then
+    fail at the schema step. Asking the files, rather than remembering what this run added, keeps the key owed.
+    """
+    _append_key('messages', 'city.name.somewhere-ia', 'Somewhere')
+    _append_key('messages', 'state.name.newstate', 'Newstate')
+    owed = snc.translation_todo('somewhere-ia', 'newstate', None)
+    assert owed[0] == '  conf/messages/messages.zh-TW: city.name.somewhere-ia, state.name.newstate'
+    assert len(owed) == len(snc.TRANSLATED_MESSAGE_FILES)
 
 
 def test_handoff_checklist_names_the_dump_both_urls_and_what_the_nightly_jobs_owe():
@@ -281,18 +304,47 @@ def test_dump_schema_counts_the_objects(monkeypatch, capsys):
     assert 'QA pass' not in out
 
 
-def test_dump_schema_flags_qa_data_that_would_ship_with_the_city(monkeypatch, capsys):
-    """A city QA'd locally carries session data the dump would hand to the launched site (#5297)."""
-    _dump_env(monkeypatch, (0, 'label|5\naudit_task|7\nmission|0\ncluster|5\nwebpage_activity|155\n'))
-    snc.dump_schema('sidewalk_bayonne')
+def test_dump_schema_stops_before_writing_a_dump_full_of_qa_data(monkeypatch, capsys):
+    """
+    A city QA'd locally carries session data the dump would hand to the launched site, so the check runs *before*
+    pg_dump: a warning printed afterwards leaves the bad file on disk and buries itself under the handoff (#5297).
+    """
+    calls = _dump_env(monkeypatch, (0, 'label|5\naudit_task|7\nmission|0\ncluster|5\nwebpage_activity|155\n'))
+    monkeypatch.setattr('builtins.input', lambda text: 'n')
+    with pytest.raises(SystemExit, match='Stopped before writing the dump'):
+        snc.dump_schema('sidewalk_bayonne')
     out = capsys.readouterr().out
     assert 'holds data from a local QA pass' in out
     assert 'label: 5' in out and 'audit_task: 7' in out and 'webpage_activity: 155' in out
-    assert 'mission' not in out  # zero rows, so not listed
-    # A schema too old to have one of the tables fails the whole query; that must not read as an all-clear.
-    _dump_env(monkeypatch, (1, ''))
+    assert '    mission:' not in out  # zero rows, so it gets no count line (it is still in the TRUNCATE below)
+    assert 'TRUNCATE label, label_history' in out and 'RESTART IDENTITY CASCADE' in out
+    assert not any('pg_dump' in ' '.join(map(str, cmd)) for cmd in calls)
+
+
+def test_dump_schema_can_be_told_to_dump_the_qa_data_anyway(monkeypatch, capsys):
+    calls = _dump_env(monkeypatch, (0, 'label|5\n'))
+    monkeypatch.setattr('builtins.input', lambda text: 'y')
+    assert snc.dump_schema('sidewalk_bayonne') == 2
+    assert any('pg_dump' in ' '.join(map(str, cmd)) for cmd in calls)
+
+
+def test_dump_schema_does_not_read_an_unreadable_schema_as_clean(monkeypatch, capsys):
+    """A schema too old to have one of the tables fails the whole count; that must not pass as an all-clear."""
+    calls = _dump_env(monkeypatch, (1, ''))
     snc.dump_schema('sidewalk_ancient')
     assert 'Could not check the schema' in capsys.readouterr().out
+    assert any('pg_dump' in ' '.join(map(str, cmd)) for cmd in calls)
+
+
+def test_qa_residue_counts_every_table_the_documented_truncate_clears(monkeypatch):
+    """
+    The counted list and the TRUNCATE the operator is handed have to be the same list — the message builds the
+    TRUNCATE from QA_RESIDUE_TABLES for exactly that reason, since two hand-maintained lists drift (#5297).
+    """
+    doc = (Path(snc.REPO_ROOT) / 'docs' / 'onboarding-a-city.md').read_text()
+    truncate = doc.split('`TRUNCATE ', 1)[1].split('RESTART IDENTITY CASCADE', 1)[0]
+    documented = {name.strip() for name in truncate.replace('\n', ' ').split(',') if name.strip()}
+    assert documented == set(snc.QA_RESIDUE_TABLES)
 
 
 def test_handoff_renames_the_dump_to_the_servers_convention():
@@ -369,11 +421,13 @@ def _boot_env(monkeypatch, responses, urlopen_results):
 
     monkeypatch.setattr(snc.urllib.request, 'urlopen', urlopen)
     monkeypatch.setattr(snc.time, 'sleep', lambda seconds: None)
+    # The port probe is its own question; tests that care about it patch this themselves.
+    monkeypatch.setattr(snc, 'port_9000_in_use', lambda: False)
     return calls
 
 
 def test_apply_evolutions_skips_the_boot_for_a_current_schema_unless_verifying(monkeypatch, capsys):
-    calls = _boot_env(monkeypatch, {'max(id)': (0, '375\n'), 'pgrep': (1, ''), 'last_problem': (0, '')}, [None])
+    calls = _boot_env(monkeypatch, {'max(id)': (0, '375\n'), 'pgrep': (0, ''), 'last_problem': (0, '')}, [None])
     snc.apply_evolutions('sidewalk_x', 'x')
     assert 'no app boot needed' in capsys.readouterr().out
     assert not any(snc.BOOT_CMD in cmd for cmd in calls)
@@ -398,35 +452,88 @@ def test_apply_evolutions_waits_for_the_app_then_for_the_evolutions(monkeypatch,
     snc.apply_evolutions('sidewalk_x', 'x')
     out = capsys.readouterr().out
     assert '...at 374 of 375' in out and 'applied and verified (at 375)' in out
-    assert len(prompts) == 1 and 'already running' in prompts[0] and '4242 (/home)' in prompts[0]
+    assert len(prompts) == 1 and 'pid 4242 is building in /home' in prompts[0]
     assert sum(1 for cmd in calls if 'pkill' in cmd) == 1
 
 
 def test_apply_evolutions_stops_on_a_failed_evolution_and_on_timeout(monkeypatch):
-    _boot_env(monkeypatch, {'max(id)': (0, '370\n'), 'pgrep': (1, ''), 'last_problem': (0, '375: relation x\n')},
+    _boot_env(monkeypatch, {'max(id)': (0, '370\n'), 'pgrep': (0, ''), 'last_problem': (0, '375: relation x\n')},
               [None])
     with pytest.raises(SystemExit, match='could not apply evolution 375: relation x'):
         snc.apply_evolutions('sidewalk_x', 'x')
-    _boot_env(monkeypatch, {'max(id)': (0, '370\n'), 'pgrep': (1, ''), 'last_problem': (0, '')}, [None] * 5)
+    _boot_env(monkeypatch, {'max(id)': (0, '370\n'), 'pgrep': (0, ''), 'last_problem': (0, '')}, [None] * 5)
     clock = iter([0, 1, 10_000])
     monkeypatch.setattr(snc.time, 'monotonic', lambda: next(clock))
     with pytest.raises(SystemExit, match='never reached 375'):
         snc.apply_evolutions('sidewalk_x', 'x')
 
 
-def test_conflicting_apps_ignores_apps_from_other_checkouts(monkeypatch):
-    """A worktree QA app has its own target/ and its own port, so it must not block the boot (#5297)."""
+def test_boot_conflicts_pgrep_pattern_cannot_match_the_shell_running_it(monkeypatch):
+    """
+    The pattern must be bracketed (#5297).
+
+    `docker exec` starts the probe shell in CHECKOUT_IN_CONTAINER with the pattern on its own command line, so a
+    plain `sbt-launch` makes every call report a fresh phantom pid there and the wait can never clear. This asserts
+    on the command string because that is where the defect lives: a test that feeds pgrep output to the parser
+    passes either way.
+    """
+    calls = _fake_run(monkeypatch, {'pgrep': (0, '')})
+    monkeypatch.setattr(snc, 'port_9000_in_use', lambda: False)
+    snc.boot_conflicts()
+    probe = next(' '.join(map(str, cmd)) for cmd in calls if 'pgrep' in ' '.join(map(str, cmd)))
+    assert '[s]bt-launch' in probe and 'pgrep -f sbt-launch' not in probe
+
+
+def test_boot_conflicts_counts_only_builds_in_the_boots_own_checkout(monkeypatch):
+    """A worktree's build has its own target/, so only the checkout the boot compiles shares locks with it."""
     _fake_run(monkeypatch, {'pgrep': (0, '10 /home\n'
                                         '11 /home/.claude/worktrees/some-branch\n'
                                         '12 /home/.claude/worktrees/other\n'
                                         'not-a-pid /home\n')})
-    assert snc.conflicting_apps() == ['10 (/home)']
-    _fake_run(monkeypatch, {'pgrep': (1, '')})
-    assert snc.conflicting_apps() == []
+    monkeypatch.setattr(snc, 'port_9000_in_use', lambda: False)
+    assert snc.boot_conflicts() == ["pid 10 is building in /home (shares the boot's build locks)"]
+    _fake_run(monkeypatch, {'pgrep': (0, '')})
+    assert snc.boot_conflicts() == []
+
+
+def test_boot_conflicts_catches_a_worktree_app_on_9000(monkeypatch):
+    """
+    `make qa-worktree` serves a worktree's app on :9000 and passes no -Dhttp.port, so its cwd says nothing about
+    whether it is in the way. The port is asked directly instead (#5297).
+    """
+    _fake_run(monkeypatch, {'pgrep': (0, '11 /home/.claude/worktrees/some-branch\n')})
+    monkeypatch.setattr(snc, 'port_9000_in_use', lambda: True)
+    assert snc.boot_conflicts() == [':9000 is already serving (something else holds the port the boot needs)']
+
+
+def test_boot_conflicts_reports_a_container_it_cannot_inspect(monkeypatch):
+    """Not knowing is not the same as being clear."""
+    _fake_run(monkeypatch, {'pgrep': (1, '', 'Error: No such container\n')})
+    monkeypatch.setattr(snc, 'port_9000_in_use', lambda: False)
+    assert snc.boot_conflicts() == ['could not inspect projectsidewalk-web for running builds '
+                                    '(Error: No such container)']
+
+
+def test_port_9000_in_use_reads_any_answer_as_taken(monkeypatch):
+    """An error page still means something holds the port; only a refused connection means it is free."""
+    answers = iter([SimpleNamespace(close=lambda: None),
+                    urllib.error.HTTPError('u', 503, 'x', {}, None),
+                    urllib.error.URLError('refused'),
+                    OSError('no route')])
+
+    def urlopen(url, timeout=None):
+        assert url == snc.BOOT_URL
+        answer = next(answers)
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    monkeypatch.setattr(snc.urllib.request, 'urlopen', urlopen)
+    assert [snc.port_9000_in_use() for _ in range(4)] == [True, True, False, False]
 
 
 def test_apply_evolutions_will_not_block_on_a_prompt_nothing_can_answer(monkeypatch, capsys):
-    """Unattended, the gate names the pids and stops instead of spinning input() into an EOFError (#5297)."""
+    """Unattended, with no terminal to answer a prompt, the gate names what is in the way and stops (#5297)."""
     _boot_env(monkeypatch, {'max(id)': (0, '370\n'), 'pgrep': (0, '4242 /home\n'), 'last_problem': (0, '')}, [None])
     monkeypatch.setattr(snc.sys, 'stdin', SimpleNamespace(isatty=lambda: False))
     with pytest.raises(SystemExit, match='4242'):
@@ -437,6 +544,33 @@ def test_apply_evolutions_will_not_block_on_a_prompt_nothing_can_answer(monkeypa
     snc.apply_evolutions('sidewalk_x', 'x', allow_running_apps=True)
     assert '--allow-running-apps' in capsys.readouterr().out
     assert any(snc.BOOT_CMD in cmd for cmd in calls)
+
+
+def test_apply_evolutions_blames_the_override_when_it_then_times_out(monkeypatch):
+    """After --allow-running-apps, a timeout is far more likely the conflict than the evolutions themselves."""
+    _boot_env(monkeypatch, {'max(id)': (0, '370\n'), 'pgrep': (0, '4242 /home\n'), 'last_problem': (0, '')},
+              [None] * 5)
+    clock = iter([0, 1, 10_000])
+    monkeypatch.setattr(snc.time, 'monotonic', lambda: next(clock))
+    with pytest.raises(SystemExit) as timed_out:
+        snc.apply_evolutions('sidewalk_x', 'x', allow_running_apps=True)
+    assert '--allow-running-apps was passed over' in str(timed_out.value) and '4242' in str(timed_out.value)
+
+
+def test_apply_evolutions_polls_a_route_that_logs_nothing(monkeypatch):
+    """
+    The poll target must not be the landing page: it logs a Visit_Index row into webpage_activity, one of the
+    tables the dump step counts as leftover QA data, so every clean onboarding would flag itself (#5297).
+    """
+    polled = []
+    _boot_env(monkeypatch, {'max(id)': [(0, '370\n'), (0, '375\n')], 'pgrep': (0, ''), 'last_problem': (0, '')},
+              [None, None])
+    real_urlopen = snc.urllib.request.urlopen
+    monkeypatch.setattr(snc.urllib.request, 'urlopen',
+                        lambda url, timeout=None: (polled.append(url), real_urlopen(url, timeout))[1])
+    snc.apply_evolutions('sidewalk_x', 'x')
+    assert polled and all(url == snc.BOOT_URL for url in polled)
+    assert snc.BOOT_URL.endswith('/v3/api/cities')
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -495,7 +629,8 @@ def test_main_dry_run_registers_nothing_and_stops_before_docker(repo_copy, monke
     out = capsys.readouterr().out
     assert 'No imagery preflight yet' in out
     assert 'would add 17 entries' in out and '[dry-run] stopping' in out
-    assert snc.CITYPARAMS.read_text() == before and calls == []
+    assert snc.CITYPARAMS.read_text() == before
+    assert not any('docker' in cmd for cmd in calls)
 
 
 def test_main_stops_when_the_data_is_refused(repo_copy, monkeypatch):
@@ -544,7 +679,7 @@ def test_main_rerun_skips_what_already_happened(repo_copy, monkeypatch, capsys):
     _fake_run(monkeypatch, {'true': (0, ''), 'pg_namespace': (0, '1\n'), 'street_edge': (0, '170\n'),
                             'street_imagery': (0, '167\n')})
     snc.add_cityparams_entries('testville-wa', [(['db-schema'], '"sidewalk_testville_wa"')], dry_run=False)
-    for name in snc.TRANSLATED_MESSAGE_FILES:
+    for name in ('messages', *snc.TRANSLATED_MESSAGE_FILES):
         path = snc.MESSAGES_DIR / name
         path.write_text(path.read_text() + 'city.name.testville-wa = Testville\n')
     (repo_copy / 'ga-service-account.json').write_text('{}')
@@ -559,6 +694,65 @@ def test_main_rerun_skips_what_already_happened(repo_copy, monkeypatch, capsys):
     assert record['evolutions'] == [('sidewalk_testville_wa', False)]
     assert 'Steps 5-6/8 — skipped: sidewalk_testville_wa already holds 170 streets' in out
     assert 'A scan was already imported' in out and 'scan' not in record
+
+
+def test_main_refuses_to_run_from_a_worktree(repo_copy, monkeypatch):
+    """
+    The db container mounts the MAIN checkout's db/ at /opt and the boot compiles CHECKOUT_IN_CONTAINER, so from a
+    worktree the script would check its own artifacts and evolutions while the steps used the other copy (#5297).
+    """
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    _fake_run(monkeypatch, {'rev-parse': (0, f'{repo_copy}/.git/worktrees/wt\n{repo_copy}/.git\n')})
+    with pytest.raises(SystemExit, match='is a git worktree'):
+        snc.main(['testville-wa'])
+    # The main checkout answers with the same path twice, and is allowed through.
+    _answers(monkeypatch, 'n')
+    _fake_run(monkeypatch, {'rev-parse': (0, f'{repo_copy}/.git\n{repo_copy}/.git\n')})
+    with pytest.raises(SystemExit, match='Stopped'):
+        snc.main(['testville-wa'])
+    # A directory git knows nothing about (an export, a tarball) is not a worktree either.
+    _answers(monkeypatch, 'n')
+    _fake_run(monkeypatch, {'rev-parse': (128, '')})
+    with pytest.raises(SystemExit, match='Stopped'):
+        snc.main(['testville-wa'])
+
+
+def test_main_quotes_the_reason_a_load_or_fill_failed(repo_copy, monkeypatch):
+    """Both steps fail for data reasons, and psql's own message is the useful part of the failure (#5297)."""
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{
+        'qgis_tables.sql': (1, '', 'psql:qgis_tables.sql:5: ERROR:  relation "qgis_road" does not exist\n')}))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '')
+    with pytest.raises(SystemExit) as failed:
+        snc.main(['testville-wa'])
+    assert 'loading qgis_tables.sql into sidewalk_testville_wa failed (exit 1)' in str(failed.value)
+    assert 'relation "qgis_road" does not exist' in str(failed.value)
+    assert 'reads /opt from the MAIN checkout' in str(failed.value)
+
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{
+        'fill-new-schema.sh': (1, '', 'ERROR:  duplicate key value violates unique constraint\n')}))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '', '1', 'all')
+    with pytest.raises(SystemExit) as failed:
+        snc.main(['testville-wa'])
+    assert 'fill-new-schema.sh failed on sidewalk_testville_wa (exit 1)' in str(failed.value)
+    assert 'duplicate key value' in str(failed.value)
+    assert 'drop and recreate it (step 3)' in str(failed.value)
+
+
+def test_main_passes_the_override_flag_through_to_the_boot(repo_copy, monkeypatch):
+    """Without this the flag parses and is silently dropped, which no other test would notice."""
+    seen = {}
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    monkeypatch.setattr(snc, 'apply_evolutions',
+                        lambda schema, city_id, verify=False, allow_running_apps=False:
+                        seen.__setitem__('allow', allow_running_apps))
+    _fake_run(monkeypatch, dict(_FRESH_DB))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '', '1', 'all')
+    snc.main(['testville-wa', '--skip-scan', '--allow-running-apps'])
+    assert seen['allow'] is True
 
 
 def test_main_reports_why_the_donor_was_refused(repo_copy, monkeypatch):
@@ -612,6 +806,7 @@ def test_main_registers_a_new_country_and_a_new_state(repo_copy, monkeypatch, ca
     out = capsys.readouterr().out
     assert 'would add "country.name.atlantis = Atlantis"' in out
     assert 'country.name.atlantis' in out and 'state.name' not in out
+    assert 'city.name.atlantis-city' in out
     _city_artifacts(repo_copy, 'testville-wy')
     _answers(monkeypatch, 'y', '', '', '', '', '', '', '')
     snc.main(['testville-wy', '--dry-run'])
