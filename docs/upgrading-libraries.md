@@ -117,7 +117,7 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
 These are the JVM libraries we talk to the database *through*; the database server's own versions are under
 [Database server](#database-server) above.
 
-- **postgresql (JDBC driver): 42.7.10** — the `org.postgresql` driver in `build.sbt`.
+- **postgresql (JDBC driver): 42.7.12** — the `org.postgresql` driver in `build.sbt`.
   [Releases](https://mvnrepository.com/artifact/org.postgresql/postgresql) · [Changelog](https://jdbc.postgresql.org/)
 - **play-slick / play-slick-evolutions: 6.2.0**.
   [Releases](https://mvnrepository.com/artifact/org.playframework/play-slick) ·
@@ -136,15 +136,13 @@ These are the JVM libraries we talk to the database *through*; the database serv
   [other repos](https://mvnrepository.com/search?q=jackson-datatype-jts)) but may not work. Take minor bumps from the
   link below; a full upgrade needs dedicated investigation.
   [Releases](https://mvnrepository.com/artifact/org.n52.jackson/jackson-datatype-jts)
-- **gt-shapefile / gt-epsg-hsql / gt-geopkg (GeoTools): 29.6** — Shapefile/GeoPackage generation. **Note:** we froze
-  here over a compatibility issue, though it's not confirmed we *couldn't* move forward. GeoTools is actively
-  maintained, so there are likely benefits to figuring out the upgrade.
+- **gt-shapefile / gt-epsg-hsql / gt-geopkg (GeoTools): 35.1** — Shapefile/GeoPackage generation. Served by the
+  OSGeo resolver in `build.sbt`, not Maven Central. Needs Java 17. We use a tiny corner of the API, so bumps are
+  usually mechanical; check both exports afterward (#4393). Brings Eclipse ImageN, sqlite-jdbc, and Jackson 3's
+  `jackson-core` along (its own package, so no clash with Play's Jackson 2).
   [Releases](https://mvnrepository.com/artifact/org.geotools/gt-shapefile?repo=geotools-releases) ·
-  [Changelog](https://github.com/geotools/geotools/releases)
-- **jai_core: 1.1.3** — pulled in by GeoTools; not on Maven Central, so `build.sbt` downloads it from the OSGeo repo.
-  **Note:** no new releases; GeoTools has
-  [long-term plans to phase it out](https://github.com/geotools/geotools/wiki/Replace-JAI).
-  [Releases](https://mvnrepository.com/artifact/javax.media/jai_core)
+  [Changelog](https://github.com/geotools/geotools/releases) ·
+  [Upgrade notes](https://docs.geotools.org/latest/userguide/welcome/upgrade.html)
 
 ### Other Scala
 

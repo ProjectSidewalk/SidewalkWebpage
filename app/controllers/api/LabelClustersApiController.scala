@@ -7,7 +7,7 @@ import models.label.LabelTypeEnum
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
-import play.api.i18n.Lang.logger
+import play.api.Logger
 import play.api.mvc.{Action, AnyContent}
 import play.silhouette.api.Silhouette
 import service.{ApiService, ConfigService}
@@ -40,6 +40,7 @@ class LabelClustersApiController @Inject() (
     shapefileCreator: ShapefilesCreatorHelper
 )(implicit ec: ExecutionContext, mat: Materializer)
     extends BaseApiController(cc) {
+  private val logger = Logger(this.getClass)
 
   /**
    * v3 API: Returns label clusters (aggregated labels) according to specified filters.
