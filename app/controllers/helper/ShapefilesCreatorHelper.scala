@@ -8,6 +8,7 @@ import models.api.{
   RawLabelInClusterDataForApi,
   RegionAccessScoreForApi,
   RegionDataForApi,
+  SidewalkPresenceForApi,
   StreetAccessScoreForApi,
   StreetDataForApi
 }
@@ -972,6 +973,108 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(street.firstLabelDate.map(_.toString).orNull)
       featureBuilder.add(street.lastLabelDate.map(_.toString).orNull)
 
+      featureBuilder.buildFeature(null)
+    }
+
+    createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /**
+   * Writes sidewalk presence faces (#5279) as a Shapefile: one LineString per face, both faces of a street sharing
+   * its geometry. Field names are camelCase and abbreviated to the DBF format's 10-character limit; the GeoPackage
+   * carries the canonical snake_case names.
+   */
+  def createSidewalkPresenceShapefile(
+      source: Source[SidewalkPresenceForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "SidewalkPresence",
+      "the_geom:LineString:srid=4326," // The street's geometry, shared by its two faces
+      + "streetId:Integer,"
+        + "side:String,"
+        + "osmWayId:String," // OSM way ID as String (shapefiles don't handle Long well)
+        + "regionId:Integer,"
+        + "regionName:String,"
+        + "wayType:String,"
+        + "status:String,"
+        + "presence:String,"
+        + "basis:String,"     // presence_basis
+        + "nsLabels:Integer," // no_sidewalk_label_count
+        + "nsUsers:Integer,"  // no_sidewalk_user_count
+        + "labelCount:Integer,"
+        + "auditCount:Integer,"
+        + "firstNsLbl:String," // first_no_sidewalk_label_date
+        + "lastNsLbl:String"   // last_no_sidewalk_label_date
+    )
+
+    def buildFeature(face: SidewalkPresenceForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+      featureBuilder.add(face.geometry)
+      featureBuilder.add(face.streetEdgeId)
+      featureBuilder.add(face.streetSide)
+      featureBuilder.add(face.osmWayId.toString)
+      featureBuilder.add(face.regionId)
+      featureBuilder.add(face.regionName)
+      featureBuilder.add(face.wayType)
+      featureBuilder.add(face.status)
+      featureBuilder.add(face.presence)
+      featureBuilder.add(face.presenceBasis)
+      featureBuilder.add(face.noSidewalkLabelCount)
+      featureBuilder.add(face.noSidewalkUserCount)
+      featureBuilder.add(face.labelCount)
+      featureBuilder.add(face.auditCount)
+      featureBuilder.add(face.firstNoSidewalkLabelDate.map(_.toString).orNull)
+      featureBuilder.add(face.lastNoSidewalkLabelDate.map(_.toString).orNull)
+      featureBuilder.buildFeature(null)
+    }
+
+    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /** Writes sidewalk presence faces (#5279) as a GeoPackage, with the API's canonical snake_case field names. */
+  def createSidewalkPresenceGeopackage(
+      source: Source[SidewalkPresenceForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "sidewalk_presence",
+      "the_geom:LineString:srid=4326,"
+        + "street_edge_id:Integer,"
+        + "street_side:String,"
+        + "osm_way_id:String," // OSM way ID as String (GeoTools doesn't handle Long well)
+        + "region_id:Integer,"
+        + "region_name:String,"
+        + "way_type:String,"
+        + "status:String,"
+        + "presence:String,"
+        + "presence_basis:String,"
+        + "no_sidewalk_label_count:Integer,"
+        + "no_sidewalk_user_count:Integer,"
+        + "label_count:Integer,"
+        + "audit_count:Integer,"
+        + "first_no_sidewalk_label_date:String,"
+        + "last_no_sidewalk_label_date:String"
+    )
+
+    def buildFeature(face: SidewalkPresenceForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+      featureBuilder.add(face.geometry)
+      featureBuilder.add(face.streetEdgeId)
+      featureBuilder.add(face.streetSide)
+      featureBuilder.add(face.osmWayId.toString)
+      featureBuilder.add(face.regionId)
+      featureBuilder.add(face.regionName)
+      featureBuilder.add(face.wayType)
+      featureBuilder.add(face.status)
+      featureBuilder.add(face.presence)
+      featureBuilder.add(face.presenceBasis)
+      featureBuilder.add(face.noSidewalkLabelCount)
+      featureBuilder.add(face.noSidewalkUserCount)
+      featureBuilder.add(face.labelCount)
+      featureBuilder.add(face.auditCount)
+      featureBuilder.add(face.firstNoSidewalkLabelDate.map(_.toString).orNull)
+      featureBuilder.add(face.lastNoSidewalkLabelDate.map(_.toString).orNull)
       featureBuilder.buildFeature(null)
     }
 

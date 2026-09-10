@@ -59,6 +59,11 @@ for a bounded domain (a severity `1`–`3`, a non-negative count, a `0`–`1` fr
 constraint silently rots into bad data; backfilling ones that should have been there from the start has cost whole
 PRs (#3574 for FKs, #3944 for NOT NULL/UNIQUE/PK/CHECK).
 
+A table-level `CONSTRAINT ... CHECK` that spans several columns (383.sql pins a derived table's verdict to its counts
+this way) needs a name that says what it asserts, e.g. `sidewalk_presence_basis_matches_count_check`. Postgres names
+an inline column `CHECK` `<table>_<column>_check` on its own, so a table-level constraint named after one of those
+columns collides with it and the whole evolution fails with `check constraint ... already exists`.
+
 **Mirror each in the Slick model** so schema and code agree: a non-`Option` `column[T]` means `NOT NULL`,
 `def pk = primaryKey(...)` declares a composite PK (single-column PKs use `O.PrimaryKey` inline),
 `index(..., unique = true)` a UNIQUE, and `foreignKey(...)` an FK. A column `DEFAULT` is mirrored with

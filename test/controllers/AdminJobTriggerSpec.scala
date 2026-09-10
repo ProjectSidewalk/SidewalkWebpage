@@ -7,6 +7,7 @@ import actor.{
   FunnelStatActor,
   OsmWayRefreshActor,
   RecalculateStreetPriorityActor,
+  SidewalkPresenceActor,
   UserStatActor
 }
 import models.user.Role
@@ -34,6 +35,8 @@ import service.{
   OsmWayRefreshResult,
   OsmWayService,
   PanoDataService,
+  SidewalkPresenceRebuildResult,
+  SidewalkPresenceService,
   StreetService
 }
 import util.{AnonSession, RoleSession, RolledBackDb, StubService}
@@ -41,7 +44,7 @@ import util.{AnonSession, RoleSession, RolledBackDb, StubService}
 import scala.concurrent.Future
 
 /**
- * Functional tests for the seven admin routes that hand-trigger a nightly job (#4946).
+ * Functional tests for the eight admin routes that hand-trigger a nightly job (#4946).
  *
  * Each wraps its service call in `jobRunService.record(..., Manual)` so a hand-run leaves the same counts and error
  * trail the scheduler's run would (#4932). Nothing else asserts that a given controller method still *calls* it: drop
@@ -77,11 +80,17 @@ class AdminJobTriggerSpec
     provenanceUnresolved = 4630, errors = 4624
   )
 
+  private val PresenceResult =
+    SidewalkPresenceRebuildResult(faces = 4631, inserted = 4632, updated = 4633, deleted = 4634)
+
   /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */
   @volatile private var osmWayAnswer: Future[OsmWayRefreshResult] = Future.successful(OsmWayRefreshResult.empty)
 
   /** Set per test: whether the crop service reports a run in flight, which is the trigger's refusal path. */
   @volatile private var cropRunning: Boolean = false
+
+  /** As `cropRunning`, for the sidewalk-presence rebuild, whose trigger refuses the same way. */
+  @volatile private var presenceRunning: Boolean = false
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -119,6 +128,14 @@ class AdminJobTriggerSpec
         ),
         bind[OsmWayService].toInstance(
           StubService.answeringWith[OsmWayService](Map("refreshOsmWayData" -> (() => osmWayAnswer)))
+        ),
+        bind[SidewalkPresenceService].toInstance(
+          StubService.answeringWith[SidewalkPresenceService](
+            Map(
+              "rebuild"   -> (() => Future.successful(PresenceResult)),
+              "isRunning" -> (() => presenceRunning)
+            )
+          )
         )
       )
       .build()
@@ -224,6 +241,30 @@ class AdminJobTriggerSpec
       jobRun.triggeredBy mustBe JobRunTrigger.Manual
       jobRun.status mustBe JobRunStatus.Succeeded
       jobRun.details.value mustBe ImageryResult.runDetails
+    }
+  }
+
+  "POST /adminapi/rebuildSidewalkPresence" should {
+    "record the rebuild as a manual run of the nightly sidewalk-presence job, with its counts" in {
+      val (code, body, jobRun) = trigger("/adminapi/rebuildSidewalkPresence", SidewalkPresenceActor.Name, POST)
+      code mustBe OK
+      body must include(PresenceResult.faces.toString)
+      jobRun.triggeredBy mustBe JobRunTrigger.Manual
+      jobRun.status mustBe JobRunStatus.Succeeded
+      jobRun.details.value mustBe PresenceResult.runDetails
+    }
+
+    "refuse with 409, and record nothing, while the nightly rebuild is already running" in {
+      // Two rebuilds racing insert the same new street's faces and the loser aborts on the primary key; refusing
+      // before the run is recorded keeps that non-event off the Health panel.
+      presenceRunning = true
+      try {
+        val idFloor  = highestRunId
+        val response = asAdmin("/adminapi/rebuildSidewalkPresence", POST)
+        status(response) mustBe CONFLICT
+        contentAsString(response) must include("already in progress")
+        runsSince(idFloor, SidewalkPresenceActor.Name) mustBe empty
+      } finally presenceRunning = false
     }
   }
 

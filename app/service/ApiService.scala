@@ -7,7 +7,7 @@ import models.cluster._
 import models.intersection.{IntersectionInfo, IntersectionStreetEnd, IntersectionTable}
 import models.label._
 import models.region.{Region, RegionTable}
-import models.street.{StreetEdgeInfo, StreetEdgeTable}
+import models.street.{SidewalkPresenceTable, StreetEdgeInfo, StreetEdgeTable}
 import models.user.UserStatTable
 import models.utils.BackgroundJobRunTable
 import models.utils.MyPostgresProfile.api._
@@ -107,6 +107,15 @@ trait ApiService {
    * @return          A reactive stream source that emits StreetDataForApi objects.
    */
   def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, _]
+
+  /**
+   * Retrieves sidewalk presence per block face (#5279) based on the provided filters, as a reactive stream source.
+   *
+   * @param filters   The filters to apply.
+   * @param batchSize The number of records to fetch in each batch from the database.
+   * @return          A reactive stream source that emits SidewalkPresenceForApi objects.
+   */
+  def getSidewalkPresence(filters: SidewalkPresenceFiltersForApi, batchSize: Int): Source[SidewalkPresenceForApi, _]
 
   /**
    * Retrieves regions (neighborhoods) based on the provided filters and returns them as a reactive stream source.
@@ -218,6 +227,7 @@ class ApiServiceImpl @Inject() (
     config: Configuration,
     clusterTable: ClusterTable,
     streetEdgeTable: StreetEdgeTable,
+    sidewalkPresenceTable: SidewalkPresenceTable,
     regionTable: RegionTable,
     labelTable: LabelTable,
     userStatTable: UserStatTable,
@@ -249,6 +259,13 @@ class ApiServiceImpl @Inject() (
 
   def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, _] = {
     setUpStreamFromDb(streetEdgeTable.getStreetsForApi(filters), batchSize)
+  }
+
+  def getSidewalkPresence(
+      filters: SidewalkPresenceFiltersForApi,
+      batchSize: Int
+  ): Source[SidewalkPresenceForApi, _] = {
+    setUpStreamFromDb(sidewalkPresenceTable.getSidewalkPresenceForApi(filters), batchSize)
   }
 
   def getRegions(filters: RegionFiltersForApi, batchSize: Int): Source[RegionDataForApi, _] = {

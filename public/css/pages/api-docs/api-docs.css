@@ -338,6 +338,36 @@ pre > code.language-csv {
   color: var(--color-neutral-900);
 }
 
+/* An amber variant for a notice the reader must weigh before building on the page (an experimental endpoint), on
+   the test-server banner's palette so "caution" reads the same site-wide. */
+.api-callout--experimental {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+  background-color: var(--color-banana-100);
+  border-left-color: var(--color-banana-800);
+}
+
+.api-callout--experimental p {
+  margin: 0;
+}
+
+.api-callout--experimental p + p {
+  margin-top: var(--space-xs);
+}
+
+/* Masked rather than an <img> so the tint stays a token (the same triangle the test-server banner masks). */
+.api-callout-icon {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  background-color: currentcolor;
+  color: var(--color-banana-800);
+  -webkit-mask: url("../../../images/icons/alert-triangle-feather.svg") center / contain no-repeat;
+  mask: url("../../../images/icons/alert-triangle-feather.svg") center / contain no-repeat;
+}
+
 /* ---- Map Previews ---- */
 
 /* The metric selector stacks above the map inside the .map-container frame rather than floating on it, so a
@@ -503,6 +533,12 @@ pre > code.language-csv {
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.map-legend-note {
+  margin-top: 5px;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
 }
 
 /* Mapbox's two-finger gesture overlay ships a system font stack. Its font-size is inline, set by the library from

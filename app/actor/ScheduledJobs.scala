@@ -46,7 +46,11 @@ object ScheduledJobs {
   val OsmWayRefresh: ScheduledJob    = ScheduledJob(OsmWayRefreshActor.Name, "OSM way refresh", 2, 0)
   val AuthTokenCleaner: ScheduledJob = ScheduledJob(AuthTokenCleanerActor.Name, "Auth token cleanup", 2, 30)
   val FunnelStats: ScheduledJob      = ScheduledJob(FunnelStatActor.Name, "Engagement funnel stats", 3, 15)
-  val Clustering: ScheduledJob       = ScheduledJob(ClusteringActor.Name, "Label clustering", 4, 0)
+
+  /** After the day's labeling; it reads labels rather than clusters, so it needn't wait for clustering (#5279). */
+  val SidewalkPresenceRebuild: ScheduledJob =
+    ScheduledJob(SidewalkPresenceActor.Name, "Sidewalk presence rebuild", 3, 30)
+  val Clustering: ScheduledJob = ScheduledJob(ClusteringActor.Name, "Label clustering", 4, 0)
 
   /** Runs at the top of the clustering job (#5095), so it takes that job's time rather than restating it. */
   val IntersectionRebuild: ScheduledJob = Clustering.copy(
@@ -59,8 +63,8 @@ object ScheduledJobs {
 
   /** Every job the Health panel expects to see a recent run of, in the order they run. */
   val All: Seq[ScheduledJob] = Seq(CheckImageExpiry, GetAiValidations, CheckImageryAge, UserStats, ImageryFreshnessSync,
-    RecalculateStreetPriority, OsmWayRefresh, AuthTokenCleaner, FunnelStats, IntersectionRebuild, Clustering,
-    CropGeneration)
+    RecalculateStreetPriority, OsmWayRefresh, AuthTokenCleaner, FunnelStats, SidewalkPresenceRebuild,
+    IntersectionRebuild, Clustering, CropGeneration)
 
   /**
    * How long after a job's last successful run it counts as overdue, in hours.

@@ -45,6 +45,7 @@ class AdminController @Inject() (
     userService: service.UserService,
     jobRunService: JobRunService,
     trafficService: TrafficService,
+    sidewalkPresenceService: SidewalkPresenceService,
     actorSystem: ActorSystem
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
@@ -1058,6 +1059,28 @@ class AdminController @Inject() (
           case Failure(e)       => logger.error(s"Manually triggered crop generation failed: ${e.getMessage}")
         }
       Future.successful(Accepted("Crop generation started. It reports to the Health panel when it finishes."))
+    }
+  }
+
+  /**
+   * Rebuilds the derived `sidewalk_presence` table now, as the nightly job does (#5279).
+   *
+   * Recorded as a manual run of that job, so the Health panel charts both triggers as one. The rebuild takes seconds,
+   * so unlike crop generation the response waits for it and answers with the counts.
+   *
+   * The window a click has to land in to collide with the nightly tick is seconds wide, but the collision is ugly
+   * — both transactions insert the faces of a street added since, and the loser aborts on the primary key — so it is
+   * refused rather than raced. Checked before the run is recorded, as `generateCrops` does, so a refused trigger
+   * doesn't leave a failed run on the Health panel.
+   */
+  def rebuildSidewalkPresence = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    if (sidewalkPresenceService.isRunning) {
+      Future.successful(Conflict("A sidewalk presence rebuild is already in progress."))
+    } else {
+      jobRunService
+        .record(SidewalkPresenceActor.Name, JobRunTrigger.Manual)(sidewalkPresenceService.rebuild())(_.runDetails)
+        .map(result => Ok(result.runDetails))
     }
   }
 

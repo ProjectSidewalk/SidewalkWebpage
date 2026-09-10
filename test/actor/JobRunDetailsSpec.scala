@@ -3,7 +3,13 @@ package actor
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsNull, Json}
 import service.CropService.CropRunResult
-import service.{ClusteringResults, CropSizingRule, IntersectionRebuildResult, OsmWayRefreshResult}
+import service.{
+  ClusteringResults,
+  CropSizingRule,
+  IntersectionRebuildResult,
+  OsmWayRefreshResult,
+  SidewalkPresenceRebuildResult
+}
 
 /**
  * The wire shape of the run details each multi-trigger job records (#5044).
@@ -49,6 +55,11 @@ class JobRunDetailsSpec extends PlaySpec {
         "deleted"             -> 33,
         "clusters_attributed" -> 34
       )
+    }
+
+    "record the sidewalk presence rebuild's every count" in {
+      SidewalkPresenceRebuildResult(faces = 40, inserted = 41, updated = 42, deleted = 43).runDetails mustBe
+        Json.obj("faces" -> 40, "inserted" -> 41, "updated" -> 42, "deleted" -> 43)
     }
 
     "record crop generation's every count, and the rule that cut the store" in {
