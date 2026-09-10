@@ -10,7 +10,6 @@
  */
 package models.api
 
-import models.api.ApiModelUtils.escapeCsvField
 import models.utils.LatLngBBox
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.{LineString, MultiPolygon, Point}
@@ -101,32 +100,29 @@ object AccessScoreApiModels {
       b <- severityBuckets
     } yield (t, b)
 
-  /** The per-type CSV columns for `types`: `n_*`, then `score_*`, then the `n_*_sev*` buckets, then `tag_adj_*`. */
-  private[api] def perTypeCsvColumns(types: Seq[String]): Seq[String] = {
-    val countCols    = types.map(t => s"n_${snakeType(t)}")
-    val subScoreCols = types.map(t => s"score_${snakeType(t)}")
-    val bucketCols   = typeBucketColumnsFor(types).map { case (t, b) => s"n_${snakeType(t)}_${bucketSuffix(b)}" }
-    val tagCols      = types.map(t => s"tag_adj_${snakeType(t)}")
-    countCols ++ subScoreCols ++ bucketCols ++ tagCols
-  }
-
-  private[api] def perTypeCsvFields(
+  /**
+   * The four per-type blocks as fields, for any record that carries them.
+   *
+   * @param types The label types to emit columns for, in order.
+   * @return The fields, sparse entries filled with the block's zero value.
+   */
+  private[api] def perTypeFields[T](
       types: Seq[String],
-      clusterCounts: Map[String, Int],
-      subScores: Map[String, Double],
-      severityCounts: Map[String, Map[String, Int]],
-      tagAdjustments: Map[String, Double]
-  ): Seq[String] = {
-    val countFields    = types.map(t => clusterCounts.getOrElse(t, 0).toString)
-    val subScoreFields = types.map(t => subScores.getOrElse(t, 0.0).toString)
-    val bucketFields   = typeBucketColumnsFor(types).map { case (t, b) =>
-      severityCounts.getOrElse(t, Map.empty[String, Int]).getOrElse(b, 0).toString
-    }
-    val tagFields = types.map(t => tagAdjustments.getOrElse(t, 0.0).toString)
-    countFields ++ subScoreFields ++ bucketFields ++ tagFields
+      clusterCounts: T => Map[String, Int],
+      subScores: T => Map[String, Double],
+      severityCounts: T => Map[String, Map[String, Int]],
+      tagAdjustments: T => Map[String, Double]
+  ): Seq[ApiField[T]] = {
+    import ApiFields.field
+    types.map(t => field[T, Int](s"cluster_counts.$t")(r => clusterCounts(r).getOrElse(t, 0))) ++
+      types.map(t => field[T, Double](s"sub_scores.$t")(r => subScores(r).getOrElse(t, 0.0))) ++
+      typeBucketColumnsFor(types).map { case (t, b) =>
+        field[T, Int](s"severity_counts.$t.$b") { r =>
+          severityCounts(r).getOrElse(t, Map.empty[String, Int]).getOrElse(b, 0)
+        }
+      } ++
+      types.map(t => field[T, Double](s"tag_adjustments.$t")(r => tagAdjustments(r).getOrElse(t, 0.0)))
   }
-
-  private[api] def optCsv[T](value: Option[T]): String = value.map(_.toString).getOrElse("")
 }
 
 /**
@@ -185,57 +181,38 @@ case class StreetAccessScoreForApi(
     Json.obj(
       "type"       -> "Feature",
       "geometry"   -> geometry,
-      "properties" -> Json.obj(
-        "street_edge_id"           -> streetEdgeId,
-        "osm_way_id"               -> osmWayId,
-        "region_id"                -> regionId,
-        "score"                    -> score,
-        "segment_score"            -> segmentScore,
-        "start_intersection_id"    -> startIntersectionId,
-        "end_intersection_id"      -> endIntersectionId,
-        "start_intersection_score" -> startIntersectionScore,
-        "end_intersection_score"   -> endIntersectionScore,
-        "audit_count"              -> auditCount,
-        "length_meters"            -> lengthMeters,
-        "label_count"              -> labelCount,
-        "cluster_counts"           -> AccessScoreApiModels.perTypeJson(clusterCounts, 0),
-        "sub_scores"               -> AccessScoreApiModels.perTypeJson(subScores, 0.0),
-        "severity_counts"          -> AccessScoreApiModels.perTypeBucketJson(severityCounts),
-        "tag_adjustments"          -> AccessScoreApiModels.perTypeJson(tagAdjustments, 0.0)
-      )
+      "properties" -> StreetAccessScoreForApi.toJson(this)
     )
   }
 
-  /** Converts this street access score to a CSV row matching [[StreetAccessScoreForApi.csvHeader]]. */
-  override def toCsvRow: String = {
-    import AccessScoreApiModels.optCsv
-    val baseFields = Seq(
-      streetEdgeId.toString, osmWayId.toString, regionId.toString, optCsv(score), optCsv(segmentScore),
-      optCsv(startIntersectionId), optCsv(endIntersectionId), optCsv(startIntersectionScore),
-      optCsv(endIntersectionScore), auditCount.toString, lengthMeters.toString, labelCount.toString
-    )
-    val typeFields = AccessScoreApiModels.perTypeCsvFields(
-      AccessScoreApiModels.orderedTypes, clusterCounts, subScores, severityCounts, tagAdjustments
-    )
-    val tailFields = Seq(
-      escapeCsvField(s"${geometry.getStartPoint.getX},${geometry.getStartPoint.getY}"),
-      escapeCsvField(s"${geometry.getEndPoint.getX},${geometry.getEndPoint.getY}")
-    )
-    (baseFields ++ typeFields ++ tailFields).mkString(",")
-  }
+  override def toCsvRow: String = StreetAccessScoreForApi.toCsvRow(this)
 }
 
-/** Companion holding the CSV header for [[StreetAccessScoreForApi]], generated from the scored-type set. */
-object StreetAccessScoreForApi {
-  val csvHeader: String = {
-    val baseCols = Seq(
-      "street_edge_id", "osm_way_id", "region_id", "score", "segment_score", "start_intersection_id",
-      "end_intersection_id", "start_intersection_score", "end_intersection_score", "audit_count", "length_meters",
-      "label_count"
-    )
-    (baseCols ++ AccessScoreApiModels.perTypeCsvColumns(AccessScoreApiModels.orderedTypes) ++
-      Seq("start_point", "end_point")).mkString(",") + "\n"
-  }
+object StreetAccessScoreForApi extends ApiFields[StreetAccessScoreForApi] {
+  import ApiFields.field
+
+  override val fields: Seq[ApiField[StreetAccessScoreForApi]] = Seq[ApiField[StreetAccessScoreForApi]](
+    field("street_edge_id")(_.streetEdgeId),
+    field("osm_way_id")(_.osmWayId),
+    field("region_id")(_.regionId),
+    field("score")(_.score),
+    field("segment_score")(_.segmentScore),
+    field("start_intersection_id")(_.startIntersectionId),
+    field("end_intersection_id")(_.endIntersectionId),
+    field("start_intersection_score")(_.startIntersectionScore),
+    field("end_intersection_score")(_.endIntersectionScore),
+    field("audit_count")(_.auditCount),
+    field("length_meters")(_.lengthMeters),
+    field("label_count")(_.labelCount)
+  ) ++ AccessScoreApiModels.perTypeFields[StreetAccessScoreForApi](
+    AccessScoreApiModels.orderedTypes, _.clusterCounts, _.subScores, _.severityCounts, _.tagAdjustments
+  )
+
+  // The GeoJSON holds the full LineString; the CSV can only summarize it as its two endpoints.
+  override val csvOnlyFields: Seq[ApiField[StreetAccessScoreForApi]] = Seq(
+    field("start_point")(s => s"${s.geometry.getStartPoint.getX},${s.geometry.getStartPoint.getY}"),
+    field("end_point")(s => s"${s.geometry.getEndPoint.getX},${s.geometry.getEndPoint.getY}")
+  )
 
   implicit val writes: Writes[StreetAccessScoreForApi] = (s: StreetAccessScoreForApi) => s.toJson
 }
@@ -279,58 +256,37 @@ case class IntersectionAccessScoreForApi(
 
   /** Converts this intersection access score to a GeoJSON Feature with a Point geometry. */
   override def toJson: JsObject = {
-    val types: Seq[String] = AccessScoreApiModels.orderedIntersectionTypes
     Json.obj(
       "type"       -> "Feature",
       "geometry"   -> geometry,
-      "properties" -> Json.obj(
-        "intersection_id" -> intersectionId,
-        "region_id"       -> regionId,
-        "degree"          -> degree,
-        "grade_separated" -> gradeSeparated,
-        "street_edge_ids" -> streetEdgeIds,
-        "audit_count"     -> auditCount,
-        "score"           -> score,
-        "label_count"     -> labelCount,
-        "cluster_counts"  -> AccessScoreApiModels.perTypeJson(clusterCounts, 0, types),
-        "sub_scores"      -> AccessScoreApiModels.perTypeJson(subScores, 0.0, types),
-        "severity_counts" -> AccessScoreApiModels.perTypeBucketJson(severityCounts, types),
-        "tag_adjustments" -> AccessScoreApiModels.perTypeJson(tagAdjustments, 0.0, types)
-      )
+      "properties" -> IntersectionAccessScoreForApi.toJson(this)
     )
   }
 
-  /** Converts this intersection access score to a CSV row matching [[IntersectionAccessScoreForApi.csvHeader]]. */
-  override def toCsvRow: String = {
-    import AccessScoreApiModels.optCsv
-    val baseFields = Seq(
-      intersectionId.toString,
-      optCsv(regionId),
-      degree.toString,
-      gradeSeparated.toString,
-      escapeCsvField(streetEdgeIds.mkString("[", ",", "]")),
-      auditCount.toString,
-      optCsv(score),
-      labelCount.toString
-    )
-    val typeFields = AccessScoreApiModels.perTypeCsvFields(
-      AccessScoreApiModels.orderedIntersectionTypes, clusterCounts, subScores, severityCounts, tagAdjustments
-    )
-    val tailFields = Seq(geometry.getY.toString, geometry.getX.toString)
-    (baseFields ++ typeFields ++ tailFields).mkString(",")
-  }
+  override def toCsvRow: String = IntersectionAccessScoreForApi.toCsvRow(this)
 }
 
-/** Companion holding the CSV header for [[IntersectionAccessScoreForApi]], generated from the intersection-type set. */
-object IntersectionAccessScoreForApi {
-  val csvHeader: String = {
-    val baseCols = Seq(
-      "intersection_id", "region_id", "degree", "grade_separated", "street_edge_ids", "audit_count", "score",
-      "label_count"
-    )
-    (baseCols ++ AccessScoreApiModels.perTypeCsvColumns(AccessScoreApiModels.orderedIntersectionTypes) ++
-      Seq("lat", "lng")).mkString(",") + "\n"
-  }
+object IntersectionAccessScoreForApi extends ApiFields[IntersectionAccessScoreForApi] {
+  import ApiFields.field
+
+  override val fields: Seq[ApiField[IntersectionAccessScoreForApi]] = Seq[ApiField[IntersectionAccessScoreForApi]](
+    field("intersection_id")(_.intersectionId),
+    field("region_id")(_.regionId),
+    field("degree")(_.degree),
+    field("grade_separated")(_.gradeSeparated),
+    field("street_edge_ids")(_.streetEdgeIds),
+    field("audit_count")(_.auditCount),
+    field("score")(_.score),
+    field("label_count")(_.labelCount)
+  ) ++ AccessScoreApiModels.perTypeFields[IntersectionAccessScoreForApi](
+    AccessScoreApiModels.orderedIntersectionTypes, _.clusterCounts, _.subScores, _.severityCounts, _.tagAdjustments
+  )
+
+  // The GeoJSON holds the position in its Point geometry; the CSV needs it as ordinary columns.
+  override val csvOnlyFields: Seq[ApiField[IntersectionAccessScoreForApi]] = Seq(
+    field("lat")(_.geometry.getY),
+    field("lng")(_.geometry.getX)
+  )
 
   implicit val writes: Writes[IntersectionAccessScoreForApi] = (i: IntersectionAccessScoreForApi) => i.toJson
 }
@@ -369,50 +325,34 @@ case class RegionAccessScoreForApi(
     Json.obj(
       "type"       -> "Feature",
       "geometry"   -> geometry,
-      "properties" -> Json.obj(
-        "region_id"                 -> regionId,
-        "name"                      -> name,
-        "score"                     -> score,
-        "coverage"                  -> coverage,
-        "audited_street_count"      -> auditedStreetCount,
-        "total_street_count"        -> totalStreetCount,
-        "intersection_score"        -> intersectionScore,
-        "intersection_count"        -> intersectionCount,
-        "scored_intersection_count" -> scoredIntersectionCount,
-        "avg_cluster_counts"        -> AccessScoreApiModels.perTypeJson(avgClusterCounts, 0.0)
-      )
+      "properties" -> RegionAccessScoreForApi.toJson(this)
     )
   }
 
-  /** Converts this region access score to a CSV row matching [[RegionAccessScoreForApi.csvHeader]]. */
-  override def toCsvRow: String = {
-    val centroid   = geometry.getCentroid
-    val baseFields = Seq(
-      regionId.toString,
-      escapeCsvField(name),
-      score.map(_.toString).getOrElse(""),
-      coverage.toString,
-      auditedStreetCount.toString,
-      totalStreetCount.toString,
-      AccessScoreApiModels.optCsv(intersectionScore),
-      intersectionCount.toString,
-      scoredIntersectionCount.toString
-    )
-    val countFields = AccessScoreApiModels.orderedTypes.map(t => avgClusterCounts.getOrElse(t, 0.0).toString)
-    val tailFields  = Seq(escapeCsvField(s"${centroid.getX},${centroid.getY}"))
-    (baseFields ++ countFields ++ tailFields).mkString(",")
-  }
+  override def toCsvRow: String = RegionAccessScoreForApi.toCsvRow(this)
 }
 
-/** Companion holding the CSV header for [[RegionAccessScoreForApi]], generated from the scored-type set. */
-object RegionAccessScoreForApi {
-  val csvHeader: String = {
-    val countCols = AccessScoreApiModels.orderedTypes.map(t => s"avg_n_${AccessScoreApiModels.snakeType(t)}")
-    (Seq(
-      "region_id", "name", "score", "coverage", "audited_street_count", "total_street_count", "intersection_score",
-      "intersection_count", "scored_intersection_count"
-    ) ++ countCols ++ Seq("center_point")).mkString(",") + "\n"
+object RegionAccessScoreForApi extends ApiFields[RegionAccessScoreForApi] {
+  import ApiFields.field
+
+  override val fields: Seq[ApiField[RegionAccessScoreForApi]] = Seq[ApiField[RegionAccessScoreForApi]](
+    field("region_id")(_.regionId),
+    field("name")(_.name),
+    field("score")(_.score),
+    field("coverage")(_.coverage),
+    field("audited_street_count")(_.auditedStreetCount),
+    field("total_street_count")(_.totalStreetCount),
+    field("intersection_score")(_.intersectionScore),
+    field("intersection_count")(_.intersectionCount),
+    field("scored_intersection_count")(_.scoredIntersectionCount)
+  ) ++ AccessScoreApiModels.orderedTypes.map { labelType =>
+    field(s"avg_cluster_counts.$labelType")(_.avgClusterCounts.getOrElse(labelType, 0.0))
   }
+
+  // The GeoJSON holds the full polygon; the CSV can only summarize it as its centroid.
+  override val csvOnlyFields: Seq[ApiField[RegionAccessScoreForApi]] = Seq(
+    field("center_point")(r => s"${r.geometry.getCentroid.getX},${r.geometry.getCentroid.getY}")
+  )
 
   implicit val writes: Writes[RegionAccessScoreForApi] = (r: RegionAccessScoreForApi) => r.toJson
 }

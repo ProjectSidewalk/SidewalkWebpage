@@ -86,7 +86,7 @@
     <h2 class="page-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
 
     <h3 class="page-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
-    <p>On success, the API returns an HTTP <code>200 OK</code> status code. In JSON (default) the body is an object of aggregate totals; in CSV the body is a two-column <code>metric,value</code> table.</p>
+    <p>On success, the API returns an HTTP <code>200 OK</code> status code. In JSON (default) the body is an object of aggregate totals; in CSV the body is a two-column <code>metric,value</code> table whose metric names are the JSON field paths joined with dots, so <code>by_label_type.CurbRamp.labels</code> in the CSV is the value you would read as <code>by_label_type.CurbRamp.labels</code> from the JSON.</p>
 
     <pre><code class="language-json">{
   "status": "OK",

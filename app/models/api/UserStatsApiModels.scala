@@ -8,7 +8,7 @@ package models.api
 
 import models.label.LabelTypeEnum
 import models.user.LabelTypeStat
-import play.api.libs.json.{JsObject, Json, Writes}
+import play.api.libs.json.{JsObject, Writes}
 
 /**
  * Per-user labeling and validation statistics for the User Stats API.
@@ -56,97 +56,41 @@ case class UserStatForApi(
     statsByLabelType: Map[String, LabelTypeStat]
 ) extends StreamingApiType {
 
-  /**
-   * Converts this UserStatForApi object to a JSON object with snake_case field names (#3871).
-   *
-   * @return A JsObject representing the user's stats, with a nested `stats_by_label_type` breakdown.
-   */
-  override def toJson: JsObject = {
-    Json.obj(
-      "user_id"                      -> userId,
-      "labels"                       -> labels,
-      "meters_explored"              -> metersExplored,
-      "labels_per_meter"             -> labelsPerMeter,
-      "high_quality"                 -> highQuality,
-      "high_quality_manual"          -> highQualityManual,
-      "label_accuracy"               -> labelAccuracy,
-      "validated_labels"             -> validatedLabels,
-      "validations_received"         -> validationsReceived,
-      "labels_validated_correct"     -> labelsValidatedCorrect,
-      "labels_validated_incorrect"   -> labelsValidatedIncorrect,
-      "labels_not_validated"         -> labelsNotValidated,
-      "validations_given"            -> validationsGiven,
-      "dissenting_validations_given" -> dissentingValidationsGiven,
-      "agree_validations_given"      -> agreeValidationsGiven,
-      "disagree_validations_given"   -> disagreeValidationsGiven,
-      "unsure_validations_given"     -> unsureValidationsGiven,
-      "stats_by_label_type"          -> Json.obj(
-        "curb_ramp"         -> Json.toJson(statsByLabelType(LabelTypeEnum.CurbRamp.name)),
-        "no_curb_ramp"      -> Json.toJson(statsByLabelType(LabelTypeEnum.NoCurbRamp.name)),
-        "obstacle"          -> Json.toJson(statsByLabelType(LabelTypeEnum.Obstacle.name)),
-        "surface_problem"   -> Json.toJson(statsByLabelType(LabelTypeEnum.SurfaceProblem.name)),
-        "no_sidewalk"       -> Json.toJson(statsByLabelType(LabelTypeEnum.NoSidewalk.name)),
-        "marked_crosswalk"  -> Json.toJson(statsByLabelType(LabelTypeEnum.Crosswalk.name)),
-        "pedestrian_signal" -> Json.toJson(statsByLabelType(LabelTypeEnum.Signal.name)),
-        "cant_see_sidewalk" -> Json.toJson(statsByLabelType(LabelTypeEnum.Occlusion.name)),
-        "other"             -> Json.toJson(statsByLabelType(LabelTypeEnum.Other.name))
-      )
-    )
-  }
+  override def toJson: JsObject = UserStatForApi.toJson(this)
 
-  /**
-   * Converts this UserStatForApi object to a CSV row matching the companion object's `csvHeader`.
-   *
-   * The per-label-type stats are flattened into four columns each, in the same label-type order as the
-   * header. `None` options are rendered as "NA".
-   *
-   * @return A comma-separated string representing this user's stats.
-   */
-  override def toCsvRow: String = {
-    s"${userId},${labels},${metersExplored},${formatOptionForCsv(labelsPerMeter)},${highQuality}," +
-      s"${formatOptionForCsv(highQualityManual)},${formatOptionForCsv(labelAccuracy)},${validatedLabels}," +
-      s"${validationsReceived},${labelsValidatedCorrect},${labelsValidatedIncorrect},${labelsNotValidated}," +
-      s"${validationsGiven},${dissentingValidationsGiven},${agreeValidationsGiven}," +
-      s"${disagreeValidationsGiven},${unsureValidationsGiven}," +
-      s"${labelTypeStatToCsvRow(statsByLabelType(LabelTypeEnum.CurbRamp.name))}," +
-      s"${labelTypeStatToCsvRow(statsByLabelType(LabelTypeEnum.NoCurbRamp.name))}," +
-      s"${labelTypeStatToCsvRow(statsByLabelType(LabelTypeEnum.Obstacle.name))}," +
-      s"${labelTypeStatToCsvRow(statsByLabelType(LabelTypeEnum.SurfaceProblem.name))}," +
-      s"${labelTypeStatToCsvRow(statsByLabelType(LabelTypeEnum.NoSidewalk.name))}," +
-      s"${labelTypeStatToCsvRow(statsByLabelType(LabelTypeEnum.Crosswalk.name))}," +
-      s"${labelTypeStatToCsvRow(statsByLabelType(LabelTypeEnum.Signal.name))}," +
-      s"${labelTypeStatToCsvRow(statsByLabelType(LabelTypeEnum.Occlusion.name))}," +
-      s"${labelTypeStatToCsvRow(statsByLabelType(LabelTypeEnum.Other.name))}"
-  }
-
-  /** Renders an option for CSV, using "NA" for `None` (matches the historical userStats CSV format). */
-  private def formatOptionForCsv(x: Option[Any]): String = x.map(_.toString).getOrElse("NA").replace("\"", "\"\"")
-
-  /** Flattens one label type's stats into the four CSV columns: labels, correct, incorrect, not-validated. */
-  private def labelTypeStatToCsvRow(l: LabelTypeStat): String =
-    s"${l.labels},${l.validatedCorrect},${l.validatedIncorrect},${l.notValidated}"
+  override def toCsvRow: String = UserStatForApi.toCsvRow(this)
 }
 
-/**
- * Companion object for UserStatForApi containing the CSV header and JSON writer.
- */
-object UserStatForApi {
+object UserStatForApi extends ApiFields[UserStatForApi] {
+  import ApiFields.field
 
-  // Historical Title-Case header; preserved verbatim for output compatibility with existing API consumers.
-  val csvHeader: String = "User ID,Labels,Meters Explored,Labels per Meter,High Quality,High Quality Manual," +
-    "Label Accuracy,Validated Labels,Validations Received,Labels Validated Correct,Labels Validated Incorrect," +
-    "Labels Not Validated,Validations Given,Dissenting Validations Given,Agree Validations Given," +
-    "Disagree Validations Given,Unsure Validations Given,Curb Ramp Labels,Curb Ramps Validated Correct," +
-    "Curb Ramps Validated Incorrect,Curb Ramps Not Validated,No Curb Ramp Labels,No Curb Ramps Validated Correct," +
-    "No Curb Ramps Validated Incorrect,No Curb Ramps Not Validated,Obstacle Labels,Obstacles Validated Correct," +
-    "Obstacles Validated Incorrect,Obstacles Not Validated,Surface Problem Labels,Surface Problems Validated Correct," +
-    "Surface Problems Validated Incorrect,Surface Problems Not Validated,No Sidewalk Labels," +
-    "No Sidewalks Validated Correct,No Sidewalks Validated Incorrect,No Sidewalks Not Validated," +
-    "Marked Crosswalk Labels,Marked Crosswalks Validated Correct,Marked Crosswalks Validated Incorrect," +
-    "Marked Crosswalks Not Validated,Pedestrian Signal Labels,Pedestrian Signals Validated Correct," +
-    "Pedestrian Signals Validated Incorrect,Pedestrian Signals Not Validated,Cant See Sidewalk Labels," +
-    "Cant See Sidewalks Validated Correct,Cant See Sidewalks Validated Incorrect,Cant See Sidewalks Not Validated," +
-    "Other Labels,Others Validated Correct,Others Validated Incorrect,Others Not Validated\n"
+  override val fields: Seq[ApiField[UserStatForApi]] = Seq[ApiField[UserStatForApi]](
+    field("user_id")(_.userId),
+    field("labels")(_.labels),
+    field("meters_explored")(_.metersExplored),
+    field("labels_per_meter")(_.labelsPerMeter),
+    field("high_quality")(_.highQuality),
+    field("high_quality_manual")(_.highQualityManual),
+    field("label_accuracy")(_.labelAccuracy),
+    field("validated_labels")(_.validatedLabels),
+    field("validations_received")(_.validationsReceived),
+    field("labels_validated_correct")(_.labelsValidatedCorrect),
+    field("labels_validated_incorrect")(_.labelsValidatedIncorrect),
+    field("labels_not_validated")(_.labelsNotValidated),
+    field("validations_given")(_.validationsGiven),
+    field("dissenting_validations_given")(_.dissentingValidationsGiven),
+    field("agree_validations_given")(_.agreeValidationsGiven),
+    field("disagree_validations_given")(_.disagreeValidationsGiven),
+    field("unsure_validations_given")(_.unsureValidationsGiven)
+    // Label types keyed by their canonical /v3/api/labelTypes name, so this breakdown joins against other endpoints.
+  ) ++ LabelTypeEnum.orderedNames.flatMap { labelType =>
+    Seq(
+      field(s"stats_by_label_type.$labelType.labels")(_.statsByLabelType(labelType).labels),
+      field(s"stats_by_label_type.$labelType.validated_correct")(_.statsByLabelType(labelType).validatedCorrect),
+      field(s"stats_by_label_type.$labelType.validated_incorrect")(_.statsByLabelType(labelType).validatedIncorrect),
+      field(s"stats_by_label_type.$labelType.not_validated")(_.statsByLabelType(labelType).notValidated)
+    )
+  }
 
   implicit val userStatWrites: Writes[UserStatForApi] = (userStat: UserStatForApi) => userStat.toJson
 }

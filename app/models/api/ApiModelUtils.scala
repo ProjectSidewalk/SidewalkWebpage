@@ -4,7 +4,7 @@
 package models.api
 
 import models.label.LabelTypeEnum
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsBoolean, JsNull, JsNumber, JsObject, JsString, JsValue, Json}
 
 object ApiModelUtils {
 
@@ -23,14 +23,57 @@ object ApiModelUtils {
   }
 
   /**
-   * Converts a human-readable or camelCase/PascalCase label into a snake_case CSV key (#3871), e.g. "KM Explored" or
-   * "CurbRamp Count" into "km_explored" or "curb_ramp_count".
+   * Flattens a nested JSON object into the "key,value" lines used by the endpoints whose response is a single object.
+   *
+   * Deriving the rows from the JSON is what keeps the two formats naming every field identically (#3871, #4320). Path
+   * pieces are copied exactly as the JSON spells them, since a second spelling of a name is a second name to keep in
+   * sync. Missing values become empty cells, as in every v3 CSV.
+   *
+   * @param json The JSON object to flatten.
+   * @return One "key,value" line per value, keyed by its dotted path (`labels.CurbRamp.count`), in JSON field order.
    */
-  def toSnakeKey(label: String): String =
-    label.trim
-      .replaceAll("([a-z\\d])([A-Z])", "$1_$2") // split camelCase/PascalCase boundaries
-      .replaceAll("\\s+", "_")                  // spaces to underscores
-      .toLowerCase
+  def toCsvKeyValueRows(json: JsObject): Seq[String] = {
+    def flatten(path: String, value: JsValue): Seq[(String, JsValue)] = value match {
+      case obj: JsObject => obj.fields.toSeq.flatMap { case (key, v) => flatten(s"$path.$key", v) }
+      case leaf          => Seq(path -> leaf)
+    }
+
+    json.fields.toSeq
+      .flatMap { case (key, value) => flatten(key, value) }
+      .map { case (key, value) => s"${escapeCsvField(key)},${csvCell(value)}" }
+  }
+
+  /** @return The escaped cell text for one JSON value; empty for a null, compact JSON for an array or object. */
+  def csvCell(value: JsValue): String = escapeCsvField(value match {
+    case JsNull        => ""
+    case JsString(str) => str
+    // Plain notation, so a very large or very small number never lands in the CSV as scientific notation.
+    case JsNumber(num)   => num.bigDecimal.toPlainString
+    case JsBoolean(bool) => bool.toString
+    case other           => Json.stringify(other)
+  })
+
+  /**
+   * Rebuilds the nested JSON an [[ApiFields]] field list describes, splitting each dotted name back into its path.
+   *
+   * @param fields Name/value pairs whose names may be dotted paths, in output order.
+   * @return The nested object, sibling keys in the order their paths first appear.
+   */
+  def nestJson(fields: Seq[(String, JsValue)]): JsObject = {
+    val (leaves, nested) = fields.partition(!_._1.contains('.'))
+    val leafByName       = leaves.toMap
+    // groupBy loses order, so walk the original list to decide which prefix each key belongs to and where it sits.
+    val prefixOrder = nested.map(_._1.takeWhile(_ != '.')).distinct
+    val subtrees    = prefixOrder.map { prefix =>
+      prefix -> nestJson(nested.collect {
+        case (name, value) if name.startsWith(s"$prefix.") => name.drop(prefix.length + 1) -> value
+      })
+    }.toMap
+
+    JsObject(
+      fields.map(f => f._1.takeWhile(_ != '.')).distinct.map { key => key -> leafByName.getOrElse(key, subtrees(key)) }
+    )
+  }
 
   /**
    * Helper to safely quote CSV fields containing commas, quotes, or newlines.

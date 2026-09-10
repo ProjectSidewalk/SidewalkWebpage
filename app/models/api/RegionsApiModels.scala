@@ -6,7 +6,6 @@
  */
 package models.api
 
-import models.api.ApiModelUtils.escapeCsvField
 import models.utils.LatLngBBox
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.MultiPolygon
@@ -67,62 +66,35 @@ case class RegionDataForApi(
     Json.obj(
       "type"       -> "Feature",
       "geometry"   -> geometry,
-      "properties" -> Json.obj(
-        "region_id"           -> regionId,
-        "name"                -> name,
-        "label_count"         -> labelCount,
-        "street_count"        -> streetCount,
-        "user_count"          -> userCount,
-        "audit_count"         -> auditCount,
-        "total_distance_m"    -> totalDistanceM,
-        "audited_distance_m"  -> auditedDistanceM,
-        "outdated_distance_m" -> outdatedDistanceM,
-        "completion_rate"     -> completionRate,
-        "first_label_date"    -> firstLabelDate.map(_.toString),
-        "last_label_date"     -> lastLabelDate.map(_.toString)
-      )
+      "properties" -> RegionDataForApi.toJson(this)
     )
   }
 
-  /**
-   * Converts this RegionData object to a CSV row string, ordered to match the header defined in the companion object.
-   *
-   * @return A comma-separated string representing this region's data
-   */
-  override def toCsvRow: String = {
-    // The full polygon geometry is too complex for the tabular CSV format, so we provide the centroid as a simplified
-    // representation. Use the GeoJSON format for the complete geometry.
-    val centroid = geometry.getCentroid
-    val fields   = Seq(
-      regionId.toString,
-      escapeCsvField(name),
-      labelCount.toString,
-      streetCount.toString,
-      userCount.toString,
-      auditCount.toString,
-      totalDistanceM.toString,
-      auditedDistanceM.toString,
-      outdatedDistanceM.toString,
-      completionRate.toString,
-      firstLabelDate.map(_.toString).getOrElse(""),
-      lastLabelDate.map(_.toString).getOrElse(""),
-      escapeCsvField(s"${centroid.getX},${centroid.getY}")
-    )
-    fields.mkString(",")
-  }
+  override def toCsvRow: String = RegionDataForApi.toCsvRow(this)
 }
 
-/**
- * Companion object for RegionDataForApi containing CSV header definition.
- */
-object RegionDataForApi {
+object RegionDataForApi extends ApiFields[RegionDataForApi] {
+  import ApiFields.field
 
-  /**
-   * CSV header string with field names in the same order as the toCsvRow output.
-   * This should be included as the first line when generating CSV output.
-   */
-  val csvHeader: String = "region_id,name,label_count,street_count,user_count,audit_count,total_distance_m," +
-    "audited_distance_m,outdated_distance_m,completion_rate,first_label_date,last_label_date,center_point\n"
+  override val fields: Seq[ApiField[RegionDataForApi]] = Seq(
+    field("region_id")(_.regionId),
+    field("name")(_.name),
+    field("label_count")(_.labelCount),
+    field("street_count")(_.streetCount),
+    field("user_count")(_.userCount),
+    field("audit_count")(_.auditCount),
+    field("total_distance_m")(_.totalDistanceM),
+    field("audited_distance_m")(_.auditedDistanceM),
+    field("outdated_distance_m")(_.outdatedDistanceM),
+    field("completion_rate")(_.completionRate),
+    field("first_label_date")(_.firstLabelDate.map(_.toString)),
+    field("last_label_date")(_.lastLabelDate.map(_.toString))
+  )
+
+  // The GeoJSON holds the full polygon; the CSV can only summarize it as its centroid.
+  override val csvOnlyFields: Seq[ApiField[RegionDataForApi]] = Seq(
+    field("center_point")(r => s"${r.geometry.getCentroid.getX},${r.geometry.getCentroid.getY}")
+  )
 
   /**
    * Implicit JSON writer for RegionDataForApi that uses the toJson method.

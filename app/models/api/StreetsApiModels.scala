@@ -5,7 +5,6 @@
  */
 package models.api
 
-import models.api.ApiModelUtils.escapeCsvField
 import models.utils.LatLngBBox
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.LineString
@@ -49,80 +48,43 @@ case class StreetDataForApi(
     geometry: LineString
 ) extends StreamingApiType {
 
-  /**
-   * Converts this StreetData object to a GeoJSON Feature object.
-   *
-   * The GeoJSON structure follows RFC 7946 and includes:
-   * - A LineString geometry
-   * - Properties containing all street metadata
-   *
-   * @return A JsObject containing the GeoJSON Feature representation
-   */
+  /** @return This street as an RFC 7946 GeoJSON Feature. */
   override def toJson: JsObject = {
     Json.obj(
       "type"       -> "Feature",
       "geometry"   -> geometry,
-      "properties" -> Json.obj(
-        "street_edge_id"   -> streetEdgeId,
-        "osm_way_id"       -> osmWayId,
-        "region_id"        -> regionId,
-        "region_name"      -> regionName,
-        "way_type"         -> wayType,
-        "max_speed"        -> maxSpeed,
-        "status"           -> status,
-        "user_ids"         -> userIds,
-        "label_count"      -> labelCount,
-        "audit_count"      -> auditCount,
-        "outdated"         -> outdated,
-        "user_count"       -> userIds.size,
-        "first_label_date" -> firstLabelDate.map(_.toString),
-        "last_label_date"  -> lastLabelDate.map(_.toString)
-      )
+      "properties" -> StreetDataForApi.toJson(this)
     )
   }
 
-  /**
-   * Converts this StreetData object to a CSV row string, ordered to match the header defined in the companion object.
-   * Complex fields like arrays are serialized as JSON strings.
-   *
-   * @return A comma-separated string representing this street's data
-   */
-  override def toCsvRow: String = {
-    val fields = Seq(
-      streetEdgeId.toString,
-      osmWayId.toString,
-      regionId.toString,
-      escapeCsvField(regionName),
-      escapeCsvField(wayType),
-      maxSpeed.map(escapeCsvField).getOrElse(""),
-      escapeCsvField(status),
-      escapeCsvField(userIds.mkString("[", ",", "]")),
-      labelCount.toString,
-      auditCount.toString,
-      outdated.toString,
-      userIds.size.toString,
-      firstLabelDate.map(_.toString).getOrElse(""),
-      lastLabelDate.map(_.toString).getOrElse(""),
-      // We're skipping the actual geometry in the CSV as it's too complex. Instead, we provide the first and last
-      // points as a simplified representation.
-      escapeCsvField(s"${geometry.getStartPoint.getX},${geometry.getStartPoint.getY}"),
-      escapeCsvField(s"${geometry.getEndPoint.getX},${geometry.getEndPoint.getY}")
-    )
-    fields.mkString(",")
-  }
+  override def toCsvRow: String = StreetDataForApi.toCsvRow(this)
 }
 
-/**
- * Companion object for StreetDataForApi containing CSV header definition
- */
-object StreetDataForApi {
+object StreetDataForApi extends ApiFields[StreetDataForApi] {
+  import ApiFields.field
 
-  /**
-   * CSV header string with field names in the same order as the toCsvRow output.
-   * This should be included as the first line when generating CSV output.
-   */
-  val csvHeader: String = "street_edge_id,osm_way_id,region_id,region_name,way_type,max_speed,status,user_ids," +
-    "label_count,audit_count,outdated,user_count,first_label_date,last_label_date,start_point,end_point\n"
+  override val fields: Seq[ApiField[StreetDataForApi]] = Seq(
+    field("street_edge_id")(_.streetEdgeId),
+    field("osm_way_id")(_.osmWayId),
+    field("region_id")(_.regionId),
+    field("region_name")(_.regionName),
+    field("way_type")(_.wayType),
+    field("max_speed")(_.maxSpeed),
+    field("status")(_.status),
+    field("user_ids")(_.userIds),
+    field("label_count")(_.labelCount),
+    field("audit_count")(_.auditCount),
+    field("outdated")(_.outdated),
+    field("user_count")(_.userIds.size),
+    field("first_label_date")(_.firstLabelDate.map(_.toString)),
+    field("last_label_date")(_.lastLabelDate.map(_.toString))
+  )
+
+  // The GeoJSON holds the full LineString; the CSV can only summarize it as its two endpoints.
+  override val csvOnlyFields: Seq[ApiField[StreetDataForApi]] = Seq(
+    field("start_point")(s => s"${s.geometry.getStartPoint.getX},${s.geometry.getStartPoint.getY}"),
+    field("end_point")(s => s"${s.geometry.getEndPoint.getX},${s.geometry.getEndPoint.getY}")
+  )
 
   /**
    * Implicit JSON writer for StreetDataForApi that uses the toJson method.
