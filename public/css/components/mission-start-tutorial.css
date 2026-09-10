@@ -76,20 +76,23 @@
   margin-left: var(--arrow-button-margin);
 }
 
-/* A mask rather than an <img> so the arrow picks up the button's hover color. */
+/* A mask rather than an <img> so the arrow picks up the button's hover color. The chevron fills only the middle third
+   of its file, so the mask is drawn wider than the button to make the arrow span it. */
 .mst-arrow-icon {
   width: 100%;
   height: 100%;
+  -webkit-mask-size: calc(84px * var(--ui-scale, 1));
+  mask-size: calc(84px * var(--ui-scale, 1));
 }
 
 .previous-slide-button .mst-arrow-icon {
-  -webkit-mask-image: url("../../images/icons/carousel-arrow-left.svg");
-  mask-image: url("../../images/icons/carousel-arrow-left.svg");
+  -webkit-mask-image: url("../../images/icons/chevron-left-feather.svg");
+  mask-image: url("../../images/icons/chevron-left-feather.svg");
 }
 
 .next-slide-button .mst-arrow-icon {
-  -webkit-mask-image: url("../../images/icons/carousel-arrow-right.svg");
-  mask-image: url("../../images/icons/carousel-arrow-right.svg");
+  -webkit-mask-image: url("../../images/icons/chevron-right-feather.svg");
+  mask-image: url("../../images/icons/chevron-right-feather.svg");
 }
 
 .mst-slide {
@@ -247,15 +250,15 @@
 .correct .label-on-image-type-icon,
 .correct .example-type-icon {
   color: var(--color-pine-700);
-  -webkit-mask-image: url("../../images/icons/smileys/smile-outline-positive.svg");
-  mask-image: url("../../images/icons/smileys/smile-outline-positive.svg");
+  -webkit-mask-image: url("../../images/icons/smileys/sev-1-positive.svg");
+  mask-image: url("../../images/icons/smileys/sev-1-positive.svg");
 }
 
 .incorrect .label-on-image-type-icon,
 .incorrect .example-type-icon {
   color: var(--color-error-300);
-  -webkit-mask-image: url("../../images/icons/smileys/smile-outline-negative.svg");
-  mask-image: url("../../images/icons/smileys/smile-outline-negative.svg");
+  -webkit-mask-image: url("../../images/icons/smileys/sev-3-positive.svg");
+  mask-image: url("../../images/icons/smileys/sev-3-positive.svg");
 }
 
 .example-type-label {

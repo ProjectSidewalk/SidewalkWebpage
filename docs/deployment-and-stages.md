@@ -454,7 +454,7 @@ keeps Bootstrap's `...eot?#iefix` glyphicons working. **A new reference needs no
 `util.assetPath` and its `assetManifestPrefixes`, the stage resolves each `url()` against the file itself. Just name a
 file that exists, by relative path: a stylesheet Grunt bundles into `public/js/*/build/` has its relative `url()`s
 rewritten to `/assets/` paths first (`concat_css`'s `assetBaseUrl` in `Gruntfile.js`), which would double up an
-absolute one.
+absolute one, so `make lint-asset-paths` (rule 6) rejects absolute ones in every stylesheet.
 
 Two things about that stage are load-bearing:
 

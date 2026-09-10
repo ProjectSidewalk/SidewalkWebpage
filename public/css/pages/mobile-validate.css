@@ -237,13 +237,13 @@ body {
 
 /* The example's correct/incorrect class picks the smiley's face; its color comes from the verdict text's. */
 .mv-example--correct .mv-example__verdict-icon {
-  -webkit-mask-image: url("../../images/icons/smileys/smile-outline-positive.svg");
-  mask-image: url("../../images/icons/smileys/smile-outline-positive.svg");
+  -webkit-mask-image: url("../../images/icons/smileys/sev-1-positive.svg");
+  mask-image: url("../../images/icons/smileys/sev-1-positive.svg");
 }
 
 .mv-example--incorrect .mv-example__verdict-icon {
-  -webkit-mask-image: url("../../images/icons/smileys/smile-outline-negative.svg");
-  mask-image: url("../../images/icons/smileys/smile-outline-negative.svg");
+  -webkit-mask-image: url("../../images/icons/smileys/sev-3-positive.svg");
+  mask-image: url("../../images/icons/smileys/sev-3-positive.svg");
 }
 
 .mv-example--correct .mv-example__verdict {

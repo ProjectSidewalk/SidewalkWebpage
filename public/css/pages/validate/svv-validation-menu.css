@@ -209,10 +209,10 @@
 
 /* The X is its own span because a mask hides everything it covers, which on the button would include its focus ring. */
 .remove-tag-x__icon {
-  width: calc(9px * var(--ui-scale));
-  height: calc(9px * var(--ui-scale));
-  -webkit-mask-image: url("../../../images/icons/close-x-bold.svg");
-  mask-image: url("../../../images/icons/close-x-bold.svg");
+  width: calc(15px * var(--ui-scale));
+  height: calc(15px * var(--ui-scale));
+  -webkit-mask-image: url("../../../images/icons/cross.svg");
+  mask-image: url("../../../images/icons/cross.svg");
 }
 
 .selectize-dropdown-content {
