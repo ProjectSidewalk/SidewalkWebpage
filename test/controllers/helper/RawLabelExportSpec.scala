@@ -4,10 +4,10 @@ import models.api.LabelDataForApi
 import models.label.StreetSide
 import models.pano.PanoSource
 import org.apache.pekko.stream.scaladsl.Source
-import org.geotools.data.DataStoreFinder
+import org.geotools.api.data.{DataStore, DataStoreFinder}
+import org.geotools.api.feature.simple.SimpleFeature
 import org.geotools.data.shapefile.ShapefileDataStoreFactory
 import org.geotools.geopkg.GeoPkgDataStoreFactory
-import org.opengis.feature.simple.SimpleFeature
 import org.scalatest.OptionValues
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -97,10 +97,7 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
   }
 
   /** Every feature the store holds, keyed by `label_id`, alongside the schema's attribute names in order. */
-  private def readBack(
-      store: org.geotools.data.DataStore,
-      labelIdField: String
-  ): (Seq[String], Map[Int, SimpleFeature]) =
+  private def readBack(store: DataStore, labelIdField: String): (Seq[String], Map[Int, SimpleFeature]) =
     try {
       val typeName = store.getTypeNames()(0)
       val names    = store.getSchema(typeName).getAttributeDescriptors.asScala.map(_.getLocalName).toSeq

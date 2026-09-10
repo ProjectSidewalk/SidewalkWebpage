@@ -73,15 +73,16 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
   [other repos](https://mvnrepository.com/search?q=jackson-datatype-jts)) but may not work. Take minor bumps from the
   link below; a full upgrade needs dedicated investigation.
   [Releases](https://mvnrepository.com/artifact/org.n52.jackson/jackson-datatype-jts)
-- **gt-shapefile / gt-epsg-hsql / gt-geopkg (GeoTools): 29.6** — Shapefile/GeoPackage generation. **Note:** we froze
-  here over a compatibility issue, though it's not confirmed we *couldn't* move forward. GeoTools is actively
-  maintained, so there are likely benefits to figuring out the upgrade.
+- **gt-shapefile / gt-epsg-hsql / gt-geopkg (GeoTools): 35.1** — Shapefile/GeoPackage generation. Served by the
+  OSGeo resolver in `build.sbt`, not Maven Central; a new major lands there a few weeks after the release. We use a
+  tiny, stable corner of the API (`ShapefilesCreatorHelper` plus `JTSFactoryFinder`), so bumps are usually
+  mechanical. **Note:** 35.x replaced Oracle JAI with Eclipse ImageN, which is why the old `jai_core` download line
+  and its exclusions are gone; 34.x+ needs Java 17 (we're on it), and the packages were renamed in 30.x
+  (`org.opengis.*` → `org.geotools.api.*`, datastore interfaces → `org.geotools.api.data`), so an old snippet from the
+  GeoTools docs may need its imports adjusted. Check both exports after any bump (#4393).
   [Releases](https://mvnrepository.com/artifact/org.geotools/gt-shapefile?repo=geotools-releases) ·
-  [Changelog](https://github.com/geotools/geotools/releases)
-- **jai_core: 1.1.3** — pulled in by GeoTools; not on Maven Central, so `build.sbt` downloads it from the OSGeo repo.
-  **Note:** no new releases; GeoTools has
-  [long-term plans to phase it out](https://github.com/geotools/geotools/wiki/Replace-JAI).
-  [Releases](https://mvnrepository.com/artifact/javax.media/jai_core)
+  [Changelog](https://github.com/geotools/geotools/releases) ·
+  [Upgrade notes](https://docs.geotools.org/latest/userguide/welcome/upgrade.html)
 
 ### Other Scala
 

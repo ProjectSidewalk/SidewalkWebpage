@@ -14,14 +14,14 @@ import models.api.{
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
+import org.geotools.api.data.{DataStore, DataStoreFinder, SimpleFeatureStore}
+import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.geotools.data.shapefile.ShapefileDataStoreFactory
-import org.geotools.data.simple._
-import org.geotools.data.{DataStore, DataStoreFinder, DataUtilities, DefaultTransaction}
+import org.geotools.data.{DataUtilities, DefaultTransaction}
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.geotools.geopkg.GeoPkgDataStoreFactory
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
-import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import play.api.i18n.Lang.logger
 import play.api.libs.json.JsResult.Exception
 import play.api.libs.json.Json
