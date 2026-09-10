@@ -10,6 +10,7 @@
  */
 package models.api
 
+import models.label.LabelTypeEnum
 import models.utils.LatLngBBox
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.{LineString, MultiPolygon, Point}
@@ -23,7 +24,7 @@ import service.AccessScoreCalculator
  */
 object AccessScoreApiModels {
 
-  /** The scored label types in stable column order (by label-type id). */
+  /** The scored label types in canonical order, so output columns stay stable. */
   val orderedTypes: Seq[String] = AccessScoreCalculator.orderedScoredTypes
 
   /** Converts a CamelCase label-type name to snake_case for GeoPackage column names ("NoCurbRamp" → "no_curb_ramp"). */
@@ -31,18 +32,23 @@ object AccessScoreApiModels {
     labelType.replaceAll("([a-z0-9])([A-Z])", "$1_$2").toLowerCase
 
   /**
-   * Short (<= 10 char) column codes for the per-type fields in shapefile output, where the DBF format truncates column
-   * names at 10 characters. GeoJSON/CSV/GeoPackage use the full names instead.
+   * Short code for a label type's shapefile columns, since DBF cuts column names off at 10 characters. Covers every
+   * type, not just the scored ones, so the compiler flags a newly added type that has no code.
+   *
+   * @param labelType A label type name (e.g. "NoCurbRamp").
+   * @return          Its short code (e.g. "NoCRamp").
    */
-  val shapefileTypeCode: Map[String, String] = Map(
-    "CurbRamp"       -> "CRamp",
-    "NoCurbRamp"     -> "NoCRamp",
-    "Obstacle"       -> "Obst",
-    "SurfaceProblem" -> "Surf",
-    "NoSidewalk"     -> "NoSwk",
-    "Crosswalk"      -> "Xwalk",
-    "Signal"         -> "Signal"
-  )
+  def shapefileTypeCode(labelType: String): String = LabelTypeEnum.withName(labelType) match {
+    case LabelTypeEnum.CurbRamp       => "CRamp"
+    case LabelTypeEnum.NoCurbRamp     => "NoCRamp"
+    case LabelTypeEnum.Obstacle       => "Obst"
+    case LabelTypeEnum.SurfaceProblem => "Surf"
+    case LabelTypeEnum.Crosswalk      => "Xwalk"
+    case LabelTypeEnum.Signal         => "Signal"
+    case LabelTypeEnum.NoSidewalk     => "NoSwk"
+    case LabelTypeEnum.Occlusion      => "Occl"
+    case LabelTypeEnum.Other          => "Other"
+  }
 
   /** The rating buckets a cluster can fall into, in column order. */
   val severityBuckets: Seq[String] = AccessScoreCalculator.severityBuckets
