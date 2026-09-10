@@ -62,7 +62,8 @@ file, and this table says which doc to read first:
 - **Tests:** `make test-scala` (needs the db container; `only=<Spec>` scopes it), `make test-js` (jsdom unit suite),
   `make test-e2e` against a running app, `make test-python`. Details and what CI gates: `docs/testing-and-ci.md`.
 - **From a worktree,** every `make` target above checks that worktree, not the main checkout (`make lint` names the
-  tree). A hand-typed `docker exec … "cd /home && …"` still checks the main checkout, so use the targets.
+  tree), though `make test-e2e` tests whatever app is on :9000. A hand-typed `docker exec … "cd /home && …"` still
+  checks the main checkout, so use the targets.
 
 ## Conventions the linters can't check
 

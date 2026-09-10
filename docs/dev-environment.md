@@ -363,17 +363,26 @@ reaps the grunt watch. To tear a session down out-of-band, run `make qa-worktree
 also drop the `node_modules` symlink). It behaves the same on macOS, Linux, and WSL because the work runs inside the
 web container.
 
-**Every container target checks the checkout you run it from.** The container can see each worktree (it mounts the
-main checkout at `/home`, and worktrees live inside it), so `make lint`, `make test-js`, `make compile`,
-`make test-scala`, `make scalafmt`, `make test-python`, `make test-e2e` and the rest, run from inside a worktree, check
-that worktree. `wt=<name>` points one at a worktree from anywhere, and `make lint` opens by naming the tree it's
-checking. A hand-typed `docker exec … "cd /home && …"` is the exception: it always runs against the main checkout.
-
 Both targets run the **worktree's own** copy of `tools/qa-worktree.sh` when it has one (falling back to the main
 checkout's), so the branch being QA'd supplies its own tooling. `make` itself still reads the **main checkout's**
 Makefile, so when that checkout sits on a branch without the target, make reports `No rule to make target`; either
 check out a branch that has it or run the script directly:
 `docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/qa-worktree.sh <name>`.
+
+**Every other container target checks the checkout you run it from.** The container mounts the main checkout at
+`/home` and so sees the worktrees inside it: `make lint`, `make test-js`, `make compile`, `make test-scala`,
+`make scalafmt`, `make test-python` and the rest, run from a worktree, check that worktree, and `wt=<name>` points them
+at one from anywhere. `make lint` opens by naming the tree it checks. Make stops with an error for a checkout the
+container can't see (one outside the main checkout). This takes the worktree's own Makefile, so a branch older than
+#5291 needs `develop` merged in first. The exceptions:
+
+- `make test-e2e` runs the worktree's specs against whatever app is on `:9000`, and warns when that's another
+  checkout's. Start the worktree's app with `make qa-worktree wt=<name>` first.
+- `make build-city-data` and `make check-imagery` always run in the main checkout, whose `db/` the db container reads.
+- A hand-typed `docker exec … "cd /home && …"` always runs in the main checkout.
+
+The sbt server that `make compile`, `make test-scala`, or `make scalafmt` starts for a worktree stays up until
+`make qa-worktree-stop wt=<name>` or `make worktree-remove wt=<name>` stops it.
 
 When you're done with a worktree for good, remove it with:
 

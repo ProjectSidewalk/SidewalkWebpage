@@ -40,23 +40,35 @@ qa-worktree-exec = script="/home/.claude/worktrees/$(wt)/tools/qa-worktree.sh"; 
 # Every wt= target fails fast on a missing name rather than passing an empty one along.
 worktree-require-wt = @[ -n "$(wt)" ] || { echo "usage: make $@ wt=<name>   (a dir under .claude/worktrees/)"; exit 2; }
 
-# Where the container sees the checkout you ran make from (/home, or /home/.claude/worktrees/<name> for a worktree), so
-# targets check the files you're actually editing. wt=<name> picks a worktree instead.
-here-wt       = $(if $(findstring /.claude/worktrees/,$(CURDIR)),$(firstword $(subst /, ,$(lastword $(subst /.claude/worktrees/, ,$(CURDIR))))))
-container-dir = /home$(if $(or $(wt),$(here-wt)),/.claude/worktrees/$(or $(wt),$(here-wt)))
+# The main checkout's folder (git knows it even from inside a worktree).
+main-root := $(or $(shell d=$$(git rev-parse --git-common-dir 2>/dev/null) && cd "$$d/.." && pwd -P),$(CURDIR))
+# The checkout to check: the one you ran make from, or wt=<name>'s.
+host-dir = $(if $(wt),$(main-root)/.claude/worktrees/$(wt),$(CURDIR))
+# The same checkout, as the container sees it. The container only sees the main checkout (at /home) and what's inside
+# it, so anything else stops with an error.
+container-dir = $(check-host-dir)/home$(patsubst $(main-root)%,%,$(host-dir))
+check-host-dir = $(if $(findstring /,$(wt)),$(error wt= takes a worktree's name, not a path))$(if $(wildcard \
+  $(host-dir)),,$(error no checkout at $(host-dir)))$(if $(filter $(main-root) $(main-root)/%,$(host-dir)),,$(error \
+  the container can't see $(host-dir), only checkouts inside $(main-root)))
 # A worktree may have no node_modules of its own, so always use the main checkout's.
-node-modules  = /home/node_modules
-# Point sbt at the main checkout's download caches, so a worktree doesn't download everything again.
-sbt-cache-flags = -Dsbt.coursier.home=/home/.coursier -Dsbt.global.base=/home/.sbt -Dsbt.boot.directory=/home/.sbt/boot \
-                  -Dsbt.repository.config=/home/.sbt/repositories
+node-modules = /home/node_modules
+# Same sbt settings as tools/qa-worktree.sh (reuse the main checkout's downloads, cap memory). Set through SBT_OPTS,
+# since sbt drops command-line flags when it starts a background server.
+sbt-opts = -Dsbt.coursier.home=/home/.coursier -Dsbt.global.base=/home/.sbt -Dsbt.boot.directory=/home/.sbt/boot \
+           -Dsbt.repository.config=/home/.sbt/repositories -Xmx1536m
+# Attach your terminal when there is one, so Ctrl-C reaches the container (-it fails without one).
+tty-flags = $$([ -t 0 ] && echo -it)
 
 # ANSI colors for the `lint` summary.
 GREEN := \033[0;32m
 RED   := \033[0;31m
 BOLD  := \033[1m
 RESET := \033[0m
-# stylelint only accepts file paths/globs, so a dir= that isn't already a .css file/glob gets /**/*.css appended.
-css-glob = $(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css)
+# What each linter checks: everything by default, or just dir=. stylelint needs file patterns, so a folder gets
+# /**/*.css added.
+eslint-paths   = $(if $(filter ./,$(dir)),public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js,$(dir))
+htmlhint-paths = $(if $(filter ./,$(dir)),./app/views,$(dir))
+css-glob       = $(if $(filter ./,$(dir)),public/**/*.css,$(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css))
 
 # The browser smoke suite's runner image (docker/e2e/Dockerfile), tagged from the tool versions read out of
 # package-lock.json — the base image bundles the matching Chromium, so deriving both from one pin is what keeps the
@@ -97,6 +109,8 @@ e2e-user   = $(e2e-uid):$(if $(filter 0,$(docker-rootless)),$(shell id -g),0)
 # in place instead of sending the developer to sudo. Held in a variable, not written inline in the recipe, because
 # make condenses a variable's backslash-continuations to spaces at parse time and the container's shell would
 # otherwise receive them literally inside the single-quoted script (same reason as qa-worktree-exec).
+# Which checkout the app on :9000 is running from.
+e2e-app-dir = for p in $$(pgrep -f "[~] run"); do readlink /proc/$$p/cwd; done | head -1
 e2e-fix-artifact-owner = cd $(container-dir) 2>/dev/null || exit 0; \
   for d in test-results playwright-report; do \
     [ -d "$$d" ] || continue; \
@@ -176,8 +190,9 @@ qa-worktree:
 	$(worktree-require-wt)
 	@docker exec -it $(web-container) bash -c '$(call qa-worktree-exec,$(wt))'
 
-# Tear down a qa-worktree session: stop its `~ run` and grunt watch. Add `clean=1` to also drop the node_modules
-# symlink. e.g. `make qa-worktree-stop wt=remove-admin-classic` or `make qa-worktree-stop wt=... clean=1`.
+# End a qa-worktree session: stop its app, its grunt watch, and any sbt left running there. Add `clean=1` to also
+# drop the node_modules symlink. e.g. `make qa-worktree-stop wt=remove-admin-classic` or
+# `make qa-worktree-stop wt=... clean=1`.
 qa-worktree-stop:
 	$(worktree-require-wt)
 	@docker exec $(web-container) bash -c '$(call qa-worktree-exec,$(wt) --stop $(qa-stop-clean-flag))'
@@ -217,17 +232,18 @@ onboard-city:
 # Build a city's street/region staging data + QA GeoPackage (scripts/onboard_city.py, in the web container), passing
 # the script's flags via args=. The same target re-exports the SQL after hand edits: a bare --from-gpkg targets the
 # city's own QA GeoPackage.
+# Runs in the main checkout even from a worktree, since the db container only sees that checkout's db/.
 # e.g. `make build-city-data id=newport-ky args="--place 'Newport, Kentucky, USA'"`
 #      `make build-city-data id=newport-ky args="--from-gpkg"`
 build-city-data:
-	@docker exec -it $(web-container) sh -c "cd $(container-dir) && python3.13 scripts/onboard_city.py --city-id $(id) $(args)"
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/onboard_city.py --city-id $(id) $(args)"
 
 # Imagery preflight or full scan for a city's streets (scripts/check_streets_for_imagery.py, in the web container,
 # which holds the provider keys). A preflight samples the build artifacts before the city has a database:
 # e.g. `make check-imagery id=laurens-ia args="--sample 150 --mapillary"`; the full scan (`args="--mapillary"`) is
-# what `make onboard-city` runs for you.
+# what `make onboard-city` runs for you. Main checkout only, like build-city-data.
 check-imagery:
-	@docker exec -it $(web-container) sh -c "cd $(container-dir) && python3.13 scripts/check_streets_for_imagery.py --city-id $(id) $(args)"
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/check_streets_for_imagery.py --city-id $(id) $(args)"
 
 hide-streets-without-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/hide-streets-without-imagery.sh"
@@ -253,10 +269,10 @@ test-python:
 	exit $${fail:-0}
 
 test-python-app:
-	@docker exec -it $(cov-omit-app) $(web-container) sh -c "cd $(container-dir) && python3 -m pytest $(pytest-args-app) $(args)"
+	@docker exec $(tty-flags) $(cov-omit-app) $(web-container) sh -c "cd $(container-dir) && python3 -m pytest $(pytest-args-app) $(args)"
 
 test-python-tools:
-	@docker exec -it $(cov-omit-tools) $(web-container) sh -c "cd $(container-dir) && python3.13 -m pytest $(pytest-args-tools) $(args)"
+	@docker exec $(tty-flags) $(cov-omit-tools) $(web-container) sh -c "cd $(container-dir) && python3.13 -m pytest $(pytest-args-tools) $(args)"
 
 # Browser smoke tests (test/e2e/) against an already-running app at localhost:9000. Like every other tooling target
 # this runs in a container, so it behaves the same on Linux, WSL2, and macOS (Intel and Apple Silicon) with no host
@@ -266,9 +282,10 @@ test-python-tools:
 # play.filters.hosts.allowed permits, and the same URL CI uses; `--volumes-from` gives it the web container's
 # mounts, so /home is the repo and worktree paths resolve unchanged. Two more make it behave: see the notes on
 # `--tmpfs` below and on e2e-user above. Scope with args=, e.g.
-# args="-g labelMap --no-deps". It runs the specs of the checkout you run make from, or wt=<name>'s. For --headed/--ui,
-# see test-e2e-host. The image build is a cached no-op after the first run, and re-runs itself on a version bump —
-# it's only verbose when the tag is missing, since that first build downloads the base image.
+# args="-g labelMap --no-deps". It tests the checkout you run make from (or wt=<name>'s) against whatever app is on
+# :9000, and warns if that app is from a different checkout. For --headed/--ui, see test-e2e-host. The image build is
+# a cached no-op after the first run, and re-runs itself on a version bump — it's only verbose when the tag is missing,
+# since that first build downloads the base image.
 #
 # The jsdom unit suite (test/js/), a blocking step in CI's `frontend` job. Run in the web container, where the
 # node_modules live. `args` passes through, so `make test-js args="--watch"` or a path filter works.
@@ -288,8 +305,8 @@ test-e2e:
 	  || { echo "error: no @playwright/test version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
 	@[ -n "$(axe-version)" ] \
 	  || { echo "error: no @axe-core/playwright version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
-	@[ -z "$(wt)" ] || docker exec $(web-container) test -d $(container-dir) \
-	  || { echo "error: no worktree at $(container-dir) (from wt=$(wt))"; exit 2; }
+	@app=$$(docker exec $(web-container) sh -c '$(e2e-app-dir)'); [ -z "$$app" ] || [ "$$app" = "$(container-dir)" ] \
+	  || echo "warning: the app on :9000 is $$app's, not $(container-dir)'s (make qa-worktree wt=<name> serves a worktree)"
 	@docker exec $(web-container) sh -c '$(e2e-fix-artifact-owner)'
 	@if docker image inspect $(e2e-image):$(e2e-tag) > /dev/null 2>&1; then \
 	  docker build --quiet --build-arg PW_VERSION=$(pw-version) --build-arg AXE_VERSION=$(axe-version) -t $(e2e-image):$(e2e-tag) docker/e2e > /dev/null; \
@@ -318,7 +335,7 @@ reveal-or-hide-neighborhoods:
 
 # Static checks on conf/evolutions/default/*.sql. Host-side bash, no container needed. Also a blocking CI job.
 lint-evolutions:
-	@bash db/scripts/lint-evolutions.sh
+	@bash "$(host-dir)/db/scripts/lint-evolutions.sh"
 
 # Cross-locale key parity and empty values for public/locales/ (the i18next plural/override handling a per-file JSON
 # rule can't do). Pure node, run in the web container so node is present. Also a blocking CI step.
@@ -356,65 +373,45 @@ lint-vendor-versions:
 # instead of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats
 # in place.
 scalafmt:
-	@echo "Checking Scala formatting..."; docker exec -it $(web-container) bash -lc "cd $(container-dir) && sbt $(sbt-cache-flags) --jvm-client scalafmtCheckAll"
+	@echo "Checking Scala formatting..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(container-dir) && sbt --jvm-client scalafmtCheckAll"
 
 scalafmt-fix:
-	@echo "Formatting Scala..."; docker exec -it $(web-container) bash -lc "cd $(container-dir) && sbt $(sbt-cache-flags) --jvm-client scalafmtAll"
+	@echo "Formatting Scala..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(container-dir) && sbt --jvm-client scalafmtAll"
 
 # Compile, and run the Scala tests (which need the db container). Narrow the tests with only=, e.g.
 # `make test-scala only=controllers.api.PublicApiSpec`.
 compile:
-	@docker exec $(web-container) bash -lc "cd $(container-dir) && sbt $(sbt-cache-flags) --jvm-client compile"
+	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(container-dir) && sbt --jvm-client compile"
 
 test-scala:
-	@docker exec $(web-container) bash -lc "cd $(container-dir) && sbt $(sbt-cache-flags) --jvm-client $(if $(only),'testOnly $(only)',test)"
+	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(container-dir) && sbt --jvm-client $(if $(only),'testOnly $(only)',test)"
 
 # The JS/CSS/HTML linters run in the web container, where their node_modules live (no host-side npm install).
 # `-e FORCE_COLOR=1` (not `docker exec -t`) restores colorized output while keeping the targets pipeable.
 lint-htmlhint:
 	@echo "Running HTMLHint...";
-	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/htmlhint/bin/htmlhint $(args) ./app/views"; \
-	else \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/htmlhint/bin/htmlhint $(args) $(dir)"; \
-	fi
+	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/htmlhint/bin/htmlhint $(args) $(htmlhint-paths)"
 	@echo "Finished Running HTMLHint";
 
 lint-eslint:
 	@echo "Running eslint...";
-	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/eslint/bin/eslint.js $(args) public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js"; \
-	else \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/eslint/bin/eslint.js $(args) $(dir)"; \
-	fi
+	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/eslint/bin/eslint.js $(args) $(eslint-paths)"
 	@echo "Finished Running eslint";
 
 # Globs are single-quoted so stylelint's globber expands the `**`, not the container shell (where bare `**` means `*`).
 lint-stylelint:
 	@echo "Running stylelint...";
-	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/stylelint $(args) 'public/**/*.css'"; \
-	else \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/stylelint $(args) '$(css-glob)'"; \
-	fi
+	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/stylelint $(args) '$(css-glob)'"
 	@echo "Finished Running stylelint";
 
 lint-fix-eslint:
 	@echo "Running eslint...";
-	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/eslint/bin/eslint.js --fix $(args) public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js"; \
-	else \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/eslint/bin/eslint.js --fix $(args) $(dir)"; \
-	fi
+	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/eslint/bin/eslint.js --fix $(args) $(eslint-paths)"
 	@echo "Finished Running eslint";
 
 # --fix runs twice: the brace-newline fixers insert lines after indentation is computed, leaving mis-indents that the
 # second pass corrects. The first pass is silenced, so it reads as a single run.
 lint-fix-stylelint:
 	@echo "Running stylelint...";
-	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/stylelint --fix $(args) 'public/**/*.css' > /dev/null 2>&1; $(node-modules)/.bin/stylelint --fix $(args) 'public/**/*.css'"; \
-	else \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/stylelint --fix $(args) '$(css-glob)' > /dev/null 2>&1; $(node-modules)/.bin/stylelint --fix $(args) '$(css-glob)'"; \
-	fi
+	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/stylelint --fix $(args) '$(css-glob)' > /dev/null 2>&1; $(node-modules)/.bin/stylelint --fix $(args) '$(css-glob)'"
 	@echo "Finished Running stylelint";

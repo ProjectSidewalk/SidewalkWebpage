@@ -74,10 +74,13 @@ if [ "$MODE" = "stop" ]; then
   echo "==> stopping worktree QA session: $WT_DIR"
   reap_in_worktree TERM 'grunt' "grunt watch"
   reap_in_worktree TERM '~ run' "app on :9000 (~ run)"
+  # `make compile`, `make test-scala`, and `make scalafmt` leave sbt running here, so stop that too.
+  reap_in_worktree TERM 'sbt-launch|sbtn' "sbt server"
   sleep 2
   # SIGKILL anything that ignored the SIGTERM above.
   reap_in_worktree KILL 'grunt' "grunt watch"
   reap_in_worktree KILL '~ run' "app on :9000 (~ run)"
+  reap_in_worktree KILL 'sbt-launch|sbtn' "sbt server"
   # --clean drops the gitignored setup artifacts too; keep the grunt watch log by default so a watch failure stays
   # diagnosable after a stop.
   if [ -n "$CLEAN" ]; then
