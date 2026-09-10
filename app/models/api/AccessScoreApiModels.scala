@@ -26,7 +26,7 @@ object AccessScoreApiModels {
   /** The scored label types in stable column order (by label-type id). */
   val orderedTypes: Seq[String] = AccessScoreCalculator.orderedScoredTypes
 
-  /** Converts a CamelCase label-type name to snake_case for flat CSV column names (e.g. "NoCurbRamp" → "no_curb_ramp"). */
+  /** Converts a CamelCase label-type name to snake_case for GeoPackage column names ("NoCurbRamp" → "no_curb_ramp"). */
   def snakeType(labelType: String): String =
     labelType.replaceAll("([a-z0-9])([A-Z])", "$1_$2").toLowerCase
 
@@ -48,7 +48,7 @@ object AccessScoreApiModels {
   val severityBuckets: Seq[String] = AccessScoreCalculator.severityBuckets
 
   /**
-   * The CSV/GeoPackage column suffix for a rating bucket: `sev1`..`sev3`, or `sev_null` for unrated clusters.
+   * The GeoPackage column suffix for a rating bucket: `sev1`..`sev3`, or `sev_null` for unrated clusters.
    *
    * @param bucket One of [[severityBuckets]].
    * @return       The suffix.
@@ -68,25 +68,6 @@ object AccessScoreApiModels {
 
   /** The intersection (corner-feature) types in stable column order: the per-type columns of an intersection. */
   val orderedIntersectionTypes: Seq[String] = AccessScoreCalculator.orderedIntersectionTypes
-
-  /**
-   * Builds a JSON object keyed by canonical label-type name from a (possibly sparse) per-type map, defaulting to
-   * `default`, over `types` (every scored type for a street or region, the intersection types for an intersection).
-   */
-  private[api] def perTypeJson[T](values: Map[String, T], default: T, types: Seq[String] = orderedTypes)(implicit
-      w: Writes[T]
-  ): JsObject =
-    JsObject(types.map(t => t -> Json.toJson(values.getOrElse(t, default))))
-
-  /** Builds the dense `type → bucket → count` JSON object from a (possibly sparse) map, defaulting to 0. */
-  private[api] def perTypeBucketJson(
-      values: Map[String, Map[String, Int]],
-      types: Seq[String] = orderedTypes
-  ): JsObject =
-    JsObject(types.map { t =>
-      val byBucket: Map[String, Int] = values.getOrElse(t, Map.empty)
-      t -> JsObject(severityBuckets.map(b => b -> Json.toJson(byBucket.getOrElse(b, 0))))
-    })
 
   /** Every (type, bucket) pair in column order: types outermost, so a type's buckets sit together. */
   val typeBucketColumns: Seq[(String, String)] = typeBucketColumnsFor(orderedTypes)

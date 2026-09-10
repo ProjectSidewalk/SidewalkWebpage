@@ -29,7 +29,7 @@ class AggregateStatsApiModelsSpec extends AnyFunSuite with Matchers {
   test("JSON uses snake_case keys and nests per-label-type counts under by_label_type") {
     val json = sampleStats.toJson
 
-    (json \ "status").as[String] shouldBe "OK"
+    (json \ "status").toOption shouldBe None
     (json \ "km_explored").as[Double] shouldBe 1000.5
     (json \ "km_explored_no_overlap").as[Double] shouldBe 800.25
     (json \ "total_labels").as[Int] shouldBe 300
@@ -51,7 +51,7 @@ class AggregateStatsApiModelsSpec extends AnyFunSuite with Matchers {
     AggregateStats.csvHeader shouldBe "metric,value"
 
     val rows = sampleStats.toCsvRows
-    rows should contain("km_explored,1000.5")
+    rows.head shouldBe "km_explored,1000.5"
     rows should contain("total_labels,300")
     rows should contain("total_users,60")
     rows should contain("num_countries,5")

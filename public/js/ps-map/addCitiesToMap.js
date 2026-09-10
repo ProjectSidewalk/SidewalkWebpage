@@ -180,7 +180,11 @@ function addCitiesToMap(map, citiesData, params) {
 
           // If successful, fill in the stat values.
           popupContent.querySelector('[data-stat="distance"]').textContent = formatDistance(stats.km_explored || 0);
-          popupContent.querySelector('[data-stat="labels"]').textContent = formatNumber(stats.labels.label_count || 0);
+          // Other deployments answer this call, and they upgrade on their own schedule, so accept the older
+          // labels.label_count until every city is past the release that renamed it to labels.count.
+          popupContent.querySelector('[data-stat="labels"]').textContent = formatNumber(
+            stats.labels?.count ?? stats.labels?.label_count ?? 0,
+          );
           // overallStats nests validation totals under combined/human/ai; "combined" is the human+AI total (#4591).
           popupContent.querySelector('[data-stat="validations"]').textContent = formatNumber(
             stats.validations.combined?.total_validations || 0,

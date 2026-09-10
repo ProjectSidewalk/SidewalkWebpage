@@ -89,7 +89,6 @@
     <p>On success, the API returns an HTTP <code>200 OK</code> status code. In JSON (default) the body is an object of aggregate totals; in CSV the body is a two-column <code>metric,value</code> table whose metric names are the JSON field paths joined with dots, so <code>by_label_type.CurbRamp.labels</code> in the CSV is the value you would read as <code>by_label_type.CurbRamp.labels</code> from the JSON.</p>
 
     <pre><code class="language-json">{
-  "status": "OK",
   "km_explored": 12345.6,
   "km_explored_no_overlap": 11890.2,
   "total_labels": 4567890,
@@ -117,7 +116,6 @@
           <tr><th>Field</th><th>Type</th><th>Description</th></tr>
         </thead>
         <tbody>
-          <tr><td><code>status</code></td><td><code>string</code></td><td>Always "OK" for successful responses.</td></tr>
           <tr><td><code>km_explored</code></td><td><code>number</code></td><td>Total kilometers of streets explored across all deployments.</td></tr>
           <tr><td><code>km_explored_no_overlap</code></td><td><code>number</code></td><td>Total kilometers explored, excluding overlapping coverage.</td></tr>
           <tr><td><code>total_labels</code></td><td><code>integer</code></td><td>Total number of labels across all deployments, excluding practice/tutorial labels. Equal to the sum of the <code>by_label_type.&lt;type&gt;.labels</code> counts.</td></tr>

@@ -65,7 +65,6 @@ case class AggregateStats(
     })
 
     Json.obj(
-      "status"                 -> "OK",
       "km_explored"            -> kmExplored,
       "km_explored_no_overlap" -> kmExploredNoOverlap,
       "total_labels"           -> totalLabels,
@@ -84,5 +83,5 @@ case class AggregateStats(
 }
 
 object AggregateStats {
-  val csvHeader: String = "metric,value"
+  val csvHeader: String = ApiModelUtils.keyValueCsvHeader
 }

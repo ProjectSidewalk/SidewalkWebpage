@@ -19,10 +19,10 @@ const path = require('path');
 const MODULE_PATH = path.resolve(__dirname, '..', '..', 'public/js/ps-map/addCitiesToMap.js');
 
 // Realistic slice of /v3/api/overallStats: validation totals live under validations.combined/human/ai (#4591),
-// labels under labels.label_count, distance at km_explored.
+// labels under labels.count, distance at km_explored.
 const GOOD_STATS = {
     km_explored: 1234,
-    labels: { label_count: 21649 },
+    labels: { count: 21649 },
     validations: {
         combined: { total_validations: 32747 },
         human: { total_validations: 32747 },
@@ -198,7 +198,7 @@ describe('addCitiesToMap city popup (#4591)', () => {
     test('populates all three stat cells from the current overallStats shape', async () => {
         await clickCity(GOOD_STATS);
         expect(validationsCell()).toBe('32747'); // stats.validations.combined.total_validations
-        expect(labelsCell()).toBe('21649'); // stats.labels.label_count
+        expect(labelsCell()).toBe('21649'); // stats.labels.count
         expect(distanceCell()).toBe('1234 km'); // stats.km_explored
     });
 

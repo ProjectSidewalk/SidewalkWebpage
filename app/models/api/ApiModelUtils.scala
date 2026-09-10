@@ -32,6 +32,9 @@ object ApiModelUtils {
    * @param json The JSON object to flatten.
    * @return One "key,value" line per value, keyed by its dotted path (`labels.CurbRamp.count`), in JSON field order.
    */
+  /** The two columns of the CSVs [[toCsvKeyValueRows]] produces. */
+  val keyValueCsvHeader: String = "metric,value"
+
   def toCsvKeyValueRows(json: JsObject): Seq[String] = {
     def flatten(path: String, value: JsValue): Seq[(String, JsValue)] = value match {
       case obj: JsObject => obj.fields.toSeq.flatMap { case (key, v) => flatten(s"$path.$key", v) }
@@ -52,28 +55,6 @@ object ApiModelUtils {
     case JsBoolean(bool) => bool.toString
     case other           => Json.stringify(other)
   })
-
-  /**
-   * Rebuilds the nested JSON an [[ApiFields]] field list describes, splitting each dotted name back into its path.
-   *
-   * @param fields Name/value pairs whose names may be dotted paths, in output order.
-   * @return The nested object, sibling keys in the order their paths first appear.
-   */
-  def nestJson(fields: Seq[(String, JsValue)]): JsObject = {
-    val (leaves, nested) = fields.partition(!_._1.contains('.'))
-    val leafByName       = leaves.toMap
-    // groupBy loses order, so walk the original list to decide which prefix each key belongs to and where it sits.
-    val prefixOrder = nested.map(_._1.takeWhile(_ != '.')).distinct
-    val subtrees    = prefixOrder.map { prefix =>
-      prefix -> nestJson(nested.collect {
-        case (name, value) if name.startsWith(s"$prefix.") => name.drop(prefix.length + 1) -> value
-      })
-    }.toMap
-
-    JsObject(
-      fields.map(f => f._1.takeWhile(_ != '.')).distinct.map { key => key -> leafByName.getOrElse(key, subtrees(key)) }
-    )
-  }
 
   /**
    * Helper to safely quote CSV fields containing commas, quotes, or newlines.

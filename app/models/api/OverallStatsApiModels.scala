@@ -194,6 +194,6 @@ case class ProjectSidewalkStats(
 }
 
 object ProjectSidewalkStats {
-  val csvHeader: String = "metric,value"
+  val csvHeader: String = ApiModelUtils.keyValueCsvHeader
 
 }

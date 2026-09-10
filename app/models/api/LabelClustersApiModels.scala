@@ -68,7 +68,11 @@ case class RawLabelInClusterDataForApi(
     imageCaptureDate: Option[String]
 )
 
-object RawLabelInClusterDataForApi extends ApiFields[RawLabelInClusterDataForApi] {
+/**
+ * These labels are only ever written nested inside a cluster's GeoJSON, or as their own CSV file via [[InCluster]] —
+ * never as a CSV of their own — so the field list lives here and the CSV shape lives there.
+ */
+private[api] object RawLabelFields extends ApiFields[RawLabelInClusterDataForApi] {
   import ApiFields.field
 
   override val fields: Seq[ApiField[RawLabelInClusterDataForApi]] = Seq(
@@ -84,13 +88,16 @@ object RawLabelInClusterDataForApi extends ApiFields[RawLabelInClusterDataForApi
     field("image_capture_date")(_.imageCaptureDate)
   )
 
-  implicit val clusterLabelDataWrites: Writes[RawLabelInClusterDataForApi] = toJson _
+}
+
+object RawLabelInClusterDataForApi {
+  implicit val clusterLabelDataWrites: Writes[RawLabelInClusterDataForApi] = RawLabelFields.toJson _
 
   /** The same labels as their own CSV file, which names each label's parent cluster in a column of its own. */
   object InCluster extends ApiFields[(Int, RawLabelInClusterDataForApi)] {
     override val fields: Seq[ApiField[(Int, RawLabelInClusterDataForApi)]] =
       ApiFields.field[(Int, RawLabelInClusterDataForApi), Int]("label_cluster_id")(_._1) +:
-        RawLabelInClusterDataForApi.fields.map(_.on[(Int, RawLabelInClusterDataForApi)](_._2))
+        RawLabelFields.csvFields.map(_.on[(Int, RawLabelInClusterDataForApi)](_._2))
   }
 }
 

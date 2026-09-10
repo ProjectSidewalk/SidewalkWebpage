@@ -21,21 +21,9 @@
     colors: {}, // Default chart colors (will be overridden by colors from labelTypes API).
   };
 
-  // userStats field name (snake_case) -> localized display name (populated from the labelTypes API).
+  // Label type name -> localized display name (populated from the labelTypes API). userStats keys
+  // stats_by_label_type by the same canonical names, so no translation is needed between the two.
   const labelTypeMapping = {};
-
-  // Map from API response name (PascalCase) to userStats field name (snake_case).
-  const labelTypeAPIMapping = {
-    CurbRamp: 'curb_ramp',
-    NoCurbRamp: 'no_curb_ramp',
-    Obstacle: 'obstacle',
-    SurfaceProblem: 'surface_problem',
-    NoSidewalk: 'no_sidewalk',
-    Crosswalk: 'marked_crosswalk',
-    Signal: 'pedestrian_signal',
-    Occlusion: 'cant_see_sidewalk',
-    Other: 'other',
-  };
 
   // Public API.
   window.UserStatsPreview = {
@@ -119,13 +107,8 @@
           // Process the label types data to populate the colors and mapping.
           if (data && data.label_types && Array.isArray(data.label_types)) {
             data.label_types.forEach((labelType) => {
-              const snakeCaseKey = labelTypeAPIMapping[labelType.name] || labelType.name.toLowerCase();
-
-              // Update the colors map.
-              config.colors[snakeCaseKey] = labelType.color;
-
-              // Update the label type mapping.
-              labelTypeMapping[snakeCaseKey] = labelType.display_name;
+              config.colors[labelType.name] = labelType.color;
+              labelTypeMapping[labelType.name] = labelType.display_name;
             });
           }
 
