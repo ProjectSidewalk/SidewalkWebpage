@@ -30,6 +30,11 @@
   "continue": "繼續",
   "delete": "刪除",
   "done": "完成",
+  "unsaved-changes": {
+    "message": "您有尚未儲存的變更。要在離開此頁面前儲存嗎？",
+    "save": "儲存並離開",
+    "leave": "離開"
+  },
   "badges": {
     "congratulations": "恭喜！",
     "you-earned": "您獲得了「{{badge}}」徽章！",

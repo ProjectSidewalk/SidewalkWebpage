@@ -723,8 +723,14 @@
   aspect-ratio: 3 / 2; /* Match the Explore canvas (720x480) so the label marker lines up, like the Gallery. */
   overflow: hidden;
   background: linear-gradient(135deg, var(--color-neutral-200), var(--color-neutral-400));
-  background-size: cover;
-  background-position: center;
+}
+
+/* Sits over the wrapper's gradient, which is what a card whose every image source failed falls back to. */
+.ud-card-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* The label's own icon, placed over the pano at the label's canvas position (left/top set inline) to mark exactly
@@ -740,13 +746,26 @@
 
 .ud-card-verdict {
   position: absolute;
-  bottom: 8px;
+  top: 8px;
   left: 8px;
+  max-width: calc(100% - 110px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding: 2px 8px;
   border-radius: 10px;
   font: var(--text-caption-semibold);
   color: var(--color-neutral-white);
   background: var(--color-error-200);
+}
+
+.ud-card-img .pano-viewer-logo {
+  --ui-scale: 0.72; /* Card-sized: the 29px logo row down to ~21px. Only the logo — the pill sets its own type. */
+}
+
+.ud-card-img .pano-attribution {
+  right: 6px;
+  bottom: 4.6px; /* Puts the 16px pill's center on the scaled logo's art center, 12.6px above the image's edge. */
 }
 
 .ud-card-body {
@@ -872,30 +891,43 @@
   background: var(--color-pine-100);
 }
 
-/* Clickable card image opens the interactive label popup. */
-.ud-card-img-clickable { cursor: pointer; }
+/* Covers the card image and opens the interactive label popup. Transparent, so everything under it still shows; the
+   imagery credit is added after it and so stays on top, where its licence link is still clickable. */
+.ud-card-open {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
 
-.ud-card-img-clickable:focus-visible {
+.ud-card-open:focus-visible {
   outline: 2px solid var(--color-link-200);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
 .ud-card-expand-hint {
   position: absolute;
   top: 8px;
   right: 8px;
+  max-width: calc(50% - 12px);
   padding: 2px 8px;
   border-radius: 10px;
   font: var(--text-caption-semibold);
   color: var(--color-neutral-white);
   background: rgb(0 0 0 / 55%);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   opacity: 0;
   transition: opacity var(--transition-fast);
   pointer-events: none;
 }
 
-.ud-card-img-clickable:hover .ud-card-expand-hint,
-.ud-card-img-clickable:focus-visible .ud-card-expand-hint { opacity: 1; }
+.ud-card-open:hover .ud-card-expand-hint,
+.ud-card-open:focus-visible .ud-card-expand-hint { opacity: 1; }
 
 /* The mistake vote/note panel injected into the label popup dialog so you can respond from the expanded view. It sits
    outside .page-content, so set a readable base font here (children inherit it) and size the heading up. Full-width
@@ -1110,6 +1142,19 @@
 
 /* "Create a team" sits below the teams table / empty-state banner, so give it breathing room. */
 .ud-btn-primary.ud-create-team-btn { margin-top: var(--space-md); }
+
+/* The Create/Leave pair from userDashboard/_teamActions: its own row on the dashboard card, one more item in the
+   inline row beside the Settings dropdown. */
+.ud-team-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+/* The wrapper carries the offset, so Create and Leave sit on the same line. */
+.ud-team-card .ud-team-actions { margin-top: var(--space-md); }
+.ud-team-actions .ud-btn-primary.ud-create-team-btn { margin-top: 0; }
 
 /* Plain "+" affordance that inherits the button's white text (a "➕" emoji renders blue and clashes with green). */
 .ud-btn-plus { font-weight: 700; }

@@ -10,12 +10,17 @@ RUN chmod 644 /etc/apt/trusted.gpg.d/scalasbt-release.gpg
 
 RUN apt-get update && apt-get upgrade -y
 
+# The `sbt` package is only the launcher, so pin it to the version the build itself declares — unpinned, each
+# rebuild silently grabs whatever sbt shipped most recently (#5268).
+COPY project/build.properties /tmp/build.properties
+
 RUN apt-get install -y \
     unzip \
     python3-dev \
     python3-pip \
     nodejs \
-    sbt && \
+    "sbt=$(sed -n 's/^sbt\.version=//p' /tmp/build.properties)" && \
+  rm /tmp/build.properties && \
   apt-get autoremove && \
   apt-get clean
 

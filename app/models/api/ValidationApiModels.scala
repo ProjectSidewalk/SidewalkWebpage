@@ -5,7 +5,6 @@
  */
 package models.api
 
-import models.api.ApiModelUtils.escapeCsvField
 import models.label.LabelTypeEnum
 import models.label.LocationXY
 import models.utils.CommonUtils.UiSource.UiSource
@@ -82,72 +81,33 @@ case class ValidationDataForApi(
    *
    * @return A JsObject containing the validation data
    */
-  override def toJson: JsObject = {
-    Json.obj(
-      "label_validation_id" -> labelValidationId,
-      "label_id"            -> labelId,
-      "label_type"          -> labelType,
-      "validation_result"   -> validationResult,
-      "user_id"             -> userId,
-      "validator_type"      -> validatorType,
-      "mission_id"          -> missionId,
-      "canvas_x"            -> canvasXY.map(_.x),
-      "canvas_y"            -> canvasXY.map(_.y),
-      "heading"             -> heading,
-      "pitch"               -> pitch,
-      "zoom"                -> zoom,
-      "canvas_height"       -> canvasHeight,
-      "canvas_width"        -> canvasWidth,
-      "start_timestamp"     -> startTimestamp.toString,
-      "end_timestamp"       -> endTimestamp.toString,
-      "source"              -> source
-    )
-  }
+  override def toJson: JsObject = ValidationDataForApi.toJson(this)
 
-  /**
-   * Converts this ValidationDataForApi object to a CSV row string.
-   *
-   * The fields are ordered to match the header defined in the companion object. Complex fields like arrays are
-   * serialized as JSON strings.
-   *
-   * @return A comma-separated string representing this validation's data
-   */
-  override def toCsvRow: String = {
-    val fields = Seq(
-      labelValidationId.toString,
-      labelId.toString,
-      escapeCsvField(labelType),
-      validationResult.toString,
-      escapeCsvField(userId),
-      validatorType,
-      missionId.toString,
-      canvasXY.map(_.x.toString).getOrElse(""),
-      canvasXY.map(_.y.toString).getOrElse(""),
-      heading.toString,
-      pitch.toString,
-      zoom.toString,
-      canvasHeight.toString,
-      canvasWidth.toString,
-      startTimestamp.toString,
-      endTimestamp.toString,
-      escapeCsvField(source.toString)
-    )
-    fields.mkString(",")
-  }
+  override def toCsvRow: String = ValidationDataForApi.toCsvRow(this)
 }
 
-/**
- * Companion object for ValidationDataForApi containing CSV header definition
- */
-object ValidationDataForApi {
+object ValidationDataForApi extends ApiFields[ValidationDataForApi] {
+  import ApiFields.field
 
-  /**
-   * CSV header string with field names in the same order as the toCsvRow output.
-   * This should be included as the first line when generating CSV output.
-   */
-  val csvHeader: String = "label_validation_id,label_id,label_type,validation_result,user_id," +
-    "validator_type,mission_id,canvas_x,canvas_y,heading,pitch,zoom,canvas_height,canvas_width,start_timestamp," +
-    "end_timestamp,source\n"
+  override val fields: Seq[ApiField[ValidationDataForApi]] = Seq(
+    field("label_validation_id")(_.labelValidationId),
+    field("label_id")(_.labelId),
+    field("label_type")(_.labelType),
+    field("validation_result")(_.validationResult),
+    field("user_id")(_.userId),
+    field("validator_type")(_.validatorType),
+    field("mission_id")(_.missionId),
+    field("canvas_x")(_.canvasXY.map(_.x)),
+    field("canvas_y")(_.canvasXY.map(_.y)),
+    field("heading")(_.heading),
+    field("pitch")(_.pitch),
+    field("zoom")(_.zoom),
+    field("canvas_height")(_.canvasHeight),
+    field("canvas_width")(_.canvasWidth),
+    field("start_timestamp")(_.startTimestamp.toString),
+    field("end_timestamp")(_.endTimestamp.toString),
+    field("source")(_.source)
+  )
 }
 
 /**

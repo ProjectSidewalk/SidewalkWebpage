@@ -81,6 +81,9 @@
     "create-failed": "Could not create the team. Please try again.",
     "network-error": "Network error — please try again."
   },
+  "team-leave-confirm-open": "Leave \"{{name}}\"? You can rejoin it later from this same list.",
+  "team-leave-confirm-closed": "Leave \"{{name}}\"? It isn’t taking new members, so you won’t be able to rejoin on your own.",
+  "team-leave": "Leave team",
   "stories": {
     "none": "You haven’t written any stories yet. Find a label on the map and choose “Write your story” to add one."
   },

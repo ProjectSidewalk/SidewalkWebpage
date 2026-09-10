@@ -333,23 +333,28 @@ class PanoramaxViewer extends PanoViewer {
    * @returns {number} A score between 0 and 1 where higher is better.
    */
   #scorePano = (item, centerPoint) => {
+    const scoring = util.pano.scoring('panoramax');
     const distToTarget = turf.distance(centerPoint, turf.point(item.geometry.coordinates), { units: 'meters' });
-    const distanceScore = Math.exp(-distToTarget / 10); // 0m → 1.0, 10m → 0.37, 25m → 0.08.
+    const distanceScore = Math.exp(-distToTarget / scoring.distanceDecayMeters); // 0m → 1.0, 10m → 0.37, 25m → 0.08.
 
     // Resolution: linear in width, capped at the 12288px professional rigs. GoPro Max 5760 → 0.47, Max2 7680 → 0.63.
     const width = item.properties['pers:interior_orientation']?.sensor_array_dimensions?.[0] || 0;
-    const resolutionScore = Math.min(width / 12288, 1);
+    const resolutionScore = Math.min(width / scoring.maxImageWidthPx, 1);
 
     // Recency: exponential decay by age in years, 5-year scale. Fresh → 1.0, 3yr → 0.55, 8yr → 0.20. A picture whose
-    // datetime won't parse scores as if it were 3 years old rather than NaN, which loses every `>` comparison and so
-    // could make a box full of such pictures look like a street with no imagery at all.
-    const ageYears = (Date.now() - Date.parse(item.properties.datetime)) / (365.25 * 24 * 3600 * 1000);
-    const recencyScore = Number.isFinite(ageYears) ? Math.exp(-ageYears / 5) : Math.exp(-3 / 5);
+    // datetime won't parse scores as if it were unknownDateAgeYears old rather than NaN, which loses every `>`
+    // comparison and so could make a box full of such pictures look like a street with no imagery at all.
+    const ageYears = (Date.now() - Date.parse(item.properties.datetime)) / util.pano.MS_PER_JULIAN_YEAR;
+    const recencyScore = Math.exp(-(Number.isFinite(ageYears) ? ageYears : scoring.unknownDateAgeYears)
+      / scoring.recencyDecayYears);
 
     // Sequence continuity: prefer staying in the current sequence (STAC collection) for smoother navigation.
     const sequenceScore = this.#item && item.collection === this.#item.collection ? 1 : 0;
 
-    return 0.45 * distanceScore + 0.25 * resolutionScore + 0.25 * recencyScore + 0.05 * sequenceScore;
+    return scoring.distanceWeight * distanceScore
+      + scoring.resolutionWeight * resolutionScore
+      + scoring.recencyWeight * recencyScore
+      + scoring.sequenceWeight * sequenceScore;
   };
 
   /**

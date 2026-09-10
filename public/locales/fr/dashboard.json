@@ -81,6 +81,9 @@
     "create-failed": "Impossible de créer l'équipe. Veuillez réessayer.",
     "network-error": "Erreur réseau — veuillez réessayer."
   },
+  "team-leave-confirm-open": "Quitter « {{name}} » ? Vous pourrez la rejoindre plus tard depuis cette même liste.",
+  "team-leave-confirm-closed": "Quitter « {{name}} » ? L'équipe n'accepte pas de nouveaux membres, vous ne pourrez donc pas la rejoindre par vous-même.",
+  "team-leave": "Quitter l'équipe",
   "stories": {
     "none": "Vous n'avez encore écrit aucun témoignage. Trouvez une étiquette sur la carte et choisissez « Écrire votre témoignage » pour en ajouter un."
   },

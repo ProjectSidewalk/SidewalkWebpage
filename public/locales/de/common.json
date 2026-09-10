@@ -30,6 +30,11 @@
   "continue": "Fortfahren",
   "delete": "Löschen",
   "done": "Fertig",
+  "unsaved-changes": {
+    "message": "Du hast ungespeicherte Änderungen. Möchtest du sie speichern, bevor du diese Seite verlässt?",
+    "save": "Speichern und verlassen",
+    "leave": "Verlassen"
+  },
   "badges": {
     "congratulations": "Glückwunsch!",
     "you-earned": "Du hast das Abzeichen „{{badge}}“ erhalten!",

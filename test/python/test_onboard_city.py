@@ -906,6 +906,105 @@ def test_main_single_region_fallback_and_default_out_dir(tmp_path, monkeypatch):
     assert 'Regions: **1**' in report
 
 
+def test_place_city_name_takes_the_first_component():
+    assert oc.place_city_name('Laurens, Iowa, USA') == 'Laurens'
+    assert oc.place_city_name('  Bayonne  ') == 'Bayonne'
+
+
+def test_place_city_name_returns_none_without_a_usable_place():
+    assert oc.place_city_name(None) is None
+    assert oc.place_city_name(', Iowa, USA') is None
+
+
+def test_name_single_region_leaves_a_multi_region_city_alone():
+    regions = _region_set()
+    assert list(oc.name_single_region(regions, 'Testville', False)['name']) == list(regions['name'])
+
+
+def test_main_keeps_a_merge_target_name_when_the_city_collapses_to_one_region(tmp_path, monkeypatch, caplog):
+    _patch_pipeline(monkeypatch, _two_hoods())
+    with caplog.at_level(logging.WARNING):
+        oc.main(['--city-id', 'testville', '--place', 'Testville, USA', '--out-dir', str(tmp_path),
+                 '--merge-regions', 'west:east'])
+    assert '| 1 | east |' in (tmp_path / 'report.md').read_text()
+    assert not any('--single-region-name' in record.message for record in caplog.records)
+
+
+def test_main_names_a_lone_region_after_the_city(tmp_path, monkeypatch):
+    tract = gpd.GeoDataFrame({'name': ['Census Tract 7801']}, geometry=[_SQUARE], crs='EPSG:4326')
+    _patch_pipeline(monkeypatch, _empty_regions(), tracts=tract)
+    oc.main(['--city-id', 'laurens-ia', '--place', 'Laurens, Iowa, USA', '--out-dir', str(tmp_path)])
+    report = (tmp_path / 'report.md').read_text()
+    assert 'Laurens' in report
+    assert 'Census Tract 7801' not in report
+
+
+def test_main_single_region_name_overrides_the_place(tmp_path, monkeypatch):
+    tract = gpd.GeoDataFrame({'name': ['Census Tract 7801']}, geometry=[_SQUARE], crs='EPSG:4326')
+    _patch_pipeline(monkeypatch, _empty_regions(), tracts=tract)
+    oc.main(['--city-id', 'laurens-ia', '--place', 'Laurens, Iowa, USA', '--out-dir', str(tmp_path),
+             '--single-region-name', 'Downtown Laurens'])
+    assert 'Downtown Laurens' in (tmp_path / 'report.md').read_text()
+
+
+def test_main_warns_when_a_lone_region_has_no_city_name_to_take(tmp_path, monkeypatch, caplog):
+    boundary_path = tmp_path / 'boundary.geojson'
+    _CITY_GDF.to_file(boundary_path, driver='GeoJSON')
+    tract = gpd.GeoDataFrame({'name': ['Census Tract 7801']}, geometry=[_SQUARE], crs='EPSG:4326')
+    _patch_pipeline(monkeypatch, _empty_regions(), tracts=tract)
+    with caplog.at_level(logging.WARNING):
+        oc.main(['--city-id', 'laurens-ia', '--boundary-file', str(boundary_path), '--out-dir', str(tmp_path)])
+    assert any('--single-region-name' in record.message for record in caplog.records)
+    assert 'Census Tract 7801' in (tmp_path / 'report.md').read_text()
+
+
+def test_single_region_name_is_rejected_in_re_export_mode():
+    with pytest.raises(SystemExit):
+        oc.parse_args(['--city-id', 'x', '--from-gpkg', 'edited.gpkg', '--single-region-name', 'Laurens'])
+
+
+def test_single_region_name_is_trimmed_and_must_not_be_blank():
+    args = oc.parse_args(['--city-id', 'x', '--place', 'a', '--single-region-name', '  Laurens  '])
+    assert args.single_region_name == 'Laurens'
+    for blank in ['', '   ']:
+        with pytest.raises(SystemExit):
+            oc.parse_args(['--city-id', 'x', '--place', 'a', '--single-region-name', blank])
+
+
+def test_main_says_so_when_single_region_name_cannot_apply(tmp_path, monkeypatch, caplog):
+    _patch_pipeline(monkeypatch, _two_hoods())
+    with caplog.at_level(logging.WARNING):
+        oc.main(['--city-id', 'testville', '--place', 'Testville, USA', '--out-dir', str(tmp_path),
+                 '--single-region-name', 'Ignored Me'])
+    assert any('Ignoring --single-region-name' in record.message for record in caplog.records)
+    assert 'Ignored Me' not in (tmp_path / 'report.md').read_text()
+
+
+def test_main_single_region_name_overrides_a_hand_picked_name(tmp_path, monkeypatch):
+    _patch_pipeline(monkeypatch, _empty_regions())
+    regions_path = tmp_path / 'hoods.geojson'
+    gpd.GeoDataFrame({'name': ['Westside']}, geometry=[_W], crs='EPSG:4326').to_file(regions_path, driver='GeoJSON')
+    oc.main(['--city-id', 'testville', '--place', 'Testville, USA', '--regions-file', str(regions_path),
+             '--regions-source', 'https://data.testville.gov/hoods', '--single-region-name', 'Laurens',
+             '--out-dir', str(tmp_path / 'out')])
+    report = (tmp_path / 'out' / 'report.md').read_text()
+    assert '| 1 | Laurens |' in report
+    assert 'Westside' not in report
+
+
+def test_main_keeps_a_regions_file_name_when_the_city_collapses_to_one_region(tmp_path, monkeypatch, caplog):
+    _patch_pipeline(monkeypatch, _empty_regions())
+    boundary_path = tmp_path / 'boundary.geojson'
+    _CITY_GDF.to_file(boundary_path, driver='GeoJSON')
+    regions_path = tmp_path / 'hoods.geojson'
+    gpd.GeoDataFrame({'name': ['Westside']}, geometry=[_W], crs='EPSG:4326').to_file(regions_path, driver='GeoJSON')
+    with caplog.at_level(logging.WARNING):
+        oc.main(['--city-id', 'testville', '--place', 'Testville, USA', '--regions-file', str(regions_path),
+                 '--regions-source', 'https://data.testville.gov/hoods', '--out-dir', str(tmp_path / 'out')])
+    assert '| 1 | Westside |' in (tmp_path / 'out' / 'report.md').read_text()
+    assert not any('--single-region-name' in record.message for record in caplog.records)
+
+
 def test_main_uses_regions_file_and_warns_on_low_coverage(tmp_path, monkeypatch, caplog):
     _patch_pipeline(monkeypatch, _empty_regions())
     boundary_path = tmp_path / 'boundary.geojson'

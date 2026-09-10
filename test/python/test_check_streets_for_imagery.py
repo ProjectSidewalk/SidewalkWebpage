@@ -1,19 +1,22 @@
 """
 Unit tests for scripts/check_streets_for_imagery.py.
 
-Covers the pure helpers (bounding box, vertex interpolation, response parsers, capture-date parsing, decision
-thresholds), the retry/fetch and per-street worker (including imagery-age capture), the checkpoint/output persistence
-(no-imagery list + imagery summary), and the `main` scan end-to-end with the HTTP layer mocked (happy path, no-imagery
-flagging, resume, fail-soft + retry, and interrupt). See test/python/README.md.
+Covers the pure helpers (bounding box, vertex interpolation, response parsers, capture-date parsing, Mapillary
+pano ranking, decision thresholds), the retry/fetch and per-street worker (including imagery-age capture), the
+checkpoint/output persistence (no-imagery list + imagery summary), and the `main` scan end-to-end with the HTTP layer
+mocked (happy path, no-imagery flagging, resume, fail-soft + retry, and interrupt). See test/python/README.md.
 """
 
 import base64
 import json
+import math
 import os
 
 import pandas as pd
 import pytest
 import requests
+from geopy import Point as GeoPoint
+from geopy.distance import geodesic
 from shapely import wkb
 from shapely.geometry import LineString
 
@@ -22,10 +25,29 @@ import check_streets_for_imagery as cs
 _LINE_60 = LineString([(-122.300, 47.60), (-122.299, 47.60)])
 _LINE_61 = LineString([(-122.310, 47.61), (-122.309, 47.61)])
 
+# A point the Mapillary fixtures sit on, and a timestamp to age them against. 1626307200000 is 2021-07-15T00:00:00Z
+# exactly, so a seconds-vs-ms mixup or a local-timezone conversion both produce a different date.
+_LAT, _LNG = 47.60, -122.300
+_JUL_2021_MS = 1626307200000
+_JUN_2019_MS = 1560000000000
+_NOW_MS = 1725000000000  # 2024-08-30T06:40:00Z, comfortably after both.
+
+
+def _lat_north_of_origin(meters):
+    """The latitude `meters` due north of (_LAT, _LNG), for placing a fixture at a known distance from it."""
+    return geodesic(meters=meters).destination(GeoPoint(_LAT, _LNG), bearing=0).latitude
+
+
+def _image(captured_at=_JUL_2021_MS, lat=_LAT, lng=_LNG, width=8192, image_id=1, **extra):
+    """A Mapillary `data` entry carrying every field score_pano ranks on. Override one field to isolate a term."""
+    return {'id': image_id, 'captured_at': captured_at, 'width': width,
+            'geometry': {'type': 'Point', 'coordinates': [lng, lat]}, **extra}
+
 
 # --------------------------------------------------------------------------------------------------------------------
 # create_bounding_box / redistribute_vertices
 # --------------------------------------------------------------------------------------------------------------------
+
 
 def test_create_bounding_box_is_ordered_and_radius_scales():
     west, south, east, north = cs.create_bounding_box(47.6, -122.3, 0.025)
@@ -49,6 +71,7 @@ def test_redistribute_vertices_long_line_adds_points_every_distance():
 # --------------------------------------------------------------------------------------------------------------------
 # response parsers + capture-date parsing
 # --------------------------------------------------------------------------------------------------------------------
+
 
 def test_gsv_has_imagery():
     assert cs.gsv_has_imagery({'status': 'OK', 'location': {'lat': 47.6, 'lng': -122.3}}) is True
@@ -128,15 +151,154 @@ def test_gsv_capture_date():
     assert cs.gsv_capture_date({'status': 'OK'}) is None            # imagery but no date
 
 
+# --------------------------------------------------------------------------------------------------------------------
+# Mapillary pano ranking (score_pano / best_pano / mapillary_capture_date)
+# --------------------------------------------------------------------------------------------------------------------
+
+
+def test_pano_scoring_config_holds_four_weights_summing_to_one():
+    # The docstrings promise a score in [0, 1], and the JS port relies on the same four names.
+    weights = {key: value for key, value in cs.PANO_SCORING.items() if key.endswith('Weight')}
+    assert set(weights) == {'distanceWeight', 'resolutionWeight', 'recencyWeight', 'sequenceWeight'}
+    assert sum(weights.values()) == pytest.approx(1.0)
+
+
+def test_pano_scoring_config_matches_the_values_the_viewers_document():
+    # Pin the numbers, not just their shape: the viewers' own comments quote these decay curves ("10m -> 0.37",
+    # "3yr -> 0.55"), and the whole point of the shared file is that a change here is a change to Explore.
+    assert cs.PANO_SCORING['distanceWeight'] == 0.45
+    assert cs.PANO_SCORING['resolutionWeight'] == 0.25
+    assert cs.PANO_SCORING['recencyWeight'] == 0.25
+    assert cs.PANO_SCORING['sequenceWeight'] == 0.05
+    assert cs.PANO_SCORING['distanceDecayMeters'] == 10
+    assert cs.PANO_SCORING['recencyDecayYears'] == 5
+    assert cs.PANO_SCORING['maxImageWidthPx'] == 16384
+
+
+def test_pano_scoring_loader_merges_the_providers_own_parameters():
+    # Panoramax's fleet caps lower than Mapillary's; everything else is shared, so the merge must keep both halves.
+    panoramax = cs._load_pano_scoring('panoramax')
+    assert panoramax['maxImageWidthPx'] == 12288
+    assert panoramax['distanceWeight'] == cs.PANO_SCORING['distanceWeight']
+
+
+def test_pano_scoring_loader_names_the_key_a_malformed_file_is_missing(tmp_path, monkeypatch):
+    # A typo must fail once at import rather than as a KeyError from a worker thread mid-scan, and must say which key.
+    conf = tmp_path / 'conf'
+    conf.mkdir()
+    (conf / 'pano-scoring.json').write_text(json.dumps(
+        {'distanceWeight': 0.45, 'providers': {'mapillary': {'maxImageWidthPx': 16384}}}))
+    monkeypatch.setattr(cs, 'REPO_ROOT', str(tmp_path))
+    with pytest.raises(KeyError, match='recencyDecayYears'):
+        cs._load_pano_scoring()
+
+
+def test_score_pano_is_the_weighted_sum_of_its_terms():
+    # A pano at the cap width, captured "now", 10 m from the sampled point: resolution and recency both score 1, so
+    # only the distance term is interesting. The sequence term is absent offline, hence the missing sequenceWeight.
+    scoring = cs.PANO_SCORING
+    image = _image(lat=_lat_north_of_origin(10), width=scoring['maxImageWidthPx'], captured_at=_NOW_MS)
+    expected = (scoring['distanceWeight'] * math.exp(-10 / scoring['distanceDecayMeters'])
+                + scoring['resolutionWeight']
+                + scoring['recencyWeight'])
+    assert cs.score_pano(image, _LAT, _LNG, _NOW_MS) == pytest.approx(expected, rel=1e-3)
+
+
+def test_score_pano_caps_resolution_at_the_max_width():
+    at_cap = _image(width=cs.PANO_SCORING['maxImageWidthPx'])
+    over_cap = _image(width=cs.PANO_SCORING['maxImageWidthPx'] * 4)
+    assert cs.score_pano(over_cap, _LAT, _LNG, _NOW_MS) == pytest.approx(cs.score_pano(at_cap, _LAT, _LNG, _NOW_MS))
+
+
+def test_score_pano_missing_width_costs_the_whole_resolution_term():
+    sized = _image(width=cs.PANO_SCORING['maxImageWidthPx'])
+    unsized = _image()
+    del unsized['width']
+    lost = cs.score_pano(sized, _LAT, _LNG, _NOW_MS) - cs.score_pano(unsized, _LAT, _LNG, _NOW_MS)
+    assert lost == pytest.approx(cs.PANO_SCORING['resolutionWeight'])
+
+
+def test_score_pano_prefers_computed_geometry_over_raw_geometry():
+    refined = _image(lat=_lat_north_of_origin(25),
+                     computed_geometry={'type': 'Point', 'coordinates': [_LNG, _lat_north_of_origin(1)]})
+    raw_only = _image(lat=_lat_north_of_origin(25))
+    assert cs.score_pano(refined, _LAT, _LNG, _NOW_MS) > cs.score_pano(raw_only, _LAT, _LNG, _NOW_MS)
+
+
+@pytest.mark.parametrize('captured_at', [None, '2021-07-15', True, float('nan')])
+def test_score_pano_drops_an_image_whose_timestamp_is_not_a_number(captured_at):
+    # fields=captured_at returns the key present-and-null when Mapillary has no timestamp, so this is a live path:
+    # before the guard covered the value as well as the key, one such image aborted the whole scan with a TypeError.
+    image = _image()
+    image['captured_at'] = captured_at
+    score = cs.score_pano(image, _LAT, _LNG, _NOW_MS)
+    assert score is None or math.isnan(score)
+
+
+def test_score_pano_ignores_an_altitude_in_the_position():
+    # GeoJSON positions may carry a third ordinate; the viewer's turf.point drops it, and unpacking it used to raise.
+    flat = _image()
+    with_altitude = _image()
+    with_altitude['geometry'] = {'type': 'Point', 'coordinates': [*flat['geometry']['coordinates'], 55.0]}
+    assert cs.score_pano(with_altitude, _LAT, _LNG, _NOW_MS) == pytest.approx(cs.score_pano(flat, _LAT, _LNG, _NOW_MS))
+
+
+def test_score_pano_unscorable_image_returns_none():
+    assert cs.score_pano({'id': 1, 'captured_at': _JUL_2021_MS}, _LAT, _LNG, _NOW_MS) is None  # no coordinates
+    undated = _image()
+    del undated['captured_at']
+    assert cs.score_pano(undated, _LAT, _LNG, _NOW_MS) is None
+
+
+def test_best_pano_returns_the_highest_scorer():
+    close = _image(image_id='close', lat=_lat_north_of_origin(2))
+    far = _image(image_id='far', lat=_lat_north_of_origin(24))
+    assert cs.best_pano({'data': [far, close]}, _LAT, _LNG, _NOW_MS)['id'] == 'close'
+
+
+def test_best_pano_none_when_nothing_is_scorable():
+    assert cs.best_pano({'data': []}, _LAT, _LNG, _NOW_MS) is None
+    assert cs.best_pano({'error': {'code': 100, 'message': 'too many'}}, _LAT, _LNG, _NOW_MS) is None
+
+
+def test_mapillary_capture_date_takes_the_viewers_pick_not_the_newest():
+    # The failure this ranking exists to prevent (#4411): the brand-new but distant, low-res pano would set the
+    # street's recorded date, and we would stop flagging the street while Explore kept showing the older one.
+    close_old = _image(image_id='close_old', captured_at=_JUN_2019_MS, lat=_lat_north_of_origin(3), width=8192)
+    far_new = _image(image_id='far_new', captured_at=_NOW_MS, lat=_lat_north_of_origin(20), width=2048)
+    response = {'data': [close_old, far_new]}
+    assert max(image['captured_at'] for image in response['data']) == _NOW_MS  # newest really is the other one
+    assert cs.mapillary_capture_date(response, _LAT, _LNG, _NOW_MS) == '2019-06-08'
+
+
+def test_mapillary_capture_date_converts_epoch_milliseconds_in_utc():
+    # captured_at is a Unix epoch timestamp in **milliseconds**, UTC. _JUL_2021_MS is 2021-07-15T00:00:00Z exactly, so
+    # a seconds-vs-ms mixup or a local-timezone conversion would both produce a different date.
+    assert cs.mapillary_capture_date({'data': [_image()]}, _LAT, _LNG, _NOW_MS) == '2021-07-15'
+
+
+def test_mapillary_capture_date_defaults_to_the_current_time():
+    # With one candidate the recency term can't change the winner, so an unpinned "now" is still deterministic.
+    assert cs.mapillary_capture_date({'data': [_image()]}, _LAT, _LNG) == '2021-07-15'
+
+
+def test_mapillary_capture_date_no_scorable_images():
+    assert cs.mapillary_capture_date({'data': []}, _LAT, _LNG) is None
+    assert cs.mapillary_capture_date({'data': [{'id': 1}]}, _LAT, _LNG) is None  # fields= gave us nothing to rank
+    assert cs.mapillary_capture_date({'error': {'code': 100, 'message': 'too many'}}, _LAT, _LNG) is None
+
+
 def test_pano_info():
-    assert cs._pano_info('GSV', {'status': 'OK', 'date': '2019'}) == cs.PanoInfo(True, '2019-01-01')
-    assert cs._pano_info('GSV', {'status': 'ZERO_RESULTS'}) == cs.PanoInfo(False, None)
-    assert cs._pano_info('Mapillary', {'data': [{'id': 1}]}) == cs.PanoInfo(True, None)  # Mapillary date not captured
+    assert cs._pano_info('GSV', {'status': 'OK', 'date': '2019'}, _LAT, _LNG) == cs.PanoInfo(True, '2019-01-01')
+    assert cs._pano_info('GSV', {'status': 'ZERO_RESULTS'}, _LAT, _LNG) == cs.PanoInfo(False, None)
+    assert cs._pano_info('Mapillary', {'data': [_image()]}, _LAT, _LNG) == cs.PanoInfo(True, '2021-07-15')
+    assert cs._pano_info('Mapillary', {'data': [{'id': 1}]}, _LAT, _LNG) == cs.PanoInfo(True, None)
 
 
 # --------------------------------------------------------------------------------------------------------------------
 # Infra3d: nearest-frame interpretation + token handling
 # --------------------------------------------------------------------------------------------------------------------
+
 
 def _frame(lat, lng, timestamp='2024-06-17T11:23:09.795417+00:00'):
     return {'latitude': lat, 'longitude': lng, 'timestamp': timestamp, 'type': 'cubemap'}
@@ -396,6 +558,7 @@ def test_street_has_no_imagery_lazy_iterable_stops_early():
 # make_fetch (retry) + rate limiter
 # --------------------------------------------------------------------------------------------------------------------
 
+
 def test_make_fetch_retries_then_succeeds(monkeypatch):
     calls = {'n': 0}
 
@@ -507,6 +670,7 @@ def test_rate_limiter_throttles_when_depleted():
 # process_street (fetch stubbed directly, no network)
 # --------------------------------------------------------------------------------------------------------------------
 
+
 def _street(line, street_edge_id=100, region_id=1):
     x1, y1 = line.coords[0]
     x2, y2 = line.coords[-1]
@@ -550,11 +714,27 @@ def test_process_street_gsv_points_missing_imagery():
 
 
 def test_process_street_mapillary_has_imagery():
-    assert _run_process(_LINE_60, 'Mapillary', lambda url: {'data': [{'id': 1}]}).outcome == cs.HAS_IMAGERY
+    assert _run_process(_LINE_60, 'Mapillary', lambda url: {'data': [_image()]}).outcome == cs.HAS_IMAGERY
 
 
 def test_process_street_mapillary_no_imagery():
     assert _run_process(_LINE_60, 'Mapillary', lambda url: {'data': []}).outcome == cs.NO_IMAGERY
+
+
+def test_process_street_mapillary_captures_date_range():
+    # The first two fetches are the endpoints (older imagery); along-street points see newer imagery -> a date range.
+    calls = {'n': 0}
+
+    def fetch(url):
+        calls['n'] += 1
+        captured_at = _JUN_2019_MS if calls['n'] <= 2 else _JUL_2021_MS
+        return {'data': [_image(image_id=calls['n'], captured_at=captured_at)]}
+
+    result = _run_process(_LINE_60, 'Mapillary', fetch)
+    assert result.outcome == cs.HAS_IMAGERY
+    assert result.oldest_capture == '2019-06-08'
+    assert result.newest_capture == '2021-07-15'
+    assert result.n_panos >= 3
 
 
 def test_process_street_panoramax_has_imagery_with_dates():
@@ -655,6 +835,7 @@ def test_process_street_point_error_is_failed():
 # --------------------------------------------------------------------------------------------------------------------
 # persistence: load_processed / append_checkpoint / _write_ids_csv / finalize_outputs
 # --------------------------------------------------------------------------------------------------------------------
+
 
 def test_load_processed_no_file(tmp_path):
     assert cs.load_processed(str(tmp_path / 'missing.csv')) == set()
@@ -904,6 +1085,26 @@ def test_main_panoramax_branch_needs_no_key(monkeypatch, tmp_path, capsys):
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]
 
 
+def test_main_mapillary_requests_and_records_capture_dates(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(200, 1, _LINE_61)], env_var='MAPILLARY_ACCESS_TOKEN')
+    urls = []
+
+    def fake_get_json(url):
+        urls.append(url)
+        return {'data': [_image()]}
+
+    monkeypatch.setattr(cs, '_get_json', fake_get_json)
+    assert cs.main(['--city-id', _CITY, '--mapillary', '--max-qps', '1000']) == 0
+    # Every request must ask for the fields score_pano ranks on — a default response carries only `id`.
+    assert urls
+    for field in ('captured_at', 'geometry', 'computed_geometry', 'width'):
+        assert all(field in url.split('fields=')[1].split('&')[0] for url in urls)
+    summary = _summary(tmp_path)
+    assert bool(summary.loc[200, 'has_imagery']) is True
+    assert summary.loc[200, 'newest_capture'] == '2021-07-15'
+    assert summary.loc[200, 'n_panos'] >= 1
+
+
 def _infra3d_token_post(status_code=200):
     def post(url, data, headers, timeout):
         return _TokenResp(status_code, _jwt({'exp': 10 ** 10, 'scope': 'framegate/uzh'}))
@@ -998,6 +1199,7 @@ def test_main_keyboard_interrupt_finalizes_and_returns_1(monkeypatch, tmp_path):
 # --------------------------------------------------------------------------------------------------------------------
 # --sample preflight
 # --------------------------------------------------------------------------------------------------------------------
+
 
 def _summary_frame(rows):
     return pd.DataFrame(rows, columns=cs.SUMMARY_COLUMNS)

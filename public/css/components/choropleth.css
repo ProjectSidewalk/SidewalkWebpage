@@ -350,3 +350,84 @@
   justify-content: center;
   width: 100%;
 }
+
+/* ---- Street re-audit hover card (#5258) ---- */
+
+/* Scoped so the global .mapboxgl-popup-content rule (shared with every other map popup) stays put. */
+.street-reaudit-popup .mapboxgl-popup-content {
+  padding: 12px 14px;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 22%);
+}
+
+.street-reaudit {
+  min-width: 210px;
+}
+
+.street-reaudit__title {
+  margin: 0 0 8px;
+  color: var(--color-neutral-900);
+  font: var(--text-body-bold);
+  line-height: 1.25;
+}
+
+/* Two columns so the label and its date read as a pair, with the dates aligned down the right edge. Primary-font
+   tokens throughout: the accent font's digits sit below the baseline, and every value here is a date or a count. */
+.street-reaudit__facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+  margin: 0 0 10px;
+}
+
+.street-reaudit__facts dt {
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
+}
+
+.street-reaudit__facts dd {
+  margin: 0;
+  color: var(--color-neutral-900);
+  font: var(--text-caption-semibold);
+  text-align: right;
+}
+
+.street-reaudit__found,
+.street-reaudit__empty {
+  margin: 0 0 4px;
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
+}
+
+.street-reaudit__empty {
+  margin-bottom: 10px;
+}
+
+.street-reaudit__labels {
+  width: 100%;
+  margin: 0 0 10px;
+  border-collapse: collapse;
+}
+
+.street-reaudit__type {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 0;
+  color: var(--color-neutral-900);
+  font: var(--text-caption-medium);
+}
+
+.street-reaudit__count {
+  padding: 1px 0;
+  color: var(--color-neutral-800);
+  font: var(--text-caption-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  vertical-align: middle;
+}
+
+.street-reaudit__explore {
+  justify-content: center;
+  width: 100%;
+}

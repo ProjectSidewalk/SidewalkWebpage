@@ -232,7 +232,12 @@ dialog.au-dialog::backdrop {
   outline-offset: 2px;
 }
 
-/* ---- Live validation (sign-up) ------------------------------------------------------------------------------ */
+/* No box of its own: the two fields stay direct flex children of .au-form, so they keep its row gap. */
+.au-pw-group {
+  display: contents;
+}
+
+/* ---- Live validation (new-password fields) ----------------------------------------------------------------------- */
 .au-checklist {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -343,6 +348,34 @@ dialog.au-dialog::backdrop {
   color: var(--color-neutral-700);
 }
 
+/* Advisory helper text — quieter than the pass/fail rule line above it. */
+.au-hint {
+  margin: 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.au-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--color-banana-100);
+  font: var(--text-caption-medium);
+  color: var(--color-orange-700);
+}
+
+.au-warning .au-icon {
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+  color: var(--color-banana-800);
+  -webkit-mask-image: url("../../images/icons/alert-triangle-feather.svg");
+  mask-image: url("../../images/icons/alert-triangle-feather.svg");
+}
+
 /* ---- Inline errors ------------------------------------------------------------------------------------------ */
 .au-summary {
   display: flex;
@@ -354,8 +387,14 @@ dialog.au-dialog::backdrop {
   border-radius: 8px;
 }
 
-.au-summary svg {
-  flex: 0 0 auto;
+/* The same alert glyph is tinted three ways: error banner, field error, info banner. */
+.au-summary .au-icon,
+.au-field-error .au-icon {
+  -webkit-mask-image: url("../../images/icons/alert-circle.svg");
+  mask-image: url("../../images/icons/alert-circle.svg");
+}
+
+.au-summary .au-icon {
   width: 18px;
   height: 18px;
   color: var(--color-error-200);
@@ -377,10 +416,9 @@ dialog.au-dialog::backdrop {
   color: var(--color-error-300);
 }
 
-.au-field-error svg {
+.au-field-error .au-icon {
   width: 14px;
   height: 14px;
-  flex: 0 0 auto;
 }
 
 /* ---- Checkbox + submit ---------------------------------------------------------------------------------------- */
@@ -489,7 +527,7 @@ dialog.au-dialog::backdrop {
   border-left-color: var(--color-pine-700);
 }
 
-.au-summary--info svg {
+.au-summary--info .au-icon {
   color: var(--color-pine-700);
 }
 
@@ -813,6 +851,86 @@ dialog.au-dialog::backdrop {
   align-self: flex-start;
 }
 
+/* Quieter than the service-hours card above it, so it reads as information rather than a second ask. */
+.wl-privacy {
+  max-width: 540px;
+  margin: 26px auto 0;
+  padding: 16px 20px;
+  text-align: left;
+  background: var(--color-neutral-100);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 12px;
+}
+
+.wl-privacy-title {
+  margin: 0 0 6px;
+  font: var(--text-small-bold);
+  color: var(--color-asphalt-500);
+}
+
+.wl-privacy-body {
+  margin: 0 0 6px;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.wl-privacy-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.wl-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.wl-check input {
+  flex: none;
+  margin-top: 3px;
+}
+
+.wl-check strong {
+  display: block;
+  font: var(--text-small-medium);
+  color: var(--color-asphalt-500);
+}
+
+.wl-check-help {
+  display: block;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.wl-privacy-status {
+  min-height: 18px;
+  margin: 10px 0 0;
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-700);
+}
+
+.wl-privacy-status.saved {
+  color: var(--color-pine-800);
+}
+
+.wl-privacy-status.failed {
+  color: var(--color-error-300);
+}
+
+/* Disabled while a save is in flight, and before JS enables them at all. */
+.wl-check input:disabled {
+  cursor: not-allowed;
+}
+
+.wl-check:has(input:disabled) {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .wl-hint {
   margin: 16px 0 0;
   text-align: center;
@@ -825,7 +943,14 @@ dialog.au-dialog::backdrop {
 }
 
 /* ---- Service-hours instructions page --------------------------------------------------------------------------- */
+
+/* Two column widths, named so a page can put all of its blocks in one. */
 .sh-page {
+  --sh-column: 760px;
+  --sh-column-narrow: 560px;
+
+  /* On the container so every block gets one; no effect once the viewport is wider than the column. */
+  padding-inline: 16px;
   background: var(--color-neutral-white);
   color: var(--color-neutral-900);
   font: var(--text-body-regular);
@@ -833,7 +958,7 @@ dialog.au-dialog::backdrop {
 
 .sh-hero {
   padding: 34px 34px 24px;
-  max-width: 760px;
+  max-width: var(--sh-column);
   margin: 0 auto;
 }
 
@@ -859,9 +984,28 @@ dialog.au-dialog::backdrop {
   max-width: 62ch;
 }
 
+/* Time Check is cards the whole way down, so all of it runs in the narrow column. Both classes are on the same
+   element, so this has to out-specify `.sh-page` rather than merely follow it. */
+.sh-page.tc-page {
+  --sh-column: var(--sh-column-narrow);
+}
+
+.tc-page .sh-hero {
+  text-align: center;
+}
+
+/* Cards, not prose, so they sit on the column edge rather than indented like the instructions page. */
+.tc-page .sh-main {
+  padding-inline: 0;
+}
+
+.tc-page .sh-hero p {
+  margin-inline: auto;
+}
+
 /* Time Check hero stat: the logged hours as a big, celebratory number. */
 .tc-stat {
-  max-width: 560px;
+  max-width: var(--sh-column-narrow);
   margin: 4px auto 0;
   padding: 30px 24px;
   text-align: center;
@@ -904,7 +1048,7 @@ dialog.au-dialog::backdrop {
 
 /* Per-city breakdown; only rendered when the headline total spans more than one deployment. */
 .tc-cities {
-  max-width: 560px;
+  max-width: var(--sh-column-narrow);
   margin: 20px auto 0;
 }
 
@@ -947,7 +1091,7 @@ dialog.au-dialog::backdrop {
 
 /* Says out loud that a city was missed, so a total that is only a floor never reads as a final answer (#4526). */
 .tc-incomplete {
-  max-width: 560px;
+  max-width: var(--sh-column-narrow);
   margin: 16px auto 0;
   padding: 12px 16px;
   background: var(--color-banana-100);
@@ -967,7 +1111,7 @@ dialog.au-dialog::backdrop {
   align-items: center;
   flex-wrap: wrap;
   gap: 14px;
-  max-width: 760px;
+  max-width: var(--sh-column);
   margin: 18px auto 4px;
   padding: 14px 18px;
   border: 1px solid var(--color-neutral-200);
@@ -1031,7 +1175,7 @@ dialog.au-dialog::backdrop {
   gap: 12px;
   margin: 0 auto;
   padding: 12px 16px;
-  max-width: 760px;
+  max-width: var(--sh-column);
   border: 1px solid var(--color-neutral-200);
   border-radius: 12px;
 }
@@ -1066,7 +1210,7 @@ dialog.au-dialog::backdrop {
 
 .sh-main {
   padding: 24px 34px 44px;
-  max-width: 760px;
+  max-width: var(--sh-column);
   margin: 0 auto;
 }
 

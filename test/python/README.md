@@ -53,7 +53,8 @@ scripts run on different ones (#4396): `label_clustering.py` on the `python3` (3
 offline tooling on `python3.13`. `make test-python-app` / `make test-python-tools` run one half each; both take `args=`.
 
 Dependencies are preinstalled in the container — `requirements.txt` into 3.8, `requirements-offline-tools.txt` into
-3.13, `requirements-dev.txt` into both. To run a half directly, or on the host:
+3.13, `requirements-dev.txt` into both. To run a half directly (from a worktree, `cd` to
+`/home/.claude/worktrees/<name>` instead of `/home`), or on the host:
 
 ```bash
 docker exec -it -e COVERAGE_OMIT=scripts/label_clustering.py projectsidewalk-web \

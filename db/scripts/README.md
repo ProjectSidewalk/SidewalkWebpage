@@ -28,7 +28,7 @@ maintenance operation.
 
 ```bash
 make dev                      # bring up the db container (init.sh runs automatically on a fresh volume)
-make import-users             # load the shared login schema (sidewalk_login) from sidewalk_users-dump
+make import-users replace=1   # load the shared login schema (sidewalk_login); later imports drop replace=1 to merge
 make import-dump db=sidewalk_seattle   # load a city's data from sidewalk_seattle-dump
 ```
 
@@ -40,7 +40,7 @@ are **git-ignored** and must be placed in `db/` yourself; see [`docs/dev-environ
 | File | `make` target | What it does | When you need it |
 |------|---------------|--------------|------------------|
 | `init.sh` | _(automatic on first boot)_ | Creates the `sidewalk` DB + roles, enables PostGIS, restores the committed **template** dumps (`sidewalk_init-dump`, `sidewalk_init_users-dump`), seeds the `SidewalkAI` user and read-only `readonly_user` role, and switches local auth to `trust`. | Never run by hand — it runs itself on a fresh db volume. |
-| `import-users.sh` | `make import-users` | Drops and reloads the shared **login schema** (`sidewalk_login`) from `sidewalk_users-dump` (~900 MB); re-grants read-only afterward. | After first boot, and whenever you refresh the users dump. |
+| `import-users.sh` | `make import-users [replace=1]` | **Merges** `sidewalk_users-dump` (~1 GB) into the shared **login schema** (`sidewalk_login`): adds the accounts you're missing, keeps every account you have (local test accounts included) and every city's foreign keys into the schema. `replace=1` drops and reloads the schema instead. See the script header for how the merge works (#3721). | After first boot (with `replace=1`), and whenever a newer city dump needs a newer users dump. |
 | `import-dump.sh` | `make import-dump db=<schema>` | Drops and reloads **one city's schema** from `<schema>-dump`; recreates the role, sets its `search_path`, re-grants read-only. | To load or refresh a city's data. |
 | `create-new-schema.sh` | `make create-new-schema name=<schema> donor=<schema>` | Builds a **brand-new empty city schema** by cloning a live city's structure plus its seed rows (evolutions, version, `config` + tutorial street, tags, surveys) and bumping the sequences. Refuses a donor that has applied an evolution beyond the checkout's highest, or whose top evolution is another branch's under the same number — accepted when its hash is the file's (`make` passes both), otherwise the other city schemas must agree with it. The committed template is not used here — it is frozen at evolution 252 and can't be replayed past 372 (#5198). | When standing up a city you don't yet have a dump for. |
 | `fill-new-schema.sh` | `make fill-new-schema` | Populates a new city's `street_edge` / `region` / priority tables from the **staging tables** (`qgis_road`, `qgis_region` — from `scripts/onboard_city.py` or a QGIS export), relocates the seeded tutorial street past the imported ids, sets the city center, map bounds, and zoom from the open regions, and prints what landed. | After `create-new-schema` + loading the staging SQL, to bring the city online. |
@@ -57,7 +57,7 @@ are **git-ignored** and must be placed in `db/` yourself; see [`docs/dev-environ
 **Fresh dev database (the common case):**
 
 ```
-make dev  ─▶  init.sh (auto)  ─▶  make import-users  ─▶  make import-dump db=sidewalk_seattle
+make dev  ─▶  init.sh (auto)  ─▶  make import-users replace=1  ─▶  make import-dump db=sidewalk_seattle
 ```
 
 **Standing up a brand-new city (no dump yet):** the whole sequence, from open data to a server-ready dump, is
@@ -100,16 +100,22 @@ or `ROLLBACK`. Edit the candidate-id list and the `search_path` (target city sch
 
 ## Gotchas
 
-- **Restores kill all DB connections.** `import-users.sh` and `import-dump.sh` call `pg_terminate_backend` on every
-  connection to the `sidewalk` database before dropping a schema. If the web app (`npm start`) is running, its
-  connections are killed — that's expected; sbt reconnects.
+- **Restores kill all DB connections.** `import-dump.sh` and `import-users.sh replace=1` call `pg_terminate_backend`
+  on every connection to the `sidewalk` database before dropping a schema. If the web app (`npm start`) is running,
+  its connections are killed — that's expected; sbt reconnects. A merging `import-users` leaves them alone.
+- **Merge `import-users`, don't replace it, once you have cities loaded.** Local test accounts exist only in your DB,
+  and your cities' data points at them. A merge keeps them; `replace=1` drops them, and its `DROP SCHEMA ... CASCADE`
+  also takes every city's foreign keys into `sidewalk_login`, its `survey_question.survey_user_role` column (typed as
+  that schema's `role` enum) and its `label_comments_agg` view, so a replace means re-importing every city after it.
 - **Dump files must exist in `db/`, named `<schema>-dump`.** Real city dumps are **git-ignored**; only the small
   `sidewalk_init-dump` / `sidewalk_init_users-dump` templates are committed. The scripts now fail with a clear message
   if a dump is missing, rather than a cryptic `pg_restore` error.
 - **Schema / city names must be valid bare SQL identifiers** (`^[a-z][a-z0-9_]*$`) — they're interpolated into DDL.
   `import-dump.sh` and `create-new-schema.sh` validate this.
-- **Large restores can run for a minute or more.** The ~900 MB users dump is the slowest (~1 min). The restore scripts
-  show a live elapsed-time clock and run `pg_restore` in parallel (`-j`), but it's still a wait — don't assume it's hung.
+- **Large restores can run for a minute or more.** The ~1 GB users dump is the slowest: ~2.5 min to restore with
+  `replace=1`, under a minute to load for a merge. The scripts show a live elapsed-time clock, so don't assume a
+  quiet one is hung. A merge then adds time for each new account: ~3 min for ~300k (a refresh a few months stale),
+  ~20 min for all ~6M into a fresh DB, which is why the first import uses `replace=1`.
 - **`init.sh` only runs on a fresh volume.** Editing it does nothing to an existing dev DB until you recreate the volume
   (`make docker-stop` + remove the db volume, or `docker compose down -v`).
 - **`reveal-or-hide-neighborhoods.sh` has a server mode** (test/prod) with different connection params; the default is

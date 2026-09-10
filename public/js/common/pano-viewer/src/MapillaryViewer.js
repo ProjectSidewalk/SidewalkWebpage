@@ -246,30 +246,35 @@ class MapillaryViewer extends PanoViewer {
    * @returns {number} A score between 0 and 1 where higher is better.
    */
   #scorePano = (pano, centerPoint, currentSequenceId) => {
+    const scoring = util.pano.scoring('mapillary');
     const geom = pano.computed_geometry || pano.geometry;
     const panoPoint = turf.point(geom.coordinates);
     const distToTarget = turf.distance(centerPoint, panoPoint, { units: 'meters' });
 
-    // Distance to target (dominant factor). Exponential decay with 10m scale.
-    // At 0m → 1.0, at 10m → 0.37, at 25m → 0.08.
-    const distanceScore = Math.exp(-distToTarget / 10);
+    // Distance to target (dominant factor). Exponential decay, so at the default 10m scale:
+    // 0m → 1.0, 10m → 0.37, 25m → 0.08.
+    const distanceScore = Math.exp(-distToTarget / scoring.distanceDecayMeters);
 
-    // Resolution: linear scale, capped at 16384px wide.
-    // Common values: 2048 → 0.13, 5376 → 0.33, 8192 → 0.50, 12288 → 0.75, 16384 → 1.0.
-    const resolutionScore = Math.min(pano.width / 16384, 1);
+    // Resolution: linear in width, capped. Against the default 16384px cap:
+    // 2048 → 0.13, 5376 → 0.33, 8192 → 0.50, 12288 → 0.75, 16384 → 1.0. An unsized pano scores 0 rather than NaN,
+    // which loses every > comparison in #selectBestPano and so could make a box of them read as no imagery at all
+    // — the hazard PanoramaxViewer.#scorePano already guards. The offline port in check_streets_for_imagery.py
+    // takes the same fallback, so the two rank an unsized pano the same way (#4411).
+    const resolutionScore = Math.min((pano.width || 0) / scoring.maxImageWidthPx, 1);
 
-    // Recency: exponential decay by age in years, 5-year scale.
-    // Fresh → 1.0, 3yr old → 0.55, 8yr → 0.20.
-    const ageYears = (Date.now() - pano.captured_at) / (365.25 * 24 * 3600 * 1000);
-    const recencyScore = Math.exp(-ageYears / 5);
+    // Recency: exponential decay by age in years, so at the default 5-year scale:
+    // fresh → 1.0, 3yr old → 0.55, 8yr → 0.20.
+    const ageYears = (Date.now() - pano.captured_at) / util.pano.MS_PER_JULIAN_YEAR;
+    const recencyScore = Math.exp(-ageYears / scoring.recencyDecayYears);
 
-    // Sequence continuity: prefer staying in the current sequence for smoother navigation.
+    // Sequence continuity: prefer staying in the current sequence for smoother navigation. This is the one term the
+    // offline port in check_streets_for_imagery.py cannot mirror — sampling a street cold, there is no current pano.
     const sequenceScore = (currentSequenceId && pano.sequence === currentSequenceId) ? 1 : 0;
 
-    return 0.45 * distanceScore
-      + 0.25 * resolutionScore
-      + 0.25 * recencyScore
-      + 0.05 * sequenceScore;
+    return scoring.distanceWeight * distanceScore
+      + scoring.resolutionWeight * resolutionScore
+      + scoring.recencyWeight * recencyScore
+      + scoring.sequenceWeight * sequenceScore;
   };
 
   /**

@@ -30,6 +30,9 @@ checkout** (`db/` is the bind mount), so run these from the main checkout, not a
      "quartiers", "barrios", "council districts". Prefer official, non-overlapping polygons that tile the city.
   3. Let the tool fall back: OSM neighbourhood polygons (used only above 75% coverage), then US census tracts
      (TIGERweb), then the whole city as one region (small towns; split later in QGIS if it grows).
+- **A one-region city** takes the city's name (from `--place`), not the source's — otherwise a small town is the
+  neighbourhood "Census Tract 7801" in every mission message and API response. Use `--single-region-name` with a
+  `--boundary-file`, or to override. Names you chose (`--regions-file`, a `--merge-regions` target) are left alone.
 - **City boundary.** `--place "<City, State, Country>"` geocodes the OSM admin boundary; check the report's
   "Boundary:" line names the right place. A partner file goes in with `--boundary-file`.
 - **Scope.** Whole city, or a phased launch opening some regions first (`onboard-city` asks; the imagery scan

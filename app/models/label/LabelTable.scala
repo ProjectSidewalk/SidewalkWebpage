@@ -192,6 +192,8 @@ case class LabelMetadataUserDash(
     labelId: Int,
     panoId: String,
     panoSource: PanoSource,
+    copyright: Option[String],
+    license: Option[String],
     pov: POV,
     canvasX: Int,
     canvasY: Int,
@@ -298,6 +300,10 @@ object LabelTable {
     "ai"    -> "user_role.role = 'AI'"
   )
 
+  // The types the AI validates, each broken out in getOverallStatsForApi's AI stats. ORDER MATTERS (see
+  // validationStatLabelTypes).
+  val aiStatLabelTypes: Seq[LabelTypeEnum.Base] = LabelTypeEnum.ordered.filter(aiLabelTypes.contains)
+
   /**
    * Builds the `WHERE` fragment for the Raw Labels API's `tags` filter.
    *
@@ -349,12 +355,25 @@ object LabelTable {
 
   // Type aliases for the tuple representation of LabelMetadataUserDash and queries for them.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
-  type LabelMetadataUserDashTuple =
-    (Int, String, PanoSource, (Double, Double, Double), Int, Int, String, OffsetDateTime, Option[String])
+  type LabelMetadataUserDashTuple = (
+      Int,
+      String,
+      PanoSource,
+      Option[String],
+      Option[String],
+      (Double, Double, Double),
+      Int,
+      Int,
+      String,
+      OffsetDateTime,
+      Option[String]
+  )
   type LabelMetadataUserDashTupleRep = (
       Rep[Int],                                // labelId
       Rep[String],                             // panoId
       Rep[PanoSource],                         // panoSource
+      Rep[Option[String]],                     // copyright
+      Rep[Option[String]],                     // license
       (Rep[Double], Rep[Double], Rep[Double]), // pov (heading, pitch, zoom)
       Rep[Int],                                // canvasX
       Rep[Int],                                // canvasY
@@ -367,7 +386,8 @@ object LabelTable {
   implicit val labelMetadataUserDashConverter: TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] =
     new TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] {
       def fromTuple(t: LabelMetadataUserDashTuple): LabelMetadataUserDash =
-        LabelMetadataUserDash(t._1, t._2, t._3, POV.tupled(t._4), t._5, t._6, LabelTypeEnum.byName(t._7), t._8, t._9)
+        LabelMetadataUserDash(t._1, t._2, t._3, t._4, t._5, POV.tupled(t._6), t._7, t._8, LabelTypeEnum.byName(t._9),
+          t._10, t._11)
     }
 
   // Type alias for the tuple representation of LabelForLabelMap query results. Includes streetEdgeId (2nd element,
@@ -526,6 +546,10 @@ object LabelTable {
   // width/height. Mapped to service.CropService.CropCandidate by the crop job.
   type CropCandidateTuple = (Int, LabelTypeEnum.Base, String, Int, Int, Option[Int], Option[Int])
 
+  /** (labelId, labelType, timeCreated, panoId, panoX, panoY, canvasX, canvasY, panoWidth, panoHeight, aiGenerated). */
+  type CropProvenanceTuple =
+    (Int, LabelTypeEnum.Base, OffsetDateTime, String, Int, Int, Int, Int, Option[Int], Option[Int], Boolean)
+
   // Type alias for the tuple representation of LabelCVMetadata.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
   type LabelCVMetadataTuple = (
@@ -581,6 +605,8 @@ object LabelTable {
       osmWayId = r.nextLong(),
       regionId = r.nextInt(),
       regionName = r.nextString(),
+      streetSide = r.nextStringOption().flatMap(StreetSide.fromString),
+      centerlineOffsetM = r.nextDoubleOption(),
       correct = r.nextBooleanOption(),
       agreeCount = r.nextInt(),
       disagreeCount = r.nextInt(),
@@ -654,6 +680,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val auditTasks             = TableQuery[AuditTaskTableDef]
   val panoData               = TableQuery[PanoDataTableDef]
   val labelPoints            = TableQuery[LabelPointTableDef]
+  val labelCrops             = TableQuery[LabelCropTableDef]
   val labelValidations       = TableQuery[LabelValidationTableDef]
   val labelAiAssessments     = TableQuery[LabelAiAssessmentTableDef]
   val labelAiFailures        = TableQuery[LabelAiFailureTableDef]
@@ -809,18 +836,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextDurationOption(),
       r.nextDurationOption(),
       r.nextDurationOption(),
-      Map(
-        CurbRamp.name   -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
-        NoCurbRamp.name -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
-        Obstacle.name   -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
-        SurfaceProblem.name ->
-          LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
-        NoSidewalk.name -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
-        Crosswalk.name  -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
-        Signal.name     -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
-        Occlusion.name  -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
-        Other.name      -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption())
-      ), {
+      // Read by position, so this must follow the column order getOverallStatsForApi writes.
+      LabelTypeEnum.ordered.map { lt =>
+        lt.name -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption())
+      }.toMap, {
         // Read the combined/human/ai validation breakdowns in the exact order getOverallStatsForApi emits them: for
         // each source, the total validation count followed by one LabelAccuracy per validationStatLabelTypes entry.
         // Seq.map is strict and left-to-right, so this reads columns positionally in sync with the SELECT.
@@ -837,32 +856,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         val ai       = readSource()
         ValidationStats(combined, human, ai)
       },
-      Map(
-        "Overall" -> Map(
-          "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-          "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
-        ),
-        CurbRamp.name -> Map(
-          "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-          "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
-        ),
-        NoCurbRamp.name -> Map(
-          "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-          "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
-        ),
-        Obstacle.name -> Map(
-          "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-          "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
-        ),
-        SurfaceProblem.name -> Map(
-          "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-          "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
-        ),
-        Crosswalk.name -> Map(
+      // Read by position, so this must follow the column order getOverallStatsForApi writes.
+      ("Overall" +: aiStatLabelTypes.map(_.name)).map { group =>
+        group -> Map(
           "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
           "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
         )
-      )
+      }.toMap
     )
   }
 
@@ -989,6 +989,23 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param userIds The users to break down.
    * @return DBIO[Seq[(userId, labelType, count)]].
    */
+  /**
+   * Label counts broken down by label type for a single street (#5258).
+   *
+   * Uses the `labels` subquery, so deleted/tutorial/excluded-user labels are already excluded -- the same population
+   * the map and the Gallery report, so the street's card can't claim labels the rest of the site won't show.
+   *
+   * @param streetEdgeId The street to break down.
+   * @return DBIO[Seq[(labelType, count)]], for the label types actually present on the street.
+   */
+  def getLabelTypeCountsForStreet(streetEdgeId: Int): DBIO[Seq[(String, Int)]] = {
+    labels
+      .filter(_.streetEdgeId === streetEdgeId)
+      .groupBy(_.labelTypeName)
+      .map { case (labelType, group) => (labelType, group.length) }
+      .result
+  }
+
   def getLabelTypeCountsForUsers(userIds: Seq[String]): DBIO[Seq[(String, String, Int)]] = {
     (for {
       _label <- labels if _label.userId inSet userIds
@@ -1632,6 +1649,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lb.labelId,
       _lb.panoId,
       _pd.source,
+      _pd.copyright,
+      _pd.license,
       (_lp.heading.asColumnOf[Double], _lp.pitch.asColumnOf[Double], _lp.zoom.asColumnOf[Double]),
       _lp.canvasX,
       _lp.canvasY,
@@ -1640,8 +1659,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _vc._6
     )
 
-    // Get the most recent matching validation for each label.
-    _validations.sortBy(r => (r._1, r._7.desc)).distinctOn(_._1)
+    // Don't drop `.subquery`: without it the two sorts flatten into one ORDER BY that Postgres rejects.
+    _validations.sortBy(r => (r._1, r._10.desc)).distinctOn(_._1).subquery.sortBy(_._10.desc)
   }
 
   /**
@@ -2064,6 +2083,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              osm_way_street_edge.osm_way_id,
              region.region_id,
              region.name,
+             label_point.street_side::text,
+             label_point.centerline_offset_m,
              label.correct,
              label.agree_count,
              label.disagree_count,
@@ -2195,6 +2216,45 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       }
       .mkString(",\n                 ")
 
+    // One (alias, expression) list feeds both a subquery's columns and the top-level SELECT's, so they can't drift.
+    def subqueryCols(cols: Seq[(String, String)]): String =
+      cols.map { case (alias, expr) => s"$expr AS $alias" }.mkString(",\n                 ")
+    def topLevelCols(subquery: String, cols: Seq[(String, String)]): String =
+      cols.map { case (alias, _) => s"$subquery.$alias" }.mkString(",\n             ")
+
+    // (e) Count and rating stats per label type, in the order projectSidewalkStatsConverter reads them. Unrated types
+    // have no ratings to summarize, so their rating columns are NULL.
+    val sevStatCols: Seq[(String, String)] = LabelTypeEnum.ordered.flatMap { lt =>
+      val col        = lt.name.toLowerCase
+      val isType     = s"label.label_type = '${lt.name}'"
+      val ratingCols = Seq(
+        s"n_${col}_with_sev" -> s"COUNT(CASE WHEN $isType AND severity IS NOT NULL THEN 1 END)",
+        s"${col}_sev_mean"   -> s"AVG(CASE WHEN $isType THEN severity END)",
+        s"${col}_sev_sd"     -> s"STDDEV(CASE WHEN $isType THEN severity END)"
+      )
+      val ratingColsOrNull =
+        if (lt.ratingScale == RatingScale.Unrated) ratingCols.map { case (alias, _) => alias -> "NULL" } else ratingCols
+      (s"n_$col" -> s"COUNT(CASE WHEN $isType THEN 1 END)") +: ratingColsOrNull
+    }
+
+    // (f) How often the AI's vote matched the human and admin majority votes (1 = agree, 2 = disagree), across all
+    // types and then per aiStatLabelTypes entry, in the order projectSidewalkStatsConverter reads them.
+    val aiComparisons: Seq[(String, String)] = Seq(
+      "ai_yes_mv_yes"    -> "ai_mv = 1 AND human_mv = 1",
+      "ai_yes_mv_no"     -> "ai_mv = 1 AND human_mv = 2",
+      "ai_no_mv_yes"     -> "ai_mv = 2 AND human_mv = 1",
+      "ai_no_mv_no"      -> "ai_mv = 2 AND human_mv = 2",
+      "ai_yes_admin_yes" -> "ai_mv = 1 AND admin_mv = 1",
+      "ai_yes_admin_no"  -> "ai_mv = 1 AND admin_mv = 2",
+      "ai_no_admin_yes"  -> "ai_mv = 2 AND admin_mv = 1",
+      "ai_no_admin_no"   -> "ai_mv = 2 AND admin_mv = 2"
+    )
+    val aiStatCols: Seq[(String, String)] = (None +: LabelTable.aiStatLabelTypes.map(Some(_))).flatMap { labelType =>
+      val prefix   = labelType.map(lt => s"${lt.name.toLowerCase}_").getOrElse("")
+      val typeCond = labelType.map(lt => s"label_type = '${lt.name}' AND ").getOrElse("")
+      aiComparisons.map { case (name, cond) => s"$prefix$name" -> s"COUNT(CASE WHEN $typeCond$cond THEN 1 END)" }
+    }
+
     sql"""
       SELECT '#$launchDate' AS launch_date,
              #${avgRecentLabels.map(avg => s"'$avg'").getOrElse("NULL")} AS avg_timestamp_last_100_labels,
@@ -2219,91 +2279,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label_counts_and_severity.avg_age_when_labeled,
              label_counts_and_severity.stddev_label_timestamp,
              label_counts_and_severity.stddev_age_when_labeled,
-             label_counts_and_severity.n_ramp,
-             label_counts_and_severity.n_ramp_with_sev,
-             label_counts_and_severity.ramp_sev_mean,
-             label_counts_and_severity.ramp_sev_sd,
-             label_counts_and_severity.n_noramp,
-             label_counts_and_severity.n_noramp_with_sev,
-             label_counts_and_severity.noramp_sev_mean,
-             label_counts_and_severity.noramp_sev_sd,
-             label_counts_and_severity.n_obs,
-             label_counts_and_severity.n_obs_with_sev,
-             label_counts_and_severity.obs_sev_mean,
-             label_counts_and_severity.obs_sev_sd,
-             label_counts_and_severity.n_surf,
-             label_counts_and_severity.n_surf_with_sev,
-             label_counts_and_severity.surf_sev_mean,
-             label_counts_and_severity.surf_sev_sd,
-             label_counts_and_severity.n_nosidewalk,
-             NULL AS nosidewalk_with_sev,
-             NULL AS nosidewalk_sev_mean,
-             NULL AS nosidewalk_sev_sd,
-             label_counts_and_severity.n_crswlk,
-             label_counts_and_severity.n_crswlk_with_sev,
-             label_counts_and_severity.crswlk_sev_mean,
-             label_counts_and_severity.crswlk_sev_sd,
-             label_counts_and_severity.n_signal,
-             NULL AS signal_with_sev,
-             NULL AS signal_sev_mean,
-             NULL AS signal_sev_sd,
-             label_counts_and_severity.n_occlusion,
-             NULL AS occlusion_with_sev,
-             NULL AS occlusion_sev_mean,
-             NULL AS occlusion_sev_sd,
-             label_counts_and_severity.n_other,
-             label_counts_and_severity.n_other_with_sev,
-             label_counts_and_severity.other_sev_mean,
-             label_counts_and_severity.other_sev_sd,
+             #${topLevelCols("label_counts_and_severity", sevStatCols)},
              #$validationSelectCols,
-             ai_stats.ai_yes_mv_yes,
-             ai_stats.ai_yes_mv_no,
-             ai_stats.ai_no_mv_yes,
-             ai_stats.ai_no_mv_no,
-             ai_stats.ai_yes_admin_yes,
-             ai_stats.ai_yes_admin_no,
-             ai_stats.ai_no_admin_yes,
-             ai_stats.ai_no_admin_no,
-             ai_stats.ramp_ai_yes_mv_yes,
-             ai_stats.ramp_ai_yes_mv_no,
-             ai_stats.ramp_ai_no_mv_yes,
-             ai_stats.ramp_ai_no_mv_no,
-             ai_stats.ramp_ai_yes_admin_yes,
-             ai_stats.ramp_ai_yes_admin_no,
-             ai_stats.ramp_ai_no_admin_yes,
-             ai_stats.ramp_ai_no_admin_no,
-             ai_stats.noramp_ai_yes_mv_yes,
-             ai_stats.noramp_ai_yes_mv_no,
-             ai_stats.noramp_ai_no_mv_yes,
-             ai_stats.noramp_ai_no_mv_no,
-             ai_stats.noramp_ai_yes_admin_yes,
-             ai_stats.noramp_ai_yes_admin_no,
-             ai_stats.noramp_ai_no_admin_yes,
-             ai_stats.noramp_ai_no_admin_no,
-             ai_stats.obs_ai_yes_mv_yes,
-             ai_stats.obs_ai_yes_mv_no,
-             ai_stats.obs_ai_no_mv_yes,
-             ai_stats.obs_ai_no_mv_no,
-             ai_stats.obs_ai_yes_admin_yes,
-             ai_stats.obs_ai_yes_admin_no,
-             ai_stats.obs_ai_no_admin_yes,
-             ai_stats.obs_ai_no_admin_no,
-             ai_stats.surf_ai_yes_mv_yes,
-             ai_stats.surf_ai_yes_mv_no,
-             ai_stats.surf_ai_no_mv_yes,
-             ai_stats.surf_ai_no_mv_no,
-             ai_stats.surf_ai_yes_admin_yes,
-             ai_stats.surf_ai_yes_admin_no,
-             ai_stats.surf_ai_no_admin_yes,
-             ai_stats.surf_ai_no_admin_no,
-             ai_stats.crswlk_ai_yes_mv_yes,
-             ai_stats.crswlk_ai_yes_mv_no,
-             ai_stats.crswlk_ai_no_mv_yes,
-             ai_stats.crswlk_ai_no_mv_no,
-             ai_stats.crswlk_ai_yes_admin_yes,
-             ai_stats.crswlk_ai_yes_admin_no,
-             ai_stats.crswlk_ai_no_admin_yes,
-             ai_stats.crswlk_ai_no_admin_no
+             #${topLevelCols("ai_stats", aiStatCols)}
       FROM (
           SELECT SUM(ST_Length(geom::geography)) / 1000 AS km_audited
           FROM street_edge
@@ -2411,33 +2389,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                          END
                      ))
                  ) * INTERVAL '1 second' AS stddev_age_when_labeled,
-                 COUNT(CASE WHEN label.label_type = 'CurbRamp' THEN 1 END) AS n_ramp,
-                 COUNT(CASE WHEN label.label_type = 'CurbRamp' AND severity IS NOT NULL THEN 1 END) AS n_ramp_with_sev,
-                 avg(CASE WHEN label.label_type = 'CurbRamp' THEN severity END) AS ramp_sev_mean,
-                 stddev(CASE WHEN label.label_type = 'CurbRamp' THEN severity END) AS ramp_sev_sd,
-                 COUNT(CASE WHEN label.label_type = 'NoCurbRamp' THEN 1 END) AS n_noramp,
-                 COUNT(CASE WHEN label.label_type = 'NoCurbRamp' AND severity IS NOT NULL THEN 1 END) AS n_noramp_with_sev,
-                 avg(CASE WHEN label.label_type = 'NoCurbRamp' THEN severity END) AS noramp_sev_mean,
-                 stddev(CASE WHEN label.label_type = 'NoCurbRamp' THEN severity END) AS noramp_sev_sd,
-                 COUNT(CASE WHEN label.label_type = 'Obstacle' THEN 1 END) AS n_obs,
-                 COUNT(CASE WHEN label.label_type = 'Obstacle' AND severity IS NOT NULL THEN 1 END) AS n_obs_with_sev,
-                 avg(CASE WHEN label.label_type = 'Obstacle' THEN severity END) AS obs_sev_mean,
-                 stddev(CASE WHEN label.label_type = 'Obstacle' THEN severity END) AS obs_sev_sd,
-                 COUNT(CASE WHEN label.label_type = 'SurfaceProblem' THEN 1 END) AS n_surf,
-                 COUNT(CASE WHEN label.label_type = 'SurfaceProblem' AND severity IS NOT NULL THEN 1 END) AS n_surf_with_sev,
-                 avg(CASE WHEN label.label_type = 'SurfaceProblem' THEN severity END) AS surf_sev_mean,
-                 stddev(CASE WHEN label.label_type = 'SurfaceProblem' THEN severity END) AS surf_sev_sd,
-                 COUNT(CASE WHEN label.label_type = 'NoSidewalk' THEN 1 END) AS n_nosidewalk,
-                 COUNT(CASE WHEN label.label_type = 'Crosswalk' THEN 1 END) AS n_crswlk,
-                 COUNT(CASE WHEN label.label_type = 'Crosswalk' AND severity IS NOT NULL THEN 1 END) AS n_crswlk_with_sev,
-                 avg(CASE WHEN label.label_type = 'Crosswalk' THEN severity END) AS crswlk_sev_mean,
-                 stddev(CASE WHEN label.label_type = 'Crosswalk' THEN severity END) AS crswlk_sev_sd,
-                 COUNT(CASE WHEN label.label_type = 'Signal' THEN 1 END) AS n_signal,
-                 COUNT(CASE WHEN label.label_type = 'Occlusion' THEN 1 END) AS n_occlusion,
-                 COUNT(CASE WHEN label.label_type = 'Other' THEN 1 END) AS n_other,
-                 COUNT(CASE WHEN label.label_type = 'Other' AND severity IS NOT NULL THEN 1 END) AS n_other_with_sev,
-                 avg(CASE WHEN label.label_type = 'Other' THEN severity END) AS other_sev_mean,
-                 stddev(CASE WHEN label.label_type = 'Other' THEN severity END) AS other_sev_sd
+                 #${subqueryCols(sevStatCols)}
           FROM label
           INNER JOIN user_stat ON label.user_id = user_stat.user_id
           INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
@@ -2483,54 +2435,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               GROUP BY label.label_id, label.label_type::text
           ) AS label_verdicts
       ) AS val_counts, (
-          SELECT COUNT(CASE WHEN ai_mv = 1 AND human_mv = 1 THEN 1 END) AS ai_yes_mv_yes,
-                 COUNT(CASE WHEN ai_mv = 1 AND human_mv = 2 THEN 1 END) AS ai_yes_mv_no,
-                 COUNT(CASE WHEN ai_mv = 2 AND human_mv = 1 THEN 1 END) AS ai_no_mv_yes,
-                 COUNT(CASE WHEN ai_mv = 2 AND human_mv = 2 THEN 1 END) AS ai_no_mv_no,
-                 COUNT(CASE WHEN ai_mv = 1 AND admin_mv = 1 THEN 1 END) AS ai_yes_admin_yes,
-                 COUNT(CASE WHEN ai_mv = 1 AND admin_mv = 2 THEN 1 END) AS ai_yes_admin_no,
-                 COUNT(CASE WHEN ai_mv = 2 AND admin_mv = 1 THEN 1 END) AS ai_no_admin_yes,
-                 COUNT(CASE WHEN ai_mv = 2 AND admin_mv = 2 THEN 1 END) AS ai_no_admin_no,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND ai_mv = 1 AND human_mv = 1 THEN 1 END) AS ramp_ai_yes_mv_yes,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND ai_mv = 1 AND human_mv = 2 THEN 1 END) AS ramp_ai_yes_mv_no,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND ai_mv = 2 AND human_mv = 1 THEN 1 END) AS ramp_ai_no_mv_yes,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND ai_mv = 2 AND human_mv = 2 THEN 1 END) AS ramp_ai_no_mv_no,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND ai_mv = 1 AND admin_mv = 1 THEN 1 END) AS ramp_ai_yes_admin_yes,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND ai_mv = 1 AND admin_mv = 2 THEN 1 END) AS ramp_ai_yes_admin_no,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND ai_mv = 2 AND admin_mv = 1 THEN 1 END) AS ramp_ai_no_admin_yes,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND ai_mv = 2 AND admin_mv = 2 THEN 1 END) AS ramp_ai_no_admin_no,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND ai_mv = 1 AND human_mv = 1 THEN 1 END) AS noramp_ai_yes_mv_yes,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND ai_mv = 1 AND human_mv = 2 THEN 1 END) AS noramp_ai_yes_mv_no,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND ai_mv = 2 AND human_mv = 1 THEN 1 END) AS noramp_ai_no_mv_yes,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND ai_mv = 2 AND human_mv = 2 THEN 1 END) AS noramp_ai_no_mv_no,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND ai_mv = 1 AND admin_mv = 1 THEN 1 END) AS noramp_ai_yes_admin_yes,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND ai_mv = 1 AND admin_mv = 2 THEN 1 END) AS noramp_ai_yes_admin_no,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND ai_mv = 2 AND admin_mv = 1 THEN 1 END) AS noramp_ai_no_admin_yes,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND ai_mv = 2 AND admin_mv = 2 THEN 1 END) AS noramp_ai_no_admin_no,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND ai_mv = 1 AND human_mv = 1 THEN 1 END) AS obs_ai_yes_mv_yes,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND ai_mv = 1 AND human_mv = 2 THEN 1 END) AS obs_ai_yes_mv_no,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND ai_mv = 2 AND human_mv = 1 THEN 1 END) AS obs_ai_no_mv_yes,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND ai_mv = 2 AND human_mv = 2 THEN 1 END) AS obs_ai_no_mv_no,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND ai_mv = 1 AND admin_mv = 1 THEN 1 END) AS obs_ai_yes_admin_yes,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND ai_mv = 1 AND admin_mv = 2 THEN 1 END) AS obs_ai_yes_admin_no,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND ai_mv = 2 AND admin_mv = 1 THEN 1 END) AS obs_ai_no_admin_yes,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND ai_mv = 2 AND admin_mv = 2 THEN 1 END) AS obs_ai_no_admin_no,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND ai_mv = 1 AND human_mv = 1 THEN 1 END) AS surf_ai_yes_mv_yes,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND ai_mv = 1 AND human_mv = 2 THEN 1 END) AS surf_ai_yes_mv_no,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND ai_mv = 2 AND human_mv = 1 THEN 1 END) AS surf_ai_no_mv_yes,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND ai_mv = 2 AND human_mv = 2 THEN 1 END) AS surf_ai_no_mv_no,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND ai_mv = 1 AND admin_mv = 1 THEN 1 END) AS surf_ai_yes_admin_yes,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND ai_mv = 1 AND admin_mv = 2 THEN 1 END) AS surf_ai_yes_admin_no,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND ai_mv = 2 AND admin_mv = 1 THEN 1 END) AS surf_ai_no_admin_yes,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND ai_mv = 2 AND admin_mv = 2 THEN 1 END) AS surf_ai_no_admin_no,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 1 AND human_mv = 1 THEN 1 END) AS crswlk_ai_yes_mv_yes,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 1 AND human_mv = 2 THEN 1 END) AS crswlk_ai_yes_mv_no,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 2 AND human_mv = 1 THEN 1 END) AS crswlk_ai_no_mv_yes,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 2 AND human_mv = 2 THEN 1 END) AS crswlk_ai_no_mv_no,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 1 AND admin_mv = 1 THEN 1 END) AS crswlk_ai_yes_admin_yes,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 1 AND admin_mv = 2 THEN 1 END) AS crswlk_ai_yes_admin_no,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 2 AND admin_mv = 1 THEN 1 END) AS crswlk_ai_no_admin_yes,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 2 AND admin_mv = 2 THEN 1 END) AS crswlk_ai_no_admin_no
+          SELECT #${subqueryCols(aiStatCols)}
           FROM (
               SELECT label.label_id, label.label_type::text,
                      -- Note that we're doing majority vote with AI for simplicity. Should only be one vote from AI.
@@ -2699,6 +2604,36 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lp <- labelPoints if _l.labelId === _lp.labelId
       _pd <- panoData if _l.panoId === _pd.panoId
     } yield (_l.labelId, _l.labelType, _l.panoId, _lp.panoX, _lp.panoY, _pd.width, _pd.height)).result
+  }
+
+  /**
+   * Every label with no `label_crop` row, with what the crop job's reconcile pass needs to classify a crop it finds on
+   * disk (#2660). Streamed like [[getCropCandidates]] — the whole label table on the first run — and on the same
+   * roster, so the two passes agree on which labels have crops at all.
+   */
+  def getLabelsWithoutCropProvenance: StreamingDBIO[Seq[CropProvenanceTuple], CropProvenanceTuple] = {
+    (for {
+      ((_l, _lc), _ur) <- labelsWithExcludedUsers
+        .joinLeft(labelCrops)
+        .on(_.labelId === _.labelId)
+        .joinLeft(userRoles)
+        .on(_._1.userId === _.userId)
+      if _lc.isEmpty
+      _lp <- labelPoints if _l.labelId === _lp.labelId
+      _pd <- panoData if _l.panoId === _pd.panoId
+    } yield (
+      _l.labelId,
+      _l.labelType,
+      _l.timeCreated,
+      _l.panoId,
+      _lp.panoX,
+      _lp.panoY,
+      _lp.canvasX,
+      _lp.canvasY,
+      _pd.width,
+      _pd.height,
+      _ur.map(_.role === Role.Ai).getOrElse(false)
+    )).result
   }
 
   /**

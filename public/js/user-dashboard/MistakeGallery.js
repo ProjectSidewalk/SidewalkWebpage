@@ -28,9 +28,6 @@ class MistakeGallery {
     // Per-label response state shared between a card and the popup so they stay in sync in-session.
     this.responses = new Map(); // label_id -> { agrees: boolean|null, note: string }
     this.popupPanel = null; // the vote/note panel injected into the popup dialog
-    // Explore canvas dimensions (fallback if util.EXPLORE_CANVAS_* isn't loaded on this page).
-    this.canvasW = (window.util && util.EXPLORE_CANVAS_WIDTH) || 720;
-    this.canvasH = (window.util && util.EXPLORE_CANVAS_HEIGHT) || 480;
   }
 
   /** Returns (creating if needed) the mutable response state for a label. */
@@ -100,21 +97,24 @@ class MistakeGallery {
     const card = document.createElement('figure');
     card.className = 'ud-card';
 
-    // Mark the label on the pano at its real position (canvas_x/y over the 720x480 Explore canvas), the same way
-    // the Gallery does — the label is NOT necessarily centered. The image is a 3:2 crop of the pano so the
-    // percentages line up. Falls back to the icon centered on the gradient if there's no pano image.
     const img = document.createElement('div');
     img.className = 'ud-card-img';
-    if (m.image_url) img.style.backgroundImage = `url("${m.image_url}")`;
-    if (iconPath) {
-      const canvasW = (typeof util !== 'undefined' && util.EXPLORE_CANVAS_WIDTH) || 720;
-      const canvasH = (typeof util !== 'undefined' && util.EXPLORE_CANVAS_HEIGHT) || 480;
-      const marker = document.createElement('img');
+    const marker = iconPath ? document.createElement('img') : null;
+    // Filled in further down, once the image is on the card. The photo's error handler runs on a later event, so the
+    // overlays are always built by the time it fires.
+    let credit = null;
+    // The crop's recorded position describes the crop only, so losing it has to re-place the marker.
+    const photo = MistakeGallery.#photo(m, (source) => {
+      if (marker) MistakeGallery.#positionMarker(marker, m, source);
+      // The backup image is the same panorama, so it needs the same credit. Only losing every image takes it down.
+      if (!source) credit?.hide();
+    });
+    if (photo) img.appendChild(photo);
+    if (marker) {
       marker.className = 'ud-card-label-marker';
       marker.src = iconPath;
       marker.alt = '';
-      marker.style.left = typeof m.canvas_x === 'number' ? `${(100 * m.canvas_x) / canvasW}%` : '50%';
-      marker.style.top = typeof m.canvas_y === 'number' ? `${(100 * m.canvas_y) / canvasH}%` : '50%';
+      MistakeGallery.#positionMarker(marker, m, photo?.dataset.udSource ?? null);
       img.appendChild(marker);
     }
     const verdict = document.createElement('span');
@@ -122,25 +122,37 @@ class MistakeGallery {
     verdict.textContent = i18next.t('dashboard:mistake-cards.marked-incorrect');
     img.appendChild(verdict);
 
-    // Clicking the image opens the shared interactive label popup (pano + detail), when available.
+    // A real button covering the image opens the shared interactive label popup (pano + detail), when available. It
+    // has to be its own element rather than a role on the wrapper: the licence link in the credit below sits inside
+    // that wrapper, and a link inside a button is unreachable for screen readers and fires both on a click.
     if (this.labelPopup) {
-      img.classList.add('ud-card-img-clickable');
-      img.setAttribute('role', 'button');
-      img.setAttribute('tabindex', '0');
-      img.title = i18next.t('dashboard:mistake-cards.open-title');
-      img.setAttribute('aria-label', i18next.t('dashboard:mistake-cards.open-title'));
-      const open = () => this.#openPopup(m);
-      img.addEventListener('click', open);
-      img.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          open();
-        }
-      });
+      const openButton = document.createElement('button');
+      openButton.type = 'button';
+      openButton.className = 'ud-card-open';
+      openButton.title = i18next.t('dashboard:mistake-cards.open-title');
+      openButton.setAttribute('aria-label', i18next.t('dashboard:mistake-cards.open-title'));
+      openButton.addEventListener('click', () => this.#openPopup(m));
       const hint = document.createElement('span');
       hint.className = 'ud-card-expand-hint';
       hint.textContent = i18next.t('dashboard:mistake-cards.open-hint');
-      img.appendChild(hint);
+      openButton.appendChild(hint);
+      img.appendChild(openButton);
+    }
+
+    // We show our own copy of the image, so we have to credit whoever it came from (#5254). Added last so that the
+    // marker, the badges and the open button can't paint over it, and so the licence link lands outside that button.
+    // Nothing to credit when no image loaded: the card is then just a plain gradient.
+    if (photo) {
+      const logo = createPanoViewerLogo(img, m.pano_source);
+      const attribution = createPanoAttribution(img, { compact: true });
+      logo.showSourceLogo();
+      attribution.show(m.attribution);
+      credit = {
+        hide: () => {
+          logo.hide();
+          attribution.hide();
+        },
+      };
     }
     card.appendChild(img);
 
@@ -362,6 +374,51 @@ class MistakeGallery {
       console.error('Failed to save note', e);
       sec.querySelectorAll('button, textarea, a').forEach((el) => el.removeAttribute('disabled'));
     }
+  }
+
+  /**
+     * Places the label-type icon over whichever image the card ended up showing.
+     *
+     * @param {HTMLImageElement} marker - The marker element.
+     * @param {Object} m - The label record.
+     * @param {?string} source - Which source is showing: 'crop', 'api', or null for the bare gradient.
+     */
+  static #positionMarker(marker, m, source) {
+    const { x, y } = util.misc.labelMarkerFraction(source, m.crop_marker, m.canvas_x, m.canvas_y);
+    marker.style.left = `${100 * x}%`;
+    marker.style.top = `${100 * y}%`;
+  }
+
+  /**
+     * The card's image, preferring the label's saved crop (#4478): it's what the labeler saw, and it comes off our own
+     * disk, where the Static API image is billed per request. A crop's URL expires, so a failure retries the API image,
+     * and a second failure removes the photo. Alt is empty: the card's title names the type below it.
+     *
+     * @param {Object} m - The label record.
+     * @param {function(?string): void} onSourceChange - Called with the source now on screen ('api', or null once
+     *     every source has failed), since the marker's position depends on which image is showing.
+     * @returns {?HTMLImageElement} The image, or null when the label has no source at all.
+     */
+  static #photo(m, onSourceChange) {
+    if (!m.crop_url && !m.image_url) return null;
+    const photo = document.createElement('img');
+    photo.className = 'ud-card-photo';
+    photo.alt = '';
+    photo.loading = 'lazy';
+    photo.draggable = false; // The wrapper is the popup's click target; a native image drag would swallow the press.
+    photo.addEventListener('error', () => {
+      if (photo.dataset.udSource === 'crop' && m.image_url) {
+        photo.dataset.udSource = 'api';
+        photo.src = m.image_url;
+      } else {
+        photo.remove();
+        delete photo.dataset.udSource;
+      }
+      onSourceChange(photo.dataset.udSource ?? null);
+    });
+    photo.dataset.udSource = m.crop_url ? 'crop' : 'api';
+    photo.src = m.crop_url || m.image_url;
+    return photo;
   }
 
   /**

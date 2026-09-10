@@ -299,6 +299,13 @@ with respect to the image holder. This allows the validation menu to be placed o
 
 .gallery-marker-wrapper {
   position: absolute;
+
+  /* Where the label is in the image, as fractions of its width and height; Card.js sets them per image. */
+  --gallery-marker-x: 0.5;
+  --gallery-marker-y: 0.5;
+
+  left: calc(var(--gallery-marker-x) * 100% - var(--gallery-marker-size) / 2);
+  top: calc(var(--gallery-marker-y) * 100% - var(--gallery-marker-size) / 2);
   width: var(--gallery-marker-size);
   height: var(--gallery-marker-size);
   pointer-events: none;

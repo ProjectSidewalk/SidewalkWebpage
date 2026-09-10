@@ -117,12 +117,15 @@ Make sure Docker is running (you'll see the whale icon in your tray; you can set
 4. **Import users and data** from a *second* terminal on your host (outside the web-container shell):
 
    ```bash
-   make import-users                   # load sidewalk_users-dump (the login schema)
+   make import-users replace=1         # load sidewalk_users-dump (the login schema)
    make import-dump db=<database_user> # load <database_user>-dump; db= defaults to "sidewalk"
    ```
 
-   Both restore from a binary dump and show a live elapsed-time clock — the users dump is ~900 MB, so it runs for a
-   couple of minutes (the restore is parallelized to keep that short); a city dump varies with its size. Read the
+   Both restore from a binary dump and show a live elapsed-time clock — the users dump is ~1 GB, so it runs for a
+   couple of minutes (the restore is parallelized to keep that short); a city dump varies with its size.
+   `replace=1` is for this first import only: a fresh DB has no accounts of its own to keep, and merging all ~6M
+   accounts one by one takes about 20 minutes. Later imports merge (see
+   [Switching / adding another city](#switching--adding-another-city)). Read the
    output carefully — if it errors, **don't** continue; check [Troubleshooting](#troubleshooting) and ask. (A
    `schema "public" already exists` notice is the one error you can safely ignore.) For what each script does and the
    full set of DB lifecycle/maintenance targets, see [`db/scripts/README.md`](../db/scripts/README.md).
@@ -172,8 +175,12 @@ Other handy targets:
 Each city is a separate database. To switch:
 
 1. Put the new dump in `db/`, renamed to `<database_user>-dump` (see the [City IDs table](#city-ids)).
-2. If that dump is newer than your existing ones, also re-import users with a fresh `sidewalk_users-dump`
-   (ask a maintainer if unsure — the creation date is in the original filename).
+2. If that dump is newer than your users dump, get a users dump at least as new, rename it `sidewalk_users-dump`,
+   and run `make import-users` (ask a maintainer if unsure — the creation date is in the original filename). It
+   merges: accounts you're missing are added, and the ones you have, including local test accounts your other cities
+   point at, are kept, so the cities you already imported keep working. `make import-users replace=1` wipes the login
+   schema and restores the dump from scratch instead. That also drops the parts of every city that depend on it
+   (foreign keys, a survey column, a view), so after it, re-import every other city you have.
 3. `make import-dump db=<database_user>` (from the host, outside the Docker shell).
 4. Update **`DATABASE_USER`** and **`SIDEWALK_CITY_ID`** in `docker-compose.override.yml` to match.
 5. `make dev` again.
@@ -291,15 +298,19 @@ make dev
 
 ### Checking that backend changes compile
 
-The quickest pass/fail on a Scala change is a compile. The sbt **thin client** uses its own server, so it won't
-collide with a running `sbt ~ run`:
+The quickest pass/fail on a Scala change is a compile. The sbt **thin client** hands the command to a background
+sbt server, so it won't collide with a running `sbt ~ run` over build locks:
 
 ```bash
-docker exec projectsidewalk-web bash -lc "cd /home && sbt --client compile"
+make compile
 ```
 
 The first call after a container boot starts the compile server (~30s); later calls are near-instant. `build.sbt`
 sets `-Xfatal-warnings`, so a `[success]` is also warning-clean.
+
+Use `--jvm-client`, not `--client`: the native client (`sbtn`) needs a newer glibc than the container's focal base,
+so it dies on startup, though `sbt --client --version` still prints happily (#5268). A server belongs to one project
+directory, so each worktree gets its own; `sbt shutdownall` stops every one of them, the running `~ run` included.
 
 ### Running the backend tests
 
@@ -307,8 +318,8 @@ ScalaTest specs live under `test/` — mostly functional specs for the public AP
 specs. They boot the real app against Postgres+PostGIS, so the `db` container has to be up:
 
 ```bash
-docker exec projectsidewalk-web bash -lc "cd /home && sbt --client test"
-docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly controllers.api.PublicApiSpec\""
+make test-scala
+make test-scala only=controllers.api.PublicApiSpec
 ```
 
 The `backend-tests` CI job is a required check and runs **all of `test/`** (`sbt coverage test`, since #5042), so a
@@ -320,9 +331,8 @@ CI's seeded schema (#5115) is expected to cancel nothing, so a CANCELED line the
 something.
 
 There are also Python unit tests for the `scripts/` utilities (`make test-python`) and a jsdom Jest suite for
-frontend modules (`docker exec projectsidewalk-web bash -lc "cd /home && npm run test:js"` — Jest's
-`node_modules` are in the container, not on your host). [`docs/testing-and-ci.md`](testing-and-ci.md) covers
-what each layer is for.
+frontend modules (`make test-js` — Jest's `node_modules` are in the container, not on your host).
+[`docs/testing-and-ci.md`](testing-and-ci.md) covers what each layer is for.
 
 ### Checking that pages still load in a browser
 
@@ -333,7 +343,7 @@ any uncaught page error or console error. With your dev app running, in a second
 ```bash
 make test-e2e                               # the whole suite
 make test-e2e args="-g labelMap --no-deps"  # one page
-make test-e2e wt=<worktree-name>            # a worktree's specs
+make test-e2e wt=<worktree-name>            # a worktree's specs, from anywhere
 ```
 
 Nothing to install: the runner is a container, so it behaves the same on macOS, Linux, and WSL — including Apple
@@ -353,8 +363,8 @@ make qa-worktree wt=<worktree-name>
 A worktree needs more setup than the main repo (its `node_modules` and built asset bundles aren't checked in, and
 sbt's caches and config have to be pointed at the right places), so this target handles all of it: it links the main
 repo's `node_modules`, builds that branch's JS/CSS bundles, starts a backgrounded `grunt watch` so later edits
-rebuild automatically, frees `:9000`, kills any stray `sbt --client` server or hung `sbtn` task sharing the worktree's
-`target/` (either deadlocks `~ run` on compile locks), and launches `sbt ~ run` against the worktree's own config
+rebuild automatically, frees `:9000`, kills any stray sbt server or hung sbt task sharing the worktree's `target/`
+(either deadlocks `~ run` on compile locks), and launches `sbt ~ run` against the worktree's own config
 while reusing the main repo's warm sbt caches. The first request triggers the dev compile; `Ctrl+C` stops it and
 reaps the grunt watch. To tear a session down out-of-band, run `make qa-worktree-stop wt=<name>` (add `clean=1` to
 also drop the `node_modules` symlink). It behaves the same on macOS, Linux, and WSL because the work runs inside the
@@ -365,6 +375,21 @@ checkout's), so the branch being QA'd supplies its own tooling. `make` itself st
 Makefile, so when that checkout sits on a branch without the target, make reports `No rule to make target`; either
 check out a branch that has it or run the script directly:
 `docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/qa-worktree.sh <name>`.
+
+**Every other container target checks the checkout you run it from.** The container mounts the main checkout at
+`/home` and so sees the worktrees inside it: `make lint`, `make test-js`, `make compile`, `make test-scala`,
+`make scalafmt`, `make test-python` and the rest, run from a worktree, check that worktree, and `wt=<name>` points them
+at one from anywhere. `make lint` opens by naming the tree it checks. Make stops with an error for a checkout the
+container can't see (one outside the main checkout). This takes the worktree's own Makefile, so a branch older than
+#5291 needs `develop` merged in first. The exceptions:
+
+- `make test-e2e` runs the worktree's specs against whatever app is on `:9000`, and warns when that's another
+  checkout's. Start the worktree's app with `make qa-worktree wt=<name>` first.
+- `make build-city-data` and `make check-imagery` always run in the main checkout, whose `db/` the db container reads.
+- A hand-typed `docker exec … "cd /home && …"` always runs in the main checkout.
+
+The sbt server that `make compile`, `make test-scala`, or `make scalafmt` starts for a worktree stays up until
+`make qa-worktree-stop wt=<name>` or `make worktree-remove wt=<name>` stops it.
 
 When you're done with a worktree for good, remove it with:
 

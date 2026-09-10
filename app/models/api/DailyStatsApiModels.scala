@@ -4,7 +4,7 @@
  */
 package models.api
 
-import play.api.libs.json.{Json, JsonConfiguration, JsonNaming, OWrites}
+import play.api.libs.json.OWrites
 
 import java.time.LocalDate
 
@@ -40,15 +40,23 @@ case class DailyStatRecord(
     aiValidationsUnsure: Int
 )
 
-object DailyStatRecord {
-  // snake_case JSON output per the v3 API convention (#3871).
-  implicit private val config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
-  implicit val writes: OWrites[DailyStatRecord]  = Json.writes[DailyStatRecord]
+object DailyStatRecord extends ApiFields[DailyStatRecord] {
+  import ApiFields.field
 
-  val csvHeader: String =
-    "date,label_type,human_labels,ai_labels," +
-      "human_validations_agree,human_validations_disagree,human_validations_unsure," +
-      "ai_validations_agree,ai_validations_disagree,ai_validations_unsure\n"
+  override val fields: Seq[ApiField[DailyStatRecord]] = Seq(
+    field("date")(_.date.toString),
+    field("label_type")(_.labelType),
+    field("human_labels")(_.humanLabels),
+    field("ai_labels")(_.aiLabels),
+    field("human_validations_agree")(_.humanValidationsAgree),
+    field("human_validations_disagree")(_.humanValidationsDisagree),
+    field("human_validations_unsure")(_.humanValidationsUnsure),
+    field("ai_validations_agree")(_.aiValidationsAgree),
+    field("ai_validations_disagree")(_.aiValidationsDisagree),
+    field("ai_validations_unsure")(_.aiValidationsUnsure)
+  )
+
+  implicit val writes: OWrites[DailyStatRecord] = (record: DailyStatRecord) => toJson(record)
 
   /**
    * Merges label-stat and validation-stat rows (each keyed by date + label_type) into one unified

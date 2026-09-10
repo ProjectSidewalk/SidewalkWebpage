@@ -16,6 +16,7 @@ class ActorModule extends AbstractModule with PekkoGuiceSupport {
     bindActor[ClusteringActor]("clustering-actor")
     bindActor[OsmWayRefreshActor]("osm-way-refresh-actor")
     bindActor[CropGenerationActor]("crop-generation-actor")
+    bindActor[SidewalkPresenceActor]("sidewalk-presence-actor")
     bind(classOf[ActorInitializer]).asEagerSingleton()
   }
 }

@@ -2,18 +2,24 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
-import models.api.{AccessScoreConfigForApi, ApiError, RegionAccessScoreForApi, StreetAccessScoreForApi}
+import models.api.{
+  AccessScoreConfigForApi,
+  ApiError,
+  IntersectionAccessScoreForApi,
+  RegionAccessScoreForApi,
+  StreetAccessScoreForApi
+}
 import models.utils.{LatLngBBox, SpatialQueryType}
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
-import service.{AccessScoreService, ApiService, ConfigService}
+import service.{AccessScoreService, AccessScores, ApiService, ConfigService}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * AccessScoreController handles API endpoints related to access scores for streets and neighborhoods.
+ * AccessScoreController handles API endpoints related to access scores for streets, intersections, and neighborhoods.
  * It provides functionality to compute and return access scores in various formats such as CSV, shapefile, or GeoJSON.
  *
  * @constructor Creates an instance of AccessScoreController with necessary dependencies.
@@ -57,11 +63,7 @@ class AccessScoreApiController @Inject() (
     resolveAccessScoreArea(bbox, regionId, regionName).flatMap {
       case Left(error)                           => Future.successful(badRequest(error))
       case Right((resolvedBbox, regionFilterId)) =>
-        // An unfiltered request is the whole city, the one computation worth caching; a filter keeps the live path.
-        val streetScores: Future[Seq[StreetAccessScoreForApi]] =
-          if (isFullCity(bbox, regionId, regionName)) accessScoreService.getFullCityStreetScores(DEFAULT_BATCH_SIZE)
-          else accessScoreService.computeStreetScoresV3(SpatialQueryType.Street, resolvedBbox, DEFAULT_BATCH_SIZE)
-        streetScores.flatMap { allStreets =>
+        streetScores(bbox, regionId, regionName, resolvedBbox).flatMap { allStreets =>
           // A region's bbox can overlap neighbors, so restrict to the requested region when one was given.
           val streets: Seq[StreetAccessScoreForApi] =
             regionFilterId.fold(allStreets)(id => allStreets.filter(_.regionId == id))
@@ -83,6 +85,69 @@ class AccessScoreApiController @Inject() (
               outputGeopackage(streetStream, baseFileName, shapefileCreator.createStreetAccessScoreGeopackage, inline)
             case _ =>
               outputGeoJSON(streetStream, inline, baseFileName + ".geojson")
+          }
+        }
+    }
+  }
+
+  /**
+   * AccessScore for intersections (v3, #5095).
+   *
+   * Returns each intersection at the end of a street in the queried area, scored from the corner features (curb ramps,
+   * missing curb ramps, crosswalks, signals) pooled on it across every street meeting there. Supports the standard v3
+   * geo-filters (bbox / regionId / regionName) and output formats (geojson, csv, shapefile, geopackage).
+   *
+   * @param bbox       Optional bounding box "minLng,minLat,maxLng,maxLat"; intersections inside it are returned.
+   * @param regionId   Optional region id (resolved to the region's bbox; intersections are filtered back to it).
+   * @param regionName Optional region name (used only when regionId is absent).
+   * @param filetype   Output format: "csv", "shapefile", "geopackage", or GeoJSON by default.
+   * @param inline     Whether to display the response inline rather than as an attachment.
+   */
+  def getAccessScoreIntersections(
+      bbox: Option[String],
+      regionId: Option[Int],
+      regionName: Option[String],
+      filetype: Option[String],
+      inline: Option[Boolean]
+  ) = silhouette.UserAwareAction.async { implicit request =>
+    resolveAccessScoreArea(bbox, regionId, regionName).flatMap {
+      case Left(error)                           => Future.successful(badRequest(error))
+      case Right((resolvedBbox, regionFilterId)) =>
+        accessScores(bbox, regionId, regionName, resolvedBbox).flatMap { scores =>
+          // The computation scores the ends of every selected street, which can lie past the bbox or in a neighboring
+          // region; trim back to what was asked for.
+          val intersections: Seq[IntersectionAccessScoreForApi] = (bbox, regionFilterId) match {
+            case (Some(_), _) =>
+              scores.intersections.filter { i =>
+                i.geometry.getY >= resolvedBbox.minLat && i.geometry.getY <= resolvedBbox.maxLat &&
+                i.geometry.getX >= resolvedBbox.minLng && i.geometry.getX <= resolvedBbox.maxLng
+              }
+            case (None, Some(id)) => scores.intersections.filter(_.regionId.contains(id))
+            case _                => scores.intersections
+          }
+          val baseFileName: String                             = timestampedFilename("accessScoreIntersections")
+          val stream: Source[IntersectionAccessScoreForApi, _] = Source.fromIterator(() => intersections.iterator)
+          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+
+          filetype match {
+            case Some("csv") =>
+              outputCSV(stream, IntersectionAccessScoreForApi.csvHeader, inline, baseFileName + ".csv")
+            case Some("shapefile") =>
+              outputShapefile(
+                stream,
+                baseFileName,
+                shapefileCreator.createIntersectionAccessScoreShapefile,
+                shapefileCreator
+              )
+            case Some("geopackage") =>
+              outputGeopackage(
+                stream,
+                baseFileName,
+                shapefileCreator.createIntersectionAccessScoreGeopackage,
+                inline
+              )
+            case _ =>
+              outputGeoJSON(stream, inline, baseFileName + ".geojson")
           }
         }
     }
@@ -157,6 +222,26 @@ class AccessScoreApiController @Inject() (
   /** Whether a request carries no geo-filter at all, i.e. resolves to the city's configured bounds. */
   private def isFullCity(bbox: Option[String], regionId: Option[Int], regionName: Option[String]): Boolean =
     bbox.isEmpty && regionId.isEmpty && regionName.isEmpty
+
+  /**
+   * The street and intersection scores a request needs. An unfiltered request is the whole city, the one computation
+   * worth caching; a filter keeps the live path.
+   */
+  private def accessScores(
+      bbox: Option[String],
+      regionId: Option[Int],
+      regionName: Option[String],
+      resolvedBbox: LatLngBBox
+  ): Future[AccessScores] =
+    if (isFullCity(bbox, regionId, regionName)) accessScoreService.getFullCityScores(DEFAULT_BATCH_SIZE)
+    else accessScoreService.computeAccessScoresV3(SpatialQueryType.Street, resolvedBbox, DEFAULT_BATCH_SIZE)
+
+  private def streetScores(
+      bbox: Option[String],
+      regionId: Option[Int],
+      regionName: Option[String],
+      resolvedBbox: LatLngBBox
+  ): Future[Seq[StreetAccessScoreForApi]] = accessScores(bbox, regionId, regionName, resolvedBbox).map(_.streets)
 
   /**
    * Resolves the v3 geo-filters to a single bounding box to score within, plus the region id to post-filter results by.

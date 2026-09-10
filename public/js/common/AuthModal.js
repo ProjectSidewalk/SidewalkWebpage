@@ -1,20 +1,23 @@
 /**
- * Sign-in / sign-up behavior (#4375), shared by the navbar <dialog> and the full-page /signIn·/signUp fallback:
- * show-password toggles, live password/username validation, and async submits with inline errors.
+ * Sign-in / sign-up behavior (#4375), shared by the navbar <dialog>, the full-page /signIn·/signUp fallback, and the
+ * reset-password page: show-password toggles, live password/username validation, and async submits with inline errors.
  *
  * Validation rules are NOT declared here — the Twirl template injects them from the backend's PasswordPolicy /
- * UsernamePolicy as data-rule-regex attributes (CLAUDE.md: backend is the source of truth), and this file just
- * compiles and applies them. The `AuthModal` class adds the dialog-only concerns (open/close, panel switching,
- * trigger buttons) and is exposed as `window.psAuthModal` with `.open('signIn'|'signUp')`.
+ * UsernamePolicy as data-* attributes; this file just compiles and applies them. The `AuthModal` class adds the
+ * dialog-only concerns and is exposed as `window.psAuthModal` with `.open('signIn'|'signUp')`.
  */
 
-const AU_ALERT_ICON = `
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-         aria-hidden="true">
-      <circle cx="12" cy="12" r="10"></circle>
-      <line x1="12" y1="8" x2="12" y2="12"></line>
-      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-    </svg>`;
+/**
+ * The `.au-icon` span the auth stylesheet masks its glyph onto; the context class picks the shape and tint.
+ *
+ * @returns {HTMLSpanElement} A decorative icon span.
+ */
+const auIcon = () => {
+  const icon = document.createElement('span');
+  icon.className = 'au-icon ps-mask-icon';
+  icon.setAttribute('aria-hidden', 'true');
+  return icon;
+};
 
 /**
  * Wires one show/hide-password toggle: flips the input type and swaps the icon + aria state.
@@ -34,24 +37,115 @@ function wireEyeToggle(btn) {
   });
 }
 
+/** Long enough that typing a password straight through costs one request rather than one per character. */
+const AU_BREACH_DEBOUNCE_MS = 500;
+
+/** A padded range response runs to ~80KB, so the cache below is capped rather than left to grow with typing. */
+const AU_BREACH_RANGE_CACHE_MAX = 8;
+
 /**
- * Wires the live sign-up feedback: the password-rules checklist, the strength slabs, the confirm-match indicator,
- * and the username-rule indicator — all driven by backend-injected data-rule-regex attributes. No-ops when the
- * sign-up fields aren't on the page (e.g. the sign-in-only surfaces).
+ * In-flight and settled range requests, keyed by the 5-character hash prefix that fetched them — both already
+ * public under k-anonymity. Nothing password-derived may live here: an unsalted SHA-1 of a human-chosen password
+ * is the password to anyone with a wordlist, and a top-level `const` in a classic script is readable by name from
+ * every other script on the page. Promises rather than text, so two lookups sharing a prefix share one request.
  */
-function wireLiveValidation() {
-  const pw = document.getElementById('sign-up-password');
-  const pw2 = document.getElementById('sign-up-password-confirm');
-  const username = document.getElementById('sign-up-username');
+const auBreachRanges = new Map();
+
+/**
+ * Fetches one k-anonymity range, reusing an in-flight or recent request for the same prefix.
+ *
+ * @param {string} prefix - The first five hex characters of a SHA-1.
+ * @param {string} rangeUrl - The range endpoint, from PasswordPolicy.
+ * @returns {Promise<string>} The response body, or an empty string if the request failed.
+ */
+function fetchBreachRange(prefix, rangeUrl) {
+  const cached = auBreachRanges.get(prefix);
+  if (cached) return cached;
+  const pending = fetch(rangeUrl + prefix, { headers: { 'Add-Padding': 'true' } })
+    .then((res) => (res.ok ? res.text() : Promise.reject(new Error(String(res.status)))));
+  // A failure is dropped rather than cached: only a real answer is worth keeping.
+  pending.catch(() => auBreachRanges.delete(prefix));
+  if (auBreachRanges.size >= AU_BREACH_RANGE_CACHE_MAX) {
+    auBreachRanges.delete(auBreachRanges.keys().next().value);
+  }
+  auBreachRanges.set(prefix, pending);
+  return pending;
+}
+
+/**
+ * Asks Have I Been Pwned whether a password is in its breach corpus. Only the first five hex characters of the
+ * SHA-1 are sent, and `Add-Padding` keeps the response length from hinting at how many hashes share that prefix;
+ * the request still carries the user's IP and this instance's Origin, as any cross-origin call does.
+ *
+ * @param {string} password - The candidate password.
+ * @param {string} rangeUrl - The range endpoint, from PasswordPolicy.
+ * @returns {Promise<boolean>} True only if the password was positively found in the corpus.
+ */
+async function isBreachedPassword(password, rangeUrl) {
+  try {
+    const digest = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(password));
+    const hash = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+    const range = await fetchBreachRange(hash.slice(0, 5), rangeUrl);
+    const suffix = hash.slice(5);
+    // Padding entries are real-looking suffixes with a count of 0, so only a positive count is a hit.
+    return range.split('\n').some((line) => {
+      const [lineSuffix, count] = line.trim().split(':');
+      return lineSuffix === suffix && Number(count) > 0;
+    });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Wires the live feedback for one new-password pair, from the group's backend-injected data-* attributes.
+ *
+ * @param {HTMLElement} group - An .au-pw-group rendered by common/authPasswordFields.scala.html.
+ */
+function wirePasswordGroup(group) {
+  const pw = group.querySelector('.au-pw');
+  const pw2 = group.querySelector('.au-pw-confirm');
   if (!pw) return;
 
-  const rules = [...document.querySelectorAll('#sign-up-pw-rules li[data-rule-regex]')]
+  const rules = [...group.querySelectorAll('.au-checklist li[data-rule-regex]')]
     .map((li) => ({ li, regex: new RegExp(li.dataset.ruleRegex) }));
-  const slabs = [...document.querySelectorAll('#sign-up-pw-strength span')];
-  const strengthWord = document.getElementById('sign-up-pw-strength-word');
-  const match = document.getElementById('sign-up-pw-match');
-  const matchText = document.getElementById('sign-up-pw-match-text');
+  const slabs = [...group.querySelectorAll('.au-pw-slabs span')];
+  const strengthWord = group.querySelector('.au-pw-strength-word');
+  const match = group.querySelector('.au-pw-match');
+  const matchText = group.querySelector('.au-match-text');
+  const breachUrl = group.dataset.breachUrl;
+  const breachMessage = group.dataset.breachWarning;
+  let breachTimer;
+  let breachWarning = null;
+  /**
+   * Verdicts for values this field has already judged, so backspacing into one does not flash a full-strength
+   * meter for the debounce's length before the warning comes back. Closure-scoped and never exported: the values
+   * are the ones already sitting in `pw.value`, so this reaches no further than the input element itself.
+   */
+  const verdicts = new Map();
 
+  /**
+   * Inserts and drops the warning node rather than hiding it: a hidden live region is not in the accessibility
+   * tree, so revealing it announces nothing, and one left in the markup would be read as part of the field's
+   * description before there is anything to say (docs/accessibility.md → "Announcing what was injected").
+   *
+   * @param {boolean} show - Whether the current password is known-breached.
+   */
+  const renderBreachWarning = (show) => {
+    if (show === !!breachWarning) return;
+    if (!show) {
+      breachWarning.remove();
+      breachWarning = null;
+      return;
+    }
+    breachWarning = document.createElement('p');
+    breachWarning.className = 'au-warning';
+    breachWarning.setAttribute('role', 'status');
+    breachWarning.append(auIcon(), ` ${breachMessage}`);
+    (group.querySelector('.au-strength') || pw).insertAdjacentElement('afterend', breachWarning);
+  };
+
+  /** @returns {number} How many composition rules the current password meets. */
   const update = () => {
     let met = 0;
     rules.forEach(({ li, regex }) => {
@@ -59,20 +153,55 @@ function wireLiveValidation() {
       li.classList.toggle('met', ok);
       if (ok) met++;
     });
-    slabs.forEach((slab, i) => slab.classList.toggle('paved', i < met));
+    // A password in a breach corpus is weak however many composition rules it passes, so the meter says so too.
+    const breached = verdicts.get(pw.value) === true;
+    const shown = breached ? Math.min(met, 1) : met;
+    renderBreachWarning(breached);
+    slabs.forEach((slab, i) => slab.classList.toggle('paved', i < shown));
     if (strengthWord) {
-      strengthWord.textContent = pw.value ? strengthWord.dataset[`word${met}`] || '' : '';
+      strengthWord.textContent = pw.value ? strengthWord.dataset[`word${shown}`] || '' : '';
     }
-    if (match && matchText) {
+    if (match && matchText && pw2) {
       const same = pw.value.length > 0 && pw.value === pw2.value;
       match.classList.toggle('met', same);
       match.classList.toggle('unmet', pw2.value.length > 0 && !same);
       matchText.textContent = pw2.value && !same ? match.dataset.labelNoMatch : match.dataset.labelMatch;
     }
+    return met;
   };
-  pw.addEventListener('input', update);
-  pw2?.addEventListener('input', update);
 
+  /**
+   * Schedules the breach lookup for the current value once typing pauses (if composition rules satisfied).
+   *
+   * @param {boolean} allRulesMet - Whether the current value satisfies every composition rule.
+   */
+  const scheduleBreachCheck = (allRulesMet) => {
+    clearTimeout(breachTimer);
+    const value = pw.value;
+    if (!breachUrl || !breachMessage || !window.crypto?.subtle || !allRulesMet) return;
+    if (verdicts.has(value)) return;
+    breachTimer = setTimeout(async () => {
+      const breached = await isBreachedPassword(value, breachUrl);
+      verdicts.set(value, breached);
+      if (pw.value === value) update();
+    }, AU_BREACH_DEBOUNCE_MS);
+  };
+
+  pw.addEventListener('input', () => {
+    const met = update();
+    scheduleBreachCheck(rules.length > 0 && met === rules.length);
+  });
+  pw2?.addEventListener('input', update);
+}
+
+/**
+ * Wires every new-password group on the page plus the username-rule indicator, all from backend-injected
+ * data-rule-regex attributes. No-ops on surfaces without those fields (e.g. the sign-in-only ones).
+ */
+function wireLiveValidation() {
+  document.querySelectorAll('.au-pw-group').forEach(wirePasswordGroup);
+
+  const username = document.getElementById('sign-up-username');
   if (username?.dataset.ruleRegex) {
     const usernameRegex = new RegExp(username.dataset.ruleRegex);
     const rule = document.getElementById('sign-up-username-rule');
@@ -112,8 +241,9 @@ function renderAuthErrors(form, errors) {
       const banner = document.createElement('div');
       banner.className = 'au-summary';
       banner.setAttribute('role', 'alert');
-      banner.innerHTML = `${AU_ALERT_ICON}<p></p>`;
-      banner.querySelector('p').textContent = message;
+      const text = document.createElement('p');
+      text.textContent = message;
+      banner.append(auIcon(), text);
       form.parentElement.insertBefore(banner, form);
       form.addEventListener('input', () => banner.remove(), { once: true });
       return;
@@ -125,8 +255,7 @@ function renderAuthErrors(form, errors) {
     const msg = document.createElement('p');
     msg.className = 'au-field-error';
     msg.setAttribute('role', 'alert');
-    msg.innerHTML = AU_ALERT_ICON;
-    msg.appendChild(document.createTextNode(` ${message}`));
+    msg.append(auIcon(), ` ${message}`);
     (input.closest('.au-input-wrap') || input).insertAdjacentElement('afterend', msg);
     input.addEventListener('input', () => {
       input.classList.remove('au-input--error');
@@ -178,21 +307,24 @@ function wireAsyncSubmit(form) {
 }
 
 /**
- * Applies the show-password toggles, live validation, and async submit to whatever auth forms live under `root`.
- * Used for both the dialog (root = the <dialog>) and the full-page fallback (root = document).
+ * Applies the show-password toggles, live validation, and async submit to every auth form on the page.
  *
- * @param {ParentNode} root - The subtree to enhance.
+ * Document-wide rather than scoped to the dialog, because a page can carry auth fields of its own *and* the navbar
+ * dialog — reset-password does. Pages rendering the full-page sign-in/sign-up forms suppress the dialog via
+ * navbar's renderAuthDialog, so the shared ids still resolve to one element each.
+ *
+ * @param {ParentNode} root - The subtree to enhance; the whole document in production.
  */
-function enhanceAuthForms(root) {
-  root.querySelectorAll('.au-eye').forEach(wireEyeToggle);
+function enhanceAuthForms() {
+  document.querySelectorAll('.au-eye').forEach(wireEyeToggle);
   wireLiveValidation();
-  wireAsyncSubmit(root.querySelector('#sign-in-form'));
-  wireAsyncSubmit(root.querySelector('#sign-up-form'));
+  wireAsyncSubmit(document.getElementById('sign-in-form'));
+  wireAsyncSubmit(document.getElementById('sign-up-form'));
 }
 
 /**
  * Controller for the navbar sign-in / sign-up <dialog>: open/close, sign-in↔sign-up panel switching, and trigger
- * buttons. Form behavior is shared with the full-page fallback via the module functions above.
+ * buttons only. The forms inside it are enhanced by `enhanceAuthForms(document)`, like every other auth form.
  */
 class AuthModal {
   #modal;
@@ -209,7 +341,6 @@ class AuthModal {
     dialog.querySelectorAll('.au-close').forEach((btn) => btn.addEventListener('click', () => this.#modal.close()));
     this.#wireOpeners();
     this.#wirePanelLinks();
-    enhanceAuthForms(dialog);
   }
 
   /**
@@ -282,11 +413,9 @@ class AuthModal {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+  enhanceAuthForms();
   const dialog = document.getElementById('sign-in-modal-container');
   if (dialog instanceof HTMLDialogElement) {
     window.psAuthModal = new AuthModal(dialog);
-  } else if (document.querySelector('.au-page')) {
-    // Full-page /signIn·/signUp (no dialog): progressively enhance the same forms.
-    enhanceAuthForms(document);
   }
 });

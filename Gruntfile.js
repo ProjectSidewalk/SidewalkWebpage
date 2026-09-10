@@ -120,6 +120,7 @@ module.exports = function (grunt) {
         src: [
           'public/js/common/Toast.js',
           'public/js/common/ConfirmDialog.js',
+          'public/js/common/UnsavedChangesGuard.js',
           'public/js/common/mapboxSearchBoxA11y.js',
           'public/js/route-builder/src/*.js'
         ],
@@ -180,6 +181,12 @@ module.exports = function (grunt) {
       }
     },
     concat_css: {
+      // The bundles land in public/js/<app>/build/, so each file's relative url()s are rewritten to /assets/ paths that
+      // still reach the same file from there. An absolute /assets/ url() would get the prefix twice, so use relative.
+      options: {
+        assetBaseUrl: '/assets',
+        baseDir: 'public'
+      },
       // The two label-card files come first so each tool's own stylesheet can override the shared base after it.
       // public/css/components/ has no glob — every file used from it is named by hand, in each bundle that wants it.
       dist_audit: {

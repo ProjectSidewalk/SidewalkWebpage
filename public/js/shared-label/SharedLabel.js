@@ -91,7 +91,7 @@ class SharedLabelPage {
       const KM_TO_MI = 0.621371;
       const km = s.km_explored_no_overlap;
       const values = {
-        labels: s.labels?.label_count,
+        labels: s.labels?.count,
         validations: s.validations?.combined?.total_validations,
         miles: km === null || km === undefined ? null : Math.round(km * KM_TO_MI),
       };

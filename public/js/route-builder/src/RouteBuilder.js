@@ -94,6 +94,8 @@ class RouteBuilder {
   #cursorGuide = null; // The pointer-following what-a-click-does bubble (created lazily).
   #editingRouteId = null; // The saved route loaded in the editor (null while building a brand-new route).
   #savedBaseline = null; // JSON of #routeStreetsPayload() at the last save/load; differing payload = unsaved edits.
+  #pendingLeaveSave = null; // Resolver for a leave prompt's "save first", settled when the save modal closes.
+  #signingIn = false; // The sign-in round-trip stashes the route and comes back to it, so it isn't a loss.
 
   // Collaborators.
   #saveModal;
@@ -172,7 +174,20 @@ class RouteBuilder {
       getSuggestedName: () => this.#suggestedRouteName(),
       getCamera: () => this.#cameraSnapshot(),
       onSaved: (saved) => this.#handleRouteSaved(saved),
-      onClose: () => this.#saveButton.focus(),
+      onClose: () => {
+        this.#settleLeaveSave(false);
+        this.#saveButton.focus();
+      },
+      onSignIn: () => {
+        this.#signingIn = true;
+      },
+    });
+    // The draft stash brings an in-progress route back on a same-tab return, but it dies with the tab and never
+    // reaches the user's account — so leaving still warrants the offer to save it properly first.
+    new UnsavedChangesGuard({
+      isDirty: () => !this.#signingIn && this.#hasUnsavedWork(),
+      save: () => this.#saveForLeaving(),
+      onChoice: (choice) => window.logWebpageActivity(`RouteBuilder_Click=UnsavedLeave_${choice}`),
     });
     this.#savedRoutes = new SavedRoutesPanel({
       isSignedIn: this.#isSignedIn,
@@ -1442,15 +1457,47 @@ class RouteBuilder {
    * @returns {Promise<boolean>} True to proceed.
    */
   #unsavedWorkConfirmed() {
-    const unsavedWork = this.#editingRouteId !== null
-      ? this.#isDirty()
-      : (this.#streetsInRoute?.features.length ?? 0) > 0;
-    if (!unsavedWork) return Promise.resolve(true);
+    if (!this.#hasUnsavedWork()) return Promise.resolve(true);
     return ConfirmDialog.confirm({
       message: i18next.t('unsaved-continue-confirm'),
       confirmText: i18next.t('common:continue'),
       cancelText: i18next.t('common:cancel'),
     });
+  }
+
+  /**
+   * Whether there is work a discard would lose: edits to a loaded saved route, or a drawn-but-never-saved route.
+   * @returns {boolean}
+   */
+  #hasUnsavedWork() {
+    return this.#editingRouteId !== null
+      ? this.#isDirty()
+      : (this.#streetsInRoute?.features.length ?? 0) > 0;
+  }
+
+  /**
+   * Saves for a leave prompt that asked to save first. A loaded route updates in place; a new one has no name
+   * yet, so it goes through the save modal and this resolves only once that closes one way or the other.
+   *
+   * @returns {Promise<boolean>} Whether the route was saved.
+   */
+  #saveForLeaving() {
+    if (this.#editingRouteId !== null) return this.#updateSavedRoute();
+    return new Promise((resolve) => {
+      this.#settleLeaveSave(false); // Only one prompt can be waiting; an older one is no longer being answered.
+      this.#pendingLeaveSave = resolve;
+      this.#saveModal.open();
+    });
+  }
+
+  /**
+   * Answers the leave prompt waiting on the save modal, if there is one.
+   * @param {boolean} saved - Whether the route made it to the database.
+   */
+  #settleLeaveSave(saved) {
+    const resolve = this.#pendingLeaveSave;
+    this.#pendingLeaveSave = null;
+    resolve?.(saved);
   }
 
   /** Closes the editing session (or clears a new route), back to the intro state. The saved route is untouched. */
@@ -1520,12 +1567,14 @@ class RouteBuilder {
   /**
    * Writes the current street list back to the loaded saved route (PUT). The route keeps its id, slug, stats,
    * and share links; in-progress explorations reconcile server-side.
+   *
+   * @returns {Promise<boolean>} Whether the write succeeded.
    */
   #updateSavedRoute() {
     const payload = this.#routeStreetsPayload();
     const routeId = this.#editingRouteId;
     window.logWebpageActivity(`RouteBuilder_Click=UpdateRoute_RouteId=${routeId}`);
-    fetch(`/userapi/routes/${routeId}`, {
+    return fetch(`/userapi/routes/${routeId}`, {
       method: 'PUT',
       headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
       body: JSON.stringify({ streets: payload }),
@@ -1540,12 +1589,14 @@ class RouteBuilder {
         this.#savedRoutes.refresh();
         Toast.show({ message: i18next.t('route-updated'), duration: 3000 });
         window.logWebpageActivity(`RouteBuilder_Click=UpdateSuccess_RouteId=${routeId}`);
+        return true;
       })
       .catch((e) => {
         // A 404 means the route isn't ours anymore (e.g. a guest whose anonymous session rotated).
         const gone = e.message === '404' || e.message === '403';
         this.#showMapMessage(i18next.t(gone ? 'route-update-gone' : 'save-error'));
         window.logWebpageActivity('RouteBuilder_Click=UpdateError');
+        return false;
       });
   }
 
@@ -1775,6 +1826,7 @@ class RouteBuilder {
     this.#savedRoutes.refresh(routeId);
     this.#updateSaveButton();
     Toast.show({ message: i18next.t('route-saved'), duration: 3000 });
+    this.#settleLeaveSave(true);
   }
 
   /**

@@ -31,6 +31,11 @@
   "continue": "Continuar",
   "delete": "Eliminar",
   "done": "Listo",
+  "unsaved-changes": {
+    "message": "Tienes cambios sin guardar. ¿Quieres guardarlos antes de salir de esta página?",
+    "save": "Guardar y salir",
+    "leave": "Salir"
+  },
   "badges": {
     "congratulations": "¡Felicidades!",
     "you-earned": "¡Has ganado la insignia “{{badge}}”!",

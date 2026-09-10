@@ -171,7 +171,7 @@
 
     <div class="ps-skyline">
       <div class="ps-skyline-container">
-        @if(currentCity.cityId == "seattle-wa") {
+        @if(currentCity.cityId == "seattle-wa" || currentCity.cityId == "washington-dc") {
           <img loading="lazy" src="@assets.path("images/" + skylineImg)" alt="@Messages(s"landing.$skylineImg.alt")">
         } else {
           <img loading="lazy" class="skyline-img-offset" src="@assets.path("images/" + skylineImg)" alt="@Messages(s"landing.$skylineImg.alt")">

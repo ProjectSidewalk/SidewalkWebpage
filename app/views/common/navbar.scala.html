@@ -8,7 +8,7 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
-@cityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId || c.visibility == "public" || (currentCityInfo.countryId == "taiwan" && c.countryId == "taiwan"))}
+@cityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId || c.isPublic || (currentCityInfo.countryId == "taiwan" && c.countryId == "taiwan"))}
 @* Every switch-target city (i.e. not the current one), grouped by country and sorted within each group; the current
    city is pinned separately at the top of the switcher. Country order is alphabetical by country id. *@
 @otherCitiesByCountry = @{cityInfo.filter(_.cityId != commonData.cityId).sortBy(c => (c.countryId, c.stateId, c.cityId)).groupBy(_.countryId).toSeq.sortBy(_._1)}

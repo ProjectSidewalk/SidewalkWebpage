@@ -63,16 +63,21 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       (labels \ "stddev_age_of_image_when_labeled").asOpt[String].foreach(_ must fullyMatch regex """-?\d+ days""")
     }
 
-    "return CSV with snake_case keys when filetype=csv" in {
+    "return CSV whose keys are JSON paths when filetype=csv" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/overallStats?filetype=csv")).get
       status(resp) mustBe OK
       val body = contentAsString(resp)
-      body must include("launch_date")
-      body must include("km_explored")
-      body must not include "Launch Date" // old Title-Case key gone
-      // The #3031 standard-deviation date metrics appear in the CSV with the same snake_case keys as the JSON.
-      body must include("stddev_label_timestamp")
-      body must include("stddev_age_of_image_when_labeled")
+      body must startWith("metric,value")
+      body must include("\nlaunch_date,")
+      body must include("\nkm_explored,")
+      body must include("\nkm_by_status.open,")
+      body must include("\nuser_counts.all_users,")
+
+      body must include("\nlabels.avg_label_timestamp,")
+      body must include("\nlabels.avg_age_of_image_when_labeled,")
+      body must include("\nlabels.stddev_label_timestamp,")
+      body must include("\nlabels.stddev_age_of_image_when_labeled,")
+      body must include("\nvalidations.combined.total_validations,")
     }
   }
 

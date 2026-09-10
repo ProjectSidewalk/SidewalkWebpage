@@ -4,26 +4,40 @@ util.misc = util.misc || {};
 function UtilitiesMisc(JSON) {
   const self = { className: 'UtilitiesMisc' };
 
-  // Corresponds to the label type lists defined in LabelTypeEnum.scala.
-  self.VALID_LABEL_TYPES = [
-    'CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Other', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal',
-  ];
-  self.PRIMARY_LABEL_TYPES
-    = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSidewalk', 'Crosswalk', 'Signal'];
-  self.PRIMARY_VALIDATE_LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Crosswalk', 'Signal'];
-  self.VALID_LABEL_TYPES_WITHOUT_OTHER
-    = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal'];
+  // The label-type table LabelTypeEnum stamps onto every page (main.scala.html), in canonical order. Every list,
+  // colour and behavior flag below is derived from it, so none of them can drift from the backend — anything else
+  // in the frontend that needs the set of label types should read util.misc rather than write its own copy.
+  // A page that doesn't stamp it (jsdom, the error pages) leaves these empty rather than serving a stale duplicate.
+  const labelTypes = Array.isArray(window.labelTypes) ? window.labelTypes : [];
+  const byName = new Map(labelTypes.map((lt) => [lt.name, lt]));
 
-  // Returns the marker-icon path for each label type. Every frontend surface — canvas, map markers, cards, cursors —
-  // uses the one scalable SVG so the icon stays crisp at whatever size it lands at; the raster `_small`/`_tiny`/full
-  // -size PNGs beside it exist only for consumers that can't take vector art (server-side share-image compositing in
-  // ShareController, and the icon URLs published by /v3/api/labelTypes).
+  self.VALID_LABEL_TYPES = labelTypes.map((lt) => lt.name);
+  self.PRIMARY_LABEL_TYPES = labelTypes.filter((lt) => lt.isPrimary).map((lt) => lt.name);
+  self.PRIMARY_VALIDATE_LABEL_TYPES = labelTypes.filter((lt) => lt.isPrimaryValidate).map((lt) => lt.name);
+  self.VALID_LABEL_TYPES_WITHOUT_OTHER = self.VALID_LABEL_TYPES.filter((name) => name !== 'Other');
+
+  /**
+   * The marker-icon path for each label type, or for one when `category` names it.
+   *
+   * Every frontend surface — canvas, map markers, cards, cursors — uses the one scalable SVG so the icon stays crisp
+   * at whatever size it lands at; the raster `_small`/`_tiny`/full-size PNGs beside it exist only for consumers that
+   * can't take vector art (share-image compositing in ShareController, and /v3/api/labelTypes' icon URLs). Walk is
+   * Explore's cursor mode rather than a label type, so the backend knows nothing about it and it carries no icon.
+   *
+   * The filename is built here rather than read off the stamp so `make lint-asset-paths` can still see which asset
+   * family this resolves to and check it against the fingerprint manifest; a server-supplied string is opaque to it.
+   * Only the naming convention lives here — which types exist comes from the stamp — and LabelTypeEnumSpec fails if
+   * any of these files goes missing.
+   *
+   * @param {string} [category] - A label type name, or 'Walk'. Omit for the whole map.
+   * @returns {Object} `{id, iconImagePath}` for that type, or a map of them keyed by type name.
+   */
   function getIconImagePaths(category) {
     const imagePaths = { Walk: { id: 'Walk', iconImagePath: null } };
-    for (const labelType of self.VALID_LABEL_TYPES) {
-      imagePaths[labelType] = {
-        id: labelType,
-        iconImagePath: util.assetPath(`images/icons/label_type_icons/${labelType}_small.svg`),
+    for (const labelType of labelTypes) {
+      imagePaths[labelType.name] = {
+        id: labelType.name,
+        iconImagePath: util.assetPath(`images/icons/label_type_icons/${labelType.name}_small.svg`),
       };
     }
 
@@ -432,25 +446,30 @@ function UtilitiesMisc(JSON) {
     return category ? descriptions[category] : descriptions;
   }
 
-  const POSITIVE_LABEL_TYPES = ['CurbRamp', 'Crosswalk'];
-  const LABEL_TYPES_WITHOUT_SEVERITY = ['NoSidewalk', 'Signal', 'Occlusion'];
-
   /**
-   * Returns true if label type uses the "positive" rating scheme (Good/Okay/Bad) vs the "negative" (Low/Medium/High).
+   * Whether a label type uses the "positive" rating scheme (Good/Okay/Bad) vs the "negative" (Low/Medium/High).
+   *
+   * This is the type's rating scale, NOT its access impact: Signal is a positive access feature that carries no
+   * rating at all, so reading it off the impact would put it on the wrong scheme.
+   *
    * @param {string} labelType
    * @returns {boolean}
    */
   function isPositiveLabelType(labelType) {
-    return POSITIVE_LABEL_TYPES.includes(labelType);
+    return byName.get(labelType)?.ratingScale === 'quality';
   }
 
   /**
-   * Returns true if label type supports a severity/quality rating.
+   * Whether a label type's labels carry a 1-3 rating at all.
+   *
+   * A type we have no entry for answers false, so an unstamped page hides its rating controls rather than offering
+   * a scale it can't name. Callers use the answer to decide whether to render the rating UI at all.
+   *
    * @param {string} labelType
    * @returns {boolean}
    */
   function labelTypeHasSeverity(labelType) {
-    return !LABEL_TYPES_WITHOUT_SEVERITY.includes(labelType);
+    return (byName.get(labelType)?.ratingScale ?? 'unrated') !== 'unrated';
   }
 
   /**
@@ -643,70 +662,62 @@ function UtilitiesMisc(JSON) {
     }
   }
 
+  // The outline each marker gets on the canvas. White for everything except the two grey meta types, which would be
+  // indistinguishable from each other with a white ring. No backend counterpart: LabelTypeEnum owns the fill colour
+  // (it's the type's identity, and the API publishes it), while the outline is only ever a canvas rendering choice.
   // TODO These colors should probably match the colors in our Design System Tokens in main.css.
-  const colors = {
-    Walk: {
-      id: 'Walk',
-      fillStyle: 'rgba(0, 0, 0, 1)',
-      strokeStyle: '#FFFFFF',
-    },
-    CurbRamp: {
-      id: 'CurbRamp',
-      fillStyle: '#90C31F',
-      strokeStyle: '#FFFFFF',
-    },
-    NoCurbRamp: {
-      id: 'NoCurbRamp',
-      fillStyle: '#E679B6',
-      strokeStyle: '#FFFFFF',
-    },
-    Obstacle: {
-      id: 'Obstacle',
-      fillStyle: '#78B0EA',
-      strokeStyle: '#FFFFFF',
-    },
-    Other: {
-      id: 'Other',
-      fillStyle: '#B3B3B3',
-      strokeStyle: '#0000FF',
-    },
-    Occlusion: {
-      id: 'Occlusion',
-      fillStyle: '#B3B3B3',
-      strokeStyle: '#009902',
-    },
-    NoSidewalk: {
-      id: 'NoSidewalk',
-      fillStyle: '#BE87D8',
-      strokeStyle: '#FFFFFF',
-    },
-    SurfaceProblem: {
-      id: 'SurfaceProblem',
-      fillStyle: '#F68D3E',
-      strokeStyle: '#FFFFFF',
-    },
-    Crosswalk: {
-      id: 'Crosswalk',
-      fillStyle: '#FABF1C',
-      strokeStyle: '#FFFFFF',
-    },
-    Signal: {
-      id: 'Signal',
-      fillStyle: '#63C0AB',
-      strokeStyle: '#FFFFFF',
-    },
-  };
+  const STROKE_STYLES = { Other: '#0000FF', Occlusion: '#009902' };
+  const DEFAULT_STROKE_STYLE = '#FFFFFF';
 
+  // Walk is Explore's cursor mode rather than a label type, so it has no backend entry and needs its colours here.
+  const colors = { Walk: { id: 'Walk', fillStyle: 'rgba(0, 0, 0, 1)', strokeStyle: DEFAULT_STROKE_STYLE } };
+  for (const labelType of labelTypes) {
+    colors[labelType.name] = {
+      id: labelType.name,
+      fillStyle: labelType.color,
+      strokeStyle: STROKE_STYLES[labelType.name] || DEFAULT_STROKE_STYLE,
+    };
+  }
+
+  /**
+   * One label type's canvas fill colour, or the whole `{fillStyle, strokeStyle}` table when no type is named.
+   * @param {string} [category] - A label type name, or 'Walk'. Omit for the whole table.
+   * @returns {string|Object}
+   */
   function getLabelColors(category) {
     return category ? colors[category].fillStyle : colors;
   }
 
+  /**
+   * Where a label sits in the image a card is showing, as fractions of its width and height (#2660).
+   *
+   * A crop at `<crops>/<LabelType>/crop_<id>.png` is one of two things: the browser's snapshot of the Explore canvas,
+   * in which the label is at its canvas fraction, or the window the crop job cut around the label, in which it is near
+   * the center. Only a `label_crop` row tells them apart, so a crop without one falls back to the canvas fraction — as
+   * does the Street View still, which reproduces the Explore frame and where the canvas fraction is already correct.
+   *
+   * @param {string} imageSource - Which source is on screen: 'crop' or 'api'.
+   * @param {?{x: number, y: number}} cropMarker - The crop's recorded position, when one exists.
+   * @param {?number} canvasX - The label's x on the 720x480 labeling canvas.
+   * @param {?number} canvasY - The label's y on that canvas.
+   * @returns {{x: number, y: number}} Fractions of the image's width and height.
+   */
+  function labelMarkerFraction(imageSource, cropMarker, canvasX, canvasY) {
+    if (imageSource === 'crop' && cropMarker) return cropMarker;
+    // Clamped to the image, as CropService.exploreFrameMarker clamps the fraction it records for the same frame: a
+    // historic row can sit outside the canvas, and an unclamped fraction puts the marker off the card entirely.
+    const clamp = (f) => Math.min(1, Math.max(0, f));
+    return {
+      x: typeof canvasX === 'number' ? clamp(canvasX / util.EXPLORE_CANVAS_WIDTH) : 0.5,
+      y: typeof canvasY === 'number' ? clamp(canvasY / util.EXPLORE_CANVAS_HEIGHT) : 0.5,
+    };
+  }
+
+  self.labelMarkerFraction = labelMarkerFraction;
   self.getIconImagePaths = getIconImagePaths;
   self.getLabelDescriptions = getLabelDescriptions;
   self.isPositiveLabelType = isPositiveLabelType;
-  self.POSITIVE_LABEL_TYPES = POSITIVE_LABEL_TYPES;
   self.labelTypeHasSeverity = labelTypeHasSeverity;
-  self.LABEL_TYPES_WITHOUT_SEVERITY = LABEL_TYPES_WITHOUT_SEVERITY;
   self.getSmileyIconPath = getSmileyIconPath;
   self.getSeverityLevelColors = getSeverityLevelColors;
   self.getRatingLevelKeys = getRatingLevelKeys;

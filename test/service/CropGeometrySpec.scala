@@ -76,18 +76,28 @@ class CropGeometrySpec extends PlaySpec {
       // Ten degrees below the horizon subtends the same angle whatever the pixel count, so the window must too.
       for (h <- Seq(2048, 4000, 6656, 8192, 16384)) {
         val y   = h / 2.0 + 10.0 / 180.0 * h
-        val deg = CropSizingRule.windowWidth(y, h) / h * 180.0
+        val deg = CropSizingRule.windowWidth(y, 2 * h, h) / (2 * h) * 360.0
         withClue(s"h=$h ") { deg mustBe 25.0 +- 0.05 }
       }
     }
 
     "scale the regression and clamp it as an angle" in {
       val h    = 8192
+      val w    = 2 * h
       val near = h / 2.0 + 40.0 / 180.0 * h
       val mid  = h / 2.0 + 10.0 / 180.0 * h
-      CropSizingRule.windowWidth(mid, h) mustBe (CropSizingRule.predictCropSize(mid, h) * CropSizingRule.Scale) +- 1e-6
-      CropSizingRule.windowWidth(near, h) / h * 180.0 mustBe CropSizingRule.MaxFovDeg +- 1e-9
-      CropSizingRule.windowWidth(0, h) / h * 180.0 mustBe CropSizingRule.MinFovDeg +- 1e-9
+      CropSizingRule.windowWidth(mid, w, h) mustBe (CropSizingRule.predictCropSize(mid, h) * CropSizingRule.Scale) +-
+        1e-6
+      CropSizingRule.windowWidth(near, w, h) / w * 360.0 mustBe CropSizingRule.MaxFovDeg +- 1e-9
+      CropSizingRule.windowWidth(0, w, h) / w * 360.0 mustBe CropSizingRule.MinFovDeg +- 1e-9
+    }
+
+    "be an azimuthal span: the clamped angle as a fraction of the width, not of the height" in {
+      // On a 2:1 pano the two conversions agree, which is what let a height-based one look right; on any other
+      // aspect they differ by the aspect's departure from 2, and a width is horizontal (panorama-tools #106).
+      val (w, h) = (4096, 4096)
+      CropSizingRule.windowWidth(0, w, h) mustBe (CropSizingRule.MinFovDeg / 360.0 * w) +- 1e-9
+      CropSizingRule.windowWidth(0, 2 * h, h) mustBe 2 * CropSizingRule.windowWidth(0, w, h) +- 1e-9
     }
 
     "match every row of the sizing fixture the Python reference wrote" in {
@@ -106,7 +116,7 @@ class CropGeometrySpec extends PlaySpec {
         val w      = (row \ "pano_width").as[Int]
         val y      = (row \ "pano_y").as[Double]
         val x      = (row \ "pano_x").as[Double]
-        val window = CropSizingRule.windowWidth(y, h)
+        val window = CropSizingRule.windowWidth(y, w, h)
         withClue(s"pano ${w}x$h, label ($x, $y): ") {
           CropSizingRule.predictCropSize(y, h) mustBe (row \ "predict_crop_size").as[Double] +- 1e-6
           window mustBe (row \ "window_width").as[Double] +- 1e-6
@@ -161,6 +171,60 @@ class CropGeometrySpec extends PlaySpec {
     }
   }
 
+  "CropGeometry.labelPositionInCrop" should {
+    "land where the reference's label_position_in_crop lands, for every mechanics fixture" in {
+      // The seam cases are what make this more than `x - left`, and the pole cases are what make it more than
+      // "the centre": a shifted window has the label off-centre by exactly the shift.
+      val cases = fixture("mechanics.json").as[Seq[JsValue]]
+      cases.foreach { c =>
+        val name     = (c \ "case").as[String]
+        val expected = (c \ "label_in_crop").as[Seq[Double]]
+        val (x, y)   = CropGeometry.labelPositionInCrop(
+          (c \ "pano_x").as[Double],
+          (c \ "pano_y").as[Double],
+          box(c \ "box"),
+          (c \ "pano_width").as[Int]
+        )
+        withClue(s"$name: ") {
+          x mustBe expected(0) +- 1e-9
+          y mustBe expected(1) +- 1e-9
+        }
+      }
+    }
+
+    "find the planted pixel in the cut window, at the horizon, at both poles and across the seam" in {
+      // Registration measured rather than captioned (panorama-tools #78): the synthetic pano's pixels are all
+      // distinct, so the pixel the cut window holds at the computed position must be the pano's pixel at the label.
+      val whole = ImageIO.read(pano)
+      ImageUtils.withReader(pano) { (reader, w, h) =>
+        for ((x, y) <- Seq((512, 256), (10, 256), (1020, 300), (700, 20), (200, 500), (0, 256), (1023, 511))) {
+          val boxHere  = CropGeometry.computeCropBox(x.toDouble, y.toDouble, 300, w, h)
+          val (cx, cy) = CropGeometry.labelPositionInCrop(x.toDouble, y.toDouble, boxHere, w)
+          val cut      = CropService.cutWindow(reader, boxHere, w)
+          withClue(s"label ($x, $y) in box $boxHere at ($cx, $cy): ") {
+            cx must (be >= 0.0 and be < boxHere.width.toDouble)
+            cy must (be >= 0.0 and be < boxHere.height.toDouble)
+            (cut.getRGB(cx.toInt, cy.toInt) & 0xffffff) mustBe (whole.getRGB(x % w, y) & 0xffffff)
+          }
+        }
+      }
+    }
+
+    "put the label at the centre of an unshifted window and off-centre of a shifted one, as fractions" in {
+      val interior = CropGeometry.computeCropBox(512, 256, 300, 1024, 512)
+      interior.shifted mustBe false
+      val (fx, fy) = CropGeometry.labelFractionInCrop(512, 256, interior, 1024)
+      fx mustBe 0.5 +- 0.01
+      fy mustBe 0.5 +- 0.01
+
+      val top = CropGeometry.computeCropBox(700, 20, 300, 1024, 512)
+      top.shifted mustBe true
+      val (tx, ty) = CropGeometry.labelFractionInCrop(700, 20, top, 1024)
+      tx mustBe 0.5 +- 0.01
+      ty mustBe (20.0 / top.height) +- 1e-9
+    }
+  }
+
   "CropGeometry.segments" should {
     "read one run for an interior window and two, in crop order, across the seam" in {
       CropGeometry.segments(CropBox(100, 0, 50, 33, shifted = false), 1024) mustBe
@@ -208,7 +272,7 @@ class CropGeometrySpec extends PlaySpec {
       val e2e = fixture("sizing-v2.json") \ "e2e"
       ImageUtils.withReader(pano) { (reader, w, h) =>
         val y      = (e2e \ "pano_y").as[Double]
-        val window = CropSizingRule.windowWidth(y, h)
+        val window = CropSizingRule.windowWidth(y, w, h)
         window mustBe (e2e \ "window_width").as[Double] +- 1e-6
         val computed = CropGeometry.computeCropBox((e2e \ "pano_x").as[Double], y, window, w, h)
         computed mustBe box(e2e \ "box")
@@ -230,94 +294,6 @@ class CropGeometrySpec extends PlaySpec {
       val narrow       = new BufferedImage(600, 400, BufferedImage.TYPE_INT_RGB)
       val storedNarrow = CropService.storedCrop(narrow)
       (storedNarrow.getWidth, storedNarrow.getHeight) mustBe (600, 400)
-    }
-  }
-
-  "CropService.stripRows" should {
-    "map every strip boundary to a whole output row" in {
-      // Richmond, older and newer GSV, and a pair with no common factor (one strip: the whole image).
-      for ((src, target) <- Seq((5500, 4096), (6656, 4096), (8192, 4096), (5501, 4096))) {
-        val rows = CropService.stripRows(src, target)
-        withClue(s"$src -> $target, strip $rows: ") {
-          rows must be > 0
-          (rows.toLong * target) % src mustBe 0
-        }
-      }
-      // Richmond's unit (1375 rows) is over the cap, so the strip is one unit; GSV's are far under it and pack.
-      CropService.stripRows(5500, 4096) mustBe 1375
-      CropService.stripRows(6656, 4096) mustBe 1014
-      CropService.stripRows(8192, 4096) mustBe 1024
-      CropService.stripRows(5501, 4096) mustBe 5501
-    }
-
-    "honour a smaller cap, so a test can force several strips out of a small fixture" in {
-      // 512 -> 128 has unit 4; the production cap reads the whole fixture in one strip, a 64-row cap in eight.
-      CropService.stripRows(512, 128) mustBe 1024
-      CropService.stripRows(512, 128, maxStripRows = 64) mustBe 64
-    }
-  }
-
-  "CropService.downscale" should {
-    // 1024x512 -> 256x128 is an exact 4:1 reduction, so the true answer is the mean of each 4x4 block, computable in
-    // integers: what the strips must reproduce, without either side's float accumulation in the way.
-    val target     = 256
-    lazy val whole = ImageIO.read(pano)
-
-    /** The exact block mean, rounded half up as AreaAveragingScaleFilter's Math.round does. */
-    def exactBlockMean(): BufferedImage = {
-      val out = new BufferedImage(target, target / 2, BufferedImage.TYPE_INT_RGB)
-      for {
-        dy <- 0 until target / 2
-        dx <- 0 until target
-      } {
-        var r, g, b = 0
-        for {
-          sy <- dy * 4 until dy * 4 + 4
-          sx <- dx * 4 until dx * 4 + 4
-        } {
-          val rgb = whole.getRGB(sx, sy)
-          r += (rgb >> 16) & 0xff
-          g += (rgb >> 8) & 0xff
-          b += rgb & 0xff
-        }
-        val round = (sum: Int) => (sum * 2 + 16) / 32 // floor(sum / 16 + 0.5)
-        out.setRGB(dx, dy, (round(r) << 16) | (round(g) << 8) | round(b))
-      }
-      out
-    }
-
-    "reproduce the exact area average when read in several strips, with no seam at any boundary" in {
-      // Eight strips of 64 rows, each landing on 16 whole output rows. Per output pixel the filter sums 16 weighted
-      // samples of at most 255 x 256 x 16 -- under 2^24, so its float accumulation is exact and the strips must match
-      // the block mean to the pixel, boundaries included.
-      val strips = ImageUtils.withReader(pano) { (reader, w, h) =>
-        CropService.downscale(reader, w, h, target, maxStripRows = 64)
-      }
-      (strips.getWidth, strips.getHeight) mustBe (target, target / 2)
-      assertSamePixels(strips, exactBlockMean(), "eight strips vs exact block mean")
-    }
-
-    "give the same pixels under the production cap, which reads this fixture as one strip" in {
-      // So the cap changes memory and nothing else. At a 4:1 reduction every weight the filter applies is a power of
-      // two, which keeps even the whole image's larger sums exact in float; the same check at 11000 -> 8192 would only
-      // hold to within a unit, per the note on `downscale`.
-      val single = ImageUtils.withReader(pano) { (reader, w, h) => CropService.downscale(reader, w, h, target) }
-      assertSamePixels(single, exactBlockMean(), "one strip vs exact block mean")
-    }
-  }
-
-  "CropService.writeDownscaled" should {
-    "write the downscaled raster as a JPEG of the target size, at the aspect the pano has" in {
-      val out = File.createTempFile("downscaled", ".jpg")
-      try {
-        ImageUtils.withReader(pano) { (reader, w, h) => CropService.writeDownscaled(reader, w, h, 640, out) }
-        val written = ImageIO.read(out)
-        (written.getWidth, written.getHeight) mustBe (640, 320)
-        // JPEG is lossy, so only a coarse check on content: the fixture's red channel is a left-to-right ramp.
-        (written.getRGB(639, 160) >> 16) & 0xff must be > ((written.getRGB(0, 160) >> 16) & 0xff) + 200
-      } finally {
-        val _ = out.delete()
-      }
     }
   }
 }

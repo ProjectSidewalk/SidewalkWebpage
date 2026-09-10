@@ -404,11 +404,11 @@
 
   @if(isSignedIn) {
     @userDashboard._createTeamDialog()
-    <script src="@assets.path("js/user-dashboard/TeamCreate.js")"></script>
+    <script src="@assets.path("js/user-dashboard/TeamActions.js")"></script>
   }
 }
 
-@* dashboard namespace: TeamCreate.js's client-side error strings. *@
+@* dashboard namespace: TeamActions.js's client-side error strings. *@
 @common.main(commonData, Messages("seo.title.leaderboard"), i18Namespaces = Seq("common", "dashboard")) {
   @common.navbar(commonData, user)
   @userDashboard.layout("leaderboard", isSignedIn)(content)

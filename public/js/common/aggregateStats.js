@@ -87,10 +87,6 @@ async function fetchAggregateStats() {
   try {
     const response = await fetchWithRetry(CONFIG.AGGREGATE_STATS_ENDPOINT);
 
-    if (response.status !== 'OK') {
-      throw new Error('Invalid response status from aggregate stats API');
-    }
-
     // Validate that we have the expected fields
     const requiredFields
       = ['km_explored', 'total_labels', 'total_validations', 'num_cities', 'num_countries', 'num_languages'];
