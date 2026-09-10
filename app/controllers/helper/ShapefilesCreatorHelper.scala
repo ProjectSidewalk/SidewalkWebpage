@@ -43,13 +43,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
   private val logger = Logger(this.getClass)
 
   /**
-   * Opens (creating if needed) the GeoPackage at the given path as a GeoTools data store.
-   *
-   * `DataStoreFinder` returns null rather than throwing when no registered factory accepts the params, which is what a
-   * packaging step that drops gt-geopkg's service registration would look like; fail with a message instead of an NPE.
-   *
-   * @param geopackagePath Where the .gpkg file lives.
-   * @return An open data store; the caller disposes it.
+   * Opens the GeoPackage at the given path as a data store, which the caller disposes. `DataStoreFinder` returns null
+   * rather than throwing when no factory accepts the params (e.g. gt-geopkg's service file lost in packaging).
    */
   private def openGeoPackage(geopackagePath: Path): DataStore = {
     val params = Map(
@@ -64,13 +59,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     }
   }
 
-  /**
-   * Fails fast on a shapefile schema with an attribute name over the DBF format's 10-character limit. GeoTools would
-   * otherwise write the file with the name silently cut short (`streetCount` shipped as `streetCoun` for years), so
-   * every schema is checked here at the one choke point rather than per export.
-   *
-   * @param featureType The schema about to be written to a shapefile.
-   */
+  /** Rejects attribute names over the DBF format's 10-char limit, which GeoTools would otherwise truncate silently. */
   private def requireDbfSafeNames(featureType: SimpleFeatureType): Unit = {
     val tooLong = featureType.getAttributeDescriptors.asScala.map(_.getLocalName).filter(_.length > 10)
     require(

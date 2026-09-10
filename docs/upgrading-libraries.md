@@ -137,15 +137,9 @@ These are the JVM libraries we talk to the database *through*; the database serv
   link below; a full upgrade needs dedicated investigation.
   [Releases](https://mvnrepository.com/artifact/org.n52.jackson/jackson-datatype-jts)
 - **gt-shapefile / gt-epsg-hsql / gt-geopkg (GeoTools): 35.1** — Shapefile/GeoPackage generation. Served by the
-  OSGeo resolver in `build.sbt`, not Maven Central; a new major lands there a few weeks after the release. We use a
-  tiny, stable corner of the API (`ShapefilesCreatorHelper` plus `JTSFactoryFinder`), so bumps are usually
-  mechanical. **Note:** 35.x replaced Oracle JAI with Eclipse ImageN, which is why the old `jai_core` download line
-  and its exclusions are gone; 34.x+ needs Java 17 (we're on it), and the packages were renamed in 30.x
-  (`org.opengis.*` → `org.geotools.api.*`, datastore interfaces → `org.geotools.api.data`), so an old snippet from the
-  GeoTools docs may need its imports adjusted. Check both exports after any bump (#4393). New transitives worth
-  knowing about since 35.x: `gt-coverage` and the Eclipse ImageN modules (unused by us), `org.xerial:sqlite-jdbc`
-  (what actually writes the GeoPackage), and `tools.jackson.core:jackson-core` 3.x, which is Jackson 3 under its
-  new package name, so it sits beside Play's Jackson 2 without colliding.
+  OSGeo resolver in `build.sbt`, not Maven Central. Needs Java 17. We use a tiny corner of the API, so bumps are
+  usually mechanical; check both exports afterward (#4393). Brings Eclipse ImageN, sqlite-jdbc, and Jackson 3's
+  `jackson-core` along (its own package, so no clash with Play's Jackson 2).
   [Releases](https://mvnrepository.com/artifact/org.geotools/gt-shapefile?repo=geotools-releases) ·
   [Changelog](https://github.com/geotools/geotools/releases) ·
   [Upgrade notes](https://docs.geotools.org/latest/userguide/welcome/upgrade.html)
