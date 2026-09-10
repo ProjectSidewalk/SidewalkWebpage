@@ -87,17 +87,30 @@ def test_preflight_table_returns_rows_only_when_a_provider_was_sampled():
     assert snc.preflight_table('\n'.join(header + ['| gsv | 150 |'])) == header + ['| gsv | 150 |']
 
 
-def test_translation_todo_lists_only_the_keys_that_were_added():
-    lines = snc.translation_todo('laurens-ia', None, None)
+def test_translation_todo_lists_only_the_keys_that_are_still_missing(repo_copy):
+    lines = snc.translation_todo('nowhere-xx', None, None)
     assert len(lines) == len(snc.TRANSLATED_MESSAGE_FILES)
-    assert lines[0] == '  conf/messages/messages.zh-TW: city.name.laurens-ia'
-    assert snc.translation_todo('x', 'iowa', 'france')[0].endswith('city.name.x, state.name.iowa, country.name.france')
+    assert lines[0] == '  conf/messages/messages.zh-TW: city.name.nowhere-xx'
+    every_key = snc.translation_todo('x', 'nowhere-state', 'nowhere-country')
+    assert every_key[0].endswith('city.name.x, state.name.nowhere-state, country.name.nowhere-country')
+    # A state and country the files already carry drop off the same way the city does.
+    assert snc.translation_todo('x', 'iowa', 'france')[0].endswith('city.name.x')
+    # A file that already has the key drops off the list, so a rerun of a translated city is owed nothing (#5297).
+    zh_tw = snc.MESSAGES_DIR / 'messages.zh-TW'
+    zh_tw.write_text(zh_tw.read_text() + 'city.name.nowhere-xx = 無處\n')
+    assert not any('messages.zh-TW' in line for line in snc.translation_todo('nowhere-xx', None, None))
+    for name in snc.TRANSLATED_MESSAGE_FILES:
+        path = snc.MESSAGES_DIR / name
+        path.write_text(path.read_text() + 'city.name.nowhere-xx = x\n')
+    assert snc.translation_todo('nowhere-xx', None, None) == []
 
 
-def test_handoff_checklist_names_the_dump_and_both_urls():
+def test_handoff_checklist_names_the_dump_both_urls_and_what_the_nightly_jobs_owe():
     text = snc.handoff_checklist('laurens-ia', 'sidewalk_laurens_ia', 'https://p', 'https://t')
     assert 'scp db/sidewalk_laurens_ia-dump' in text
     assert 'https://t and https://p' in text
+    # The dump ships with these empty; saying so is the whole fix for #5297.
+    assert 'intersection' in text and 'cluster' in text and 'osm_way' in text
     assert 'make import-dump db=sidewalk_laurens_ia' in text
 
 
@@ -111,7 +124,7 @@ def repo_copy(tmp_path, monkeypatch):
     (tmp_path / 'conf' / 'messages').mkdir(parents=True)
     (tmp_path / 'docs').mkdir()
     shutil.copy(REPO_ROOT / 'conf' / 'cityparams.conf', tmp_path / 'conf' / 'cityparams.conf')
-    for name in ('messages', 'messages.en'):
+    for name in ('messages', 'messages.en', *snc.TRANSLATED_MESSAGE_FILES):
         shutil.copy(REPO_ROOT / 'conf' / 'messages' / name, tmp_path / 'conf' / 'messages' / name)
     shutil.copy(REPO_ROOT / 'docs' / 'dev-environment.md', tmp_path / 'docs' / 'dev-environment.md')
     monkeypatch.setattr(snc, 'REPO_ROOT', tmp_path)
@@ -220,9 +233,9 @@ def test_add_docs_city_row_dry_run(repo_copy, capsys):
 
 def _fake_run(monkeypatch, responses):
     """
-    Answers subprocess.run from ``responses`` ({substring-of-command: (returncode, stdout)}), recording calls. A
-    value may also be a list of such pairs, handed out in order (the last one repeats), for a query whose answer
-    changes as the run progresses.
+    Answers subprocess.run from ``responses`` ({substring-of-command: (returncode, stdout[, stderr])}), recording
+    calls. A value may also be a list of such tuples, handed out in order (the last one repeats), for a query whose
+    answer changes as the run progresses.
     """
     calls = []
 
@@ -232,11 +245,10 @@ def _fake_run(monkeypatch, responses):
         for needle, response in responses.items():
             if needle in joined:
                 if isinstance(response, list):
-                    code, out = response.pop(0) if len(response) > 1 else response[0]
-                else:
-                    code, out = response
-                return SimpleNamespace(returncode=code, stdout=out)
-        return SimpleNamespace(returncode=0, stdout='')
+                    response = response.pop(0) if len(response) > 1 else response[0]
+                code, out, err = (*response, '')[:3]
+                return SimpleNamespace(returncode=code, stdout=out, stderr=err)
+        return SimpleNamespace(returncode=0, stdout='', stderr='')
 
     monkeypatch.setattr(snc.subprocess, 'run', run)
     return calls
@@ -333,12 +345,12 @@ def test_apply_evolutions_skips_the_boot_for_a_current_schema_unless_verifying(m
     calls = _boot_env(monkeypatch, {'max(id)': (0, '375\n'), 'pgrep': (1, ''), 'last_problem': (0, '')}, [None])
     snc.apply_evolutions('sidewalk_x', 'x')
     assert 'no app boot needed' in capsys.readouterr().out
-    assert not any('bash' in cmd for cmd in calls)
+    assert not any(snc.BOOT_CMD in cmd for cmd in calls)
     # Right after a clone the boot runs anyway: Play is the check that the donor's evolutions are this checkout's.
     snc.apply_evolutions('sidewalk_x', 'x', verify=True)
     out = capsys.readouterr().out
     assert 'booting the app as x once anyway' in out and 'applied and verified (at 375)' in out
-    boot = next(cmd for cmd in calls if 'bash' in cmd)
+    boot = next(cmd for cmd in calls if snc.BOOT_CMD in cmd)
     assert boot[boot.index('-e') + 1] == 'DATABASE_USER=sidewalk_x' and snc.BOOT_CMD in boot
     assert any('pkill' in cmd and snc.BOOT_MARKER in cmd for cmd in calls)
     # The stop can only hit this boot's processes, never another tail -f /dev/null in the container.
@@ -347,14 +359,15 @@ def test_apply_evolutions_skips_the_boot_for_a_current_schema_unless_verifying(m
 
 def test_apply_evolutions_waits_for_the_app_then_for_the_evolutions(monkeypatch, capsys):
     calls = _boot_env(monkeypatch, {'max(id)': [(0, '370\n'), (0, '374\n'), (0, '375\n')],
-                                    'pgrep': [(0, ''), (1, '')], 'last_problem': (0, '')},
+                                    'pgrep': [(0, '4242 /home\n'), (0, '')], 'last_problem': (0, '')},
                       [urllib.error.URLError('refused'), urllib.error.HTTPError('u', 500, 'x', {}, None), None])
     prompts = []
+    monkeypatch.setattr(snc.sys, 'stdin', SimpleNamespace(isatty=lambda: True))
     monkeypatch.setattr('builtins.input', lambda text: prompts.append(text) or '')
     snc.apply_evolutions('sidewalk_x', 'x')
     out = capsys.readouterr().out
     assert '...at 374 of 375' in out and 'applied and verified (at 375)' in out
-    assert len(prompts) == 1 and 'already running' in prompts[0]
+    assert len(prompts) == 1 and 'already running' in prompts[0] and '4242 (/home)' in prompts[0]
     assert sum(1 for cmd in calls if 'pkill' in cmd) == 1
 
 
@@ -368,6 +381,31 @@ def test_apply_evolutions_stops_on_a_failed_evolution_and_on_timeout(monkeypatch
     monkeypatch.setattr(snc.time, 'monotonic', lambda: next(clock))
     with pytest.raises(SystemExit, match='never reached 375'):
         snc.apply_evolutions('sidewalk_x', 'x')
+
+
+def test_conflicting_apps_ignores_apps_from_other_checkouts(monkeypatch):
+    """A worktree QA app has its own target/ and its own port, so it must not block the boot (#5297)."""
+    _fake_run(monkeypatch, {'pgrep': (0, '10 /home\n'
+                                        '11 /home/.claude/worktrees/some-branch\n'
+                                        '12 /home/.claude/worktrees/other\n'
+                                        'not-a-pid /home\n')})
+    assert snc.conflicting_apps() == ['10 (/home)']
+    _fake_run(monkeypatch, {'pgrep': (1, '')})
+    assert snc.conflicting_apps() == []
+
+
+def test_apply_evolutions_will_not_block_on_a_prompt_nothing_can_answer(monkeypatch, capsys):
+    """Unattended, the gate names the pids and stops instead of spinning input() into an EOFError (#5297)."""
+    _boot_env(monkeypatch, {'max(id)': (0, '370\n'), 'pgrep': (0, '4242 /home\n'), 'last_problem': (0, '')}, [None])
+    monkeypatch.setattr(snc.sys, 'stdin', SimpleNamespace(isatty=lambda: False))
+    with pytest.raises(SystemExit, match='4242'):
+        snc.apply_evolutions('sidewalk_x', 'x')
+    # --allow-running-apps boots anyway, whether or not there is a terminal to ask.
+    calls = _boot_env(monkeypatch, {'max(id)': [(0, '370\n'), (0, '375\n')], 'pgrep': (0, '4242 /home\n'),
+                                    'last_problem': (0, '')}, [None, None])
+    snc.apply_evolutions('sidewalk_x', 'x', allow_running_apps=True)
+    assert '--allow-running-apps' in capsys.readouterr().out
+    assert any(snc.BOOT_CMD in cmd for cmd in calls)
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -397,7 +435,8 @@ def _stub_steps(monkeypatch, repo_copy):
     """Replaces the long-running steps with recorders and points the GA step at the copied files."""
     record = {'evolutions': []}
     monkeypatch.setattr(snc, 'apply_evolutions',
-                        lambda schema, city_id, verify=False: record['evolutions'].append((schema, verify)))
+                        lambda schema, city_id, verify=False, allow_running_apps=False:
+                        record['evolutions'].append((schema, verify)))
     monkeypatch.setattr(snc, 'run_imagery_scan',
                         lambda schema, city_id, pano_type: record.__setitem__('scan', pano_type))
     monkeypatch.setattr(snc, 'dump_schema', lambda schema: record.__setitem__('dump', schema))
@@ -474,17 +513,47 @@ def test_main_rerun_skips_what_already_happened(repo_copy, monkeypatch, capsys):
     _fake_run(monkeypatch, {'true': (0, ''), 'pg_namespace': (0, '1\n'), 'street_edge': (0, '170\n'),
                             'street_imagery': (0, '167\n')})
     snc.add_cityparams_entries('testville-wa', [(['db-schema'], '"sidewalk_testville_wa"')], dry_run=False)
+    for name in snc.TRANSLATED_MESSAGE_FILES:
+        path = snc.MESSAGES_DIR / name
+        path.write_text(path.read_text() + 'city.name.testville-wa = Testville\n')
     (repo_copy / 'ga-service-account.json').write_text('{}')
     monkeypatch.setattr(ga, 'ids_are_placeholders', lambda city_id: False)
     _answers(monkeypatch, 'y', '', '', '', 'gsv', '', '', '', 'n')
     snc.main(['testville-wa'])
     out = capsys.readouterr().out
     assert 'already knows testville-wa' in out and 'Left unset' not in out
+    assert 'every locale file already carries' in out and 'Translations still owed' not in out
     assert 'GA measurement ids are already filled in' in out
     assert 'Keeping the existing schema' in out
     assert record['evolutions'] == [('sidewalk_testville_wa', False)]
     assert 'Steps 5-6/8 — skipped: sidewalk_testville_wa already holds 170 streets' in out
     assert 'A scan was already imported' in out and 'scan' not in record
+
+
+def test_main_reports_why_the_donor_was_refused(repo_copy, monkeypatch):
+    """The clone script's reason has to reach the operator, not just a CalledProcessError traceback (#5297)."""
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    refusal = "Error: donor 'sidewalk_teaneck' is at evolution 383, beyond this checkout's highest (382).\n"
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{'create-new-schema.sh': (1, '', refusal)}))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '')
+    with pytest.raises(SystemExit) as refused:
+        snc.main(['testville-wa'])
+    message = str(refused.value)
+    assert 'would not clone sidewalk_richmond into sidewalk_testville_wa (exit 1)' in message
+    assert 'beyond this checkout' in message and '--donor' in message
+
+
+def test_main_verifies_a_schema_kept_from_a_run_that_never_filled_it(repo_copy, monkeypatch, capsys):
+    """A clone an earlier run left unfilled has never had its donor's hashes checked, so it boots too (#5297)."""
+    _city_artifacts(repo_copy)
+    record = _stub_steps(monkeypatch, repo_copy)
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{'pg_namespace': (0, '1\n')}))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '', 'n', '1', 'all')
+    snc.main(['testville-wa'])
+    out = capsys.readouterr().out
+    assert 'Keeping the existing schema' in out and 'never been verified' in out
+    assert record['evolutions'] == [('sidewalk_testville_wa', True)]
 
 
 def test_main_recreates_a_schema_on_request_and_can_defer_the_scan(repo_copy, monkeypatch, capsys):

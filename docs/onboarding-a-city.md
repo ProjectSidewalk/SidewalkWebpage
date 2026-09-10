@@ -158,6 +158,12 @@ where a person is needed and skips whatever a previous run already did:
   `sidewalk_login`; and if the landing map needs a different zoom, edit `config.default_map_zoom` and clear the Play
   cache from the admin page (it caches the config row), the same after hiding streets on a live server, since the
   total street distance behind the completion percentage is cached too.
+- **What the nightly jobs still owe.** Onboarding fills only what no scheduled job can produce, so a new city's
+  `intersection` table (with each street's corner links, #5095), its `cluster` table, and its `osm_way` tag cache are
+  all empty — in the dump you hand the server, too — until that city's first scheduled run (04:00 + its
+  `update_offset_hours`). AccessScore reads zero until then. An admin can force the intersections and clusters early
+  from `/clustering`; the `osm_way` tags come from their own nightly refresh, and until they land every intersection
+  is `grade_separated = FALSE`, which is why deriving them during onboarding would not help (#5297).
 - **Server.** `scp db/<schema>-dump makelab1.cs.washington.edu:/www/sidewalk/new-city-dumps/`, then the IT tooling
   (`uwcseit-sidewalk-tools`: `bin/setup-new.pl`, test stage first), the Maps-key referrers for both URLs
   (`docs/google-cloud.md`), DNS, and the PR with the config, message, and docs changes. Where the tooling can't be
@@ -165,11 +171,6 @@ where a person is needed and skips whatever a previous run already did:
   from an older name, `SIDEWALK_CITY_ID`, and `DATABASE_USER`.
 
 ## Optional follow-ups
-
-- **Intersections.** The AccessScore intersection table (#5095) is derived from the street graph by the nightly
-  clustering job, so a freshly onboarded city has no intersections — and no intersection scores — until that job
-  first runs (or an admin runs clustering by hand from `/clustering`). The evolution that introduced the table
-  populated it for the cities that existed then; a new city's rows come from the rebuild.
 
 - **Pano scraper**, only when the deployment is also a computer-vision dataset: once prod is up, create the city's
   directory under `sidewalk_panos/Panoramas/<city-id>` on the panorama store, seed it with a `log.csv` carrying the

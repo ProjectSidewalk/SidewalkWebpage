@@ -21,8 +21,10 @@ It chains every remaining setup step, pausing only where a human is required:
      `docker exec -e` (a running container's env is fixed at creation, so editing docker-compose.override.yml can't
      retarget it), and watches play_evolutions until the schema is current. Right after a clone the boot happens
      even when the donor was current: Play checks every applied evolution's hash against this checkout's files and
-     (autoApplyDowns) corrects one the donor picked up from another branch at the same number. On a rerun that kept
-     the schema, a current schema skips the boot.
+     (autoApplyDowns) corrects one the donor picked up from another branch at the same number. A schema kept from a
+     run that stopped before the fill gets the same treatment, since its hashes were never verified either; a kept
+     schema that already holds streets skips the boot. An app already running from the container's checkout would
+     fight the boot, so the step waits for it (or stops with its pids, unattended; --allow-running-apps overrides).
   5. Loads db/onboarding/<city-id>/qgis_tables.sql into the schema.
   6. Runs fill-new-schema.sh non-interactively (you pick the tutorial region and which regions open at launch).
   7. Runs the scripts/check_streets_for_imagery.py scan for the city's imagery provider in the web container (which
@@ -56,6 +58,9 @@ MESSAGES_DIR = REPO_ROOT / 'conf' / 'messages'
 EVOLUTIONS_DIR = REPO_ROOT / 'conf' / 'evolutions' / 'default'
 DB_CONTAINER = 'projectsidewalk-db'
 WEB_CONTAINER = 'projectsidewalk-web'
+# Where the main checkout is mounted in the web container — the one the boot builds from, and so the one an app
+# already running there would collide with.
+CHECKOUT_IN_CONTAINER = '/home'
 
 # The same sbt invocation `npm start` uses, minus `~` (one-shot, no watch). The tail pipe keeps stdin open — Play's
 # dev server stops on stdin EOF, which a detached `docker exec` would deliver immediately. Every process of the boot
@@ -63,7 +68,7 @@ WEB_CONTAINER = 'projectsidewalk-web'
 # stopping it is one `pkill -f` that can't touch another `tail -f /dev/null` in the container (make qa-worktree
 # holds one open the same way).
 BOOT_MARKER = 'onboard-city-boot'
-BOOT_CMD = (f"cd /home && (exec -a {BOOT_MARKER}-stdin tail -f /dev/null) | sbt -D{BOOT_MARKER}=1 "
+BOOT_CMD = (f"cd {CHECKOUT_IN_CONTAINER} && (exec -a {BOOT_MARKER}-stdin tail -f /dev/null) | sbt -D{BOOT_MARKER}=1 "
             "-Dconfig.file=/home/conf/application.local.conf "
             "-Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' "
             "-Dsbt.repository.config='.sbt/repositories' -J-Xmx1536m run > /tmp/onboard-city-boot.log 2>&1")
@@ -231,15 +236,21 @@ def translation_todo(city_id, state, new_country):
         new_country: The country id whose ``country.name.<country>`` line was just added, or None.
 
     Returns:
-        Human-readable lines, one per file, naming the keys to add where the language renders them differently
-        (zh-TW always transliterates; Latin-script languages only for well-known exonyms).
+        Human-readable lines, one per file that is still missing at least one of the keys, naming the ones to add
+        where the language renders them differently (zh-TW always transliterates; Latin-script languages only for
+        well-known exonyms). Empty when every file already has them — a rerun of an already-translated city.
     """
     keys = [f'city.name.{city_id}']
     if state:
         keys.append(f'state.name.{state}')
     if new_country:
         keys.append(f'country.name.{new_country}')
-    return [f'  conf/messages/{file_name}: {", ".join(keys)}' for file_name in TRANSLATED_MESSAGE_FILES]
+    lines = []
+    for file_name in TRANSLATED_MESSAGE_FILES:
+        missing = [key for key in keys if not message_key_exists(file_name, key)]
+        if missing:
+            lines.append(f'  conf/messages/{file_name}: {", ".join(missing)}')
+    return lines
 
 
 def handoff_checklist(city_id, schema, prod_url, test_url):
@@ -252,7 +263,11 @@ Server handoff for {city_id}:
   3. DNS + Google Cloud: add {test_url} and {prod_url} as referrers on the Maps API key (docs/google-cloud.md).
   4. Open the PR with the config, message, and docs changes; the auto-deploy picks the city up once it lands on
      develop (test) and in a release (prod).
-  5. Round-trip check any time: make import-dump db={schema} restores db/{schema}-dump into the dev DB.
+  5. Nightly jobs fill what onboarding leaves empty, so the dump you just copied has none of it yet: `intersection`
+     (with each street's corner links), `cluster`, and the `osm_way` tag cache all arrive on the city's first
+     scheduled run (04:00 + its update_offset_hours), and AccessScore reads zero until then. An admin can force the
+     intersections and clusters early from /clustering; the osm_way tags have their own nightly refresh (#5297).
+  6. Round-trip check any time: make import-dump db={schema} restores db/{schema}-dump into the dev DB.
 '''
 
 
@@ -381,9 +396,25 @@ def web_env(name):
     return result.stdout.strip() or None if result.returncode == 0 else None
 
 
-def sbt_running():
-    return subprocess.run(['docker', 'exec', WEB_CONTAINER, 'pgrep', '-f', 'sbt-launch'],
-                          capture_output=True).returncode == 0
+def conflicting_apps():
+    """
+    The running apps that would fight the one-shot boot, as ``"<pid> (<cwd>)"`` strings.
+
+    Only an sbt whose working directory is the checkout the boot uses counts: that one shares its build locks and,
+    unless it was given a port, :9000. A QA app started from a worktree (`make qa-worktree`) has its own target/ and
+    its own port, so it is left alone. Matching every sbt in the container instead blocked on those too, which on a
+    box that keeps worktree apps up is a false positive that never clears (#5297).
+    """
+    listing = subprocess.run(
+        ['docker', 'exec', WEB_CONTAINER, 'bash', '-c',
+         'for pid in $(pgrep -f sbt-launch); do echo "$pid $(readlink /proc/$pid/cwd)"; done'],
+        capture_output=True, text=True)
+    apps = []
+    for line in listing.stdout.split('\n'):
+        pid, _, cwd = line.strip().partition(' ')
+        if pid.isdigit() and cwd == CHECKOUT_IN_CONTAINER:
+            apps.append(f'{pid} ({cwd})')
+    return apps
 
 
 def evolution_problem(schema):
@@ -392,13 +423,14 @@ def evolution_problem(schema):
                     "WHERE last_problem IS NOT NULL AND last_problem <> '' ORDER BY id DESC LIMIT 1")
 
 
-def apply_evolutions(schema, city_id, verify=False):
+def apply_evolutions(schema, city_id, verify=False, allow_running_apps=False):
     """
     Boots the app one-shot as the new city and blocks until play_evolutions reaches the repo's latest.
 
     Args:
         schema:  The city schema.
         city_id: Its city id (SIDEWALK_CITY_ID for the boot).
+        allow_running_apps: Boot even with an app already running from this checkout (it normally refuses).
         verify:  Boot even when the schema already reads the latest number. Right after a donor clone this is the
                  only check that the donor's evolutions are *this checkout's*: Play compares every applied hash
                  with the file and, with autoApplyDowns on, reverts and re-applies from the first mismatch — the case
@@ -410,9 +442,20 @@ def apply_evolutions(schema, city_id, verify=False):
     if current and not verify:
         print(f'  Schema is already at evolution {applied}; no app boot needed.')
         return
-    while sbt_running():
-        input('  An app/sbt is already running in the web container; it would fight the one-shot boot over :9000 '
-              'and the build locks. Ctrl-C your `npm start`, then press Enter... ')
+    conflicts = conflicting_apps()
+    if conflicts and allow_running_apps:
+        print(f'  --allow-running-apps: booting anyway alongside {", ".join(conflicts)}; expect a build-lock or '
+              ':9000 failure if that app is really using them.')
+        conflicts = []
+    while conflicts:
+        if not sys.stdin.isatty():
+            sys.exit('error: an app is already running from the checkout this boot uses '
+                     f'({", ".join(conflicts)}), and would fight it over :9000 and the build locks.\n'
+                     f'  Stop it (Ctrl-C its `npm start`, or docker exec {WEB_CONTAINER} kill <pid>) and rerun, or '
+                     'pass --allow-running-apps to boot anyway.')
+        input(f'  An app is already running from the checkout this boot uses ({", ".join(conflicts)}); it would '
+              'fight it over :9000 and the build locks. Ctrl-C your `npm start`, then press Enter... ')
+        conflicts = conflicting_apps()
     subprocess.run(['docker', 'exec', '-d', '-e', f'DATABASE_USER={schema}', '-e', f'SIDEWALK_CITY_ID={city_id}',
                     WEB_CONTAINER, 'bash', '-c', BOOT_CMD], check=True)
     if current:
@@ -525,6 +568,10 @@ def main(argv=None):
                                         'DATABASE_USER). Refused if it sits ahead of this checkout\'s evolutions.')
     parser.add_argument('--skip-scan', action='store_true',
                         help='Skip the imagery scan (step 7); a later rerun picks it up.')
+    parser.add_argument('--allow-running-apps', action='store_true',
+                        help="Boot for the evolutions even with an app already running from the web container's "
+                             'checkout. Without it, an interactive run waits for you to stop that app and an '
+                             'unattended one stops with its pids.')
     args = parser.parse_args(argv)
     city_id = args.city_id
     schema = schema_name(city_id)
@@ -599,9 +646,13 @@ def main(argv=None):
     if new_country:
         add_message_line('messages', f'country.name.{country}', country_name, args.dry_run)
     add_docs_city_row(city_id, schema, args.dry_run)
-    print('  Translations still owed (zh-TW always; the others only where the name differs from English):')
-    for line in translation_todo(city_id, new_state, new_country):
-        print(line)
+    owed = translation_todo(city_id, new_state, new_country)
+    if owed:
+        print('  Translations still owed (zh-TW always; the others only where the name differs from English):')
+        for line in owed:
+            print(line)
+    else:
+        print('  Translations: every locale file already carries the city, state, and country names.')
 
     if args.dry_run:
         print('\n[dry-run] stopping before the docker/db steps.')
@@ -628,12 +679,29 @@ def main(argv=None):
         print('  Keeping the existing schema.')
     else:
         donor = args.donor or web_env('DATABASE_USER') or prompt('Donor schema to clone (e.g. sidewalk_richmond)')
-        docker_db('/opt/scripts/create-new-schema.sh', schema, donor, str(highest_evolution()),
-                  highest_evolution_hash(), check=True)
+        # Captured rather than streamed (it runs in seconds) so that a refusal can be quoted back below.
+        clone = docker_db('/opt/scripts/create-new-schema.sh', schema, donor, str(highest_evolution()),
+                          highest_evolution_hash(), capture_output=True, text=True)
+        print(clone.stdout, end='')
+        # The script's own reason (a donor ahead of this checkout, or carrying another branch's evolution) goes to
+        # stderr; repeat it in the exit message so it survives however the caller is capturing streams (#5297).
+        if clone.returncode != 0:
+            reason = '\n'.join(f'  | {line}' for line in clone.stderr.strip().split('\n') if line.strip())
+            sys.exit(f'error: create-new-schema.sh would not clone {donor} into {schema} '
+                     f'(exit {clone.returncode}):\n{reason}\n'
+                     '  Name an eligible donor with --donor <schema>; docs/onboarding-a-city.md says what makes one '
+                     'eligible (a city at this checkout\'s evolution level, carrying this checkout\'s hashes).')
         cloned = True
 
+    # A schema kept from an earlier run that stopped before the fill still holds only its clone's seed rows, so its
+    # donor's evolution hashes have never been checked against this checkout — verify it as if it were fresh (#5297).
+    unfilled = (db_query(f'SELECT count(*) FROM {schema}.street_edge') or '0') in ('0', '1')
+    if unfilled and not cloned:
+        print('  The kept schema is still an unfilled clone, so its evolutions have never been verified against this '
+              'checkout; verifying now.')
+
     print('\nStep 4/8 — apply evolutions via a one-shot app boot...')
-    apply_evolutions(schema, city_id, verify=cloned)
+    apply_evolutions(schema, city_id, verify=cloned or unfilled, allow_running_apps=args.allow_running_apps)
 
     # A filled schema means steps 5-6 already ran (a fresh clone holds just the tutorial street); rerunning the fill
     # would collide on street_edge ids.
