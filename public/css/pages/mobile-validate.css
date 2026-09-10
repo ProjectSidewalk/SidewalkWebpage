@@ -230,20 +230,28 @@ body {
   letter-spacing: 0.04em;
 }
 
-/* The shared smiley is drawn in strokes, so it takes the chip's own ink and would otherwise fill in solid black. */
 .mv-example__verdict-icon {
   width: 16px;
   height: 16px;
-  fill: none;
-  stroke: currentcolor;
+}
+
+/* The example's correct/incorrect class picks the smiley's face; its color comes from the verdict text's. */
+.mv-example--correct .mv-example__verdict-icon {
+  -webkit-mask-image: url("../../images/icons/smileys/sev-1-positive.svg");
+  mask-image: url("../../images/icons/smileys/sev-1-positive.svg");
+}
+
+.mv-example--incorrect .mv-example__verdict-icon {
+  -webkit-mask-image: url("../../images/icons/smileys/sev-3-positive.svg");
+  mask-image: url("../../images/icons/smileys/sev-3-positive.svg");
 }
 
 .mv-example--correct .mv-example__verdict {
-  color: var(--color-pine-800);
+  color: var(--color-pine-700);
 }
 
 .mv-example--incorrect .mv-example__verdict {
-  color: var(--color-orange-700);
+  color: var(--color-error-300);
 }
 
 .mv-example__caption {
@@ -284,12 +292,12 @@ body {
 
 .mv-example--correct .mv-example__callout {
   border-color: var(--color-pine-700);
-  color: var(--color-pine-800);
+  color: var(--color-pine-700);
 }
 
 .mv-example--incorrect .mv-example__callout {
-  border-color: var(--color-orange-700);
-  color: var(--color-orange-700);
+  border-color: var(--color-error-300);
+  color: var(--color-error-300);
 }
 
 .mv-dots {

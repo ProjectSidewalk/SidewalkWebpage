@@ -27,11 +27,14 @@
 //
 // == public/css/ ==
 // A stylesheet takes the other route: the `fingerprintCssAssetUrls` stage (project/CssAssetUrls.scala) rewrites its
-// `url(...)` targets at stage time, resolving each against the file itself rather than a manifest — so either URL form
-// is fine, nothing needs registering, and the stage's one requirement is the one rule here:
+// `url(...)` targets at stage time, resolving each against the file itself rather than a manifest, so nothing needs
+// registering. Two rules keep that working:
 //
 //   5. Every `url(...)` that names a file (not a data: payload, another origin, or a same-document fragment) resolves
 //      to something real under public/ — caught here, seconds into CI, rather than midway through a stage build.
+//   6. That url is relative, never '/assets/...'. Grunt's concat_css rewrites a bundled stylesheet's relative urls to
+//      '/assets/' paths for its new home in build/, and would put a second prefix on one that already has it. Holding
+//      every stylesheet to the one form means a file can join a bundle without breaking.
 //
 // Bundles under public/js/*/build/ are left to the stage: checking them here would report a concatenated copy of a
 // problem already reported against its source.
@@ -105,11 +108,10 @@ function walkCss(dir) {
 /**
  * @param {string} url - The url() target, unquoted, with any query string or fragment already cut off.
  * @param {string} cssFile - Repo-relative path of the stylesheet, which a relative url resolves against.
- * @returns {string|null} The path under public/, or null if the url climbs above public/ or points outside it.
+ * @returns {string|null} The path under public/, or null if the url is absolute or climbs above public/.
  */
 function cssTarget(url, cssFile) {
-  if (url.startsWith(ASSETS_PREFIX)) return url.slice(ASSETS_PREFIX.length);
-  if (url.startsWith('/')) return null; // Absolute, but outside the tree the assets route serves.
+  if (url.startsWith('/')) return null; // Rule 6 has already turned away '/assets/' urls, so this names no asset.
 
   const segments = relative(PUBLIC_DIR, join(ROOT, cssFile)).split('/').slice(0, -1);
   for (const segment of url.split('/')) {
@@ -387,7 +389,7 @@ for (const { file, url } of ALLOWED) {
   }
 }
 
-// --- 5. Every css url() names a real file --------------------------------------------------------------------------
+// --- 5 + 6. Every css url() is a relative path to a real file ------------------------------------------------------
 
 const cssFiles = walkCss(PUBLIC_DIR);
 let cssUrls = 0;
@@ -400,6 +402,12 @@ for (const file of cssFiles) {
       const url = (quoted ?? singleQuoted ?? bare).trim();
       if (url === '' || CSS_NOT_A_FILE.test(url)) continue;
       cssUrls++;
+
+      if (url.startsWith(ASSETS_PREFIX)) {
+        problems.push(`${file}:${i + 1}: url(${url}) is an absolute /assets/ path — write it relative to this file, `
+          + 'since Grunt rewrites relative urls for its bundles and would double the prefix on this one');
+        continue;
+      }
 
       // A query string or fragment is part of the URL but not of the filename; Bootstrap's glyphicons carry both.
       const cut = url.search(/[?#]/);

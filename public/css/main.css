@@ -264,6 +264,20 @@
   visibility: hidden !important;
 }
 
+/* For icons colored from CSS, since an <img> can't be recolored: paints the shape of the mask-image file in `color`.
+   No autoprefixer in this build, so the -webkit- siblings are written out; without them old Safari paints a block. */
+.ps-mask-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  background-color: currentcolor;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
 
 /* General styles */
 
@@ -1247,17 +1261,13 @@ kbd {
   flex-wrap: wrap;
 }
 
-/* Warning triangle: the severity cue, so the message text can stay calm and informative. Masked rather than an
-   <img> so the tint stays a token instead of being baked into the file (auth.css's .au-icon masks the same
-   shape). No autoprefixer in this build, hence the -webkit- siblings. */
+/* Warning triangle: the severity cue, so the message text can stay calm and informative. */
 .test-server-banner-icon {
-  flex: 0 0 auto;
   width: 20px;
   height: 20px;
-  background-color: currentcolor;
   color: var(--color-banana-800);
-  -webkit-mask: url("../images/icons/alert-triangle-feather.svg") center / contain no-repeat;
-  mask: url("../images/icons/alert-triangle-feather.svg") center / contain no-repeat;
+  -webkit-mask-image: url("../images/icons/alert-triangle-feather.svg");
+  mask-image: url("../images/icons/alert-triangle-feather.svg");
 }
 
 .test-server-banner-text {

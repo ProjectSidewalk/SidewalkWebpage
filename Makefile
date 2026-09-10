@@ -20,11 +20,14 @@ wt ?=
 only ?=
 clean ?=
 force ?=
+replace ?=
 
 # `clean=1` (or true/yes) expands to the qa-worktree-stop --clean flag; anything else (incl. empty) expands to nothing.
 qa-stop-clean-flag = $(if $(filter 1 true yes,$(clean)),--clean,)
 # Same idiom for worktree-remove's `force=1`.
 worktree-force-flag = $(if $(filter 1 true yes,$(force)),--force,)
+# Same idiom for import-users' `replace=1`, which wipes the login schema instead of merging into it.
+import-users-replace-flag = $(if $(filter 1 true yes,$(replace)),--replace,)
 
 # Resolve which copy of qa-worktree.sh to run, then exec it with the args in $(1). The main repo is mounted at the
 # container's /home, so /home/tools/qa-worktree.sh is the script as it exists on whatever branch the MAIN checkout
@@ -205,7 +208,7 @@ worktree-remove:
 	@bash tools/worktree-remove.sh $(wt) --container $(web-container) $(worktree-force-flag)
 
 import-users:
-	@docker exec -it $(db-container) sh -c "/opt/scripts/import-users.sh"
+	@docker exec -it $(db-container) sh -c "/opt/scripts/import-users.sh $(import-users-replace-flag)"
 
 import-dump:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-dump.sh $(db)"
