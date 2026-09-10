@@ -148,7 +148,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
    *
    * @tparam A The type of data in the stream, which must extend `StreamingApiType`.
    * @param dbDataStream The source stream of data to be converted into CSV format.
-   * @param csvHeader The header for the CSV file.
+   * @param csvHeader The header line for the CSV file, without a trailing newline.
    * @param inline Optional flag indicating whether to display the file inline or as an attachment.
    * @param filename The name of the output CSV file.
    */
@@ -158,9 +158,10 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       inline: Option[Boolean],
       filename: String
   ): Future[Result] = {
+    // `intersperse` puts nothing between its start element and the first row, so the header carries its own newline.
     val csvSource: Source[String, _] = dbDataStream
       .map(row => row.toCsvRow)
-      .intersperse(csvHeader, "\n", "\n")
+      .intersperse(s"$csvHeader\n", "\n", "\n")
 
     // Play's chunked(content, inline, fileName) overload emits a properly quoted Content-Disposition that honors
     // `inline`; adding a manual header here would both un-quote the filename and force `attachment`.

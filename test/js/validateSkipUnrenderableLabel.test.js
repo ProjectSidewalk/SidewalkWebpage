@@ -38,7 +38,7 @@ function loadClassFromFile(filePath, className) {
 
 /** @returns {object} A fake jQuery wrapper with the handful of methods Validate calls on its UI elements. */
 function fakeJqueryElement() {
-  return {addClass: jest.fn(), removeClass: jest.fn(), toggleClass: jest.fn(), css: jest.fn()};
+  return {addClass: jest.fn(), removeClass: jest.fn(), toggleClass: jest.fn(), css: jest.fn(), attr: jest.fn()};
 }
 
 describe('PanoManager clears the pano when no viewer can render it (issue #4810)', () => {
@@ -198,8 +198,8 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
       form: {getValidateParams: () => ({admin_version: false, unvalidated_only: false})},
       ui: {
         holder: fakeJqueryElement(),
-        validationMenu: {holder: fakeJqueryElement()},
-        viewer: {holder: fakeJqueryElement(), controlLayer: fakeJqueryElement()},
+        busyRegion: fakeJqueryElement(),
+        viewer: {controlLayer: fakeJqueryElement()},
       },
       panoManager: {
         renderPanoMarker: jest.fn(),
@@ -381,8 +381,9 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
   });
 
-  // The modals are rendered inside #svv-application-holder, which renderCurrentLabel covers with `validate-disabled`
-  // (pointer-events: none) while a label loads. Every exit has to hand the UI back or the modal's own button is dead.
+  // On desktop the modals are rendered inside #svv-application-holder, which renderCurrentLabel covers with
+  // `validate-disabled` (pointer-events: none) while a label loads. Every exit has to hand the UI back or the modal's
+  // own button is dead.
 
   test('the UI is released before a modal is shown, so its button can be clicked', async () => {
     unrenderablePanoIds.add('panoA');
@@ -391,8 +392,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
     await buildContainer();
 
-    expect(svv.ui.viewer.holder.toggleClass).toHaveBeenLastCalledWith('validate-disabled', false);
-    expect(svv.ui.validationMenu.holder.toggleClass).toHaveBeenLastCalledWith('validate-disabled', false);
+    expect(svv.ui.busyRegion.toggleClass).toHaveBeenLastCalledWith('validate-disabled', false);
     expect(svv.ui.holder.css).toHaveBeenLastCalledWith('cursor', '');
     expect(svv.modalNoNewMission.show).toHaveBeenCalled();
   });
@@ -400,7 +400,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
   test('the UI is released on the ordinary path too', async () => {
     await buildContainer();
 
-    expect(svv.ui.viewer.holder.toggleClass).toHaveBeenLastCalledWith('validate-disabled', false);
+    expect(svv.ui.busyRegion.toggleClass).toHaveBeenLastCalledWith('validate-disabled', false);
     expect(svv.ui.holder.css).toHaveBeenCalledWith('cursor', '');
   });
 });

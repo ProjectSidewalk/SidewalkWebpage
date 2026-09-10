@@ -74,20 +74,24 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
   if (prevBtn) prevBtn.hidden = true;
   if (nextBtn) nextBtn.hidden = true;
 
+  // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key shortcut (#5194), or Enter
+  // or Space on the focused arrow. The two input paths are logged apart, per docs/logged-events.md.
+  const pagingPrefix = (e) => (e.detail === 0 ? 'KeyboardShortcut' : 'Click');
+
   // Attached once here, guarded on the current navigator, so a repeat setNearbyNavigator() call can't stack
   // duplicate handlers that would double-advance the navigator on a single click.
   if (prevBtn) {
-    prevBtn.addEventListener('click', () => {
+    prevBtn.addEventListener('click', (e) => {
       if (!nearbyNav) return;
-      window.logWebpageActivity(`Click_module=LabelPopup_action=PrevLabel_labelId=${currentLabelId}`);
+      window.logWebpageActivity(`${pagingPrefix(e)}_module=LabelPopup_action=PrevLabel_labelId=${currentLabelId}`);
       const id = nearbyNav.prev(currentLabelId);
       if (id) showLabel(id, lastSource);
     });
   }
   if (nextBtn) {
-    nextBtn.addEventListener('click', () => {
+    nextBtn.addEventListener('click', (e) => {
       if (!nearbyNav) return;
-      window.logWebpageActivity(`Click_module=LabelPopup_action=NextLabel_labelId=${currentLabelId}`);
+      window.logWebpageActivity(`${pagingPrefix(e)}_module=LabelPopup_action=NextLabel_labelId=${currentLabelId}`);
       const id = nearbyNav.next(currentLabelId);
       if (id) showLabel(id, lastSource);
     });

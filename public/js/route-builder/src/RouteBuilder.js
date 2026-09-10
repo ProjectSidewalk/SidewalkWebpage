@@ -30,6 +30,11 @@ class RouteBuilder {
   // aimed at a street or an address set back from one, tight enough that a point in another part of the city
   // doesn't silently attach to the nearest street of the selected neighborhood.
   static MAX_SNAP_DISTANCE_M = 250;
+  // A point this close to a street of the selected region counts as inside that region even when the
+  // point-in-polygon test disagrees. Streets aren't strictly contained in their neighborhood polygon — one can run
+  // along and slightly across a boundary — so deciding by polygon alone would refuse clicks/hovers on parts of the
+  // region's own streets. Sized to cover that stray (~15 m) plus half a street width and click slop.
+  static BOUNDARY_STREET_TOL_M = 25;
   // How long the explorer takes to walk the route in the preview animation.
   static EXPLORER_ANIMATION_MS = 2500;
   // How long the pointer rests on the drawn route before its action menu opens (discoverable but not twitchy).
@@ -89,6 +94,8 @@ class RouteBuilder {
   #cursorGuide = null; // The pointer-following what-a-click-does bubble (created lazily).
   #editingRouteId = null; // The saved route loaded in the editor (null while building a brand-new route).
   #savedBaseline = null; // JSON of #routeStreetsPayload() at the last save/load; differing payload = unsaved edits.
+  #pendingLeaveSave = null; // Resolver for a leave prompt's "save first", settled when the save modal closes.
+  #signingIn = false; // The sign-in round-trip stashes the route and comes back to it, so it isn't a loss.
 
   // Collaborators.
   #saveModal;
@@ -167,7 +174,20 @@ class RouteBuilder {
       getSuggestedName: () => this.#suggestedRouteName(),
       getCamera: () => this.#cameraSnapshot(),
       onSaved: (saved) => this.#handleRouteSaved(saved),
-      onClose: () => this.#saveButton.focus(),
+      onClose: () => {
+        this.#settleLeaveSave(false);
+        this.#saveButton.focus();
+      },
+      onSignIn: () => {
+        this.#signingIn = true;
+      },
+    });
+    // The draft stash brings an in-progress route back on a same-tab return, but it dies with the tab and never
+    // reaches the user's account — so leaving still warrants the offer to save it properly first.
+    new UnsavedChangesGuard({
+      isDirty: () => !this.#signingIn && this.#hasUnsavedWork(),
+      save: () => this.#saveForLeaving(),
+      onChoice: (choice) => window.logWebpageActivity(`RouteBuilder_Click=UnsavedLeave_${choice}`),
     });
     this.#savedRoutes = new SavedRoutesPanel({
       isSignedIn: this.#isSignedIn,
@@ -682,11 +702,15 @@ class RouteBuilder {
       }
       if (!this.#routeStarted()) {
         const clickedRegionId = this.#regionIdAtPoint(event.point);
-        if (clickedRegionId === null) return; // Clicked outside every neighborhood.
-        if (clickedRegionId !== this.#currRegionId) {
-          window.logWebpageActivity(`RouteBuilder_Click=SelectRegion_RegionId=${clickedRegionId}`);
-          this.#selectRegion(clickedRegionId);
-          return;
+        // A click on a street of the selected region falls through to the waypoint flow even when the ground under
+        // it belongs to another polygon (or none) — the street, not the polygon, is what the user aimed at.
+        if (!this.#onCurrentRegionStreet(event.lngLat)) {
+          if (clickedRegionId === null) return; // Clicked outside every neighborhood.
+          if (clickedRegionId !== this.#currRegionId) {
+            window.logWebpageActivity(`RouteBuilder_Click=SelectRegion_RegionId=${clickedRegionId}`);
+            this.#selectRegion(clickedRegionId);
+            return;
+          }
         }
       }
       this.#addWaypoint(event.lngLat, 'MapClick');
@@ -726,6 +750,21 @@ class RouteBuilder {
   }
 
   /**
+   * Whether a coordinate is effectively on one of the selected region's streets.
+   *
+   * The polygon-based region tests treat such a point as inside the selected region: a street can stray slightly
+   * across (or run along) its neighborhood's boundary, so the polygon under the pointer alone would misclassify
+   * points on the region's own streets.
+   *
+   * @param {Object} lngLat - {lng, lat}.
+   * @returns {boolean}
+   */
+  #onCurrentRegionStreet(lngLat) {
+    return this.#currRegionId !== null && this.#routeGraph !== null
+      && this.#routeGraph.isNearStreet(lngLat, this.#currRegionId, RouteBuilder.BOUNDARY_STREET_TOL_M);
+  }
+
+  /**
    * Pointer pipeline for the map (rAF-throttled — snapping scans the street network, so at most one pass per
    * frame): keeps the ghost flag (where the next click lands) and the cursor guide (what the next click does) in
    * sync with the mouse.
@@ -748,14 +787,15 @@ class RouteBuilder {
    * Moves the ghost flag to the intersection nearest the mouse. Once a neighborhood is selected this is the click
    * affordance: a translucent start flag before the first point, then a translucent end flag while extending.
    * Snapping is restricted to the selected region; hovering a different region shows a not-allowed cursor once the
-   * route is locked there.
+   * route is locked there — unless the pointer is on a current-region street that strays across the polygon line.
    *
    * @param {number|null} hoverRegionId - Region under the pointer, if any.
    */
   #updateGhost(hoverRegionId) {
     const source = this.#map.getSource('ghost-start');
     if (!source || this.#currRegionId === null || !this.#routeGraph) return;
-    if (this.#routeStarted() && hoverRegionId !== null && hoverRegionId !== this.#currRegionId) {
+    if (this.#routeStarted() && hoverRegionId !== null && hoverRegionId !== this.#currRegionId
+      && !this.#onCurrentRegionStreet(this.#ghostLngLat)) {
       this.#clearGhostStart();
       this.#map.getCanvas().style.cursor = 'not-allowed';
       return;
@@ -786,14 +826,17 @@ class RouteBuilder {
     const overRoute = this.#streetsInRoute !== null && this.#streetsInRoute.features.length > 0
       && this.#map.queryRenderedFeatures([[point.x - 6, point.y - 6], [point.x + 6, point.y + 6]],
         { layers: ['streets-chosen'] }).length > 0;
+    // The guide mirrors what a click would do, so the strayed-street exception applies here too: hovering a
+    // current-region street that pokes across the polygon line guides toward placing a point, not switching.
+    const onOwnStreet = this.#onCurrentRegionStreet(this.#ghostLngLat);
     if (!overRoute && !this.#routePopover.isOpen()) {
       if (!this.#routeStarted()) {
-        if (hoverRegionId !== null && hoverRegionId !== this.#currRegionId) {
+        if (hoverRegionId !== null && hoverRegionId !== this.#currRegionId && !onOwnStreet) {
           text = i18next.t('guide-select-region', { region: this.#getRegionName(hoverRegionId) ?? '' });
-        } else if (hoverRegionId !== null) {
+        } else if (hoverRegionId !== null || onOwnStreet) {
           text = i18next.t('guide-pick-start');
         }
-      } else if (this.#waypoints.length === 1 && hoverRegionId === this.#currRegionId) {
+      } else if (this.#waypoints.length === 1 && (hoverRegionId === this.#currRegionId || onOwnStreet)) {
         text = i18next.t('guide-pick-end');
       }
     }
@@ -863,10 +906,12 @@ class RouteBuilder {
     const graph = this.#getRouteGraph();
 
     // Region rule: a point in a different neighborhood than the selected one is refused (with a toast). The
-    // polygon under the point decides, and snapping is restricted to the selected region, so a point near a
-    // boundary can't silently slip across it.
+    // polygon under the point decides — except for points on a current-region street that strays across the
+    // polygon line — and snapping is restricted to the selected region, so a point near a boundary can't silently
+    // slip across it.
     const pointRegionId = this.#regionIdContaining(lngLat);
-    if (this.#currRegionId !== null && pointRegionId !== null && pointRegionId !== this.#currRegionId) {
+    if (this.#currRegionId !== null && pointRegionId !== null && pointRegionId !== this.#currRegionId
+      && !this.#onCurrentRegionStreet(lngLat)) {
       this.#showMapMessage(i18next.t('one-neighborhood-warning'));
       window.logWebpageActivity(`RouteBuilder_AddWaypoint=DifferentRegion_Source=${source}`);
       return;
@@ -1412,15 +1457,47 @@ class RouteBuilder {
    * @returns {Promise<boolean>} True to proceed.
    */
   #unsavedWorkConfirmed() {
-    const unsavedWork = this.#editingRouteId !== null
-      ? this.#isDirty()
-      : (this.#streetsInRoute?.features.length ?? 0) > 0;
-    if (!unsavedWork) return Promise.resolve(true);
+    if (!this.#hasUnsavedWork()) return Promise.resolve(true);
     return ConfirmDialog.confirm({
       message: i18next.t('unsaved-continue-confirm'),
       confirmText: i18next.t('common:continue'),
       cancelText: i18next.t('common:cancel'),
     });
+  }
+
+  /**
+   * Whether there is work a discard would lose: edits to a loaded saved route, or a drawn-but-never-saved route.
+   * @returns {boolean}
+   */
+  #hasUnsavedWork() {
+    return this.#editingRouteId !== null
+      ? this.#isDirty()
+      : (this.#streetsInRoute?.features.length ?? 0) > 0;
+  }
+
+  /**
+   * Saves for a leave prompt that asked to save first. A loaded route updates in place; a new one has no name
+   * yet, so it goes through the save modal and this resolves only once that closes one way or the other.
+   *
+   * @returns {Promise<boolean>} Whether the route was saved.
+   */
+  #saveForLeaving() {
+    if (this.#editingRouteId !== null) return this.#updateSavedRoute();
+    return new Promise((resolve) => {
+      this.#settleLeaveSave(false); // Only one prompt can be waiting; an older one is no longer being answered.
+      this.#pendingLeaveSave = resolve;
+      this.#saveModal.open();
+    });
+  }
+
+  /**
+   * Answers the leave prompt waiting on the save modal, if there is one.
+   * @param {boolean} saved - Whether the route made it to the database.
+   */
+  #settleLeaveSave(saved) {
+    const resolve = this.#pendingLeaveSave;
+    this.#pendingLeaveSave = null;
+    resolve?.(saved);
   }
 
   /** Closes the editing session (or clears a new route), back to the intro state. The saved route is untouched. */
@@ -1490,12 +1567,14 @@ class RouteBuilder {
   /**
    * Writes the current street list back to the loaded saved route (PUT). The route keeps its id, slug, stats,
    * and share links; in-progress explorations reconcile server-side.
+   *
+   * @returns {Promise<boolean>} Whether the write succeeded.
    */
   #updateSavedRoute() {
     const payload = this.#routeStreetsPayload();
     const routeId = this.#editingRouteId;
     window.logWebpageActivity(`RouteBuilder_Click=UpdateRoute_RouteId=${routeId}`);
-    fetch(`/userapi/routes/${routeId}`, {
+    return fetch(`/userapi/routes/${routeId}`, {
       method: 'PUT',
       headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
       body: JSON.stringify({ streets: payload }),
@@ -1510,12 +1589,14 @@ class RouteBuilder {
         this.#savedRoutes.refresh();
         Toast.show({ message: i18next.t('route-updated'), duration: 3000 });
         window.logWebpageActivity(`RouteBuilder_Click=UpdateSuccess_RouteId=${routeId}`);
+        return true;
       })
       .catch((e) => {
         // A 404 means the route isn't ours anymore (e.g. a guest whose anonymous session rotated).
         const gone = e.message === '404' || e.message === '403';
         this.#showMapMessage(i18next.t(gone ? 'route-update-gone' : 'save-error'));
         window.logWebpageActivity('RouteBuilder_Click=UpdateError');
+        return false;
       });
   }
 
@@ -1745,6 +1826,7 @@ class RouteBuilder {
     this.#savedRoutes.refresh(routeId);
     this.#updateSaveButton();
     Toast.show({ message: i18next.t('route-saved'), duration: 3000 });
+    this.#settleLeaveSave(true);
   }
 
   /**

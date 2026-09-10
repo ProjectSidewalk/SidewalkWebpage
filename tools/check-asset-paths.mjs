@@ -21,15 +21,20 @@
 //        manifest;
 //      - an argument built by concatenation is rejected outright: only a whole path inside one template literal is
 //        checkable, and CLAUDE.md asks for that form anyway.
-//   3. Every prefix in that list is a real directory, so a renamed asset family fails here rather than in sbt.
+//   3. No string surgery on an element's `src`: a resolved URL carries the digest of the file it names, so editing
+//      the filename inside one leaves another file's fingerprint in front of it.
+//   4. Every prefix in that list is a real directory, so a renamed asset family fails here rather than in sbt.
 //
 // == public/css/ ==
 // A stylesheet takes the other route: the `fingerprintCssAssetUrls` stage (project/CssAssetUrls.scala) rewrites its
-// `url(...)` targets at stage time, resolving each against the file itself rather than a manifest — so either URL form
-// is fine, nothing needs registering, and the stage's one requirement is the one rule here:
+// `url(...)` targets at stage time, resolving each against the file itself rather than a manifest, so nothing needs
+// registering. Two rules keep that working:
 //
-//   4. Every `url(...)` that names a file (not a data: payload, another origin, or a same-document fragment) resolves
+//   5. Every `url(...)` that names a file (not a data: payload, another origin, or a same-document fragment) resolves
 //      to something real under public/ — caught here, seconds into CI, rather than midway through a stage build.
+//   6. That url is relative, never '/assets/...'. Grunt's concat_css rewrites a bundled stylesheet's relative urls to
+//      '/assets/' paths for its new home in build/, and would put a second prefix on one that already has it. Holding
+//      every stylesheet to the one form means a file can join a bundle without breaking.
 //
 // Bundles under public/js/*/build/ are left to the stage: checking them here would report a concatenated copy of a
 // problem already reported against its source.
@@ -65,6 +70,11 @@ const HARDCODED = /['"`(]\/assets\/(?!\$)[A-Za-z0-9_\-./]*/g;
 // every call shape is accounted for instead of only the ones a pattern happens to describe.
 const CALL = /util\.assetPath\(/g;
 
+// Editing an element's already-resolved `src` as a string. `href` is deliberately left out — in public/js it names
+// fragment ids, the page's own location and API links, never an asset.
+const SRC_SURGERY =
+  /(?:\.src|getAttribute\(\s*['"]src['"]\s*\))\s*\.\s*(replace|slice|substring|substr|split|concat)\s*\(/g;
+
 // A css url() token. Kept in step with UrlToken in project/CssAssetUrls.scala: this check is only worth anything
 // while it reads the same references the stage will.
 const CSS_URL = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^"')\s][^)]*?))\s*\)/g;
@@ -98,11 +108,10 @@ function walkCss(dir) {
 /**
  * @param {string} url - The url() target, unquoted, with any query string or fragment already cut off.
  * @param {string} cssFile - Repo-relative path of the stylesheet, which a relative url resolves against.
- * @returns {string|null} The path under public/, or null if the url climbs above public/ or points outside it.
+ * @returns {string|null} The path under public/, or null if the url is absolute or climbs above public/.
  */
 function cssTarget(url, cssFile) {
-  if (url.startsWith(ASSETS_PREFIX)) return url.slice(ASSETS_PREFIX.length);
-  if (url.startsWith('/')) return null; // Absolute, but outside the tree the assets route serves.
+  if (url.startsWith('/')) return null; // Rule 6 has already turned away '/assets/' urls, so this names no asset.
 
   const segments = relative(PUBLIC_DIR, join(ROOT, cssFile)).split('/').slice(0, -1);
   for (const segment of url.split('/')) {
@@ -289,7 +298,7 @@ function inManifest(logicalPath) {
   return PREFIXES.length === 0 || PREFIXES.some((prefix) => logicalPath.startsWith(`${prefix}/`));
 }
 
-// --- 1 & 2. Per-file checks ---------------------------------------------------------------------------------------
+// --- 1, 2 & 3. Per-file checks -----------------------------------------------------------------------------------
 
 const files = walkJs(JS_DIR);
 let staticCalls = 0;
@@ -308,6 +317,12 @@ for (const file of files) {
       if (ALLOWED.some((entry) => entry.file === file && url === entry.url.split('{')[0])) continue;
       problems.push(`${file}:${i + 1}: hardcoded '${url}' URL — use util.assetPath('images/...') so staged builds `
         + 'serve the fingerprinted, immutable-cached copy');
+    }
+
+    for (const [, method] of line.matchAll(SRC_SURGERY)) {
+      problems.push(`${file}:${i + 1}: edits an element's resolved src with .${method}() — that URL carries the `
+        + 'digest of the file it names, so the result 404s on a staged build. Build the URL you want with '
+        + 'util.assetPath instead.');
     }
   });
 
@@ -364,7 +379,7 @@ for (const file of files) {
   }
 }
 
-// --- 3. The allowlist is still live -------------------------------------------------------------------------------
+// --- 4. The allowlist is still live -------------------------------------------------------------------------------
 
 for (const { file, url } of ALLOWED) {
   const text = existsSync(join(ROOT, file)) ? readFileSync(join(ROOT, file), 'utf8') : '';
@@ -374,7 +389,7 @@ for (const { file, url } of ALLOWED) {
   }
 }
 
-// --- 4. Every css url() names a real file --------------------------------------------------------------------------
+// --- 5 + 6. Every css url() is a relative path to a real file ------------------------------------------------------
 
 const cssFiles = walkCss(PUBLIC_DIR);
 let cssUrls = 0;
@@ -387,6 +402,12 @@ for (const file of cssFiles) {
       const url = (quoted ?? singleQuoted ?? bare).trim();
       if (url === '' || CSS_NOT_A_FILE.test(url)) continue;
       cssUrls++;
+
+      if (url.startsWith(ASSETS_PREFIX)) {
+        problems.push(`${file}:${i + 1}: url(${url}) is an absolute /assets/ path — write it relative to this file, `
+          + 'since Grunt rewrites relative urls for its bundles and would double the prefix on this one');
+        continue;
+      }
 
       // A query string or fragment is part of the URL but not of the filename; Bootstrap's glyphicons carry both.
       const cut = url.search(/[?#]/);

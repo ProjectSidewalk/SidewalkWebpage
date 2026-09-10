@@ -47,18 +47,18 @@ class PanoViewer {
   constructor() {
     if (new.target === PanoViewer) {
       throw new Error('Cannot instantiate abstract class directly');
-    } else if (new.target === GsvViewer) {
-      this.viewerType = 'gsv';
+    }
+    this.viewerType = new.target.SOURCE;
+    if (new.target === GsvViewer) {
       this.canvasClass = 'widget-scene-canvas';
     } else if (new.target === MapillaryViewer) {
-      this.viewerType = 'mapillary';
       this.canvasClass = 'mapillary-canvas';
     } else if (new.target === Infra3dViewer) {
-      this.viewerType = 'infra3d';
       this.canvasClass = 'infra3dsdk-canvas';
     } else if (new.target === PannellumViewer) {
-      this.viewerType = 'pannellum';
       this.canvasClass = 'pannellum-canvas';
+    } else if (new.target === PanoramaxViewer) {
+      this.canvasClass = 'psv-canvas';
     }
   }
 

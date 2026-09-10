@@ -72,7 +72,7 @@ describe("StorySection's linked-story reveal (#4722)", () => {
         stories = [story()];
         window.fetch = jest.fn().mockImplementation(() => Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ max_text_length: 500, is_access_problem: true, stories }),
+            json: () => Promise.resolve({ max_text_length: 500, access_impact: 'problem', stories }),
         }));
     });
 

@@ -56,9 +56,16 @@
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Generate crops</b>
-          <span class="dq-sub">Cuts the missing label crops and downscaled panos from the self-hosted pano store, as the nightly job does.</span>
+          <span class="dq-sub">Cuts the missing label crops from the self-hosted pano store, as the nightly job does.</span>
         </div>
         <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-generate-crops" data-confirm="Generate the missing crops now? A first backfill can take an hour.">Run</button>
+      </div>
+      <div class="mgmt-action">
+        <div class="mgmt-action-text">
+          <b>Rebuild sidewalk presence</b>
+          <span class="dq-sub">Re-derives each street side's sidewalk verdict from today's labels, as the nightly job does.</span>
+        </div>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-rebuild-sidewalk-presence" data-confirm="Rebuild sidewalk presence for every street now? It takes a few seconds.">Run</button>
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
@@ -84,7 +91,8 @@
         clearCacheUrl: '/adminapi/clearPlayCache',
         recalcStatsUrl: '/adminapi/updateUserStats',
         recalcPriorityUrl: '/adminapi/recalculateStreetPriority',
-        generateCropsUrl: '/adminapi/generateCrops'
+        generateCropsUrl: '/adminapi/generateCrops',
+        rebuildSidewalkPresenceUrl: '/adminapi/rebuildSidewalkPresence'
       }).init();
     });
   </script>

@@ -30,6 +30,11 @@
   "continue": "Continuar",
   "delete": "Excluir",
   "done": "Concluído",
+  "unsaved-changes": {
+    "message": "Você tem alterações não salvas. Deseja salvá-las antes de sair desta página?",
+    "save": "Salvar e sair",
+    "leave": "Sair"
+  },
   "badges": {
     "congratulations": "Parabéns!",
     "you-earned": "Você ganhou a insígnia “{{badge}}”!",
@@ -201,6 +206,7 @@
     "pano-address": "Endereço",
     "view-in-gsv": "Ver no Google Street View",
     "view-in-mapillary": "Ver no Mapillary",
+    "view-in-panoramax": "Ver no Panoramax",
     "city": "Cidade",
     "copy-to-clipboard": "Copiar para a área de transferência",
     "copied-to-clipboard": "Dados copiados para a área de transferência!"

@@ -77,6 +77,12 @@ class SeoSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
       body must not include "rel=\"canonical\""
     }
   }
+
+  "Responses from a test stage" should {
+    "carry X-Robots-Tag: noindex, nofollow" in {
+      header("X-Robots-Tag", route(app, FakeRequest(GET, "/robots.txt")).get) mustBe Some("noindex, nofollow")
+    }
+  }
 }
 
 /**
@@ -86,10 +92,17 @@ class SeoSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
  */
 class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
 
+  private lazy val cityId: String = com.typesafe.config.ConfigFactory.load().getString("city-id")
+
+  // All three inputs to indexability are pinned: on a private or Infra3D city every assertion below would invert.
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .disable[modules.ActorModule]
-      .configure("environment-type" -> "prod")
+      .configure(
+        "environment-type"                      -> "prod",
+        s"city-params.status.$cityId"           -> "public",
+        s"city-params.pano-viewer-type.$cityId" -> "gsv"
+      )
       .build()
 
   "GET /robots.txt on prod" should {
@@ -113,6 +126,14 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
     }
   }
 
+  "An indexable prod city" should {
+    "send no X-Robots-Tag header at all" in {
+      // An indexable city sends none at all: "X-Robots-Tag: all" says nothing an absent header does not (#5120).
+      header("X-Robots-Tag", route(app, FakeRequest(GET, "/robots.txt")).get) mustBe None
+      header("X-Robots-Tag", route(app, FakeRequest(GET, "/sitemap.xml")).get) mustBe None
+    }
+  }
+
   "GET /sitemap.xml" should {
     "list the public pages with absolute prod URLs and no duplicate-alias URLs" in {
       val resp = route(app, FakeRequest(GET, "/sitemap.xml")).get
@@ -123,6 +144,7 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
       body must include("<urlset")
       body must include("/about</loc>")
       body must include("/v3/api-docs/rawLabels</loc>")
+      body must include("/v3/api-docs/sidewalkPresence</loc>")
       // Still-SecuredAction pages 303 crawlers into the disallowed /anonSignUp, so promoting them would only
       // manufacture crawl errors; they return to the sitemap if their shells go sessionless (#4643 phase 3).
       body must not include "/explore</loc>"
@@ -223,7 +245,11 @@ class SeoSignInWalledSpec extends PlaySpec with GuiceOneAppPerSuite {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .disable[modules.ActorModule]
-      .configure("environment-type" -> "prod", s"city-params.pano-viewer-type.$cityId" -> "infra3d")
+      .configure(
+        "environment-type"                      -> "prod",
+        s"city-params.status.$cityId"           -> "public",
+        s"city-params.pano-viewer-type.$cityId" -> "infra3d"
+      )
       .build()
 
   implicit lazy val mat: Materializer = app.materializer
@@ -238,6 +264,80 @@ class SeoSignInWalledSpec extends PlaySpec with GuiceOneAppPerSuite {
     "keep the Disallow rules but advertise no sitemap" in {
       val body = contentAsString(route(app, FakeRequest(GET, "/robots.txt")).get)
       body must include("Disallow: /admin")
+      body must not include "Sitemap:"
+    }
+  }
+
+  "Every response from a sign-in-walled prod city" should {
+    "carry X-Robots-Tag: noindex, nofollow" in {
+      header("X-Robots-Tag", route(app, FakeRequest(GET, "/robots.txt")).get) mustBe Some("noindex, nofollow")
+    }
+  }
+}
+
+/**
+ * SEO surface on a private prod city (#5120) — the research partnerships and pilots that run on prod but are not
+ * launched publicly. These assertions are the whole of what keeps them out of the search index. Overrides the
+ * configured city's status rather than hard-coding a private city id, so the spec runs on any city.
+ */
+class SeoPrivateCitySpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
+
+  private lazy val cityId: String = com.typesafe.config.ConfigFactory.load().getString("city-id")
+
+  override def fakeApplication(): Application =
+    new GuiceApplicationBuilder()
+      .disable[modules.ActorModule]
+      .configure(
+        "environment-type"                      -> "prod",
+        s"city-params.status.$cityId"           -> "private",
+        s"city-params.pano-viewer-type.$cityId" -> "gsv"
+      )
+      .build()
+
+  "Every response from a private prod city" should {
+    "carry X-Robots-Tag: noindex, nofollow" in {
+      // One path per response kind a <meta> tag cannot reach, so narrowing the filter to HTML or to routed actions
+      // can't pass the suite.
+      Seq("/assets/images/psmockup.jpg", "/no-such-path-12345", "/v3/api/labelTypes", "/robots.txt", "/sitemap.xml")
+        .foreach { path =>
+          withClue(s"$path: ") {
+            header("X-Robots-Tag", route(app, FakeRequest(GET, path)).get) mustBe Some("noindex, nofollow")
+          }
+        }
+    }
+
+    "carry it even on a response a security filter short-circuits" in {
+      // AllowedHostsFilter rejects before any action runs, so this holds only while SeoRobotsFilter is the outermost
+      // entry in play.filters.enabled — the regression pin for that ordering.
+      val resp = route(app, FakeRequest(GET, "/robots.txt").withHeaders(HOST -> "evil.example.com")).get
+      status(resp) mustBe BAD_REQUEST
+      header("X-Robots-Tag", resp) mustBe Some("noindex, nofollow")
+    }
+  }
+
+  "Pages on a private prod city" should {
+    "carry noindex and no canonical" in {
+      val (sc, body) = getPage("/")
+      sc mustBe OK
+      body must include("noindex")
+      body must not include "rel=\"canonical\""
+    }
+  }
+
+  "GET /sitemap.xml on a private prod city" should {
+    "404 rather than advertise the city's pages" in {
+      status(route(app, FakeRequest(GET, "/sitemap.xml")).get) mustBe NOT_FOUND
+    }
+  }
+
+  "GET /robots.txt on a private prod city" should {
+    "still allow the crawl, so the noindex signal is actually seen" in {
+      // Deliberately not `Disallow: /`: a URL blocked by robots.txt is never fetched, so the crawler never sees the
+      // noindex and can still list the URL on the strength of an inbound link. Google's own guidance is to allow the
+      // crawl and let the noindex land.
+      val body = contentAsString(route(app, FakeRequest(GET, "/robots.txt")).get)
+      body must include("Disallow: /admin")
+      body must not include "Disallow: /\n"
       body must not include "Sitemap:"
     }
   }

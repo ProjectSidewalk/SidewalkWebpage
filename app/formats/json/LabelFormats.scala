@@ -125,8 +125,10 @@ object LabelFormats {
       "comments"            -> labelMetadata.comments.map(commentToJson(_, currUsername, commenterIdx)),
       "from_current_user"   -> labelMetadata.fromCurrentUser,
       "backup_image_url"    -> backupImageUrl,
-      "pano_data"           -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson(_, labelMetadata.panoSource)),
-      "admin_data"          -> adminData.map(ad =>
+      // Per label, not per city: a city that has changed providers holds labels from both (#5202).
+      "pano_source" -> labelMetadata.panoSource.toString,
+      "pano_data"   -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson(_, labelMetadata.panoSource)),
+      "admin_data"  -> adminData.map(ad =>
         Json.obj(
           "username"             -> ad.username,
           "previous_validations" -> ad.previousValidations.map(prevVal =>
@@ -237,7 +239,22 @@ object LabelFormats {
     )
   }
 
-  def labelMetadataUserDashToJson(label: LabelMetadataUserDash, imageUrl: Option[String]): JsObject = {
+  /**
+   * Serializes a label for the user dashboard's mistake cards. Both image URLs go out because the card prefers the
+   * crop (#4478) but a crop's signed URL expires, leaving `image_url` as the fallback.
+   *
+   * @param label      The validated label.
+   * @param cropUrl    The label's saved crop, if one is on disk.
+   * @param cropMarker Where the label sits in that crop (#2660); absent for a crop no `label_crop` row describes.
+   * @param imageUrl   The Street View Static API image at the label's POV; None for a non-GSV pano source.
+   * @return           The card's JSON, with every image field nullable.
+   */
+  def labelMetadataUserDashToJson(
+      label: LabelMetadataUserDash,
+      cropUrl: Option[String],
+      cropMarker: Option[CropMarker],
+      imageUrl: Option[String]
+  ): JsObject = {
     Json.obj(
       "label_id"          -> label.labelId,
       "pano_id"           -> label.panoId,
@@ -249,7 +266,11 @@ object LabelFormats {
       "label_type"        -> label.labelType.name,
       "time_validated"    -> label.timeValidated,
       "validator_comment" -> label.validatorComment,
-      "image_url"         -> imageUrl
+      "crop_url"          -> cropUrl,
+      "crop_marker"       -> cropMarker,
+      "image_url"         -> imageUrl,
+      "pano_source"       -> label.panoSource.toString,
+      "attribution"       -> ImageryAttribution.line(label.panoSource, label.copyright, label.license).map(_.toJson)
     )
   }
 
@@ -275,7 +296,7 @@ object LabelFormats {
     "camera_pitch"   -> pm.cameraPitch,
     "camera_roll"    -> pm.cameraRoll,
     "copyright"      -> pm.copyright,
-    "attribution"    -> ImageryAttribution.line(source, pm.copyright).map(_.toJson),
+    "attribution"    -> ImageryAttribution.line(source, pm.copyright, pm.license).map(_.toJson),
     "address"        -> pm.address
   )
 
@@ -299,7 +320,7 @@ object LabelFormats {
       "cameraRoll"    -> p.cameraRoll,
       "captureDate"   -> p.captureDate,
       "copyright"     -> p.copyright,
-      "attribution"   -> ImageryAttribution.line(p.source, p.copyright).map(_.toJson),
+      "attribution"   -> ImageryAttribution.line(p.source, p.copyright, p.license).map(_.toJson),
       "address"       -> p.address
     )
   }
@@ -310,11 +331,12 @@ object LabelFormats {
    * @param labelType The label type name.
    * @param url The signed serving URL (e.g. /cropImage/<labelType>/<labelId>?exp=...&sig=...).
    */
-  def cropImagePayload(labelId: Int, labelType: String, url: String): JsObject = {
+  def cropImagePayload(labelId: Int, labelType: String, url: String, marker: Option[CropMarker]): JsObject = {
     Json.obj(
-      "labelId"   -> labelId,
-      "labelType" -> labelType,
-      "imageUrl"  -> url
+      "labelId"    -> labelId,
+      "labelType"  -> labelType,
+      "imageUrl"   -> url,
+      "cropMarker" -> marker
     )
   }
 

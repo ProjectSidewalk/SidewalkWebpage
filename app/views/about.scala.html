@@ -26,7 +26,7 @@
 @cityCount = @{commonData.allCityInfo.size}
 @countryCount = @{commonData.allCityInfo.map(_.countryId).distinct.size}
 @* Count of natively translated languages, from config so it can't drift: base languages only (en-US/en-NZ are
-   regional overlays of en, zh-TW's base is zh), so e.g. [en, en-US, en-NZ, es, nl, zh-TW, de, pt-BR] counts 6. *@
+   regional overlays of en, zh-TW's base is zh), so e.g. [en, en-US, en-NZ, es, nl, zh-TW, de, pt-BR, fr] counts 7. *@
 @languageCount = @{config.get[Seq[String]]("play.i18n.langs").map(_.takeWhile(_ != '-')).distinct.size}
 
 @* AboutPage JSON-LD built with the JSON library (not hand-written markup) so quoting is always valid; escaping `<`

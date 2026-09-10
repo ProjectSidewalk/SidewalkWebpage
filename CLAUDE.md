@@ -28,8 +28,10 @@ file, and this table says which doc to read first:
 | A new or changed user interaction | `docs/logged-events.md` |
 | Releases, deploys, asset caching, persistent media dirs | `docs/deployment-and-stages.md` |
 | Storing uploaded media (DB row vs. media dir) | `docs/architecture.md` → "Media storage" |
+| Label crops, or a marker drawn on one (`label_crop` provenance, #2660) | `docs/architecture.md` → "Media storage" |
 | Tests or CI | `docs/testing-and-ci.md`, `test/e2e/README.md` |
 | `scripts/*.py` | `scripts/README.md` |
+| Onboarding a new city (streets, regions, schema, configs) | `docs/onboarding-a-city.md` (and the `onboard-city` skill) |
 | Google Maps keys, quotas, or a Google Cloud bill | `docs/google-cloud.md` |
 | The label lat/lng estimator or the labeling viewport frame | `docs/label-latlng-estimation.md` |
 
@@ -37,6 +39,7 @@ file, and this table says which doc to read first:
 
 - `develop` is the main branch and the PR target; `master` is the release branch. Branch names start with the
   issue number (`1234-fix-label-popup`).
+- Start a ticket by branching from an up-to-date `develop`, unless the maintainer says otherwise.
 - **Never open a pull request, merge, tag, or release without the maintainer's explicit OK.** Do the work, run the
   checks, push the branch if useful, then stop and ask. Filing GitHub issues is fine. Maintainers: @jonfroehlich
   and @misaugstad.
@@ -52,13 +55,15 @@ file, and this table says which doc to read first:
 ## Before a change is done
 
 - **Scala:** `make scalafmt-fix` (a blocking CI gate). Compile check without fighting the developer's `sbt ~ run`:
-  `docker exec projectsidewalk-web bash -lc "cd /home && sbt --client compile"`. `-Xfatal-warnings` is on, so a
-  success is warning-clean.
-- **Frontend:** `make lint` (ESLint, Stylelint, HTMLHint, locale parity, CSS layout, asset paths, evolutions lint;
-  all blocking CI gates), or scope it with `make eslint dir=…` / `make stylelint dir=…`. `make lint-fix` handles the
-  mechanical fixes. The tree is lint-clean, so any finding is from your change.
-- **Tests:** `sbt --client test` (same `docker exec`; needs the db container), `make test-js` (jsdom unit suite),
+  `make compile`. `-Xfatal-warnings` is on, so a success is warning-clean.
+- **Frontend:** `make lint` (ESLint, Stylelint, HTMLHint, locale parity, CSS layout, asset paths, vendor versions,
+  evolutions lint; all blocking CI gates), or scope it with `make eslint dir=…` / `make stylelint dir=…`.
+  `make lint-fix` handles the mechanical fixes. The tree is lint-clean, so any finding is from your change.
+- **Tests:** `make test-scala` (needs the db container; `only=<Spec>` scopes it), `make test-js` (jsdom unit suite),
   `make test-e2e` against a running app, `make test-python`. Details and what CI gates: `docs/testing-and-ci.md`.
+- **From a worktree,** every `make` target above checks that worktree, not the main checkout (`make lint` names the
+  tree), though `make test-e2e` tests whatever app is on :9000. A hand-typed `docker exec … "cd /home && …"` still
+  checks the main checkout, so use the targets.
 
 ## Conventions the linters can't check
 
@@ -75,7 +80,7 @@ file, and this table says which doc to read first:
 - Mobile detection has one definition, `ControllerUtils.isMobile`; JS reads `util.isMobile()`. Never re-sniff the UA.
 - User interactions are logged (clicks, key presses, mode switches, …). When you add or change one, add or adjust
   the logging and update `docs/logged-events.md`.
-- All user-facing text is translated into every supported language (en, es, nl, de, pt-BR, zh-TW, plus the
+- All user-facing text is translated into every supported language (en, es, nl, de, pt-BR, zh-TW, fr, plus the
   en-US/en-NZ overlays). Backend English goes in `conf/messages/messages.en`, never the base `messages`. Prefer
   `data-i18n="ns:key"` in HTML, including HTML built in JS.
 - UI meets WCAG 2.1/2.2 AA and is styled from the `main.css` `:root` tokens and `.ps-*` primitives: px never rem,
@@ -89,7 +94,8 @@ file, and this table says which doc to read first:
 Domain values (enum members, ranges, thresholds, and especially the mappings between them) come from the backend, a
 `/v3/api/...` endpoint or a value the controller passes to the view, and are never re-declared as frontend literals.
 Even a "trivial" constant encodes logic: severity 1–3 maps to good/ok/bad in opposite directions for positive
-features (curb ramps) and negative ones (obstacles). Source it; if no source exists, expose one as part of the task;
+features (curb ramps) and negative ones (obstacles) — which direction a type reads, or whether it's rated at all, is
+its `rating_scale`, from `/v3/api/labelTypes`. Source it; if no source exists, expose one as part of the task;
 only if genuinely unavoidable, centralize the literal with a comment saying why it isn't sourced.
 
 ## Label type colors and icons

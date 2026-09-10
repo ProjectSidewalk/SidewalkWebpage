@@ -30,6 +30,11 @@
   "continue": "Continue",
   "delete": "Delete",
   "done": "Done",
+  "unsaved-changes": {
+    "message": "You have unsaved changes. Would you like to save them before leaving this page?",
+    "save": "Save and leave",
+    "leave": "Leave"
+  },
   "badges": {
     "congratulations": "Congratulations!",
     "you-earned": "You earned the “{{badge}}” badge!",
@@ -201,6 +206,7 @@
     "pano-address": "Address",
     "view-in-gsv": "View in Google Street View",
     "view-in-mapillary": "View in Mapillary",
+    "view-in-panoramax": "View in Panoramax",
     "city": "City",
     "copy-to-clipboard": "Copy to clipboard",
     "copied-to-clipboard": "Data copied to your clipboard!"

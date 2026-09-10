@@ -299,6 +299,28 @@ window.ApiDocsMap = (function () {
   }
 
   /**
+   * Fills a legend overlay with one swatch-and-name row per category, plus an optional note beneath them.
+   *
+   * @param {HTMLElement} element - The overlay element to fill.
+   * @param {string} title - Legend heading.
+   * @param {Array<{color: string, label: string}>} items - One row per category, in display order.
+   * @param {string} [note] - A line of context under the rows, e.g. how to read the geometry.
+   */
+  function renderSwatchLegend(element, title, items, note) {
+    const rows = items.map((item) => `
+      <div class="map-legend-item">
+        <span class="map-legend-swatch" style="background-color: ${item.color};"></span>
+        ${item.label}
+      </div>
+    `).join('');
+    element.innerHTML = `
+      <h4>${title}</h4>
+      ${rows}
+      ${note ? `<div class="map-legend-note">${note}</div>` : ''}
+    `;
+  }
+
+  /**
    * Fills a legend overlay with one swatch-and-name row per label type present in the rendered data.
    *
    * @param {HTMLElement} element - The overlay element to fill.
@@ -338,6 +360,7 @@ window.ApiDocsMap = (function () {
     whenHovered,
     addHoverState,
     renderGradientLegend,
+    renderSwatchLegend,
     renderLabelTypeLegend,
   };
 })();

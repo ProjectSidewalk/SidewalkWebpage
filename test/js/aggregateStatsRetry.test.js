@@ -23,7 +23,6 @@ const STATS_PARAGRAPH_ID = 'project-sidewalk-aggregate-stats';
 
 // Minimal snake_case /v3/api/aggregateStats response (v3 naming convention, issue #3871).
 const GOOD_FIXTURE = {
-    status: 'OK',
     km_explored: 1234,
     km_explored_no_overlap: 1000,
     total_labels: 50000,

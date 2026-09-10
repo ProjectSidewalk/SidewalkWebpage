@@ -99,6 +99,7 @@ module.exports = function (grunt) {
         src: [
           'public/js/common/Toast.js',
           'public/js/common/ConfirmDialog.js',
+          'public/js/common/UnsavedChangesGuard.js',
           'public/js/common/mapboxSearchBoxA11y.js',
           'public/js/route-builder/src/*.js'
         ],
@@ -141,14 +142,30 @@ module.exports = function (grunt) {
           'public/js/common/pano-viewer/src/MapillaryViewer.js',
           'public/js/common/pano-viewer/src/Infra3dViewer.js',
           'public/js/common/pano-viewer/src/PannellumViewer.js',
+          'public/js/common/pano-viewer/src/PanoramaxViewer.js',
           'public/js/common/pano-viewer/src/PanoViewerLogo.js',
           'public/js/common/pano-viewer/src/PanoAttribution.js',
           'public/js/common/pano-viewer/src/PanoInfoPopover.js'
         ],
         dest: 'public/js/common/pano-viewer/build/pano-viewer.js'
+      },
+      // The imagery-credit overlays alone, for a page with stills but no viewer (the landing grid, #5202). Neither
+      // file may reference a viewer class — that is what lets them stand alone. A page loads one bundle or the other.
+      dist_pano_credit: {
+        src: [
+          'public/js/common/pano-viewer/src/PanoViewerLogo.js',
+          'public/js/common/pano-viewer/src/PanoAttribution.js'
+        ],
+        dest: 'public/js/common/pano-credit/build/pano-credit.js'
       }
     },
     concat_css: {
+      // The bundles land in public/js/<app>/build/, so each file's relative url()s are rewritten to /assets/ paths that
+      // still reach the same file from there. An absolute /assets/ url() would get the prefix twice, so use relative.
+      options: {
+        assetBaseUrl: '/assets',
+        baseDir: 'public'
+      },
       // The two label-card files come first so each tool's own stylesheet can override the shared base after it.
       // public/css/components/ has no glob — every file used from it is named by hand, in each bundle that wants it.
       dist_audit: {

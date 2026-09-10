@@ -33,6 +33,17 @@ class ImageryFreshnessPollSpec extends AnyFunSuite with Matchers {
     parseMapillaryCapturedAt(4102444800000L, now) shouldBe None // 2100: future.
   }
 
+  test("parsePanoramaxDatetime reads the STAC datetime's date in UTC and clamps implausible values") {
+    val now = LocalDate.of(2026, 9, 4)
+    parsePanoramaxDatetime("2026-08-11T15:02:33+00:00", now) shouldBe Some(LocalDate.of(2026, 8, 11))
+    // A local-offset timestamp is read as the UTC date, like Mapillary's epoch millis.
+    parsePanoramaxDatetime("2026-08-11T00:30:00+02:00", now) shouldBe Some(LocalDate.of(2026, 8, 10))
+    parsePanoramaxDatetime("2039-10-02T11:45:57+00:00", now) shouldBe None // Future: a mis-set camera clock.
+    parsePanoramaxDatetime("2003-05-01T00:00:00+00:00", now) shouldBe None // Before street-level imagery.
+    parsePanoramaxDatetime("not a date", now) shouldBe None
+    parsePanoramaxDatetime("", now) shouldBe None
+  }
+
   test("metersToStreet measures point-to-polyline distance in meters, clamped to the segment") {
     val geometryFactory = new GeometryFactory()
     // A ~111 m east-west street at the equator; JTS coordinates are (x = lng, y = lat).

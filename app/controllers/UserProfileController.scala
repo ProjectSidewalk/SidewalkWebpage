@@ -33,6 +33,7 @@ class UserProfileController @Inject() (
     labelService: service.LabelService,
     streetService: service.StreetService,
     panoDataService: service.PanoDataService,
+    cropService: service.CropService,
     implicit val ec: ExecutionContext,
     cpuEc: CpuIntensiveExecutionContext
 ) extends CustomBaseController(cc) {
@@ -136,6 +137,34 @@ class UserProfileController @Inject() (
   }
 
   /**
+   * What a street that still needs a re-audit was last mapped as, for the map's hover card (#5258).
+   *
+   * 404 rather than an empty body for a street that is not stale: the card is only ever requested for a street the
+   * map drew as needing a re-audit, so "no summary" means the client's copy of the street layer has gone out of
+   * date, not that the street is uninteresting.
+   *
+   * Kept off `/v3/api` on purpose, following the same call for per-street priority data (#4908): this shape is
+   * expected to change as the re-audit UI develops, and publishing it would freeze it into the public contract.
+   */
+  def getStreetReauditSummary(streetEdgeId: Int) = Action.async { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    streetService.getReauditSummary(streetEdgeId).map {
+      case Some(summary) =>
+        Ok(
+          Json.obj(
+            "street_edge_id"   -> summary.streetEdgeId,
+            "last_audited_at"  -> summary.lastAuditedAt,
+            "new_imagery_date" -> summary.newImageryDate,
+            "label_counts"     -> summary.labelCounts.map { case (labelType, count) =>
+              Json.obj("label_type" -> labelType, "count" -> count)
+            }
+          )
+        )
+      case None => NotFound(Json.obj("status" -> "not-outdated"))
+    }
+  }
+
+  /**
    * Get the list of labels submitted by the given user. Only include labels in the given region if supplied.
    */
   def getSubmittedLabels(userId: String, regionId: Option[Int]) =
@@ -172,15 +201,19 @@ class UserProfileController @Inject() (
       authenticationService.findByUserId(userId).flatMap {
         case Some(user) =>
           val labelTypes: Set[LabelTypeEnum.Base] = LabelTypeEnum.primaryValidateLabelTypes
-          labelService.getRecentValidatedLabelsForUser(userId, labelTypes, n).map { validations =>
-            val validationJson = Json.toJson(labelTypes.map { labelType =>
-              labelType.name -> validations(labelType).map { l =>
-                val gsvImageUrl: Option[String] =
-                  panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)
-                labelMetadataUserDashToJson(l, gsvImageUrl)
-              }
-            }.toMap)
-            Ok(validationJson)
+          labelService.getRecentValidatedLabelsForUser(userId, labelTypes, n).flatMap { validations =>
+            val labelIds: Seq[Int] = labelTypes.toSeq.flatMap(validations(_).map(_.labelId))
+            cropService.cropMarkers(labelIds).map { markers =>
+              val validationJson = Json.toJson(labelTypes.map { labelType =>
+                labelType.name -> validations(labelType).map { l =>
+                  val cropUrl: Option[String]     = panoDataService.cropUrl(l.labelId, l.labelType)
+                  val gsvImageUrl: Option[String] =
+                    panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)
+                  labelMetadataUserDashToJson(l, cropUrl, markers.get(l.labelId), gsvImageUrl)
+                }
+              }.toMap)
+              Ok(validationJson)
+            }
           }
         case _ => Future.failed(new IdentityNotFoundException("Username not found."))
       }
@@ -227,6 +260,18 @@ class UserProfileController @Inject() (
       userService
         .setUserTeam(userId, teamId)
         .map(_ => Ok(Json.obj("user_id" -> userId, "team_id" -> teamId)))
+    }
+
+  /**
+   * Removes the given user from whatever team they're on, leaving them on none (#5147).
+   *
+   * Its own endpoint rather than a `setUserTeam` with a sentinel id because "no team" isn't a team: only teams a
+   * user could actually join belong in the dropdowns, so leaving is a button on both the dashboard and Settings.
+   */
+  def leaveTeam(userId: String) =
+    cc.securityService.SecuredAction(WithAdminOrRegisteredAndIsUser(userId)) { implicit request =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Click_module=LeaveTeam")
+      userService.leaveTeam(userId).map(_ => Ok(Json.obj("user_id" -> userId)))
     }
 
   /**

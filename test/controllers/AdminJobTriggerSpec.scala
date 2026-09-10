@@ -7,6 +7,7 @@ import actor.{
   FunnelStatActor,
   OsmWayRefreshActor,
   RecalculateStreetPriorityActor,
+  SidewalkPresenceActor,
   UserStatActor
 }
 import models.user.Role
@@ -31,8 +32,11 @@ import service.{
   ClusterService,
   ClusteringResults,
   CropService,
+  OsmWayRefreshResult,
   OsmWayService,
   PanoDataService,
+  SidewalkPresenceRebuildResult,
+  SidewalkPresenceService,
   StreetService
 }
 import util.{AnonSession, RoleSession, RolledBackDb, StubService}
@@ -40,7 +44,7 @@ import util.{AnonSession, RoleSession, RolledBackDb, StubService}
 import scala.concurrent.Future
 
 /**
- * Functional tests for the seven admin routes that hand-trigger a nightly job (#4946).
+ * Functional tests for the eight admin routes that hand-trigger a nightly job (#4946).
  *
  * Each wraps its service call in `jobRunService.record(..., Manual)` so a hand-run leaves the same counts and error
  * trail the scheduler's run would (#4932). Nothing else asserts that a given controller method still *calls* it: drop
@@ -49,7 +53,7 @@ import scala.concurrent.Future
  * and read the row back.
  *
  * The work itself is stubbed. Left alone these recompute a whole city's user stats, funnels and street priorities,
- * shell out to the Python clusterer, and call out to Overpass and the imagery providers; the assertion here is about
+ * shell out to the Python clusterer, and call out to the OSM API and the imagery providers; the assertion here is about
  * the bookkeeping around the call, not the call's arithmetic, which each service's own spec covers.
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the
@@ -64,21 +68,29 @@ class AdminJobTriggerSpec
     with Eventually {
 
   // Distinctive values, so an assertion can tell the stub's answer from anything the connected city really holds.
-  private val UsersUpdated   = 4611
-  private val FunnelRows     = 4612
-  private val WaysRefreshed  = 4613
+  private val UsersUpdated  = 4611
+  private val FunnelRows    = 4612
+  private val WaysRefreshed =
+    OsmWayRefreshResult(waysRefreshed = 4613, waysMissing = 27, tagsRecovered = 19, tagsUnrecoverable = 2)
   private val ImageryResult  = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1, reconciled = Some(3))
   private val ClusterResults = ClusteringResults(labelCount = 4614, clusterCount = 4615)
   private val CropResult     = CropRunResult(
     panosOpened = 4616, panosWithoutBackup = 4617, cropsWritten = 4618, shiftedVertically = 4619, outOfFrame = 4620,
-    dimsMismatch = 4621, dimsUnverified = 4622, downscaledWritten = 4623, downscaledDeleted = 4625, errors = 4624
+    dimsMismatch = 4621, dimsUnverified = 4622, provenanceExplore = 4628, provenanceWindow = 4629,
+    provenanceUnresolved = 4630, errors = 4624
   )
 
+  private val PresenceResult =
+    SidewalkPresenceRebuildResult(faces = 4631, inserted = 4632, updated = 4633, deleted = 4634)
+
   /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */
-  @volatile private var osmWayAnswer: Future[Int] = Future.successful(0)
+  @volatile private var osmWayAnswer: Future[OsmWayRefreshResult] = Future.successful(OsmWayRefreshResult.empty)
 
   /** Set per test: whether the crop service reports a run in flight, which is the trigger's refusal path. */
   @volatile private var cropRunning: Boolean = false
+
+  /** As `cropRunning`, for the sidewalk-presence rebuild, whose trigger refuses the same way. */
+  @volatile private var presenceRunning: Boolean = false
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -116,6 +128,14 @@ class AdminJobTriggerSpec
         ),
         bind[OsmWayService].toInstance(
           StubService.answeringWith[OsmWayService](Map("refreshOsmWayData" -> (() => osmWayAnswer)))
+        ),
+        bind[SidewalkPresenceService].toInstance(
+          StubService.answeringWith[SidewalkPresenceService](
+            Map(
+              "rebuild"   -> (() => Future.successful(PresenceResult)),
+              "isRunning" -> (() => presenceRunning)
+            )
+          )
         )
       )
       .build()
@@ -224,6 +244,30 @@ class AdminJobTriggerSpec
     }
   }
 
+  "POST /adminapi/rebuildSidewalkPresence" should {
+    "record the rebuild as a manual run of the nightly sidewalk-presence job, with its counts" in {
+      val (code, body, jobRun) = trigger("/adminapi/rebuildSidewalkPresence", SidewalkPresenceActor.Name, POST)
+      code mustBe OK
+      body must include(PresenceResult.faces.toString)
+      jobRun.triggeredBy mustBe JobRunTrigger.Manual
+      jobRun.status mustBe JobRunStatus.Succeeded
+      jobRun.details.value mustBe PresenceResult.runDetails
+    }
+
+    "refuse with 409, and record nothing, while the nightly rebuild is already running" in {
+      // Two rebuilds racing insert the same new street's faces and the loser aborts on the primary key; refusing
+      // before the run is recorded keeps that non-event off the Health panel.
+      presenceRunning = true
+      try {
+        val idFloor  = highestRunId
+        val response = asAdmin("/adminapi/rebuildSidewalkPresence", POST)
+        status(response) mustBe CONFLICT
+        contentAsString(response) must include("already in progress")
+        runsSince(idFloor, SidewalkPresenceActor.Name) mustBe empty
+      } finally presenceRunning = false
+    }
+  }
+
   "POST /adminapi/generateCrops" should {
     // The one trigger that answers before its job finishes (a first backfill outlives any proxy read timeout), so it
     // is also the one whose run row can't be read straight off the response.
@@ -264,7 +308,7 @@ class AdminJobTriggerSpec
       osmWayAnswer = Future.successful(WaysRefreshed)
       val (code, body, jobRun) = trigger("/adminapi/refreshOsmWayData", OsmWayRefreshActor.Name)
       code mustBe OK
-      body must include(WaysRefreshed.toString)
+      body must include(WaysRefreshed.waysRefreshed.toString)
       jobRun.triggeredBy mustBe JobRunTrigger.Manual
       jobRun.status mustBe JobRunStatus.Succeeded
       jobRun.details.value mustBe OsmWayRefreshActor.runDetails(WaysRefreshed)

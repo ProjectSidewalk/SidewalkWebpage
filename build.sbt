@@ -4,7 +4,7 @@ import com.typesafe.sbt.web.pipeline.Pipeline
 
 name := """sidewalk-webpage"""
 
-version := "11.11.0"
+version := "11.12.0"
 
 scalaVersion := "2.13.18"
 
@@ -60,11 +60,10 @@ libraryDependencies ++= Seq(
   // TODO no releases since Play 2.8. Seems to continue to work, but should consider other options.
   "com.adrianhurt" %% "play-bootstrap" % "1.6.1-P28-B3",
 
-  // Used to create shapefiles. The jai_core lib isn't available from maven, so we're setting a separate download link.
-  "javax.media" % "jai_core" % "1.1.3" from "https://repo.osgeo.org/repository/release/javax/media/jai_core/1.1.3/jai_core-1.1.3.jar",
-  "org.geotools" % "gt-shapefile" % "29.6" exclude ("javax.media", "jai_core"),
-  "org.geotools" % "gt-epsg-hsql" % "29.6" exclude ("javax.media", "jai_core"),
-  "org.geotools" % "gt-geopkg"    % "29.6" exclude ("javax.media", "jai_core"),
+  // Used to create the shapefile and GeoPackage exports (ShapefilesCreatorHelper). Served by the OSGeo resolver above.
+  "org.geotools" % "gt-shapefile" % "35.1",
+  "org.geotools" % "gt-epsg-hsql" % "35.1",
+  "org.geotools" % "gt-geopkg"    % "35.1",
 
   // Testing. scalatestplus-play pulls in ScalaTest + Play's test helpers (FakeRequest, route, etc.).
   "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.2" % Test

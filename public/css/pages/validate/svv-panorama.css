@@ -19,6 +19,20 @@
   overflow: hidden;
 }
 
+/* Pannellum's own progress box, desktop only. The fallback viewer's canvas is painted only once it holds the
+   current label's pano (PanoManager.#showPannellumPano, #5206), so this box can surface in one case: a fallback
+   label following another, where the outgoing pano stays up during the load. There it reads as a second provider's
+   progress UI, in its own styling, reporting megabytes, over a picture it does not belong to — and desktop already
+   says the tool is busy in its own voice, via the controls LabelContainer.#setUiBusy dims and the wait cursor.
+
+   Scoped to the desktop wrapper because mobile says it differently: its busy state dims the controls laid over the
+   pano (Main.js VALIDATE_BUSY_SELECTORS) and deliberately spares the imagery, since dimming the holder they share
+   would take the pano down with them. That leaves the picture itself the one part of a mobile load with nothing to
+   show for it, so the box stays and covers exactly what the busy state gave up. */
+#svv-application-holder #svv-panorama-pannellum .pnlm-load-box {
+  display: none !important;
+}
+
 /* Colored frame on top of the pano and marker layers. Drawing it above the marker (rather than as the pano's own
    border underneath) means a label at the very edge is clipped by the frame instead of rendering on top of it. */
 #pano-border-frame {
@@ -41,7 +55,7 @@
   left: 0;
   top: 0;
   overflow: hidden;
-  cursor: url("/assets/images/icons/openhand.cur") 4 4, move;
+  cursor: url("../../../images/icons/openhand.cur") 4 4, move;
   z-index: 2;
 
   /* http://stackoverflow.com/questions/8942805/chrome-bug-cursor-changes-on-mouse-down-move */

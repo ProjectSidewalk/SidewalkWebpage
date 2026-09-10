@@ -93,7 +93,7 @@ class DataQualityPage {
     const agreed = overall.agreed || 0;
     const validated = overall.validated || 0;
 
-    this.#setText('kpi-total-labels', (labels.label_count || 0).toLocaleString());
+    this.#setText('kpi-total-labels', (labels.count || 0).toLocaleString());
     this.#setText('kpi-with-severity', eligible ? DataQualityPage.#pct(withSeverity / eligible) : '—');
     this.#setText(
       'kpi-with-severity-note', `${withSeverity.toLocaleString()} of ${eligible.toLocaleString()} eligible labels`,
@@ -149,7 +149,7 @@ class DataQualityPage {
     document.getElementById(containerId).innerHTML = rows.map((r) => {
       const max = this.#severityMax(r.type);
       const toPct = (v) => ((Math.max(1, Math.min(max, v)) - 1) / (max - 1)) * 100;
-      const sd = r.severity_sd || 0;
+      const sd = r.severity_stddev || 0;
       const lo = toPct(r.severity_mean - sd);
       const hi = toPct(r.severity_mean + sd);
       const track = `
@@ -260,14 +260,6 @@ class DataQualityPage {
   #renderTagSeverity(rows) {
     const el = document.getElementById('dq-tag-severity');
     if (!el) return;
-    const hasSeverity = (t) => {
-      try {
-        return util.misc.labelTypeHasSeverity(t);
-      } catch {
-        return true;
-      }
-    };
-
     const byType = new Map();
     for (const r of rows) {
       if (!byType.has(r.label_type)) byType.set(r.label_type, new Map());
@@ -279,7 +271,7 @@ class DataQualityPage {
     }
 
     const blocks = this.#order
-      .filter((type) => byType.has(type) && hasSeverity(type))
+      .filter((type) => byType.has(type) && this.#hasSeverity(type))
       .map((type) => {
         const color = this.#color(type);
         const tags = [...byType.get(type).entries()]

@@ -512,14 +512,21 @@ class UserController @Inject() (
   def welcome(next: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) if user.role != Role.Anonymous =>
-        configService.getCommonPageData(request2Messages.lang).map { commonData =>
+        for {
+          commonData <- configService.getCommonPageData(request2Messages.lang)
+          privacy    <- userService.getPrivacySettings(user.userId)
+        } yield {
           cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Welcome")
           val resumeUrl = safeLocalPath(next.getOrElse("/explore"), "/explore")
           // Landing on a generic entry point isn't an interruption worth naming; anything else is a page the user
           // was pulled out of mid-task, and the CTA should say so rather than read as "go start something new".
-          val resumedPath = resumeUrl.takeWhile(_ != '?')
-          val resumed     = resumedPath != "/" && resumedPath != "/explore"
-          Ok(views.html.authentication.welcome(commonData, user, resumeUrl, resumed))
+          val resumedPath                    = resumeUrl.takeWhile(_ != '?')
+          val resumed                        = resumedPath != "/" && resumedPath != "/explore"
+          val (onLeaderboard, publicProfile) = privacy.getOrElse(configService.defaultPrivacyFlags)
+          Ok(
+            views.html.authentication.welcome(commonData, user, resumeUrl, resumed, onLeaderboard, publicProfile,
+              configService.getPrivateProfilesByDefault)
+          )
         }
       case _ => Future.successful(Redirect("/"))
     }

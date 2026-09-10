@@ -2,27 +2,28 @@ package controllers.helper
 
 import models.api.{
   AccessScoreApiModels,
+  IntersectionAccessScoreForApi,
   LabelClusterForApi,
   LabelDataForApi,
   RawLabelInClusterDataForApi,
   RegionAccessScoreForApi,
   RegionDataForApi,
+  SidewalkPresenceForApi,
   StreetAccessScoreForApi,
   StreetDataForApi
 }
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
+import org.geotools.api.data.{DataStore, DataStoreFinder, SimpleFeatureStore}
+import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.geotools.data.shapefile.ShapefileDataStoreFactory
-import org.geotools.data.simple._
-import org.geotools.data.{DataStore, DataStoreFinder, DataUtilities, DefaultTransaction}
+import org.geotools.data.{DataUtilities, DefaultTransaction}
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.geotools.geopkg.GeoPkgDataStoreFactory
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
-import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
-import play.api.i18n.Lang.logger
-import play.api.libs.json.JsResult.Exception
+import play.api.Logger
 import play.api.libs.json.Json
 
 import java.io.{BufferedInputStream, File}
@@ -30,7 +31,7 @@ import java.nio.file.{Files, Path}
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 
 /**
  * This class handles the creation of Shapefile archives to be used by the ApiController.
@@ -40,6 +41,33 @@ import scala.jdk.CollectionConverters.MapHasAsJava
  */
 @Singleton
 class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: Materializer) {
+  private val logger = Logger(this.getClass)
+
+  /**
+   * Opens the GeoPackage at the given path as a data store, which the caller disposes. `DataStoreFinder` returns null
+   * rather than throwing when no factory accepts the params (e.g. gt-geopkg's service file lost in packaging).
+   */
+  private def openGeoPackage(geopackagePath: Path): DataStore = {
+    val params = Map(
+      GeoPkgDataStoreFactory.DBTYPE.key   -> "geopkg",
+      GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
+    ).asJava
+    Option(DataStoreFinder.getDataStore(params)).getOrElse {
+      throw new IllegalStateException(
+        "No GeoTools DataStore factory accepted the GeoPackage params (is gt-geopkg on " +
+          "the classpath with its META-INF/services entry?)"
+      )
+    }
+  }
+
+  /** Rejects attribute names over the DBF format's 10-char limit, which GeoTools would otherwise truncate silently. */
+  private def requireDbfSafeNames(featureType: SimpleFeatureType): Unit = {
+    val tooLong = featureType.getAttributeDescriptors.asScala.map(_.getLocalName).filter(_.length > 10)
+    require(
+      tooLong.isEmpty,
+      s"Shapefile schema ${featureType.getTypeName} has attribute names over DBF's 10-char limit: ${tooLong.mkString(", ")}"
+    )
+  }
 
   /**
    * Writes a batch of features to a feature store inside a transaction.
@@ -86,16 +114,11 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       buildFeature: (A, SimpleFeatureBuilder) => SimpleFeature
   ): Future[Option[Path]] = {
     val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
+    var dataStore: DataStore = null
 
     try {
       // Set up everything we need to create and store features before saving them.
-      val params = Map(
-        GeoPkgDataStoreFactory.DBTYPE.key   -> "geopkg",
-        GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
-      ).asJava
-      val dataStore: DataStore = DataStoreFinder.getDataStore(params)
-
-      // Create the schema in the GeoPackage.
+      dataStore = openGeoPackage(geopackagePath)
       dataStore.createSchema(featureType)
 
       // Get feature store for writing.
@@ -131,6 +154,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         }
     } catch {
       case e: Exception =>
+        Option(dataStore).foreach(_.dispose())
         logger.error(s"Error setting up GeoPackage: ${e.getMessage}", e)
         Future.successful(None)
     }
@@ -153,12 +177,15 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureType: SimpleFeatureType,
       buildFeature: (A, SimpleFeatureBuilder) => SimpleFeature
   ): Future[Option[Path]] = {
-    val shapefilePath: Path = new File(outputFile + ".shp").toPath
+    val shapefilePath: Path     = new File(outputFile + ".shp").toPath
+    var newDataStore: DataStore = null
 
     try {
+      requireDbfSafeNames(featureType)
+
       // Set up everything we need to create and store features.
       val dataStoreFactory = new ShapefileDataStoreFactory()
-      val newDataStore     = dataStoreFactory.createNewDataStore(
+      newDataStore = dataStoreFactory.createNewDataStore(
         Map(
           "url"                  -> shapefilePath.toUri.toURL,
           "create spatial index" -> java.lang.Boolean.FALSE // Disable so we don't run out of memory.
@@ -201,6 +228,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         }
     } catch {
       case e: Exception =>
+        Option(newDataStore).foreach(_.dispose())
         logger.error(s"Error setting up shapefile: ${e.getMessage}", e)
         Future.successful(None)
     }
@@ -217,24 +245,25 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     val zipOut  = new ZipOutputStream(Files.newOutputStream(zipPath))
 
     // For each shapefile, add all component files to the zip archive.
-    files.foreach { f =>
-      val shapefile = f.toFile
-      val directory = shapefile.getParentFile
-      val basename  = shapefile.getName.substring(0, shapefile.getName.length - 4)
+    try {
+      files.foreach { f =>
+        val shapefile = f.toFile
+        val directory = shapefile.getParentFile
+        val basename  = shapefile.getName.substring(0, shapefile.getName.length - 4)
 
-      // Find all shapefile component files.
-      val extensions = Seq(".shp", ".dbf", ".shx", ".prj", ".sbn", ".sbx", ".cpg", ".fix")
-      extensions.foreach { ext =>
-        val file = new File(directory, basename + ext)
-        if (file.exists()) {
-          zipOut.putNextEntry(new ZipEntry(file.getName))
-          Files.copy(file.toPath, zipOut)
-          zipOut.closeEntry()
-          file.delete()
+        // Find all shapefile component files.
+        val extensions = Seq(".shp", ".dbf", ".shx", ".prj", ".sbn", ".sbx", ".cpg", ".fix")
+        extensions.foreach { ext =>
+          val file = new File(directory, basename + ext)
+          if (file.exists()) {
+            zipOut.putNextEntry(new ZipEntry(file.getName))
+            Files.copy(file.toPath, zipOut)
+            zipOut.closeEntry()
+            file.delete()
+          }
         }
       }
-    }
-    zipOut.close()
+    } finally zipOut.close()
 
     // Set up a stream of the zip archive as a ByteString, setting it up to be deleted afterward.
     StreamConverters
@@ -273,6 +302,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "osmWayId:String,"        // OSM street ID
       + "regionId:Integer,"       // Region (neighborhood) ID
       + "regionName:String,"      // Region (neighborhood) name
+      + "streetSide:String,"      // Side of the street (left/right of the edge's digitized direction)
+      + "ctrOffsetM:Double,"      // Signed offset from the street centerline in metres (+ left, - right)
       + "correct:String,"         // Validation correctness
       + "nAgree:Integer,"         // Agree validations count
       + "nDisagree:Integer,"      // Disagree validations count
@@ -317,6 +348,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.osmWayId.toString)
       featureBuilder.add(label.regionId)
       featureBuilder.add(label.regionName)
+      featureBuilder.add(label.streetSide.map(_.toString).orNull)
+      featureBuilder.add(label.centerlineOffsetM.map(Double.box).orNull)
       featureBuilder.add(label.correct.map(_.toString).orNull)
       featureBuilder.add(label.agreeCount)
       featureBuilder.add(label.disagreeCount)
@@ -363,6 +396,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     + "clusterId:Integer,"      // Cluster ID
     + "labelType:String,"       // Label type
     + "streetId:Integer,"       // Street edge ID
+    + "intersecId:Integer,"     // Intersection ID (null if none)
     + "osmWayId:String,"        // OSM way ID
     + "regionId:Integer,"       // Region ID
     + "regionName:String,"      // Region name
@@ -388,6 +422,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     featureBuilder.add(cluster.labelClusterId)
     featureBuilder.add(cluster.labelType)
     featureBuilder.add(cluster.streetEdgeId)
+    featureBuilder.add(cluster.intersectionId.map(Integer.valueOf).orNull)
     featureBuilder.add(cluster.osmWayId.toString)
     featureBuilder.add(cluster.regionId)
     featureBuilder.add(cluster.regionName)
@@ -459,10 +494,15 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     val labelShapefilePath: Path   = new File(outputFile + "_labels.shp").toPath
     val geometryFactory            = JTSFactoryFinder.getGeometryFactory
 
+    var clusterDataStore: DataStore = null
+
     try {
+      requireDbfSafeNames(clusterShapefileFeatureType)
+      requireDbfSafeNames(labelFeatureType)
+
       // Set up clusters shapefile.
       val clusterDataStoreFactory = new ShapefileDataStoreFactory()
-      val clusterDataStore        = clusterDataStoreFactory.createNewDataStore(
+      clusterDataStore = clusterDataStoreFactory.createNewDataStore(
         Map("url" -> clusterShapefilePath.toUri.toURL, "create spatial index" -> java.lang.Boolean.FALSE).asJava
       )
       clusterDataStore.createSchema(clusterShapefileFeatureType)
@@ -506,29 +546,30 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
             val labelBuilder  = new SimpleFeatureBuilder(labelFeatureType)
             val labelFeatures = new java.util.ArrayList[SimpleFeature](batchSize)
 
-            val labelIter = allRawLabels.iterator()
-            while (labelIter.hasNext) {
-              labelFeatures.clear()
-              var count = 0
-              while (labelIter.hasNext && count < batchSize) {
-                val (clusterId, label) = labelIter.next()
-                labelBuilder.reset()
-                labelBuilder.add(geometryFactory.createPoint(new Coordinate(label.longitude, label.latitude)))
-                labelBuilder.add(label.labelId)
-                labelBuilder.add(clusterId)
-                labelBuilder.add(label.userId)
-                labelBuilder.add(label.panoId)
-                labelBuilder.add(label.panoSource.map(_.toString).orNull)
-                labelBuilder.add(label.severity.map(Integer.valueOf).orNull)
-                labelBuilder.add(label.timeCreated.toString)
-                labelBuilder.add(label.correct.map(_.toString).orNull)
-                labelBuilder.add(label.imageCaptureDate.orNull)
-                labelFeatures.add(labelBuilder.buildFeature(null))
-                count += 1
+            try {
+              val labelIter = allRawLabels.iterator()
+              while (labelIter.hasNext) {
+                labelFeatures.clear()
+                var count = 0
+                while (labelIter.hasNext && count < batchSize) {
+                  val (clusterId, label) = labelIter.next()
+                  labelBuilder.reset()
+                  labelBuilder.add(geometryFactory.createPoint(new Coordinate(label.longitude, label.latitude)))
+                  labelBuilder.add(label.labelId)
+                  labelBuilder.add(clusterId)
+                  labelBuilder.add(label.userId)
+                  labelBuilder.add(label.panoId)
+                  labelBuilder.add(label.panoSource.map(_.toString).orNull)
+                  labelBuilder.add(label.severity.map(Integer.valueOf).orNull)
+                  labelBuilder.add(label.timeCreated.toString)
+                  labelBuilder.add(label.correct.map(_.toString).orNull)
+                  labelBuilder.add(label.imageCaptureDate.orNull)
+                  labelFeatures.add(labelBuilder.buildFeature(null))
+                  count += 1
+                }
+                writeFeatureBatch(labelStore, labelFeatures, rethrow = true)
               }
-              writeFeatureBatch(labelStore, labelFeatures, rethrow = true)
-            }
-            labelDataStore.dispose()
+            } finally labelDataStore.dispose()
             Some(Seq(clusterShapefilePath, labelShapefilePath))
           } else {
             Some(Seq(clusterShapefilePath))
@@ -541,6 +582,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         }
     } catch {
       case e: Exception =>
+        Option(clusterDataStore).foreach(_.dispose())
         logger.error(s"Error setting up shapefile: ${e.getMessage}", e)
         Future.successful(None)
     }
@@ -565,6 +607,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "cluster_id:Integer,"      // Cluster ID
       + "label_type:String,"       // Label type
       + "street_edge_id:Integer,"  // Street edge ID
+      + "intersection_id:Integer," // Intersection ID (null if none)
       + "osm_way_id:String,"       // OSM way ID (as String to avoid Long issues)
       + "region_id:Integer,"       // Region ID
       + "region_name:String,"      // Region name
@@ -595,13 +638,10 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     )
 
     val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
+    var dataStore: DataStore = null
 
     try {
-      val params = Map(
-        GeoPkgDataStoreFactory.DBTYPE.key   -> "geopkg",
-        GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
-      ).asJava
-      val dataStore: DataStore = DataStoreFinder.getDataStore(params)
+      dataStore = openGeoPackage(geopackagePath)
 
       // Create both schemas.
       dataStore.createSchema(clusterFeatureType)
@@ -626,6 +666,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
             clusterBuilder.add(cluster.labelClusterId)
             clusterBuilder.add(cluster.labelType)
             clusterBuilder.add(cluster.streetEdgeId)
+            clusterBuilder.add(cluster.intersectionId.map(Integer.valueOf).orNull)
             clusterBuilder.add(cluster.osmWayId.toString)
             clusterBuilder.add(cluster.regionId)
             clusterBuilder.add(cluster.regionName)
@@ -695,6 +736,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         }
     } catch {
       case e: Exception =>
+        Option(dataStore).foreach(_.dispose())
         logger.error(s"Error setting up GeoPackage: ${e.getMessage}", e)
         Future.successful(None)
     }
@@ -716,44 +758,46 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     // Define the feature type schema.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "labels",
-      "the_geom:Point:srid=4326,"    // the geometry attribute: Point type
-      + "label_id:Integer,"          // label ID
-      + "user_id:String,"            // User Id
-      + "pano_id:String,"            // Pano ID
-      + "pano_source:String,"        // Imagery provider (gsv, mapillary, infra3d)
-      + "label_type:String,"         // Label type
-      + "severity:Integer,"          // Severity
-      + "tags:String,"               // Label Tags
-      + "description:String,"        // Label Description
-      + "time_created:String,"       // Creation timestamp
-      + "high_quality_user:Boolean," // Whether the labeler is flagged as a high-quality contributor
-      + "street_edge_id:Integer,"    // Street edge ID
-      + "osm_way_id:String,"         // OSM street ID
-      + "region_id:Integer,"         // Region (neighborhood) ID
-      + "region_name:String,"        // Region (neighborhood) name
-      + "correct:String,"            // Validation correctness
-      + "agree_count:Integer,"       // Agree validations
-      + "disagree_count:Integer,"    // Disagree validations
-      + "unsure_count:Integer,"      // Unsure validations
-      + "validations:String,"        // Validation details
-      + "audit_task_id:Integer,"     // Audit task ID
-      + "mission_id:Integer,"        // Mission ID
-      + "image_date:String,"         // Image capture date
-      + "heading:Double,"            // Heading angle
-      + "pitch:Double,"              // Pitch angle
-      + "zoom:Integer,"              // Zoom level
-      + "canvas_x:Integer,"          // Canvas X position
-      + "canvas_y:Integer,"          // Canvas Y position
-      + "canvas_width:Integer,"      // Canvas width
-      + "canvas_height:Integer,"     // Canvas height
-      + "pano_x:Integer,"            // Panorama X position
-      + "pano_y:Integer,"            // Panorama Y position
-      + "pano_width:Integer,"        // Panorama width
-      + "pano_height:Integer,"       // Panorama height
-      + "camera_heading:Double,"     // Camera heading
-      + "camera_pitch:Double,"       // Camera pitch
-      + "camera_roll:Double,"        // Camera pitch
-      + "pano_url:String"            // Provider viewer URL (empty for providers without one)
+      "the_geom:Point:srid=4326,"     // the geometry attribute: Point type
+      + "label_id:Integer,"           // label ID
+      + "user_id:String,"             // User Id
+      + "pano_id:String,"             // Pano ID
+      + "pano_source:String,"         // Imagery provider (gsv, mapillary, infra3d)
+      + "label_type:String,"          // Label type
+      + "severity:Integer,"           // Severity
+      + "tags:String,"                // Label Tags
+      + "description:String,"         // Label Description
+      + "time_created:String,"        // Creation timestamp
+      + "high_quality_user:Boolean,"  // Whether the labeler is flagged as a high-quality contributor
+      + "street_edge_id:Integer,"     // Street edge ID
+      + "osm_way_id:String,"          // OSM street ID
+      + "region_id:Integer,"          // Region (neighborhood) ID
+      + "region_name:String,"         // Region (neighborhood) name
+      + "street_side:String,"         // Side of the street (left/right of the edge's digitized direction)
+      + "centerline_offset_m:Double," // Signed offset from the street centerline in metres (+ left, - right)
+      + "correct:String,"             // Validation correctness
+      + "agree_count:Integer,"        // Agree validations
+      + "disagree_count:Integer,"     // Disagree validations
+      + "unsure_count:Integer,"       // Unsure validations
+      + "validations:String,"         // Validation details
+      + "audit_task_id:Integer,"      // Audit task ID
+      + "mission_id:Integer,"         // Mission ID
+      + "image_date:String,"          // Image capture date
+      + "heading:Double,"             // Heading angle
+      + "pitch:Double,"               // Pitch angle
+      + "zoom:Integer,"               // Zoom level
+      + "canvas_x:Integer,"           // Canvas X position
+      + "canvas_y:Integer,"           // Canvas Y position
+      + "canvas_width:Integer,"       // Canvas width
+      + "canvas_height:Integer,"      // Canvas height
+      + "pano_x:Integer,"             // Panorama X position
+      + "pano_y:Integer,"             // Panorama Y position
+      + "pano_width:Integer,"         // Panorama width
+      + "pano_height:Integer,"        // Panorama height
+      + "camera_heading:Double,"      // Camera heading
+      + "camera_pitch:Double,"        // Camera pitch
+      + "camera_roll:Double,"         // Camera pitch
+      + "pano_url:String"             // Provider viewer URL (empty for providers without one)
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
@@ -778,6 +822,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(String.valueOf(label.osmWayId))
       featureBuilder.add(label.regionId)
       featureBuilder.add(label.regionName)
+      featureBuilder.add(label.streetSide.map(_.toString).orNull)
+      featureBuilder.add(label.centerlineOffsetM.map(Double.box).orNull)
       featureBuilder.add(label.correct.map(_.toString).orNull)
       featureBuilder.add(label.agreeCount)
       featureBuilder.add(label.disagreeCount)
@@ -934,7 +980,112 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
   }
 
   /**
+   * Writes sidewalk presence faces (#5279) as a Shapefile: one LineString per face, both faces of a street sharing
+   * its geometry. Field names are camelCase and abbreviated to the DBF format's 10-character limit; the GeoPackage
+   * carries the canonical snake_case names.
+   */
+  def createSidewalkPresenceShapefile(
+      source: Source[SidewalkPresenceForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "SidewalkPresence",
+      "the_geom:LineString:srid=4326," // The street's geometry, shared by its two faces
+      + "streetId:Integer,"
+        + "side:String,"
+        + "osmWayId:String," // OSM way ID as String (shapefiles don't handle Long well)
+        + "regionId:Integer,"
+        + "regionName:String,"
+        + "wayType:String,"
+        + "status:String,"
+        + "presence:String,"
+        + "basis:String,"     // presence_basis
+        + "nsLabels:Integer," // no_sidewalk_label_count
+        + "nsUsers:Integer,"  // no_sidewalk_user_count
+        + "labelCount:Integer,"
+        + "auditCount:Integer,"
+        + "firstNsLbl:String," // first_no_sidewalk_label_date
+        + "lastNsLbl:String"   // last_no_sidewalk_label_date
+    )
+
+    def buildFeature(face: SidewalkPresenceForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+      featureBuilder.add(face.geometry)
+      featureBuilder.add(face.streetEdgeId)
+      featureBuilder.add(face.streetSide)
+      featureBuilder.add(face.osmWayId.toString)
+      featureBuilder.add(face.regionId)
+      featureBuilder.add(face.regionName)
+      featureBuilder.add(face.wayType)
+      featureBuilder.add(face.status)
+      featureBuilder.add(face.presence)
+      featureBuilder.add(face.presenceBasis)
+      featureBuilder.add(face.noSidewalkLabelCount)
+      featureBuilder.add(face.noSidewalkUserCount)
+      featureBuilder.add(face.labelCount)
+      featureBuilder.add(face.auditCount)
+      featureBuilder.add(face.firstNoSidewalkLabelDate.map(_.toString).orNull)
+      featureBuilder.add(face.lastNoSidewalkLabelDate.map(_.toString).orNull)
+      featureBuilder.buildFeature(null)
+    }
+
+    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /** Writes sidewalk presence faces (#5279) as a GeoPackage, with the API's canonical snake_case field names. */
+  def createSidewalkPresenceGeopackage(
+      source: Source[SidewalkPresenceForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "sidewalk_presence",
+      "the_geom:LineString:srid=4326,"
+        + "street_edge_id:Integer,"
+        + "street_side:String,"
+        + "osm_way_id:String," // OSM way ID as String (GeoTools doesn't handle Long well)
+        + "region_id:Integer,"
+        + "region_name:String,"
+        + "way_type:String,"
+        + "status:String,"
+        + "presence:String,"
+        + "presence_basis:String,"
+        + "no_sidewalk_label_count:Integer,"
+        + "no_sidewalk_user_count:Integer,"
+        + "label_count:Integer,"
+        + "audit_count:Integer,"
+        + "first_no_sidewalk_label_date:String,"
+        + "last_no_sidewalk_label_date:String"
+    )
+
+    def buildFeature(face: SidewalkPresenceForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+      featureBuilder.add(face.geometry)
+      featureBuilder.add(face.streetEdgeId)
+      featureBuilder.add(face.streetSide)
+      featureBuilder.add(face.osmWayId.toString)
+      featureBuilder.add(face.regionId)
+      featureBuilder.add(face.regionName)
+      featureBuilder.add(face.wayType)
+      featureBuilder.add(face.status)
+      featureBuilder.add(face.presence)
+      featureBuilder.add(face.presenceBasis)
+      featureBuilder.add(face.noSidewalkLabelCount)
+      featureBuilder.add(face.noSidewalkUserCount)
+      featureBuilder.add(face.labelCount)
+      featureBuilder.add(face.auditCount)
+      featureBuilder.add(face.firstNoSidewalkLabelDate.map(_.toString).orNull)
+      featureBuilder.add(face.lastNoSidewalkLabelDate.map(_.toString).orNull)
+      featureBuilder.buildFeature(null)
+    }
+
+    createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /**
    * Creates a shapefile from RegionDataForApi objects.
+   *
+   * Column names are kept to 10 characters because the DBF format cuts anything longer short (`streetCnt`,
+   * `totalDistM`, `complRate`, …); the GeoJSON, CSV, and GeoPackage formats keep the full snake_case names.
    *
    * @param source Stream of RegionDataForApi objects
    * @param outputFile Base filename for the output file (without extension)
@@ -953,10 +1104,10 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "regionId:Integer,"              // Region ID
       + "name:String,"                   // Region name
       + "labelCount:Integer,"            // Number of labels in this region
-      + "streetCount:Integer,"           // Number of streets in this region
+      + "streetCnt:Integer,"             // Number of streets in this region
       + "userCount:Integer,"             // Number of unique users who labeled in this region
       + "auditCount:Integer,"            // Number of completed audits in this region
-      + "totalDistM:Double,"             // Total street distance in this region, meters (DBF caps names at 10 chars)
+      + "totalDistM:Double,"             // Total street distance in this region, meters
       + "audDistM:Double,"               // Distance audited with current imagery in this region, meters
       + "outdDistM:Double,"              // Distance needing re-audit (all audits predate newer imagery), meters
       + "complRate:Double,"              // Fraction of street distance audited with current imagery (0.0–1.0)
@@ -1038,8 +1189,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
   /**
    * Creates a shapefile from StreetAccessScoreForApi objects (v3, #3855).
    *
-   * The per-label-type count/sub-score columns use short codes (e.g. nCRamp, sCRamp) because the DBF format truncates
-   * column names at 10 characters; GeoJSON/CSV/GeoPackage keep the full snake_case names.
+   * The per-label-type columns use short codes because the DBF format truncates column names at 10 characters:
+   * cluster count `n<code>`, sub-score `s<code>`, cluster count per rating bucket `n1<code>`..`n3<code>` plus
+   * `n0<code>` for unrated clusters, and tag adjustment `t<code>`. GeoJSON/CSV/GeoPackage keep the full snake_case names.
    */
   def createStreetAccessScoreShapefile(
       source: Source[StreetAccessScoreForApi, _],
@@ -1051,17 +1203,32 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         val c = AccessScoreApiModels.shapefileTypeCode(t); s"n$c:Integer,s$c:Double"
       }
       .mkString(",")
+    val perBucketSpec: String = AccessScoreApiModels.typeBucketColumns
+      .map { case (t, b) =>
+        s"${AccessScoreApiModels.shapefileBucketPrefix(b)}${AccessScoreApiModels.shapefileTypeCode(t)}:Integer"
+      }
+      .mkString(",")
+    val perTagSpec: String = AccessScoreApiModels.orderedTypes
+      .map { t => s"t${AccessScoreApiModels.shapefileTypeCode(t)}:Double" }
+      .mkString(",")
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "AccessScoreStreet",
       "the_geom:LineString:srid=4326," // LineString geometry
       + "streetId:Integer,"            // Street edge ID
       + "osmWayId:String,"             // OSM way ID as String (shapefiles don't handle Long well)
       + "regionId:Integer,"            // Region ID
-      + "score:Double,"                // Access score (null if unaudited)
+      + "score:Double,"                // Headline score: mean of the segment and its end intersections (null if none)
+      + "segScore:Double,"             // The segment's own score (null if unaudited)
+      + "sIntId:Integer,"              // Start intersection ID (null if none)
+      + "eIntId:Integer,"              // End intersection ID (null if none)
+      + "sIntScore:Double,"            // Start intersection's score (null if unscored)
+      + "eIntScore:Double,"            // End intersection's score (null if unscored)
       + "auditCount:Integer,"          // Number of completed audits
       + "lengthM:Double,"              // Street length in meters
       + "labelCount:Integer,"          // Number of labels contributing to the score
-      + perTypeSpec                    // Per-type cluster count (n<code>) and sub-score (s<code>)
+      + perTypeSpec + ","              // Per-type cluster count (n<code>) and sub-score (s<code>)
+      + perBucketSpec + ","            // Per-type cluster count per rating bucket (n1..n3<code>, n0<code> unrated)
+      + perTagSpec                     // Per-type summed tag adjustment (t<code>)
     )
 
     def buildFeature(s: StreetAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
@@ -1070,6 +1237,11 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       fb.add(s.osmWayId.toString)
       fb.add(s.regionId)
       fb.add(s.score.map(Double.box).orNull)
+      fb.add(s.segmentScore.map(Double.box).orNull)
+      fb.add(s.startIntersectionId.map(Integer.valueOf).orNull)
+      fb.add(s.endIntersectionId.map(Integer.valueOf).orNull)
+      fb.add(s.startIntersectionScore.map(Double.box).orNull)
+      fb.add(s.endIntersectionScore.map(Double.box).orNull)
       fb.add(s.auditCount)
       fb.add(s.lengthMeters)
       fb.add(s.labelCount)
@@ -1077,6 +1249,10 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         fb.add(s.clusterCounts.getOrElse(t, 0))
         fb.add(s.subScores.getOrElse(t, 0.0))
       }
+      AccessScoreApiModels.typeBucketColumns.foreach { case (t, b) =>
+        fb.add(s.severityCounts.getOrElse(t, Map.empty[String, Int]).getOrElse(b, 0))
+      }
+      AccessScoreApiModels.orderedTypes.foreach { t => fb.add(s.tagAdjustments.getOrElse(t, 0.0)) }
       fb.buildFeature(null)
     }
 
@@ -1094,10 +1270,21 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         val n = AccessScoreApiModels.snakeType(t); Seq(s"n_$n:Integer", s"score_$n:Double")
       }
       .mkString(",")
+    val perBucketSpec: String = AccessScoreApiModels.typeBucketColumns
+      .map { case (t, b) =>
+        s"n_${AccessScoreApiModels.snakeType(t)}_${AccessScoreApiModels.bucketSuffix(b)}:Integer"
+      }
+      .mkString(",")
+    val perTagSpec: String = AccessScoreApiModels.orderedTypes
+      .map { t => s"tag_adj_${AccessScoreApiModels.snakeType(t)}:Double" }
+      .mkString(",")
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "access_score_streets",
       "the_geom:LineString:srid=4326,street_id:Integer,osm_way_id:String,region_id:Integer,score:Double," +
-        "audit_count:Integer,length_meters:Double,label_count:Integer," + perTypeSpec
+        "segment_score:Double,start_intersection_id:Integer,end_intersection_id:Integer," +
+        "start_intersection_score:Double,end_intersection_score:Double," +
+        "audit_count:Integer,length_meters:Double,label_count:Integer," +
+        perTypeSpec + "," + perBucketSpec + "," + perTagSpec
     )
 
     def buildFeature(s: StreetAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
@@ -1106,6 +1293,11 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       fb.add(s.osmWayId.toString)
       fb.add(s.regionId)
       fb.add(s.score.map(Double.box).orNull)
+      fb.add(s.segmentScore.map(Double.box).orNull)
+      fb.add(s.startIntersectionId.map(Integer.valueOf).orNull)
+      fb.add(s.endIntersectionId.map(Integer.valueOf).orNull)
+      fb.add(s.startIntersectionScore.map(Double.box).orNull)
+      fb.add(s.endIntersectionScore.map(Double.box).orNull)
       fb.add(s.auditCount)
       fb.add(s.lengthMeters)
       fb.add(s.labelCount)
@@ -1113,6 +1305,10 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         fb.add(s.clusterCounts.getOrElse(t, 0))
         fb.add(s.subScores.getOrElse(t, 0.0))
       }
+      AccessScoreApiModels.typeBucketColumns.foreach { case (t, b) =>
+        fb.add(s.severityCounts.getOrElse(t, Map.empty[String, Int]).getOrElse(b, 0))
+      }
+      AccessScoreApiModels.orderedTypes.foreach { t => fb.add(s.tagAdjustments.getOrElse(t, 0.0)) }
       fb.buildFeature(null)
     }
 
@@ -1137,6 +1333,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "coverage:Double,"               // Fraction of streets audited
       + "audited:Integer,"               // Audited street count
       + "total:Integer,"                 // Total street count
+      + "intScore:Double,"               // Mean score of the region's scored intersections (null if none)
+      + "intCount:Integer,"              // Intersections in the region (grade-separated crossings excluded)
+      + "scIntCount:Integer,"            // How many of them are scored
       + perTypeSpec                      // Per-type mean cluster count (a<code>)
     )
 
@@ -1148,6 +1347,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       fb.add(r.coverage)
       fb.add(r.auditedStreetCount)
       fb.add(r.totalStreetCount)
+      fb.add(r.intersectionScore.map(Double.box).orNull)
+      fb.add(r.intersectionCount)
+      fb.add(r.scoredIntersectionCount)
       AccessScoreApiModels.orderedTypes.foreach { t => fb.add(r.avgClusterCounts.getOrElse(t, 0.0)) }
       fb.buildFeature(null)
     }
@@ -1167,7 +1369,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "access_score_regions",
       "the_geom:MultiPolygon:srid=4326,region_id:Integer,name:String,score:Double,coverage:Double," +
-        "audited_street_count:Integer,total_street_count:Integer," + perTypeSpec
+        "audited_street_count:Integer,total_street_count:Integer,intersection_score:Double," +
+        "intersection_count:Integer,scored_intersection_count:Integer," + perTypeSpec
     )
 
     def buildFeature(r: RegionAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
@@ -1178,7 +1381,120 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       fb.add(r.coverage)
       fb.add(r.auditedStreetCount)
       fb.add(r.totalStreetCount)
+      fb.add(r.intersectionScore.map(Double.box).orNull)
+      fb.add(r.intersectionCount)
+      fb.add(r.scoredIntersectionCount)
       AccessScoreApiModels.orderedTypes.foreach { t => fb.add(r.avgClusterCounts.getOrElse(t, 0.0)) }
+      fb.buildFeature(null)
+    }
+
+    createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /**
+   * Creates a shapefile from IntersectionAccessScoreForApi objects (v3, #5095). Per-type columns use the same short
+   * codes as the street shapefile, over the intersection types only.
+   */
+  def createIntersectionAccessScoreShapefile(
+      source: Source[IntersectionAccessScoreForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val types: Seq[String]  = AccessScoreApiModels.orderedIntersectionTypes
+    val perTypeSpec: String = types
+      .map { t =>
+        val c = AccessScoreApiModels.shapefileTypeCode(t); s"n$c:Integer,s$c:Double"
+      }
+      .mkString(",")
+    val perBucketSpec: String = AccessScoreApiModels.intersectionTypeBucketColumns
+      .map { case (t, b) =>
+        s"${AccessScoreApiModels.shapefileBucketPrefix(b)}${AccessScoreApiModels.shapefileTypeCode(t)}:Integer"
+      }
+      .mkString(",")
+    val perTagSpec: String = types.map { t => s"t${AccessScoreApiModels.shapefileTypeCode(t)}:Double" }.mkString(",")
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "AccessScoreIntersection",
+      "the_geom:Point:srid=4326," // Point geometry
+      + "intersecId:Integer,"     // Intersection ID
+      + "regionId:Integer,"       // Region ID (null if none)
+      + "degree:Integer,"         // Streets meeting here
+      + "gradeSep:String,"        // "true" for a bridge/tunnel crossing, never scored
+      + "streetIds:String,"       // Comma-separated street edge IDs
+      + "auditCount:Integer,"     // Completed audits summed over those streets
+      + "score:Double,"           // Access score (null if unscored)
+      + "labelCount:Integer,"     // Number of labels contributing to the score
+      + perTypeSpec + ","         // Per-type cluster count (n<code>) and sub-score (s<code>)
+      + perBucketSpec + ","       // Per-type cluster count per rating bucket
+      + perTagSpec                // Per-type summed tag adjustment (t<code>)
+    )
+
+    def buildFeature(i: IntersectionAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
+      fb.add(i.geometry)
+      fb.add(i.intersectionId)
+      fb.add(i.regionId.map(Integer.valueOf).orNull)
+      fb.add(i.degree)
+      fb.add(i.gradeSeparated.toString)
+      fb.add(i.streetEdgeIds.mkString(","))
+      fb.add(i.auditCount)
+      fb.add(i.score.map(Double.box).orNull)
+      fb.add(i.labelCount)
+      types.foreach { t =>
+        fb.add(i.clusterCounts.getOrElse(t, 0))
+        fb.add(i.subScores.getOrElse(t, 0.0))
+      }
+      AccessScoreApiModels.intersectionTypeBucketColumns.foreach { case (t, b) =>
+        fb.add(i.severityCounts.getOrElse(t, Map.empty[String, Int]).getOrElse(b, 0))
+      }
+      types.foreach { t => fb.add(i.tagAdjustments.getOrElse(t, 0.0)) }
+      fb.buildFeature(null)
+    }
+
+    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /** Creates a GeoPackage from IntersectionAccessScoreForApi objects (v3, #5095). Full snake_case column names. */
+  def createIntersectionAccessScoreGeopackage(
+      source: Source[IntersectionAccessScoreForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val types: Seq[String]  = AccessScoreApiModels.orderedIntersectionTypes
+    val perTypeSpec: String = types
+      .flatMap { t =>
+        val n = AccessScoreApiModels.snakeType(t); Seq(s"n_$n:Integer", s"score_$n:Double")
+      }
+      .mkString(",")
+    val perBucketSpec: String = AccessScoreApiModels.intersectionTypeBucketColumns
+      .map { case (t, b) =>
+        s"n_${AccessScoreApiModels.snakeType(t)}_${AccessScoreApiModels.bucketSuffix(b)}:Integer"
+      }
+      .mkString(",")
+    val perTagSpec: String = types.map { t => s"tag_adj_${AccessScoreApiModels.snakeType(t)}:Double" }.mkString(",")
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "access_score_intersections",
+      "the_geom:Point:srid=4326,intersection_id:Integer,region_id:Integer,degree:Integer,grade_separated:Boolean," +
+        "street_edge_ids:String,audit_count:Integer,score:Double,label_count:Integer," +
+        perTypeSpec + "," + perBucketSpec + "," + perTagSpec
+    )
+
+    def buildFeature(i: IntersectionAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
+      fb.add(i.geometry)
+      fb.add(i.intersectionId)
+      fb.add(i.regionId.map(Integer.valueOf).orNull)
+      fb.add(i.degree)
+      fb.add(i.gradeSeparated)
+      fb.add(i.streetEdgeIds.mkString(","))
+      fb.add(i.auditCount)
+      fb.add(i.score.map(Double.box).orNull)
+      fb.add(i.labelCount)
+      types.foreach { t =>
+        fb.add(i.clusterCounts.getOrElse(t, 0))
+        fb.add(i.subScores.getOrElse(t, 0.0))
+      }
+      AccessScoreApiModels.intersectionTypeBucketColumns.foreach { case (t, b) =>
+        fb.add(i.severityCounts.getOrElse(t, Map.empty[String, Int]).getOrElse(b, 0))
+      }
+      types.foreach { t => fb.add(i.tagAdjustments.getOrElse(t, 0.0)) }
       fb.buildFeature(null)
     }
 

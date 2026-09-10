@@ -12,7 +12,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
 
 const CARD_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/gallery/src/cards/Card.js'), 'utf8'
@@ -50,16 +50,15 @@ describe('a Gallery card\'s location line', () => {
             camelToKebab: (s) => s.toLowerCase(),
             EXPLORE_CANVAS_WIDTH: 720,
             EXPLORE_CANVAS_HEIGHT: 480,
-            misc: {
-                getIconImagePaths: () => ({ iconImagePath: 'icon.png' }),
-                labelTypeHasSeverity: () => true,
-            },
         };
+        installUtilitiesMisc(); // Card positions its marker through util.misc.labelMarkerFraction.
         // Collaborators the constructor builds but this test doesn't exercise.
         window.SeverityDisplay = class {};
         window.ValidationInfoDisplay = class {};
         window.ValidationMenu = class {};
         window.TagDisplay = class {};
+        window.createPanoViewerLogo = () => ({ showSourceLogo: () => {} });
+        window.createPanoAttribution = () => ({ show: () => {} });
         window.$ = () => ({ tooltip: () => ({ tooltip: () => {} }) });
         window.eval(`${CARD_SRC}\nwindow.Card = Card;`);
     });
