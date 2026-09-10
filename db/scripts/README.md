@@ -100,21 +100,22 @@ or `ROLLBACK`. Edit the candidate-id list and the `search_path` (target city sch
 
 ## Gotchas
 
-- **Restores kill all DB connections.** `import-users.sh` and `import-dump.sh` call `pg_terminate_backend` on every
-  connection to the `sidewalk` database before dropping a schema. If the web app (`npm start`) is running, its
-  connections are killed — that's expected; sbt reconnects.
+- **Restores kill all DB connections.** `import-dump.sh` and `import-users.sh replace=1` call `pg_terminate_backend`
+  on every connection to the `sidewalk` database before dropping a schema. If the web app (`npm start`) is running,
+  its connections are killed — that's expected; sbt reconnects. A merging `import-users` leaves them alone.
 - **Merge `import-users`, don't replace it, once you have cities loaded.** Local test accounts exist only in your DB,
   and your cities' data points at them. A merge keeps them; `replace=1` drops them, and its `DROP SCHEMA ... CASCADE`
-  also deletes every city's foreign keys into `sidewalk_login`, so a replace means re-importing every city after it.
+  also takes every city's foreign keys into `sidewalk_login`, its `survey_question.survey_user_role` column (typed as
+  that schema's `role` enum) and its `label_comments_agg` view, so a replace means re-importing every city after it.
 - **Dump files must exist in `db/`, named `<schema>-dump`.** Real city dumps are **git-ignored**; only the small
   `sidewalk_init-dump` / `sidewalk_init_users-dump` templates are committed. The scripts now fail with a clear message
   if a dump is missing, rather than a cryptic `pg_restore` error.
 - **Schema / city names must be valid bare SQL identifiers** (`^[a-z][a-z0-9_]*$`) — they're interpolated into DDL.
   `import-dump.sh` and `create-new-schema.sh` validate this.
-- **Large restores can run for a minute or more.** The ~1 GB users dump is the slowest (~2.5 min to restore). The
-  restore scripts show a live elapsed-time clock and run `pg_restore` in parallel (`-j`), but it's still a wait —
-  don't assume it's hung. A merge adds time for each new account: ~3 min for ~300k (a refresh a few months
-  stale), ~20 min for all ~6M into a fresh DB, which is why the first import uses `replace=1`.
+- **Large restores can run for a minute or more.** The ~1 GB users dump is the slowest: ~2.5 min to restore with
+  `replace=1`, under a minute to load for a merge. The scripts show a live elapsed-time clock, so don't assume a
+  quiet one is hung. A merge then adds time for each new account: ~3 min for ~300k (a refresh a few months stale),
+  ~20 min for all ~6M into a fresh DB, which is why the first import uses `replace=1`.
 - **`init.sh` only runs on a fresh volume.** Editing it does nothing to an existing dev DB until you recreate the volume
   (`make docker-stop` + remove the db volume, or `docker compose down -v`).
 - **`reveal-or-hide-neighborhoods.sh` has a server mode** (test/prod) with different connection params; the default is

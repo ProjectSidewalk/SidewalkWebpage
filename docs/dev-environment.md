@@ -179,7 +179,8 @@ Each city is a separate database. To switch:
    and run `make import-users` (ask a maintainer if unsure — the creation date is in the original filename). It
    merges: accounts you're missing are added, and the ones you have, including local test accounts your other cities
    point at, are kept, so the cities you already imported keep working. `make import-users replace=1` wipes the login
-   schema and restores the dump from scratch instead; after that, re-import every other city you have.
+   schema and restores the dump from scratch instead. That also drops the parts of every city that depend on it
+   (foreign keys, a survey column, a view), so after it, re-import every other city you have.
 3. `make import-dump db=<database_user>` (from the host, outside the Docker shell).
 4. Update **`DATABASE_USER`** and **`SIDEWALK_CITY_ID`** in `docker-compose.override.yml` to match.
 5. `make dev` again.
