@@ -1038,7 +1038,7 @@ def test_main_mapillary_requests_and_records_capture_dates(monkeypatch, tmp_path
         return {'data': [_image()]}
 
     monkeypatch.setattr(cs, '_get_json', fake_get_json)
-    assert cs.main(['--mapillary', '--max-qps', '1000']) == 0
+    assert cs.main(['--city-id', _CITY, '--mapillary', '--max-qps', '1000']) == 0
     # Every request must ask for the fields score_pano ranks on — a default response carries only `id`.
     assert urls
     for field in ('captured_at', 'geometry', 'computed_geometry', 'width'):
