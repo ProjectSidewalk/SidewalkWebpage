@@ -5,7 +5,7 @@
         hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
         lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-vendor-versions \
-        scalafmt scalafmt-fix \
+        scalafmt scalafmt-fix compile test-scala \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
         lint-eslint lint-htmlhint lint-stylelint lint-fix-eslint lint-fix-stylelint
 
@@ -17,6 +17,7 @@ db ?= sidewalk
 dir ?= ./
 args ?=
 wt ?=
+only ?=
 clean ?=
 force ?=
 
@@ -38,6 +39,16 @@ qa-worktree-exec = script="/home/.claude/worktrees/$(wt)/tools/qa-worktree.sh"; 
   exec bash "$$script" $(1)
 # Every wt= target fails fast on a missing name rather than passing an empty one along.
 worktree-require-wt = @[ -n "$(wt)" ] || { echo "usage: make $@ wt=<name>   (a dir under .claude/worktrees/)"; exit 2; }
+
+# Where the container sees the checkout you ran make from (/home, or /home/.claude/worktrees/<name> for a worktree), so
+# targets check the files you're actually editing. wt=<name> picks a worktree instead.
+here-wt       = $(if $(findstring /.claude/worktrees/,$(CURDIR)),$(firstword $(subst /, ,$(lastword $(subst /.claude/worktrees/, ,$(CURDIR))))))
+container-dir = /home$(if $(or $(wt),$(here-wt)),/.claude/worktrees/$(or $(wt),$(here-wt)))
+# A worktree may have no node_modules of its own, so always use the main checkout's.
+node-modules  = /home/node_modules
+# Point sbt at the main checkout's download caches, so a worktree doesn't download everything again.
+sbt-cache-flags = -Dsbt.coursier.home=/home/.coursier -Dsbt.global.base=/home/.sbt -Dsbt.boot.directory=/home/.sbt/boot \
+                  -Dsbt.repository.config=/home/.sbt/repositories
 
 # ANSI colors for the `lint` summary.
 GREEN := \033[0;32m
@@ -61,8 +72,6 @@ pw-version := $(shell sed -n '/"node_modules\/@playwright\/test": {/,/}/ s/.*"ve
 axe-version := $(shell sed -n '/"node_modules\/@axe-core\/playwright": {/,/}/ s/.*"version": "\([0-9][0-9.]*\)".*/\1/p' package-lock.json | head -1)
 e2e-image   = projectsidewalk/e2e
 e2e-tag      = $(pw-version)-axe$(axe-version)
-# The main repo is the container's /home, so a worktree's specs are just a different working directory.
-e2e-workdir = $(if $(wt),/home/.claude/worktrees/$(wt),/home)
 # Playwright writes test-results/ into the bind-mounted repo, and the base image has no USER — so without this the
 # reports, traces, and the setup project's saved storageState all land root-owned, and neither a plain `rm -rf` nor
 # host-side `make worktree-remove` can clear them. HOME goes to /tmp because the invoking uid has no passwd entry.
@@ -88,7 +97,7 @@ e2e-user   = $(e2e-uid):$(if $(filter 0,$(docker-rootless)),$(shell id -g),0)
 # in place instead of sending the developer to sudo. Held in a variable, not written inline in the recipe, because
 # make condenses a variable's backslash-continuations to spaces at parse time and the container's shell would
 # otherwise receive them literally inside the single-quoted script (same reason as qa-worktree-exec).
-e2e-fix-artifact-owner = cd $(e2e-workdir) 2>/dev/null || exit 0; \
+e2e-fix-artifact-owner = cd $(container-dir) 2>/dev/null || exit 0; \
   for d in test-results playwright-report; do \
     [ -d "$$d" ] || continue; \
     [ "$$(stat -c %u "$$d")" = "$(e2e-uid)" ] && continue; \
@@ -111,6 +120,7 @@ stylelint-fix: | lint-fix-stylelint
 # Runs every linter (the frontend set + evolutions) even if an earlier one fails, so all problems surface in one pass,
 # then prints a ✓/✗ per linter and a colored summary. Exits non-zero if any failed.
 lint:
+	@printf "$(BOLD)Linting %s$(RESET)\n" "$(container-dir)"
 	@fail=0; \
 	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-asset-paths \
 			lint-vendor-versions lint-evolutions; do \
@@ -210,14 +220,14 @@ onboard-city:
 # e.g. `make build-city-data id=newport-ky args="--place 'Newport, Kentucky, USA'"`
 #      `make build-city-data id=newport-ky args="--from-gpkg"`
 build-city-data:
-	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/onboard_city.py --city-id $(id) $(args)"
+	@docker exec -it $(web-container) sh -c "cd $(container-dir) && python3.13 scripts/onboard_city.py --city-id $(id) $(args)"
 
 # Imagery preflight or full scan for a city's streets (scripts/check_streets_for_imagery.py, in the web container,
 # which holds the provider keys). A preflight samples the build artifacts before the city has a database:
 # e.g. `make check-imagery id=laurens-ia args="--sample 150 --mapillary"`; the full scan (`args="--mapillary"`) is
 # what `make onboard-city` runs for you.
 check-imagery:
-	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/check_streets_for_imagery.py --city-id $(id) $(args)"
+	@docker exec -it $(web-container) sh -c "cd $(container-dir) && python3.13 scripts/check_streets_for_imagery.py --city-id $(id) $(args)"
 
 hide-streets-without-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/hide-streets-without-imagery.sh"
@@ -243,10 +253,10 @@ test-python:
 	exit $${fail:-0}
 
 test-python-app:
-	@docker exec -it $(cov-omit-app) $(web-container) sh -c "cd /home && python3 -m pytest $(pytest-args-app) $(args)"
+	@docker exec -it $(cov-omit-app) $(web-container) sh -c "cd $(container-dir) && python3 -m pytest $(pytest-args-app) $(args)"
 
 test-python-tools:
-	@docker exec -it $(cov-omit-tools) $(web-container) sh -c "cd /home && python3.13 -m pytest $(pytest-args-tools) $(args)"
+	@docker exec -it $(cov-omit-tools) $(web-container) sh -c "cd $(container-dir) && python3.13 -m pytest $(pytest-args-tools) $(args)"
 
 # Browser smoke tests (test/e2e/) against an already-running app at localhost:9000. Like every other tooling target
 # this runs in a container, so it behaves the same on Linux, WSL2, and macOS (Intel and Apple Silicon) with no host
@@ -256,15 +266,14 @@ test-python-tools:
 # play.filters.hosts.allowed permits, and the same URL CI uses; `--volumes-from` gives it the web container's
 # mounts, so /home is the repo and worktree paths resolve unchanged. Two more make it behave: see the notes on
 # `--tmpfs` below and on e2e-user above. Scope with args=, e.g.
-# args="-g labelMap --no-deps". Without wt= it runs the MAIN checkout's specs even when invoked from a worktree
-# (the container sees one filesystem); pass wt=<name> for that worktree's, as with qa-worktree. For --headed/--ui,
+# args="-g labelMap --no-deps". It runs the specs of the checkout you run make from, or wt=<name>'s. For --headed/--ui,
 # see test-e2e-host. The image build is a cached no-op after the first run, and re-runs itself on a version bump —
 # it's only verbose when the tag is missing, since that first build downloads the base image.
 #
 # The jsdom unit suite (test/js/), a blocking step in CI's `frontend` job. Run in the web container, where the
 # node_modules live. `args` passes through, so `make test-js args="--watch"` or a path filter works.
 test-js:
-	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/.bin/jest --config jest.config.js $(args)"
+	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/jest --config jest.config.js $(args)"
 
 # `--tmpfs /home/node_modules` is load-bearing, not tidiness: NODE_PATH is consulted only after the node_modules
 # walk fails, so the repo's own node_modules — which carries @playwright/test, a devDependency installed into the
@@ -279,8 +288,8 @@ test-e2e:
 	  || { echo "error: no @playwright/test version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
 	@[ -n "$(axe-version)" ] \
 	  || { echo "error: no @axe-core/playwright version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
-	@[ -z "$(wt)" ] || docker exec $(web-container) test -d $(e2e-workdir) \
-	  || { echo "error: no worktree at $(e2e-workdir) (from wt=$(wt))"; exit 2; }
+	@[ -z "$(wt)" ] || docker exec $(web-container) test -d $(container-dir) \
+	  || { echo "error: no worktree at $(container-dir) (from wt=$(wt))"; exit 2; }
 	@docker exec $(web-container) sh -c '$(e2e-fix-artifact-owner)'
 	@if docker image inspect $(e2e-image):$(e2e-tag) > /dev/null 2>&1; then \
 	  docker build --quiet --build-arg PW_VERSION=$(pw-version) --build-arg AXE_VERSION=$(axe-version) -t $(e2e-image):$(e2e-tag) docker/e2e > /dev/null; \
@@ -291,7 +300,7 @@ test-e2e:
 	@docker run --rm --init --ipc=host \
 	  --network container:$(web-container) --volumes-from $(web-container) --tmpfs /home/node_modules \
 	  --user $(e2e-user) -e HOME=/tmp -e FORCE_COLOR=1 -e BASE_URL \
-	  -w $(e2e-workdir) $(e2e-image):$(e2e-tag) playwright test $(args)
+	  -w $(container-dir) $(e2e-image):$(e2e-tag) playwright test $(args)
 
 # Host-side run of the same suite, for `--headed`, `--ui`, and `show-trace` — those need a display the container
 # doesn't have. Needs a host toolchain the containerized path does not: Node 24, `npm ci` at the repo root
@@ -315,7 +324,7 @@ lint-evolutions:
 # rule can't do). Pure node, run in the web container so node is present. Also a blocking CI step.
 lint-locales:
 	@echo "Running locale checks...";
-	@docker exec $(web-container) bash -lc "cd /home && node tools/check-locale-parity.mjs"
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/check-locale-parity.mjs"
 	@echo "Finished locale checks";
 
 # Layout of public/css/ (#5030): a page's stylesheet is linked only by that page, page class prefixes stay in the
@@ -323,7 +332,7 @@ lint-locales:
 # blocking CI step.
 lint-css-layout:
 	@echo "Checking CSS layout...";
-	@docker exec $(web-container) bash -lc "cd /home && node tools/check-css-layout.mjs"
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/check-css-layout.mjs"
 	@echo "Finished checking CSS layout";
 
 # Asset URLs in public/js/ (#4893): no hardcoded '/assets/' outside the allowlist, and every util.assetPath()
@@ -331,7 +340,7 @@ lint-css-layout:
 # literal family directory. Pure node, run in the web container so node is present. Also a blocking CI step.
 lint-asset-paths:
 	@echo "Checking asset paths...";
-	@docker exec $(web-container) bash -lc "cd /home && node tools/check-asset-paths.mjs"
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/check-asset-paths.mjs"
 	@echo "Finished checking asset paths";
 
 # Self-hosted libraries in public/vendor/ (#4399): every folder is listed in docs/upgrading-libraries.md, and the
@@ -340,35 +349,43 @@ lint-asset-paths:
 # present. Also a blocking CI step.
 lint-vendor-versions:
 	@echo "Checking vendor versions...";
-	@docker exec $(web-container) bash -lc "cd /home && node tools/check-vendor-versions.mjs"
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/check-vendor-versions.mjs"
 	@echo "Finished checking vendor versions";
 
 # Scala formatting (.scalafmt.conf). The sbt thin client (`--jvm-client`) shares the running `sbt ~ run`'s server
 # instead of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats
 # in place.
 scalafmt:
-	@echo "Checking Scala formatting..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --jvm-client scalafmtCheckAll"
+	@echo "Checking Scala formatting..."; docker exec -it $(web-container) bash -lc "cd $(container-dir) && sbt $(sbt-cache-flags) --jvm-client scalafmtCheckAll"
 
 scalafmt-fix:
-	@echo "Formatting Scala..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --jvm-client scalafmtAll"
+	@echo "Formatting Scala..."; docker exec -it $(web-container) bash -lc "cd $(container-dir) && sbt $(sbt-cache-flags) --jvm-client scalafmtAll"
+
+# Compile, and run the Scala tests (which need the db container). Narrow the tests with only=, e.g.
+# `make test-scala only=controllers.api.PublicApiSpec`.
+compile:
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && sbt $(sbt-cache-flags) --jvm-client compile"
+
+test-scala:
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && sbt $(sbt-cache-flags) --jvm-client $(if $(only),'testOnly $(only)',test)"
 
 # The JS/CSS/HTML linters run in the web container, where their node_modules live (no host-side npm install).
 # `-e FORCE_COLOR=1` (not `docker exec -t`) restores colorized output while keeping the targets pipeable.
 lint-htmlhint:
 	@echo "Running HTMLHint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/htmlhint/bin/htmlhint $(args) ./app/views"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/htmlhint/bin/htmlhint $(args) ./app/views"; \
 	else \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/htmlhint/bin/htmlhint $(args) $(dir)"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/htmlhint/bin/htmlhint $(args) $(dir)"; \
 	fi
 	@echo "Finished Running HTMLHint";
 
 lint-eslint:
 	@echo "Running eslint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/eslint/bin/eslint.js $(args) public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js"; \
 	else \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) $(dir)"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/eslint/bin/eslint.js $(args) $(dir)"; \
 	fi
 	@echo "Finished Running eslint";
 
@@ -376,18 +393,18 @@ lint-eslint:
 lint-stylelint:
 	@echo "Running stylelint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/.bin/stylelint $(args) 'public/**/*.css'"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/stylelint $(args) 'public/**/*.css'"; \
 	else \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/.bin/stylelint $(args) '$(css-glob)'"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/stylelint $(args) '$(css-glob)'"; \
 	fi
 	@echo "Finished Running stylelint";
 
 lint-fix-eslint:
 	@echo "Running eslint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/eslint/bin/eslint.js --fix $(args) public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js"; \
 	else \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) $(dir)"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/eslint/bin/eslint.js --fix $(args) $(dir)"; \
 	fi
 	@echo "Finished Running eslint";
 
@@ -396,8 +413,8 @@ lint-fix-eslint:
 lint-fix-stylelint:
 	@echo "Running stylelint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/.bin/stylelint --fix $(args) 'public/**/*.css' > /dev/null 2>&1; ./node_modules/.bin/stylelint --fix $(args) 'public/**/*.css'"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/stylelint --fix $(args) 'public/**/*.css' > /dev/null 2>&1; $(node-modules)/.bin/stylelint --fix $(args) 'public/**/*.css'"; \
 	else \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/.bin/stylelint --fix $(args) '$(css-glob)' > /dev/null 2>&1; ./node_modules/.bin/stylelint --fix $(args) '$(css-glob)'"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/stylelint --fix $(args) '$(css-glob)' > /dev/null 2>&1; $(node-modules)/.bin/stylelint --fix $(args) '$(css-glob)'"; \
 	fi
 	@echo "Finished Running stylelint";

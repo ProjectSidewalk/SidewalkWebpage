@@ -295,7 +295,7 @@ The quickest pass/fail on a Scala change is a compile. The sbt **thin client** h
 sbt server, so it won't collide with a running `sbt ~ run` over build locks:
 
 ```bash
-docker exec projectsidewalk-web bash -lc "cd /home && sbt --jvm-client compile"
+make compile
 ```
 
 The first call after a container boot starts the compile server (~30s); later calls are near-instant. `build.sbt`
@@ -311,8 +311,8 @@ ScalaTest specs live under `test/` — mostly functional specs for the public AP
 specs. They boot the real app against Postgres+PostGIS, so the `db` container has to be up:
 
 ```bash
-docker exec projectsidewalk-web bash -lc "cd /home && sbt --jvm-client test"
-docker exec projectsidewalk-web bash -lc "cd /home && sbt --jvm-client \"testOnly controllers.api.PublicApiSpec\""
+make test-scala
+make test-scala only=controllers.api.PublicApiSpec
 ```
 
 The `backend-tests` CI job is a required check and runs **all of `test/`** (`sbt coverage test`, since #5042), so a
@@ -324,9 +324,8 @@ CI's seeded schema (#5115) is expected to cancel nothing, so a CANCELED line the
 something.
 
 There are also Python unit tests for the `scripts/` utilities (`make test-python`) and a jsdom Jest suite for
-frontend modules (`docker exec projectsidewalk-web bash -lc "cd /home && npm run test:js"` — Jest's
-`node_modules` are in the container, not on your host). [`docs/testing-and-ci.md`](testing-and-ci.md) covers
-what each layer is for.
+frontend modules (`make test-js` — Jest's `node_modules` are in the container, not on your host).
+[`docs/testing-and-ci.md`](testing-and-ci.md) covers what each layer is for.
 
 ### Checking that pages still load in a browser
 
@@ -337,7 +336,7 @@ any uncaught page error or console error. With your dev app running, in a second
 ```bash
 make test-e2e                               # the whole suite
 make test-e2e args="-g labelMap --no-deps"  # one page
-make test-e2e wt=<worktree-name>            # a worktree's specs
+make test-e2e wt=<worktree-name>            # a worktree's specs, from anywhere
 ```
 
 Nothing to install: the runner is a container, so it behaves the same on macOS, Linux, and WSL — including Apple
@@ -363,6 +362,12 @@ while reusing the main repo's warm sbt caches. The first request triggers the de
 reaps the grunt watch. To tear a session down out-of-band, run `make qa-worktree-stop wt=<name>` (add `clean=1` to
 also drop the `node_modules` symlink). It behaves the same on macOS, Linux, and WSL because the work runs inside the
 web container.
+
+**Every container target checks the checkout you run it from.** The container can see each worktree (it mounts the
+main checkout at `/home`, and worktrees live inside it), so `make lint`, `make test-js`, `make compile`,
+`make test-scala`, `make scalafmt`, `make test-python`, `make test-e2e` and the rest, run from inside a worktree, check
+that worktree. `wt=<name>` points one at a worktree from anywhere, and `make lint` opens by naming the tree it's
+checking. A hand-typed `docker exec … "cd /home && …"` is the exception: it always runs against the main checkout.
 
 Both targets run the **worktree's own** copy of `tools/qa-worktree.sh` when it has one (falling back to the main
 checkout's), so the branch being QA'd supplies its own tooling. `make` itself still reads the **main checkout's**
