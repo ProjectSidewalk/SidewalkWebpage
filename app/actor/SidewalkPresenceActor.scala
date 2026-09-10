@@ -64,17 +64,23 @@ class SidewalkPresenceActor @Inject() (
   }
 
   def receive: Receive = { case SidewalkPresenceActor.Tick =>
-    val currentTimeStart: String = dateFormatter.format(Instant.now())
-    logger.info(s"Auto-scheduled sidewalk presence rebuild starting at: $currentTimeStart")
-    jobRunService
-      .record(SidewalkPresenceActor.Name, JobRunTrigger.Scheduled)(sidewalkPresenceService.rebuild())(_.runDetails)
-      .onComplete {
-        case Success(result) =>
-          logger.info(
-            s"Sidewalk presence rebuild finished: ${result.faces} faces (${result.inserted} new, " +
-              s"${result.updated} changed, ${result.deleted} gone)"
-          )
-        case Failure(e) => logger.error("Auto-scheduled sidewalk presence rebuild failed", e)
-      }
+    // An admin can have triggered the same rebuild seconds earlier; recording this tick as a failed run would show
+    // the job red on the Health panel while the rebuild it duplicates is in fact succeeding.
+    if (sidewalkPresenceService.isRunning) {
+      logger.info("Auto-scheduled sidewalk presence rebuild skipped: a rebuild is already in progress.")
+    } else {
+      val currentTimeStart: String = dateFormatter.format(Instant.now())
+      logger.info(s"Auto-scheduled sidewalk presence rebuild starting at: $currentTimeStart")
+      jobRunService
+        .record(SidewalkPresenceActor.Name, JobRunTrigger.Scheduled)(sidewalkPresenceService.rebuild())(_.runDetails)
+        .onComplete {
+          case Success(result) =>
+            logger.info(
+              s"Sidewalk presence rebuild finished: ${result.faces} faces (${result.inserted} new, " +
+                s"${result.updated} changed, ${result.deleted} gone)"
+            )
+          case Failure(e) => logger.error("Auto-scheduled sidewalk presence rebuild failed", e)
+        }
+    }
   }
 }

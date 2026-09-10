@@ -7,6 +7,7 @@ import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, Json}
 
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -36,8 +37,15 @@ case class SidewalkPresenceRebuildResult(faces: Int, inserted: Int, updated: Int
 @ImplementedBy(classOf[SidewalkPresenceServiceImpl])
 trait SidewalkPresenceService {
 
-  /** Re-derives every block face's sidewalk presence from the current labels and audits, in one transaction. */
+  /**
+   * Re-derives every block face's sidewalk presence from the current labels and audits, in one transaction.
+   *
+   * At most one run at a time: a second call while one is in flight fails with [[IllegalStateException]].
+   */
   def rebuild(): Future[SidewalkPresenceRebuildResult]
+
+  /** Whether a rebuild is in flight. */
+  def isRunning: Boolean
 }
 
 /**
@@ -53,8 +61,25 @@ class SidewalkPresenceServiceImpl @Inject() (
     extends SidewalkPresenceService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  def rebuild(): Future[SidewalkPresenceRebuildResult] =
-    db.run(sidewalkPresenceTable.rebuild.transactionally).map { counts: SidewalkPresenceRebuildCounts =>
-      SidewalkPresenceRebuildResult(counts.total, counts.inserted, counts.updated, counts.deleted)
+  private val running = new AtomicBoolean(false)
+
+  def isRunning: Boolean = running.get()
+
+  // Two concurrent rebuilds are not merely wasteful: both take their snapshot of `derived_face`, both see a street
+  // inserted since as missing from `sidewalk_presence`, and the loser aborts on the primary key -- which the Health
+  // panel then shows as a failed job. The nightly tick and the admin trigger are the two that can overlap.
+  def rebuild(): Future[SidewalkPresenceRebuildResult] = {
+    if (!running.compareAndSet(false, true)) {
+      Future.failed(new IllegalStateException("A sidewalk presence rebuild is already in progress."))
+    } else {
+      // Future.delegate so a synchronous throw while building the action still releases the guard.
+      Future
+        .delegate {
+          db.run(sidewalkPresenceTable.rebuild.transactionally).map { counts: SidewalkPresenceRebuildCounts =>
+            SidewalkPresenceRebuildResult(counts.total, counts.inserted, counts.updated, counts.deleted)
+          }
+        }
+        .andThen { case _ => running.set(false) }
     }
+  }
 }

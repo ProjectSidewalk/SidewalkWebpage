@@ -89,6 +89,9 @@ class AdminJobTriggerSpec
   /** Set per test: whether the crop service reports a run in flight, which is the trigger's refusal path. */
   @volatile private var cropRunning: Boolean = false
 
+  /** As `cropRunning`, for the sidewalk-presence rebuild, whose trigger refuses the same way. */
+  @volatile private var presenceRunning: Boolean = false
+
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .disable[modules.ActorModule]
@@ -127,7 +130,12 @@ class AdminJobTriggerSpec
           StubService.answeringWith[OsmWayService](Map("refreshOsmWayData" -> (() => osmWayAnswer)))
         ),
         bind[SidewalkPresenceService].toInstance(
-          StubService.answering[SidewalkPresenceService](Map("rebuild" -> Future.successful(PresenceResult)))
+          StubService.answeringWith[SidewalkPresenceService](
+            Map(
+              "rebuild"   -> (() => Future.successful(PresenceResult)),
+              "isRunning" -> (() => presenceRunning)
+            )
+          )
         )
       )
       .build()
@@ -244,6 +252,19 @@ class AdminJobTriggerSpec
       jobRun.triggeredBy mustBe JobRunTrigger.Manual
       jobRun.status mustBe JobRunStatus.Succeeded
       jobRun.details.value mustBe PresenceResult.runDetails
+    }
+
+    "refuse with 409, and record nothing, while the nightly rebuild is already running" in {
+      // Two rebuilds racing insert the same new street's faces and the loser aborts on the primary key; refusing
+      // before the run is recorded keeps that non-event off the Health panel.
+      presenceRunning = true
+      try {
+        val idFloor  = highestRunId
+        val response = asAdmin("/adminapi/rebuildSidewalkPresence", POST)
+        status(response) mustBe CONFLICT
+        contentAsString(response) must include("already in progress")
+        runsSince(idFloor, SidewalkPresenceActor.Name) mustBe empty
+      } finally presenceRunning = false
     }
   }
 
