@@ -1,46 +1,33 @@
 #!/usr/bin/env bash
 # =====================================================================================================================
-# import-users.sh — load the shared login schema (sidewalk_login) from the users dump, merging it into what you have.
+# import-users.sh — load user accounts (the shared sidewalk_login schema) from the users dump.
 #
-# WHY THIS EXISTS: every city schema shares one `sidewalk_login` schema that holds accounts, roles, and auth data. The
-# dev/CI database seeds this from a binary `pg_restore` dump rather than regenerating it, because it's large and not
-# something evolutions produce. Run this once after the db container is up, and again whenever a newer city dump needs
-# accounts that were made on prod after your last users import.
+# Every city shares one set of user accounts. Run this after the db container is first up, and again whenever a newer
+# city dump needs accounts that were created on prod since your last users import.
 #
 # TWO MODES (#3721):
-#   merge (default)  Adds the dump's accounts that you don't have yet and leaves every account you do have alone,
-#                    including test accounts you made locally. Those local accounts are what break a wipe: the cities
-#                    you already imported still point at them. A merge only writes rows, so the live schema's structure,
-#                    and everything in the cities that depends on it, stays as it is.
-#   --replace        Drop sidewalk_login and restore the dump from scratch. Use it for a fresh DB's first import, where
-#                    there's nothing to keep and merging every account would take ~20 min. Anywhere else it's
-#                    destructive: DROP SCHEMA ... CASCADE also drops every city's foreign keys into sidewalk_login,
-#                    its survey_question.survey_user_role column (typed as the schema's `role` enum) and its
-#                    label_comments_agg view, so re-import every city after it.
+#   merge (default)  Adds accounts from the dump that you don't have yet. Accounts you already have, including local
+#                    test accounts your cities point at, are left alone, so cities you've already imported keep working.
+#   --replace        Deletes all accounts and loads the dump from scratch. Fast, and the right choice for a fresh DB's
+#                    first import. On a DB with cities loaded it also breaks those cities (it drops their links to the
+#                    account tables, plus a survey column and a view), so re-import every city afterward.
 #
-# HOW A MERGE WORKS: pg_restore can only restore into the schema name the dump was made with, so the dump is turned
-# into SQL, and its schema name is rewritten to sidewalk_login_import on the way into psql. Only the table definitions
-# and the COPY/setval lines name the schema, so data rows pass through untouched. One transaction then copies the new
-# accounts across. The live schema is never renamed or dropped, so the app can keep running meanwhile.
+# HOW A MERGE WORKS: the dump is loaded into a temporary copy (sidewalk_login_import) beside your real accounts, the new
+# accounts are copied over in one step, and the temporary copy is deleted. Your real accounts stay available the whole
+# time, so the app can keep running.
 #
 # HOW IT'S RUN:  make import-users [replace=1]  →  docker exec ... /opt/scripts/import-users.sh [--replace]
 # INPUT:         /opt/sidewalk_users-dump  (i.e. db/sidewalk_users-dump on the host; git-ignored — see dev-environment.md).
 #
-# GOTCHAS:
-#   - --replace force-terminates ALL connections to the `sidewalk` database first. If the web app (`npm start`) is
-#     running, its DB connections are killed; just let sbt reconnect.
-#   - The users dump is ~1 GB, so loading it takes a minute or two, and a merge needs room for a second copy of the
-#     login tables while it runs.
-#   - A merged account keeps its user_id (what city data points at) but gets new row ids in the other login tables
-#     (login_info_id, user_role_id, ...): your local sign-ups already used some of the ids the dump has since handed
-#     out on prod. Nothing outside sidewalk_login refers to those ids.
-#   - An account you already have is never updated from the dump, even if it changed on prod since. The exception is a
-#     clash: the app finds accounts by username and by email, so if a new account has the username or email of one you
-#     have, yours gives it up (the script lists which). The new account may be what a city dump references.
-#   - A merge copies the columns both copies of a table have. It warns about columns only the dump has (start the app
-#     once so your schema catches up, then re-run) and fails on a required column only yours has (get a newer dump).
-#   - It moves rows, not structure. Constraints and indexes the dump has but your schema lacks are listed, not added:
-#     one could fail on your local data, and `--replace` is the way to take prod's structure wholesale.
+# GOOD TO KNOW:
+#   - --replace disconnects the running app from the database; it reconnects on its own.
+#   - A merge takes a few minutes and needs disk space for a second copy of the accounts while it runs.
+#   - Accounts you already have are never updated from the dump.
+#   - If a new account has the same username or email as one of yours, yours is changed (the script lists them), since
+#     city data may point at the new account.
+#   - Merged accounts keep their user_id but get new internal ids in the other account tables. Nothing else uses those.
+#   - If the dump has columns or database rules (constraints, indexes) that your copy lacks, the script warns you
+#     instead of adding them. Starting the app once usually brings your copy up to date.
 # =====================================================================================================================
 set -euo pipefail
 
@@ -66,14 +53,14 @@ if [[ ! -f "$DUMP" ]]; then
   exit 1
 fi
 
-# A second run would load into, and then drop, the side schema the first one is using.
+# Only one run at a time: two would trip over the same temporary copy.
 exec 9>/tmp/import-users.lock
 if ! flock -n 9; then
   echo "Error: another import-users is already running." >&2
   exit 1
 fi
 
-# -X skips any ~/.psqlrc, which could add output to what's parsed here.
+# -X ignores personal psql settings, which could change the output read here.
 has_login_schema=$(psql -X -At -U postgres -d "$DB" \
   -c "SELECT EXISTS (SELECT FROM pg_namespace WHERE nspname = 'sidewalk_login');")
 case "$has_login_schema" in
@@ -91,7 +78,7 @@ case "$has_login_schema" in
 esac
 
 if [[ "$MODE" == replace ]]; then
-  # Terminate other backends first so the DROP doesn't hit lock waits.
+  # Disconnect everyone first, or the delete below would wait on their connections.
   psql -X -v ON_ERROR_STOP=1 -U postgres -d "$DB" <<-EOSQL
     SELECT pg_terminate_backend(pg_stat_activity.pid)
     FROM pg_stat_activity
@@ -99,11 +86,11 @@ if [[ "$MODE" == replace ]]; then
       AND pid <> pg_backend_pid();
 EOSQL
   psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$DB" -c "DROP SCHEMA IF EXISTS sidewalk_login CASCADE;"
-  # -j 4: parallel restore (valid for the -Fc custom-format dump; we don't use --single-transaction).
+  # -j 4 restores four tables at a time, to save time.
   run_with_progress "Restoring users dump (sidewalk_login)" \
     pg_restore -U sidewalk -Fc -j 4 -d "$DB" "$DUMP"
 
-  # The restored objects don't carry readonly_user's grants, so re-grant them (mirrors init.sh and import-dump.sh).
+  # A fresh load loses the read-only user's access, so give it back (same as init.sh and import-dump.sh).
   psql -X -q -v ON_ERROR_STOP=1 -U sidewalk -d "$DB" <<-EOSQL
     DO \$\$
     BEGIN
@@ -122,8 +109,9 @@ drop_import_schema() {
     -c "SET client_min_messages = warning; DROP SCHEMA IF EXISTS sidewalk_login_import CASCADE;"
 }
 
-# Loads the dump into sidewalk_login_import. It skips the dump's indexes and constraints: the merge doesn't need them,
-# and building them over ~6M rows would be most of the load time.
+# Loads the dump into the temporary copy. The dump is written out as SQL with the schema name swapped, since
+# pg_restore can't load into a different name itself. Indexes and rules are skipped: the merge doesn't need them, and
+# building them would take most of the load time.
 load_import_schema() {
   pg_restore --section=pre-data -f - "$DUMP" \
     | sed -E 's/\bsidewalk_login\b/sidewalk_login_import/g' \
@@ -131,7 +119,7 @@ load_import_schema() {
   pg_restore --data-only -f - "$DUMP" \
     | sed -E '/^(COPY|SELECT pg_catalog\.setval)/ s/\bsidewalk_login\b/sidewalk_login_import/' \
     | psql -X -q -v ON_ERROR_STOP=1 -U sidewalk -d "$DB"
-  # Without row counts the planner guesses these tables are tiny and picks nested loops over millions of rows.
+  # Tell Postgres how big these tables are, or it picks a very slow way to join them.
   psql -X -q -v ON_ERROR_STOP=1 -U sidewalk -d "$DB" <<-'EOSQL'
     DO $$
     DECLARE
@@ -148,7 +136,7 @@ drop_import_schema
 trap drop_import_schema EXIT
 run_with_progress "Loading users dump into a side schema" load_import_schema
 
-# The dump's constraint and index names, so the merge can point out any the live schema lacks.
+# Names of the dump's database rules (constraints, indexes), to warn about any your copy is missing.
 dump_objects=$(pg_restore -l "$DUMP" \
   | awk '/^[0-9]+;/ && ($4 == "INDEX" || $4 == "CONSTRAINT" || ($4 == "FK" && $5 == "CONSTRAINT")) {print $(NF-1)}' \
   | paste -sd, -)
@@ -156,16 +144,13 @@ dump_objects=$(pg_restore -l "$DUMP" \
 echo "⏳ Merging new accounts into sidewalk_login..." >&2
 psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "$DB" <<-'EOSQL'
   BEGIN;
-  -- The joins below run over millions of accounts; the dev server's 4 MB default spills every one of them to disk.
-  -- Parallel workers would share that memory through /dev/shm, which Docker caps at 64 MB, so they're turned off.
+  -- Give the big joins below more memory. Parallel workers stay off because Docker limits the memory they share.
   SET LOCAL work_mem = '256MB';
   SET LOCAL max_parallel_workers_per_gather = 0;
 
-  -- Copies rows from the dump's copy of a login table into the live one and returns how many it copied. It takes
-  -- every column the two copies share except those in `skip`, so a dump that's an evolution or two away from the
-  -- local schema still lines up. A column whose type differs goes through text: that's how the dump's copy of the
-  -- `role` enum lands in the live one. `extra_cols` / `extra_vals` add columns the caller fills itself (a remapped
-  -- id), and `joins` picks which of the dump's rows to copy.
+  -- Copies one table's rows from the temporary copy into your real one and returns how many it copied. Only columns
+  -- both have are copied, so a dump slightly older or newer than your schema still works. `skip` leaves columns out,
+  -- `extra_cols` / `extra_vals` fill some in by hand (like a new id), and `joins` picks which rows to copy.
   CREATE FUNCTION pg_temp.copy_rows(tbl text, skip text[], joins text, extra_cols text DEFAULT NULL,
                                     extra_vals text DEFAULT NULL) RETURNS bigint LANGUAGE plpgsql AS $$
   DECLARE
@@ -200,7 +185,7 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
     RETURN copied;
   END $$;
 
-  -- What a merge can't carry over is named rather than silently dropped.
+  -- Warn about anything in the dump that the merge can't bring over.
   DO $$
   DECLARE
     unhandled text;
@@ -256,10 +241,9 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
   INNER JOIN new_account ON new_account.user_id = sidewalk_user.user_id;
   ANALYZE new_identity;
 
-  -- Sign-in, sessions and the "is it taken?" checks find an account by username or by lowercased email, so a local
-  -- account sharing either with a new one gives it up. Anonymous accounts rename outright and keep the app's
-  -- anonymous@<username>.com form. Others keep what doesn't clash, plus a short piece of their user_id so the new
-  -- value stays unique and a username stays within the 30-character limit.
+  -- The app looks accounts up by username and by email, so no two may share either. When a new account has the same
+  -- username or email as one of yours, yours gets the first 8 characters of its user_id added, which keeps it unique
+  -- (and usernames under 30 characters). Anonymous accounts always get a new username and matching email.
   CREATE TEMP TABLE renamed_account ON COMMIT DROP AS
   WITH clashing AS (
     SELECT sidewalk_user.user_id, sidewalk_user.username, sidewalk_user.email,
@@ -289,7 +273,7 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
   FROM renamed_account
   WHERE renamed_account.user_id = sidewalk_user.user_id;
 
-  -- Sign-in looks the password up through login_info's lowercased copy of the email, so that follows too.
+  -- Sign-in finds the password by email, so the login record gets the new email too.
   UPDATE sidewalk_login.login_info
   SET provider_key = lower(renamed_account.new_email)
   FROM renamed_account
@@ -298,8 +282,8 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
     AND login_info.provider_key = lower(renamed_account.old_email)
     AND renamed_account.new_email <> renamed_account.old_email;
 
-  -- The dump's login_info ids for newer accounts overlap the ones local sign-ups took from the same sequence, so
-  -- every merged login_info row gets a fresh id, and the two tables that point at login_info follow this map.
+  -- Your local sign-ups may already use the login ids of the dump's newer accounts, so merged accounts get new ids.
+  -- This maps each old id to its new one.
   CREATE TEMP TABLE login_info_map ON COMMIT DROP AS
   WITH merged_login_info AS (
     SELECT DISTINCT user_login_info.login_info_id
@@ -328,8 +312,8 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
     'INNER JOIN new_account ON new_account.user_id = user_role.user_id') AS user_role_added \gset
   SELECT pg_temp.copy_rows('user_utm', '{user_utm_id}',
     'INNER JOIN new_account ON new_account.user_id = user_utm.user_id') AS user_utm_added \gset
-  -- Partners aren't owned by an account, so a dump partner comes in unless that city already has one by its name.
-  -- Each scope's display_order is a dense 0..n-1, so merged partners go after the ones already there, in dump order.
+  -- A partner from the dump is added unless that city already has one with the same name. New ones go after the
+  -- existing ones in that city's display order.
   SELECT pg_temp.copy_rows('partner', '{partner_id,display_order}',
     'WHERE NOT EXISTS (
        SELECT FROM sidewalk_login.partner
@@ -343,8 +327,7 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
      + row_number() OVER (PARTITION BY sidewalk_login_import.partner.city_id
                           ORDER BY sidewalk_login_import.partner.display_order) - 1') AS partner_added \gset
 
-  -- Anonymous clashes can number in the thousands (a city's login migration run locally gives its accounts different
-  -- user_ids than prod's run did), and nobody logs in to one, so only the other changed accounts are listed.
+  -- Anonymous accounts can clash by the thousands and nobody logs in as one, so only the others are listed.
   SELECT count(*) AS renamed_count,
          count(*) FILTER (WHERE anonymous) AS renamed_anonymous_count,
          count(*) FILTER (WHERE NOT anonymous) AS renamed_login_count,
@@ -384,7 +367,7 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
 EOSQL
 
 drop_import_schema
-# The planner's row counts for these tables are stale after a big merge (e.g. into the tiny first-boot schema).
+# Update Postgres's table-size estimates after a big merge.
 psql -X -q -v ON_ERROR_STOP=1 -U sidewalk -d "$DB" -c "ANALYZE sidewalk_login.sidewalk_user, sidewalk_login.login_info,
   sidewalk_login.user_login_info, sidewalk_login.user_password_info, sidewalk_login.user_role,
   sidewalk_login.user_utm, sidewalk_login.partner;"
