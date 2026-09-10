@@ -868,6 +868,24 @@ def valid_city_id(value):
     return value
 
 
+def place_city_name(place):
+    """
+    Pulls the city's own name out of a Nominatim-geocodable place string.
+
+    ``"Laurens, Iowa, USA"`` -> ``"Laurens"``. The first comma-separated component of such a string is the place
+    itself; everything after it qualifies the place (county, state, country).
+
+    Args:
+        place: The ``--place`` string, or None when the boundary came from ``--boundary-file``.
+
+    Returns:
+        The city name, or None when there is nothing to derive one from.
+    """
+    if not place:
+        return None
+    return place.split(',')[0].strip() or None
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Data acquisition (network I/O).
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1121,6 +1139,40 @@ def prepare_regions(raw_regions, boundary, min_part_m2):
 
     warn_if_overlapping(dissolved)
     return dissolved[['region_id', 'name', 'geometry']]
+
+
+def name_single_region(regions, city_name, deliberate_names):
+    """
+    Renames a city's lone region after the city itself.
+
+    A town small enough to land in one region inherits that region's *source* name — Laurens, IA came out as
+    "Census Tract 7801", the tract it happened to fall inside — and that name is what users then see in mission
+    messages, the dashboard, LabelMap's filters and the API's ``region_name``. When there is only one region it
+    *is* the whole city, so the city's name is the honest one.
+
+    Args:
+        regions:          The prepared regions, one row per region.
+        city_name:        The name to give the lone region, or None when there is none to give.
+        deliberate_names: True when the region names were chosen by hand — a ``--regions-file`` dataset, or the
+                          target of a ``--merge-regions`` fold. Then silence is right: nothing was guessed, so
+                          there is nothing to warn about.
+
+    Returns:
+        ``regions``, with the lone region renamed when there was one and a name to give it.
+    """
+    if len(regions) != 1:
+        return regions
+    row = regions.index[0]
+    source_name = regions.at[row, 'name']
+    if not city_name:
+        if not deliberate_names:
+            logger.warning('The city collapsed to one region, still named "%s" after its source. Pass '
+                           '--single-region-name (or --place) to name it after the city instead.', source_name)
+        return regions
+    if city_name != source_name:
+        logger.info('One region covers the whole city: naming it "%s" rather than "%s".', city_name, source_name)
+    regions.loc[row, 'name'] = city_name
+    return regions
 
 
 def disambiguate_names(names):
@@ -1566,6 +1618,9 @@ def parse_args(argv=None):
                                                  'collaborator\'s email.')
     parser.add_argument('--region-name-col', default='name',
                         help='Column of --regions-file holding the region names (default: name).')
+    parser.add_argument('--single-region-name',
+                        help='Name for the region a city small enough to collapse to ONE region ends up with '
+                             '(default: the city name from --place). Has no effect on a multi-region city.')
     parser.add_argument('--merge-tiny-m', type=float, default=20,
                         help='Merge street pieces shorter than this into a touching piece of the same OSM way '
                              '(#4717 tier 1; roundabout arcs, dual-carriageway stubs). 0 disables it (default: 20).')
@@ -1595,6 +1650,9 @@ def parse_args(argv=None):
         args.from_gpkg = str(REPO_ROOT / 'db' / 'onboarding' / args.city_id / f'{args.city_id}_qa.gpkg')
     if bool(args.from_gpkg) == bool(args.place or args.boundary_file):
         parser.error('provide either --place/--boundary-file (fetch run) or --from-gpkg (re-export run).')
+    if args.from_gpkg and args.single_region_name:
+        parser.error('--single-region-name needs a fetch run (--place/--boundary-file): a re-export takes its '
+                     'region names from the edited GeoPackage.')
     if args.from_gpkg and args.merge_regions:
         parser.error('--merge-regions needs a fetch run (--place/--boundary-file): streets must be re-assigned and '
                      're-healed against the merged boundaries, which a re-export cannot do.')
@@ -1720,6 +1778,11 @@ def main(argv=None):
         # passes see the final boundaries.
         regions = merge_regions(regions, merge_mapping)
         logger.info('Merged regions: %s', ', '.join(f'"{s}" into "{t}"' for s, t in merge_mapping.items()))
+    # A hand-picked name always wins, and a hand-picked name is never second-guessed: a --regions-file dataset and
+    # a --merge-regions target were both named on purpose, so only an automatically sourced lone region is renamed.
+    deliberate_names = bool(args.regions_file or merge_mapping)
+    city_name = args.single_region_name or (None if deliberate_names else place_city_name(args.place))
+    regions = name_single_region(regions, city_name, deliberate_names)
     # Provenance rides in the staging data itself, so fill-new-schema.sh needs no data-source input.
     regions['data_source'] = region_source
     name_warnings = check_region_names(list(regions['name']))

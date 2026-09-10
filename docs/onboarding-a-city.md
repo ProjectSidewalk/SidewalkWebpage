@@ -30,6 +30,11 @@ Run the three from the **main checkout**: `db/` is the bind mount the db contain
      US census tracts, then the whole city as one region (fine for a small town).
   Whatever you use, record where it came from with `--regions-source` (a URL, or the collaborator's email); it is
   stored in `region.data_source`.
+  A town small enough to come out as **one region** is named after the city, not after whatever source it landed in
+  — Laurens, IA would otherwise be the neighbourhood "Census Tract 7801" everywhere a region name shows (missions,
+  the dashboard, LabelMap's filters, the API's `region_name`). The name comes from `--place`; pass
+  `--single-region-name` when the boundary came from a file, or to choose a different one. A name you picked
+  yourself — a `--regions-file` dataset, or a `--merge-regions` target — is never second-guessed.
 - **Imagery provider** — `gsv`, `mapillary`, `panoramax`, or `infra3d`. The preflight in step 2 tells you which
   actually covers the city. The web container needs the provider's credentials for the scan (Panoramax needs none).
 - **The web image** must carry the geo stack (`osmnx`, `geopandas` — in `requirements-offline-tools.txt`). It is
