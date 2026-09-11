@@ -78,7 +78,10 @@ class ApiFieldsSpec extends AnyFunSuite with Matchers {
     )
 
     fields.map(_.column) shouldBe
-      Seq(GeoColumn.Integer, GeoColumn.Real, GeoColumn.Boolean, GeoColumn.Text, GeoColumn.Text, GeoColumn.Text)
+      Seq(
+        GeoColumn.IntegerColumn, GeoColumn.RealColumn, GeoColumn.BooleanColumn, GeoColumn.TextColumn,
+        GeoColumn.TextColumn, GeoColumn.TextColumn
+      )
     fields.map(_.geoPackageValue(Mixed(3, None, flag = true, 11584845L, Seq(1, 2), "Teaneck"))) shouldBe
       Seq(Integer.valueOf(3), null, java.lang.Boolean.TRUE, "11584845", "[1,2]", "Teaneck")
   }

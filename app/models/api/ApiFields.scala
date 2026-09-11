@@ -6,6 +6,8 @@ package models.api
 import models.api.ApiModelUtils.csvCell
 import play.api.libs.json.{JsNull, JsObject, JsString, JsValue, Json, Writes}
 
+import java.time.temporal.Temporal
+
 /**
  * One output field.
  *
@@ -130,20 +132,20 @@ sealed abstract class GeoColumn(val binding: Class[_ <: AnyRef]) {
 
 object GeoColumn {
 
-  case object Integer extends GeoColumn(classOf[java.lang.Integer]) {
+  case object IntegerColumn extends GeoColumn(classOf[java.lang.Integer]) {
     override protected def convert(json: JsValue): AnyRef = java.lang.Integer.valueOf(json.as[Int])
   }
 
-  case object Real extends GeoColumn(classOf[java.lang.Double]) {
+  case object RealColumn extends GeoColumn(classOf[java.lang.Double]) {
     override protected def convert(json: JsValue): AnyRef = java.lang.Double.valueOf(json.as[Double])
   }
 
-  case object Boolean extends GeoColumn(classOf[java.lang.Boolean]) {
-    override protected def convert(json: JsValue): AnyRef = java.lang.Boolean.valueOf(json.as[scala.Boolean])
+  case object BooleanColumn extends GeoColumn(classOf[java.lang.Boolean]) {
+    override protected def convert(json: JsValue): AnyRef = java.lang.Boolean.valueOf(json.as[Boolean])
   }
 
-  /** A string as itself; anything else (an array, an object, a number too big for Integer) as its JSON text. */
-  case object Text extends GeoColumn(classOf[String]) {
+  /** A string as itself; anything else (an array, an object, a Long) as its JSON text. */
+  case object TextColumn extends GeoColumn(classOf[String]) {
     override protected def convert(json: JsValue): AnyRef = json match {
       case JsString(s) => s
       case other       => Json.stringify(other)
@@ -151,24 +153,26 @@ object GeoColumn {
   }
 }
 
-/** Picks a field's GeoPackage column type from its Scala type, so no field declaration has to name one. */
+/**
+ * Picks a field's GeoPackage column type from its Scala type. There's deliberately no catch-all, so a field of a new
+ * type fails to compile rather than quietly landing as text (where GIS tools would sort "100" before "20").
+ */
 final case class GeoColumnFor[V](column: GeoColumn)
 
-object GeoColumnFor extends LowPriorityGeoColumns {
-  implicit val int: GeoColumnFor[Int]         = GeoColumnFor(GeoColumn.Integer)
-  implicit val double: GeoColumnFor[Double]   = GeoColumnFor(GeoColumn.Real)
-  implicit val boolean: GeoColumnFor[Boolean] = GeoColumnFor(GeoColumn.Boolean)
+object GeoColumnFor {
+  implicit val int: GeoColumnFor[Int]         = GeoColumnFor(GeoColumn.IntegerColumn)
+  implicit val double: GeoColumnFor[Double]   = GeoColumnFor(GeoColumn.RealColumn)
+  implicit val boolean: GeoColumnFor[Boolean] = GeoColumnFor(GeoColumn.BooleanColumn)
+  implicit val string: GeoColumnFor[String]   = GeoColumnFor(GeoColumn.TextColumn)
+
+  /** Text, since GeoTools maps a Long to SQL BIGINT, which isn't one of GeoPackage's column types. */
+  implicit val long: GeoColumnFor[Long] = GeoColumnFor(GeoColumn.TextColumn)
+
+  implicit def temporal[D <: Temporal]: GeoColumnFor[D]           = GeoColumnFor(GeoColumn.TextColumn)
+  implicit def enumValue[E <: Enumeration#Value]: GeoColumnFor[E] = GeoColumnFor(GeoColumn.TextColumn)
+  implicit def collection[C <: Iterable[_]]: GeoColumnFor[C]      = GeoColumnFor(GeoColumn.TextColumn)
+  implicit def json[J <: JsValue]: GeoColumnFor[J]                = GeoColumnFor(GeoColumn.TextColumn)
 
   /** An optional value uses the column of the value inside it; None is stored as null. */
   implicit def option[V](implicit inner: GeoColumnFor[V]): GeoColumnFor[Option[V]] = GeoColumnFor(inner.column)
-}
-
-/** The fallback, kept a level below [[GeoColumnFor]]'s own instances so it only applies when none of them fits. */
-trait LowPriorityGeoColumns {
-
-  /**
-   * Everything else is text: strings, dates, arrays and objects (as JSON), and Longs (OSM way ids), since GeoTools
-   * maps a Long to SQL BIGINT, which isn't one of GeoPackage's column types.
-   */
-  implicit def text[V]: GeoColumnFor[V] = GeoColumnFor(GeoColumn.Text)
 }

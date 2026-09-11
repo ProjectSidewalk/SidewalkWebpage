@@ -1,9 +1,11 @@
 package controllers.helper
 
 import models.api.{
+  IntersectionAccessScoreForApi,
   LabelClusterForApi,
   LabelDataForApi,
   RawLabelInClusterDataForApi,
+  RegionAccessScoreForApi,
   StreetAccessScoreForApi,
   StreetDataForApi
 }
@@ -190,6 +192,19 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
       case Seq(None, None, None, None)                         => None
       case partial                                             => fail(s"$tableName has a partly NULL extent: $partial")
     }
+
+  /** The CRS a GeoPackage layer is registered under, which QGIS and ArcGIS read to place it on the map. */
+  private def declaredSrsId(gpkg: Path, tableName: String): Int =
+    Using.Manager { use =>
+      val cx   = use(DriverManager.getConnection(s"jdbc:sqlite:$gpkg"))
+      val stmt = use(cx.prepareStatement("SELECT srs_id FROM gpkg_geometry_columns WHERE table_name = ?"))
+      stmt.setString(1, tableName)
+      val rs = use(stmt.executeQuery())
+      rs.next() mustBe true
+      rs.getInt("srs_id")
+    }.get
+
+  private val wgs84 = new GeometryFactory(new PrecisionModel(), 4326)
 
   "the rawLabels shapefile" should {
     "carry streetSide and ctrOffsetM under DBF-legal names, with nulls for a label that has no side (#2886)" in {
@@ -412,6 +427,78 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         features(951).getAttribute("severity_counts_CurbRamp_1") mustBe 2
         features(951).getAttribute("severity_counts_CurbRamp_null") mustBe 0 // Sparse entries are filled with zero.
         features(951).getAttribute("end_intersection_id") mustBe null
+        declaredSrsId(gpkg, "access_score_streets") mustBe 4326
+      }
+    }
+  }
+
+  "the AccessScore intersections GeoPackage" should {
+    "carry the JSON's fields as columns, per-type ones underscored, arrays as JSON text (#5273)" in {
+      val intersection = IntersectionAccessScoreForApi(
+        intersectionId = 7,
+        regionId = Some(1),
+        degree = 4,
+        gradeSeparated = false,
+        streetEdgeIds = Seq(951, 952),
+        auditCount = 2,
+        score = Some(0.6),
+        labelCount = 1,
+        clusterCounts = Map("CurbRamp" -> 1),
+        subScores = Map("CurbRamp" -> 0.4),
+        severityCounts = Map("CurbRamp" -> Map("null" -> 1)),
+        tagAdjustments = Map.empty,
+        geometry = wgs84.createPoint(new Coordinate(-74.03, 40.88))
+      )
+      inTempDir("access-score-intersections") { base =>
+        val gpkg = Await
+          .result(
+            shapefileCreator.createIntersectionAccessScoreGeopackage(Source.single(intersection), base, 1),
+            60.seconds
+          )
+          .value
+        val (names, features) = readBack(openGeoPackage(gpkg), "intersection_id")
+
+        names mustBe "the_geom" +: IntersectionAccessScoreForApi.fields.map(_.geoPackageName)
+        features(7).getAttribute("cluster_counts_CurbRamp") mustBe 1
+        features(7).getAttribute("severity_counts_CurbRamp_null") mustBe 1
+        features(7).getAttribute("severity_counts_CurbRamp_1") mustBe 0
+        features(7).getAttribute("street_edge_ids") mustBe "[951,952]"
+        features(7).getAttribute("grade_separated") mustBe false
+        declaredSrsId(gpkg, "access_score_intersections") mustBe 4326
+      }
+    }
+  }
+
+  "the AccessScore regions GeoPackage" should {
+    "carry the JSON's fields as columns, per-type averages underscored (#5273)" in {
+      val corners = Seq((-74.03, 40.88), (-74.02, 40.88), (-74.02, 40.89), (-74.03, 40.89), (-74.03, 40.88))
+      val square  = wgs84.createMultiPolygon(
+        Array(wgs84.createPolygon(corners.map { case (x, y) => new Coordinate(x, y) }.toArray))
+      )
+      val region = RegionAccessScoreForApi(
+        regionId = 1,
+        name = "Teaneck",
+        score = None,
+        coverage = 0.5,
+        auditedStreetCount = 1,
+        totalStreetCount = 2,
+        intersectionScore = Some(0.7),
+        intersectionCount = 3,
+        scoredIntersectionCount = 1,
+        avgClusterCounts = Map("CurbRamp" -> 1.5),
+        geometry = square
+      )
+      inTempDir("access-score-regions") { base =>
+        val gpkg = Await
+          .result(shapefileCreator.createRegionAccessScoreGeopackage(Source.single(region), base, 1), 60.seconds)
+          .value
+        val (names, features) = readBack(openGeoPackage(gpkg), "region_id")
+
+        names mustBe "the_geom" +: RegionAccessScoreForApi.fields.map(_.geoPackageName)
+        features(1).getAttribute("avg_cluster_counts_CurbRamp") mustBe 1.5
+        features(1).getAttribute("avg_cluster_counts_NoCurbRamp") mustBe 0.0
+        features(1).getAttribute("score") mustBe null
+        declaredSrsId(gpkg, "access_score_regions") mustBe 4326
       }
     }
   }

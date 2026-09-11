@@ -90,11 +90,14 @@ private[api] object RawLabelFields extends ApiFields[RawLabelInClusterDataForApi
 object RawLabelInClusterDataForApi {
   implicit val clusterLabelDataWrites: Writes[RawLabelInClusterDataForApi] = RawLabelFields.toJson _
 
-  /** The same labels as their own CSV file, which names each label's parent cluster in a column of its own. */
+  /** The same labels as their own CSV file or GeoPackage layer, each naming its parent cluster in a column of its own. */
   object InCluster extends ApiFields[(Int, RawLabelInClusterDataForApi)] {
     override val fields: Seq[ApiField[(Int, RawLabelInClusterDataForApi)]] =
       ApiFields.field[(Int, RawLabelInClusterDataForApi), Int]("label_cluster_id")(_._1) +:
-        RawLabelFields.csvFields.map(_.on[(Int, RawLabelInClusterDataForApi)](_._2))
+        RawLabelFields.fields.map(_.on[(Int, RawLabelInClusterDataForApi)](_._2))
+
+    override val csvOnlyFields: Seq[ApiField[(Int, RawLabelInClusterDataForApi)]] =
+      RawLabelFields.csvOnlyFields.map(_.on[(Int, RawLabelInClusterDataForApi)](_._2))
   }
 }
 

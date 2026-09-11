@@ -231,16 +231,23 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    *
    * @param apiFields The fields that become the layer's columns, each named by its `geoPackageName`.
    */
-  private case class GeoPackageLayer[T](
+  final private class GeoPackageLayer[T](
       tableName: String,
       geometryType: Class[_ <: Geometry],
       apiFields: ApiFields[T],
       geometry: T => Geometry
   ) {
-    private val columnNames: Seq[String] = apiFields.fields.map(_.geoPackageName)
+    private val names: Seq[String] = apiFields.fields.map(_.geoPackageName)
+    // ArcGIS only takes names of letters, digits, and underscores that start with a letter.
     require(
-      columnNames.distinct.size == columnNames.size,
-      s"$tableName has fields sharing a GeoPackage column name: ${columnNames.diff(columnNames.distinct)}"
+      names.forall(_.matches("[A-Za-z][A-Za-z0-9_]*")),
+      s"$tableName has column names ArcGIS rejects: ${names.filterNot(_.matches("[A-Za-z][A-Za-z0-9_]*"))}"
+    )
+    // SQLite ignores case in column names, and GeoTools adds its own `fid` and `the_geom` columns.
+    private val takenNames: Seq[String] = Seq("fid", "the_geom") ++ names.map(_.toLowerCase)
+    require(
+      takenNames.distinct.size == takenNames.size,
+      s"$tableName has clashing GeoPackage column names: ${takenNames.diff(takenNames.distinct)}"
     )
 
     val featureType: SimpleFeatureType = {
@@ -265,47 +272,48 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
   private def point(longitude: Double, latitude: Double): Point =
     pointFactory.createPoint(new Coordinate(longitude, latitude))
 
-  private val rawLabelsLayer = GeoPackageLayer[LabelDataForApi](
+  // Lazy, so a layer with a bad field list breaks only its own export rather than this whole helper's construction.
+  private lazy val rawLabelsLayer = new GeoPackageLayer[LabelDataForApi](
     "labels",
     classOf[Point],
     LabelDataForApi,
     l => point(l.longitude, l.latitude)
   )
-  private val labelClustersLayer = GeoPackageLayer[LabelClusterForApi](
+  private lazy val labelClustersLayer = new GeoPackageLayer[LabelClusterForApi](
     "label_clusters",
     classOf[Point],
     LabelClusterForApi,
     c => point(c.avgLongitude, c.avgLatitude)
   )
-  private val clusterRawLabelsLayer = GeoPackageLayer[(Int, RawLabelInClusterDataForApi)](
+  private lazy val clusterRawLabelsLayer = new GeoPackageLayer[(Int, RawLabelInClusterDataForApi)](
     "raw_labels",
     classOf[Point],
     RawLabelInClusterDataForApi.InCluster,
     { case (_, l) => point(l.longitude, l.latitude) }
   )
-  private val streetsLayer =
-    GeoPackageLayer[StreetDataForApi]("streets", classOf[LineString], StreetDataForApi, _.geometry)
-  private val sidewalkPresenceLayer = GeoPackageLayer[SidewalkPresenceForApi](
+  private lazy val streetsLayer =
+    new GeoPackageLayer[StreetDataForApi]("streets", classOf[LineString], StreetDataForApi, _.geometry)
+  private lazy val sidewalkPresenceLayer = new GeoPackageLayer[SidewalkPresenceForApi](
     "sidewalk_presence",
     classOf[LineString],
     SidewalkPresenceForApi,
     _.geometry
   )
-  private val regionsLayer =
-    GeoPackageLayer[RegionDataForApi]("regions", classOf[MultiPolygon], RegionDataForApi, _.geometry)
-  private val accessScoreStreetsLayer = GeoPackageLayer[StreetAccessScoreForApi](
+  private lazy val regionsLayer =
+    new GeoPackageLayer[RegionDataForApi]("regions", classOf[MultiPolygon], RegionDataForApi, _.geometry)
+  private lazy val accessScoreStreetsLayer = new GeoPackageLayer[StreetAccessScoreForApi](
     "access_score_streets",
     classOf[LineString],
     StreetAccessScoreForApi,
     _.geometry
   )
-  private val accessScoreIntersectionsLayer = GeoPackageLayer[IntersectionAccessScoreForApi](
+  private lazy val accessScoreIntersectionsLayer = new GeoPackageLayer[IntersectionAccessScoreForApi](
     "access_score_intersections",
     classOf[Point],
     IntersectionAccessScoreForApi,
     _.geometry
   )
-  private val accessScoreRegionsLayer = GeoPackageLayer[RegionAccessScoreForApi](
+  private lazy val accessScoreRegionsLayer = new GeoPackageLayer[RegionAccessScoreForApi](
     "access_score_regions",
     classOf[MultiPolygon],
     RegionAccessScoreForApi,
@@ -335,6 +343,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
   /**
    * Creates a GeoPackage of label clusters, in a `label_clusters` layer. When the clusters carry their raw labels, those
    * go in a second `raw_labels` layer, each naming its cluster in `label_cluster_id`.
+   *
+   * @return Path to the finished GeoPackage, or None if any part of it failed.
    */
   def createLabelClusterGeopackage(
       source: Source[LabelClusterForApi, _],
