@@ -136,7 +136,7 @@ def split_city_id(city_id):
     Splits a city id into its display tokens and, for US cities, the state the trailing token abbreviates.
 
     Args:
-        city_id: e.g. ``laurens-ia`` or ``bayonne``.
+        city_id: e.g. ``laurens-ia`` or ``bayonne-fr``.
 
     Returns:
         ``(display_default, us_state)``: the title-cased name without the state suffix, and the state id

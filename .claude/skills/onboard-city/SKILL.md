@@ -18,9 +18,10 @@ checkout** (`db/` is the bind mount), so run these from the main checkout, not a
 
 ## 1. Intake — ask before building
 
-- **City id.** Lowercase kebab-case; US cities carry the state (`laurens-ia`), others the country only when it
-  disambiguates (`bayonne`, `sao-paulo-brazil`). It becomes `SIDEWALK_CITY_ID`, the schema (`sidewalk_laurens_ia`),
-  the output dir, and the server name (state dropped: `sidewalk-laurens`).
+- **City id.** Lowercase kebab-case ending in the state for US cities (`laurens-ia`), the country elsewhere
+  (`bayonne-fr`). It becomes `SIDEWALK_CITY_ID`, the schema (`sidewalk_laurens_ia`), and the output dir.
+- **Server name.** The id without its suffix (`sidewalk-laurens`), unless a clearly larger city shares the name
+  (`sidewalk-newport-ky`).
 - **Imagery provider.** `gsv` unless the partner says otherwise; `mapillary` / `panoramax` / `infra3d` need the
   matching credentials in the web container (Panoramax needs none). If unsure, the preflight in step 3 decides.
 - **Neighborhood boundaries**, in this order of preference, and record where they came from (`--regions-source`, a
@@ -42,7 +43,7 @@ checkout** (`db/` is the bind mount), so run these from the main checkout, not a
 
 ```
 make build-city-data id=laurens-ia args="--place 'Laurens, Iowa, USA'"
-make build-city-data id=bayonne args="--boundary-file /path/city.geojson --regions-file /path/quartiers.geojson \
+make build-city-data id=bayonne-fr args="--boundary-file /path/city.geojson --regions-file /path/quartiers.geojson \
     --region-name-col nom --regions-source 'https://…'"
 ```
 
