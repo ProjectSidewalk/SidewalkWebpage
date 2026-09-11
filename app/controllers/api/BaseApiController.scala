@@ -184,7 +184,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
           .withHeaders(RETRY_AFTER -> "30")
       )
     } else {
-      // `serve` can throw before it returns a Future (a full disk when its folder is made), which must also free the URL.
+      // `serve` can throw before returning a Future (a full disk when its folder is made); that must free the URL too.
       Try(serve(fresh)).fold(
         e => { fresh.release(key); Future.failed(e) },
         _.transform {
