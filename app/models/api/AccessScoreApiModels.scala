@@ -27,10 +27,6 @@ object AccessScoreApiModels {
   /** The scored label types in canonical order, so output columns stay stable. */
   val orderedTypes: Seq[String] = AccessScoreCalculator.orderedScoredTypes
 
-  /** Converts a CamelCase label-type name to snake_case for GeoPackage column names ("NoCurbRamp" → "no_curb_ramp"). */
-  def snakeType(labelType: String): String =
-    labelType.replaceAll("([a-z0-9])([A-Z])", "$1_$2").toLowerCase
-
   /**
    * Short code for a label type's shapefile columns, since DBF cuts column names off at 10 characters. Covers every
    * type, not just the scored ones, so the compiler flags a newly added type that has no code.
@@ -52,15 +48,6 @@ object AccessScoreApiModels {
 
   /** The rating buckets a cluster can fall into, in column order. */
   val severityBuckets: Seq[String] = AccessScoreCalculator.severityBuckets
-
-  /**
-   * The GeoPackage column suffix for a rating bucket: `sev1`..`sev3`, or `sev_null` for unrated clusters.
-   *
-   * @param bucket One of [[severityBuckets]].
-   * @return       The suffix.
-   */
-  def bucketSuffix(bucket: String): String =
-    if (bucket == AccessScoreCalculator.nullSeverityBucket) "sev_null" else s"sev$bucket"
 
   /**
    * The shapefile column prefix for a rating bucket's cluster count: `n1`..`n3`, or `n0` for unrated clusters, so the

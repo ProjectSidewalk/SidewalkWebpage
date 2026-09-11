@@ -176,8 +176,9 @@ The `/v3` API is the canonical public surface (handlers in `app/controllers/api/
   GeoPackage fields (`label_id`, `region_name`, `city_id`) — one canonical field name across those formats. A
   response DTO declares its fields once, in the `ApiFields` list on its companion (below), and every format is
   built from that list, so a field cannot be named one thing in one format and something else in another. A value
-  the JSON nests gets a dotted name (`labels.CurbRamp.count`), which is a nested key in the JSON and a CSV column
-  of exactly that name. (GeoPackage is the one format not yet driven from the list — see #5273.)
+  the JSON nests gets a dotted name (`labels.CurbRamp.count`), which is a nested key in the JSON, a CSV column
+  of exactly that name, and a GeoPackage column with each dot turned into an underscore (`labels_CurbRamp_count`),
+  since ArcGIS rejects a dot in a column name (#5273).
 - **Shapefile is the exception:** its fields stay **camelCase and abbreviated** (`labelId`, `regionName`,
   `neighborhd`, `cameraHdng`). The DBF format hard-truncates field names to 10 chars, so shapefiles can't carry the
   canonical snake_case names regardless of casing; camelCase reclaims the byte the underscore would waste. Shapefile
@@ -197,7 +198,9 @@ home: a `*Table.scala` DAO *produces* its DTOs but never *defines* them (issue #
   entries, from which `csvHeader`, `toCsvRow`, and `toJson` are all derived. `csvOnlyFields` adds columns the CSV
   carries but the JSON expresses another way — a geometry the CSV can only summarize as `start_point`/`end_point`,
   say — and `csvFields` can be overridden where the CSV needs an order the JSON doesn't have. A GeoJSON DTO puts
-  `toJson(this)` in the Feature's `properties` and passes the geometry separately.
+  `toJson(this)` in the Feature's `properties` and passes the geometry separately. A GeoPackage layer
+  (`ShapefilesCreatorHelper.GeoPackageLayer`) takes `fields` as its columns, each typed from the field's Scala type
+  (`GeoColumnFor`) and holding the field's JSON value.
 - **Single-object endpoints** (`overallStats`, `aggregateStats`) return one object rather than a list of records, so
   their CSV lists stats down the page: `ApiModelUtils.toCsvKeyValueRows(toJson)` under `keyValueCsvHeader`, keying
   each row by its dotted path.

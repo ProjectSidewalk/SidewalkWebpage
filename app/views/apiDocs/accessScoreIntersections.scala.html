@@ -217,7 +217,7 @@
     <p>If <code>filetype=shapefile</code>, the response is a ZIP archive of Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated. Because the DBF format truncates column names at 10 characters, the columns use short codes: <code>intersecId</code>, <code>gradeSep</code>, <code>streetIds</code> (comma-separated), and per type the same <code>nCRamp</code> / <code>sCRamp</code> / <code>n1CRamp</code>…<code>n0CRamp</code> / <code>tCRamp</code> codes as the street shapefile; the GeoJSON, CSV, and GeoPackage formats keep the full names.</p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
-    <p>If <code>filetype=geopackage</code>, the response is a GeoPackage (.gpkg) file with full geometry and attributes (full snake_case column names).</p>
+    <p>If <code>filetype=geopackage</code>, the response is a GeoPackage (.gpkg) file with full geometry and the same fields, in the same order, as the GeoJSON properties. The per-type columns are named as in the CSV but with each dot turned into an underscore, since ArcGIS doesn't allow dots in column names: <code>cluster_counts_CurbRamp</code>, <code>sub_scores_CurbRamp</code>, <code>severity_counts_CurbRamp_1</code> through <code>_3</code> plus <code>_null</code>, and <code>tag_adjustments_CurbRamp</code>. <code>street_edge_ids</code> is a JSON array written out as text.</p>
 
     <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
     <ul>

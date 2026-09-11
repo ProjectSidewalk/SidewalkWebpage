@@ -1,6 +1,12 @@
 package controllers.helper
 
-import models.api.{LabelClusterForApi, LabelDataForApi, RawLabelInClusterDataForApi, StreetDataForApi}
+import models.api.{
+  LabelClusterForApi,
+  LabelDataForApi,
+  RawLabelInClusterDataForApi,
+  StreetAccessScoreForApi,
+  StreetDataForApi
+}
 import models.label.StreetSide
 import models.pano.PanoSource
 import org.apache.pekko.stream.scaladsl.Source
@@ -26,14 +32,15 @@ import scala.util.Using
 /**
  * Round-trips `/v3/api/rawLabels`'s two GIS exports through GeoTools and reads the attributes back.
  *
- * These writers declare their schema as a string and then push values positionally, so a field added to one half and
- * not the other is invisible to the compiler: too many values throw only at write time, and too few silently null the
- * tail of every row. Reading the files back pins the field names -- including that the shapefile's stay inside the
- * DBF's 10-character limit, which is why `street_side` and `centerline_offset_m` become `streetSide` and
+ * The shapefile writers declare their schema as a string and then push values positionally, so a field added to one
+ * half and not the other is invisible to the compiler: too many values throw only at write time, and too few silently
+ * null the tail of every row. Reading the files back pins the field names -- including that the shapefile's stay
+ * inside the DBF's 10-character limit, which is why `street_side` and `centerline_offset_m` become `streetSide` and
  * `ctrOffsetM` there (#2886) -- and pins the values that land under them.
  *
- * It also pins each GeoPackage layer's declared extent, which GeoTools on its own leaves at (0, 0, 0, 0) (#5275), and
- * that the shapefile's text survives outside Latin-1 (#5276).
+ * It also pins each GeoPackage layer's declared extent, which GeoTools on its own leaves at (0, 0, 0, 0) (#5275), that
+ * the shapefile's text survives outside Latin-1 (#5276), and that GeoPackage columns are named, ordered, and filled
+ * from the same field list as the JSON and CSV (#5273).
  */
 class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionValues {
 
@@ -125,10 +132,19 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
     finally Files.walk(dir).sorted(java.util.Comparator.reverseOrder[Path]()).forEach(p => Files.delete(p))
   }
 
-  /** Every feature the store holds, keyed by `label_id`, alongside the schema's attribute names in order. */
-  private def readBack(store: DataStore, labelIdField: String): (Seq[String], Map[Int, SimpleFeature]) =
+  /**
+   * Every feature in one layer of the store, keyed by an id attribute, alongside the schema's attribute names in order.
+   *
+   * @param idField   The attribute to key features by.
+   * @param layerName The layer to read, or None for the store's first.
+   */
+  private def readBack(
+      store: DataStore,
+      idField: String,
+      layerName: Option[String] = None
+  ): (Seq[String], Map[Int, SimpleFeature]) =
     try {
-      val typeName = store.getTypeNames()(0)
+      val typeName = layerName.getOrElse(store.getTypeNames()(0))
       val names    = store.getSchema(typeName).getAttributeDescriptors.asScala.map(_.getLocalName).toSeq
       val reader   = store.getFeatureSource(typeName).getFeatures.features()
       val features =
@@ -137,7 +153,7 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
             .continually(if (reader.hasNext) Some(reader.next()) else None)
             .takeWhile(_.isDefined)
             .flatten
-            .map(f => f.getAttribute(labelIdField).asInstanceOf[Number].intValue() -> f)
+            .map(f => f.getAttribute(idField).asInstanceOf[Number].intValue() -> f)
             .toMap
         finally reader.close()
       (names, features)
@@ -145,6 +161,13 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
 
   /** Reads a shapefile the way GIS tools do, taking its text encoding from the `.cpg`. */
   private def openShapefile(shp: Path): DataStore = new ShapefileDataStoreFactory().createDataStore(shp.toUri.toURL)
+
+  private def openGeoPackage(gpkg: Path): DataStore = DataStoreFinder.getDataStore(
+    Map[String, Object](
+      GeoPkgDataStoreFactory.DBTYPE.key   -> "geopkg",
+      GeoPkgDataStoreFactory.DATABASE.key -> gpkg.toString
+    ).asJava
+  )
 
   private def cpgOf(shp: Path): String = Files.readString(Path.of(shp.toString.stripSuffix(".shp") + ".cpg"))
 
@@ -241,13 +264,7 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         val gpkg = Await
           .result(shapefileCreator.createRawLabelDataGeopackage(Source(labels), base, 2), 60.seconds)
           .value
-        val store = DataStoreFinder.getDataStore(
-          Map[String, Object](
-            GeoPkgDataStoreFactory.DBTYPE.key   -> "geopkg",
-            GeoPkgDataStoreFactory.DATABASE.key -> gpkg.toString
-          ).asJava
-        )
-        val (names, features) = readBack(store, "label_id")
+        val (names, features) = readBack(openGeoPackage(gpkg), "label_id")
 
         names must contain allOf ("street_side", "centerline_offset_m")
         features(8).getAttribute("pano_url").toString must include("map_action=pano")
@@ -256,6 +273,20 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         features(8).getAttribute("centerline_offset_m") mustBe 4.25
         features(9).getAttribute("street_side") mustBe null
         features(9).getAttribute("centerline_offset_m") mustBe null
+      }
+    }
+
+    "name, order, and fill its columns from the same field list as the JSON and CSV (#5273)" in {
+      inTempDir("labels") { base =>
+        val gpkg =
+          Await.result(shapefileCreator.createRawLabelDataGeopackage(Source(labels), base, 2), 60.seconds).value
+        val (names, features) = readBack(openGeoPackage(gpkg), "label_id")
+
+        names mustBe "the_geom" +: LabelDataForApi.fields.map(_.geoPackageName)
+        features(8).getAttribute("image_capture_date") mustBe "2012-08"
+        features(8).getAttribute("zoom") mustBe 2.0
+        features(8).getAttribute("osm_way_id") mustBe "11584845"
+        features(8).getAttribute("tags") mustBe "[]" // An array is stored as its JSON text.
       }
     }
 
@@ -319,6 +350,68 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
           Await.result(shapefileCreator.createLabelClusterGeopackage(Source(clusters), base, 1), 60.seconds).value
         declaredExtent(gpkg, "label_clusters").value mustBe ((-74.03, 40.88, -74.02, 40.89))
         declaredExtent(gpkg, "raw_labels").value mustBe ((-74.031, 40.879, -74.019, 40.891))
+      }
+    }
+
+    "give both layers the JSON's field names, each raw label naming its cluster in label_cluster_id (#5273)" in {
+      val clusters = Seq(
+        cluster(1, 40.88, -74.03, Seq(rawLabel(1, 40.879, -74.031))),
+        cluster(2, 40.89, -74.02, Seq(rawLabel(3, 40.889, -74.021)))
+      )
+      inTempDir("clusters") { base =>
+        val gpkg =
+          Await.result(shapefileCreator.createLabelClusterGeopackage(Source(clusters), base, 1), 60.seconds).value
+
+        val (clusterNames, _) = readBack(openGeoPackage(gpkg), "label_cluster_id", Some("label_clusters"))
+        clusterNames mustBe "the_geom" +: LabelClusterForApi.fields.map(_.geoPackageName)
+
+        val (labelNames, rawLabels) = readBack(openGeoPackage(gpkg), "label_id", Some("raw_labels"))
+        labelNames mustBe "the_geom" +: RawLabelInClusterDataForApi.InCluster.fields.map(_.geoPackageName)
+        rawLabels(3).getAttribute("label_cluster_id") mustBe 2
+      }
+    }
+  }
+
+  "the AccessScore streets GeoPackage" should {
+    "name each per-type column as the CSV does, with its dots made underscores (#5273)" in {
+      val line = new GeometryFactory(new PrecisionModel(), 4326)
+        .createLineString(Array(new Coordinate(-74.03, 40.88), new Coordinate(-74.02, 40.89)))
+      val street = StreetAccessScoreForApi(
+        streetEdgeId = 951,
+        osmWayId = 11584845L,
+        regionId = 1,
+        score = Some(0.8),
+        segmentScore = Some(0.7),
+        startIntersectionId = Some(5),
+        endIntersectionId = None,
+        startIntersectionScore = Some(0.9),
+        endIntersectionScore = None,
+        auditCount = 1,
+        lengthMeters = 120.5,
+        labelCount = 2,
+        clusterCounts = Map("CurbRamp" -> 2),
+        subScores = Map("CurbRamp" -> 1.5),
+        severityCounts = Map("CurbRamp" -> Map("1" -> 2)),
+        tagAdjustments = Map.empty,
+        geometry = line
+      )
+      inTempDir("access-score-streets") { base =>
+        val gpkg = Await
+          .result(shapefileCreator.createStreetAccessScoreGeopackage(Source.single(street), base, 1), 60.seconds)
+          .value
+        val (names, features) = readBack(openGeoPackage(gpkg), "street_edge_id")
+
+        names mustBe "the_geom" +: StreetAccessScoreForApi.fields.map(_.geoPackageName)
+        names must contain allOf (
+          "cluster_counts_CurbRamp",
+          "severity_counts_CurbRamp_null",
+          "tag_adjustments_CurbRamp"
+        )
+        features(951).getAttribute("cluster_counts_CurbRamp") mustBe 2
+        features(951).getAttribute("sub_scores_CurbRamp") mustBe 1.5
+        features(951).getAttribute("severity_counts_CurbRamp_1") mustBe 2
+        features(951).getAttribute("severity_counts_CurbRamp_null") mustBe 0 // Sparse entries are filled with zero.
+        features(951).getAttribute("end_intersection_id") mustBe null
       }
     }
   }
