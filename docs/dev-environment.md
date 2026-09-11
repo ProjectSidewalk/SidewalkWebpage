@@ -223,7 +223,7 @@ truth**; the snapshot below is a convenience copy (it may lag as new cities are 
 | mendota-il | sidewalk_mendota | | waltham-ma | sidewalk_waltham |
 | knox-oh | sidewalk_knox | | houston-tx | sidewalk_houston |
 | kaohsiung-tw | sidewalk_kaohsiung | | newport-ky | sidewalk_newport_ky |
-| bayonne | sidewalk_bayonne | | laurens-ia | sidewalk_laurens_ia |
+| bayonne-fr | sidewalk_bayonne_fr | | laurens-ia | sidewalk_laurens_ia |
 
 ---
 

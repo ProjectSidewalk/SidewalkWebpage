@@ -188,7 +188,7 @@ loop and the imagery preflight, is [`docs/onboarding-a-city.md`](../docs/onboard
 
 ```bash
 make build-city-data id=laurens-ia args="--place 'Laurens, Iowa, USA'"
-make build-city-data id=bayonne args="--boundary-file city.geojson --regions-file quartiers.geojson \
+make build-city-data id=bayonne-fr args="--boundary-file city.geojson --regions-file quartiers.geojson \
     --region-name-col nom --regions-source 'https://…'"
 ```
 

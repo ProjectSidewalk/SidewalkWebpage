@@ -45,7 +45,6 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   def validateToken(id: String): Future[Option[AuthToken]]
   def removeToken(id: String): Future[Int]
   def cleanAuthTokens: Future[Int]
-  def setCommunityServiceStatus(userId: String, newCommServiceStatus: Boolean): Future[Int]
   def setInfra3dAccess(userId: String, newAccess: Boolean): Future[Int]
   def updateRole(userId: String, newRole: Role.Value): Future[Int]
 }
@@ -118,7 +117,7 @@ class AuthenticationServiceImpl @Inject() (
       isUserAvailable(username, email).flatMap {
         case true =>
           Future.successful(
-            SidewalkUserWithRole(UUID.randomUUID().toString, username, email, Role.Anonymous, false, false)
+            SidewalkUserWithRole(UUID.randomUUID().toString, username, email, Role.Anonymous, false, false, None)
           )
         case false => tryGenerateUser()
       }
@@ -164,7 +163,7 @@ class AuthenticationServiceImpl @Inject() (
       loginInfoId: Long <- loginInfoTable.insert(DBLoginInfo(0, providerId, user.email.toLowerCase))
       _                 <- userLoginInfoTable.insert(UserLoginInfo(0, user.userId, loginInfoId))
       _ <- userPasswordInfoTable.insert(UserPasswordInfo(0, pwInfo.hasher, pwInfo.password, pwInfo.salt, loginInfoId))
-      _ <- userRoleTable.addRole(user.userId, user.role, user.communityService)
+      _ <- userRoleTable.addRole(user.userId, user.role)
       _ <- insertUserStatForNewUser(user.userId)
     } yield user
     db.run(dbActions.transactionally)
@@ -200,7 +199,7 @@ class AuthenticationServiceImpl @Inject() (
       _ <- sidewalkUserTable.updateUsername(user.userId, user.username)
       _ <- updateEmailDBIO(user.userId, user.email)
       _ <- updatePasswordDBIO(user.userId, pwInfo)
-      _ <- userRoleTable.updateRole(user.userId, user.role, user.communityService)
+      _ <- userRoleTable.updateRole(user.userId, user.role)
     } yield user
     db.run(dbActions.transactionally)
   }
@@ -363,9 +362,6 @@ class AuthenticationServiceImpl @Inject() (
 
   def updateRole(userId: String, newRole: Role.Value): Future[Int] =
     db.run(userRoleTable.updateRole(userId, newRole))
-
-  def setCommunityServiceStatus(userId: String, newCommServiceStatus: Boolean): Future[Int] =
-    db.run(userRoleTable.updateCommunityService(userId, newCommServiceStatus))
 
   def setInfra3dAccess(userId: String, newAccess: Boolean): Future[Int] =
     db.run(userRoleTable.updateInfra3dAccess(userId, newAccess))
