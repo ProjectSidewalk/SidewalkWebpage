@@ -82,7 +82,7 @@ class AccessScoreSidebar {
     const weights = root.querySelector('#acs-weights');
     weights.innerHTML = this.#config.scored_types.map((type) => {
       const problem = this.#config.type_weights[type].base_weight < 0;
-      const name = i18next.t(`common:${AccessScoreSidebar.#typeKey(type)}`);
+      const name = AccessScoreChart.typeName(type);
       const role = i18next.t(problem ? 'accessscore:row-hurts' : 'accessscore:row-helps');
       const roleTitle = i18next.t(problem ? 'accessscore:weight-problem' : 'accessscore:weight-feature');
       return `
@@ -160,11 +160,6 @@ class AccessScoreSidebar {
 
   #emit(partial, meta) {
     for (const listener of this.#listeners) listener(partial, meta);
-  }
-
-  /** The common-namespace key for a label type's display name ("NoCurbRamp" → "no-curb-ramp"). */
-  static #typeKey(type) {
-    return type.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
   }
 
   static #format(value) {

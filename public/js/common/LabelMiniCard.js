@@ -85,8 +85,7 @@ class LabelMiniCard {
    * @returns {string} The escaped string.
    */
   static esc(value) {
-    return String(value ?? '')
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return util.escapeHTML(String(value ?? ''));
   }
 
   /** The rating word for a rated label, or null. */
@@ -108,7 +107,7 @@ class LabelMiniCard {
     const label = this.#label;
     const type = label.label_type;
     const esc = LabelMiniCard.esc;
-    const typeName = i18next.t(`common:${type.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`);
+    const typeName = i18next.t(`common:${util.camelToKebab(type)}`).replace('&shy;', '');
     const rating = this.#ratingWord();
     const name = [typeName, rating].filter(Boolean).join(', ');
     const src = label.crop_url || label.backup_image_url;
@@ -139,9 +138,11 @@ class LabelMiniCard {
         </div>`
       : '';
     const lock = this.#lockReason();
+    // The name is interpolated unescaped and then escaped exactly once for the attribute: i18next's own escaping
+    // would double up with `esc` and print an apostrophe as `&#39;`.
+    const openLabel = i18next.t('common:mini-card.open', { label: name, interpolation: { escapeValue: false } });
     this.#el.innerHTML = `
-      <button type="button" class="lmc__open" aria-label="${esc(i18next.t('common:mini-card.open', { label: name }))}"
-              data-ps-tooltip="${esc(name)}">
+      <button type="button" class="lmc__open" aria-label="${esc(openLabel)}" data-ps-tooltip="${esc(name)}">
         <span class="lmc__figure">${image}</span>
         <img class="lmc__badge" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
       </button>

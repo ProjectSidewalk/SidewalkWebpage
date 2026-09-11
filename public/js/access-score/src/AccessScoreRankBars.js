@@ -66,7 +66,9 @@ class AccessScoreRankBars extends AccessScoreChart {
       const bin = AccessScoreModel.binOf(r.score);
       row.button.classList.toggle('acs-rank__row--out', Boolean(data.brush) && (bin < data.brush.from
         || bin >= data.brush.to));
-      const label = i18next.t('accessscore:rank-row', {
+      // Plain text: a name like "Al 'Ummah Community Center" reaches the accessible name as written, and the
+      // tooltip (an HTML sink) escaped exactly once.
+      const label = AccessScoreChart.text('accessscore:rank-row', {
         position: i + 1, name: r.name, score: AccessScoreChart.score(r.score),
         percent: Math.round(r.completion * 100),
       });

@@ -361,12 +361,9 @@ class AccessScoreDock {
     };
   }
 
-  /**
-   * A translation for a plain-text sink (`textContent`), so a name with an apostrophe or ampersand is not entity-
-   * escaped on its way in — i18next escapes interpolated values for HTML sinks by default.
-   */
+  /** A translation for a plain-text sink (`textContent`); see `AccessScoreChart.text`. */
   static #text(key, vars = {}) {
-    return i18next.t(key, { ...vars, interpolation: { escapeValue: false } });
+    return AccessScoreChart.text(key, vars);
   }
 
   /** "Tuxedo Square · Street 1932", or the id alone for an unnamed way. */

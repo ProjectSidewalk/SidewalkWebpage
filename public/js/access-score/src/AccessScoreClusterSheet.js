@@ -73,7 +73,7 @@ class AccessScoreClusterSheet {
     this.#ids = ids;
     const token = ++this.#openToken;
     this.#els.icon.src = util.misc.getIconImagePaths(type).iconImagePath;
-    this.#els.title.textContent = i18next.t('accessscore:sheet-title', { type: AccessScoreChart.typeName(type) });
+    this.#els.title.textContent = AccessScoreChart.text('accessscore:sheet-title', { type: AccessScoreChart.typeName(type) });
     const rating = util.misc.labelTypeHasSeverity(type) && props.median_severity
       ? i18next.t(`common:${util.misc.getRatingLevelKeys(type)[props.median_severity]}`)
       : null;

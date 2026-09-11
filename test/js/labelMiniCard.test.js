@@ -36,8 +36,10 @@ describe('LabelMiniCard', () => {
             language: 'en',
             t: (key, opts) => {
                 const bare = key.replace(/^[a-z]+:/, '');
-                if (!opts || Object.keys(opts).length === 0) return bare;
-                return `${bare} ${Object.entries(opts).map(([k, v]) => `${k}=${v}`).join(' ')}`;
+                // `interpolation` is i18next's own escaping switch, not an argument the text would show.
+                const args = Object.entries(opts || {}).filter(([k]) => k !== 'interpolation');
+                if (args.length === 0) return bare;
+                return `${bare} ${args.map(([k, v]) => `${k}=${v}`).join(' ')}`;
             },
         };
         window.util = {
@@ -49,6 +51,9 @@ describe('LabelMiniCard', () => {
                 labelTypeHasSeverity: (type) => type !== 'Signal',
             },
             assetPath: (p) => `/assets/${p}`,
+        // The two site-wide string helpers from utilities.js the views lean on, verbatim.
+        escapeHTML: (str) => str.replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[c])),
+        camelToKebab: (str) => str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
             lazyIdentityFetch: (...args) => window.fetch(...args),
         };
         window.Toast = {show: jest.fn()};

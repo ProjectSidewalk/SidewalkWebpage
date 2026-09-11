@@ -30,9 +30,9 @@ window.AccessScoreApp = (function () {
     return i18next.t('accessscore:length', { meters });
   }
 
-  /** The display name of a label type, from the common namespace ("NoCurbRamp" → common:no-curb-ramp). */
+  /** The display name of a label type; one implementation for the whole tool. */
   function typeName(type) {
-    return i18next.t(`common:${type.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`);
+    return AccessScoreChart.typeName(type);
   }
 
   /** Records an interaction under the tool's own module name. */
@@ -462,14 +462,15 @@ window.AccessScoreApp = (function () {
         ${clickHintHtml()}`;
     }
 
+    // Region names come from the database, not from a user, but they are text and go into markup as text.
     function regionTooltipHtml(id) {
       const r = model.explainRegion(id);
       if (!r) return null;
       const percent = Math.round(r.completion * 100);
       if (r.score === null || r.belowFloor) {
-        return `<strong>${r.name}</strong><br>${i18next.t('accessscore:insufficient', { percent })}`;
+        return `<strong>${util.escapeHTML(r.name)}</strong><br>${i18next.t('accessscore:insufficient', { percent })}`;
       }
-      return `<strong>${r.name}</strong>
+      return `<strong>${util.escapeHTML(r.name)}</strong>
         <div class="acs-tooltip__score">${formatScore(r.score)}</div>
         <div class="acs-tooltip__meta">${i18next.t('accessscore:completion', { percent })}</div>
         ${notableHtml('regions', id)}
@@ -547,7 +548,7 @@ window.AccessScoreApp = (function () {
       return `<h3 class="acs-popup__title">${streetTitle(s)}</h3>
         <div class="acs-popup__score">${score}</div>
         ${s.audited ? componentsHtml(s) : ''}
-        <div class="acs-popup__meta">${region ? `${region.name} · ` : ''}${formatLength(s.lengthM)}</div>
+        <div class="acs-popup__meta">${region ? `${util.escapeHTML(region.name)} · ` : ''}${formatLength(s.lengthM)}</div>
         <h4 class="acs-popup__subtitle">${i18next.t('accessscore:popup-terms')}</h4>
         ${termsTableHtml(s.terms)}
         ${hopLinksHtml(lngLat)}`;
@@ -566,7 +567,7 @@ window.AccessScoreApp = (function () {
       const terms = Object.fromEntries(config.scored_types.map((type) => [type, {
         clusterCount: clusterMeans[type], term: means[type],
       }]));
-      return `<h3 class="acs-popup__title">${r.name}</h3>
+      return `<h3 class="acs-popup__title">${util.escapeHTML(r.name)}</h3>
         <div class="acs-popup__score">${score}</div>
         <div class="acs-popup__meta">${i18next.t('accessscore:completion', { percent })} · ${
     i18next.t('accessscore:popup-streets', { audited: r.auditedStreetCount, total: r.streetCount })}</div>

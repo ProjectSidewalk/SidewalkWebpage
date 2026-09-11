@@ -47,6 +47,9 @@ function stubUtilMisc() {
             labelTypeHasSeverity: (type) => !['Signal', 'NoSidewalk'].includes(type),
         },
         assetPath: (p) => `/assets/${p}`,
+        // The two site-wide string helpers from utilities.js the views lean on, verbatim.
+        escapeHTML: (str) => str.replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[c])),
+        camelToKebab: (str) => str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
         lazyIdentityFetch: (...args) => window.fetch(...args),
     };
     // The mini-card's side channels: a toast on a refused vote, a badge tick on a first one.

@@ -89,12 +89,26 @@ class AccessScoreChart {
   }
 
   /**
-   * The display name of a label type, from the common namespace ("NoCurbRamp" → common:no-curb-ramp).
+   * The display name of a label type, from the common namespace ("NoCurbRamp" → common:no-curb-ramp). The soft
+   * hyphens some translations carry (`Trottoir&shy;absenkung`) are dropped, as every other card does: the name is
+   * interpolated and escaped on its way into tooltips and accessible names, where the entity would print as text.
    * @param {string} type - A label type.
    * @returns {string} Its translated name.
    */
   static typeName(type) {
-    return i18next.t(`common:${type.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`);
+    return i18next.t(`common:${util.camelToKebab(type)}`).replace('&shy;', '');
+  }
+
+  /**
+   * A translation for a plain-text sink — `textContent`, `aria-label`, or a string that is escaped once by the
+   * caller — so a name with an apostrophe or ampersand is not entity-escaped on its way in: i18next escapes
+   * interpolated values for HTML sinks by default.
+   * @param {string} key - The i18next key.
+   * @param {object} [vars] - Interpolation values.
+   * @returns {string} The translation, values interpolated verbatim.
+   */
+  static text(key, vars = {}) {
+    return i18next.t(key, { ...vars, interpolation: { escapeValue: false } });
   }
 
   /**
@@ -104,8 +118,6 @@ class AccessScoreChart {
    * @returns {string} The escaped text.
    */
   static esc(value) {
-    return String(value).replace(/[&<>"']/g, (c) => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;',
-    }[c]));
+    return util.escapeHTML(String(value));
   }
 }
