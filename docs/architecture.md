@@ -179,6 +179,9 @@ The `/v3` API is the canonical public surface (handlers in `app/controllers/api/
   `neighborhd`, `cameraHdng`). The DBF format hard-truncates field names to 10 chars, so shapefiles can't carry the
   canonical snake_case names regardless of casing; camelCase reclaims the byte the underscore would waste. Shapefile
   is a legacy export being phased out — GeoPackage is the modern GIS export that carries the canonical snake_case names.
+  Every shapefile is created through `ShapefilesCreatorHelper.newShapefileStore`, which saves the `.dbf` as UTF-8 and
+  writes the `.cpg` that tells GIS tools so (GeoTools defaults to Latin-1 and writes no `.cpg`, #5276). The 10-char
+  limit is really 10 bytes, so field names stay ASCII.
 - v3 is a **preview** surface: breaking changes are made in place rather than minting a new version (precedent: #4223).
 
 **Data structures (DTOs).** The response/filter types live in **`app/models/api/`** (`package models.api`), in

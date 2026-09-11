@@ -15,6 +15,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 
+import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
 import java.sql.DriverManager
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -32,7 +33,8 @@ import scala.util.Using
  * DBF's 10-character limit, which is why `street_side` and `centerline_offset_m` become `streetSide` and
  * `ctrOffsetM` there (#2886) -- and pins the values that land under them.
  *
- * It also pins each GeoPackage layer's declared extent, which GeoTools on its own leaves at (0, 0, 0, 0) (#5275).
+ * It also pins each GeoPackage layer's declared extent, which GeoTools on its own leaves at (0, 0, 0, 0) (#5275), and
+ * that the shapefile's text survives outside Latin-1 (#5276).
  */
 class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionValues {
 
@@ -119,6 +121,15 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
       (names, features)
     } finally store.dispose()
 
+  /** Opens a shapefile as UTF-8. GeoTools ignores the `.cpg` on read unless a system property is set. */
+  private def openUtf8Shapefile(shp: Path): DataStore =
+    new ShapefileDataStoreFactory().createDataStore(
+      Map[String, AnyRef](
+        ShapefileDataStoreFactory.URLP.key       -> shp.toUri.toURL,
+        ShapefileDataStoreFactory.DBFCHARSET.key -> StandardCharsets.UTF_8
+      ).asJava
+    )
+
   /**
    * The extent a GeoPackage declares for one layer, read straight from `gpkg_contents` the way GDAL and QGIS read it.
    * GeoTools' own reader turns a NULL extent into zeros, so it can't tell "unknown" apart from the (0, 0) bug.
@@ -157,6 +168,31 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         features(8).getAttribute("ctrOffsetM") mustBe 4.25
         features(9).getAttribute("streetSide") mustBe null
         features(9).getAttribute("ctrOffsetM") mustBe null
+      }
+    }
+
+    "save non-Latin text as UTF-8 and ship a .cpg saying so, rather than question marks (#5276)" in {
+      val taipei = sampleLabel(8, None, None).copy(regionName = "中山區新庄里", description = Some("人行道破損 — ok"))
+      inTempDir("labels") { base =>
+        val shp =
+          Await.result(shapefileCreator.createRawLabelShapefile(Source.single(taipei), base, 1), 60.seconds).value
+        Files.readString(Path.of(s"$base.cpg")).trim mustBe "UTF-8"
+
+        val (_, features) = readBack(openUtf8Shapefile(shp), "labelId")
+        features(8).getAttribute("regionName") mustBe "中山區新庄里"
+        features(8).getAttribute("descriptn") mustBe "人行道破損 — ok"
+      }
+    }
+
+    "cut text too long for its DBF field between characters, not partway through one (#5276)" in {
+      // Each of these characters takes 3 bytes, and a DBF text field holds at most 254 bytes.
+      val long = sampleLabel(8, None, None).copy(description = Some("破" * 200))
+      inTempDir("labels") { base =>
+        val shp =
+          Await.result(shapefileCreator.createRawLabelShapefile(Source.single(long), base, 1), 60.seconds).value
+        val description = readBack(openUtf8Shapefile(shp), "labelId")._2(8).getAttribute("descriptn").toString
+        description must not be empty
+        description mustBe "破" * description.length // A split character would read back as a replacement mark.
       }
     }
   }

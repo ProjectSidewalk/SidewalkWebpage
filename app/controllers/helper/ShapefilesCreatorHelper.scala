@@ -29,6 +29,7 @@ import play.api.Logger
 import play.api.libs.json.Json
 
 import java.io.{BufferedInputStream, File}
+import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
 import java.sql.Types
 import java.util.zip.{ZipEntry, ZipOutputStream}
@@ -157,6 +158,35 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     }
   }
 
+  /**
+   * Creates an empty shapefile with the given schema, saving text as UTF-8 rather than GeoTools' default Latin-1, which
+   * turns non-Latin text into question marks (#5276). GeoTools never writes the `.cpg` that tells GIS tools the text is
+   * UTF-8, so we do, after `createSchema` because it deletes any side files already next to the `.shp`.
+   *
+   * @param shapefilePath Where the `.shp` goes; the `.dbf`, `.cpg` and other parts are written beside it.
+   * @param featureType The shapefile's schema.
+   * @return The new store, which the caller disposes.
+   */
+  private def newShapefileStore(shapefilePath: Path, featureType: SimpleFeatureType): DataStore = {
+    val store = new ShapefileDataStoreFactory().createNewDataStore(
+      Map[String, AnyRef](
+        ShapefileDataStoreFactory.URLP.key                 -> shapefilePath.toUri.toURL,
+        ShapefileDataStoreFactory.CREATE_SPATIAL_INDEX.key -> java.lang.Boolean.FALSE, // So we don't run out of memory.
+        ShapefileDataStoreFactory.DBFCHARSET.key           -> StandardCharsets.UTF_8
+      ).asJava
+    )
+    try {
+      store.createSchema(featureType)
+      val cpgPath = shapefilePath.resolveSibling(shapefilePath.getFileName.toString.stripSuffix(".shp") + ".cpg")
+      Files.writeString(cpgPath, "UTF-8")
+      store
+    } catch {
+      case e: Exception =>
+        store.dispose()
+        throw e
+    }
+  }
+
   /** Rejects attribute names over the DBF format's 10-char limit, which GeoTools would otherwise truncate silently. */
   private def requireDbfSafeNames(featureType: SimpleFeatureType): Unit = {
     val tooLong = featureType.getAttributeDescriptors.asScala.map(_.getLocalName).filter(_.length > 10)
@@ -240,15 +270,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       requireDbfSafeNames(featureType)
 
       // Set up everything we need to create and store features.
-      val dataStoreFactory = new ShapefileDataStoreFactory()
-      newDataStore = dataStoreFactory.createNewDataStore(
-        Map(
-          "url"                  -> shapefilePath.toUri.toURL,
-          "create spatial index" -> java.lang.Boolean.FALSE // Disable so we don't run out of memory.
-        ).asJava
-      )
-
-      newDataStore.createSchema(featureType)
+      newDataStore = newShapefileStore(shapefilePath, featureType)
 
       val typeName: String                     = newDataStore.getTypeNames()(0)
       val featureSource                        = newDataStore.getFeatureSource(typeName)
@@ -557,11 +579,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       requireDbfSafeNames(labelFeatureType)
 
       // Set up clusters shapefile.
-      val clusterDataStoreFactory = new ShapefileDataStoreFactory()
-      clusterDataStore = clusterDataStoreFactory.createNewDataStore(
-        Map("url" -> clusterShapefilePath.toUri.toURL, "create spatial index" -> java.lang.Boolean.FALSE).asJava
-      )
-      clusterDataStore.createSchema(clusterShapefileFeatureType)
+      clusterDataStore = newShapefileStore(clusterShapefilePath, clusterShapefileFeatureType)
       val clusterStore =
         clusterDataStore.getFeatureSource(clusterDataStore.getTypeNames()(0)).asInstanceOf[SimpleFeatureStore]
       val clusterBuilder  = new SimpleFeatureBuilder(clusterShapefileFeatureType)
@@ -592,12 +610,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
 
           // Write the raw labels shapefile if any labels were collected.
           if (hasRawLabels && !allRawLabels.isEmpty) {
-            val labelDataStoreFactory = new ShapefileDataStoreFactory()
-            val labelDataStore        = labelDataStoreFactory.createNewDataStore(
-              Map("url" -> labelShapefilePath.toUri.toURL, "create spatial index" -> java.lang.Boolean.FALSE).asJava
-            )
-            labelDataStore.createSchema(labelFeatureType)
-            val labelStore =
+            val labelDataStore = newShapefileStore(labelShapefilePath, labelFeatureType)
+            val labelStore     =
               labelDataStore.getFeatureSource(labelDataStore.getTypeNames()(0)).asInstanceOf[SimpleFeatureStore]
             val labelBuilder  = new SimpleFeatureBuilder(labelFeatureType)
             val labelFeatures = new java.util.ArrayList[SimpleFeature](batchSize)
