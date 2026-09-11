@@ -52,7 +52,7 @@ verifiable from the deploy log rather than by curling every host:
 
 ```
 INFO m.SearchIndexingCheck - Search indexing: seattle-wa is INDEXABLE (environment-type=prod, status=public,
-pano-viewer-type=gsv); 37 of 60 configured cities are public. A vhost X-Robots-Tag header can still override this.
+pano-viewer-type=gsv); 39 of 60 configured cities are public. A vhost X-Robots-Tag header can still override this.
 ```
 
 It also sweeps every city's `status` and logs an error for any value that isn't `public` or `private`. Nothing there
