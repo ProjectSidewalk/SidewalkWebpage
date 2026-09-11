@@ -244,9 +244,10 @@ corresponding Twirl view:
   chart colors follow the design system). Served file-by-file — no Grunt bundle.
 - **`access-score/`** — the AccessScore tool (`/accessScore`, #5217): a pure scoring model that re-runs the engine's
   math in the browser (`AccessScoreModel.js`, pinned to the Scala engine through `test/fixtures/accessScoreParity.json`;
-  it reproduces a street's `segment_score`, length normalization included, but not yet the headline `score` that
-  #5095 averages with the end intersections — until the tool ingests `/v3/api/accessScoreIntersections` a street's
-  color is its segment score, and the sidebar says so),
+  it ingests `/v3/api/accessScoreStreets` and `/v3/api/accessScoreIntersections` and reproduces a street's
+  `segment_score`, every intersection's score, and the headline `score` #5095 averages from them — so the map's
+  colors are the API's numbers, reweighted live; the one departure is that an unaudited street stays unscored
+  rather than borrowing a headline from its crossings),
   the map view (streets and a neighborhood choropleth colored from feature-state, with a ramp legend beside the
   zoom buttons, `AccessScoreMapLegend.js`), the cluster evidence layer
   (`AccessScoreClusterLayer.js`, fed by `/v3/api/labelClusters` — the clusters the engine actually scores, not the

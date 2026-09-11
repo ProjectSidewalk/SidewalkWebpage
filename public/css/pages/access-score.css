@@ -420,6 +420,14 @@
   color: var(--color-neutral-600);
 }
 
+/* The block and its two crossings under the headline, in both the hover card and the popup. */
+.acs-popup__components {
+  margin-top: 2px;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+  font-variant-numeric: tabular-nums;
+}
+
 .acs-tooltip__meta {
   font: var(--text-caption-regular);
   color: var(--color-neutral-700);

@@ -7,6 +7,8 @@
 window.AccessScoreApp = (function () {
   const MAP_STYLE = 'mapbox://styles/mapbox/light-v11?optimize=true';
   const SCORE_ENDPOINT = '/v3/api/accessScoreStreets';
+  const INTERSECTIONS_ENDPOINT = '/v3/api/accessScoreIntersections';
+  const EMPTY_COLLECTION = { type: 'FeatureCollection', features: [] };
 
   /** Fetches JSON, treating a non-2xx status as a failure so the overlay's error card shows. */
   async function fetchJson(url) {
@@ -55,6 +57,12 @@ window.AccessScoreApp = (function () {
     const dataPromise = Promise.all([
       fetchJson('/v3/api/accessScoreConfig'),
       fetchJson(SCORE_ENDPOINT),
+      // Without the crossings the page still works, every street just keeps its segment score — better than a
+      // dead page for one feed's outage, and the console says which half is missing.
+      fetchJson(INTERSECTIONS_ENDPOINT).catch((e) => {
+        console.warn('AccessScore intersections failed to load; scores are segment-only', e);
+        return EMPTY_COLLECTION;
+      }),
       fetchJson('/neighborhoods'),
       fetchJson('/neighborhoods/completionRate'),
     ]);
@@ -75,10 +83,11 @@ window.AccessScoreApp = (function () {
 
     let config;
     let streets;
+    let intersections;
     let regions;
     let completion;
     try {
-      [[config, streets, regions, completion]] = await Promise.all([dataPromise, mapPromise]);
+      [[config, streets, intersections, regions, completion]] = await Promise.all([dataPromise, mapPromise]);
     } catch (e) {
       console.error('AccessScore data failed to load', e);
       overlay.showError();
@@ -86,7 +95,7 @@ window.AccessScoreApp = (function () {
     }
 
     const urlState = AccessScoreUrlSync.read(config);
-    const model = new AccessScoreModel(config, streets, completion, urlState.state);
+    const model = new AccessScoreModel(config, streets, intersections, completion, urlState.state);
     const sidebar = new AccessScoreSidebar(sidebarEl, config);
     const urlSync = new AccessScoreUrlSync(model, map);
     let popup = null;
@@ -384,6 +393,7 @@ window.AccessScoreApp = (function () {
       const { problems, features } = countClusters(s);
       return `<strong>${title}</strong>
         <div class="acs-tooltip__score">${formatScore(s.score)}</div>
+        ${componentsHtml(s)}
         <div class="acs-tooltip__meta">${i18next.t('accessscore:tooltip-meta', { problems, features })}</div>
         ${notableHtml('streets', id)}
         ${clickHintHtml()}`;
@@ -406,6 +416,14 @@ window.AccessScoreApp = (function () {
     /** The line that says a hover can become a click; without it nothing marks these features as selectable. */
     function clickHintHtml() {
       return `<div class="acs-tooltip__hint">${i18next.t('accessscore:click-for-details')}</div>`;
+    }
+
+    /** The three numbers behind a street's headline: its block and the crossings at either end ("—" for none). */
+    function componentsHtml(s) {
+      const end = (e) => (e && e.score !== null ? formatScore(e.score) : '—');
+      return `<div class="acs-popup__components">${i18next.t('accessscore:score-components', {
+        segment: formatScore(s.segmentScore), start: end(s.startIntersection), end: end(s.endIntersection),
+      })}</div>`;
     }
 
     /** Clusters of problem vs feature types on a street, for the one-line summary. */
@@ -465,6 +483,7 @@ window.AccessScoreApp = (function () {
       const region = model.explainRegion(s.regionId);
       return `<h3 class="acs-popup__title">${i18next.t('accessscore:popup-street', { id })}</h3>
         <div class="acs-popup__score">${score}</div>
+        ${s.audited ? componentsHtml(s) : ''}
         <div class="acs-popup__meta">${region ? `${region.name} · ` : ''}${formatLength(s.lengthM)}</div>
         <h4 class="acs-popup__subtitle">${i18next.t('accessscore:popup-terms')}</h4>
         ${termsTableHtml(s.terms)}

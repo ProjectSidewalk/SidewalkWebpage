@@ -54,7 +54,8 @@ describe('AccessScoreUrlSync', () => {
 
     test('writes only what differs from the defaults, keeps foreign params, and stamps the viewport', () => {
         window.history.replaceState(null, '', '/accessScore?regions=5&lat=1&lng=2');
-        const model = new AccessScoreModel(config, { type: 'FeatureCollection', features: [] }, []);
+        const model = new AccessScoreModel(config, { type: 'FeatureCollection', features: [] },
+            { type: 'FeatureCollection', features: [] }, []);
         const map = {
             on: () => {},
             getCenter: () => ({ lat: 40.88, lng: -74.01 }),

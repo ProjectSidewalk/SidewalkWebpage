@@ -43,7 +43,8 @@ describe('AccessScoreDock', () => {
         // The last three fixture streets go to a second region, so a region scope is a real subset.
         const features = FIXTURE.streets.map((c, i) =>
             feature(c, i, {region_id: i >= FIXTURE.streets.length - 3 ? 2 : 1}));
-        model = new window.AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features}, REGIONS);
+        model = new window.AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features},
+            {type: 'FeatureCollection', features: []}, REGIONS);
         mapView = {setBrush: jest.fn()};
         map = {
             on: jest.fn(),

@@ -1,24 +1,29 @@
 /**
  * The AccessScore tool's scoring model: the engine's math, re-run in the browser (#5217).
  *
- * Holds one city's streets as the count-based inputs `/v3/api/accessScoreStreets` publishes (`severity_counts`,
- * `tag_adjustments`, `audit_count`, `length_meters`, `region_id`) plus the engine constants from
- * `/v3/api/accessScoreConfig`, and rebuilds every street's score under whatever weights the user picks:
+ * Holds one city's streets and intersections as the count-based inputs `/v3/api/accessScoreStreets` and
+ * `/v3/api/accessScoreIntersections` publish (`severity_counts`, `tag_adjustments`, `audit_count`, `length_meters`,
+ * `region_id`, the street's end intersection ids) plus the engine constants from `/v3/api/accessScoreConfig`, and
+ * rebuilds every score under whatever weights the user picks:
  *
- *   term(type)  = (weight(type) × units(type) + tagAdjustment(type)) × lengthFactor(type, street)
- *   score       = sigmoid(Σ terms)                       (audited streets only; unaudited have no score)
+ *   term(type)     = (weight(type) × units(type) + tagAdjustment(type)) × lengthFactor(type, street)
+ *   segment        = sigmoid(Σ terms over the street's clusters)          (audited streets only)
+ *   intersection   = sigmoid(Σ terms over the corner types pooled there)  (no length factor; none when
+ *                    grade-separated or unaudited)
+ *   score          = mean(segment, end intersection scores that exist)    (the API's headline `score`)
  *
  * where `units` is the rating-weighted cluster count for per-cluster types (`Σ_bucket count × multiplier`), the
  * count itself for presence-only types, and the saturating extent `min(1, n / saturation)` for a street-condition
  * type. `lengthFactor` is `per_meters / max(length, min_length_meters)` for the types the config marks
  * `length_normalized` (Obstacle, SurfaceProblem: a problem is a density along the street, so a long street is not
  * punished for being long) and 1 for every other type. With the engine's own weights this reproduces the API's
- * `segment_score` and `sub_scores` exactly — the committed fixture `test/fixtures/accessScoreParity.json` holds
- * both sides to that (test/js/accessScoreModel.test.js and test/service/AccessScoreParitySpec.scala).
+ * `segment_score`, `sub_scores`, intersection `score` and headline `score` exactly — the committed fixture
+ * `test/fixtures/accessScoreParity.json` holds both sides to that (test/js/accessScoreModel.test.js and
+ * test/service/AccessScoreParitySpec.scala).
  *
- * What it does NOT yet reproduce is the API's headline `score`, which since #5095 averages the segment score with
- * the scores of the intersections at the street's ends. Until the tool ingests `/v3/api/accessScoreIntersections`,
- * a street's color here is its segment score, and the page says so.
+ * One deliberate departure: the engine gives an unaudited street between two scored crossings a headline from the
+ * crossings alone, while here such a street stays unscored. The tool's "unaudited" means nobody has looked at the
+ * block yet, and a color borrowed from its corners would hide exactly that.
  *
  * No DOM, no Mapbox: inputs in, typed arrays out, so a slider move costs one pass over the arrays (~28k streets
  * in Seattle, about a millisecond) and the map/chart adapters read the results.
@@ -52,6 +57,8 @@ class AccessScoreModel {
   #normalized;
   #lengthPerMeters;
   #lengthMinMeters;
+  /** Indices into `#types` of the corner types an intersection is scored from (`config.intersection_types`). */
+  #intTypeIdx;
 
   // Per-street inputs, laid out type-major so a street's T values sit together: index i * T + t.
   #n = 0;
@@ -67,6 +74,20 @@ class AccessScoreModel {
   #clusterCounts;
   #tagAdjustments;
   #indexById = new Map();
+  /** Per street: the position of its start / end intersection in the intersection arrays, or −1 for none. */
+  #startInt;
+  #endInt;
+
+  // Per-intersection inputs, laid out like the streets over the corner types only: index j * TI + u.
+  #m = 0;
+  #intIds;
+  #intRegionIds;
+  #intAudited;
+  #intGradeSeparated;
+  #intCounts;
+  #intClusterCounts;
+  #intTagAdjustments;
+  #intIndexById = new Map();
 
   #regions = [];
   #regionIndexById = new Map();
@@ -75,7 +96,13 @@ class AccessScoreModel {
   // Derived per pass.
   #units;
   #terms;
+  /** Per street: the segment score alone, kept beside the headline so a popup can show both. */
+  #segmentScores;
   #scores;
+  #intUnits;
+  #intTerms;
+  /** Per intersection: its score, NaN when grade-separated or unaudited. */
+  #intScores;
   /** Histogram bin per street, filled alongside the scores; `UNBINNED` for an unaudited street. */
   #bins;
   #regionStats = [];
@@ -88,11 +115,13 @@ class AccessScoreModel {
    * @param {object} config - The `/v3/api/accessScoreConfig` response.
    * @param {object} streets - The `/v3/api/accessScoreStreets` GeoJSON FeatureCollection (properties are read;
    *                           geometry is left to the map).
+   * @param {object} intersections - The `/v3/api/accessScoreIntersections` GeoJSON FeatureCollection; an empty
+   *                                 one leaves every headline equal to its segment score.
    * @param {Array<object>} regions - `/neighborhoods/completionRate` rows: `region_id`, `name`, `rate`,
    *                                  `total_distance_m`, `completed_distance_m`.
    * @param {object} [initialState] - Overrides of `DEFAULT_STATE` (e.g. from the URL).
    */
-  constructor(config, streets, regions, initialState = {}) {
+  constructor(config, streets, intersections, regions, initialState = {}) {
     this.#config = config;
     this.#types = config.scored_types;
     this.#buckets = config.severity_buckets;
@@ -102,7 +131,10 @@ class AccessScoreModel {
     this.#normalized = Uint8Array.from(this.#types, (t) => (config.type_weights[t].length_normalized ? 1 : 0));
     this.#lengthPerMeters = config.length_normalization?.per_meters ?? 0;
     this.#lengthMinMeters = config.length_normalization?.min_length_meters ?? 0;
+    this.#intTypeIdx = Int32Array.from((config.intersection_types || []).map((t) => this.#types.indexOf(t))
+      .filter((t) => t >= 0));
 
+    this.#loadIntersections((intersections && intersections.features) || []);
     this.#loadStreets(streets.features || []);
     this.#loadRegions(regions || []);
 
@@ -110,8 +142,12 @@ class AccessScoreModel {
     if (!this.#state.weights) this.#state.weights = { ...config.presets.default };
     this.#units = new Float64Array(this.#n * this.#types.length);
     this.#terms = new Float64Array(this.#n * this.#types.length);
+    this.#segmentScores = new Float64Array(this.#n);
     this.#scores = new Float64Array(this.#n);
     this.#bins = new Uint8Array(this.#n);
+    this.#intUnits = new Float64Array(this.#m * this.#intTypeIdx.length);
+    this.#intTerms = new Float64Array(this.#m * this.#intTypeIdx.length);
+    this.#intScores = new Float64Array(this.#m);
     this.#recomputeUnits();
     this.#recompute();
   }
@@ -137,7 +173,7 @@ class AccessScoreModel {
   }
 
   /**
-   * Street scores by position (see `streetIds`); NaN for an unaudited street.
+   * Street headline scores by position (see `streetIds`); NaN for an unaudited street.
    * @returns {Float64Array} The scores, in [0, 1].
    */
   get streetScores() {
@@ -147,6 +183,11 @@ class AccessScoreModel {
   /** Street ids by position, parallel to `streetScores`. */
   get streetIds() {
     return this.#ids;
+  }
+
+  /** Number of intersections loaded. */
+  get intersectionCount() {
+    return this.#m;
   }
 
   /** Whether each street (by position) has at least one completed audit. */
@@ -215,9 +256,12 @@ class AccessScoreModel {
    * How a street's score comes about under the current state, for the "why this score" panel.
    *
    * @param {number} streetId - The street's `street_edge_id`.
-   * @returns {?object} `{streetId, regionId, lengthM, audited, score, preSigmoid, terms}` where `terms` maps each
-   *   scored type to `{clusterCount, buckets, units, weight, weighted, tagAdjustment, lengthFactor, term}` —
-   *   `term` is `(weighted + tagAdjustment) × lengthFactor`; null for an unknown id.
+   * @returns {?object} `{streetId, regionId, lengthM, audited, score, segmentScore, startIntersection,
+   *   endIntersection, preSigmoid, terms}`: `score` is the headline, `segmentScore` the block's own score (null
+   *   when unaudited), each end `{id, score}` with `score` null where the crossing is unscored, or null where the
+   *   street has no crossing at that end; `terms` (the segment's) maps each scored type to `{clusterCount, buckets,
+   *   units, weight, weighted, tagAdjustment, lengthFactor, term}` — `term` is `(weighted + tagAdjustment) ×
+   *   lengthFactor`. Null for an unknown id.
    */
   explainStreet(streetId) {
     const i = this.#indexById.get(streetId);
@@ -243,12 +287,63 @@ class AccessScoreModel {
         lengthFactor, term,
       };
     });
+    const end = (j) => {
+      if (j < 0) return null;
+      return { id: this.#intIds[j], score: Number.isNaN(this.#intScores[j]) ? null : this.#intScores[j] };
+    };
     return {
       streetId,
       regionId: this.#regionIds[i],
       lengthM: this.#lengths[i],
       audited: this.#audited[i] === 1,
       score: this.#audited[i] === 1 ? this.#scores[i] : null,
+      segmentScore: this.#audited[i] === 1 ? this.#segmentScores[i] : null,
+      startIntersection: end(this.#startInt[i]),
+      endIntersection: end(this.#endInt[i]),
+      preSigmoid,
+      terms,
+    };
+  }
+
+  /**
+   * How an intersection's score comes about under the current state.
+   *
+   * @param {number} intersectionId - The intersection's `intersection_id`.
+   * @returns {?object} `{intersectionId, regionId, gradeSeparated, audited, score, preSigmoid, terms}` — `score`
+   *   null when grade-separated or unaudited; `terms` covers the corner types only, in the shape `explainStreet`
+   *   uses (with `lengthFactor` 1). Null for an unknown id.
+   */
+  explainIntersection(intersectionId) {
+    const j = this.#intIndexById.get(intersectionId);
+    if (j === undefined) return null;
+    const TI = this.#intTypeIdx.length;
+    const B = this.#buckets.length;
+    const terms = {};
+    let preSigmoid = 0;
+    this.#intTypeIdx.forEach((t, u) => {
+      const type = this.#types[t];
+      const base = j * TI + u;
+      const buckets = {};
+      this.#buckets.forEach((b, k) => {
+        buckets[b] = this.#intCounts[base * B + k];
+      });
+      const weight = this.signedWeight(type);
+      const weighted = weight * this.#intUnits[base];
+      const tagAdjustment = this.#intTagAdjustments[base];
+      const term = this.#intClusterCounts[base] > 0 ? weighted + tagAdjustment : 0;
+      preSigmoid += term;
+      terms[type] = {
+        clusterCount: this.#intClusterCounts[base], buckets, units: this.#intUnits[base], weight, weighted,
+        tagAdjustment, lengthFactor: 1, term,
+      };
+    });
+    const scored = !Number.isNaN(this.#intScores[j]);
+    return {
+      intersectionId,
+      regionId: this.#intRegionIds[j],
+      gradeSeparated: this.#intGradeSeparated[j] === 1,
+      audited: this.#intAudited[j] === 1,
+      score: scored ? this.#intScores[j] : null,
       preSigmoid,
       terms,
     };
@@ -554,6 +649,21 @@ class AccessScoreModel {
   }
 
   /**
+   * The engine's headline for a street: the plain mean of its segment score and its end crossings' scores, over
+   * whichever exist.
+   * @param {?number} segmentScore - The segment's score, or null when unaudited.
+   * @param {Array<number>} endScores - The scores of the end intersections that have one.
+   * @returns {?number} The mean, or null with nothing to average.
+   */
+  static headline(segmentScore, endScores) {
+    const components = segmentScore === null || segmentScore === undefined
+      ? [...endScores]
+      : [segmentScore, ...endScores];
+    if (components.length === 0) return null;
+    return components.reduce((a, b) => a + b, 0) / components.length;
+  }
+
+  /**
    * The engine's region roll-up: the street-length-weighted mean of audited streets' scores.
    * @param {Array<[number, number]>} pairs - `[score, lengthMeters]` per audited street.
    * @returns {?number} The mean, or null with no streets / zero total length.
@@ -586,10 +696,14 @@ class AccessScoreModel {
     this.#counts = new Int32Array(this.#n * T * B);
     this.#clusterCounts = new Int32Array(this.#n * T);
     this.#tagAdjustments = new Float64Array(this.#n * T);
+    this.#startInt = new Int32Array(this.#n);
+    this.#endInt = new Int32Array(this.#n);
     features.forEach((f, i) => {
       const p = f.properties;
       this.#ids[i] = p.street_edge_id;
       this.#regionIds[i] = p.region_id;
+      this.#startInt[i] = this.#intIndexById.get(p.start_intersection_id) ?? -1;
+      this.#endInt[i] = this.#intIndexById.get(p.end_intersection_id) ?? -1;
       this.#lengths[i] = p.length_meters || 0;
       this.#lengthFactors[i] = this.#lengthFactor(this.#lengths[i]);
       this.#audited[i] = p.audit_count > 0 ? 1 : 0;
@@ -605,6 +719,41 @@ class AccessScoreModel {
         });
         this.#clusterCounts[base] = n;
         this.#tagAdjustments[base] = (p.tag_adjustments && p.tag_adjustments[type]) || 0;
+      });
+    });
+  }
+
+  /** Unpacks the intersection features into the typed arrays, corner types only. */
+  #loadIntersections(features) {
+    const TI = this.#intTypeIdx.length;
+    const B = this.#buckets.length;
+    this.#m = features.length;
+    this.#intIds = new Int32Array(this.#m);
+    this.#intRegionIds = new Int32Array(this.#m);
+    this.#intAudited = new Uint8Array(this.#m);
+    this.#intGradeSeparated = new Uint8Array(this.#m);
+    this.#intCounts = new Int32Array(this.#m * TI * B);
+    this.#intClusterCounts = new Int32Array(this.#m * TI);
+    this.#intTagAdjustments = new Float64Array(this.#m * TI);
+    features.forEach((f, j) => {
+      const p = f.properties;
+      this.#intIds[j] = p.intersection_id;
+      this.#intRegionIds[j] = p.region_id;
+      this.#intAudited[j] = p.audit_count > 0 ? 1 : 0;
+      this.#intGradeSeparated[j] = p.grade_separated ? 1 : 0;
+      this.#intIndexById.set(p.intersection_id, j);
+      this.#intTypeIdx.forEach((t, u) => {
+        const type = this.#types[t];
+        const base = j * TI + u;
+        const byBucket = (p.severity_counts && p.severity_counts[type]) || {};
+        let n = 0;
+        this.#buckets.forEach((b, k) => {
+          const c = byBucket[b] || 0;
+          this.#intCounts[base * B + k] = c;
+          n += c;
+        });
+        this.#intClusterCounts[base] = n;
+        this.#intTagAdjustments[base] = (p.tag_adjustments && p.tag_adjustments[type]) || 0;
       });
     });
   }
@@ -653,12 +802,36 @@ class AccessScoreModel {
         }
       }
     }
+    const TI = this.#intTypeIdx.length;
+    for (let j = 0; j < this.#m; j++) {
+      this.#intTypeIdx.forEach((t, u) => {
+        const base = j * TI + u;
+        let sum = 0;
+        for (let k = 0; k < B; k++) sum += this.#intCounts[base * B + k] * multipliers[t][k];
+        this.#intUnits[base] = sum;
+      });
+    }
   }
 
-  /** One pass over the streets, then the region roll-up. */
+  /** One pass over the intersections, one over the streets (segment, then headline), then the region roll-up. */
   #recompute() {
     const T = this.#types.length;
     const weights = this.#types.map((type) => this.signedWeight(type));
+    const TI = this.#intTypeIdx.length;
+    for (let j = 0; j < this.#m; j++) {
+      let x = 0;
+      for (let u = 0; u < TI; u++) {
+        const base = j * TI + u;
+        const term = this.#intClusterCounts[base] > 0
+          ? weights[this.#intTypeIdx[u]] * this.#intUnits[base] + this.#intTagAdjustments[base]
+          : 0;
+        this.#intTerms[base] = term;
+        x += term;
+      }
+      this.#intScores[j] = this.#intAudited[j] === 1 && this.#intGradeSeparated[j] === 0
+        ? 1 / (1 + Math.exp(-x))
+        : NaN;
+    }
     for (let i = 0; i < this.#n; i++) {
       let x = 0;
       for (let t = 0; t < T; t++) {
@@ -671,9 +844,21 @@ class AccessScoreModel {
         x += term;
       }
       if (this.#audited[i] === 1) {
-        this.#scores[i] = 1 / (1 + Math.exp(-x));
+        const segment = 1 / (1 + Math.exp(-x));
+        this.#segmentScores[i] = segment;
+        // The headline averages the segment with whichever end crossings carry a score.
+        let sum = segment;
+        let count = 1;
+        for (const j of [this.#startInt[i], this.#endInt[i]]) {
+          if (j >= 0 && !Number.isNaN(this.#intScores[j])) {
+            sum += this.#intScores[j];
+            count += 1;
+          }
+        }
+        this.#scores[i] = sum / count;
         this.#bins[i] = AccessScoreModel.binOf(this.#scores[i]);
       } else {
+        this.#segmentScores[i] = NaN;
         this.#scores[i] = NaN;
         this.#bins[i] = AccessScoreModel.UNBINNED;
       }

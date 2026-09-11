@@ -49,6 +49,8 @@ const COMPLETION = [{region_id: 1, name: 'Fixture', rate: 1, total_distance_m: 3
 /** Serves the fixture in place of the city's feeds. */
 async function stubFeeds(context) {
   await context.route('**/v3/api/accessScoreStreets*', (route) => route.fulfill({json: streetsFixture()}));
+  await context.route('**/v3/api/accessScoreIntersections*', (route) =>
+    route.fulfill({json: {type: 'FeatureCollection', features: []}}));
   await context.route('**/neighborhoods', (route) => route.fulfill({json: REGIONS}));
   await context.route('**/neighborhoods/completionRate*', (route) => route.fulfill({json: COMPLETION}));
   await context.route('**/v3/api/labelClusters*', (route) =>
@@ -276,6 +278,18 @@ test.describe('/accessScore', () => {
       await page.locator('input[name="acs-unit"][value="regions"]').check({force: true});
       await expect(legend.locator('.acs-map-legend__swatch--hatch')).toBeVisible();
     });
+
+  test('a street popup shows the headline over its three components', async ({page}) => {
+    await page.goto('/accessScore?sel=1');
+    await waitForAppReady(page);
+    await waitForTool(page);
+    const popup = page.locator('.acs-popup');
+    await expect(popup).toBeVisible();
+    await expect(popup.locator('.acs-popup__score')).toHaveText('81.8');
+    // The stubbed intersections feed is empty, so the headline is the segment alone and both crossings read "—".
+    await expect(popup.locator('.acs-popup__components'))
+      .toHaveText(/Segment 81\.8 · Start crossing — · End crossing —/);
+  });
 
   test('the dock state round-trips through the URL', async ({page}) => {
     await page.goto('/accessScore?dock=0&b=80-90');
