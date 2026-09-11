@@ -272,18 +272,28 @@ class ApplicationController @Inject() (
   /**
    * The AccessScore tool (#5217): weight sliders, a streets/neighborhoods switch, and linked charts over the city's
    * AccessScores. The page fetches its data itself (`/v3/api/accessScoreConfig`, `/v3/api/accessScoreStreets`, the
-   * neighborhood feeds), so the controller only renders the shell.
+   * neighborhood feeds), so the controller only renders the shell. Desktop-only, like the Route Builder: a map with
+   * a control drawer on one side and a four-panel band below has no phone layout.
    */
   def accessScore = cc.securityService.UserAwareAction { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_AccessScore")
-      Ok(
-        views.html.apps.accessScore(
-          commonData,
-          Messages("seo.title.access.score", commonData.currentCity.cityNameShort),
-          request.identity
-        )
+    if (ControllerUtils.isMobile(request)) {
+      cc.loggingService.insert(
+        request.identity.map(_.userId),
+        request.ipAddress,
+        "Visit_AccessScore_RedirectMobileLanding"
       )
+      Future.successful(Redirect("/mobileLanding"))
+    } else {
+      configService.getCommonPageData(request2Messages.lang).map { commonData =>
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_AccessScore")
+        Ok(
+          views.html.apps.accessScore(
+            commonData,
+            Messages("seo.title.access.score", commonData.currentCity.cityNameShort),
+            request.identity
+          )
+        )
+      }
     }
   }
 

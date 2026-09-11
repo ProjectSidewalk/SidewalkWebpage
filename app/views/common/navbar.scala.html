@@ -94,7 +94,10 @@
             @if(!isMobileDevice) {
               <li><a id="navbar-labelmap-btn-tools" href="@routes.ApplicationController.labelMap(None)"@if(curPath == "/labelmap"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("map")@Messages("navbar.labelmap")</a></li>
             }
-            <li><a id="navbar-accessscore-btn" href="@routes.ApplicationController.accessScore"@if(curPath == "/accessscore"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("bar-chart-2")@Messages("navbar.accessscore")</a></li>
+            @* Desktop-only, like the Route Builder: the controller bounces a phone to /mobileLanding. *@
+            @if(!isMobileDevice) {
+              <li><a id="navbar-accessscore-btn" href="@routes.ApplicationController.accessScore"@if(curPath == "/accessscore"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("bar-chart-2")@Messages("navbar.accessscore")</a></li>
+            }
             <li class="dropdown-section">@Messages("navbar.tools.community")</li>
             <li><a id="navbar-leaderboard-btn" href='@routes.UserDashboardController.leaderboard'@if(curPath == "/leaderboard"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("award")@Messages("navbar.leaderboard")</a></li>
             <li><a id="navbar-stories-btn" href='@routes.StoryController.storiesPage'@if(curPath == "/stories"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("message-circle")@Messages("navbar.stories")</a></li>

@@ -104,7 +104,7 @@ dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`,
 sweep tick) / `AccessScore_Brush_value=clear`, `AccessScore_PhotoStrip_labelId=<id>` (a photo-strip thumbnail opening the full
 label card), and `AccessScore_RankSelect_regionId=<id>` (a rank row clicked: the band scopes to that neighborhood in
 either unit, and in the neighborhoods unit the map selection it also makes logs `AccessScore_Select_regionId`). The drawer's `MapSidebar_Open` /
-`MapSidebar_Close` fire here too (shared chrome); the server logs `Visit_AccessScore` per page load.
+`MapSidebar_Close` fire here too (shared chrome); the server logs `Visit_AccessScore` per page load, or `Visit_AccessScore_RedirectMobileLanding` when a mobile UA is bounced to `/mobileLanding` instead (the tool is desktop-only, like the Route Builder, and its Tools-menu entry is not rendered on a phone).
 
 The Gallery renders the same sidebar (`gallery/src/filter/GalleryFilter.js`) and logs to `gallery_task_interaction`
 under its own names, one `<Section>Apply` / `<Section>Unapply` pair per section with the toggled value in the notes:
