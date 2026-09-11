@@ -64,6 +64,8 @@ class AccessScoreModel {
   #n = 0;
   #ids;
   #regionIds;
+  /** Per street: its OSM name, or null for an unnamed way. */
+  #names;
   #lengths;
   /** Per street: the factor a length-normalized type's term is scaled by (`per_meters / max(length, min)`). */
   #lengthFactors;
@@ -256,7 +258,7 @@ class AccessScoreModel {
    * How a street's score comes about under the current state, for the "why this score" panel.
    *
    * @param {number} streetId - The street's `street_edge_id`.
-   * @returns {?object} `{streetId, regionId, lengthM, audited, score, segmentScore, startIntersection,
+   * @returns {?object} `{streetId, name, regionId, lengthM, audited, score, segmentScore, startIntersection,
    *   endIntersection, preSigmoid, terms}`: `score` is the headline, `segmentScore` the block's own score (null
    *   when unaudited), each end `{id, score}` with `score` null where the crossing is unscored, or null where the
    *   street has no crossing at that end; `terms` (the segment's) maps each scored type to `{clusterCount, buckets,
@@ -293,6 +295,7 @@ class AccessScoreModel {
     };
     return {
       streetId,
+      name: this.#names[i],
       regionId: this.#regionIds[i],
       lengthM: this.#lengths[i],
       audited: this.#audited[i] === 1,
@@ -745,6 +748,7 @@ class AccessScoreModel {
     this.#n = features.length;
     this.#ids = new Int32Array(this.#n);
     this.#regionIds = new Int32Array(this.#n);
+    this.#names = new Array(this.#n).fill(null);
     this.#lengths = new Float64Array(this.#n);
     this.#lengthFactors = new Float64Array(this.#n);
     this.#audited = new Uint8Array(this.#n);
@@ -757,6 +761,7 @@ class AccessScoreModel {
       const p = f.properties;
       this.#ids[i] = p.street_edge_id;
       this.#regionIds[i] = p.region_id;
+      this.#names[i] = p.street_name || null;
       this.#startInt[i] = this.#intIndexById.get(p.start_intersection_id) ?? -1;
       this.#endInt[i] = this.#intIndexById.get(p.end_intersection_id) ?? -1;
       this.#lengths[i] = p.length_meters || 0;

@@ -74,6 +74,7 @@ window.AccessScoreApp = (function () {
     const dark = new URLSearchParams(window.location.search).get('dark') === '1';
     document.getElementById('acs-map-holder')?.classList.toggle('acs-map-holder--dark', dark);
 
+    let initialCamera = null;
     const mapPromise = createPSMap($, {
       mapName: 'acs-map',
       mapStyle: dark ? MAP_STYLES.dark : MAP_STYLES.light,
@@ -82,6 +83,8 @@ window.AccessScoreApp = (function () {
       navigationControlPosition: 'top-right',
       onMapReady: (readyMap) => {
         map = readyMap;
+        // The page's own opening view, before a shared link's viewport lands on it: what "Reset everything" returns to.
+        initialCamera = { center: readyMap.getCenter(), zoom: readyMap.getZoom() };
         MapSidebarUrlSync.applyUrlViewport(map);
         initLabelMapLocationSearch(map, mapboxApiKey);
         overlay.show();
@@ -225,15 +228,30 @@ window.AccessScoreApp = (function () {
       });
     }
     urlSync.setDark(dark);
-    document.getElementById('acs-copy-link')?.addEventListener('click', async () => {
-      urlSync.writeNow();
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        Toast.show({ message: i18next.t('accessscore:link-copied'), compact: true, duration: 2500 });
-      } catch (e) {
-        console.error('Copy failed', e);
+
+    // Everything back to the page as first opened: the weighting, what is drawn, the selection, the brush, the
+    // band, the basemap and the camera. Each piece goes through its own path so nothing is reset twice or half.
+    document.getElementById('acs-reset-all')?.addEventListener('click', () => {
+      log('ResetAll');
+      select(null);
+      model.setState({ ...AccessScoreModel.DEFAULT_STATE, weights: { ...config.presets.default } });
+      const state = model.state;
+      mapView.setUnit(state.unit);
+      mapView.setShowUnaudited(state.showUnaudited);
+      evidence.setVisible(state.showClusters);
+      mapView.applyScores();
+      sidebar.setState(state);
+      sidebar.setContributions(model.contributions().means);
+      dock.setBrush(null, { log: false });
+      dock.setOpen(true, { log: false });
+      dock.applyChange({ kind: 'ResetAll', final: true });
+      if (darkInput?.checked) {
+        darkInput.checked = false;
+        darkInput.dispatchEvent(new Event('change'));
       }
-      log('CopyLink');
+      if (initialCamera) map.flyTo({ center: initialCamera.center, zoom: initialCamera.zoom });
+      urlSync.writeNow();
+      document.dispatchEvent(new CustomEvent('accessscore:change', { detail: { state, meta: { kind: 'ResetAll' } } }));
     });
 
     sidebarEl.classList.remove('filter-sidebar--loading');
@@ -410,10 +428,17 @@ window.AccessScoreApp = (function () {
       return lines.length ? `<ul class="acs-tooltip__why">${lines.join('')}</ul>` : '';
     }
 
+    /** "Tuxedo Square · Street 1932", or just the id for an unnamed way. */
+    function streetTitle(s) {
+      return s.name
+        ? i18next.t('accessscore:popup-street-named', { name: s.name, id: s.streetId })
+        : i18next.t('accessscore:popup-street', { id: s.streetId });
+    }
+
     function streetTooltipHtml(id) {
       const s = model.explainStreet(id);
       if (!s) return null;
-      const title = i18next.t('accessscore:popup-street', { id });
+      const title = streetTitle(s);
       if (!s.audited) return `<strong>${title}</strong><br>${i18next.t('accessscore:unaudited')}`;
       const { problems, features } = countClusters(s);
       return `<strong>${title}</strong>
@@ -490,13 +515,13 @@ window.AccessScoreApp = (function () {
       </table>`;
     }
 
+    /** The popup's one call to action: go and see the sidewalks there in Explore. */
     function hopLinksHtml(lngLat) {
       const lat = lngLat.lat.toFixed(5);
       const lng = lngLat.lng.toFixed(5);
       return `<div class="acs-popup__links">
-        <a href="/labelMap?lat=${lat}&lng=${lng}&zoom=17" data-acs-hop="ViewOnLabelMap">${
-    i18next.t('accessscore:view-labelmap')}</a>
-        <a href="/explore?lat=${lat}&lng=${lng}" data-acs-hop="ExploreHere">${i18next.t('accessscore:explore-here')}</a>
+        <a href="/explore?lat=${lat}&lng=${lng}" class="button-ps button--small button--primary"
+           data-acs-hop="ExploreHere">${i18next.t('accessscore:explore-here')}</a>
       </div>`;
     }
 
@@ -506,7 +531,7 @@ window.AccessScoreApp = (function () {
       const lngLat = streetCenter(id) || map.getCenter();
       const score = s.audited ? formatScore(s.score) : i18next.t('accessscore:unaudited');
       const region = model.explainRegion(s.regionId);
-      return `<h3 class="acs-popup__title">${i18next.t('accessscore:popup-street', { id })}</h3>
+      return `<h3 class="acs-popup__title">${streetTitle(s)}</h3>
         <div class="acs-popup__score">${score}</div>
         ${s.audited ? componentsHtml(s) : ''}
         <div class="acs-popup__meta">${region ? `${region.name} · ` : ''}${formatLength(s.lengthM)}</div>

@@ -313,9 +313,26 @@
   white-space: nowrap;
 }
 
-/* The weights in force, beside the section heading. */
+/* The weights in force and the reset link, on a line of their own under the heading so it never breaks mid-phrase. */
+.acs-weights-meta {
+  display: flex;
+  flex-basis: 100%;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: var(--space-xs);
+  white-space: nowrap;
+}
+
+#acs-weights-section .filter-sidebar__heading-row {
+  flex-wrap: wrap;
+  row-gap: var(--space-xxs);
+}
+
+#acs-weights-section .filter-sidebar__heading {
+  white-space: nowrap;
+}
+
 .acs-section__hint {
-  margin-left: auto;
   font: var(--text-caption-regular);
   color: var(--color-neutral-700);
 }
@@ -335,16 +352,13 @@
 
 .acs-actions__row {
   display: flex;
-  gap: var(--space-xs);
-}
-
-.acs-actions__row .button-ps {
-  flex: 1 1 0;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-sm);
 }
 
 .acs-actions__docs {
   display: inline-block;
-  margin-top: var(--space-sm);
   font: var(--text-small-medium);
 }
 
@@ -476,10 +490,8 @@
 
 .acs-popup__links {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs) var(--space-md);
+  justify-content: flex-end;
   margin-top: var(--space-sm);
-  font: var(--text-small-medium);
 }
 
 /* ---- Map legend: a card beside the zoom buttons ---- */

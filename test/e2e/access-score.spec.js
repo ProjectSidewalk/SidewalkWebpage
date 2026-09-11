@@ -18,12 +18,15 @@ function streetsFixture() {
   });
   const tags = {CurbRamp: 0, NoCurbRamp: 0, Obstacle: 0, SurfaceProblem: 0, Crosswalk: 0, Signal: 0, NoSidewalk: 0};
   const line = (k) => ({type: 'LineString', coordinates: [[-74.01 + k * 0.001, 40.88], [-74.01 + k * 0.001, 40.881]]});
+  // Two named streets and one unnamed way, so both title forms are exercised.
+  const names = {1: 'Cedar Lane', 2: 'Teaneck Road'};
   const feature = (id, auditCount, severityCounts) => ({
     type: 'Feature',
     geometry: line(id),
     properties: {
-      street_edge_id: id, osm_way_id: 1, region_id: 1, score: null, audit_count: auditCount, length_meters: 100,
-      label_count: 0, cluster_counts: {}, sub_scores: {}, severity_counts: severityCounts, tag_adjustments: tags,
+      street_edge_id: id, osm_way_id: 1, street_name: names[id] ?? null, region_id: 1, score: null,
+      audit_count: auditCount, length_meters: 100, label_count: 0, cluster_counts: {}, sub_scores: {},
+      severity_counts: severityCounts, tag_adjustments: tags,
     },
   });
   return {
@@ -331,13 +334,54 @@ test.describe('/accessScore', () => {
     await expect(items.nth(0)).toHaveAttribute('data-ps-tooltip', /Obstacle in Path · High · Fixture/);
     // A street selection narrows the strip to that street's clusters.
     await page.evaluate(() => window.accessScore.dock.setSelection({unit: 'streets', id: 1}));
-    await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from Street 1');
+    await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from Cedar Lane · Street 1');
     await expect(items).toHaveCount(1);
     await expect(items.nth(0)).toHaveAttribute('data-label-id', '11');
-    await expect(page.locator('.acs-whats-here__caption')).toHaveText('on street 1');
+    await expect(page.locator('.acs-whats-here__caption')).toHaveText('on Cedar Lane');
     // A thumbnail opens the shared label card.
     await items.nth(0).click();
     await expect(page.locator('#label-modal')).toBeVisible();
+  });
+
+  test('reset everything returns the weights, the selection, the brush and the URL to the opening state', async ({page}) => {
+    await page.goto('/accessScore');
+    await waitForAppReady(page);
+    await waitForTool(page);
+    await page.locator('#acs-weight-CurbRamp').fill('0');
+    await page.locator('#acs-weight-CurbRamp').dispatchEvent('input');
+    await page.locator('#acs-weight-CurbRamp').dispatchEvent('change');
+    await page.evaluate(() => window.accessScore.dock.setSelection({unit: 'streets', id: 1}));
+    await page.evaluate(() => window.accessScore.mapView.setSelection({unit: 'streets', id: 1}));
+    await page.locator('.acs-histogram__bin').nth(1).click();
+    await expect.poll(() => urlParam(page, 'w')).toContain('CurbRamp:0');
+    await expect.poll(() => urlParam(page, 'b')).toBe('10-20');
+    await page.locator('#acs-reset-all').click();
+    expect(await scoreOf(page, 1)).toBeCloseTo(0.8176, 3);
+    await expect(page.locator('#acs-weights-summary')).toHaveText('Default weights');
+    await expect(page.locator('.acs-popup')).toHaveCount(0);
+    await expect(page.locator('#acs-dock-brush')).toBeHidden();
+    for (const name of ['w', 'sel', 'b', 'unit', 'dock']) {
+      await expect.poll(() => urlParam(page, name)).toBeNull();
+    }
+  });
+
+  test('with nothing selected, the photo strip follows the area in view once zoomed in', async ({page}) => {
+    await page.goto('/accessScore');
+    await waitForAppReady(page);
+    await waitForTool(page);
+    await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from Fixture (lowest scoring)');
+    // A reader's own move (eventData stands in for the pointer event) over the fixture region, zoomed to street level.
+    await page.evaluate(() => window.accessScore.map.jumpTo(
+      {center: [-74.009, 40.8805], zoom: 15}, {originalEvent: {type: 'test'}}));
+    await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from the area in view');
+    // Both fixture clusters sit inside this view; worst first, as everywhere.
+    const items = page.locator('.acs-photos__item');
+    await expect(items).toHaveCount(2);
+    await expect(items.nth(0)).toHaveAttribute('data-label-id', '12');
+    // A selection outranks the view.
+    await page.evaluate(() => window.accessScore.dock.setSelection({unit: 'streets', id: 2}));
+    await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from Teaneck Road · Street 2');
+    await expect(items).toHaveCount(1);
   });
 
   test('the dark basemap comes from the URL, and the toggle swaps it live without leaving the page', async ({page}) => {

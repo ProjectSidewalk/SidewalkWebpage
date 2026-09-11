@@ -92,11 +92,12 @@ The AccessScore tool (`/accessScore`, `public/js/access-score/`, #5217) logs its
 **`Click_module=AccessScore_<Action>`** family, on a control's settled `change` (never per slider tick):
 `AccessScore_Unit_value=<streets|regions>`, `AccessScore_Weight_value=<labelType>_value=<magnitude>`,
 `AccessScore_ShowUnaudited_value=<bool>`, `AccessScore_ShowClusters_value=<bool>` (the evidence layer),
-`AccessScore_DarkMap_value=<bool>` (the dark basemap toggled), `AccessScore_Reset`,
+`AccessScore_DarkMap_value=<bool>` (the dark basemap toggled), `AccessScore_Reset` (the weights), `AccessScore_ResetAll`
+(weights, view options, selection, brush, band, basemap and camera back to the page as first opened),
 `AccessScore_Select_streetId=<id>` / `AccessScore_Select_regionId=<id>` (a click on a street or neighborhood),
 `AccessScore_SelectCluster_labelType=<type>` (a click on a cluster dot, which opens the cluster sheet) and
 `AccessScore_SheetOpenLabel_labelId=<id>` (a card in that sheet opening the full label card),
-`AccessScore_CopyLink`, and the popup's hops `AccessScore_ViewOnLabelMap` / `AccessScore_ExploreHere`. A click on a
+and the popup's hop `AccessScore_ExploreHere`. A click on a
 cluster dot also opens the shared label card, whose actions log as `Click_module=LabelDetail_…` (above). The insights
 dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`,
 `AccessScore_Brush_value=<from>-<to>` (the brushed score range in whole percent, logged once on release, never per

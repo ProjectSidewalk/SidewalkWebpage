@@ -279,6 +279,15 @@ class AccessScoreMapView {
    * rather than `queryRenderedFeatures` on the fill layer, which returns one entry per tile per polygon.
    * @returns {Set<number>} Region ids.
    */
+  /**
+   * A region's bounds, for ranking the neighborhoods in view by their distance from the map center.
+   * @param {number} regionId - The region.
+   * @returns {?mapboxgl.LngLatBounds} Its bounds, or null for an unknown id.
+   */
+  regionBoundsOf(regionId) {
+    return this.#regionBounds.get(regionId) ?? null;
+  }
+
   visibleRegionIds() {
     const [[x0, y0], [x1, y1]] = this.#visibleBox();
     const sw = this.#map.unproject([x0, y1]);

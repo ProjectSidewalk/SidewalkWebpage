@@ -37,6 +37,14 @@ class AccessScoreDock {
   #photos;
   /** The scope the photo strip last loaded, so a slider tick never refetches it. */
   #photoScopeKey = null;
+  #moveTimer = null;
+
+  /** Below this zoom the viewport spans most of a city, and "the area in view" would say nothing. */
+  static PHOTO_VIEWPORT_ZOOM = 13;
+  /** At most this many neighborhood feeds (the nearest to the center) per viewport, so a pan is a few fetches. */
+  static PHOTO_VIEWPORT_REGIONS = 4;
+  /** A pan settles in a few moveends; one refetch per settle, not per tick. */
+  static PHOTO_MOVE_DEBOUNCE_MS = 500;
 
   #open = true;
   /** `{from, to}` in histogram bin indices, `to` exclusive; null with none. */
@@ -73,6 +81,13 @@ class AccessScoreDock {
     this.#mapView = mapView;
     this.#map = map;
     this.#callbacks = { onRankSelect, onToggleType, onOpenLabel, onStateChange, log };
+    // With nothing selected the strip follows the map; only a reader's own move counts, as for the URL, so a fly-to
+    // from a rank row or the URL's viewport never fires a fetch of its own.
+    this.#map.on('moveend', (event) => {
+      if (!event.originalEvent) return;
+      clearTimeout(this.#moveTimer);
+      this.#moveTimer = setTimeout(() => this.#showPhotos(this.#photoScope()), AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+    });
     this.#els = {
       toggle: root.querySelector('#acs-dock-toggle'),
       body: root.querySelector('#acs-dock-body'),
@@ -238,7 +253,7 @@ class AccessScoreDock {
       caption: this.#scopeCaption(scope, brushStreets),
       empty: breakdown.streets === 0 && breakdown.intersections === 0,
     });
-    this.#showPhotos(scope);
+    this.#showPhotos(this.#photoScope());
     const rows = this.#model.rankedRegions();
     this.#rank.draw({
       shapeKey: rows.map((r) => r.regionId).sort((a, b) => a - b).join(','),
@@ -263,9 +278,10 @@ class AccessScoreDock {
 
   /**
    * What the detail views describe: the selected street or neighborhood, else the city. A selection made in the
-   * other unit is not one here, matching the histogram's caret.
+   * other unit is not one here, matching the histogram's caret. What's here never narrows to the viewport: its
+   * counts must be the histogram's population, or the two panels would disagree about the same city.
    * @returns {{kind: string, id: ?number, regionId: ?number, name: ?string}} `kind` is 'street', 'region' or
-   *   'city'; `regionId` the neighborhood the scope sits in, if any.
+   *   'city'; `regionId` the neighborhood the scope sits in, if any; `name` the street's or neighborhood's.
    */
   #scope() {
     const unit = this.#model.state.unit;
@@ -273,13 +289,49 @@ class AccessScoreDock {
     if (s && s.unit === unit) {
       if (unit === 'streets') {
         const street = this.#model.explainStreet(s.id);
-        if (street) return { kind: 'street', id: s.id, regionId: street.regionId, name: null };
+        if (street) return { kind: 'street', id: s.id, regionId: street.regionId, name: street.name };
       } else {
         const r = this.#model.explainRegion(s.id);
         if (r) return { kind: 'region', id: s.id, regionId: s.id, name: r.name };
       }
     }
     return { kind: 'city', id: null, regionId: null, name: null };
+  }
+
+  /**
+   * Where the photo strip draws from: the selection, else the area in view once zoomed in enough for that to mean
+   * something, else the city rule. A viewport is the nearest few neighborhoods it touches plus its own bounds, so
+   * a pan inside one neighborhood costs no new fetch.
+   * @returns {object} A `#scope()` result, or `{kind: 'viewport', regionIds, bounds: [west, south, east, north]}`.
+   */
+  #photoScope() {
+    const scope = this.#scope();
+    if (scope.kind !== 'city') return scope;
+    if (!this.#map.getZoom || this.#map.getZoom() < AccessScoreDock.PHOTO_VIEWPORT_ZOOM) return scope;
+    const visible = this.#mapView.visibleRegionIds ? this.#mapView.visibleRegionIds() : new Set();
+    if (visible.size === 0) return scope;
+    const center = this.#map.getCenter();
+    const regionIds = [...visible]
+      .map((id) => {
+        const c = this.#mapView.regionBoundsOf(id)?.getCenter() ?? center;
+        return { id, d: (c.lng - center.lng) ** 2 + (c.lat - center.lat) ** 2 };
+      })
+      .sort((a, b) => a.d - b.d)
+      .slice(0, AccessScoreDock.PHOTO_VIEWPORT_REGIONS)
+      .map((r) => r.id)
+      .sort((a, b) => a - b);
+    const b = this.#map.getBounds();
+    return {
+      kind: 'viewport', id: null, regionId: null, name: null, regionIds,
+      bounds: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()],
+    };
+  }
+
+  /** "Tuxedo Square · Street 1932", or the id alone for an unnamed way. */
+  static #streetTitle(scope) {
+    return scope.name
+      ? i18next.t('accessscore:popup-street-named', { name: scope.name, id: scope.id })
+      : i18next.t('accessscore:popup-street', { id: scope.id });
   }
 
   /** The scope, narrowed by the brush, in the model's terms: a street set, a region set, or nothing for the city. */
@@ -300,9 +352,15 @@ class AccessScoreDock {
   /** "in Sagamore Park · scores 40–60": where the counts come from. */
   #scopeCaption(scope, brushStreets) {
     let text;
-    if (scope.kind === 'street') text = i18next.t('accessscore:scope-street', { id: scope.id });
-    else if (scope.kind === 'region') text = i18next.t('accessscore:scope-region', { name: scope.name });
-    else text = i18next.t('accessscore:scope-city');
+    if (scope.kind === 'street') {
+      text = scope.name
+        ? i18next.t('accessscore:scope-street-named', { name: scope.name })
+        : i18next.t('accessscore:scope-street', { id: scope.id });
+    } else if (scope.kind === 'region') {
+      text = i18next.t('accessscore:scope-region', { name: scope.name });
+    } else {
+      text = i18next.t('accessscore:scope-city');
+    }
     if (brushStreets) {
       const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
       const range = { from: this.#brush.from * step, to: this.#brush.to * step };
@@ -311,7 +369,7 @@ class AccessScoreDock {
     return text;
   }
 
-  /** Points the photo strip at the scope's neighborhood, only when the scope actually changed. */
+  /** Points the photo strip at the scope's neighborhoods, only when the scope actually changed. */
   #showPhotos(scope) {
     let key;
     let request;
@@ -321,9 +379,7 @@ class AccessScoreDock {
       const ends = new Set([street?.startIntersection?.id, street?.endIntersection?.id]
         .filter((id) => id !== null && id !== undefined));
       request = {
-        caption: i18next.t('accessscore:photos-from', {
-          scope: i18next.t('accessscore:popup-street', { id: scope.id }),
-        }),
+        caption: i18next.t('accessscore:photos-from', { scope: AccessScoreDock.#streetTitle(scope) }),
         regionId: scope.regionId,
         streetId: scope.id,
         intersectionIds: ends,
@@ -331,6 +387,16 @@ class AccessScoreDock {
     } else if (scope.kind === 'region') {
       key = `region:${scope.id}`;
       request = { caption: i18next.t('accessscore:photos-from', { scope: scope.name }), regionId: scope.id };
+    } else if (scope.kind === 'viewport') {
+      // Bounds to ~100 m: a nudge inside the same view is the same key, and the strip itself skips a redraw when the
+      // clusters it picks are unchanged.
+      const box = scope.bounds.map((v) => v.toFixed(3)).join(',');
+      key = `viewport:${scope.regionIds.join(',')}:${box}`;
+      request = {
+        caption: i18next.t('accessscore:photos-from', { scope: i18next.t('accessscore:photos-scope-viewport') }),
+        regionIds: scope.regionIds,
+        bounds: scope.bounds,
+      };
     } else {
       // The strip reads one neighborhood's feed; with nothing selected, the one most in need of a look.
       const ranked = this.#model.rankedRegions();

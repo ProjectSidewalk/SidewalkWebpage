@@ -107,8 +107,13 @@ function stubFetch({clustersByRegion = {}, labels = {}} = {}) {
     window.fetch = jest.fn((input) => {
         const url = new URL(String(input), 'http://localhost');
         if (url.pathname === '/v3/api/labelClusters') {
+            // A cluster stub with `coordinates` is a Point, as the feed's are; the strip's viewport filter reads them.
             const features = (clustersByRegion[url.searchParams.get('regionId')] || [])
-                .map((properties) => ({type: 'Feature', geometry: null, properties}));
+                .map(({coordinates = null, ...properties}) => ({
+                    type: 'Feature',
+                    geometry: coordinates ? {type: 'Point', coordinates} : null,
+                    properties,
+                }));
             return json({type: 'FeatureCollection', features});
         }
         const m = /^\/label\/id\/(\d+)$/.exec(url.pathname);

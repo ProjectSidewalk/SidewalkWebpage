@@ -52,13 +52,21 @@ describe('AccessScoreDock', () => {
             feature(c, i, {region_id: i >= FIXTURE.streets.length - 3 ? 2 : 1}));
         model = new window.AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features},
             {type: 'FeatureCollection', features: []}, REGIONS);
-        mapView = {setBrush: jest.fn()};
+        // The map starts zoomed out over nothing, so the strip's city rule applies until a test moves it.
+        mapView = {
+            setBrush: jest.fn(),
+            visibleRegionIds: jest.fn(() => new Set()),
+            regionBoundsOf: (id) => ({getCenter: () => ({lng: id, lat: 0})}),
+        };
         map = {
             on: jest.fn(),
             getPadding: () => ({left: 0, top: 0, right: 0, bottom: 0}),
             setPadding: jest.fn(),
             easeTo: jest.fn(),
             getContainer: () => ({getBoundingClientRect: () => ({height: 800})}),
+            getZoom: () => 12,
+            getCenter: () => ({lng: 0, lat: 0}),
+            getBounds: () => ({getWest: () => -1, getSouth: () => -1, getEast: () => 1, getNorth: () => 1}),
         };
         callbacks = {onRankSelect: jest.fn(), onToggleType: jest.fn(), onOpenLabel: jest.fn(), onStateChange: jest.fn(),
             log: jest.fn()};
@@ -66,14 +74,16 @@ describe('AccessScoreDock', () => {
             clustersByRegion: {
                 1: [
                     {label_cluster_id: 1, label_type: 'Obstacle', street_edge_id: 1, intersection_id: null, region_id: 1,
-                        region_name: 'Fixture', median_severity: 3, cluster_size: 2, label_ids: [101, 102]},
+                        region_name: 'Fixture', median_severity: 3, cluster_size: 2, label_ids: [101, 102],
+                        coordinates: [0.5, 0.5]},
                     {label_cluster_id: 2, label_type: 'CurbRamp', street_edge_id: 2, intersection_id: null, region_id: 1,
-                        region_name: 'Fixture', median_severity: 1, cluster_size: 1, label_ids: [103]},
+                        region_name: 'Fixture', median_severity: 1, cluster_size: 1, label_ids: [103],
+                        coordinates: [5, 5]},
                 ],
                 2: [
                     {label_cluster_id: 3, label_type: 'SurfaceProblem', street_edge_id: model.streetCount,
                         intersection_id: null, region_id: 2, region_name: 'Other', median_severity: 2, cluster_size: 1,
-                        label_ids: [201]},
+                        label_ids: [201], coordinates: [0.2, 0.2]},
                 ],
             },
             labels: {
@@ -329,5 +339,75 @@ describe('AccessScoreDock', () => {
             .toBe(`photos-from scope=${model.explainRegion(cached).name}`);
         expect(Array.from(document.querySelectorAll('.acs-photos__item')).map((el) => el.dataset.labelId))
             .toEqual(expectedIds);
+    });
+    test('zoomed in with nothing selected, the strip follows the area in view and a settled pan refreshes it', async () => {
+        const moveend = map.on.mock.calls.find(([name]) => name === 'moveend')[1];
+        const captionEl = () => document.querySelector('.acs-photos__caption').textContent;
+        const shownIds = () => Array.from(document.querySelectorAll('.acs-photos__item')).map((el) => el.dataset.labelId);
+        await settle();
+        const ranked = model.rankedRegions();
+        expect(captionEl()).toBe(`photos-from scope=photos-lowest name=${ranked[ranked.length - 1].name}`);
+
+        // Zoom in over both neighborhoods: the strip pools their feeds and keeps only the clusters inside the bounds
+        // (cluster 2 sits at [5, 5], outside the ±1 view), worst first.
+        map.getZoom = () => 14;
+        mapView.visibleRegionIds.mockImplementation(() => new Set([1, 2]));
+        moveend({originalEvent: {}});
+        jest.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        await settle();
+        expect(captionEl()).toBe('photos-from scope=photos-scope-viewport');
+        expect(shownIds()).toEqual(['101', '201']);
+        // What's here never follows the map: its counts are the histogram's population.
+        expect(document.querySelector('.acs-whats-here__caption').textContent).toBe('scope-city');
+        expect(fetchMock.mock.calls.filter(([u]) => String(u).includes('/v3/api/labelClusters'))).toHaveLength(2);
+
+        // A programmatic move (no originalEvent) is not a pan; a pan that keeps the same clusters redraws nothing.
+        const ribbonBefore = document.querySelector('.acs-photos__ribbon').innerHTML;
+        moveend({});
+        jest.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        await settle();
+        map.getBounds = () => ({getWest: () => -1.0004, getSouth: () => -1, getEast: () => 1, getNorth: () => 1});
+        moveend({originalEvent: {}});
+        jest.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        await settle();
+        expect(document.querySelector('.acs-photos__ribbon').innerHTML).toBe(ribbonBefore);
+        expect(fetchMock.mock.calls.filter(([u]) => String(u).includes('/v3/api/labelClusters'))).toHaveLength(2);
+
+        // A pan that leaves only one cluster in view narrows the strip without a new fetch (feeds are cached).
+        map.getBounds = () => ({getWest: () => 0.4, getSouth: () => 0.4, getEast: () => 1, getNorth: () => 1});
+        moveend({originalEvent: {}});
+        jest.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        await settle();
+        expect(shownIds()).toEqual(['101']);
+        expect(fetchMock.mock.calls.filter(([u]) => String(u).includes('/v3/api/labelClusters'))).toHaveLength(2);
+
+        // A selection outranks the viewport.
+        dock.setSelection({unit: 'streets', id: 2});
+        flush();
+        await settle();
+        expect(captionEl()).toBe('photos-from scope=popup-street id=2');
+        // Zoomed back out with the selection gone, the city rule returns.
+        dock.setSelection(null);
+        map.getZoom = () => 12;
+        flush();
+        await settle();
+        expect(captionEl()).toBe(`photos-from scope=photos-lowest name=${ranked[ranked.length - 1].name}`);
+    });
+
+    test('a named street is captioned by its name in what\'s here and the strip', async () => {
+        const named = FIXTURE.streets.map((c, i) => feature(c, i, i === 0 ? {street_name: 'Cedar Lane'} : {}));
+        model = new window.AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features: named},
+            {type: 'FeatureCollection', features: []}, REGIONS);
+        document.body.innerHTML = DOCK_HTML;
+        dock = new window.AccessScoreDock(document.getElementById('acs-dock'), {model, mapView, map,
+            config: FIXTURE.config, ...callbacks});
+        dock.setSelection({unit: 'streets', id: 1});
+        flush();
+        await settle();
+        expect(model.explainStreet(1).name).toBe('Cedar Lane');
+        expect(model.explainStreet(2).name).toBeNull();
+        expect(document.querySelector('.acs-whats-here__caption').textContent).toBe('scope-street-named name=Cedar Lane');
+        expect(document.querySelector('.acs-photos__caption').textContent)
+            .toBe('photos-from scope=popup-street-named name=Cedar Lane id=1');
     });
 });

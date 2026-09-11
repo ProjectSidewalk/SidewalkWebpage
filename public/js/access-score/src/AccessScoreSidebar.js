@@ -174,10 +174,11 @@ class AccessScoreSidebar {
 
   /** The hint beside the weights heading: whether the weights in force are the engine's own. */
   #updateWeightsSummary() {
+    const atDefault = this.#slidersAtDefault();
     const el = this.#els.weightsSummary;
-    if (!el) return;
-    el.textContent = i18next.t(this.#slidersAtDefault()
-      ? 'accessscore:weights-summary-default'
-      : 'accessscore:weights-summary-custom');
+    if (el) {
+      el.textContent = i18next.t(
+        atDefault ? 'accessscore:weights-summary-default' : 'accessscore:weights-summary-custom');
+    }
   }
 }
