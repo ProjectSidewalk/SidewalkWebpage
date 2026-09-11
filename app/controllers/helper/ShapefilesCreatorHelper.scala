@@ -29,6 +29,7 @@ import play.api.Logger
 import play.api.libs.json.Json
 
 import java.io.{BufferedInputStream, File}
+import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
 import java.sql.Types
 import java.util.zip.{ZipEntry, ZipOutputStream}
@@ -47,6 +48,8 @@ import scala.util.{Failure, Success, Try, Using}
 @Singleton
 class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: Materializer) {
   private val logger = Logger(this.getClass)
+
+  private val shapefilePartExtensions = Seq(".shp", ".dbf", ".shx", ".prj", ".sbn", ".sbx", ".cpg", ".fix")
 
   /**
    * Opens the GeoPackage at the given path as a data store, which the caller disposes. `DataStoreFinder` returns null
@@ -157,6 +160,39 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     }
   }
 
+  /**
+   * Creates an empty UTF-8 shapefile (#5276). GeoTools never writes the `.cpg` itself, and `createSchema` deletes one.
+   *
+   * @param shapefilePath Where the `.shp` goes.
+   * @param featureType The shapefile's schema.
+   * @return The new store, which the caller disposes.
+   */
+  private def newShapefileStore(shapefilePath: Path, featureType: SimpleFeatureType): DataStore = {
+    val store = new ShapefileDataStoreFactory().createNewDataStore(
+      Map[String, AnyRef](
+        ShapefileDataStoreFactory.URLP.key                 -> shapefilePath.toUri.toURL,
+        ShapefileDataStoreFactory.CREATE_SPATIAL_INDEX.key -> java.lang.Boolean.FALSE, // So we don't run out of memory.
+        ShapefileDataStoreFactory.DBFCHARSET.key           -> StandardCharsets.UTF_8
+      ).asJava
+    )
+    try {
+      store.createSchema(featureType)
+      val cpgPath = shapefilePath.resolveSibling(shapefilePath.getFileName.toString.stripSuffix(".shp") + ".cpg")
+      Files.writeString(cpgPath, "UTF-8")
+      store
+    } catch {
+      case e: Exception =>
+        store.dispose()
+        throw e
+    }
+  }
+
+  /** Deletes every part of a failed shapefile, since callers only clean up files they get back. */
+  private def deleteShapefileParts(shapefilePath: Path): Unit = {
+    val basename = shapefilePath.getFileName.toString.stripSuffix(".shp")
+    shapefilePartExtensions.foreach(ext => Try(Files.deleteIfExists(shapefilePath.resolveSibling(basename + ext))))
+  }
+
   /** Rejects attribute names over the DBF format's 10-char limit, which GeoTools would otherwise truncate silently. */
   private def requireDbfSafeNames(featureType: SimpleFeatureType): Unit = {
     val tooLong = featureType.getAttributeDescriptors.asScala.map(_.getLocalName).filter(_.length > 10)
@@ -240,15 +276,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       requireDbfSafeNames(featureType)
 
       // Set up everything we need to create and store features.
-      val dataStoreFactory = new ShapefileDataStoreFactory()
-      newDataStore = dataStoreFactory.createNewDataStore(
-        Map(
-          "url"                  -> shapefilePath.toUri.toURL,
-          "create spatial index" -> java.lang.Boolean.FALSE // Disable so we don't run out of memory.
-        ).asJava
-      )
-
-      newDataStore.createSchema(featureType)
+      newDataStore = newShapefileStore(shapefilePath, featureType)
 
       val typeName: String                     = newDataStore.getTypeNames()(0)
       val featureSource                        = newDataStore.getFeatureSource(typeName)
@@ -279,12 +307,14 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         }
         .recover { case e: Exception =>
           newDataStore.dispose()
+          deleteShapefileParts(shapefilePath)
           logger.error(s"Error creating shapefile: ${e.getMessage}", e)
           None
         }
     } catch {
       case e: Exception =>
         Option(newDataStore).foreach(_.dispose())
+        deleteShapefileParts(shapefilePath)
         logger.error(s"Error setting up shapefile: ${e.getMessage}", e)
         Future.successful(None)
     }
@@ -307,9 +337,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         val directory = shapefile.getParentFile
         val basename  = shapefile.getName.substring(0, shapefile.getName.length - 4)
 
-        // Find all shapefile component files.
-        val extensions = Seq(".shp", ".dbf", ".shx", ".prj", ".sbn", ".sbx", ".cpg", ".fix")
-        extensions.foreach { ext =>
+        shapefilePartExtensions.foreach { ext =>
           val file = new File(directory, basename + ext)
           if (file.exists()) {
             zipOut.putNextEntry(new ZipEntry(file.getName))
@@ -554,11 +582,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       requireDbfSafeNames(labelFeatureType)
 
       // Set up clusters shapefile.
-      val clusterDataStoreFactory = new ShapefileDataStoreFactory()
-      clusterDataStore = clusterDataStoreFactory.createNewDataStore(
-        Map("url" -> clusterShapefilePath.toUri.toURL, "create spatial index" -> java.lang.Boolean.FALSE).asJava
-      )
-      clusterDataStore.createSchema(clusterShapefileFeatureType)
+      clusterDataStore = newShapefileStore(clusterShapefilePath, clusterShapefileFeatureType)
       val clusterStore =
         clusterDataStore.getFeatureSource(clusterDataStore.getTypeNames()(0)).asInstanceOf[SimpleFeatureStore]
       val clusterBuilder  = new SimpleFeatureBuilder(clusterShapefileFeatureType)
@@ -589,12 +613,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
 
           // Write the raw labels shapefile if any labels were collected.
           if (hasRawLabels && !allRawLabels.isEmpty) {
-            val labelDataStoreFactory = new ShapefileDataStoreFactory()
-            val labelDataStore        = labelDataStoreFactory.createNewDataStore(
-              Map("url" -> labelShapefilePath.toUri.toURL, "create spatial index" -> java.lang.Boolean.FALSE).asJava
-            )
-            labelDataStore.createSchema(labelFeatureType)
-            val labelStore =
+            val labelDataStore = newShapefileStore(labelShapefilePath, labelFeatureType)
+            val labelStore     =
               labelDataStore.getFeatureSource(labelDataStore.getTypeNames()(0)).asInstanceOf[SimpleFeatureStore]
             val labelBuilder  = new SimpleFeatureBuilder(labelFeatureType)
             val labelFeatures = new java.util.ArrayList[SimpleFeature](batchSize)
@@ -630,12 +650,14 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         }
         .recover { case e: Exception =>
           clusterDataStore.dispose()
+          Seq(clusterShapefilePath, labelShapefilePath).foreach(deleteShapefileParts)
           logger.error(s"Error creating shapefile: ${e.getMessage}", e)
           None
         }
     } catch {
       case e: Exception =>
         Option(clusterDataStore).foreach(_.dispose())
+        Seq(clusterShapefilePath, labelShapefilePath).foreach(deleteShapefileParts)
         logger.error(s"Error setting up shapefile: ${e.getMessage}", e)
         Future.successful(None)
     }

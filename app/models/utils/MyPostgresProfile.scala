@@ -15,7 +15,7 @@ import models.street.{
   StreetImagerySource,
   WayType
 }
-import models.user.Role
+import models.user.{MeasurementSystem, Role}
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.{ValidationCommentChangeType, ValidationOption}
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
@@ -271,6 +271,15 @@ trait MyPostgresProfile
     // Mapper for the role enum type, which lives in the shared sidewalk_login schema rather than the city's.
     implicit val roleMapper: BaseColumnType[Role.Value] =
       createEnumJdbcType[Role.Value]("role", _.toString, Role.withName, quoteName = false)
+
+    // Mapper for the measurement_system enum type, which also lives in the shared sidewalk_login schema.
+    implicit val measurementSystemMapper: BaseColumnType[MeasurementSystem.Value] =
+      createEnumJdbcType[MeasurementSystem.Value](
+        "measurement_system",
+        _.toString,
+        MeasurementSystem.withName,
+        quoteName = false
+      )
   }
 }
 

@@ -43,7 +43,7 @@ class Settings {
       onLeaderboard: document.getElementById('set-on-leaderboard')?.checked ?? true,
       publicProfile: document.getElementById('set-public-profile')?.checked ?? true,
       communityService: document.getElementById('set-community-service')?.checked ?? false,
-      // 'auto' = follow the site language; the server clears the override cookie rather than setting one.
+      // 'auto' = follow the site language, which the server saves as no choice.
       measurementSystem: document.getElementById('set-units')?.value ?? 'auto',
       // null tells the server not to touch team membership: the "Choose a team…" placeholder, or the team they're
       // already on. Leaving is the Leave button (TeamActions.js), never a save (#5147).
