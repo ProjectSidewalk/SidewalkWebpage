@@ -20,6 +20,8 @@ class AccessScoreHistogram extends AccessScoreChart {
   #drag = null;
   #focusedBin = 0;
   #unit = 'streets';
+  /** The bin last reported through `onHover`, so a pointer resting on a bar doesn't re-report it per pixel. */
+  #hoverBin = null;
 
   /**
    * @param {object} data - `{shapeKey, unit, bins, needle, brush, selection, hover}`: `bins` from
@@ -214,7 +216,7 @@ class AccessScoreHistogram extends AccessScoreChart {
     bars.addEventListener('pointermove', (e) => {
       if (!this.#drag) {
         const bin = e.target.closest('.acs-histogram__bin');
-        if (bin) this.emit('onHover', Number(bin.dataset.bin));
+        if (bin) this.#hover(Number(bin.dataset.bin));
         return;
       }
       const k = this.#binAt(e.clientX);
@@ -243,7 +245,7 @@ class AccessScoreHistogram extends AccessScoreChart {
     bars.addEventListener('pointerup', release);
     bars.addEventListener('pointercancel', release);
     bars.addEventListener('pointerleave', () => {
-      if (!this.#drag) this.emit('onHoverEnd');
+      if (!this.#drag) this.#hoverEnd();
     });
     // Enter and Space arrive as a click with no pointer behind it (`detail` 0); a pointer's click already toggled
     // on release and is ignored here, or it would toggle the bin straight back.
@@ -268,10 +270,26 @@ class AccessScoreHistogram extends AccessScoreChart {
     });
     bars.addEventListener('focusin', (e) => {
       const bin = e.target.closest('.acs-histogram__bin');
-      if (bin) this.emit('onHover', Number(bin.dataset.bin));
+      if (bin) this.#hover(Number(bin.dataset.bin));
     });
     bars.addEventListener('focusout', (e) => {
-      if (!bars.contains(e.relatedTarget)) this.emit('onHoverEnd');
+      if (!bars.contains(e.relatedTarget)) this.#hoverEnd();
     });
+  }
+
+  /**
+   * Reports a bin as hovered, once per bin: the owner answers each report with a pass over every street and a map
+   * dim rewrite, which is nothing to do on every pixel of a pointer resting on a bar.
+   */
+  #hover(k) {
+    if (k === this.#hoverBin) return;
+    this.#hoverBin = k;
+    this.emit('onHover', k);
+  }
+
+  #hoverEnd() {
+    if (this.#hoverBin === null) return;
+    this.#hoverBin = null;
+    this.emit('onHoverEnd');
   }
 }

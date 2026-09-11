@@ -334,6 +334,11 @@ describe('AccessScoreModel', () => {
         expect(model.streetIdsInBins(0, 10, { streetIds: new Set([2, 3]) })).toEqual(new Set([2, 3]));
         expect(model.streetIdsInBins(0, 10).has(1)).toBe(false); // unaudited: in no bin
         expect(model.regionStreetIds(1).size).toBe(model.streetCount);
+        expect(model.streetIdsInRegions([1])).toEqual(model.regionStreetIds(1));
+        expect(model.streetIdsInRegions(new Set([99]))).toEqual(new Set());
+        // Lengths sum by id, unknown ids counting nothing.
+        const two = new Set([1, 2, 999]);
+        expect(model.totalLengthM(two)).toBe(model.explainStreet(1).lengthM + model.explainStreet(2).lengthM);
         // A weight change moves streets between bins, and the bins follow in the same pass.
         model.setState({ weights: { Obstacle: 0 } });
         for (let i = 1; i < model.streetCount; i++) {

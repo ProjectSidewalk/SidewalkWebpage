@@ -389,6 +389,34 @@ class AccessScoreModel {
   }
 
   /**
+   * Every street of several regions in one pass, for a brush in the regions unit — a pass per region would be
+   * regions × streets on every sweep tick.
+   * @param {Iterable<number>} regionIds - The regions' ids.
+   * @returns {Set<number>} Street ids.
+   */
+  streetIdsInRegions(regionIds) {
+    const regions = regionIds instanceof Set ? regionIds : new Set(regionIds);
+    const out = new Set();
+    for (let i = 0; i < this.#n; i++) if (regions.has(this.#regionIds[i])) out.add(this.#ids[i]);
+    return out;
+  }
+
+  /**
+   * The summed length of a set of streets, for the brush bar's "N streets · 12.3 km" — a lookup per id rather than
+   * an `explainStreet` per id, which would build every term of every brushed street on every sweep tick.
+   * @param {Iterable<number>} streetIds - Street ids; unknown ids count nothing.
+   * @returns {number} Meters.
+   */
+  totalLengthM(streetIds) {
+    let meters = 0;
+    for (const id of streetIds) {
+      const i = this.#indexById.get(id);
+      if (i !== undefined) meters += this.#lengths[i];
+    }
+    return meters;
+  }
+
+  /**
    * The audited streets whose score falls in a range of histogram bins.
    * @param {number} from - First bin index, inclusive.
    * @param {number} to - Last bin index, exclusive.

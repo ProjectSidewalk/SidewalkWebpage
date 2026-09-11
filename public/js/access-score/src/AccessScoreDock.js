@@ -466,11 +466,7 @@ class AccessScoreDock {
     if (!this.#brush) return null;
     const { from, to } = this.#brush;
     if (this.#model.state.unit === 'streets') return this.#model.streetIdsInBins(from, to);
-    const out = new Set();
-    for (const regionId of this.#model.regionIdsInBins(from, to)) {
-      for (const id of this.#model.regionStreetIds(regionId)) out.add(id);
-    }
-    return out;
+    return this.#model.streetIdsInRegions(this.#model.regionIdsInBins(from, to));
   }
 
   /** The ids of the active unit the brush keeps, for the map. */
@@ -596,8 +592,7 @@ class AccessScoreDock {
       const n = this.#model.regionIdsInBins(this.#brush.from, this.#brush.to).size;
       text = i18next.t('accessscore:brush-regions', { ...range, count: n });
     } else {
-      let meters = 0;
-      for (const id of brushStreets) meters += this.#model.explainStreet(id)?.lengthM ?? 0;
+      const meters = this.#model.totalLengthM(brushStreets);
       text = i18next.t('accessscore:brush-streets', {
         ...range, count: brushStreets.size, length: i18next.t('accessscore:length-large', { km: meters / 1000 }),
       });

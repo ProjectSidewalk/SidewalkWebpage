@@ -473,15 +473,16 @@ class AccessScoreMapView {
         const id = e.features[0].id;
         if (this.#hover.id !== id || this.#hover.source !== source) {
           this.#clearHover();
-          this.#hover = { source, id };
+          // The tooltip's HTML is built once per feature, not per pixel: a neighborhood's explanation is a pass
+          // over every street in it, and the pointer moves a hundred times while resting on one.
+          this.#hover = { source, id, html: this.#tooltipHtml({ unit, id }) };
           this.#map.setFeatureState({ source, id }, { hover: true });
           this.#map.getCanvas().style.cursor = 'pointer';
           const score = this.#scoreOf(unit, id);
           this.#legend.mark(score);
           this.#onHover({ unit, id, score });
         }
-        const html = this.#tooltipHtml({ unit, id });
-        if (html) this.#tooltip.setLngLat(e.lngLat).setHTML(html).addTo(this.#map);
+        if (this.#hover.html) this.#tooltip.setLngLat(e.lngLat).setHTML(this.#hover.html).addTo(this.#map);
       });
       this.#map.on('mouseleave', layer, () => {
         if (this.#unit !== unit) return;

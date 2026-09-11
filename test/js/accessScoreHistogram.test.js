@@ -152,7 +152,14 @@ describe('AccessScoreHistogram', () => {
         onHover.mockClear();
         pointer('pointermove', buttons()[7], 150);
         expect(onHover).toHaveBeenLastCalledWith(7);
+        // Once per bin, not per pixel: the owner answers every report with a pass over the city.
+        pointer('pointermove', buttons()[7], 152);
+        expect(onHover).toHaveBeenCalledTimes(1);
+        pointer('pointermove', buttons()[6], 130);
+        expect(onHover).toHaveBeenLastCalledWith(6);
         bars().dispatchEvent(new MouseEvent('pointerleave'));
-        expect(onHoverEnd).toHaveBeenCalled();
+        expect(onHoverEnd).toHaveBeenCalledTimes(1);
+        bars().dispatchEvent(new MouseEvent('pointerleave'));
+        expect(onHoverEnd).toHaveBeenCalledTimes(1);
     });
 });
