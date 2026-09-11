@@ -159,11 +159,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
   }
 
   /**
-   * Creates an empty shapefile with the given schema, saving text as UTF-8 rather than GeoTools' default Latin-1, which
-   * turns non-Latin text into question marks (#5276). GeoTools never writes the `.cpg` that tells GIS tools the text is
-   * UTF-8, so we do, after `createSchema` because it deletes any side files already next to the `.shp`.
+   * Creates an empty UTF-8 shapefile (#5276). GeoTools never writes the `.cpg` itself, and `createSchema` deletes one.
    *
-   * @param shapefilePath Where the `.shp` goes; the `.dbf`, `.cpg` and other parts are written beside it.
+   * @param shapefilePath Where the `.shp` goes.
    * @param featureType The shapefile's schema.
    * @return The new store, which the caller disposes.
    */

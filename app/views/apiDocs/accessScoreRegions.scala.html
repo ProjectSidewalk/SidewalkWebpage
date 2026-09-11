@@ -192,7 +192,7 @@
 ...</code></pre>
 
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
-    <p>If <code>filetype=shapefile</code>, the response is a ZIP archive of Shapefile components (.shp, .shx, .dbf, .prj, and a .cpg declaring the attribute text as UTF-8). Because the DBF format truncates column names at 10 characters, the intersection columns are <code>intScore</code>, <code>intCount</code>, and <code>scIntCount</code>, and the per-type columns use short codes (e.g. <code>aCRamp</code>); the GeoJSON, CSV, and GeoPackage formats keep the full names.</p>
+    <p>If <code>filetype=shapefile</code>, the response is a ZIP archive of Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Because the DBF format truncates column names at 10 characters, the intersection columns are <code>intScore</code>, <code>intCount</code>, and <code>scIntCount</code>, and the per-type columns use short codes (e.g. <code>aCRamp</code>); the GeoJSON, CSV, and GeoPackage formats keep the full names.</p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
     <p>If <code>filetype=geopackage</code>, the response is a GeoPackage (.gpkg) file with full geometry and attributes (full snake_case column names).</p>

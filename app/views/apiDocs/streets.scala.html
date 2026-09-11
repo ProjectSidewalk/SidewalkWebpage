@@ -367,7 +367,7 @@
     <p>Note: The complete LineString geometry is simplified to start and end points in the CSV format due to the tabular nature of CSV. For full geometry data, use the GeoJSON format.</p>
 
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
-    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj, and a .cpg declaring the attribute text as UTF-8). The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326).</p>
+    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj, .cpg). The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326).</p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
     <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage (.gpkg) file containing the street data with full geometry and attributes. GeoPackage is a modern, open standard geospatial format that supports complex geometries and is widely supported by GIS software.</p>
