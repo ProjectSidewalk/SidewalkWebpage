@@ -2,14 +2,14 @@ package controllers
 
 import controllers.base._
 import controllers.helper.ControllerUtils
-import controllers.helper.ControllerUtils.{parseURL, safeLocalPath}
+import controllers.helper.ControllerUtils.{fieldErrorJson, formErrorsJson, parseURL, safeLocalPath}
 import forms._
 import models.auth.DefaultEnv
 import models.user.{Role, SidewalkUserWithRole, UserUtm}
 import models.utils.ProfanityGuard
 import net.ceedubs.ficus.Ficus._
 import play.api.i18n.Messages
-import play.api.libs.json.{JsError, JsObject, JsString, Json}
+import play.api.libs.json.{JsError, Json}
 import play.api.libs.mailer.{Email, MailerClient}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Authenticator.Implicits._
@@ -47,25 +47,6 @@ class UserController @Inject() (
    */
   private def wantsJson(implicit request: play.api.mvc.RequestHeader): Boolean =
     request.headers.get("X-Requested-With").contains("XMLHttpRequest")
-
-  /**
-   * Maps form binding errors to the async error contract: `{"errors": {field -> localized message}}`.
-   *
-   * Form-level (global) errors, like a password mismatch, land under the `_summary` key that the dialog renders as
-   * its top banner.
-   */
-  private def formErrorsJson(formWithErrors: play.api.data.Form[_])(implicit messages: Messages): JsObject = {
-    val fields = formWithErrors.errors.groupBy(_.key).toSeq.map { case (key, errs) =>
-      (if (key.isEmpty) "_summary" else key) -> JsString(Messages(errs.head.message, errs.head.args: _*))
-    }
-    Json.obj("errors" -> JsObject(fields))
-  }
-
-  /**
-   * The async error contract for a single field: `{"errors": {field -> localized message}}`.
-   */
-  private def fieldErrorJson(field: String, message: String): JsObject =
-    Json.obj("errors" -> Json.obj(field -> message))
 
   /**
    * Counts this attempt against a named rate limit's keys; if any is exceeded, returns a ready 429, else `None`.
@@ -179,15 +160,14 @@ class UserController @Inject() (
   }
 
   /**
-   * Handles the 'forgot password' action
+   * Renders the page that emails a password-reset link. Signed-in users get it too: Settings links here for anyone
+   * who has forgotten the current password its change-password form asks for (#2285).
    */
-  def forgotPassword(url: String) = silhouette.UserAwareAction.async { implicit request =>
-    if (request.identity.isEmpty || request.identity.get.role == Role.Anonymous) {
-      configService.getCommonPageData(request2Messages.lang).map { commonData =>
-        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_ForgotPassword")
-        Ok(views.html.authentication.forgotPassword(ForgotPasswordForm.form, commonData))
-      }
-    } else Future.successful(Redirect(url))
+  def forgotPassword = silhouette.UserAwareAction.async { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_ForgotPassword")
+      Ok(views.html.authentication.forgotPassword(ForgotPasswordForm.form, commonData, request.identity))
+    }
   }
 
   /**
@@ -198,7 +178,7 @@ class UserController @Inject() (
       case Some(_) =>
         configService.getCommonPageData(request2Messages.lang).map { commonData =>
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_ResetPassword")
-          Ok(views.html.authentication.resetPassword(ResetPasswordForm.form, commonData, token))
+          Ok(views.html.authentication.resetPassword(ResetPasswordForm.form, commonData, token, request.identity))
         }
       case None =>
         Future.successful(
@@ -621,7 +601,7 @@ class UserController @Inject() (
         .fold(
           form =>
             configService.getCommonPageData(request2Messages.lang).map { commonData =>
-              BadRequest(views.html.authentication.forgotPassword(form, commonData))
+              BadRequest(views.html.authentication.forgotPassword(form, commonData, request.identity))
             },
           email => {
             // Per-target-email throttle (only possible after form binding) so one address can't be reset-mail bombed
@@ -638,7 +618,7 @@ class UserController @Inject() (
   private def submitForgottenPasswordForEmail(email: String, userId: Option[String], ipAddress: String)(implicit
       request: play.silhouette.api.actions.UserAwareRequest[DefaultEnv, play.api.mvc.AnyContent]
   ): Future[play.api.mvc.Result] = {
-    val result = Redirect(routes.UserController.forgotPassword())
+    val result = Redirect(routes.UserController.forgotPassword)
       .flashing("info" -> Messages("reset.pw.email.reset.pw.sent"))
     cc.loggingService.insert(userId, ipAddress, s"""PasswordResetAttempt_Email="$email"""")
 
@@ -705,7 +685,7 @@ class UserController @Inject() (
             form =>
               configService.getCommonPageData(request2Messages.lang).map { commonData =>
                 cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_ResetPassword")
-                BadRequest(views.html.authentication.resetPassword(form, commonData, token))
+                BadRequest(views.html.authentication.resetPassword(form, commonData, token, request.identity))
               },
             passwordData =>
               authenticationService.findByUserId(authToken.userID).flatMap {

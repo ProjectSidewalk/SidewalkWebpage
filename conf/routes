@@ -33,7 +33,7 @@ GET     /signInMobile                                   controllers.UserControll
 GET     /signUp                                         controllers.UserController.signUp()
 GET     /signUpMobile                                   controllers.UserController.signUpMobile()
 GET     /signOut                                        controllers.UserController.signOut(url: String ?= "/")
-GET     /forgotPassword                                 controllers.UserController.forgotPassword(url: String ?= "/")
+GET     /forgotPassword                                 controllers.UserController.forgotPassword
 GET     /resetPassword                                  controllers.UserController.resetPasswordPage(token: String)
 GET     /anonSignUp                                     controllers.UserController.signUpAnon(url: String ?= "/")
 GET     /welcome                                        controllers.UserController.welcome(next: Option[String] ?= None)
@@ -184,6 +184,7 @@ GET     /contribution/street/:streetEdgeId/reauditSummary  controllers.UserProfi
 GET     /dashboard                                      controllers.UserDashboardController.dashboard
 GET     /dashboard/settings                             controllers.UserDashboardController.settings
 POST    /dashboard/settings                             controllers.UserDashboardController.saveSettings
+POST    /dashboard/settings/password                    controllers.UserDashboardController.changePassword
 GET     /profile/:username                              controllers.UserDashboardController.publicProfile(username: String)
 # Pre-cutover /preview URLs redirect permanently to the production ones.
 GET     /dashboard/preview                              controllers.UserDashboardController.dashboardPreviewRedirect

@@ -3,6 +3,7 @@
 @import models.user.SidewalkUserWithRole
 @import models.user.Team
 @import play.api.Configuration
+@import views.html.helper.CSRF
 @(commonData: CommonPageData, user: SidewalkUserWithRole, openTeams: Seq[Team], currTeam: Option[Team],
     onLeaderboard: Boolean, publicProfile: Boolean, unitsChoice: String, privateByDefault: Boolean
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
@@ -11,8 +12,8 @@
 * User Dashboard — Settings page. Editable username (#4373), read-only email, a measurement-units choice (#4404),
 * team membership, and the two privacy toggles from #4323 — "Show me on the leaderboard" (on_leaderboard) and
 * "Make my dashboard public" (public_profile). The whole form saves in one POST to /dashboard/settings via
-* Settings.js, which also warns before the page is left with unsaved edits (#5226). Shown on the shared shell as
-* its own nav item (#2545).
+* Settings.js, which also warns before the page is left with unsaved edits (#5226). The password change (#2285) is
+* the exception, with its own form and ChangePasswordForm.js. Shown on the shared shell as its own nav item (#2545).
 *
 * @param unitsChoice The user's own units selection: "auto" (follow the site language), "metric", or "imperial".
 *@
@@ -41,6 +42,37 @@
         <input class="ps-input ps-input--large" id="set-email" type="email" value="@user.email" readonly disabled>
         <span class="ud-field-help">@Html(Messages("dashboard.settings.email.help"))</span>
       </div>
+    </div>
+    <h3 class="page-subhead ud-settings-subhead" id="change-password">@Messages("dashboard.settings.password")</h3>
+    @* Its own form and button rather than part of "Save changes": it needs the current password and can fail on its
+       own, so it shouldn't hold up (or be held up by) the rest of the settings. *@
+    <form class="ud-form" id="set-password-form" method="post"
+        action="@routes.UserDashboardController.changePassword" data-error-generic="@Messages("authenticate.error.generic")">
+      @CSRF.formField
+      @* Tells password managers which saved login to update; the email is what people sign in with. *@
+      <label for="set-password-username" hidden>@Messages("dashboard.settings.email")</label>
+      <input id="set-password-username" type="email" autocomplete="username" value="@user.email" hidden readonly>
+      <div class="au-field">
+        <label class="au-label" for="set-current-password">@Messages("dashboard.settings.password.current")</label>
+        <div class="au-input-wrap">
+          <input class="au-input au-input--with-eye" id="set-current-password" name="currentPassword" type="password"
+              autocomplete="current-password" required>
+          @common.authEyeButton("set-current-password")
+        </div>
+        <span class="ud-field-help">@Html(Messages("dashboard.settings.password.forgot", routes.UserController.forgotPassword.url))</span>
+      </div>
+      @common.authPasswordFields("set", "newPassword", "newPasswordConfirm", "dashboard.settings.password.new",
+        "dashboard.settings.password.new.confirm")
+      <div>
+        <button type="submit" class="ud-btn-primary">@Messages("dashboard.settings.password.submit")</button>
+        <span class="ud-save-status" role="status" aria-live="polite"></span>
+      </div>
+    </form>
+  </div>
+
+  <div class="page-section" id="settings-preferences-section">
+    <h2 class="page-heading" id="preferences">@Messages("dashboard.settings.preferences") <a href="#preferences" class="permalink">#</a></h2>
+    <div class="ud-form">
       <div class="ud-field">
         <label class="ud-label" for="set-units">@Messages("dashboard.settings.units")</label>
         <select class="ps-select ps-select--large" id="set-units">
@@ -50,20 +82,6 @@
         </select>
         <span class="ud-field-help">@Messages("dashboard.settings.units.help")</span>
       </div>
-    </div>
-  </div>
-
-  <div class="page-section" id="settings-service-hours-section">
-    <h2 class="page-heading" id="service-hours">@Messages("dashboard.settings.service.hours") <a href="#service-hours" class="permalink">#</a></h2>
-    <div class="ud-form">
-      <label class="ud-check" for="set-community-service">
-        <input type="checkbox" id="set-community-service" @if(user.communityService){checked}>
-        <span class="ud-check-text">
-          <strong>@Messages("dashboard.settings.service.hours.toggle")</strong>
-          <span class="ud-field-help">@Messages("dashboard.settings.service.hours.help")
-          <a href="@routes.ApplicationController.serviceHoursInstructions">@Messages("dashboard.settings.service.hours.link")</a></span>
-        </span>
-      </label>
     </div>
   </div>
 
@@ -94,6 +112,20 @@
         </div>
         <span class="ud-field-help">@Messages("dashboard.settings.team.help")</span>
       </div>
+    </div>
+  </div>
+
+  <div class="page-section" id="settings-service-hours-section">
+    <h2 class="page-heading" id="service-hours">@Messages("dashboard.settings.service.hours") <a href="#service-hours" class="permalink">#</a></h2>
+    <div class="ud-form">
+      <label class="ud-check" for="set-community-service">
+        <input type="checkbox" id="set-community-service" @if(user.communityService){checked}>
+        <span class="ud-check-text">
+          <strong>@Messages("dashboard.settings.service.hours.toggle")</strong>
+          <span class="ud-field-help">@Messages("dashboard.settings.service.hours.help")
+          <a href="@routes.ApplicationController.serviceHoursInstructions">@Messages("dashboard.settings.service.hours.link")</a></span>
+        </span>
+      </label>
     </div>
   </div>
 
@@ -131,6 +163,7 @@
   <script src="@assets.path("js/user-dashboard/TeamActions.js")"></script>
   <script src="@assets.path("js/common/saveUserSettings.js")"></script>
   <script src="@assets.path("js/user-dashboard/Settings.js")"></script>
+  <script src="@assets.path("js/user-dashboard/ChangePasswordForm.js")"></script>
   <script>
     // appManager.ready (not DOMContentLoaded) so i18next is initialized before Settings can show a status string.
     window.appManager.ready(function () {
@@ -139,6 +172,7 @@
         currentUsername: '@user.username',
         currentUnits: '@unitsChoice'
       });
+      new ChangePasswordForm(document.getElementById('set-password-form'));
     });
   </script>
 }

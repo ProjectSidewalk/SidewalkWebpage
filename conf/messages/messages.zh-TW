@@ -838,11 +838,21 @@ dashboard.settings.username.error.allowed = 這個使用者名稱不被允許—
 dashboard.settings.username.error.taken = 這個使用者名稱已被使用。
 dashboard.settings.email = 電子郵件
 dashboard.settings.email.help = 用於登入與重設密碼。若要變更電子郵件，請聯絡 <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>。
+dashboard.settings.preferences = 偏好設定
 dashboard.settings.units = 度量單位
 dashboard.settings.units.auto = 預設
 dashboard.settings.units.metric = 公里與公尺
 dashboard.settings.units.imperial = 英里與英尺
 dashboard.settings.units.help = 網站上的距離會使用這些單位。保持「預設」即可使用網站語言對應的度量單位。
+dashboard.settings.password = 變更密碼
+dashboard.settings.password.current = 目前的密碼
+dashboard.settings.password.new = 新密碼
+dashboard.settings.password.new.confirm = 確認新密碼
+dashboard.settings.password.forgot = 忘記目前的密碼了嗎？<a href="{0}">改用電子郵件重設</a>。
+dashboard.settings.password.submit = 變更密碼
+dashboard.settings.password.changed = 您的密碼已變更。
+dashboard.settings.password.error.current = 這不是您目前的密碼。
+dashboard.settings.password.error.same = 新密碼必須與目前的密碼不同。
 dashboard.settings.service.hours = 志工服務時數
 dashboard.settings.service.hours.toggle = 報名社區服務時數
 dashboard.settings.service.hours.help = 為您報名正式認可（您的督導可以核實您的時數），並在您的帳戶選單中加入「服務時數」和「時間檢查」。

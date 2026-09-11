@@ -2,8 +2,9 @@ package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ControllerUtils
-import controllers.helper.ControllerUtils.MeasurementSystem
+import controllers.helper.ControllerUtils.{fieldErrorJson, formErrorsJson, MeasurementSystem}
 import formats.json.UserFormats.{settingsSubmissionReads, SettingsSubmission}
+import forms.ChangePasswordForm
 import models.auth.{DefaultEnv, WithAdmin, WithSignedIn}
 import models.user.{Role, SidewalkUserWithRole}
 import play.api.Configuration
@@ -34,7 +35,8 @@ class UserDashboardController @Inject() (
     adminService: AdminService,
     labelService: service.LabelService,
     routeService: service.RouteService,
-    authenticationService: service.AuthenticationService
+    authenticationService: service.AuthenticationService,
+    rateLimiter: service.RateLimiter
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -268,6 +270,49 @@ class UserDashboardController @Inject() (
               else result.discardingCookies(MeasurementSystem.clearOverrideCookie)
             }
         }
+    }
+  }
+
+  /**
+   * Changes the signed-in user's password from Settings (#2285), with its own button apart from `saveSettings`.
+   * Errors use the auth forms' `{"errors": {field -> message}}` shape so the page can draw them the same way.
+   *
+   * Only wrong current passwords count toward the per-account limit, and a success resets it (as sign-in's
+   * `login-identifier` does): a hijacked session can't guess the password, and a user's own typos never lock them out.
+   */
+  def changePassword = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
+    val user        = request.identity
+    val throttleKey = s"change-password:user:${user.userId}"
+    val limit       = rateLimiter.limit("change-password")
+
+    if (rateLimiter.isBlocked(throttleKey, limit)) {
+      cc.loggingService.insert(user.userId, request.ipAddress, "ChangePasswordThrottled")
+      val retryAfter = rateLimiter.retryAfterSeconds(throttleKey).getOrElse(limit.window.toSeconds)
+      Future.successful(
+        TooManyRequests(fieldErrorJson("_summary", Messages("authenticate.error.too.many")))
+          .withHeaders("Retry-After" -> retryAfter.toString)
+      )
+    } else {
+      ChangePasswordForm.form
+        .bindFromRequest()
+        .fold(
+          formWithErrors => {
+            cc.loggingService.insert(user.userId, request.ipAddress, "ChangePasswordFailed_Reason=Invalid")
+            Future.successful(BadRequest(formErrorsJson(formWithErrors)))
+          },
+          data =>
+            authenticationService.changePassword(user.userId, data.currentPassword, data.newPassword).map {
+              case true =>
+                rateLimiter.clear(throttleKey)
+                cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=ChangePassword")
+                Ok(Json.obj("success" -> true, "message" -> Messages("dashboard.settings.password.changed")))
+              case false =>
+                rateLimiter.record(throttleKey, limit)
+                cc.loggingService
+                  .insert(user.userId, request.ipAddress, "ChangePasswordFailed_Reason=WrongCurrentPassword")
+                BadRequest(fieldErrorJson("currentPassword", Messages("dashboard.settings.password.error.current")))
+            }
+        )
     }
   }
 

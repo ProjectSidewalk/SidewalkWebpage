@@ -1,7 +1,9 @@
 package controllers.helper
 
 import models.user.{Role, SidewalkUserWithRole}
+import play.api.data.Form
 import play.api.i18n.Messages
+import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc.Results.{Redirect, Unauthorized}
 import play.api.mvc.{Cookie, DiscardingCookie, RequestHeader, Result}
 
@@ -285,4 +287,23 @@ object ControllerUtils {
   def hasUtmParamsFlat(qString: Map[String, String]): Boolean = {
     qString.keys.exists(_.startsWith("utm_"))
   }
+
+  /**
+   * Maps form binding errors to the async error contract that `AuthModal.js`'s `renderAuthErrors` draws:
+   * `{"errors": {field -> localized message}}`. Form-level errors, like a password mismatch, land under `_summary`,
+   * which is drawn as a banner above the form rather than beside a field.
+   *
+   * @param formWithErrors A form that failed to bind.
+   * @return The error JSON, one message per field.
+   */
+  def formErrorsJson(formWithErrors: Form[_])(implicit messages: Messages): JsObject = {
+    val fields = formWithErrors.errors.groupBy(_.key).toSeq.map { case (key, errs) =>
+      (if (key.isEmpty) "_summary" else key) -> JsString(Messages(errs.head.message, errs.head.args: _*))
+    }
+    Json.obj("errors" -> JsObject(fields))
+  }
+
+  /** The same async error contract as [[formErrorsJson]], for a single field (or `_summary`). */
+  def fieldErrorJson(field: String, message: String): JsObject =
+    Json.obj("errors" -> Json.obj(field -> message))
 }

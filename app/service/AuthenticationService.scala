@@ -39,6 +39,7 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   def generateUniqueAnonUser(): Future[SidewalkUserWithRole]
   def addUserStatEntryIfNew(userId: String): Future[Int]
   def updatePassword(userId: String, pwInfo: PasswordInfo): Future[Int]
+  def changePassword(userId: String, currentPassword: String, newPassword: String): Future[Boolean]
   def authenticate(email: String, pw: String): Future[LoginInfo]
   def createToken(userID: String, expiryMinutes: Int = 60): Future[String]
   def validateToken(id: String): Future[Option[AuthToken]]
@@ -285,6 +286,29 @@ class AuthenticationServiceImpl @Inject() (
       case Some(userLoginInfo) =>
         userPasswordInfoTable.update(userLoginInfo.loginInfoId, pwInfo)
       case None => DBIO.failed(new IdentityNotFoundException(s"No login info found for user ID: $userId"))
+    }
+  }
+
+  /**
+   * Replaces a signed-in user's password, but only if they also typed their current one. Being signed in isn't proof
+   * enough: a session left open on a shared computer must not be able to lock the real owner out.
+   *
+   * @param userId          The account whose password to change.
+   * @param currentPassword What the user typed as their current password.
+   * @param newPassword     The replacement, already checked against `PasswordPolicy`.
+   * @return False if `currentPassword` is wrong (nothing is written), true once the new password is saved.
+   */
+  def changePassword(userId: String, currentPassword: String, newPassword: String): Future[Boolean] = {
+    db.run(userLoginInfoTable.find(userId)).flatMap {
+      case Some(userLoginInfo) =>
+        userPasswordInfoTable.find(userLoginInfo.loginInfoId).flatMap {
+          case Some(pwInfo)
+              if passwordHasher.matches(PasswordInfo(pwInfo.hasher, pwInfo.password, pwInfo.salt), currentPassword) =>
+            db.run(userPasswordInfoTable.update(userLoginInfo.loginInfoId, passwordHasher.hash(newPassword)))
+              .map(_ => true)
+          case _ => Future.successful(false)
+        }
+      case None => Future.failed(new IdentityNotFoundException(s"No login info found for user ID: $userId"))
     }
   }
 
