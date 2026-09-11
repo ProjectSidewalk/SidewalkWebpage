@@ -101,7 +101,8 @@ cluster dot also opens the shared label card, whose actions log as `Click_module
 dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`,
 `AccessScore_Brush_value=<from>-<to>` (the brushed score range in whole percent, logged once on release, never per
 sweep tick) / `AccessScore_Brush_value=clear`, `AccessScore_ClusterType_value=<type>_shown=<bool>` (a type's dots
-toggled from the drivers view), and `AccessScore_RankSelect_regionId=<id>` (a rank row clicked; in the neighborhoods
+toggled from the What's here panel), `AccessScore_PhotoStrip_labelId=<id>` (a photo-strip thumbnail opening the full
+label card), and `AccessScore_RankSelect_regionId=<id>` (a rank row clicked; in the neighborhoods
 unit the selection it makes also logs `AccessScore_Select_regionId`). The drawer's `MapSidebar_Open` /
 `MapSidebar_Close` fire here too (shared chrome); the server logs `Visit_AccessScore` per page load.
 

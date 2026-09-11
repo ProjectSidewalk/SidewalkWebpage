@@ -53,8 +53,29 @@ async function stubFeeds(context) {
     route.fulfill({json: {type: 'FeatureCollection', features: []}}));
   await context.route('**/neighborhoods', (route) => route.fulfill({json: REGIONS}));
   await context.route('**/neighborhoods/completionRate*', (route) => route.fulfill({json: COMPLETION}));
-  await context.route('**/v3/api/labelClusters*', (route) =>
-    route.fulfill({json: {type: 'FeatureCollection', features: []}}));
+  await context.route('**/v3/api/labelClusters*', (route) => route.fulfill({json: clustersFixture()}));
+  await context.route('**/label/id/*', (route) => {
+    const id = Number(route.request().url().split('/').pop());
+    return route.fulfill({json: {label_id: id, label_type: id === 12 ? 'Obstacle' : 'CurbRamp',
+      severity: id === 12 ? 3 : 1, crop_url: null, backup_image_url: null, tags: []}});
+  });
+}
+
+/** Two clusters in the one region: the curb ramps on street 1 and the obstacles on street 2. */
+function clustersFixture() {
+  const cluster = (id, type, street, severity, labelIds) => ({
+    type: 'Feature',
+    geometry: {type: 'Point', coordinates: [-74.01 + street * 0.001, 40.8805]},
+    properties: {
+      label_cluster_id: id, label_type: type, street_edge_id: street, intersection_id: null, region_id: 1,
+      region_name: 'Fixture', median_severity: severity, cluster_size: labelIds.length, label_ids: labelIds,
+      agree_count: 0, disagree_count: 0, unsure_count: 0,
+    },
+  });
+  return {
+    type: 'FeatureCollection',
+    features: [cluster(1, 'CurbRamp', 1, 1, [11]), cluster(2, 'Obstacle', 2, 3, [12, 13])],
+  };
 }
 
 /** Waits for the page to expose its model and map. */
@@ -185,11 +206,12 @@ test.describe('/accessScore', () => {
       await expect(page.locator('#acs-dock-brush')).toBeVisible();
       await expect.poll(() => urlParam(page, 'b')).toBe('80-90');
 
-      // The drivers view is computed over the brush: only street 1's two curb ramps remain, and they help.
-      await expect(page.locator('.acs-drivers__row[data-type="CurbRamp"] .acs-drivers__count')).toHaveText('2');
-      await expect(page.locator('.acs-drivers__row[data-type="CurbRamp"] .acs-drivers__value')).toHaveText('+1.50');
-      await expect(page.locator('.acs-drivers__row[data-type="Obstacle"] .acs-drivers__count')).toHaveText('0');
-      await expect(page.locator('.acs-drivers__row').first()).toHaveAttribute('data-type', 'CurbRamp');
+      // What's here is counted over the brush: only street 1's two curb ramps remain, both rated good.
+      const ramps = page.locator('.acs-whats-here__row[data-type="CurbRamp"]');
+      await expect(ramps.locator('.acs-whats-here__count')).toHaveText('2');
+      await expect(ramps.locator('.acs-whats-here__segment[data-bucket="1"]')).toBeVisible();
+      await expect(page.locator('.acs-whats-here__row[data-type="Obstacle"] .acs-whats-here__count')).toHaveText('0');
+      await expect(page.locator('.acs-whats-here__caption')).toHaveText('citywide · scores 80–90');
 
       await bins.nth(8).click();
       await expect(bins.nth(8)).toHaveAttribute('aria-pressed', 'false');
@@ -289,6 +311,35 @@ test.describe('/accessScore', () => {
     // The stubbed intersections feed is empty, so the headline is the segment alone and both crossings read "—".
     await expect(popup.locator('.acs-popup__components'))
       .toHaveText(/Segment 81\.8 · Start crossing — · End crossing —/);
+  });
+
+  test('what\'s here counts the whole city, and the photo strip shows the worst clusters of the scope', async ({page}) => {
+    await page.goto('/accessScore');
+    await waitForAppReady(page);
+    await waitForTool(page);
+    // Citywide: two curb ramps (good) and two obstacles (severe) from the fixture streets.
+    await expect(page.locator('.acs-whats-here__caption')).toHaveText('citywide');
+    await expect(page.locator('.acs-whats-here__row[data-type="CurbRamp"] .acs-whats-here__count')).toHaveText('2');
+    await expect(page.locator('.acs-whats-here__row[data-type="Obstacle"] .acs-whats-here__count')).toHaveText('2');
+    await expect(page.locator('.acs-whats-here__row[data-type="Obstacle"] .acs-whats-here__segment[data-bucket="3"]'))
+      .toBeVisible();
+    // Nothing selected: the strip reads the lowest-scoring neighborhood — the fixture's only one — and says so.
+    await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from Fixture (lowest scoring)');
+    const items = page.locator('.acs-photos__item');
+    await expect(items).toHaveCount(2);
+    // Worst first: the severity-3 obstacle cluster ahead of the good curb ramps; no crops locally → placeholders.
+    await expect(items.nth(0)).toHaveAttribute('data-label-id', '12');
+    await expect(items.nth(0).locator('.acs-sheet__placeholder')).toBeVisible();
+    await expect(items.nth(0)).toHaveAttribute('data-ps-tooltip', /Obstacle in Path · High · Fixture/);
+    // A street selection narrows the strip to that street's clusters.
+    await page.evaluate(() => window.accessScore.dock.setSelection({unit: 'streets', id: 1}));
+    await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from Street 1');
+    await expect(items).toHaveCount(1);
+    await expect(items.nth(0)).toHaveAttribute('data-label-id', '11');
+    await expect(page.locator('.acs-whats-here__caption')).toHaveText('on street 1');
+    // A thumbnail opens the shared label card.
+    await items.nth(0).click();
+    await expect(page.locator('#label-modal')).toBeVisible();
   });
 
   test('the dock state round-trips through the URL', async ({page}) => {

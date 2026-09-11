@@ -112,7 +112,7 @@ class AccessScoreClusterSheet {
     // A card whose image fails to load falls back to the type icon, the same as one that never had an image.
     for (const img of this.#els.grid.querySelectorAll('.acs-sheet__image')) {
       img.addEventListener('error', () => {
-        img.replaceWith(AccessScoreClusterSheet.#placeholder(type));
+        img.replaceWith(AccessScoreClusterSheet.placeholder(type));
       }, { once: true });
     }
   }
@@ -128,7 +128,7 @@ class AccessScoreClusterSheet {
     const src = label.crop_url || label.backup_image_url;
     const image = src
       ? `<img class="acs-sheet__image" src="${AccessScoreChart.esc(src)}" alt="" loading="lazy">`
-      : AccessScoreClusterSheet.#placeholder(type).outerHTML;
+      : AccessScoreClusterSheet.placeholder(type).outerHTML;
     const rating = util.misc.labelTypeHasSeverity(type) && label.severity
       ? i18next.t(`common:${util.misc.getRatingLevelKeys(type)[label.severity]}`)
       : null;
@@ -156,8 +156,13 @@ class AccessScoreClusterSheet {
       </li>`;
   }
 
-  /** The stand-in for a label with no picture: its type icon on a neutral panel. */
-  static #placeholder(type) {
+  /**
+   * The stand-in for a label with no picture: its type icon on a neutral panel. Shared with the photo strip so the
+   * two say "no image" the same way.
+   * @param {string} type - The label type.
+   * @returns {HTMLElement} The placeholder element.
+   */
+  static placeholder(type) {
     const el = document.createElement('span');
     el.className = 'acs-sheet__placeholder';
     el.innerHTML = `<img src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">

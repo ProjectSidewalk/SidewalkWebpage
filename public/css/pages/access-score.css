@@ -759,8 +759,8 @@
 
 .acs-dock__body {
   display: grid;
-  grid-template-columns: minmax(300px, 1.8fr) minmax(260px, 1.3fr) minmax(220px, 1.1fr);
-  gap: var(--space-lg);
+  grid-template-columns: minmax(200px, 1fr) minmax(230px, 1.2fr) minmax(190px, 1fr) minmax(240px, 1.4fr);
+  gap: var(--space-md);
   padding: 0 var(--space-md) var(--space-sm);
   border-top: 1px solid var(--color-neutral-200);
 }
@@ -777,7 +777,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-xxs);
-  margin: var(--space-xs) 0 var(--space-xxs);
+  margin: var(--space-xxs) 0;
 }
 
 .acs-dock__panel-title {
@@ -793,7 +793,7 @@
   --acs-histogram-gutter: 52px;
 
   position: relative;
-  height: 96px;
+  height: calc(64px * var(--ui-scale, 1));
   margin-top: var(--space-md); /* Room for the city label above the needle. */
 }
 
@@ -965,7 +965,6 @@
 }
 
 .acs-histogram__empty,
-.acs-drivers__empty,
 .acs-rank__empty,
 .acs-rank__note {
   margin: var(--space-xxs) 0 0;
@@ -973,135 +972,215 @@
   color: var(--color-neutral-700);
 }
 
-/* ---- What drives these scores ---- */
+/* ---- What's here: per-type cluster counts, split by rating ---- */
 
-.acs-drivers__rows {
+.acs-whats-here__caption,
+.acs-photos__caption {
+  margin: 0 0 var(--space-xxs);
+  overflow: hidden;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acs-whats-here__rows {
+  display: grid;
+  gap: 1px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.acs-drivers__row {
-  display: grid;
-  grid-template-columns: 124px minmax(0, 1fr) 44px 40px;
-  align-items: center;
-  gap: var(--space-xs);
-  min-height: 22px;
+.acs-whats-here__rows[hidden] {
+  display: none;
 }
 
-.acs-drivers__row--hidden {
+.acs-whats-here__row {
+  display: grid;
+  grid-template-columns: minmax(96px, 124px) minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: calc(14px * var(--ui-scale, 1));
+}
+
+.acs-whats-here__row--hidden {
   opacity: 0.45;
 }
 
+.acs-whats-here__row--none {
+  color: var(--color-neutral-700);
+}
+
 /* The type's name doubles as the switch for its dots on the map. */
-.acs-drivers__type {
+.acs-whats-here__type {
   display: flex;
   align-items: center;
   gap: var(--space-xxs);
   min-width: 0;
-  padding: 2px;
+  padding: 0 2px;
   border: 0;
   border-radius: var(--border-radius-sm);
   background: none;
   font: var(--text-caption-medium);
-  color: var(--color-neutral-900);
+  line-height: calc(14px * var(--ui-scale, 1)); /* Seven rows have to fit a band, not a page. */
+  color: inherit;
   text-align: left;
   cursor: pointer;
 }
 
-.acs-drivers__type:hover {
+.acs-whats-here__type:hover {
   background: var(--color-neutral-100);
 }
 
-.acs-drivers__type:focus-visible,
-.acs-drivers__track:focus-visible,
+.acs-whats-here__type:focus-visible,
+.acs-whats-here__track:focus-visible,
+.acs-photos__item:focus-visible,
 .acs-rank__row:focus-visible {
   outline: 2px solid var(--color-link-200);
   outline-offset: 1px;
 }
 
-.acs-drivers__type[aria-pressed="false"] .acs-drivers__name {
+.acs-whats-here__type[aria-pressed="false"] .acs-whats-here__name {
   text-decoration: line-through;
 }
 
-.acs-drivers__icon {
+.acs-whats-here__icon {
   flex: none;
-  width: 16px;
-  height: 16px;
+  width: 12px;
+  height: 12px;
 }
 
-.acs-drivers__name,
+.acs-whats-here__name,
 .acs-rank__name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* A diverging bar: the zero line in the middle, hurts growing left of it in the ramp's bad color, helps growing
-   right in its good color. Widths are relative to the largest effect in view, at most half the track. */
-.acs-drivers__track {
-  position: relative;
+/* The bar's length is the count relative to the largest row; its segments are the rating buckets, with a hairline
+   of surface between them so two similar colors stay two segments. */
+.acs-whats-here__track {
   display: block;
-  height: 10px;
   min-width: 0;
+  height: 9px;
 }
 
-.acs-drivers__zero {
-  position: absolute;
-  top: -3px;
-  bottom: -3px;
-  left: 50%;
-  border-left: 1px solid var(--color-neutral-400);
-}
-
-.acs-drivers__bar {
-  position: absolute;
-  top: 0;
-  bottom: 0;
+/* A non-empty row never shrinks below a sliver: a count of 8 beside 4,000 is still a fact worth a mark. */
+.acs-whats-here__bar {
+  display: flex;
+  gap: 2px;
   width: 0;
+  min-width: 2px;
+  height: 100%;
+  border-radius: 4px;
+  overflow: hidden;
   transition: width var(--transition-fast);
 }
 
-.acs-drivers__bar--help {
-  left: 50%;
-  border-radius: 0 4px 4px 0;
-  background: var(--color-score-ramp-5);
+.acs-whats-here__row--none .acs-whats-here__bar {
+  min-width: 0;
 }
 
-.acs-drivers__bar--hurt {
-  right: 50%;
-  border-radius: 4px 0 0 4px;
-  background: var(--color-score-ramp-1);
+/* A rated segment carries its bucket's label-card color in `--acs-segment`; the unrated bucket falls through. */
+.acs-whats-here__segment {
+  flex: 0 1 auto;
+  min-width: 2px;
+  height: 100%;
+  background: var(--acs-segment, var(--color-neutral-400));
 }
 
-.acs-drivers__value {
-  font: var(--text-caption-medium);
+.acs-whats-here__segment[hidden] {
+  display: none;
+}
+
+.acs-whats-here__segment--unrated {
+  flex: 1;
+  background: var(--color-neutral-500);
+}
+
+.acs-whats-here__count {
+  font: var(--text-tiny-medium);
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-.acs-drivers__count {
+.acs-whats-here__empty,
+.acs-photos__status {
+  margin: var(--space-xxs) 0 0;
   font: var(--text-tiny-regular);
   color: var(--color-neutral-700);
-  text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 
-/* "hurts" under the left half of the track, "helps" under the right: the row's name and figure columns are
-   padded out so the words sit under the track column alone. */
-.acs-drivers__axis {
+.acs-whats-here__empty[hidden] {
+  display: none;
+}
+
+/* ---- Photo strip: label crops from the scope's neighborhood ---- */
+
+.acs-photos__status:empty {
+  display: none;
+}
+
+.acs-photos__ribbon {
   display: flex;
-  justify-content: space-between;
-  margin-top: 2px;
-  padding: 0 calc(84px + 2 * var(--space-xs)) 0 calc(124px + var(--space-xs));
-  font: var(--text-tiny-regular);
-  color: var(--color-neutral-700);
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0 0 var(--space-xxs);
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x proximity;
+}
+
+.acs-photos__item {
+  position: relative;
+  display: block;
+  flex: none;
+  width: calc(96px * var(--ui-scale, 1));
+  height: calc(72px * var(--ui-scale, 1));
+  padding: 0;
+  border: 0;
+  border-radius: var(--border-radius);
+  background: var(--color-neutral-100);
+  overflow: hidden;
+  cursor: pointer;
+  scroll-snap-align: start;
+}
+
+.acs-photos__item:hover .acs-photos__image {
+  transform: scale(1.04);
+}
+
+.acs-photos__figure {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.acs-photos__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-fast);
+}
+
+/* The type badge sits on the picture's corner, ringed in surface so it reads on any crop. */
+.acs-photos__badge {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-neutral-white);
+  box-shadow: 0 0 0 1px var(--color-neutral-white);
 }
 
 /* ---- Neighborhoods ranked ---- */
 
 .acs-rank__rows {
-  max-height: 156px;
+  max-height: calc(118px * var(--ui-scale, 1));
   margin: 0;
   padding: 0;
   overflow-y: auto;
@@ -1343,10 +1422,6 @@
 @media (width <= 1100px) {
   .acs-dock__body {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .acs-dock__panel--histogram {
-    grid-column: 1 / -1;
   }
 }
 

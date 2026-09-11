@@ -161,6 +161,7 @@ window.AccessScoreApp = (function () {
         }
       },
       onToggleType: (type, shown) => evidence.layer.setTypeVisible(type, shown),
+      onOpenLabel: (labelId, ids) => evidence.openLabel(labelId, ids),
       onStateChange: () => urlSync.setDock(dock.state),
       log,
     });
@@ -248,13 +249,11 @@ window.AccessScoreApp = (function () {
         syncUrlSource: 'AccessScore',
         showExploreHereLink: true,
       });
-      const sheet = new AccessScoreClusterSheet({
-        log,
-        onOpenLabel: (labelId, ids) => {
-          popupLabelViewer.setNearbyNavigator(clusterNavigator(ids));
-          popupLabelViewer.showLabel(labelId, 'AccessScore');
-        },
-      });
+      const openLabel = (labelId, ids) => {
+        popupLabelViewer.setNearbyNavigator(clusterNavigator(ids));
+        popupLabelViewer.showLabel(labelId, 'AccessScore');
+      };
+      const sheet = new AccessScoreClusterSheet({ log, onOpenLabel: openLabel });
       const layer = new AccessScoreClusterLayer(map, {
         types: config.scored_types,
         tooltipHtml: clusterTooltipHtml,
@@ -289,6 +288,8 @@ window.AccessScoreApp = (function () {
       return {
         loader,
         layer,
+        /** The label card, paging over a list — the cluster sheet's and the photo strip's shared exit. */
+        openLabel,
         setVisible(show) {
           visible = show;
           layer.setVisible(show);

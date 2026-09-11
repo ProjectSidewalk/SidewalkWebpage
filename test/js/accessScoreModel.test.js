@@ -359,6 +359,46 @@ describe('AccessScoreModel', () => {
         expect(scoped.types.find((t) => t.type === 'Obstacle').total).toBe(0);
     });
 
+    test('clusterBreakdown pools the intersections at the scoped streets\' ends, each counted once', () => {
+        const seg = FIXTURE.streets[0];
+        const ramps = FIXTURE.intersections.find((c) => c.cluster_counts.CurbRamp > 0);
+        const intersections = { type: 'FeatureCollection', features: [
+            intersectionFeature(ramps, 10, { region_id: 1 }),
+            intersectionFeature(ramps, 11, { region_id: 2 }),
+        ] };
+        const features = [
+            feature(seg, 0, { region_id: 1, start_intersection_id: 10, end_intersection_id: 11 }),
+            feature(seg, 1, { region_id: 1, start_intersection_id: 10, end_intersection_id: null }),
+            feature(seg, 2, { region_id: 2, start_intersection_id: 11, end_intersection_id: null }),
+        ];
+        const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features }, intersections, [
+            { region_id: 1, name: 'A', rate: 1, total_distance_m: 200, completed_distance_m: 200 },
+            { region_id: 2, name: 'B', rate: 1, total_distance_m: 100, completed_distance_m: 100 },
+        ]);
+        const onStreet = seg.cluster_counts.CurbRamp || 0;
+        const atCorner = ramps.cluster_counts.CurbRamp;
+        const ramp = (b) => b.types.find((t) => t.type === 'CurbRamp').total;
+        // A street's scope carries the ramps at both of its ends.
+        const one = model.clusterBreakdown({ streetIds: new Set([1]) });
+        expect(one.intersections).toBe(2);
+        expect(ramp(one)).toBe(onStreet + 2 * atCorner);
+        // Two streets sharing intersection 10 count it once.
+        const two = model.clusterBreakdown({ streetIds: new Set([1, 2]) });
+        expect(two.intersections).toBe(2);
+        expect(ramp(two)).toBe(2 * onStreet + 2 * atCorner);
+        // A region's scope takes the intersections of that region, whichever streets meet there.
+        const region = model.clusterBreakdown({ regionIds: new Set([2]) });
+        expect(region.streets).toBe(1);
+        expect(region.intersections).toBe(1);
+        expect(ramp(region)).toBe(onStreet + atCorner);
+        // The city takes everything.
+        const city = model.clusterBreakdown();
+        expect(city.intersections).toBe(2);
+        expect(ramp(city)).toBe(3 * onStreet + 2 * atCorner);
+        expect(model.streetEndIntersectionIds(new Set([1, 2]))).toEqual(new Set([10, 11]));
+        expect(model.regionIntersectionIds(2)).toEqual(new Set([11]));
+    });
+
     test('kpis and the histogram take a scope, and rankedRegions orders every scored region', () => {
         const regions = [
             { region_id: 1, name: 'Whole', rate: 1, total_distance_m: 300, completed_distance_m: 300 },

@@ -109,10 +109,11 @@ module.exports = function (grunt) {
           // superclass at definition time), and the dock that owns them comes last.
           'public/js/access-score/src/AccessScoreChart.js',
           'public/js/access-score/src/AccessScoreHistogram.js',
-          'public/js/access-score/src/AccessScoreDriversBars.js',
+          'public/js/access-score/src/AccessScoreWhatsHere.js',
           'public/js/access-score/src/AccessScoreRankBars.js',
-          'public/js/access-score/src/AccessScoreDock.js',
           'public/js/access-score/src/AccessScoreClusterSheet.js',
+          'public/js/access-score/src/AccessScorePhotoStrip.js',
+          'public/js/access-score/src/AccessScoreDock.js',
           'public/js/access-score/src/main.js',
         ],
         dest: 'public/js/access-score/build/access-score.js'

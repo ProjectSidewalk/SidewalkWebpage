@@ -39,7 +39,9 @@ function stubUtilMisc() {
                 : {1: 'low', 2: 'medium', 3: 'high'}),
             getIconImagePaths: (type) => ({iconImagePath: `/assets/images/icons/label_type_icons/${type}_small.svg`}),
             getLabelColors: () => ({}),
+            labelTypeHasSeverity: (type) => !['Signal', 'NoSidewalk'].includes(type),
         },
+        assetPath: (p) => `/assets/${p}`,
     };
 }
 
@@ -47,8 +49,8 @@ function stubUtilMisc() {
 function loadSources() {
     RAMP.forEach((hex, i) => document.documentElement.style.setProperty(`--color-score-ramp-${i + 1}`, hex));
     window.eval(read('public/js/common/scoreRamp.js'));
-    const classes = ['AccessScoreModel', 'AccessScoreChart', 'AccessScoreHistogram', 'AccessScoreDriversBars',
-        'AccessScoreRankBars', 'AccessScoreDock'];
+    const classes = ['AccessScoreModel', 'AccessScoreChart', 'AccessScoreHistogram', 'AccessScoreWhatsHere',
+        'AccessScoreRankBars', 'AccessScoreClusterSheet', 'AccessScorePhotoStrip', 'AccessScoreDock'];
     for (const name of classes) window.eval(`${read(`public/js/access-score/src/${name}.js`)}\nwindow.${name} = ${name};`);
 }
 
@@ -88,11 +90,33 @@ const DOCK_HTML = `
       </div>
       <div id="acs-dock-body">
         <div id="acs-histogram"></div>
-        <div id="acs-drivers"></div>
+        <div id="acs-whats-here"></div>
         <div id="acs-rank-bars"></div>
+        <div id="acs-photos"></div>
       </div>
     </aside>
   </div>`;
+
+/**
+ * A `fetch` that answers the photo strip's two feeds from in-memory tables: `clustersByRegion` maps a region id to
+ * cluster property objects, `labels` maps a label id to a `/label/id` JSON. Anything else is a 404. Returns the
+ * mock so a test can inspect the URLs asked for.
+ */
+function stubFetch({clustersByRegion = {}, labels = {}} = {}) {
+    const json = (body, ok = true) => Promise.resolve({ok, status: ok ? 200 : 404, json: () => Promise.resolve(body)});
+    window.fetch = jest.fn((input) => {
+        const url = new URL(String(input), 'http://localhost');
+        if (url.pathname === '/v3/api/labelClusters') {
+            const features = (clustersByRegion[url.searchParams.get('regionId')] || [])
+                .map((properties) => ({type: 'Feature', geometry: null, properties}));
+            return json({type: 'FeatureCollection', features});
+        }
+        const m = /^\/label\/id\/(\d+)$/.exec(url.pathname);
+        if (m && labels[m[1]]) return json(labels[m[1]]);
+        return json({}, false);
+    });
+    return window.fetch;
+}
 
 /** The hex a `style.backgroundColor` assignment reads back as under jsdom (`rgb(r, g, b)`). */
 function rgb(hex) {
@@ -101,4 +125,4 @@ function rgb(hex) {
     return `rgb(${r}, ${g}, ${b})`;
 }
 
-module.exports = {FIXTURE, RAMP, stubI18next, stubUtilMisc, loadSources, feature, DOCK_HTML, rgb};
+module.exports = {FIXTURE, RAMP, stubI18next, stubUtilMisc, stubFetch, loadSources, feature, DOCK_HTML, rgb};

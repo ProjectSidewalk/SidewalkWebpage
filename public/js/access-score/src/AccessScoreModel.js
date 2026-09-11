@@ -477,16 +477,19 @@ class AccessScoreModel {
   }
 
   /**
-   * The clusters behind the scores of a set of streets, by type and rating bucket — the population the score
-   * arithmetic actually runs over, which `contributions()`'s means don't expose.
+   * The clusters behind the scores in a scope, by type and rating bucket — the population the score arithmetic
+   * runs over. Streets and intersections are pooled: the corner types attach to intersections almost entirely,
+   * so a street-only count would show a neighborhood with hundreds of curb ramps as having none.
    *
-   * @param {object} [options] - Scope.
-   * @param {Set<number>} [options.streetIds] - Restrict to these street ids (unaudited ones carry no clusters).
+   * @param {object} [scope] - One of the two, or neither for the whole city.
+   * @param {Set<number>} [scope.streetIds] - These streets (unaudited ones carry no clusters) plus the
+   *                                          intersections at their ends, each intersection counted once.
+   * @param {Set<number>} [scope.regionIds] - The streets and intersections of these regions.
    * @returns {{types: Array<{type: string, total: number, buckets: Object<string, number>}>, total: number,
-   *   streets: number}} Per type in the engine's order, its cluster count per severity bucket and in all; the grand
-   *   total; and how many audited streets were counted.
+   *   streets: number, intersections: number}} Per type in the engine's order, its cluster count per severity
+   *   bucket and in all; the grand total; and how many audited streets and how many intersections were counted.
    */
-  clusterBreakdown({ streetIds } = {}) {
+  clusterBreakdown({ streetIds, regionIds } = {}) {
     const T = this.#types.length;
     const B = this.#buckets.length;
     const counts = new Int32Array(T * B);
@@ -494,9 +497,27 @@ class AccessScoreModel {
     for (let i = 0; i < this.#n; i++) {
       if (this.#audited[i] !== 1) continue;
       if (streetIds && !streetIds.has(this.#ids[i])) continue;
+      if (regionIds && !regionIds.has(this.#regionIds[i])) continue;
       streets += 1;
       const base = i * T * B;
       for (let k = 0; k < T * B; k++) counts[k] += this.#counts[base + k];
+    }
+    const TI = this.#intTypeIdx.length;
+    let intersections = 0;
+    const addIntersection = (j) => {
+      intersections += 1;
+      this.#intTypeIdx.forEach((t, u) => {
+        const base = (j * TI + u) * B;
+        for (let k = 0; k < B; k++) counts[t * B + k] += this.#intCounts[base + k];
+      });
+    };
+    if (streetIds) {
+      for (const j of this.#endIndicesOf(streetIds)) addIntersection(j);
+    } else {
+      for (let j = 0; j < this.#m; j++) {
+        if (regionIds && !regionIds.has(this.#intRegionIds[j])) continue;
+        addIntersection(j);
+      }
     }
     let total = 0;
     const types = this.#types.map((type, t) => {
@@ -509,7 +530,41 @@ class AccessScoreModel {
       total += typeTotal;
       return { type, total: typeTotal, buckets };
     });
-    return { types, total, streets };
+    return { types, total, streets, intersections };
+  }
+
+  /**
+   * The intersections at the ends of a set of streets, each once.
+   * @param {Set<number>} streetIds - Street ids.
+   * @returns {Set<number>} Intersection ids.
+   */
+  streetEndIntersectionIds(streetIds) {
+    const out = new Set();
+    for (const j of this.#endIndicesOf(streetIds)) out.add(this.#intIds[j]);
+    return out;
+  }
+
+  /**
+   * The intersections of a region.
+   * @param {number} regionId - The region's id.
+   * @returns {Set<number>} Intersection ids.
+   */
+  regionIntersectionIds(regionId) {
+    const out = new Set();
+    for (let j = 0; j < this.#m; j++) if (this.#intRegionIds[j] === regionId) out.add(this.#intIds[j]);
+    return out;
+  }
+
+  /** The intersection array indices at the ends of these streets, deduplicated (two streets share a corner). */
+  #endIndicesOf(streetIds) {
+    const out = new Set();
+    for (const id of streetIds) {
+      const i = this.#indexById.get(id);
+      if (i === undefined) continue;
+      if (this.#startInt[i] >= 0) out.add(this.#startInt[i]);
+      if (this.#endInt[i] >= 0) out.add(this.#endInt[i]);
+    }
+    return out;
   }
 
   /**

@@ -1,19 +1,21 @@
 /**
  * The AccessScore insights dock (#5217): the collapsible band along the bottom of the map that holds the KPI
- * strip and three linked views — the score histogram (which doubles as the score legend), what drives the scores,
- * and the ranked neighborhoods — and coordinates them with the map.
+ * strip and four linked views — the score histogram (which doubles as the score legend), what's here, the ranked
+ * neighborhoods, and the photo strip — and coordinates them with the map.
  *
  * Three composition rules keep the views agreeing with each other:
  *
  * 1. **The whole city is the population.** Every view and every KPI computes over the city and never over the
  *    brush (a histogram of the brush would collapse to the bins just brushed).
- * 2. **A brush emphasizes in the overview views and filters the detail view.** The histogram marks brushed bins
- *    and mutes the rest, the rank list mutes non-matching rows, and the drivers view is computed over the brush.
- *    On the map, everything outside the brush dims.
- * 3. **A selection marks; it does not filter.** Selecting a neighborhood leaves the histogram city-wide and drops a
- *    caret at that neighborhood's score — the point of the view is to place it among the others — while the map
- *    fades every other neighborhood (in the streets unit, every street outside the selected street's
- *    neighborhood) so the selection is the one thing in focus.
+ * 2. **A brush emphasizes in the overview views and filters the detail views.** The histogram marks brushed bins
+ *    and mutes the rest, the rank list mutes non-matching rows, and what's here is counted over the brush. On
+ *    the map, everything outside the brush dims.
+ * 3. **A selection marks the overview views and scopes the detail views.** Selecting a neighborhood leaves the
+ *    histogram city-wide and drops a caret at that neighborhood's score — the point of the view is to place it
+ *    among the others — while what's here and the photo strip narrow to it, and the map fades every other
+ *    neighborhood (in the streets unit, every street outside the selected street's neighborhood) so the selection
+ *    is the one thing in focus. With nothing selected, the detail views take the city (the photo strip, which
+ *    reads one neighborhood's feed, takes the lowest-scoring one and says so).
  *
  * The map's dim follows one precedence: a transient hover set (a histogram bin, a rank row) if any, else the
  * brush, else the selection; a hover never drops the brush. Every change is batched into one animation frame,
@@ -30,8 +32,11 @@ class AccessScoreDock {
   #callbacks;
   #els;
   #histogram;
-  #drivers;
+  #whatsHere;
   #rank;
+  #photos;
+  /** The scope the photo strip last loaded, so a slider tick never refetches it. */
+  #photoScopeKey = null;
 
   #open = true;
   /** `{from, to}` in histogram bin indices, `to` exclusive; null with none. */
@@ -55,16 +60,19 @@ class AccessScoreDock {
    * @param {AccessScoreMapView} options.mapView - The map view, for the dim.
    * @param {mapboxgl.Map} options.map - The map, for the bottom padding.
    * @param {function} options.onRankSelect - Called with a region id when a rank row is clicked.
-   * @param {function} options.onToggleType - Called with `(type, shown)` when a type is toggled in the drivers view.
+   * @param {function} options.onToggleType - Called with `(type, shown)` when a type is toggled in what's here.
+   * @param {function} options.onOpenLabel - Called with `(labelId, stripLabelIds)` when a photo is chosen.
    * @param {function} options.onStateChange - Called after any change the URL should carry.
    * @param {function} [options.log] - Called with `(kind, value)` for an interaction worth logging.
    */
-  constructor(root, { model, mapView, map, onRankSelect, onToggleType, onStateChange, log = () => {} }) {
+  constructor(root, {
+    model, mapView, map, onRankSelect, onToggleType, onOpenLabel = () => {}, onStateChange, log = () => {},
+  }) {
     this.#root = root;
     this.#model = model;
     this.#mapView = mapView;
     this.#map = map;
-    this.#callbacks = { onRankSelect, onToggleType, onStateChange, log };
+    this.#callbacks = { onRankSelect, onToggleType, onOpenLabel, onStateChange, log };
     this.#els = {
       toggle: root.querySelector('#acs-dock-toggle'),
       body: root.querySelector('#acs-dock-body'),
@@ -84,8 +92,13 @@ class AccessScoreDock {
       onHover: (bin) => this.#hoverBin(bin),
       onHoverEnd: () => this.#hoverEnd(),
     });
-    this.#drivers = new AccessScoreDriversBars(root.querySelector('#acs-drivers'), {
+    this.#whatsHere = new AccessScoreWhatsHere(root.querySelector('#acs-whats-here'), {
       onToggleType: (type, shown) => this.#toggleType(type, shown),
+    });
+    this.#photos = new AccessScorePhotoStrip(root.querySelector('#acs-photos'), {
+      types: model.config.scored_types,
+      onOpenLabel: (labelId, ids) => this.#callbacks.onOpenLabel(labelId, ids),
+      log,
     });
     this.#rank = new AccessScoreRankBars(root.querySelector('#acs-rank-bars'), {
       onSelect: (regionId) => {
@@ -210,14 +223,22 @@ class AccessScoreDock {
       selection: this.#selectionScore(),
       hover: this.#mapHover?.score ?? null,
     });
-    const { means } = this.#model.contributions({ streetIds: brushStreets });
-    const breakdown = this.#model.clusterBreakdown({ streetIds: brushStreets });
-    this.#drivers.draw({
+    const scope = this.#scope();
+    const breakdown = this.#model.clusterBreakdown(this.#breakdownScope(scope, brushStreets));
+    const scoring = this.#model.config.type_weights;
+    this.#whatsHere.draw({
       shapeKey: 'types',
-      rows: breakdown.types.map((t) => ({ type: t.type, mean: means[t.type], count: t.total, buckets: t.buckets })),
+      rows: breakdown.types.map((t) => ({
+        type: t.type,
+        count: t.total,
+        buckets: t.buckets,
+        rated: ['positive_quality', 'negative_severity'].includes(scoring[t.type]?.scoring),
+      })),
       hidden: this.#hiddenTypes,
-      streets: breakdown.streets,
+      caption: this.#scopeCaption(scope, brushStreets),
+      empty: breakdown.streets === 0 && breakdown.intersections === 0,
     });
+    this.#showPhotos(scope);
     const rows = this.#model.rankedRegions();
     this.#rank.draw({
       shapeKey: rows.map((r) => r.regionId).sort((a, b) => a - b).join(','),
@@ -238,6 +259,98 @@ class AccessScoreDock {
         ? this.#els.brushText.textContent
         : i18next.t('accessscore:brush-cleared');
     }
+  }
+
+  /**
+   * What the detail views describe: the selected street or neighborhood, else the city. A selection made in the
+   * other unit is not one here, matching the histogram's caret.
+   * @returns {{kind: string, id: ?number, regionId: ?number, name: ?string}} `kind` is 'street', 'region' or
+   *   'city'; `regionId` the neighborhood the scope sits in, if any.
+   */
+  #scope() {
+    const unit = this.#model.state.unit;
+    const s = this.#selection;
+    if (s && s.unit === unit) {
+      if (unit === 'streets') {
+        const street = this.#model.explainStreet(s.id);
+        if (street) return { kind: 'street', id: s.id, regionId: street.regionId, name: null };
+      } else {
+        const r = this.#model.explainRegion(s.id);
+        if (r) return { kind: 'region', id: s.id, regionId: s.id, name: r.name };
+      }
+    }
+    return { kind: 'city', id: null, regionId: null, name: null };
+  }
+
+  /** The scope, narrowed by the brush, in the model's terms: a street set, a region set, or nothing for the city. */
+  #breakdownScope(scope, brushStreets) {
+    if (scope.kind === 'street') {
+      const keep = !brushStreets || brushStreets.has(scope.id);
+      return { streetIds: new Set(keep ? [scope.id] : []) };
+    }
+    if (scope.kind === 'region') {
+      if (!brushStreets) return { regionIds: new Set([scope.id]) };
+      const ids = new Set();
+      for (const id of this.#model.regionStreetIds(scope.id)) if (brushStreets.has(id)) ids.add(id);
+      return { streetIds: ids };
+    }
+    return brushStreets ? { streetIds: brushStreets } : {};
+  }
+
+  /** "in Sagamore Park · scores 40–60": where the counts come from. */
+  #scopeCaption(scope, brushStreets) {
+    let text;
+    if (scope.kind === 'street') text = i18next.t('accessscore:scope-street', { id: scope.id });
+    else if (scope.kind === 'region') text = i18next.t('accessscore:scope-region', { name: scope.name });
+    else text = i18next.t('accessscore:scope-city');
+    if (brushStreets) {
+      const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
+      const range = { from: this.#brush.from * step, to: this.#brush.to * step };
+      text += ` · ${i18next.t('accessscore:scope-brush', range)}`;
+    }
+    return text;
+  }
+
+  /** Points the photo strip at the scope's neighborhood, only when the scope actually changed. */
+  #showPhotos(scope) {
+    let key;
+    let request;
+    if (scope.kind === 'street') {
+      key = `street:${scope.id}`;
+      const street = this.#model.explainStreet(scope.id);
+      const ends = new Set([street?.startIntersection?.id, street?.endIntersection?.id]
+        .filter((id) => id !== null && id !== undefined));
+      request = {
+        caption: i18next.t('accessscore:photos-from', {
+          scope: i18next.t('accessscore:popup-street', { id: scope.id }),
+        }),
+        regionId: scope.regionId,
+        streetId: scope.id,
+        intersectionIds: ends,
+      };
+    } else if (scope.kind === 'region') {
+      key = `region:${scope.id}`;
+      request = { caption: i18next.t('accessscore:photos-from', { scope: scope.name }), regionId: scope.id };
+    } else {
+      // The strip reads one neighborhood's feed; with nothing selected, the one most in need of a look.
+      const ranked = this.#model.rankedRegions();
+      const lowest = ranked.length ? ranked[ranked.length - 1] : null;
+      key = `city:${lowest ? lowest.regionId : 'none'}`;
+      request = lowest
+        ? {
+            caption: i18next.t('accessscore:photos-from', {
+              scope: i18next.t('accessscore:photos-lowest', { name: lowest.name }),
+            }),
+            regionId: lowest.regionId,
+          }
+        : {
+            caption: i18next.t('accessscore:photos-from', { scope: i18next.t('accessscore:scope-city') }),
+            regionId: null,
+          };
+    }
+    if (key === this.#photoScopeKey) return;
+    this.#photoScopeKey = key;
+    this.#photos.show(request);
   }
 
   /**

@@ -253,11 +253,13 @@ corresponding Twirl view:
   (`AccessScoreClusterLayer.js`, fed by `/v3/api/labelClusters` — the clusters the engine actually scores, not the
   raw labels), the cluster sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop
   cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
-  coordinating three hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
-  drag-and-keyboard brush, what drives the scores as diverging per-type effect bars, and the ranked neighborhoods —
-  each a subclass of `AccessScoreChart.js`; the whole city is the population, a brush emphasizes in the overview
-  views and filters the drivers view and dims the map, and a selection marks and fades the rest of the map rather
-  than filtering). Grunt-bundled to `access-score/build/`; the shared score ramp is `common/scoreRamp.js`.
+  coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
+  drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and
+  intersections (`AccessScoreWhatsHere.js`); the ranked neighborhoods; and a photo strip of label crops from the
+  scope's neighborhood feed (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
+  the whole city is the population, a brush emphasizes in the overview views, narrows what's here and dims the
+  map, and a selection marks the overview views, scopes what's here and the photos, and fades the rest of the
+  map). Grunt-bundled to `access-score/build/`; the shared score ramp is `common/scoreRamp.js`.
 - **`ps-map/`** — shared map component used across pages.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is
