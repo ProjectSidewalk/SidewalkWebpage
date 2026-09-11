@@ -1,10 +1,7 @@
 /**
- * The labels behind one cluster, all at once (#5217): a modal sheet opened from a cluster dot, with a compact
- * card per label — its saved crop (or the pano's backup image), rating, tags, votes, and date — so the reader
- * sees the agreement a cluster stands for without paging. A card opens the full label card.
- *
- * Crops rather than live panos: a cluster of ten would otherwise be ten street-view loads. A label with neither
- * a crop nor a backup image shows its type icon in place of a picture.
+ * The labels behind one cluster, all at once (#5217): a modal sheet of `LabelMiniCard`s opened from a cluster dot,
+ * so the reader sees the agreement a cluster stands for, and can add to it, without paging. Crops rather than
+ * live panos: a cluster of ten would otherwise be ten street-view loads.
  */
 class AccessScoreClusterSheet {
   /** More cards than this and the sheet says how many it left out rather than fetching a wall of metadata. */
@@ -15,6 +12,8 @@ class AccessScoreClusterSheet {
   #log;
   #els;
   #openToken = 0;
+  /** The cards on show, by label id, so a vote cast in the full label card can be reflected here. */
+  #cards = new Map();
 
   /**
    * @param {object} options - Callbacks.
@@ -58,14 +57,6 @@ class AccessScoreClusterSheet {
       const inside = r.top <= e.clientY && e.clientY <= r.bottom && r.left <= e.clientX && e.clientX <= r.right;
       if (!inside) this.close();
     });
-    this.#els.grid.addEventListener('click', (e) => {
-      const card = e.target.closest('.acs-sheet__card');
-      if (!card) return;
-      const labelId = Number(card.dataset.labelId);
-      this.#log('SheetOpenLabel_labelId', labelId);
-      this.close();
-      this.#onOpenLabel(labelId, this.#ids);
-    });
   }
 
   #ids = [];
@@ -92,6 +83,7 @@ class AccessScoreClusterSheet {
       effect,
     ].filter(Boolean).join(' · ');
     this.#els.grid.innerHTML = '';
+    this.#cards.clear();
     this.#els.more.hidden = ids.length <= AccessScoreClusterSheet.MAX_CARDS;
     this.#els.more.textContent = i18next.t('accessscore:sheet-more',
       { count: Math.max(0, ids.length - AccessScoreClusterSheet.MAX_CARDS) });
@@ -108,65 +100,32 @@ class AccessScoreClusterSheet {
     this.#els.status.textContent = loaded.length === shown.length
       ? ''
       : i18next.t('accessscore:sheet-error', { count: shown.length - loaded.length });
-    this.#els.grid.innerHTML = loaded.map((label) => this.#cardHtml(label)).join('');
-    // A card whose image fails to load falls back to the type icon, the same as one that never had an image.
-    for (const img of this.#els.grid.querySelectorAll('.acs-sheet__image')) {
-      img.addEventListener('error', () => {
-        img.replaceWith(AccessScoreClusterSheet.placeholder(type));
-      }, { once: true });
+    for (const label of loaded) {
+      const card = new LabelMiniCard(label, {
+        size: 'sheet',
+        source: 'AccessScoreSheet',
+        log: this.#log,
+        onOpen: (labelId) => {
+          this.#log('SheetOpenLabel_labelId', labelId);
+          this.close();
+          this.#onOpenLabel(labelId, this.#ids);
+        },
+      });
+      this.#cards.set(label.label_id, card);
+      this.#els.grid.appendChild(card.element);
     }
+  }
+
+  /**
+   * Re-renders one card from fresh label JSON, after a vote cast in the full label card.
+   * @param {object} label - A `/label/id/:id` JSON.
+   */
+  refreshLabel(label) {
+    this.#cards.get(label.label_id)?.update(label);
   }
 
   /** Closes the sheet, if open. */
   close() {
     if (this.#dialog.open) this.#dialog.close();
-  }
-
-  /** One label's card: image or placeholder, then rating, tags, votes, and the date it was labeled. */
-  #cardHtml(label) {
-    const type = label.label_type;
-    const src = label.crop_url || label.backup_image_url;
-    const image = src
-      ? `<img class="acs-sheet__image" src="${AccessScoreChart.esc(src)}" alt="" loading="lazy">`
-      : AccessScoreClusterSheet.placeholder(type).outerHTML;
-    const rating = util.misc.labelTypeHasSeverity(type) && label.severity
-      ? i18next.t(`common:${util.misc.getRatingLevelKeys(type)[label.severity]}`)
-      : null;
-    const tags = (label.tags || []).map((tag) => `<span class="acs-sheet__tag">${
-      AccessScoreChart.esc(i18next.t(`common:tag.${tag}`, { defaultValue: tag }))}</span>`).join('');
-    const votes = i18next.t('accessscore:sheet-votes', {
-      agree: AccessScoreChart.number(label.num_agree || 0), disagree: AccessScoreChart.number(label.num_disagree || 0),
-    });
-    const date = label.timestamp
-      ? new Intl.DateTimeFormat(i18next.language, { dateStyle: 'medium' }).format(new Date(label.timestamp))
-      : '';
-    const name = [rating, votes, date].filter(Boolean).join(' · ');
-    return `
-      <li>
-        <button type="button" class="acs-sheet__card" data-label-id="${label.label_id}"
-                aria-label="${AccessScoreChart.esc(i18next.t('accessscore:sheet-open', { label: name }))}">
-          <span class="acs-sheet__figure">${image}</span>
-          <span class="acs-sheet__caption">
-            ${rating ? `<span class="acs-sheet__rating">${AccessScoreChart.esc(rating)}</span>` : ''}
-            <span class="acs-sheet__votes">${AccessScoreChart.esc(votes)}</span>
-            ${tags ? `<span class="acs-sheet__tags">${tags}</span>` : ''}
-            <span class="acs-sheet__date">${AccessScoreChart.esc(date)}</span>
-          </span>
-        </button>
-      </li>`;
-  }
-
-  /**
-   * The stand-in for a label with no picture: its type icon on a neutral panel. Shared with the photo strip so the
-   * two say "no image" the same way.
-   * @param {string} type - The label type.
-   * @returns {HTMLElement} The placeholder element.
-   */
-  static placeholder(type) {
-    const el = document.createElement('span');
-    el.className = 'acs-sheet__placeholder';
-    el.innerHTML = `<img src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
-      <span>${AccessScoreChart.esc(i18next.t('accessscore:sheet-no-image'))}</span>`;
-    return el;
   }
 }

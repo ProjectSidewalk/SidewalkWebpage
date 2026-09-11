@@ -31,7 +31,7 @@
     <img id="loading-animation" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
   </div>
   <div id="acs-map-container" class="container choropleth-container">
-    <div id="acs-map-holder" class="choropleth-holder">
+    <div id="acs-map-holder" class="choropleth-holder" data-city-name="@currentCity.cityNameShort">
       <div id="acs-map" class="choropleth"></div>
 
       <div id="filter-sidebar" class="filter-sidebar ps-invisible acs-sidebar" role="complementary" aria-label="AccessScore controls" data-i18n-aria-label="accessscore:controls">
@@ -178,6 +178,7 @@
   @common.labelPopup(admin = false, withPaging = true)
 
   <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/label-mini-card.css")' rel="stylesheet">
   <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
   <link href='@assets.path("css/components/filter-sidebar.css")' rel="stylesheet">
   <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
@@ -193,6 +194,7 @@
   <script src='@assets.path("js/common/aiLabelIndicator.js")'></script>
   <script src='@assets.path("js/common/Toast.js")'></script>
   <script src='@assets.path("js/common/BadgeAchievements.js")'></script>
+  <script src='@assets.path("js/common/LabelMiniCard.js")'></script>
   <script src='@assets.path("js/common/PanoMarker.js")'></script>
   <script src='@assets.path("js/common/LabelVisibilityToggle.js")'></script>
   <script src='@assets.path("js/common/label-detail/PopupPanoManager.js")'></script>

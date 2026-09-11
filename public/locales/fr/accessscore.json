@@ -79,7 +79,7 @@
   "chart-rank": "Quartiers classés",
   "chart-rank-help": "Chaque quartier avec assez de données, du meilleur au moins bon. Cliquez sur l'un d'eux pour y aller.",
   "histogram-bars": "Tranches de score",
-  "histogram-city": "Ville {{score}}",
+  "histogram-city": "Moyenne de {{city}} : {{score}}",
   "histogram-empty": "Rien n'est encore noté ici.",
   "bin-streets": "Scores {{from}}–{{to}} : {{length}} de rues",
   "bin-regions_one": "Scores {{from}}–{{to}} : {{count}} quartier",
@@ -91,8 +91,6 @@
   "brush-clear": "Effacer la plage",
   "brush-cleared": "Plage de scores effacée",
   "cluster-unrated": "non évalué",
-  "cluster-type-shown": "{{type}} : affiché sur la carte. Cliquez pour masquer.",
-  "cluster-type-hidden": "{{type}} : masqué sur la carte. Cliquez pour afficher.",
   "rank-row": "{{position}}. {{name}} : score {{score}}, {{percent}} % exploré",
   "rank-floored_one": "{{count}} quartier sous le seuil d'exploration",
   "rank-floored_other": "{{count}} quartiers sous le seuil d'exploration",
@@ -115,7 +113,6 @@
   "photos-scope-viewport": "la zone affichée",
   "photos-loading": "Chargement des photos…",
   "photos-empty": "Pas encore de photos ici.",
-  "photos-open": "Ouvrir cette étiquette : {{label}}",
   "sheet-title": "Groupe {{type}}",
   "sheet-meta_one": "{{count}} étiquette sur la rue {{street}}",
   "sheet-meta_other": "{{count}} étiquettes sur la rue {{street}}",
@@ -123,8 +120,5 @@
   "sheet-error_one": "{{count}} étiquette n'a pas pu être chargée.",
   "sheet-error_other": "{{count}} étiquettes n'ont pas pu être chargées.",
   "sheet-more_one": "{{count}} étiquette de plus non affichée.",
-  "sheet-more_other": "{{count}} étiquettes de plus non affichées.",
-  "sheet-open": "Ouvrir cette étiquette : {{label}}",
-  "sheet-votes": "{{agree}} d'accord · {{disagree}} pas d'accord",
-  "sheet-no-image": "Pas d'image"
+  "sheet-more_other": "{{count}} étiquettes de plus non affichées."
 }

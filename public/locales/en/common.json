@@ -347,5 +347,12 @@
     "on-facebook": "Share on Facebook",
     "on-linkedin": "Share on LinkedIn",
     "via-email": "Share via email"
+  },
+  "mini-card": {
+    "no-image": "No image",
+    "open": "Open this label: {{label}}",
+    "votes": "Validate this label",
+    "no-image-to-judge": "No image to judge this label by",
+    "vote-failed": "Your vote didn't save. Please try again."
   }
 }

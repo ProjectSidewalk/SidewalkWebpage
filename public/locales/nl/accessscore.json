@@ -79,7 +79,7 @@
   "chart-rank": "Buurten gerangschikt",
   "chart-rank-help": "Elke buurt met genoeg gegevens, de beste eerst. Klik op een buurt om ernaartoe te gaan.",
   "histogram-bars": "Score-intervallen",
-  "histogram-city": "Stad {{score}}",
+  "histogram-city": "Gemiddelde van {{city}}: {{score}}",
   "histogram-empty": "Hier is nog niets beoordeeld.",
   "bin-streets": "Scores {{from}}–{{to}}: {{length}} aan straten",
   "bin-regions_one": "Scores {{from}}–{{to}}: {{count}} buurt",
@@ -91,8 +91,6 @@
   "brush-clear": "Bereik wissen",
   "brush-cleared": "Scorebereik gewist",
   "cluster-unrated": "niet beoordeeld",
-  "cluster-type-shown": "{{type}}: zichtbaar op de kaart. Klik om te verbergen.",
-  "cluster-type-hidden": "{{type}}: verborgen op de kaart. Klik om te tonen.",
   "rank-row": "{{position}}. {{name}}: score {{score}}, {{percent}}% verkend",
   "rank-floored_one": "{{count}} buurt onder de minimale verkenning",
   "rank-floored_other": "{{count}} buurten onder de minimale verkenning",
@@ -115,7 +113,6 @@
   "photos-scope-viewport": "het gebied in beeld",
   "photos-loading": "Foto's laden…",
   "photos-empty": "Hier zijn nog geen foto's.",
-  "photos-open": "Dit label openen: {{label}}",
   "sheet-title": "{{type}}-cluster",
   "sheet-meta_one": "{{count}} label op straat {{street}}",
   "sheet-meta_other": "{{count}} labels op straat {{street}}",
@@ -123,8 +120,5 @@
   "sheet-error_one": "{{count}} label kon niet worden geladen.",
   "sheet-error_other": "{{count}} labels konden niet worden geladen.",
   "sheet-more_one": "{{count}} label meer niet getoond.",
-  "sheet-more_other": "{{count}} labels meer niet getoond.",
-  "sheet-open": "Dit label openen: {{label}}",
-  "sheet-votes": "{{agree}} eens · {{disagree}} oneens",
-  "sheet-no-image": "Geen afbeelding"
+  "sheet-more_other": "{{count}} labels meer niet getoond."
 }

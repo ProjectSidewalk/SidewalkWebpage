@@ -76,7 +76,7 @@
   "chart-rank": "社區排名",
   "chart-rank-help": "所有資料充足的社區，由高到低。點選即可前往。",
   "histogram-bars": "分數區間",
-  "histogram-city": "城市 {{score}}",
+  "histogram-city": "{{city}}平均：{{score}}",
   "histogram-empty": "此範圍尚無評分。",
   "bin-streets": "分數 {{from}}–{{to}}：{{length}} 的街道",
   "bin-regions_other": "分數 {{from}}–{{to}}：{{count}} 個社區",
@@ -85,8 +85,6 @@
   "brush-clear": "清除範圍",
   "brush-cleared": "已清除分數範圍",
   "cluster-unrated": "未評級",
-  "cluster-type-shown": "{{type}}：顯示於地圖。點選以隱藏。",
-  "cluster-type-hidden": "{{type}}：已在地圖上隱藏。點選以顯示。",
   "rank-row": "{{position}}. {{name}}：分數 {{score}}，已探索 {{percent}}%",
   "rank-floored_other": "{{count}} 個社區未達最低探索比例",
   "rank-empty": "尚無社區有足夠的資料。",
@@ -108,13 +106,9 @@
   "photos-scope-viewport": "目前檢視範圍",
   "photos-loading": "正在載入照片…",
   "photos-empty": "這裡還沒有照片。",
-  "photos-open": "開啟此標記：{{label}}",
   "sheet-title": "{{type}} 群組",
   "sheet-meta_other": "街道 {{street}} 上的 {{count}} 個標記",
   "sheet-loading": "載入標記中…",
   "sheet-error_other": "有 {{count}} 個標記無法載入。",
-  "sheet-more_other": "另有 {{count}} 個標記未顯示。",
-  "sheet-open": "開啟此標記：{{label}}",
-  "sheet-votes": "{{agree}} 同意 · {{disagree}} 不同意",
-  "sheet-no-image": "沒有圖片"
+  "sheet-more_other": "另有 {{count}} 個標記未顯示。"
 }

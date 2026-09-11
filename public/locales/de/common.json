@@ -347,5 +347,12 @@
     "on-facebook": "Auf Facebook teilen",
     "on-linkedin": "Auf LinkedIn teilen",
     "via-email": "Per E-Mail teilen"
+  },
+  "mini-card": {
+    "no-image": "Kein Bild",
+    "open": "Dieses Label öffnen: {{label}}",
+    "votes": "Dieses Label validieren",
+    "no-image-to-judge": "Kein Bild, um dieses Label zu beurteilen",
+    "vote-failed": "Deine Stimme wurde nicht gespeichert. Bitte versuche es erneut."
   }
 }

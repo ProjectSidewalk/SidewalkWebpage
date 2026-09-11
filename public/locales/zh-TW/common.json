@@ -345,5 +345,12 @@
     "on-facebook": "分享到 Facebook",
     "on-linkedin": "分享到 LinkedIn",
     "via-email": "透過電子郵件分享"
+  },
+  "mini-card": {
+    "no-image": "沒有圖片",
+    "open": "開啟此標籤：{{label}}",
+    "votes": "驗證此標籤",
+    "no-image-to-judge": "沒有可用來判斷此標籤的圖片",
+    "vote-failed": "您的投票未儲存，請再試一次。"
   }
 }

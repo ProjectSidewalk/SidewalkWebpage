@@ -96,15 +96,14 @@ The AccessScore tool (`/accessScore`, `public/js/access-score/`, #5217) logs its
 (weights, view options, selection, brush, band, basemap and camera back to the page as first opened),
 `AccessScore_Select_streetId=<id>` / `AccessScore_Select_regionId=<id>` (a click on a street or neighborhood),
 `AccessScore_SelectCluster_labelType=<type>` (a click on a cluster dot, which opens the cluster sheet) and
-`AccessScore_SheetOpenLabel_labelId=<id>` (a card in that sheet opening the full label card),
+`AccessScore_SheetOpenLabel_labelId=<id>` (a card in that sheet opening the full label card), `AccessScore_ClearVote_result=<Agree|Disagree|Unsure>_labelId=<id>` (a vote cleared from a mini-card's chips in the sheet or the photo strip — casting one lands in `label_validation` with `source = 'AccessScoreSheet'` or `'AccessScoreStrip'` and is not logged here, the label card's rule),
 and the popup's hop `AccessScore_ExploreHere`. A click on a
 cluster dot also opens the shared label card, whose actions log as `Click_module=LabelDetail_…` (above). The insights
 dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`,
 `AccessScore_Brush_value=<from>-<to>` (the brushed score range in whole percent, logged once on release, never per
-sweep tick) / `AccessScore_Brush_value=clear`, `AccessScore_ClusterType_value=<type>_shown=<bool>` (a type's dots
-toggled from the What's here panel), `AccessScore_PhotoStrip_labelId=<id>` (a photo-strip thumbnail opening the full
-label card), and `AccessScore_RankSelect_regionId=<id>` (a rank row clicked; in the neighborhoods
-unit the selection it makes also logs `AccessScore_Select_regionId`). The drawer's `MapSidebar_Open` /
+sweep tick) / `AccessScore_Brush_value=clear`, `AccessScore_PhotoStrip_labelId=<id>` (a photo-strip thumbnail opening the full
+label card), and `AccessScore_RankSelect_regionId=<id>` (a rank row clicked: the band scopes to that neighborhood in
+either unit, and in the neighborhoods unit the map selection it also makes logs `AccessScore_Select_regionId`). The drawer's `MapSidebar_Open` /
 `MapSidebar_Close` fire here too (shared chrome); the server logs `Visit_AccessScore` per page load.
 
 The Gallery renders the same sidebar (`gallery/src/filter/GalleryFilter.js`) and logs to `gallery_task_interaction`

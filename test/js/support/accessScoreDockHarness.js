@@ -1,7 +1,8 @@
 /**
  * Shared setup for the AccessScore insights-dock suites (#5217): loads the model, the ramp, the chart base and
  * views, and the dock into jsdom with the stubs they read — an i18next that echoes keys and their arguments, the
- * label-type helpers from util.misc, and the ramp tokens — so each suite can assert on structure and numbers
+ * label-type helpers from util.misc, the mini-card's toast and badge hooks, and the ramp tokens — so each suite can
+ * assert on structure and numbers
  * rather than on translated prose.
  */
 
@@ -33,6 +34,7 @@ function stubUtilMisc() {
         misc: {
             getSeverityLevelColors: (severity, type) => ({
                 face: `var(--color-${positive.includes(type) ? 'positive' : 'negative'}-${severity})`,
+                wash: `var(--color-${positive.includes(type) ? 'positive' : 'negative'}-${severity}-wash)`,
             }),
             getRatingLevelKeys: (type) => (positive.includes(type)
                 ? {1: 'good', 2: 'okay', 3: 'bad'}
@@ -42,13 +44,18 @@ function stubUtilMisc() {
             labelTypeHasSeverity: (type) => !['Signal', 'NoSidewalk'].includes(type),
         },
         assetPath: (p) => `/assets/${p}`,
+        lazyIdentityFetch: (...args) => window.fetch(...args),
     };
+    // The mini-card's side channels: a toast on a refused vote, a badge tick on a first one.
+    window.Toast = {show: jest.fn()};
+    window.BadgeAchievements = {recordValidation: jest.fn()};
 }
 
 /** Evaluates the production sources into the jsdom global scope, exporting the bare classes onto window. */
 function loadSources() {
     RAMP.forEach((hex, i) => document.documentElement.style.setProperty(`--color-score-ramp-${i + 1}`, hex));
     window.eval(read('public/js/common/scoreRamp.js'));
+    window.eval(`${read('public/js/common/LabelMiniCard.js')}\nwindow.LabelMiniCard = LabelMiniCard;`);
     const classes = ['AccessScoreModel', 'AccessScoreChart', 'AccessScoreHistogram', 'AccessScoreWhatsHere',
         'AccessScoreRankBars', 'AccessScoreClusterSheet', 'AccessScorePhotoStrip', 'AccessScoreDock'];
     for (const name of classes) window.eval(`${read(`public/js/access-score/src/${name}.js`)}\nwindow.${name} = ${name};`);

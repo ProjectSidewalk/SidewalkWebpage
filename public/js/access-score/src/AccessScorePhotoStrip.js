@@ -8,7 +8,7 @@
  * dozen pictures; the area in view pools the few nearest neighborhoods' feeds and keeps the clusters inside the
  * map's bounds. The brush never narrows the strip: a brush is a set of street ids across the city and the strip
  * draws from neighborhood feeds. One label per cluster, worst-rated and largest clusters first, capped at
- * `MAX_PHOTOS`; a label with neither a crop nor a backup image shows its type icon in its place.
+ * `MAX_PHOTOS`; each is a `LabelMiniCard`, so a picture can be agreed or disagreed with where it is seen.
  */
 class AccessScorePhotoStrip {
   /** Enough to fill the ribbon with a scroll's worth; more is a wall of fetches for pictures nobody reaches. */
@@ -20,6 +20,8 @@ class AccessScorePhotoStrip {
   #els;
   #clustersByRegion = new Map();
   #labelsById = new Map();
+  /** The cards on show, by label id, so a vote cast in the full label card can be reflected here. */
+  #cards = new Map();
   #ids = [];
   #token = 0;
 
@@ -43,13 +45,6 @@ class AccessScorePhotoStrip {
       status: container.querySelector('.acs-photos__status'),
       ribbon: container.querySelector('.acs-photos__ribbon'),
     };
-    this.#els.ribbon.addEventListener('click', (e) => {
-      const item = e.target.closest('.acs-photos__item');
-      if (!item) return;
-      const labelId = Number(item.dataset.labelId);
-      this.#log('PhotoStrip_labelId', labelId);
-      this.#onOpenLabel(labelId, this.#ids);
-    });
   }
 
   /**
@@ -124,13 +119,31 @@ class AccessScorePhotoStrip {
     const loaded = labels.filter(Boolean);
     this.#ids = loaded.map(({ label }) => label.label_id);
     this.#els.status.textContent = loaded.length === 0 ? i18next.t('accessscore:photos-empty') : '';
-    this.#els.ribbon.innerHTML = loaded.map(({ label, cluster }) => this.#itemHtml(label, cluster)).join('');
-    // A picture that fails to load falls back to the type icon, like one that never had a picture.
-    for (const img of this.#els.ribbon.querySelectorAll('.acs-photos__image')) {
-      img.addEventListener('error', () => {
-        img.replaceWith(AccessScoreClusterSheet.placeholder(img.dataset.type));
-      }, { once: true });
+    this.#els.ribbon.innerHTML = '';
+    this.#cards.clear();
+    for (const { label } of loaded) {
+      const card = new LabelMiniCard(label, {
+        size: 'strip',
+        className: 'acs-photos__item',
+        source: 'AccessScoreStrip',
+        log: this.#log,
+        onOpen: (labelId) => {
+          this.#log('PhotoStrip_labelId', labelId);
+          this.#onOpenLabel(labelId, this.#ids);
+        },
+      });
+      this.#cards.set(label.label_id, card);
+      this.#els.ribbon.appendChild(card.element);
     }
+  }
+
+  /**
+   * Re-renders one thumbnail after a vote cast in the full label card, keeping the fresh JSON for the next redraw.
+   * @param {object} label - A `/label/id/:id` JSON.
+   */
+  refreshLabel(label) {
+    this.#labelsById.set(label.label_id, Promise.resolve(label));
+    this.#cards.get(label.label_id)?.update(label);
   }
 
   /** One neighborhood's scored clusters, fetched once. */
@@ -165,30 +178,5 @@ class AccessScorePhotoStrip {
       this.#labelsById.set(id, request);
     }
     return this.#labelsById.get(id);
-  }
-
-  /** One thumbnail: the crop (or the placeholder), its type badge, and a name for the tooltip and screen readers. */
-  #itemHtml(label, cluster) {
-    const type = label.label_type;
-    const src = label.crop_url || label.backup_image_url;
-    const typeName = AccessScoreChart.typeName(type);
-    const rating = util.misc.labelTypeHasSeverity(type) && label.severity
-      ? i18next.t(`common:${util.misc.getRatingLevelKeys(type)[label.severity]}`)
-      : null;
-    const alt = [typeName, rating].filter(Boolean).join(', ');
-    const tip = [typeName, rating, cluster.region_name].filter(Boolean).join(' · ');
-    const image = src
-      ? `<img class="acs-photos__image" src="${AccessScoreChart.esc(src)}" alt="" loading="lazy"
-             data-type="${AccessScoreChart.esc(type)}">`
-      : AccessScoreClusterSheet.placeholder(type).outerHTML;
-    return `
-      <li>
-        <button type="button" class="acs-photos__item" data-label-id="${label.label_id}"
-                aria-label="${AccessScoreChart.esc(i18next.t('accessscore:photos-open', { label: alt }))}"
-                data-ps-tooltip="${AccessScoreChart.esc(tip)}">
-          <span class="acs-photos__figure">${image}</span>
-          <img class="acs-photos__badge" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
-        </button>
-      </li>`;
   }
 }

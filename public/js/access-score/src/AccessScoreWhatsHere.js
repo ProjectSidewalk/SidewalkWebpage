@@ -6,19 +6,17 @@
  *
  * The bar's segments wear the label card's own rating colors, so a "bad" segment reads the same here as on a
  * label, and the scale runs the right way per type (a 3 is a bad curb ramp and a severe obstacle). Bar lengths are
- * relative to the largest row in view. A row's name toggles that type's dots on the map.
- *
- * Callbacks: `onToggleType(type, shown)` when a row's name is clicked.
+ * relative to the largest row in view. The rows only read: the map's dots are the map's business.
  */
 class AccessScoreWhatsHere extends AccessScoreChart {
   #els = null;
   #rows = new Map();
 
   /**
-   * @param {object} data - `{shapeKey, rows, hidden, caption, empty}`: `rows` one per scored type in the engine's
-   *   order, `{type, count, buckets, rated}` (`count` and `buckets` from `AccessScoreModel#clusterBreakdown`,
-   *   `rated` false for a type the engine counts without a rating), `hidden` the set of types whose map dots are
-   *   off, `caption` the scope's wording, `empty` true when the scope holds no audited street.
+   * @param {object} data - `{shapeKey, rows, caption, empty}`: `rows` one per scored type in the engine's order,
+   *   `{type, count, buckets, rated}` (`count` and `buckets` from `AccessScoreModel#clusterBreakdown`, `rated`
+   *   false for a type the engine counts without a rating), `caption` the scope's wording, `empty` true when the
+   *   scope holds no audited street.
    */
   render(data) {
     const c = this.container;
@@ -41,17 +39,16 @@ class AccessScoreWhatsHere extends AccessScoreChart {
         ? Object.keys(buckets).map((b) => `<span class="acs-whats-here__segment" data-bucket="${b}"></span>`)
         : ['<span class="acs-whats-here__segment acs-whats-here__segment--unrated" data-bucket="all"></span>'];
       li.innerHTML = `
-        <button type="button" class="acs-whats-here__type" aria-pressed="true">
+        <span class="acs-whats-here__type">
           <img class="acs-whats-here__icon" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
           <span class="acs-whats-here__name">${AccessScoreChart.esc(AccessScoreChart.typeName(type))}</span>
-        </button>
+        </span>
         <span class="acs-whats-here__track" role="img" tabindex="0">
           <span class="acs-whats-here__bar">${segments.join('')}</span>
         </span>
         <span class="acs-whats-here__count"></span>`;
       const row = {
         li,
-        toggle: li.querySelector('.acs-whats-here__type'),
         track: li.querySelector('.acs-whats-here__track'),
         bar: li.querySelector('.acs-whats-here__bar'),
         segments: Object.fromEntries(Array.from(li.querySelectorAll('.acs-whats-here__segment'))
@@ -66,9 +63,6 @@ class AccessScoreWhatsHere extends AccessScoreChart {
           if (colors) el.style.setProperty('--acs-segment', colors.face);
         }
       }
-      row.toggle.addEventListener('click', () => {
-        this.emit('onToggleType', type, row.toggle.getAttribute('aria-pressed') !== 'true');
-      });
       this.#rows.set(type, row);
       this.#els.list.appendChild(li);
     }
@@ -80,12 +74,7 @@ class AccessScoreWhatsHere extends AccessScoreChart {
     const max = Math.max(1, ...data.rows.map((r) => r.count));
     for (const r of data.rows) {
       const row = this.#rows.get(r.type);
-      const shown = !data.hidden.has(r.type);
       const name = AccessScoreChart.typeName(r.type);
-      row.toggle.setAttribute('aria-pressed', String(shown));
-      const stateKey = shown ? 'accessscore:cluster-type-shown' : 'accessscore:cluster-type-hidden';
-      row.toggle.setAttribute('aria-label', i18next.t(stateKey, { type: name }));
-      row.li.classList.toggle('acs-whats-here__row--hidden', !shown);
       row.li.classList.toggle('acs-whats-here__row--none', r.count === 0);
       row.bar.style.width = `${(r.count / max) * 100}%`;
       if (r.rated) {

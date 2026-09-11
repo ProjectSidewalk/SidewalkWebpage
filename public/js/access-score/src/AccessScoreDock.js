@@ -53,7 +53,10 @@ class AccessScoreDock {
   /** Ids of the active unit hovered in a view, or null. */
   #hover = null;
   #mapHover = null;
-  #hiddenTypes = new Set();
+  /** The city's short name, for the histogram's needle label. */
+  #cityName;
+  /** A neighborhood chosen from the rank list as the band's scope, when the map has no selection of its own. */
+  #focusRegionId = null;
 
   #frame = null;
   #needDim = true;
@@ -67,20 +70,21 @@ class AccessScoreDock {
    * @param {AccessScoreModel} options.model - The scoring model.
    * @param {AccessScoreMapView} options.mapView - The map view, for the dim.
    * @param {mapboxgl.Map} options.map - The map, for the bottom padding.
+   * @param {string} [options.cityName] - The city's short name, as the backend states it, for the needle label.
    * @param {function} options.onRankSelect - Called with a region id when a rank row is clicked.
-   * @param {function} options.onToggleType - Called with `(type, shown)` when a type is toggled in what's here.
    * @param {function} options.onOpenLabel - Called with `(labelId, stripLabelIds)` when a photo is chosen.
    * @param {function} options.onStateChange - Called after any change the URL should carry.
    * @param {function} [options.log] - Called with `(kind, value)` for an interaction worth logging.
    */
   constructor(root, {
-    model, mapView, map, onRankSelect, onToggleType, onOpenLabel = () => {}, onStateChange, log = () => {},
+    model, mapView, map, cityName = '', onRankSelect, onOpenLabel = () => {}, onStateChange, log = () => {},
   }) {
     this.#root = root;
     this.#model = model;
     this.#mapView = mapView;
     this.#map = map;
-    this.#callbacks = { onRankSelect, onToggleType, onOpenLabel, onStateChange, log };
+    this.#callbacks = { onRankSelect, onOpenLabel, onStateChange, log };
+    this.#cityName = cityName;
     // With nothing selected the strip follows the map; only a reader's own move counts, as for the URL, so a fly-to
     // from a rank row or the URL's viewport never fires a fetch of its own.
     this.#map.on('moveend', (event) => {
@@ -107,9 +111,7 @@ class AccessScoreDock {
       onHover: (bin) => this.#hoverBin(bin),
       onHoverEnd: () => this.#hoverEnd(),
     });
-    this.#whatsHere = new AccessScoreWhatsHere(root.querySelector('#acs-whats-here'), {
-      onToggleType: (type, shown) => this.#toggleType(type, shown),
-    });
+    this.#whatsHere = new AccessScoreWhatsHere(root.querySelector('#acs-whats-here'));
     this.#photos = new AccessScorePhotoStrip(root.querySelector('#acs-photos'), {
       types: model.config.scored_types,
       onOpenLabel: (labelId, ids) => this.#callbacks.onOpenLabel(labelId, ids),
@@ -118,6 +120,7 @@ class AccessScoreDock {
     this.#rank = new AccessScoreRankBars(root.querySelector('#acs-rank-bars'), {
       onSelect: (regionId) => {
         this.#callbacks.log('RankSelect_regionId', regionId);
+        this.setFocusRegion(regionId);
         this.#callbacks.onRankSelect(regionId);
       },
       onHover: (regionId) => this.#hoverRegion(regionId),
@@ -128,18 +131,32 @@ class AccessScoreDock {
     this.#schedule({ dim: false });
   }
 
-  /** The dock's own state, for the URL: `{open, brush}`. */
+  /** The dock's own state, for the URL: `{open, brush, focus}`. */
   get state() {
-    return { open: this.#open, brush: this.#brush ? { ...this.#brush } : null };
+    return { open: this.#open, brush: this.#brush ? { ...this.#brush } : null, focus: this.#focusRegionId };
+  }
+
+  /**
+   * Scopes the band to a neighborhood without a map selection — what a rank-list click means in the streets unit,
+   * where a region can't be selected on the map. Any map selection, a unit switch, or a full reset clears it.
+   * @param {?number} regionId - The neighborhood, or null to clear.
+   */
+  setFocusRegion(regionId) {
+    const next = regionId === null || regionId === undefined ? null : regionId;
+    if (next === this.#focusRegionId) return;
+    this.#focusRegionId = next;
+    this.#schedule({ dim: false });
+    this.#callbacks.onStateChange();
   }
 
   /**
    * Applies the state a URL carried.
-   * @param {object} state - Any of `open` (boolean) and `brush` (`{from, to}` in bin indices).
+   * @param {object} state - Any of `open` (boolean), `brush` (`{from, to}` in bin indices) and `focus` (a region id).
    */
-  applyUrlState({ open, brush } = {}) {
+  applyUrlState({ open, brush, focus } = {}) {
     if (open === false) this.setOpen(false, { log: false });
     if (brush) this.setBrush(brush, { final: true, log: false, announce: false });
+    if (focus) this.setFocusRegion(focus);
   }
 
   /**
@@ -147,6 +164,8 @@ class AccessScoreDock {
    * @param {{kind: string, final: boolean}} meta - The change; a weight mid-drag skips the map's dim rewrite.
    */
   applyChange(meta) {
+    // A focused neighborhood belongs to the unit it was chosen in; the reset puts the band back to the city.
+    if (meta.kind === 'Unit' || meta.kind === 'ResetAll') this.setFocusRegion(null);
     this.#schedule({ dim: !(meta.kind === 'Weight' && !meta.final) });
   }
 
@@ -156,6 +175,8 @@ class AccessScoreDock {
    */
   setSelection(selection) {
     this.#selection = selection ? { unit: selection.unit, id: selection.id } : null;
+    // A map selection is the reader's newer choice of scope.
+    if (this.#selection) this.setFocusRegion(null);
     this.#schedule({ dim: true });
   }
 
@@ -232,7 +253,8 @@ class AccessScoreDock {
         ? null
         : {
             score: cityScore,
-            label: i18next.t('accessscore:histogram-city', { score: AccessScoreChart.score(cityScore) }),
+            label: i18next.t('accessscore:histogram-city',
+              { city: this.#cityName, score: AccessScoreChart.score(cityScore) }),
           },
       brush: this.#brush,
       selection: this.#selectionScore(),
@@ -249,7 +271,6 @@ class AccessScoreDock {
         buckets: t.buckets,
         rated: ['positive_quality', 'negative_severity'].includes(scoring[t.type]?.scoring),
       })),
-      hidden: this.#hiddenTypes,
       caption: this.#scopeCaption(scope, brushStreets),
       empty: breakdown.streets === 0 && breakdown.intersections === 0,
     });
@@ -259,7 +280,7 @@ class AccessScoreDock {
       shapeKey: rows.map((r) => r.regionId).sort((a, b) => a - b).join(','),
       rows,
       brush: this.#brush,
-      selectedId: this.#selection ? this.#regionOf(this.#selection) : null,
+      selectedId: this.#selection ? this.#regionOf(this.#selection) : this.#focusRegionId,
       floored: this.#model.regionStats.length - rows.length,
     });
 
@@ -277,9 +298,18 @@ class AccessScoreDock {
   }
 
   /**
-   * What the detail views describe: the selected street or neighborhood, else the city. A selection made in the
-   * other unit is not one here, matching the histogram's caret. What's here never narrows to the viewport: its
-   * counts must be the histogram's population, or the two panels would disagree about the same city.
+   * Re-renders the photo strip's card for a label from fresh JSON, after a vote cast in the full label card.
+   * @param {object} label - A `/label/id/:id` JSON.
+   */
+  refreshLabel(label) {
+    this.#photos.refreshLabel(label);
+  }
+
+  /**
+   * What the detail views describe: the selected street or neighborhood, else the neighborhood focused from the
+   * rank list, else the city. A selection made in the other unit is not one here, matching the histogram's caret.
+   * What's here never narrows to the viewport: its counts must be the histogram's population, or the two panels
+   * would disagree about the same city.
    * @returns {{kind: string, id: ?number, regionId: ?number, name: ?string}} `kind` is 'street', 'region' or
    *   'city'; `regionId` the neighborhood the scope sits in, if any; `name` the street's or neighborhood's.
    */
@@ -294,6 +324,10 @@ class AccessScoreDock {
         const r = this.#model.explainRegion(s.id);
         if (r) return { kind: 'region', id: s.id, regionId: s.id, name: r.name };
       }
+    }
+    if (this.#focusRegionId !== null) {
+      const r = this.#model.explainRegion(this.#focusRegionId);
+      if (r) return { kind: 'region', id: this.#focusRegionId, regionId: this.#focusRegionId, name: r.name };
     }
     return { kind: 'city', id: null, regionId: null, name: null };
   }
@@ -477,14 +511,6 @@ class AccessScoreDock {
     this.#rank.clearHighlight();
     this.#markCaret(this.#mapHover?.score ?? this.#selectionScore());
     this.#applyMapDim();
-  }
-
-  #toggleType(type, shown) {
-    if (shown) this.#hiddenTypes.delete(type);
-    else this.#hiddenTypes.add(type);
-    this.#callbacks.log('ClusterType', `${type}_shown=${shown}`);
-    this.#callbacks.onToggleType(type, shown);
-    this.#schedule({ dim: false });
   }
 
   /** Moves the transient caret in the histogram and on the collapsed strip. */

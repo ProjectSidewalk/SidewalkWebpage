@@ -865,10 +865,12 @@
   pointer-events: none;
 }
 
+/* Centered over the line; the chart nudges it inward from either edge of the plot. */
 .acs-histogram__needle-label {
   position: absolute;
   top: -14px;
-  left: var(--space-xxs);
+  left: 0;
+  transform: translateX(-50%);
   font: var(--text-tiny-semibold);
   color: var(--color-neutral-900);
   white-space: nowrap;
@@ -977,45 +979,25 @@
   min-height: calc(14px * var(--ui-scale, 1));
 }
 
-.acs-whats-here__row--hidden {
-  opacity: 0.45;
-}
-
 .acs-whats-here__row--none {
   color: var(--color-neutral-700);
 }
 
-/* The type's name doubles as the switch for its dots on the map. */
 .acs-whats-here__type {
   display: flex;
   align-items: center;
   gap: var(--space-xxs);
   min-width: 0;
   padding: 0 2px;
-  border: 0;
-  border-radius: var(--border-radius-sm);
-  background: none;
   font: var(--text-caption-medium);
   line-height: calc(14px * var(--ui-scale, 1)); /* Seven rows have to fit a band, not a page. */
   color: inherit;
-  text-align: left;
-  cursor: pointer;
 }
 
-.acs-whats-here__type:hover {
-  background: var(--color-neutral-100);
-}
-
-.acs-whats-here__type:focus-visible,
 .acs-whats-here__track:focus-visible,
-.acs-photos__item:focus-visible,
 .acs-rank__row:focus-visible {
   outline: 2px solid var(--color-link-200);
   outline-offset: 1px;
-}
-
-.acs-whats-here__type[aria-pressed="false"] .acs-whats-here__name {
-  text-decoration: line-through;
 }
 
 .acs-whats-here__icon {
@@ -1106,48 +1088,8 @@
 }
 
 .acs-photos__item {
-  position: relative;
-  display: block;
   flex: none;
-  width: calc(96px * var(--ui-scale, 1));
-  height: calc(72px * var(--ui-scale, 1));
-  padding: 0;
-  border: 0;
-  border-radius: var(--border-radius);
-  background: var(--color-neutral-100);
-  overflow: hidden;
-  cursor: pointer;
   scroll-snap-align: start;
-}
-
-.acs-photos__item:hover .acs-photos__image {
-  transform: scale(1.04);
-}
-
-.acs-photos__figure {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.acs-photos__image {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform var(--transition-fast);
-}
-
-/* The type badge sits on the picture's corner, ringed in surface so it reads on any crop. */
-.acs-photos__badge {
-  position: absolute;
-  right: 3px;
-  bottom: 3px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--color-neutral-white);
-  box-shadow: 0 0 0 1px var(--color-neutral-white);
 }
 
 /* ---- Neighborhoods ranked ---- */
@@ -1278,8 +1220,7 @@
   background: var(--color-neutral-100);
 }
 
-.acs-sheet__close:focus-visible,
-.acs-sheet__card:focus-visible {
+.acs-sheet__close:focus-visible {
   outline: 2px solid var(--color-link-200);
   outline-offset: 2px;
 }
@@ -1309,86 +1250,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.acs-sheet__card {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  padding: 0;
-  border: 1px solid var(--color-neutral-200);
-  border-radius: var(--border-radius-lg);
-  background: var(--color-neutral-white);
-  text-align: left;
-  cursor: pointer;
-  overflow: hidden;
-}
-
-.acs-sheet__card:hover {
-  border-color: var(--color-neutral-400);
-  box-shadow: var(--box-shadow);
-}
-
-.acs-sheet__figure {
-  display: block;
-  aspect-ratio: 4 / 3;
-  background: var(--color-neutral-100);
-}
-
-.acs-sheet__image {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.acs-sheet__placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xxs);
-  height: 100%;
-  font: var(--text-tiny-regular);
-  color: var(--color-neutral-700);
-}
-
-.acs-sheet__placeholder img {
-  width: 28px;
-  height: 28px;
-}
-
-.acs-sheet__caption {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 2px var(--space-xs);
-  padding: var(--space-xs);
-  font: var(--text-tiny-regular);
-  color: var(--color-neutral-700);
-}
-
-.acs-sheet__rating {
-  font: var(--text-caption-semibold);
-  color: var(--color-neutral-900);
-}
-
-.acs-sheet__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  width: 100%;
-}
-
-.acs-sheet__tag {
-  padding: 0 6px;
-  border-radius: 8px;
-  background: var(--color-neutral-100);
-  color: var(--color-neutral-800);
-}
-
-.acs-sheet__date {
-  width: 100%;
 }
 
 /* ---- Dark basemap ---- */

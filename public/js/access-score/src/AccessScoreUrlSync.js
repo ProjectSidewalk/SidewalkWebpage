@@ -8,7 +8,8 @@
  * Params: `unit` (streets|regions), `w` (per-type magnitudes, `CurbRamp:0.75,…`, present only when they differ
  * from the engine's defaults), `unaudited` (0|1), `clusters` (0|1, the evidence layer), `sel` (selected street or
  * region id, read with `unit`), `dark` (1 for the dark basemap); and the insights dock's `dock` (0 when collapsed)
- * and `b` (the brushed score range as `from-to` in whole percent, on the histogram's 10-point bin edges).
+ * `b` (the brushed score range as `from-to` in whole percent, on the histogram's 10-point bin edges) and `focus`
+ * (the neighborhood a rank-list click scoped the band to).
  */
 class AccessScoreUrlSync {
   static #WRITE_DELAY_MS = 300;
@@ -17,7 +18,7 @@ class AccessScoreUrlSync {
   #map;
   #writeTimer = null;
   #selection = null;
-  #dock = { open: true, brush: null };
+  #dock = { open: true, brush: null, focus: null };
   #dark = false;
 
   /**
@@ -26,7 +27,8 @@ class AccessScoreUrlSync {
    *
    * @param {object} config - The `/v3/api/accessScoreConfig` response.
    * @param {string} [search=window.location.search] - The query string to read.
-   * @returns {{state: object, selection: ?number, dark: boolean, dock: {open: boolean, brush: ?object}}} A partial
+   * @returns {{state: object, selection: ?number, dark: boolean,
+   *   dock: {open: boolean, brush: ?object, focus: ?number}}} A partial
    *   `AccessScoreModel` state, the selected id if any, whether the dark basemap is asked for, and the dock's
    *   state (`brush` as `{from, to}` bin indices).
    */
@@ -53,7 +55,10 @@ class AccessScoreUrlSync {
 
     const sel = Number.parseInt(params.get('sel'), 10);
 
-    const dock = { open: params.get('dock') !== '0', brush: null };
+    const focus = Number.parseInt(params.get('focus'), 10);
+    const dock = {
+      open: params.get('dock') !== '0', brush: null, focus: Number.isFinite(focus) && focus > 0 ? focus : null,
+    };
     // A brush is only meaningful on the bin edges; anything else is dropped whole rather than rounded to a range
     // the link's author never picked.
     const b = /^(\d{1,3})-(\d{1,3})$/.exec(params.get('b') || '');
@@ -93,7 +98,7 @@ class AccessScoreUrlSync {
 
   /**
    * Records the insights dock's state for the URL's `dock` and `b` params.
-   * @param {{open: boolean, brush: ?{from: number, to: number}}} dock - The dock's state.
+   * @param {{open: boolean, brush: ?{from: number, to: number}, focus: ?number}} dock - The dock's state.
    */
   setDock(dock) {
     this.#dock = dock;
@@ -140,6 +145,7 @@ class AccessScoreUrlSync {
     const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
     const brush = this.#dock.brush;
     set('b', brush ? `${brush.from * step}-${brush.to * step}` : '', brush === null);
+    set('focus', String(this.#dock.focus), !this.#dock.focus);
 
     const center = this.#map.getCenter();
     url.searchParams.set('lat', center.lat.toFixed(5));

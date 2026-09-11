@@ -79,7 +79,7 @@
   "chart-rank": "Barrios ordenados",
   "chart-rank-help": "Todos los barrios con datos suficientes, del mejor al peor. Haga clic en uno para ir allí.",
   "histogram-bars": "Intervalos de puntuación",
-  "histogram-city": "Ciudad {{score}}",
+  "histogram-city": "Promedio de {{city}}: {{score}}",
   "histogram-empty": "Aún no hay nada puntuado aquí.",
   "bin-streets": "Puntuaciones {{from}}–{{to}}: {{length}} de calles",
   "bin-regions_one": "Puntuaciones {{from}}–{{to}}: {{count}} barrio",
@@ -91,8 +91,6 @@
   "brush-clear": "Quitar rango",
   "brush-cleared": "Rango de puntuaciones quitado",
   "cluster-unrated": "sin valorar",
-  "cluster-type-shown": "{{type}}: visible en el mapa. Haga clic para ocultar.",
-  "cluster-type-hidden": "{{type}}: oculto en el mapa. Haga clic para mostrar.",
   "rank-row": "{{position}}. {{name}}: puntuación {{score}}, {{percent}} % explorado",
   "rank-floored_one": "{{count}} barrio por debajo del mínimo de exploración",
   "rank-floored_other": "{{count}} barrios por debajo del mínimo de exploración",
@@ -115,7 +113,6 @@
   "photos-scope-viewport": "la zona visible",
   "photos-loading": "Cargando fotos…",
   "photos-empty": "Todavía no hay fotos aquí.",
-  "photos-open": "Abrir esta etiqueta: {{label}}",
   "sheet-title": "Grupo de {{type}}",
   "sheet-meta_one": "{{count}} etiqueta en la calle {{street}}",
   "sheet-meta_other": "{{count}} etiquetas en la calle {{street}}",
@@ -123,8 +120,5 @@
   "sheet-error_one": "No se pudo cargar {{count}} etiqueta.",
   "sheet-error_other": "No se pudieron cargar {{count}} etiquetas.",
   "sheet-more_one": "{{count}} etiqueta más no mostrada.",
-  "sheet-more_other": "{{count}} etiquetas más no mostradas.",
-  "sheet-open": "Abrir esta etiqueta: {{label}}",
-  "sheet-votes": "{{agree}} de acuerdo · {{disagree}} en desacuerdo",
-  "sheet-no-image": "Sin imagen"
+  "sheet-more_other": "{{count}} etiquetas más no mostradas."
 }

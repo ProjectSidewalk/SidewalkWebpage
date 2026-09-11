@@ -104,7 +104,10 @@ class AccessScoreHistogram extends AccessScoreChart {
     this.#els.empty.hidden = data.total > 0;
     this.#setBrushDisplay(data.brush);
     this.#place(this.#els.needle, data.needle?.score ?? null);
-    if (data.needle) this.#els.needleLabel.textContent = data.needle.label;
+    if (data.needle) {
+      this.#els.needleLabel.textContent = data.needle.label;
+      this.#centerNeedleLabel(data.needle.score);
+    }
     this.#place(this.#els.selection, data.selection);
     this.#place(this.#els.hover, data.hover);
   }
@@ -132,6 +135,23 @@ class AccessScoreHistogram extends AccessScoreChart {
   }
 
   /** Positions a marker at a score along the plot, or hides it. */
+  /**
+   * Centers the needle's label over the line, nudged inward by whatever the plot's edge would cut off (zero
+   * without layout, as in jsdom).
+   * @param {number} score - The needle's score in [0, 1].
+   */
+  #centerNeedleLabel(score) {
+    const label = this.#els.needleLabel;
+    const plotWidth = this.#els.needle.parentElement?.clientWidth || 0;
+    const width = label.offsetWidth || 0;
+    let nudge = 0;
+    if (plotWidth > 0 && width > 0) {
+      const x = Math.min(1, Math.max(0, score)) * plotWidth;
+      nudge = Math.max(0, width / 2 - x) - Math.max(0, x + width / 2 - plotWidth);
+    }
+    label.style.transform = nudge === 0 ? 'translateX(-50%)' : `translateX(calc(-50% + ${Math.round(nudge)}px))`;
+  }
+
   #place(el, score) {
     const show = typeof score === 'number' && Number.isFinite(score);
     el.hidden = !show;

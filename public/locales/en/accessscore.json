@@ -79,7 +79,7 @@
   "chart-rank": "Neighborhoods ranked",
   "chart-rank-help": "Every neighborhood with enough data, best first. Click one to go there.",
   "histogram-bars": "Score bins",
-  "histogram-city": "City {{score}}",
+  "histogram-city": "{{city}} average: {{score}}",
   "histogram-empty": "Nothing scored here yet.",
   "bin-streets": "Scores {{from}}–{{to}}: {{length}} of streets",
   "bin-regions_one": "Scores {{from}}–{{to}}: {{count}} neighborhood",
@@ -91,8 +91,6 @@
   "brush-clear": "Clear range",
   "brush-cleared": "Score range cleared",
   "cluster-unrated": "unrated",
-  "cluster-type-shown": "{{type}}: shown on the map. Click to hide.",
-  "cluster-type-hidden": "{{type}}: hidden on the map. Click to show.",
   "rank-row": "{{position}}. {{name}}: score {{score}}, {{percent}}% explored",
   "rank-floored_one": "{{count}} neighborhood below the completion floor",
   "rank-floored_other": "{{count}} neighborhoods below the completion floor",
@@ -115,7 +113,6 @@
   "photos-scope-viewport": "the area in view",
   "photos-loading": "Loading photos…",
   "photos-empty": "No photos here yet.",
-  "photos-open": "Open this label: {{label}}",
   "sheet-title": "{{type}} cluster",
   "sheet-meta_one": "{{count}} label on street {{street}}",
   "sheet-meta_other": "{{count}} labels on street {{street}}",
@@ -123,8 +120,5 @@
   "sheet-error_one": "{{count}} label couldn't be loaded.",
   "sheet-error_other": "{{count}} labels couldn't be loaded.",
   "sheet-more_one": "{{count}} more label not shown.",
-  "sheet-more_other": "{{count}} more labels not shown.",
-  "sheet-open": "Open this label: {{label}}",
-  "sheet-votes": "{{agree}} agree · {{disagree}} disagree",
-  "sheet-no-image": "No image"
+  "sheet-more_other": "{{count}} more labels not shown."
 }

@@ -79,7 +79,7 @@
   "chart-rank": "Viertel im Ranking",
   "chart-rank-help": "Jedes Viertel mit genügend Daten, das beste zuerst. Klicken Sie auf eines, um dorthin zu springen.",
   "histogram-bars": "Bewertungsintervalle",
-  "histogram-city": "Stadt {{score}}",
+  "histogram-city": "Durchschnitt {{city}}: {{score}}",
   "histogram-empty": "Hier ist noch nichts bewertet.",
   "bin-streets": "Bewertungen {{from}}–{{to}}: {{length}} Straßen",
   "bin-regions_one": "Bewertungen {{from}}–{{to}}: {{count}} Viertel",
@@ -91,8 +91,6 @@
   "brush-clear": "Bereich aufheben",
   "brush-cleared": "Bewertungsbereich aufgehoben",
   "cluster-unrated": "ohne Einstufung",
-  "cluster-type-shown": "{{type}}: auf der Karte sichtbar. Zum Ausblenden klicken.",
-  "cluster-type-hidden": "{{type}}: auf der Karte ausgeblendet. Zum Einblenden klicken.",
   "rank-row": "{{position}}. {{name}}: Bewertung {{score}}, {{percent}} % erkundet",
   "rank-floored_one": "{{count}} Viertel unter der Mindesterkundung",
   "rank-floored_other": "{{count}} Viertel unter der Mindesterkundung",
@@ -115,7 +113,6 @@
   "photos-scope-viewport": "dem sichtbaren Bereich",
   "photos-loading": "Fotos werden geladen…",
   "photos-empty": "Hier gibt es noch keine Fotos.",
-  "photos-open": "Dieses Label öffnen: {{label}}",
   "sheet-title": "{{type}}-Cluster",
   "sheet-meta_one": "{{count}} Markierung auf Straße {{street}}",
   "sheet-meta_other": "{{count}} Markierungen auf Straße {{street}}",
@@ -123,8 +120,5 @@
   "sheet-error_one": "{{count}} Markierung konnte nicht geladen werden.",
   "sheet-error_other": "{{count}} Markierungen konnten nicht geladen werden.",
   "sheet-more_one": "{{count}} weitere Markierung nicht gezeigt.",
-  "sheet-more_other": "{{count}} weitere Markierungen nicht gezeigt.",
-  "sheet-open": "Diese Markierung öffnen: {{label}}",
-  "sheet-votes": "{{agree}} stimmen zu · {{disagree}} widersprechen",
-  "sheet-no-image": "Kein Bild"
+  "sheet-more_other": "{{count}} weitere Markierungen nicht gezeigt."
 }

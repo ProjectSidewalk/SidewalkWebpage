@@ -18,7 +18,7 @@ describe('AccessScoreHistogram', () => {
     function draw(over = {}) {
         chart.draw({
             shapeKey: 'streets', unit: 'streets', bins: bins(Array.from({length: N}, (_, k) => k)), total: 45,
-            needle: {score: 0.62, label: 'City 62'}, brush: null, selection: 0.3, hover: null, ...over,
+            needle: {score: 0.62, label: 'Fixture average: 62'}, brush: null, selection: 0.3, hover: null, ...over,
         });
     }
 
@@ -68,7 +68,8 @@ describe('AccessScoreHistogram', () => {
         const needle = document.querySelector('.acs-histogram__needle');
         expect(needle.hidden).toBe(false);
         expect(needle.style.left).toBe('62%');
-        expect(needle.textContent.trim()).toBe('City 62');
+        expect(needle.textContent.trim()).toBe('Fixture average: 62');
+        expect(needle.querySelector('.acs-histogram__needle-label').style.transform).toBe('translateX(-50%)');
         const selection = document.querySelector('.acs-histogram__caret--selection');
         expect(selection.style.left).toBe('30%');
         const hover = document.querySelector('.acs-histogram__caret--hover');

@@ -49,8 +49,16 @@ const REGIONS = {
 };
 const COMPLETION = [{region_id: 1, name: 'Fixture', rate: 1, total_distance_m: 300, completed_distance_m: 200, outdated_distance_m: 0}];
 
+/** Every validation the stubbed `/labelmap/validate` received in the current test, as parsed JSON bodies. */
+const VALIDATIONS = [];
+
 /** Serves the fixture in place of the city's feeds. */
 async function stubFeeds(context) {
+  VALIDATIONS.length = 0;
+  await context.route('**/labelmap/validate', (route) => {
+    VALIDATIONS.push(route.request().postDataJSON());
+    return route.fulfill({json: {}});
+  });
   await context.route('**/v3/api/accessScoreStreets*', (route) => route.fulfill({json: streetsFixture()}));
   await context.route('**/v3/api/accessScoreIntersections*', (route) =>
     route.fulfill({json: {type: 'FeatureCollection', features: []}}));
@@ -59,8 +67,11 @@ async function stubFeeds(context) {
   await context.route('**/v3/api/labelClusters*', (route) => route.fulfill({json: clustersFixture()}));
   await context.route('**/label/id/*', (route) => {
     const id = Number(route.request().url().split('/').pop());
+    // Label 11 carries a (stubbed) crop so its chips are live; the rest have no picture to judge by.
     return route.fulfill({json: {label_id: id, label_type: id === 12 ? 'Obstacle' : 'CurbRamp',
-      severity: id === 12 ? 3 : 1, crop_url: null, backup_image_url: null, tags: []}});
+      severity: id === 12 ? 3 : 1, crop_url: id === 11 ? '/assets/images/icons/label_type_icons/CurbRamp_small.svg' : null,
+      backup_image_url: null, tags: [], num_agree: 2, num_disagree: 0, num_unsure: 0, user_validation: null,
+      from_current_user: false, heading: 10, pitch: -5, zoom: 1, canvas_x: 300, canvas_y: 200}});
   });
 }
 
@@ -266,6 +277,30 @@ test.describe('/accessScore', () => {
       expect(await dimOf(page, 'acs-regions', 1)).toBe(false);
     });
 
+  test('in the streets unit a rank click scopes the band to the neighborhood without selecting it on the map', async ({page}) => {
+    await page.goto('/accessScore');
+    await waitForAppReady(page);
+    await waitForTool(page);
+    const row = page.locator('.acs-rank__row').first();
+    await expect(row).toContainText('Fixture');
+    const zoomBefore = await page.evaluate(() => window.accessScore.map.getZoom());
+    await row.click();
+    await expect(row).toHaveAttribute('aria-current', 'true');
+    await expect(page.locator('.acs-whats-here__caption')).toHaveText('in Fixture');
+    await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from Fixture');
+    await expect.poll(() => urlParam(page, 'focus')).toBe('1');
+    await expect.poll(() => page.evaluate(() => window.accessScore.map.getZoom())).not.toBe(zoomBefore);
+    // No region was selected on the streets map: no popup, and the URL carries no selection.
+    await expect(page.locator('.acs-popup')).toHaveCount(0);
+    expect(await urlParam(page, 'sel')).toBeNull();
+    // The rows in What's here only read now: nothing in them is a button.
+    await expect(page.locator('.acs-whats-here__row button')).toHaveCount(0);
+    // A street selection is the newer scope and drops the focus.
+    await page.evaluate(() => window.accessScore.dock.setSelection({unit: 'streets', id: 1}));
+    await expect(page.locator('.acs-whats-here__caption')).toHaveText('on Cedar Lane');
+    await expect.poll(() => urlParam(page, 'focus')).toBeNull();
+  });
+
   test('selecting a street fades the streets outside its neighborhood, and the collapsed band keeps the legend',
     async ({page}) => {
       await page.goto('/accessScore');
@@ -318,6 +353,8 @@ test.describe('/accessScore', () => {
     await page.goto('/accessScore');
     await waitForAppReady(page);
     await waitForTool(page);
+    // The needle names the city the backend serves and calls the number what it is: the city's average.
+    await expect(page.locator('.acs-histogram__needle-label')).toHaveText(/\S.* average: \d+$/);
     // Citywide: two curb ramps (good) and two obstacles (severe) from the fixture streets.
     await expect(page.locator('.acs-whats-here__caption')).toHaveText('citywide');
     await expect(page.locator('.acs-whats-here__row[data-type="CurbRamp"] .acs-whats-here__count')).toHaveText('2');
@@ -330,16 +367,34 @@ test.describe('/accessScore', () => {
     await expect(items).toHaveCount(2);
     // Worst first: the severity-3 obstacle cluster ahead of the good curb ramps; no crops locally → placeholders.
     await expect(items.nth(0)).toHaveAttribute('data-label-id', '12');
-    await expect(items.nth(0).locator('.acs-sheet__placeholder')).toBeVisible();
-    await expect(items.nth(0)).toHaveAttribute('data-ps-tooltip', /Obstacle in Path · High · Fixture/);
+    await expect(items.nth(0).locator('.lmc__placeholder')).toBeVisible();
+    await expect(items.nth(0).locator('.lmc__open')).toHaveAttribute('data-ps-tooltip', /Obstacle in Path, High/);
+    // With no picture there is nothing to judge, so its chips are locked.
+    await expect(items.nth(0).locator('.lmc__vote--agree')).toBeDisabled();
     // A street selection narrows the strip to that street's clusters.
     await page.evaluate(() => window.accessScore.dock.setSelection({unit: 'streets', id: 1}));
     await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from Cedar Lane · Street 1');
     await expect(items).toHaveCount(1);
     await expect(items.nth(0)).toHaveAttribute('data-label-id', '11');
     await expect(page.locator('.acs-whats-here__caption')).toHaveText('on Cedar Lane');
+    // A vote from the thumbnail's chips lands as a static-crop validation and shows at once.
+    const agree = items.nth(0).locator('.lmc__vote--agree');
+    await expect(agree.locator('.lmc__vote-count')).toHaveText('2');
+    await agree.click();
+    await expect(agree).toHaveAttribute('aria-pressed', 'true');
+    await expect(agree.locator('.lmc__vote-count')).toHaveText('3');
+    await expect.poll(() => VALIDATIONS.length).toBe(1);
+    expect(VALIDATIONS[0]).toMatchObject({
+      label_id: 11, validation_result: 'Agree', viewer_type: 'StaticCrop', source: 'AccessScoreStrip', undone: false,
+      canvas_width: 720, canvas_height: 480, canvas_x: 300, canvas_y: 200,
+    });
+    // The same chip again clears the vote.
+    await agree.click();
+    await expect(agree).toHaveAttribute('aria-pressed', 'false');
+    await expect.poll(() => VALIDATIONS.length).toBe(2);
+    expect(VALIDATIONS[1]).toMatchObject({validation_result: 'Agree', undone: true});
     // A thumbnail opens the shared label card.
-    await items.nth(0).click();
+    await items.nth(0).locator('.lmc__open').click();
     await expect(page.locator('#label-modal')).toBeVisible();
   });
 
@@ -418,7 +473,8 @@ test.describe('/accessScore', () => {
     await waitForTool(page);
     await expect(page.locator('#acs-dock')).toHaveClass(/acs-dock--collapsed/);
     await expect(page.locator('#acs-dock-toggle')).toHaveAttribute('aria-expanded', 'false');
-    expect(await page.evaluate(() => window.accessScore.dock.state)).toEqual({open: false, brush: {from: 8, to: 9}});
+    expect(await page.evaluate(() => window.accessScore.dock.state))
+      .toEqual({open: false, brush: {from: 8, to: 9}, focus: null});
 
     await page.locator('#acs-dock-toggle').click();
     await expect(page.locator('#acs-dock-body')).toBeVisible();

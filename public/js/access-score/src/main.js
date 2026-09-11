@@ -158,12 +158,17 @@ window.AccessScoreApp = (function () {
       dark,
     });
     evidence = await mountClusterEvidence();
+    // The view stamps the city's name on the map holder, so the needle can name the city rather than say "City".
+    const cityName = document.getElementById('acs-map-holder')?.dataset.cityName ?? '';
     dock = new AccessScoreDock(document.getElementById('acs-dock'), {
+      cityName,
       model,
       mapView,
       map,
       // A rank row goes to the neighborhood; in the neighborhoods unit it selects it too, in the streets unit the
       // regions aren't selectable, so the fly-to is the whole answer.
+      // In the neighborhoods unit a rank click is a map selection; in the streets unit the dock's own focus scopes
+      // the band to the neighborhood without a region ever being "selected" on a streets map.
       onRankSelect: (regionId) => {
         mapView.flyToRegion(regionId);
         if (model.state.unit === 'regions') {
@@ -171,7 +176,6 @@ window.AccessScoreApp = (function () {
           if (lngLat) select({ unit: 'regions', id: regionId, lngLat });
         }
       },
-      onToggleType: (type, shown) => evidence.layer.setTypeVisible(type, shown),
       onOpenLabel: (labelId, ids) => evidence.openLabel(labelId, ids),
       onStateChange: () => urlSync.setDock(dock.state),
       log,
@@ -287,15 +291,24 @@ window.AccessScoreApp = (function () {
      * arithmetic uses, which is exactly the question a reader checking a score would trip over.
      */
     async function mountClusterEvidence() {
+      let sheet = null;
       const popupLabelViewer = await LabelPopup(false, viewerType, imageryAccessToken, username, {
         syncUrlSource: 'AccessScore',
         showExploreHereLink: true,
+        // A vote in the full card changes counts a mini-card may be showing; the card's own JSON is the truth.
+        onVote: (action, meta) => fetch(`/label/id/${meta.label_id}`)
+          .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+          .then((label) => {
+            sheet?.refreshLabel(label);
+            dock?.refreshLabel(label);
+          })
+          .catch((e) => console.warn('AccessScore: could not refresh a voted label', e)),
       });
       const openLabel = (labelId, ids) => {
         popupLabelViewer.setNearbyNavigator(clusterNavigator(ids));
         popupLabelViewer.showLabel(labelId, 'AccessScore');
       };
-      const sheet = new AccessScoreClusterSheet({ log, onOpenLabel: openLabel });
+      sheet = new AccessScoreClusterSheet({ log, onOpenLabel: openLabel });
       const layer = new AccessScoreClusterLayer(map, {
         types: config.scored_types,
         tooltipHtml: clusterTooltipHtml,

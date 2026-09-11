@@ -68,7 +68,7 @@ describe('AccessScoreDock', () => {
             getCenter: () => ({lng: 0, lat: 0}),
             getBounds: () => ({getWest: () => -1, getSouth: () => -1, getEast: () => 1, getNorth: () => 1}),
         };
-        callbacks = {onRankSelect: jest.fn(), onToggleType: jest.fn(), onOpenLabel: jest.fn(), onStateChange: jest.fn(),
+        callbacks = {onRankSelect: jest.fn(), onOpenLabel: jest.fn(), onStateChange: jest.fn(),
             log: jest.fn()};
         fetchMock = stubFetch({
             clustersByRegion: {
@@ -93,7 +93,8 @@ describe('AccessScoreDock', () => {
                 201: {label_id: 201, label_type: 'SurfaceProblem', severity: 2, crop_url: null, backup_image_url: null},
             },
         });
-        dock = new window.AccessScoreDock(document.getElementById('acs-dock'), {model, mapView, map,
+        dock = new window.AccessScoreDock(document.getElementById('acs-dock'), {
+            cityName: 'Fixture City', model, mapView, map,
             config: FIXTURE.config, ...callbacks});
         flush();
     });
@@ -258,10 +259,15 @@ describe('AccessScoreDock', () => {
         expect(document.querySelector('[data-kpi="kpi-regions"]')).not.toBeNull();
     });
 
+    test('the histogram needle names the city, as the backend states it, over the city average', () => {
+        expect(document.querySelector('.acs-histogram__needle-label').textContent)
+            .toMatch(/^histogram-city city=Fixture City score=\d+/);
+    });
+
     test('carries a URL state and reports state changes for the URL', () => {
         dock.applyUrlState({open: false, brush: {from: 2, to: 4}});
         flush();
-        expect(dock.state).toEqual({open: false, brush: {from: 2, to: 4}});
+        expect(dock.state).toEqual({open: false, brush: {from: 2, to: 4}, focus: null});
         expect(document.getElementById('acs-dock').classList.contains('acs-dock--collapsed')).toBe(true);
         expect(document.getElementById('acs-dock-body').hidden).toBe(true);
         expect(document.getElementById('acs-dock-toggle').getAttribute('aria-expanded')).toBe('false');
@@ -273,18 +279,41 @@ describe('AccessScoreDock', () => {
         expect(callbacks.log).toHaveBeenCalledWith('Dock', 'open');
     });
 
-    test('a type toggle in what\'s here is passed to the map and mutes the row', () => {
-        const toggle = document.querySelector('.acs-whats-here__row[data-type="Obstacle"] .acs-whats-here__type');
-        toggle.click();
+    test('a rank row focuses its neighborhood as the band\'s scope in the streets unit, until the map or a reset says otherwise', async () => {
+        // The rows only read: no type is a switch for the map's dots.
+        expect(document.querySelector('.acs-whats-here__row button')).toBeNull();
+        const second = document.querySelectorAll('.acs-rank__row')[1];
+        const regionId = Number(second.dataset.regionId);
+        const name = REGIONS.find((r) => r.region_id === regionId).name;
+        second.click();
         flush();
-        expect(callbacks.onToggleType).toHaveBeenCalledWith('Obstacle', false);
-        expect(callbacks.log).toHaveBeenCalledWith('ClusterType', 'Obstacle_shown=false');
-        expect(toggle.getAttribute('aria-pressed')).toBe('false');
-        expect(toggle.closest('.acs-whats-here__row').classList.contains('acs-whats-here__row--hidden')).toBe(true);
-        // Whichever region ranks first (the fixture's cases decide), clicking its row selects that region.
-        const first = document.querySelector('.acs-rank__row');
-        first.click();
-        expect(callbacks.onRankSelect).toHaveBeenCalledWith(Number(first.dataset.regionId));
+        await settle();
+        expect(callbacks.log).toHaveBeenCalledWith('RankSelect_regionId', regionId);
+        expect(callbacks.onRankSelect).toHaveBeenCalledWith(regionId);
+        expect(dock.state.focus).toBe(regionId);
+        expect(callbacks.onStateChange).toHaveBeenCalled();
+        expect(document.querySelector('.acs-rank__row[aria-current="true"]').dataset.regionId).toBe(String(regionId));
+        expect(document.querySelector('.acs-whats-here__caption').textContent).toBe(`scope-region name=${name}`);
+        expect(document.querySelector('.acs-photos__caption').textContent).toBe(`photos-from scope=${name}`);
+        expect(fetchMock.mock.calls.some(([u]) => String(u).includes(`regionId=${regionId}`))).toBe(true);
+        // A map selection is the newer choice and clears the focus; a street's own scope wins.
+        dock.setSelection({unit: 'streets', id: model.streetIds[0]});
+        flush();
+        expect(dock.state.focus).toBeNull();
+        dock.setSelection(null);
+        dock.setFocusRegion(regionId);
+        flush();
+        expect(dock.state.focus).toBe(regionId);
+        // A unit switch drops it, as does the page-wide reset; a shared link brings it back.
+        dock.applyChange({kind: 'Unit', final: true});
+        flush();
+        expect(dock.state.focus).toBeNull();
+        dock.applyUrlState({focus: regionId});
+        flush();
+        expect(dock.state.focus).toBe(regionId);
+        dock.applyChange({kind: 'ResetAll', final: true});
+        flush();
+        expect(dock.state.focus).toBeNull();
     });
 
     test('the photo strip shows the region\'s worst clusters first, opens the label card, and ignores a late feed', async () => {
@@ -297,10 +326,10 @@ describe('AccessScoreDock', () => {
         const items = document.querySelectorAll('.acs-photos__item');
         // Severity 3 ahead of 1; a label with a crop shows it, one without shows the type placeholder.
         expect(Array.from(items).map((el) => el.dataset.labelId)).toEqual(['101', '103']);
-        expect(items[0].querySelector('.acs-photos__image').getAttribute('src')).toBe('https://example.test/101.jpg');
-        expect(items[1].querySelector('.acs-sheet__placeholder')).not.toBeNull();
-        expect(items[0].getAttribute('data-ps-tooltip')).toBe('obstacle · high · Fixture');
-        items[1].click();
+        expect(items[0].querySelector('.lmc__image').getAttribute('src')).toBe('https://example.test/101.jpg');
+        expect(items[1].querySelector('.lmc__placeholder')).not.toBeNull();
+        expect(items[0].querySelector('.lmc__open').getAttribute('data-ps-tooltip')).toBe('obstacle, high');
+        items[1].querySelector('.lmc__open').click();
         expect(callbacks.log).toHaveBeenCalledWith('PhotoStrip_labelId', 103);
         expect(callbacks.onOpenLabel).toHaveBeenCalledWith(103, [101, 103]);
 

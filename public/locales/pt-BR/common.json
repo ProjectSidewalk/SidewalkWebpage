@@ -347,5 +347,12 @@
     "on-facebook": "Compartilhar no Facebook",
     "on-linkedin": "Compartilhar no LinkedIn",
     "via-email": "Compartilhar por e-mail"
+  },
+  "mini-card": {
+    "no-image": "Sem imagem",
+    "open": "Abrir este rótulo: {{label}}",
+    "votes": "Validar este rótulo",
+    "no-image-to-judge": "Sem imagem para avaliar este rótulo",
+    "vote-failed": "Seu voto não foi salvo. Tente novamente."
   }
 }

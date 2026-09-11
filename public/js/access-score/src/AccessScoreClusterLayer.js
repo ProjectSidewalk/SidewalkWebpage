@@ -24,7 +24,6 @@ class AccessScoreClusterLayer {
   /** The last collection drawn, kept so a basemap swap can redraw it. */
   #data = { type: 'FeatureCollection', features: [] };
   /** Types switched off individually, from the dock's cluster view. */
-  #hiddenTypes = new Set();
   #hovered = null;
 
   /**
@@ -93,22 +92,9 @@ class AccessScoreClusterLayer {
     if (!visible) this.#clearHover();
   }
 
-  /**
-   * Shows or hides one type's clusters, under the layer-wide switch: a type hidden here stays hidden when the
-   * layer is switched back on.
-   * @param {string} type - A scored label type.
-   * @param {boolean} visible - True to draw it.
-   */
-  setTypeVisible(type, visible) {
-    if (visible) this.#hiddenTypes.delete(type);
-    else this.#hiddenTypes.add(type);
-    this.#applyVisibility();
-    if (!visible) this.#clearHover();
-  }
-
   #applyVisibility() {
     for (const type of this.#types) {
-      const shown = this.#visible && !this.#hiddenTypes.has(type);
+      const shown = this.#visible;
       this.#map.setLayoutProperty(AccessScoreClusterLayer.#layerId(type), 'visibility', shown ? 'visible' : 'none');
     }
   }
