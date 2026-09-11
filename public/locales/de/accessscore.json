@@ -39,8 +39,6 @@
   "explore-here": "Hier erkunden",
   "popup-clusters-mean": "Cluster je Straße",
   "adjust": "Gewichte anpassen",
-  "weights-summary-default": "Standardgewichte",
-  "weights-summary-custom": "Eigene Gewichte",
   "row-helps": "hilft",
   "row-hurts": "schadet",
   "row-avg": "Ø {{value}} pro Straße",

@@ -159,7 +159,7 @@ test.describe('/accessScore', () => {
     await page.locator('#acs-weight-CurbRamp').dispatchEvent('input');
     await page.locator('#acs-weight-CurbRamp').dispatchEvent('change');
     expect(await scoreOf(page, 1)).toBeCloseTo(0.5, 6);
-    await expect(page.locator('#acs-weights-summary')).toHaveText('Custom weights');
+    await expect(page.locator('#acs-reset')).toBeVisible();
     expect(scoreRequests.length).toBe(requestsAfterLoad);
 
     // The URL carries the custom weights, so the view is shareable.
@@ -169,7 +169,7 @@ test.describe('/accessScore', () => {
     // Reset restores the engine's weights, the score, and drops the weights from the URL.
     await page.locator('#acs-reset').click();
     expect(await scoreOf(page, 1)).toBeCloseTo(0.8176, 3);
-    await expect(page.locator('#acs-weights-summary')).toHaveText('Default weights');
+    await expect(page.locator('#acs-reset')).toBeHidden();
     await expect.poll(() => page.evaluate(() => new URL(window.location.href).searchParams.has('w'))).toBe(false);
   });
 
@@ -412,7 +412,7 @@ test.describe('/accessScore', () => {
     await expect.poll(() => urlParam(page, 'b')).toBe('10-20');
     await page.locator('#acs-reset-all').click();
     expect(await scoreOf(page, 1)).toBeCloseTo(0.8176, 3);
-    await expect(page.locator('#acs-weights-summary')).toHaveText('Default weights');
+    await expect(page.locator('#acs-reset')).toBeHidden();
     await expect(page.locator('.acs-popup')).toHaveCount(0);
     await expect(page.locator('#acs-dock-brush')).toBeHidden();
     for (const name of ['w', 'sel', 'b', 'unit', 'dock']) {

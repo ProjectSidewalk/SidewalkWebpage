@@ -39,8 +39,6 @@
   "explore-here": "Explorar aquí",
   "popup-clusters-mean": "Grupos por calle",
   "adjust": "Ajustar los pesos",
-  "weights-summary-default": "Pesos predeterminados",
-  "weights-summary-custom": "Pesos personalizados",
   "row-helps": "ayuda",
   "row-hurts": "perjudica",
   "row-avg": "prom. {{value}} por calle",

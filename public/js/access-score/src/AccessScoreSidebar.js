@@ -116,7 +116,6 @@ class AccessScoreSidebar {
       showUnaudited: root.querySelector('#acs-show-unaudited'),
       showClusters: root.querySelector('#acs-show-clusters'),
       reset: root.querySelector('#acs-reset'),
-      weightsSummary: root.querySelector('#acs-weights-summary'),
       streetOptions: root.querySelector('#acs-street-options'),
     };
   }
@@ -172,13 +171,8 @@ class AccessScoreSidebar {
     return `×${Number(value).toFixed(2)}`;
   }
 
-  /** The hint beside the weights heading: whether the weights in force are the engine's own. */
+  /** "Reset weights" only appears once a slider has moved; at the defaults there is nothing to reset. */
   #updateWeightsSummary() {
-    const atDefault = this.#slidersAtDefault();
-    const el = this.#els.weightsSummary;
-    if (el) {
-      el.textContent = i18next.t(
-        atDefault ? 'accessscore:weights-summary-default' : 'accessscore:weights-summary-custom');
-    }
+    this.#els.reset.hidden = this.#slidersAtDefault();
   }
 }

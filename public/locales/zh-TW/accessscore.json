@@ -39,8 +39,6 @@
   "explore-here": "探索此處",
   "popup-clusters-mean": "每條街道的群集",
   "adjust": "調整權重",
-  "weights-summary-default": "預設權重",
-  "weights-summary-custom": "自訂權重",
   "row-helps": "有利",
   "row-hurts": "不利",
   "row-avg": "平均每條街道 {{value}}",

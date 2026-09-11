@@ -313,28 +313,13 @@
   white-space: nowrap;
 }
 
-/* The weights in force and the reset link, on a line of their own under the heading so it never breaks mid-phrase. */
-.acs-weights-meta {
-  display: flex;
-  flex-basis: 100%;
-  justify-content: flex-end;
-  align-items: baseline;
-  gap: var(--space-xs);
+.acs-weights-reset {
+  margin-left: auto;
   white-space: nowrap;
-}
-
-#acs-weights-section .filter-sidebar__heading-row {
-  flex-wrap: wrap;
-  row-gap: var(--space-xxs);
 }
 
 #acs-weights-section .filter-sidebar__heading {
   white-space: nowrap;
-}
-
-.acs-section__hint {
-  font: var(--text-caption-regular);
-  color: var(--color-neutral-700);
 }
 
 /* Unit buttons carry a glyph beside the word. */
@@ -350,16 +335,18 @@
   border-bottom: none;
 }
 
-.acs-actions__row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--space-sm);
+/* The docs link opens the API docs in a new tab, so it carries the external-link glyph beside its text. */
+.acs-actions__docs {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  margin-top: var(--space-xs);
+  font: var(--text-caption-medium);
 }
 
-.acs-actions__docs {
-  display: inline-block;
-  font: var(--text-small-medium);
+.acs-actions__docs-icon {
+  width: calc(14px * var(--ui-scale, 1));
+  height: calc(14px * var(--ui-scale, 1));
 }
 
 .acs-updated-at {
@@ -732,7 +719,10 @@
 
 .acs-dock__body {
   display: grid;
-  grid-template-columns: minmax(200px, 1fr) minmax(230px, 1.2fr) minmax(190px, 1fr) minmax(240px, 1.4fr);
+
+  /* The strip gets the lion's share: pictures are the one thing here that can use every pixel they are given. The
+     rank column's floor is its row's own minimum (rank, name, bar, score plus gaps), so a score never clips. */
+  grid-template-columns: minmax(200px, 1fr) minmax(215px, 1fr) minmax(200px, 0.9fr) minmax(320px, 2.2fr);
   gap: var(--space-md);
   padding: 0 var(--space-md) var(--space-sm);
   border-top: 1px solid var(--color-neutral-200);
@@ -916,27 +906,6 @@
 /* The legend's words under the ticks: which end is which, and what carries no score at all. */
 .acs-histogram__poles {
   margin-top: 2px;
-}
-
-.acs-histogram__swatch-row {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xxs);
-}
-
-.acs-histogram__swatch {
-  width: 18px;
-  height: 8px;
-  border-radius: 4px;
-}
-
-.acs-histogram__swatch--unaudited {
-  height: 3px;
-  background: var(--color-neutral-400);
-}
-
-.acs-histogram__swatch--hatch {
-  background: repeating-linear-gradient(135deg, var(--color-neutral-600) 0 1px, var(--color-neutral-100) 1px 4px);
 }
 
 .acs-histogram__empty,

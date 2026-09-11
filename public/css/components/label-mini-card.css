@@ -179,8 +179,9 @@
 /* ---- Strip size: a thumbnail with the chips over its foot ---- */
 
 .lmc--strip {
-  width: calc(96px * var(--ui-scale, 1));
-  height: calc(72px * var(--ui-scale, 1));
+  /* 4:3, as tall as the band's other panels, so a ribbon of crops fills the height the rows beside it set. */
+  width: calc(160px * var(--ui-scale, 1));
+  height: calc(120px * var(--ui-scale, 1));
   border-radius: var(--border-radius);
   overflow: hidden;
 }

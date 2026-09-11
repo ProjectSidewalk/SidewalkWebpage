@@ -62,11 +62,8 @@
         <section class="filter-sidebar__section acs-section" id="acs-weights-section" aria-labelledby="acs-weights-section-heading">
           <div class="filter-sidebar__heading-row">
             <h3 class="filter-sidebar__heading" id="acs-weights-section-heading" data-i18n="accessscore:adjust">Adjust the weights</h3>
+            <button type="button" id="acs-reset" class="filter-sidebar__deselect-all acs-weights-reset" data-i18n="accessscore:reset" hidden>Reset weights</button>
             @info("weights-help")
-            <span class="acs-weights-meta">
-              <span class="acs-section__hint" id="acs-weights-summary" aria-live="polite"></span>
-              <button type="button" id="acs-reset" class="filter-sidebar__deselect-all" data-i18n="accessscore:reset">Reset weights</button>
-            </span>
           </div>
           <div id="acs-weights" class="acs-weights"></div>
         </section>
@@ -97,11 +94,13 @@
         }
 
         <section class="filter-sidebar__section acs-section acs-actions" aria-label="Actions" data-i18n-aria-label="accessscore:actions">
-          <div class="acs-actions__row">
-            <button type="button" id="acs-reset-all" class="filter-sidebar__deselect-all" data-i18n="accessscore:reset-all">Reset everything</button>
-            <a class="acs-actions__docs" href="@routes.ApiDocsController.accessScoreStreets#scoring-model" target="_blank" rel="noopener" data-i18n="accessscore:how-computed">How is this computed?</a>
-          </div>
+          <button type="button" id="acs-reset-all" class="button-ps button--small button--secondary" data-i18n="accessscore:reset-all">Reset everything</button>
           <p class="acs-updated-at"><span id="acs-updated-at" aria-live="polite"></span>@info("updated-help")</p>
+          <a class="acs-actions__docs" href="@routes.ApiDocsController.accessScoreStreets#scoring-model" target="_blank" rel="noopener">
+            <span data-i18n="accessscore:how-computed">How is this computed?</span>
+            <img class="acs-actions__docs-icon" src='@assets.path("images/icons/external-link-feather.svg")' alt="">
+            <span class="sr-only" data-i18n="common:opens-new-tab">(opens in a new tab)</span>
+          </a>
         </section>
       </div>
 

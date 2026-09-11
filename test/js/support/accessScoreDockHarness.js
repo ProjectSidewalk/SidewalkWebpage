@@ -21,8 +21,10 @@ function stubI18next() {
         language: 'en',
         t: (key, opts) => {
             const bare = key.replace(/^[a-z]+:/, '');
-            if (!opts || Object.keys(opts).length === 0) return bare;
-            return `${bare} ${Object.entries(opts).map(([k, v]) => `${k}=${v}`).join(' ')}`;
+            // `interpolation` is i18next's own escaping switch, not an argument the text would show.
+            const args = Object.entries(opts || {}).filter(([k]) => k !== 'interpolation');
+            if (args.length === 0) return bare;
+            return `${bare} ${args.map(([k, v]) => `${k}=${v}`).join(' ')}`;
         },
     };
 }

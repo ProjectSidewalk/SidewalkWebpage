@@ -39,8 +39,6 @@
   "explore-here": "Explorar aqui",
   "popup-clusters-mean": "Grupos por rua",
   "adjust": "Ajustar os pesos",
-  "weights-summary-default": "Pesos padrão",
-  "weights-summary-custom": "Pesos personalizados",
   "row-helps": "ajuda",
   "row-hurts": "prejudica",
   "row-avg": "média {{value}} por rua",

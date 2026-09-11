@@ -39,8 +39,6 @@
   "explore-here": "Explorer ici",
   "popup-clusters-mean": "Groupes par rue",
   "adjust": "Ajuster les poids",
-  "weights-summary-default": "Poids par défaut",
-  "weights-summary-custom": "Poids personnalisés",
   "row-helps": "aide",
   "row-hurts": "nuit",
   "row-avg": "moy. {{value}} par rue",

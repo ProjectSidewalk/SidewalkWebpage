@@ -253,7 +253,7 @@ class AccessScoreDock {
         ? null
         : {
             score: cityScore,
-            label: i18next.t('accessscore:histogram-city',
+            label: AccessScoreDock.#text('accessscore:histogram-city',
               { city: this.#cityName, score: AccessScoreChart.score(cityScore) }),
           },
       brush: this.#brush,
@@ -361,10 +361,18 @@ class AccessScoreDock {
     };
   }
 
+  /**
+   * A translation for a plain-text sink (`textContent`), so a name with an apostrophe or ampersand is not entity-
+   * escaped on its way in — i18next escapes interpolated values for HTML sinks by default.
+   */
+  static #text(key, vars = {}) {
+    return i18next.t(key, { ...vars, interpolation: { escapeValue: false } });
+  }
+
   /** "Tuxedo Square · Street 1932", or the id alone for an unnamed way. */
   static #streetTitle(scope) {
     return scope.name
-      ? i18next.t('accessscore:popup-street-named', { name: scope.name, id: scope.id })
+      ? AccessScoreDock.#text('accessscore:popup-street-named', { name: scope.name, id: scope.id })
       : i18next.t('accessscore:popup-street', { id: scope.id });
   }
 
@@ -388,10 +396,10 @@ class AccessScoreDock {
     let text;
     if (scope.kind === 'street') {
       text = scope.name
-        ? i18next.t('accessscore:scope-street-named', { name: scope.name })
+        ? AccessScoreDock.#text('accessscore:scope-street-named', { name: scope.name })
         : i18next.t('accessscore:scope-street', { id: scope.id });
     } else if (scope.kind === 'region') {
-      text = i18next.t('accessscore:scope-region', { name: scope.name });
+      text = AccessScoreDock.#text('accessscore:scope-region', { name: scope.name });
     } else {
       text = i18next.t('accessscore:scope-city');
     }
@@ -413,14 +421,14 @@ class AccessScoreDock {
       const ends = new Set([street?.startIntersection?.id, street?.endIntersection?.id]
         .filter((id) => id !== null && id !== undefined));
       request = {
-        caption: i18next.t('accessscore:photos-from', { scope: AccessScoreDock.#streetTitle(scope) }),
+        caption: AccessScoreDock.#text('accessscore:photos-from', { scope: AccessScoreDock.#streetTitle(scope) }),
         regionId: scope.regionId,
         streetId: scope.id,
         intersectionIds: ends,
       };
     } else if (scope.kind === 'region') {
       key = `region:${scope.id}`;
-      request = { caption: i18next.t('accessscore:photos-from', { scope: scope.name }), regionId: scope.id };
+      request = { caption: AccessScoreDock.#text('accessscore:photos-from', { scope: scope.name }), regionId: scope.id };
     } else if (scope.kind === 'viewport') {
       // Bounds to ~100 m: a nudge inside the same view is the same key, and the strip itself skips a redraw when the
       // clusters it picks are unchanged.
@@ -438,8 +446,8 @@ class AccessScoreDock {
       key = `city:${lowest ? lowest.regionId : 'none'}`;
       request = lowest
         ? {
-            caption: i18next.t('accessscore:photos-from', {
-              scope: i18next.t('accessscore:photos-lowest', { name: lowest.name }),
+            caption: AccessScoreDock.#text('accessscore:photos-from', {
+              scope: AccessScoreDock.#text('accessscore:photos-lowest', { name: lowest.name }),
             }),
             regionId: lowest.regionId,
           }

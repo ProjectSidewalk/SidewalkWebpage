@@ -39,8 +39,6 @@
   "explore-here": "Hier verkennen",
   "popup-clusters-mean": "Clusters per straat",
   "adjust": "Gewichten aanpassen",
-  "weights-summary-default": "Standaardgewichten",
-  "weights-summary-custom": "Eigen gewichten",
   "row-helps": "helpt",
   "row-hurts": "schaadt",
   "row-avg": "gem. {{value}} per straat",

@@ -55,13 +55,11 @@ describe('AccessScoreHistogram', () => {
         expect(fills[9].style.backgroundColor).toBe(rgb(window.ScoreRamp.at(0.95)));
         // Only the first bin is in the tab order; the rest are reached with the arrow keys.
         expect(buttons().map((b) => b.getAttribute('tabindex'))).toEqual(['0', ...Array(N - 1).fill('-1')]);
-        // The axis doubles as the legend: which end is which, and the swatch for what carries no score.
+        // The axis doubles as the legend for which end is which; the no-score swatch lives on the map's own legend.
         const poles = document.querySelector('.acs-histogram__poles');
         expect(poles.textContent).toContain('legend-low');
         expect(poles.textContent).toContain('legend-high');
-        expect(poles.querySelector('.acs-histogram__swatch--unaudited')).not.toBeNull();
-        draw({shapeKey: 'regions', unit: 'regions'});
-        expect(document.querySelector('.acs-histogram__poles .acs-histogram__swatch--hatch')).not.toBeNull();
+        expect(poles.querySelector('.acs-histogram__swatch')).toBeNull();
     });
 
     test('places the city needle and the selection caret, and moves the hover caret on its own', () => {
