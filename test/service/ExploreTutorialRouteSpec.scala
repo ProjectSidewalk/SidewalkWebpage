@@ -14,7 +14,7 @@ import models.route.{
   UserRouteTableDef
 }
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTableDef}
-import models.user.{SidewalkUserWithRole, UserCurrentRegionTableDef, UserStateTable, UserStateTableDef}
+import models.user.{SidewalkUserWithRole, UserAccountStateTable, UserAccountStateTableDef, UserCurrentRegionTableDef}
 import models.utils.{ConfigTableDef, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
@@ -55,11 +55,11 @@ class ExploreTutorialRouteSpec extends PlaySpec with org.scalatest.BeforeAndAfte
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  private val exploreService  = app.injector.instanceOf[ExploreService]
-  private val missionService  = app.injector.instanceOf[MissionService]
-  private val authService     = app.injector.instanceOf[AuthenticationService]
-  private val streetEdgeTable = app.injector.instanceOf[StreetEdgeTable]
-  private val userStateTable  = app.injector.instanceOf[UserStateTable]
+  private val exploreService        = app.injector.instanceOf[ExploreService]
+  private val missionService        = app.injector.instanceOf[MissionService]
+  private val authService           = app.injector.instanceOf[AuthenticationService]
+  private val streetEdgeTable       = app.injector.instanceOf[StreetEdgeTable]
+  private val userAccountStateTable = app.injector.instanceOf[UserAccountStateTable]
   // Keep the DatabaseConfig as a stable val and call .db.run inline; binding .db to its own val would infer a
   // path-dependent existential type that needs -language:existentials.
   private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
@@ -135,7 +135,7 @@ class ExploreTutorialRouteSpec extends PlaySpec with org.scalatest.BeforeAndAfte
 
   /** Records the tutorial as done on the account, with no tutorial mission in this city, as if done in another. */
   private def markOnboardingComplete(userId: String): Unit = {
-    val _ = run(userStateTable.markExploreTutorialCompleted(userId))
+    val _ = run(userAccountStateTable.markExploreTutorialCompleted(userId))
   }
 
   /**
@@ -172,7 +172,7 @@ class ExploreTutorialRouteSpec extends PlaySpec with org.scalatest.BeforeAndAfte
           routeStreets.filter(_.routeId in seededRouteIds).delete,
           routes.filter(_.userId inSet userIds).delete,
           TableQuery[UserCurrentRegionTableDef].filter(_.userId inSet userIds).delete,
-          TableQuery[UserStateTableDef].filter(_.userId inSet userIds).delete
+          TableQuery[UserAccountStateTableDef].filter(_.userId inSet userIds).delete
         )
         .transactionally
     )
@@ -207,7 +207,7 @@ class ExploreTutorialRouteSpec extends PlaySpec with org.scalatest.BeforeAndAfte
             None, skipped = true)
           val next = run(missionService.updateMissionTableExplore(user.userId, skip))
 
-          run(userStateTable.hasCompletedExploreTutorial(user.userId)) mustBe true
+          run(userAccountStateTable.hasCompletedExploreTutorial(user.userId)) mustBe true
           // Also proves the account is updated before the next mission is picked, or this would be the tutorial again.
           next.value.missionType must not be MissionType.AuditOnboarding
       }

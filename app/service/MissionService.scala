@@ -9,7 +9,7 @@ import models.mission.MissionTable.{distanceForLaterMissions, distancesForFirstA
 import models.mission.{Mission, MissionTable, MissionType}
 import models.route.{RouteTable, UserRoute}
 import models.user.SidewalkUserTable.aiUserId
-import models.user.{SidewalkUserWithRole, UserStateTable}
+import models.user.{SidewalkUserWithRole, UserAccountStateTable}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.Logger
@@ -63,7 +63,7 @@ class MissionServiceImpl @Inject() (
     missionTable: MissionTable,
     auditTaskTable: AuditTaskTable,
     routeTable: RouteTable,
-    userStateTable: UserStateTable,
+    userAccountStateTable: UserAccountStateTable,
     implicit val ec: ExecutionContext
 ) extends MissionService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -192,8 +192,7 @@ class MissionServiceImpl @Inject() (
 
     val getMissionAction =
       if (actions.contains("getMission")) {
-        // Checked across every city, so a user who did the tutorial in one city never gets it again elsewhere (#3720).
-        userStateTable
+        userAccountStateTable
           .hasCompletedExploreTutorial(userId)
           .flatMap { completedOnboarding =>
             // If they still need to do tutorial or are retaking it.
@@ -465,7 +464,7 @@ class MissionServiceImpl @Inject() (
         if (missionType.contains(MissionType.AuditOnboarding)) {
           if (missionProgress.completed) {
             // Recorded before the next mission is picked, since picking it is what checks whether the tutorial is done.
-            userStateTable
+            userAccountStateTable
               .markExploreTutorialCompleted(userId)
               .andThen(updateCompleteAndGetNextMission(userId, regionId, missionId, skipped))
           } else

@@ -1,7 +1,7 @@
 # --- !Ups
 -- Account-wide user data in the shared sidewalk_login schema, so it follows a user from city to city (#3720).
--- user_settings holds choices the user makes on the Settings page, and user_state holds what the site records about
--- them. Rows are only written once there's something to store, so a user with no row has every default.
+-- user_settings holds choices the user makes on the Settings page, and user_account_state holds what the site records
+-- about them. Rows are only written once there's something to store, so a user with no row has every default.
 
 -- Evolutions run once per city schema and CREATE TYPE has no IF NOT EXISTS form, so the enum is guarded on pg_type.
 -- Semicolons inside the block are doubled to survive Play's statement splitter (see docs/evolutions.md).
@@ -58,16 +58,16 @@ ON CONFLICT (user_id) DO UPDATE SET measurement_system = EXCLUDED.measurement_sy
 WHERE user_settings.measurement_system IS NULL;
 
 -- A NULL explore_tutorial_completed_at means the user hasn't finished or skipped the Explore tutorial anywhere yet.
-CREATE TABLE IF NOT EXISTS sidewalk_login.user_state (
+CREATE TABLE IF NOT EXISTS sidewalk_login.user_account_state (
   user_id TEXT PRIMARY KEY REFERENCES sidewalk_login.sidewalk_user (user_id),
   explore_tutorial_completed_at TIMESTAMPTZ
 );
-ALTER TABLE sidewalk_login.user_state OWNER TO sidewalk;
+ALTER TABLE sidewalk_login.user_account_state OWNER TO sidewalk;
 
 -- Each city's run adds the users who finished the tutorial in that city, keeping the earliest time across cities.
 -- Skipping it also marks the mission completed, and counts as done. The join leaves out missions from accounts that
 -- no longer exist, which some cities have (#4589).
-INSERT INTO sidewalk_login.user_state (user_id, explore_tutorial_completed_at)
+INSERT INTO sidewalk_login.user_account_state (user_id, explore_tutorial_completed_at)
 SELECT mission.user_id, MIN(mission.mission_end)
 FROM mission
 INNER JOIN sidewalk_login.sidewalk_user ON sidewalk_user.user_id = mission.user_id
@@ -75,7 +75,7 @@ WHERE mission.mission_type = 'auditOnboarding' AND mission.completed = TRUE
 GROUP BY mission.user_id
 ON CONFLICT (user_id) DO UPDATE
 SET explore_tutorial_completed_at =
-  LEAST(user_state.explore_tutorial_completed_at, EXCLUDED.explore_tutorial_completed_at);
+  LEAST(user_account_state.explore_tutorial_completed_at, EXCLUDED.explore_tutorial_completed_at);
 
 # --- !Downs
 -- Deliberately empty. Downs run once per city, so dropping the tables would break every city still running this

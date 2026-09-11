@@ -14,7 +14,7 @@ import models.route.{
   UserRouteTableDef
 }
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable}
-import models.user.{SidewalkUserWithRole, UserCurrentRegionTableDef, UserStateTable, UserStateTableDef}
+import models.user.{SidewalkUserWithRole, UserAccountStateTable, UserAccountStateTableDef, UserCurrentRegionTableDef}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
@@ -57,10 +57,10 @@ class ExploreRoutePauseSpec
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  private val exploreService  = app.injector.instanceOf[ExploreService]
-  private val authService     = app.injector.instanceOf[AuthenticationService]
-  private val streetEdgeTable = app.injector.instanceOf[StreetEdgeTable]
-  private val userStateTable  = app.injector.instanceOf[UserStateTable]
+  private val exploreService        = app.injector.instanceOf[ExploreService]
+  private val authService           = app.injector.instanceOf[AuthenticationService]
+  private val streetEdgeTable       = app.injector.instanceOf[StreetEdgeTable]
+  private val userAccountStateTable = app.injector.instanceOf[UserAccountStateTable]
   // Keep the DatabaseConfig as a stable val and call .db.run inline; binding .db to its own val would infer a
   // path-dependent existential type that needs -language:existentials.
   private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
@@ -86,7 +86,7 @@ class ExploreRoutePauseSpec
     val pwInfo    = PasswordInfo("bcrypt-sha256", "spec-only-not-a-hash", None)
     val user      = await(authService.createUser(generated, "credentials", pwInfo, oldUserId = None))
     createdUserIds += user.userId
-    val _ = run(userStateTable.markExploreTutorialCompleted(user.userId))
+    val _ = run(userAccountStateTable.markExploreTutorialCompleted(user.userId))
     user
   }
 
@@ -187,7 +187,7 @@ class ExploreRoutePauseSpec
           routeStreets.filter(_.routeId in seededRouteIds).delete,
           routes.filter(_.userId inSet userIds).delete,
           TableQuery[UserCurrentRegionTableDef].filter(_.userId inSet userIds).delete,
-          TableQuery[UserStateTableDef].filter(_.userId inSet userIds).delete
+          TableQuery[UserAccountStateTableDef].filter(_.userId inSet userIds).delete
         )
         .transactionally
     )

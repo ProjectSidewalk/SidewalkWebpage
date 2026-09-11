@@ -31,8 +31,7 @@ trait UserSettingsTableRepository {}
  * Choices a user makes on the Settings page that belong to their account rather than to one city (#3720). The table
  * lives in the shared `sidewalk_login` schema, so a choice made in one city applies in every city.
  *
- * A row is only written once the user changes something, so most accounts (nearly all of them anonymous) have none,
- * and a missing row means every setting is at its default.
+ * A row is only written once the user changes something; a missing row means every setting is at its default.
  */
 @Singleton
 class UserSettingsTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
@@ -60,9 +59,7 @@ class UserSettingsTable @Inject() (protected val dbConfigProvider: DatabaseConfi
   /**
    * Turns community service hour tracking on or off without touching the user's other settings.
    *
-   * Also written to `user_role.community_service` until #5306 drops that column. Prod restarts cities one at a time,
-   * so a city still on the previous release reads that column, and each city's run of evolution 385 syncs
-   * `user_settings` from it.
+   * Also written to `user_role.community_service` until #5306 drops that column.
    *
    * @param userId  The user making the choice.
    * @param enabled Whether they're tracking their time for community service hours.

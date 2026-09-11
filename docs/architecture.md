@@ -58,9 +58,9 @@ The backend follows a consistent layering: **routes → Controller → Service �
   JSON, and other slick-pg extensions. Spatial query helpers live in `SpatialQueryDefs.scala`.
 - **Per-city schemas** — each city is its own schema (`sidewalk_<city>`); they're essentially identical.
   Authentication lives in the shared `sidewalk_login` schema, along with anything that belongs to the account rather
-  than to one city: `user_settings` holds choices the user makes (units, service-hours tracking) and `user_state`
-  holds what the site records about them (having finished the Explore tutorial). Both only get a row once there's
-  something to store (#3720). Per-city stats and privacy flags stay in each city's `user_stat`.
+  than to one city: `user_settings` holds choices the user makes (units, service-hours tracking) and
+  `user_account_state` holds what the site records about them (having finished the Explore tutorial). Both only get a
+  row once there's something to store (#3720). Per-city stats and privacy flags stay in each city's `user_stat`.
 - **Evolutions** — schema changes are Play evolutions: numbered SQL files in `conf/evolutions/default/`, each with
   `# --- !Ups` / `# --- !Downs`, auto-applied at startup to every city schema. Numbers are gapless, a PR's changes go
   in one file, every new table gets `ALTER TABLE <name> OWNER TO sidewalk;` and its full set of constraints, and the

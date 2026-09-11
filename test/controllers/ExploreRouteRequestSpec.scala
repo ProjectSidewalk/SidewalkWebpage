@@ -114,9 +114,9 @@ class ExploreRouteRequestSpec
     createdUserIds += bootstrap.userId
     bootstrap.missionType mustBe "auditOnboarding"
     // A real graduate also gets a mission_end stamp and a finished tutorial task; neither is read on any path under
-    // test. Whether to serve the tutorial is decided by the account-wide user_state row, so that's written too.
+    // test. Whether to serve the tutorial is decided by the account-wide user_account_state row, so that's written too.
     run(sqlu"UPDATE mission SET completed = TRUE WHERE mission_id = ${bootstrap.missionId}") mustBe 1
-    run(sqlu"""INSERT INTO sidewalk_login.user_state (user_id, explore_tutorial_completed_at)
+    run(sqlu"""INSERT INTO sidewalk_login.user_account_state (user_id, explore_tutorial_completed_at)
                VALUES (${bootstrap.userId}, now())""") mustBe 1
   }
 
@@ -142,7 +142,7 @@ class ExploreRouteRequestSpec
             sqlu"DELETE FROM route_street WHERE route_id IN (SELECT route_id FROM route WHERE user_id = $uId)",
             sqlu"DELETE FROM route WHERE user_id = $uId",
             sqlu"DELETE FROM user_current_region WHERE user_id = $uId",
-            sqlu"DELETE FROM sidewalk_login.user_state WHERE user_id = $uId"
+            sqlu"DELETE FROM sidewalk_login.user_account_state WHERE user_id = $uId"
           )
         )
       }
