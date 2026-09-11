@@ -595,7 +595,7 @@
     <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated. The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326). </p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
-    <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage file (<code>.gpkg</code>). This is an open standard format based on SQLite that contains both geometry and attributes in a single file, generally without the field name limitations of Shapefiles. CRS is typically WGS84 (EPSG:4326). </p>
+    <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage file (<code>.gpkg</code>). This is an open standard format based on SQLite that contains both geometry and attributes in a single file, with the same field names as the GeoJSON properties. Array and object fields (<code>tags</code>, <code>validations</code>) are written out as JSON text. CRS is typically WGS84 (EPSG:4326).</p>
 
 
     <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>

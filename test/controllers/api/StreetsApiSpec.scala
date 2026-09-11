@@ -98,7 +98,7 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
   }
 
   "GET /v3/api/streets?filetype=geopackage" should {
-    "return a SQLite GeoPackage whose schema carries outdated and max_speed (#4384, #4654)" in {
+    "return a SQLite GeoPackage whose schema carries the JSON's field names, outdated and max_speed included" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/streets?filetype=geopackage")).get
       status(resp) mustBe OK
 
@@ -108,6 +108,9 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       bytes.take(15).utf8String mustBe "SQLite format 3"
       bytes.containsSlice(org.apache.pekko.util.ByteString("outdated")) mustBe true
       bytes.containsSlice(org.apache.pekko.util.ByteString("max_speed")) mustBe true
+      bytes.containsSlice(org.apache.pekko.util.ByteString("street_edge_id")) mustBe true   // #5273
+      bytes.containsSlice(org.apache.pekko.util.ByteString("first_label_date")) mustBe true // #5273
+      bytes.containsSlice(org.apache.pekko.util.ByteString("first_label_time")) mustBe false
     }
   }
 

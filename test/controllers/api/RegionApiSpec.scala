@@ -88,6 +88,8 @@ class RegionApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       bytes.take(15).utf8String mustBe "SQLite format 3"
       bytes.containsSlice(org.apache.pekko.util.ByteString("outdated_distance_m")) mustBe true
       bytes.containsSlice(org.apache.pekko.util.ByteString("audited_distance_m")) mustBe true
+      bytes.containsSlice(org.apache.pekko.util.ByteString("first_label_date")) mustBe true // #5273
+      bytes.containsSlice(org.apache.pekko.util.ByteString("first_label_time")) mustBe false
     }
   }
 
