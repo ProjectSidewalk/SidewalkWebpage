@@ -52,7 +52,7 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val body = contentAsString(resp)
       // Per-type columns are generated from AccessScoreCalculator.orderedScoredTypes; assert the leading + trailing run.
       body must include(
-        "street_edge_id,osm_way_id,region_id,score,segment_score,start_intersection_id,end_intersection_id," +
+        "street_edge_id,osm_way_id,street_name,region_id,score,segment_score,start_intersection_id,end_intersection_id," +
           "start_intersection_score,end_intersection_score,audit_count,length_meters,label_count," +
           "cluster_counts.CurbRamp"
       )

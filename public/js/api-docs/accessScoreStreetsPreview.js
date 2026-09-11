@@ -127,7 +127,7 @@
           || 'no scored features';
 
         ApiDocsMap.popup(map, e.lngLat, `
-          <h4>Street ${p.street_edge_id}</h4>
+          <h4>${p.street_name ? `${p.street_name} · ` : ''}Street ${p.street_edge_id}</h4>
           <p><span class="as-score">${score}</span> AccessScore</p>
           <p><strong>Audits:</strong> ${p.audit_count} &nbsp; <strong>Labels:</strong> ${p.label_count}</p>
           <p class="as-breakdown"><strong>Clusters:</strong> ${breakdown}</p>

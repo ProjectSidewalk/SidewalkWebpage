@@ -105,6 +105,21 @@ class OsmWayTable @Inject() (
   }
 
   /**
+   * Gets the OSM `name` tag for each of the given streets, keyed by street_edge_id.
+   *
+   * @return Map from street_edge_id to the way's name; streets with no cached way or an unnamed way are absent.
+   */
+  def getStreetNames(streetEdgeIds: Seq[Int]): DBIO[Map[Int, String]] = {
+    osmWayStreetEdges
+      .filter(_.streetEdgeId inSetBind streetEdgeIds)
+      .join(osmWays)
+      .on(_.osmWayId === _.osmWayId)
+      .map(x => (x._1.streetEdgeId, x._2.tags.+>>("name").?))
+      .result
+      .map(_.collect { case (streetEdgeId, Some(name)) if name.trim.nonEmpty => streetEdgeId -> name.trim }.toMap)
+  }
+
+  /**
    * Gets the distinct way ids from osm_way_street_edge whose osm_way row is missing or last fetched before `cutoff`.
    *
    * Ways marked `missing_since` are included once they go stale like any other: re-asking the OSM API for a few
