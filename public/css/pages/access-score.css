@@ -1108,9 +1108,20 @@
   display: none;
 }
 
+/* The strip is a column that hands the ribbon whatever height the caption leaves, and the ribbon's cards fill it. */
+.acs-photos {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .acs-photos__ribbon {
   display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
   gap: var(--space-xs);
+  min-height: 0;
   margin: 0;
   padding: 0 0 var(--space-xxs);
   overflow-x: auto;
