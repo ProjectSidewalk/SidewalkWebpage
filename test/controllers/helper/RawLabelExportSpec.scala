@@ -1,6 +1,6 @@
 package controllers.helper
 
-import models.api.{LabelClusterForApi, LabelDataForApi, RawLabelInClusterDataForApi}
+import models.api.{LabelClusterForApi, LabelDataForApi, RawLabelInClusterDataForApi, StreetDataForApi}
 import models.label.StreetSide
 import models.pano.PanoSource
 import org.apache.pekko.stream.scaladsl.Source
@@ -8,6 +8,7 @@ import org.geotools.api.data.{DataStore, DataStoreFinder}
 import org.geotools.api.feature.simple.SimpleFeature
 import org.geotools.data.shapefile.ShapefileDataStoreFactory
 import org.geotools.geopkg.GeoPkgDataStoreFactory
+import org.locationtech.jts.geom.{Coordinate, GeometryFactory, PrecisionModel}
 import org.scalatest.OptionValues
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -122,7 +123,7 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
    * The extent a GeoPackage declares for one layer, read straight from `gpkg_contents` the way GDAL and QGIS read it.
    * GeoTools' own reader turns a NULL extent into zeros, so it can't tell "unknown" apart from the (0, 0) bug.
    *
-   * @return `(min_x, min_y, max_x, max_y)`, or None when the extent is NULL (unknown).
+   * @return `(min_x, min_y, max_x, max_y)`, or None when all four are NULL (unknown). Fails on a partly NULL extent.
    */
   private def declaredExtent(gpkg: Path, tableName: String): Option[(Double, Double, Double, Double)] =
     Using.Manager { use =>
@@ -131,10 +132,12 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
       stmt.setString(1, tableName)
       val rs = use(stmt.executeQuery())
       rs.next() mustBe true
-      Option(rs.getObject("min_x")).map { _ =>
-        (rs.getDouble("min_x"), rs.getDouble("min_y"), rs.getDouble("max_x"), rs.getDouble("max_y"))
-      }
-    }.get
+      Seq("min_x", "min_y", "max_x", "max_y").map(c => Option(rs.getObject(c)).map(_.asInstanceOf[Number].doubleValue))
+    }.get match {
+      case Seq(Some(minX), Some(minY), Some(maxX), Some(maxY)) => Some((minX, minY, maxX, maxY))
+      case Seq(None, None, None, None)                         => None
+      case partial                                             => fail(s"$tableName has a partly NULL extent: $partial")
+    }
 
   "the rawLabels shapefile" should {
     "carry streetSide and ctrOffsetM under DBF-legal names, with nulls for a label that has no side (#2886)" in {
@@ -199,6 +202,33 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
       inTempDir("labels") { base =>
         val gpkg = Await.result(shapefileCreator.createRawLabelDataGeopackage(Source.empty, base, 2), 60.seconds).value
         declaredExtent(gpkg, "labels") mustBe None
+      }
+    }
+
+    "fail and delete its half-written file when the data stops partway, rather than serve missing rows" in {
+      inTempDir("labels") { base =>
+        val broken = Source(labels).concat(Source.failed(new RuntimeException("stream broke")))
+        Await.result(shapefileCreator.createRawLabelDataGeopackage(broken, base, 1), 60.seconds) mustBe None
+        Files.exists(Path.of(s"$base.gpkg")) mustBe false
+      }
+    }
+  }
+
+  "the streets GeoPackage" should {
+    "declare the extent of its lines, including a bend that reaches past both ends (#5275)" in {
+      // The middle point sticks out furthest, so an extent taken from each line's two ends would come up short.
+      val bent = new GeometryFactory(new PrecisionModel(), 4326).createLineString(
+        Array(new Coordinate(-74.03, 40.88), new Coordinate(-74.01, 40.90), new Coordinate(-74.02, 40.885))
+      )
+      val street = StreetDataForApi(
+        streetEdgeId = 951, osmWayId = 11584845L, regionId = 1, regionName = "Teaneck", wayType = "residential",
+        maxSpeed = None, status = "open", userIds = Seq.empty, labelCount = 0, auditCount = 0, outdated = false,
+        geometry = bent
+      )
+      inTempDir("streets") { base =>
+        val gpkg =
+          Await.result(shapefileCreator.createStreetDataGeopackage(Source.single(street), base, 1), 60.seconds).value
+        declaredExtent(gpkg, "streets").value mustBe ((-74.03, 40.88, -74.01, 40.90))
       }
     }
   }
