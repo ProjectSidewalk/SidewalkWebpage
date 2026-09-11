@@ -732,8 +732,14 @@
   display: none;
 }
 
+/* Every panel is a column of one fixed height — the photos' — so the charts stretch to it and the rank list
+   scrolls within it, rather than the longest list setting the band's height. */
 .acs-dock__panel {
+  display: flex;
+  flex-direction: column;
+  height: calc(176px * var(--ui-scale, 1));
   min-width: 0;
+  overflow: hidden;
 }
 
 .acs-dock__panel-head {
@@ -751,15 +757,22 @@
 
 /* ---- Histogram (and legend) ---- */
 
-/* A gutter on the left holds the value labels, so they never land on the tallest bar at either end. Declared on
-   the chart, not the plot, so the axis and pole rows beneath the plot line up with the bars. */
+/* No gutter: the value labels ride their gridlines inside the plot, so the bars get the panel's full width. The
+   variable stays as the one place to reintroduce one. */
 .acs-histogram {
-  --acs-histogram-gutter: 52px;
+  --acs-histogram-gutter: 0px;
+
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
 }
 
+/* The plot takes whatever height the band's tallest panel leaves it, never less than its own floor. */
 .acs-histogram__plot {
   position: relative;
-  height: calc(64px * var(--ui-scale, 1));
+  flex: 1 1 auto;
+  min-height: calc(64px * var(--ui-scale, 1));
   margin-top: var(--space-md); /* Room for the city label above the needle. */
 }
 
@@ -775,7 +788,8 @@
   inset: 0;
 }
 
-/* Hairline gridlines, one step off the surface, with the value they stand for in the gutter. */
+/* Hairline gridlines, one step off the surface, with the value they stand for tucked under each line's left end
+   on a surface chip, so it stays legible over a bar. */
 .acs-histogram__gridline {
   position: absolute;
   right: 0;
@@ -793,8 +807,11 @@
 
 .acs-histogram__gridline span {
   position: absolute;
-  top: -6px;
-  right: calc(100% + var(--space-xxs));
+  top: 1px;
+  left: 0;
+  padding: 0 2px;
+  border-radius: 2px;
+  background: var(--color-neutral-white);
   font: var(--text-tiny-regular);
   color: var(--color-neutral-700); /* neutral-600 is 3.2:1 on white, under AA for text this small. */
   white-space: nowrap;
@@ -932,11 +949,28 @@
   white-space: nowrap;
 }
 
+/* The chart and its rows fill the panel; spare height spreads between the rows rather than pooling under them. */
+.acs-whats-here {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.acs-rank {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
 /* One grid for the whole list, so every bar starts on the same column line: the name column hugs the longest
    name of all rows (capped at 42%), not each row's own. The rows join it as subgrids. */
 .acs-whats-here__rows {
   display: grid;
+  flex: 1 1 auto;
   grid-template-columns: fit-content(42%) minmax(0, 1fr) auto;
+  align-content: space-between;
   gap: 1px;
   margin: 0;
   padding: 0;
@@ -1092,7 +1126,8 @@
 /* ---- Neighborhoods ranked ---- */
 
 .acs-rank__rows {
-  max-height: calc(118px * var(--ui-scale, 1));
+  flex: 1 1 auto;
+  min-height: 0;
   margin: 0;
   padding: 0;
   overflow-y: auto;
