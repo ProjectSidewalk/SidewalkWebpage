@@ -187,8 +187,7 @@ The `/v3` API is the canonical public surface (handlers in `app/controllers/api/
   and deleted once streamed; a folder untouched for two hours (its client gave up) is swept on a later download (#4133).
 - **One file download per URL at a time.** While a file is being built and streamed, a repeat of the same URL gets a
   429 with `Retry-After`, so an impatient retry can't double minutes of work (#4161). Plain CSV/GeoJSON streams are
-  not guarded, since the site's own pages fetch the same URLs in parallel. A stream cut off early (client gone, proxy
-  or idle timeout) is logged with how many rows it got through.
+  not guarded, since the site's own pages fetch the same URLs in parallel.
 - v3 is a **preview** surface: breaking changes are made in place rather than minting a new version (precedent: #4223).
 
 **Data structures (DTOs).** The response/filter types live in **`app/models/api/`** (`package models.api`), in

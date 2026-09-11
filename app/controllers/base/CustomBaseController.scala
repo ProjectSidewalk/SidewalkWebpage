@@ -18,8 +18,7 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
 
   private val logger = Logger(this.getClass)
 
-  // Rows fetched from the db per batch when streaming. A batch of raw labels is tens of MB and the next one is
-  // fetched ahead, so this caps a download's memory (#4161).
+  // Batch size (JDBC fetchSize) for cursor-based streaming from the db; each batch sits in memory, so keep it modest.
   protected val DEFAULT_BATCH_SIZE: Int = 25000
 
   // Standard components
