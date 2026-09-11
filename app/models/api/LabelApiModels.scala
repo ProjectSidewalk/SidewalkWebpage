@@ -11,7 +11,7 @@ import models.label.StreetSide
 import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
 import models.utils.LatLngBBox
-import play.api.libs.json.{JsObject, JsValue, Json, JsonConfiguration, JsonNaming, OFormat, Writes}
+import play.api.libs.json.{JsObject, JsValue, Json, Writes}
 
 import java.time.OffsetDateTime
 
@@ -157,25 +157,17 @@ case class RawLabelFiltersForApi(
 )
 
 /**
- * Represents a validation entry for a sidewalk accessibility label. This is used in the API response to summarize user
- * validations (with a userId and validation type).
+ * One vote in a Raw Labels entry's `validations` array.
  *
  * @param userId The anonymized identifier of the user who provided the validation
  * @param validationType The type of validation ("Agree", "Disagree", or "Unsure")
+ * @param validatorType "Human" or "AI"
  */
-case class LabelValidationSummaryForApi(
-    userId: String,
-    validationType: String // e.g., "Agree", "Disagree", "Unsure"
-)
+case class LabelValidationSummaryForApi(userId: String, validationType: String, validatorType: String) {
 
-/**
- * Companion object for LabelValidationSummaryForApi containing JSON formatters.
- */
-object LabelValidationSummaryForApi {
-  // snake_case JSON output per the v3 API convention (#3871).
-  implicit private val config: JsonConfiguration                           = JsonConfiguration(JsonNaming.SnakeCase)
-  implicit val validationDataFormat: OFormat[LabelValidationSummaryForApi] =
-    Json.format[LabelValidationSummaryForApi]
+  // Used by every output format, so they all print the same keys.
+  def toJson: JsObject =
+    Json.obj("user_id" -> userId, "validation" -> validationType, "validator_type" -> validatorType)
 }
 
 /**
@@ -210,7 +202,7 @@ object LabelValidationSummaryForApi {
  * @param agreeCount Number of users who agreed with this label
  * @param disagreeCount Number of users who disagreed with this label
  * @param unsureCount Number of users who were unsure about this label
- * @param validations List of individual user validations for this label
+ * @param validations List of individual validations for this label
  * @param auditTaskId Optional audit task identifier
  * @param missionId Optional mission identifier
  * @param imageCaptureDate Optional date when the image was captured
@@ -349,7 +341,7 @@ object LabelDataForApi extends ApiFields[LabelDataForApi] {
     field("agree_count")(_.agreeCount),
     field("disagree_count")(_.disagreeCount),
     field("unsure_count")(_.unsureCount),
-    field("validations")(_.validations.map(v => Json.obj("user_id" -> v.userId, "validation" -> v.validationType))),
+    field("validations")(_.validations.map(_.toJson)),
     field("audit_task_id")(_.auditTaskId),
     field("mission_id")(_.missionId),
     field("image_capture_date")(_.imageCaptureDate),

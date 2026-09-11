@@ -411,10 +411,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.disagreeCount)
       featureBuilder.add(label.unsureCount)
 
-      // Format validations as a JSON-like string.
-      val validationsStr =
-        label.validations.map(v => s"""{"user_id":"${v.userId}","validation":"${v.validationType}"}""").mkString(",")
-      featureBuilder.add(s"[$validationsStr]")
+      featureBuilder.add(Json.stringify(Json.toJson(label.validations.map(_.toJson))))
 
       featureBuilder.add(label.auditTaskId.orNull)
       featureBuilder.add(label.missionId.orNull)
@@ -817,10 +814,6 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
     def buildFeature(label: LabelDataForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
-      // Format validations as a JSON-like string.
-      val validationsStr =
-        label.validations.map(v => s"""{"user_id":"${v.userId}","validation":"${v.validationType}"}""").mkString(",")
-
       // Add the geometry and all attributes.
       featureBuilder.add(geometryFactory.createPoint(new Coordinate(label.longitude, label.latitude)))
       featureBuilder.add(label.labelId)
@@ -843,7 +836,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.agreeCount)
       featureBuilder.add(label.disagreeCount)
       featureBuilder.add(label.unsureCount)
-      featureBuilder.add(s"[$validationsStr]")
+      featureBuilder.add(Json.stringify(Json.toJson(label.validations.map(_.toJson))))
       featureBuilder.add(label.auditTaskId.map(Integer.valueOf).orNull)
       featureBuilder.add(label.missionId.map(Integer.valueOf).orNull)
       featureBuilder.add(label.imageCaptureDate.orNull)
