@@ -248,6 +248,28 @@ corresponding Twirl view:
   that endpoint, alongside `apiDocs.js` (shell behavior), `apiTableWrapper.js`, and `apiDocsTheme.js`
   (`ApiDocsTheme.color(token, alpha?)`, the one way preview code reads a CSS color token for Chart.js/Mapbox so
   chart colors follow the design system). Served file-by-file — no Grunt bundle.
+- **`access-score/`** — the AccessScore tool (`/accessScore`, #5217): a pure scoring model that re-runs the engine's
+  math in the browser (`AccessScoreModel.js`, pinned to the Scala engine through `test/fixtures/accessScoreParity.json`;
+  it ingests `/v3/api/accessScoreStreets` and `/v3/api/accessScoreIntersections` and reproduces a street's
+  `segment_score`, every intersection's score, and the headline `score` #5095 averages from them — so the map's
+  colors are the API's numbers, reweighted live; the one departure is that an unaudited street stays unscored
+  rather than borrowing a headline from its crossings),
+  the map view (streets and a neighborhood choropleth colored from feature-state, with a ramp legend beside the
+  zoom buttons, `AccessScoreMapLegend.js`), the cluster evidence layer
+  (`AccessScoreClusterLayer.js`, fed by `/v3/api/labelClusters` — the clusters the engine actually scores, not the
+  raw labels), the cluster sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop
+  cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
+  coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
+  drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and
+  intersections (`AccessScoreWhatsHere.js`); the ranked neighborhoods; and a photo strip of label crops from the
+  scope's neighborhood feed (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
+  the whole city is the population, a brush emphasizes in the overview views, narrows what's here and dims the
+  map, and a selection marks the overview views, scopes what's here and the photos, and fades the rest of the
+  map). An optional dark basemap (`?dark=1`, or the sidebar toggle, which is a live `map.setStyle` followed by a
+  `remount()` of the map view and the cluster layer on `style.load`) reads the ramp in its dark stepping
+  (`--color-score-ramp-dark-*`, passed per call as `{ mode: 'dark' }`) with a second chrome palette; the band and
+  popups stay light and keep the light ramp. Grunt-bundled to `access-score/build/`; the shared score ramp is
+  `common/scoreRamp.js`.
 - **`ps-map/`** — shared map component used across pages.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is

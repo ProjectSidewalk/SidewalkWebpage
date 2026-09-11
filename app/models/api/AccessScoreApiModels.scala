@@ -107,6 +107,7 @@ object AccessScoreApiModels {
  *
  * @param streetEdgeId           Project Sidewalk street segment identifier.
  * @param osmWayId               OpenStreetMap way identifier.
+ * @param streetName             The street's name from its OpenStreetMap way's `name` tag, if it has one.
  * @param regionId               Region (neighborhood) the street belongs to.
  * @param score                  Headline access score in (0, 1): the mean of `segmentScore` and the end intersections'
  *                               scores, over those that exist. None if the street has not been audited and neither
@@ -133,6 +134,7 @@ object AccessScoreApiModels {
 case class StreetAccessScoreForApi(
     streetEdgeId: Int,
     osmWayId: Long,
+    streetName: Option[String],
     regionId: Int,
     score: Option[Double],
     segmentScore: Option[Double],
@@ -168,6 +170,7 @@ object StreetAccessScoreForApi extends ApiFields[StreetAccessScoreForApi] {
   override val fields: Seq[ApiField[StreetAccessScoreForApi]] = Seq[ApiField[StreetAccessScoreForApi]](
     field("street_edge_id")(_.streetEdgeId),
     field("osm_way_id")(_.osmWayId),
+    field("street_name")(_.streetName),
     field("region_id")(_.regionId),
     field("score")(_.score),
     field("segment_score")(_.segmentScore),

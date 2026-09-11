@@ -146,15 +146,20 @@
 
 /*
  * Viewport-loading status pill (#5002): "zoom in to see labels" while the zoom floor holds fetches back, and a
- * brief note during refetches. Bottom-centered so it stays clear of the corner controls, styled like the
+ * brief note during refetches. Top-centered, where a transient help message is looked for and where nothing
+ * else sits (the drawer is left, Mapbox's controls right, its attribution along the bottom), styled like the
  * loading card above, and pointer-events: none so it never blocks map gestures.
  */
+
+/* Centered on the part of the map the reader can see: the drawer covers the canvas's left edge, and
+   MapSidebarDrawer publishes how much as --map-inset-left on the map's holder. */
 .map-status-pill {
   position: absolute;
-  bottom: 28px;
-  left: 50%;
+  top: 12px;
+  left: calc(var(--map-inset-left, 0px) + (100% - var(--map-inset-left, 0px)) / 2);
   transform: translateX(-50%);
   z-index: 15; /* Above the map, below the loading overlay. */
+  transition: opacity var(--transition-medium);
   max-width: 90%;
   padding: 8px 16px;
   border-radius: 999px;
@@ -164,6 +169,10 @@
   font: var(--text-body-regular);
   text-align: center;
   pointer-events: none;
+}
+
+.map-status-pill--leaving {
+  opacity: 0;
 }
 
 .map-status-pill[hidden] {

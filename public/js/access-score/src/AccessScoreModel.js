@@ -1,0 +1,978 @@
+/**
+ * The AccessScore tool's scoring model: the engine's math, re-run in the browser (#5217).
+ *
+ * Holds one city's streets and intersections as the count-based inputs `/v3/api/accessScoreStreets` and
+ * `/v3/api/accessScoreIntersections` publish (`severity_counts`, `tag_adjustments`, `audit_count`, `length_meters`,
+ * `region_id`, the street's end intersection ids) plus the engine constants from `/v3/api/accessScoreConfig`, and
+ * rebuilds every score under whatever weights the user picks:
+ *
+ *   term(type)     = (weight(type) × units(type) + tagAdjustment(type)) × lengthFactor(type, street)
+ *   segment        = sigmoid(Σ terms over the street's clusters)          (audited streets only)
+ *   intersection   = sigmoid(Σ terms over the corner types pooled there)  (no length factor; none when
+ *                    grade-separated or unaudited)
+ *   score          = mean(segment, end intersection scores that exist)    (the API's headline `score`)
+ *
+ * where `units` is the rating-weighted cluster count for per-cluster types (`Σ_bucket count × multiplier`), the
+ * count itself for presence-only types, and the saturating extent `min(1, n / saturation)` for a street-condition
+ * type. `lengthFactor` is `per_meters / max(length, min_length_meters)` for the types the config marks
+ * `length_normalized` (Obstacle, SurfaceProblem: a problem is a density along the street, so a long street is not
+ * punished for being long) and 1 for every other type. With the engine's own weights this reproduces the API's
+ * `segment_score`, `sub_scores`, intersection `score` and headline `score` exactly — the committed fixture
+ * `test/fixtures/accessScoreParity.json` holds both sides to that (test/js/accessScoreModel.test.js and
+ * test/service/AccessScoreParitySpec.scala).
+ *
+ * One deliberate departure: the engine gives an unaudited street between two scored crossings a headline from the
+ * crossings alone, while here such a street stays unscored. The tool's "unaudited" means nobody has looked at the
+ * block yet, and a color borrowed from its corners would hide exactly that.
+ *
+ * No DOM, no Mapbox: inputs in, typed arrays out, so a slider move costs one pass over the arrays (~28k streets
+ * in Seattle, about a millisecond) and the map/chart adapters read the results.
+ */
+class AccessScoreModel {
+  /** The state a fresh page starts in; `weights` null means the engine's default weights. */
+  static DEFAULT_STATE = Object.freeze({
+    unit: 'streets',
+    weights: null,
+    showUnaudited: true,
+    showClusters: true,
+  });
+
+  /**
+   * The share of a region's street network that must be audited before its score is shown; below it the region is
+   * hatched. Compared on the rounded percent so the rule can never disagree with the "N% explored" the page prints.
+   * A tool-side literal because the engine has no such floor: its region roll-up scores whatever has been audited,
+   * and this page alone decides that a neighborhood a tenth explored is not yet a picture of the neighborhood.
+   */
+  static MIN_COMPLETION = 0.5;
+
+  /** Histogram resolution over the 0–1 score range. */
+  static HISTOGRAM_BINS = 10;
+
+  #config;
+  #types;
+  #buckets;
+  /** Per type: +1 for a feature type, −1 for a problem type (the engine's base-weight sign). */
+  #signs;
+  #scoring;
+  #saturation;
+  /** Per type: 1 when the engine scales the type's segment term to a per-`per_meters` density, else 0. */
+  #normalized;
+  #lengthPerMeters;
+  #lengthMinMeters;
+  /** Indices into `#types` of the corner types an intersection is scored from (`config.intersection_types`). */
+  #intTypeIdx;
+
+  // Per-street inputs, laid out type-major so a street's T values sit together: index i * T + t.
+  #n = 0;
+  #ids;
+  #regionIds;
+  /** Per street: its OSM name, or null for an unnamed way. */
+  #names;
+  #lengths;
+  /** Per street: the factor a length-normalized type's term is scaled by (`per_meters / max(length, min)`). */
+  #lengthFactors;
+  #audited;
+  /** Cluster counts per (street, type, bucket): index (i * T + t) * B + b. */
+  #counts;
+  /** Cluster counts per (street, type). */
+  #clusterCounts;
+  #tagAdjustments;
+  #indexById = new Map();
+  /** Per street: the position of its start / end intersection in the intersection arrays, or −1 for none. */
+  #startInt;
+  #endInt;
+
+  // Per-intersection inputs, laid out like the streets over the corner types only: index j * TI + u.
+  #m = 0;
+  #intIds;
+  #intRegionIds;
+  #intAudited;
+  #intGradeSeparated;
+  #intCounts;
+  #intClusterCounts;
+  #intTagAdjustments;
+  #intIndexById = new Map();
+
+  #regions = [];
+  #regionIndexById = new Map();
+
+  #state;
+  // Derived per pass.
+  #units;
+  #terms;
+  /** Per street: the segment score alone, kept beside the headline so a popup can show both. */
+  #segmentScores;
+  #scores;
+  #intUnits;
+  #intTerms;
+  /** Per intersection: its score, NaN when grade-separated or unaudited. */
+  #intScores;
+  /** Histogram bin per street, filled alongside the scores; `UNBINNED` for an unaudited street. */
+  #bins;
+  #regionStats = [];
+  #cityContributions = null;
+
+  /** The `streetBins` value of a street with no score. */
+  static UNBINNED = 255;
+
+  /**
+   * @param {object} config - The `/v3/api/accessScoreConfig` response.
+   * @param {object} streets - The `/v3/api/accessScoreStreets` GeoJSON FeatureCollection (properties are read;
+   *                           geometry is left to the map).
+   * @param {object} intersections - The `/v3/api/accessScoreIntersections` GeoJSON FeatureCollection; an empty
+   *                                 one leaves every headline equal to its segment score.
+   * @param {Array<object>} regions - `/neighborhoods/completionRate` rows: `region_id`, `name`, `rate`,
+   *                                  `total_distance_m`, `completed_distance_m`.
+   * @param {object} [initialState] - Overrides of `DEFAULT_STATE` (e.g. from the URL).
+   */
+  constructor(config, streets, intersections, regions, initialState = {}) {
+    this.#config = config;
+    this.#types = config.scored_types;
+    this.#buckets = config.severity_buckets;
+    this.#saturation = config.street_condition_saturation_count;
+    this.#signs = this.#types.map((t) => (config.type_weights[t].base_weight < 0 ? -1 : 1));
+    this.#scoring = this.#types.map((t) => config.type_weights[t].scoring);
+    this.#normalized = Uint8Array.from(this.#types, (t) => (config.type_weights[t].length_normalized ? 1 : 0));
+    this.#lengthPerMeters = config.length_normalization?.per_meters ?? 0;
+    this.#lengthMinMeters = config.length_normalization?.min_length_meters ?? 0;
+    this.#intTypeIdx = Int32Array.from((config.intersection_types || []).map((t) => this.#types.indexOf(t))
+      .filter((t) => t >= 0));
+
+    this.#loadIntersections((intersections && intersections.features) || []);
+    this.#loadStreets(streets.features || []);
+    this.#loadRegions(regions || []);
+
+    this.#state = { ...AccessScoreModel.DEFAULT_STATE, ...initialState };
+    if (!this.#state.weights) this.#state.weights = { ...config.presets.default };
+    this.#units = new Float64Array(this.#n * this.#types.length);
+    this.#terms = new Float64Array(this.#n * this.#types.length);
+    this.#segmentScores = new Float64Array(this.#n);
+    this.#scores = new Float64Array(this.#n);
+    this.#bins = new Uint8Array(this.#n);
+    this.#intUnits = new Float64Array(this.#m * this.#intTypeIdx.length);
+    this.#intTerms = new Float64Array(this.#m * this.#intTypeIdx.length);
+    this.#intScores = new Float64Array(this.#m);
+    this.#recomputeUnits();
+    this.#recompute();
+  }
+
+  /** The engine configuration the model was built from. */
+  get config() {
+    return this.#config;
+  }
+
+  /** The scored label types, in the engine's order. */
+  get types() {
+    return this.#types;
+  }
+
+  /** A copy of the current state. */
+  get state() {
+    return { ...this.#state, weights: { ...this.#state.weights } };
+  }
+
+  /** Number of streets loaded. */
+  get streetCount() {
+    return this.#n;
+  }
+
+  /**
+   * Street headline scores by position (see `streetIds`); NaN for an unaudited street.
+   * @returns {Float64Array} The scores, in [0, 1].
+   */
+  get streetScores() {
+    return this.#scores;
+  }
+
+  /** Street ids by position, parallel to `streetScores`. */
+  get streetIds() {
+    return this.#ids;
+  }
+
+  /** Number of intersections loaded. */
+  get intersectionCount() {
+    return this.#m;
+  }
+
+  /** Whether each street (by position) has at least one completed audit. */
+  get streetAudited() {
+    return this.#audited;
+  }
+
+  /**
+   * Each street's histogram bin by position, `UNBINNED` for an unaudited street. Filled in the scoring pass, so a
+   * brush's "which streets are in these bins" is one linear read with no per-frame allocation.
+   * @returns {Uint8Array} Bin indices in `[0, HISTOGRAM_BINS)`, parallel to `streetIds`.
+   */
+  get streetBins() {
+    return this.#bins;
+  }
+
+  /**
+   * The histogram bin a score falls in.
+   * @param {number} score - A score in [0, 1].
+   * @returns {number} A bin index in `[0, HISTOGRAM_BINS)`; the top edge folds into the last bin.
+   */
+  static binOf(score) {
+    return AccessScoreModel.#bin(score, AccessScoreModel.HISTOGRAM_BINS);
+  }
+
+  /**
+   * Per-region roll-ups under the current state, in the order the regions were given.
+   * @returns {Array<{regionId: number, name: string, completion: number, score: ?number, belowFloor: boolean,
+   *   streetCount: number, auditedStreetCount: number, totalLengthM: number, auditedLengthM: number}>}
+   */
+  get regionStats() {
+    return this.#regionStats;
+  }
+
+  /** Whether every weight magnitude equals the engine's default, so the panel can say "default" or "custom". */
+  get weightsAreDefault() {
+    const defaults = this.#config.presets.default;
+    return this.#types.every((t) => Math.abs((defaults[t] ?? 0) - Math.abs(this.#state.weights[t] ?? 0)) < 1e-9);
+  }
+
+  /**
+   * Applies a partial state and recomputes. A partial `weights` merges over the current magnitudes.
+   *
+   * @param {object} partial - Any of the `DEFAULT_STATE` keys.
+   * @returns {object} The resulting state (a copy).
+   */
+  setState(partial) {
+    const next = { ...this.#state, ...partial };
+    if (partial.weights) next.weights = { ...this.#state.weights, ...partial.weights };
+    this.#state = next;
+    this.#recompute();
+    return this.state;
+  }
+
+  /**
+   * The signed base weight the engine would use for a type under the current state.
+   * @param {string} type - A scored label type.
+   * @returns {number} Sign from the engine, magnitude from the state.
+   */
+  signedWeight(type) {
+    const t = this.#types.indexOf(type);
+    return this.#signs[t] * Math.abs(this.#state.weights[type] ?? 0);
+  }
+
+  /**
+   * How a street's score comes about under the current state, for the "why this score" panel.
+   *
+   * @param {number} streetId - The street's `street_edge_id`.
+   * @returns {?object} `{streetId, name, regionId, lengthM, audited, score, segmentScore, startIntersection,
+   *   endIntersection, preSigmoid, terms}`: `score` is the headline, `segmentScore` the block's own score (null
+   *   when unaudited), each end `{id, score}` with `score` null where the crossing is unscored, or null where the
+   *   street has no crossing at that end; `terms` (the segment's) maps each scored type to `{clusterCount, buckets,
+   *   units, weight, weighted, tagAdjustment, lengthFactor, term}` — `term` is `(weighted + tagAdjustment) ×
+   *   lengthFactor`. Null for an unknown id.
+   */
+  explainStreet(streetId) {
+    const i = this.#indexById.get(streetId);
+    if (i === undefined) return null;
+    const T = this.#types.length;
+    const B = this.#buckets.length;
+    const terms = {};
+    let preSigmoid = 0;
+    this.#types.forEach((type, t) => {
+      const base = i * T + t;
+      const buckets = {};
+      this.#buckets.forEach((b, k) => {
+        buckets[b] = this.#counts[base * B + k];
+      });
+      const weight = this.signedWeight(type);
+      const weighted = weight * this.#units[base];
+      const tagAdjustment = this.#tagAdjustments[base];
+      const lengthFactor = this.#normalized[t] ? this.#lengthFactors[i] : 1;
+      const term = this.#clusterCounts[base] > 0 ? (weighted + tagAdjustment) * lengthFactor : 0;
+      preSigmoid += term;
+      terms[type] = {
+        clusterCount: this.#clusterCounts[base], buckets, units: this.#units[base], weight, weighted, tagAdjustment,
+        lengthFactor, term,
+      };
+    });
+    const end = (j) => {
+      if (j < 0) return null;
+      return { id: this.#intIds[j], score: Number.isNaN(this.#intScores[j]) ? null : this.#intScores[j] };
+    };
+    return {
+      streetId,
+      name: this.#names[i],
+      regionId: this.#regionIds[i],
+      lengthM: this.#lengths[i],
+      audited: this.#audited[i] === 1,
+      score: this.#audited[i] === 1 ? this.#scores[i] : null,
+      segmentScore: this.#audited[i] === 1 ? this.#segmentScores[i] : null,
+      startIntersection: end(this.#startInt[i]),
+      endIntersection: end(this.#endInt[i]),
+      preSigmoid,
+      terms,
+    };
+  }
+
+  /**
+   * How an intersection's score comes about under the current state.
+   *
+   * @param {number} intersectionId - The intersection's `intersection_id`.
+   * @returns {?object} `{intersectionId, regionId, gradeSeparated, audited, score, preSigmoid, terms}` — `score`
+   *   null when grade-separated or unaudited; `terms` covers the corner types only, in the shape `explainStreet`
+   *   uses (with `lengthFactor` 1). Null for an unknown id.
+   */
+  explainIntersection(intersectionId) {
+    const j = this.#intIndexById.get(intersectionId);
+    if (j === undefined) return null;
+    const TI = this.#intTypeIdx.length;
+    const B = this.#buckets.length;
+    const terms = {};
+    let preSigmoid = 0;
+    this.#intTypeIdx.forEach((t, u) => {
+      const type = this.#types[t];
+      const base = j * TI + u;
+      const buckets = {};
+      this.#buckets.forEach((b, k) => {
+        buckets[b] = this.#intCounts[base * B + k];
+      });
+      const weight = this.signedWeight(type);
+      const weighted = weight * this.#intUnits[base];
+      const tagAdjustment = this.#intTagAdjustments[base];
+      const term = this.#intClusterCounts[base] > 0 ? weighted + tagAdjustment : 0;
+      preSigmoid += term;
+      terms[type] = {
+        clusterCount: this.#intClusterCounts[base], buckets, units: this.#intUnits[base], weight, weighted,
+        tagAdjustment, lengthFactor: 1, term,
+      };
+    });
+    const scored = !Number.isNaN(this.#intScores[j]);
+    return {
+      intersectionId,
+      regionId: this.#intRegionIds[j],
+      gradeSeparated: this.#intGradeSeparated[j] === 1,
+      audited: this.#intAudited[j] === 1,
+      score: scored ? this.#intScores[j] : null,
+      preSigmoid,
+      terms,
+    };
+  }
+
+  /**
+   * One region's roll-up under the current state.
+   * @param {number} regionId - The region's id.
+   * @returns {?object} The entry of `regionStats`, or null for an unknown id.
+   */
+  explainRegion(regionId) {
+    const r = this.#regionIndexById.get(regionId);
+    return r === undefined ? null : this.#regionStats[r];
+  }
+
+  /**
+   * Every street in a region, audited or not — the population a region-scoped view counts against.
+   * @param {number} regionId - The region's id.
+   * @returns {Set<number>} Street ids.
+   */
+  regionStreetIds(regionId) {
+    const out = new Set();
+    for (let i = 0; i < this.#n; i++) if (this.#regionIds[i] === regionId) out.add(this.#ids[i]);
+    return out;
+  }
+
+  /**
+   * Every street of several regions in one pass, for a brush in the regions unit — a pass per region would be
+   * regions × streets on every sweep tick.
+   * @param {Iterable<number>} regionIds - The regions' ids.
+   * @returns {Set<number>} Street ids.
+   */
+  streetIdsInRegions(regionIds) {
+    const regions = regionIds instanceof Set ? regionIds : new Set(regionIds);
+    const out = new Set();
+    for (let i = 0; i < this.#n; i++) if (regions.has(this.#regionIds[i])) out.add(this.#ids[i]);
+    return out;
+  }
+
+  /**
+   * The summed length of a set of streets, for the brush bar's "N streets · 12.3 km" — a lookup per id rather than
+   * an `explainStreet` per id, which would build every term of every brushed street on every sweep tick.
+   * @param {Iterable<number>} streetIds - Street ids; unknown ids count nothing.
+   * @returns {number} Meters.
+   */
+  totalLengthM(streetIds) {
+    let meters = 0;
+    for (const id of streetIds) {
+      const i = this.#indexById.get(id);
+      if (i !== undefined) meters += this.#lengths[i];
+    }
+    return meters;
+  }
+
+  /**
+   * The audited streets whose score falls in a range of histogram bins.
+   * @param {number} from - First bin index, inclusive.
+   * @param {number} to - Last bin index, exclusive.
+   * @param {object} [options] - Scope.
+   * @param {Set<number>} [options.streetIds] - Restrict to these ids.
+   * @returns {Set<number>} Street ids.
+   */
+  streetIdsInBins(from, to, { streetIds } = {}) {
+    const out = new Set();
+    for (let i = 0; i < this.#n; i++) {
+      const b = this.#bins[i];
+      if (b < from || b >= to) continue;
+      if (streetIds && !streetIds.has(this.#ids[i])) continue;
+      out.add(this.#ids[i]);
+    }
+    return out;
+  }
+
+  /**
+   * The scored regions whose score falls in a range of histogram bins.
+   * @param {number} from - First bin index, inclusive.
+   * @param {number} to - Last bin index, exclusive.
+   * @param {object} [options] - Scope.
+   * @param {Set<number>} [options.regionIds] - Restrict to these ids.
+   * @returns {Set<number>} Region ids.
+   */
+  regionIdsInBins(from, to, { regionIds } = {}) {
+    const out = new Set();
+    for (const r of this.#regionStats) {
+      if (r.score === null || r.belowFloor) continue;
+      if (regionIds && !regionIds.has(r.regionId)) continue;
+      const b = AccessScoreModel.binOf(r.score);
+      if (b >= from && b < to) out.add(r.regionId);
+    }
+    return out;
+  }
+
+  /**
+   * The score distribution in the current unit.
+   *
+   * Streets are weighted by length (a kilometre of sidewalk at a score counts a kilometre, not a segment count that
+   * short blocks would dominate); regions count one each. Regions below the completion floor are left out, as are
+   * unaudited streets.
+   *
+   * @param {object} [options] - Scope.
+   * @param {Set<number>} [options.streetIds] - Restrict streets to these ids (e.g. the ones in the viewport).
+   * @param {Set<number>} [options.regionIds] - Restrict regions to these ids, in the regions unit.
+   * @returns {{bins: Array<{from: number, to: number, value: number}>, total: number, unit: string}} Bin values are
+   *   kilometres (streets) or counts (regions); `total` is their sum.
+   */
+  histogram({ streetIds, regionIds } = {}) {
+    const N = AccessScoreModel.HISTOGRAM_BINS;
+    const values = new Float64Array(N);
+    if (this.#state.unit === 'regions') {
+      for (const r of this.#regionStats) {
+        if (r.score === null || r.belowFloor) continue;
+        if (regionIds && !regionIds.has(r.regionId)) continue;
+        values[AccessScoreModel.#bin(r.score, N)] += 1;
+      }
+    } else {
+      for (let i = 0; i < this.#n; i++) {
+        if (this.#audited[i] !== 1) continue;
+        if (streetIds && !streetIds.has(this.#ids[i])) continue;
+        values[AccessScoreModel.#bin(this.#scores[i], N)] += this.#lengths[i] / 1000;
+      }
+    }
+    const bins = Array.from(values, (value, k) => ({ from: k / N, to: (k + 1) / N, value }));
+    return { bins, total: values.reduce((a, b) => a + b, 0), unit: this.#state.unit };
+  }
+
+  /**
+   * Every scored region, best first; a tie goes to the one with more audited length behind its score.
+   * @returns {Array<object>} Entries of `regionStats`, floor applied.
+   */
+  rankedRegions() {
+    return this.#regionStats.filter((r) => r.score !== null && !r.belowFloor)
+      .sort((a, b) => b.score - a.score || b.auditedLengthM - a.auditedLengthM);
+  }
+
+  /**
+   * The clusters behind the scores in a scope, by type and rating bucket — the population the score arithmetic
+   * runs over. Streets and intersections are pooled: the corner types attach to intersections almost entirely,
+   * so a street-only count would show a neighborhood with hundreds of curb ramps as having none.
+   *
+   * @param {object} [scope] - One of the two, or neither for the whole city.
+   * @param {Set<number>} [scope.streetIds] - These streets (unaudited ones carry no clusters) plus the
+   *                                          intersections at their ends, each intersection counted once.
+   * @param {Set<number>} [scope.regionIds] - The streets and intersections of these regions.
+   * @returns {{types: Array<{type: string, total: number, buckets: Object<string, number>}>, total: number,
+   *   streets: number, intersections: number}} Per type in the engine's order, its cluster count per severity
+   *   bucket and in all; the grand total; and how many audited streets and how many intersections were counted.
+   */
+  clusterBreakdown({ streetIds, regionIds } = {}) {
+    const T = this.#types.length;
+    const B = this.#buckets.length;
+    const counts = new Int32Array(T * B);
+    let streets = 0;
+    for (let i = 0; i < this.#n; i++) {
+      if (this.#audited[i] !== 1) continue;
+      if (streetIds && !streetIds.has(this.#ids[i])) continue;
+      if (regionIds && !regionIds.has(this.#regionIds[i])) continue;
+      streets += 1;
+      const base = i * T * B;
+      for (let k = 0; k < T * B; k++) counts[k] += this.#counts[base + k];
+    }
+    const TI = this.#intTypeIdx.length;
+    let intersections = 0;
+    for (const j of this.#intersectionsInScope({ streetIds, regionIds })) {
+      intersections += 1;
+      this.#intTypeIdx.forEach((t, u) => {
+        const base = (j * TI + u) * B;
+        for (let k = 0; k < B; k++) counts[t * B + k] += this.#intCounts[base + k];
+      });
+    }
+    let total = 0;
+    const types = this.#types.map((type, t) => {
+      const buckets = {};
+      let typeTotal = 0;
+      this.#buckets.forEach((b, k) => {
+        buckets[b] = counts[t * B + k];
+        typeTotal += counts[t * B + k];
+      });
+      total += typeTotal;
+      return { type, total: typeTotal, buckets };
+    });
+    return { types, total, streets, intersections };
+  }
+
+  /** The intersection array indices at the ends of these streets, deduplicated (two streets share a corner). */
+  #endIndicesOf(streetIds) {
+    const out = new Set();
+    for (const id of streetIds) {
+      const i = this.#indexById.get(id);
+      if (i === undefined) continue;
+      if (this.#startInt[i] >= 0) out.add(this.#startInt[i]);
+      if (this.#endInt[i] >= 0) out.add(this.#endInt[i]);
+    }
+    return out;
+  }
+
+  /**
+   * The intersection array indices a scope takes in, each once: the ends of a street set, the intersections of a
+   * region set, or every intersection for the city. The one rule for every aggregate that pools crossings with
+   * streets, so What's here, the contribution bars, and the KPIs agree on which corners they are counting.
+   * @param {object} scope - `{streetIds}` or `{regionIds}`, or neither.
+   * @returns {Iterable<number>} Indices into the intersection arrays.
+   */
+  #intersectionsInScope({ streetIds, regionIds }) {
+    if (streetIds) return this.#endIndicesOf(streetIds);
+    const out = [];
+    for (let j = 0; j < this.#m; j++) {
+      if (regionIds && !regionIds.has(this.#intRegionIds[j])) continue;
+      out.push(j);
+    }
+    return out;
+  }
+
+  /**
+   * Each type's mean contribution per audited street under the current state — what is driving the scores — and
+   * its mean cluster count, for the same streets.
+   *
+   * The crossings are pooled in, like `clusterBreakdown`: the corner types attach to intersections almost entirely
+   * (on Teaneck, 552 of 616 missing-curb-ramp clusters sit at a crossing), so a segment-only mean would show a
+   * neighborhood with hundreds of curb ramps as unaffected by them. Each intersection in scope is counted once,
+   * and its terms and clusters are added to the type's total before the division by the audited street count.
+   *
+   * @param {object} [options] - Scope, as for `clusterBreakdown`: one of the two, or neither for the city.
+   * @param {Set<number>} [options.streetIds] - These streets plus the intersections at their ends.
+   * @param {Set<number>} [options.regionIds] - The streets and intersections of these regions.
+   * @returns {{means: Object<string, number>, clusterMeans: Object<string, number>, streets: number,
+   *   intersections: number}} Mean term and mean cluster count per type, and how many audited streets and how many
+   *   intersections were counted.
+   */
+  contributions({ streetIds, regionIds } = {}) {
+    const T = this.#types.length;
+    const sums = new Float64Array(T);
+    const counts = new Float64Array(T);
+    let streets = 0;
+    for (let i = 0; i < this.#n; i++) {
+      if (this.#audited[i] !== 1) continue;
+      if (streetIds && !streetIds.has(this.#ids[i])) continue;
+      if (regionIds && !regionIds.has(this.#regionIds[i])) continue;
+      streets += 1;
+      for (let t = 0; t < T; t++) {
+        sums[t] += this.#terms[i * T + t];
+        counts[t] += this.#clusterCounts[i * T + t];
+      }
+    }
+    const TI = this.#intTypeIdx.length;
+    let intersections = 0;
+    for (const j of this.#intersectionsInScope({ streetIds, regionIds })) {
+      intersections += 1;
+      for (let u = 0; u < TI; u++) {
+        sums[this.#intTypeIdx[u]] += this.#intTerms[j * TI + u];
+        counts[this.#intTypeIdx[u]] += this.#intClusterCounts[j * TI + u];
+      }
+    }
+    const means = {};
+    const clusterMeans = {};
+    this.#types.forEach((type, t) => {
+      means[type] = streets ? sums[t] / streets : 0;
+      clusterMeans[type] = streets ? counts[t] / streets : 0;
+    });
+    return { means, clusterMeans, streets, intersections };
+  }
+
+  /**
+   * Headline numbers for the KPI strip.
+   *
+   * Unscoped, the distances are the completion figures the region rows carry (what the rest of the site calls
+   * "explored"); scoped to a street set they are the summed lengths of the streets in it, since a viewport or a
+   * neighborhood has no completion row of its own. The two agree to within how the street graph is measured.
+   *
+   * @param {object} [options] - Scope.
+   * @param {Set<number>} [options.streetIds] - Restrict streets to these ids.
+   * @param {Set<number>} [options.regionIds] - Restrict the region counts to these ids.
+   * @returns {{cityScore: ?number, auditedStreets: number, streets: number, auditedKm: number, totalKm: number,
+   *   regionsScored: number, regions: number, problemClusters: number}} The score is the length-weighted mean
+   *   over the audited streets in scope (null with none); `problemClusters` counts the problem types' clusters on
+   *   the scoped streets and at the crossings the scope takes in (see `clusterBreakdown`), since a missing curb
+   *   ramp is nearly always a crossing's.
+   */
+  kpis({ streetIds, regionIds } = {}) {
+    const T = this.#types.length;
+    let weighted = 0;
+    let length = 0;
+    let streets = 0;
+    let auditedStreets = 0;
+    let problemClusters = 0;
+    let scopedTotalM = 0;
+    for (let i = 0; i < this.#n; i++) {
+      if (streetIds && !streetIds.has(this.#ids[i])) continue;
+      streets += 1;
+      scopedTotalM += this.#lengths[i];
+      for (let t = 0; t < T; t++) if (this.#signs[t] < 0) problemClusters += this.#clusterCounts[i * T + t];
+      if (this.#audited[i] !== 1) continue;
+      auditedStreets += 1;
+      weighted += this.#scores[i] * this.#lengths[i];
+      length += this.#lengths[i];
+    }
+    const TI = this.#intTypeIdx.length;
+    for (const j of this.#intersectionsInScope({ streetIds, regionIds })) {
+      for (let u = 0; u < TI; u++) {
+        if (this.#signs[this.#intTypeIdx[u]] < 0) problemClusters += this.#intClusterCounts[j * TI + u];
+      }
+    }
+    let totalKm = scopedTotalM / 1000;
+    let auditedKm = length / 1000;
+    if (!streetIds) {
+      totalKm = 0;
+      auditedKm = 0;
+      for (const r of this.#regions) {
+        totalKm += (r.total_distance_m || 0) / 1000;
+        auditedKm += (r.completed_distance_m || 0) / 1000;
+      }
+    }
+    const regions = regionIds ? this.#regionStats.filter((r) => regionIds.has(r.regionId)) : this.#regionStats;
+    return {
+      cityScore: length > 0 ? weighted / length : null,
+      auditedStreets,
+      streets,
+      auditedKm,
+      totalKm,
+      regionsScored: regions.filter((r) => r.score !== null && !r.belowFloor).length,
+      regions: regions.length,
+      problemClusters,
+    };
+  }
+
+  /**
+   * What stands out about a street's or a neighborhood's score, for the hover tooltip: the type pushing it up
+   * the most, the type dragging it down the most, and — for a neighborhood — the type on which it differs most
+   * from the city-wide average per audited street.
+   *
+   * @param {string} unit - 'streets' or 'regions'.
+   * @param {number} id - The street or region id.
+   * @returns {?{helped: ?{type: string, value: number}, hurt: ?{type: string, value: number},
+   *   standout: ?{type: string, value: number, cityValue: number, better: boolean}}} Null for an unknown id or
+   *   an unscored feature; each part is null when nothing qualifies (e.g. no problems on the street).
+   */
+  notable(unit, id) {
+    let terms;
+    let standout = null;
+    if (unit === 'streets') {
+      const s = this.explainStreet(id);
+      if (!s || !s.audited) return null;
+      terms = Object.fromEntries(this.#types.map((t) => [t, s.terms[t].term]));
+    } else {
+      const r = this.explainRegion(id);
+      if (!r || r.score === null || r.belowFloor) return null;
+      terms = this.contributions({ regionIds: new Set([id]) }).means;
+      const city = this.#cityContributions.means;
+      // The type whose per-street effect here is furthest from the city's, in absolute terms, if it is at all
+      // noticeable — a tenth of a logit per street is the floor below which it is noise.
+      let best = 0.1;
+      for (const t of this.#types) {
+        const diff = terms[t] - city[t];
+        if (Math.abs(diff) > best) {
+          best = Math.abs(diff);
+          standout = { type: t, value: terms[t], cityValue: city[t], better: diff > 0 };
+        }
+      }
+    }
+    const pick = (sign) => {
+      let bestType = null;
+      let bestValue = 0;
+      for (const t of this.#types) {
+        const v = terms[t];
+        if (Math.sign(v) === sign && Math.abs(v) > Math.abs(bestValue)) {
+          bestType = t;
+          bestValue = v;
+        }
+      }
+      return bestType ? { type: bestType, value: bestValue } : null;
+    };
+    return { helped: pick(1), hurt: pick(-1), standout };
+  }
+
+  /**
+   * The engine's headline for a street: the plain mean of its segment score and its end crossings' scores, over
+   * whichever exist.
+   * @param {?number} segmentScore - The segment's score, or null when unaudited.
+   * @param {Array<number>} endScores - The scores of the end intersections that have one.
+   * @returns {?number} The mean, or null with nothing to average.
+   */
+  static headline(segmentScore, endScores) {
+    const components = segmentScore === null || segmentScore === undefined
+      ? [...endScores]
+      : [segmentScore, ...endScores];
+    if (components.length === 0) return null;
+    return components.reduce((a, b) => a + b, 0) / components.length;
+  }
+
+  /**
+   * The engine's region roll-up: the street-length-weighted mean of audited streets' scores.
+   * @param {Array<[number, number]>} pairs - `[score, lengthMeters]` per audited street.
+   * @returns {?number} The mean, or null with no streets / zero total length.
+   */
+  static lengthWeightedMean(pairs) {
+    let total = 0;
+    let weighted = 0;
+    for (const [score, length] of pairs) {
+      total += length;
+      weighted += score * length;
+    }
+    return total > 0 ? weighted / total : null;
+  }
+
+  /** Bin index of a score in [0, 1], the top edge folding into the last bin. */
+  static #bin(score, n) {
+    return Math.min(n - 1, Math.max(0, Math.floor(score * n)));
+  }
+
+  /** Unpacks the API features into the typed arrays. */
+  #loadStreets(features) {
+    const T = this.#types.length;
+    const B = this.#buckets.length;
+    this.#n = features.length;
+    this.#ids = new Int32Array(this.#n);
+    this.#regionIds = new Int32Array(this.#n);
+    this.#names = new Array(this.#n).fill(null);
+    this.#lengths = new Float64Array(this.#n);
+    this.#lengthFactors = new Float64Array(this.#n);
+    this.#audited = new Uint8Array(this.#n);
+    this.#counts = new Int32Array(this.#n * T * B);
+    this.#clusterCounts = new Int32Array(this.#n * T);
+    this.#tagAdjustments = new Float64Array(this.#n * T);
+    this.#startInt = new Int32Array(this.#n);
+    this.#endInt = new Int32Array(this.#n);
+    features.forEach((f, i) => {
+      const p = f.properties;
+      this.#ids[i] = p.street_edge_id;
+      this.#regionIds[i] = p.region_id;
+      this.#names[i] = p.street_name || null;
+      this.#startInt[i] = this.#intIndexById.get(p.start_intersection_id) ?? -1;
+      this.#endInt[i] = this.#intIndexById.get(p.end_intersection_id) ?? -1;
+      this.#lengths[i] = p.length_meters || 0;
+      this.#lengthFactors[i] = this.#lengthFactor(this.#lengths[i]);
+      this.#audited[i] = p.audit_count > 0 ? 1 : 0;
+      this.#indexById.set(p.street_edge_id, i);
+      this.#types.forEach((type, t) => {
+        const base = i * T + t;
+        const byBucket = (p.severity_counts && p.severity_counts[type]) || {};
+        let n = 0;
+        this.#buckets.forEach((b, k) => {
+          const c = byBucket[b] || 0;
+          this.#counts[base * B + k] = c;
+          n += c;
+        });
+        this.#clusterCounts[base] = n;
+        this.#tagAdjustments[base] = (p.tag_adjustments && p.tag_adjustments[type]) || 0;
+      });
+    });
+  }
+
+  /** Unpacks the intersection features into the typed arrays, corner types only. */
+  #loadIntersections(features) {
+    const TI = this.#intTypeIdx.length;
+    const B = this.#buckets.length;
+    this.#m = features.length;
+    this.#intIds = new Int32Array(this.#m);
+    this.#intRegionIds = new Int32Array(this.#m);
+    this.#intAudited = new Uint8Array(this.#m);
+    this.#intGradeSeparated = new Uint8Array(this.#m);
+    this.#intCounts = new Int32Array(this.#m * TI * B);
+    this.#intClusterCounts = new Int32Array(this.#m * TI);
+    this.#intTagAdjustments = new Float64Array(this.#m * TI);
+    features.forEach((f, j) => {
+      const p = f.properties;
+      this.#intIds[j] = p.intersection_id;
+      this.#intRegionIds[j] = p.region_id;
+      this.#intAudited[j] = p.audit_count > 0 ? 1 : 0;
+      this.#intGradeSeparated[j] = p.grade_separated ? 1 : 0;
+      this.#intIndexById.set(p.intersection_id, j);
+      this.#intTypeIdx.forEach((t, u) => {
+        const type = this.#types[t];
+        const base = j * TI + u;
+        const byBucket = (p.severity_counts && p.severity_counts[type]) || {};
+        let n = 0;
+        this.#buckets.forEach((b, k) => {
+          const c = byBucket[b] || 0;
+          this.#intCounts[base * B + k] = c;
+          n += c;
+        });
+        this.#intClusterCounts[base] = n;
+        this.#intTagAdjustments[base] = (p.tag_adjustments && p.tag_adjustments[type]) || 0;
+      });
+    });
+  }
+
+  /** Keeps the region rows and indexes them by id. */
+  #loadRegions(rows) {
+    this.#regions = rows;
+    rows.forEach((r, k) => this.#regionIndexById.set(r.region_id, k));
+  }
+
+  /** The engine's multiplier for a cluster in `bucket` under a scoring mode; 1 for modes that ignore the rating. */
+  #multiplier(scoring, bucket) {
+    const table = scoring === 'positive_quality'
+      ? this.#config.quality_multiplier
+      : scoring === 'negative_severity' ? this.#config.severity_multiplier : null;
+    if (!table) return 1;
+    return table[bucket] ?? table[this.#config.severity_buckets[this.#config.severity_buckets.length - 1]];
+  }
+
+  /**
+   * The engine's length factor for a street: a length-normalized type's term is stated per `per_meters` of street,
+   * the length floored at `min_length_meters` so a stub can't multiply one problem without bound. 1 when the config
+   * carries no normalization block (an engine from before #5095).
+   * @param {number} lengthMeters - The street's geodesic length.
+   * @returns {number} The factor.
+   */
+  #lengthFactor(lengthMeters) {
+    if (!(this.#lengthPerMeters > 0)) return 1;
+    return this.#lengthPerMeters / Math.max(lengthMeters, this.#lengthMinMeters);
+  }
+
+  /** Builds the rating-weighted cluster counts once: the multipliers are the engine's and never change. */
+  #recomputeUnits() {
+    const T = this.#types.length;
+    const B = this.#buckets.length;
+    const multipliers = this.#scoring.map((s) => this.#buckets.map((b) => this.#multiplier(s, b)));
+    for (let i = 0; i < this.#n; i++) {
+      for (let t = 0; t < T; t++) {
+        const base = i * T + t;
+        if (this.#scoring[t] === 'street_condition') {
+          this.#units[base] = Math.min(1, this.#clusterCounts[base] / this.#saturation);
+        } else {
+          let u = 0;
+          for (let k = 0; k < B; k++) u += this.#counts[base * B + k] * multipliers[t][k];
+          this.#units[base] = u;
+        }
+      }
+    }
+    const TI = this.#intTypeIdx.length;
+    for (let j = 0; j < this.#m; j++) {
+      this.#intTypeIdx.forEach((t, u) => {
+        const base = j * TI + u;
+        let sum = 0;
+        for (let k = 0; k < B; k++) sum += this.#intCounts[base * B + k] * multipliers[t][k];
+        this.#intUnits[base] = sum;
+      });
+    }
+  }
+
+  /** One pass over the intersections, one over the streets (segment, then headline), then the region roll-up. */
+  #recompute() {
+    const T = this.#types.length;
+    const weights = this.#types.map((type) => this.signedWeight(type));
+    const TI = this.#intTypeIdx.length;
+    for (let j = 0; j < this.#m; j++) {
+      let x = 0;
+      for (let u = 0; u < TI; u++) {
+        const base = j * TI + u;
+        const term = this.#intClusterCounts[base] > 0
+          ? weights[this.#intTypeIdx[u]] * this.#intUnits[base] + this.#intTagAdjustments[base]
+          : 0;
+        this.#intTerms[base] = term;
+        x += term;
+      }
+      this.#intScores[j] = this.#intAudited[j] === 1 && this.#intGradeSeparated[j] === 0
+        ? 1 / (1 + Math.exp(-x))
+        : NaN;
+    }
+    for (let i = 0; i < this.#n; i++) {
+      let x = 0;
+      for (let t = 0; t < T; t++) {
+        const base = i * T + t;
+        const factor = this.#normalized[t] ? this.#lengthFactors[i] : 1;
+        const term = this.#clusterCounts[base] > 0
+          ? (weights[t] * this.#units[base] + this.#tagAdjustments[base]) * factor
+          : 0;
+        this.#terms[base] = term;
+        x += term;
+      }
+      if (this.#audited[i] === 1) {
+        const segment = 1 / (1 + Math.exp(-x));
+        this.#segmentScores[i] = segment;
+        // The headline averages the segment with whichever end crossings carry a score.
+        let sum = segment;
+        let count = 1;
+        for (const j of [this.#startInt[i], this.#endInt[i]]) {
+          if (j >= 0 && !Number.isNaN(this.#intScores[j])) {
+            sum += this.#intScores[j];
+            count += 1;
+          }
+        }
+        this.#scores[i] = sum / count;
+        this.#bins[i] = AccessScoreModel.binOf(this.#scores[i]);
+      } else {
+        this.#segmentScores[i] = NaN;
+        this.#scores[i] = NaN;
+        this.#bins[i] = AccessScoreModel.UNBINNED;
+      }
+    }
+    this.#rollUpRegions();
+    this.#cityContributions = this.contributions();
+  }
+
+  /** Aggregates audited street scores per region the engine's way: a street-length-weighted mean. */
+  #rollUpRegions() {
+    const byRegion = new Map();
+    for (let i = 0; i < this.#n; i++) {
+      let acc = byRegion.get(this.#regionIds[i]);
+      if (!acc) {
+        acc = { streets: 0, audited: 0, length: 0, weighted: 0 };
+        byRegion.set(this.#regionIds[i], acc);
+      }
+      acc.streets += 1;
+      if (this.#audited[i] !== 1) continue;
+      acc.audited += 1;
+      acc.length += this.#lengths[i];
+      acc.weighted += this.#scores[i] * this.#lengths[i];
+    }
+    this.#regionStats = this.#regions.map((r) => {
+      const acc = byRegion.get(r.region_id) || { streets: 0, audited: 0, length: 0, weighted: 0 };
+      const score = acc.length > 0 ? acc.weighted / acc.length : null;
+      const completion = Math.min(1, r.rate || 0);
+      return {
+        regionId: r.region_id,
+        name: r.name,
+        completion,
+        score,
+        belowFloor: Math.round(completion * 100) < Math.round(AccessScoreModel.MIN_COMPLETION * 100),
+        streetCount: acc.streets,
+        auditedStreetCount: acc.audited,
+        totalLengthM: r.total_distance_m || 0,
+        auditedLengthM: r.completed_distance_m || 0,
+      };
+    });
+  }
+}

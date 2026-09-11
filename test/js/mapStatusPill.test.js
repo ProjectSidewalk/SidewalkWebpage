@@ -38,6 +38,27 @@ describe('MapStatusPill', () => {
         expect(pillEl().getAttribute('role')).toBe('status');
     });
 
+    test('the zoom hint fades after a few seconds, and only comes back after the floor is crossed again', () => {
+        const pill = new window.MapStatusPill(container);
+        pill.setState('belowFloor');
+        jest.advanceTimersByTime(window.MapStatusPill.HINT_DURATION_MS - 1);
+        expect(pillEl().hidden).toBe(false);
+        jest.advanceTimersByTime(1);
+        expect(pillEl().classList.contains('map-status-pill--leaving')).toBe(true);
+        expect(pillEl().hidden).toBe(false); // still painted while it fades
+        jest.advanceTimersByTime(window.MapStatusPill.FADE_MS);
+        expect(pillEl().hidden).toBe(true);
+
+        // Still below the floor: a repeat of the same state is not a new arrival.
+        pill.setState('belowFloor');
+        expect(pillEl().hidden).toBe(true);
+        // Zoom in (idle), then back out: the hint is worth showing again.
+        pill.setState('idle');
+        pill.setState('belowFloor');
+        expect(pillEl().hidden).toBe(false);
+        expect(pillEl().classList.contains('map-status-pill--leaving')).toBe(false);
+    });
+
     test('loading shows only after the anti-flicker delay', () => {
         const pill = new window.MapStatusPill(container);
         pill.setState('loading');

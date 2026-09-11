@@ -73,6 +73,7 @@ class AccessScoreService @Inject() (
       .flatMap { streets: Seq[StreetEdgeInfo] =>
         val streetIds: Seq[Int] = streets.map(_.street.streetEdgeId)
         val lengthsFuture       = apiService.getStreetLengths(streetIds)
+        val namesFuture         = apiService.getStreetNames(streetIds)
         val intersectionsFuture = apiService.getIntersectionsForStreets(spatialQueryType, bbox)
         val streetEndsFuture    = apiService.getStreetEnds(spatialQueryType, bbox)
 
@@ -92,6 +93,7 @@ class AccessScoreService @Inject() (
         // Join the concurrent lookups and the cluster stream, then do the (CPU-bound) scoring off the default pool.
         for {
           lengths       <- lengthsFuture
+          names         <- namesFuture
           intersections <- intersectionsFuture
           streetEnds    <- streetEndsFuture
           _             <- streamFuture
@@ -114,6 +116,7 @@ class AccessScoreService @Inject() (
               val endId: Option[Int]         = intersectionByStreetEnd.get((streetId, StreetEnd.End))
               buildStreetScore(
                 s,
+                names.get(streetId),
                 rows,
                 lengths.getOrElse(streetId, 0.0),
                 startId,
@@ -133,6 +136,7 @@ class AccessScoreService @Inject() (
    * Builds a single street's AccessScore DTO from its segment's cluster rows and its ends' scores.
    *
    * @param s                      The street (carries geometry, region, and audit count).
+   * @param streetName             The street's OSM name, if its way has one.
    * @param rows                   The cluster rows scoring the street's segment.
    * @param lengthMeters           The street's length in meters.
    * @param startIntersectionId    The intersection at the street's start, if any.
@@ -143,6 +147,7 @@ class AccessScoreService @Inject() (
    */
   private def buildStreetScore(
       s: StreetEdgeInfo,
+      streetName: Option[String],
       rows: Seq[ClusterScoreRow],
       lengthMeters: Double,
       startIntersectionId: Option[Int],
@@ -160,6 +165,7 @@ class AccessScoreService @Inject() (
     StreetAccessScoreForApi(
       streetEdgeId = s.street.streetEdgeId,
       osmWayId = s.osmId,
+      streetName = streetName,
       regionId = s.regionId,
       score =
         AccessScoreCalculator.headlineScore(segmentScore, Seq(startIntersectionScore, endIntersectionScore).flatten),

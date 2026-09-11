@@ -92,6 +92,24 @@ The LabelMap's "Download" control (`ps-map/MapDownloadControl.js`, #4095) logs t
 `/v3/api/rawLabels` request, so it also appears in the API request log), and `MapDownload_DocsLink` when the panel's
 API-documentation link is followed.
 
+The AccessScore tool (`/accessScore`, `public/js/access-score/`, #5217) logs its sidebar and map interactions as the
+**`Click_module=AccessScore_<Action>`** family, on a control's settled `change` (never per slider tick):
+`AccessScore_Unit_value=<streets|regions>`, `AccessScore_Weight_value=<labelType>_value=<magnitude>`,
+`AccessScore_ShowUnaudited_value=<bool>`, `AccessScore_ShowClusters_value=<bool>` (the evidence layer),
+`AccessScore_DarkMap_value=<bool>` (the dark basemap toggled), `AccessScore_Reset` (the weights), `AccessScore_ResetAll`
+(weights, view options, selection, brush, band, basemap and camera back to the page as first opened),
+`AccessScore_Select_streetId=<id>` / `AccessScore_Select_regionId=<id>` (a click on a street or neighborhood),
+`AccessScore_SelectCluster_labelType=<type>` (a click on a cluster dot, which opens the cluster sheet) and
+`AccessScore_SheetOpenLabel_labelId=<id>` (a card in that sheet opening the full label card), `AccessScore_ClearVote_result=<Agree|Disagree|Unsure>_labelId=<id>` (a vote cleared from a mini-card's chips in the sheet or the photo strip — casting one lands in `label_validation` with `source = 'AccessScoreSheet'` or `'AccessScoreStrip'` and is not logged here, the label card's rule),
+and the popup's hop `AccessScore_ExploreHere`. A click on a
+cluster dot also opens the shared label card, whose actions log as `Click_module=LabelDetail_…` (above). The insights
+dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`,
+`AccessScore_Brush_value=<from>-<to>` (the brushed score range in whole percent, logged once on release, never per
+sweep tick) / `AccessScore_Brush_value=clear`, `AccessScore_PhotoStrip_labelId=<id>` (a photo-strip thumbnail opening the full
+label card), and `AccessScore_RankSelect_regionId=<id>` (a rank row clicked: the band scopes to that neighborhood in
+either unit, and in the neighborhoods unit the map selection it also makes logs `AccessScore_Select_regionId`). The drawer's `MapSidebar_Open` /
+`MapSidebar_Close` fire here too (shared chrome); the server logs `Visit_AccessScore` per page load, or `Visit_AccessScore_RedirectMobileLanding` when a mobile UA is bounced to `/mobileLanding` instead (the tool is desktop-only, like the Route Builder, and its Tools-menu entry is not rendered on a phone).
+
 The Gallery renders the same sidebar (`gallery/src/filter/GalleryFilter.js`) and logs to `gallery_task_interaction`
 under its own names, one `<Section>Apply` / `<Section>Unapply` pair per section with the toggled value in the notes:
 `LabelTypeApply` with `Label_Type:<type>`, `SeverityApply` with `Severity:<null|1|2|3>`, `ValidationOptionApply` with

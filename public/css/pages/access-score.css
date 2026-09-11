@@ -1,0 +1,1334 @@
+/*
+ * The AccessScore tool (/accessScore, #5217): a full-window map with the shared filter-sidebar chrome on the left
+ * (components/filter-sidebar.css), this tool's own controls inside it, the insights band along the bottom (which
+ * carries the score legend), the cluster sheet, and the hover tooltip and selection popup. Everything is sized from
+ * the main.css tokens; the score colors come from the --color-score-ramp-* tokens through ScoreRamp, never from a
+ * hex here.
+ */
+
+/* ---- Full-window map, mirroring the public LabelMap's rules in components/choropleth.css ---- */
+
+#acs-map-container {
+  max-width: none; /* Override the Bootstrap .container max-width so the map spans the window. */
+  width: 100%;
+  flex: 1 1 auto; /* Fill the space #wrap leaves below the navbar and any test-server banner. */
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+#acs-map {
+  height: 100%;
+  margin-top: 0;
+}
+
+/* ---- Sidebar sections ---- */
+
+.acs-section {
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+/* The "i" button that stands in for a paragraph of explanation. Sized to the 24px touch-comfortable minimum while
+   drawing as a small circle, so it sits quietly beside a heading or a checkbox rather than competing with it. */
+.acs-info {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin: -4px 0 -4px 2px;
+  border: 0;
+  background: none;
+  color: var(--color-neutral-600);
+  cursor: help;
+}
+
+.acs-info span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 1px solid currentcolor;
+  border-radius: 50%;
+  font: var(--text-tiny-semibold);
+  line-height: 1;
+}
+
+.acs-info:hover,
+.acs-info:focus-visible {
+  color: var(--color-link-200);
+}
+
+.acs-info:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 1px;
+  border-radius: 50%;
+}
+
+/* A label and its info button on one line, above the control they describe. */
+.acs-subsection-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+}
+
+.acs-subsection-head .acs-field-label {
+  margin-bottom: 0;
+}
+
+.acs-field-label {
+  display: block;
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
+  margin: var(--space-sm) 0 var(--space-xxs);
+}
+
+.acs-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+  margin: var(--space-sm) 0 0;
+  cursor: pointer;
+}
+
+.acs-check input {
+  margin: 3px 0 0;
+}
+
+/* A checkbox and its info button. The button is a sibling of the label, not a child: inside it, a click on the
+   button would toggle the checkbox. */
+.acs-check-row {
+  display: flex;
+  align-items: flex-start;
+  margin-top: var(--space-sm);
+}
+
+/* The row owns the spacing, so the info button's box lines up with the label's first line rather than sitting a
+   whole margin above it. */
+.acs-check-row .acs-check {
+  flex: 1 1 auto;
+  margin-top: 0;
+}
+
+/* display: flex would otherwise beat the user-agent's [hidden] rule when the row is the streets-only toggle. */
+.acs-check-row[hidden] {
+  display: none;
+}
+
+/* Streets | Neighborhoods: two radios styled as one segmented control. */
+.acs-segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--color-neutral-400);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.acs-segmented__option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  margin: 0;
+  text-align: center;
+  font: var(--text-small-medium);
+  color: var(--color-neutral-800);
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+  background: var(--color-neutral-white);
+}
+
+.acs-segmented__option + .acs-segmented__option {
+  border-left: 1px solid var(--color-neutral-400);
+}
+
+.acs-segmented__option input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+/* pine-700, not pine-600: white on pine-600 is 3.02:1, under the 4.5:1 WCAG AA needs for this size of text. */
+.acs-segmented__option:has(input:checked) {
+  background: var(--color-pine-700);
+  color: var(--color-neutral-white);
+}
+
+.acs-segmented__option:has(input:focus-visible) {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: -2px;
+}
+
+/* ---- Sliders ---- */
+
+/* Quiet sliders: a hairline neutral track and a small neutral thumb, so seven of them in a column read as one
+   calm block and the colored contribution bars underneath carry the meaning. Themed through the vendor
+   pseudo-elements (the standard `accent-color` is outside the Baseline set the stylelint config allows), and the
+   thumb keeps a visible focus ring. */
+.acs-range {
+  width: 100%;
+  height: 20px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+}
+
+.acs-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-neutral-300);
+}
+
+.acs-range::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-neutral-300);
+}
+
+.acs-range::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  margin-top: -5.5px;
+  border: 2px solid var(--color-neutral-white);
+  border-radius: 50%;
+  background: var(--color-asphalt-300);
+  box-shadow: var(--box-shadow-sm);
+  appearance: none;
+}
+
+.acs-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-neutral-white);
+  border-radius: 50%;
+  background: var(--color-asphalt-300);
+  box-shadow: var(--box-shadow-sm);
+}
+
+.acs-range:focus-visible {
+  outline: none;
+}
+
+.acs-range:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.acs-range:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.acs-weight {
+  margin-top: var(--space-sm);
+}
+
+.acs-weight__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: 2px;
+}
+
+.acs-weight__icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+
+.acs-weight__label {
+  flex: 1 1 auto;
+  margin: 0;
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
+  cursor: pointer;
+}
+
+/* "helps" / "hurts": the factor's direction in a word, tinted with the ramp's two poles. */
+.acs-weight__role {
+  font: var(--text-tiny-semibold);
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+.acs-weight__role--feature {
+  color: var(--color-jade-800);
+  background: var(--color-jade-200);
+}
+
+.acs-weight__role--problem {
+  color: var(--color-orange-800);
+  background: var(--color-orange-200);
+}
+
+.acs-weight__value {
+  font: var(--text-small-medium);
+  color: var(--color-neutral-800);
+  min-width: 44px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The average contribution under each slider: a thin bar whose length is relative to the largest type's. */
+.acs-weight__contrib {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 12px;
+  margin-top: 2px;
+}
+
+.acs-weight__bar {
+  display: block;
+  height: 4px;
+  width: 0;
+  max-width: 55%;
+  border-radius: 2px;
+  background: var(--color-neutral-400);
+  transition: width var(--transition-fast);
+}
+
+.acs-weight__bar--feature {
+  background: var(--color-score-ramp-5);
+}
+
+.acs-weight__bar--problem {
+  background: var(--color-score-ramp-1);
+}
+
+.acs-weight__bar-label {
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.acs-weights-reset {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+#acs-weights-section .filter-sidebar__heading {
+  white-space: nowrap;
+}
+
+/* Unit buttons carry a glyph beside the word. */
+.acs-segmented__glyph {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* ---- Actions ---- */
+
+.acs-actions {
+  border-bottom: none;
+}
+
+/* The docs link opens the API docs in a new tab, so it carries the external-link glyph beside its text. */
+.acs-actions__docs {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  margin-top: var(--space-xs);
+  font: var(--text-caption-medium);
+}
+
+.acs-actions__docs-icon {
+  width: calc(14px * var(--ui-scale, 1));
+  height: calc(14px * var(--ui-scale, 1));
+}
+
+.acs-updated-at {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xxs);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin: var(--space-sm) 0 0;
+}
+
+/* ---- Tooltip and selection popup (Mapbox popups) ---- */
+
+.acs-tooltip .mapboxgl-popup-content,
+.acs-popup .mapboxgl-popup-content {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: var(--space-sm) var(--space-md);
+}
+
+/* The hover tooltip follows the pointer, so it must never catch the click meant for the feature under it. */
+.acs-tooltip,
+.acs-tooltip .mapboxgl-popup-content {
+  pointer-events: none;
+}
+
+/* "Click for details" / "Click to open in the imagery": the affordance a hover card otherwise leaves unsaid. */
+.acs-tooltip__hint {
+  margin-top: var(--space-xxs);
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-600);
+}
+
+/* The block and its two crossings under the headline, in both the hover card and the popup. */
+.acs-popup__components {
+  margin-top: 2px;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-tooltip__meta {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* The explanation lines under a hover score. */
+.acs-tooltip__why {
+  margin: var(--space-xs) 0 0;
+  padding-left: var(--space-md);
+  font: var(--text-caption-regular);
+}
+
+.acs-tooltip__standout--better {
+  color: var(--color-jade-800);
+}
+
+.acs-tooltip__standout--worse {
+  color: var(--color-orange-800);
+}
+
+.acs-tooltip__score,
+.acs-popup__score {
+  font: var(--text-h3-bold);
+  color: var(--color-neutral-black);
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-popup__title {
+  font: var(--text-body-bold);
+  margin: 0 var(--space-lg) var(--space-xxs) 0;
+}
+
+.acs-popup__subtitle {
+  font: var(--text-small-bold);
+  margin: var(--space-sm) 0 var(--space-xxs);
+}
+
+.acs-popup__meta,
+.acs-popup__empty {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin: 0;
+}
+
+.acs-popup__table {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--text-caption-regular);
+}
+
+.acs-popup__table th {
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-700);
+  text-align: left;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.acs-popup__table td {
+  padding: 3px 0;
+  border-bottom: 1px solid var(--color-neutral-100);
+}
+
+.acs-popup__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-popup__term--feature {
+  color: var(--color-jade-700);
+}
+
+.acs-popup__term--problem {
+  color: var(--color-orange-600);
+}
+
+.acs-popup__swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: var(--space-xxs);
+  vertical-align: middle;
+}
+
+.acs-popup__links {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-sm);
+}
+
+/* ---- Map legend: a card beside the zoom buttons ---- */
+
+/* Mapbox floats its corner controls into a column; a reversed flex row puts the legend beside the zoom buttons
+   (the navigation control is added first, so it stays at the corner). */
+#acs-map .mapboxgl-ctrl-top-right {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-start;
+}
+
+.acs-map-legend {
+  width: calc(180px * var(--ui-scale, 1));
+  padding: var(--space-xxs) var(--space-xs);
+  border-radius: var(--border-radius);
+  background: var(--color-neutral-white);
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 10%);
+  font: var(--text-tiny-medium);
+  color: var(--color-neutral-800);
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-map-legend__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+}
+
+.acs-map-legend__bar {
+  position: relative;
+  display: block;
+  flex: 1;
+  height: 10px;
+  border-radius: 5px;
+}
+
+.acs-map-legend__caret {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--color-neutral-900);
+  box-shadow: 0 0 0 1px var(--color-neutral-white);
+  transform: translateX(-50%);
+  transition: left var(--transition-fast);
+}
+
+.acs-map-legend__poles {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  margin-top: 2px;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.acs-map-legend__none {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  margin-top: var(--space-xxs);
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.acs-map-legend__swatch {
+  width: 18px;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.acs-map-legend__swatch--unaudited {
+  height: 3px;
+  background: var(--color-neutral-400);
+}
+
+.acs-map-legend__swatch--hatch {
+  background: repeating-linear-gradient(135deg, var(--color-neutral-600) 0 1px, var(--color-neutral-100) 1px 4px);
+}
+
+/* ---- Insights dock: a band along the bottom of the map ---- */
+
+/* From the drawer's edge to the window's edge. Between the drawer's resize handle (11) and the status pill (15);
+   the loading overlay (20) covers it. Mapbox's attribution and logo lift above it (below). */
+.acs-dock {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-neutral-white);
+  border-top: 1px solid var(--color-neutral-200);
+  box-shadow: 0 -2px 8px rgb(0 0 0 / 12%);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-900);
+}
+
+.filter-sidebar:not(.filter-sidebar--hidden) ~ .acs-dock {
+  left: var(--filter-sidebar-width, 350px);
+}
+
+/* The band covers the map's bottom edge, where Mapbox keeps its attribution and logo; the dock publishes its
+   height on the holder and the controls ride up by it. */
+#acs-map .mapboxgl-ctrl-bottom-left,
+#acs-map .mapboxgl-ctrl-bottom-right {
+  bottom: var(--acs-dock-height, 0);
+}
+
+.acs-dock__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xxs) var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+}
+
+.acs-dock__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  padding: 2px var(--space-xxs);
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  background: none;
+  font: var(--text-small-bold);
+  color: var(--color-neutral-900);
+  cursor: pointer;
+}
+
+.acs-dock__toggle:hover {
+  background: var(--color-neutral-100);
+}
+
+.acs-dock__toggle:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 1px;
+}
+
+.acs-dock__chevron {
+  width: 16px;
+  height: 16px;
+  transition: transform var(--transition-fast);
+}
+
+.acs-dock--collapsed .acs-dock__chevron {
+  transform: rotate(180deg);
+}
+
+.acs-dock__caption {
+  color: var(--color-neutral-700);
+}
+
+/* The collapsed band's legend: the ramp between its two ends, with a caret riding it at the hovered score. Only
+   shown collapsed; expanded, the histogram is the legend. */
+.acs-dock__strip {
+  display: none;
+  align-items: center;
+  gap: var(--space-xxs);
+  margin-left: var(--space-sm);
+  font: var(--text-tiny-medium);
+  color: var(--color-neutral-800);
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-dock--collapsed .acs-dock__strip {
+  display: inline-flex;
+}
+
+.acs-dock__strip-bar {
+  position: relative;
+  display: block;
+  width: 140px;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.acs-dock__strip-caret {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--color-neutral-900);
+  box-shadow: 0 0 0 1px var(--color-neutral-white);
+  transform: translateX(-50%);
+  transition: left var(--transition-fast);
+}
+
+.acs-dock__strip-caret[hidden] {
+  display: none;
+}
+
+.acs-dock__kpis {
+  display: flex;
+  gap: var(--space-md);
+  margin-left: auto;
+}
+
+/* A compact stat tile: the figure over its caption, right-aligned so the tiles read as a row of numbers.
+   Proportional figures on purpose: tabular digits look loose at this weight. */
+.acs-kpi {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 56px;
+}
+
+.acs-kpi__value {
+  font: var(--text-body-bold);
+  color: var(--color-neutral-900);
+}
+
+.acs-kpi__label {
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+  white-space: nowrap;
+}
+
+/* The brush readout: what range is picked and what it holds, with the one way to clear it. */
+.acs-dock__brush {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-xxs);
+  padding-top: var(--space-xxs);
+  border-top: 1px solid var(--color-neutral-200);
+  font: var(--text-caption-medium);
+}
+
+.acs-dock__brush[hidden] {
+  display: none;
+}
+
+.acs-dock__body {
+  display: grid;
+
+  /* The strip gets the lion's share: pictures are the one thing here that can use every pixel they are given. The
+     rank column's floor is its row's own minimum (rank, name, bar, score plus gaps), so a score never clips. */
+  grid-template-columns: minmax(200px, 1fr) minmax(215px, 1fr) minmax(200px, 0.9fr) minmax(320px, 2.2fr);
+  gap: var(--space-md);
+  padding: 0 var(--space-md) var(--space-sm);
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.acs-dock__body[hidden] {
+  display: none;
+}
+
+/* Every panel is a column of one fixed height — the photos' — so the charts stretch to it and the rank list
+   scrolls within it, rather than the longest list setting the band's height. */
+.acs-dock__panel {
+  display: flex;
+  flex-direction: column;
+  height: calc(176px * var(--ui-scale, 1));
+  min-width: 0;
+  overflow: hidden;
+}
+
+.acs-dock__panel-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  margin: var(--space-xxs) 0;
+}
+
+.acs-dock__panel-title {
+  margin: 0;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-800);
+}
+
+/* ---- Histogram (and legend) ---- */
+
+/* No gutter: the value labels ride their gridlines inside the plot, so the bars get the panel's full width. The
+   variable stays as the one place to reintroduce one. */
+.acs-histogram {
+  --acs-histogram-gutter: 0px;
+
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* The plot takes whatever height the band's tallest panel leaves it, never less than its own floor. */
+.acs-histogram__plot {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: calc(64px * var(--ui-scale, 1));
+  margin-top: var(--space-md); /* Room for the city label above the needle. */
+}
+
+/* The bars and the markers that ride them share one box, right of the gutter, so a percentage `left` on a marker
+   means the same score as a bin's position. */
+.acs-histogram__area {
+  position: absolute;
+  inset: 0 0 0 var(--acs-histogram-gutter);
+}
+
+.acs-histogram__grid {
+  position: absolute;
+  inset: 0;
+}
+
+/* Hairline gridlines, one step off the surface, with the value they stand for tucked under each line's left end
+   on a surface chip, so it stays legible over a bar. */
+.acs-histogram__gridline {
+  position: absolute;
+  right: 0;
+  left: var(--acs-histogram-gutter);
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.acs-histogram__gridline--top {
+  top: 0;
+}
+
+.acs-histogram__gridline--mid {
+  top: 50%;
+}
+
+.acs-histogram__gridline span {
+  position: absolute;
+  top: 1px;
+  left: 0;
+  padding: 0 2px;
+  border-radius: 2px;
+  background: var(--color-neutral-white);
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700); /* neutral-600 is 3.2:1 on white, under AA for text this small. */
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The bins: twenty buttons in a row, each the full plot height so a short bar is as easy to hit as a tall one. */
+.acs-histogram__bars {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.acs-histogram__bin {
+  flex: 1 1 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  background: transparent;
+  cursor: pointer;
+}
+
+.acs-histogram__bin:hover {
+  background: var(--color-neutral-100);
+}
+
+.acs-histogram__bin:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: -2px;
+}
+
+/* Rounded at the data end, square at the baseline. The color is the ramp at the bin's midpoint, set inline. */
+.acs-histogram__bar {
+  display: block;
+  width: 100%;
+  max-width: 24px;
+  height: 0;
+  border-radius: 4px 4px 0 0;
+  transition: height var(--transition-fast), opacity var(--transition-fast);
+}
+
+.acs-histogram__bin--out .acs-histogram__bar {
+  opacity: 0.3;
+}
+
+/* The city's score: a hairline needle with its label above the plot. */
+.acs-histogram__needle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px solid var(--color-neutral-900);
+  transform: translateX(-1px);
+  pointer-events: none;
+}
+
+/* Centered over the line; the chart nudges it inward from either edge of the plot. */
+.acs-histogram__needle-label {
+  position: absolute;
+  top: -14px;
+  left: 0;
+  transform: translateX(-50%);
+  font: var(--text-tiny-semibold);
+  color: var(--color-neutral-900);
+  white-space: nowrap;
+}
+
+/* Where the selected (dark) and hovered (link-blue) feature's score falls: a small pointer under the baseline. */
+.acs-histogram__caret {
+  position: absolute;
+  bottom: -7px;
+  width: 0;
+  height: 0;
+  border-right: 6px solid transparent;
+  border-bottom: 7px solid var(--color-neutral-900);
+  border-left: 6px solid transparent;
+  transform: translateX(-50%);
+  pointer-events: none;
+  transition: left var(--transition-fast);
+}
+
+.acs-histogram__caret--hover {
+  border-bottom-color: var(--color-link-200);
+}
+
+.acs-histogram__needle[hidden],
+.acs-histogram__caret[hidden] {
+  display: none;
+}
+
+.acs-histogram__axis,
+.acs-histogram__poles {
+  display: flex;
+  justify-content: space-between;
+  margin-left: var(--acs-histogram-gutter);
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.acs-histogram__axis {
+  margin-top: var(--space-xs);
+  margin-left: var(--acs-histogram-gutter);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The legend's words under the ticks: which end is which, and what carries no score at all. */
+.acs-histogram__poles {
+  margin-top: 2px;
+}
+
+.acs-histogram__empty,
+.acs-rank__empty,
+.acs-rank__note {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+/* ---- What's here: per-type cluster counts, split by rating ---- */
+
+.acs-whats-here__caption,
+.acs-photos__caption {
+  margin: 0 0 var(--space-xxs);
+  overflow: hidden;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The chart and its rows fill the panel; spare height spreads between the rows rather than pooling under them. */
+.acs-whats-here {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.acs-rank {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* One grid for the whole list, so every bar starts on the same column line: the name column hugs the longest
+   name of all rows (capped at 42%), not each row's own. The rows join it as subgrids. */
+.acs-whats-here__rows {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: fit-content(42%) minmax(0, 1fr) auto;
+  align-content: space-between;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acs-whats-here__rows[hidden] {
+  display: none;
+}
+
+.acs-whats-here__row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: calc(14px * var(--ui-scale, 1));
+}
+
+.acs-whats-here__row--none {
+  color: var(--color-neutral-700);
+}
+
+.acs-whats-here__type {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  min-width: 0;
+  padding: 0 2px;
+  font: var(--text-caption-medium);
+  line-height: calc(14px * var(--ui-scale, 1)); /* Seven rows have to fit a band, not a page. */
+  color: inherit;
+}
+
+.acs-whats-here__track:focus-visible,
+.acs-rank__row:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 1px;
+}
+
+.acs-whats-here__icon {
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+
+.acs-whats-here__name,
+.acs-rank__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The bar's length is the count relative to the largest row; its segments are the rating buckets, with a hairline
+   of surface between them so two similar colors stay two segments. */
+.acs-whats-here__track {
+  display: block;
+  min-width: 0;
+  height: 9px;
+}
+
+/* A non-empty row never shrinks below a sliver: a count of 8 beside 4,000 is still a fact worth a mark. */
+.acs-whats-here__bar {
+  display: flex;
+  gap: 2px;
+  width: 0;
+  min-width: 2px;
+  height: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+  transition: width var(--transition-fast);
+}
+
+.acs-whats-here__row--none .acs-whats-here__bar {
+  min-width: 0;
+}
+
+/* A rated segment carries its bucket's label-card color in `--acs-segment`; the unrated bucket falls through. */
+.acs-whats-here__segment {
+  flex: 0 1 auto;
+  min-width: 2px;
+  height: 100%;
+  background: var(--acs-segment, var(--color-neutral-400));
+}
+
+.acs-whats-here__segment[hidden] {
+  display: none;
+}
+
+.acs-whats-here__segment--unrated {
+  flex: 1;
+  background: var(--color-neutral-500);
+}
+
+/* The panel measures itself: under ~340px the full type names would truncate or leave the bars no room, so the short ones take
+   over. Both are in the markup; the query only swaps which is shown. */
+.acs-dock__panel--whats-here {
+  container-type: inline-size;
+}
+
+.acs-whats-here__name-short {
+  display: none;
+}
+
+@container (width < 340px) {
+  .acs-whats-here__name-long {
+    display: none;
+  }
+
+  .acs-whats-here__name-short {
+    display: inline;
+  }
+}
+
+.acs-whats-here__count {
+  font: var(--text-tiny-medium);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-whats-here__empty,
+.acs-photos__status {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.acs-whats-here__empty[hidden] {
+  display: none;
+}
+
+/* ---- Photo strip: label crops from the scope's neighborhood ---- */
+
+.acs-photos__status:empty {
+  display: none;
+}
+
+/* The strip is a column that hands the ribbon whatever height the caption leaves, and the ribbon's cards fill it. */
+.acs-photos {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.acs-photos__ribbon {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+  gap: var(--space-xs);
+  min-height: 0;
+  margin: 0;
+  padding: 0 0 var(--space-xxs);
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x proximity;
+}
+
+.acs-photos__item {
+  flex: none;
+  scroll-snap-align: start;
+}
+
+/* ---- Neighborhoods ranked ---- */
+
+.acs-rank__rows {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.acs-rank__row {
+  display: grid;
+  grid-template-columns: auto minmax(72px, 1.5fr) minmax(40px, 1fr) auto; /* Digits take only their own width. */
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  padding: 2px var(--space-xxs);
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  background: none;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-900);
+  text-align: left;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.acs-rank__row:hover,
+.acs-rank__row--hover {
+  background: var(--color-neutral-100);
+}
+
+.acs-rank__row[aria-current="true"] {
+  background: var(--color-pine-100);
+  box-shadow: inset 2px 0 0 var(--color-pine-700);
+}
+
+.acs-rank__row--out {
+  opacity: 0.35;
+}
+
+.acs-rank__pos {
+  min-width: 1.4ch;
+  text-align: right;
+  color: var(--color-neutral-700);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The track is a lighter neutral so the bar's ramp color reads against it. */
+.acs-rank__track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-neutral-100);
+  overflow: hidden;
+}
+
+.acs-rank__bar {
+  display: block;
+  height: 100%;
+  border-radius: 0 3px 3px 0;
+  transition: width var(--transition-fast);
+}
+
+.acs-rank__score {
+  font: var(--text-caption-medium);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- The cluster sheet: every label in a cluster at once ---- */
+
+.acs-sheet {
+  width: min(960px, calc(100vw - 2 * var(--space-lg)));
+  max-height: calc(100vh - 2 * var(--space-lg));
+  padding: var(--space-md) var(--space-lg) var(--space-lg);
+  border: 0;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-lg);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+}
+
+.acs-sheet::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+.acs-sheet__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.acs-sheet__icon {
+  flex: none;
+  width: 28px;
+  height: 28px;
+}
+
+.acs-sheet__titles {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.acs-sheet__title {
+  margin: 0;
+  font: var(--text-title-bold);
+}
+
+.acs-sheet__meta {
+  margin: 2px 0 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.acs-sheet__close {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+
+.acs-sheet__close:hover {
+  background: var(--color-neutral-100);
+}
+
+.acs-sheet__close:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.acs-sheet__close img {
+  width: 100%;
+  height: 100%;
+}
+
+.acs-sheet__status,
+.acs-sheet__more {
+  margin: 0 0 var(--space-xs);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.acs-sheet__status:empty {
+  display: none;
+}
+
+/* Cards shrink to fit: as many across as the width allows, a small cluster spreading out and a large one packing
+   in, every card the same 4:3 picture over a short caption. */
+.acs-sheet__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---- Dark basemap ---- */
+
+/* The band, the legend card and the popups stay light; only the chrome drawn on the map itself changes, and the
+   ramp swaps through ScoreRamp. A light popup needs a deeper shadow to lift off near-black land. */
+.acs-map-holder--dark .acs-tooltip .mapboxgl-popup-content,
+.acs-map-holder--dark .acs-popup .mapboxgl-popup-content {
+  box-shadow: 0 2px 8px rgb(0 0 0 / 45%);
+}
+
+/* Narrower windows: the views wrap, and the rank list gets shorter so the band leaves map above it. */
+@media (width <= 1100px) {
+  .acs-dock__body {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (width <= 600px) { /* --breakpoint-sm */
+  .acs-dock__body {
+    grid-template-columns: 1fr;
+  }
+
+  .acs-dock__kpis {
+    margin-left: 0;
+  }
+
+  .acs-rank__rows {
+    max-height: 96px;
+  }
+
+  /* The collapsed bar has no room for the ramp strip beside the KPIs; the selector matches the rule that shows it,
+     or that one's extra class would outrank this. */
+  .acs-dock--collapsed .acs-dock__strip {
+    display: none;
+  }
+}

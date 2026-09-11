@@ -1,0 +1,167 @@
+/**
+ * Two-way sync between the AccessScore tool's state and the page URL, so a weighting can be shared as a link
+ * (#5217). Reading happens once, before the first render; writing is a debounced `history.replaceState` on every
+ * change and on user-initiated map moves, with params at their defaults omitted and params this class doesn't own
+ * preserved. The viewport params (`lat`, `lng`, `zoom`) are the LabelMap's, so a link's camera reads the same way
+ * on both maps.
+ *
+ * Params: `unit` (streets|regions), `w` (per-type magnitudes, `CurbRamp:0.75,…`, present only when they differ
+ * from the engine's defaults), `unaudited` (0|1), `clusters` (0|1, the evidence layer), `sel` (selected street or
+ * region id, read with `unit`), `dark` (1 for the dark basemap); and the insights dock's `dock` (0 when collapsed,
+ * 1 to open it on a narrow window, where it otherwise starts collapsed)
+ * `b` (the brushed score range as `from-to` in whole percent, on the histogram's 10-point bin edges) and `focus`
+ * (the neighborhood a rank-list click scoped the band to).
+ */
+class AccessScoreUrlSync {
+  static #WRITE_DELAY_MS = 300;
+
+  #model;
+  #map;
+  #writeTimer = null;
+  #selection = null;
+  #dock = { open: true, brush: null, focus: null };
+  #dark = false;
+
+  /**
+   * The state a URL asks for, validated against the engine config. Unknown or malformed tokens are dropped, so a
+   * link from an older build degrades to the defaults rather than failing.
+   *
+   * @param {object} config - The `/v3/api/accessScoreConfig` response.
+   * @param {string} [search=window.location.search] - The query string to read.
+   * @returns {{state: object, selection: ?number, dark: boolean,
+   *   dock: {open: boolean, brush: ?object, focus: ?number}}} A partial
+   *   `AccessScoreModel` state, the selected id if any, whether the dark basemap is asked for, and the dock's
+   *   state (`brush` as `{from, to}` bin indices).
+   */
+  static read(config, search = window.location.search) {
+    const params = new URLSearchParams(search);
+    const state = {};
+    const unit = params.get('unit');
+    if (unit === 'streets' || unit === 'regions') state.unit = unit;
+
+    const w = params.get('w');
+    if (w) {
+      const weights = {};
+      for (const token of w.split(',')) {
+        const colon = token.indexOf(':');
+        const type = token.slice(0, colon);
+        const value = Number.parseFloat(token.slice(colon + 1));
+        if (config.scored_types.includes(type) && Number.isFinite(value) && value >= 0) weights[type] = value;
+      }
+      if (Object.keys(weights).length > 0) state.weights = { ...config.presets.default, ...weights };
+    }
+
+    if (params.get('unaudited') === '0') state.showUnaudited = false;
+    if (params.get('clusters') === '0') state.showClusters = false;
+
+    const sel = Number.parseInt(params.get('sel'), 10);
+
+    const focus = Number.parseInt(params.get('focus'), 10);
+    // Open by default on a wide window; below the drawer's breakpoint the band's four stacked panels would cover
+    // the whole map, so it starts collapsed there like the drawer does, unless the link says `dock=1`.
+    const narrow = typeof window.matchMedia === 'function' && window.matchMedia(MapSidebarDrawer.NARROW_QUERY).matches;
+    const dock = {
+      open: params.has('dock') ? params.get('dock') !== '0' : !narrow,
+      brush: null,
+      focus: Number.isFinite(focus) && focus > 0 ? focus : null,
+    };
+    // A brush is only meaningful on the bin edges; anything else is dropped whole rather than rounded to a range
+    // the link's author never picked.
+    const b = /^(\d{1,3})-(\d{1,3})$/.exec(params.get('b') || '');
+    if (b) {
+      const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
+      const from = Number(b[1]);
+      const to = Number(b[2]);
+      if (from < to && to <= 100 && from % step === 0 && to % step === 0) {
+        dock.brush = { from: from / step, to: to / step };
+      }
+    }
+    return { state, selection: Number.isFinite(sel) && sel > 0 ? sel : null, dark: params.get('dark') === '1', dock };
+  }
+
+  /**
+   * @param {AccessScoreModel} model - The model whose state is written.
+   * @param {mapboxgl.Map} map - The map, for the viewport params.
+   */
+  constructor(model, map) {
+    this.#model = model;
+    this.#map = map;
+    // Only user-initiated moves (originalEvent present) write the URL — programmatic moves (the sidebar padding
+    // ease, a fly-to from the rankings) would otherwise stamp viewport params on page load.
+    this.#map.on('moveend', (event) => {
+      if (event.originalEvent) this.scheduleWrite();
+    });
+  }
+
+  /**
+   * Records the selected feature id for the URL's `sel` param.
+   * @param {?number} id - The selected street or region id, or null.
+   */
+  setSelection(id) {
+    this.#selection = id;
+    this.scheduleWrite();
+  }
+
+  /**
+   * Records the insights dock's state for the URL's `dock` and `b` params.
+   * @param {{open: boolean, brush: ?{from: number, to: number}, focus: ?number}} dock - The dock's state.
+   */
+  setDock(dock) {
+    this.#dock = dock;
+    this.scheduleWrite();
+  }
+
+  /**
+   * Records whether the dark basemap is on, for the URL's `dark` param.
+   * @param {boolean} dark - True for the dark basemap.
+   */
+  setDark(dark) {
+    this.#dark = dark;
+    this.scheduleWrite();
+  }
+
+  /** Debounces URL writes so a slider drag or a continuous pan produces one replaceState. */
+  scheduleWrite() {
+    if (this.#writeTimer) clearTimeout(this.#writeTimer);
+    this.#writeTimer = setTimeout(() => this.writeNow(), AccessScoreUrlSync.#WRITE_DELAY_MS);
+  }
+
+  /** Rewrites the URL from the current state and viewport, omitting params at their defaults. */
+  writeNow() {
+    if (this.#writeTimer) {
+      clearTimeout(this.#writeTimer);
+      this.#writeTimer = null;
+    }
+    const url = new URL(window.location.href);
+    const state = this.#model.state;
+    const defaults = AccessScoreModel.DEFAULT_STATE;
+    const set = (name, value, isDefault) => {
+      if (isDefault) url.searchParams.delete(name);
+      else url.searchParams.set(name, value);
+    };
+
+    set('unit', state.unit, state.unit === defaults.unit);
+    const weights = this.#model.types.map((t) => `${t}:${this.#trim(state.weights[t])}`).join(',');
+    set('w', weights, this.#model.weightsAreDefault);
+    set('unaudited', state.showUnaudited ? '1' : '0', state.showUnaudited === defaults.showUnaudited);
+    set('clusters', state.showClusters ? '1' : '0', state.showClusters === defaults.showClusters);
+    set('sel', String(this.#selection), this.#selection === null);
+    set('dark', '1', !this.#dark);
+    set('dock', '0', this.#dock.open);
+    const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
+    const brush = this.#dock.brush;
+    set('b', brush ? `${brush.from * step}-${brush.to * step}` : '', brush === null);
+    set('focus', String(this.#dock.focus), !this.#dock.focus);
+
+    const center = this.#map.getCenter();
+    url.searchParams.set('lat', center.lat.toFixed(5));
+    url.searchParams.set('lng', center.lng.toFixed(5));
+    url.searchParams.set('zoom', this.#map.getZoom().toFixed(2));
+    util.url.replaceQuery(url);
+  }
+
+  /** A number as a short decimal string ("0.75", not "0.7500000000000001"). */
+  #trim(value) {
+    return String(Math.round(value * 1000) / 1000);
+  }
+}

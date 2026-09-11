@@ -347,5 +347,12 @@
     "on-facebook": "Compartir en Facebook",
     "on-linkedin": "Compartir en LinkedIn",
     "via-email": "Compartir por correo electrónico"
+  },
+  "mini-card": {
+    "no-image": "Sin imagen",
+    "open": "Abrir esta etiqueta: {{label}}",
+    "votes": "Validar esta etiqueta",
+    "no-image-to-judge": "No hay imagen para juzgar esta etiqueta",
+    "vote-failed": "Tu voto no se guardó. Inténtalo de nuevo."
   }
 }

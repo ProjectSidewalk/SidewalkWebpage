@@ -138,6 +138,28 @@
   --color-label-crosswalk: var(--color-yellow-500);
   --color-label-signal: var(--color-mint-500);
 
+  /* AccessScore ramp, read low → high: red-orange for the worst scores, yellow at 50, green for the best. A hue
+     at the midpoint rather than a grey because the grey vanished against the basemap's grey land. Validated with
+     the dataviz palette checks: every adjacent pair clears the CVD floor (worst ΔE 14.5, protan) and the
+     normal-vision floor (16.2); yellow-500 is only 1.4:1 against the basemap, so anything colored by this ramp also
+     carries its value as text (tooltip, legend, table). Read through public/js/common/scoreRamp.js — a chart or map
+     layer never lists these hexes itself. */
+  --color-score-ramp-1: var(--color-orange-600);
+  --color-score-ramp-2: var(--color-orange-500);
+  --color-score-ramp-3: var(--color-yellow-500);
+  --color-score-ramp-4: var(--color-jade-600);
+  --color-score-ramp-5: var(--color-jade-800);
+
+  /* The same ramp re-stepped for the AccessScore tool's dark basemap (Mapbox dark-v11, land #292929): every step
+     is >= 3:1 on that surface, which rules out the light ramp's dark poles. Forcing every step light compresses the
+     warm arm — steps 1 and 2 sit in the 7 ΔE band — but the ramp is interpolated and its poles are far apart, so the
+     arm reads as one hue gradient rather than two levels. Same CVD story as the light ramp: values travel as text. */
+  --color-score-ramp-dark-1: var(--color-orange-500);
+  --color-score-ramp-dark-2: var(--color-pumpkin-400);
+  --color-score-ramp-dark-3: var(--color-yellow-500);
+  --color-score-ramp-dark-4: var(--color-jade-500);
+  --color-score-ramp-dark-5: var(--color-jade-300);
+
   /* Street audit-state colors. The map layer and the legend swatch both read these, so a swatch can't drift from
      the line it stands for. Unaudited is warm rather than grey: the greys it used to sit in are already spoken for
      by the region outline, the region fill and the basemap's own roads, so the streets most in need of a mapper

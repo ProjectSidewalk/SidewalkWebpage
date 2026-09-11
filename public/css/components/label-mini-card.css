@@ -1,0 +1,229 @@
+/* The label mini-card (js/common/LabelMiniCard.js). Two sizes: a `--sheet` grid card with a caption, and a
+   `--strip` thumbnail whose chips ride over the picture's foot so a ribbon of them stays one thumbnail tall. */
+
+.lmc {
+  position: relative;
+  list-style: none;
+}
+
+.lmc__open {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: var(--color-neutral-100);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.lmc__open:focus-visible,
+.lmc__vote:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 1px;
+}
+
+.lmc__figure {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.lmc__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-fast);
+}
+
+.lmc__open:hover .lmc__image {
+  transform: scale(1.04);
+}
+
+.lmc__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xxs);
+  height: 100%;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.lmc__placeholder img {
+  width: calc(28px * var(--ui-scale, 1));
+  height: calc(28px * var(--ui-scale, 1));
+}
+
+/* The type badge sits on the picture's corner, ringed in surface so it reads on any crop. */
+.lmc__badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: calc(18px * var(--ui-scale, 1));
+  height: calc(18px * var(--ui-scale, 1));
+  border-radius: 50%;
+  background: var(--color-neutral-white);
+  box-shadow: 0 0 0 1px var(--color-neutral-white);
+  pointer-events: none;
+}
+
+/* ---- Votes ---- */
+
+.lmc__votes {
+  display: flex;
+  gap: var(--space-xxs);
+}
+
+/* Icon and count side by side, at least a 24px target, so three fit under a 96px thumbnail. */
+.lmc__vote {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: calc(28px * var(--ui-scale, 1));
+  min-height: calc(24px * var(--ui-scale, 1));
+  padding: 0 var(--space-xxs);
+  border: 0;
+  border-radius: var(--border-radius);
+  background: none;
+  font: var(--text-tiny-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-neutral-800);
+  cursor: pointer;
+}
+
+.lmc__vote:hover:not([disabled]) {
+  background: var(--color-neutral-200);
+}
+
+.lmc__vote[aria-pressed="true"] {
+  background: var(--color-neutral-200);
+  color: var(--color-neutral-black);
+  font: var(--text-tiny-semibold);
+}
+
+.lmc__vote[disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.lmc__vote-icon {
+  width: calc(16px * var(--ui-scale, 1));
+  height: calc(16px * var(--ui-scale, 1));
+  flex: none;
+}
+
+/* ---- Sheet size: a card in a grid ---- */
+
+.lmc--sheet {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-neutral-white);
+  overflow: hidden;
+}
+
+.lmc--sheet:hover {
+  border-color: var(--color-neutral-400);
+  box-shadow: var(--box-shadow);
+}
+
+.lmc--sheet .lmc__open {
+  aspect-ratio: 4 / 3;
+}
+
+.lmc__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--space-xs);
+  padding: var(--space-xs) var(--space-xs) 0;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+/* The rating on the same wash the label card puts behind the chosen level, so a rating is legible while scanning. */
+.lmc__rating {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--lmc-wash, var(--color-neutral-100));
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-900);
+}
+
+.lmc__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  width: 100%;
+}
+
+.lmc__tag {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-800);
+}
+
+/* Rating and date share one line; the rating pill leads. */
+.lmc__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xxs) var(--space-xs);
+  width: 100%;
+}
+
+.lmc--sheet .lmc__votes {
+  padding: var(--space-xxs) var(--space-xs) var(--space-xs);
+}
+
+/* ---- Strip size: a thumbnail with the chips over its foot ---- */
+
+.lmc--strip {
+  /* As tall as the ribbon gives it, 4:3 from that height, so a ribbon of crops fills its panel at any band height. */
+  flex: 0 0 auto;
+  width: auto;
+  height: 100%;
+  min-height: calc(72px * var(--ui-scale, 1));
+  aspect-ratio: 4 / 3;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.lmc--strip .lmc__open {
+  height: 100%;
+  border-radius: var(--border-radius);
+}
+
+/* Hidden until the pointer or keyboard is on the card, so a ribbon reads as pictures; always shown without a
+   pointer, or the chips could never be reached. */
+.lmc--strip .lmc__votes {
+  position: absolute;
+  inset: auto 0 0;
+  justify-content: center;
+  gap: 0;
+  padding: 1px 0;
+  background: rgb(255 255 255 / 88%);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.lmc--strip:hover .lmc__votes,
+.lmc--strip:focus-within .lmc__votes {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .lmc--strip .lmc__votes {
+    opacity: 1;
+  }
+}
+
+.lmc--strip .lmc__vote {
+  min-width: calc(30px * var(--ui-scale, 1));
+  padding: 0 2px;
+}
