@@ -52,7 +52,6 @@
   "tip-standout-problem-better": "À noter : {{type}} coûte moins ici ({{value}} par rue contre {{city}} en ville)",
   "tip-standout-problem-worse": "À noter : {{type}} coûte plus ici ({{value}} par rue contre {{city}} en ville)",
   "options": "Options",
-  "weights-factors": "Facteurs",
   "show-clusters": "Afficher les groupes à l’origine des scores",
   "show-clusters-help": "Les groupes apparaissent au niveau de la rue. Cliquez sur l’un d’eux pour l’ouvrir dans les images.",
   "updated-help": "Un score est calculé à partir de groupes de signalements, reconstruits chaque nuit. Les signalements ajoutés depuis sont intégrés la nuit suivante.",

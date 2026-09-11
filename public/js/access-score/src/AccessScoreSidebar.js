@@ -116,7 +116,6 @@ class AccessScoreSidebar {
       showUnaudited: root.querySelector('#acs-show-unaudited'),
       showClusters: root.querySelector('#acs-show-clusters'),
       reset: root.querySelector('#acs-reset'),
-      weightsDetails: root.querySelector('#acs-weights-details'),
       weightsSummary: root.querySelector('#acs-weights-summary'),
       streetOptions: root.querySelector('#acs-street-options'),
     };
@@ -146,9 +145,6 @@ class AccessScoreSidebar {
     e.showClusters.addEventListener('change', () => this.#emit({ showClusters: e.showClusters.checked },
       { kind: 'ShowClusters', value: e.showClusters.checked, final: true }));
     e.reset.addEventListener('click', () => this.#emit(null, { kind: 'Reset', final: true }));
-    // Opening the disclosure is worth knowing about — it says whether people reach for the weights at all.
-    e.weightsDetails?.addEventListener('toggle', () =>
-      this.#emit(null, { kind: 'Section', value: `weights_open=${e.weightsDetails.open}`, final: true }));
   }
 
   /** The unaudited-streets toggle only means something in the streets unit. */
@@ -176,7 +172,7 @@ class AccessScoreSidebar {
     return `×${Number(value).toFixed(2)}`;
   }
 
-  /** The one-line hint on the collapsed weights section: whether the weights in force are the engine's own. */
+  /** The hint beside the weights heading: whether the weights in force are the engine's own. */
   #updateWeightsSummary() {
     const el = this.#els.weightsSummary;
     if (!el) return;

@@ -52,7 +52,6 @@
   "tip-standout-problem-better": "Destaca: {{type}} resta menos aquí ({{value}} por calle frente a {{city}} en la ciudad)",
   "tip-standout-problem-worse": "Destaca: {{type}} resta más aquí ({{value}} por calle frente a {{city}} en la ciudad)",
   "options": "Opciones",
-  "weights-factors": "Factores",
   "show-clusters": "Mostrar los grupos detrás de las puntuaciones",
   "show-clusters-help": "Los grupos aparecen al acercarse al nivel de calle. Haga clic en uno para verlo en las imágenes.",
   "updated-help": "Una puntuación se calcula a partir de grupos de etiquetas, recalculados cada noche. Las etiquetas añadidas después se incluyen la noche siguiente.",

@@ -184,10 +184,6 @@ window.AccessScoreApp = (function () {
     };
 
     sidebar.onChange((partial, meta) => {
-      if (meta.kind === 'Section') {
-        log(meta.kind, meta.value);
-        return;
-      }
       if (meta.kind === 'Reset') {
         // What is drawn (unit, cluster dots, unaudited streets) is the reader's view, not the weighting, and stays.
         model.setState({ weights: { ...config.presets.default } });

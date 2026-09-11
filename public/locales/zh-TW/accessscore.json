@@ -52,7 +52,6 @@
   "tip-standout-problem-better": "特別之處：{{type}} 在此損失較少（每條街道 {{value}}，全市 {{city}}）",
   "tip-standout-problem-worse": "特別之處：{{type}} 在此損失較多（每條街道 {{value}}，全市 {{city}}）",
   "options": "選項",
-  "weights-factors": "因素",
   "show-clusters": "顯示分數背後的標記群組",
   "show-clusters-help": "放大到街道層級後會出現群組。點選任一群組即可在影像中開啟。",
   "updated-help": "分數由標記群組計算而來，每晚重新建立。之後新增的標記會在隔夜納入。",

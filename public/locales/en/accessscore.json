@@ -52,7 +52,6 @@
   "tip-standout-problem-better": "Stands out: {{type}} costs less here ({{value}} per street vs {{city}} citywide)",
   "tip-standout-problem-worse": "Stands out: {{type}} costs more here ({{value}} per street vs {{city}} citywide)",
   "options": "Options",
-  "weights-factors": "Factors",
   "show-clusters": "Show the clusters behind the scores",
   "show-clusters-help": "Clusters appear once you zoom in to street level. Click one to open it in the imagery.",
   "updated-help": "A score is computed from clusters of labels, rebuilt nightly. Labels added since then are folded in the next night.",

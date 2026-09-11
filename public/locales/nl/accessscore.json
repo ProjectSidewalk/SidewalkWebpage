@@ -52,7 +52,6 @@
   "tip-standout-problem-better": "Valt op: {{type}} kost hier minder ({{value}} per straat tegenover {{city}} stadsbreed)",
   "tip-standout-problem-worse": "Valt op: {{type}} kost hier meer ({{value}} per straat tegenover {{city}} stadsbreed)",
   "options": "Opties",
-  "weights-factors": "Factoren",
   "show-clusters": "Toon de clusters achter de scores",
   "show-clusters-help": "Clusters verschijnen zodra u inzoomt tot straatniveau. Klik erop om het in de beelden te openen.",
   "updated-help": "Een score wordt berekend uit clusters van labels, die elke nacht opnieuw worden gevormd. Labels die daarna zijn toegevoegd tellen de volgende nacht mee.",

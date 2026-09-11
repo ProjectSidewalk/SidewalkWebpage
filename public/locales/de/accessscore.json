@@ -52,7 +52,6 @@
   "tip-standout-problem-better": "Auffällig: {{type}} belastet hier weniger ({{value}} pro Straße gegenüber {{city}} stadtweit)",
   "tip-standout-problem-worse": "Auffällig: {{type}} belastet hier stärker ({{value}} pro Straße gegenüber {{city}} stadtweit)",
   "options": "Optionen",
-  "weights-factors": "Faktoren",
   "show-clusters": "Cluster hinter den Bewertungen anzeigen",
   "show-clusters-help": "Cluster erscheinen ab der Straßenebene. Klicken Sie auf eines, um es im Bildmaterial zu öffnen.",
   "updated-help": "Eine Bewertung wird aus Clustern von Markierungen berechnet, die nächtlich neu gebildet werden. Später hinzugefügte Markierungen fließen in der nächsten Nacht ein.",

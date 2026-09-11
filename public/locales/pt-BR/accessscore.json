@@ -52,7 +52,6 @@
   "tip-standout-problem-better": "Destaque: {{type}} custa menos aqui ({{value}} por rua contra {{city}} na cidade)",
   "tip-standout-problem-worse": "Destaque: {{type}} custa mais aqui ({{value}} por rua contra {{city}} na cidade)",
   "options": "Opções",
-  "weights-factors": "Fatores",
   "show-clusters": "Mostrar os agrupamentos por trás das pontuações",
   "show-clusters-help": "Os agrupamentos aparecem ao aproximar até o nível da rua. Clique em um para abri-lo nas imagens.",
   "updated-help": "Uma pontuação é calculada a partir de agrupamentos de etiquetas, refeitos toda noite. Etiquetas adicionadas depois entram na noite seguinte.",

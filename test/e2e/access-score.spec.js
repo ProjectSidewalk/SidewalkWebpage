@@ -140,9 +140,7 @@ test.describe('/accessScore', () => {
     await waitForTool(page);
     const requestsAfterLoad = scoreRequests.length;
 
-    // The weights start collapsed so the panel reads simply; open them, then zero the curb-ramp weight: street 1
-    // falls to the neutral 0.5.
-    await page.locator('#acs-weights-details summary').click();
+    // Zero the curb-ramp weight: street 1 falls to the neutral 0.5.
     await page.locator('#acs-weight-CurbRamp').fill('0');
     await page.locator('#acs-weight-CurbRamp').dispatchEvent('input');
     await page.locator('#acs-weight-CurbRamp').dispatchEvent('change');

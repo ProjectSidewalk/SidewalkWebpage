@@ -313,48 +313,9 @@
   white-space: nowrap;
 }
 
-/* ---- Collapsible sections ---- */
-
-.acs-details__summary {
-  cursor: pointer;
-  list-style: none;
-  font: var(--text-caption-semibold);
-  color: var(--color-link-200);
-}
-
-.acs-details__summary::-webkit-details-marker {
-  display: none;
-}
-
-.acs-details__summary::before {
-  content: "";
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-right: var(--space-xs);
-  border-right: 2px solid currentcolor;
-  border-bottom: 2px solid currentcolor;
-  transform: rotate(-45deg);
-  transition: transform var(--transition-fast);
-}
-
-.acs-details[open] > .acs-details__summary::before {
-  transform: rotate(45deg);
-}
-
-/* A whole section behind a disclosure: the heading is the summary, with the weights in force as its hint. */
-.acs-details__summary--section {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-sm);
-  color: inherit;
-}
-
-.acs-details__summary--section .filter-sidebar__heading {
-  flex: 1 1 auto;
-}
-
-.acs-details__hint {
+/* The weights in force, beside the section heading. */
+.acs-section__hint {
+  margin-left: auto;
   font: var(--text-caption-regular);
   color: var(--color-neutral-700);
 }
