@@ -10,6 +10,7 @@ class AccessScoreMapLegend {
   #caret = null;
   #swatch = null;
   #swatchLabel = null;
+  #mode = 'light';
 
   /**
    * Mapbox `IControl` hook: builds the legend's DOM.
@@ -39,13 +40,22 @@ class AccessScoreMapLegend {
     this.#swatch = root.querySelector('.acs-map-legend__swatch');
     this.#swatchLabel = root.querySelector('.acs-map-legend__none-label');
     // The ramp is data, not styling: read from the tokens at build time, like every other ramp consumer.
-    this.#bar.style.background = ScoreRamp.cssGradient();
+    this.#bar.style.background = ScoreRamp.cssGradient({ mode: this.#mode });
     return root;
   }
 
   onRemove() {
     this.#container?.remove();
     this.#container = null;
+  }
+
+  /**
+   * Repaints the ramp for the basemap the map is on, so the legend shows the colors the streets actually wear.
+   * @param {boolean} dark - True on the dark basemap.
+   */
+  setDark(dark) {
+    this.#mode = dark ? 'dark' : 'light';
+    if (this.#bar) this.#bar.style.background = ScoreRamp.cssGradient({ mode: this.#mode });
   }
 
   /**

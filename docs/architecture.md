@@ -259,7 +259,11 @@ corresponding Twirl view:
   scope's neighborhood feed (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
   the whole city is the population, a brush emphasizes in the overview views, narrows what's here and dims the
   map, and a selection marks the overview views, scopes what's here and the photos, and fades the rest of the
-  map). Grunt-bundled to `access-score/build/`; the shared score ramp is `common/scoreRamp.js`.
+  map). An optional dark basemap (`?dark=1`, or the sidebar toggle, which is a live `map.setStyle` followed by a
+  `remount()` of the map view and the cluster layer on `style.load`) reads the ramp in its dark stepping
+  (`--color-score-ramp-dark-*`, passed per call as `{ mode: 'dark' }`) with a second chrome palette; the band and
+  popups stay light and keep the light ramp. Grunt-bundled to `access-score/build/`; the shared score ramp is
+  `common/scoreRamp.js`.
 - **`ps-map/`** — shared map component used across pages.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is

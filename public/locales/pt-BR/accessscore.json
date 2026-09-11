@@ -54,6 +54,8 @@
   "options": "Opções",
   "show-clusters": "Mostrar os agrupamentos por trás das pontuações",
   "show-clusters-help": "Os agrupamentos aparecem ao aproximar até o nível da rua. Clique em um para abri-lo nas imagens.",
+  "dark-map": "Mapa escuro",
+  "dark-map-help": "Um mapa-base escuro com uma escala ajustada a ele, para que as pontuações dominem a imagem.",
   "updated-help": "Uma pontuação é calculada a partir de agrupamentos de etiquetas, refeitos toda noite. Etiquetas adicionadas depois entram na noite seguinte.",
   "click-for-details": "Clique para ver detalhes",
   "cluster-size_one": "{{count}} etiqueta",

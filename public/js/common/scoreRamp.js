@@ -4,14 +4,18 @@
  *
  * `--color-score-ramp-1` is the worst score and `-5` the best, with the middle step at 0.5. The tokens carry the
  * actual colors; this file only reads them and interpolates, so a palette change is a one-line edit in main.css.
+ * The map surface can be dark while the band stays light, so the mode is per call (`{ mode: 'dark' }` reads the
+ * `--color-score-ramp-dark-*` set) rather than global state; every consumer defaults to the light set.
  *
  * Interpolation matches Mapbox GL's default `interpolate` (linear in sRGB), so a histogram bar colored with `at()`
  * agrees with the map feature it summarizes. Loaded as a plain script; the api-docs layout includes it directly and
  * the AccessScore bundle concatenates it.
  */
 window.ScoreRamp = (function () {
-  /** The five token names, worst score first. */
-  const TOKENS = [1, 2, 3, 4, 5].map((i) => `--color-score-ramp-${i}`);
+  /** The five token names for a surface, worst score first: `-N`, or the `-dark-N` set for a dark basemap. */
+  function tokens(mode) {
+    return [1, 2, 3, 4, 5].map((i) => `--color-score-ramp${mode === 'dark' ? '-dark' : ''}-${i}`);
+  }
 
   /** Parses a `#rrggbb` (or `#rgb`) color into [r, g, b] components 0–255. */
   function parseHex(hex) {
@@ -39,10 +43,12 @@ window.ScoreRamp = (function () {
   /**
    * The ramp's colors, low score first.
    *
+   * @param {object} [options] - Surface.
+   * @param {string} [options.mode='light'] - 'light' or 'dark', the surface the ramp is stepped for.
    * @returns {Array<string>} Five hex colors.
    */
-  function colors() {
-    return TOKENS.map(readToken);
+  function colors(options = {}) {
+    return tokens(options.mode).map(readToken);
   }
 
   /**
@@ -52,11 +58,12 @@ window.ScoreRamp = (function () {
    * @param {object} [options] - Domain.
    * @param {number} [options.min=0] - Score mapped to the first color.
    * @param {number} [options.max=1] - Score mapped to the last color.
+   * @param {string} [options.mode='light'] - Surface, as for `colors`.
    * @returns {string} A hex color.
    */
   function at(score, options = {}) {
-    const { min = 0, max = 1 } = options;
-    const ramp = colors().map(parseHex);
+    const { min = 0, max = 1, mode } = options;
+    const ramp = colors({ mode }).map(parseHex);
     const span = max > min ? max - min : 1;
     const t = Math.min(1, Math.max(0, (score - min) / span)) * (ramp.length - 1);
     const i = Math.min(ramp.length - 2, Math.floor(t));
@@ -67,12 +74,12 @@ window.ScoreRamp = (function () {
   /**
    * The `[value, color, value, color, …]` stop list Mapbox's `interpolate` takes, spread evenly over the domain.
    *
-   * @param {object} [options] - Domain, as for `at`.
+   * @param {object} [options] - Domain and surface, as for `at`.
    * @returns {Array} Alternating stop values and colors.
    */
   function stops(options = {}) {
-    const { min = 0, max = 1 } = options;
-    const ramp = colors();
+    const { min = 0, max = 1, mode } = options;
+    const ramp = colors({ mode });
     const span = max > min ? max - min : 1;
     return ramp.flatMap((color, i) => [min + (span * i) / (ramp.length - 1), color]);
   }
@@ -89,24 +96,26 @@ window.ScoreRamp = (function () {
    * @param {number} [options.noneAtOrBelow=-1] - The sentinel threshold.
    * @param {number} [options.min=0] - Score mapped to the first color.
    * @param {number} [options.max=1] - Score mapped to the last color.
+   * @param {string} [options.mode='light'] - Surface, as for `colors`.
    * @returns {Array} A `case`/`interpolate` expression usable as `line-color` / `fill-color`.
    */
   function expression(valueExpr, options) {
-    const { noneColor, noneAtOrBelow = -1, min = 0, max = 1 } = options;
+    const { noneColor, noneAtOrBelow = -1, min = 0, max = 1, mode } = options;
     return [
       'case',
       ['<=', valueExpr, noneAtOrBelow], noneColor,
-      ['interpolate', ['linear'], valueExpr, ...stops({ min, max })],
+      ['interpolate', ['linear'], valueExpr, ...stops({ min, max, mode })],
     ];
   }
 
   /**
    * A CSS gradient of the ramp for legends.
    *
+   * @param {object} [options] - Surface, as for `colors`.
    * @returns {string} A `linear-gradient(to right, …)` value.
    */
-  function cssGradient() {
-    return `linear-gradient(to right, ${colors().join(', ')})`;
+  function cssGradient(options = {}) {
+    return `linear-gradient(to right, ${colors(options).join(', ')})`;
   }
 
   return {

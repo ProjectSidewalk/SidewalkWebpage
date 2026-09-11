@@ -54,6 +54,8 @@
   "options": "Optionen",
   "show-clusters": "Cluster hinter den Bewertungen anzeigen",
   "show-clusters-help": "Cluster erscheinen ab der Straßenebene. Klicken Sie auf eines, um es im Bildmaterial zu öffnen.",
+  "dark-map": "Dunkle Karte",
+  "dark-map-help": "Eine dunkle Grundkarte mit einer darauf abgestimmten Skala, damit die Bewertungen das Bild tragen.",
   "updated-help": "Eine Bewertung wird aus Clustern von Markierungen berechnet, die nächtlich neu gebildet werden. Später hinzugefügte Markierungen fließen in der nächsten Nacht ein.",
   "click-for-details": "Für Details klicken",
   "cluster-size_one": "{{count}} Markierung",

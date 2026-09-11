@@ -340,6 +340,34 @@ test.describe('/accessScore', () => {
     await expect(page.locator('#label-modal')).toBeVisible();
   });
 
+  test('the dark basemap comes from the URL, and the toggle swaps it live without leaving the page', async ({page}) => {
+    await page.goto('/accessScore?dark=1');
+    await waitForAppReady(page);
+    await waitForTool(page);
+    await expect(page.locator('#acs-map-holder')).toHaveClass(/acs-map-holder--dark/);
+    await expect(page.locator('#acs-dark-map')).toBeChecked();
+    // The map wears the dark stepping (pale jade at the top) while the band keeps the light ramp's deep jade.
+    // Mid-swap the layer is gone (setStyle drops it, remount brings it back), so a missing layer reads as ''.
+    const streetTopStop = () => page.evaluate(() => {
+      const map = window.accessScore.map;
+      if (!map.getLayer('acs-streets')) return '';
+      return JSON.stringify(map.getPaintProperty('acs-streets', 'line-color')).toUpperCase();
+    });
+    expect(await streetTopStop()).toContain('#A5E0C0');
+    expect(await page.locator('#acs-dock-strip .acs-dock__strip-bar').evaluate((el) => el.style.background))
+      .toMatch(/rgb\(57, 94, 73\)|#395E49/i);
+
+    // Toggling off is a live style swap: the page object survives and the layers come back on the light ramp.
+    await page.evaluate(() => { window.__acsMarker = 1; });
+    await page.locator('#acs-dark-map').uncheck();
+    await expect(page.locator('#acs-map-holder')).not.toHaveClass(/acs-map-holder--dark/);
+    await expect.poll(streetTopStop).toContain('#395E49');
+    expect(await page.evaluate(() => window.__acsMarker)).toBe(1);
+    await expect.poll(() => urlParam(page, 'dark')).toBeNull();
+    // Scores are written again after the remount: street 1 keeps its color state.
+    await expect.poll(() => scoreOf(page, 1)).toBeCloseTo(0.8176, 3);
+  });
+
   test('the dock state round-trips through the URL', async ({page}) => {
     await page.goto('/accessScore?dock=0&b=80-90');
     await waitForAppReady(page);

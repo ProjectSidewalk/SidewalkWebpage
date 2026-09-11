@@ -38,9 +38,15 @@ describe('AccessScoreUrlSync', () => {
 
     test('drops tokens the config does not know, and params from older builds, keeping the rest', () => {
         const { state, selection } = AccessScoreUrlSync.read(config,
-            '?unit=blocks&preset=barriers&w=Dragons:2,CurbRamp:-1,Obstacle:abc&sev=0.2&minc=80&dark=1&sel=-3');
+            '?unit=blocks&preset=barriers&w=Dragons:2,CurbRamp:-1,Obstacle:abc&sev=0.2&minc=80&sel=-3');
         expect(state).toEqual({});
         expect(selection).toBeNull();
+    });
+
+    test('reads the dark basemap flag', () => {
+        expect(AccessScoreUrlSync.read(config, '?dark=1').dark).toBe(true);
+        expect(AccessScoreUrlSync.read(config, '?dark=0').dark).toBe(false);
+        expect(AccessScoreUrlSync.read(config, '').dark).toBe(false);
     });
 
     test('reads the dock params and drops a brush that is off the bin edges', () => {
@@ -67,15 +73,17 @@ describe('AccessScoreUrlSync', () => {
         expect(params.get('regions')).toBe('5');
         expect(params.get('lat')).toBe('40.88000');
         expect(params.get('zoom')).toBe('13.50');
-        for (const name of ['unit', 'w', 'unaudited', 'clusters', 'sel', 'dock', 'b']) {
+        for (const name of ['unit', 'w', 'unaudited', 'clusters', 'sel', 'dock', 'b', 'dark']) {
             expect(params.has(name)).toBe(false);
         }
 
         model.setState({ unit: 'regions', weights: { Obstacle: 1.75 }, showClusters: false });
         sync.setSelection(7);
         sync.setDock({ open: false, brush: { from: 4, to: 6 } });
+        sync.setDark(true);
         sync.writeNow();
         params = new URLSearchParams(window.location.search);
+        expect(params.get('dark')).toBe('1');
         expect(params.get('dock')).toBe('0');
         expect(params.get('b')).toBe('40-60');
         expect(params.get('unit')).toBe('regions');
@@ -89,6 +97,7 @@ describe('AccessScoreUrlSync', () => {
         expect(back.state.unit).toBe('regions');
         expect(back.state.showClusters).toBe(false);
         expect(back.selection).toBe(7);
+        expect(back.dark).toBe(true);
         expect(back.dock).toEqual({ open: false, brush: { from: 4, to: 6 } });
     });
 });

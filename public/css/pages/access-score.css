@@ -1379,7 +1379,16 @@
   width: 100%;
 }
 
-/* Narrower windows: the three views stack, and the rank list gets shorter so the band leaves map above it. */
+/* ---- Dark basemap ---- */
+
+/* The band, the legend card and the popups stay light; only the chrome drawn on the map itself changes, and the
+   ramp swaps through ScoreRamp. A light popup needs a deeper shadow to lift off near-black land. */
+.acs-map-holder--dark .acs-tooltip .mapboxgl-popup-content,
+.acs-map-holder--dark .acs-popup .mapboxgl-popup-content {
+  box-shadow: 0 2px 8px rgb(0 0 0 / 45%);
+}
+
+/* Narrower windows: the views wrap, and the rank list gets shorter so the band leaves map above it. */
 @media (width <= 1100px) {
   .acs-dock__body {
     grid-template-columns: 1fr 1fr;

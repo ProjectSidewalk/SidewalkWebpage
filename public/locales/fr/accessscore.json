@@ -54,6 +54,8 @@
   "options": "Options",
   "show-clusters": "Afficher les groupes à l’origine des scores",
   "show-clusters-help": "Les groupes apparaissent au niveau de la rue. Cliquez sur l’un d’eux pour l’ouvrir dans les images.",
+  "dark-map": "Carte sombre",
+  "dark-map-help": "Un fond de carte sombre avec une échelle adaptée, pour que les scores portent l'image.",
   "updated-help": "Un score est calculé à partir de groupes de signalements, reconstruits chaque nuit. Les signalements ajoutés depuis sont intégrés la nuit suivante.",
   "click-for-details": "Cliquez pour les détails",
   "cluster-size_one": "{{count}} signalement",

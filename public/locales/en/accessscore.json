@@ -54,6 +54,8 @@
   "options": "Options",
   "show-clusters": "Show the clusters behind the scores",
   "show-clusters-help": "Clusters appear once you zoom in to street level. Click one to open it in the imagery.",
+  "dark-map": "Dark map",
+  "dark-map-help": "A dark basemap with a ramp stepped for it, so the scores carry the picture.",
   "updated-help": "A score is computed from clusters of labels, rebuilt nightly. Labels added since then are folded in the next night.",
   "click-for-details": "Click for details",
   "cluster-size_one": "{{count}} label",

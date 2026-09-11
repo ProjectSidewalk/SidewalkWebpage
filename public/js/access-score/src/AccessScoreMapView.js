@@ -7,6 +7,10 @@
  * paint expressions read it through the shared ScoreRamp. Unaudited streets carry no score and fall to the
  * ramp's fallback color, at reduced width and opacity. The score legend lives in the insights dock, which also
  * receives every hover through `onHover`.
+ *
+ * A dark basemap takes a second chrome palette and the ramp's dark stepping. A basemap swap is `map.setStyle`,
+ * which drops every source, layer, image and feature-state the tool added, so `remount` rebuilds them from the
+ * kept inputs; the pointer handlers survive because Mapbox keys them by layer id, not by layer object.
  */
 class AccessScoreMapView {
   static STREET_SOURCE = 'acs-streets';
@@ -40,12 +44,13 @@ class AccessScoreMapView {
   #dimmed = { [AccessScoreMapView.STREET_SOURCE]: new Set(), [AccessScoreMapView.REGION_SOURCE]: new Set() };
   /** Each region's bounding box, for the viewport query. */
   #regionBounds = new Map();
-  /** The map chrome's tokens: the unscored fills, region outlines and names, the selected street's casing. */
-  #palette = {
-    regionNone: '--color-neutral-200', streetNone: '--color-neutral-400', outline: '--color-neutral-white',
-    text: '--color-neutral-900', halo: '--color-neutral-white', casing: '--color-neutral-black',
-    hatch: '--color-neutral-600',
-  };
+  /** The map chrome's tokens (unscored fills, region outlines and names, the selected street's casing), per basemap. */
+  #palette;
+  #dark;
+  /** The inputs the layers are built from, kept so a basemap swap can rebuild them. */
+  #streets;
+  #regions;
+  #showUnaudited;
 
   /**
    * @param {mapboxgl.Map} map - A loaded Mapbox map.
@@ -63,9 +68,10 @@ class AccessScoreMapView {
    * @param {function} [options.hoverClaimed] - Called with the Mapbox mousemove event; return true when something
    *                                            drawn above these layers owns the hover, so its tooltip is the
    *                                            only one showing.
+   * @param {boolean} [options.dark=false] - True on a dark basemap.
    */
   constructor(map, { model, streets, regions, onSelect, onHover = () => {}, tooltipHtml, clickClaimed = () => false,
-    hoverClaimed = () => false }) {
+    hoverClaimed = () => false, dark = false }) {
     this.#map = map;
     this.#model = model;
     this.#onSelect = onSelect;
@@ -73,7 +79,11 @@ class AccessScoreMapView {
     this.#tooltipHtml = tooltipHtml;
     this.#clickClaimed = clickClaimed;
     this.#hoverClaimed = hoverClaimed;
+    this.#streets = streets;
+    this.#regions = regions;
+    this.#showUnaudited = model.state.showUnaudited;
     this.#unit = model.state.unit;
+    this.#applyPalette(dark);
     this.#tooltip = new mapboxgl.Popup({
       closeButton: false, closeOnClick: false, focusAfterOpen: false, className: 'acs-tooltip', maxWidth: '280px',
     });
@@ -84,8 +94,67 @@ class AccessScoreMapView {
     // After the navigation control: the corner's reversed flex row keeps the first control at the edge.
     this.#legend = new AccessScoreMapLegend();
     this.#map.addControl(this.#legend, 'top-right');
+    this.#legend.setDark(dark);
     this.setUnit(this.#unit);
     this.applyScores();
+  }
+
+  /** Chooses the chrome palette for a basemap. */
+  #applyPalette(dark) {
+    this.#dark = dark;
+    this.#palette = dark
+      ? {
+          regionNone: '--color-neutral-800', streetNone: '--color-neutral-700', outline: '--color-neutral-300',
+          text: '--color-neutral-100', halo: '--color-neutral-900', casing: '--color-neutral-white',
+          hatch: '--color-neutral-500',
+        }
+      : {
+          regionNone: '--color-neutral-200', streetNone: '--color-neutral-400', outline: '--color-neutral-white',
+          text: '--color-neutral-900', halo: '--color-neutral-white', casing: '--color-neutral-black',
+          hatch: '--color-neutral-600',
+        };
+  }
+
+  /** The ramp stepping the map surface needs. */
+  get #mode() {
+    return this.#dark ? 'dark' : 'light';
+  }
+
+  /**
+   * Switches the palette and the legend to a basemap. Nothing on the map repaints until `remount`, which the page
+   * calls once the new style has loaded.
+   * @param {boolean} dark - True for the dark basemap.
+   */
+  setDark(dark) {
+    this.#applyPalette(dark);
+    this.#legend.setDark(dark);
+  }
+
+  /**
+   * Rebuilds everything the tool added to the map after a `setStyle`. Feature-state does not survive a style swap,
+   * so the dim bookkeeping starts from empty rather than from the last batch.
+   */
+  remount() {
+    for (const id of [AccessScoreMapView.REGION_FILL_LAYER, AccessScoreMapView.REGION_HATCH_LAYER,
+      AccessScoreMapView.REGION_OUTLINE_LAYER, AccessScoreMapView.REGION_LABEL_LAYER,
+      AccessScoreMapView.STREET_SELECTED_LAYER, AccessScoreMapView.STREET_LAYER]) {
+      if (this.#map.getLayer(id)) this.#map.removeLayer(id);
+    }
+    for (const id of [AccessScoreMapView.REGION_SOURCE, AccessScoreMapView.STREET_SOURCE]) {
+      if (this.#map.getSource(id)) this.#map.removeSource(id);
+    }
+    if (this.#map.hasImage(AccessScoreMapView.HATCH_IMAGE)) this.#map.removeImage(AccessScoreMapView.HATCH_IMAGE);
+    this.#hover = { source: null, id: null };
+    this.#tooltip.remove();
+    for (const source of Object.keys(this.#dimmed)) this.#dimmed[source] = new Set();
+    this.#addHatchImage();
+    this.#addRegionLayers(this.#regions);
+    this.#addStreetLayers(this.#streets);
+    this.#applyUnitVisibility();
+    this.setSelection(this.#selected.id === null ? null : this.#selected);
+    this.#scoresPending = true;
+    this.#dimPending = true;
+    this.#schedule();
   }
 
   /**
@@ -96,20 +165,24 @@ class AccessScoreMapView {
   setUnit(unit) {
     this.#unit = unit;
     this.#legend.setUnit(unit);
-    const streets = unit === 'streets';
-    this.#map.setLayoutProperty(AccessScoreMapView.STREET_LAYER, 'visibility', streets ? 'visible' : 'none');
-    this.#map.setLayoutProperty(AccessScoreMapView.STREET_SELECTED_LAYER, 'visibility', streets ? 'visible' : 'none');
-    for (const id of [AccessScoreMapView.REGION_FILL_LAYER, AccessScoreMapView.REGION_HATCH_LAYER,
-      AccessScoreMapView.REGION_LABEL_LAYER]) {
-      this.#map.setLayoutProperty(id, 'visibility', streets ? 'none' : 'visible');
-    }
-    // Region outlines stay on in both units as the neighborhood context; they only carry hover in regions mode.
+    this.#applyUnitVisibility();
     this.#clearHover();
     this.#tooltip.remove();
     // A brush is a set of the active unit's ids, so the other unit's dims are stale the moment the unit flips.
     this.#brush = null;
     this.#dimPending = true;
     this.#schedule();
+  }
+
+  /** Shows the active unit's layers and hides the other's; region outlines stay on as neighborhood context. */
+  #applyUnitVisibility() {
+    const streets = this.#unit === 'streets';
+    this.#map.setLayoutProperty(AccessScoreMapView.STREET_LAYER, 'visibility', streets ? 'visible' : 'none');
+    this.#map.setLayoutProperty(AccessScoreMapView.STREET_SELECTED_LAYER, 'visibility', streets ? 'visible' : 'none');
+    for (const id of [AccessScoreMapView.REGION_FILL_LAYER, AccessScoreMapView.REGION_HATCH_LAYER,
+      AccessScoreMapView.REGION_LABEL_LAYER]) {
+      this.#map.setLayoutProperty(id, 'visibility', streets ? 'none' : 'visible');
+    }
   }
 
   /**
@@ -157,6 +230,7 @@ class AccessScoreMapView {
    * @param {boolean} show - True to draw them faintly, false to hide them.
    */
   setShowUnaudited(show) {
+    this.#showUnaudited = show;
     this.#map.setPaintProperty(AccessScoreMapView.STREET_LAYER, 'line-opacity', this.#streetOpacity(show));
   }
 
@@ -262,8 +336,13 @@ class AccessScoreMapView {
       type: 'fill',
       source: AccessScoreMapView.REGION_SOURCE,
       paint: {
-        'fill-color': ScoreRamp.expression(score, { noneColor: AccessScoreMapView.#token(this.#palette.regionNone) }),
-        'fill-opacity': ['case', dim, 0.15, ['boolean', ['feature-state', 'hover'], false], 0.95, 0.7],
+        'fill-color': ScoreRamp.expression(score, {
+          noneColor: AccessScoreMapView.#token(this.#palette.regionNone), mode: this.#mode,
+        }),
+        // A fuller fill on the dark basemap: at 0.7 the ramp muddies against near-black land.
+        'fill-opacity': [
+          'case', dim, 0.15, ['boolean', ['feature-state', 'hover'], false], 0.95, this.#dark ? 0.85 : 0.7,
+        ],
       },
     });
     // A filter can't read feature-state, so the hatch layer is filtered on an id list that applyScores rewrites.
@@ -343,14 +422,16 @@ class AccessScoreMapView {
       source: AccessScoreMapView.STREET_SOURCE,
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': ScoreRamp.expression(score, { noneColor: AccessScoreMapView.#token(this.#palette.streetNone) }),
+        'line-color': ScoreRamp.expression(score, {
+          noneColor: AccessScoreMapView.#token(this.#palette.streetNone), mode: this.#mode,
+        }),
         'line-width': [
           'interpolate', ['linear'], ['zoom'],
           10, ['case', hovered, 3, unaudited, 0.8, 1.2],
           14, ['case', hovered, 6, unaudited, 1.5, 3],
           17, ['case', hovered, 12, unaudited, 3, 7],
         ],
-        'line-opacity': this.#streetOpacity(this.#model.state.showUnaudited),
+        'line-opacity': this.#streetOpacity(this.#showUnaudited),
       },
     });
   }

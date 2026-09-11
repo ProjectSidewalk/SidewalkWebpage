@@ -54,6 +54,8 @@
   "options": "Opties",
   "show-clusters": "Toon de clusters achter de scores",
   "show-clusters-help": "Clusters verschijnen zodra u inzoomt tot straatniveau. Klik erop om het in de beelden te openen.",
+  "dark-map": "Donkere kaart",
+  "dark-map-help": "Een donkere basiskaart met een daarop afgestemde kleurschaal, zodat de scores het beeld dragen.",
   "updated-help": "Een score wordt berekend uit clusters van labels, die elke nacht opnieuw worden gevormd. Labels die daarna zijn toegevoegd tellen de volgende nacht mee.",
   "click-for-details": "Klik voor details",
   "cluster-size_one": "{{count}} label",

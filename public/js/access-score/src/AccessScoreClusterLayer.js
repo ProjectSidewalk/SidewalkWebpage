@@ -21,6 +21,8 @@ class AccessScoreClusterLayer {
   #tooltipHtml;
   #onSelect;
   #visible = true;
+  /** The last collection drawn, kept so a basemap swap can redraw it. */
+  #data = { type: 'FeatureCollection', features: [] };
   /** Types switched off individually, from the dock's cluster view. */
   #hiddenTypes = new Set();
   #hovered = null;
@@ -54,6 +56,7 @@ class AccessScoreClusterLayer {
    * @param {object} featureCollection - A `/v3/api/labelClusters` GeoJSON response.
    */
   setData(featureCollection) {
+    this.#data = featureCollection;
     const byType = Object.fromEntries(this.#types.map((type) => [type, []]));
     for (const feature of featureCollection.features || []) {
       byType[feature.properties.label_type]?.push(feature);
@@ -62,6 +65,22 @@ class AccessScoreClusterLayer {
       this.#map.getSource(AccessScoreClusterLayer.#layerId(type))
         .setData({ type: 'FeatureCollection', features: byType[type] });
     }
+  }
+
+  /**
+   * Rebuilds the sources and layers after a `map.setStyle`, with the last data and the visibility in force. The
+   * pointer handlers are keyed by layer id and survive the swap, so they are not bound again.
+   */
+  remount() {
+    for (const id of this.#layers) {
+      if (this.#map.getLayer(id)) this.#map.removeLayer(id);
+      if (this.#map.getSource(id)) this.#map.removeSource(id);
+    }
+    this.#hovered = null;
+    this.#tooltip.remove();
+    this.#layers = this.#types.map((type) => this.#addLayer(type));
+    this.setData(this.#data);
+    this.#applyVisibility();
   }
 
   /**

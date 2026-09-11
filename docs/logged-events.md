@@ -92,7 +92,7 @@ The AccessScore tool (`/accessScore`, `public/js/access-score/`, #5217) logs its
 **`Click_module=AccessScore_<Action>`** family, on a control's settled `change` (never per slider tick):
 `AccessScore_Unit_value=<streets|regions>`, `AccessScore_Weight_value=<labelType>_value=<magnitude>`,
 `AccessScore_ShowUnaudited_value=<bool>`, `AccessScore_ShowClusters_value=<bool>` (the evidence layer),
-`AccessScore_Reset`,
+`AccessScore_DarkMap_value=<bool>` (the dark basemap toggled), `AccessScore_Reset`,
 `AccessScore_Select_streetId=<id>` / `AccessScore_Select_regionId=<id>` (a click on a street or neighborhood),
 `AccessScore_SelectCluster_labelType=<type>` (a click on a cluster dot, which opens the cluster sheet) and
 `AccessScore_SheetOpenLabel_labelId=<id>` (a card in that sheet opening the full label card),

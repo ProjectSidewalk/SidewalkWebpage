@@ -7,8 +7,8 @@
  *
  * Params: `unit` (streets|regions), `w` (per-type magnitudes, `CurbRamp:0.75,…`, present only when they differ
  * from the engine's defaults), `unaudited` (0|1), `clusters` (0|1, the evidence layer), `sel` (selected street or
- * region id, read with `unit`); and the insights dock's `dock` (0 when collapsed) and `b` (the brushed score range
- * as `from-to` in whole percent, on the histogram's 10-point bin edges).
+ * region id, read with `unit`), `dark` (1 for the dark basemap); and the insights dock's `dock` (0 when collapsed)
+ * and `b` (the brushed score range as `from-to` in whole percent, on the histogram's 10-point bin edges).
  */
 class AccessScoreUrlSync {
   static #WRITE_DELAY_MS = 300;
@@ -18,6 +18,7 @@ class AccessScoreUrlSync {
   #writeTimer = null;
   #selection = null;
   #dock = { open: true, brush: null };
+  #dark = false;
 
   /**
    * The state a URL asks for, validated against the engine config. Unknown or malformed tokens are dropped, so a
@@ -25,8 +26,9 @@ class AccessScoreUrlSync {
    *
    * @param {object} config - The `/v3/api/accessScoreConfig` response.
    * @param {string} [search=window.location.search] - The query string to read.
-   * @returns {{state: object, selection: ?number, dock: {open: boolean, brush: ?object}}} A partial
-   *   `AccessScoreModel` state, the selected id if any, and the dock's state (`brush` as `{from, to}` bin indices).
+   * @returns {{state: object, selection: ?number, dark: boolean, dock: {open: boolean, brush: ?object}}} A partial
+   *   `AccessScoreModel` state, the selected id if any, whether the dark basemap is asked for, and the dock's
+   *   state (`brush` as `{from, to}` bin indices).
    */
   static read(config, search = window.location.search) {
     const params = new URLSearchParams(search);
@@ -63,7 +65,7 @@ class AccessScoreUrlSync {
         dock.brush = { from: from / step, to: to / step };
       }
     }
-    return { state, selection: Number.isFinite(sel) && sel > 0 ? sel : null, dock };
+    return { state, selection: Number.isFinite(sel) && sel > 0 ? sel : null, dark: params.get('dark') === '1', dock };
   }
 
   /**
@@ -98,6 +100,15 @@ class AccessScoreUrlSync {
     this.scheduleWrite();
   }
 
+  /**
+   * Records whether the dark basemap is on, for the URL's `dark` param.
+   * @param {boolean} dark - True for the dark basemap.
+   */
+  setDark(dark) {
+    this.#dark = dark;
+    this.scheduleWrite();
+  }
+
   /** Debounces URL writes so a slider drag or a continuous pan produces one replaceState. */
   scheduleWrite() {
     if (this.#writeTimer) clearTimeout(this.#writeTimer);
@@ -124,6 +135,7 @@ class AccessScoreUrlSync {
     set('unaudited', state.showUnaudited ? '1' : '0', state.showUnaudited === defaults.showUnaudited);
     set('clusters', state.showClusters ? '1' : '0', state.showClusters === defaults.showClusters);
     set('sel', String(this.#selection), this.#selection === null);
+    set('dark', '1', !this.#dark);
     set('dock', '0', this.#dock.open);
     const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
     const brush = this.#dock.brush;

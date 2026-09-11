@@ -5,7 +5,10 @@
  * flowing sidebar → model → map/dock/URL, or dock → map.
  */
 window.AccessScoreApp = (function () {
-  const MAP_STYLE = 'mapbox://styles/mapbox/light-v11?optimize=true';
+  const MAP_STYLES = {
+    light: 'mapbox://styles/mapbox/light-v11?optimize=true',
+    dark: 'mapbox://styles/mapbox/dark-v11?optimize=true',
+  };
   const SCORE_ENDPOINT = '/v3/api/accessScoreStreets';
   const INTERSECTIONS_ENDPOINT = '/v3/api/accessScoreIntersections';
   const EMPTY_COLLECTION = { type: 'FeatureCollection', features: [] };
@@ -67,9 +70,13 @@ window.AccessScoreApp = (function () {
       fetchJson('/neighborhoods/completionRate'),
     ]);
 
+    // A basemap asked for in the URL is chosen before the map exists, so the first paint is already right.
+    const dark = new URLSearchParams(window.location.search).get('dark') === '1';
+    document.getElementById('acs-map-holder')?.classList.toggle('acs-map-holder--dark', dark);
+
     const mapPromise = createPSMap($, {
       mapName: 'acs-map',
-      mapStyle: MAP_STYLE,
+      mapStyle: dark ? MAP_STYLES.dark : MAP_STYLES.light,
       mapboxApiKey,
       mapboxLogoLocation: 'bottom-right',
       navigationControlPosition: 'top-right',
@@ -145,6 +152,7 @@ window.AccessScoreApp = (function () {
       // A click on a cluster dot opens the label card; the street or neighborhood under it stays unselected.
       clickClaimed: (e) => evidence?.layer.claims(e) === true,
       hoverClaimed: (e) => evidence?.layer.claims(e) === true,
+      dark,
     });
     evidence = await mountClusterEvidence();
     dock = new AccessScoreDock(document.getElementById('acs-dock'), {
@@ -197,6 +205,26 @@ window.AccessScoreApp = (function () {
     sidebar.setState(model.state);
     sidebar.setContributions(model.contributions().means);
     renderUpdatedAt(config.clusters_updated_at);
+    // A live `setStyle` drops everything the tool added, so the map view and the cluster layer remount once the new
+    // style has loaded. The band keeps the light ramp; only the map surface changes.
+    const darkInput = document.getElementById('acs-dark-map');
+    if (darkInput) {
+      darkInput.checked = dark;
+      darkInput.addEventListener('change', () => {
+        const next = darkInput.checked;
+        log('DarkMap', next);
+        document.getElementById('acs-map-holder')?.classList.toggle('acs-map-holder--dark', next);
+        mapView.setDark(next);
+        map.once('style.load', () => {
+          mapView.remount();
+          evidence?.layer.remount();
+        });
+        // Never a diffed swap: a diff would strip the tool's layers without ever firing `style.load`.
+        map.setStyle(next ? MAP_STYLES.dark : MAP_STYLES.light, { diff: false });
+        urlSync.setDark(next);
+      });
+    }
+    urlSync.setDark(dark);
     document.getElementById('acs-copy-link')?.addEventListener('click', async () => {
       urlSync.writeNow();
       try {
