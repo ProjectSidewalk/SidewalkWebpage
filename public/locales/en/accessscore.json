@@ -118,5 +118,12 @@
   "sheet-error_one": "{{count}} label couldn't be loaded.",
   "sheet-error_other": "{{count}} labels couldn't be loaded.",
   "sheet-more_one": "{{count}} more label not shown.",
-  "sheet-more_other": "{{count}} more labels not shown."
+  "sheet-more_other": "{{count}} more labels not shown.",
+  "type-short-curb-ramp": "Ramp",
+  "type-short-no-curb-ramp": "No ramp",
+  "type-short-obstacle": "Obstacle",
+  "type-short-surface-problem": "Surface",
+  "type-short-crosswalk": "Crosswalk",
+  "type-short-signal": "Signal",
+  "type-short-no-sidewalk": "No sidewalk"
 }

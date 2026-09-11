@@ -118,5 +118,12 @@
   "sheet-error_one": "{{count}} label kon niet worden geladen.",
   "sheet-error_other": "{{count}} labels konden niet worden geladen.",
   "sheet-more_one": "{{count}} label meer niet getoond.",
-  "sheet-more_other": "{{count}} labels meer niet getoond."
+  "sheet-more_other": "{{count}} labels meer niet getoond.",
+  "type-short-curb-ramp": "Oprit",
+  "type-short-no-curb-ramp": "Geen oprit",
+  "type-short-obstacle": "Obstakel",
+  "type-short-surface-problem": "Oppervlak",
+  "type-short-crosswalk": "Oversteek",
+  "type-short-signal": "Verkeerslicht",
+  "type-short-no-sidewalk": "Geen trottoir"
 }

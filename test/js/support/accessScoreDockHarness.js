@@ -34,6 +34,7 @@ function stubUtilMisc() {
     const positive = ['CurbRamp', 'Crosswalk'];
     window.util = {
         misc: {
+            isPositiveLabelType: (type) => ['CurbRamp', 'Crosswalk', 'Signal'].includes(type),
             getSeverityLevelColors: (severity, type) => ({
                 face: `var(--color-${positive.includes(type) ? 'positive' : 'negative'}-${severity})`,
                 wash: `var(--color-${positive.includes(type) ? 'positive' : 'negative'}-${severity}-wash)`,

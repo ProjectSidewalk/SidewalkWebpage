@@ -42,6 +42,7 @@ describe('LabelMiniCard', () => {
         };
         window.util = {
             misc: {
+                isPositiveLabelType: (type) => ['CurbRamp', 'Crosswalk', 'Signal'].includes(type),
                 getSeverityLevelColors: (severity) => ({wash: `var(--wash-${severity})`}),
                 getRatingLevelKeys: () => ({1: 'good', 2: 'okay', 3: 'bad'}),
                 getIconImagePaths: (type) => ({iconImagePath: `/assets/icons/${type}.svg`}),
@@ -82,7 +83,7 @@ describe('LabelMiniCard', () => {
         expect(el.classList.contains('lmc--sheet')).toBe(true);
         expect(el.querySelector('.lmc__image').getAttribute('src')).toBe('https://example.test/42.jpg');
         expect(el.querySelector('.lmc__badge').getAttribute('src')).toBe('/assets/icons/CurbRamp.svg');
-        expect(el.querySelector('.lmc__rating').textContent).toBe('okay');
+        expect(el.querySelector('.lmc__rating').textContent).toBe('quality: okay');
         expect(el.querySelector('.lmc__rating').style.getPropertyValue('--lmc-wash')).toBe('var(--wash-2)');
         expect(el.querySelector('.lmc__tag').textContent).toBe('tag.narrow defaultValue=narrow');
         expect(el.querySelector('.lmc__date')).not.toBeNull();
@@ -192,7 +193,7 @@ describe('LabelMiniCard', () => {
         expect(card.element).toBe(root);
         expect(count(card, 'Agree')).toBe('9');
         expect(chip(card, 'Agree').getAttribute('aria-pressed')).toBe('true');
-        expect(root.querySelector('.lmc__rating').textContent).toBe('bad');
+        expect(root.querySelector('.lmc__rating').textContent).toBe('quality: bad');
     });
 
     test('a picture that fails to load falls back to the placeholder', () => {

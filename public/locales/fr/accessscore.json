@@ -118,5 +118,12 @@
   "sheet-error_one": "{{count}} étiquette n'a pas pu être chargée.",
   "sheet-error_other": "{{count}} étiquettes n'ont pas pu être chargées.",
   "sheet-more_one": "{{count}} étiquette de plus non affichée.",
-  "sheet-more_other": "{{count}} étiquettes de plus non affichées."
+  "sheet-more_other": "{{count}} étiquettes de plus non affichées.",
+  "type-short-curb-ramp": "Bateau",
+  "type-short-no-curb-ramp": "Sans bateau",
+  "type-short-obstacle": "Obstacle",
+  "type-short-surface-problem": "Surface",
+  "type-short-crosswalk": "Passage",
+  "type-short-signal": "Feu",
+  "type-short-no-sidewalk": "Sans trottoir"
 }

@@ -168,7 +168,12 @@
   color: var(--color-neutral-800);
 }
 
-.lmc__date {
+/* Rating and date share one line; the rating pill leads. */
+.lmc__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xxs) var(--space-xs);
   width: 100%;
 }
 

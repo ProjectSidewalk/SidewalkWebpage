@@ -118,5 +118,12 @@
   "sheet-error_one": "{{count}} Markierung konnte nicht geladen werden.",
   "sheet-error_other": "{{count}} Markierungen konnten nicht geladen werden.",
   "sheet-more_one": "{{count}} weitere Markierung nicht gezeigt.",
-  "sheet-more_other": "{{count}} weitere Markierungen nicht gezeigt."
+  "sheet-more_other": "{{count}} weitere Markierungen nicht gezeigt.",
+  "type-short-curb-ramp": "Absenkung",
+  "type-short-no-curb-ramp": "Keine Absenkung",
+  "type-short-obstacle": "Hindernis",
+  "type-short-surface-problem": "Oberfläche",
+  "type-short-crosswalk": "Streifen",
+  "type-short-signal": "Signal",
+  "type-short-no-sidewalk": "Kein Trottoir"
 }

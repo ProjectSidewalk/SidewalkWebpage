@@ -41,7 +41,10 @@ class AccessScoreWhatsHere extends AccessScoreChart {
       li.innerHTML = `
         <span class="acs-whats-here__type">
           <img class="acs-whats-here__icon" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
-          <span class="acs-whats-here__name">${AccessScoreChart.esc(AccessScoreChart.typeName(type))}</span>
+          <span class="acs-whats-here__name">
+            <span class="acs-whats-here__name-long">${AccessScoreChart.esc(AccessScoreChart.typeName(type))}</span>
+            <span class="acs-whats-here__name-short">${AccessScoreChart.esc(AccessScoreWhatsHere.#shortName(type))}</span>
+          </span>
         </span>
         <span class="acs-whats-here__track" role="img" tabindex="0">
           <span class="acs-whats-here__bar">${segments.join('')}</span>
@@ -105,5 +108,10 @@ class AccessScoreWhatsHere extends AccessScoreChart {
     }
     this.#els.empty.hidden = !data.empty;
     this.#els.list.hidden = data.empty;
+  }
+
+  /** The short type name for a narrow panel ("Ramp" for "Curb Ramp"), from the tool's own strings. */
+  static #shortName(type) {
+    return i18next.t(`accessscore:type-short-${type.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`);
   }
 }

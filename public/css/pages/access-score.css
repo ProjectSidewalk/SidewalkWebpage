@@ -751,10 +751,13 @@
 
 /* ---- Histogram (and legend) ---- */
 
-/* A gutter on the left holds the value labels, so they never land on the tallest bar at either end. */
-.acs-histogram__plot {
+/* A gutter on the left holds the value labels, so they never land on the tallest bar at either end. Declared on
+   the chart, not the plot, so the axis and pole rows beneath the plot line up with the bars. */
+.acs-histogram {
   --acs-histogram-gutter: 52px;
+}
 
+.acs-histogram__plot {
   position: relative;
   height: calc(64px * var(--ui-scale, 1));
   margin-top: var(--space-md); /* Room for the city label above the needle. */
@@ -900,6 +903,7 @@
 
 .acs-histogram__axis {
   margin-top: var(--space-xs);
+  margin-left: var(--acs-histogram-gutter);
   font-variant-numeric: tabular-nums;
 }
 
@@ -942,7 +946,7 @@
 
 .acs-whats-here__row {
   display: grid;
-  grid-template-columns: minmax(96px, 124px) minmax(0, 1fr) 40px;
+  grid-template-columns: fit-content(42%) minmax(0, 1fr) auto; /* Name hugs its text, capped so the bar wins. */
   align-items: center;
   gap: var(--space-xs);
   min-height: calc(14px * var(--ui-scale, 1));
@@ -1023,6 +1027,26 @@
   background: var(--color-neutral-500);
 }
 
+/* The panel measures itself: under ~260px the full type names leave the bars no room, so the short ones take
+   over. Both are in the markup; the query only swaps which is shown. */
+.acs-dock__panel--whats-here {
+  container-type: inline-size;
+}
+
+.acs-whats-here__name-short {
+  display: none;
+}
+
+@container (width < 260px) {
+  .acs-whats-here__name-long {
+    display: none;
+  }
+
+  .acs-whats-here__name-short {
+    display: inline;
+  }
+}
+
 .acs-whats-here__count {
   font: var(--text-tiny-medium);
   text-align: right;
@@ -1073,7 +1097,7 @@
 
 .acs-rank__row {
   display: grid;
-  grid-template-columns: 20px minmax(72px, 1.5fr) minmax(40px, 1fr) 30px;
+  grid-template-columns: auto minmax(72px, 1.5fr) minmax(40px, 1fr) auto; /* Digits take only their own width. */
   align-items: center;
   gap: var(--space-xs);
   width: 100%;
@@ -1103,6 +1127,8 @@
 }
 
 .acs-rank__pos {
+  min-width: 1.4ch;
+  text-align: right;
   color: var(--color-neutral-700);
   font-variant-numeric: tabular-nums;
 }

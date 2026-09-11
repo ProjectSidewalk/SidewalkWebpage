@@ -121,14 +121,21 @@ class LabelMiniCard {
     const date = label.timestamp
       ? new Intl.DateTimeFormat(i18next.language, { dateStyle: 'medium' }).format(new Date(label.timestamp))
       : '';
+    // "Quality: Good" rather than a bare "Good": which scale a rating is on is the label card's wording too.
+    const ratingHeader = rating
+      ? i18next.t(util.misc.isPositiveLabelType(type) ? 'common:quality' : 'common:severity')
+      : '';
     const ratingHtml = rating
-      ? `<span class="lmc__rating" style="--lmc-wash: ${esc(colors?.wash ?? '')}">${esc(rating)}</span>`
+      ? `<span class="lmc__rating" style="--lmc-wash: ${esc(colors?.wash ?? '')}">${esc(ratingHeader)}: ${
+        esc(rating)}</span>`
       : '';
     const body = this.#opts.size === 'sheet'
       ? `<div class="lmc__body">
-          ${ratingHtml}
+          <span class="lmc__meta">
+            ${ratingHtml}
+            ${date ? `<span class="lmc__date">${esc(date)}</span>` : ''}
+          </span>
           ${tags ? `<span class="lmc__tags">${tags}</span>` : ''}
-          ${date ? `<span class="lmc__date">${esc(date)}</span>` : ''}
         </div>`
       : '';
     const lock = this.#lockReason();

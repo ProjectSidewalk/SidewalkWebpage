@@ -108,5 +108,12 @@
   "sheet-meta_other": "街道 {{street}} 上的 {{count}} 個標記",
   "sheet-loading": "載入標記中…",
   "sheet-error_other": "有 {{count}} 個標記無法載入。",
-  "sheet-more_other": "另有 {{count}} 個標記未顯示。"
+  "sheet-more_other": "另有 {{count}} 個標記未顯示。",
+  "type-short-curb-ramp": "斜坡",
+  "type-short-no-curb-ramp": "缺斜坡",
+  "type-short-obstacle": "障礙物",
+  "type-short-surface-problem": "鋪面",
+  "type-short-crosswalk": "穿越道",
+  "type-short-signal": "號誌",
+  "type-short-no-sidewalk": "無人行道"
 }

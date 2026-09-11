@@ -118,5 +118,12 @@
   "sheet-error_one": "No se pudo cargar {{count}} etiqueta.",
   "sheet-error_other": "No se pudieron cargar {{count}} etiquetas.",
   "sheet-more_one": "{{count}} etiqueta más no mostrada.",
-  "sheet-more_other": "{{count}} etiquetas más no mostradas."
+  "sheet-more_other": "{{count}} etiquetas más no mostradas.",
+  "type-short-curb-ramp": "Rampa",
+  "type-short-no-curb-ramp": "Sin rampa",
+  "type-short-obstacle": "Obstáculo",
+  "type-short-surface-problem": "Superficie",
+  "type-short-crosswalk": "Cruce",
+  "type-short-signal": "Semáforo",
+  "type-short-no-sidewalk": "Sin banqueta"
 }
