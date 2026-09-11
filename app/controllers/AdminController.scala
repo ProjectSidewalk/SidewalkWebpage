@@ -1218,8 +1218,8 @@ class AdminController @Inject() (
         .mkString("\n")
     )
 
-    // Stack traces here because prod gives no shell access for a thread dump, and one task hogging this small pool
-    // (also the stream materializer) slows every streamed response (#4161).
+    // Prod has no shell access for a thread dump, and one task hogging this small pool slows every streamed
+    // response (#4161).
     val stackTraces = Thread.getAllStackTraces.asScala
     val threadCpu   = java.lang.management.ManagementFactory.getThreadMXBean
     info.append("\n=== cpu-intensive threads ===\n")

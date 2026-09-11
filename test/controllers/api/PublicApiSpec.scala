@@ -181,7 +181,7 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite with Eventually {
       contentAsString(resp) must include("pano_id,pano_source,label_type")
     }
 
-    "serve two shapefile downloads asked for in the same second, and clean up after both (#4133)" in {
+    "serve two shapefile downloads in the same second, and clean up after both (#4133)" in {
       val first  = route(app, FakeRequest(GET, s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=shapefile")).get
       val second = route(app, FakeRequest(GET, s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=shapefile&inline=true")).get
       Seq(first, second).foreach { resp =>
@@ -193,7 +193,7 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite with Eventually {
       }
     }
 
-    "answer a file download identical to one still being built with 429 and Retry-After (#4161)" in {
+    "answer a repeat of a file download still being built with 429 and Retry-After (#4161)" in {
       val url = s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=shapefile"
       BaseApiController.inFlight.put(url, new BaseApiController.InFlight(Instant.now()))
       try {
@@ -203,7 +203,7 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite with Eventually {
         (contentAsJson(resp) \ "code").as[String] mustBe "DUPLICATE_REQUEST"
       } finally { val _ = BaseApiController.inFlight.remove(url) }
 
-      // A response handed to Play whose body never started streaming stops blocking after a short grace period.
+      // A body Play never started sending stops blocking after a short grace period.
       val abandoned = new BaseApiController.InFlight(Instant.now())
       abandoned.resultAt = Some(Instant.now().minus(BaseApiController.bodyStartGrace).minusSeconds(1))
       BaseApiController.inFlight.put(url, abandoned)
@@ -213,7 +213,7 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite with Eventually {
       eventually(timeout(Span(10, Seconds)))(BaseApiController.inFlight.containsKey(url) mustBe false)
     }
 
-    "keep serving a plain streamed URL that is already being served: the site's own pages fetch these in parallel" in {
+    "keep serving a repeat of a plain streamed URL, which the site's own pages fetch in parallel" in {
       val url = s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=geojson"
       BaseApiController.inFlight.put(url, new BaseApiController.InFlight(Instant.now()))
       try {
@@ -223,7 +223,7 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite with Eventually {
       } finally { val _ = BaseApiController.inFlight.remove(url) }
     }
 
-    "stay busy while a slow body is still streaming, however long ago it started" in {
+    "stay busy while a body is still streaming, however long ago it started" in {
       val entry = new BaseApiController.InFlight(Instant.now().minus(BaseApiController.inFlightLimit).minusSeconds(60))
       entry.resultAt = Some(entry.started.plusSeconds(1))
       entry.bodyStarted = true
@@ -309,7 +309,7 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite with Eventually {
       }
     }
 
-    "zip the clusters and labels CSVs and clean up the folder they were written in (#4133)" in {
+    "zip the clusters and labels CSVs and clean up their folder (#4133)" in {
       val resp = route(app, FakeRequest(GET, s"/v3/api/labelClusters?includeRawLabels=true&filetype=csv")).get
       status(resp) mustBe OK
       contentAsBytes(resp).take(2).utf8String mustBe "PK"

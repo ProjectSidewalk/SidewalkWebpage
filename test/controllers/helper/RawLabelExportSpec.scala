@@ -260,7 +260,7 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
       }
     }
 
-    "give each DBF text column the width its values need, not GeoTools' 254 bytes each (#4133)" in {
+    "size each text column to its values, not GeoTools' 254 bytes (#4133)" in {
       inTempDir("labels") { base =>
         val shp    = Await.result(shapefileCreator.createRawLabelShapefile(Source(labels), base, 2), 60.seconds).value
         val store  = openShapefile(shp)

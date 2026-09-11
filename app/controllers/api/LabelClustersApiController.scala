@@ -122,8 +122,8 @@ class LabelClustersApiController @Inject() (
           // Output data in the appropriate file format.
           filetype match {
             case Some("csv") if filters.includeRawLabels =>
-              // When raw labels are included, create two CSVs (clusters + labels) zipped together. They are written
-              // into the download's own folder, which is deleted with it however the request ends.
+              // Two CSVs (clusters + labels) zipped together, written in the download's own folder so they are
+              // cleaned up with it.
               outputZippedCsvs(baseFileName) { dir =>
                 val clusterCsvPath = dir.resolve(baseFileName + "_clusters.csv")
                 val labelCsvPath   = dir.resolve(baseFileName + "_labels.csv")

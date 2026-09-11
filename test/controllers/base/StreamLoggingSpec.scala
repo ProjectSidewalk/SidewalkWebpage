@@ -19,8 +19,8 @@ import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters._
 
 /**
- * Pins what a streamed API response logs when it ends early: a client that stops reading (or a proxy/idle timeout)
- * cancels the stream, which looks like a normal completion to Pekko, so it has to be told apart on purpose (#4161).
+ * Pins what a streamed response logs when it ends early: to Pekko a client that stops reading looks like a normal
+ * finish, so telling the two apart is deliberate work (#4161).
  */
 class StreamLoggingSpec extends PlaySpec with GuiceOneAppPerSuite with Eventually {
 
@@ -37,10 +37,7 @@ class StreamLoggingSpec extends PlaySpec with GuiceOneAppPerSuite with Eventuall
 
   private val rows: Source[String, _] = Source(1 to 100).map(_.toString)
 
-  /**
-   * Runs `body` with the probe controller's log captured, then hands what it logged to `check`. The termination
-   * callback that logs runs on another thread after the stream ends, so `check` is retried until it passes.
-   */
+  /** Runs `body` with the probe's log captured, then retries `check` on it: the logging runs on another thread. */
   private def logged(body: Probe => Any)(check: Seq[String] => Assertion): Unit = {
     val logger   = LoggerFactory.getLogger(classOf[Probe]).asInstanceOf[LogbackLogger]
     val appender = new ListAppender[ILoggingEvent]()
@@ -53,8 +50,8 @@ class StreamLoggingSpec extends PlaySpec with GuiceOneAppPerSuite with Eventuall
   }
 
   "logStreamFailures" should {
-    "log nothing when every row is sent, and count only rows when the client stops early" in {
-      // Both streams share one capture so the second, which must log, proves the callback had time to run for both.
+    "log nothing for a full send, and the row count for a cut-off" in {
+      // One capture for both, so the cut-off's message proves the logging had time to run for the full send too.
       logged { p =>
         Await.result(p.wrap(rows).runWith(Sink.ignore), 10.seconds)
         Await.result(p.wrap(rows).take(5).runWith(Sink.ignore), 10.seconds)

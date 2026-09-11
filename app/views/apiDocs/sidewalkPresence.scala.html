@@ -391,7 +391,7 @@
     <ul>
       <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values (e.g., malformed bounding box, invalid region ID, an unrecognized <code>presence</code> or <code>wayType</code> value).</li>
       <li><strong><code>404 Not Found</code>:</strong> The requested resource does not exist (e.g., incorrect base URL path).</li>
-      <li><strong><code>429 Too Many Requests</code>:</strong> An identical request is already being processed; wait for it to finish (or the <code>Retry-After</code> seconds) and try again.</li>
+      <li><strong><code>429 Too Many Requests</code>:</strong> The same file is already being built for an earlier request; wait <code>Retry-After</code> seconds and try again.</li>
       <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
     </ul>
 

@@ -530,8 +530,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = {
-    // DBF text columns are fixed width and default to 254 bytes, which puts Seattle's .dbf over 1GB (#4133). Values
-    // longer than a column's width are cut off.
+    // Text columns are fixed width and default to 254 bytes, which put Seattle's .dbf over 1GB (#4133). Longer
+    // values are cut off.
     val featureType: SimpleFeatureType = {
       val builder = new SimpleFeatureTypeBuilder()
       builder.init(DataUtilities.createType("Location", "the_geom:Point:srid=4326"))
