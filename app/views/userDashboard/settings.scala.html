@@ -1,5 +1,6 @@
-@import controllers.helper.ControllerUtils.MeasurementSystem
+@import controllers.helper.ControllerUtils.UnitsOverride
 @import service.CommonPageData
+@import models.user.MeasurementSystem
 @import models.user.SidewalkUserWithRole
 @import models.user.Team
 @import play.api.Configuration
@@ -44,7 +45,7 @@
       <div class="ud-field">
         <label class="ud-label" for="set-units">@Messages("dashboard.settings.units")</label>
         <select class="ps-select ps-select--large" id="set-units">
-          @for(choice <- Seq(MeasurementSystem.FollowLanguage, MeasurementSystem.Metric, MeasurementSystem.Imperial)) {
+          @for(choice <- UnitsOverride.FollowLanguage +: MeasurementSystem.values.toSeq.map(_.toString)) {
             <option value="@choice" @selectedIfChosen(choice)>@Messages(s"dashboard.settings.units.$choice")</option>
           }
         </select>

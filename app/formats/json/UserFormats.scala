@@ -43,13 +43,17 @@ object UserFormats {
   }
   implicit val roleWrites: Writes[Role.Value] = Writes(role => JsString(role.toString))
 
+  implicit val measurementSystemReads: Reads[MeasurementSystem.Value]   = Reads.enumNameReads(MeasurementSystem)
+  implicit val measurementSystemWrites: Writes[MeasurementSystem.Value] = Writes.enumNameWrites
+
   implicit val sidewalkUserWithRoleReads: Reads[SidewalkUserWithRole] = (
     (JsPath \ "userId").read[String] and
       (JsPath \ "username").read[String] and
       (JsPath \ "email").read[String] and
       (JsPath \ "role").read[Role.Value] and
       (JsPath \ "community_service").read[Boolean] and
-      (JsPath \ "infra3d_access").read[Boolean]
+      (JsPath \ "infra3d_access").read[Boolean] and
+      (JsPath \ "measurement_system").readNullable[MeasurementSystem.Value]
   )(SidewalkUserWithRole.apply _)
 
   implicit val sidewalkUserWithRoleWrites: Writes[SidewalkUserWithRole] = (
@@ -58,7 +62,8 @@ object UserFormats {
       (JsPath \ "email").write[String] and
       (JsPath \ "role").write[Role.Value] and
       (JsPath \ "community_service").write[Boolean] and
-      (JsPath \ "infra3d_access").write[Boolean]
+      (JsPath \ "infra3d_access").write[Boolean] and
+      (JsPath \ "measurement_system").writeNullable[MeasurementSystem.Value]
   )(unlift(SidewalkUserWithRole.unapply))
 
   implicit val userStatsWrites: Writes[UserStatsForAdminPage] = (

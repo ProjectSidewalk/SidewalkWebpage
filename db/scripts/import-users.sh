@@ -158,6 +158,12 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
     source_cols text;
     copied bigint;
   BEGIN
+    -- A table only one side has (an older dump, or local accounts no city has evolved yet) has nothing to copy.
+    IF to_regclass(format('sidewalk_login.%I', tbl)) IS NULL
+       OR to_regclass(format('sidewalk_login_import.%I', tbl)) IS NULL THEN
+      RETURN 0;
+    END IF;
+
     WITH live_col AS (
       SELECT attname, attnum, atttypid, atttypmod
       FROM pg_attribute
@@ -195,7 +201,7 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
     FROM pg_tables
     WHERE schemaname = 'sidewalk_login_import'
       AND tablename <> ALL (
-        '{sidewalk_user,login_info,user_login_info,user_password_info,user_role,user_utm,partner}'
+        '{sidewalk_user,login_info,user_login_info,user_password_info,user_role,user_utm,user_settings,user_state,partner}'
       );
     IF unhandled IS NOT NULL THEN
       RAISE WARNING 'The dump has login tables this script does not merge: %. Add a rule for them to %.',
@@ -312,6 +318,10 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
     'INNER JOIN new_account ON new_account.user_id = user_role.user_id') AS user_role_added \gset
   SELECT pg_temp.copy_rows('user_utm', '{user_utm_id}',
     'INNER JOIN new_account ON new_account.user_id = user_utm.user_id') AS user_utm_added \gset
+  SELECT pg_temp.copy_rows('user_settings', '{}',
+    'INNER JOIN new_account ON new_account.user_id = user_settings.user_id') AS user_settings_added \gset
+  SELECT pg_temp.copy_rows('user_state', '{}',
+    'INNER JOIN new_account ON new_account.user_id = user_state.user_id') AS user_state_added \gset
   -- A partner from the dump is added unless that city already has one with the same name. New ones go after the
   -- existing ones in that city's display order.
   SELECT pg_temp.copy_rows('partner', '{partner_id,display_order}',
@@ -350,10 +360,10 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
   \endif
 
   SELECT format('✓ Added %s new accounts (%s login_info, %s user_login_info, %s user_password_info, %s user_role, '
-                '%s user_utm rows) and %s partners. Kept %s accounts the dump does not have. Changed the username '
-                'or email of %s accounts (%s anonymous) that clashed with a new one.',
+                '%s user_utm, %s user_settings, %s user_state rows) and %s partners. Kept %s accounts the dump does '
+                'not have. Changed the username or email of %s accounts (%s anonymous) that clashed with a new one.',
                 :accounts_added, :login_info_added, :user_login_info_added, :user_password_info_added,
-                :user_role_added, :user_utm_added, :partner_added,
+                :user_role_added, :user_utm_added, :user_settings_added, :user_state_added, :partner_added,
                 (SELECT count(*)
                  FROM sidewalk_login.sidewalk_user
                  WHERE NOT EXISTS (

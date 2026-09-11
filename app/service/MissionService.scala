@@ -9,7 +9,7 @@ import models.mission.MissionTable.{distanceForLaterMissions, distancesForFirstA
 import models.mission.{Mission, MissionTable, MissionType}
 import models.route.{RouteTable, UserRoute}
 import models.user.SidewalkUserTable.aiUserId
-import models.user.SidewalkUserWithRole
+import models.user.{SidewalkUserWithRole, UserStateTable}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.Logger
@@ -63,6 +63,7 @@ class MissionServiceImpl @Inject() (
     missionTable: MissionTable,
     auditTaskTable: AuditTaskTable,
     routeTable: RouteTable,
+    userStateTable: UserStateTable,
     implicit val ec: ExecutionContext
 ) extends MissionService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -191,8 +192,9 @@ class MissionServiceImpl @Inject() (
 
     val getMissionAction =
       if (actions.contains("getMission")) {
-        missionTable
-          .hasCompletedAuditOnboarding(userId)
+        // Checked across every city, so a user who did the tutorial in one city never gets it again elsewhere (#3720).
+        userStateTable
+          .hasCompletedExploreTutorial(userId)
           .flatMap { completedOnboarding =>
             // If they still need to do tutorial or are retaking it.
             if (!completedOnboarding || retakingTutorial.get) {
@@ -273,7 +275,7 @@ class MissionServiceImpl @Inject() (
   /**
    * Returns the user's incomplete exploreAddress mission, or creates one if none exists (#4451).
    *
-   * Deliberately bypasses the hasCompletedAuditOnboarding gate in queryMissionTableExploreMissions: address-drop-in
+   * Deliberately bypasses the tutorial check in queryMissionTableExploreMissions: address-drop-in
    * sessions skip the tutorial and go straight to the searched location.
    */
   def resumeOrCreateNewExploreAddressMission(userId: String): DBIO[Mission] = {
@@ -462,7 +464,10 @@ class MissionServiceImpl @Inject() (
         val missionType: Option[MissionType.Value] = mission.map(_.missionType)
         if (missionType.contains(MissionType.AuditOnboarding)) {
           if (missionProgress.completed) {
-            updateCompleteAndGetNextMission(userId, regionId, missionId, skipped)
+            // Recorded before the next mission is picked, since picking it is what checks whether the tutorial is done.
+            userStateTable
+              .markExploreTutorialCompleted(userId)
+              .andThen(updateCompleteAndGetNextMission(userId, regionId, missionId, skipped))
           } else
             DBIO.successful(None)
         } else if (missionType.contains(MissionType.ExploreAddress)) {
