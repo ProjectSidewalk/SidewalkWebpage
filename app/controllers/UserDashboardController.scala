@@ -272,13 +272,11 @@ class UserDashboardController @Inject() (
   }
 
   /**
-   * Changes the signed-in user's password from Settings (#2285), with its own button apart from `saveSettings`.
-   * Errors use the auth forms' `{"errors": {field -> message}}` shape, and a wrong current password is a 401 like a
-   * failed sign-in, so the page can reuse the auth forms' submit handling.
+   * Changes the signed-in user's password from Settings (#2285). A wrong current password is a 401, like a failed
+   * sign-in, so the page can reuse the auth forms' submit handling.
    *
-   * Every attempt counts toward the per-account limit before any work is done, successes included. Counting up front
-   * keeps a burst of simultaneous guesses from all slipping in before the first is recorded, and counting successes
-   * caps how much bcrypt work one session can cause by changing its password back and forth.
+   * Every attempt counts toward the limit up front, successes included, so simultaneous guesses can't slip past it
+   * and a session can't change its password back and forth forever.
    */
   def changePassword = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
     val user        = request.identity

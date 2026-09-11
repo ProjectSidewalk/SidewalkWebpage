@@ -159,10 +159,7 @@ class UserController @Inject() (
     silhouette.env.authenticatorService.discard(request.authenticator, Redirect(url))
   }
 
-  /**
-   * Renders the page that emails a password-reset link. Signed-in users get it too: Settings links here for anyone
-   * who has forgotten the current password its change-password form asks for (#2285).
-   */
+  /** Renders the forgot-password page, for signed-in users too since Settings links here (#2285). */
   def forgotPassword = silhouette.UserAwareAction.async { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_ForgotPassword")
@@ -694,8 +691,7 @@ class UserController @Inject() (
                   authenticationService.updatePassword(user.userId, passwordInfo).map { _ =>
                     authenticationService.removeToken(token)
                     cc.loggingService.insert(user.userId, request.ipAddress, "PasswordReset")
-                    // Someone already signed in (say, who followed Settings' "Reset it by email" link) would be
-                    // bounced off /signIn to the homepage, losing the message, so they go back to Settings instead.
+                    // /signIn bounces a signed-in user to the homepage, losing the message, so they go to Settings.
                     val backTo =
                       if (request.identity.exists(_.userId == user.userId))
                         routes.UserDashboardController.settings.withFragment("change-password")

@@ -16,15 +16,11 @@ import util.SignedUpAccounts
 import scala.concurrent.Future
 
 /**
- * End-to-end tests for the Settings page's change-password endpoint (#2285) and the reset-by-email flow it links to.
- * Boots the real app against Postgres and signs up throwaway accounts (deleted in `afterAll`), so what's proven is the
- * whole path: the CSRF filter, form binding, the current-password check, the database write, and signing in afterward
- * with the new password.
+ * End-to-end tests for Settings' change-password endpoint (#2285) and the reset flow it links to, against the real app
+ * and database with throwaway accounts.
  *
- * Only the change-password limit is switched on, and turned down to three, so the lockout can be reached quickly
- * without the sign-up and sign-in limits (which every request here shares, all from 127.0.0.1) getting in the way.
- *
- * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
+ * Only the change-password limit is on, turned down to three so the lockout is quick to reach. The sign-up and sign-in
+ * limits would otherwise trip, since every request here comes from 127.0.0.1.
  */
 class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneAppPerSuite {
 

@@ -16,13 +16,9 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 /**
- * Signs up real, registered accounts through `/signUp` for specs that need someone signed in, and deletes them again
- * in `afterAll`. The HTTP path can't share a rolled-back transaction, so this is the delete-by-id cleanup that
- * docs/testing-and-ci.md asks of a spec that writes rows, done once here rather than in each spec.
- *
- * Mix into a `PlaySpec` **before** `GuiceOneAppPerSuite` (`PlaySpec with SignedUpAccounts with GuiceOneAppPerSuite`):
- * the cleanup needs the app's DB pool, and a trait mixed in later would run its `afterAll` after the app has stopped.
- * A spec that writes other rows for these users must delete those in its own `afterAll` first, which runs before this.
+ * Signs up real accounts through `/signUp` and deletes them in `afterAll`, since the HTTP path can't use a rolled-back
+ * transaction. Mix in before `GuiceOneAppPerSuite`, because the cleanup needs the app's DB pool. A spec's own
+ * `afterAll` runs first, so it can delete any other rows it wrote for these users.
  */
 trait SignedUpAccounts extends BeforeAndAfterAll { this: PlaySpec with GuiceOneAppPerSuite =>
 
@@ -34,11 +30,7 @@ trait SignedUpAccounts extends BeforeAndAfterAll { this: PlaySpec with GuiceOneA
   /** Ids of the accounts this suite created, deleted in `afterAll`. */
   protected var createdUserIds: Set[String] = Set.empty
 
-  /**
-   * A new account, signed in.
-   *
-   * @return The account's user id, its email, and the cookies that keep it signed in.
-   */
+  /** @return A new signed-in account's user id, email, and session cookies. */
   protected def signUpFreshUser(): (String, String, Seq[Cookie]) = {
     val tag    = UUID.randomUUID().toString.replace("-", "").take(20)
     val email  = s"spec.$tag@example.test"
@@ -62,10 +54,7 @@ trait SignedUpAccounts extends BeforeAndAfterAll { this: PlaySpec with GuiceOneA
     (userId, email, cookies(signUp).toSeq)
   }
 
-  /**
-   * Everything a sign-up and a signed-in visit write for a user, children before the account itself. The city tables
-   * are unqualified so they resolve to the app's own schema.
-   */
+  /** Everything a sign-up and signed-in visits write for a user, children first; city tables are the app's schema. */
   private def deleteAccount(userId: String): DBIO[Unit] =
     DBIO
       .seq(

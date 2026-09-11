@@ -44,13 +44,11 @@
       </div>
     </div>
     <h3 class="page-subhead ud-settings-subhead" id="change-password">@Messages("dashboard.settings.password")</h3>
-    @* Its own form and button rather than part of "Save changes": it needs the current password and can fail on its
-       own, so it shouldn't hold up (or be held up by) the rest of the settings. *@
+    @* Separate from "Save changes": it needs the current password and can fail on its own. *@
     <form class="ud-form" id="set-password-form" method="post" action="@routes.UserDashboardController.changePassword"
         data-error-generic="@Messages("authenticate.error.generic")">
       @CSRF.formField
-      @* Tells password managers which saved login to update. The email rather than the username: every account has
-         one and it never changes, though someone who signs in by username may get a second saved entry. *@
+      @* Tells password managers which login to update. The email, since every account has one. *@
       <label for="set-password-username" hidden>@Messages("dashboard.settings.email")</label>
       <input id="set-password-username" type="email" autocomplete="username" value="@user.email" hidden readonly>
       <div class="au-field">
@@ -68,7 +66,7 @@
         "dashboard.settings.password.new.confirm")
       <div>
         <button type="submit" class="ud-btn-primary">@Messages("dashboard.settings.password.submit")</button>
-        @* A reset by email, finished while signed in, lands back here with its message. *@
+        @* Where a reset finished while signed in shows its message. *@
         @defining(request.flash.get("success")) { resetMessage =>
           <span class="ud-save-status @if(resetMessage.isDefined){ud-save-ok}" role="status"
               aria-live="polite">@resetMessage</span>
@@ -180,8 +178,8 @@
         currentUnits: '@unitsChoice'
       });
     });
-    // Not in appManager.ready: that waits on i18next, and until this runs a submit is a plain POST that shows raw JSON.
-    // AuthModal.js, which this builds on, is deferred, and deferred scripts have all run by DOMContentLoaded.
+    // Not appManager.ready, which waits on i18next: until this runs, a submit shows raw JSON. Not sooner either, since
+    // AuthModal.js (which it uses) is a deferred script.
     document.addEventListener('DOMContentLoaded', function () {
       new ChangePasswordForm(document.getElementById('set-password-form'));
     });

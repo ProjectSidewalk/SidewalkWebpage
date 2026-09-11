@@ -273,12 +273,8 @@ object ControllerUtils {
   }
 
   /**
-   * Maps form binding errors to the async error contract that `AuthModal.js`'s `renderAuthErrors` draws:
-   * `{"errors": {field -> localized message}}`. Form-level errors, like a password mismatch, land under `_summary`,
-   * which is drawn as a banner above the form rather than beside a field.
-   *
-   * @param formWithErrors A form that failed to bind.
-   * @return The error JSON, one message per field.
+   * Form binding errors as the JSON `AuthModal.js`'s `renderAuthErrors` draws: `{"errors": {field -> message}}`, with
+   * form-level errors (like a password mismatch) under `_summary`.
    */
   def formErrorsJson(formWithErrors: Form[_])(implicit messages: Messages): JsObject = {
     val fields = formWithErrors.errors.groupBy(_.key).toSeq.map { case (key, errs) =>
@@ -287,7 +283,7 @@ object ControllerUtils {
     Json.obj("errors" -> JsObject(fields))
   }
 
-  /** The same async error contract as [[formErrorsJson]], for a single field (or `_summary`). */
+  /** The same JSON as [[formErrorsJson]], for one field (or `_summary`). */
   def fieldErrorJson(field: String, message: String): JsObject =
     Json.obj("errors" -> Json.obj(field -> message))
 }

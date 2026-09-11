@@ -19,7 +19,7 @@ object PasswordPolicy {
   /** Whole-password constraint used by `SignUpForm`; the per-rule breakdown below must stay its decomposition. */
   val pattern: Regex = """^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).*$""".r
 
-  /** The form field for a new password, shared by sign-up, reset, and Settings' change-password form. */
+  /** A new-password form field, shared by sign-up, reset, and change password. */
   val newPassword: Mapping[String] = nonEmptyText
     .verifying(minLengthRule(minLength))
     .verifying(patternRule(pattern, error = "authenticate.error.password.requirements"))

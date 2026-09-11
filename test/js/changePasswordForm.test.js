@@ -1,10 +1,7 @@
 /**
- * Tests the Settings page's change-password form (public/js/user-dashboard/ChangePasswordForm.js, #2285).
- *
- * What matters is what the user is left looking at after each outcome: a success empties every password field and
- * says so, a wrong current password clears just that field and flags it, and a failed request still explains itself
- * instead of doing nothing. Submitting and error drawing are AuthModal.js's own `wireAsyncSubmit`, loaded for real
- * rather than stubbed, so these tests also catch the form drifting away from the markup that helper expects.
+ * Tests Settings' change-password form (public/js/user-dashboard/ChangePasswordForm.js, #2285): what the user sees
+ * after a success, a wrong current password, a form-level error, and a failed request. AuthModal.js is loaded for
+ * real, so these also catch the form drifting from the markup `wireAsyncSubmit` expects.
  */
 
 const fs = require('fs');
@@ -14,10 +11,7 @@ const read = (relativePath) => fs.readFileSync(path.resolve(__dirname, '..', '..
 
 const GENERIC_ERROR = 'Something went wrong on our end. Please try again.';
 
-/**
- * The class under test, sharing a scope with AuthModal.js as it does a page's globals, and with `fetch` supplied per
- * test. AuthModal.js's DOMContentLoaded hook is inert here: the page has already loaded.
- */
+/** The class under test, in one scope with AuthModal.js as on the page, with `fetch` supplied per test. */
 const formFactory = (0, eval)(
   `(function (fetch) {
     ${read('public/js/common/AuthModal.js')}
@@ -26,10 +20,7 @@ const formFactory = (0, eval)(
   })`
 );
 
-/**
- * A reduction of the password section in userDashboard/settings.scala.html: the fields and hooks the class and the
- * AuthModal.js helpers walk, not the full markup.
- */
+/** A cut-down copy of the password section in userDashboard/settings.scala.html. */
 const renderForm = () => {
   document.body.innerHTML = `
     <div class="page-section">
@@ -58,8 +49,7 @@ const renderForm = () => {
 };
 
 /**
- * Submits the form and waits for the handler to finish. The fetch, its .json(), and the handler's own awaits each
- * take a turn of the event loop.
+ * Submits the form and waits a few event-loop turns for the fetch and its handlers to finish.
  *
  * @param {HTMLFormElement} form - The form to submit.
  */

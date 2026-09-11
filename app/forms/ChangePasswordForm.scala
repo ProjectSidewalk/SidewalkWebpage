@@ -3,10 +3,7 @@ package forms
 import play.api.data.Forms._
 import play.api.data._
 
-/**
- * The Settings page's change-password form (#2285). The new password follows the same `PasswordPolicy` as sign-up
- * and reset; whether the current password is right is checked afterward, against the database.
- */
+/** Settings' change-password form (#2285). Whether the current password is right is checked later, in the service. */
 object ChangePasswordForm {
 
   val form = Form(

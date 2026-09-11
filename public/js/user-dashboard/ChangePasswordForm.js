@@ -1,8 +1,6 @@
 /**
- * The Settings page's change-password form (#2285), posted apart from the page's "Save changes" button. Submitting and
- * error display are AuthModal.js's `wireAsyncSubmit`, which also clears the current password after a wrong one (401);
- * this adds what happens on success, since the user stays on the page. AuthModal.js also wires the show-password
- * buttons and new-password checklist. CSRF is added by the global fetch wrapper (AppManager).
+ * Settings' change-password form (#2285). Submitting and error display are AuthModal.js's `wireAsyncSubmit`; this adds
+ * what happens on success, since the user stays on the page.
  */
 class ChangePasswordForm {
   #form;
@@ -15,14 +13,14 @@ class ChangePasswordForm {
   constructor(form) {
     this.#form = form;
     this.#status = form.querySelector('[role="status"]');
-    // Registered before wireAsyncSubmit's listener, so an old "changed" message is gone before the next reply lands.
+    // Added before wireAsyncSubmit's listener, so a stale "changed" message clears as soon as the next submit starts.
     form.addEventListener('submit', () => this.#setStatus('', false));
     wireAsyncSubmit(form, { onSuccess: (data) => this.#onChanged(data) });
   }
 
   /**
-   * Empties the password fields and says the password changed. Clearing a field from code doesn't count as typing
-   * in it, so this nudges the new-password checklist and "passwords match" line, or they'd describe the old text.
+   * Empties the fields and shows the server's message. The input events refresh the new-password checklist, which
+   * only watches for typing.
    *
    * @param {{message: string}} data - The server's reply.
    */

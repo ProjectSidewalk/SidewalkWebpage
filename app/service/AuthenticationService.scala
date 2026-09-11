@@ -288,15 +288,7 @@ class AuthenticationServiceImpl @Inject() (
     }
   }
 
-  /**
-   * Replaces a signed-in user's password, but only if they also typed their current one. Being signed in isn't proof
-   * enough: a session left open on a shared computer must not be able to lock the real owner out.
-   *
-   * @param userId          The account whose password to change.
-   * @param currentPassword What the user typed as their current password.
-   * @param newPassword     The replacement, already checked against `PasswordPolicy`.
-   * @return False if `currentPassword` is wrong (nothing is written), true once the new password is saved.
-   */
+  /** Replaces a user's password if `currentPassword` is right; returns false, writing nothing, if it isn't. */
   def changePassword(userId: String, currentPassword: String, newPassword: String): Future[Boolean] = {
     db.run(userLoginInfoTable.find(userId)).flatMap {
       case Some(userLoginInfo) =>

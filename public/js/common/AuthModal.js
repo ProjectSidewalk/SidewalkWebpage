@@ -273,8 +273,7 @@ function renderAuthErrors(form, errors) {
  *
  * @param {HTMLFormElement} [form] - The auth form to enhance; a no-op if absent.
  * @param {Object} [opts]
- * @param {function(Object): void} [opts.onSuccess] - Handles a successful reply in place, for a form that keeps the
- *   user on the page (Settings' change password). Without it, a successful reply's `redirect` is followed.
+ * @param {function(Object): void} [opts.onSuccess] - Handles a successful reply in place of following its `redirect`.
  */
 function wireAsyncSubmit(form, { onSuccess } = {}) {
   if (!form) return;
