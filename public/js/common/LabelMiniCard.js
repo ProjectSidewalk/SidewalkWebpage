@@ -253,7 +253,8 @@ class LabelMiniCard {
       source: this.#opts.source,
       undone,
       redone: !undone && prev !== null,
-      viewer_type: 'StaticCrop',
+      // Which picture the vote was judged on, as the Gallery and the landing grid report it.
+      viewer_type: label.crop_url ? 'StaticCrop' : 'StaticApi',
     };
   }
 }

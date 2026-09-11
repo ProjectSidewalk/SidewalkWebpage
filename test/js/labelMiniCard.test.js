@@ -122,6 +122,13 @@ describe('LabelMiniCard', () => {
         expect(chip(card, 'Agree').getAttribute('data-ps-tooltip')).toBe('own-label-disabled');
     });
 
+    test('a vote on a backup image reports StaticApi, as the Gallery and the landing grid do', async () => {
+        const card = mount(label({crop_url: null, backup_image_url: 'https://example.test/pano.jpg'}));
+        chip(card, 'Agree').click();
+        await settle();
+        expect(postedBodies[0].viewer_type).toBe('StaticApi');
+    });
+
     test('the picture opens the label', () => {
         const onOpen = jest.fn();
         const card = mount(label(), {onOpen});
