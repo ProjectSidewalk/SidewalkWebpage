@@ -15,14 +15,15 @@ import models.api.{
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
-import org.geotools.api.data.{DataStore, DataStoreFinder, SimpleFeatureStore}
+import org.geotools.api.data.{DataStore, DataStoreFinder, SimpleFeatureStore, Transaction}
 import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.geotools.data.shapefile.ShapefileDataStoreFactory
 import org.geotools.data.{DataUtilities, DefaultTransaction}
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.geotools.geopkg.GeoPkgDataStoreFactory
-import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
+import org.geotools.jdbc.JDBCDataStore
+import org.locationtech.jts.geom.{Coordinate, Envelope, Geometry, GeometryFactory}
 import play.api.Logger
 import play.api.libs.json.Json
 
@@ -32,6 +33,7 @@ import java.util.zip.{ZipEntry, ZipOutputStream}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
+import scala.util.Using
 
 /**
  * This class handles the creation of Shapefile archives to be used by the ApiController.
@@ -46,18 +48,49 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
   /**
    * Opens the GeoPackage at the given path as a data store, which the caller disposes. `DataStoreFinder` returns null
    * rather than throwing when no factory accepts the params (e.g. gt-geopkg's service file lost in packaging).
+   *
+   * @return The store as the SQL-backed kind gt-geopkg builds, so [[writeGeoPackageExtent]] can borrow its connection.
    */
-  private def openGeoPackage(geopackagePath: Path): DataStore = {
+  private def openGeoPackage(geopackagePath: Path): JDBCDataStore = {
     val params = Map(
       GeoPkgDataStoreFactory.DBTYPE.key   -> "geopkg",
       GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
     ).asJava
-    Option(DataStoreFinder.getDataStore(params)).getOrElse {
-      throw new IllegalStateException(
-        "No GeoTools DataStore factory accepted the GeoPackage params (is gt-geopkg on " +
-          "the classpath with its META-INF/services entry?)"
-      )
+    DataStoreFinder.getDataStore(params) match {
+      case store: JDBCDataStore => store
+      case _                    =>
+        throw new IllegalStateException(
+          "No GeoTools DataStore factory accepted the GeoPackage params (is gt-geopkg on " +
+            "the classpath with its META-INF/services entry?)"
+        )
     }
+  }
+
+  private def expandExtent(extent: Envelope, features: java.util.List[SimpleFeature]): Unit =
+    features.forEach { f =>
+      Option(f.getDefaultGeometry).foreach(g => extent.expandToInclude(g.asInstanceOf[Geometry].getEnvelopeInternal))
+    }
+
+  /**
+   * Saves a layer's real bounding box in `gpkg_contents`, which QGIS and GDAL trust as the layer's extent. GeoTools
+   * writes that row before any feature exists and never updates it, leaving (0, 0, 0, 0) (#5275). An empty layer gets
+   * NULLs, which the GeoPackage spec reads as "extent unknown".
+   *
+   * @param dataStore The open GeoPackage; call before disposing it.
+   */
+  private def writeGeoPackageExtent(dataStore: JDBCDataStore, tableName: String, extent: Envelope): Unit = {
+    val bounds: Seq[java.lang.Double] =
+      if (extent.isNull) Seq.fill(4)(null)
+      else Seq(extent.getMinX, extent.getMinY, extent.getMaxX, extent.getMaxY).map(Double.box)
+    Using.Manager { use =>
+      val cx   = use(dataStore.getConnection(Transaction.AUTO_COMMIT))
+      val stmt = use(
+        cx.prepareStatement("UPDATE gpkg_contents SET min_x = ?, min_y = ?, max_x = ?, max_y = ? WHERE table_name = ?")
+      )
+      bounds.zipWithIndex.foreach { case (b, i) => stmt.setObject(i + 1, b) }
+      stmt.setString(5, tableName)
+      val _ = stmt.executeUpdate()
+    }.get
   }
 
   /** Rejects attribute names over the DBF format's 10-char limit, which GeoTools would otherwise truncate silently. */
@@ -75,22 +108,25 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * @param featureStore The feature store to write to.
    * @param features The list of features to write.
    * @param rethrow If true, rethrows exceptions after rollback. If false, logs and swallows them.
+   * @return Whether the batch was saved; false only when an error was swallowed.
    */
   private def writeFeatureBatch(
       featureStore: SimpleFeatureStore,
       features: java.util.ArrayList[SimpleFeature],
       rethrow: Boolean = false
-  ): Unit = {
+  ): Boolean = {
     val transaction = new DefaultTransaction("create")
     try {
       featureStore.setTransaction(transaction)
       featureStore.addFeatures(DataUtilities.collection(features))
       transaction.commit()
+      true
     } catch {
       case e: Exception =>
         transaction.rollback()
         if (rethrow) throw e
-        else logger.error(s"Error writing features: ${e.getMessage}", e)
+        logger.error(s"Error writing features: ${e.getMessage}", e)
+        false
     } finally {
       transaction.close()
     }
@@ -113,8 +149,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureType: SimpleFeatureType,
       buildFeature: (A, SimpleFeatureBuilder) => SimpleFeature
   ): Future[Option[Path]] = {
-    val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
-    var dataStore: DataStore = null
+    val geopackagePath: Path     = new File(outputFile + ".gpkg").toPath
+    var dataStore: JDBCDataStore = null
 
     try {
       // Set up everything we need to create and store features before saving them.
@@ -127,6 +163,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       val featureStore   = featureSource.asInstanceOf[SimpleFeatureStore]
       val featureBuilder = new SimpleFeatureBuilder(featureType)
       val features       = new java.util.ArrayList[SimpleFeature](batchSize)
+      val extent         = new Envelope()
 
       // Process data in batches.
       source
@@ -140,10 +177,10 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
             features.add(feature)
           }
 
-          writeFeatureBatch(featureStore, features)
+          if (writeFeatureBatch(featureStore, features)) expandExtent(extent, features)
         }
         .map { _ =>
-          // Return the file path for the GeoPackage.
+          writeGeoPackageExtent(dataStore, typeName, extent)
           dataStore.dispose()
           Some(geopackagePath)
         }
@@ -214,7 +251,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
           }
 
           // Add this batch of features to the shapefile in a transaction.
-          writeFeatureBatch(featureStore, features, rethrow = true)
+          val _ = writeFeatureBatch(featureStore, features, rethrow = true)
         }
         .map { _ =>
           // Output the file path for the shapefile.
@@ -529,7 +566,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
               labelsList.foreach(label => allRawLabels.add((cluster.labelClusterId, label)))
             }
           }
-          writeFeatureBatch(clusterStore, clusterFeatures, rethrow = true)
+          val _ = writeFeatureBatch(clusterStore, clusterFeatures, rethrow = true)
         }
         .map { _ =>
           clusterDataStore.dispose()
@@ -637,8 +674,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "image_date:String"       // Image capture date
     )
 
-    val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
-    var dataStore: DataStore = null
+    val geopackagePath: Path     = new File(outputFile + ".gpkg").toPath
+    var dataStore: JDBCDataStore = null
 
     try {
       dataStore = openGeoPackage(geopackagePath)
@@ -650,6 +687,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       val clusterStore    = dataStore.getFeatureSource(clusterTypeName).asInstanceOf[SimpleFeatureStore]
       val clusterBuilder  = new SimpleFeatureBuilder(clusterFeatureType)
       val clusterFeatures = new java.util.ArrayList[SimpleFeature](batchSize)
+      val clusterExtent   = new Envelope()
 
       // Collect raw labels to write as a second layer after the clusters.
       val allRawLabels    = new java.util.ArrayList[(Int, RawLabelInClusterDataForApi)]()
@@ -689,9 +727,11 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
             }
           }
 
-          writeFeatureBatch(clusterStore, clusterFeatures)
+          if (writeFeatureBatch(clusterStore, clusterFeatures)) expandExtent(clusterExtent, clusterFeatures)
         }
         .flatMap { _ =>
+          writeGeoPackageExtent(dataStore, clusterTypeName, clusterExtent)
+
           // Write the raw labels layer if the raw labels were included.
           if (hasRawLabels && !allRawLabels.isEmpty) {
             dataStore.createSchema(labelFeatureType)
@@ -699,6 +739,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
             val labelStore    = dataStore.getFeatureSource(labelTypeName).asInstanceOf[SimpleFeatureStore]
             val labelBuilder  = new SimpleFeatureBuilder(labelFeatureType)
             val labelFeatures = new java.util.ArrayList[SimpleFeature](batchSize)
+            val labelExtent   = new Envelope()
 
             // Write raw labels in batches.
             val labelIter = allRawLabels.iterator()
@@ -722,8 +763,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
                 count += 1
               }
 
-              writeFeatureBatch(labelStore, labelFeatures)
+              if (writeFeatureBatch(labelStore, labelFeatures)) expandExtent(labelExtent, labelFeatures)
             }
+            writeGeoPackageExtent(dataStore, labelTypeName, labelExtent)
           }
 
           dataStore.dispose()

@@ -1,6 +1,6 @@
 package controllers.helper
 
-import models.api.LabelDataForApi
+import models.api.{LabelClusterForApi, LabelDataForApi, RawLabelInClusterDataForApi}
 import models.label.StreetSide
 import models.pano.PanoSource
 import org.apache.pekko.stream.scaladsl.Source
@@ -15,10 +15,12 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 
 import java.nio.file.{Files, Path}
+import java.sql.DriverManager
 import java.time.{OffsetDateTime, ZoneOffset}
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters._
+import scala.util.Using
 
 /**
  * Round-trips `/v3/api/rawLabels`'s two GIS exports through GeoTools and reads the attributes back.
@@ -28,6 +30,8 @@ import scala.jdk.CollectionConverters._
  * tail of every row. Reading the files back pins the field names -- including that the shapefile's stay inside the
  * DBF's 10-character limit, which is why `street_side` and `centerline_offset_m` become `streetSide` and
  * `ctrOffsetM` there (#2886) -- and pins the values that land under them.
+ *
+ * It also pins each GeoPackage layer's declared extent, which GeoTools on its own leaves at (0, 0, 0, 0) (#5275).
  */
 class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionValues {
 
@@ -114,6 +118,24 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
       (names, features)
     } finally store.dispose()
 
+  /**
+   * The extent a GeoPackage declares for one layer, read straight from `gpkg_contents` the way GDAL and QGIS read it.
+   * GeoTools' own reader turns a NULL extent into zeros, so it can't tell "unknown" apart from the (0, 0) bug.
+   *
+   * @return `(min_x, min_y, max_x, max_y)`, or None when the extent is NULL (unknown).
+   */
+  private def declaredExtent(gpkg: Path, tableName: String): Option[(Double, Double, Double, Double)] =
+    Using.Manager { use =>
+      val cx   = use(DriverManager.getConnection(s"jdbc:sqlite:$gpkg"))
+      val stmt = use(cx.prepareStatement("SELECT min_x, min_y, max_x, max_y FROM gpkg_contents WHERE table_name = ?"))
+      stmt.setString(1, tableName)
+      val rs = use(stmt.executeQuery())
+      rs.next() mustBe true
+      Option(rs.getObject("min_x")).map { _ =>
+        (rs.getDouble("min_x"), rs.getDouble("min_y"), rs.getDouble("max_x"), rs.getDouble("max_y"))
+      }
+    }.get
+
   "the rawLabels shapefile" should {
     "carry streetSide and ctrOffsetM under DBF-legal names, with nulls for a label that has no side (#2886)" in {
       inTempDir("labels") { base =>
@@ -157,6 +179,63 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         features(8).getAttribute("centerline_offset_m") mustBe 4.25
         features(9).getAttribute("street_side") mustBe null
         features(9).getAttribute("centerline_offset_m") mustBe null
+      }
+    }
+
+    "declare the bounding box of its labels as the layer extent, not (0, 0, 0, 0) (#5275)" in {
+      val spread = Seq(
+        sampleLabel(8, None, None).copy(latitude = 40.88, longitude = -74.03),
+        sampleLabel(9, None, None).copy(latitude = 40.89, longitude = -74.02)
+      )
+      inTempDir("labels") { base =>
+        // One label per batch, so the extent has to carry over from one batch to the next.
+        val gpkg =
+          Await.result(shapefileCreator.createRawLabelDataGeopackage(Source(spread), base, 1), 60.seconds).value
+        declaredExtent(gpkg, "labels").value mustBe ((-74.03, 40.88, -74.02, 40.89))
+      }
+    }
+
+    "leave the extent unknown (NULL) when there are no labels, rather than claiming (0, 0) (#5275)" in {
+      inTempDir("labels") { base =>
+        val gpkg = Await.result(shapefileCreator.createRawLabelDataGeopackage(Source.empty, base, 2), 60.seconds).value
+        declaredExtent(gpkg, "labels") mustBe None
+      }
+    }
+  }
+
+  "the labelClusters GeoPackage" should {
+    "declare each layer's own extent: clusters from their centers, raw labels from the labels (#5275)" in {
+      def rawLabel(labelId: Int, latitude: Double, longitude: Double) = RawLabelInClusterDataForApi(
+        labelId = labelId,
+        userId = "user-uuid",
+        panoId = "DsCvWstZYz9JL81V9NloOQ",
+        panoSource = Some(PanoSource.Gsv),
+        severity = Some(1),
+        timeCreated = OffsetDateTime.of(2023, 8, 16, 0, 0, 0, 0, ZoneOffset.UTC),
+        latitude = latitude,
+        longitude = longitude,
+        correct = None,
+        imageCaptureDate = None
+      )
+      def cluster(id: Int, latitude: Double, longitude: Double, labels: Seq[RawLabelInClusterDataForApi]) =
+        LabelClusterForApi(
+          labelClusterId = id, labelType = "CurbRamp", streetEdgeId = 951, intersectionId = None, osmWayId = 11584845L,
+          regionId = 1, regionName = "Teaneck", avgImageCaptureDate = None, avgLabelDate = None,
+          medianSeverity = Some(1), agreeCount = 0, disagreeCount = 0, unsureCount = 0, clusterSize = labels.size,
+          labelIds = labels.map(_.labelId), userIds = Seq("user-uuid"), tagCounts = Map.empty, labels = Some(labels),
+          avgLatitude = latitude, avgLongitude = longitude
+        )
+
+      // Each cluster's labels sit a little outside its center, so the two layers' extents differ.
+      val clusters = Seq(
+        cluster(1, 40.88, -74.03, Seq(rawLabel(1, 40.879, -74.031), rawLabel(2, 40.881, -74.029))),
+        cluster(2, 40.89, -74.02, Seq(rawLabel(3, 40.889, -74.021), rawLabel(4, 40.891, -74.019)))
+      )
+      inTempDir("clusters") { base =>
+        val gpkg =
+          Await.result(shapefileCreator.createLabelClusterGeopackage(Source(clusters), base, 1), 60.seconds).value
+        declaredExtent(gpkg, "label_clusters").value mustBe ((-74.03, 40.88, -74.02, 40.89))
+        declaredExtent(gpkg, "raw_labels").value mustBe ((-74.031, 40.879, -74.019, 40.891))
       }
     }
   }
