@@ -1,9 +1,10 @@
 package controllers.helper
 
-import models.user.{Role, SidewalkUserWithRole}
+import models.user.{MeasurementSystem, Role, SidewalkUserWithRole}
 import play.api.i18n.Messages
 import play.api.mvc.Results.{Redirect, Unauthorized}
-import play.api.mvc.{Cookie, DiscardingCookie, RequestHeader, Result}
+import play.api.mvc.{RequestHeader, Result}
+import play.silhouette.api.actions.{SecuredRequestHeader, UserAwareRequestHeader}
 
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
@@ -50,49 +51,32 @@ object ControllerUtils {
   }
 
   /**
-   * The two measurement systems the site renders distances in, and the cookie that pins a request to one of them.
+   * The user behind a request, whichever kind of action served it.
    *
-   * Units can be specified on the User Dashboard, or defaults to the site language (the `measurement.system` message).
+   * Templates only get a `RequestHeader`, but the one they're handed is the action's own request, which still carries
+   * the user Silhouette loaded for it.
+   *
+   * @param request The request to inspect.
+   * @return        The user, or None for a request with no session.
    */
-  object MeasurementSystem {
-    val Metric: String   = "metric"
-    val Imperial: String = "imperial"
-
-    /** What the settings form submits, and the select's value, for "follow the site language". */
-    val FollowLanguage: String = "auto"
-
-    val CookieName: String = "PS_UNITS"
-
-    /** A display preference rather than a credential, so it outlives the browser session; a year is effectively forever. */
-    private val cookieMaxAge: Int = 365 * 24 * 60 * 60
-
-    /** The values `CookieName` may hold. Anything else is treated as absent. */
-    val validOverrides: Set[String] = Set(Metric, Imperial)
-
-    /** The cookie that pins requests to `system`. HttpOnly: client code reads the `<html>` stamp, never the cookie. */
-    def overrideCookie(system: String): Cookie =
-      Cookie(CookieName, system, maxAge = Some(cookieMaxAge), httpOnly = true)
-
-    /** Clears any override, returning the user to language-derived units. */
-    def clearOverrideCookie: DiscardingCookie = DiscardingCookie(CookieName)
+  private def requestUser(request: RequestHeader): Option[SidewalkUserWithRole] = request match {
+    case secured: SecuredRequestHeader[_] => Some(secured.identity).collect { case user: SidewalkUserWithRole => user }
+    case aware: UserAwareRequestHeader[_] => aware.identity.collect { case user: SidewalkUserWithRole => user }
+    case _                                => None
   }
 
   /**
-   * The measurement system this request should render distances in: users can override on their dashboard settings.
+   * The measurement system this request should render distances in: the units saved to the user's account (shared by
+   * every city, #3720), else the site language's.
    *
-   * @param request  The request whose override cookie is inspected.
-   * @param messages The request's messages, supplying the language default when there is no override.
+   * @param request  The request whose user is inspected.
+   * @param messages The request's messages, supplying the language default when there is no saved choice.
    * @return         Either `MeasurementSystem.Metric` or `MeasurementSystem.Imperial` — never a language's own wording.
    */
-  def measurementSystem(implicit request: RequestHeader, messages: Messages): String = {
-    request.cookies
-      .get(MeasurementSystem.CookieName)
-      .map(_.value)
-      .filter(MeasurementSystem.validOverrides.contains)
-      .getOrElse {
-        if (messages("measurement.system") == MeasurementSystem.Metric) MeasurementSystem.Metric
-        else MeasurementSystem.Imperial
-      }
+  def measurementSystem(implicit request: RequestHeader, messages: Messages): MeasurementSystem.Value = {
+    requestUser(request).flatMap(_.measurementSystem).getOrElse {
+      MeasurementSystem.fromString(messages("measurement.system")).getOrElse(MeasurementSystem.Imperial)
+    }
   }
 
   /**

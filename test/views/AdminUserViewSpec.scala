@@ -40,10 +40,10 @@ class AdminUserViewSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   private val admin =
     SidewalkUserWithRole("admin-user", "testadmin", "admin@example.com", Role.Administrator, communityService = false,
-      infra3dAccess = false)
+      infra3dAccess = false, measurementSystem = None)
   private val subject =
     SidewalkUserWithRole("test-user", "testmapper", "test@example.com", Role.Registered, communityService = false,
-      infra3dAccess = false)
+      infra3dAccess = false, measurementSystem = None)
 
   private val userStats = UserStat(1, subject.userId, 0d, None, highQuality = true, None, 0, None, excluded = false,
     onLeaderboard = true, publicProfile = true)
