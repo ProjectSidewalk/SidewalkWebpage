@@ -228,9 +228,10 @@ create-new-schema:
 fill-new-schema:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/fill-new-schema.sh"
 
-# Host-side (edits conf/ and pauses for you to start the app), so no docker exec wrapper.
+# Host-side (edits conf/ and drives both containers), so no docker exec wrapper. Flags go through args=, e.g.
+# `make onboard-city id=laurens-ia args="--skip-scan"`, `args="--dump-only"`, `args="--allow-running-apps"`.
 onboard-city:
-	@python3 tools/setup_new_city.py $(id)
+	@python3 tools/setup_new_city.py $(id) $(args)
 
 # Build a city's street/region staging data + QA GeoPackage (scripts/onboard_city.py, in the web container), passing
 # the script's flags via args=. The same target re-exports the SQL after hand edits: a bare --from-gpkg targets the

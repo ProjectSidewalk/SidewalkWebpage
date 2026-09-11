@@ -86,11 +86,25 @@ launch date (the Friday of next week), and URLs; registers the city in `conf/cit
 the docs City IDs table; creates GA properties when `ga-service-account.json` is present; clones a donor schema
 (the dev container's city by default — refused, with the schemas that disagree named, if its top evolution is another
 branch's under the same number, i.e. its hash is neither the file's nor the other schemas'; pass `--donor` then);
-boots the app once to apply any missing evolutions — and,
-right after a clone, to let Play verify every applied hash; loads and fills; runs the full imagery scan for the
-chosen provider; dumps the
-schema to `db/<schema>-dump`; prints the handoff. Rerunning skips finished steps; `--skip-scan` defers the scan;
-`--dry-run` previews the file edits.
+boots the app once to apply any missing evolutions — and, right after a clone, to let Play verify every applied
+hash; loads and fills; runs the full imagery scan for the chosen provider; checks that nothing but onboarding has
+written to the schema; dumps it to `db/<schema>-dump`; prints the handoff. Rerunning skips finished steps. The
+script's flags go through `args=` (`make onboard-city id=<city-id> args="--skip-scan"`):
+
+- `--dry-run` previews the file edits and drives no container (the one mode allowed from a worktree).
+- `--yes` takes every default without asking — the only way to run unattended; without it, a run with nothing
+  on stdin stops at the first question that is a choice. Pair it with `--donor`, `--tutorial-region` and
+  `--regions` for the answers that have no default worth taking.
+- **The boot gate (step 4).** The boot needs `:9000` and the main checkout's `target/`. If either is held the
+  step stops and names what holds it: stop the `npm start` or `make qa-worktree` on `:9000` and rerun. A build
+  in a worktree is not in the way (the caches are shared by design). `--allow-running-apps` boots past an idle
+  build in the main checkout; a taken port is never overridable. The nightly actors are off for the boot, so it
+  writes no job rows into the new schema.
+- **The dump gate (step 8).** Every table the clone, fill and scan do not write must be empty, and
+  `region_completion.audited_distance` / `street_edge_priority.priority` untouched; a local QA pass or a job run
+  as the city (from `/clustering`, or an app left pointed at the schema) fails it. The step prints what it found
+  and the statements that clear it, and runs them on `y`; unattended it stops. `--dump-only` reruns only this
+  step, which is how a city QA'd after its first dump gets a clean one without passing "drop and recreate?".
 
 Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, center/zoom) against the report.
 
@@ -111,7 +125,10 @@ Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, ce
 
 ## 6. Hand it off
 
-Follow the checklist the orchestrator prints: dump to the server, the IT tooling's `setup-new.pl`, Maps-key
-referrers, DNS, then the PR (configs + messages + docs). Point the maintainer at the QA items only a person can do:
-open the landing page as the new city (map centered, neighborhood names right), walk one street in Explore on the
-chosen imagery, check the Explore tag lists against `excluded_tags`.
+Follow the checklist the orchestrator prints: dump to the server (`scp` to `<netid>@makelab1.cs.washington.edu`,
+renamed to `<schema>-empty-dump` at the destination), the IT tooling's `setup-new.pl`, Maps-key referrers, DNS, then
+the PR (configs + messages + docs). Point the maintainer at the QA items only a person can do: open the landing page
+as the new city (map centered, neighborhood names right), walk one street in Explore on the chosen imagery, check the
+Explore tag lists against `excluded_tags`. That walk leaves an `audit_task`, thousands of interaction rows and a
+moved `audited_distance` in the schema, so **after local QA, dump again**: `make onboard-city id=<city-id>
+args="--dump-only"` lists what the walk left, clears it on `y`, and writes the dump the server should get.
