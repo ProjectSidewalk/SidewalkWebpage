@@ -95,6 +95,7 @@
     "button": "Downloaden",
     "title": "Kies een bestandsformaat om te downloaden",
     "preparing": "Je download wordt voorbereid…",
+    "already-preparing": "Dit bestand wordt al voorbereid. Probeer het zo opnieuw.",
     "count_one": "{{count}} etiket",
     "count_other": "{{count}} etiketten",
     "count-match_one": "komt overeen met je filters in deze weergave",

@@ -7,7 +7,7 @@ import models.label.LabelTypeEnum
 import models.utils.{LatLngBBox, MapParams}
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import play.api.Logger
-import play.api.http.ContentTypes
+import play.api.http.{ContentTypes, HttpVerbs}
 import play.api.mvc.{RequestHeader, Result}
 
 import java.io.BufferedInputStream
@@ -168,20 +168,23 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
     val key   = request.uri
     val now   = Instant.now()
     val fresh = new BaseApiController.InFlight(now)
+    val busy  = ApiError
+      .toResult(
+        ApiError.duplicateRequest("This file is already being built for an earlier request. Please try again shortly.")
+      )
+      .withHeaders(RETRY_AFTER -> "30")
     // Drop entries nobody will release (the client left before Play sent anything), so the map can't grow forever.
     BaseApiController.inFlight.entrySet().removeIf(e => !e.getValue.stillBusy(now))
+    if (request.method == HttpVerbs.HEAD) {
+      // A HEAD is a "would this be refused?" check that builds nothing: the Label Map's download button asks first,
+      // since a browser download that gets a 429 just fails silently.
+      val taken = Option(BaseApiController.inFlight.get(key)).exists(_.stillBusy(now))
+      return Future.successful(if (taken) busy else Ok)
+    }
     val owner =
       BaseApiController.inFlight.merge(key, fresh, (current, _) => if (current.stillBusy(now)) current else fresh)
     if (owner ne fresh) {
-      Future.successful(
-        ApiError
-          .toResult(
-            ApiError.duplicateRequest(
-              "This file is already being built for an earlier request. Please try again shortly."
-            )
-          )
-          .withHeaders(RETRY_AFTER -> "30")
-      )
+      Future.successful(busy)
     } else {
       // `serve` can fail before it even returns a Future (e.g. a full disk); the URL must be freed then too.
       Try(serve(fresh)).fold(

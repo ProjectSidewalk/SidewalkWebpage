@@ -95,6 +95,7 @@
     "button": "Baixar",
     "title": "Selecione um formato de arquivo para baixar",
     "preparing": "Preparando seu download…",
+    "already-preparing": "Este arquivo já está sendo preparado. Tente novamente em instantes.",
     "count_one": "{{count}} rótulo",
     "count_other": "{{count}} rótulos",
     "count-match_one": "corresponde aos seus filtros nesta visualização",

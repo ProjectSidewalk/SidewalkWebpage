@@ -172,9 +172,12 @@ class MapDownloadControl {
           <path d="M8 2v8m0 0 3-3m-3 3L5 7M3 12v1.5a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 .5-.5V12"
                 stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <span class="map-download-control__label" data-i18n="labelmap:download.button">Download</span>
-        <span class="map-download-control__label map-download-control__label--busy"
+        <span class="map-download-control__label" data-state="idle" data-i18n="labelmap:download.button">Download</span>
+        <span class="map-download-control__label map-download-control__label--busy" data-state="busy"
               data-i18n="labelmap:download.preparing" hidden>Preparing your download…</span>
+        <span class="map-download-control__label map-download-control__label--refused" data-state="refused"
+              data-i18n="labelmap:download.already-preparing" hidden>This file is already being prepared. Please try
+          again shortly.</span>
       </button>
       <div id="${panelId}" class="map-download-control__panel" role="group" aria-labelledby="${titleId}"
            aria-describedby="${describedBy}" hidden>
@@ -261,41 +264,61 @@ class MapDownloadControl {
 
   /**
    * Navigates to the rawLabels URL for the current filter state via an ephemeral anchor; the server's
-   * Content-Disposition names the downloaded file.
+   * Content-Disposition names the downloaded file. Asks the server first whether that exact file is already being
+   * built for someone else: the browser download would just fail silently on the 429, so the pill says so instead.
    * @param {string} format One of 'geojson', 'csv', 'shapefile', 'geopackage'.
    */
-  #triggerDownload(format) {
+  async #triggerDownload(format) {
     const url = MapDownloadControl.buildDownloadUrl(this.#getFilterState(), {
       format,
       regionId: this.#regionId,
       bbox: this.#getBbox?.() ?? null,
     });
+    this.#logActivity(`Click_module=MapDownload_Download_format=${format}`);
+    this.#setPill('busy');
+    this.#closePanel();
+    if (await MapDownloadControl.#alreadyBuilding(url)) {
+      this.#setPill('refused');
+      return;
+    }
     const link = document.createElement('a');
     link.href = url;
     link.download = '';
     document.body.appendChild(link);
     link.click();
     link.remove();
-    this.#logActivity(`Click_module=MapDownload_Download_format=${format}`);
-    this.#setBusy(true);
-    this.#closePanel();
   }
 
   /**
-   * Puts the pill into (or out of) its "preparing your download" state and announces the change.
-   * @param {boolean} busy Whether a download has just been started.
+   * Whether the server is already building this exact file for an earlier request. A HEAD builds nothing; a network
+   * failure answers "no" so the download proceeds as it would have anyway.
+   * @param {string} url The download URL.
+   * @returns {Promise<boolean>} True if the server would refuse the download right now.
    */
-  #setBusy(busy) {
-    const idle = this.#button.querySelector('.map-download-control__label:not(.map-download-control__label--busy)');
-    const working = this.#button.querySelector('.map-download-control__label--busy');
-    idle.hidden = busy;
-    working.hidden = !busy;
-    this.#button.setAttribute('aria-busy', String(busy));
+  static async #alreadyBuilding(url) {
+    try {
+      return (await fetch(url, { method: 'HEAD' })).status === 429;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Switches the pill's label and announces it, then restores the idle label after a few seconds.
+   * @param {'idle'|'busy'|'refused'} state The label to show.
+   */
+  #setPill(state) {
+    let shown;
+    for (const label of this.#button.querySelectorAll('.map-download-control__label')) {
+      label.hidden = label.dataset.state !== state;
+      if (!label.hidden) shown = label;
+    }
+    this.#button.setAttribute('aria-busy', String(state === 'busy'));
     // Announce the localized string the pill itself is showing, rather than a second copy that could drift from it.
-    this.#status.textContent = busy ? working.textContent.trim() : '';
+    this.#status.textContent = state === 'idle' ? '' : shown.textContent.replace(/\s+/g, ' ').trim();
 
     clearTimeout(this.#busyTimer);
-    if (busy) this.#busyTimer = setTimeout(() => this.#setBusy(false), MapDownloadControl.#BUSY_MS);
+    if (state !== 'idle') this.#busyTimer = setTimeout(() => this.#setPill('idle'), MapDownloadControl.#BUSY_MS);
   }
 
   /**

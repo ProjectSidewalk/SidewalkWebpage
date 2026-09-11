@@ -95,6 +95,7 @@
     "button": "Herunterladen",
     "title": "Dateiformat zum Herunterladen auswählen",
     "preparing": "Download wird vorbereitet…",
+    "already-preparing": "Diese Datei wird bereits vorbereitet. Bitte versuchen Sie es gleich noch einmal.",
     "count_one": "{{count}} Beschriftung",
     "count_other": "{{count}} Beschriftungen",
     "count-match_one": "entspricht Ihren Filtern in dieser Ansicht",

@@ -213,6 +213,19 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite with Eventually {
       eventually(timeout(Span(10, Seconds)))(BaseApiController.inFlight.containsKey(url) mustBe false)
     }
 
+    "answer a HEAD with the same 429 while the file is being built, and 200 otherwise, without building anything" in {
+      val url = s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=geopackage"
+      BaseApiController.inFlight.put(url, new BaseApiController.InFlight(Instant.now()))
+      try status(route(app, FakeRequest(HEAD, url)).get) mustBe TOO_MANY_REQUESTS
+      finally { val _ = BaseApiController.inFlight.remove(url) }
+
+      val resp = route(app, FakeRequest(HEAD, url)).get
+      status(resp) mustBe OK
+      contentAsBytes(resp) mustBe empty
+      BaseApiController.inFlight.containsKey(url) mustBe false
+      Using.resource(Files.list(BaseApiController.downloadsDir))(_.count()) mustBe 0
+    }
+
     "keep serving a repeat of a plain streamed URL, which the site's own pages fetch in parallel" in {
       val url = s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=geojson"
       BaseApiController.inFlight.put(url, new BaseApiController.InFlight(Instant.now()))

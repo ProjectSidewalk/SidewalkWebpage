@@ -191,13 +191,19 @@ describe('MapDownloadControl panel', () => {
         jest.spyOn(window.HTMLAnchorElement.prototype, 'click').mockImplementation(function () {
             anchorClicks.push(this.getAttribute('href'));
         });
+        // The control asks the server (HEAD) before it downloads; by default the answer is "go ahead".
+        window.fetch = jest.fn().mockResolvedValue({ status: 200 });
     });
 
     afterEach(() => {
         jest.restoreAllMocks();
         delete window.logWebpageActivity;
         delete window.i18next;
+        delete window.fetch;
     });
+
+    /** Lets the download click's HEAD check settle; fake timers don't touch promises, so this works under both. */
+    const settle = async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); };
 
     test('renders a collapsed disclosure wired to its own panel', () => {
         mount();
@@ -243,11 +249,13 @@ describe('MapDownloadControl panel', () => {
         expect(container.querySelector('.map-download-control__docs-link').hasAttribute('disabled')).toBe(false);
     });
 
-    test('clicking a format downloads the built URL, logs, and closes the panel', () => {
+    test('clicking a format downloads the built URL, logs, and closes the panel', async () => {
         mount({ regionId: 42 });
         button().click();
         items().find((item) => item.dataset.format === 'csv').click();
+        await settle();
 
+        expect(window.fetch).toHaveBeenCalledWith(anchorClicks[0], { method: 'HEAD' });
         expect(anchorClicks).toHaveLength(1);
         const params = queryOf(anchorClicks[0]);
         expect(anchorClicks[0].startsWith('/v3/api/rawLabels?')).toBe(true);
@@ -259,13 +267,15 @@ describe('MapDownloadControl panel', () => {
         expect(document.activeElement).toBe(button());
     });
 
-    test('acknowledges the click with a busy pill and a live-region status, then restores itself', () => {
+    test('acknowledges the click with a busy pill and a live-region status, then restores itself', async () => {
         jest.useFakeTimers();
         try {
             mount();
             button().click();
             items()[0].click();
+            await settle();
 
+            expect(anchorClicks).toHaveLength(1);
             expect(button().getAttribute('aria-busy')).toBe('true');
             expect(busyLabel().hidden).toBe(false);
             expect(container.querySelector('[role="status"]').textContent).toBe('Preparing your download…');
@@ -273,6 +283,31 @@ describe('MapDownloadControl panel', () => {
             jest.advanceTimersByTime(4000);
             expect(button().getAttribute('aria-busy')).toBe('false');
             expect(busyLabel().hidden).toBe(true);
+            expect(container.querySelector('[role="status"]').textContent).toBe('');
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    test('says so instead of downloading when the server is already building that file', async () => {
+        jest.useFakeTimers();
+        try {
+            window.fetch.mockResolvedValue({ status: 429 });
+            mount();
+            button().click();
+            items()[0].click();
+            await settle();
+
+            expect(anchorClicks).toHaveLength(0);
+            const refused = container.querySelector('.map-download-control__label--refused');
+            expect(refused.hidden).toBe(false);
+            expect(busyLabel().hidden).toBe(true);
+            expect(button().getAttribute('aria-busy')).toBe('false');
+            expect(container.querySelector('[role="status"]').textContent)
+                .toBe('This file is already being prepared. Please try again shortly.');
+
+            jest.advanceTimersByTime(4000);
+            expect(refused.hidden).toBe(true);
             expect(container.querySelector('[role="status"]').textContent).toBe('');
         } finally {
             jest.useRealTimers();

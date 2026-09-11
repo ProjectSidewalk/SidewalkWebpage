@@ -95,6 +95,7 @@
     "button": "Descargar",
     "title": "Selecciona un formato de archivo para descargar",
     "preparing": "Preparando tu descarga…",
+    "already-preparing": "Este archivo ya se está preparando. Inténtalo de nuevo en un momento.",
     "count_one": "{{count}} etiqueta",
     "count_other": "{{count}} etiquetas",
     "count-match_one": "coincide con tus filtros en esta vista",
