@@ -94,7 +94,7 @@
   "rank-floored_other": "{{count}} quartiers sous le seuil d'exploration",
   "rank-empty": "Aucun quartier n'a encore assez de données.",
   "chart-whats-here": "Ce qu'il y a ici",
-  "chart-whats-here-help": "Les groupes derrière les scores affichés, par type d'étiquette et par évaluation : sur les rues et aux carrefours du quartier ou de la rue sélectionnés, sinon de toute la ville, restreints à la plage choisie. Cliquez sur un type pour masquer ou afficher ses points sur la carte.",
+  "chart-whats-here-help": "Les groupes derrière les scores affichés, par type d'étiquette et par évaluation : sur les rues et aux carrefours du quartier ou de la rue sélectionnés, sinon de toute la ville, restreints à la plage choisie.",
   "whats-here-row": "{{count}} groupes {{type}} : {{parts}}",
   "whats-here-row-unrated": "{{count}} groupes {{type}}",
   "whats-here-row-none": "{{type}} : aucun ici",

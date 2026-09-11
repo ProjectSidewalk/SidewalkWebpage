@@ -94,7 +94,7 @@
   "rank-floored_other": "{{count}} neighborhoods below the completion floor",
   "rank-empty": "No neighborhood has enough data yet.",
   "chart-whats-here": "What's here",
-  "chart-whats-here-help": "The clusters behind the scores in view, by label type and rating — on the streets and at the crossings of the selected neighborhood or street, or the whole city, narrowed by a picked range. Click a type to hide or show its dots on the map.",
+  "chart-whats-here-help": "The clusters behind the scores in view, by label type and rating — on the streets and at the crossings of the selected neighborhood or street, or the whole city, narrowed by a picked range.",
   "whats-here-row": "{{count}} {{type}} clusters: {{parts}}",
   "whats-here-row-unrated": "{{count}} {{type}} clusters",
   "whats-here-row-none": "{{type}}: none here",

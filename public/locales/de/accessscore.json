@@ -94,7 +94,7 @@
   "rank-floored_other": "{{count}} Viertel unter der Mindesterkundung",
   "rank-empty": "Noch kein Viertel hat genügend Daten.",
   "chart-whats-here": "Was es hier gibt",
-  "chart-whats-here-help": "Die Cluster hinter den angezeigten Bewertungen, nach Label-Typ und Einstufung – auf den Straßen und an den Kreuzungen des ausgewählten Viertels oder der ausgewählten Straße, sonst der ganzen Stadt, eingegrenzt durch den gewählten Bereich. Klicken Sie auf einen Typ, um seine Punkte auf der Karte aus- oder einzublenden.",
+  "chart-whats-here-help": "Die Cluster hinter den angezeigten Bewertungen, nach Label-Typ und Einstufung – auf den Straßen und an den Kreuzungen des ausgewählten Viertels oder der ausgewählten Straße, sonst der ganzen Stadt, eingegrenzt durch den gewählten Bereich.",
   "whats-here-row": "{{count}} {{type}}-Cluster: {{parts}}",
   "whats-here-row-unrated": "{{count}} {{type}}-Cluster",
   "whats-here-row-none": "{{type}}: hier keine",

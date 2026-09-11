@@ -94,7 +94,7 @@
   "rank-floored_other": "{{count}} buurten onder de minimale verkenning",
   "rank-empty": "Nog geen buurt heeft genoeg gegevens.",
   "chart-whats-here": "Wat hier is",
-  "chart-whats-here-help": "De clusters achter de getoonde scores, per labeltype en beoordeling: op de straten en bij de kruisingen van de geselecteerde buurt of straat, anders van de hele stad, beperkt tot het gekozen bereik. Klik op een type om zijn punten op de kaart te verbergen of te tonen.",
+  "chart-whats-here-help": "De clusters achter de getoonde scores, per labeltype en beoordeling: op de straten en bij de kruisingen van de geselecteerde buurt of straat, anders van de hele stad, beperkt tot het gekozen bereik.",
   "whats-here-row": "{{count}} {{type}}-clusters: {{parts}}",
   "whats-here-row-unrated": "{{count}} {{type}}-clusters",
   "whats-here-row-none": "{{type}}: hier geen",

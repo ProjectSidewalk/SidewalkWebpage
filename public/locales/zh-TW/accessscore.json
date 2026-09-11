@@ -87,7 +87,7 @@
   "rank-floored_other": "{{count}} 個社區未達最低探索比例",
   "rank-empty": "尚無社區有足夠的資料。",
   "chart-whats-here": "這裡有什麼",
-  "chart-whats-here-help": "目前分數背後的標記群集，依標記類型與評級列出：包含所選街區或街道的街道與路口，未選取時則為全市，並以所選範圍縮小。點選類型可在地圖上隱藏或顯示其標點。",
+  "chart-whats-here-help": "目前分數背後的標記群集，依標記類型與評級列出：包含所選街區或街道的街道與路口，未選取時則為全市，並以所選範圍縮小。",
   "whats-here-row": "{{count}} 個{{type}}群集：{{parts}}",
   "whats-here-row-unrated": "{{count}} 個{{type}}群集",
   "whats-here-row-none": "{{type}}：這裡沒有",

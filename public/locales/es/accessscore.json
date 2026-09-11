@@ -94,7 +94,7 @@
   "rank-floored_other": "{{count}} barrios por debajo del mínimo de exploración",
   "rank-empty": "Ningún barrio tiene datos suficientes todavía.",
   "chart-whats-here": "Qué hay aquí",
-  "chart-whats-here-help": "Los grupos detrás de las puntuaciones a la vista, por tipo de etiqueta y valoración: en las calles y los cruces del barrio o la calle seleccionados, o de toda la ciudad, acotados por el rango elegido. Haga clic en un tipo para ocultar o mostrar sus puntos en el mapa.",
+  "chart-whats-here-help": "Los grupos detrás de las puntuaciones a la vista, por tipo de etiqueta y valoración: en las calles y los cruces del barrio o la calle seleccionados, o de toda la ciudad, acotados por el rango elegido.",
   "whats-here-row": "{{count}} grupos de {{type}}: {{parts}}",
   "whats-here-row-unrated": "{{count}} grupos de {{type}}",
   "whats-here-row-none": "{{type}}: ninguno aquí",
