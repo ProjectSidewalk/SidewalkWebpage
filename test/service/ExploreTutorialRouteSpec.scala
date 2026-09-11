@@ -1,6 +1,7 @@
 package service
 
-import models.mission.{Mission, MissionTableDef, MissionType}
+import formats.json.ExploreFormats.AuditMissionProgress
+import models.mission.{MissionTableDef, MissionType}
 import models.audit.AuditTaskTableDef
 import models.region.RegionTableDef
 import models.route.{
@@ -13,7 +14,7 @@ import models.route.{
   UserRouteTableDef
 }
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTableDef}
-import models.user.{SidewalkUserWithRole, UserCurrentRegionTableDef}
+import models.user.{SidewalkUserWithRole, UserAccountStateTable, UserAccountStateTableDef, UserCurrentRegionTableDef}
 import models.utils.{ConfigTableDef, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
@@ -44,6 +45,8 @@ import scala.concurrent.duration._
  * assertions can't pass vacuously. All seeded route/user_route/mission rows are deleted in afterAll — mandatory,
  * not just tidy: the dev DB is shared. Requires a Postgres+PostGIS DB with at least one street/region and a
  * configured tutorial street (as in dev/CI); cancels gracefully otherwise.
+ *
+ * Also covers #3720: the tutorial is shown once per account rather than once per city.
  */
 // BeforeAndAfterAll must be mixed in BEFORE GuiceOneAppPerSuite: linearization then runs afterAll inside the running
 // app, rather than after the app (and its DB pool) has already been stopped.
@@ -52,9 +55,11 @@ class ExploreTutorialRouteSpec extends PlaySpec with org.scalatest.BeforeAndAfte
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  private val exploreService  = app.injector.instanceOf[ExploreService]
-  private val authService     = app.injector.instanceOf[AuthenticationService]
-  private val streetEdgeTable = app.injector.instanceOf[StreetEdgeTable]
+  private val exploreService        = app.injector.instanceOf[ExploreService]
+  private val missionService        = app.injector.instanceOf[MissionService]
+  private val authService           = app.injector.instanceOf[AuthenticationService]
+  private val streetEdgeTable       = app.injector.instanceOf[StreetEdgeTable]
+  private val userAccountStateTable = app.injector.instanceOf[UserAccountStateTable]
   // Keep the DatabaseConfig as a stable val and call .db.run inline; binding .db to its own val would infer a
   // path-dependent existential type that needs -language:existentials.
   private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
@@ -128,13 +133,9 @@ class ExploreTutorialRouteSpec extends PlaySpec with org.scalatest.BeforeAndAfte
     routeId
   }
 
-  /** Records tutorial completion the way the schema does: a completed auditOnboarding mission. */
+  /** Records the tutorial as done on the account, with no tutorial mission in this city, as if done in another. */
   private def markOnboardingComplete(userId: String): Unit = {
-    val now = OffsetDateTime.now
-    val _   = run(
-      missions += Mission(0, MissionType.AuditOnboarding, userId, now, now, completed = true, 0d, paid = false, None,
-        None, None, None, None, None, skipped = false, None, None)
-    )
+    val _ = run(userAccountStateTable.markExploreTutorialCompleted(userId))
   }
 
   /**
@@ -170,11 +171,47 @@ class ExploreTutorialRouteSpec extends PlaySpec with org.scalatest.BeforeAndAfte
           userRoutes.filter(_.userId inSet userIds).delete,
           routeStreets.filter(_.routeId in seededRouteIds).delete,
           routes.filter(_.userId inSet userIds).delete,
-          TableQuery[UserCurrentRegionTableDef].filter(_.userId inSet userIds).delete
+          TableQuery[UserCurrentRegionTableDef].filter(_.userId inSet userIds).delete,
+          TableQuery[UserAccountStateTableDef].filter(_.userId inSet userIds).delete
         )
         .transactionally
     )
     super.afterAll()
+  }
+
+  "The Explore tutorial" should {
+    "be skipped for a user who already did it in another city (#3720)" in {
+      seedStreet match {
+        case None    => cancel("No street/region rows in the connected DB; nothing to exercise.")
+        case Some(_) =>
+          val user = newAnonUser()
+          markOnboardingComplete(user.userId)
+
+          pageData(user.userId).mission.missionType must not be MissionType.AuditOnboarding
+          val tutorialMissionsHere =
+            missions.filter(m => m.userId === user.userId && m.missionType === MissionType.AuditOnboarding)
+          run(tutorialMissionsHere.exists.result) mustBe false
+      }
+    }
+
+    "count as done in every city once the user skips it" in {
+      seedStreet match {
+        case None    => cancel("No street/region rows in the connected DB; nothing to exercise.")
+        case Some(_) =>
+          if (!tutorialStreetExists) cancel("No tutorial street configured in the connected DB.")
+          val user     = newAnonUser()
+          val tutorial = pageData(user.userId)
+          tutorial.mission.missionType mustBe MissionType.AuditOnboarding
+
+          val skip = AuditMissionProgress(tutorial.mission.missionId, None, tutorial.region.regionId, completed = true,
+            None, skipped = true)
+          val next = run(missionService.updateMissionTableExplore(user.userId, skip))
+
+          run(userAccountStateTable.hasCompletedExploreTutorial(user.userId)) mustBe true
+          // Also proves the account is updated before the next mission is picked, or this would be the tutorial again.
+          next.value.missionType must not be MissionType.AuditOnboarding
+      }
+    }
   }
 
   "getDataForExplorePage" should {

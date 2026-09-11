@@ -80,7 +80,7 @@ city.name.la-ca = Los Ángeles
 city.name.knox-oh = Condado de Knox
 city.name.niagara-falls-ny = Cataratas del Niágara
 city.name.fort-wayne-in = Fuerte Wayne
-city.name.bayonne = Bayona
+city.name.bayonne-fr = Bayona
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania

@@ -115,16 +115,6 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   }
 
   /**
-   * Check if the user has completed onboarding.
-   */
-  def hasCompletedAuditOnboarding(userId: String): DBIO[Boolean] = {
-    completedMissionsQuery(userId, includeOnboarding = true, includeSkipped = true)
-      .filter(_.missionType === MissionType.AuditOnboarding)
-      .exists
-      .result
-  }
-
-  /**
    * Checks if the specified mission is an onboarding mission.
    */
   def isOnboardingMission(missionId: Int): DBIO[Boolean] = {

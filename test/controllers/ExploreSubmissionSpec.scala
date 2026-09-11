@@ -295,7 +295,8 @@ class ExploreSubmissionSpec
         sqlu"""DELETE FROM audit_task_user_route
                WHERE audit_task_id IN (SELECT audit_task_id FROM audit_task WHERE user_id = $uId)""",
         sqlu"DELETE FROM audit_task WHERE user_id = $uId",
-        sqlu"DELETE FROM mission WHERE user_id = $uId"
+        sqlu"DELETE FROM mission WHERE user_id = $uId",
+        sqlu"DELETE FROM sidewalk_login.user_account_state WHERE user_id = $uId"
       )
     )
   }

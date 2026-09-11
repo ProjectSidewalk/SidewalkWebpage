@@ -228,7 +228,7 @@ class UserController @Inject() (
    * Powers the one-click opt-in on `/welcome` and the toggle on `/serviceHoursInstructions` (both plain form POSTs so
    * they work without JS). Anonymous users can't opt in — they're sent to sign-up instead.
    *
-   * @param enabled Whether to enable (true) or disable (false) `user_role.community_service`.
+   * @param enabled Whether to enable (true) or disable (false) `user_settings.community_service`.
    * @param next    Same-origin path to return to; defaults to (and is constrained to) `/serviceHoursInstructions`.
    */
   def setServiceHours(enabled: Boolean, next: Option[String]) =
@@ -236,7 +236,7 @@ class UserController @Inject() (
       val target = safeLocalPath(next.getOrElse("/serviceHoursInstructions"), "/serviceHoursInstructions")
       if (request.identity.role == Role.Anonymous) Future.successful(Redirect(routes.UserController.signUp()))
       else
-        authenticationService.setCommunityServiceStatus(request.identity.userId, enabled).map { _ =>
+        userService.setCommunityService(request.identity.userId, enabled).map { _ =>
           cc.loggingService.insert(request.identity.userId, request.ipAddress, s"ServiceHours_Set=$enabled")
           Redirect(target)
         }
@@ -478,7 +478,7 @@ class UserController @Inject() (
                 val newUserId: String = oldUserId.getOrElse(UUID.randomUUID().toString)
                 val newUser           =
                   SidewalkUserWithRole(newUserId, data.username, email, Role.Registered, communityService = false,
-                    false)
+                    false, measurementSystem = None)
                 val pwInfo = passwordHasher.hash(data.password)
 
                 for {

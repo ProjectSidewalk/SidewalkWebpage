@@ -236,11 +236,13 @@
         "validations": [
           {
             "user_id": "056df9f9-a7de-46f1-ae52-02c069f5829f",
-            "validation": "1"
+            "validation": "Agree",
+            "validator_type": "Human"
           },
           {
             "user_id": "de691775-ac79-45f9-b265-e867702adc1d",
-            "validation": "1"
+            "validation": "Agree",
+            "validator_type": "Human"
           }
         ],
         "audit_task_id": 6,
@@ -292,15 +294,18 @@
         "validations": [
           {
             "user_id": "2e602097-9e49-4217-ba24-816b2093e491",
-            "validation": "1"
+            "validation": "Agree",
+            "validator_type": "Human"
           },
           {
             "user_id": "8af92eb8-fb84-4aa6-9539-abc95216dcd7",
-            "validation": "1"
+            "validation": "Agree",
+            "validator_type": "AI"
           },
           {
             "user_id": "be481045-4448-42ae-bbac-3455ce914202",
-            "validation": "2"
+            "validation": "Disagree",
+            "validator_type": "Human"
           }
         ],
         "audit_task_id": 6,
@@ -428,22 +433,22 @@
           <tr>
             <td><code>properties.agree_count</code></td>
             <td><code>integer</code></td>
-            <td>Number of users and/or AI who agreed with (confirmed) this label during validation tasks. To separate human vs. AI validations, use the <a href="@routes.ApiDocsController.validations">validations endpoint</a> (its <code>validator_type</code> field).</td>
+            <td>Number of users and/or AI who agreed with (confirmed) this label during validation tasks. For a human vs. AI split, see <code>properties.validations</code>.</td>
           </tr>
           <tr>
             <td><code>properties.disagree_count</code></td>
             <td><code>integer</code></td>
-            <td>Number of users and/or AI who disagreed with (disputed) this label during validation tasks. To separate human vs. AI validations, use the <a href="@routes.ApiDocsController.validations">validations endpoint</a> (its <code>validator_type</code> field).</td>
+            <td>Number of users and/or AI who disagreed with (disputed) this label during validation tasks. For a human vs. AI split, see <code>properties.validations</code>.</td>
           </tr>
           <tr>
             <td><code>properties.unsure_count</code></td>
             <td><code>integer</code></td>
-            <td>Number of users and/or AI who marked "unsure" for this label during validation tasks. To separate human vs. AI validations, use the <a href="@routes.ApiDocsController.validations">validations endpoint</a> (its <code>validator_type</code> field).</td>
+            <td>Number of users and/or AI who marked "unsure" for this label during validation tasks. For a human vs. AI split, see <code>properties.validations</code>.</td>
           </tr>
           <tr>
             <td><code>properties.validations</code></td>
             <td><code>array</code></td>
-            <td>Array of individual validation objects. Each object contains: <code>user_id</code> (anonymized identifier of the validating user) and <code>validation</code> (the validation value: "1" for agree, "2" for disagree, "3" for unsure).</td>
+            <td>Array of individual validation objects. Each object contains: <code>user_id</code> (anonymized identifier of the validating user), <code>validation</code> (<code>Agree</code>, <code>Disagree</code>, or <code>Unsure</code>), and <code>validator_type</code> (<code>Human</code> or <code>AI</code>). Matches the three counts above.</td>
           </tr>
 
             <!-- Task Information -->
@@ -587,7 +592,7 @@
 116,...,...,gsv,Obstacle,4,"[""construction""]","Temporary fence",...,Teaneck,right,-3.1,true,...,40.7151,-74.0051
 ...</code></pre>
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
-    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj). The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326). </p>
+    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated. The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326). </p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
     <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage file (<code>.gpkg</code>). This is an open standard format based on SQLite that contains both geometry and attributes in a single file, generally without the field name limitations of Shapefiles. CRS is typically WGS84 (EPSG:4326). </p>

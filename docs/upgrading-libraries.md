@@ -139,7 +139,9 @@ These are the JVM libraries we talk to the database *through*; the database serv
 - **gt-shapefile / gt-epsg-hsql / gt-geopkg (GeoTools): 35.1** — Shapefile/GeoPackage generation. Served by the
   OSGeo resolver in `build.sbt`, not Maven Central. Needs Java 17. We use a tiny corner of the API, so bumps are
   usually mechanical; check both exports afterward (#4393). Brings Eclipse ImageN, sqlite-jdbc, and Jackson 3's
-  `jackson-core` along (its own package, so no clash with Play's Jackson 2).
+  `jackson-core` along (its own package, so no clash with Play's Jackson 2). The GeoPackage writer relies on gt-geopkg
+  handing back a `JDBCDataStore` and on it leaving the `gpkg_contents` bounds to us (#5275), so after a bump confirm
+  `ogrinfo -so <file>.gpkg <layer>` shows a real Extent, not (0, 0) - (0, 0).
   [Releases](https://mvnrepository.com/artifact/org.geotools/gt-shapefile?repo=geotools-releases) ·
   [Changelog](https://github.com/geotools/geotools/releases) ·
   [Upgrade notes](https://docs.geotools.org/latest/userguide/welcome/upgrade.html)

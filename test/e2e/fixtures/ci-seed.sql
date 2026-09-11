@@ -432,8 +432,28 @@ VALUES (900001, 900004, 900002, '00000000-5115-4000-8000-000000000002', '127.0.0
         'Agreed, the ramp is there and usable.')
 ON CONFLICT (validation_task_comment_id) DO NOTHING;
 
--- What a real Agree leaves behind on the label itself.
-UPDATE sidewalk_teaneck.label SET agree_count = 1, correct = TRUE
+-- A second Agree from the SidewalkAI account (SidewalkUserTable.aiUserId, which the evolutions create), so a label
+-- has both a human and an AI vote. Shaped like prod's AI votes: their own mission, no region.
+INSERT INTO sidewalk_teaneck.user_stat (user_stat_id, user_id, meters_audited, high_quality, excluded)
+SELECT 900005, '51b0b927-3c8a-45b2-93de-bd878d1e5cf4', 0, TRUE, FALSE
+WHERE NOT EXISTS (SELECT 1 FROM sidewalk_teaneck.user_stat WHERE user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4');
+
+INSERT INTO sidewalk_teaneck.mission (mission_id, mission_type, user_id, mission_start, mission_end, completed,
+                                      pay, paid, region_id, labels_validated, labels_progress, label_type, skipped)
+VALUES (900005, 'aiValidation', '51b0b927-3c8a-45b2-93de-bd878d1e5cf4',
+        now() - INTERVAL '4 days', now() - INTERVAL '4 days',
+        FALSE, 0.0, FALSE, NULL, 1, 1, 'CurbRamp', FALSE)
+ON CONFLICT (mission_id) DO NOTHING;
+
+INSERT INTO sidewalk_teaneck.label_validation (label_validation_id, label_id, validation_result, user_id, mission_id,
+                                               canvas_x, canvas_y, heading, pitch, zoom, canvas_height, canvas_width,
+                                               start_timestamp, end_timestamp, source, viewer_type)
+VALUES (900002, 900002, 'Agree', '51b0b927-3c8a-45b2-93de-bd878d1e5cf4', 900005, 300, 200, 120.0, -10.0, 1.0,
+        480, 720, now() - INTERVAL '4 days', now() - INTERVAL '4 days', 'SidewalkAI', 'Default')
+ON CONFLICT (label_validation_id) DO NOTHING;
+
+-- What the two Agrees leave behind on the label itself.
+UPDATE sidewalk_teaneck.label SET agree_count = 2, correct = TRUE
 WHERE label_id = 900002 AND agree_count = 0;
 
 -- A route over the region's streets. distance_meters is computed the way RouteTable.updateStats does, because

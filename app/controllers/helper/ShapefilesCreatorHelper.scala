@@ -15,23 +15,29 @@ import models.api.{
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
-import org.geotools.api.data.{DataStore, DataStoreFinder, SimpleFeatureStore}
+import org.geotools.api.data.{DataStore, DataStoreFinder, SimpleFeatureStore, Transaction}
 import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.geotools.data.shapefile.ShapefileDataStoreFactory
+import org.geotools.data.simple.SimpleFeatureCollection
 import org.geotools.data.{DataUtilities, DefaultTransaction}
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.geotools.geopkg.GeoPkgDataStoreFactory
-import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
+import org.geotools.jdbc.JDBCDataStore
+import org.locationtech.jts.geom.{Coordinate, Envelope, GeometryFactory}
 import play.api.Logger
 import play.api.libs.json.Json
 
 import java.io.{BufferedInputStream, File}
+import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
+import java.sql.Types
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import javax.inject.{Inject, Singleton}
+import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, SeqHasAsJava}
+import scala.util.{Failure, Success, Try, Using}
 
 /**
  * This class handles the creation of Shapefile archives to be used by the ApiController.
@@ -43,21 +49,148 @@ import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: Materializer) {
   private val logger = Logger(this.getClass)
 
+  private val shapefilePartExtensions = Seq(".shp", ".dbf", ".shx", ".prj", ".sbn", ".sbx", ".cpg", ".fix")
+
   /**
    * Opens the GeoPackage at the given path as a data store, which the caller disposes. `DataStoreFinder` returns null
    * rather than throwing when no factory accepts the params (e.g. gt-geopkg's service file lost in packaging).
+   *
+   * @return The store as the SQL-backed kind gt-geopkg builds, so [[writeGeoPackageExtent]] can borrow its connection.
    */
-  private def openGeoPackage(geopackagePath: Path): DataStore = {
+  private def openGeoPackage(geopackagePath: Path): JDBCDataStore = {
     val params = Map(
       GeoPkgDataStoreFactory.DBTYPE.key   -> "geopkg",
       GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
     ).asJava
-    Option(DataStoreFinder.getDataStore(params)).getOrElse {
-      throw new IllegalStateException(
-        "No GeoTools DataStore factory accepted the GeoPackage params (is gt-geopkg on " +
-          "the classpath with its META-INF/services entry?)"
-      )
+    DataStoreFinder.getDataStore(params) match {
+      case store: JDBCDataStore => store
+      case null                 =>
+        throw new IllegalStateException(
+          "No GeoTools DataStore factory accepted the GeoPackage params (is gt-geopkg on " +
+            "the classpath with its META-INF/services entry?)"
+        )
+      case other =>
+        other.dispose()
+        throw new IllegalStateException(
+          s"gt-geopkg returned a ${other.getClass.getName}, not a JDBCDataStore, so layer extents can't be saved"
+        )
     }
+  }
+
+  /**
+   * Creates a GeoPackage, lets `writeLayers` fill it, and closes it. A failed export deletes its half-written file,
+   * since the caller only cleans up a file it gets back.
+   *
+   * @param outputFile The output filename (with no extension).
+   * @param writeLayers Writes every layer into the open GeoPackage, each through [[writeGeoPackageLayer]].
+   * @return Path to the finished GeoPackage, or None if any part of it failed.
+   */
+  private def createGeoPackage(outputFile: String)(writeLayers: JDBCDataStore => Future[Unit]): Future[Option[Path]] = {
+    val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
+    Future(openGeoPackage(geopackagePath))
+      .flatMap(dataStore => Future.delegate(writeLayers(dataStore)).andThen(_ => dataStore.dispose()))
+      .map(_ => Some(geopackagePath))
+      .recover { case e: Exception =>
+        logger.error(s"Error creating GeoPackage: ${e.getMessage}", e)
+        val _ = Try(Files.deleteIfExists(geopackagePath))
+        None
+      }
+  }
+
+  /**
+   * Writes one layer of an open GeoPackage a batch at a time, then saves the layer's extent. Every GeoPackage layer is
+   * written through here, so none can be left claiming an extent of (0, 0, 0, 0) (#5275).
+   *
+   * @param dataStore The open GeoPackage.
+   * @param featureType The layer's schema; its type name becomes the table name.
+   * @param batches The layer's features, each batch saved in its own transaction.
+   * @return Completes once every batch is saved; fails if any batch fails.
+   */
+  private def writeGeoPackageLayer(
+      dataStore: JDBCDataStore,
+      featureType: SimpleFeatureType,
+      batches: Source[java.util.List[SimpleFeature], _]
+  ): Future[Unit] = {
+    dataStore.createSchema(featureType)
+    val tableName    = featureType.getTypeName
+    val featureStore = dataStore.getFeatureSource(tableName).asInstanceOf[SimpleFeatureStore]
+    val extent       = new Envelope()
+    batches
+      .runForeach { features =>
+        val batch = DataUtilities.collection(features)
+        writeFeatureBatch(featureStore, batch)
+        extent.expandToInclude(batch.getBounds)
+      }
+      .map(_ => writeGeoPackageExtent(dataStore, tableName, extent))
+  }
+
+  /**
+   * Saves a layer's real bounding box in `gpkg_contents`, which QGIS and GDAL trust as the layer's extent. GeoTools
+   * writes that row before any feature exists and never updates it, leaving (0, 0, 0, 0) (#5275). An empty layer gets
+   * NULLs, which the GeoPackage spec reads as "extent unknown". A failure is only logged: every feature is already
+   * saved, so the file is still worth serving.
+   *
+   * @param dataStore The open GeoPackage; call before disposing it.
+   * @param extent The bounding box of every feature written to the layer.
+   */
+  private def writeGeoPackageExtent(dataStore: JDBCDataStore, tableName: String, extent: Envelope): Unit = {
+    val bounds: Seq[Option[Double]] =
+      if (extent.isNull) Seq.fill(4)(None)
+      else Seq(extent.getMinX, extent.getMinY, extent.getMaxX, extent.getMaxY).map(Some(_))
+    val rowsUpdated: Try[Int] = Using.Manager { use =>
+      val cx   = use(dataStore.getConnection(Transaction.AUTO_COMMIT))
+      val stmt = use(
+        cx.prepareStatement(
+          "UPDATE gpkg_contents SET min_x = ?, min_y = ?, max_x = ?, max_y = ?, " +
+            "last_change = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE table_name = ?"
+        )
+      )
+      bounds.zipWithIndex.foreach {
+        case (Some(bound), i) => stmt.setDouble(i + 1, bound)
+        case (None, i)        => stmt.setNull(i + 1, Types.DOUBLE)
+      }
+      stmt.setString(5, tableName)
+      stmt.executeUpdate()
+    }
+    rowsUpdated match {
+      case Success(1) => ()
+      // No matching row means GeoTools has started naming the row differently, and exports are back to (0, 0, 0, 0).
+      case Success(n) => logger.warn(s"GeoPackage extent not saved: $n gpkg_contents rows match $tableName")
+      case Failure(e) => logger.warn(s"GeoPackage extent not saved for $tableName: ${e.getMessage}", e)
+    }
+  }
+
+  /**
+   * Creates an empty UTF-8 shapefile (#5276). GeoTools never writes the `.cpg` itself, and `createSchema` deletes one.
+   *
+   * @param shapefilePath Where the `.shp` goes.
+   * @param featureType The shapefile's schema.
+   * @return The new store, which the caller disposes.
+   */
+  private def newShapefileStore(shapefilePath: Path, featureType: SimpleFeatureType): DataStore = {
+    val store = new ShapefileDataStoreFactory().createNewDataStore(
+      Map[String, AnyRef](
+        ShapefileDataStoreFactory.URLP.key                 -> shapefilePath.toUri.toURL,
+        ShapefileDataStoreFactory.CREATE_SPATIAL_INDEX.key -> java.lang.Boolean.FALSE, // So we don't run out of memory.
+        ShapefileDataStoreFactory.DBFCHARSET.key           -> StandardCharsets.UTF_8
+      ).asJava
+    )
+    try {
+      store.createSchema(featureType)
+      val cpgPath = shapefilePath.resolveSibling(shapefilePath.getFileName.toString.stripSuffix(".shp") + ".cpg")
+      Files.writeString(cpgPath, "UTF-8")
+      store
+    } catch {
+      case e: Exception =>
+        store.dispose()
+        throw e
+    }
+  }
+
+  /** Deletes every part of a failed shapefile, since callers only clean up files they get back. */
+  private def deleteShapefileParts(shapefilePath: Path): Unit = {
+    val basename = shapefilePath.getFileName.toString.stripSuffix(".shp")
+    shapefilePartExtensions.foreach(ext => Try(Files.deleteIfExists(shapefilePath.resolveSibling(basename + ext))))
   }
 
   /** Rejects attribute names over the DBF format's 10-char limit, which GeoTools would otherwise truncate silently. */
@@ -70,27 +203,22 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
   }
 
   /**
-   * Writes a batch of features to a feature store inside a transaction.
+   * Saves a batch of features in one transaction. A failure rolls the batch back and is rethrown, so the export fails
+   * instead of serving a file with rows missing.
    *
    * @param featureStore The feature store to write to.
-   * @param features The list of features to write.
-   * @param rethrow If true, rethrows exceptions after rollback. If false, logs and swallows them.
+   * @param features The batch to save.
    */
-  private def writeFeatureBatch(
-      featureStore: SimpleFeatureStore,
-      features: java.util.ArrayList[SimpleFeature],
-      rethrow: Boolean = false
-  ): Unit = {
+  private def writeFeatureBatch(featureStore: SimpleFeatureStore, features: SimpleFeatureCollection): Unit = {
     val transaction = new DefaultTransaction("create")
     try {
       featureStore.setTransaction(transaction)
-      featureStore.addFeatures(DataUtilities.collection(features))
+      featureStore.addFeatures(features)
       transaction.commit()
     } catch {
       case e: Exception =>
         transaction.rollback()
-        if (rethrow) throw e
-        else logger.error(s"Error writing features: ${e.getMessage}", e)
+        throw e
     } finally {
       transaction.close()
     }
@@ -112,53 +240,17 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       batchSize: Int,
       featureType: SimpleFeatureType,
       buildFeature: (A, SimpleFeatureBuilder) => SimpleFeature
-  ): Future[Option[Path]] = {
-    val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
-    var dataStore: DataStore = null
-
-    try {
-      // Set up everything we need to create and store features before saving them.
-      dataStore = openGeoPackage(geopackagePath)
-      dataStore.createSchema(featureType)
-
-      // Get feature store for writing.
-      val typeName       = dataStore.getTypeNames()(0)
-      val featureSource  = dataStore.getFeatureSource(typeName)
-      val featureStore   = featureSource.asInstanceOf[SimpleFeatureStore]
+  ): Future[Option[Path]] =
+    createGeoPackage(outputFile) { dataStore =>
       val featureBuilder = new SimpleFeatureBuilder(featureType)
-      val features       = new java.util.ArrayList[SimpleFeature](batchSize)
-
-      // Process data in batches.
-      source
-        .grouped(batchSize)
-        .runForeach { batch =>
-          // Create a feature from each data point in this batch and add it to the ArrayList.
-          features.clear()
-          batch.foreach { x =>
-            featureBuilder.reset()
-            val feature: SimpleFeature = buildFeature(x, featureBuilder)
-            features.add(feature)
-          }
-
-          writeFeatureBatch(featureStore, features)
-        }
-        .map { _ =>
-          // Return the file path for the GeoPackage.
-          dataStore.dispose()
-          Some(geopackagePath)
-        }
-        .recover { case e: Exception =>
-          dataStore.dispose()
-          logger.error(s"Error creating GeoPackage: ${e.getMessage}", e)
-          None
-        }
-    } catch {
-      case e: Exception =>
-        Option(dataStore).foreach(_.dispose())
-        logger.error(s"Error setting up GeoPackage: ${e.getMessage}", e)
-        Future.successful(None)
+      val batches        = source.grouped(batchSize).map { batch =>
+        batch.map { x =>
+          featureBuilder.reset()
+          buildFeature(x, featureBuilder)
+        }.asJava
+      }
+      writeGeoPackageLayer(dataStore, featureType, batches)
     }
-  }
 
   /**
    * Creates a shapefile from the given source, saving it at outputFile.
@@ -184,15 +276,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       requireDbfSafeNames(featureType)
 
       // Set up everything we need to create and store features.
-      val dataStoreFactory = new ShapefileDataStoreFactory()
-      newDataStore = dataStoreFactory.createNewDataStore(
-        Map(
-          "url"                  -> shapefilePath.toUri.toURL,
-          "create spatial index" -> java.lang.Boolean.FALSE // Disable so we don't run out of memory.
-        ).asJava
-      )
-
-      newDataStore.createSchema(featureType)
+      newDataStore = newShapefileStore(shapefilePath, featureType)
 
       val typeName: String                     = newDataStore.getTypeNames()(0)
       val featureSource                        = newDataStore.getFeatureSource(typeName)
@@ -214,7 +298,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
           }
 
           // Add this batch of features to the shapefile in a transaction.
-          writeFeatureBatch(featureStore, features, rethrow = true)
+          writeFeatureBatch(featureStore, DataUtilities.collection(features))
         }
         .map { _ =>
           // Output the file path for the shapefile.
@@ -223,12 +307,14 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         }
         .recover { case e: Exception =>
           newDataStore.dispose()
+          deleteShapefileParts(shapefilePath)
           logger.error(s"Error creating shapefile: ${e.getMessage}", e)
           None
         }
     } catch {
       case e: Exception =>
         Option(newDataStore).foreach(_.dispose())
+        deleteShapefileParts(shapefilePath)
         logger.error(s"Error setting up shapefile: ${e.getMessage}", e)
         Future.successful(None)
     }
@@ -251,9 +337,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         val directory = shapefile.getParentFile
         val basename  = shapefile.getName.substring(0, shapefile.getName.length - 4)
 
-        // Find all shapefile component files.
-        val extensions = Seq(".shp", ".dbf", ".shx", ".prj", ".sbn", ".sbx", ".cpg", ".fix")
-        extensions.foreach { ext =>
+        shapefilePartExtensions.foreach { ext =>
           val file = new File(directory, basename + ext)
           if (file.exists()) {
             zipOut.putNextEntry(new ZipEntry(file.getName))
@@ -355,10 +439,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.disagreeCount)
       featureBuilder.add(label.unsureCount)
 
-      // Format validations as a JSON-like string.
-      val validationsStr =
-        label.validations.map(v => s"""{"user_id":"${v.userId}","validation":"${v.validationType}"}""").mkString(",")
-      featureBuilder.add(s"[$validationsStr]")
+      featureBuilder.add(Json.stringify(label.validationsJson))
 
       featureBuilder.add(label.auditTaskId.orNull)
       featureBuilder.add(label.missionId.orNull)
@@ -501,11 +582,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       requireDbfSafeNames(labelFeatureType)
 
       // Set up clusters shapefile.
-      val clusterDataStoreFactory = new ShapefileDataStoreFactory()
-      clusterDataStore = clusterDataStoreFactory.createNewDataStore(
-        Map("url" -> clusterShapefilePath.toUri.toURL, "create spatial index" -> java.lang.Boolean.FALSE).asJava
-      )
-      clusterDataStore.createSchema(clusterShapefileFeatureType)
+      clusterDataStore = newShapefileStore(clusterShapefilePath, clusterShapefileFeatureType)
       val clusterStore =
         clusterDataStore.getFeatureSource(clusterDataStore.getTypeNames()(0)).asInstanceOf[SimpleFeatureStore]
       val clusterBuilder  = new SimpleFeatureBuilder(clusterShapefileFeatureType)
@@ -529,19 +606,15 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
               labelsList.foreach(label => allRawLabels.add((cluster.labelClusterId, label)))
             }
           }
-          writeFeatureBatch(clusterStore, clusterFeatures, rethrow = true)
+          writeFeatureBatch(clusterStore, DataUtilities.collection(clusterFeatures))
         }
         .map { _ =>
           clusterDataStore.dispose()
 
           // Write the raw labels shapefile if any labels were collected.
           if (hasRawLabels && !allRawLabels.isEmpty) {
-            val labelDataStoreFactory = new ShapefileDataStoreFactory()
-            val labelDataStore        = labelDataStoreFactory.createNewDataStore(
-              Map("url" -> labelShapefilePath.toUri.toURL, "create spatial index" -> java.lang.Boolean.FALSE).asJava
-            )
-            labelDataStore.createSchema(labelFeatureType)
-            val labelStore =
+            val labelDataStore = newShapefileStore(labelShapefilePath, labelFeatureType)
+            val labelStore     =
               labelDataStore.getFeatureSource(labelDataStore.getTypeNames()(0)).asInstanceOf[SimpleFeatureStore]
             val labelBuilder  = new SimpleFeatureBuilder(labelFeatureType)
             val labelFeatures = new java.util.ArrayList[SimpleFeature](batchSize)
@@ -567,7 +640,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
                   labelFeatures.add(labelBuilder.buildFeature(null))
                   count += 1
                 }
-                writeFeatureBatch(labelStore, labelFeatures, rethrow = true)
+                writeFeatureBatch(labelStore, DataUtilities.collection(labelFeatures))
               }
             } finally labelDataStore.dispose()
             Some(Seq(clusterShapefilePath, labelShapefilePath))
@@ -577,12 +650,14 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         }
         .recover { case e: Exception =>
           clusterDataStore.dispose()
+          Seq(clusterShapefilePath, labelShapefilePath).foreach(deleteShapefileParts)
           logger.error(s"Error creating shapefile: ${e.getMessage}", e)
           None
         }
     } catch {
       case e: Exception =>
         Option(clusterDataStore).foreach(_.dispose())
+        Seq(clusterShapefilePath, labelShapefilePath).foreach(deleteShapefileParts)
         logger.error(s"Error setting up shapefile: ${e.getMessage}", e)
         Future.successful(None)
     }
@@ -637,108 +712,67 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "image_date:String"       // Image capture date
     )
 
-    val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
-    var dataStore: DataStore = null
+    val geometryFactory = JTSFactoryFinder.getGeometryFactory
 
-    try {
-      dataStore = openGeoPackage(geopackagePath)
-
-      // Create both schemas.
-      dataStore.createSchema(clusterFeatureType)
-
-      val clusterTypeName = dataStore.getTypeNames()(0)
-      val clusterStore    = dataStore.getFeatureSource(clusterTypeName).asInstanceOf[SimpleFeatureStore]
-      val clusterBuilder  = new SimpleFeatureBuilder(clusterFeatureType)
-      val clusterFeatures = new java.util.ArrayList[SimpleFeature](batchSize)
+    createGeoPackage(outputFile) { dataStore =>
+      val clusterBuilder = new SimpleFeatureBuilder(clusterFeatureType)
+      val labelBuilder   = new SimpleFeatureBuilder(labelFeatureType)
 
       // Collect raw labels to write as a second layer after the clusters.
-      val allRawLabels    = new java.util.ArrayList[(Int, RawLabelInClusterDataForApi)]()
-      val geometryFactory = JTSFactoryFinder.getGeometryFactory
-      var hasRawLabels    = false
+      val allRawLabels = mutable.ArrayBuffer.empty[(Int, RawLabelInClusterDataForApi)]
 
-      source
-        .grouped(batchSize)
-        .runForeach { batch =>
-          clusterFeatures.clear()
-          batch.foreach { cluster =>
-            clusterBuilder.reset()
-            clusterBuilder.add(geometryFactory.createPoint(new Coordinate(cluster.avgLongitude, cluster.avgLatitude)))
-            clusterBuilder.add(cluster.labelClusterId)
-            clusterBuilder.add(cluster.labelType)
-            clusterBuilder.add(cluster.streetEdgeId)
-            clusterBuilder.add(cluster.intersectionId.map(Integer.valueOf).orNull)
-            clusterBuilder.add(cluster.osmWayId.toString)
-            clusterBuilder.add(cluster.regionId)
-            clusterBuilder.add(cluster.regionName)
-            clusterBuilder.add(cluster.avgImageCaptureDate.orNull)
-            clusterBuilder.add(cluster.avgLabelDate.orNull)
-            clusterBuilder.add(cluster.medianSeverity.map(Integer.valueOf).orNull)
-            clusterBuilder.add(cluster.agreeCount)
-            clusterBuilder.add(cluster.disagreeCount)
-            clusterBuilder.add(cluster.unsureCount)
-            clusterBuilder.add(cluster.clusterSize)
-            clusterBuilder.add(Json.stringify(Json.toJson(cluster.labelIds)))
-            clusterBuilder.add(Json.stringify(Json.toJson(cluster.userIds)))
-            clusterBuilder.add(Json.stringify(Json.toJson(cluster.tagCounts)))
-            clusterFeatures.add(clusterBuilder.buildFeature(null))
+      def buildCluster(cluster: LabelClusterForApi): SimpleFeature = {
+        clusterBuilder.reset()
+        clusterBuilder.add(geometryFactory.createPoint(new Coordinate(cluster.avgLongitude, cluster.avgLatitude)))
+        clusterBuilder.add(cluster.labelClusterId)
+        clusterBuilder.add(cluster.labelType)
+        clusterBuilder.add(cluster.streetEdgeId)
+        clusterBuilder.add(cluster.intersectionId.map(Integer.valueOf).orNull)
+        clusterBuilder.add(cluster.osmWayId.toString)
+        clusterBuilder.add(cluster.regionId)
+        clusterBuilder.add(cluster.regionName)
+        clusterBuilder.add(cluster.avgImageCaptureDate.orNull)
+        clusterBuilder.add(cluster.avgLabelDate.orNull)
+        clusterBuilder.add(cluster.medianSeverity.map(Integer.valueOf).orNull)
+        clusterBuilder.add(cluster.agreeCount)
+        clusterBuilder.add(cluster.disagreeCount)
+        clusterBuilder.add(cluster.unsureCount)
+        clusterBuilder.add(cluster.clusterSize)
+        clusterBuilder.add(Json.stringify(Json.toJson(cluster.labelIds)))
+        clusterBuilder.add(Json.stringify(Json.toJson(cluster.userIds)))
+        clusterBuilder.add(Json.stringify(Json.toJson(cluster.tagCounts)))
+        clusterBuilder.buildFeature(null)
+      }
 
-            // Collect raw labels for the second layer.
-            cluster.labels.foreach { labelsList =>
-              hasRawLabels = true
-              labelsList.foreach(label => allRawLabels.add((cluster.labelClusterId, label)))
-            }
+      def buildRawLabel(clusterId: Int, label: RawLabelInClusterDataForApi): SimpleFeature = {
+        labelBuilder.reset()
+        labelBuilder.add(geometryFactory.createPoint(new Coordinate(label.longitude, label.latitude)))
+        labelBuilder.add(label.labelId)
+        labelBuilder.add(clusterId)
+        labelBuilder.add(label.userId)
+        labelBuilder.add(label.panoId)
+        labelBuilder.add(label.panoSource.map(_.toString).orNull)
+        labelBuilder.add(label.severity.map(Integer.valueOf).orNull)
+        labelBuilder.add(label.timeCreated.toString)
+        labelBuilder.add(label.correct.map(_.toString).orNull)
+        labelBuilder.add(label.imageCaptureDate.orNull)
+        labelBuilder.buildFeature(null)
+      }
+
+      val clusterBatches = source.grouped(batchSize).map { batch =>
+        batch.foreach(c => c.labels.foreach(_.foreach(label => allRawLabels += ((c.labelClusterId, label)))))
+        batch.map(buildCluster).asJava
+      }
+      writeGeoPackageLayer(dataStore, clusterFeatureType, clusterBatches).flatMap { _ =>
+        // The raw labels layer only exists when the raw labels were included.
+        if (allRawLabels.isEmpty) Future.unit
+        else {
+          val labelBatches = Source.fromIterator(() => allRawLabels.iterator).grouped(batchSize).map { batch =>
+            batch.map { case (clusterId, label) => buildRawLabel(clusterId, label) }.asJava
           }
-
-          writeFeatureBatch(clusterStore, clusterFeatures)
+          writeGeoPackageLayer(dataStore, labelFeatureType, labelBatches)
         }
-        .flatMap { _ =>
-          // Write the raw labels layer if the raw labels were included.
-          if (hasRawLabels && !allRawLabels.isEmpty) {
-            dataStore.createSchema(labelFeatureType)
-            val labelTypeName = "raw_labels"
-            val labelStore    = dataStore.getFeatureSource(labelTypeName).asInstanceOf[SimpleFeatureStore]
-            val labelBuilder  = new SimpleFeatureBuilder(labelFeatureType)
-            val labelFeatures = new java.util.ArrayList[SimpleFeature](batchSize)
-
-            // Write raw labels in batches.
-            val labelIter = allRawLabels.iterator()
-            while (labelIter.hasNext) {
-              labelFeatures.clear()
-              var count = 0
-              while (labelIter.hasNext && count < batchSize) {
-                val (clusterId, label) = labelIter.next()
-                labelBuilder.reset()
-                labelBuilder.add(geometryFactory.createPoint(new Coordinate(label.longitude, label.latitude)))
-                labelBuilder.add(label.labelId)
-                labelBuilder.add(clusterId)
-                labelBuilder.add(label.userId)
-                labelBuilder.add(label.panoId)
-                labelBuilder.add(label.panoSource.map(_.toString).orNull)
-                labelBuilder.add(label.severity.map(Integer.valueOf).orNull)
-                labelBuilder.add(label.timeCreated.toString)
-                labelBuilder.add(label.correct.map(_.toString).orNull)
-                labelBuilder.add(label.imageCaptureDate.orNull)
-                labelFeatures.add(labelBuilder.buildFeature(null))
-                count += 1
-              }
-
-              writeFeatureBatch(labelStore, labelFeatures)
-            }
-          }
-
-          dataStore.dispose()
-          Future.successful(Some(geopackagePath))
-        }
-        .recover { case e: Exception =>
-          dataStore.dispose()
-          logger.error(s"Error creating GeoPackage: ${e.getMessage}", e)
-          None
-        }
-    } catch {
-      case e: Exception =>
-        Option(dataStore).foreach(_.dispose())
-        logger.error(s"Error setting up GeoPackage: ${e.getMessage}", e)
-        Future.successful(None)
+      }
     }
   }
 
@@ -802,10 +836,6 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
     def buildFeature(label: LabelDataForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
-      // Format validations as a JSON-like string.
-      val validationsStr =
-        label.validations.map(v => s"""{"user_id":"${v.userId}","validation":"${v.validationType}"}""").mkString(",")
-
       // Add the geometry and all attributes.
       featureBuilder.add(geometryFactory.createPoint(new Coordinate(label.longitude, label.latitude)))
       featureBuilder.add(label.labelId)
@@ -828,7 +858,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.agreeCount)
       featureBuilder.add(label.disagreeCount)
       featureBuilder.add(label.unsureCount)
-      featureBuilder.add(s"[$validationsStr]")
+      featureBuilder.add(Json.stringify(label.validationsJson))
       featureBuilder.add(label.auditTaskId.map(Integer.valueOf).orNull)
       featureBuilder.add(label.missionId.map(Integer.valueOf).orNull)
       featureBuilder.add(label.imageCaptureDate.orNull)

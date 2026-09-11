@@ -12,20 +12,19 @@ case class UserRole(
     userRoleId: Int,
     userId: String,
     role: Role.Value,
-    communityService: Boolean,
     zurichInfra3dAccess: Boolean,
     winterthurInfra3dAccess: Boolean
 )
 
+// The table still has a community_service column until #5306 drops it. Nothing reads it: user_settings holds it now.
 class UserRoleTableDef(tag: Tag) extends Table[UserRole](tag, "user_role") {
   def userRoleId: Rep[Int]                  = column[Int]("user_role_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]                   = column[String]("user_id")
   def role: Rep[Role.Value]                 = column[Role.Value]("role")
-  def communityService: Rep[Boolean]        = column[Boolean]("community_service", O.Default(false))
   def zurichInfra3dAccess: Rep[Boolean]     = column[Boolean]("zurich_infra3d_access", O.Default(false))
   def winterthurInfra3dAccess: Rep[Boolean] = column[Boolean]("winterthur_infra3d_access", O.Default(false))
 
-  def * = (userRoleId, userId, role, communityService, zurichInfra3dAccess, winterthurInfra3dAccess) <>
+  def * = (userRoleId, userId, role, zurichInfra3dAccess, winterthurInfra3dAccess) <>
     ((UserRole.apply _).tupled, UserRole.unapply)
 
   def user = foreignKey("user_role_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
@@ -56,36 +55,21 @@ class UserRoleTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    * Adds a new role for a user in the database.
    * @param userId The ID of the user to whom the role is being added
    * @param newRole The role to be added to the user
-   * @param communityService Optional parameter to indicate if the user is doing community service, defaults to false
    * @return A DBIO action that returns the newly added UserRole
    */
-  def addRole(userId: String, newRole: Role.Value, communityService: Boolean = false): DBIO[UserRole] = {
+  def addRole(userId: String, newRole: Role.Value): DBIO[UserRole] = {
     (userRoles returning userRoles) +=
-      UserRole(0, userId, newRole, communityService, zurichInfra3dAccess = false, winterthurInfra3dAccess = false)
+      UserRole(0, userId, newRole, zurichInfra3dAccess = false, winterthurInfra3dAccess = false)
   }
 
   /**
    * Updates the role of a user in the database.
    * @param userId The ID of the user whose role is to be updated
    * @param newRole The new role to set for the user
-   * @param communityService Optional parameter to indicate if the user is doing community service, defaults to false
    * @return A DBIO action that returns the number of rows affected
    */
-  def updateRole(userId: String, newRole: Role.Value, communityService: Boolean = false): DBIO[Int] = {
-    userRoles
-      .filter(_.userId === userId)
-      .map(r => (r.role, r.communityService))
-      .update((newRole, communityService))
-  }
-
-  /**
-   * Updates the community service status of the user.
-   * @param userId The ID of the user whose community service status is to be updated
-   * @param newCommServ The new community service status to set
-   * @return A DBIO action that returns the number of rows affected
-   */
-  def updateCommunityService(userId: String, newCommServ: Boolean): DBIO[Int] = {
-    userRoles.filter(_.userId === userId).map(_.communityService).update(newCommServ)
+  def updateRole(userId: String, newRole: Role.Value): DBIO[Int] = {
+    userRoles.filter(_.userId === userId).map(_.role).update(newRole)
   }
 
   /**
