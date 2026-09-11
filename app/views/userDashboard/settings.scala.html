@@ -46,10 +46,11 @@
     <h3 class="page-subhead ud-settings-subhead" id="change-password">@Messages("dashboard.settings.password")</h3>
     @* Its own form and button rather than part of "Save changes": it needs the current password and can fail on its
        own, so it shouldn't hold up (or be held up by) the rest of the settings. *@
-    <form class="ud-form" id="set-password-form" method="post"
-        action="@routes.UserDashboardController.changePassword" data-error-generic="@Messages("authenticate.error.generic")">
+    <form class="ud-form" id="set-password-form" method="post" action="@routes.UserDashboardController.changePassword"
+        data-error-generic="@Messages("authenticate.error.generic")">
       @CSRF.formField
-      @* Tells password managers which saved login to update; the email is what people sign in with. *@
+      @* Tells password managers which saved login to update. The email rather than the username: every account has
+         one and it never changes, though someone who signs in by username may get a second saved entry. *@
       <label for="set-password-username" hidden>@Messages("dashboard.settings.email")</label>
       <input id="set-password-username" type="email" autocomplete="username" value="@user.email" hidden readonly>
       <div class="au-field">
@@ -59,13 +60,19 @@
               autocomplete="current-password" required>
           @common.authEyeButton("set-current-password")
         </div>
-        <span class="ud-field-help">@Html(Messages("dashboard.settings.password.forgot", routes.UserController.forgotPassword.url))</span>
+        <span class="ud-field-help">
+          @Html(Messages("dashboard.settings.password.forgot", routes.UserController.forgotPassword.url))
+        </span>
       </div>
       @common.authPasswordFields("set", "newPassword", "newPasswordConfirm", "dashboard.settings.password.new",
         "dashboard.settings.password.new.confirm")
       <div>
         <button type="submit" class="ud-btn-primary">@Messages("dashboard.settings.password.submit")</button>
-        <span class="ud-save-status" role="status" aria-live="polite"></span>
+        @* A reset by email, finished while signed in, lands back here with its message. *@
+        @defining(request.flash.get("success")) { resetMessage =>
+          <span class="ud-save-status @if(resetMessage.isDefined){ud-save-ok}" role="status"
+              aria-live="polite">@resetMessage</span>
+        }
       </div>
     </form>
   </div>
@@ -172,6 +179,10 @@
         currentUsername: '@user.username',
         currentUnits: '@unitsChoice'
       });
+    });
+    // Not in appManager.ready: that waits on i18next, and until this runs a submit is a plain POST that shows raw JSON.
+    // AuthModal.js, which this builds on, is deferred, and deferred scripts have all run by DOMContentLoaded.
+    document.addEventListener('DOMContentLoaded', function () {
       new ChangePasswordForm(document.getElementById('set-password-form'));
     });
   </script>

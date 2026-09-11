@@ -1,12 +1,11 @@
 /**
- * The Settings page's change-password form (#2285), posted apart from the page's "Save changes" button. Errors are
- * drawn with AuthModal.js's `clearAuthErrors`/`renderAuthErrors`; AuthModal.js also wires this form's show-password
+ * The Settings page's change-password form (#2285), posted apart from the page's "Save changes" button. Submitting and
+ * error display are AuthModal.js's `wireAsyncSubmit`, which also clears the current password after a wrong one (401);
+ * this adds what happens on success, since the user stays on the page. AuthModal.js also wires the show-password
  * buttons and new-password checklist. CSRF is added by the global fetch wrapper (AppManager).
  */
 class ChangePasswordForm {
   #form;
-
-  #submitBtn;
 
   #status;
 
@@ -15,54 +14,22 @@ class ChangePasswordForm {
    */
   constructor(form) {
     this.#form = form;
-    this.#submitBtn = form.querySelector('button[type="submit"]');
     this.#status = form.querySelector('[role="status"]');
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      this.#submit();
-    });
+    // Registered before wireAsyncSubmit's listener, so an old "changed" message is gone before the next reply lands.
+    form.addEventListener('submit', () => this.#setStatus('', false));
+    wireAsyncSubmit(form, { onSuccess: (data) => this.#onChanged(data) });
   }
 
   /**
-   * Posts the form, then either empties it and says the password changed, or shows what went wrong.
+   * Empties the password fields and says the password changed. Clearing a field from code doesn't count as typing
+   * in it, so this nudges the new-password checklist and "passwords match" line, or they'd describe the old text.
    *
-   * @returns {Promise<boolean>} Whether the password was changed.
+   * @param {{message: string}} data - The server's reply.
    */
-  async #submit() {
-    clearAuthErrors(this.#form);
-    this.#setStatus('', false);
-    this.#submitBtn.disabled = true;
-    try {
-      const res = await fetch(this.#form.action, {
-        method: 'POST',
-        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-        body: new URLSearchParams(new FormData(this.#form)),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.success) {
-        this.#clearFields();
-        this.#setStatus(data.message, true);
-        return true;
-      }
-      // A wrong current password is almost always a typo, so clear it for a clean retype.
-      if (data.errors?.currentPassword) this.#form.elements.currentPassword.value = '';
-      renderAuthErrors(this.#form, data.errors || { _summary: this.#form.dataset.errorGeneric });
-      return false;
-    } catch {
-      renderAuthErrors(this.#form, { _summary: this.#form.dataset.errorGeneric });
-      return false;
-    } finally {
-      this.#submitBtn.disabled = false;
-    }
-  }
-
-  /**
-   * Empties the password fields. Clearing a field from code doesn't count as typing in it, so this nudges the
-   * new-password checklist and "passwords match" line to update, or they'd keep describing the old text.
-   */
-  #clearFields() {
+  #onChanged(data) {
     this.#form.reset();
     this.#form.querySelectorAll('.au-pw, .au-pw-confirm').forEach((el) => el.dispatchEvent(new Event('input')));
+    this.#setStatus(data.message, true);
   }
 
   /**

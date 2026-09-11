@@ -694,7 +694,13 @@ class UserController @Inject() (
                   authenticationService.updatePassword(user.userId, passwordInfo).map { _ =>
                     authenticationService.removeToken(token)
                     cc.loggingService.insert(user.userId, request.ipAddress, "PasswordReset")
-                    Redirect(routes.UserController.signIn()).flashing("success" -> Messages("reset.pw.successful"))
+                    // Someone already signed in (say, who followed Settings' "Reset it by email" link) would be
+                    // bounced off /signIn to the homepage, losing the message, so they go back to Settings instead.
+                    val backTo =
+                      if (request.identity.exists(_.userId == user.userId))
+                        routes.UserDashboardController.settings.withFragment("change-password")
+                      else routes.UserController.signIn()
+                    Redirect(backTo).flashing("success" -> Messages("reset.pw.successful"))
                   }
                 case _ =>
                   Future.successful(

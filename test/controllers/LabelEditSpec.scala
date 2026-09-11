@@ -12,8 +12,7 @@ import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-
-import java.util.UUID
+import _root_.util.SignedUpAccounts
 
 /**
  * Functional tests for `POST /label/edit` (#2575) and the `can_edit` flag `GET /label/id/:id` hands the popup:
@@ -21,18 +20,18 @@ import java.util.UUID
  * a fold netting out. Writes against a real label, snapshotted and restored in `afterAll` along with deleting the
  * suite's rows. Cancels when the connected schema has no label with a severity (the empty CI city).
  */
-class LabelEditSpec extends PlaySpec with BeforeAndAfterAll with SubmissionSpecHelpers with GuiceOneAppPerSuite {
+class LabelEditSpec
+    extends PlaySpec
+    with BeforeAndAfterAll
+    with SubmissionSpecHelpers
+    with SignedUpAccounts
+    with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
-
-  private val XHR = "X-Requested-With" -> "XMLHttpRequest"
-
-  /** Users minted by this suite; their edits are deleted in `afterAll`. */
-  private var createdUserIds: Set[String] = Set.empty
 
   /** Pre-test severity and tags of every real label the suite edited, restored in `afterAll`. */
   private var labelBackup: Map[Int, (Option[Int], List[String])] = Map.empty
@@ -65,30 +64,6 @@ class LabelEditSpec extends PlaySpec with BeforeAndAfterAll with SubmissionSpecH
             ORDER BY tag_id
             LIMIT 1""".as[String]
     ).headOption.getOrElse(cancel("The label's type offers no tag this spec could add."))
-  }
-
-  /** Signs up a throwaway registered user and resolves its id, so a role can be granted by a DB write. */
-  private def signUpFreshUser(): (String, Seq[Cookie]) = {
-    val tag   = UUID.randomUUID().toString.replace("-", "").take(20)
-    val email = s"spec.$tag@example.test"
-    val resp  = route(
-      app,
-      FakeRequest(POST, "/signUp")
-        .withHeaders(XHR)
-        .withFormUrlEncodedBody(
-          "username"        -> s"spec$tag",
-          "email"           -> email,
-          "password"        -> "TestPass1",
-          "passwordConfirm" -> "TestPass1",
-          "terms"           -> "true",
-          "returnUrl"       -> "/explore"
-        )
-        .withCSRFToken
-    ).get
-    status(resp) mustBe OK
-    val userId = run(sql"SELECT user_id FROM sidewalk_login.sidewalk_user WHERE email = $email".as[String]).head
-    createdUserIds += userId
-    (userId, cookies(resp).toSeq)
   }
 
   /** Roles are resolved per request, so an existing session gains admin access at once. */
@@ -209,14 +184,14 @@ class LabelEditSpec extends PlaySpec with BeforeAndAfterAll with SubmissionSpecH
     }
 
     "400 a severity outside 1-3" in {
-      val target       = pickLabel()
-      val (_, session) = signUpFreshUser()
+      val target          = pickLabel()
+      val (_, _, session) = signUpFreshUser()
       status(postEdit(session, editBody(target.labelId, Some(5), target.tags))) mustBe BAD_REQUEST
     }
 
     "accept the source string of every page that hosts the card" in {
-      val target            = pickLabel()
-      val (userId, session) = signUpFreshUser()
+      val target               = pickLabel()
+      val (userId, _, session) = signUpFreshUser()
       grantAdmin(userId)
       // Re-sending the label's own values writes nothing, so only the body's validation is exercised.
       cardHostSources.foreach { source =>
@@ -228,9 +203,9 @@ class LabelEditSpec extends PlaySpec with BeforeAndAfterAll with SubmissionSpecH
     }
 
     "403 a non-admin editing someone else's label, and flag the label as not editable" in {
-      val target            = pickLabel()
-      val (userId, session) = signUpFreshUser()
-      val meta              = route(app, FakeRequest(GET, s"/label/id/${target.labelId}").withCookies(session: _*)).get
+      val target               = pickLabel()
+      val (userId, _, session) = signUpFreshUser()
+      val meta = route(app, FakeRequest(GET, s"/label/id/${target.labelId}").withCookies(session: _*)).get
       status(meta) mustBe OK
       (contentAsJson(meta) \ "can_edit").as[Boolean] mustBe false
 
@@ -241,9 +216,9 @@ class LabelEditSpec extends PlaySpec with BeforeAndAfterAll with SubmissionSpecH
     }
 
     "let an admin edit another user's label, fold their consecutive edits into one row, and drop a row that nets out" in {
-      val target            = pickLabel()
-      val extraTag          = addableTag(target)
-      val (userId, session) = signUpFreshUser()
+      val target               = pickLabel()
+      val extraTag             = addableTag(target)
+      val (userId, _, session) = signUpFreshUser()
       grantAdmin(userId)
       val historyBefore = historyCount(target.labelId)
 
@@ -283,8 +258,8 @@ class LabelEditSpec extends PlaySpec with BeforeAndAfterAll with SubmissionSpecH
 
   "POST /labelmap/validate" should {
     "record a change carried by an Agree as an edit linked to the vote, separate from a standalone edit, and unwind it on undo" in {
-      val target            = pickLabel()
-      val (userId, session) = signUpFreshUser()
+      val target               = pickLabel()
+      val (userId, _, session) = signUpFreshUser()
       grantAdmin(userId)
       val countsBefore = run(
         sql"SELECT agree_count FROM label WHERE label_id = ${target.labelId}".as[Int]

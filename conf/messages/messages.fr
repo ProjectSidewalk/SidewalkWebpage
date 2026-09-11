@@ -793,6 +793,7 @@ dashboard.settings.password.submit = Changer le mot de passe
 dashboard.settings.password.changed = Votre mot de passe a été modifié.
 dashboard.settings.password.error.current = Ce n''est pas votre mot de passe actuel.
 dashboard.settings.password.error.same = Votre nouveau mot de passe doit être différent de l''actuel.
+dashboard.settings.password.error.throttled = Trop de tentatives. Veuillez patienter jusqu''à {0} minutes, puis réessayez.
 dashboard.settings.service.hours = Heures de bénévolat
 dashboard.settings.service.hours.toggle = M''inscrire aux heures de service communautaire
 dashboard.settings.service.hours.help = Vous inscrit à la reconnaissance officielle — votre responsable peut vérifier vos heures — et ajoute « Heures de bénévolat » et « Suivi du temps » au menu de votre compte.

@@ -2,7 +2,6 @@ package forms
 
 import play.api.data.Forms._
 import play.api.data._
-import play.api.data.validation.Constraints._
 
 /**
  * The `Reset Password` form.
@@ -14,9 +13,7 @@ object ResetPasswordForm {
    */
   val form = Form(
     mapping(
-      "passwordReset" -> nonEmptyText
-        .verifying(minLength(PasswordPolicy.minLength))
-        .verifying(pattern(PasswordPolicy.pattern, error = "authenticate.error.password.requirements")),
+      "passwordReset"        -> PasswordPolicy.newPassword,
       "passwordResetConfirm" -> nonEmptyText
     )(PasswordData.apply)(PasswordData.unapply).verifying(
       "authenticate.error.password.mismatch",

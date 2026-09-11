@@ -789,6 +789,7 @@ dashboard.settings.password.submit = Cambiar contraseña
 dashboard.settings.password.changed = Tu contraseña se cambió correctamente.
 dashboard.settings.password.error.current = Esa no es tu contraseña actual.
 dashboard.settings.password.error.same = La nueva contraseña debe ser distinta de la actual.
+dashboard.settings.password.error.throttled = Demasiados intentos. Espera hasta {0} minutos y vuelve a intentarlo.
 dashboard.settings.service.hours = Horas de servicio voluntario
 dashboard.settings.service.hours.toggle = Inscribirme en horas de servicio comunitario
 dashboard.settings.service.hours.help = Te inscribe para el reconocimiento oficial —tu supervisor puede verificar tus horas— y añade "Horas de servicio" y "Control de tiempo" al menú de tu cuenta.

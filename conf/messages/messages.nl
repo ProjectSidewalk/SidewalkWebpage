@@ -775,6 +775,7 @@ dashboard.settings.password.submit = Wachtwoord wijzigen
 dashboard.settings.password.changed = Je wachtwoord is gewijzigd.
 dashboard.settings.password.error.current = Dat is niet je huidige wachtwoord.
 dashboard.settings.password.error.same = Je nieuwe wachtwoord moet anders zijn dan je huidige.
+dashboard.settings.password.error.throttled = Te veel pogingen. Wacht maximaal {0} minuten en probeer het dan opnieuw.
 dashboard.settings.service.hours = Vrijwilligersuren
 dashboard.settings.service.hours.toggle = Aanmelden voor maatschappelijke serviceuren
 dashboard.settings.service.hours.help = Meldt je aan voor officiële erkenning — je begeleider kan je uren verifiëren — en voegt "Serviceuren" en "Tijdcontrole" toe aan je accountmenu.

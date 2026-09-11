@@ -2,7 +2,6 @@ package forms
 
 import play.api.data.Forms._
 import play.api.data._
-import play.api.data.validation.Constraints._
 
 /**
  * The Settings page's change-password form (#2285). The new password follows the same `PasswordPolicy` as sign-up
@@ -12,10 +11,8 @@ object ChangePasswordForm {
 
   val form = Form(
     mapping(
-      "currentPassword" -> nonEmptyText,
-      "newPassword"     -> nonEmptyText
-        .verifying(minLength(PasswordPolicy.minLength))
-        .verifying(pattern(PasswordPolicy.pattern, error = "authenticate.error.password.requirements")),
+      "currentPassword"    -> nonEmptyText,
+      "newPassword"        -> PasswordPolicy.newPassword,
       "newPasswordConfirm" -> nonEmptyText
     )(Data.apply)(Data.unapply)
       .verifying("authenticate.error.password.mismatch", fields => fields.newPassword == fields.newPasswordConfirm)

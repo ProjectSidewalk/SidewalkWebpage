@@ -3,8 +3,8 @@
  *
  * What matters is what the user is left looking at after each outcome: a success empties every password field and
  * says so, a wrong current password clears just that field and flags it, and a failed request still explains itself
- * instead of doing nothing. The error drawing is AuthModal.js's own `clearAuthErrors`/`renderAuthErrors`, loaded for
- * real rather than stubbed, so these tests also catch the form drifting away from the markup those helpers expect.
+ * instead of doing nothing. Submitting and error drawing are AuthModal.js's own `wireAsyncSubmit`, loaded for real
+ * rather than stubbed, so these tests also catch the form drifting away from the markup that helper expects.
  */
 
 const fs = require('fs');
@@ -14,14 +14,13 @@ const read = (relativePath) => fs.readFileSync(path.resolve(__dirname, '..', '..
 
 const GENERIC_ERROR = 'Something went wrong on our end. Please try again.';
 
-/** AuthModal.js's error helpers. Its DOMContentLoaded hook is inert here: the page has already loaded. */
-const authHelpers = (0, eval)(
-  `(function () {\n${read('public/js/common/AuthModal.js')}\nreturn { clearAuthErrors, renderAuthErrors };\n})`
-)();
-
-/** The class under test, with the page globals it reads supplied per test. */
+/**
+ * The class under test, sharing a scope with AuthModal.js as it does a page's globals, and with `fetch` supplied per
+ * test. AuthModal.js's DOMContentLoaded hook is inert here: the page has already loaded.
+ */
 const formFactory = (0, eval)(
-  `(function (clearAuthErrors, renderAuthErrors, fetch) {
+  `(function (fetch) {
+    ${read('public/js/common/AuthModal.js')}
     ${read('public/js/user-dashboard/ChangePasswordForm.js')}
     return ChangePasswordForm;
   })`
@@ -43,7 +42,9 @@ const renderForm = () => {
         </div>
         <div class="au-pw-group">
           <div class="au-input-wrap"><input class="au-input au-pw" name="newPassword" type="password"></div>
-          <div class="au-input-wrap"><input class="au-input au-pw-confirm" name="newPasswordConfirm" type="password"></div>
+          <div class="au-input-wrap">
+            <input class="au-input au-pw-confirm" name="newPasswordConfirm" type="password">
+          </div>
         </div>
         <button type="submit">Change password</button>
         <span class="ud-save-status" role="status"></span>
@@ -76,7 +77,7 @@ async function submit(form) {
  */
 async function submitWith(fetchImpl, beforeSubmit = () => {}) {
   const form = renderForm();
-  const ChangePasswordForm = formFactory(authHelpers.clearAuthErrors, authHelpers.renderAuthErrors, fetchImpl);
+  const ChangePasswordForm = formFactory(fetchImpl);
   new ChangePasswordForm(form);
   beforeSubmit(form);
   await submit(form);
@@ -108,7 +109,8 @@ test('a successful change empties every field, says so, and posts the form to it
     newPasswordConfirm: 'NewPass22',
   });
 
-  ['currentPassword', 'newPassword', 'newPasswordConfirm'].forEach((name) => expect(form.elements[name].value).toBe(''));
+  ['currentPassword', 'newPassword', 'newPasswordConfirm']
+    .forEach((name) => expect(form.elements[name].value).toBe(''));
   // The checklist and "passwords match" line only update on input, so emptying the fields has to announce itself.
   expect(typed).toHaveLength(2);
   expect(status().textContent).toBe('Your password has been changed.');
@@ -117,12 +119,13 @@ test('a successful change empties every field, says so, and posts the form to it
 });
 
 test('a wrong current password clears and flags only that field', async () => {
-  const form = await submitWith(respondWith(400, { errors: { currentPassword: 'That isn\'t your current password.' } }));
+  const wrong = 'That isn\'t your current password.';
+  const form = await submitWith(respondWith(401, { errors: { currentPassword: wrong } }));
 
   const current = form.elements.currentPassword;
   expect(current.value).toBe('');
   expect(current.classList.contains('au-input--error')).toBe(true);
-  expect(form.querySelector('.au-field-error').textContent).toContain('That isn\'t your current password.');
+  expect(form.querySelector('.au-field-error').textContent).toContain(wrong);
   expect(form.elements.newPassword.value).toBe('NewPass22');
   expect(status().textContent).toBe('');
 });
@@ -143,4 +146,13 @@ test('a request that never reaches the server still explains itself, and a retry
 
   await submit(form);
   expect(document.querySelectorAll('.au-summary')).toHaveLength(1);
+});
+
+test('the next submit clears an earlier "changed" message before its own reply arrives', async () => {
+  const form = await submitWith(respondWith(200, { success: true, message: 'Your password has been changed.' }));
+  expect(status().textContent).toBe('Your password has been changed.');
+
+  form.dispatchEvent(new window.Event('submit', { cancelable: true }));
+  expect(status().textContent).toBe('');
+  expect(status().classList.contains('ud-save-ok')).toBe(false);
 });

@@ -303,8 +303,7 @@ class AuthenticationServiceImpl @Inject() (
         userPasswordInfoTable.find(userLoginInfo.loginInfoId).flatMap {
           case Some(pwInfo)
               if passwordHasher.matches(PasswordInfo(pwInfo.hasher, pwInfo.password, pwInfo.salt), currentPassword) =>
-            db.run(userPasswordInfoTable.update(userLoginInfo.loginInfoId, passwordHasher.hash(newPassword)))
-              .map(_ => true)
+            updatePassword(userId, passwordHasher.hash(newPassword)).map(_ => true)
           case _ => Future.successful(false)
         }
       case None => Future.failed(new IdentityNotFoundException(s"No login info found for user ID: $userId"))

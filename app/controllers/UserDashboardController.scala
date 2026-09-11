@@ -273,22 +273,24 @@ class UserDashboardController @Inject() (
 
   /**
    * Changes the signed-in user's password from Settings (#2285), with its own button apart from `saveSettings`.
-   * Errors use the auth forms' `{"errors": {field -> message}}` shape so the page can draw them the same way.
+   * Errors use the auth forms' `{"errors": {field -> message}}` shape, and a wrong current password is a 401 like a
+   * failed sign-in, so the page can reuse the auth forms' submit handling.
    *
-   * Only wrong current passwords count toward the per-account limit, and a success resets it (as sign-in's
-   * `login-identifier` does): a hijacked session can't guess the password, and a user's own typos never lock them out.
+   * Every attempt counts toward the per-account limit before any work is done, successes included. Counting up front
+   * keeps a burst of simultaneous guesses from all slipping in before the first is recorded, and counting successes
+   * caps how much bcrypt work one session can cause by changing its password back and forth.
    */
   def changePassword = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
     val user        = request.identity
     val throttleKey = s"change-password:user:${user.userId}"
     val limit       = rateLimiter.limit("change-password")
 
-    if (rateLimiter.isBlocked(throttleKey, limit)) {
+    if (!rateLimiter.allow(throttleKey, limit)) {
       cc.loggingService.insert(user.userId, request.ipAddress, "ChangePasswordThrottled")
       val retryAfter = rateLimiter.retryAfterSeconds(throttleKey).getOrElse(limit.window.toSeconds)
+      val message    = Messages("dashboard.settings.password.error.throttled", limit.window.toMinutes)
       Future.successful(
-        TooManyRequests(fieldErrorJson("_summary", Messages("authenticate.error.too.many")))
-          .withHeaders("Retry-After" -> retryAfter.toString)
+        TooManyRequests(fieldErrorJson("_summary", message)).withHeaders("Retry-After" -> retryAfter.toString)
       )
     } else {
       ChangePasswordForm.form
@@ -301,14 +303,12 @@ class UserDashboardController @Inject() (
           data =>
             authenticationService.changePassword(user.userId, data.currentPassword, data.newPassword).map {
               case true =>
-                rateLimiter.clear(throttleKey)
                 cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=ChangePassword")
                 Ok(Json.obj("success" -> true, "message" -> Messages("dashboard.settings.password.changed")))
               case false =>
-                rateLimiter.record(throttleKey, limit)
                 cc.loggingService
                   .insert(user.userId, request.ipAddress, "ChangePasswordFailed_Reason=WrongCurrentPassword")
-                BadRequest(fieldErrorJson("currentPassword", Messages("dashboard.settings.password.error.current")))
+                Unauthorized(fieldErrorJson("currentPassword", Messages("dashboard.settings.password.error.current")))
             }
         )
     }

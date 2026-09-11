@@ -62,8 +62,8 @@ be measured the same way language switching is (`auto` means "follow the site la
 Settings page's change-password form (#2285) has its own button and logs, server-side, `Click_module=ChangePassword`
 on success, `ChangePasswordFailed_Reason=<WrongCurrentPassword|Invalid>` on a rejection (`Invalid` covers a new
 password that breaks the rules, doesn't match its confirmation, or equals the current one), and
-`ChangePasswordThrottled` once too many wrong current passwords have locked the form for a while. Leaving the
-settings page with unsaved edits logs the user's answer to the shared unsaved-changes prompt
+`ChangePasswordThrottled` once the account has used up its attempts (10 per 15 minutes, successes included).
+Leaving the settings page with unsaved edits logs the user's answer to the shared unsaved-changes prompt
 (`common/UnsavedChangesGuard.js`) as `Click_module=UnsavedSettings_choice=<save|discard|stay>`, so a prompt people
 mostly answer "discard" to says the form is asking too late (#5226). The browser's own refresh/close warning can't
 be logged, so this counts link clicks only. The landing page's validation grid logs

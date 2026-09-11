@@ -779,6 +779,7 @@ dashboard.settings.password.submit = Passwort ändern
 dashboard.settings.password.changed = Ihr Passwort wurde geändert.
 dashboard.settings.password.error.current = Das ist nicht Ihr aktuelles Passwort.
 dashboard.settings.password.error.same = Ihr neues Passwort muss sich von Ihrem aktuellen unterscheiden.
+dashboard.settings.password.error.throttled = Zu viele Versuche. Bitte warten Sie bis zu {0} Minuten und versuchen Sie es dann erneut.
 dashboard.settings.service.hours = Ehrenamtliche Servicestunden
 dashboard.settings.service.hours.toggle = Für gemeinnützige Servicestunden anmelden
 dashboard.settings.service.hours.help = Meldet dich für die offizielle Anerkennung an – deine Betreuungsperson kann deine Stunden bestätigen – und fügt „Servicestunden“ und „Zeitkontrolle“ zu deinem Kontomenü hinzu.

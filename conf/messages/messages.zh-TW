@@ -853,6 +853,7 @@ dashboard.settings.password.submit = 變更密碼
 dashboard.settings.password.changed = 您的密碼已變更。
 dashboard.settings.password.error.current = 這不是您目前的密碼。
 dashboard.settings.password.error.same = 新密碼必須與目前的密碼不同。
+dashboard.settings.password.error.throttled = 嘗試次數過多。請等待最多 {0} 分鐘後再試一次。
 dashboard.settings.service.hours = 志工服務時數
 dashboard.settings.service.hours.toggle = 報名社區服務時數
 dashboard.settings.service.hours.help = 為您報名正式認可（您的督導可以核實您的時數），並在您的帳戶選單中加入「服務時數」和「時間檢查」。

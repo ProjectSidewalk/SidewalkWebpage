@@ -1,5 +1,9 @@
 package forms
 
+import play.api.data.Forms.nonEmptyText
+import play.api.data.Mapping
+import play.api.data.validation.Constraints.{minLength => minLengthRule, pattern => patternRule}
+
 import scala.util.matching.Regex
 
 /**
@@ -14,6 +18,11 @@ object PasswordPolicy {
 
   /** Whole-password constraint used by `SignUpForm`; the per-rule breakdown below must stay its decomposition. */
   val pattern: Regex = """^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).*$""".r
+
+  /** The form field for a new password, shared by sign-up, reset, and Settings' change-password form. */
+  val newPassword: Mapping[String] = nonEmptyText
+    .verifying(minLengthRule(minLength))
+    .verifying(patternRule(pattern, error = "authenticate.error.password.requirements"))
 
   /**
    * Per-rule checks for the live sign-up checklist, as (message key, JS-compatible regex source) pairs.

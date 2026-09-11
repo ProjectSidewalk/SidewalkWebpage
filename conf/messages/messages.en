@@ -787,6 +787,7 @@ dashboard.settings.password.submit = Change password
 dashboard.settings.password.changed = Your password has been changed.
 dashboard.settings.password.error.current = That isn''t your current password.
 dashboard.settings.password.error.same = Your new password must be different from your current one.
+dashboard.settings.password.error.throttled = Too many attempts. Please wait up to {0} minutes, then try again.
 dashboard.settings.service.hours = Volunteer service hours
 dashboard.settings.service.hours.toggle = Sign me up for community service hours
 dashboard.settings.service.hours.help = Opts you in to official recognition — your supervisor can verify your hours — and adds "Service hours" and "Time check" to your account menu.

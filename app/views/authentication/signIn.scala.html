@@ -28,6 +28,12 @@
             <p>@msg</p>
           </div>
         }
+        @request.flash.get("success").map { msg =>
+          <div class="au-summary au-summary--info" role="status">
+            <span class="au-icon ps-mask-icon" aria-hidden="true"></span>
+            <p>@msg</p>
+          </div>
+        }
         @form(action = routes.UserController.authenticate(), args = 'id -> "sign-in-form", 'class -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
           @CSRF.formField
           <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
