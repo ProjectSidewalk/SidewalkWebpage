@@ -32,6 +32,11 @@ case class ValidationFiltersForApi(
     source: Option[UiSource] = None
 )
 
+/** Shared by the Validations and Raw Labels APIs so both print the same `validator_type` values. */
+object ValidatorType {
+  def fromIsAi(isAi: Boolean): String = if (isAi) "AI" else "Human"
+}
+
 /**
  * Represents a label validation for the API.
  * Implements StreamingApiType to support streaming output formats like JSON and CSV.

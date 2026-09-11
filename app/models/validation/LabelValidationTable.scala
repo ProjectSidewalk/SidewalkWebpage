@@ -1,7 +1,7 @@
 package models.validation
 
 import com.google.inject.ImplementedBy
-import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResultTypeForApi}
+import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResultTypeForApi, ValidatorType}
 import models.label.LabelTypeEnum.labelTypeNames
 import models.label._
 import models.mission.MissionTableDef
@@ -305,7 +305,7 @@ class LabelValidationTable @Inject() (
 
           // Create the ValidationCount object for this subgroup.
           val labelType = labTypeFilter.getOrElse("All")
-          val validator = validatorFilter.map(isAi => if (isAi) "AI" else "Human").getOrElse("Both")
+          val validator = validatorFilter.map(ValidatorType.fromIsAi).getOrElse("Both")
           ValidationCount(subgroupCount, timeInterval, labelType, valResultFilter, validator)
         }.toSeq
       }
@@ -416,7 +416,7 @@ class LabelValidationTable @Inject() (
       labelType = label.labelType.name,
       validationResult = validation.validationResult,
       userId = validation.userId,
-      validatorType = if (role == Role.Ai) "AI" else "Human",
+      validatorType = ValidatorType.fromIsAi(role == Role.Ai),
       missionId = validation.missionId,
       canvasXY = validation.canvasX.flatMap(x => validation.canvasY.map(y => LocationXY(x, y))),
       heading = validation.heading,
