@@ -368,10 +368,10 @@ Server handoff for {city_id}:
   4. Open the PR with the config, message, and docs changes; the auto-deploy picks the city up once it lands on
      develop (test) and in a release (prod).
   5. Nightly jobs fill what onboarding leaves empty, so the dump you just copied has none of it: `intersection`
-     (with each street's corner links), `cluster`, `sidewalk_presence`, and the `osm_way` tag cache all arrive on
-     the city's first scheduled run (04:00 + its update_offset_hours), and AccessScore reads zero until then. An
-     admin can force the intersections and clusters early from /clustering; the osm_way tags have their own nightly
-     refresh (#5297).
+     (with each street's corner links), `cluster`, `sidewalk_presence`, and the `osm_way` tag cache each arrive
+     with their job's first nightly run (the schedule is actor/ScheduledJobs.scala, shifted by the city's
+     update_offset_hours), and AccessScore reads zero until then. An admin can force the intersections and
+     clusters early from /clustering; the osm_way tags have their own nightly refresh (#5297).
   6. Round-trip check any time: make import-dump db={schema} restores db/{schema}-dump into the dev DB.
 '''
 
@@ -560,9 +560,12 @@ def boot_conflicts():
             elif cwd == '?':
                 soft.append(f'pid {pid} is an sbt whose working directory could not be read, so it may be building '
                             f'in {CHECKOUT_IN_CONTAINER}')
+    # A boot an earlier run left behind (killed by SIGTERM, a closed terminal) compiles in /home and holds no port
+    # yet, so it would file as overridable — and then boot_jvm_alive() would answer for the stale JVM, not the new
+    # one, for the whole wait. It is never overridable: nothing legitimate carries the marker.
     if (hard or soft) and own_boot_alive():
-        (hard or soft).append(f'one of these is a boot this script left behind — a run killed outright never '
-                              f'reaches the stop; clear it with: docker exec {WEB_CONTAINER} pkill -f {BOOT_MARKER}')
+        hard.append(f'one of these is a boot this script left behind — a run killed outright never reaches the '
+                    f'stop; clear it with: docker exec {WEB_CONTAINER} pkill -f {BOOT_MARKER}')
     return hard, soft
 
 
@@ -580,7 +583,9 @@ def boot_jvm_alive():
     both carry it, and both outlive an sbt that has exited (a pipeline's shell waits for every member, and
     `tail -f /dev/null` never ends). Only the JVM's command line carries the marker property *and* the launcher jar.
     """
-    return subprocess.run(['docker', 'exec', WEB_CONTAINER, 'pgrep', '-f', f'-D{BOOT_MARKER}=1 .*sbt-launch'],
+    # `--` because the pattern starts with -D, which pgrep otherwise reads as an option and exits 2 — the same exit
+    # a dead boot gives, so without it every fresh boot was declared dead ten seconds in (measured).
+    return subprocess.run(['docker', 'exec', WEB_CONTAINER, 'pgrep', '-f', '--', f'-D{BOOT_MARKER}=1 .*sbt-launch'],
                           capture_output=True).returncode == 0
 
 
@@ -645,7 +650,7 @@ def apply_evolutions(schema, city_id, verify=False, allow_running_apps=False):
         print(f'  Schema is already at evolution {applied}; no app boot needed.')
         return
     hard, soft = boot_conflicts()
-    overridden = soft if allow_running_apps else []
+    overridden = soft if allow_running_apps and not hard else []
     if overridden:
         print(f'  --allow-running-apps: booting anyway, with {"; ".join(overridden)}.')
     conflicts = hard + (soft if not allow_running_apps else [])
@@ -844,8 +849,14 @@ def dump_schema(schema):
         if prompt('  Clear it now, then dump? (y/n)', 'n', cautious=True) != 'y':
             sys.exit('Stopped before writing the dump. Clear it (the statements above), then rerun with '
                      '--dump-only.')
-        docker_db('psql', '-v', 'ON_ERROR_STOP=1', '-U', schema, '-d', 'sidewalk',
-                  '-c', '; '.join(statements) + ';', check=True)
+        # A lock timeout, because TRUNCATE waits for ACCESS EXCLUSIVE and an app left running as the city with an
+        # open transaction would otherwise hang this step without a word.
+        run_or_exit(['psql', '-v', 'ON_ERROR_STOP=1', '-U', schema, '-d', 'sidewalk',
+                     '-c', "SET lock_timeout = '30s'; " + '; '.join(statements) + ';'],
+                    f'clearing {schema} failed',
+                    f'Stop any app running as the city, or clear it by hand as postgres (docker exec -i '
+                    f'{DB_CONTAINER} psql -U postgres -d sidewalk, with search_path set to {schema}), then rerun '
+                    'with --dump-only.')
         residue = qa_residue(schema)
         if residue:
             left = '; '.join(f'{what}: {n}' for what, n in residue)
@@ -928,6 +939,10 @@ def main(argv=None):
                              'their default either way.')
     parser.add_argument('--donor', help='City schema to clone the structure from (default: the dev container\'s '
                                         'DATABASE_USER). Refused if it sits ahead of this checkout\'s evolutions.')
+    parser.add_argument('--country', help='Country id (e.g. usa, mexico, france); asked for otherwise, and the one '
+                                          'answer a non-US city has no default for.')
+    parser.add_argument('--pano-type', choices=sorted(PROVIDERS),
+                        help='Pano viewer type (default: gsv; asked for otherwise).')
     parser.add_argument('--tutorial-region', type=int,
                         help='Region id of the tutorial region (step 6; asked for otherwise).')
     parser.add_argument('--regions', help='Regions to open at launch (step 6; asked for otherwise): "all", '
@@ -947,6 +962,11 @@ def main(argv=None):
     schema = schema_name(city_id)
     if args.regions and not re.fullmatch(REGIONS_SPEC_RE, args.regions):
         parser.error('--regions must be "all", "include:1 2 3", or "exclude:4 5"')
+    if args.regions and args.tutorial_region and not region_opens_at_launch(str(args.tutorial_region), args.regions):
+        parser.error(f'--regions "{args.regions}" closes the tutorial region {args.tutorial_region}, which has to '
+                     'be open at launch')
+    if args.dry_run and args.dump_only:
+        parser.error('--dry-run drives no container and --dump-only does nothing else; pick one')
 
     # The db container mounts the MAIN checkout's db/ at /opt, and the boot compiles CHECKOUT_IN_CONTAINER, so a
     # worktree's artifacts, evolutions and scripts are none of them what the steps below would actually use (#5297).
@@ -995,9 +1015,9 @@ def main(argv=None):
 
     display_default, us_state = split_city_id(city_id)
     display_name = prompt('City display name', display_default)
-    country = prompt('Country id (e.g. usa, mexico, france)', 'usa' if us_state else None)
+    country = args.country or prompt('Country id (e.g. usa, mexico, france)', 'usa' if us_state else None)
     state = prompt('State id', us_state) if country == 'usa' else None
-    pano_type = prompt('Pano viewer type (gsv, mapillary, panoramax, infra3d)', 'gsv')
+    pano_type = args.pano_type or prompt('Pano viewer type (gsv, mapillary, panoramax, infra3d)', 'gsv')
     while pano_type not in PROVIDERS:
         pano_type = prompt(f'Unknown viewer type; one of {", ".join(PROVIDERS)}', 'gsv')
     status = prompt('Visibility status (public, private)', 'private')
@@ -1075,7 +1095,7 @@ def main(argv=None):
     print(f'\nStep 3/8 — create the empty schema {schema} by cloning a donor city...')
     cloned = False
     if db_query(f"SELECT 1 FROM pg_namespace WHERE nspname = '{schema}'") and \
-            prompt(f'Schema {schema} already exists. Drop and recreate it? (y/n)', 'n') != 'y':
+            prompt(f'Schema {schema} already exists. Drop and recreate it? (y/n)', 'n', cautious=True) != 'y':
         print('  Keeping the existing schema.')
     else:
         donor = args.donor or web_env('DATABASE_USER') or prompt('Donor schema to clone (e.g. sidewalk_richmond)')
@@ -1088,7 +1108,13 @@ def main(argv=None):
 
     # A schema kept from an earlier run that stopped before the fill still holds only its clone's seed rows, so its
     # donor's evolution hashes have never been checked against this checkout — verify it as if it were fresh (#5297).
-    unfilled = (db_query(f'SELECT count(*) FROM {schema}.street_edge') or '0') in ('0', '1')
+    streets = db_query(f'SELECT count(*) FROM {schema}.street_edge')
+    if streets is None:
+        # A clone interrupted mid-restore has the schema and only a prefix of its tables; "couldn't count" must
+        # not read as "unfilled" any more than it may read as "clean" at the dump.
+        sys.exit(f'error: could not count {schema}.street_edge — the kept schema may be a clone that never '
+                 'finished. Rerun and answer "y" to drop and recreate it.')
+    unfilled = streets in ('0', '1')
     if unfilled and not cloned:
         print('  The kept schema is still an unfilled clone, so its evolutions have never been verified against this '
               'checkout; verifying now.')
@@ -1115,14 +1141,16 @@ def main(argv=None):
         tutorial_region = str(args.tutorial_region) if args.tutorial_region else \
             prompt('Tutorial region id (a central region with imagery)', '1')
         while not tutorial_region.isdigit():
-            tutorial_region = prompt('Invalid — the tutorial region is a region id from the list above', '1')
+            tutorial_region = prompt('Invalid — the tutorial region is a region id from the list above')
         # Phased launches start with only some regions open (streets in the others are seeded 'closed'; open them
         # later with reveal-or-hide-neighborhoods.sh). The imagery scan below covers the whole city either way.
         regions_spec = args.regions or prompt('Regions to open at launch ("all", "include:<ids>", or '
                                               '"exclude:<ids>", ids space-separated)', 'all')
+        # No default on the re-ask: under --yes a default is taken without asking, and "all" in place of the
+        # phased launch that was typed would run the one fill nobody can undo with every region open.
         problem = regions_problem(tutorial_region, regions_spec)
         while problem:
-            regions_spec = prompt(problem, 'all')
+            regions_spec = prompt(problem)
             problem = regions_problem(tutorial_region, regions_spec)
         run_or_exit(['/opt/scripts/fill-new-schema.sh', schema, tutorial_region, regions_spec],
                     f'fill-new-schema.sh failed on {schema}',

@@ -213,6 +213,8 @@ def test_handoff_checklist_names_the_dump_both_urls_and_what_the_nightly_jobs_ow
     assert 'https://t and https://p' in text
     # The dump ships with these empty; saying so is the whole fix for #5297.
     assert all(table in text for table in ('intersection', 'cluster', 'osm_way', 'sidewalk_presence'))
+    # The jobs run at different minutes (ScheduledJobs.scala), so the handoff names the schedule, not a time.
+    assert '04:00' not in text and 'ScheduledJobs.scala' in text
     assert 'make import-dump db=sidewalk_laurens_ia' in text
 
 
@@ -481,12 +483,22 @@ def test_dump_schema_clears_the_residue_on_request_then_dumps(monkeypatch, capsy
                                                          'UPDATE street_edge_priority SET priority = 1;' in cmd)
     assert '-U sidewalk_bayonne' in joined[cleared] and 'ON_ERROR_STOP=1' in joined[cleared]
     assert next(i for i, cmd in enumerate(joined) if 'pg_dump' in cmd) > cleared
+    assert "SET lock_timeout = '30s'; TRUNCATE" in joined[cleared]
     assert 'Cleared.' in capsys.readouterr().out
-    # Still dirty after the clear (a table only a superuser can truncate, say): no dump.
+    # Still dirty after the clear: no dump.
     calls = _dump_env(monkeypatch, (0, 'label|5\n'))
     with pytest.raises(SystemExit, match='still holds data after clearing'):
         snc.dump_schema('sidewalk_bayonne')
     assert not any('pg_dump' in ' '.join(map(str, cmd)) for cmd in calls)
+    # A refused TRUNCATE (a table only a superuser may truncate; a lock an app still holds) is quoted with a way
+    # out, not a CalledProcessError traceback — the failure this PR removed everywhere else.
+    calls = _dump_env(monkeypatch, (0, 'label|5\n'))
+    _fake_run(monkeypatch, {'pg_tables': (0, 'label\n'), 'UNION ALL': (0, 'label|5\n'),
+                            'lock_timeout': (1, '', 'ERROR:  canceling statement due to lock timeout\n')})
+    with pytest.raises(SystemExit) as refused:
+        snc.dump_schema('sidewalk_bayonne')
+    assert 'clearing sidewalk_bayonne failed (exit 1)' in str(refused.value)
+    assert 'lock timeout' in str(refused.value) and '--dump-only' in str(refused.value)
 
 
 def test_dump_schema_does_not_read_an_unreadable_schema_as_clean(monkeypatch, capsys):
@@ -656,7 +668,12 @@ def test_apply_evolutions_notices_a_boot_that_died(monkeypatch):
               [urllib.error.URLError('refused')] * 3)
     with pytest.raises(SystemExit, match='exited before the app answered'):
         snc.apply_evolutions('sidewalk_x', 'x')
-    assert re.fullmatch(r'-D\S+=1 \.\*sbt-launch', f'-D{snc.BOOT_MARKER}=1 .*sbt-launch')
+    # The pattern starts with -D, which pgrep reads as an option (exit 2, the same as "no match") unless it is
+    # told the options are over — without `--` every fresh boot read as dead ten seconds in (measured).
+    calls = _fake_run(monkeypatch, {_JVM: (0, '4242\n')})
+    assert snc.boot_jvm_alive() is True
+    [jvm] = [cmd for cmd in calls if _JVM in ' '.join(cmd)]
+    assert jvm[-2:] == ['--', f'-D{snc.BOOT_MARKER}=1 .*sbt-launch'] and jvm[-3] == '-f'
 
 
 def test_apply_evolutions_survives_a_listener_that_is_not_http(monkeypatch, capsys):
@@ -714,9 +731,12 @@ def test_boot_conflicts_names_a_boot_this_script_left_behind(monkeypatch):
     _fake_run(monkeypatch, {_OWN: (0, '4242\n'), _PROBE: (0, 'port taken\npid 4242 /home\n')})
     hard, soft = snc.boot_conflicts()
     assert any('left behind' in line and f'pkill -f {snc.BOOT_MARKER}' in line for line in hard)
+    # Compiling in /home with no port held yet, it would file as overridable — and then the stale JVM would answer
+    # boot_jvm_alive() for the new boot's whole wait. Never overridable: nothing legitimate carries the marker.
     _fake_run(monkeypatch, {_OWN: (0, '4242\n'), _PROBE: (0, 'port free\npid 4242 /home\n')})
     hard, soft = snc.boot_conflicts()
-    assert hard == [] and any('left behind' in line for line in soft)
+    assert [line for line in hard if 'left behind' in line] and soft == ["pid 4242 is building in /home (shares "
+                                                                          "the boot's target/)"]
     # Someone else's app on the port is not this script's to reap, so it gets no such advice.
     _fake_run(monkeypatch, {_OWN: (1, ''), _PROBE: (0, 'port taken\n')})
     assert not any('left behind' in line for line in sum(snc.boot_conflicts(), []))
@@ -1189,21 +1209,27 @@ def test_main_takes_the_fill_answers_from_flags_and_checks_them_against_each_oth
     _stub_steps(monkeypatch, repo_copy)
     calls = _fake_run(monkeypatch, dict(_FRESH_DB))
     prompts = []
-    answers = iter(['y', '', '', '', '', '', '', '', 'include:1 2 4'])
+    answers = iter(['y', '', '', '', '', '', '', '', 'include:1 2', 'include:1 2 4'])
 
     def answer(text):
         prompts.append(text)
         return next(answers)
 
     monkeypatch.setattr('builtins.input', answer)
-    snc.main(['testville-wa', '--skip-scan', '--tutorial-region', '4', '--regions', 'include:1 2'])
-    assert any('Tutorial region 4 must be open at launch' in text and '"include:1 2" closes it' in text
-               for text in prompts)
+    snc.main(['testville-wa', '--skip-scan', '--tutorial-region', '4'])
+    [again] = [text for text in prompts if 'Tutorial region 4 must be open at launch' in text]
+    assert '"include:1 2" closes it' in again and '[' not in again, 'the re-ask must offer no default'
     assert any(cmd[-3:] == ['sidewalk_testville_wa', '4', 'include:1 2 4'] for cmd in calls)
     assert snc.region_opens_at_launch('4', 'all') and snc.region_opens_at_launch('4', 'exclude:1 2')
     assert not snc.region_opens_at_launch('4', 'exclude:4 5') and not snc.region_opens_at_launch('4', 'include:1')
     with pytest.raises(SystemExit):
         snc.main(['testville-wa', '--regions', 'some:1'])
+    # Two flags that contradict each other are refused before anything runs: under --yes the re-ask would
+    # otherwise have nobody to answer it, and it must never turn a phased launch into "all".
+    with pytest.raises(SystemExit, match='2'):
+        snc.main(['testville-wa', '--yes', '--tutorial-region', '4', '--regions', 'include:1 2'])
+    with pytest.raises(SystemExit, match='2'):
+        snc.main(['testville-wa', '--dry-run', '--dump-only'])
     # A typed tutorial region that is not a number is asked again; the flag is typed by argparse already.
     _stub_steps(monkeypatch, repo_copy)
     calls = _fake_run(monkeypatch, dict(_FRESH_DB))
@@ -1238,3 +1264,56 @@ def test_main_dump_only_reruns_the_dump_step_alone(repo_copy, monkeypatch, capsy
     _fake_run(monkeypatch, {'true': (1, '')})
     with pytest.raises(SystemExit, match='container is not running'):
         snc.main(['testville-wa', '--dump-only'])
+
+
+def test_main_keeps_an_existing_schema_when_nobody_can_answer(repo_copy, monkeypatch, capsys):
+    """Keeping the schema is the answer that does nothing, so it is the one an unattended rerun may take (#5297)."""
+    _city_artifacts(repo_copy)
+    record = _stub_steps(monkeypatch, repo_copy)
+    _fake_run(monkeypatch, {'true': (0, ''), 'pg_namespace': (0, '1\n'), 'street_edge': (0, '170\n'),
+                            'street_imagery': (0, '167\n')})
+    answers = iter(['y', '', '', '', '', '', '', ''])
+
+    def then_eof(text):
+        try:
+            return next(answers)
+        except StopIteration:
+            raise EOFError
+
+    monkeypatch.setattr('builtins.input', then_eof)
+    snc.main(['testville-wa'])
+    out = capsys.readouterr().out
+    assert 'taking the default: n' in out and 'Keeping the existing schema' in out
+    assert record['evolutions'] == [('sidewalk_testville_wa', False)]
+
+
+def test_main_stops_on_a_kept_schema_whose_streets_cannot_be_counted(repo_copy, monkeypatch):
+    """
+    A clone interrupted mid-restore leaves the schema with a prefix of its tables. "Couldn't count" must not read
+    as "unfilled" — the same rule the dump step applies to "couldn't tell" (#5297).
+    """
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    _fake_run(monkeypatch, {'true': (0, ''), 'pg_namespace': (0, '1\n'), 'street_edge': (1, '')})
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '', 'n')
+    with pytest.raises(SystemExit, match='could not count sidewalk_testville_wa.street_edge'):
+        snc.main(['testville-wa'])
+
+
+def test_main_yes_needs_country_and_pano_type_flags_for_a_non_us_city(repo_copy, monkeypatch, capsys):
+    """A non-US city has no default country, and a non-GSV one would silently take gsv; both are flags (#5297)."""
+    _city_artifacts(repo_copy, 'atlantis-city')
+    _stub_steps(monkeypatch, repo_copy)
+
+    def no_stdin(text):
+        raise EOFError
+
+    monkeypatch.setattr('builtins.input', no_stdin)
+    with pytest.raises(SystemExit, match='"Country id.*has no default'):
+        snc.main(['atlantis-city', '--dry-run', '--yes'])
+    snc.main(['atlantis-city', '--dry-run', '--yes', '--country', 'france', '--pano-type', 'panoramax'])
+    out = capsys.readouterr().out
+    assert 'atlantis-city = "panoramax"' not in out   # dry-run writes nothing
+    assert 'would add 17 entries' in out and 'Country id' not in out and 'Pano viewer type' not in out
+    with pytest.raises(SystemExit, match='2'):
+        snc.main(['atlantis-city', '--pano-type', 'hologram'])

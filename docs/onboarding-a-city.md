@@ -113,8 +113,9 @@ worktree's artifacts and evolutions are not the ones the steps would use; it ref
 under `--dry-run`, which only previews edits to the checkout's own `conf/` files and drives no container.
 
 Unattended (CI, a scripted rebuild, an agent), pass `--yes`: every question takes its default, the review of the
-build report included, and `--donor`, `--tutorial-region` and `--regions` set the answers that have no sensible
-default. Without `--yes`, a run with nothing on stdin stops at the first question that is a choice rather than
+build report included, and `--donor`, `--country`, `--pano-type`, `--tutorial-region` and `--regions` set the
+answers that have no sensible default (a non-US city has no default country; a wrong `--regions`/`--tutorial-region`
+pair is refused up front rather than re-asked). Without `--yes`, a run with nothing on stdin stops at the first question that is a choice rather than
 letting it fall to nobody; only the cautious questions (keep an existing schema, stop before a dirty dump) take
 their default either way.
 
@@ -187,8 +188,9 @@ their default either way.
   total street distance behind the completion percentage is cached too.
 - **What the nightly jobs still owe.** Onboarding fills only what no scheduled job can produce, so a new city's
   `intersection` table (with each street's corner links, #5095), its `cluster` table, its `sidewalk_presence`
-  table, and its `osm_way` tag cache are all empty — in the dump you hand the server, too — until that city's first
-  scheduled run (04:00 + its `update_offset_hours`). AccessScore reads zero until then. An admin can force the
+  table, and its `osm_way` tag cache are all empty — in the dump you hand the server, too — until each job's first
+  nightly run (`app/actor/ScheduledJobs.scala`, shifted by the city's `update_offset_hours`). AccessScore reads
+  zero until then. An admin can force the
   intersections and clusters early from `/clustering` — on the launched site, not locally: rows a local run
   produces are what the dump step then makes you clear, since a dump is meant to hold none of them. The `osm_way`
   tags come from their own nightly refresh, and until they land every intersection is `grade_separated = FALSE`,

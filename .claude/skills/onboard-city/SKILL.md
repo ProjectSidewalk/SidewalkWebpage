@@ -93,8 +93,8 @@ script's flags go through `args=` (`make onboard-city id=<city-id> args="--skip-
 
 - `--dry-run` previews the file edits and drives no container (the one mode allowed from a worktree).
 - `--yes` takes every default without asking — the only way to run unattended; without it, a run with nothing
-  on stdin stops at the first question that is a choice. Pair it with `--donor`, `--tutorial-region` and
-  `--regions` for the answers that have no default worth taking.
+  on stdin stops at the first question that is a choice. Pair it with `--donor`, `--country`, `--pano-type`,
+  `--tutorial-region` and `--regions` for the answers that have no default worth taking.
 - **The boot gate (step 4).** The boot needs `:9000` and the main checkout's `target/`. If either is held the
   step stops and names what holds it: stop the `npm start` or `make qa-worktree` on `:9000` and rerun. A build
   in a worktree is not in the way (the caches are shared by design). `--allow-running-apps` boots past an idle
