@@ -49,6 +49,8 @@ import scala.util.{Failure, Success, Try, Using}
 class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: Materializer) {
   private val logger = Logger(this.getClass)
 
+  private val shapefilePartExtensions = Seq(".shp", ".dbf", ".shx", ".prj", ".sbn", ".sbx", ".cpg", ".fix")
+
   /**
    * Opens the GeoPackage at the given path as a data store, which the caller disposes. `DataStoreFinder` returns null
    * rather than throwing when no factory accepts the params (e.g. gt-geopkg's service file lost in packaging).
@@ -185,6 +187,12 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     }
   }
 
+  /** Deletes every part of a failed shapefile, since callers only clean up files they get back. */
+  private def deleteShapefileParts(shapefilePath: Path): Unit = {
+    val basename = shapefilePath.getFileName.toString.stripSuffix(".shp")
+    shapefilePartExtensions.foreach(ext => Try(Files.deleteIfExists(shapefilePath.resolveSibling(basename + ext))))
+  }
+
   /** Rejects attribute names over the DBF format's 10-char limit, which GeoTools would otherwise truncate silently. */
   private def requireDbfSafeNames(featureType: SimpleFeatureType): Unit = {
     val tooLong = featureType.getAttributeDescriptors.asScala.map(_.getLocalName).filter(_.length > 10)
@@ -299,12 +307,14 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         }
         .recover { case e: Exception =>
           newDataStore.dispose()
+          deleteShapefileParts(shapefilePath)
           logger.error(s"Error creating shapefile: ${e.getMessage}", e)
           None
         }
     } catch {
       case e: Exception =>
         Option(newDataStore).foreach(_.dispose())
+        deleteShapefileParts(shapefilePath)
         logger.error(s"Error setting up shapefile: ${e.getMessage}", e)
         Future.successful(None)
     }
@@ -327,9 +337,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         val directory = shapefile.getParentFile
         val basename  = shapefile.getName.substring(0, shapefile.getName.length - 4)
 
-        // Find all shapefile component files.
-        val extensions = Seq(".shp", ".dbf", ".shx", ".prj", ".sbn", ".sbx", ".cpg", ".fix")
-        extensions.foreach { ext =>
+        shapefilePartExtensions.foreach { ext =>
           val file = new File(directory, basename + ext)
           if (file.exists()) {
             zipOut.putNextEntry(new ZipEntry(file.getName))
@@ -645,12 +653,14 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         }
         .recover { case e: Exception =>
           clusterDataStore.dispose()
+          Seq(clusterShapefilePath, labelShapefilePath).foreach(deleteShapefileParts)
           logger.error(s"Error creating shapefile: ${e.getMessage}", e)
           None
         }
     } catch {
       case e: Exception =>
         Option(clusterDataStore).foreach(_.dispose())
+        Seq(clusterShapefilePath, labelShapefilePath).foreach(deleteShapefileParts)
         logger.error(s"Error setting up shapefile: ${e.getMessage}", e)
         Future.successful(None)
     }
