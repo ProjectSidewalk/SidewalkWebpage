@@ -397,6 +397,42 @@ describe('AccessScoreModel', () => {
         expect(ramp(city)).toBe(3 * onStreet + 2 * atCorner);
         expect(model.streetEndIntersectionIds(new Set([1, 2]))).toEqual(new Set([10, 11]));
         expect(model.regionIntersectionIds(2)).toEqual(new Set([11]));
+
+        // The contribution means and the problem-cluster KPI pool the same crossings, so a corner type's effect
+        // reaches the sidebar bars, the neighborhood popup, and the KPI strip rather than reading as ~0.
+        const cornerTerm = model.explainIntersection(10).terms.CurbRamp.term;
+        const segmentTerm = model.explainStreet(1).terms.CurbRamp.term;
+        expect(cornerTerm).not.toBe(0);
+        const oneC = model.contributions({ streetIds: new Set([1]) });
+        expect(oneC.intersections).toBe(2);
+        expect(oneC.clusterMeans.CurbRamp).toBe(onStreet + 2 * atCorner);
+        expect(oneC.means.CurbRamp).toBeCloseTo(segmentTerm + 2 * cornerTerm, 12);
+        const regionC = model.contributions({ regionIds: new Set([2]) });
+        expect(regionC.streets).toBe(1);
+        expect(regionC.intersections).toBe(1);
+        expect(regionC.means.CurbRamp).toBeCloseTo(segmentTerm + cornerTerm, 12);
+        const cityC = model.contributions();
+        expect(cityC.intersections).toBe(2);
+        expect(cityC.means.CurbRamp).toBeCloseTo((3 * segmentTerm + 2 * cornerTerm) / 3, 12);
+        // A region's standout compares its pooled per-street terms with the city's.
+        expect(model.notable('regions', 2).helped.type).toBe('CurbRamp');
+        // Missing curb ramps are problems; give intersection 11 some and the KPI counts them where they are.
+        const noRamps = FIXTURE.intersections.find((c) => c.cluster_counts.NoCurbRamp > 0);
+        const withProblems = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features }, {
+            type: 'FeatureCollection',
+            features: [intersectionFeature(ramps, 10, { region_id: 1 }), intersectionFeature(noRamps, 11, { region_id: 2 })],
+        }, [{ region_id: 1, name: 'A', rate: 1 }, { region_id: 2, name: 'B', rate: 1 }]);
+        // `model`'s crossings carry ramps only, so its counts are the streets' own problems: the baseline.
+        const atCorner11 = noRamps.cluster_counts.NoCurbRamp;
+        const onStreets = (m, scope) => m.kpis(scope).problemClusters;
+        expect(onStreets(withProblems)).toBe(onStreets(model) + atCorner11);
+        expect(onStreets(withProblems, { regionIds: new Set([1]) })).toBe(onStreets(model, { regionIds: new Set([1]) }));
+        expect(onStreets(withProblems, { regionIds: new Set([2]) }))
+            .toBe(onStreets(model, { regionIds: new Set([2]) }) + atCorner11);
+        // A street's scope takes its own ends: street 2 ends at the ramps-only corner, street 3 at the other.
+        expect(onStreets(withProblems, { streetIds: new Set([2]) })).toBe(onStreets(model, { streetIds: new Set([2]) }));
+        expect(onStreets(withProblems, { streetIds: new Set([3]) }))
+            .toBe(onStreets(model, { streetIds: new Set([3]) }) + atCorner11);
     });
 
     test('kpis and the histogram take a scope, and rankedRegions orders every scored region', () => {

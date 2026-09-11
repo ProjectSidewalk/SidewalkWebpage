@@ -560,11 +560,9 @@ window.AccessScoreApp = (function () {
       const score = r.score === null || r.belowFloor
         ? i18next.t('accessscore:insufficient', { percent })
         : formatScore(r.score);
-      const streetsList = model.regionStreets(id);
       const lngLat = regionCenter(id) || map.getCenter();
-      // A region's breakdown is the mean of its audited streets' terms and cluster counts.
-      const ids = new Set(streetsList.map((s) => s.streetId));
-      const { means, clusterMeans } = model.contributions({ streetIds: ids });
+      // A region's breakdown is the mean per audited street of its streets' and its crossings' terms and clusters.
+      const { means, clusterMeans } = model.contributions({ regionIds: new Set([id]) });
       const terms = Object.fromEntries(config.scored_types.map((type) => [type, {
         clusterCount: clusterMeans[type], term: means[type],
       }]));

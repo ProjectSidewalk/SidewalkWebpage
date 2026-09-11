@@ -507,20 +507,12 @@ class AccessScoreModel {
     }
     const TI = this.#intTypeIdx.length;
     let intersections = 0;
-    const addIntersection = (j) => {
+    for (const j of this.#intersectionsInScope({ streetIds, regionIds })) {
       intersections += 1;
       this.#intTypeIdx.forEach((t, u) => {
         const base = (j * TI + u) * B;
         for (let k = 0; k < B; k++) counts[t * B + k] += this.#intCounts[base + k];
       });
-    };
-    if (streetIds) {
-      for (const j of this.#endIndicesOf(streetIds)) addIntersection(j);
-    } else {
-      for (let j = 0; j < this.#m; j++) {
-        if (regionIds && !regionIds.has(this.#intRegionIds[j])) continue;
-        addIntersection(j);
-      }
     }
     let total = 0;
     const types = this.#types.map((type, t) => {
@@ -571,14 +563,39 @@ class AccessScoreModel {
   }
 
   /**
+   * The intersection array indices a scope takes in, each once: the ends of a street set, the intersections of a
+   * region set, or every intersection for the city. The one rule for every aggregate that pools crossings with
+   * streets, so What's here, the contribution bars, and the KPIs agree on which corners they are counting.
+   * @param {object} scope - `{streetIds}` or `{regionIds}`, or neither.
+   * @returns {Iterable<number>} Indices into the intersection arrays.
+   */
+  #intersectionsInScope({ streetIds, regionIds }) {
+    if (streetIds) return this.#endIndicesOf(streetIds);
+    const out = [];
+    for (let j = 0; j < this.#m; j++) {
+      if (regionIds && !regionIds.has(this.#intRegionIds[j])) continue;
+      out.push(j);
+    }
+    return out;
+  }
+
+  /**
    * Each type's mean contribution per audited street under the current state — what is driving the scores — and
    * its mean cluster count, for the same streets.
-   * @param {object} [options] - Scope.
-   * @param {Set<number>} [options.streetIds] - Restrict to these street ids.
-   * @returns {{means: Object<string, number>, clusterMeans: Object<string, number>, streets: number}} Mean term and
-   *   mean cluster count per type, and the street count behind them.
+   *
+   * The crossings are pooled in, like `clusterBreakdown`: the corner types attach to intersections almost entirely
+   * (on Teaneck, 552 of 616 missing-curb-ramp clusters sit at a crossing), so a segment-only mean would show a
+   * neighborhood with hundreds of curb ramps as unaffected by them. Each intersection in scope is counted once,
+   * and its terms and clusters are added to the type's total before the division by the audited street count.
+   *
+   * @param {object} [options] - Scope, as for `clusterBreakdown`: one of the two, or neither for the city.
+   * @param {Set<number>} [options.streetIds] - These streets plus the intersections at their ends.
+   * @param {Set<number>} [options.regionIds] - The streets and intersections of these regions.
+   * @returns {{means: Object<string, number>, clusterMeans: Object<string, number>, streets: number,
+   *   intersections: number}} Mean term and mean cluster count per type, and how many audited streets and how many
+   *   intersections were counted.
    */
-  contributions({ streetIds } = {}) {
+  contributions({ streetIds, regionIds } = {}) {
     const T = this.#types.length;
     const sums = new Float64Array(T);
     const counts = new Float64Array(T);
@@ -586,10 +603,20 @@ class AccessScoreModel {
     for (let i = 0; i < this.#n; i++) {
       if (this.#audited[i] !== 1) continue;
       if (streetIds && !streetIds.has(this.#ids[i])) continue;
+      if (regionIds && !regionIds.has(this.#regionIds[i])) continue;
       streets += 1;
       for (let t = 0; t < T; t++) {
         sums[t] += this.#terms[i * T + t];
         counts[t] += this.#clusterCounts[i * T + t];
+      }
+    }
+    const TI = this.#intTypeIdx.length;
+    let intersections = 0;
+    for (const j of this.#intersectionsInScope({ streetIds, regionIds })) {
+      intersections += 1;
+      for (let u = 0; u < TI; u++) {
+        sums[this.#intTypeIdx[u]] += this.#intTerms[j * TI + u];
+        counts[this.#intTypeIdx[u]] += this.#intClusterCounts[j * TI + u];
       }
     }
     const means = {};
@@ -598,7 +625,7 @@ class AccessScoreModel {
       means[type] = streets ? sums[t] / streets : 0;
       clusterMeans[type] = streets ? counts[t] / streets : 0;
     });
-    return { means, clusterMeans, streets };
+    return { means, clusterMeans, streets, intersections };
   }
 
   /**
@@ -613,7 +640,9 @@ class AccessScoreModel {
    * @param {Set<number>} [options.regionIds] - Restrict the region counts to these ids.
    * @returns {{cityScore: ?number, auditedStreets: number, streets: number, auditedKm: number, totalKm: number,
    *   regionsScored: number, regions: number, problemClusters: number}} The score is the length-weighted mean
-   *   over the audited streets in scope (null with none).
+   *   over the audited streets in scope (null with none); `problemClusters` counts the problem types' clusters on
+   *   the scoped streets and at the crossings the scope takes in (see `clusterBreakdown`), since a missing curb
+   *   ramp is nearly always a crossing's.
    */
   kpis({ streetIds, regionIds } = {}) {
     const T = this.#types.length;
@@ -632,6 +661,12 @@ class AccessScoreModel {
       auditedStreets += 1;
       weighted += this.#scores[i] * this.#lengths[i];
       length += this.#lengths[i];
+    }
+    const TI = this.#intTypeIdx.length;
+    for (const j of this.#intersectionsInScope({ streetIds, regionIds })) {
+      for (let u = 0; u < TI; u++) {
+        if (this.#signs[this.#intTypeIdx[u]] < 0) problemClusters += this.#intClusterCounts[j * TI + u];
+      }
     }
     let totalKm = scopedTotalM / 1000;
     let auditedKm = length / 1000;
@@ -677,8 +712,7 @@ class AccessScoreModel {
     } else {
       const r = this.explainRegion(id);
       if (!r || r.score === null || r.belowFloor) return null;
-      const ids = new Set(this.regionStreets(id).map((st) => st.streetId));
-      terms = this.contributions({ streetIds: ids }).means;
+      terms = this.contributions({ regionIds: new Set([id]) }).means;
       const city = this.#cityContributions.means;
       // The type whose per-street effect here is furthest from the city's, in absolute terms, if it is at all
       // noticeable — a tenth of a logit per street is the floor below which it is noise.
