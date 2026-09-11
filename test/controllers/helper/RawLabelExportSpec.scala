@@ -15,6 +15,7 @@ import org.apache.pekko.stream.scaladsl.Source
 import org.geotools.api.data.{DataStore, DataStoreFinder}
 import org.geotools.api.feature.simple.SimpleFeature
 import org.geotools.data.shapefile.ShapefileDataStoreFactory
+import org.geotools.feature.FeatureTypes
 import org.geotools.geopkg.GeoPkgDataStoreFactory
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, PrecisionModel}
 import org.scalatest.OptionValues
@@ -22,6 +23,7 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.Json
 
 import java.nio.file.{Files, Path}
 import java.sql.DriverManager
@@ -255,6 +257,26 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         val broken = Source(labels).concat(Source.failed(new RuntimeException("stream broke")))
         Await.result(shapefileCreator.createRawLabelShapefile(broken, base, 1), 60.seconds) mustBe None
         Using.resource(Files.list(Path.of(base).getParent))(_.count()) mustBe 0
+      }
+    }
+
+    "give each DBF text column the width its values need, not GeoTools' 254 bytes each (#4133)" in {
+      inTempDir("labels") { base =>
+        val shp    = Await.result(shapefileCreator.createRawLabelShapefile(Source(labels), base, 2), 60.seconds).value
+        val store  = openShapefile(shp)
+        val schema = store.getSchema(store.getTypeNames()(0))
+        def width(name: String): Int = FeatureTypes.getFieldLength(schema.getDescriptor(name))
+        width("userId") mustBe 36
+        width("streetSide") mustBe 8
+        width("descriptn") mustBe 254 // Free text keeps the DBF maximum.
+      }
+    }
+
+    "write pov as JSON a reader can parse" in {
+      inTempDir("labels") { base =>
+        val shp = Await.result(shapefileCreator.createRawLabelShapefile(Source(labels), base, 2), 60.seconds).value
+        val pov = Json.parse(readBack(openShapefile(shp), "labelId")._2(8).getAttribute("pov").toString)
+        (pov \ "zoom").as[Double] mustBe 2.0
       }
     }
   }

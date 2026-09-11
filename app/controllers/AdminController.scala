@@ -24,7 +24,7 @@ import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.concurrent.ThreadPoolExecutor
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
 
@@ -1218,9 +1218,21 @@ class AdminController @Inject() (
         .mkString("\n")
     )
 
+    // Stack traces here because prod gives no shell access for a thread dump, and one task hogging this small pool
+    // (also the stream materializer) slows every streamed response (#4161).
+    val stackTraces = Thread.getAllStackTraces.asScala
+    val threadCpu   = java.lang.management.ManagementFactory.getThreadMXBean
+    info.append("\n=== cpu-intensive threads ===\n")
+    stackTraces.filter { case (t, _) => t.getName.contains("cpu-intensive") }.toSeq.sortBy(_._1.getName).foreach {
+      case (thread, frames) =>
+        val cpuSeconds = threadCpu.getThreadCpuTime(thread.getId) / 1e9
+        info.append(f"${thread.getName} - State: ${thread.getState}, CPU time: $cpuSeconds%.0fs\n")
+        frames.take(15).foreach(frame => info.append(s"    at $frame\n"))
+    }
+
     // Add Slick thread monitoring
     info.append("\n=== All JVM Threads (looking for Slick) ===\n")
-    val allThreads   = Thread.getAllStackTraces.keySet.asScala
+    val allThreads   = stackTraces.keySet
     val slickThreads = allThreads.filter(t =>
       t.getName.contains("slick") ||
         t.getName.contains("database") ||

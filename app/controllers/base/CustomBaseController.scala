@@ -18,8 +18,9 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
 
   private val logger = Logger(this.getClass)
 
-  // Batch size (JDBC fetchSize) for cursor-based streaming of large query results from the db.
-  protected val DEFAULT_BATCH_SIZE: Int = 50000
+  // Batch size (JDBC fetchSize) for cursor-based streaming from the db. A batch of raw label rows is tens of MB in the
+  // driver and Slick prefetches the next one, so this caps a download's memory (#4161).
+  protected val DEFAULT_BATCH_SIZE: Int = 25000
 
   // Standard components
   override protected def controllerComponents: ControllerComponents = cc
@@ -58,19 +59,36 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    */
   protected def logStreamFailures(source: Source[String, _], label: String)(implicit
       ec: ExecutionContext
-  ): Source[String, _] =
-    source.watchTermination() { (mat, done) =>
-      done.onComplete {
-        case Failure(e) =>
-          logger.error(
-            s"API streaming response failed mid-flight for '$label'; the client received a truncated/empty body " +
-              s"after a 200 status was already sent (see #4161).",
-            e
-          )
-        case Success(_: Done) => // Stream completed normally; nothing to log.
+  ): Source[String, _] = {
+    val startedAt            = System.nanoTime()
+    var chunks               = 0L
+    var chars                = 0L
+    @volatile var reachedEnd = false
+    source
+      .map { chunk => chunks += 1; chars += chunk.length; chunk }
+      // Runs only once every row has gone out, which is how an early close (client gone, proxy or idle timeout) is
+      // told apart from completion: Pekko reports both as normal completion. Plain `concat` would pull this at start.
+      .concatLazy(Source.lazySource(() => { reachedEnd = true; Source.empty[String] }))
+      .watchTermination() { (mat, done) =>
+        done.onComplete {
+          case Failure(e) =>
+            logger.error(
+              s"API streaming response failed mid-flight for '$label'; the client received a truncated/empty body " +
+                s"after a 200 status was already sent (see #4161).",
+              e
+            )
+          case Success(_: Done) if !reachedEnd =>
+            val seconds = (System.nanoTime() - startedAt) / 1e9
+            logger.warn(
+              f"API streaming response for '$label' was cut off after $seconds%.0fs with $chunks rows ($chars chars) " +
+                "sent: the client gave up or a proxy/idle timeout closed the connection, and it got a 200 with a " +
+                "truncated body (see #4161)."
+            )
+          case Success(_: Done) => // Stream completed normally; nothing to log.
+        }
+        mat
       }
-      mat
-    }
+  }
 
   /**
    * Wraps a stream of serialized GeoJSON Features in the surrounding FeatureCollection document.

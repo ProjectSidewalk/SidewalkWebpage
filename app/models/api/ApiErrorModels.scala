@@ -83,6 +83,10 @@ object ApiError {
   def internalServerError(detail: String): ApiError =
     ApiError(500, "INTERNAL_SERVER_ERROR", "Internal Server Error", detail)
 
+  /** Creates a 429 problem detail for a request identical to one the server is still serving. */
+  def duplicateRequest(detail: String): ApiError =
+    ApiError(429, "DUPLICATE_REQUEST", "Too Many Requests", detail)
+
   /**
    * Creates a 404 problem detail for a missing resource.
    *

@@ -183,6 +183,13 @@ The `/v3` API is the canonical public surface (handlers in `app/controllers/api/
   `neighborhd`, `cameraHdng`). The DBF format hard-truncates field names to 10 chars, so shapefiles can't carry the
   canonical snake_case names regardless of casing; camelCase reclaims the byte the underscore would waste. Shapefile
   is a legacy export being phased out — GeoPackage is the modern GIS export that carries the canonical snake_case names.
+- **File-based downloads** (shapefile, GeoPackage, zipped CSVs) are built in a per-request folder under
+  `api-downloads/` in the working directory and deleted once streamed; a folder nothing has written to for two hours
+  (a client that gave up before its file was ready) is swept on the next download (#4133).
+- **One request per URL at a time.** A download's exact URL is held while it is being built and streamed, and an
+  identical request in that window gets a 429 with `Retry-After`, so a client retrying a slow download can't pile the
+  same minutes of work onto the server (#4161). A cut-off stream (client gone, proxy or idle timeout) is logged with
+  how far it got.
 - v3 is a **preview** surface: breaking changes are made in place rather than minting a new version (precedent: #4223).
 
 **Data structures (DTOs).** The response/filter types live in **`app/models/api/`** (`package models.api`), in

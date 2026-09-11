@@ -14,8 +14,7 @@ import models.api.{
   StreetDataForApi
 }
 import org.apache.pekko.stream.Materializer
-import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
-import org.apache.pekko.util.ByteString
+import org.apache.pekko.stream.scaladsl.Source
 import org.geotools.api.data.{DataStore, DataStoreFinder, SimpleFeatureStore, Transaction}
 import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.geotools.data.shapefile.ShapefileDataStoreFactory
@@ -29,7 +28,7 @@ import org.locationtech.jts.geom.{Coordinate, Envelope, Geometry, GeometryFactor
 import play.api.Logger
 import play.api.libs.json.Json
 
-import java.io.{BufferedInputStream, File}
+import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
 import java.sql.Types
@@ -486,12 +485,13 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
   }
 
   /**
-   * Creates a zip archive from the given shapefiles, saving it at s"$baseFileName.zip".
+   * Creates a zip archive from the given shapefiles, saving it at s"$baseFileName.zip" and deleting their parts.
    *
    * @param files A sequence of Paths to the shapefiles to be zipped
    * @param baseFileName The base filename for the zip archive (without extension)
+   * @return The path of the zip archive.
    */
-  def zipShapefile(files: Seq[Path], baseFileName: String): Source[ByteString, Future[Boolean]] = {
+  def zipShapefile(files: Seq[Path], baseFileName: String): Path = {
     val zipPath = new File(s"$baseFileName.zip").toPath
     val zipOut  = new ZipOutputStream(Files.newOutputStream(zipPath))
 
@@ -514,10 +514,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       }
     } finally zipOut.close()
 
-    // Set up a stream of the zip archive as a ByteString, setting it up to be deleted afterward.
-    StreamConverters
-      .fromInputStream(() => new BufferedInputStream(Files.newInputStream(zipPath)))
-      .mapMaterializedValue(_.map { _ => Files.deleteIfExists(zipPath) })
+    zipPath
   }
 
   /**
@@ -533,48 +530,54 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = {
-    // Define the feature type schema for LabelDataForApi.
-    val featureType: SimpleFeatureType = DataUtilities.createType(
-      "Location",
-      "the_geom:Point:srid=4326," // The geometry attribute: Point type
-      + "labelId:Integer,"        // Label ID
-      + "userId:String,"          // User ID
-      + "panoId:String,"          // Pano ID
-      + "panoSource:String,"      // Imagery provider (gsv, mapillary, infra3d)
-      + "labelType:String,"       // Label type
-      + "severity:Integer,"       // Severity
-      + "tags:String,"            // Tags list
-      + "descriptn:String,"       // Description
-      + "labelTime:String,"       // Creation timestamp
-      + "hiQualUser:Boolean,"     // Whether the labeler is flagged as a high-quality contributor
-      + "streetId:Integer,"       // Street edge ID
-      + "osmWayId:String,"        // OSM street ID
-      + "regionId:Integer,"       // Region (neighborhood) ID
-      + "regionName:String,"      // Region (neighborhood) name
-      + "streetSide:String,"      // Side of the street (left/right of the edge's digitized direction)
-      + "ctrOffsetM:Double,"      // Signed offset from the street centerline in metres (+ left, - right)
-      + "correct:String,"         // Validation correctness
-      + "nAgree:Integer,"         // Agree validations count
-      + "nDisagree:Integer,"      // Disagree validations count
-      + "nUnsure:Integer,"        // Unsure validations count
-      + "validatns:String,"       // Validation details
-      + "taskId:Integer,"         // Audit task ID
-      + "missionId:Integer,"      // Mission ID
-      + "imageDate:String,"       // Image capture date
-      + "pov:String,"             // { heading: Double, pitch: Double, zoom: Double }
-      + "canvasX:Integer,"        // Canvas X position
-      + "canvasY:Integer,"        // Canvas Y position
-      + "canvasWdth:Integer,"     // Canvas width
-      + "canvasHght:Integer,"     // Canvas height
-      + "panoX:Integer,"          // Panorama X position
-      + "panoY:Integer,"          // Panorama Y position
-      + "panoWidth:Integer,"      // Panorama width
-      + "panoHeight:Integer,"     // Panorama height
-      + "cameraHdng:Double,"      // Camera heading
-      + "cameraPtch:Double,"      // Camera pitch
-      + "cameraRoll:Double,"      // Camera roll
-      + "panoUrl:String"          // Provider viewer URL (empty for providers without one)
-    )
+    // DBF text columns are fixed width and default to 254 bytes, which puts Seattle's .dbf over 1GB (#4133). Values
+    // longer than a column's width are cut off.
+    val featureType: SimpleFeatureType = {
+      val builder = new SimpleFeatureTypeBuilder()
+      builder.init(DataUtilities.createType("Location", "the_geom:Point:srid=4326"))
+      def text(name: String, width: Int): Unit = {
+        builder.length(width)
+        builder.add(name, classOf[String])
+      }
+      builder.add("labelId", classOf[Integer])
+      text("userId", 36)     // UUID
+      text("panoId", 64)     // pano_data.pano_id is varchar(64)
+      text("panoSource", 16) // Imagery provider (gsv, mapillary, infra3d)
+      text("labelType", 16)
+      builder.add("severity", classOf[Integer])
+      text("tags", 254)                                     // Tags list
+      text("descriptn", 254)                                // Description
+      text("labelTime", 40)                                 // Creation timestamp, ISO 8601 with an offset
+      builder.add("hiQualUser", classOf[java.lang.Boolean]) // Whether the labeler is flagged as high quality
+      builder.add("streetId", classOf[Integer])
+      text("osmWayId", 20) // OSM street ID, a long
+      builder.add("regionId", classOf[Integer])
+      text("regionName", 100)                              // Region (neighborhood) name
+      text("streetSide", 8)                                // left/right of the edge's digitized direction
+      builder.add("ctrOffsetM", classOf[java.lang.Double]) // Signed offset from the street centerline in metres
+      text("correct", 8)                                   // Validation correctness: true/false or empty
+      builder.add("nAgree", classOf[Integer])
+      builder.add("nDisagree", classOf[Integer])
+      builder.add("nUnsure", classOf[Integer])
+      text("validatns", 254) // Validation details as JSON
+      builder.add("taskId", classOf[Integer])
+      builder.add("missionId", classOf[Integer])
+      text("imageDate", 32) // Image capture date
+      text("pov", 80)       // {"heading": Double, "pitch": Double, "zoom": Double}
+      builder.add("canvasX", classOf[Integer])
+      builder.add("canvasY", classOf[Integer])
+      builder.add("canvasWdth", classOf[Integer])
+      builder.add("canvasHght", classOf[Integer])
+      builder.add("panoX", classOf[Integer])
+      builder.add("panoY", classOf[Integer])
+      builder.add("panoWidth", classOf[Integer])
+      builder.add("panoHeight", classOf[Integer])
+      builder.add("cameraHdng", classOf[java.lang.Double])
+      builder.add("cameraPtch", classOf[java.lang.Double])
+      builder.add("cameraRoll", classOf[java.lang.Double])
+      text("panoUrl", 254) // Provider viewer URL (empty for providers without one)
+      builder.buildFeatureType()
+    }
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
 
@@ -612,7 +615,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
 
       // Combine heading/pitch/zoom into a single field so that we don't hit max number of fields.
       val povString: Option[String] = (label.heading, label.pitch, label.zoom) match {
-        case (Some(heading), Some(pitch), Some(zoom)) => Some(s"""{"heading":$heading,"pitch":$pitch,"zoom":$zoom""")
+        case (Some(heading), Some(pitch), Some(zoom)) => Some(s"""{"heading":$heading,"pitch":$pitch,"zoom":$zoom}""")
         case _                                        => None
       }
       featureBuilder.add(povString.orNull)

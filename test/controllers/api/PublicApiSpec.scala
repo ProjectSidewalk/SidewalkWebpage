@@ -1,6 +1,9 @@
 package controllers.api
 
+import controllers.api.BaseApiController
 import org.apache.pekko.stream.Materializer
+import org.scalatest.concurrent.Eventually
+import org.scalatest.time.{Seconds, Span}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -8,6 +11,10 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
 import play.api.test.Helpers._
 import play.api.test.FakeRequest
+
+import java.nio.file.Files
+import java.time.Instant
+import scala.util.Using
 
 /**
  * In-JVM functional tests for the public v3 API. Boots the real application (all modules, real Slick/PostGIS) and
@@ -20,7 +27,7 @@ import play.api.test.FakeRequest
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite {
+class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite with Eventually {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -172,6 +179,38 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=csv&inline=true")).get
       status(resp) mustBe OK
       contentAsString(resp) must include("pano_id,pano_source,label_type")
+    }
+
+    "serve two shapefile downloads asked for in the same second, and clean up after both (#4133)" in {
+      val first  = route(app, FakeRequest(GET, s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=shapefile")).get
+      val second = route(app, FakeRequest(GET, s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=shapefile&inline=true")).get
+      Seq(first, second).foreach { resp =>
+        status(resp) mustBe OK
+        contentAsBytes(resp).take(2).utf8String mustBe "PK" // Every zip archive starts with these two bytes.
+      }
+      eventually(timeout(Span(10, Seconds))) {
+        Using.resource(Files.list(BaseApiController.downloadsDir))(_.count()) mustBe 0
+      }
+    }
+
+    "answer a request identical to one still being served with 429 and Retry-After (#4161)" in {
+      val url = s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=csv"
+      BaseApiController.inFlight.put(url, new BaseApiController.InFlight(Instant.now()))
+      try {
+        val resp = route(app, FakeRequest(GET, url)).get
+        status(resp) mustBe TOO_MANY_REQUESTS
+        header(RETRY_AFTER, resp) mustBe Some("30")
+        (contentAsJson(resp) \ "code").as[String] mustBe "DUPLICATE_REQUEST"
+      } finally { val _ = BaseApiController.inFlight.remove(url) }
+
+      // A response handed to Play whose body never started streaming stops blocking after a short grace period.
+      val abandoned = new BaseApiController.InFlight(Instant.now())
+      abandoned.resultAt = Some(Instant.now().minus(BaseApiController.bodyStartGrace).minusSeconds(1))
+      BaseApiController.inFlight.put(url, abandoned)
+      val resp = route(app, FakeRequest(GET, url)).get
+      status(resp) mustBe OK
+      contentAsString(resp) must include("label_id")
+      eventually(timeout(Span(10, Seconds)))(BaseApiController.inFlight.containsKey(url) mustBe false)
     }
   }
 

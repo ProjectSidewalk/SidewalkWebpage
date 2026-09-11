@@ -6,7 +6,6 @@ import models.api.{ApiError, LabelClusterFiltersForApi, LabelClusterForApi, RawL
 import models.label.LabelTypeEnum
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
-import org.apache.pekko.util.ByteString
 import play.api.Logger
 import play.api.mvc.{Action, AnyContent}
 import play.silhouette.api.Silhouette
@@ -173,17 +172,12 @@ class LabelClustersApiController @Inject() (
               outputCSV(dbDataStream, LabelClusterForApi.csvHeader, inline, baseFileName + ".csv")
             case Some("shapefile") if filters.includeRawLabels =>
               // When raw labels are included, create both clusters and labels shapefiles in the ZIP.
-              shapefileCreator
-                .createLabelClusterShapefileWithLabels(dbDataStream, baseFileName, DEFAULT_BATCH_SIZE)
-                .map {
-                  case Some(p) =>
-                    val zipSrc: Source[ByteString, Future[Boolean]] = shapefileCreator.zipShapefile(p, baseFileName)
-                    Ok.chunked(zipSrc)
-                      .as("application/zip")
-                      .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
-                  case None =>
-                    ApiError.toResult(ApiError.internalServerError("Failed to create shapefile"))
-                }
+              outputShapefiles(
+                dbDataStream,
+                baseFileName,
+                shapefileCreator.createLabelClusterShapefileWithLabels,
+                shapefileCreator
+              )
             case Some("shapefile") =>
               outputShapefile(
                 dbDataStream,

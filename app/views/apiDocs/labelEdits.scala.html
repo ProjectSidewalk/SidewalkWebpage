@@ -181,6 +181,7 @@
     <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
     <ul>
       <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values (e.g., a malformed editTimestamp, an unknown source, a spatial filetype).</li>
+      <li><strong><code>429 Too Many Requests</code>:</strong> An identical request is already being processed; wait for it to finish (or the <code>Retry-After</code> seconds) and try again.</li>
       <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
       <li><strong><code>503 Service Unavailable</code>:</strong> The server is temporarily unable to handle the request.</li>
     </ul>
