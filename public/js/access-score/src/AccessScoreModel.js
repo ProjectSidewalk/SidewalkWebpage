@@ -24,21 +24,22 @@
  * in Seattle, about a millisecond) and the map/chart adapters read the results.
  */
 class AccessScoreModel {
-  /** The state a fresh page starts in; `weights` null means the engine's default preset. */
+  /** The state a fresh page starts in; `weights` null means the engine's default weights. */
   static DEFAULT_STATE = Object.freeze({
     unit: 'streets',
-    preset: 'default',
     weights: null,
-    severityEmphasis: 1,
-    tagsEnabled: true,
-    aggregation: 'length',
-    minCompletion: 0.5,
     showUnaudited: true,
     showClusters: true,
   });
 
+  /**
+   * The share of a region's street network that must be audited before its score is shown; below it the region is
+   * hatched. Compared on the rounded percent so the rule can never disagree with the "N% explored" the page prints.
+   */
+  static MIN_COMPLETION = 0.5;
+
   /** Histogram resolution over the 0–1 score range. */
-  static HISTOGRAM_BINS = 20;
+  static HISTOGRAM_BINS = 10;
 
   #config;
   #types;
@@ -106,7 +107,7 @@ class AccessScoreModel {
     this.#loadRegions(regions || []);
 
     this.#state = { ...AccessScoreModel.DEFAULT_STATE, ...initialState };
-    if (!this.#state.weights) this.#state.weights = { ...config.presets[this.#state.preset] || config.presets.default };
+    if (!this.#state.weights) this.#state.weights = { ...config.presets.default };
     this.#units = new Float64Array(this.#n * this.#types.length);
     this.#terms = new Float64Array(this.#n * this.#types.length);
     this.#scores = new Float64Array(this.#n);
@@ -180,24 +181,22 @@ class AccessScoreModel {
     return this.#regionStats;
   }
 
+  /** Whether every weight magnitude equals the engine's default, so the panel can say "default" or "custom". */
+  get weightsAreDefault() {
+    const defaults = this.#config.presets.default;
+    return this.#types.every((t) => Math.abs((defaults[t] ?? 0) - Math.abs(this.#state.weights[t] ?? 0)) < 1e-9);
+  }
+
   /**
-   * Applies a partial state and recomputes. A preset id sets the weights; a weights change on its own flips the
-   * preset to 'custom' unless it matches a preset exactly.
+   * Applies a partial state and recomputes. A partial `weights` merges over the current magnitudes.
    *
    * @param {object} partial - Any of the `DEFAULT_STATE` keys.
    * @returns {object} The resulting state (a copy).
    */
   setState(partial) {
     const next = { ...this.#state, ...partial };
-    if (partial.preset && partial.preset !== 'custom' && this.#config.presets[partial.preset] && !partial.weights) {
-      next.weights = { ...this.#config.presets[partial.preset] };
-    } else if (partial.weights) {
-      next.weights = { ...this.#state.weights, ...partial.weights };
-      next.preset = this.#matchingPreset(next.weights) ?? 'custom';
-    }
-    const unitsChanged = next.severityEmphasis !== this.#state.severityEmphasis;
+    if (partial.weights) next.weights = { ...this.#state.weights, ...partial.weights };
     this.#state = next;
-    if (unitsChanged) this.#recomputeUnits();
     this.#recompute();
     return this.state;
   }
@@ -235,7 +234,7 @@ class AccessScoreModel {
       });
       const weight = this.signedWeight(type);
       const weighted = weight * this.#units[base];
-      const tagAdjustment = this.#state.tagsEnabled ? this.#tagAdjustments[base] : 0;
+      const tagAdjustment = this.#tagAdjustments[base];
       const lengthFactor = this.#normalized[t] ? this.#lengthFactors[i] : 1;
       const term = this.#clusterCounts[base] > 0 ? (weighted + tagAdjustment) * lengthFactor : 0;
       preSigmoid += term;
@@ -616,17 +615,13 @@ class AccessScoreModel {
     rows.forEach((r, k) => this.#regionIndexById.set(r.region_id, k));
   }
 
-  /**
-   * The multiplier a cluster in `bucket` carries for a scoring mode, with the severity-emphasis slider applied:
-   * `1 + e × (m − 1)` pulls every rating multiplier toward 1, so 0 counts clusters and 1 is the engine's curve.
-   */
+  /** The engine's multiplier for a cluster in `bucket` under a scoring mode; 1 for modes that ignore the rating. */
   #multiplier(scoring, bucket) {
     const table = scoring === 'positive_quality'
       ? this.#config.quality_multiplier
       : scoring === 'negative_severity' ? this.#config.severity_multiplier : null;
     if (!table) return 1;
-    const m = table[bucket] ?? table[this.#config.severity_buckets[this.#config.severity_buckets.length - 1]];
-    return 1 + this.#state.severityEmphasis * (m - 1);
+    return table[bucket] ?? table[this.#config.severity_buckets[this.#config.severity_buckets.length - 1]];
   }
 
   /**
@@ -641,7 +636,7 @@ class AccessScoreModel {
     return this.#lengthPerMeters / Math.max(lengthMeters, this.#lengthMinMeters);
   }
 
-  /** Rebuilds the rating-weighted cluster counts; only the emphasis slider changes them. */
+  /** Builds the rating-weighted cluster counts once: the multipliers are the engine's and never change. */
   #recomputeUnits() {
     const T = this.#types.length;
     const B = this.#buckets.length;
@@ -664,14 +659,13 @@ class AccessScoreModel {
   #recompute() {
     const T = this.#types.length;
     const weights = this.#types.map((type) => this.signedWeight(type));
-    const tags = this.#state.tagsEnabled ? 1 : 0;
     for (let i = 0; i < this.#n; i++) {
       let x = 0;
       for (let t = 0; t < T; t++) {
         const base = i * T + t;
         const factor = this.#normalized[t] ? this.#lengthFactors[i] : 1;
         const term = this.#clusterCounts[base] > 0
-          ? (weights[t] * this.#units[base] + tags * this.#tagAdjustments[base]) * factor
+          ? (weights[t] * this.#units[base] + this.#tagAdjustments[base]) * factor
           : 0;
         this.#terms[base] = term;
         x += term;
@@ -688,13 +682,13 @@ class AccessScoreModel {
     this.#cityContributions = this.contributions();
   }
 
-  /** Aggregates audited street scores per region under the current aggregation and completion floor. */
+  /** Aggregates audited street scores per region the engine's way: a street-length-weighted mean. */
   #rollUpRegions() {
     const byRegion = new Map();
     for (let i = 0; i < this.#n; i++) {
       let acc = byRegion.get(this.#regionIds[i]);
       if (!acc) {
-        acc = { streets: 0, audited: 0, length: 0, weighted: 0, sum: 0 };
+        acc = { streets: 0, audited: 0, length: 0, weighted: 0 };
         byRegion.set(this.#regionIds[i], acc);
       }
       acc.streets += 1;
@@ -702,33 +696,22 @@ class AccessScoreModel {
       acc.audited += 1;
       acc.length += this.#lengths[i];
       acc.weighted += this.#scores[i] * this.#lengths[i];
-      acc.sum += this.#scores[i];
     }
     this.#regionStats = this.#regions.map((r) => {
-      const acc = byRegion.get(r.region_id) || { streets: 0, audited: 0, length: 0, weighted: 0, sum: 0 };
-      let score = null;
-      if (this.#state.aggregation === 'mean') score = acc.audited > 0 ? acc.sum / acc.audited : null;
-      else score = acc.length > 0 ? acc.weighted / acc.length : null;
+      const acc = byRegion.get(r.region_id) || { streets: 0, audited: 0, length: 0, weighted: 0 };
+      const score = acc.length > 0 ? acc.weighted / acc.length : null;
       const completion = Math.min(1, r.rate || 0);
       return {
         regionId: r.region_id,
         name: r.name,
         completion,
         score,
-        belowFloor: completion < this.#state.minCompletion,
+        belowFloor: Math.round(completion * 100) < Math.round(AccessScoreModel.MIN_COMPLETION * 100),
         streetCount: acc.streets,
         auditedStreetCount: acc.audited,
         totalLengthM: r.total_distance_m || 0,
         auditedLengthM: r.completed_distance_m || 0,
       };
     });
-  }
-
-  /** The preset id whose magnitudes equal `weights`, if any. */
-  #matchingPreset(weights) {
-    for (const [id, preset] of Object.entries(this.#config.presets)) {
-      if (this.#types.every((t) => Math.abs((preset[t] ?? 0) - Math.abs(weights[t] ?? 0)) < 1e-9)) return id;
-    }
-    return null;
   }
 }

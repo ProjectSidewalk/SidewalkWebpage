@@ -11,13 +11,13 @@ describe('AccessScoreHistogram', () => {
     let onHover;
     let onHoverEnd;
     let chart;
-    const N = 20;
+    const N = 10;
     const bins = (values) => values.map((value, k) => ({from: k / N, to: (k + 1) / N, value}));
 
     /** Draws the chart with a bin value equal to its index (so the last bar is the tallest) and no brush. */
     function draw(over = {}) {
         chart.draw({
-            shapeKey: 'streets', unit: 'streets', bins: bins(Array.from({length: N}, (_, k) => k)), total: 190,
+            shapeKey: 'streets', unit: 'streets', bins: bins(Array.from({length: N}, (_, k) => k)), total: 45,
             needle: {score: 0.62, label: 'City 62'}, brush: null, selection: 0.3, hover: null, ...over,
         });
     }
@@ -43,16 +43,16 @@ describe('AccessScoreHistogram', () => {
     test('renders one named button per bin, sized against a nice ceiling and colored by the ramp', () => {
         expect(buttons()).toHaveLength(N);
         // Every bin says its range and what it holds, so the chart reads without color or a pointer.
-        expect(buttons()[8].getAttribute('aria-label')).toBe('bin-streets from=40 to=45 length=length-large km=8');
+        expect(buttons()[8].getAttribute('aria-label')).toBe('bin-streets from=80 to=90 length=length-large km=8');
         expect(buttons()[8].getAttribute('data-ps-tooltip')).toBe(buttons()[8].getAttribute('aria-label'));
-        // The tallest bar (19) sits under a ceiling of 20, so the gridlines land on round figures.
+        // The tallest bar (9) sits under a ceiling of 10, so the gridlines land on round figures.
         const fills = buttons().map((b) => b.querySelector('.acs-histogram__bar'));
-        expect(fills[19].style.height).toBe('95%');
-        expect(fills[10].style.height).toBe('50%');
-        expect(document.querySelector('.acs-histogram__gridline--top span').textContent).toBe('length-large km=20');
+        expect(fills[9].style.height).toBe('90%');
+        expect(fills[5].style.height).toBe('50%');
+        expect(document.querySelector('.acs-histogram__gridline--top span').textContent).toBe('length-large km=10');
         // Each bar wears the map's color for the scores it counts.
-        expect(fills[0].style.backgroundColor).toBe(rgb(window.ScoreRamp.at(0.025)));
-        expect(fills[19].style.backgroundColor).toBe(rgb(window.ScoreRamp.at(0.975)));
+        expect(fills[0].style.backgroundColor).toBe(rgb(window.ScoreRamp.at(0.05)));
+        expect(fills[9].style.backgroundColor).toBe(rgb(window.ScoreRamp.at(0.95)));
         // Only the first bin is in the tab order; the rest are reached with the arrow keys.
         expect(buttons().map((b) => b.getAttribute('tabindex'))).toEqual(['0', ...Array(N - 1).fill('-1')]);
         // The axis doubles as the legend: which end is which, and the swatch for what carries no score.
@@ -84,7 +84,7 @@ describe('AccessScoreHistogram', () => {
     });
 
     test('shows the brush as pressed bins and mutes the rest; an empty chart says so', () => {
-        draw({brush: {from: 8, to: 12}});
+        draw({brush: {from: 8, to: 10}});
         expect(buttons()[9].getAttribute('aria-pressed')).toBe('true');
         expect(buttons()[9].classList.contains('acs-histogram__bin--out')).toBe(false);
         expect(buttons()[3].getAttribute('aria-pressed')).toBe('false');
@@ -129,29 +129,29 @@ describe('AccessScoreHistogram', () => {
         bars().getBoundingClientRect = () => ({left: 0, width: 200});
         const pointer = (type, el, clientX) =>
             el.dispatchEvent(new MouseEvent(type, {bubbles: true, clientX, button: 0}));
-        pointer('pointerdown', buttons()[3], 35);
-        pointer('pointerup', buttons()[3], 35);
+        pointer('pointerdown', buttons()[3], 70);
+        pointer('pointerup', buttons()[3], 70);
         expect(onBrush).toHaveBeenLastCalledWith({from: 3, to: 4, final: true});
 
         onBrush.mockClear();
-        pointer('pointerdown', buttons()[3], 35);
-        pointer('pointermove', buttons()[3], 55);
+        pointer('pointerdown', buttons()[3], 70);
+        pointer('pointermove', buttons()[3], 110);
         expect(onBrush).toHaveBeenLastCalledWith({from: 3, to: 6, final: false});
-        pointer('pointermove', buttons()[3], 15);
+        pointer('pointermove', buttons()[3], 30);
         expect(onBrush).toHaveBeenLastCalledWith({from: 1, to: 4, final: false});
-        pointer('pointerup', buttons()[3], 15);
+        pointer('pointerup', buttons()[3], 30);
         expect(onBrush).toHaveBeenLastCalledWith({from: 1, to: 4, final: true});
 
         // Shift+click grows the brush to the clicked bin, like Shift+Arrow.
         draw({brush: {from: 1, to: 4}});
         onBrush.mockClear();
-        pointer('pointerdown', buttons()[8], 85);
-        buttons()[8].dispatchEvent(new MouseEvent('pointerup', {bubbles: true, clientX: 85, button: 0, shiftKey: true}));
+        pointer('pointerdown', buttons()[8], 170);
+        buttons()[8].dispatchEvent(new MouseEvent('pointerup', {bubbles: true, clientX: 170, button: 0, shiftKey: true}));
         expect(onBrush).toHaveBeenLastCalledWith({from: 1, to: 9, final: true});
 
         // Resting on a bin reports a hover; leaving the bars ends it.
         onHover.mockClear();
-        pointer('pointermove', buttons()[7], 75);
+        pointer('pointermove', buttons()[7], 150);
         expect(onHover).toHaveBeenLastCalledWith(7);
         bars().dispatchEvent(new MouseEvent('pointerleave'));
         expect(onHoverEnd).toHaveBeenCalled();

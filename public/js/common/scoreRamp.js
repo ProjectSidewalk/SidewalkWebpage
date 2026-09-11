@@ -2,32 +2,16 @@
  * The AccessScore color ramp, read from the design tokens in main.css so every consumer — the api-docs preview maps,
  * the AccessScore tool's map layers, its histogram and legend — paints a given score the same color.
  *
- * The ramp is diverging: `--color-score-ramp-1` is the worst score, the middle step is the neutral 0.5 (a street
- * whose problems and features balance), and the last step is the best. The tokens carry the actual colors; this
- * file only reads them and interpolates, so a palette change is a one-line edit in main.css. A dark basemap takes
- * the `--color-score-ramp-dark-*` set through `setMode('dark')`.
+ * `--color-score-ramp-1` is the worst score and `-5` the best, with the middle step at 0.5. The tokens carry the
+ * actual colors; this file only reads them and interpolates, so a palette change is a one-line edit in main.css.
  *
  * Interpolation matches Mapbox GL's default `interpolate` (linear in sRGB), so a histogram bar colored with `at()`
  * agrees with the map feature it summarizes. Loaded as a plain script; the api-docs layout includes it directly and
  * the AccessScore bundle concatenates it.
  */
 window.ScoreRamp = (function () {
-  let mode = 'light';
-
-  /** The five token names for the current mode: `--color-score-ramp-N`, or the `-dark-N` set on a dark basemap. */
-  function tokens() {
-    return [1, 2, 3, 4, 5].map((i) => `--color-score-ramp${mode === 'dark' ? '-dark' : ''}-${i}`);
-  }
-
-  /**
-   * Switches every consumer to the ramp stepped for a light or a dark surface. Call before anything reads the
-   * ramp; nothing already painted repaints itself.
-   *
-   * @param {string} next - 'light' or 'dark'.
-   */
-  function setMode(next) {
-    mode = next === 'dark' ? 'dark' : 'light';
-  }
+  /** The five token names, worst score first. */
+  const TOKENS = [1, 2, 3, 4, 5].map((i) => `--color-score-ramp-${i}`);
 
   /** Parses a `#rrggbb` (or `#rgb`) color into [r, g, b] components 0–255. */
   function parseHex(hex) {
@@ -58,7 +42,7 @@ window.ScoreRamp = (function () {
    * @returns {Array<string>} Five hex colors.
    */
   function colors() {
-    return tokens().map(readToken);
+    return TOKENS.map(readToken);
   }
 
   /**
@@ -131,10 +115,5 @@ window.ScoreRamp = (function () {
     stops,
     expression,
     cssGradient,
-    setMode,
-    /** The mode in force, 'light' or 'dark'. */
-    get mode() {
-      return mode;
-    },
   };
 })();

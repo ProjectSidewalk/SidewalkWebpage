@@ -1,5 +1,5 @@
 /**
- * The score distribution in the AccessScore insights dock (#5217): twenty bins across 0–100, each bar colored by
+ * The score distribution in the AccessScore insights dock (#5217): ten bins across 0–100, each bar colored by
  * the ramp at its midpoint so the chart and the map paint one score one color, with a needle at the city's score
  * and carets where the hovered and the selected feature fall.
  *

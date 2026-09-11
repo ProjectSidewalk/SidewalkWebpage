@@ -59,15 +59,6 @@
           </div>
         }
 
-        @section("acs-preset-section", "preset", "Lens", "preset-help") {
-          <label class="sr-only" for="acs-preset" data-i18n="accessscore:preset">Lens</label>
-          <select id="acs-preset" class="ps-select acs-select"></select>
-          <details class="acs-details acs-details--inline" id="acs-lens-details">
-            <summary class="acs-details__summary" data-i18n="accessscore:lens-details">What does each lens change?</summary>
-            <div id="acs-lens-table" class="acs-lens-table"></div>
-          </details>
-        }
-
         <details class="acs-details acs-section" id="acs-weights-details">
           <summary class="acs-details__summary acs-details__summary--section">
             <span class="filter-sidebar__heading" data-i18n="accessscore:adjust">Adjust the weights</span>
@@ -78,21 +69,9 @@
             @info("weights-help")
           </div>
           <div id="acs-weights" class="acs-weights"></div>
-
-          <div class="acs-subsection">
-            <div class="acs-subsection-head">
-              <label class="acs-field-label" for="acs-severity" data-i18n="accessscore:severity">Severity emphasis</label>
-              @info("severity-help")
-            </div>
-            <div class="acs-slider-row">
-              <input type="range" class="acs-range" id="acs-severity" min="0" max="1" step="0.05" value="1">
-              <output id="acs-severity-value" for="acs-severity">100%</output>
-            </div>
-          </div>
         </details>
 
-        @* Every toggle in one place, so a reader looking for what is drawn or what counts has one section to scan
-           rather than three scattered ones. *@
+        @* Both toggles in one place, so a reader looking for what is drawn has one section to scan. *@
         @section("acs-options-section", "options", "Options") {
           @* The info button sits outside the label: inside it, a click on the button would toggle the checkbox. *@
           <div class="acs-check-row">
@@ -107,40 +86,6 @@
               <input type="checkbox" id="acs-show-unaudited" checked>
               <span data-i18n="accessscore:show-unaudited">Show unaudited streets</span>
             </label>
-          </div>
-          <div class="acs-check-row">
-            <label class="acs-check" for="acs-tags">
-              <input type="checkbox" id="acs-tags" checked>
-              <span data-i18n="accessscore:tags">Apply tag adjustments</span>
-            </label>
-            @info("tags-help")
-          </div>
-          <details class="acs-details acs-details--inline" id="acs-tag-details">
-            <summary class="acs-details__summary" data-i18n="accessscore:tag-details">What do tags change?</summary>
-            <div id="acs-tag-table" class="acs-lens-table"></div>
-          </details>
-          <div class="acs-check-row">
-            <label class="acs-check" for="acs-dark-map">
-              <input type="checkbox" id="acs-dark-map">
-              <span data-i18n="accessscore:dark-map">Dark map</span>
-            </label>
-            @info("dark-map-help")
-          </div>
-
-          <div id="acs-region-options" hidden>
-            <label class="acs-field-label" for="acs-aggregation" data-i18n="accessscore:aggregation">Roll-up</label>
-            <select id="acs-aggregation" class="ps-select acs-select">
-              <option value="length" data-i18n="accessscore:aggregation-length">Weight streets by length</option>
-              <option value="mean" data-i18n="accessscore:aggregation-mean">Simple mean of streets</option>
-            </select>
-            <div class="acs-subsection-head">
-              <label class="acs-field-label" for="acs-min-completion" data-i18n="accessscore:min-completion">Minimum completion</label>
-              @info("min-completion-help")
-            </div>
-            <div class="acs-slider-row">
-              <input type="range" class="acs-range" id="acs-min-completion" min="0" max="100" step="5" value="50">
-              <output id="acs-min-completion-value" for="acs-min-completion">50%</output>
-            </div>
           </div>
         }
 

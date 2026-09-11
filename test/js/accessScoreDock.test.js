@@ -63,7 +63,7 @@ describe('AccessScoreDock', () => {
     });
 
     test('draws the three views and the KPIs for the whole city on its first frame', () => {
-        expect(document.querySelectorAll('.acs-histogram__bin')).toHaveLength(20);
+        expect(document.querySelectorAll('.acs-histogram__bin')).toHaveLength(10);
         expect(document.querySelectorAll('.acs-drivers__row')).toHaveLength(FIXTURE.config.scored_types.length);
         expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(2);
         expect(document.getElementById('acs-dock-caption').textContent)
@@ -73,20 +73,20 @@ describe('AccessScoreDock', () => {
             .toBe(`kpi-of scored=${model.streetCount} total=${model.streetCount}`);
         // Every change lands in one frame: three edits before the frame, one dim write after it.
         mapView.setBrush.mockClear();
-        dock.setBrush({from: 10, to: 20});
-        dock.setBrush({from: 8, to: 20});
-        dock.setBrush({from: 6, to: 20});
+        dock.setBrush({from: 5, to: 10});
+        dock.setBrush({from: 4, to: 10});
+        dock.setBrush({from: 3, to: 10});
         expect(mapView.setBrush).not.toHaveBeenCalled();
         flush();
         expect(mapView.setBrush).toHaveBeenCalledTimes(1);
     });
 
     test('a brush filters the drivers view and dims the map outside it', () => {
-        dock.setBrush({from: 10, to: 20});
+        dock.setBrush({from: 5, to: 10});
         flush();
-        expect(lastBrush()).toEqual(idsInBins(10, 20));
-        const counted = model.clusterBreakdown({streetIds: idsInBins(10, 20)});
-        const {means} = model.contributions({streetIds: idsInBins(10, 20)});
+        expect(lastBrush()).toEqual(idsInBins(5, 10));
+        const counted = model.clusterBreakdown({streetIds: idsInBins(5, 10)});
+        const {means} = model.contributions({streetIds: idsInBins(5, 10)});
         const row = document.querySelector('.acs-drivers__row[data-type="CurbRamp"]');
         expect(row.querySelector('.acs-drivers__count').textContent)
             .toBe(String(counted.types.find((t) => t.type === 'CurbRamp').total));
@@ -99,7 +99,7 @@ describe('AccessScoreDock', () => {
         expect(shown).toEqual(expected);
         expect(document.getElementById('acs-dock-brush').hidden).toBe(false);
         expect(document.getElementById('acs-dock-brush-text').textContent)
-            .toContain(`from=50 to=100 count=${idsInBins(10, 20).size}`);
+            .toContain(`from=50 to=100 count=${idsInBins(5, 10).size}`);
         expect(document.getElementById('acs-dock-status').textContent)
             .toBe(document.getElementById('acs-dock-brush-text').textContent);
         expect(callbacks.log).toHaveBeenCalledWith('Brush', '50-100');
@@ -113,7 +113,7 @@ describe('AccessScoreDock', () => {
     });
 
     test('a hover in a view outranks the brush on the map and never drops it', () => {
-        dock.setBrush({from: 10, to: 20});
+        dock.setBrush({from: 5, to: 10});
         flush();
         const bins = document.querySelectorAll('.acs-histogram__bin');
         bins[2].dispatchEvent(new MouseEvent('pointermove', {bubbles: true}));
@@ -121,8 +121,8 @@ describe('AccessScoreDock', () => {
         expect(lastBrush()).toEqual(idsInBins(2, 3));
         document.querySelector('.acs-histogram__bars').dispatchEvent(new MouseEvent('pointerleave'));
         flush();
-        expect(lastBrush()).toEqual(idsInBins(10, 20));
-        expect(dock.state.brush).toEqual({from: 10, to: 20});
+        expect(lastBrush()).toEqual(idsInBins(5, 10));
+        expect(dock.state.brush).toEqual({from: 5, to: 10});
 
         // A rank row's hover dims to its streets and marks the row.
         const rows = document.querySelectorAll('.acs-rank__row');
@@ -134,7 +134,7 @@ describe('AccessScoreDock', () => {
     });
 
     test('mid-drag on a weight slider redraws the views but leaves the map dim state alone', () => {
-        dock.setBrush({from: 10, to: 20});
+        dock.setBrush({from: 5, to: 10});
         flush();
         mapView.setBrush.mockClear();
         model.setState({weights: {CurbRamp: 0}});
@@ -143,11 +143,11 @@ describe('AccessScoreDock', () => {
         expect(mapView.setBrush).not.toHaveBeenCalled();
         // The views did move: the brush readout follows the new membership.
         expect(document.getElementById('acs-dock-brush-text').textContent)
-            .toContain(`count=${idsInBins(10, 20).size}`);
+            .toContain(`count=${idsInBins(5, 10).size}`);
         dock.applyChange({kind: 'Weight', final: true});
         flush();
         expect(mapView.setBrush).toHaveBeenCalledTimes(1);
-        expect(lastBrush()).toEqual(idsInBins(10, 20));
+        expect(lastBrush()).toEqual(idsInBins(5, 10));
     });
 
     test('a selection marks the views and fades the rest of the map, under any brush in force', () => {
@@ -163,9 +163,9 @@ describe('AccessScoreDock', () => {
         expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(2);
 
         // A brush outranks the selection on the map; clearing it hands the map back to the selection.
-        dock.setBrush({from: 10, to: 20});
+        dock.setBrush({from: 5, to: 10});
         flush();
-        expect(lastBrush()).toEqual(idsInBins(10, 20));
+        expect(lastBrush()).toEqual(idsInBins(5, 10));
         dock.setBrush(null);
         flush();
         expect(lastBrush()).toEqual(model.regionStreetIds(2));

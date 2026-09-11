@@ -90,16 +90,12 @@ API-documentation link is followed.
 
 The AccessScore tool (`/accessScore`, `public/js/access-score/`, #5217) logs its sidebar and map interactions as the
 **`Click_module=AccessScore_<Action>`** family, on a control's settled `change` (never per slider tick):
-`AccessScore_Unit_value=<streets|regions>`, `AccessScore_Preset_value=<id>`,
-`AccessScore_Weight_value=<labelType>_value=<magnitude>`, `AccessScore_SeverityEmphasis_value=<0..1>`,
-`AccessScore_Tags_value=<bool>`, `AccessScore_Aggregation_value=<length|mean>`,
-`AccessScore_MinCompletion_value=<percent>`, `AccessScore_ShowUnaudited_value=<bool>`,
-`AccessScore_ShowClusters_value=<bool>` (the evidence layer), `AccessScore_Section_value=<weights|lenses|tags>_open=<bool>`
-(a sidebar disclosure toggled), `AccessScore_Reset`,
+`AccessScore_Unit_value=<streets|regions>`, `AccessScore_Weight_value=<labelType>_value=<magnitude>`,
+`AccessScore_ShowUnaudited_value=<bool>`, `AccessScore_ShowClusters_value=<bool>` (the evidence layer),
+`AccessScore_Section_value=weights_open=<bool>` (the weights disclosure toggled), `AccessScore_Reset`,
 `AccessScore_Select_streetId=<id>` / `AccessScore_Select_regionId=<id>` (a click on a street or neighborhood),
 `AccessScore_SelectCluster_labelType=<type>` (a click on a cluster dot, which opens the cluster sheet) and
 `AccessScore_SheetOpenLabel_labelId=<id>` (a card in that sheet opening the full label card),
-`AccessScore_DarkMap_value=<bool>` (the dark basemap toggled; the page reloads),
 `AccessScore_CopyLink`, and the popup's hops `AccessScore_ViewOnLabelMap` / `AccessScore_ExploreHere`. A click on a
 cluster dot also opens the shared label card, whose actions log as `Click_module=LabelDetail_…` (above). The insights
 dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`,

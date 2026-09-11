@@ -106,7 +106,7 @@ test.describe('/accessScore', () => {
     await expect(page.locator('#filter-sidebar')).not.toHaveClass(/filter-sidebar--loading/);
   });
 
-  test('a weight slider re-scores in the browser and flips the preset to custom', async ({page, context}) => {
+  test('a weight slider re-scores in the browser and marks the weights custom', async ({page, context}) => {
     const scoreRequests = [];
     await context.route('**/v3/api/accessScoreStreets*', (route) => {
       scoreRequests.push(route.request().url());
@@ -124,17 +124,18 @@ test.describe('/accessScore', () => {
     await page.locator('#acs-weight-CurbRamp').dispatchEvent('input');
     await page.locator('#acs-weight-CurbRamp').dispatchEvent('change');
     expect(await scoreOf(page, 1)).toBeCloseTo(0.5, 6);
-    await expect(page.locator('#acs-preset')).toHaveValue('custom');
+    await expect(page.locator('#acs-weights-summary')).toHaveText('Custom weights');
     expect(scoreRequests.length).toBe(requestsAfterLoad);
 
     // The URL carries the custom weights, so the view is shareable.
     await expect.poll(() => page.evaluate(() => new URL(window.location.href).searchParams.get('w')))
       .toContain('CurbRamp:0');
 
-    // Reset restores the default preset and the score.
+    // Reset restores the engine's weights, the score, and drops the weights from the URL.
     await page.locator('#acs-reset').click();
     expect(await scoreOf(page, 1)).toBeCloseTo(0.8176, 3);
-    await expect(page.locator('#acs-preset')).toHaveValue('default');
+    await expect(page.locator('#acs-weights-summary')).toHaveText('Default weights');
+    await expect.poll(() => page.evaluate(() => new URL(window.location.href).searchParams.has('w'))).toBe(false);
   });
 
   test('switching to neighborhoods shows the choropleth and rolls the streets up', async ({page}) => {
@@ -153,7 +154,8 @@ test.describe('/accessScore', () => {
     // Length-weighted mean of the two audited 100 m streets.
     expect(region.score).toBeCloseTo((0.8176 + 0.1192) / 2, 3);
     expect(region.belowFloor).toBe(false);
-    await expect(page.locator('#acs-region-options')).toBeVisible();
+    // The unaudited-streets toggle only means something for streets, so it steps aside here.
+    await expect(page.locator('#acs-street-options')).toBeHidden();
   });
 
   test('brushing the histogram dims the streets outside the range, clears on a second click, and never refetches',
@@ -169,17 +171,17 @@ test.describe('/accessScore', () => {
       const requestsAfterLoad = scoreRequests.length;
 
       const bins = page.locator('.acs-histogram__bin');
-      await expect(bins).toHaveCount(20);
-      // Street 1 scores 0.818 (bin 16) and street 2 scores 0.119 (bin 2): brushing bin 16 keeps 1, dims 2 — and the
+      await expect(bins).toHaveCount(10);
+      // Street 1 scores 0.818 (bin 8) and street 2 scores 0.119 (bin 1): brushing bin 8 keeps 1, dims 2 — and the
       // unaudited street 3 with it.
-      await bins.nth(16).click();
-      await expect(bins.nth(16)).toHaveAttribute('aria-pressed', 'true');
-      await expect(bins.nth(2)).toHaveClass(/acs-histogram__bin--out/);
+      await bins.nth(8).click();
+      await expect(bins.nth(8)).toHaveAttribute('aria-pressed', 'true');
+      await expect(bins.nth(1)).toHaveClass(/acs-histogram__bin--out/);
       expect(await dimOf(page, 'acs-streets', 1)).toBe(false);
       expect(await dimOf(page, 'acs-streets', 2)).toBe(true);
       expect(await dimOf(page, 'acs-streets', 3)).toBe(true);
       await expect(page.locator('#acs-dock-brush')).toBeVisible();
-      await expect.poll(() => urlParam(page, 'b')).toBe('80-85');
+      await expect.poll(() => urlParam(page, 'b')).toBe('80-90');
 
       // The drivers view is computed over the brush: only street 1's two curb ramps remain, and they help.
       await expect(page.locator('.acs-drivers__row[data-type="CurbRamp"] .acs-drivers__count')).toHaveText('2');
@@ -187,8 +189,8 @@ test.describe('/accessScore', () => {
       await expect(page.locator('.acs-drivers__row[data-type="Obstacle"] .acs-drivers__count')).toHaveText('0');
       await expect(page.locator('.acs-drivers__row').first()).toHaveAttribute('data-type', 'CurbRamp');
 
-      await bins.nth(16).click();
-      await expect(bins.nth(16)).toHaveAttribute('aria-pressed', 'false');
+      await bins.nth(8).click();
+      await expect(bins.nth(8)).toHaveAttribute('aria-pressed', 'false');
       // The pointer still rests on the bin, and a hovered bin dims the map on its own; leave it first.
       await page.mouse.move(5, 5);
       expect(await dimOf(page, 'acs-streets', 2)).toBe(false);
@@ -196,12 +198,12 @@ test.describe('/accessScore', () => {
       await expect.poll(() => urlParam(page, 'b')).toBeNull();
 
       // Keyboard: Enter on a focused bin brushes it, Escape clears it.
-      await bins.nth(2).focus();
+      await bins.nth(1).focus();
       await page.keyboard.press('Enter');
-      await expect(bins.nth(2)).toHaveAttribute('aria-pressed', 'true');
+      await expect(bins.nth(1)).toHaveAttribute('aria-pressed', 'true');
       expect(await dimOf(page, 'acs-streets', 1)).toBe(true);
       await page.keyboard.press('Escape');
-      await expect(bins.nth(2)).toHaveAttribute('aria-pressed', 'false');
+      await expect(bins.nth(1)).toHaveAttribute('aria-pressed', 'false');
 
       // The brush is browser-side arithmetic, like the sliders.
       expect(scoreRequests.length).toBe(requestsAfterLoad);
@@ -214,11 +216,11 @@ test.describe('/accessScore', () => {
       await waitForTool(page);
       await page.locator('input[name="acs-unit"][value="regions"]').check();
 
-      // The region scores 0.468 (bin 9): a brush on bin 3 dims it, one on bin 9 keeps it.
+      // The region scores 0.468 (bin 4): a brush on bin 1 dims it, one on bin 4 keeps it.
       const bins = page.locator('.acs-histogram__bin');
-      await bins.nth(3).click();
+      await bins.nth(1).click();
       expect(await dimOf(page, 'acs-regions', 1)).toBe(true);
-      await bins.nth(9).click();
+      await bins.nth(4).click();
       expect(await dimOf(page, 'acs-regions', 1)).toBe(false);
       await page.locator('#acs-dock-brush-clear').click();
 
@@ -256,19 +258,36 @@ test.describe('/accessScore', () => {
       await expect(page.locator('#acs-dock-strip')).toBeVisible();
       await expect(page.locator('.acs-dock__strip-caret')).toBeVisible();
       await expect(page.locator('#acs-dock-body')).toBeHidden();
+
+      // The map's own legend sits beside the zoom buttons in every dock state, its caret at the selection's score
+      // (the dock's entry point above bypasses the page's select(), so the map view is told directly).
+      await page.evaluate(() => window.accessScore.mapView.setSelection({unit: 'streets', id: 1}));
+      const legend = page.locator('.acs-map-legend');
+      await expect(legend).toBeVisible();
+      await expect(legend.locator('.acs-map-legend__swatch--unaudited')).toBeVisible();
+      const legendCaret = legend.locator('.acs-map-legend__caret');
+      await expect(legendCaret).toBeVisible();
+      expect(Number.parseFloat(await legendCaret.evaluate((el) => el.style.left))).toBeCloseTo(81.8, 0);
+      const [legendBox, zoomBox] = await Promise.all([
+        legend.boundingBox(), page.locator('.mapboxgl-ctrl-zoom-in').boundingBox()]);
+      expect(legendBox.x + legendBox.width).toBeLessThanOrEqual(zoomBox.x);
+      expect(Math.abs(legendBox.y - zoomBox.y)).toBeLessThan(2);
+      // In the neighborhoods unit the swatch is the hatch, since the no-score case there is the completion floor.
+      await page.locator('input[name="acs-unit"][value="regions"]').check({force: true});
+      await expect(legend.locator('.acs-map-legend__swatch--hatch')).toBeVisible();
     });
 
   test('the dock state round-trips through the URL', async ({page}) => {
-    await page.goto('/accessScore?dock=0&b=80-85');
+    await page.goto('/accessScore?dock=0&b=80-90');
     await waitForAppReady(page);
     await waitForTool(page);
     await expect(page.locator('#acs-dock')).toHaveClass(/acs-dock--collapsed/);
     await expect(page.locator('#acs-dock-toggle')).toHaveAttribute('aria-expanded', 'false');
-    expect(await page.evaluate(() => window.accessScore.dock.state)).toEqual({open: false, brush: {from: 16, to: 17}});
+    expect(await page.evaluate(() => window.accessScore.dock.state)).toEqual({open: false, brush: {from: 8, to: 9}});
 
     await page.locator('#acs-dock-toggle').click();
     await expect(page.locator('#acs-dock-body')).toBeVisible();
-    await expect(page.locator('.acs-histogram__bin').nth(16)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.acs-histogram__bin').nth(8)).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#acs-dock-caption')).toContainText('3 streets');
     await expect.poll(() => urlParam(page, 'dock')).toBeNull();
   });

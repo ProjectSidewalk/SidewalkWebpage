@@ -168,7 +168,8 @@ class AccessScoreDock {
     this.#brush = range ? { from: range.from, to: range.to } : null;
     this.#schedule({ dim: true });
     if (!final) return;
-    if (log) this.#callbacks.log('Brush', range ? `${range.from * 5}-${range.to * 5}` : 'clear');
+    const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
+    if (log) this.#callbacks.log('Brush', range ? `${range.from * step}-${range.to * step}` : 'clear');
     if (announce) this.#announce = true;
     this.#callbacks.onStateChange();
   }
@@ -378,7 +379,8 @@ class AccessScoreDock {
       return;
     }
     bar.hidden = false;
-    const range = { from: this.#brush.from * 5, to: this.#brush.to * 5 };
+    const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
+    const range = { from: this.#brush.from * step, to: this.#brush.to * step };
     let text;
     if (this.#model.state.unit === 'regions') {
       const n = this.#model.regionIdsInBins(this.#brush.from, this.#brush.to).size;
