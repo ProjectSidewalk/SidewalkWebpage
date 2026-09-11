@@ -39,6 +39,7 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   def generateUniqueAnonUser(): Future[SidewalkUserWithRole]
   def addUserStatEntryIfNew(userId: String): Future[Int]
   def updatePassword(userId: String, pwInfo: PasswordInfo): Future[Int]
+  def changePassword(userId: String, currentPassword: String, newPassword: String): Future[Boolean]
   def authenticate(email: String, pw: String): Future[LoginInfo]
   def createToken(userID: String, expiryMinutes: Int = 60): Future[String]
   def validateToken(id: String): Future[Option[AuthToken]]
@@ -284,6 +285,20 @@ class AuthenticationServiceImpl @Inject() (
       case Some(userLoginInfo) =>
         userPasswordInfoTable.update(userLoginInfo.loginInfoId, pwInfo)
       case None => DBIO.failed(new IdentityNotFoundException(s"No login info found for user ID: $userId"))
+    }
+  }
+
+  /** Replaces a user's password if `currentPassword` is right; returns false, writing nothing, if it isn't. */
+  def changePassword(userId: String, currentPassword: String, newPassword: String): Future[Boolean] = {
+    db.run(userLoginInfoTable.find(userId)).flatMap {
+      case Some(userLoginInfo) =>
+        userPasswordInfoTable.find(userLoginInfo.loginInfoId).flatMap {
+          case Some(pwInfo)
+              if passwordHasher.matches(PasswordInfo(pwInfo.hasher, pwInfo.password, pwInfo.salt), currentPassword) =>
+            updatePassword(userId, passwordHasher.hash(newPassword)).map(_ => true)
+          case _ => Future.successful(false)
+        }
+      case None => Future.failed(new IdentityNotFoundException(s"No login info found for user ID: $userId"))
     }
   }
 

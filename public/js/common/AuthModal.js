@@ -271,14 +271,16 @@ function renderAuthErrors(form, errors) {
  * Intercepts a form submit and posts it via fetch, rendering JSON errors inline instead of navigating away. Browsers
  * without JS (or if this listener never binds) fall back to the regular full-page POST, so the flow always works.
  *
- * @param {HTMLFormElement} [form] - The sign-in or sign-up form; a no-op if absent.
+ * @param {HTMLFormElement} [form] - The auth form to enhance; a no-op if absent.
+ * @param {Object} [opts]
+ * @param {function(Object): void} [opts.onSuccess] - Handles a successful reply in place of following its `redirect`.
  */
-function wireAsyncSubmit(form) {
+function wireAsyncSubmit(form, { onSuccess } = {}) {
   if (!form) return;
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearAuthErrors(form);
-    const submitBtn = form.querySelector('.au-submit');
+    const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn?.setAttribute('disabled', 'disabled');
     submitBtn?.classList.add('is-loading');
     try {
@@ -288,11 +290,14 @@ function wireAsyncSubmit(form) {
         body: new URLSearchParams(new FormData(form)),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok && data.redirect) {
+      if (res.ok && onSuccess) {
+        onSuccess(data);
+      } else if (res.ok && data.redirect) {
         window.location.assign(data.redirect);
         return; // Keep the button disabled while the browser navigates.
+      } else {
+        renderAuthErrors(form, data.errors || { _summary: form.dataset.errorGeneric });
       }
-      renderAuthErrors(form, data.errors || { _summary: form.dataset.errorGeneric });
       if (res.status === 401) {
         const pwField = form.querySelector('input[type="password"]');
         if (pwField) pwField.value = '';

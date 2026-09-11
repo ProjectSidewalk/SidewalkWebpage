@@ -760,11 +760,22 @@ dashboard.settings.username.error.allowed = Die gebruikersnaam is niet toegestaa
 dashboard.settings.username.error.taken = Die gebruikersnaam is al in gebruik.
 dashboard.settings.email = E-mail
 dashboard.settings.email.help = Wordt gebruikt om in te loggen en je wachtwoord te herstellen. Mail naar <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a> om je e-mailadres te wijzigen.
+dashboard.settings.preferences = Voorkeuren
 dashboard.settings.units = Maateenheden
 dashboard.settings.units.auto = Standaard
 dashboard.settings.units.metric = Kilometers & meters
 dashboard.settings.units.imperial = Mijlen & voet
 dashboard.settings.units.help = Afstanden op de hele site gebruiken deze eenheden. Laat het op "Standaard" staan om de maateenheden van de taal van de site te gebruiken.
+dashboard.settings.password = Wachtwoord wijzigen
+dashboard.settings.password.current = Huidig wachtwoord
+dashboard.settings.password.new = Nieuw wachtwoord
+dashboard.settings.password.new.confirm = Bevestig nieuw wachtwoord
+dashboard.settings.password.forgot = Huidig wachtwoord vergeten? <a href="{0}">Stel het opnieuw in via e-mail</a>.
+dashboard.settings.password.submit = Wachtwoord wijzigen
+dashboard.settings.password.changed = Je wachtwoord is gewijzigd.
+dashboard.settings.password.error.current = Dat is niet je huidige wachtwoord.
+dashboard.settings.password.error.same = Je nieuwe wachtwoord moet anders zijn dan je huidige.
+dashboard.settings.password.error.throttled = Te veel pogingen. Wacht maximaal {0} minuten en probeer het dan opnieuw.
 dashboard.settings.service.hours = Vrijwilligersuren
 dashboard.settings.service.hours.toggle = Aanmelden voor maatschappelijke serviceuren
 dashboard.settings.service.hours.help = Meldt je aan voor officiële erkenning — je begeleider kan je uren verifiëren — en voegt "Serviceuren" en "Tijdcontrole" toe aan je accountmenu.

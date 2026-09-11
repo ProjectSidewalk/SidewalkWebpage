@@ -1,7 +1,9 @@
 package controllers.helper
 
 import models.user.{MeasurementSystem, Role, SidewalkUserWithRole}
+import play.api.data.Form
 import play.api.i18n.Messages
+import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc.Results.{Redirect, Unauthorized}
 import play.api.mvc.{RequestHeader, Result}
 import play.silhouette.api.actions.{SecuredRequestHeader, UserAwareRequestHeader}
@@ -269,4 +271,19 @@ object ControllerUtils {
   def hasUtmParamsFlat(qString: Map[String, String]): Boolean = {
     qString.keys.exists(_.startsWith("utm_"))
   }
+
+  /**
+   * Form binding errors as the JSON `AuthModal.js`'s `renderAuthErrors` draws: `{"errors": {field -> message}}`, with
+   * form-level errors (like a password mismatch) under `_summary`.
+   */
+  def formErrorsJson(formWithErrors: Form[_])(implicit messages: Messages): JsObject = {
+    val fields = formWithErrors.errors.groupBy(_.key).toSeq.map { case (key, errs) =>
+      (if (key.isEmpty) "_summary" else key) -> JsString(Messages(errs.head.message, errs.head.args: _*))
+    }
+    Json.obj("errors" -> JsObject(fields))
+  }
+
+  /** The same JSON as [[formErrorsJson]], for one field (or `_summary`). */
+  def fieldErrorJson(field: String, message: String): JsObject =
+    Json.obj("errors" -> Json.obj(field -> message))
 }

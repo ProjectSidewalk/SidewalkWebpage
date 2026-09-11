@@ -769,11 +769,22 @@ dashboard.settings.username.error.allowed = Esse nome de usuário não é permit
 dashboard.settings.username.error.taken = Esse nome de usuário já está em uso.
 dashboard.settings.email = E-mail
 dashboard.settings.email.help = Usado para login e redefinição de senha. Para trocar seu e-mail, escreva para <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>.
+dashboard.settings.preferences = Preferências
 dashboard.settings.units = Unidades de medida
 dashboard.settings.units.auto = Padrão
 dashboard.settings.units.metric = Quilômetros e metros
 dashboard.settings.units.imperial = Milhas e pés
 dashboard.settings.units.help = As distâncias em todo o site usam estas unidades. Deixe em "Padrão" para usar as unidades de medida associadas ao idioma do site.
+dashboard.settings.password = Alterar senha
+dashboard.settings.password.current = Senha atual
+dashboard.settings.password.new = Nova senha
+dashboard.settings.password.new.confirm = Confirmar nova senha
+dashboard.settings.password.forgot = Esqueceu sua senha atual? <a href="{0}">Redefina-a por e-mail</a>.
+dashboard.settings.password.submit = Alterar senha
+dashboard.settings.password.changed = Sua senha foi alterada.
+dashboard.settings.password.error.current = Essa não é sua senha atual.
+dashboard.settings.password.error.same = A nova senha precisa ser diferente da atual.
+dashboard.settings.password.error.throttled = Muitas tentativas. Aguarde até {0} minutos e tente novamente.
 dashboard.settings.service.hours = Horas de serviço voluntário
 dashboard.settings.service.hours.toggle = Inscrever-me nas horas de serviço comunitário
 dashboard.settings.service.hours.help = Inscreve você para o reconhecimento oficial — seu supervisor pode verificar suas horas — e adiciona "Horas de serviço" e "Verificação de tempo" ao menu da sua conta.

@@ -1515,6 +1515,11 @@
   color: var(--color-neutral-900);
 }
 
+/* A subsection of a Settings section (e.g. Change password under Account): page-subhead's spacing, a heavier font. */
+.ud-settings-subhead {
+  font: var(--text-title-bold);
+}
+
 .ud-check input:enabled { cursor: pointer; }
 
 .ud-field-inline {

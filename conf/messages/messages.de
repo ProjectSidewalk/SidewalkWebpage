@@ -764,11 +764,22 @@ dashboard.settings.username.error.allowed = Dieser Benutzername ist nicht erlaub
 dashboard.settings.username.error.taken = Dieser Benutzername ist bereits vergeben.
 dashboard.settings.email = E-Mail
 dashboard.settings.email.help = Wird für die Anmeldung und das Zurücksetzen des Passworts verwendet. Um Ihre E-Mail-Adresse zu ändern, wenden Sie sich an <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>.
+dashboard.settings.preferences = Präferenzen
 dashboard.settings.units = Maßeinheiten
 dashboard.settings.units.auto = Standard
 dashboard.settings.units.metric = Kilometer & Meter
 dashboard.settings.units.imperial = Meilen & Fuß
 dashboard.settings.units.help = Entfernungen auf der ganzen Seite verwenden diese Einheiten. Lassen Sie "Standard" stehen, um die Maßeinheiten der Seitensprache zu verwenden.
+dashboard.settings.password = Passwort ändern
+dashboard.settings.password.current = Aktuelles Passwort
+dashboard.settings.password.new = Neues Passwort
+dashboard.settings.password.new.confirm = Neues Passwort wiederholen
+dashboard.settings.password.forgot = Aktuelles Passwort vergessen? <a href="{0}">Setzen Sie es per E-Mail zurück</a>.
+dashboard.settings.password.submit = Passwort ändern
+dashboard.settings.password.changed = Ihr Passwort wurde geändert.
+dashboard.settings.password.error.current = Das ist nicht Ihr aktuelles Passwort.
+dashboard.settings.password.error.same = Ihr neues Passwort muss sich von Ihrem aktuellen unterscheiden.
+dashboard.settings.password.error.throttled = Zu viele Versuche. Bitte warten Sie bis zu {0} Minuten und versuchen Sie es dann erneut.
 dashboard.settings.service.hours = Ehrenamtliche Servicestunden
 dashboard.settings.service.hours.toggle = Für gemeinnützige Servicestunden anmelden
 dashboard.settings.service.hours.help = Meldet dich für die offizielle Anerkennung an – deine Betreuungsperson kann deine Stunden bestätigen – und fügt „Servicestunden“ und „Zeitkontrolle“ zu deinem Kontomenü hinzu.

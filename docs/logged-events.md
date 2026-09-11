@@ -58,8 +58,12 @@ Every `/v3/api-docs/*` page records `Visit_APIDocs_<Endpoint>` (e.g. `Visit_APID
 Follow these when adding a page or action. A settings save that actually moves the measurement units also logs
 `Click_module=ChangeUnits_from=<auto|metric|imperial>_to=<auto|metric|imperial>` beside the `SaveSettings` event, in the
 shape of the navbar's `Click_module=ChangeLanguage_from=<lang>_to=<lang>_location=<…>_route=<…>`, so units adoption can
-be measured the same way language switching is (`auto` means "follow the site language", the default). Leaving the
-settings page with unsaved edits logs the user's answer to the shared unsaved-changes prompt
+be measured the same way language switching is (`auto` means "follow the site language", the default). The
+Settings page's change-password form (#2285) has its own button and logs, server-side, `Click_module=ChangePassword`
+on success, `ChangePasswordFailed_Reason=<WrongCurrentPassword|Invalid>` on a rejection (`Invalid` covers a new
+password that breaks the rules, doesn't match its confirmation, or equals the current one), and
+`ChangePasswordThrottled` once the account has used up its attempts (10 per 15 minutes, successes included).
+Leaving the settings page with unsaved edits logs the user's answer to the shared unsaved-changes prompt
 (`common/UnsavedChangesGuard.js`) as `Click_module=UnsavedSettings_choice=<save|discard|stay>`, so a prompt people
 mostly answer "discard" to says the form is asking too late (#5226). The browser's own refresh/close warning can't
 be logged, so this counts link clicks only. The landing page's validation grid logs

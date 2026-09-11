@@ -2,7 +2,9 @@ package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ControllerUtils
+import controllers.helper.ControllerUtils.{fieldErrorJson, formErrorsJson}
 import formats.json.UserFormats.{settingsSubmissionReads, SettingsSubmission}
+import forms.ChangePasswordForm
 import models.auth.{DefaultEnv, WithAdmin, WithSignedIn}
 import models.user.{MeasurementSystem, Role, SidewalkUserWithRole}
 import play.api.Configuration
@@ -33,7 +35,8 @@ class UserDashboardController @Inject() (
     adminService: AdminService,
     labelService: service.LabelService,
     routeService: service.RouteService,
-    authenticationService: service.AuthenticationService
+    authenticationService: service.AuthenticationService,
+    rateLimiter: service.RateLimiter
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -265,6 +268,47 @@ class UserDashboardController @Inject() (
               Ok(Json.obj("success" -> true))
             }
         }
+    }
+  }
+
+  /**
+   * Changes the signed-in user's password from Settings (#2285). A wrong current password is a 401, like a failed
+   * sign-in, so the page can reuse the auth forms' submit handling.
+   *
+   * Every attempt counts toward the limit up front, successes included, so simultaneous guesses can't slip past it
+   * and a session can't change its password back and forth forever.
+   */
+  def changePassword = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
+    val user        = request.identity
+    val throttleKey = s"change-password:user:${user.userId}"
+    val limit       = rateLimiter.limit("change-password")
+
+    if (!rateLimiter.allow(throttleKey, limit)) {
+      cc.loggingService.insert(user.userId, request.ipAddress, "ChangePasswordThrottled")
+      val retryAfter = rateLimiter.retryAfterSeconds(throttleKey).getOrElse(limit.window.toSeconds)
+      val message    = Messages("dashboard.settings.password.error.throttled", limit.window.toMinutes)
+      Future.successful(
+        TooManyRequests(fieldErrorJson("_summary", message)).withHeaders("Retry-After" -> retryAfter.toString)
+      )
+    } else {
+      ChangePasswordForm.form
+        .bindFromRequest()
+        .fold(
+          formWithErrors => {
+            cc.loggingService.insert(user.userId, request.ipAddress, "ChangePasswordFailed_Reason=Invalid")
+            Future.successful(BadRequest(formErrorsJson(formWithErrors)))
+          },
+          data =>
+            authenticationService.changePassword(user.userId, data.currentPassword, data.newPassword).map {
+              case true =>
+                cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=ChangePassword")
+                Ok(Json.obj("success" -> true, "message" -> Messages("dashboard.settings.password.changed")))
+              case false =>
+                cc.loggingService
+                  .insert(user.userId, request.ipAddress, "ChangePasswordFailed_Reason=WrongCurrentPassword")
+                Unauthorized(fieldErrorJson("currentPassword", Messages("dashboard.settings.password.error.current")))
+            }
+        )
     }
   }
 

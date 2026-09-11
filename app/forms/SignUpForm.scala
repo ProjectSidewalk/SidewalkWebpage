@@ -18,10 +18,8 @@ object SignUpForm {
         .verifying(minLength(UsernamePolicy.minLength))
         .verifying(maxLength(UsernamePolicy.maxLength))
         .verifying(pattern(UsernamePolicy.pattern, error = "authenticate.error.username.charset")),
-      "email"    -> email.verifying(nonEmpty),
-      "password" -> nonEmptyText
-        .verifying(minLength(PasswordPolicy.minLength))
-        .verifying(pattern(PasswordPolicy.pattern, error = "authenticate.error.password.requirements")),
+      "email"           -> email.verifying(nonEmpty),
+      "password"        -> PasswordPolicy.newPassword,
       "passwordConfirm" -> nonEmptyText,
       "terms"           -> boolean.verifying("authenticate.error.terms.required", value => value)
     )(SignUpData.apply)(SignUpData.unapply).verifying(
