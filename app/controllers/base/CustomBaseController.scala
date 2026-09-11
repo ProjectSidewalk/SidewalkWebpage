@@ -53,17 +53,23 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    * 200 with an empty/truncated body and no server-side trace. This logs the failure so it is at least diagnosable;
    * it does not (and cannot) change the status already sent to the client.
    *
-   * @param source The streaming body to monitor.
-   * @param label  A short identifier (e.g. the download filename) included in the log line to locate the failure.
-   * @return       The same source, with termination-failure logging attached (success behavior is unchanged).
+   * Wrap the bare rows, before any header/separator framing is woven in, so the cut-off line counts rows.
+   *
+   * @param source       The streaming body to monitor.
+   * @param label        A short identifier (e.g. the download filename) included in the log line to locate the failure.
+   * @param warnOnCutOff Whether an early end is worth a WARN. False for in-app feeds like the Label Map, where a
+   *                     user navigating away mid-load is routine and only gets an INFO line.
+   * @return             The same source, with termination-failure logging attached (success behavior is unchanged).
    */
-  protected def logStreamFailures(source: Source[String, _], label: String)(implicit
+  protected def logStreamFailures(source: Source[String, _], label: String, warnOnCutOff: Boolean = true)(implicit
       ec: ExecutionContext
   ): Source[String, _] = {
-    val startedAt            = System.nanoTime()
-    var chunks               = 0L
-    var chars                = 0L
-    @volatile var reachedEnd = false
+    val startedAt  = System.nanoTime()
+    var chunks     = 0L
+    var chars      = 0L
+    var reachedEnd = false
+    // These counters are updated on the stream's thread and read only in the termination callback, which runs after
+    // the stream's completion promise is fulfilled, so that hand-off is what makes the reads safe.
     source
       .map { chunk => chunks += 1; chars += chunk.length; chunk }
       // Runs only once every row has gone out, which is how an early close (client gone, proxy or idle timeout) is
@@ -79,11 +85,11 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
             )
           case Success(_: Done) if !reachedEnd =>
             val seconds = (System.nanoTime() - startedAt) / 1e9
-            logger.warn(
+            val message =
               f"API streaming response for '$label' was cut off after $seconds%.0fs with $chunks rows ($chars chars) " +
                 "sent: the client gave up or a proxy/idle timeout closed the connection, and it got a 200 with a " +
                 "truncated body (see #4161)."
-            )
+            if (warnOnCutOff) logger.warn(message) else logger.info(message)
           case Success(_: Done) => // Stream completed normally; nothing to log.
         }
         mat
@@ -114,8 +120,9 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    * @param label    A short identifier (e.g. the endpoint path) included in the log line if the stream fails.
    */
   protected def streamGeoJson(features: Source[JsObject, _], label: String)(implicit ec: ExecutionContext): Result = {
-    val jsonSource: Source[String, _] = geoJsonFeatureCollection(features.map(_.toString))
-    Ok.chunked(logStreamFailures(jsonSource, label)).as(ContentTypes.JSON)
+    val jsonSource: Source[String, _] =
+      geoJsonFeatureCollection(logStreamFailures(features.map(_.toString), label, warnOnCutOff = false))
+    Ok.chunked(jsonSource).as(ContentTypes.JSON)
   }
 
   // Could add other common controller utilities here. Not sure if they should be here or in ControllerUtils.scala.

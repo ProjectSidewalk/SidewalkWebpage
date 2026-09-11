@@ -5,6 +5,9 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source}
+import org.scalatest.Assertion
+import org.scalatest.concurrent.Eventually
+import org.scalatest.time.{Seconds, Span}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.slf4j.LoggerFactory
@@ -19,7 +22,7 @@ import scala.jdk.CollectionConverters._
  * Pins what a streamed API response logs when it ends early: a client that stops reading (or a proxy/idle timeout)
  * cancels the stream, which looks like a normal completion to Pekko, so it has to be told apart on purpose (#4161).
  */
-class StreamLoggingSpec extends PlaySpec with GuiceOneAppPerSuite {
+class StreamLoggingSpec extends PlaySpec with GuiceOneAppPerSuite with Eventually {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
@@ -34,36 +37,40 @@ class StreamLoggingSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   private val rows: Source[String, _] = Source(1 to 100).map(_.toString)
 
-  /** @return What the probe controller logged while `body` ran. */
-  private def logged(body: Probe => Any): Seq[String] = {
+  /**
+   * Runs `body` with the probe controller's log captured, then hands what it logged to `check`. The termination
+   * callback that logs runs on another thread after the stream ends, so `check` is retried until it passes.
+   */
+  private def logged(body: Probe => Any)(check: Seq[String] => Assertion): Unit = {
     val logger   = LoggerFactory.getLogger(classOf[Probe]).asInstanceOf[LogbackLogger]
     val appender = new ListAppender[ILoggingEvent]()
     appender.start()
     logger.addAppender(appender)
     try {
       body(new Probe)
-      Thread.sleep(500) // The termination callback runs on another thread after the stream ends.
+      val _ = eventually(timeout(Span(5, Seconds)))(check(appender.list.asScala.map(_.getFormattedMessage).toSeq))
     } finally { val _ = logger.detachAppender(appender) }
-    appender.list.asScala.map(_.getFormattedMessage).toSeq
   }
 
   "logStreamFailures" should {
-    "log nothing when every row is sent" in {
-      logged(p => Await.result(p.wrap(rows).runWith(Sink.ignore), 10.seconds)) mustBe empty
-    }
-
-    "warn with how far it got when the client stops reading early" in {
-      val messages = logged(p => Await.result(p.wrap(rows).take(5).runWith(Sink.ignore), 10.seconds))
-      messages must have size 1
-      messages.head must include("cut off")
-      messages.head must include("5 rows")
+    "log nothing when every row is sent, and count only rows when the client stops early" in {
+      // Both streams share one capture so the second, which must log, proves the callback had time to run for both.
+      logged { p =>
+        Await.result(p.wrap(rows).runWith(Sink.ignore), 10.seconds)
+        Await.result(p.wrap(rows).take(5).runWith(Sink.ignore), 10.seconds)
+      } { messages =>
+        messages must have size 1
+        messages.head must include("cut off")
+        messages.head must include("5 rows")
+      }
     }
 
     "log an error when the source itself fails" in {
-      val broken   = rows.concat(Source.failed(new RuntimeException("db went away")))
-      val messages = logged(p => Await.ready(p.wrap(broken).runWith(Sink.ignore), 10.seconds))
-      messages must have size 1
-      messages.head must include("failed mid-flight")
+      val broken = rows.concat(Source.failed(new RuntimeException("db went away")))
+      logged(p => Await.ready(p.wrap(broken).runWith(Sink.ignore), 10.seconds)) { messages =>
+        messages must have size 1
+        messages.head must include("failed mid-flight")
+      }
     }
   }
 }

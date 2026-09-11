@@ -158,9 +158,11 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
   }
 
   /**
-   * Serves one request per exact URL at a time: a heavy download is minutes of DB and CPU on prod, and a client that
-   * retries before its first attempt finishes piles that work up (#4161), so the retry gets a 429. The URL is held from
-   * here until the body ends (see [[BaseApiController.InFlight]]), so `serve` must wrap its body with [[releasing]].
+   * Serves one file download per exact URL at a time: building a file is minutes of DB and CPU on prod, and a client
+   * that retries before its first attempt finishes piles that work up (#4161), so the retry gets a 429. The URL is held
+   * from here until the body ends (see [[BaseApiController.InFlight]]), so `serve` must wrap its body with
+   * [[releasing]]. Plain streamed responses (CSV, GeoJSON) are not guarded: the site's own pages fetch the same fixed
+   * URLs concurrently, and a duplicate there costs one more DB cursor rather than a file build.
    */
   private def oneAtATime(serve: BaseApiController.InFlight => Future[Result])(implicit
       request: RequestHeader
@@ -168,6 +170,9 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
     val key   = request.uri
     val now   = Instant.now()
     val fresh = new BaseApiController.InFlight(now)
+    // Entries whose body Play never sent (client gone before the response was written) are released by nobody, so
+    // they are evicted here rather than left to pile up under every URL ever requested.
+    BaseApiController.inFlight.entrySet().removeIf(e => !e.getValue.stillBusy(now))
     val owner =
       BaseApiController.inFlight.merge(key, fresh, (current, _) => if (current.stillBusy(now)) current else fresh)
     if (owner ne fresh) {
@@ -179,31 +184,46 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
           .withHeaders(RETRY_AFTER -> "30")
       )
     } else {
-      serve(fresh).transform {
-        case Success(result) if result.header.status >= 400 => fresh.release(key); Success(result)
-        case Success(result)                                => fresh.resultAt = Some(Instant.now()); Success(result)
-        case Failure(e)                                     => fresh.release(key); Failure(e)
-      }
+      // `serve` can throw before it returns a Future (a full disk when its folder is made), which must also free the URL.
+      Try(serve(fresh)).fold(
+        e => { fresh.release(key); Future.failed(e) },
+        _.transform {
+          case Success(result) if result.header.status >= 400 => fresh.release(key); Success(result)
+          case Success(result)                                => fresh.resultAt = Some(Instant.now()); Success(result)
+          case Failure(e)                                     => fresh.release(key); Failure(e)
+        }
+      )
     }
   }
 
-  /** Marks the entry's body as started when it streams and releases the URL when it ends, however it ends. */
+  /**
+   * Marks the entry's body as started when it streams, keeps it alive while chunks flow, and releases the URL when it
+   * ends, however it ends.
+   */
   private def releasing[T](body: Source[T, _], entry: BaseApiController.InFlight)(implicit
       request: RequestHeader
   ): Source[T, _] =
     body
       .mapMaterializedValue { mat => entry.bodyStarted = true; mat }
+      .map { chunk => entry.lastSeen = Instant.now(); chunk }
       .watchTermination() { (mat, done) => done.onComplete(_ => entry.release(request.uri)); mat }
 
   /**
    * A client that gives up before its file is ready (closed tab, proxy or idle timeout) never streams it, so the
-   * delete-after-streaming step never runs; this is what deletes those folders (#4133).
+   * delete-after-streaming step never runs; this is what deletes those folders (#4133). Runs at most once per
+   * [[BaseApiController.sweepInterval]] because it is called on the request thread.
    */
   private def sweepStaleDownloadDirs(): Unit = {
-    val cutoff = Instant.now().minus(BaseApiController.staleDownloadAge)
-    Try {
-      Using.resource(Files.list(BaseApiController.downloadsDir)) { dirs =>
-        dirs.iterator().asScala.filter(Files.isDirectory(_)).toSeq.foreach { dir =>
+    val now = Instant.now()
+    if (BaseApiController.lastSweep.plus(BaseApiController.sweepInterval).isBefore(now)) {
+      BaseApiController.lastSweep = now
+      val cutoff = now.minus(BaseApiController.staleDownloadAge)
+      val dirs   = Try(Using.resource(Files.list(BaseApiController.downloadsDir))(_.iterator().asScala.toSeq))
+      dirs.failed.foreach(e => logger.warn(s"Could not sweep old download folders: ${e.getMessage}"))
+      // Folders are checked one by one: another download deleting its own folder mid-sweep is normal and must not
+      // stop the rest from being looked at.
+      dirs.getOrElse(Seq.empty).filter(Files.isDirectory(_)).foreach { dir =>
+        Try {
           val lastWrite = Using
             .resource(Files.list(dir))(_.iterator().asScala.map(Files.getLastModifiedTime(_).toInstant).maxOption)
             .getOrElse(Files.getLastModifiedTime(dir).toInstant)
@@ -213,9 +233,10 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
           }
         }
       }
-    }.failed.foreach(e => logger.warn(s"Could not sweep old download folders: ${e.getMessage}"))
+    }
   }
 
+  /** Best-effort removal of a download folder and its files; a failure (already gone, in use) is ignored. */
   private def deleteDownloadDir(dir: Path): Unit = {
     val _ = Try {
       Using.resource(Files.walk(dir))(_.sorted(java.util.Comparator.reverseOrder[Path]()).forEach(p => Files.delete(p)))
@@ -250,56 +271,46 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       csvHeader: String,
       inline: Option[Boolean],
       filename: String
-  )(implicit request: RequestHeader): Future[Result] = oneAtATime { entry =>
-    // `intersperse` puts nothing between its start element and the first row, so the header carries its own newline.
-    val csvSource: Source[String, _] = dbDataStream
-      .map(row => row.toCsvRow)
+  ): Future[Result] = {
+    // The cut-off log counts rows, so it wraps the rows before the header and newlines are woven in. `intersperse`
+    // puts nothing between its start element and the first row, so the header carries its own newline.
+    val csvSource: Source[String, _] = logStreamFailures(dbDataStream.map(row => row.toCsvRow), filename)
       .intersperse(s"$csvHeader\n", "\n", "\n")
 
     // Play's chunked(content, inline, fileName) overload emits a properly quoted Content-Disposition that honors
     // `inline`; adding a manual header here would both un-quote the filename and force `attachment`.
-    Future.successful(
-      Ok.chunked(releasing(logStreamFailures(csvSource, filename), entry), inline.getOrElse(false), Some(filename))
-        .as("text/csv")
-    )
+    Future.successful(Ok.chunked(csvSource, inline.getOrElse(false), Some(filename)).as("text/csv"))
   }
 
   /**
-   * Zips multiple CSV files together and streams the resulting ZIP archive as a response.
+   * Writes CSV files into a fresh download folder, zips them, and streams the zip as a response. The URL is held from
+   * before the CSVs are written, so a duplicate request is turned away before it does any of the work.
    *
-   * @param files A sequence of (file path, entry name) pairs for each CSV file to include in the ZIP.
    * @param baseFileName The base name for the ZIP file (without extension).
+   * @param writeCsvs Writes the CSV files into the given folder and returns (file path, zip entry name) pairs.
    * @return A Result containing the zipped CSV files as a downloadable response.
    */
-  protected def zipAndStreamCsvFiles(files: Seq[(Path, String)], baseFileName: String)(implicit
+  protected def outputZippedCsvs(baseFileName: String)(writeCsvs: Path => Future[Seq[(Path, String)]])(implicit
       request: RequestHeader
   ): Future[Result] = oneAtATime { entry =>
     val dir     = newDownloadDir()
     val zipPath = dir.resolve(s"$baseFileName.zip")
-
-    // Build the zip, always closing the output stream and cleaning up partial output if anything fails.
-    try {
-      val zipOut = new ZipOutputStream(Files.newOutputStream(zipPath))
-      try {
-        files.foreach { case (filePath, entryName) =>
-          zipOut.putNextEntry(new ZipEntry(entryName))
-          Files.copy(filePath, zipOut)
-          zipOut.closeEntry()
-          Files.deleteIfExists(filePath)
+    writeCsvs(dir)
+      .map { files =>
+        Using.resource(new ZipOutputStream(Files.newOutputStream(zipPath))) { zipOut =>
+          files.foreach { case (filePath, entryName) =>
+            zipOut.putNextEntry(new ZipEntry(entryName))
+            Files.copy(filePath, zipOut)
+            zipOut.closeEntry()
+            Files.deleteIfExists(filePath)
+          }
         }
-      } finally {
-        zipOut.close()
+        serveDownloadFile(dir, zipPath, "application/zip", s"attachment; filename=$baseFileName.zip", entry)
       }
-    } catch {
-      case NonFatal(e) =>
+      .recoverWith { case NonFatal(e) =>
         deleteDownloadDir(dir)
-        files.foreach { case (filePath, _) => Files.deleteIfExists(filePath) }
-        throw e
-    }
-
-    Future.successful(
-      serveDownloadFile(dir, zipPath, "application/zip", s"attachment; filename=$baseFileName.zip", entry)
-    )
+        Future.failed(e)
+      }
   }
 
   /**
@@ -314,13 +325,11 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       dbDataStream: Source[A, _],
       inline: Option[Boolean],
       filename: String
-  )(implicit request: RequestHeader): Future[Result] = oneAtATime { entry =>
-    val jsonSource: Source[String, _] = geoJsonFeatureCollection(dbDataStream.map(row => row.toJson.toString))
+  ): Future[Result] = {
+    val jsonSource: Source[String, _] =
+      geoJsonFeatureCollection(logStreamFailures(dbDataStream.map(row => row.toJson.toString), filename))
 
-    Future.successful(
-      Ok.chunked(releasing(logStreamFailures(jsonSource, filename), entry), inline.getOrElse(false), Some(filename))
-        .as(ContentTypes.JSON)
-    )
+    Future.successful(Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename)).as(ContentTypes.JSON))
   }
 
   /**
@@ -336,14 +345,10 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       inline: Option[Boolean],
       filename: String
   ): Future[Result] = {
-    val jsonSource: Source[String, _] = dbDataStream
-      .map(row => row.toJson.toString)
+    val jsonSource: Source[String, _] = logStreamFailures(dbDataStream.map(row => row.toJson.toString), filename)
       .intersperse("[", ",", "]")
 
-    Future.successful(
-      Ok.chunked(logStreamFailures(jsonSource, filename), inline.getOrElse(false), Some(filename))
-        .as(ContentTypes.JSON)
-    )
+    Future.successful(Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename)).as(ContentTypes.JSON))
   }
 
   /**
@@ -418,8 +423,10 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       inline: Option[Boolean]
   )(implicit request: RequestHeader): Future[Result] = oneAtATime { entry =>
     val dir = newDownloadDir()
-    try {
-      createGeopackageMethod(source, dir.resolve(baseFileName).toString, DEFAULT_BATCH_SIZE).map {
+    // `flatMap` turns a builder that throws outright into a failed Future, so one `recover` covers both.
+    Future.unit
+      .flatMap(_ => createGeopackageMethod(source, dir.resolve(baseFileName).toString, DEFAULT_BATCH_SIZE))
+      .map {
         case Some(geopackagePath) =>
           val fileName           = s"$baseFileName.gpkg"
           val contentDisposition = if (inline.getOrElse(false)) {
@@ -434,14 +441,11 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
           logger.error("Failed to create GeoPackage file")
           ApiError.toResult(ApiError.internalServerError("Failed to create GeoPackage file"))
       }
-    } catch {
-      case e: Exception =>
+      .recover { case NonFatal(e) =>
         deleteDownloadDir(dir)
         logger.error(s"Error creating GeoPackage output: ${e.getMessage}", e)
-        Future.successful(
-          ApiError.toResult(ApiError.internalServerError(s"Error creating GeoPackage: ${e.getMessage}"))
-        )
-    }
+        ApiError.toResult(ApiError.internalServerError(s"Error creating GeoPackage: ${e.getMessage}"))
+      }
   }
 }
 
@@ -572,7 +576,16 @@ object BaseApiController {
   /** Download URLs being served right now; see [[InFlight]]. */
   val inFlight: ConcurrentHashMap[String, InFlight] = new ConcurrentHashMap()
 
-  /** No download builds or streams longer than this; an older entry has leaked and stops blocking its URL. */
+  /** The stale-folder sweep runs on the request thread, so it runs at most this often. */
+  val sweepInterval: Duration = Duration.ofMinutes(5)
+
+  /** When the stale-folder sweep last ran. */
+  @volatile var lastSweep: Instant = Instant.EPOCH
+
+  /**
+   * A download that shows no sign of life (no build finished, no chunk sent) for this long has leaked and stops
+   * blocking its URL. It is a backstop, not a cap: a body that is still streaming stays busy however long it takes.
+   */
   val inFlightLimit: Duration = Duration.ofMinutes(15)
 
   /** Play sends a body as soon as the action returns, so one that hasn't started by then was never going to. */
@@ -586,12 +599,12 @@ object BaseApiController {
   final class InFlight(val started: Instant) {
     @volatile var resultAt: Option[Instant] = None
     @volatile var bodyStarted: Boolean      = false
+    @volatile var lastSeen: Instant         = started
 
     /** @return Whether this entry should still turn away an identical request at `now`. */
     def stillBusy(now: Instant): Boolean = resultAt match {
-      case None                   => started.plus(inFlightLimit).isAfter(now)
-      case Some(_) if bodyStarted => started.plus(inFlightLimit).isAfter(now)
-      case Some(handedOver)       => handedOver.plus(bodyStartGrace).isAfter(now)
+      case Some(handedOver) if !bodyStarted => handedOver.plus(bodyStartGrace).isAfter(now)
+      case _                                => lastSeen.plus(inFlightLimit).isAfter(now)
     }
 
     /** Frees the URL, unless a later request has already taken it over. */

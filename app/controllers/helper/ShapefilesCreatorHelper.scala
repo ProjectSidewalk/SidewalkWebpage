@@ -541,7 +541,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       }
       builder.add("labelId", classOf[Integer])
       text("userId", 36)     // UUID
-      text("panoId", 64)     // pano_data.pano_id is varchar(64)
+      text("panoId", 128)    // Google photosphere ids are 64 chars today; room for a longer provider id
       text("panoSource", 16) // Imagery provider (gsv, mapillary, infra3d)
       text("labelType", 16)
       builder.add("severity", classOf[Integer])
@@ -563,7 +563,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       builder.add("taskId", classOf[Integer])
       builder.add("missionId", classOf[Integer])
       text("imageDate", 32) // Image capture date
-      text("pov", 80)       // {"heading": Double, "pitch": Double, "zoom": Double}
+      text("pov", 100)      // {"heading": Double, "pitch": Double, "zoom": Double}; three 17-digit doubles fit
       builder.add("canvasX", classOf[Integer])
       builder.add("canvasY", classOf[Integer])
       builder.add("canvasWdth", classOf[Integer])

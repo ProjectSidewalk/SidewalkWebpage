@@ -269,6 +269,7 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         width("userId") mustBe 36
         width("streetSide") mustBe 8
         width("descriptn") mustBe 254 // Free text keeps the DBF maximum.
+        width("pov") mustBe 100       // Three full-precision doubles need up to 86 chars.
       }
     }
 

@@ -193,8 +193,8 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite with Eventually {
       }
     }
 
-    "answer a request identical to one still being served with 429 and Retry-After (#4161)" in {
-      val url = s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=csv"
+    "answer a file download identical to one still being built with 429 and Retry-After (#4161)" in {
+      val url = s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=shapefile"
       BaseApiController.inFlight.put(url, new BaseApiController.InFlight(Instant.now()))
       try {
         val resp = route(app, FakeRequest(GET, url)).get
@@ -209,8 +209,27 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite with Eventually {
       BaseApiController.inFlight.put(url, abandoned)
       val resp = route(app, FakeRequest(GET, url)).get
       status(resp) mustBe OK
-      contentAsString(resp) must include("label_id")
+      contentAsBytes(resp).take(2).utf8String mustBe "PK"
       eventually(timeout(Span(10, Seconds)))(BaseApiController.inFlight.containsKey(url) mustBe false)
+    }
+
+    "keep serving a plain streamed URL that is already being served: the site's own pages fetch these in parallel" in {
+      val url = s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=geojson"
+      BaseApiController.inFlight.put(url, new BaseApiController.InFlight(Instant.now()))
+      try {
+        val resp = route(app, FakeRequest(GET, url)).get
+        status(resp) mustBe OK
+        (contentAsJson(resp) \ "type").as[String] mustBe "FeatureCollection"
+      } finally { val _ = BaseApiController.inFlight.remove(url) }
+    }
+
+    "stay busy while a slow body is still streaming, however long ago it started" in {
+      val entry = new BaseApiController.InFlight(Instant.now().minus(BaseApiController.inFlightLimit).minusSeconds(60))
+      entry.resultAt = Some(entry.started.plusSeconds(1))
+      entry.bodyStarted = true
+      entry.stillBusy(Instant.now()) mustBe false // Nothing sent since it started: treated as leaked.
+      entry.lastSeen = Instant.now()
+      entry.stillBusy(Instant.now()) mustBe true
     }
   }
 
@@ -287,6 +306,15 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite with Eventually {
       val knownSources = models.pano.PanoSource.values.map(_.toString)
       rawLabels.foreach { label =>
         (label \ "pano_source").asOpt[String].foreach { source => knownSources must contain(source) }
+      }
+    }
+
+    "zip the clusters and labels CSVs and clean up the folder they were written in (#4133)" in {
+      val resp = route(app, FakeRequest(GET, s"/v3/api/labelClusters?includeRawLabels=true&filetype=csv")).get
+      status(resp) mustBe OK
+      contentAsBytes(resp).take(2).utf8String mustBe "PK"
+      eventually(timeout(Span(10, Seconds))) {
+        Using.resource(Files.list(BaseApiController.downloadsDir))(_.count()) mustBe 0
       }
     }
   }

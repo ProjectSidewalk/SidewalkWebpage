@@ -186,10 +186,11 @@ The `/v3` API is the canonical public surface (handlers in `app/controllers/api/
 - **File-based downloads** (shapefile, GeoPackage, zipped CSVs) are built in a per-request folder under
   `api-downloads/` in the working directory and deleted once streamed; a folder nothing has written to for two hours
   (a client that gave up before its file was ready) is swept on the next download (#4133).
-- **One request per URL at a time.** A download's exact URL is held while it is being built and streamed, and an
-  identical request in that window gets a 429 with `Retry-After`, so a client retrying a slow download can't pile the
-  same minutes of work onto the server (#4161). A cut-off stream (client gone, proxy or idle timeout) is logged with
-  how far it got.
+- **One file download per URL at a time.** A file-based download's exact URL is held while it is being built and
+  streamed, and an identical request in that window gets a 429 with `Retry-After`, so a client retrying a slow download
+  can't pile the same minutes of work onto the server (#4161). Plain streamed CSV/GeoJSON is not guarded: the site's
+  own pages fetch the same fixed URLs concurrently. Any cut-off stream (client gone, proxy or idle timeout) is logged
+  with how many rows it got through.
 - v3 is a **preview** surface: breaking changes are made in place rather than minting a new version (precedent: #4223).
 
 **Data structures (DTOs).** The response/filter types live in **`app/models/api/`** (`package models.api`), in
