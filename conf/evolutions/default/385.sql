@@ -23,15 +23,39 @@ CREATE TABLE IF NOT EXISTS sidewalk_login.user_settings (
 );
 ALTER TABLE sidewalk_login.user_settings OWNER TO sidewalk;
 
--- user_role.community_service is copied rather than moved. Prod restarts cities one at a time, and a city still on the
--- old code reads that column on every page, so it's dropped in a later release (#5306). The join skips any user_role
--- row whose account is missing, which the FK would otherwise reject.
+-- Prod restarts cities one at a time, so for a few minutes some cities still run the previous release, which reads and
+-- writes user_role.community_service. Until #5306 drops that column, this release writes the flag to both places, so
+-- user_role stays current and each city's run can sync user_settings from it. That also carries over changes made in
+-- cities that hadn't restarted yet. The join skips any user_role row whose account is missing, which the FK would
+-- reject. user_role has no index on community_service, so this reads the whole table: about 0.3 s for the 6.2M rows
+-- in the dev copy of the prod users dump. The column is dropped soon, so an index isn't worth building.
 INSERT INTO sidewalk_login.user_settings (user_id, community_service)
-SELECT user_role.user_id, TRUE
+SELECT user_role.user_id, BOOL_OR(user_role.community_service)
 FROM sidewalk_login.user_role
 INNER JOIN sidewalk_login.sidewalk_user ON sidewalk_user.user_id = user_role.user_id
-WHERE user_role.community_service
-ON CONFLICT (user_id) DO NOTHING;
+LEFT JOIN sidewalk_login.user_settings ON user_settings.user_id = user_role.user_id
+WHERE user_role.community_service OR user_settings.user_id IS NOT NULL
+GROUP BY user_role.user_id
+ON CONFLICT (user_id) DO UPDATE SET community_service = EXCLUDED.community_service;
+
+-- The previous release kept a units choice only in a per-city cookie, which this release doesn't read, but it also
+-- logged every change as Click_module=ChangeUnits_from=<choice>_to=<choice>. Each user's latest change in this city
+-- becomes their saved choice unless their account already has one. A latest choice of "auto" means no saved choice.
+-- webpage_activity has no index on activity, so this reads the whole table: about 0.1 s for the dev DB's 2.2M-row
+-- Seattle table.
+INSERT INTO sidewalk_login.user_settings (user_id, measurement_system)
+SELECT latest_change.user_id, latest_change.choice::sidewalk_login.measurement_system
+FROM (
+  SELECT DISTINCT ON (webpage_activity.user_id) webpage_activity.user_id,
+         substring(webpage_activity.activity FROM '_to=([a-z]+)$') AS choice
+  FROM webpage_activity
+  WHERE webpage_activity.activity LIKE 'Click\_module=ChangeUnits\_%'
+  ORDER BY webpage_activity.user_id, webpage_activity.webpage_activity_id DESC
+) AS latest_change
+INNER JOIN sidewalk_login.sidewalk_user ON sidewalk_user.user_id = latest_change.user_id
+WHERE latest_change.choice IN ('metric', 'imperial')
+ON CONFLICT (user_id) DO UPDATE SET measurement_system = EXCLUDED.measurement_system
+WHERE user_settings.measurement_system IS NULL;
 
 -- A NULL explore_tutorial_completed_at means the user hasn't finished or skipped the Explore tutorial anywhere yet.
 CREATE TABLE IF NOT EXISTS sidewalk_login.user_state (
@@ -54,17 +78,6 @@ SET explore_tutorial_completed_at =
   LEAST(user_state.explore_tutorial_completed_at, EXCLUDED.explore_tutorial_completed_at);
 
 # --- !Downs
--- The old code reads community_service from user_role, so changes made since the Ups are copied back first. Downs run
--- once per city too, so every run after the first finds the tables already gone.
-DO $$
-BEGIN
-  IF to_regclass('sidewalk_login.user_settings') IS NOT NULL THEN
-    UPDATE sidewalk_login.user_role SET community_service = user_settings.community_service
-    FROM sidewalk_login.user_settings
-    WHERE user_role.user_id = user_settings.user_id;;
-  END IF;;
-END $$;
-
-DROP TABLE IF EXISTS sidewalk_login.user_state;
-DROP TABLE IF EXISTS sidewalk_login.user_settings;
-DROP TYPE IF EXISTS sidewalk_login.measurement_system;
+-- Deliberately empty. Downs run once per city, so dropping the tables would break every city still running this
+-- release, and the previous release never reads them. Nothing needs copying back either, since this release keeps
+-- user_role.community_service current until #5306.

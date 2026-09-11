@@ -258,7 +258,9 @@ class AdminController @Inject() (
                       _ <- teamId
                         .map(id => userService.setUserTeam(userId, id))
                         .getOrElse(userService.leaveTeam(userId))
-                      _ <- userService.setCommunityService(userId, s.communityService)
+                      _ <-
+                        if (serviceChanged) userService.setCommunityService(userId, s.communityService)
+                        else Future.successful(0)
                       // newRole is defined here: an unrecognized one was refused by the assignable-roles check above.
                       _ <- newRole
                         .filter(_ => roleChanged)

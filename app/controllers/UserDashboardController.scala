@@ -2,7 +2,6 @@ package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ControllerUtils
-import controllers.helper.ControllerUtils.UnitsOverride
 import formats.json.UserFormats.{settingsSubmissionReads, SettingsSubmission}
 import models.auth.{DefaultEnv, WithAdmin, WithSignedIn}
 import models.user.{MeasurementSystem, Role, SidewalkUserWithRole}
@@ -183,7 +182,7 @@ class UserDashboardController @Inject() (
    */
   def settings = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
     val user        = request.identity
-    val unitsChoice = ControllerUtils.unitsChoice
+    val unitsChoice = MeasurementSystem.choiceName(user.measurementSystem)
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
       openTeams  <- userService.getAllOpenTeams
@@ -207,8 +206,7 @@ class UserDashboardController @Inject() (
    * username that fails validation (length, allowed characters, profanity, or already taken) refuses the whole save
    * with a 400 and a user-facing message before anything is written; the rename itself is the last write.
    *
-   * Units and community service hours are saved to the account, so they apply in every city (#3720). Units are also
-   * copied into this city's cookie, which is what the site falls back to once the user signs out.
+   * Units and community service hours are saved to the account, so they apply in every city (#3720).
    */
   def saveSettings = cc.securityService.SecuredAction(WithSignedIn(), parse.json) { implicit request =>
     val user                    = request.identity
@@ -219,13 +217,15 @@ class UserDashboardController @Inject() (
       case JsSuccess(s, _) =>
         val teamId       = s.teamId.filter(_ > 0)
         val usernameEdit = s.username.filter(_ != user.username)
-        val unitsWere    = ControllerUtils.unitsChoice
-        // Absent field means "this caller isn't touching units", which has to stay distinct from an explicit "auto" —
-        // otherwise any save that omits it silently wipes the reader's stored choice.
-        val unitsSubmitted = s.measurementSystem
-          .filter(system => MeasurementSystem.fromString(system).isDefined || system == UnitsOverride.FollowLanguage)
-        val unitsNow                                     = unitsSubmitted.getOrElse(unitsWere)
-        val unitsToSave: Option[MeasurementSystem.Value] = MeasurementSystem.fromString(unitsNow)
+        // An absent field means "this caller isn't touching it" (the /welcome privacy toggles post only their two
+        // flags), which has to stay distinct from an explicit "auto", or those saves would wipe the user's choice.
+        val unitsEdit: Option[Option[MeasurementSystem.Value]] = s.measurementSystem
+          .filter(choice =>
+            choice == MeasurementSystem.FollowLanguage || MeasurementSystem.fromString(choice).isDefined
+          )
+          .map(MeasurementSystem.fromString)
+          .filter(_ != user.measurementSystem)
+        val serviceEdit: Option[Boolean] = s.communityService.filter(_ != user.communityService)
 
         // Only the username can be refused, so it's checked before the first write and renamed after the last one.
         val usernameCheck: Future[Either[String, Unit]] = usernameEdit
@@ -240,14 +240,12 @@ class UserDashboardController @Inject() (
               _ <- teamId
                 .map(id => userService.setUserTeam(user.userId, id))
                 .getOrElse(Future.successful(0))
-              _ <- s.communityService
+              _ <- serviceEdit
                 .map(cs => userService.setCommunityService(user.userId, cs))
                 .getOrElse(Future.successful(0))
-              // Compared with what the account has saved rather than with unitsWere, so that a choice only this city's
-              // cookie knew about gets saved to the account the next time the form is saved.
-              _ <-
-                if (unitsToSave != user.measurementSystem) userService.setMeasurementSystem(user.userId, unitsToSave)
-                else Future.successful(0)
+              _ <- unitsEdit
+                .map(units => userService.setMeasurementSystem(user.userId, units))
+                .getOrElse(Future.successful(0))
               _ <- usernameEdit
                 .map(name => userService.changeUsername(user.userId, name))
                 .getOrElse(Future.successful(Right(user.username)))
@@ -255,15 +253,16 @@ class UserDashboardController @Inject() (
               cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=SaveSettings")
               // Logged separately from the save, and only on a real change, so units can be analyzed the way the
               // navbar's ChangeLanguage already is rather than being buried in every settings save.
-              if (unitsNow != unitsWere) {
-                cc.loggingService
-                  .insert(user.userId, request.ipAddress, s"Click_module=ChangeUnits_from=${unitsWere}_to=$unitsNow")
+              unitsEdit.foreach { units =>
+                val (from, to) =
+                  (MeasurementSystem.choiceName(user.measurementSystem), MeasurementSystem.choiceName(units))
+                cc.loggingService.insert(
+                  user.userId,
+                  request.ipAddress,
+                  s"Click_module=ChangeUnits_from=${from}_to=$to"
+                )
               }
-              val result = Ok(Json.obj("success" -> true))
-              unitsToSave match {
-                case Some(system) => result.withCookies(UnitsOverride.overrideCookie(system))
-                case None         => result.discardingCookies(UnitsOverride.clearOverrideCookie)
-              }
+              Ok(Json.obj("success" -> true))
             }
         }
     }

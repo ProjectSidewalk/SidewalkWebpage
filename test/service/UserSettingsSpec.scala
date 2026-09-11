@@ -49,8 +49,15 @@ class UserSettingsSpec extends PlaySpec with org.scalatest.BeforeAndAfterAll wit
   /** The user as a request would see them. */
   private def reload(userId: String): SidewalkUserWithRole = await(authService.findByUserId(userId)).value
 
-  /** Deletes the settings rows. The bare user/auth rows are left behind, matching ExploreTutorialRouteSpec. */
+  /** Accounts a test promoted, put back to Anonymous in afterAll so no standing Registered account is left behind. */
+  private val promotedUserIds = scala.collection.mutable.Set[String]()
+
+  /**
+   * Deletes the settings rows and undoes promotions. The bare user/auth rows are left behind, matching
+   * ExploreTutorialRouteSpec.
+   */
   override def afterAll(): Unit = {
+    promotedUserIds.foreach(userId => await(authService.updateRole(userId, Role.Anonymous)))
     val _ = run(TableQuery[UserSettingsTableDef].filter(_.userId inSet createdUserIds.toSeq).delete)
     super.afterAll()
   }
@@ -81,6 +88,7 @@ class UserSettingsSpec extends PlaySpec with org.scalatest.BeforeAndAfterAll wit
     "keep service-hours tracking on through a role change" in {
       val userId = newAnonUser().userId
       await(userService.setCommunityService(userId, enabled = true))
+      promotedUserIds += userId
       await(authService.updateRole(userId, Role.Registered))
 
       reload(userId).communityService mustBe true

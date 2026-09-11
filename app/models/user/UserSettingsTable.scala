@@ -60,15 +60,21 @@ class UserSettingsTable @Inject() (protected val dbConfigProvider: DatabaseConfi
   /**
    * Turns community service hour tracking on or off without touching the user's other settings.
    *
+   * Also written to `user_role.community_service` until #5306 drops that column. Prod restarts cities one at a time,
+   * so a city still on the previous release reads that column, and each city's run of evolution 385 syncs
+   * `user_settings` from it.
+   *
    * @param userId  The user making the choice.
    * @param enabled Whether they're tracking their time for community service hours.
-   * @return        The number of rows written.
+   * @return        The number of `user_settings` rows written.
    */
   def setCommunityService(userId: String, enabled: Boolean): DBIO[Int] = {
-    sqlu"""
+    val saveSetting = sqlu"""
       INSERT INTO sidewalk_login.user_settings (user_id, community_service)
       VALUES ($userId, $enabled)
       ON CONFLICT (user_id) DO UPDATE SET community_service = EXCLUDED.community_service
     """
+    val saveToUserRole = sqlu"UPDATE sidewalk_login.user_role SET community_service = $enabled WHERE user_id = $userId"
+    saveToUserRole.andThen(saveSetting).transactionally
   }
 }

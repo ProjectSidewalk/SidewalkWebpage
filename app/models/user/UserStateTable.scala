@@ -54,8 +54,8 @@ class UserStateTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
     sqlu"""
       INSERT INTO sidewalk_login.user_state (user_id, explore_tutorial_completed_at)
       VALUES ($userId, now())
-      ON CONFLICT (user_id) DO UPDATE
-      SET explore_tutorial_completed_at = COALESCE(user_state.explore_tutorial_completed_at, EXCLUDED.explore_tutorial_completed_at)
+      ON CONFLICT (user_id) DO UPDATE SET explore_tutorial_completed_at =
+        COALESCE(user_state.explore_tutorial_completed_at, EXCLUDED.explore_tutorial_completed_at)
     """
   }
 }

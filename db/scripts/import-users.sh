@@ -158,9 +158,13 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
     source_cols text;
     copied bigint;
   BEGIN
-    -- A table only one side has (an older dump, or local accounts no city has evolved yet) has nothing to copy.
-    IF to_regclass(format('sidewalk_login.%I', tbl)) IS NULL
-       OR to_regclass(format('sidewalk_login_import.%I', tbl)) IS NULL THEN
+    -- A dump older than the table has nothing to copy.
+    IF to_regclass(format('sidewalk_login_import.%I', tbl)) IS NULL THEN
+      RETURN 0;
+    END IF;
+    IF to_regclass(format('sidewalk_login.%I', tbl)) IS NULL THEN
+      RAISE WARNING 'Your login schema has no % table yet, so the dump''s % rows were not merged. '
+        'Start the app once so your schema catches up to the dump, then re-run.', tbl, tbl;
       RETURN 0;
     END IF;
 
@@ -200,9 +204,10 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
     SELECT string_agg(tablename, ', ') INTO unhandled
     FROM pg_tables
     WHERE schemaname = 'sidewalk_login_import'
-      AND tablename <> ALL (
-        '{sidewalk_user,login_info,user_login_info,user_password_info,user_role,user_utm,user_settings,user_state,partner}'
-      );
+      AND tablename <> ALL (ARRAY[
+        'sidewalk_user', 'login_info', 'user_login_info', 'user_password_info', 'user_role', 'user_utm',
+        'user_settings', 'user_state', 'partner'
+      ]::name[]);
     IF unhandled IS NOT NULL THEN
       RAISE WARNING 'The dump has login tables this script does not merge: %. Add a rule for them to %.',
         unhandled, 'import-users.sh';

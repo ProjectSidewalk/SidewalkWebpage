@@ -3,7 +3,7 @@ package controllers.helper
 import models.user.{MeasurementSystem, Role, SidewalkUserWithRole}
 import play.api.i18n.Messages
 import play.api.mvc.Results.{Redirect, Unauthorized}
-import play.api.mvc.{Cookie, DiscardingCookie, RequestHeader, Result}
+import play.api.mvc.{RequestHeader, Result}
 import play.silhouette.api.actions.{SecuredRequestHeader, UserAwareRequestHeader}
 
 import java.nio.charset.StandardCharsets
@@ -51,30 +51,6 @@ object ControllerUtils {
   }
 
   /**
-   * What the Settings form submits for units, and the cookie that also holds a units choice.
-   *
-   * The cookie is the fallback when the account has no saved choice, e.g. for a visitor who isn't signed in. It's per
-   * city, since each city is its own domain.
-   */
-  object UnitsOverride {
-
-    /** What the settings form submits, and the select's value, for "follow the site language". */
-    val FollowLanguage: String = "auto"
-
-    val CookieName: String = "PS_UNITS"
-
-    /** A display preference rather than a credential, so it outlives the browser session; a year is effectively forever. */
-    private val cookieMaxAge: Int = 365 * 24 * 60 * 60
-
-    /** The cookie that pins requests to `system`. HttpOnly: client code reads the `<html>` stamp, never the cookie. */
-    def overrideCookie(system: MeasurementSystem.Value): Cookie =
-      Cookie(CookieName, system.toString, maxAge = Some(cookieMaxAge), httpOnly = true)
-
-    /** Clears any override, returning the user to language-derived units. */
-    def clearOverrideCookie: DiscardingCookie = DiscardingCookie(CookieName)
-  }
-
-  /**
    * The user behind a request, whichever kind of action served it.
    *
    * Templates only get a `RequestHeader`, but the one they're handed is the action's own request, which still carries
@@ -90,32 +66,15 @@ object ControllerUtils {
   }
 
   /**
-   * The units the user chose, if any: the choice saved to their account, else this city's cookie.
+   * The measurement system this request should render distances in: the units saved to the user's account (shared by
+   * every city, #3720), else the site language's.
    *
-   * @param request The request whose user and cookies are inspected.
-   * @return        The chosen system, or None to follow the site language.
-   */
-  def unitsOverride(implicit request: RequestHeader): Option[MeasurementSystem.Value] = {
-    requestUser(request)
-      .flatMap(_.measurementSystem)
-      .orElse(
-        request.cookies.get(UnitsOverride.CookieName).flatMap(cookie => MeasurementSystem.fromString(cookie.value))
-      )
-  }
-
-  /** The units choice as the Settings page's select names it: "auto", "metric", or "imperial". */
-  def unitsChoice(implicit request: RequestHeader): String =
-    unitsOverride.map(_.toString).getOrElse(UnitsOverride.FollowLanguage)
-
-  /**
-   * The measurement system this request should render distances in: the user's choice, else the site language's.
-   *
-   * @param request  The request whose user and cookies are inspected.
-   * @param messages The request's messages, supplying the language default when there is no choice.
+   * @param request  The request whose user is inspected.
+   * @param messages The request's messages, supplying the language default when there is no saved choice.
    * @return         Either `MeasurementSystem.Metric` or `MeasurementSystem.Imperial` — never a language's own wording.
    */
   def measurementSystem(implicit request: RequestHeader, messages: Messages): MeasurementSystem.Value = {
-    unitsOverride.getOrElse {
+    requestUser(request).flatMap(_.measurementSystem).getOrElse {
       MeasurementSystem.fromString(messages("measurement.system")).getOrElse(MeasurementSystem.Imperial)
     }
   }

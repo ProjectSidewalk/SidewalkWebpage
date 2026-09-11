@@ -61,10 +61,10 @@ Project Sidewalk has two separate translation systems; which one you use depends
 Units are **not** a property of the language: readers choose metric or imperial on the Settings page (#4404), so every
 language has to be able to render either.
 
-**One verdict, server-side.** `ControllerUtils.measurementSystem` returns `"metric"` or `"imperial"` — the reader's
-override cookie if set, else the language's default from the `measurement.system` message. That message is a sentinel
-the code compares against, so it holds the literal string `metric`, never a translation of the word. Never re-derive
-units from the language.
+**One verdict, server-side.** `ControllerUtils.measurementSystem` returns `MeasurementSystem.Metric` or `.Imperial` —
+the units the reader saved on the Settings page (shared by every city, #3720) if any, else the language's default from
+the `measurement.system` message. That message is a sentinel the code compares against, so it holds the literal string
+`metric`, never a translation of the word. Never re-derive units from the language.
 
 **The unit words live in `conf/messages` only**, as
 `unit.distance.{abbr,abbr.small,name,name.singular}.{metric,imperial}`. `ControllerUtils.distanceUnitWords` resolves

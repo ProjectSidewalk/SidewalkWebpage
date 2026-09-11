@@ -1,13 +1,11 @@
 package controllers
 
-import controllers.helper.ControllerUtils.UnitsOverride
-import models.user.MeasurementSystem
+import models.user.{MeasurementSystem, UserSettingsTableDef}
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import util.{AnonSession, RoleSession, RolledBackDb}
@@ -15,11 +13,12 @@ import util.{AnonSession, RoleSession, RolledBackDb}
 /**
  * The single-measurement-system contract (#4404): `ControllerUtils.measurementSystem` is the one units verdict, and
  * the shared layout stamps it on `<html data-measurement-system>` so `util.isMetric()` reads the server's answer back
- * instead of deriving units from the language separately. These specs pin the inputs that decide it — the units the
- * user saved to their account, the override cookie, the language default, and a junk cookie value — because a stamp
- * that disagrees with the server leaves a page showing kilometer numbers under a "miles" label.
+ * instead of deriving units from the language separately. These specs pin the two inputs that decide it, the units
+ * saved to the user's account and the language default, because a stamp that disagrees with the server leaves a page
+ * showing kilometer numbers under a "miles" label.
  *
- * Fetches /signIn because it serves every visitor with no session or data requirements.
+ * A saved choice belongs to an account, so each page is fetched with a fresh session, and their settings rows are
+ * deleted in afterAll. Fetches /leaderboard because it renders for every visitor and always shows a distance.
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
@@ -33,50 +32,48 @@ class MeasurementSystemSpec
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
+      .configure("rate-limit.anon-signup.enabled" -> false) // One session per page, more than the limiter allows.
       .build()
 
-  private def stampOf(langCode: String, override_ : Option[MeasurementSystem.Value] = None): String =
-    pageOf("/signIn", langCode, override_.map(_.toString))
+  /** Accounts behind the sessions this suite minted, so afterAll can delete their settings. */
+  private val sessionUserIds = scala.collection.mutable.Set[String]()
 
-  private def pageOf(path: String, langCode: String, override_ : Option[String]): String = {
-    val base    = FakeRequest(GET, path).withHeaders("Accept-Language" -> langCode)
-    val request = override_.fold(base)(value => base.withCookies(Cookie(UnitsOverride.CookieName, value)))
+  /**
+   * Renders a page for a fresh session whose account has `saved` as its units.
+   *
+   * @param langCode The Accept-Language to render in.
+   * @param saved    The account's saved units, or None for no saved choice.
+   * @return         The /leaderboard page body.
+   */
+  private def pageOf(langCode: String, saved: Option[MeasurementSystem.Value] = None): String = {
+    val session = freshAnonSession()
+    val userId  = userIdOf(session)
+    sessionUserIds += userId
+    saved.foreach { system =>
+      val _ = run(sqlu"""INSERT INTO sidewalk_login.user_settings (user_id, measurement_system)
+                         VALUES ($userId, ${system.toString}::sidewalk_login.measurement_system)""")
+    }
+    val request = FakeRequest(GET, "/leaderboard").withHeaders("Accept-Language" -> langCode).withCookies(session: _*)
     val resp    = route(app, request).get
     status(resp) mustBe OK
     contentAsString(resp)
   }
 
+  override def afterAll(): Unit = {
+    val _ = run(TableQuery[UserSettingsTableDef].filter(_.userId inSet sessionUserIds.toSeq).delete)
+    super.afterAll()
+  }
+
   "The layout's data-measurement-system stamp" should {
-    "fall back to the language's own system when the visitor has set no override" in {
-      stampOf("en") must include("data-measurement-system=\"metric\"")
-      stampOf("en-US") must include("data-measurement-system=\"imperial\"")
+    "follow the language's own system when the account has no saved choice" in {
+      pageOf("en") must include("data-measurement-system=\"metric\"")
+      pageOf("en-US") must include("data-measurement-system=\"imperial\"")
     }
 
-    "honor an override cookie over the language default, in both directions" in {
-      stampOf("en", Some(MeasurementSystem.Imperial)) must include("data-measurement-system=\"imperial\"")
-      stampOf("en-US", Some(MeasurementSystem.Metric)) must include("data-measurement-system=\"metric\"")
-    }
-
-    // A cookie is visitor-supplied, so an unrecognized value must read as "no override" rather than reaching the page.
-    "ignore a cookie value that names neither system" in {
-      pageOf("/signIn", "en-US", Some("furlongs")) must include("data-measurement-system=\"imperial\"")
-    }
-
-    // The cookie belongs to one city's domain, while the saved choice follows the user to every city (#3720), so the
-    // saved choice has to win wherever the two disagree.
-    "honor the units saved to the account over both the cookie and the language" in {
-      val session = freshAnonSession()
-      val userId  = userIdOf(session)
-      try {
-        run(sqlu"""INSERT INTO sidewalk_login.user_settings (user_id, measurement_system)
-                   VALUES ($userId, 'imperial')""")
-        val request = FakeRequest(GET, "/leaderboard")
-          .withHeaders("Accept-Language" -> "en")
-          .withCookies(session :+ Cookie(UnitsOverride.CookieName, MeasurementSystem.Metric.toString): _*)
-        contentAsString(route(app, request).get) must include("data-measurement-system=\"imperial\"")
-      } finally {
-        val _ = run(sqlu"DELETE FROM sidewalk_login.user_settings WHERE user_id = $userId")
-      }
+    // A saved choice follows the user into every city (#3720), whatever language each one renders in.
+    "follow the units saved to the account over the language, in both directions" in {
+      pageOf("en", Some(MeasurementSystem.Imperial)) must include("data-measurement-system=\"imperial\"")
+      pageOf("en-US", Some(MeasurementSystem.Metric)) must include("data-measurement-system=\"metric\"")
     }
   }
 
@@ -84,19 +81,19 @@ class MeasurementSystemSpec
     // These are the only unit words the app has: client-side strings write {{unitAbbr}} / {{unitName}} and i18next
     // fills them from here. Lose them and every such string renders with an empty unit.
     "match the request's measurement system" in {
-      val metric = stampOf("en")
+      val metric = pageOf("en")
       metric must include("\"unitAbbr\":\"km\"")
       metric must include("\"unitName\":\"kilometers\"")
 
-      val imperial = stampOf("en-US")
+      val imperial = pageOf("en-US")
       imperial must include("\"unitAbbr\":\"mi\"")
       imperial must include("\"unitName\":\"miles\"")
     }
 
-    "follow an override rather than the language, and stay in the language's own words" in {
-      stampOf("en", Some(MeasurementSystem.Imperial)) must include("\"unitAbbrSmall\":\"ft\"")
-      stampOf("es", Some(MeasurementSystem.Imperial)) must include("\"unitName\":\"millas\"")
-      stampOf("es") must include("\"unitNameSingular\":\"kilómetro\"")
+    "follow a saved choice rather than the language, and stay in the language's own words" in {
+      pageOf("en", Some(MeasurementSystem.Imperial)) must include("\"unitAbbrSmall\":\"ft\"")
+      pageOf("es", Some(MeasurementSystem.Imperial)) must include("\"unitName\":\"millas\"")
+      pageOf("es") must include("\"unitNameSingular\":\"kilómetro\"")
     }
   }
 
@@ -106,11 +103,11 @@ class MeasurementSystemSpec
     "carry the abbreviation of the chosen system on the leaderboard" in {
       // Anchored on the closing tag: a bare " mi" also matches " minutes" and " missions", so it would pass on a page
       // that rendered no distance at all. The community band always renders one, so both directions have a subject.
-      val metric = pageOf("/leaderboard", "en", Some(MeasurementSystem.Metric.toString))
+      val metric = pageOf("en", Some(MeasurementSystem.Metric))
       metric must include(" km<")
       metric must not include " mi<"
 
-      val imperial = pageOf("/leaderboard", "en", Some(MeasurementSystem.Imperial.toString))
+      val imperial = pageOf("en", Some(MeasurementSystem.Imperial))
       imperial must include(" mi<")
       imperial must not include " km<"
     }
