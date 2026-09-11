@@ -305,7 +305,7 @@ class LabelValidationTable @Inject() (
 
           // Create the ValidationCount object for this subgroup.
           val labelType = labTypeFilter.getOrElse("All")
-          val validator = validatorFilter.map(isAi => if (isAi) "AI" else "Human").getOrElse("Both")
+          val validator = validatorFilter.map(ValidatorType.fromIsAi).getOrElse("Both")
           ValidationCount(subgroupCount, timeInterval, labelType, valResultFilter, validator)
         }.toSeq
       }

@@ -2116,8 +2116,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
       INNER JOIN user_stat ON label.user_id = user_stat.user_id
       LEFT JOIN (
-          -- EXISTS, not a join: a user can have several user_role rows, which would repeat their vote. Excluded users'
-          -- votes are skipped so the list adds up to agree/disagree/unsure_count.
+          -- EXISTS, not a join: a user can have several user_role rows, which would repeat their vote. The parser below
+          -- reads the EXISTS as t/f. Skips the same votes the counts skip (self-votes, excluded users), so the list adds
+          -- up to agree/disagree/unsure_count.
           SELECT label.label_id,
                  array_to_string(array_agg(CONCAT(
                    label_validation.user_id, ':', label_validation.validation_result, ':',
@@ -2129,8 +2130,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                  )), ',') AS validations
           FROM label
           INNER JOIN label_validation ON label.label_id = label_validation.label_id
-          INNER JOIN user_stat ON label_validation.user_id = user_stat.user_id
-          WHERE user_stat.excluded = FALSE
+          WHERE label_validation.user_id <> label.user_id
+            AND label_validation.user_id NOT IN (SELECT user_stat.user_id FROM user_stat WHERE user_stat.excluded)
           GROUP BY label.label_id
       ) AS "vals" ON label.label_id = vals.label_id
       WHERE #$whereClause

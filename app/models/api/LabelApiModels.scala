@@ -11,7 +11,7 @@ import models.label.StreetSide
 import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
 import models.utils.LatLngBBox
-import play.api.libs.json.{JsObject, JsValue, Json, Writes}
+import play.api.libs.json.{JsArray, JsObject, JsValue, Json, Writes}
 
 import java.time.OffsetDateTime
 
@@ -165,7 +165,6 @@ case class RawLabelFiltersForApi(
  */
 case class LabelValidationSummaryForApi(userId: String, validationType: String, validatorType: String) {
 
-  // Used by every output format, so they all print the same keys.
   def toJson: JsObject =
     Json.obj("user_id" -> userId, "validation" -> validationType, "validator_type" -> validatorType)
 }
@@ -315,6 +314,9 @@ case class LabelDataForApi(
   }
 
   override def toCsvRow: String = LabelDataForApi.toCsvRow(this)
+
+  // Used by every output format, so they all print the same array.
+  def validationsJson: JsArray = JsArray(validations.map(_.toJson))
 }
 
 object LabelDataForApi extends ApiFields[LabelDataForApi] {
@@ -341,7 +343,7 @@ object LabelDataForApi extends ApiFields[LabelDataForApi] {
     field("agree_count")(_.agreeCount),
     field("disagree_count")(_.disagreeCount),
     field("unsure_count")(_.unsureCount),
-    field("validations")(_.validations.map(_.toJson)),
+    field("validations")(_.validationsJson),
     field("audit_task_id")(_.auditTaskId),
     field("mission_id")(_.missionId),
     field("image_capture_date")(_.imageCaptureDate),

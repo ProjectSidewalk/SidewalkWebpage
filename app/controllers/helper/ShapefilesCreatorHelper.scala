@@ -411,7 +411,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.disagreeCount)
       featureBuilder.add(label.unsureCount)
 
-      featureBuilder.add(Json.stringify(Json.toJson(label.validations.map(_.toJson))))
+      featureBuilder.add(Json.stringify(label.validationsJson))
 
       featureBuilder.add(label.auditTaskId.orNull)
       featureBuilder.add(label.missionId.orNull)
@@ -836,7 +836,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.agreeCount)
       featureBuilder.add(label.disagreeCount)
       featureBuilder.add(label.unsureCount)
-      featureBuilder.add(Json.stringify(Json.toJson(label.validations.map(_.toJson))))
+      featureBuilder.add(Json.stringify(label.validationsJson))
       featureBuilder.add(label.auditTaskId.map(Integer.valueOf).orNull)
       featureBuilder.add(label.missionId.map(Integer.valueOf).orNull)
       featureBuilder.add(label.imageCaptureDate.orNull)

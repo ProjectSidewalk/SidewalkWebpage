@@ -8,6 +8,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers._
 import models.utils.MyPostgresProfile.api._
 import play.api.test.FakeRequest
+import util.RolledBackDb
 
 /**
  * Locks the response contract of GET /v3/api/rawLabels: GeoJSON FeatureCollection by default, a snake_case CSV header
@@ -21,7 +22,7 @@ import play.api.test.FakeRequest
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
+class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -51,12 +52,6 @@ class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
          AND user_stat.excluded = FALSE
          AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
          AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)"""
-
-  private def runDb[T](action: DBIO[T]): T = {
-    val dbConfig =
-      app.injector.instanceOf[play.api.db.slick.DatabaseConfigProvider].get[models.utils.MyPostgresProfile]
-    scala.concurrent.Await.result(dbConfig.db.run(action), scala.concurrent.duration.DurationInt(60).seconds)
-  }
 
   // Roughly 100 m across.
   private def bboxAround(lng: Double, lat: Double): String =
@@ -96,7 +91,7 @@ class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
     "carry street_side and centerline_offset_m on a real feature, consistent with each other (#2886)" in {
       // The row converter is positional, so only a feature read from the DB proves the two columns land in the right
       // fields. Needs a positioned label to build a bbox around; an empty schema cancels rather than passes.
-      val anchor = runDb(
+      val anchor = run(
         sql"""SELECT label.label_id, label_point.lng, label_point.lat
               #$apiVisiblePositionedLabels
               ORDER BY label.label_id DESC
@@ -130,7 +125,7 @@ class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "mark each vote in validations as Human or AI (#4319)" in {
       // Pick a label with an AI vote so both values get tested.
-      val anchor = runDb(
+      val anchor = run(
         sql"""SELECT label.label_id, label_point.lng, label_point.lat
               #$apiVisiblePositionedLabels
                 AND EXISTS (
