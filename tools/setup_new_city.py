@@ -45,6 +45,7 @@ file edits and stops before any docker/db step. The pure helpers are unit-tested
 import argparse
 import hashlib
 import re
+import socket
 import subprocess
 import sys
 import time
@@ -69,9 +70,14 @@ CHECKOUT_IN_CONTAINER = '/home'
 # stopping it is one `pkill -f` that can't touch another `tail -f /dev/null` in the container (make qa-worktree
 # holds one open the same way).
 BOOT_MARKER = 'onboard-city-boot'
-# What the boot is polled on. A /v3/api route rather than "/": the landing page logs a Visit_Index row into
-# webpage_activity, which is one of the tables the dump step later flags as leftover QA data (#5297).
-BOOT_URL = 'http://localhost:9000/v3/api/cities'
+BOOT_PORT = 9000
+# What the boot is polled on: a path that matches no route. Play's dev mode starts the app — and so applies
+# evolutions — for any request, including one it then 404s, and a request that reaches no controller writes no
+# webpage_activity row. Measured 2026-09-10 against a schema at evolution 382 with the repo at 384: polling only
+# this path took it to 384 and left webpage_activity untouched, where both "/" and /v3/api/cities log a row each
+# (every /v3/api route goes through LoggingService). That row would otherwise be found by the dump step's own
+# leftover-QA-data check, which stops the run (#5297).
+BOOT_URL = f'http://localhost:{BOOT_PORT}/__onboard-city-boot-probe'
 BOOT_CMD = (f"cd {CHECKOUT_IN_CONTAINER} && (exec -a {BOOT_MARKER}-stdin tail -f /dev/null) | sbt -D{BOOT_MARKER}=1 "
             "-Dconfig.file=/home/conf/application.local.conf "
             "-Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' "
@@ -105,7 +111,9 @@ OPTIONAL_FLAG_MAPS = ('private-profiles-by-default', 'global-leaderboard-exclude
 
 # The message files besides the base `messages` that carry place names; each needs a line only where its rendering
 # differs from the base (zh-TW always does).
-TRANSLATED_MESSAGE_FILES = ('messages.zh-TW', 'messages.es', 'messages.nl', 'messages.de', 'messages.pt-BR',
+# The file that transliterates every place name, so a gap in it is always a real gap.
+ZH_TW_MESSAGES = 'messages.zh-TW'
+TRANSLATED_MESSAGE_FILES = (ZH_TW_MESSAGES, 'messages.es', 'messages.nl', 'messages.de', 'messages.pt-BR',
                             'messages.fr')
 
 
@@ -131,7 +139,8 @@ def prompt(text, default=None):
 
     With nothing on stdin to answer — CI, a scripted rebuild, an agent — a question that has a default takes it and
     says so, so the run is still readable afterwards, and one that does not stops with a usable message instead of
-    an EOFError traceback. Every default here is the cautious answer (#5297).
+    an EOFError traceback. The questions whose answer nobody should be able to skip therefore have no default: the
+    step-0 review of the build report, and the donor when none can be derived (#5297).
     """
     suffix = f' [{default}]' if default is not None else ''
     while True:
@@ -255,25 +264,32 @@ def translation_todo(city_id, state, country, added=()):
                  for them yet.
 
     Returns:
-        Human-readable lines, one per file still missing at least one key that English defines and zh-TW has not
-        yet settled — empty for a city whose names are all either translated or deliberately left as English.
+        Human-readable lines, one per file that is owed at least one key — empty for a city whose names are all
+        either translated already or the same word in that language.
     """
     keys = [f'city.name.{city_id}']
     if state:
         keys.append(f'state.name.{state}')
     if country:
         keys.append(f'country.name.{country}')
-    # Two filters, and both matter. English first: a territory outside US_STATES never gets a base state.name line,
-    # and asking for a translation of a key that does not exist sends someone looking for nothing. Then zh-TW, which
-    # is the file that always transliterates — a key it already carries is settled, and the Latin-script files that
-    # omit it are omitting it on purpose, because the name reads the same as English. Without that second filter a
-    # US city would report state.name.<its state> against five files on every single run (#5297).
-    keys = [key for key in keys
-            if (key in added or message_key_exists('messages', key))
-            and not message_key_exists('messages.zh-TW', key)]
+    # Only what English defines: a territory outside US_STATES never gets a base state.name line, and asking for a
+    # translation of a key that does not exist sends someone looking for nothing.
+    keys = [key for key in keys if key in added or message_key_exists('messages', key)]
+    has = {file_name: {key for key in keys if message_key_exists(file_name, key)}
+           for file_name in TRANSLATED_MESSAGE_FILES}
     lines = []
     for file_name in TRANSLATED_MESSAGE_FILES:
-        missing = [key for key in keys if not message_key_exists(file_name, key)]
+        missing = []
+        for key in (key for key in keys if key not in has[file_name]):
+            # zh-TW transliterates every name, so a gap there is always a gap. Elsewhere the question is whether
+            # the name differs from English at all, and the only evidence in the repo is another Latin-script file
+            # having bothered: state.name.california is translated in fr, de and nl but missing from pt-BR, which
+            # wants "Califórnia" — a real gap — while state.name.washington is in no Latin file because it reads
+            # the same in all of them. A key nothing carries yet is new, so that call is still a person's (#5297).
+            elsewhere = any(key in has[other] for other in TRANSLATED_MESSAGE_FILES
+                            if other != file_name and other != ZH_TW_MESSAGES)
+            if file_name == ZH_TW_MESSAGES or key in added or elsewhere:
+                missing.append(key)
         if missing:
             lines.append(f'  conf/messages/{file_name}: {", ".join(missing)}')
     return lines
@@ -425,14 +441,20 @@ def web_env(name):
     return result.stdout.strip() or None if result.returncode == 0 else None
 
 
-def port_9000_in_use():
-    """Whether something already answers on :9000, the port the one-shot boot needs. Any HTTP status counts."""
+def boot_port_taken():
+    """
+    Whether anything holds :9000, the port the one-shot boot needs.
+
+    A TCP connect, not an HTTP request: the question is whether the port can be bound, which a connect answers in
+    milliseconds and for any listener. An HTTP probe answers it wrongly twice over — a Play app that has bound the
+    port but not yet compiled accepts the connection and holds it, so a short timeout reads a busy port as free,
+    while a long one stalls the check; and a non-HTTP listener (a socat forwarder, say) raises BadStatusLine, which
+    is neither HTTPError nor OSError, so the probe would crash in one of the cases it exists to report (#5297).
+    """
     try:
-        urllib.request.urlopen(BOOT_URL, timeout=10).close()
-        return True
-    except urllib.error.HTTPError:
-        return True
-    except (urllib.error.URLError, OSError):
+        with socket.create_connection(('localhost', BOOT_PORT), timeout=2):
+            return True
+    except OSError:
         return False
 
 
@@ -451,11 +473,13 @@ def boot_conflicts():
         A list of descriptions, each naming one thing in the way. A container that cannot be inspected contributes
         an entry of its own: not knowing is not the same as being clear.
     """
-    conflicts = [':9000 is already serving (something else holds the port the boot needs)'] if port_9000_in_use() \
-        else []
+    conflicts = [f':{BOOT_PORT} is already taken (the boot needs it)'] if boot_port_taken() else []
     listing = subprocess.run(
         ['docker', 'exec', WEB_CONTAINER, 'bash', '-c',
-         'for pid in $(pgrep -f "[s]bt-launch"); do echo "$pid $(readlink /proc/$pid/cwd)"; done'],
+         # Bracketed so the pattern cannot match this shell's own command line, and $$ skipped so that stays
+         # true if the pattern is ever widened (`[s]bt-launch|sbtn` would match it again).
+         'for pid in $(pgrep -f "[s]bt-launch"); do [ "$pid" = "$$" ] && continue; '
+         'echo "$pid $(readlink /proc/$pid/cwd)"; done'],
         capture_output=True, text=True)
     if listing.returncode != 0:
         return conflicts + [f'could not inspect {WEB_CONTAINER} for running builds ({listing.stderr.strip()})']
@@ -463,7 +487,16 @@ def boot_conflicts():
         pid, _, cwd = line.strip().partition(' ')
         if pid.isdigit() and cwd == CHECKOUT_IN_CONTAINER:
             conflicts.append(f'pid {pid} is building in {cwd} (shares the boot\'s build locks)')
+    if conflicts and own_boot_alive():
+        conflicts.append(f'one of these is a boot this script left behind — a run killed outright never reaches '
+                         f'the stop; clear it with: docker exec {WEB_CONTAINER} pkill -f {BOOT_MARKER}')
     return conflicts
+
+
+def own_boot_alive():
+    """Whether a one-shot boot from an earlier run of this script is still up, identified by its marker."""
+    return subprocess.run(['docker', 'exec', WEB_CONTAINER, 'pgrep', '-f', BOOT_MARKER],
+                          capture_output=True).returncode == 0
 
 
 def run_or_exit(args, what_failed, hint):
@@ -479,8 +512,12 @@ def run_or_exit(args, what_failed, hint):
         what_failed: The first line of the error, naming the step in the operator's terms.
         hint:        What to do about it, printed under the quoted reason.
     """
-    result = docker_db(*args, capture_output=True, text=True)
-    print(result.stdout, end='')
+    # stdout is left to stream: fill-new-schema.sh prints its configuration summary up front and then runs one
+    # long psql heredoc, and capturing it would leave the longest step in the run with no sign of life. Only stderr
+    # is held back, and it is printed either way — a successful psql still has NOTICEs worth seeing.
+    result = docker_db(*args, stderr=subprocess.PIPE, text=True)
+    if result.stderr:
+        print(result.stderr, end='')
     if result.returncode != 0:
         reason = '\n'.join(f'  | {line}' for line in result.stderr.strip().split('\n') if line.strip())
         sys.exit(f'error: {what_failed} (exit {result.returncode}):\n{reason}\n  {hint}')
@@ -523,7 +560,10 @@ def apply_evolutions(schema, city_id, verify=False, allow_running_apps=False):
             sys.exit(f'error: the one-shot boot cannot start — {"; ".join(conflicts)}.\n'
                      f'  Clear it (Ctrl-C the `npm start` or `make qa-worktree` that owns :9000, or docker exec '
                      f'{WEB_CONTAINER} kill <pid>) and rerun, or pass --allow-running-apps to boot anyway.')
-        input(f'  The one-shot boot cannot start — {"; ".join(conflicts)}. Clear it, then press Enter... ')
+        try:
+            input(f'  The one-shot boot cannot start — {"; ".join(conflicts)}. Clear it, then press Enter... ')
+        except EOFError:
+            sys.exit('\nerror: nothing left on stdin to answer with; clear the conflict and rerun.')
         conflicts = boot_conflicts()
     subprocess.run(['docker', 'exec', '-d', '-e', f'DATABASE_USER={schema}', '-e', f'SIDEWALK_CITY_ID={city_id}',
                     WEB_CONTAINER, 'bash', '-c', BOOT_CMD], check=True)
@@ -696,8 +736,9 @@ def main(argv=None):
     # worktree's artifacts, evolutions and scripts are none of them what the steps below would actually use (#5297).
     git_dirs = subprocess.run(['git', '-C', str(REPO_ROOT), 'rev-parse', '--git-dir', '--git-common-dir'],
                               capture_output=True, text=True)
-    paths = git_dirs.stdout.split()
-    if git_dirs.returncode == 0 and len(paths) == 2 and Path(paths[0]).resolve() != Path(paths[1]).resolve():
+    paths = git_dirs.stdout.splitlines()
+    if not args.dry_run and git_dirs.returncode == 0 and len(paths) == 2 \
+            and Path(paths[0]).resolve() != Path(paths[1]).resolve():
         sys.exit(f'error: {REPO_ROOT} is a git worktree, and this must run from the main checkout — the db '
                  f"container mounts the main checkout's db/ at /opt and the app boot compiles "
                  f"{CHECKOUT_IN_CONTAINER}, so a worktree's onboarding artifacts and evolutions are not the ones "
@@ -721,7 +762,7 @@ def main(argv=None):
     else:
         print(f'  No imagery preflight yet — `make check-imagery id={city_id} args="--sample --<provider>"` answers '
               '"does this city have imagery?" in a few minutes, before any database work.')
-    if prompt('Continue with this data? (y/n)', 'y') != 'y':
+    if prompt('Continue with this data? (y/n)') != 'y':
         sys.exit('Stopped; rerun the build (or --from-gpkg after QGIS edits) and come back.')
 
     display_default, us_state = split_city_id(city_id)

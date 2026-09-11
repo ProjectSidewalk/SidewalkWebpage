@@ -92,6 +92,25 @@ def _append_key(file_name, key, value='x'):
     path.write_text(path.read_text() + f'{key} = {value}\n')
 
 
+def test_the_build_review_gate_has_no_default_to_fall_back_on(monkeypatch, repo_copy):
+    """
+    Step 0 is a person reading the build report. Every other question can take a cautious default unattended, but
+    this one has nothing cautious to take: skipping it would let a run clone, evolve and irreversibly fill a schema
+    with choices nobody made (#5297).
+    """
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    _fake_run(monkeypatch, {})
+
+    def no_stdin(text):
+        assert '[' not in text, 'the build-review gate must not offer a default'
+        raise EOFError
+
+    monkeypatch.setattr('builtins.input', no_stdin)
+    with pytest.raises(SystemExit, match='has no default and there is nothing on stdin'):
+        snc.main(['testville-wa'])
+
+
 def test_prompt_takes_the_cautious_default_when_nothing_can_answer(monkeypatch, capsys):
     """
     An unattended run must not die on an EOFError traceback — the failure this whole PR removed from the boot gate,
@@ -122,26 +141,47 @@ def test_dump_schema_will_not_write_a_dirty_dump_unattended(monkeypatch, capsys)
 
 def test_translation_todo_asks_only_for_what_english_defines(repo_copy):
     """A key with no base line has nothing to translate from, so it is never owed (#5297)."""
-    # Nothing anywhere yet: the city is not in the base file, so it is not asked for.
     assert snc.translation_todo('nowhere-xx', None, None) == []
     # A territory outside US_STATES gets no base state.name line, so it stays unasked even alongside a real city.
     _append_key('messages', 'city.name.nowhere-xx', 'Nowhere')
-    owed = snc.translation_todo('nowhere-xx', 'guam', None)
+    owed = snc.translation_todo('nowhere-xx', 'guam', None, added={'city.name.nowhere-xx'})
     assert len(owed) == len(snc.TRANSLATED_MESSAGE_FILES)
     assert all(line.endswith('city.name.nowhere-xx') for line in owed)
 
 
-def test_translation_todo_treats_a_key_zh_tw_already_has_as_settled(repo_copy):
-    """
-    zh-TW is the file that always transliterates, so a key it carries is done being decided; the Latin-script files
-    that lack it are omitting it because the name reads the same in English, and must not be re-reported forever.
-    """
+def test_translation_todo_asks_every_file_for_a_brand_new_name(repo_copy):
+    """Nothing carries it yet, so whether each language renders it differently is still a person's call."""
     _append_key('messages', 'city.name.nowhere-xx', 'Nowhere')
-    assert len(snc.translation_todo('nowhere-xx', None, None)) == len(snc.TRANSLATED_MESSAGE_FILES)
-    _append_key('messages.zh-TW', 'city.name.nowhere-xx', '無處')
-    assert snc.translation_todo('nowhere-xx', None, None) == []
-    # Washington is the real-world case: base + zh-TW carry it, the five Latin-script files deliberately do not.
-    assert snc.translation_todo('nowhere-xx', 'washington', 'usa') == []
+    owed = snc.translation_todo('nowhere-xx', None, None, added={'city.name.nowhere-xx'})
+    assert len(owed) == len(snc.TRANSLATED_MESSAGE_FILES)
+    _append_key(snc.ZH_TW_MESSAGES, 'city.name.nowhere-xx', '無處')
+    # Still new to the Latin-script files, so still their call — zh-TW having it settles only zh-TW.
+    owed = snc.translation_todo('nowhere-xx', None, None, added={'city.name.nowhere-xx'})
+    assert not any(snc.ZH_TW_MESSAGES in line for line in owed)
+    assert len(owed) == len(snc.TRANSLATED_MESSAGE_FILES) - 1
+
+
+def test_translation_todo_leaves_a_name_no_language_translates_alone(repo_copy):
+    """
+    `state.name.washington` is in the base file and zh-TW and in no Latin-script file, because it is the same word
+    in all of them. Reporting it on every Washington city would be five lines of noise on every run (#5297).
+    """
+    _append_key('messages', 'city.name.nowhere-wa', 'Nowhere')
+    _append_key(snc.ZH_TW_MESSAGES, 'city.name.nowhere-wa', '無處')
+    assert snc.translation_todo('nowhere-wa', 'washington', 'usa') == []
+
+
+def test_translation_todo_spots_a_gap_another_language_proves_is_real(repo_copy):
+    """
+    The evidence that a name differs from English is another Latin-script file having translated it.
+    `state.name.california` is in fr, de and nl but missing from pt-BR, which wants "Califórnia" — a real gap that
+    a rule keyed on zh-TW alone hides, since zh-TW carries it (#5297).
+    """
+    _append_key('messages', 'city.name.nowhere-ca', 'Nowhere')
+    _append_key(snc.ZH_TW_MESSAGES, 'city.name.nowhere-ca', '無處')
+    owed = snc.translation_todo('nowhere-ca', 'california', 'usa')
+    assert [line.split(': ')[1] for line in owed] == ['state.name.california'] * len(owed)
+    assert {line.split('/')[-1].split(':')[0] for line in owed} == {'messages.es', 'messages.pt-BR'}
 
 
 def test_translation_todo_survives_a_run_that_died_after_adding_the_english_line(repo_copy):
@@ -150,10 +190,10 @@ def test_translation_todo_survives_a_run_that_died_after_adding_the_english_line
     fail at the schema step. Asking the files, rather than remembering what this run added, keeps the key owed.
     """
     _append_key('messages', 'city.name.somewhere-ia', 'Somewhere')
-    _append_key('messages', 'state.name.newstate', 'Newstate')
-    owed = snc.translation_todo('somewhere-ia', 'newstate', None)
-    assert owed[0] == '  conf/messages/messages.zh-TW: city.name.somewhere-ia, state.name.newstate'
-    assert len(owed) == len(snc.TRANSLATED_MESSAGE_FILES)
+    _append_key('messages.fr', 'city.name.somewhere-ia', 'Quelquepart')
+    owed = snc.translation_todo('somewhere-ia', None, None)
+    assert owed[0] == f'  conf/messages/{snc.ZH_TW_MESSAGES}: city.name.somewhere-ia'
+    assert len(owed) == len(snc.TRANSLATED_MESSAGE_FILES) - 1  # fr has it; the rest are owed because fr proves it
 
 
 def test_handoff_checklist_names_the_dump_both_urls_and_what_the_nightly_jobs_owe():
@@ -282,16 +322,18 @@ def test_add_docs_city_row_dry_run(repo_copy, capsys):
 # Docker-backed helpers with the subprocess faked
 # --------------------------------------------------------------------------------------------------------------------
 
-def _fake_run(monkeypatch, responses):
+def _fake_run(monkeypatch, responses, kwargs_seen=None):
     """
     Answers subprocess.run from ``responses`` ({substring-of-command: (returncode, stdout[, stderr])}), recording
     calls. A value may also be a list of such tuples, handed out in order (the last one repeats), for a query whose
-    answer changes as the run progresses.
+    answer changes as the run progresses. Pass ``kwargs_seen`` to also collect each call's keyword arguments.
     """
     calls = []
 
     def run(cmd, **kwargs):
         calls.append(cmd)
+        if kwargs_seen is not None:
+            kwargs_seen.append((cmd, kwargs))
         joined = ' '.join(str(part) for part in cmd)
         for needle, response in responses.items():
             if needle in joined:
@@ -450,7 +492,7 @@ def _boot_env(monkeypatch, responses, urlopen_results):
     monkeypatch.setattr(snc.urllib.request, 'urlopen', urlopen)
     monkeypatch.setattr(snc.time, 'sleep', lambda seconds: None)
     # The port probe is its own question; tests that care about it patch this themselves.
-    monkeypatch.setattr(snc, 'port_9000_in_use', lambda: False)
+    monkeypatch.setattr(snc, 'boot_port_taken', lambda: False)
     return calls
 
 
@@ -481,6 +523,7 @@ def test_apply_evolutions_waits_for_the_app_then_for_the_evolutions(monkeypatch,
     out = capsys.readouterr().out
     assert '...at 374 of 375' in out and 'applied and verified (at 375)' in out
     assert len(prompts) == 1 and 'pid 4242 is building in /home' in prompts[0]
+    assert 'Clear it' in prompts[0]
     assert sum(1 for cmd in calls if 'pkill' in cmd) == 1
 
 
@@ -496,29 +539,76 @@ def test_apply_evolutions_stops_on_a_failed_evolution_and_on_timeout(monkeypatch
         snc.apply_evolutions('sidewalk_x', 'x')
 
 
-def test_boot_conflicts_pgrep_pattern_cannot_match_the_shell_running_it(monkeypatch):
+def test_boot_conflicts_probe_cannot_report_the_shell_running_it(monkeypatch):
     """
-    The pattern must be bracketed (#5297).
+    Two independent guards, because this defect shipped once already (#5297).
 
     `docker exec` starts the probe shell in CHECKOUT_IN_CONTAINER with the pattern on its own command line, so a
-    plain `sbt-launch` makes every call report a fresh phantom pid there and the wait can never clear. This asserts
-    on the command string because that is where the defect lives: a test that feeds pgrep output to the parser
-    passes either way.
+    plain `sbt-launch` makes every call report a fresh phantom pid there and the wait can never clear. Bracketing
+    the pattern fixes that, but only for as long as nobody widens it — `[s]bt-launch|sbtn`, the alternation
+    qa-worktree.sh already uses, matches the shell again. Skipping `$$` holds whatever the pattern becomes, so both
+    are asserted: one of them surviving a future edit is enough.
     """
     calls = _fake_run(monkeypatch, {'pgrep': (0, '')})
-    monkeypatch.setattr(snc, 'port_9000_in_use', lambda: False)
+    monkeypatch.setattr(snc, 'boot_port_taken', lambda: False)
     snc.boot_conflicts()
     probe = next(' '.join(map(str, cmd)) for cmd in calls if 'pgrep' in ' '.join(map(str, cmd)))
-    assert '[s]bt-launch' in probe and 'pgrep -f sbt-launch' not in probe
+    assert '[s]bt-launch' in probe, 'the pattern must not match this shell\'s own command line'
+    assert '"$pid" = "$$"' in probe and 'continue' in probe, 'the probe must skip its own pid whatever the pattern'
+
+
+class _FakeSocket:
+    """The little of a socket that boot_port_taken() uses: opening it is the whole answer."""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def test_boot_port_taken_asks_tcp_not_http(monkeypatch):
+    """
+    A connect answers "can the boot bind this port" for any listener, in milliseconds.
+
+    An HTTP probe gets it wrong twice: a Play app that has bound the port but not finished compiling holds the
+    connection open, so a short timeout reads a busy port as free; and a non-HTTP listener — this box runs socat
+    forwarders on neighbouring ports — raises BadStatusLine, which is neither HTTPError nor OSError (#5297).
+    """
+    asked = []
+
+    def connect(address, timeout=None):
+        asked.append((address, timeout))
+        if len(asked) == 1:
+            return _FakeSocket()
+        raise ConnectionRefusedError
+
+    monkeypatch.setattr(snc.socket, 'create_connection', connect)
+    assert snc.boot_port_taken() is True
+    assert snc.boot_port_taken() is False
+    assert [address for address, _ in asked] == [('localhost', snc.BOOT_PORT)] * 2
+    assert all(timeout and timeout <= 5 for _, timeout in asked), 'the connect must answer fast'
+
+
+def test_boot_conflicts_names_a_boot_this_script_left_behind(monkeypatch):
+    """A run killed outright never reaches the stop, and the advice to Ctrl-C an npm start cannot apply (#5297)."""
+    _fake_run(monkeypatch, {'pgrep -f onboard-city-boot': (0, '4242\n'), 'pgrep': (0, '4242 /home\n')})
+    monkeypatch.setattr(snc, 'boot_port_taken', lambda: True)
+    conflicts = snc.boot_conflicts()
+    assert any('left behind' in line and f'pkill -f {snc.BOOT_MARKER}' in line for line in conflicts)
+    # Someone else's app on the port is not this script's to reap, so it gets no such advice.
+    _fake_run(monkeypatch, {'pgrep -f onboard-city-boot': (1, ''), 'pgrep': (0, '')})
+    assert not any('left behind' in line for line in snc.boot_conflicts())
 
 
 def test_boot_conflicts_counts_only_builds_in_the_boots_own_checkout(monkeypatch):
     """A worktree's build has its own target/, so only the checkout the boot compiles shares locks with it."""
-    _fake_run(monkeypatch, {'pgrep': (0, '10 /home\n'
+    _fake_run(monkeypatch, {'pgrep -f onboard-city-boot': (1, ''),
+                            'pgrep': (0, '10 /home\n'
                                         '11 /home/.claude/worktrees/some-branch\n'
                                         '12 /home/.claude/worktrees/other\n'
                                         'not-a-pid /home\n')})
-    monkeypatch.setattr(snc, 'port_9000_in_use', lambda: False)
+    monkeypatch.setattr(snc, 'boot_port_taken', lambda: False)
     assert snc.boot_conflicts() == ["pid 10 is building in /home (shares the boot's build locks)"]
     _fake_run(monkeypatch, {'pgrep': (0, '')})
     assert snc.boot_conflicts() == []
@@ -529,35 +619,31 @@ def test_boot_conflicts_catches_a_worktree_app_on_9000(monkeypatch):
     `make qa-worktree` serves a worktree's app on :9000 and passes no -Dhttp.port, so its cwd says nothing about
     whether it is in the way. The port is asked directly instead (#5297).
     """
-    _fake_run(monkeypatch, {'pgrep': (0, '11 /home/.claude/worktrees/some-branch\n')})
-    monkeypatch.setattr(snc, 'port_9000_in_use', lambda: True)
-    assert snc.boot_conflicts() == [':9000 is already serving (something else holds the port the boot needs)']
+    _fake_run(monkeypatch, {'pgrep -f onboard-city-boot': (1, ''),
+                            'pgrep': (0, '11 /home/.claude/worktrees/some-branch\n')})
+    monkeypatch.setattr(snc, 'boot_port_taken', lambda: True)
+    assert snc.boot_conflicts() == [':9000 is already taken (the boot needs it)']
 
 
 def test_boot_conflicts_reports_a_container_it_cannot_inspect(monkeypatch):
     """Not knowing is not the same as being clear."""
     _fake_run(monkeypatch, {'pgrep': (1, '', 'Error: No such container\n')})
-    monkeypatch.setattr(snc, 'port_9000_in_use', lambda: False)
+    monkeypatch.setattr(snc, 'boot_port_taken', lambda: False)
     assert snc.boot_conflicts() == ['could not inspect projectsidewalk-web for running builds '
                                     '(Error: No such container)']
 
 
-def test_port_9000_in_use_reads_any_answer_as_taken(monkeypatch):
-    """An error page still means something holds the port; only a refused connection means it is free."""
-    answers = iter([SimpleNamespace(close=lambda: None),
-                    urllib.error.HTTPError('u', 503, 'x', {}, None),
-                    urllib.error.URLError('refused'),
-                    OSError('no route')])
-
-    def urlopen(url, timeout=None):
-        assert url == snc.BOOT_URL
-        answer = next(answers)
-        if isinstance(answer, Exception):
-            raise answer
-        return answer
-
-    monkeypatch.setattr(snc.urllib.request, 'urlopen', urlopen)
-    assert [snc.port_9000_in_use() for _ in range(4)] == [True, True, False, False]
+def test_boot_url_matches_no_route(monkeypatch):
+    """
+    The poll must reach no controller. Play's dev mode starts the app — and so applies evolutions — for any
+    request including one it 404s, but every route that reaches a controller logs a webpage_activity row, which the
+    dump step then counts as leftover QA data and stops on. Measured against a schema at 382 with the repo at 384:
+    polling this path alone took it to 384 and left webpage_activity untouched (#5297).
+    """
+    routes = (Path(snc.REPO_ROOT) / 'conf' / 'routes').read_text()
+    path = snc.BOOT_URL.split(str(snc.BOOT_PORT), 1)[1]
+    assert path.startswith('/__')
+    assert path not in routes
 
 
 def test_apply_evolutions_will_not_block_on_a_prompt_nothing_can_answer(monkeypatch, capsys):
@@ -574,6 +660,19 @@ def test_apply_evolutions_will_not_block_on_a_prompt_nothing_can_answer(monkeypa
     assert any(snc.BOOT_CMD in cmd for cmd in calls)
 
 
+def test_apply_evolutions_stops_when_the_terminal_runs_out_of_answers(monkeypatch):
+    """Ctrl-D at a real terminal is the one way this wait can still raise, and it must not be a traceback (#5297)."""
+    _boot_env(monkeypatch, {'max(id)': (0, '370\n'), 'pgrep': (0, '4242 /home\n'), 'last_problem': (0, '')}, [None])
+    monkeypatch.setattr(snc.sys, 'stdin', SimpleNamespace(isatty=lambda: True))
+
+    def ctrl_d(text):
+        raise EOFError
+
+    monkeypatch.setattr('builtins.input', ctrl_d)
+    with pytest.raises(SystemExit, match='nothing left on stdin'):
+        snc.apply_evolutions('sidewalk_x', 'x')
+
+
 def test_apply_evolutions_blames_the_override_when_it_then_times_out(monkeypatch):
     """After --allow-running-apps, a timeout is far more likely the conflict than the evolutions themselves."""
     _boot_env(monkeypatch, {'max(id)': (0, '370\n'), 'pgrep': (0, '4242 /home\n'), 'last_problem': (0, '')},
@@ -585,10 +684,10 @@ def test_apply_evolutions_blames_the_override_when_it_then_times_out(monkeypatch
     assert '--allow-running-apps was passed over' in str(timed_out.value) and '4242' in str(timed_out.value)
 
 
-def test_apply_evolutions_polls_a_route_that_logs_nothing(monkeypatch):
+def test_apply_evolutions_polls_only_the_boot_url(monkeypatch):
     """
-    The poll target must not be the landing page: it logs a Visit_Index row into webpage_activity, one of the
-    tables the dump step counts as leftover QA data, so every clean onboarding would flag itself (#5297).
+    Nothing in the wait loop may reach a controller: every route that does logs a webpage_activity row, which the
+    dump step counts as leftover QA data and stops on, so a clean onboarding would flag itself (#5297).
     """
     polled = []
     _boot_env(monkeypatch, {'max(id)': [(0, '370\n'), (0, '375\n')], 'pgrep': (0, ''), 'last_problem': (0, '')},
@@ -598,7 +697,6 @@ def test_apply_evolutions_polls_a_route_that_logs_nothing(monkeypatch):
                         lambda url, timeout=None: (polled.append(url), real_urlopen(url, timeout))[1])
     snc.apply_evolutions('sidewalk_x', 'x')
     assert polled and all(url == snc.BOOT_URL for url in polled)
-    assert snc.BOOT_URL.endswith('/v3/api/cities')
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -731,9 +829,16 @@ def test_main_refuses_to_run_from_a_worktree(repo_copy, monkeypatch):
     """
     _city_artifacts(repo_copy)
     _stub_steps(monkeypatch, repo_copy)
-    _fake_run(monkeypatch, {'rev-parse': (0, f'{repo_copy}/.git/worktrees/wt\n{repo_copy}/.git\n')})
+    # A path with a space in it: splitting the two lines on whitespace gives four fields, and a gate that reads
+    # that as "not a worktree" fails open — the wrong direction for a safety check (#5297).
+    spaced = f'{repo_copy}/my repo'
+    _fake_run(monkeypatch, {'rev-parse': (0, f'{spaced}/.git/worktrees/wt\n{spaced}/.git\n')})
     with pytest.raises(SystemExit, match='is a git worktree'):
         snc.main(['testville-wa'])
+    # --dry-run only previews edits to this checkout's own conf/ files and drives no container, so it is allowed.
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '')
+    _fake_run(monkeypatch, {'rev-parse': (0, f'{spaced}/.git/worktrees/wt\n{spaced}/.git\n')})
+    snc.main(['testville-wa', '--dry-run'])
     # The main checkout answers with the same path twice, and is allowed through.
     _answers(monkeypatch, 'n')
     _fake_run(monkeypatch, {'rev-parse': (0, f'{repo_copy}/.git\n{repo_copy}/.git\n')})
@@ -767,6 +872,24 @@ def test_main_quotes_the_reason_a_load_or_fill_failed(repo_copy, monkeypatch):
     assert 'fill-new-schema.sh failed on sidewalk_testville_wa (exit 1)' in str(failed.value)
     assert 'duplicate key value' in str(failed.value)
     assert 'drop and recreate it (step 3)' in str(failed.value)
+
+
+def test_the_long_db_steps_still_show_their_progress(repo_copy, monkeypatch):
+    """
+    fill-new-schema.sh prints its configuration summary up front and then runs one long psql heredoc — the longest
+    step in the run. Capturing its stdout to quote a failure would leave it silent throughout, so only stderr is
+    held back, and that is printed either way: a successful psql still has NOTICEs worth seeing (#5297).
+    """
+    seen = []
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    _fake_run(monkeypatch, dict(_FRESH_DB), kwargs_seen=seen)
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '', '1', 'all')
+    snc.main(['testville-wa', '--skip-scan'])
+    for step in ('create-new-schema.sh', 'qgis_tables.sql', 'fill-new-schema.sh'):
+        cmd, kwargs = next((cmd, kw) for cmd, kw in seen if step in ' '.join(map(str, cmd)))
+        assert kwargs.get('stderr') is snc.subprocess.PIPE, f'{step} must keep stderr to quote a failure'
+        assert not kwargs.get('capture_output') and 'stdout' not in kwargs, f'{step} must stream its progress'
 
 
 def test_main_passes_the_override_flag_through_to_the_boot(repo_copy, monkeypatch):

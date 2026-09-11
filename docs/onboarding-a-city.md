@@ -107,7 +107,8 @@ make onboard-city id=laurens-ia
 `tools/setup_new_city.py` is host-side and stdlib-only; it edits repo files and drives the two containers. It pauses
 where a person is needed and skips whatever a previous run already did. **Run it from the main checkout**, not a
 worktree — the db container mounts the main checkout's `db/` at `/opt` and the app boot compiles `/home`, so a
-worktree's artifacts and evolutions are not the ones the steps would use; it refuses to start from one.
+worktree's artifacts and evolutions are not the ones the steps would use; it refuses to start from one, except
+under `--dry-run`, which only previews edits to the checkout's own `conf/` files and drives no container.
 
 0. **Review** — prints the report's headline numbers and the preflight table, asks to continue.
 1. **Configs** — asks for the display name, country/state, provider, status (default `private`), launch date (the
