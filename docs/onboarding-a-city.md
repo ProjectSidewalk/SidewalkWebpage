@@ -18,10 +18,11 @@ Run the three from the **main checkout**: `db/` is the bind mount the db contain
 
 ## Before you start
 
-- **City id** — lowercase kebab-case. US cities carry the state (`laurens-ia`, `walla-walla-wa`); elsewhere add
-  the country only to disambiguate (`bayonne`, `sao-paulo-brazil`). The id becomes `SIDEWALK_CITY_ID`, the schema
-  (`sidewalk_laurens_ia` — new cities keep the full id), the output dir, and the server name (state dropped:
-  `sidewalk-laurens.cs.washington.edu`).
+- **City id** — lowercase kebab-case ending in the state for US cities (`laurens-ia`), the country elsewhere
+  (`bayonne-fr`). The id becomes `SIDEWALK_CITY_ID`, the schema (`sidewalk_laurens_ia` — new cities keep the full
+  id), and the output dir.
+- **Server name** — the id without its suffix (`sidewalk-laurens`), unless a clearly larger city shares the name
+  (`sidewalk-newport-ky`).
 - **Neighborhood boundaries** — the thing worth spending time on, in order of preference:
   1. a dataset from the partner or the city (any OGR-readable format and CRS; note its name column);
   2. the city's open-data portal (ArcGIS Hub, Socrata, CKAN, data.gouv.fr, …) — look for official, non-overlapping
@@ -45,7 +46,7 @@ Run the three from the **main checkout**: `db/` is the bind mount the db contain
 
 ```
 make build-city-data id=laurens-ia args="--place 'Laurens, Iowa, USA'"
-make build-city-data id=bayonne args="--boundary-file bayonne.geojson --regions-file quartiers.geojson \
+make build-city-data id=bayonne-fr args="--boundary-file bayonne.geojson --regions-file quartiers.geojson \
     --region-name-col nom --regions-source 'https://www.data.gouv.fr/… (Ville de Bayonne, Licence Ouverte 2.0)'"
 ```
 
