@@ -114,8 +114,11 @@ window.AccessScoreApp = (function () {
     const explanationHtml = ({ unit, id }) => (unit === 'streets' ? streetPopupHtml(id) : regionPopupHtml(id));
 
     const select = (selection, { fromUrl = false } = {}) => {
-      popup?.remove();
+      // Mapbox fires `close` synchronously from `remove()`, so the reference is dropped first: the close handler
+      // below sees no popup and stays out, rather than deselecting everything under a selection in progress.
+      const previous = popup;
       popup = null;
+      previous?.remove();
       if (!selection) {
         mapView.setSelection(null);
         urlSync.setSelection(null);
@@ -215,20 +218,23 @@ window.AccessScoreApp = (function () {
     // A live `setStyle` drops everything the tool added, so the map view and the cluster layer remount once the new
     // style has loaded. The band keeps the light ramp; only the map surface changes.
     const darkInput = document.getElementById('acs-dark-map');
+    /** Swaps the basemap; the toggle's own change logs it, a reset does not (it logs `ResetAll`). */
+    const setDarkMap = (next) => {
+      document.getElementById('acs-map-holder')?.classList.toggle('acs-map-holder--dark', next);
+      mapView.setDark(next);
+      map.once('style.load', () => {
+        mapView.remount();
+        evidence?.layer.remount();
+      });
+      // Never a diffed swap: a diff would strip the tool's layers without ever firing `style.load`.
+      map.setStyle(next ? MAP_STYLES.dark : MAP_STYLES.light, { diff: false });
+      urlSync.setDark(next);
+    };
     if (darkInput) {
       darkInput.checked = dark;
       darkInput.addEventListener('change', () => {
-        const next = darkInput.checked;
-        log('DarkMap', next);
-        document.getElementById('acs-map-holder')?.classList.toggle('acs-map-holder--dark', next);
-        mapView.setDark(next);
-        map.once('style.load', () => {
-          mapView.remount();
-          evidence?.layer.remount();
-        });
-        // Never a diffed swap: a diff would strip the tool's layers without ever firing `style.load`.
-        map.setStyle(next ? MAP_STYLES.dark : MAP_STYLES.light, { diff: false });
-        urlSync.setDark(next);
+        log('DarkMap', darkInput.checked);
+        setDarkMap(darkInput.checked);
       });
     }
     urlSync.setDark(dark);
@@ -251,10 +257,15 @@ window.AccessScoreApp = (function () {
       dock.applyChange({ kind: 'ResetAll', final: true });
       if (darkInput?.checked) {
         darkInput.checked = false;
-        darkInput.dispatchEvent(new Event('change'));
+        setDarkMap(false);
       }
-      if (initialCamera) map.flyTo({ center: initialCamera.center, zoom: initialCamera.zoom });
-      urlSync.writeNow();
+      // The URL carries the camera, so it is written where the fly lands, not where it starts.
+      if (initialCamera) {
+        map.once('moveend', () => urlSync.writeNow());
+        map.flyTo({ center: initialCamera.center, zoom: initialCamera.zoom });
+      } else {
+        urlSync.writeNow();
+      }
       document.dispatchEvent(new CustomEvent('accessscore:change', { detail: { state, meta: { kind: 'ResetAll' } } }));
     });
 
@@ -548,7 +559,8 @@ window.AccessScoreApp = (function () {
       return `<h3 class="acs-popup__title">${streetTitle(s)}</h3>
         <div class="acs-popup__score">${score}</div>
         ${s.audited ? componentsHtml(s) : ''}
-        <div class="acs-popup__meta">${region ? `${util.escapeHTML(region.name)} · ` : ''}${formatLength(s.lengthM)}</div>
+        <div class="acs-popup__meta">${region ? `${util.escapeHTML(region.name)} · ` : ''}${
+    formatLength(s.lengthM)}</div>
         <h4 class="acs-popup__subtitle">${i18next.t('accessscore:popup-terms')}</h4>
         ${termsTableHtml(s.terms)}
         ${hopLinksHtml(lngLat)}`;

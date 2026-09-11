@@ -256,29 +256,10 @@ class AccessScoreMapView {
    * @param {number} regionId - The region to frame.
    */
   flyToRegion(regionId) {
-    const source = this.#map.getSource(AccessScoreMapView.REGION_SOURCE);
-    const feature = source?._data?.features?.find((f) => f.properties.region_id === regionId);
-    if (!feature) return;
-    this.#map.fitBounds(featureCollectionBounds({ type: 'FeatureCollection', features: [feature] }),
-      { padding: 40, maxZoom: 15 });
+    const bounds = this.#regionBounds.get(regionId);
+    if (bounds) this.#map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
   }
 
-  /**
-   * The ids of the streets drawn in the part of the map the user can see, for viewport-scoped charts.
-   * @returns {Set<number>} Street ids.
-   */
-  visibleStreetIds() {
-    const rendered = this.#map.queryRenderedFeatures(this.#visibleBox(), {
-      layers: [AccessScoreMapView.STREET_LAYER],
-    });
-    return new Set(rendered.map((f) => f.properties.street_edge_id));
-  }
-
-  /**
-   * The ids of the regions whose bounding box touches the part of the map the user can see. A bounding-box test
-   * rather than `queryRenderedFeatures` on the fill layer, which returns one entry per tile per polygon.
-   * @returns {Set<number>} Region ids.
-   */
   /**
    * A region's bounds, for ranking the neighborhoods in view by their distance from the map center.
    * @param {number} regionId - The region.
@@ -288,6 +269,11 @@ class AccessScoreMapView {
     return this.#regionBounds.get(regionId) ?? null;
   }
 
+  /**
+   * The ids of the regions whose bounding box touches the part of the map the user can see. A bounding-box test
+   * rather than `queryRenderedFeatures` on the fill layer, which returns one entry per tile per polygon.
+   * @returns {Set<number>} Region ids.
+   */
   visibleRegionIds() {
     const [[x0, y0], [x1, y1]] = this.#visibleBox();
     const sw = this.#map.unproject([x0, y1]);

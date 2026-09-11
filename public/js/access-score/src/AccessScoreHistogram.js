@@ -128,7 +128,6 @@ class AccessScoreHistogram extends AccessScoreChart {
     return ([1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((c) => mantissa <= c) ?? 10) * magnitude;
   }
 
-  /** Positions a marker at a score along the plot, or hides it. */
   /**
    * Centers the needle's label over the line, nudged inward by whatever the plot's edge would cut off (zero
    * without layout, as in jsdom).
@@ -146,6 +145,7 @@ class AccessScoreHistogram extends AccessScoreChart {
     label.style.transform = nudge === 0 ? 'translateX(-50%)' : `translateX(calc(-50% + ${Math.round(nudge)}px))`;
   }
 
+  /** Positions a marker at a score along the plot, or hides it. */
   #place(el, score) {
     const show = typeof score === 'number' && Number.isFinite(score);
     el.hidden = !show;

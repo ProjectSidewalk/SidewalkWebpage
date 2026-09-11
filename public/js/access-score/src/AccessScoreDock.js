@@ -60,6 +60,9 @@ class AccessScoreDock {
 
   #frame = null;
   #needDim = true;
+  /** Whether the next flush re-aims the photo strip; a slider mid-drag leaves it, so the city's lowest-scoring
+   *  neighborhood flipping under the drag never refetches a strip nobody is looking at yet. */
+  #needPhotos = true;
   /** Whether the next flush should read the brush out to the live region. */
   #announce = false;
   #paddingBottom = 0;
@@ -166,7 +169,8 @@ class AccessScoreDock {
   applyChange(meta) {
     // A focused neighborhood belongs to the unit it was chosen in; the reset puts the band back to the city.
     if (meta.kind === 'Unit' || meta.kind === 'ResetAll') this.setFocusRegion(null);
-    this.#schedule({ dim: !(meta.kind === 'Weight' && !meta.final) });
+    const settled = !(meta.kind === 'Weight' && !meta.final);
+    this.#schedule({ dim: settled, photos: settled });
   }
 
   /**
@@ -223,9 +227,10 @@ class AccessScoreDock {
     this.#callbacks.onStateChange();
   }
 
-  /** Coalesces every change into one animation frame; the flag accumulates until it runs. */
-  #schedule({ dim }) {
+  /** Coalesces every change into one animation frame; the flags accumulate until it runs. */
+  #schedule({ dim, photos = true }) {
     this.#needDim ||= dim;
+    this.#needPhotos ||= photos;
     if (this.#frame !== null) return;
     this.#frame = requestAnimationFrame(() => {
       this.#frame = null;
@@ -237,7 +242,9 @@ class AccessScoreDock {
   #flush() {
     const unit = this.#model.state.unit;
     const needDim = this.#needDim;
+    const needPhotos = this.#needPhotos;
     this.#needDim = false;
+    this.#needPhotos = false;
 
     const brushStreets = this.#brushStreetIds();
     const kpis = this.#model.kpis();
@@ -274,7 +281,7 @@ class AccessScoreDock {
       caption: this.#scopeCaption(scope, brushStreets),
       empty: breakdown.streets === 0 && breakdown.intersections === 0,
     });
-    this.#showPhotos(this.#photoScope());
+    if (needPhotos) this.#showPhotos(this.#photoScope());
     const rows = this.#model.rankedRegions();
     this.#rank.draw({
       shapeKey: rows.map((r) => r.regionId).sort((a, b) => a - b).join(','),

@@ -23,7 +23,7 @@ class AccessScoreClusterLayer {
   #visible = true;
   /** The last collection drawn, kept so a basemap swap can redraw it. */
   #data = { type: 'FeatureCollection', features: [] };
-  /** Types switched off individually, from the dock's cluster view. */
+  /** The dot under the pointer, as `{source, id}` for feature-state, or null. */
   #hovered = null;
 
   /**
@@ -43,11 +43,6 @@ class AccessScoreClusterLayer {
     });
     for (const type of types) this.#layers.push(this.#addLayer(type));
     this.#addInteractions();
-  }
-
-  /** The layer ids, so a caller can ask whether a pointer event landed on a cluster. */
-  get layerIds() {
-    return this.#layers;
   }
 
   /**
@@ -77,7 +72,8 @@ class AccessScoreClusterLayer {
     }
     this.#hovered = null;
     this.#tooltip.remove();
-    this.#layers = this.#types.map((type) => this.#addLayer(type));
+    // The ids are the same strings, so the handlers bound to `#layers` keep matching.
+    for (const type of this.#types) this.#addLayer(type);
     this.setData(this.#data);
     this.#applyVisibility();
   }
@@ -93,10 +89,7 @@ class AccessScoreClusterLayer {
   }
 
   #applyVisibility() {
-    for (const type of this.#types) {
-      const shown = this.#visible;
-      this.#map.setLayoutProperty(AccessScoreClusterLayer.#layerId(type), 'visibility', shown ? 'visible' : 'none');
-    }
+    for (const id of this.#layers) this.#map.setLayoutProperty(id, 'visibility', this.#visible ? 'visible' : 'none');
   }
 
   /**
@@ -108,11 +101,6 @@ class AccessScoreClusterLayer {
   claims(e) {
     if (!this.#visible) return false;
     return this.#map.queryRenderedFeatures(e.point, { layers: this.#layers }).length > 0;
-  }
-
-  /** Hides the cluster tooltip, e.g. when a selection popup opens where the pointer sits. */
-  hideTooltip() {
-    this.#tooltip.remove();
   }
 
   /** One source + circle layer for a type, sized by cluster size and colored by the type's canonical color. */

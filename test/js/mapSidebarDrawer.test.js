@@ -44,10 +44,13 @@ function fakeMap() {
         getPadding() {
             return this.lastPadding() || {left: 0, top: 0, right: 0, bottom: 0};
         },
-        /** @returns {?object} The most recent padding requested, by either route. */
+        /** @returns {?object} The most recent padding requested, by either route, in invocation order. */
         lastPadding() {
-            const calls = [...this.easeTo.mock.calls.map((c) => c[0].padding), ...this.setPadding.mock.calls.map((c) => c[0])];
-            return calls.length ? calls[calls.length - 1] : null;
+            const calls = [
+                ...this.easeTo.mock.calls.map((c, i) => ({order: this.easeTo.mock.invocationCallOrder[i], padding: c[0].padding})),
+                ...this.setPadding.mock.calls.map((c, i) => ({order: this.setPadding.mock.invocationCallOrder[i], padding: c[0]})),
+            ].sort((a, b) => a.order - b.order);
+            return calls.length ? calls[calls.length - 1].padding : null;
         },
     };
 }

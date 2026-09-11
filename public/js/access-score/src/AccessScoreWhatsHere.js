@@ -100,10 +100,11 @@ class AccessScoreWhatsHere extends AccessScoreChart {
       }
       const count = AccessScoreChart.number(r.count);
       // Plain text: the accessible name takes it as is, the tooltip (an HTML sink) escaped exactly once.
+      const text = AccessScoreChart.text;
       let label;
-      if (r.count === 0) label = AccessScoreChart.text('accessscore:whats-here-row-none', { type: name });
-      else if (parts.length === 0) label = AccessScoreChart.text('accessscore:whats-here-row-unrated', { type: name, count });
-      else label = AccessScoreChart.text('accessscore:whats-here-row', { type: name, count, parts: parts.join(', ') });
+      if (r.count === 0) label = text('accessscore:whats-here-row-none', { type: name });
+      else if (parts.length === 0) label = text('accessscore:whats-here-row-unrated', { type: name, count });
+      else label = text('accessscore:whats-here-row', { type: name, count, parts: parts.join(', ') });
       row.track.setAttribute('aria-label', label);
       row.track.setAttribute('data-ps-tooltip', AccessScoreChart.esc(label));
     }

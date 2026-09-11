@@ -40,6 +40,8 @@ class AccessScoreModel {
   /**
    * The share of a region's street network that must be audited before its score is shown; below it the region is
    * hatched. Compared on the rounded percent so the rule can never disagree with the "N% explored" the page prints.
+   * A tool-side literal because the engine has no such floor: its region roll-up scores whatever has been audited,
+   * and this page alone decides that a neighborhood a tenth explored is not yet a picture of the neighborhood.
    */
   static MIN_COMPLETION = 0.5;
 
@@ -363,21 +365,6 @@ class AccessScoreModel {
   }
 
   /**
-   * The audited streets of a region with their scores, best first.
-   * @param {number} regionId - The region's id.
-   * @returns {Array<{streetId: number, score: number, lengthM: number}>} Scored streets, descending by score.
-   */
-  regionStreets(regionId) {
-    const out = [];
-    for (let i = 0; i < this.#n; i++) {
-      if (this.#regionIds[i] === regionId && this.#audited[i] === 1) {
-        out.push({ streetId: this.#ids[i], score: this.#scores[i], lengthM: this.#lengths[i] });
-      }
-    }
-    return out.sort((a, b) => b.score - a.score);
-  }
-
-  /**
    * Every street in a region, audited or not — the population a region-scoped view counts against.
    * @param {number} regionId - The region's id.
    * @returns {Set<number>} Street ids.
@@ -497,17 +484,6 @@ class AccessScoreModel {
   }
 
   /**
-   * The best and worst scored regions, floor applied.
-   * @param {number} [n=5] - How many of each.
-   * @returns {{top: Array<object>, bottom: Array<object>}} Entries of `regionStats`; `top` best first, `bottom`
-   *   worst first.
-   */
-  ranked(n = 5) {
-    const scored = this.rankedRegions();
-    return { top: scored.slice(0, n), bottom: scored.slice(-n).reverse() };
-  }
-
-  /**
    * The clusters behind the scores in a scope, by type and rating bucket — the population the score arithmetic
    * runs over. Streets and intersections are pooled: the corner types attach to intersections almost entirely,
    * so a street-only count would show a neighborhood with hundreds of curb ramps as having none.
@@ -554,28 +530,6 @@ class AccessScoreModel {
       return { type, total: typeTotal, buckets };
     });
     return { types, total, streets, intersections };
-  }
-
-  /**
-   * The intersections at the ends of a set of streets, each once.
-   * @param {Set<number>} streetIds - Street ids.
-   * @returns {Set<number>} Intersection ids.
-   */
-  streetEndIntersectionIds(streetIds) {
-    const out = new Set();
-    for (const j of this.#endIndicesOf(streetIds)) out.add(this.#intIds[j]);
-    return out;
-  }
-
-  /**
-   * The intersections of a region.
-   * @param {number} regionId - The region's id.
-   * @returns {Set<number>} Intersection ids.
-   */
-  regionIntersectionIds(regionId) {
-    const out = new Set();
-    for (let j = 0; j < this.#m; j++) if (this.#intRegionIds[j] === regionId) out.add(this.#intIds[j]);
-    return out;
   }
 
   /** The intersection array indices at the ends of these streets, deduplicated (two streets share a corner). */

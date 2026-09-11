@@ -11,7 +11,10 @@
  * of seven sliders is unreadable with a paragraph between every control.
  */
 class AccessScoreSidebar {
-  /** Slider ceiling for a weight magnitude; the engine's largest default is 2.0, so this leaves room above it. */
+  /**
+   * Slider ceiling for a weight magnitude, at least this and always above the engine's largest default (see
+   * `#maxWeight`), so a range input can never clamp a default it is asked to show.
+   */
   static MAX_WEIGHT = 3;
 
   #root;
@@ -94,7 +97,7 @@ class AccessScoreSidebar {
                   title="${roleTitle}">${role}</span>
             <output class="acs-weight__value" for="acs-weight-${type}"></output>
           </div>
-          <input type="range" class="acs-range" id="acs-weight-${type}" min="0" max="${AccessScoreSidebar.MAX_WEIGHT}"
+          <input type="range" class="acs-range" id="acs-weight-${type}" min="0" max="${this.#maxWeight()}"
                  step="0.05" data-type="${type}">
           <div class="acs-weight__contrib" aria-hidden="true">
             <span class="acs-weight__bar"></span><span class="acs-weight__bar-label"></span>
@@ -144,6 +147,12 @@ class AccessScoreSidebar {
     e.showClusters.addEventListener('change', () => this.#emit({ showClusters: e.showClusters.checked },
       { kind: 'ShowClusters', value: e.showClusters.checked, final: true }));
     e.reset.addEventListener('click', () => this.#emit(null, { kind: 'Reset', final: true }));
+  }
+
+  /** The slider ceiling: `MAX_WEIGHT`, or the next whole number above the largest default if that is higher. */
+  #maxWeight() {
+    const largest = Math.max(0, ...Object.values(this.#config.presets.default).map((w) => Math.abs(w)));
+    return Math.max(AccessScoreSidebar.MAX_WEIGHT, Math.ceil(largest) + 1);
   }
 
   /** The unaudited-streets toggle only means something in the streets unit. */

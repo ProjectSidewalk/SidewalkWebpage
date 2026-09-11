@@ -279,7 +279,7 @@ describe('AccessScoreModel', () => {
         expect(whole.score).toBeCloseTo((good * 100 + bad * 300) / 400, 12);
         expect(whole.belowFloor).toBe(false);
         expect(thin.belowFloor).toBe(true);
-        expect(model.ranked(5).top.map((r) => r.regionId)).toEqual([1]); // the thin region is floored out
+        expect(model.rankedRegions().map((r) => r.regionId)).toEqual([1]); // the thin region is floored out
 
         model.setState({ unit: 'regions' });
         expect(model.histogram().total).toBe(1);
@@ -400,8 +400,6 @@ describe('AccessScoreModel', () => {
         const city = model.clusterBreakdown();
         expect(city.intersections).toBe(2);
         expect(ramp(city)).toBe(3 * onStreet + 2 * atCorner);
-        expect(model.streetEndIntersectionIds(new Set([1, 2]))).toEqual(new Set([10, 11]));
-        expect(model.regionIntersectionIds(2)).toEqual(new Set([11]));
 
         // The contribution means and the problem-cluster KPI pool the same crossings, so a corner type's effect
         // reaches the sidebar bars, the neighborhood popup, and the KPI strip rather than reading as ~0.
@@ -455,7 +453,6 @@ describe('AccessScoreModel', () => {
         const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features },
             NO_INTERSECTIONS, regions);
         expect(model.rankedRegions().map((r) => r.regionId)).toEqual([2, 1]); // the thin region is floored out
-        expect(model.ranked(1).top.map((r) => r.regionId)).toEqual([2]);
         expect(model.regionIdsInBins(0, 10)).toEqual(new Set([1, 2]));
         expect(model.regionIdsInBins(0, 10, { regionIds: new Set([2]) })).toEqual(new Set([2]));
 
@@ -483,7 +480,7 @@ describe('AccessScoreModel', () => {
         expect(k.cityScore).toBeNull();
         expect(k.auditedKm).toBe(0);
         expect(model.histogram().total).toBe(0);
-        expect(model.ranked().top).toEqual([]);
+        expect(model.rankedRegions()).toEqual([]);
         expect(model.contributions().streets).toBe(0);
         expect(Object.values(model.contributions().clusterMeans).every((v) => v === 0)).toBe(true);
         expect(Object.values(model.contributions().means).every((v) => v === 0)).toBe(true);
