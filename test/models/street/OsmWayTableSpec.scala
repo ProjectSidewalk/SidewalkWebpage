@@ -129,6 +129,36 @@ class OsmWayTableSpec
         (Json.parse(tags), maxspeed, source, micros(updatedAt), missingSince.map(micros))
       }
 
+  "OsmWayTable.getStreetNames" should {
+    "name a mapped street from its way's name tag and skip unnamed or blank ones" in {
+      val named = runRolledBack(for {
+        namedStreet   <- insertStreet()
+        blankStreet   <- insertStreet()
+        unnamedStreet <- insertStreet()
+        _             <- sqlu"""INSERT INTO osm_way (osm_way_id, tags, maxspeed, geom, source, updated_at)
+                  VALUES ($blankedId, '{"name": " Main St "}'::jsonb, NULL, NULL, 'batch', now()),
+                         ($keptTagsId, '{"name": "  "}'::jsonb, NULL, NULL, 'batch', now()),
+                         ($checkedId, '{"highway": "residential"}'::jsonb, NULL, NULL, 'batch', now())"""
+        _ <- sqlu"""INSERT INTO osm_way_street_edge (osm_way_street_edge_id, osm_way_id, street_edge_id)
+                  VALUES ((SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 1 FROM osm_way_street_edge),
+                          $blankedId, $namedStreet),
+                         ((SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 2 FROM osm_way_street_edge),
+                          $keptTagsId, $blankStreet),
+                         ((SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 3 FROM osm_way_street_edge),
+                          $checkedId, $unnamedStreet)"""
+        names <- osmWayTable.getStreetNames(Seq(namedStreet, blankStreet, unnamedStreet))
+      } yield names)
+      named.values.toSeq mustBe Seq("Main St")
+      named.size mustBe 1
+    }
+
+    "take a whole city's worth of ids: more than pgjdbc's 65,535 bound parameters" in {
+      // Ids that match nothing are fine: the point is that pgjdbc accepts the statement (Chicago's ~112k didn't).
+      run(osmWayTable.getStreetNames(Seq.range(900000000, 900070000))) mustBe Map.empty
+      run(osmWayTable.getStreetNames(Nil)) mustBe Map.empty
+    }
+  }
+
   "OsmWayTable.getWayIdsToBackfill" should {
     "list only the gone ways whose tags are empty and whose history has not been read" in {
       val goneAt = OffsetDateTime.now

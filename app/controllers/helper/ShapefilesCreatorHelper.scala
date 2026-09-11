@@ -1029,6 +1029,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       "the_geom:LineString:srid=4326," // LineString geometry
       + "streetId:Integer,"            // Street edge ID
       + "osmWayId:String,"             // OSM way ID as String (shapefiles don't handle Long well)
+      + "streetName:String,"           // The OSM way's name tag (null if unnamed); 10 chars, the DBF ceiling
       + "regionId:Integer,"            // Region ID
       + "score:Double,"                // Headline score: mean of the segment and its end intersections (null if none)
       + "segScore:Double,"             // The segment's own score (null if unaudited)
@@ -1048,6 +1049,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       fb.add(s.geometry)
       fb.add(s.streetEdgeId)
       fb.add(s.osmWayId.toString)
+      fb.add(s.streetName.orNull)
       fb.add(s.regionId)
       fb.add(s.score.map(Double.box).orNull)
       fb.add(s.segmentScore.map(Double.box).orNull)

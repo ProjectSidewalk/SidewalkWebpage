@@ -394,6 +394,7 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
       val street = StreetAccessScoreForApi(
         streetEdgeId = 951,
         osmWayId = 11584845L,
+        streetName = Some("Cedar Lane"),
         regionId = 1,
         score = Some(0.8),
         segmentScore = Some(0.7),
@@ -427,7 +428,17 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         features(951).getAttribute("severity_counts_CurbRamp_1") mustBe 2
         features(951).getAttribute("severity_counts_CurbRamp_null") mustBe 0 // Sparse entries are filled with zero.
         features(951).getAttribute("end_intersection_id") mustBe null
+        features(951).getAttribute("street_name") mustBe "Cedar Lane"
         declaredSrsId(gpkg, "access_score_streets") mustBe 4326
+      }
+      // The shapefile has its own hand-written columns, so the name is checked there too.
+      inTempDir("access-score-streets-shp") { base =>
+        val shp = Await
+          .result(shapefileCreator.createStreetAccessScoreShapefile(Source.single(street), base, 1), 60.seconds)
+          .value
+        val (names, features) = readBack(openShapefile(shp), "streetId")
+        names must contain("streetName")
+        features(951).getAttribute("streetName") mustBe "Cedar Lane"
       }
     }
   }
