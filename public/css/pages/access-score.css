@@ -1326,7 +1326,9 @@
     max-height: 96px;
   }
 
-  .acs-dock__strip {
+  /* The collapsed bar has no room for the ramp strip beside the KPIs; the selector matches the rule that shows it,
+     or that one's extra class would outrank this. */
+  .acs-dock--collapsed .acs-dock__strip {
     display: none;
   }
 }

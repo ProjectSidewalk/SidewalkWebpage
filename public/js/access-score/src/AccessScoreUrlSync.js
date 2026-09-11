@@ -7,7 +7,8 @@
  *
  * Params: `unit` (streets|regions), `w` (per-type magnitudes, `CurbRamp:0.75,…`, present only when they differ
  * from the engine's defaults), `unaudited` (0|1), `clusters` (0|1, the evidence layer), `sel` (selected street or
- * region id, read with `unit`), `dark` (1 for the dark basemap); and the insights dock's `dock` (0 when collapsed)
+ * region id, read with `unit`), `dark` (1 for the dark basemap); and the insights dock's `dock` (0 when collapsed,
+ * 1 to open it on a narrow window, where it otherwise starts collapsed)
  * `b` (the brushed score range as `from-to` in whole percent, on the histogram's 10-point bin edges) and `focus`
  * (the neighborhood a rank-list click scoped the band to).
  */
@@ -56,8 +57,13 @@ class AccessScoreUrlSync {
     const sel = Number.parseInt(params.get('sel'), 10);
 
     const focus = Number.parseInt(params.get('focus'), 10);
+    // Open by default on a wide window; below the drawer's breakpoint the band's four stacked panels would cover
+    // the whole map, so it starts collapsed there like the drawer does, unless the link says `dock=1`.
+    const narrow = typeof window.matchMedia === 'function' && window.matchMedia(MapSidebarDrawer.NARROW_QUERY).matches;
     const dock = {
-      open: params.get('dock') !== '0', brush: null, focus: Number.isFinite(focus) && focus > 0 ? focus : null,
+      open: params.has('dock') ? params.get('dock') !== '0' : !narrow,
+      brush: null,
+      focus: Number.isFinite(focus) && focus > 0 ? focus : null,
     };
     // A brush is only meaningful on the bin edges; anything else is dropped whole rather than rounded to a range
     // the link's author never picked.
