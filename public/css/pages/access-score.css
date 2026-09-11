@@ -932,8 +932,11 @@
   white-space: nowrap;
 }
 
+/* One grid for the whole list, so every bar starts on the same column line: the name column hugs the longest
+   name of all rows (capped at 42%), not each row's own. The rows join it as subgrids. */
 .acs-whats-here__rows {
   display: grid;
+  grid-template-columns: fit-content(42%) minmax(0, 1fr) auto;
   gap: 1px;
   margin: 0;
   padding: 0;
@@ -946,7 +949,8 @@
 
 .acs-whats-here__row {
   display: grid;
-  grid-template-columns: fit-content(42%) minmax(0, 1fr) auto; /* Name hugs its text, capped so the bar wins. */
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: center;
   gap: var(--space-xs);
   min-height: calc(14px * var(--ui-scale, 1));
