@@ -19,6 +19,17 @@ import javax.inject.{Inject, Singleton}
  *
  * Extracted from `ShareController` so both controllers name the same path once.
  */
+object ShareImageCache {
+
+  /**
+   * Bump when previews already on disk would be built differently today: the cache has no expiry, so a wrong one is
+   * otherwise served for good. 2 = #3095 (still-based previews had the marker up to 60 px off).
+   */
+  val Generation: Int = 2
+
+  def isCurrentGeneration(file: File): Boolean = file.getName.matches(s"share_\\d+_g$Generation\\.jpg")
+}
+
 @Singleton
 class ShareImageCache @Inject() (config: Configuration, environment: Environment, configService: ConfigService) {
   private val logger = Logger(this.getClass)
@@ -30,7 +41,7 @@ class ShareImageCache @Inject() (config: Configuration, environment: Environment
   def dir: File = new File(MediaDirs.baseDir(config, environment, "share.image.directory"), configService.getCityId)
 
   /** The cached preview for a label, which may or may not exist. */
-  def fileFor(labelId: Int): File = new File(dir, s"share_$labelId.jpg")
+  def fileFor(labelId: Int): File = new File(dir, s"share_${labelId}_g${ShareImageCache.Generation}.jpg")
 
   /**
    * Drops the cached preview for a label so the next request rebuilds it. A no-op when nothing is cached, which is

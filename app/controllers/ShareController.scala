@@ -314,12 +314,21 @@ class ShareController @Inject() (
   /**
    * Evicts the least-recently-served cached previews once the per-city cache holds more than `maxFiles` images.
    *
+   * Older-generation previews go first whatever their age: nothing will ever serve them again.
+   *
    * serveImage touches each file's mtime on every hit, so sorting by mtime approximates LRU. Runs on the cache-miss
    * path only (right after a build), where the O(n) directory listing is noise next to the imagery fetch + composite
    * it follows. The branded fallback can be evicted like any other file — it's rebuilt on demand.
    */
   private[controllers] def evictStaleShareImages(dir: File, maxFiles: Int = MAX_CACHED_SHARE_IMAGES): Unit = {
-    val cached = Option(dir.listFiles()).getOrElse(Array.empty[File]).filter(_.isFile)
+    val (cached, outdated) =
+      Option(dir.listFiles())
+        .getOrElse(Array.empty[File])
+        .filter(_.isFile)
+        .partition(ShareImageCache.isCurrentGeneration)
+    outdated.foreach { f =>
+      val _ = f.delete()
+    }
     if (cached.length > maxFiles) {
       cached.sortBy(_.lastModified()).take(cached.length - maxFiles).foreach { f =>
         val _ = f.delete()

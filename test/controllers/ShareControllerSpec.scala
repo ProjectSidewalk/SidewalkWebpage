@@ -12,7 +12,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import service.{AuthenticationService, LabelService, PanoDataService, StoryService}
+import service.{AuthenticationService, LabelService, PanoDataService, ShareImageCache, StoryService}
 
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, File}
@@ -459,7 +459,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "name a label's preview inside the cache directory" in {
       cache.fileFor(syntheticLabelId).getParentFile.getAbsolutePath mustBe cache.dir.getAbsolutePath
-      cache.fileFor(syntheticLabelId).getName mustBe s"share_$syntheticLabelId.jpg"
+      cache.fileFor(syntheticLabelId).getName mustBe s"share_${syntheticLabelId}_g${ShareImageCache.Generation}.jpg"
     }
 
     "delete a cached preview so the next request rebuilds it from the crop that just landed (#4726)" in {
@@ -482,10 +482,10 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
   "evictStaleShareImages" should {
     val controller = app.injector.instanceOf[ShareController]
 
-    /** Creates `n` empty cache files with strictly increasing mtimes (index 0 = oldest). */
+    /** Creates `n` empty current-generation cache files with strictly increasing mtimes (index 0 = oldest). */
     def fillCache(dir: File, n: Int): Seq[File] =
       (1 to n).map { i =>
-        val f = new File(dir, s"share_$i.jpg")
+        val f = new File(dir, s"share_${i}_g${ShareImageCache.Generation}.jpg")
         val _ = f.createNewFile()
         val _ = f.setLastModified(1700000000000L + i * 60000L)
         f
@@ -509,6 +509,24 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
         val files = fillCache(dir, 3)
         controller.evictStaleShareImages(dir, maxFiles = 3)
         files.map(_.exists()) mustBe Seq(true, true, true)
+      } finally {
+        Option(dir.listFiles()).getOrElse(Array.empty[File]).foreach(f => f.delete())
+        val _ = dir.delete()
+      }
+    }
+
+    "sweep previews from an older generation even under the ceiling, and keep the current ones (#3095)" in {
+      val dir = Files.createTempDirectory("share-evict-spec").toFile
+      try {
+        val current = fillCache(dir, 2)
+        val legacy  = Seq(new File(dir, "share_7.jpg"), new File(dir, "share_8_g1.jpg"))
+        legacy.foreach { f =>
+          val _ = f.createNewFile()
+          val _ = f.setLastModified(1800000000000L) // Newer than every current file: age must not protect it.
+        }
+        controller.evictStaleShareImages(dir, maxFiles = 10)
+        legacy.map(_.exists()) mustBe Seq(false, false)
+        current.map(_.exists()) mustBe Seq(true, true)
       } finally {
         Option(dir.listFiles()).getOrElse(Array.empty[File]).foreach(f => f.delete())
         val _ = dir.delete()
