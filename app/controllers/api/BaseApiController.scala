@@ -145,12 +145,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
   protected def timestampedFilename(prefix: String): String =
     BaseApiController.timestampedFilename(prefix)
 
-  /**
-   * Each download gets its own folder: file names only carry the time to the second, so two downloads in the same
-   * second would otherwise overwrite each other (#4133).
-   *
-   * @return The new, empty folder.
-   */
+  /** @return A new, empty folder for one download, so two downloads can't overwrite each other's files (#4133). */
   private def newDownloadDir(): Path = {
     Files.createDirectories(BaseApiController.downloadsDir)
     sweepStaleDownloadDirs()
@@ -376,8 +371,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
   /**
    * Outputs several shapefiles as one downloadable ZIP file response.
    *
-   * @param createShapefiles Builds the shapefiles under the given base path in batches of the given size; None if that
-   *                         failed.
+   * @param createShapefiles Builds the shapefiles under the given base path, batch by batch; None if that failed.
    * @return The zip as a downloadable response, or an error response if the shapefiles couldn't be created.
    */
   protected def outputShapefiles[A](
