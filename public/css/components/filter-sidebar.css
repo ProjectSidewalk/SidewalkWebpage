@@ -99,6 +99,15 @@
   margin: 0;
 }
 
+/*
+ * "Clear search result": created by labelMapLocationSearch.js and revealed only while a searched place is
+ * pinned on the map (#5321). It takes its look from .filter-sidebar__deselect-all, the sidebar's other
+ * undo-this-selection button, so the two read as the same kind of control; only the spacing is its own.
+ */
+.labelmap-search-clear {
+  margin-top: 6px;
+}
+
 /* Drag handle for resizing the sidebar width. Sits on the right edge of the sidebar. */
 .filter-sidebar__resize-handle {
   position: absolute;
