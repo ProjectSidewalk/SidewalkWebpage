@@ -12,7 +12,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import service.{AuthenticationService, LabelService, StoryService}
+import service.{AuthenticationService, LabelService, PanoDataService, StoryService}
 
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, File}
@@ -371,15 +371,30 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     val bg           = 0xcc0000 // Solid red; no label-type icon is red, so any non-red pixel is the marker.
     val canvasCenter = CropMarker(0.5, 0.5)
 
-    "output the fixed share dimensions and keep a centered marker centered for a 4:3 GSV-sized base" in {
-      // 640x480 is what the GSV Static API actually returns; cover-cropping 4:3 to 3:2 trims top/bottom, and a
-      // marker at the canvas center must map to the output center through that transform.
+    "output the fixed share dimensions and keep a centered marker centered for a 4:3 base" in {
       val out = controller.compositeMarker(solidBase(640, 480, bg), LabelTypeEnum.CurbRamp, canvasCenter)
       out.getWidth mustBe 1440
       out.getHeight mustBe 960
       val (cx, cy) = markerCenter(out, bg)
       cx must be(720 +- 3)
       cy must be(480 +- 3)
+    }
+
+    "put an edge marker on a Street View still where the crop path puts it, which a 4:3 still cannot (#3095)" in {
+      // A 640x480 still holds the frame inside ~27 px bands of extra sky and ground, so the same fraction lands
+      // 42 px higher on it (102 vs 144 of 960); the still has to be the canvas's aspect for the fraction to mean the
+      // same thing as on the crop.
+      val nearTop = CropMarker(0.62, 0.15)
+      val still   = solidBase(PanoDataService.StaticStillWidth, PanoDataService.StaticStillHeight, bg)
+      val onStill = markerCenter(controller.compositeMarker(still, LabelTypeEnum.Crosswalk, nearTop), bg)
+      val onCrop  =
+        markerCenter(controller.compositeMarker(solidBase(1440, 960, bg), LabelTypeEnum.Crosswalk, nearTop), bg)
+      onStill._1 must be(onCrop._1 +- 3)
+      onStill._2 must be(onCrop._2 +- 3)
+      onCrop._2 must be(144 +- 3)
+      val onOldStill =
+        markerCenter(controller.compositeMarker(solidBase(640, 480, bg), LabelTypeEnum.Crosswalk, nearTop), bg)
+      onOldStill._2 must be(102 +- 3)
     }
 
     "keep a centered marker centered for a crop-sized (already 3:2) base" in {
