@@ -352,5 +352,6 @@
     "votes": "驗證此標籤",
     "no-image-to-judge": "沒有可用來判斷此標籤的圖片",
     "vote-failed": "您的投票未儲存，請再試一次。"
-  }
+  },
+  "download-already-preparing": "此檔案已在為另一個請求準備中，請稍後再試。"
 }
