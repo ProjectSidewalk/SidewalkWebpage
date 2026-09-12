@@ -482,4 +482,42 @@ test.describe('/accessScore', () => {
     await expect(page.locator('#acs-dock-caption')).toContainText('3 streets');
     await expect.poll(() => urlParam(page, 'dock')).toBeNull();
   });
+
+  test('a searched place can be taken back off the map (#5321)', async ({page}) => {
+    await page.goto('/accessScore');
+    await waitForAppReady(page);
+    await waitForTool(page);
+
+    const pin = page.locator('.ps-search-pin');
+    const clearButton = page.locator('#labelmap-search-clear');
+    await expect(clearButton).toBeHidden();
+
+    // Stands in for picking a suggestion. `retrieve` is the event Search JS fires with the chosen feature and is
+    // the whole contract between the SDK and our code — typing into the box instead would exercise Mapbox's
+    // network protocol (which stubMapbox answers 204 for), not the pin-and-clear behavior under test.
+    const selectPlace = () => page.evaluate(() => {
+      document.querySelector('mapbox-search-box').dispatchEvent(new CustomEvent('retrieve', {
+        detail: {features: [{
+          geometry: {type: 'Point', coordinates: [-74.0105, 40.8805]},
+          properties: {name: 'Fixture Library', full_address: '1 Cedar Ln, Teaneck, NJ 07666'},
+        }]},
+      }));
+    });
+
+    await selectPlace();
+    await expect(pin).toHaveCount(1);
+    await expect(clearButton).toBeVisible();
+
+    await clearButton.click();
+    await expect(pin).toHaveCount(0);
+    await expect(clearButton).toBeHidden();
+
+    // Escape is the keyboard route to the same clear, and it works with focus in the search field.
+    await selectPlace();
+    await expect(pin).toHaveCount(1);
+    await page.locator('#labelmap-search-box input[role="combobox"]').focus();
+    await page.keyboard.press('Escape');
+    await expect(pin).toHaveCount(0);
+    await expect(clearButton).toBeHidden();
+  });
 });

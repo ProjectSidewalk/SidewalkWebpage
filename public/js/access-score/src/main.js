@@ -75,6 +75,8 @@ window.AccessScoreApp = (function () {
     document.getElementById('acs-map-holder')?.classList.toggle('acs-map-holder--dark', dark);
 
     let initialCamera = null;
+    // The address-search handle, kept so the app object can hand out its `clear()` (#5321).
+    let placeSearch = null;
     const mapPromise = createPSMap($, {
       mapName: 'acs-map',
       mapStyle: dark ? MAP_STYLES.dark : MAP_STYLES.light,
@@ -86,7 +88,7 @@ window.AccessScoreApp = (function () {
         // The page's own opening view, before a shared link's viewport lands on it: what "Reset everything" returns to.
         initialCamera = { center: readyMap.getCenter(), zoom: readyMap.getZoom() };
         MapSidebarUrlSync.applyUrlViewport(map);
-        initLabelMapLocationSearch(map, mapboxApiKey);
+        placeSearch = initLabelMapLocationSearch(map, mapboxApiKey);
         overlay.show();
       },
     }).then((loaded) => loaded[0]);
@@ -285,7 +287,7 @@ window.AccessScoreApp = (function () {
 
     const app = {
       map, model, mapView, sidebar, dock, config, streets, regions, clusterLoader: evidence.loader,
-      clusterLayer: evidence.layer,
+      clusterLayer: evidence.layer, placeSearch,
     };
     window.accessScore = app;
     document.dispatchEvent(new CustomEvent('accessscore:ready', { detail: app }));

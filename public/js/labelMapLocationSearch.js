@@ -5,7 +5,8 @@
  * hard-limits suggestions to the deployment city's actual extent, so this stays a within-city finder
  * (hospitals, schools, libraries, ...) rather than a general-purpose geocoder. Selecting a result flies
  * the map to the place and drops a Project Sidewalk pin; activating the pin opens the Explore tool at that
- * exact spot, and hovering or focusing it first previews the invitation (#4451). Mirrors the setup in
+ * exact spot, and hovering or focusing it first previews the invitation (#4451). A "clear" button under the
+ * search box, and Escape, take the place back off the map again (#5321). Mirrors the setup in
  * `routeBuilder.js` (`#setUpSearchBox`), except the control is mounted inside the sidebar (per #4370)
  * rather than added as a floating control.
  */
@@ -146,11 +147,12 @@ function buildExploreHereContent(map, lat, lng, placeName, address, exploreHref)
  *
  * @param {mapboxgl.Map} map - The Mapbox GL map created by createPSMap.
  * @param {string} mapboxApiKey - Mapbox access token (the same token that initialized the map).
- * @returns {void} No-op if the sidebar container or the Search SDK is unavailable.
+ * @returns {{clear: function(): boolean}|null} Handle whose `clear()` takes the searched place back off the
+ *          map (true if there was one), or null if the sidebar container or the Search SDK is unavailable.
  */
 function initLabelMapLocationSearch(map, mapboxApiKey) {
   const container = document.getElementById('labelmap-search-box');
-  if (!container || typeof MapboxSearchBox === 'undefined') return;
+  if (!container || typeof MapboxSearchBox === 'undefined') return null;
 
   const searchBox = new MapboxSearchBox();
   searchBox.accessToken = mapboxApiKey;
@@ -167,13 +169,27 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
   // control's DOM element, which we place inside the sidebar instead of handing to map.addControl().
   const searchBoxElement = searchBox.onAdd(map);
   container.appendChild(searchBoxElement);
+  const searchInput = searchBoxElement.querySelector('input[role="combobox"]');
   // Seed the aria-expanded that Search JS itself only writes once its result list has opened (#5087).
-  searchBoxElement.querySelector('input[role="combobox"]')?.setAttribute('aria-expanded', 'false');
+  searchInput?.setAttribute('aria-expanded', 'false');
+
+  // The pin a search drops outlives the query that found it: the search box's own ✕ empties the input and leaves the
+  // map untouched, so once the text is gone there is nothing left on screen offering to put the place away (#5321).
+  // This button is that affordance. It is built here rather than in the two views that mount the control so the
+  // affordance and the state it undoes live in one file, and it is hidden until there is a place to clear.
+  const clearButton = document.createElement('button');
+  clearButton.type = 'button';
+  clearButton.id = 'labelmap-search-clear';
+  clearButton.className = 'filter-sidebar__deselect-all labelmap-search-clear';
+  clearButton.hidden = true;
+  clearButton.textContent = i18next.t('labelmap:search-clear');
+  container.insertAdjacentElement('afterend', clearButton);
 
   // On selecting a result, drop a pin the user can hover/focus to open the "explore here" invitation (#4451). The
   // popup is deliberately NOT opened on selection: someone searching an address on the LabelMap is there to look at
   // the labels around it, and a popup sitting open covers exactly what they came to see.
   let searchMarker = null;
+  let searchPinEl = null;
   let exploreHerePopup = null;
 
   const hidePopup = () => {
@@ -181,9 +197,48 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
     exploreHerePopup.remove();
     exploreHerePopup = null;
   };
-  // Bound once for the page: registering this inside the `retrieve` handler would add another listener per search.
+
+  /**
+   * Take the searched place back off the map: its pin, the invitation popup, the search text, and this button.
+   *
+   * The one undo path for a selection — the clear button, Escape, and the search box's own ✕ all come through here,
+   * as the place card in #5311 will — so no caller can unwind half of the state and leave a pin with no owner.
+   *
+   * @param {string} trigger - Activity-log prefix naming how the clear was asked for ('Click', 'KeyboardShortcut').
+   * @returns {boolean} True if a place was showing and is now cleared; false if there was nothing to clear.
+   */
+  const clearSelection = (trigger) => {
+    if (!searchMarker) return false;
+    // Read before the teardown: focus sitting on something about to be removed (the pin) or hidden (this button)
+    // would fall to <body> and lose a keyboard user their place, so below it is handed back to the search field.
+    const focusWasOnSelection = document.activeElement === clearButton || document.activeElement === searchPinEl;
+    hidePopup();
+    searchMarker.remove();
+    searchMarker = null;
+    searchPinEl = null;
+    clearButton.hidden = true;
+    if (focusWasOnSelection) searchInput?.focus();
+    // Empty the input too, so the box can't keep naming a place that is no longer on the map. The camera is
+    // deliberately left where the search flew it: the user asked to go there and only asked to put the pin away.
+    searchBox.value = '';
+    if (typeof window.logWebpageActivity === 'function') {
+      window.logWebpageActivity(`${trigger}_module=ClearSearchResult`);
+    }
+    return true;
+  };
+
+  clearButton.addEventListener('click', () => clearSelection('Click'));
+  // Search JS fires `clear` when its own ✕ is pressed. Dropping the pin with it keeps the box and the map from
+  // disagreeing about whether a place is selected.
+  searchBox.addEventListener('clear', () => clearSelection('Click'));
+
+  // Escape takes one step at a time: it closes an open invitation popup first, so a keyboard user previewing it can
+  // back out without also losing the pin they are standing on, and only a second Escape clears the place itself.
+  // Bound once for the page — registering this inside the `retrieve` handler would add another listener per search.
   document.addEventListener('keydown', (evt) => {
-    if (evt.key === 'Escape') hidePopup();
+    if (evt.key !== 'Escape') return;
+    if (exploreHerePopup) hidePopup();
+    else clearSelection('KeyboardShortcut');
   });
 
   searchBox.addEventListener('retrieve', (e) => {
@@ -229,6 +284,8 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
       </svg>`;
 
     searchMarker = new mapboxgl.Marker({ element: pinEl, anchor: 'bottom' }).setLngLat([lng, lat]).addTo(map);
+    searchPinEl = pinEl;
+    clearButton.hidden = false;
 
     const showPopup = () => {
       if (exploreHerePopup) return;
@@ -275,4 +332,6 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
       if (bbox) searchBox.options = { ...searchBox.options, bbox };
     })
     .catch(() => { /* If the city extent can't be loaded, leave the search unbounded. */ });
+
+  return { clear: () => clearSelection('Click') };
 }
