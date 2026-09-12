@@ -58,7 +58,9 @@ function setUpPage() {
     popups = [];
     logged = [];
     document.body.innerHTML =
-        '<section id="labelmap-search-section"><div id="labelmap-search-box"></div></section>';
+        '<section id="labelmap-search-section"><div id="labelmap-search-box"></div></section>'
+        + '<button id="elsewhere">Unrelated</button>'
+        + '<dialog id="sheet"><button id="in-dialog">Inside</button></dialog>';
 
     window.i18next = { t: (key) => key };
     window.util = { assetPath: (p) => p };
@@ -192,7 +194,7 @@ describe('clearing a searched place', () => {
     test('Escape closes an open invitation popup first, and only then clears the place', () => {
         retrieve();
         // Focusing the pin is what opens the popup; the pin is a real button built by the production code.
-        document.querySelector('.ps-search-pin').dispatchEvent(new window.FocusEvent('focus'));
+        document.querySelector('.ps-search-pin').focus();
         expect(popups).toHaveLength(1);
 
         pressEscape();
@@ -204,6 +206,44 @@ describe('clearing a searched place', () => {
         expect(markers[0].removed).toBe(true);
         expect(document.getElementById('labelmap-search-clear').hidden).toBe(true);
         expect(logged).toEqual(['KeyboardShortcut_module=ClearSearchResult']);
+    });
+
+    test('Escape from the search input clears the place', () => {
+        retrieve();
+        window.__searchBoxInstance.input.focus();
+        pressEscape();
+
+        expect(markers[0].removed).toBe(true);
+        expect(logged).toEqual(['KeyboardShortcut_module=ClearSearchResult']);
+    });
+
+    test('Escape from an unrelated control leaves the place alone', () => {
+        retrieve();
+        document.getElementById('elsewhere').focus();
+        pressEscape();
+
+        // Escape is the dismiss key for half the page (cluster sheet, label card, Mapbox popup, suggestion list);
+        // none of those may take the pin with them.
+        expect(markers[0].removed).toBe(false);
+        expect(document.getElementById('labelmap-search-clear').hidden).toBe(false);
+        expect(logged).toEqual([]);
+    });
+
+    test('Escape while a modal dialog is open leaves the place alone', () => {
+        retrieve();
+        document.getElementById('sheet').setAttribute('open', '');
+        document.getElementById('in-dialog').focus();
+        pressEscape();
+
+        expect(markers[0].removed).toBe(false);
+        expect(logged).toEqual([]);
+
+        // And with the dialog closed again, the same key from the same place still does nothing: the guard is a
+        // second line of defence, not the thing doing the scoping.
+        document.getElementById('sheet').removeAttribute('open');
+        pressEscape();
+        expect(markers[0].removed).toBe(false);
+        expect(logged).toEqual([]);
     });
 
     test('clearing from the button hands focus back to the search field', () => {

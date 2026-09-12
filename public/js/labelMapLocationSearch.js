@@ -235,10 +235,23 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
   // Escape takes one step at a time: it closes an open invitation popup first, so a keyboard user previewing it can
   // back out without also losing the pin they are standing on, and only a second Escape clears the place itself.
   // Bound once for the page — registering this inside the `retrieve` handler would add another listener per search.
+  //
+  // Closing the popup is unscoped, as it has always been: it belongs to the pin and to nothing else on the page, so
+  // Escape from anywhere is unambiguous. CLEARING is scoped to the search's own controls, because Escape is the
+  // dismiss key for half the page — the AccessScore cluster sheet, a label card, a Mapbox popup, the suggestion list
+  // — and an unscoped clear would silently take the pin away every time one of those was dismissed. The dialog guard
+  // covers a modal that has taken focus away from its own contents.
   document.addEventListener('keydown', (evt) => {
     if (evt.key !== 'Escape') return;
-    if (exploreHerePopup) hidePopup();
-    else clearSelection('KeyboardShortcut');
+    if (exploreHerePopup) {
+      hidePopup();
+      return;
+    }
+    if (document.querySelector('dialog[open]')) return;
+    const focused = document.activeElement;
+    const inSearchControls = focused
+      && (searchBoxElement.contains(focused) || focused === clearButton || focused === searchPinEl);
+    if (inSearchControls) clearSelection('KeyboardShortcut');
   });
 
   searchBox.addEventListener('retrieve', (e) => {
