@@ -72,11 +72,11 @@ fi
 
 # The tutorial region must end up open (space-padded literal containment, not a regex).
 if [ "$MODE" = "include" ] && [[ " $REGIONS_SHOWN " != *" $TUTORIAL_REGION_ID "* ]]; then
-    echo "Error: Tutorial region $TUTORIAL_REGION_ID must be in the include list"
+    echo "Error: Tutorial region $TUTORIAL_REGION_ID must be in the include list" >&2
     exit 1
 fi
 if [ "$MODE" = "exclude" ] && [[ " $REGIONS_HIDDEN " == *" $TUTORIAL_REGION_ID "* ]]; then
-    echo "Error: Tutorial region $TUTORIAL_REGION_ID cannot be in the exclude list"
+    echo "Error: Tutorial region $TUTORIAL_REGION_ID cannot be in the exclude list" >&2
     exit 1
 fi
 
