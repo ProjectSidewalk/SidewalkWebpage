@@ -354,5 +354,6 @@
     "votes": "Validar esta etiqueta",
     "no-image-to-judge": "No hay imagen para juzgar esta etiqueta",
     "vote-failed": "Tu voto no se guardó. Inténtalo de nuevo."
-  }
+  },
+  "download-already-preparing": "Este archivo ya se está preparando para otra solicitud. Inténtalo de nuevo en un momento."
 }

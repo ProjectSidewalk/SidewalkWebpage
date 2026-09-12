@@ -304,7 +304,7 @@ describe('MapDownloadControl panel', () => {
             expect(busyLabel().hidden).toBe(true);
             expect(button().getAttribute('aria-busy')).toBe('false');
             expect(container.querySelector('[role="status"]').textContent)
-                .toBe('This file is already being prepared. Please try again shortly.');
+                .toBe('This file is already being prepared for another request. Please try again shortly.');
 
             jest.advanceTimersByTime(4000);
             expect(refused.hidden).toBe(true);

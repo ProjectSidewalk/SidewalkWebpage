@@ -354,5 +354,6 @@
     "votes": "Valider cette étiquette",
     "no-image-to-judge": "Aucune image pour juger cette étiquette",
     "vote-failed": "Votre vote n'a pas été enregistré. Veuillez réessayer."
-  }
+  },
+  "download-already-preparing": "Ce fichier est déjà en cours de préparation pour une autre demande. Veuillez réessayer dans un instant."
 }

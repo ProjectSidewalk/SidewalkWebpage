@@ -538,11 +538,11 @@ function setupDownloadButtons() {
       // A network failure answers 0, and the download then proceeds as it would have anyway.
       const status = await fetch(downloadUrl, { method: 'HEAD' }).then((probe) => probe.status, () => 0);
       if (status === 429) {
-        showStatus(
-          'This file is already being prepared for another request.',
-          'Please try again shortly.',
-          'status-message--warning',
-        );
+        // The one translated string on this page, shared with the Label Map so the two can't drift apart.
+        const refused = typeof i18next !== 'undefined'
+          ? i18next.t('common:download-already-preparing')
+          : 'This file is already being prepared for another request. Please try again shortly.';
+        showStatus(refused, '', 'status-message--warning');
       } else {
         const downloadLink = document.createElement('a');
         downloadLink.href = downloadUrl;

@@ -89,7 +89,6 @@
     "button": "下載",
     "title": "選擇要下載的檔案格式",
     "preparing": "正在準備您的下載…",
-    "already-preparing": "此檔案已在準備中，請稍後再試。",
     "count_other": "{{count}} 個標記",
     "count-match_other": "在目前檢視範圍內符合您的篩選條件",
     "hint-geojson": "網頁地圖標準格式",

@@ -176,8 +176,8 @@ class MapDownloadControl {
         <span class="map-download-control__label map-download-control__label--busy" data-state="busy"
               data-i18n="labelmap:download.preparing" hidden>Preparing your download…</span>
         <span class="map-download-control__label map-download-control__label--refused" data-state="refused"
-              data-i18n="labelmap:download.already-preparing" hidden>This file is already being prepared. Please try
-          again shortly.</span>
+              data-i18n="common:download-already-preparing" hidden>This file is already being prepared for another
+          request. Please try again shortly.</span>
       </button>
       <div id="${panelId}" class="map-download-control__panel" role="group" aria-labelledby="${titleId}"
            aria-describedby="${describedBy}" hidden>

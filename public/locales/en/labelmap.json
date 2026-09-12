@@ -95,7 +95,6 @@
     "button": "Download",
     "title": "Select a file format to download",
     "preparing": "Preparing your download…",
-    "already-preparing": "This file is already being prepared. Please try again shortly.",
     "count_one": "{{count}} label",
     "count_other": "{{count}} labels",
     "count-match_one": "matches your filters in this view",

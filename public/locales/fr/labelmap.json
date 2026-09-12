@@ -95,7 +95,6 @@
     "button": "Télécharger",
     "title": "Choisissez un format de fichier à télécharger",
     "preparing": "Préparation de votre téléchargement…",
-    "already-preparing": "Ce fichier est déjà en cours de préparation. Veuillez réessayer dans un instant.",
     "count_one": "{{count}} étiquette",
     "count_other": "{{count}} étiquettes",
     "count-match_one": "correspond à vos filtres dans cette vue",

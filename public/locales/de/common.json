@@ -354,5 +354,6 @@
     "votes": "Dieses Label validieren",
     "no-image-to-judge": "Kein Bild, um dieses Label zu beurteilen",
     "vote-failed": "Deine Stimme wurde nicht gespeichert. Bitte versuche es erneut."
-  }
+  },
+  "download-already-preparing": "Diese Datei wird bereits für eine andere Anfrage vorbereitet. Bitte versuchen Sie es gleich noch einmal."
 }

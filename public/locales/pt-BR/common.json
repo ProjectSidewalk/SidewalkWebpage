@@ -354,5 +354,6 @@
     "votes": "Validar este rótulo",
     "no-image-to-judge": "Sem imagem para avaliar este rótulo",
     "vote-failed": "Seu voto não foi salvo. Tente novamente."
-  }
+  },
+  "download-already-preparing": "Este arquivo já está sendo preparado para outra solicitação. Tente novamente em instantes."
 }
