@@ -471,7 +471,9 @@ function setupPermalinkCopying() {
 }
 
 /**
- * Sets up download buttons with reliable status messages that clear properly.
+ * Sets up the download buttons: each hands its URL to the browser and shows a short status. The browser download
+ * fails silently if the server refuses it (429: the same file is already being built for someone else), so the
+ * button asks first with a HEAD request, which answers without building anything, and reports that instead.
  */
 function setupDownloadButtons() {
   const downloadButtonsContainer = document.querySelector('.download-buttons');
@@ -484,202 +486,79 @@ function setupDownloadButtons() {
   downloadStatus.className = 'status-container status-loading ps-hidden';
   const statusMessage = downloadStatus.querySelector('.status-message');
   const statusProgress = downloadStatus.querySelector('.status-progress');
+  let hideTimer = null;
+
+  /**
+   * Shows the status box with the given lines.
+   * @param {string} message The headline.
+   * @param {string} detail The line under it.
+   * @param {?string} [tone] A status-message modifier class for a warning or error, or null for plain.
+   */
+  function showStatus(message, detail, tone = null) {
+    clearTimeout(hideTimer);
+    downloadStatus.classList.remove('ps-hidden');
+    if (statusMessage) {
+      statusMessage.textContent = message;
+      statusMessage.classList.remove('status-message--warning', 'status-message--error');
+      if (tone) statusMessage.classList.add(tone);
+    }
+    if (statusProgress) statusProgress.textContent = detail;
+  }
+
+  /** Hides the status box after `ms` milliseconds. */
+  function hideStatusAfter(ms) {
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => {
+      downloadStatus.classList.add('ps-hidden');
+      if (statusMessage) statusMessage.classList.remove('status-message--warning', 'status-message--error');
+    }, ms);
+  }
+
+  /** Enables or disables every download button. */
+  function setButtonsDisabled(disabled) {
+    downloadButtons.forEach((btn) => {
+      btn.disabled = disabled;
+      btn.classList.toggle('disabled', disabled);
+    });
+  }
 
   downloadButtons.forEach((button) => {
     const format = button.getAttribute('data-format');
 
-    button.addEventListener('click', (event) => {
-      console.log(`${format.toUpperCase()} download button clicked`);
+    button.addEventListener('click', async (event) => {
       event.preventDefault();
-
-      // Get API URL information.
       const apiBaseUrl = document.documentElement.getAttribute('data-api-base-url') || '/v3/api';
       const currentPage = document.documentElement.getAttribute('data-api-endpoint')
         || 'NEEDS_TO_BE_SET_BY_API_DOC_PAGE';
       const downloadUrl = `${apiBaseUrl}/${currentPage}?filetype=${format}`;
 
-      // CRITICAL: Track download state globally for this download. Ensures we can properly update status message.
-      const downloadState = {
-        initiated: false,
-        started: false,
-        completed: false,
-        failed: false,
-        timeouts: [],
-      };
+      showStatus(`Preparing ${format.toUpperCase()} file...`, 'Checking with the server.');
+      setButtonsDisabled(true);
 
-      // Show loading status.
-      downloadStatus.classList.remove('ps-hidden');
-      if (statusMessage) statusMessage.textContent = `Preparing ${format.toUpperCase()} file...`;
-      if (statusProgress) {
-        statusProgress.textContent = `This process can take a few seconds to a minute, depending on the data size.`;
+      // A network failure answers 0, and the download then proceeds as it would have anyway.
+      const status = await fetch(downloadUrl, { method: 'HEAD' }).then((probe) => probe.status, () => 0);
+      if (status === 429) {
+        showStatus(
+          'This file is already being prepared for another request.',
+          'Please try again shortly.',
+          'status-message--warning',
+        );
+      } else {
+        const downloadLink = document.createElement('a');
+        downloadLink.href = downloadUrl;
+        downloadLink.setAttribute('download', '');
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        downloadLink.remove();
+        showStatus(
+          'Download started.',
+          'It will appear in your downloads once the server has built the file. A city-wide file can take a while.',
+        );
       }
-
-      // Disable all download buttons during processing.
-      downloadButtons.forEach((btn) => {
-        btn.disabled = true;
-        btn.classList.add('disabled');
-      });
-
-      // Function to clean up all resources.
-      function cleanupDownload(hideStatus = true) {
-        console.log('Cleaning up download resources');
-
-        // Clear all timeouts.
-        downloadState.timeouts.forEach((timeout) => clearTimeout(timeout));
-        downloadState.timeouts = [];
-
-        // Re-enable buttons.
-        downloadButtons.forEach((btn) => {
-          btn.disabled = false;
-          btn.classList.remove('disabled');
-        });
-
-        // Hide status if requested.
-        if (hideStatus) {
-          downloadStatus.classList.add('ps-hidden');
-          if (statusMessage) statusMessage.classList.remove('status-message--warning', 'status-message--error');
-        }
-      }
-
-      // Set up progressive status updates for longer downloads.
-      downloadState.timeouts.push(setTimeout(() => {
-        if (!downloadState.started && !downloadState.completed) {
-          if (statusMessage) statusMessage.textContent = 'Processing request...';
-          if (statusProgress) statusProgress.textContent = 'The server is generating your file.';
-        }
-      }, 5000));
-
-      downloadState.timeouts.push(setTimeout(() => {
-        if (!downloadState.started && !downloadState.completed) {
-          if (statusMessage) statusMessage.textContent = 'Still working...';
-          if (statusProgress) statusProgress.textContent = 'Larger datasets take more time to process.';
-        }
-      }, 15000));
-
-      downloadState.timeouts.push(setTimeout(() => {
-        if (!downloadState.started && !downloadState.completed) {
-          if (statusMessage) statusMessage.textContent = 'Almost there...';
-          if (statusProgress) statusProgress.textContent = 'Your download should begin soon.';
-        }
-      }, 30000));
-
-      // After 60 seconds, if download hasn't started, show "taking longer" message
-      // BUT, make this message automatically clear after 10 more seconds.
-      downloadState.timeouts.push(setTimeout(() => {
-        if (!downloadState.started && !downloadState.completed) {
-          if (statusMessage) {
-            statusMessage.textContent = 'Taking longer than expected.';
-            statusMessage.classList.add('status-message--warning');
-          }
-          if (statusProgress) statusProgress.textContent = 'You can try again or try a different format.';
-
-          // Re-enable buttons after 60 seconds regardless.
-          downloadButtons.forEach((btn) => {
-            btn.disabled = false;
-            btn.classList.remove('disabled');
-          });
-
-          // Hide the message after 10 more seconds.
-          downloadState.timeouts.push(setTimeout(() => {
-            if (!downloadState.started && !downloadState.completed) {
-              downloadStatus.classList.add('ps-hidden');
-              if (statusMessage) statusMessage.classList.remove('status-message--warning', 'status-message--error');
-            }
-          }, 10000));
-        }
-      }, 60000));
-
-      // Create download link and initiate download.
-      console.log(`Starting download: ${downloadUrl}`);
-      const downloadLink = document.createElement('a');
-      downloadLink.href = downloadUrl;
-      downloadLink.setAttribute('download', '');
-      downloadLink.style.display = 'none';
-      document.body.appendChild(downloadLink);
-
-      // Create an XMLHttpRequest to monitor the download progress.
-      const xhr = new XMLHttpRequest();
-      xhr.open('GET', downloadUrl, true);
-
-      // Track response timing.
-      const startTime = Date.now();
-      downloadState.initiated = true;
-
-      // Handle successful response - this fires when headers are received.
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 2) { // HEADERS_RECEIVED
-          const responseTime = Date.now() - startTime;
-          console.log(`Headers received after ${responseTime}ms`);
-
-          // Check if we got a success response.
-          if (xhr.status === 200) {
-            console.log('Download started successfully');
-            downloadState.started = true;
-
-            // Update status message.
-            if (statusMessage) statusMessage.textContent = 'Download started!';
-            if (statusProgress) statusProgress.textContent = 'Your file will appear in your downloads shortly.';
-
-            // Calculate appropriate display time for status message. Shorter for quick responses, longer
-            // for slower ones.
-            const displayDuration = Math.min(
-              Math.max(responseTime * 2, 5000), // At least 5 seconds, or 2x response time
-              15000, // Maximum 15 seconds
-            );
-
-            console.log(`Status will hide after ${displayDuration}ms`);
-
-            // Hide status and cleanup after appropriate delay.
-            downloadState.timeouts.push(setTimeout(() => {
-              downloadState.completed = true;
-              cleanupDownload(true); // Hide status and clean up
-            }, displayDuration));
-          }
-        }
-      };
-
-      // Handle error.
-      xhr.onerror = function () {
-        console.error('XHR error');
-        downloadState.failed = true;
-
-        if (statusMessage) {
-          statusMessage.textContent = 'Error starting download.';
-          statusMessage.classList.add('status-message--error');
-        }
-        if (statusProgress) statusProgress.textContent = 'Please try again or try a different format.';
-
-        // Clean up but leave error message visible.
-        downloadState.timeouts.forEach((timeout) => clearTimeout(timeout));
-        downloadState.timeouts = [];
-
-        // Re-enable buttons.
-        downloadButtons.forEach((btn) => {
-          btn.disabled = false;
-          btn.classList.remove('disabled');
-        });
-
-        // Hide error message after 5 seconds.
-        downloadState.timeouts.push(setTimeout(() => {
-          downloadStatus.classList.add('ps-hidden');
-          if (statusMessage) statusMessage.classList.remove('status-message--warning', 'status-message--error');
-        }, 5000));
-      };
-
-      // Start monitoring the download and trigger actual download.
-      xhr.send();
-      downloadLink.click();
-
-      // Remove download link after click.
-      setTimeout(() => {
-        if (document.body.contains(downloadLink)) {
-          document.body.removeChild(downloadLink);
-        }
-      }, 1000);
+      setButtonsDisabled(false);
+      hideStatusAfter(8000);
     });
   });
-
-  console.log('Download buttons initialization complete');
 }
 
 /**
