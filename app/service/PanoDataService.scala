@@ -17,13 +17,11 @@ import play.api.libs.json.{JsNull, JsNumber, JsObject, JsValue, Json}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Environment, Logger}
 import service.PanoDataService.{
-  getFov,
+  staticStillUrl,
   ImageryCheckConcurrency,
   ImageryCheckResult,
   LiveImageryTtlDays,
-  MaxUnexpiredPanosPerSweep,
-  StaticStillHeight,
-  StaticStillWidth
+  MaxUnexpiredPanosPerSweep
 }
 import slick.dbio.DBIO
 
@@ -77,6 +75,20 @@ object PanoDataService {
   /** The still's height at the Explore canvas's aspect: 427 for a 720x480 canvas, the 0.33 px of rounding invisible. */
   val StaticStillHeight: Int =
     math.rint(StaticStillWidth.toDouble * LabelPointTable.canvasHeight / LabelPointTable.canvasWidth).toInt
+
+  /**
+   * The unsigned Street View Static API URL for a label's still: the labeling POV at `StaticStillWidth x
+   * StaticStillHeight`, with the fov the canvas projection uses for that zoom. Pure so the request can be pinned
+   * without an app; `getImageUrl` signs it.
+   */
+  def staticStillUrl(panoId: String, heading: Double, pitch: Double, zoom: Double, apiKey: String): String =
+    "https://maps.googleapis.com/maps/api/streetview?" +
+      "pano=" + panoId +
+      "&size=" + StaticStillWidth + "x" + StaticStillHeight +
+      "&heading=" + heading +
+      "&pitch=" + pitch +
+      "&fov=" + getFov(zoom) +
+      "&key=" + apiKey
 
   /**
    * Outcome of one nightly expiry sweep.
@@ -648,18 +660,9 @@ class PanoDataServiceImpl @Inject() (
    * @param zoom Zoom level of the canvas (for fov calculation).
    * @return Image URL that represents the background of the label.
    */
-  def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String] = {
-    if (panoSrc != PanoSource.Gsv) return None
-
-    val url = "https://maps.googleapis.com/maps/api/streetview?" +
-      "pano=" + panoId +
-      "&size=" + StaticStillWidth + "x" + StaticStillHeight +
-      "&heading=" + heading +
-      "&pitch=" + pitch +
-      "&fov=" + getFov(zoom) +
-      "&key=" + googleApiKey
-    Some(signUrl(url))
-  }
+  def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String] =
+    if (panoSrc != PanoSource.Gsv) None
+    else Some(signUrl(staticStillUrl(panoId, heading, pitch, zoom, googleApiKey)))
 
   /**
    * Creates a URL that will retrieve a static image at the given lat/lng and heading from the GSV Static API.

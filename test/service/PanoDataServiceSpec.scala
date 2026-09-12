@@ -157,4 +157,18 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
     PanoDataService.StaticStillWidth.toDouble / PanoDataService.StaticStillHeight shouldBe
       (LabelPointTable.canvasWidth.toDouble / LabelPointTable.canvasHeight +- 0.002)
   }
+
+  test("the still's URL asks for 640x427 at the labeling POV, with the canvas projection's fov for that zoom") {
+    val url = PanoDataService.staticStillUrl("vlX_YTSWIfEkGRYydxIPuA", 183.9990625, -6.5, 1.0, "KEY")
+    url should startWith("https://maps.googleapis.com/maps/api/streetview?pano=vlX_YTSWIfEkGRYydxIPuA&")
+    url should include("&size=640x427&")
+    url should include("&heading=183.9990625&pitch=-6.5&")
+    // The same zoom -> horizontal-fov curve as util.pano.zoomToFov, or the still would not be the Explore frame.
+    url should include("&fov=" + PanoDataService.getFov(1.0) + "&")
+    PanoDataService.getFov(1.0) shouldBe (89.75 +- 1e-9)
+    PanoDataService.getFov(2.0) shouldBe (53.0 +- 1e-9)
+    url should endWith("&key=KEY")
+    // A 720x480 request is exactly the regression: Google clamps it to 640x480 and the frame is no longer the image.
+    url should not include "720x480"
+  }
 }
