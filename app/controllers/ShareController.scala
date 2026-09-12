@@ -383,7 +383,7 @@ class ShareController @Inject() (
    * Renders the base image onto a fixed SHARE_IMAGE_WIDTH×HEIGHT canvas and draws the label-type icon at the label's
    * canvas position so the shared preview points at the labeled spot. The output size is fixed (cover-scale, center-
    * crop) so the og:image:width/height the meta advertises is always true regardless of the base image's source
-   * (stored crops are 1440×960 but GSV stills come back 640×480), and cards stay high-res on every platform.
+   * (stored crops are 1440×960 but GSV stills are 640×427), and cards stay high-res on every platform.
    */
   private[controllers] def compositeMarker(
       base: BufferedImage,

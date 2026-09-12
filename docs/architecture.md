@@ -92,7 +92,10 @@ reads.
 
 Crops are the image the Gallery, the landing validation grid and label popups fall back to when live imagery is
 unavailable; they are written by the browser's `POST /saveImage` canvas snapshot at labeling time and by the job for
-every label that has none (AI submissions, failed uploads, any past city). The geometry — `CropSizingRule` (the
+every label that has none (AI submissions, failed uploads, any past city). A GSV label with no crop yet falls back
+one step further, to a Street View Static API still requested at 640×427 — Google's 640-px cap at the Explore canvas's
+aspect — so it is the labeling frame at a smaller scale and a marker at the label's canvas fraction still lands on the
+feature (#3095; asking for 720×480 got a 640×480 still with extra sky and ground). The geometry — `CropSizingRule` (the
 swappable, versioned sizing rule) and `CropGeometry` (equirectangular mechanics) — is a port of panorama-tools'
 `CropRunner.py`, pinned to it by golden fixtures under `test/resources/crops/`. The two writers put the label in
 different places — the snapshot at its canvas fraction, the job's window wherever `CropGeometry.labelPositionInCrop`

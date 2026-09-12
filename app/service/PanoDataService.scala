@@ -21,7 +21,9 @@ import service.PanoDataService.{
   ImageryCheckConcurrency,
   ImageryCheckResult,
   LiveImageryTtlDays,
-  MaxUnexpiredPanosPerSweep
+  MaxUnexpiredPanosPerSweep,
+  StaticStillHeight,
+  StaticStillWidth
 }
 import slick.dbio.DBIO
 
@@ -58,6 +60,23 @@ object PanoDataService {
 
   /** Ceiling on the unexpired panos one nightly expiry sweep will check. */
   val MaxUnexpiredPanosPerSweep: Int = 5000
+
+  /**
+   * The size to ask the Street View Static API for a label's still (#3095): Google's 640-px cap on either edge, at
+   * the Explore canvas's own aspect.
+   *
+   * The API clamps each dimension to 640 on its own, so asking for the canvas's 720x480 came back as a 640x480 still:
+   * the frame the label was placed in, scaled by 8/9, with about 27 px of extra sky and ground around it (the `fov`
+   * parameter is horizontal, so the extra rows are where the surplus height goes). Every consumer places the marker
+   * at the label's fraction of the Explore frame, which is only right when the still *is* that frame; at 640x427 it
+   * is, frame for frame (registered against Explore-uploaded crops, 2026-09-12), and the 3:2 `object-fit: cover`
+   * boxes that happened to trim the bands off no longer carry that job.
+   */
+  val StaticStillWidth: Int = 640
+
+  /** The still's height at the Explore canvas's aspect: 427 for a 720x480 canvas, the 0.33 px of rounding invisible. */
+  val StaticStillHeight: Int =
+    math.rint(StaticStillWidth.toDouble * LabelPointTable.canvasHeight / LabelPointTable.canvasWidth).toInt
 
   /**
    * Outcome of one nightly expiry sweep.
@@ -618,7 +637,8 @@ class PanoDataServiceImpl @Inject() (
 
   /**
    * Creates a URL that will retrieve a static image of the label's panorama from the Google Street View Static API.
-   * Note that this URL returns the cropped image, but doesn't actually include the label.
+   * The still is the Explore frame the label was placed in at `StaticStillWidth x StaticStillHeight`, so a marker
+   * drawn at the label's canvas fraction lands on the feature; it does not include the label itself.
    * More information here: https://developers.google.com/maps/documentation/streetview/intro
    *
    * @param panoId Id of gsv pano.
@@ -633,7 +653,7 @@ class PanoDataServiceImpl @Inject() (
 
     val url = "https://maps.googleapis.com/maps/api/streetview?" +
       "pano=" + panoId +
-      "&size=" + LabelPointTable.canvasWidth + "x" + LabelPointTable.canvasHeight +
+      "&size=" + StaticStillWidth + "x" + StaticStillHeight +
       "&heading=" + heading +
       "&pitch=" + pitch +
       "&fov=" + getFov(zoom) +

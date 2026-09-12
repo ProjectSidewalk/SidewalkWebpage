@@ -1,6 +1,6 @@
 package service
 
-import models.label.POV
+import models.label.{LabelPointTable, POV}
 import models.utils.CommonUtils
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -147,5 +147,14 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
     val roundTripped = PanoDataService.calculatePovFromPanoXY(px, py, 16384, 8192, 47.5)
     roundTripped.heading shouldBe (pov.heading +- 0.05)
     roundTripped.pitch shouldBe (pov.pitch +- 0.05)
+  }
+
+  test("the Static API still is requested at Google's 640-px cap, in the Explore canvas's own aspect (#3095)") {
+    // A 720x480 request came back 640x480 (each edge clamped on its own), with extra sky and ground around a scaled
+    // Explore frame. Every marker is drawn at a fraction of that frame, so the still has to be the frame, not more.
+    PanoDataService.StaticStillWidth shouldBe 640
+    PanoDataService.StaticStillHeight shouldBe 427
+    PanoDataService.StaticStillWidth.toDouble / PanoDataService.StaticStillHeight shouldBe
+      (LabelPointTable.canvasWidth.toDouble / LabelPointTable.canvasHeight +- 0.002)
   }
 }
