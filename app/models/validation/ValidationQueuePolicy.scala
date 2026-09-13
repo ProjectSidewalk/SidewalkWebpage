@@ -38,7 +38,7 @@ object ValidationQueuePolicy {
   val RecencyBonus: Double            = 25
   val RecencyWindowDays: Int          = 7
 
-  /** Highest score a label can have; documented for readers, not used in the sort. */
+  /** Highest score a label can have; documented for readers, not used in the sort. NoSidewalk adds its face terms. */
   val MaxScore: Double = NewLabelerBonus + HighQualityLabelerBonus + ConsensusNeedMax + RecencyBonus
 
   /**
@@ -47,6 +47,33 @@ object ValidationQueuePolicy {
    * against 35% at 2; [[NewLabelerBonus]] is the other half of that dial.
    */
   val PickWeightExponent: Double = 2
+
+  /**
+   * NoSidewalk is scored per block face, not per label (#5285). A face is one side of one street edge,
+   * `(label.street_edge_id, label_point.street_side)`; people drop a NoSidewalk label every pano or two along a
+   * stretch with no sidewalk, so per label the work is endless (Seattle: 36k of 48k sided labels sit on 3.5k faces
+   * with five or more) while per face it is finite (~9.7k faces). The #5222 study found the false "no sidewalk" calls
+   * concentrate on faces that rest on a single labeler, so that is the largest term.
+   *
+   * Weight of "only one person ever said this face has no sidewalk", divided by the square of the number of distinct
+   * human labelers on the face: 200 for one, 50 for two, 22 for three. Set so that a lone-labeler face outscores the
+   * whole #4715 base score of an established labeler's unvoted label (200).
+   */
+  val FaceSingleLabelerBonus: Double = 200
+
+  /**
+   * Older labels first, at this many points per year of age, capped at [[AgeBonusMax]]. The cap is where 2019 and
+   * 2020 labels (three quarters of the study's false faces) tie rather than 2019 dominating.
+   */
+  val AgePointsPerYear: Double = 10
+  val AgeBonusMax: Double      = 60
+
+  /**
+   * Agreeing human votes on a face at which it stops counting toward NoSidewalk's share of missions. Its labels stay
+   * servable — a face is never retired, only deprioritized by the support factor — so this mirrors [[SettledMargin]]
+   * for the mission lottery alone.
+   */
+  val FaceSettledSupport: Int = 2
 
   /** Which subset of labels a Validate page draws from. Cascades are drained in order until a mission is full. */
   sealed trait ValidationQueue
@@ -152,10 +179,73 @@ object ValidationQueuePolicy {
     newLabeler + highQuality + consensusNeed + recency
   }
 
+  /**
+   * The block-face evidence the NoSidewalk score reads, as the left-joined columns of
+   * `LabelTable.noSidewalkFaceEvidence`. Both are absent for a label with no side (within 1 m of the centerline),
+   * which has no face to share evidence with.
+   *
+   * @param labelerCount Distinct human labelers who placed a NoSidewalk label on the face.
+   * @param support      Agreeing human votes across the face's NoSidewalk labels; the AI's Agree is subtracted out.
+   */
+  case class FaceEvidenceRep(labelerCount: Rep[Option[Int]], support: Rep[Option[Int]])
+
+  /** Seconds since the label was placed; `extract(epoch from …)` is the one portable way to get an interval as a number. */
+  private val ageSeconds = SimpleExpression.unary[OffsetDateTime, Double] { (timeCreated, qb) =>
+    qb.sqlBuilder += "extract(epoch from (current_timestamp - "
+    qb.expr(timeCreated)
+    qb.sqlBuilder += "))"
+    ()
+  }
+  private val SecondsPerYear: Double = 365.25 * 24 * 3600
+
+  /**
+   * NoSidewalk's priority, `(priorityScore + face evidence need + age bonus) × 1 / (1 + face support)` (#5285).
+   *
+   * The face terms make the block face the unit of work: a lone-labeler face no human has confirmed scores about 460
+   * against about 74 for a three-labeler face with two agreeing votes, so under [[pickKey]] it is served about 39×
+   * as often. Each agreeing vote on any of the face's labels halves, then thirds, the rest of the face — soft
+   * deprioritization, never retirement, so a face can always be looked at again. Disagreeing votes are deliberately
+   * absent from the factor: a rejected label makes the face contested, and its remaining labels should keep coming up
+   * so someone else can weigh in. A face with no human labeler at all (every label the AI's) needs a look at least
+   * as much as a one-labeler face, so `labelerCount` is floored at 1.
+   *
+   * @param l    The label being scored.
+   * @param at   The audit task the label was placed on.
+   * @param us   The labeler's stats.
+   * @param face The label's face evidence; both columns NULL for an unsided label, which then gets the base score
+   *             plus the age bonus and no face factor.
+   */
+  def noSidewalkPriorityScore(
+      l: LabelTableDef,
+      at: AuditTaskTableDef,
+      us: UserStatTableDef,
+      face: FaceEvidenceRep
+  ): Rep[Double] = {
+    val labelers: Rep[Double]     = greatest(face.labelerCount.getOrElse(0).asColumnOf[Double], 1d.bind)
+    val evidenceNeed: Rep[Double] = Case
+      .If(face.labelerCount.isDefined)
+      .Then(FaceSingleLabelerBonus.bind / (labelers * labelers))
+      .Else(0d.bind)
+    val ageBonus: Rep[Double] =
+      least(AgeBonusMax.bind, AgePointsPerYear.bind * ageSeconds(l.timeCreated) / SecondsPerYear.bind)
+    val supportFactor: Rep[Double] = 1d.bind / (1d.bind + face.support.getOrElse(0).asColumnOf[Double])
+    (priorityScore(l, at, us) + evidenceNeed + ageBonus) * supportFactor
+  }
+
+  /**
+   * Whether a face still counts toward NoSidewalk's share of missions: fewer than [[FaceSettledSupport]] agreeing human
+   * votes across its labels. Faces past it are still served, just weighted down by [[noSidewalkPriorityScore]].
+   *
+   * @param support The face's agreeing human votes, NULL for an unsided label (which is not a face and never counts).
+   */
+  def faceNeedsVotes(support: Rep[Option[Int]]): Rep[Boolean] =
+    support.isDefined && support.getOrElse(0) < FaceSettledSupport
+
   private val random   = SimpleFunction.nullary[Double]("random")
   private val ln       = SimpleFunction.unary[Double, Double]("ln")
   private val power    = SimpleFunction.binary[Double, Double, Double]("power")
   private val greatest = SimpleFunction.binary[Double, Double, Double]("greatest")
+  private val least    = SimpleFunction.binary[Double, Double, Double]("least")
 
   /**
    * Efraimidis–Spirakis key: order by this descending and take the top k, and the k rows are a weighted random sample

@@ -133,10 +133,72 @@ object LabelServiceImpl {
    * How much a label type's share of the type lottery is weighted.
    *
    * `Any` is the endless-game fallback rather than a statement about what needs validating, so it weighs every type
-   * equally; the other queues weigh a type by how many labels it has left in that queue.
+   * equally; the other queues weigh a type by how many labels it has left in that queue — except NoSidewalk in the
+   * crowd's queue, which weighs by block faces still needing votes (#5285): its labels are placed every pano or two
+   * along a sidewalk-less stretch, so counting them would hand it most missions for work that is finite per face.
+   * `Triage` stays label-based for it too, since an expert clearing a stuck label is still per-label work.
    */
   private[service] def typeWeight(queue: ValidationQueue, labelType: LabelTypeValidationsLeft): Int = {
-    if (queue == ValidationQueue.Any) 1 else labelType.countFor(queue)
+    queue match {
+      case ValidationQueue.Any        => 1
+      case ValidationQueue.NeedsVotes => labelType.facesNeedingVotes.getOrElse(labelType.countFor(queue))
+      case ValidationQueue.Triage     => labelType.countFor(queue)
+    }
+  }
+
+  /**
+   * The block face a NoSidewalk label sits on, as the key a mission dedupes by (#5285).
+   *
+   * An unsided label (within 1 m of the centerline) is a face of its own, so two unsided labels on one street stay two
+   * candidates rather than collapsing into one.
+   *
+   * @param streetEdgeId   The label's street.
+   * @param side           Which side of it, None when unsided.
+   * @param unsidedLabelId The label itself, set only when it is unsided.
+   */
+  private[service] case class FaceKey(streetEdgeId: Int, side: Option[StreetSide.Value], unsidedLabelId: Option[Int])
+
+  private[service] object FaceKey {
+    def of(streetEdgeId: Int, side: Option[StreetSide.Value], labelId: Int): FaceKey =
+      FaceKey(streetEdgeId, side, if (side.isEmpty) Some(labelId) else None)
+
+    def of(label: LabelValidationMetadata): FaceKey = of(label.streetEdgeId, label.streetSide, label.labelId)
+  }
+
+  /**
+   * Picks at most one label per block face from `candidates`, keeping their order, and preferring faces on streets no
+   * pick has touched yet (#5285).
+   *
+   * Two passes: first every candidate whose face and street are both new, then any whose face is new. Walking in order
+   * means "one per face" keeps the face's highest-ranked label, which is why the NoSidewalk fetch does not shuffle.
+   * Filling with a second label from a face the mission already holds is the caller's decision, not this method's.
+   *
+   * @param candidates Labels in priority order.
+   * @param heldFaces  Faces the mission already holds (labels the client was handed earlier).
+   * @param n          How many to pick.
+   * @return           Up to `n` labels, one per face, in their original order.
+   */
+  private[service] def spreadAcrossFaces(
+      candidates: Seq[LabelValidationMetadata],
+      heldFaces: Set[FaceKey],
+      n: Int
+  ): Seq[LabelValidationMetadata] = {
+    val picked      = scala.collection.mutable.ArrayBuffer.empty[LabelValidationMetadata]
+    val usedFaces   = scala.collection.mutable.Set.empty[FaceKey] ++ heldFaces
+    val usedStreets = scala.collection.mutable.Set.empty[Int] ++ heldFaces.map(_.streetEdgeId)
+
+    def take(label: LabelValidationMetadata): Unit = {
+      picked += label
+      usedFaces += FaceKey.of(label)
+      usedStreets += label.streetEdgeId
+    }
+
+    candidates.foreach { label =>
+      if (picked.size < n && !usedFaces.contains(FaceKey.of(label)) && !usedStreets.contains(label.streetEdgeId))
+        take(label)
+    }
+    candidates.foreach { label => if (picked.size < n && !usedFaces.contains(FaceKey.of(label))) take(label) }
+    candidates.filter(picked.contains)
   }
 }
 
@@ -349,27 +411,56 @@ class LabelServiceImpl @Inject() (
       excludedLabelIds: Set[Int] = Set.empty
   ): Future[Seq[LabelValidationMetadata]] = {
     // TODO can we make this and the Gallery queries transactions to prevent label dupes?
-    queues.foldLeft(Future.successful(Seq.empty[LabelValidationMetadata])) { (foundSoFar, queue) =>
-      foundSoFar.flatMap { found =>
-        if (found.size >= n) Future.successful(found)
-        else
-          findValidLabelsForType(
-            labelTable.retrieveLabelListForValidationQuery(
-              userId,
-              viewer,
-              labelType,
-              queue,
-              configService.getAiTagSuggestionsEnabled,
-              userIds,
-              regionIds,
-              unvalidatedOnly,
-              excludedLabelIds ++ found.map(_.labelId)
-            ),
-            randomize = true,
-            useCrops = false,
-            n - found.size
-          ).map(found ++ _)
+    def query(queue: ValidationQueue, excluded: Set[Int]) = labelTable.retrieveLabelListForValidationQuery(
+      userId, viewer, labelType, queue, configService.getAiTagSuggestionsEnabled, userIds, regionIds, unvalidatedOnly,
+      excluded
+    )
+
+    // Drain the cascade: each queue tops up what the earlier ones left short, never handing back a label already held.
+    def drainCascade(
+        alreadyFound: Seq[LabelValidationMetadata],
+        randomize: Boolean,
+        selectFromBatch: (Seq[LabelValidationMetadata], Seq[LabelValidationMetadata]) => Seq[LabelValidationMetadata]
+    ): Future[Seq[LabelValidationMetadata]] = {
+      queues.foldLeft(Future.successful(alreadyFound)) { (foundSoFar, queue) =>
+        foundSoFar.flatMap { found =>
+          if (found.size >= n) Future.successful(found)
+          else
+            findValidLabelsForType(
+              query(queue, excludedLabelIds ++ found.map(_.labelId)),
+              randomize,
+              useCrops = false,
+              n - found.size,
+              selectFromBatch = selectFromBatch
+            ).map(found ++ _)
+        }
       }
+    }
+
+    if (labelType != LabelTypeEnum.NoSidewalk) {
+      drainCascade(Seq.empty, randomize = true, (batch, _) => batch)
+    } else {
+      // A NoSidewalk mission holds one label per block face, distinct streets preferred, so a validator sees the city's
+      // faces rather than ten labels along one stretch (#5285). The fetch keeps the sampler's order, so "one per face"
+      // keeps each face's highest-ranked label. Faces the client already holds (a top-up) count as taken. Only once
+      // the queue cannot fill the mission that way does a second pass fall back to more labels from the same faces.
+      for {
+        heldFaces <- db
+          .run(labelTable.getFacesOfLabels(excludedLabelIds))
+          .map(_.map { case (labelId, edge, side) =>
+            LabelServiceImpl.FaceKey.of(edge, side, labelId)
+          }.toSet)
+        spread <- drainCascade(
+          Seq.empty,
+          randomize = false,
+          (batch, accumulated) => {
+            val faces = heldFaces ++ accumulated.map(LabelServiceImpl.FaceKey.of)
+            LabelServiceImpl.spreadAcrossFaces(batch, faces, n - accumulated.size)
+          }
+        )
+        filled <-
+          if (spread.size >= n) Future.successful(spread) else drainCascade(spread, randomize = true, (b, _) => b)
+      } yield filled
     }
   }
 
@@ -381,6 +472,10 @@ class LabelServiceImpl @Inject() (
    * @param remaining Number of labels remaining to get.
    * @param offset Number of rows to skip; each batch advances it by the number of rows it read.
    * @param accumulator Accumulator of labels we've found so far.
+   * @param selectFromBatch Narrows a fetched batch (after any shuffle, before the imagery check) given the labels found
+   *                        so far; the NoSidewalk one-per-face rule. Runs before the imagery check so that the labels
+   *                        it drops cost no provider lookups. A batch it empties ends the recursion, which is how the
+   *                        caller learns the rule can no longer be satisfied from what is left.
    * @param tupleConverter Implicit converter to convert the tuple from the db to the appropriate case class.
    */
   private def findValidLabelsForType[A <: BasicLabelMetadata, TupleRep, Tuple](
@@ -389,7 +484,8 @@ class LabelServiceImpl @Inject() (
       useCrops: Boolean,
       remaining: Int,
       offset: Int = 0,
-      accumulator: Seq[A] = Seq.empty
+      accumulator: Seq[A] = Seq.empty,
+      selectFromBatch: (Seq[A], Seq[A]) => Seq[A] = (batch: Seq[A], _: Seq[A]) => batch
   )(implicit tupleConverter: TupleConverter[Tuple, A]): Future[Seq[A]] = {
     if (remaining <= 0) {
       Future.successful(accumulator)
@@ -402,9 +498,10 @@ class LabelServiceImpl @Inject() (
         .flatMap { labels =>
           // Randomize the labels to prevent similar labels in a mission.
           val shuffledLabels: Seq[A] = if (randomize) scala.util.Random.shuffle(labels) else labels
+          val selectedLabels: Seq[A] = selectFromBatch(shuffledLabels, accumulator)
 
           // Check for valid imagery in parallel.
-          checkImageryBatch(shuffledLabels, useCrops).flatMap { validLabels =>
+          checkImageryBatch(selectedLabels, useCrops).flatMap { validLabels =>
             // Skip labels an earlier batch took. The validation query orders by a score containing `random()`, which
             // Postgres re-evaluates per execution, so every batch sees a fresh shuffle and can resurface rows an
             // earlier one covered, whatever the offset. A mission holding the same label twice is what that looks
@@ -412,8 +509,10 @@ class LabelServiceImpl @Inject() (
             val alreadyFound: Set[Int] = accumulator.map(_.labelId).toSet
             val newValidLabels: Seq[A] = validLabels.filterNot(l => alreadyFound.contains(l.labelId)).take(remaining)
 
-            if (validLabels.isEmpty) {
-              Future.successful(accumulator) // No more valid labels found.
+            // A batch that adds nothing new ends the walk: with `random()` in the sort, the next offset is no more
+            // likely to, and walking a 48k-label queue fifty rows at a time is the failure mode this guards against.
+            if (newValidLabels.isEmpty) {
+              Future.successful(accumulator)
             } else {
               // Add the valid labels to the accumulator and recurse.
               findValidLabelsForType(
@@ -424,7 +523,8 @@ class LabelServiceImpl @Inject() (
                 // Advance by the rows this batch read. `batchSize` shrinks as `remaining` does, so it can't be
                 // multiplied out into an offset.
                 offset + labels.size,
-                accumulator ++ newValidLabels
+                accumulator ++ newValidLabels,
+                selectFromBatch
               )
             }
           }
@@ -482,12 +582,13 @@ class LabelServiceImpl @Inject() (
   }
 
   /**
-   * Get the label type to validate. Label types with more labels still needing validation have higher priority.
+   * Get the label type to validate. Label types with more work still needing validation have higher priority.
    *
    * The cascade decides both halves of the choice: the first queue in it that can fill a whole mission for some label
    * type is the queue that sets which types are in play and what they are weighted by. So a plain Validate mission is
    * chosen from the types the crowd can still settle, and only falls back to weighing every type equally once no type
-   * has a mission's worth of those left (#2929).
+   * has a mission's worth of those left (#2929). The mission-length gate is label-based for every type, NoSidewalk
+   * included, so a small city with eight faces and forty labels still gets NoSidewalk missions.
    *
    * @param userId            User ID of the current user.
    * @param missionLength     Number of labels for this mission.
@@ -504,19 +605,14 @@ class LabelServiceImpl @Inject() (
       unvalidatedOnly: Boolean
   ): Future[Option[LabelTypeEnum.Base]] = {
     db.run(labelTable.getAvailableValidationsLabelsByType(userId, viewerType, unvalidatedOnly).map { availValidations =>
+      // NoSidewalk competes like any other type; its weight in the lottery is its count of block faces still needing
+      // votes rather than its label count (LabelServiceImpl.typeWeight, #5285).
       val candidates: Seq[LabelTypeValidationsLeft] = availValidations
         .filter(_.validationsAvailable >= missionLength)
         .filter(x => requiredLabelType.isEmpty || requiredLabelType.contains(x.labelType))
-        .filter(x => LabelTypeEnum.primaryLabelTypes.contains(x.labelType))
+        .filter(x => LabelTypeEnum.primaryValidateLabelTypes.contains(x.labelType))
 
-      // NoSidewalk is served only when it is the only type with a mission's worth of labels at all. That is decided
-      // before the cascade is walked, so a thin crowd queue for the other types falls back to their settled labels
-      // rather than to NoSidewalk missions.
-      val withoutNoSidewalk: Seq[LabelTypeValidationsLeft] =
-        candidates.filter(x => LabelTypeEnum.primaryValidateLabelTypes.contains(x.labelType))
-      val typesInPlay: Seq[LabelTypeValidationsLeft] = if (withoutNoSidewalk.nonEmpty) withoutNoSidewalk else candidates
-
-      val (queue, typesFiltered) = LabelServiceImpl.chooseQueueAndTypes(typesInPlay, queues, missionLength)
+      val (queue, typesFiltered) = LabelServiceImpl.chooseQueueAndTypes(candidates, queues, missionLength)
 
       if (typesFiltered.length < 2) {
         typesFiltered.map(_.labelType).headOption

@@ -118,21 +118,43 @@ case class TagCount(labelType: String, tag: String, count: Int)
  * @param validationsAvailable Labels of this type the user could be served at all.
  * @param needsVotes           Of those, the ones the crowd should still be asked about.
  * @param triage               Of those, the ones the crowd cannot finish (see `ValidationQueuePolicy.triage`).
+ * @param facesNeedingVotes    NoSidewalk only: distinct block faces among `needsVotes` that still lack
+ *                             `ValidationQueuePolicy.FaceSettledSupport` agreeing votes (#5285). The mission lottery
+ *                             weights NoSidewalk by this rather than by labels; `needsVotes` stays label-based so the
+ *                             mission-length gate means the same thing for every type.
  */
 case class LabelTypeValidationsLeft(
     labelType: LabelTypeEnum.Base,
     validationsAvailable: Int,
     needsVotes: Int,
-    triage: Int
+    triage: Int,
+    facesNeedingVotes: Option[Int] = None
 ) {
 
-  /** How many labels of this type the given queue holds; this is what type selection weights on. */
+  /** How many labels of this type the given queue holds; this is what gates a type on the mission length. */
   def countFor(queue: ValidationQueuePolicy.ValidationQueue): Int = queue match {
     case ValidationQueuePolicy.ValidationQueue.NeedsVotes => needsVotes
     case ValidationQueuePolicy.ValidationQueue.Triage     => triage
     case ValidationQueuePolicy.ValidationQueue.Any        => validationsAvailable
   }
 }
+
+/**
+ * One sided block face's NoSidewalk evidence, as `LabelTable.noSidewalkFaceEvidence` computes it live (#5285).
+ *
+ * @param streetEdgeId The face's street edge.
+ * @param streetSide   Which side of it.
+ * @param labelerCount Distinct human labelers with a NoSidewalk label on the face.
+ * @param support      Agreeing human votes across those labels (the AI's Agree subtracted out).
+ * @param labelCount   NoSidewalk labels on the face, AI-placed ones included.
+ */
+case class NoSidewalkFaceEvidence(
+    streetEdgeId: Int,
+    streetSide: StreetSide.Value,
+    labelerCount: Int,
+    support: Int,
+    labelCount: Int
+)
 
 case class LabelCount(count: Int, timeInterval: TimeInterval, labelType: String) {
   require((labelTypeNames ++ Seq("All")).contains(labelType))
@@ -246,6 +268,8 @@ case class LabelValidationMetadata(
     description: Option[String],
     streetEdgeId: Int,
     regionId: Int,
+    // Which side of its street the label sits on; a NoSidewalk mission holds one label per (street, side) (#5285).
+    streetSide: Option[StreetSide.Value],
     validationInfo: LabelValidationInfo,
     tags: Seq[String],
     cameraLocation: Option[LatLng],
@@ -442,19 +466,19 @@ object LabelTable {
   // Type aliases for the tuple representation of LabelValidationMetadata and queries for them.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
   type LabelValidationMetadataTuple = (
-      Int,                              // 1.  labelId
-      String,                           // 2.  labelType
-      String,                           // 3.  panoId
-      PanoSource,                       // 4.  panoSource
-      Boolean,                          // 5.  expired
-      String,                           // 6.  imageCaptureDate
-      OffsetDateTime,                   // 7.  timestamp
-      (Option[Double], Option[Double]), // 8.  location (lat, lng)
-      (Double, Double, Double),         // 9.  pov (heading, pitch, zoom)
-      (Int, Int),                       // 10. canvasXY (x, y)
-      Option[Int],                      // 11. severity
-      Option[String],                   // 12. description
-      (Int, Int),                       // 13. (streetEdgeId, regionId)
+      Int,                                  // 1.  labelId
+      String,                               // 2.  labelType
+      String,                               // 3.  panoId
+      PanoSource,                           // 4.  panoSource
+      Boolean,                              // 5.  expired
+      String,                               // 6.  imageCaptureDate
+      OffsetDateTime,                       // 7.  timestamp
+      (Option[Double], Option[Double]),     // 8.  location (lat, lng)
+      (Double, Double, Double),             // 9.  pov (heading, pitch, zoom)
+      (Int, Int),                           // 10. canvasXY (x, y)
+      Option[Int],                          // 11. severity
+      Option[String],                       // 12. description
+      (Int, Int, Option[StreetSide.Value]), // 13. (streetEdgeId, regionId, streetSide)
       (Int, Int, Int, Option[Boolean], Option[ValidationOption.Value], Option[ValidationOption.Value]), // 14. validationInfo
       List[String],                     // 15. tags
       (Option[Double], Option[Double]), // 16. cameraLocation (lat, lng)
@@ -477,19 +501,19 @@ object LabelTable {
       ) // 22. pano dims, camera, attribution & address
   )
   type LabelValidationMetadataTupleRep = (
-      Rep[Int],                                   // 1.  labelId
-      Rep[String],                                // 2.  labelType
-      Rep[String],                                // 3.  panoId
-      Rep[PanoSource],                            // 4.  panoSource
-      Rep[Boolean],                               // 5.  expired
-      Rep[String],                                // 6.  imageCaptureDate
-      Rep[OffsetDateTime],                        // 7.  timestamp
-      (Rep[Option[Double]], Rep[Option[Double]]), // 8.  location (lat, lng)
-      (Rep[Double], Rep[Double], Rep[Double]),    // 9.  pov (heading, pitch, zoom)
-      (Rep[Int], Rep[Int]),                       // 10. canvasXY (x, y)
-      Rep[Option[Int]],                           // 11. severity
-      Rep[Option[String]],                        // 12. description
-      (Rep[Int], Rep[Int]),                       // 13. (streetEdgeId, regionId)
+      Rep[Int],                                            // 1.  labelId
+      Rep[String],                                         // 2.  labelType
+      Rep[String],                                         // 3.  panoId
+      Rep[PanoSource],                                     // 4.  panoSource
+      Rep[Boolean],                                        // 5.  expired
+      Rep[String],                                         // 6.  imageCaptureDate
+      Rep[OffsetDateTime],                                 // 7.  timestamp
+      (Rep[Option[Double]], Rep[Option[Double]]),          // 8.  location (lat, lng)
+      (Rep[Double], Rep[Double], Rep[Double]),             // 9.  pov (heading, pitch, zoom)
+      (Rep[Int], Rep[Int]),                                // 10. canvasXY (x, y)
+      Rep[Option[Int]],                                    // 11. severity
+      Rep[Option[String]],                                 // 12. description
+      (Rep[Int], Rep[Int], Rep[Option[StreetSide.Value]]), // 13. (streetEdgeId, regionId, streetSide)
       (
           Rep[Int],
           Rep[Int],
@@ -552,6 +576,7 @@ object LabelTable {
         description = t._12,
         streetEdgeId = t._13._1,
         regionId = t._13._2,
+        streetSide = t._13._3,
         validationInfo = LabelValidationInfo(t._14._1, t._14._2, t._14._3, t._14._4, t._14._5, t._14._6),
         tags = t._15,
         cameraLocation = (t._16._1, t._16._2) match {
@@ -1279,11 +1304,46 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Labels this user could be served: not their own, not already validated by them, with imagery their viewer can
+   * render. The `unvalidatedOnly` filter has to match the label query's, or type selection can pick a type whose pool
+   * is empty.
+   *
+   * @param userId          User ID for the current user.
+   * @param viewer          The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
+   * @param unvalidatedOnly Keep only labels with no decision recorded.
+   */
+  private def servableLabels(
+      userId: String,
+      viewer: PanoSource,
+      unvalidatedOnly: Boolean
+  ): Query[LabelTableDef, Label, Seq] = {
+    for {
+      _lb <- labels
+      _pd <- panoData if _pd.panoId === _lb.panoId
+      if imageryViewable(_pd) && _pd.source === viewer && _lb.userId =!= userId
+      if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty
+      if !validatedByUser(_lb, userId)
+    } yield _lb
+  }
+
+  /**
+   * Whether this user has already validated the label, as a `NOT EXISTS`-shaped predicate.
+   *
+   * The shape matters more than it looks (#5285): written as a left join with an `IS NULL` test, Postgres estimates
+   * about one label surviving, and with that estimate it nests the NoSidewalk face aggregate on the inner side of the
+   * join and re-runs it once per label — 3 s on Teaneck's 6.9k NoSidewalk labels. The anti-join form is estimated
+   * sensibly, and the same query then hashes one pass of the aggregate in 0.1 s.
+   */
+  private def validatedByUser(l: LabelTableDef, userId: String): Rep[Boolean] =
+    labelValidations.filter(v => v.userId === userId && v.labelId === l.labelId).exists
+
+  /**
    * Returns how many labels this user has available to validate for each label type, and how many of those each
    * queue holds.
    *
    * The per-queue counts run the same `ValidationQueuePolicy` predicates the label query does, so type selection and
-   * label selection can never disagree about what still needs validating.
+   * label selection can never disagree about what still needs validating. NoSidewalk's entry also carries how many
+   * block faces still need votes, which is what the mission lottery weights it by (#5285).
    *
    * @param userId          User ID for the current user
    * @param viewer          The type of pano viewer the labels must have been added on (GSV, Mapillary, etc)
@@ -1294,30 +1354,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       viewer: PanoSource,
       unvalidatedOnly: Boolean
   ): DBIO[Seq[LabelTypeValidationsLeft]] = {
-    val labelsValidatedByUser = labelValidations.filter(_.userId === userId)
-
-    // Get labels the given user didn't place that have available imagery (non-expired, or backed up). The
-    // unvalidatedOnly filter has to match the label query's, or type selection can pick a type whose pool is empty.
-    val labelsToValidate = for {
-      _lb <- labels
-      _pd <- panoData if _pd.panoId === _lb.panoId
-      if imageryViewable(_pd) && _pd.source === viewer && _lb.userId =!= userId
-      if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty
-    } yield _lb
-
-    // Left join with the labels that the user has already validated, then filter those out.
-    val filteredLabelsToValidate = for {
-      (_lab, _val) <- labelsToValidate.joinLeft(labelsValidatedByUser).on(_.labelId === _.labelId)
-      if _val.isEmpty
-    } yield _lab
-
     // Attach the AI's vote; the triage predicate is the one that reads it.
-    val withAiVote = filteredLabelsToValidate
+    val withAiVote = servableLabels(userId, viewer, unvalidatedOnly)
       .joinLeft(aiData)
       .on(_.labelId === _._1.labelId)
       .map { case (_lb, _ai) => (_lb, _ai.map(_._2).flatten.map(_.validationResult)) }
 
-    withAiVote
+    val countsByType = withAiVote
       .groupBy(_._1.labelType)
       .map { case (labType, group) =>
         (
@@ -1328,7 +1371,119 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         )
       }
       .result
-      .map(_.map(x => LabelTypeValidationsLeft(x._1, x._2, x._3, x._4)))
+
+    for {
+      counts <- countsByType
+      faces  <- countNoSidewalkFacesNeedingVotes(userId, viewer, unvalidatedOnly)
+    } yield counts.map { case (labType, available, needsVotes, triage) =>
+      val facesNeedingVotes = if (labType == LabelTypeEnum.NoSidewalk) Some(faces) else None
+      LabelTypeValidationsLeft(labType, available, needsVotes, triage, facesNeedingVotes)
+    }
+  }
+
+  /**
+   * One row per sided NoSidewalk block face — `(street_edge_id, street_side)` — with the evidence the NoSidewalk score
+   * reads (#5285). Computed live rather than read from the nightly `sidewalk_presence` table so that a vote cast a
+   * minute ago already lowers its face's priority; otherwise the same face would be served to every validator online
+   * that day.
+   *
+   * Labelers are counted among humans only, and the AI's Agree is subtracted from the face's support: both sit in the
+   * same tables as the human evidence, and a face whose labels were all AI-agreed must not sink before a human has
+   * looked (the branch's rule that nothing is retired on the AI's word alone). Disagreeing votes are not aggregated
+   * here at all; see `ValidationQueuePolicy.noSidewalkPriorityScore` for why.
+   *
+   * Unsided labels (within 1 m of the centerline, about 3% of NoSidewalk labels) produce no row, so a left join on
+   * this gives them NULL evidence.
+   *
+   * @return Query of (streetEdgeId, streetSide, labelerCount, support, labelCount).
+   */
+  def noSidewalkFaceEvidence: Query[
+    (Rep[Int], Rep[Option[StreetSide.Value]], Rep[Int], Rep[Int], Rep[Int]),
+    (Int, Option[StreetSide.Value], Int, Int, Int),
+    Seq
+  ] = {
+    val sidedNoSidewalk = for {
+      _lb <- labels if _lb.labelType === (LabelTypeEnum.NoSidewalk: LabelTypeEnum.Base)
+      _lp <- labelPoints if _lb.labelId === _lp.labelId && _lp.streetSide.isDefined
+      _ur <- userRoles if _lb.userId === _ur.userId
+    } yield (_lb, _lp.streetSide, _ur.role === Role.Ai)
+
+    sidedNoSidewalk
+      .joinLeft(aiData)
+      .on(_._1.labelId === _._1.labelId)
+      .map { case ((_lb, side, isAiLabeler), _ai) =>
+        (_lb, side, isAiLabeler, _ai.map(_._2).flatten.map(_.validationResult))
+      }
+      .groupBy { case (_lb, side, _, _) => (_lb.streetEdgeId, side) }
+      .map { case ((streetEdgeId, side), group) =>
+        (
+          streetEdgeId,
+          side,
+          // COUNT(DISTINCT …) skips NULLs, so a Case with no Else excludes the AI's labels from the labeler count.
+          group.map { case (l, _, isAiLabeler, _) => Case.If(!isAiLabeler).Then(l.userId) }.countDistinct,
+          group
+            .map { case (l, _, _, aiv) =>
+              l.agreeCount - Case.If((aiv === ValidationOption.Agree).getOrElse(false)).Then(1).Else(0)
+            }
+            .sum
+            .getOrElse(0),
+          group.length
+        )
+      }
+  }
+
+  /** `noSidewalkFaceEvidence` as rows, for specs and tooling. */
+  def getNoSidewalkFaceEvidence: DBIO[Seq[NoSidewalkFaceEvidence]] =
+    noSidewalkFaceEvidence.result.map(_.collect { case (edge, Some(side), labelers, support, labelCount) =>
+      NoSidewalkFaceEvidence(edge, side, labelers, support, labelCount)
+    })
+
+  /**
+   * How many sided NoSidewalk block faces this user could still be served a label from that lack
+   * `ValidationQueuePolicy.FaceSettledSupport` agreeing votes (#5285). This is NoSidewalk's weight in the mission
+   * lottery: faces, not labels, are the finite unit of NoSidewalk work.
+   *
+   * Counted over the same servable labels as `getAvailableValidationsLabelsByType`, narrowed to the `NeedsVotes`
+   * queue, so a face whose every label the user has already validated, or placed, does not count for them. Under
+   * `unvalidatedOnly` a face can have nonzero support yet no servable label (one AI Agree flips `correct`); that is the
+   * flag's behaviour for every type, not something special here.
+   *
+   * @param userId          User ID for the current user.
+   * @param viewer          The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
+   * @param unvalidatedOnly Count only labels with no decision recorded, the same filter the label query applies.
+   */
+  def countNoSidewalkFacesNeedingVotes(userId: String, viewer: PanoSource, unvalidatedOnly: Boolean): DBIO[Int] = {
+    val sidedServable = for {
+      _lb <- servableLabels(userId, viewer, unvalidatedOnly)
+      if _lb.labelType === (LabelTypeEnum.NoSidewalk: LabelTypeEnum.Base) && ValidationQueuePolicy.needsVotes(_lb)
+      _lp <- labelPoints if _lb.labelId === _lp.labelId && _lp.streetSide.isDefined
+    } yield (_lb.streetEdgeId, _lp.streetSide)
+
+    sidedServable
+      .joinLeft(noSidewalkFaceEvidence)
+      .on { case ((edge, side), face) => edge === face._1 && side === face._2 }
+      .filter { case (_, face) => ValidationQueuePolicy.faceNeedsVotes(face.map(_._4)) }
+      .map { case ((edge, side), _) => (edge, side) }
+      .distinct
+      .length
+      .result
+  }
+
+  /**
+   * The block faces of the given labels, so a NoSidewalk top-up can avoid faces the mission already holds (#5285).
+   *
+   * @param labelIds Labels the client already has.
+   * @return         (labelId, streetEdgeId, streetSide) per label; the side is None for an unsided label.
+   */
+  def getFacesOfLabels(labelIds: Set[Int]): DBIO[Seq[(Int, Int, Option[StreetSide.Value])]] = {
+    if (labelIds.isEmpty) DBIO.successful(Seq.empty)
+    else
+      labelsUnfiltered
+        .join(labelPoints)
+        .on(_.labelId === _.labelId)
+        .filter { case (l, _) => l.labelId inSetBind labelIds }
+        .map { case (l, lp) => (l.labelId, l.streetEdgeId, lp.streetSide) }
+        .result
   }
 
   /**
@@ -1343,6 +1498,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * the past week each add their bonus — and the rows are then drawn as a weighted random sample with pick
    * probability proportional to score², via `ValidationQueuePolicy.pickKey`. Priority therefore sets how often a label
    * is served rather than merely nudging an otherwise random order.
+   *
+   * NoSidewalk alone is scored per block face (`ValidationQueuePolicy.noSidewalkPriorityScore`, #5285): the query
+   * left-joins `noSidewalkFaceEvidence` for that type only, so every other type's query is unchanged.
    *
    * @param userId           User ID for the current user.
    * @param labelType        Label type of labels requested.
@@ -1378,17 +1536,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if (if (excludedLabelIds.isEmpty) true: Rep[Boolean] else !(_lb.labelId inSetBind excludedLabelIds))
       if regionIds.map(ids => _ser.regionId inSetBind ids).getOrElse(true: Rep[Boolean]) // Filter by region IDs.
       if userIds.map(ids => _lb.userId inSetBind ids).getOrElse(true: Rep[Boolean])      // Filter by user IDs.
+      if !validatedByUser(_lb, userId) // See the predicate for why this is not a left join.
     } yield (_lb, _lp, _pd, _us, _at, _lb.labelTypeName, _ser.regionId, _ur.role === Role.Ai)
 
-    // Filter out labels that have already been validated by this user.
-    val labelsValidatedByUser = labelValidations.filter(_.userId === userId)
-    val _labelInfoFiltered    = for {
-      (_lab, _val) <- _labelInfo.joinLeft(labelsValidatedByUser).on(_._1.labelId === _.labelId)
-      if _val.isEmpty
-    } yield _lab
-
     // Get any AI suggested tags and validation.
-    val _labelInfoWithAiData = _labelInfoFiltered
+    val _labelInfoWithAiData = _labelInfo
       .joinLeft(aiData)
       .on(_._1.labelId === _._1.labelId)
       .map { case ((_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser), _ai) =>
@@ -1400,13 +1552,36 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       ValidationQueuePolicy.inQueue(queue, l, aiv.map(_.validationResult))
     }
 
+    // NoSidewalk reads its block face's evidence, (labelerCount, support); every other type gets NULL evidence and
+    // never touches the subquery.
+    val _labelInfoWithFace = {
+      if (labelType == LabelTypeEnum.NoSidewalk)
+        _labelInfoInQueue
+          .joinLeft(noSidewalkFaceEvidence)
+          .on { case ((l, lp, _, _, _, _, _, _, _, _), face) =>
+            l.streetEdgeId === face._1 && lp.streetSide === face._2
+          }
+          .map { case (row, face) => (row, (face.map(_._3), face.map(_._4))) }
+      else
+        _labelInfoInQueue.map(row => (row, (Option.empty[Int].bind, Option.empty[Int].bind)))
+    }
+
     // Weighted random sample of the queue, P(pick) proportional to score²; see the method comment.
-    val _labelInfoSorted = _labelInfoInQueue
-      .sortBy { case (l, _, _, us, at, _, _, _, _, _) =>
-        ValidationQueuePolicy.pickKey(ValidationQueuePolicy.priorityScore(l, at, us)).desc
+    val _labelInfoSorted = _labelInfoWithFace
+      .sortBy { case ((l, _, _, us, at, _, _, _, _, _), (faceLabelers, faceSupport)) =>
+        val score =
+          if (labelType == LabelTypeEnum.NoSidewalk)
+            ValidationQueuePolicy.noSidewalkPriorityScore(
+              l,
+              at,
+              us,
+              ValidationQueuePolicy.FaceEvidenceRep(faceLabelers, faceSupport)
+            )
+          else ValidationQueuePolicy.priorityScore(l, at, us)
+        ValidationQueuePolicy.pickKey(score).desc
       }
       // Select only the columns needed for the LabelValidationMetadata class.
-      .map { case (l, lp, pd, us, at, labelType, regionId, isAiUser, laa, aiv) =>
+      .map { case ((l, lp, pd, us, at, labelType, regionId, isAiUser, laa, aiv), _) =>
         (
           l.labelId,
           labelType,
@@ -1420,7 +1595,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           (lp.canvasX, lp.canvasY),
           l.severity,
           l.description,
-          (l.streetEdgeId, regionId),
+          (l.streetEdgeId, regionId, lp.streetSide),
           // userValidation is always None here bc we only show labels the user hasn't already validated.
           (
             l.agreeCount,
@@ -1581,7 +1756,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       (lp.canvasX, lp.canvasY),
       lb.severity,
       lb.description,
-      (lb.streetEdgeId, regionId),
+      (lb.streetEdgeId, regionId, lp.streetSide),
       (lb.agreeCount, lb.disagreeCount, lb.unsureCount, lb.correct, uv.map(_.validationResult),
         aiv.map(_.validationResult)),
       lb.tags,

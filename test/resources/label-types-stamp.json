@@ -53,7 +53,7 @@
     "accessImpact": "problem",
     "ratingScale": "unrated",
     "isPrimary": true,
-    "isPrimaryValidate": false
+    "isPrimaryValidate": true
   },
   {
     "name": "Occlusion",

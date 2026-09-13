@@ -1,6 +1,6 @@
 package service
 
-import models.label.{LabelTable, LabelTypeEnum, LabelTypeValidationsLeft}
+import models.label.{LabelTable, LabelTypeEnum, LabelTypeValidationsLeft, LabelValidationMetadata, StreetSide}
 import models.pano.PanoSource.PanoSource
 import models.utils.MyPostgresProfile.api._
 import models.validation.ValidationQueuePolicy.ValidationQueue
@@ -15,7 +15,8 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 /**
- * DB-backed tests for the queue policy Validate selects labels with (#4715).
+ * DB-backed tests for the queue policy Validate selects labels with (#4715), and for NoSidewalk's per-block-face
+ * variant of it (#5285).
  *
  * The queue predicates and the sampler are the whole point of the change, and both live in SQL, so they are pinned by
  * running the real query against a real Postgres rather than by re-implementing the arithmetic in Scala. Fixtures are
@@ -45,32 +46,51 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
   /** Nobody: the caller the queries run as, so no fixture label is ever "placed by the requester". */
   private val requester: String = UUID.randomUUID().toString
 
-  /** A street the queries will accept: it has a region, and it is not the tutorial street. */
-  private lazy val fixtureStreetEdgeId: Option[Int] = run(
+  /**
+   * Two streets the queries will accept: each has a region, neither is the tutorial street, and neither carries a
+   * NoSidewalk label already, so the face evidence the fixtures produce on them is entirely their own.
+   */
+  private lazy val fixtureStreetEdgeIds: Seq[Int] = run(
     sql"""SELECT street_edge_region.street_edge_id
           FROM street_edge_region
           WHERE street_edge_region.street_edge_id <> (SELECT config.tutorial_street_edge_id FROM config)
-          LIMIT 1""".as[Int].headOption
+            AND NOT EXISTS (SELECT 1 FROM label
+                            WHERE label.street_edge_id = street_edge_region.street_edge_id
+                              AND label.label_type = 'NoSidewalk')
+          ORDER BY street_edge_region.street_edge_id
+          LIMIT 2""".as[Int]
   )
 
   /**
-   * A pano the imagery check will pass without asking a provider: same source the page uses, unexpired, and checked
-   * recently enough that `getReusableImageryStatus` answers from the row (its TTL is 7 days).
+   * A pano the queries will join: same source the page uses and unexpired. One checked within the past week is
+   * preferred, so a future case that goes through the service's imagery check (`getReusableImageryStatus`, TTL 7
+   * days) is answered from the row rather than by a provider; the query-level cases here never make that call.
    */
   private lazy val fixturePanoId: Option[String] = run(
     sql"""SELECT pano_data.pano_id
           FROM pano_data
           WHERE pano_data.source = ${viewer.toString}::pano_source
             AND NOT pano_data.expired
-            AND pano_data.last_checked >= now() - INTERVAL '6 days'
+          ORDER BY (pano_data.last_checked >= now() - INTERVAL '6 days') DESC NULLS LAST
           LIMIT 1""".as[String].headOption
   )
 
   /** Both fixture anchors, or a cancelled test — a schema without them can't say anything about the queues. */
   private def fixtureAnchors: (Int, String) = (
-    fixtureStreetEdgeId.getOrElse(cancel("no non-tutorial street_edge_region row in this database")),
-    fixturePanoId.getOrElse(cancel("no recently-checked, unexpired pano for this city's viewer in this database"))
+    fixtureStreetEdgeIds.headOption.getOrElse(cancel("no non-tutorial street_edge_region row in this database")),
+    fixturePanoId.getOrElse(cancel("no unexpired pano for this city's viewer in this database"))
   )
+
+  /** A second street, for the cases that need faces on distinct streets. */
+  private def secondStreetEdgeId: Int =
+    fixtureStreetEdgeIds
+      .lift(1)
+      .getOrElse(cancel("fewer than two NoSidewalk-free non-tutorial streets in this database"))
+
+  /** `centerline_offset_m` values that the DB turns into each side (377.sql: ≥ 1 m is left, ≤ −1 m is right). */
+  private val LeftOfStreet: Option[Double]  = Some(3.0)
+  private val RightOfStreet: Option[Double] = Some(-3.0)
+  private val Unsided: Option[Double]       = None
 
   /**
    * Inserts a labeler whose labels the queues will consider.
@@ -100,13 +120,17 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
    * The counts are written straight onto the label row rather than accumulated by inserting validations: they are the
    * fixture's statement of fact, and going through `ValidationService` would move them.
    *
-   * @param labelerId       Who placed it.
-   * @param agree           `agree_count`.
-   * @param disagree        `disagree_count`.
-   * @param unsure          `unsure_count`.
-   * @param correct         `correct`, the decision the counts have already produced; `unvalidatedOnly` filters on it.
-   * @param createdDaysAgo  Age of the label, which decides the recency bonus.
-   * @return                The new label's id.
+   * @param labelerId         Who placed it.
+   * @param agree             `agree_count`.
+   * @param disagree          `disagree_count`.
+   * @param unsure            `unsure_count`.
+   * @param correct           `correct`, the decision the counts have already produced; `unvalidatedOnly` filters on it.
+   * @param createdDaysAgo    Age of the label, which decides the recency bonus (and NoSidewalk's age bonus).
+   * @param labelType         The label's type, by name.
+   * @param streetEdgeIdOpt   The street it is on; defaults to the fixture's first street.
+   * @param centerlineOffsetM `label_point.centerline_offset_m`, which the DB turns into the label's `street_side`
+   *                          (the block face); None leaves the label unsided.
+   * @return                  The new label's id.
    */
   private def insertLabel(
       labelerId: String,
@@ -114,9 +138,13 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
       disagree: Int,
       unsure: Int,
       correct: Option[Boolean],
-      createdDaysAgo: Int = 30
+      createdDaysAgo: Int = 30,
+      labelType: String = "CurbRamp",
+      streetEdgeIdOpt: Option[Int] = None,
+      centerlineOffsetM: Option[Double] = None
   ): DBIO[Int] = {
-    val (streetEdgeId, panoId) = fixtureAnchors
+    val (defaultStreetEdgeId, panoId) = fixtureAnchors
+    val streetEdgeId                  = streetEdgeIdOpt.getOrElse(defaultStreetEdgeId)
     for {
       missionId <- sql"""INSERT INTO mission
                              (mission_type, user_id, mission_start, mission_end, completed, pay, paid, skipped)
@@ -130,15 +158,37 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
       labelId <- sql"""INSERT INTO label
                            (audit_task_id, pano_id, label_type, deleted, temporary_label_id, time_created, mission_id,
                             tutorial, street_edge_id, agree_count, disagree_count, unsure_count, correct, tags, user_id)
-                       VALUES ($auditTaskId, $panoId, 'CurbRamp', FALSE, 1,
+                       VALUES ($auditTaskId, $panoId, $labelType::label_type, FALSE, 1,
                                now() - make_interval(days => $createdDaysAgo), $missionId, FALSE, $streetEdgeId,
                                $agree, $disagree, $unsure, $correct, '{}', $labelerId)
                        RETURNING label_id""".as[Int].head
+      // The lat/lng is arbitrary; the side comes from the explicit offset, never from the position.
       _ <- sqlu"""INSERT INTO label_point
-                      (label_id, pano_x, pano_y, canvas_x, canvas_y, heading, pitch, zoom, lat, lng)
-                  VALUES ($labelId, 100, 100, 100, 100, 0, 0, 1, 40.9, -74.0)"""
+                      (label_id, pano_x, pano_y, canvas_x, canvas_y, heading, pitch, zoom, lat, lng,
+                       centerline_offset_m)
+                  VALUES ($labelId, 100, 100, 100, 100, 0, 0, 1, 40.9, -74.0, $centerlineOffsetM)"""
     } yield labelId
   }
+
+  /** A NoSidewalk label with no votes, on the given street and side. */
+  private def insertNoSidewalk(
+      labelerId: String,
+      streetEdgeId: Int,
+      centerlineOffsetM: Option[Double],
+      agree: Int = 0,
+      createdDaysAgo: Int = 30
+  ): DBIO[Int] =
+    insertLabel(
+      labelerId,
+      agree,
+      0,
+      0,
+      if (agree > 0) Some(true) else None,
+      createdDaysAgo,
+      "NoSidewalk",
+      Some(streetEdgeId),
+      centerlineOffsetM
+    )
 
   /**
    * Records an AI vote on a label: the validation row the counts already reflect, and the assessment that links the
@@ -173,15 +223,24 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
   private def queueIds(
       queue: ValidationQueue,
       labelerIds: Set[String],
-      unvalidatedOnly: Boolean = false
+      unvalidatedOnly: Boolean = false,
+      labelType: LabelTypeEnum.Base = LabelTypeEnum.CurbRamp
   ): DBIO[Set[Int]] = {
     labelTable
-      .retrieveLabelListForValidationQuery(requester, viewer, LabelTypeEnum.CurbRamp, queue, userIds = Some(labelerIds),
+      .retrieveLabelListForValidationQuery(requester, viewer, labelType, queue, userIds = Some(labelerIds),
         unvalidatedOnly = unvalidatedOnly)
       .map(_._1)
       .result
       .map(_.toSet)
   }
+
+  /** The face evidence rows on the fixture's streets, keyed by (street, side). */
+  private def fixtureFaceEvidence: DBIO[Map[(Int, StreetSide.Value), (Int, Int, Int)]] =
+    labelTable.getNoSidewalkFaceEvidence.map(
+      _.filter(f => fixtureStreetEdgeIds.contains(f.streetEdgeId))
+        .map(f => (f.streetEdgeId, f.streetSide) -> (f.labelerCount, f.support, f.labelCount))
+        .toMap
+    )
 
   /**
    * One labeler and thirteen labels covering every branch of the queue predicates, keyed by the letters the
@@ -393,7 +452,184 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
     }
   }
 
+  "NoSidewalk face evidence" should {
+    "count human labelers and agreeing human votes per (street, side), and give unsided labels no face" in {
+      val (evidence, streetA, streetB) = runRolledBack(for {
+        labelerOne <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
+        labelerTwo <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
+        streetA = fixtureAnchors._1
+        streetB = secondStreetEdgeId
+        // Street A, left: three labels by one person, none voted on.
+        _ <- insertNoSidewalk(labelerOne, streetA, LeftOfStreet)
+        _ <- insertNoSidewalk(labelerOne, streetA, LeftOfStreet)
+        _ <- insertNoSidewalk(labelerOne, streetA, LeftOfStreet)
+        // Street A, right: two labelers, one human Agree and one label whose only Agree is the AI's.
+        _      <- insertNoSidewalk(labelerOne, streetA, RightOfStreet, agree = 1)
+        aiOnly <- insertNoSidewalk(labelerTwo, streetA, RightOfStreet, agree = 1)
+        _      <- insertAiVote(aiOnly, "Agree")
+        // Street B: one unsided label, which is nobody's face.
+        _        <- insertNoSidewalk(labelerTwo, streetB, Unsided)
+        evidence <- fixtureFaceEvidence
+      } yield (evidence, streetA, streetB))
+
+      evidence.get((streetA, StreetSide.Left)) mustBe Some((1, 0, 3))
+      evidence.get((streetA, StreetSide.Right)) mustBe Some((2, 1, 2))
+      evidence.keys.filter(_._1 == streetB) mustBe empty
+    }
+  }
+
+  "countNoSidewalkFacesNeedingVotes" should {
+    "count the requester's servable sided faces short of the settled support, and honour unvalidatedOnly" in {
+      def faces(me: String, unvalidatedOnly: Boolean): DBIO[Int] =
+        labelTable.countNoSidewalkFacesNeedingVotes(me, viewer, unvalidatedOnly)
+
+      val (before, after, beforeUnvalidated, afterUnvalidated) = runRolledBack(for {
+        // The requester is a real user here, so they can own a label of their own.
+        me                <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
+        labeler           <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
+        before            <- faces(me, unvalidatedOnly = false)
+        beforeUnvalidated <- faces(me, unvalidatedOnly = true)
+        streetA = fixtureAnchors._1
+        streetB = secondStreetEdgeId
+        // Face A: unvoted, so it counts.
+        _ <- insertNoSidewalk(labeler, streetA, LeftOfStreet)
+        _ <- insertNoSidewalk(labeler, streetA, LeftOfStreet)
+        // Face B: two agreeing votes across its labels, so it is settled for the lottery (its labels stay servable).
+        _ <- insertNoSidewalk(labeler, streetA, RightOfStreet, agree = 1)
+        _ <- insertNoSidewalk(labeler, streetA, RightOfStreet, agree = 1)
+        // An unsided label is not a face.
+        _ <- insertNoSidewalk(labeler, streetB, Unsided)
+        // A face whose only labels are the requester's own is not servable to them.
+        _                <- insertNoSidewalk(me, streetB, LeftOfStreet)
+        after            <- faces(me, unvalidatedOnly = false)
+        afterUnvalidated <- faces(me, unvalidatedOnly = true)
+      } yield (before, after, beforeUnvalidated, afterUnvalidated))
+
+      after - before mustBe 1
+      // Face A's labels have no decision, so it still counts under unvalidatedOnly; face B's do, so it never did.
+      afterUnvalidated - beforeUnvalidated mustBe 1
+    }
+  }
+
+  "The NoSidewalk sampler" should {
+    "serve a lone-labeler face far more often than a well-supported one, and still serve unsided labels" in {
+      // One label on a face nobody else has labeled or confirmed, against twenty labels on a face five people labeled
+      // and four votes have confirmed, plus one unsided label. Per the face score the lone label is about 460 (200
+      // base + 200 lone-labeler + 60 age) against about (200 + 8 + 60) / 5 ≈ 54 for each of the twenty (≈ 34 for the
+      // four that carry the votes) and ≈ 201 for the unsided one, so under score² it wins the top slot about 70% of
+      // the time; uniform would give it 4.5%.
+      val Draws                                = 200
+      val (hits, winners, needsVotes, unsided) = runRolledBack(for {
+        lone  <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
+        crowd <- DBIO.sequence((1 to 5).map(_ => insertLabeler(ownLabelsValidated = 100, highQuality = false)))
+        streetA = fixtureAnchors._1
+        streetB = secondStreetEdgeId
+        top <- insertNoSidewalk(lone, streetA, LeftOfStreet, createdDaysAgo = 365 * 7)
+        _   <- DBIO.sequence(
+          (1 to 20).map(i =>
+            insertNoSidewalk(
+              crowd(i % 5),
+              streetB,
+              LeftOfStreet,
+              agree = if (i <= 4) 1 else 0,
+              createdDaysAgo = 365 * 7
+            )
+          )
+        )
+        unsided <- insertNoSidewalk(lone, streetA, Unsided)
+        labelers = Some(Set(lone) ++ crowd)
+        drawn <- DBIO.sequence((1 to Draws).map { _ =>
+          labelTable
+            .retrieveLabelListForValidationQuery(requester, viewer, LabelTypeEnum.NoSidewalk,
+              ValidationQueue.NeedsVotes, userIds = labelers)
+            .map(_._1)
+            .take(1)
+            .result
+            .map(_.head)
+        })
+        needsVotes <- queueIds(ValidationQueue.NeedsVotes, labelers.get, labelType = LabelTypeEnum.NoSidewalk)
+      } yield (drawn.count(_ == top), drawn.toSet, needsVotes, unsided))
+
+      // Binomial(200, 0.70) has mean 140 and sd 6.5, so the band is ±4.6 sd and nowhere near uniform's ~9 hits.
+      hits must be >= 110
+      hits must be <= 170
+      winners.size must be > 1
+      // No face row for an unsided label means NULL evidence, not a NULL score: it is still served.
+      needsVotes must contain(unsided)
+    }
+  }
+
+  "spreadAcrossFaces" should {
+    "take one label per face, distinct streets first, and fall back to a repeat face only when short" in {
+      def label(id: Int, street: Int, side: Option[StreetSide.Value]): LabelValidationMetadata = {
+        // Only the face fields matter to the spread; the rest is filler.
+        LabelValidationMetadata(
+          id,
+          LabelTypeEnum.NoSidewalk,
+          "pano",
+          viewer,
+          expired = false,
+          "2020-01",
+          java.time.OffsetDateTime.now(),
+          models.label.LatLng(0, 0),
+          models.label.POV(0, 0, 1),
+          models.label.LocationXY(0, 0),
+          None,
+          None,
+          street,
+          1,
+          side,
+          models.label.LabelValidationInfo(0, 0, 0, None, None, None),
+          Seq.empty,
+          None,
+          None,
+          None,
+          aiGenerated = false
+        )
+      }
+      val faceA   = (1 to 5).map(i => label(i, 100, Some(StreetSide.Left)))
+      val faceB   = (6 to 7).map(i => label(i, 200, Some(StreetSide.Right)))
+      val unsided = label(8, 100, None)
+      val ordered = faceA.take(1) ++ faceB.take(1) ++ faceA.drop(1) ++ Seq(unsided) ++ faceB.drop(1)
+      def ids(labels: Seq[LabelValidationMetadata]): Seq[Int] = labels.map(_.labelId)
+
+      // Three faces available: one of each, in the candidates' order, and street 100's unsided label after both
+      // streets have been touched once.
+      ids(LabelServiceImpl.spreadAcrossFaces(ordered, Set.empty, 3)) mustBe Seq(1, 6, 8)
+      // Nothing to fall back to within the rule: the fourth slot stays empty rather than repeating a face.
+      ids(LabelServiceImpl.spreadAcrossFaces(ordered, Set.empty, 4)) mustBe Seq(1, 6, 8)
+      // A face the mission already holds is skipped, and the highest-ranked label of each face wins.
+      val held = Set(LabelServiceImpl.FaceKey(100, Some(StreetSide.Left), None))
+      ids(LabelServiceImpl.spreadAcrossFaces(ordered, held, 3)) mustBe Seq(6, 8)
+      // Two unsided labels on one street are two faces, not one.
+      val twoUnsided = Seq(label(8, 100, None), label(9, 100, None))
+      ids(LabelServiceImpl.spreadAcrossFaces(twoUnsided, Set.empty, 2)) mustBe Seq(8, 9)
+    }
+  }
+
   "Type selection" should {
+    "weight NoSidewalk by faces still needing votes in the crowd's queue, and gate it on labels like any type" in {
+      val missionLength = 10
+      val noSidewalk    = LabelTypeValidationsLeft(LabelTypeEnum.NoSidewalk, 500, 12, 0, facesNeedingVotes = Some(3))
+      val curbRamp      = LabelTypeValidationsLeft(LabelTypeEnum.CurbRamp, 500, 50, 3)
+
+      // 12 labels pass the 10-label gate even though only 3 faces need votes; the lottery then weighs the 3.
+      val (queue, types) =
+        LabelServiceImpl.chooseQueueAndTypes(Seq(noSidewalk, curbRamp), ValidationQueue.crowdCascade, missionLength)
+      queue mustBe ValidationQueue.NeedsVotes
+      types must contain(noSidewalk)
+      LabelServiceImpl.typeWeight(ValidationQueue.NeedsVotes, noSidewalk) mustBe 3
+      LabelServiceImpl.typeWeight(ValidationQueue.Any, noSidewalk) mustBe 1
+      LabelServiceImpl.typeWeight(ValidationQueue.Triage, noSidewalk.copy(triage = 7)) mustBe 7
+
+      // A small city with 8 faces across 40 labels still gets NoSidewalk missions: the gate is on labels.
+      val smallCity = noSidewalk.copy(needsVotes = 40, facesNeedingVotes = Some(8))
+      LabelServiceImpl.chooseQueueAndTypes(Seq(smallCity), ValidationQueue.crowdCascade, missionLength)._2 mustBe
+        Seq(smallCity)
+      // And a type without a face count weighs by its labels, as before.
+      LabelServiceImpl.typeWeight(ValidationQueue.NeedsVotes, curbRamp) mustBe 50
+    }
+
     "use the first queue in the cascade that can fill a mission, and weight uniformly once it falls back to Any" in {
       val missionLength                                                                  = 10
       def counts(needsVotes: Int, triage: Int, available: Int): LabelTypeValidationsLeft =
