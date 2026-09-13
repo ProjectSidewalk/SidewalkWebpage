@@ -91,29 +91,34 @@ hash; loads and fills; runs the full imagery scan for the chosen provider; check
 written to the schema; dumps it to `db/<schema>-dump`; prints the handoff. Rerunning skips finished steps. The
 script's flags go through `args=` (`make onboard-city id=<city-id> args="--skip-scan"`):
 
-- `--dry-run` previews the file edits and drives no container (the one mode allowed from a worktree).
+- `--dry-run` previews the file edits and drives no container (the one mode allowed from a checkout the
+  containers do not mount — the script hashes the file each step uses against the container's copy, so a
+  worktree or a second clone is refused).
 - `--yes` takes every default without asking — the only way to run unattended; without it, a run with nothing
   on stdin stops at the first question that is a choice. Pair it with `--donor`, `--country`, `--pano-type`,
-  `--tutorial-region` and `--regions` for the answers that have no default worth taking.
-- **The boot gate (step 4).** The boot needs `:9000` and the main checkout's `target/`. If either is held the
-  step stops and names what holds it: stop the `npm start` or `make qa-worktree` on `:9000` and rerun. A build
-  in a worktree is not in the way (the caches are shared by design). `--allow-running-apps` boots past an idle
-  build in the main checkout; a taken port is never overridable. The nightly actors are off for the boot, so it
-  writes no job rows into the new schema.
-- **The dump gate (step 8).** Every table the clone, fill and scan do not write must be empty, and
-  `region_completion.audited_distance` / `street_edge_priority.priority` untouched; a local QA pass or a job run
-  as the city (from `/clustering`, or an app left pointed at the schema) fails it. The step prints what it found
-  and the statements that clear it, and runs them on `y`; unattended it stops. `--dump-only` reruns only this
-  step, which is how a city QA'd after its first dump gets a clean one without passing "drop and recreate?".
+  `--tutorial-region` and `--regions` for the answers that have no default worth taking, and `--recreate` to
+  drop an existing schema without being asked.
+- **The boot gate (step 4).** The boot listens on its own port (`:9100`), so `npm start` and `make qa-worktree`
+  stay up; what it needs is the main checkout's `target/`. If a build holds that, the step stops and names its
+  pid. A build in a worktree is not in the way (the caches are shared by design). `--allow-running-apps` boots
+  past an idle build in the main checkout; a boot an earlier run left behind is never overridable. The nightly
+  actors are off for the boot, so it writes no job rows into the new schema.
+- **The dump (step 8).** The dump leaves out the data of every table the clone, fill and scan do not write
+  (`region_completion` too, which the app recomputes), so a local QA pass or a job run as the city (from
+  `/clustering`, or an app left pointed at the schema) stays local and out of the dump; the step prints what it
+  left out. The one value it changes is `street_edge_priority`, which a QA walk moves: it resets them to 1 on
+  `y` (the default; `--yes` takes it). `--dump-only` reruns only this step, which is how a city QA'd after its
+  first dump gets a clean one without passing "drop and recreate?"; it refuses a schema that is still unfilled.
 
 Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, center/zoom) against the report.
 
 ## 5. What the scripts leave to you
 
-- **Translations.** The orchestrator prints the exact keys. `messages.zh-TW` always gets the city (and any new state
-  or country) transliterated; `es`/`nl`/`de`/`pt-BR`/`fr` only where the exonym differs from English (`Nueva York`,
-  `États-Unis`). English city/state/country names go in the base `messages` (proper nouns are language-neutral);
-  the US state abbreviation goes in `messages.en`. `make lint-locales` must stay green.
+- **Translations.** The orchestrator prints the exact keys and the files that lack each. Every `messages.<lang>`
+  gets a line: `zh-TW` transliterated; `es`/`nl`/`de`/`pt-BR`/`fr` with the exonym where one exists (`Nueva York`,
+  `États-Unis`) and the English spelling otherwise — the line goes in even then, so a missing line always means
+  "not looked at yet". English city/state/country names go in the base `messages` (proper nouns are
+  language-neutral); the US state abbreviation goes in `messages.en`. `make lint-locales` must stay green.
 - **`config` row review.** The clone carries the donor's `excluded_tags` (a European city may want a different tag
   set), `update_offset_hours` (Mikey's load-spreading spreadsheet assigns these), and `make_crops`; the fill prints
   all three and clears the donor's `mapathon_event_link`. Ask; don't guess.

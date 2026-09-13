@@ -107,17 +107,20 @@ make onboard-city id=laurens-ia args="--skip-scan"        # any of the script's 
 ```
 
 `tools/setup_new_city.py` is host-side and stdlib-only; it edits repo files and drives the two containers. It pauses
-where a person is needed and skips whatever a previous run already did. **Run it from the main checkout**, not a
-worktree — the db container mounts the main checkout's `db/` at `/opt` and the app boot compiles `/home`, so a
-worktree's artifacts and evolutions are not the ones the steps would use; it refuses to start from one, except
-under `--dry-run`, which only previews edits to the checkout's own `conf/` files and drives no container.
+where a person is needed and skips whatever a previous run already did. **Run it from the checkout the containers
+were started from** — they mount that checkout's `db/` at `/opt` and the whole tree at `/home`, and every db step
+reads that copy, so from a git worktree or a second clone the script would check its own artifacts and evolutions
+while the steps used the other checkout's. It checks by hashing the file each step is about to use against the
+container's copy and refuses on a mismatch; `--dry-run`, which only previews edits to the checkout's own `conf/`
+files and drives no container, is the one mode allowed anywhere.
 
 Unattended (CI, a scripted rebuild, an agent), pass `--yes`: every question takes its default, the review of the
 build report included, and `--donor`, `--country`, `--pano-type`, `--tutorial-region` and `--regions` set the
 answers that have no sensible default (a non-US city has no default country; a wrong `--regions`/`--tutorial-region`
-pair is refused up front rather than re-asked). Without `--yes`, a run with nothing on stdin stops at the first question that is a choice rather than
-letting it fall to nobody; only the cautious questions (keep an existing schema, stop before a dirty dump) take
-their default either way.
+pair is refused up front rather than re-asked). `--recreate` is the "yes" to "drop and recreate?", the one answer a
+rerun cannot take unattended otherwise. Without `--yes`, a run with nothing on stdin stops at the first question
+that is a choice rather than letting it fall to nobody; only the cautious question (keep an existing schema) takes
+its default either way.
 
 0. **Review** — prints the report's headline numbers and the preflight table, asks to continue.
 1. **Configs** — asks for the display name, country/state, provider, status (default `private`), launch date (the
@@ -144,14 +147,17 @@ their default either way.
    Right after a clone it boots even when the donor was current, because Play is the one reliable check that every
    applied evolution is this checkout's (it compares hashes and, with `autoApplyDowns`, reverts and re-applies from a
    mismatch). A schema kept from a run that stopped before the fill is verified the same way, since its hashes were
-   never checked either; a kept schema that already holds streets skips the boot. The boot needs `:9000` and the
-   checkout it compiles, so the step asks the web container about both first (from inside it — Docker's port
-   forwarder on the host accepts a connection whether or not anything listens behind it) — stop your `npm start`
-   (and any `make qa-worktree`, which serves a worktree's app on `:9000` too). A worktree's own build is not in the
-   way: only `target/` is per-checkout, the caches under `/home/.sbt` and `/home/.coursier` are shared by design.
+   never checked either; a kept schema that already holds streets skips the boot. The boot listens on its own port
+   (`:9100`, which compose does not publish), so `npm start` and any `make qa-worktree` stay up. What it cannot
+   share is the checkout it compiles: two builds in one `target/` corrupt it, so the step asks the web container
+   (from inside it — Docker's port forwarder on the host accepts a connection whether or not anything listens
+   behind it) what is building in `/home` and waits for you to stop it. A worktree's own build is not in the way:
+   only `target/` is per-checkout, the caches under `/home/.sbt` and `/home/.coursier` are shared by design.
    Without a terminal to ask, it stops and names what is in the way; `--allow-running-apps` boots past a build in
-   the main checkout you know is idle, never past a taken port. The boot runs with the nightly actors switched off,
-   so a boot that straddles one of their scheduled minutes cannot write job rows into the new schema.
+   the main checkout you know is idle (the boot passes `sbt.server.forcestart`, without which sbt exits at once when
+   another server owns the checkout), never past a boot an earlier run left behind. The boot runs on CI's
+   `application.ci.conf`, with the nightly actors switched off, so a boot that straddles one of their scheduled
+   minutes cannot write job rows into the new schema.
 5. **Load** — `qgis_tables.sql` into the schema.
 6. **Fill** — `fill-new-schema.sh` with the tutorial region and which regions open at launch (`all`,
    `include:1 2 3`, `exclude:4`; or `--tutorial-region` and `--regions`). The tutorial region has to be among the
@@ -162,19 +168,24 @@ their default either way.
 7. **Imagery scan** — exports the endpoints from the database, runs `check_streets_for_imagery.py` for the city's
    provider (resumable; an hour or so for a mid-sized city), hides the no-imagery streets, and imports the imagery-age
    summary into `street_imagery`. `--skip-scan` defers it; a rerun picks it up.
-8. **Dump** — checks that nothing but onboarding has written to the schema: every table the catalog lists other
-   than the ones the clone, the fill and the scan fill has to be empty, `region_completion.audited_distance` has to
-   be zero and every `street_edge_priority` at 1. A local QA pass fails that (one walk in Explore leaves an
-   `audit_task`, thousands of `audit_task_interaction` rows, a moved `audited_distance`), and so does a job run as
-   the city (`intersection`, `cluster`, `sidewalk_presence`, `background_job_run`, …); either would ride into the
-   launched city inside the dump. The step lists what it found with the statements that clear it and offers to run
-   them; unattended it stops. Then `pg_dump -Fc` of the finished schema to `db/<schema>-dump`, the file
-   `make import-dump` and the server both restore, and the handoff checklist. `--dump-only` runs this step alone.
+8. **Dump** — `pg_dump -Fc` of the finished schema to `db/<schema>-dump`, the file `make import-dump` and the
+   server both restore, with the data of every table the clone, the fill and the scan do not write left out
+   (`--exclude-table-data`, from the schema's own catalog, with those tables' sequences), `region_completion`
+   included since the app recomputes it from an empty table. A local QA pass (one walk in Explore leaves an
+   `audit_task`, thousands of `audit_task_interaction` rows, a moved `audited_distance`) and a job run as the city
+   (`intersection`, `cluster`, `sidewalk_presence`, `background_job_run`, …) both stay in the local schema and out
+   of the dump; the step prints what it left out. The one value it has to touch is `street_edge_priority`, which a
+   QA walk moves off the fill's 1 in a table the dump keeps: it offers to reset them (default yes; `--yes` takes
+   it). Then the handoff checklist. `--dump-only` runs this step alone, and refuses a schema that is still the
+   unfilled clone.
 
 ## 4. What stays on a person
 
-- **Translations.** `conf/messages/messages.zh-TW` always gets the city (and any new state or country) transliterated;
-  `es`, `nl`, `de`, `pt-BR`, `fr` only where the name differs from English. `make lint-locales` must stay green.
+- **Translations.** Every `conf/messages/messages.<lang>` gets a line for the city (and any new state or country):
+  `zh-TW` transliterated, `es`, `nl`, `de`, `pt-BR`, `fr` with the exonym where one exists (`Nueva York`,
+  `États-Unis`) and the English spelling where the name reads the same. The line goes in even when it equals the
+  English, so that a missing line always means "not looked at yet" and the orchestrator can list exactly what is
+  owed (`docs/internationalization.md`). `make lint-locales` must stay green.
 - **The `config` row.** The clone carries the donor's `excluded_tags` (a European city may want a different set),
   `update_offset_hours` (assigned from the load-spreading spreadsheet), and `make_crops`; the fill prints all three
   and clears the donor's `mapathon_event_link`. Check them before launch.
@@ -190,19 +201,17 @@ their default either way.
   `intersection` table (with each street's corner links, #5095), its `cluster` table, its `sidewalk_presence`
   table, and its `osm_way` tag cache are all empty — in the dump you hand the server, too — until each job's first
   nightly run (`app/actor/ScheduledJobs.scala`, shifted by the city's `update_offset_hours`). AccessScore reads
-  zero until then. An admin can force the
-  intersections and clusters early from `/clustering` — on the launched site, not locally: rows a local run
-  produces are what the dump step then makes you clear, since a dump is meant to hold none of them. The `osm_way`
-  tags come from their own nightly refresh, and until they land every intersection is `grade_separated = FALSE`,
-  which is why deriving them during onboarding would not help (#5297).
+  zero until then. An admin can force the intersections and clusters early from `/clustering` — on the launched
+  site; a local run's rows stay local, since the dump leaves those tables' data out. The `osm_way` tags come from
+  their own nightly refresh, and until they land every intersection is `grade_separated = FALSE`, which is why
+  deriving them during onboarding would not help (#5297).
 - **Server.** `scp db/<schema>-dump <netid>@makelab1.cs.washington.edu:/www/sidewalk/new-city-dumps/<schema>-empty-dump`
   — the destination follows the convention every file in that directory uses, while the local name stays
   `<schema>-dump`, which is what `make import-dump` restores and what a populated prod pull is called too. (An ssh
   alias that sets the user works as well; a bare hostname without one fails with `Permission denied`.) **If you
   QA'd the city locally, dump it again first**: `make onboard-city id=<city-id> args="--dump-only"` reruns only the
-  dump step, which lists everything the QA pass left — one walk in Explore leaves an `audit_task`, thousands of
-  `audit_task_interaction` rows, and a moved `region_completion.audited_distance` — with the `TRUNCATE`s and
-  resets that clear it, and runs them for you on a `y`. Then the IT tooling
+  dump step. The QA data stays in your local schema and out of the dump; the one thing the step changes is the
+  street priorities a walk moved, which it resets to the fill's 1 on a `y`. Then the IT tooling
   (`uwcseit-sidewalk-tools`: `bin/setup-new.pl`, test stage first), the Maps-key referrers for both URLs
   (`docs/google-cloud.md`), DNS, and the PR with the config, message, and docs changes. Where the tooling can't be
   used, the fallback is an email to CS support asking for the test and prod servers, with both URLs, any redirect
@@ -222,9 +231,10 @@ their default either way.
 
 ## Re-running, and doing it by hand
 
-Every step is idempotent: `make onboard-city` skips a registered city, an existing schema (unless you say drop),
-applied evolutions, a filled schema, and an imported scan. `args="--dump-only"` goes straight to the dump step, so
-a city that was QA'd after its first dump never has to pass the "drop and recreate?" question again. To redo the
+Every step is idempotent: `make onboard-city` skips a registered city, an existing schema (unless you say drop, or
+pass `--recreate`), applied evolutions, a filled schema, and an imported scan. `args="--dump-only"` goes straight
+to the dump step, so a city that was QA'd after its first dump never has to pass the "drop and recreate?" question
+again. To redo the
 streets after launch, the wiki's "Adding new road geometries" flow still applies — this tooling is for the first
 import.
 
