@@ -791,23 +791,26 @@ def apply_evolutions(schema, city_id, verify=False, allow_running_apps=False):
     log_hint = f'docker exec {WEB_CONTAINER} tail -50 {BOOT_LOG}'
     try:
         deadline = time.monotonic() + 30 * 60
+        # No `continue` in this loop: Python 3.8's compiler folds the jump into the preceding block's, so the
+        # tracer never reports the line and the 100% coverage gate fails on the 3.8 half of the suite.
         while time.monotonic() < deadline:
-            if not boot_answered():
+            if boot_answered():
+                applied, problem = evolution_state(schema)
+                if problem:
+                    sys.exit(f'error: Play could not apply evolution {problem}\n  Fix the cause ({log_hint}), then '
+                             'rerun.')
+                if applied and int(applied) >= latest:
+                    print(f'  Evolutions applied and verified (at {applied}).')
+                    return
+                print(f'  ...at {applied or "?"} of {latest}')
+                time.sleep(10)
+            else:
                 time.sleep(10)
                 # A boot that died — failed to bind, or fell over compiling — would otherwise be waited on for the
                 # full half hour. Checked after the sleep so the JVM has had time to appear at all.
                 if not boot_jvm_alive():
                     sys.exit(f'error: the one-shot boot exited before the app answered. Check the boot log: '
                              f'{log_hint} — then rerun.')
-                continue
-            applied, problem = evolution_state(schema)
-            if problem:
-                sys.exit(f'error: Play could not apply evolution {problem}\n  Fix the cause ({log_hint}), then rerun.')
-            if applied and int(applied) >= latest:
-                print(f'  Evolutions applied and verified (at {applied}).')
-                return
-            print(f'  ...at {applied or "?"} of {latest}')
-            time.sleep(10)
         blamed = f'\n  --allow-running-apps was passed over: {"; ".join(overridden)} — a compile sharing the ' \
                  f'boot\'s target/ can wedge it; stop that build and rerun.' if overridden else ''
         sys.exit(f'error: evolutions never reached {latest}. Check the boot log: {log_hint} — then rerun.{blamed}')
