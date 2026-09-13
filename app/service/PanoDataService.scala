@@ -17,7 +17,8 @@ import play.api.libs.json.{JsNull, JsNumber, JsObject, JsValue, Json}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Environment, Logger}
 import service.PanoDataService.{
-  getFov,
+  staticLocationUrl,
+  staticStillUrl,
   ImageryCheckConcurrency,
   ImageryCheckResult,
   LiveImageryTtlDays,
@@ -59,6 +60,70 @@ object PanoDataService {
   /** Ceiling on the unexpired panos one nightly expiry sweep will check. */
   val MaxUnexpiredPanosPerSweep: Int = 5000
 
+  /** Google clamps each edge of a Street View Static API image to this on its own; a larger request is not an error. */
+  val StaticApiMaxEdgePx: Int = 640
+
+  /**
+   * The size to ask the Static API for a label's still (#3095): the cap on width, at the Explore canvas's own aspect.
+   *
+   * Asking for the canvas's 720x480 came back as a 640x480 still — the frame the label was placed in, scaled by 8/9,
+   * with about 27 px of extra sky and ground around it (`fov` is horizontal, so the surplus height goes into extra
+   * rows). Every consumer places the marker at the label's fraction of the Explore frame, which is only right when
+   * the still *is* that frame. At 640x427 it is, at zoom 1 and 2 (registered against Explore-uploaded crops,
+   * 2026-09-12); at zoom 3 the shared fov curve reads 0.35° low (#5083, ~4 px at the frame edge) and at a fractional
+   * wheel zoom about 2% off, which the still inherits along with every other projection.
+   */
+  val StaticStillWidth: Int = StaticApiMaxEdgePx
+
+  /** The still's height at the Explore canvas's aspect: 427 for a 720x480 canvas, the 0.33 px of rounding invisible. */
+  val StaticStillHeight: Int =
+    math.rint(StaticStillWidth.toDouble * LabelPointTable.canvasHeight / LabelPointTable.canvasWidth).toInt
+
+  /**
+   * The unsigned Static API URL for a label's still: the labeling POV at `StaticStillWidth x StaticStillHeight`, with
+   * the fov the canvas projection uses for that zoom. Pure so the request can be pinned without an app; `getImageUrl`
+   * signs it.
+   *
+   * No `return_error_code`: an expired pano comes back 200 with Google's placeholder, which the `<img>` consumers
+   * (Gallery, landing grid, dashboard) render as-is and `ShareController` detects by pixel sampling instead.
+   */
+  def staticStillUrl(panoId: String, heading: Double, pitch: Double, zoom: Double, apiKey: String): String =
+    staticApiUrl(
+      Seq(
+        "pano"    -> panoId,
+        "size"    -> s"${StaticStillWidth}x$StaticStillHeight",
+        "heading" -> heading,
+        "pitch"   -> pitch,
+        "fov"     -> getFov(zoom)
+      ),
+      apiKey
+    )
+
+  /**
+   * The unsigned Static API URL for the outdoor pano nearest a location, facing `heading`: the street-edge endpoint
+   * images. Pure for the same reason as `staticStillUrl`; `getGsvImageUrlFromLatLng` signs it.
+   */
+  def staticLocationUrl(lat: Double, lng: Double, heading: Double, apiKey: String): String =
+    staticApiUrl(
+      Seq(
+        "location"          -> s"$lat,$lng",
+        "radius"            -> 40,  // As far from the point as the frontend searches.
+        "source"            -> "outdoor",
+        "size"              -> s"${StaticApiMaxEdgePx}x$StaticApiMaxEdgePx",
+        "heading"           -> heading,
+        "pitch"             -> -10, // Slightly toward the ground, where the sidewalk is.
+        "fov"               -> 90,
+        "return_error_code" -> true // No pano within the radius is a 404, not a placeholder image.
+      ),
+      apiKey
+    )
+
+  /** One place spells the endpoint and the key's position, so the two builders can only differ in their params. */
+  private def staticApiUrl(params: Seq[(String, Any)], apiKey: String): String =
+    "https://maps.googleapis.com/maps/api/streetview?" +
+      params.map { case (name, value) => s"$name=$value" }.mkString("&") +
+      "&key=" + apiKey
+
   /**
    * Outcome of one nightly expiry sweep.
    *
@@ -99,9 +164,11 @@ object PanoDataService {
   }
 
   /**
-   * Hacky fix to generate the FOV for an image. Determined experimentally.
-   * @param zoom Zoom level of the canvas (for fov calculation).
-   * @return FOV of image
+   * The horizontal fov the Explore canvas renders at a zoom: the same experimentally fitted curve as
+   * `util.pano.zoomToFov`, so a still requested with it is the frame the label was placed in. `PanoDataServiceSpec`
+   * holds the two to each other and to the measured curve in `test/js/fixtures/gsvFovMeasurements.json`.
+   * @param zoom Zoom level of the canvas.
+   * @return Horizontal field of view in degrees.
    */
   def getFov(zoom: Double): Double = {
     if (zoom <= 2) {
@@ -618,7 +685,8 @@ class PanoDataServiceImpl @Inject() (
 
   /**
    * Creates a URL that will retrieve a static image of the label's panorama from the Google Street View Static API.
-   * Note that this URL returns the cropped image, but doesn't actually include the label.
+   * The still is the Explore frame the label was placed in at `StaticStillWidth x StaticStillHeight`, so a marker
+   * drawn at the label's canvas fraction lands on the feature; it does not include the label itself.
    * More information here: https://developers.google.com/maps/documentation/streetview/intro
    *
    * @param panoId Id of gsv pano.
@@ -628,22 +696,12 @@ class PanoDataServiceImpl @Inject() (
    * @param zoom Zoom level of the canvas (for fov calculation).
    * @return Image URL that represents the background of the label.
    */
-  def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String] = {
-    if (panoSrc != PanoSource.Gsv) return None
-
-    val url = "https://maps.googleapis.com/maps/api/streetview?" +
-      "pano=" + panoId +
-      "&size=" + LabelPointTable.canvasWidth + "x" + LabelPointTable.canvasHeight +
-      "&heading=" + heading +
-      "&pitch=" + pitch +
-      "&fov=" + getFov(zoom) +
-      "&key=" + googleApiKey
-    Some(signUrl(url))
-  }
+  def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String] =
+    if (panoSrc != PanoSource.Gsv) None
+    else Some(signUrl(staticStillUrl(panoId, heading, pitch, zoom, googleApiKey)))
 
   /**
-   * Creates a URL that will retrieve a static image at the given lat/lng and heading from the GSV Static API.
-   * Note that this URL returns the cropped image, but doesn't actually include the label.
+   * Creates a signed URL that retrieves a static image at the given lat/lng and heading from the GSV Static API.
    * More information here: https://developers.google.com/maps/documentation/streetview/intro
    *
    * @param lat Latitude of the location
@@ -651,19 +709,8 @@ class PanoDataServiceImpl @Inject() (
    * @param heading Compass heading of the camera
    * @return GSV Static API URL for the given location and heading
    */
-  def getGsvImageUrlFromLatLng(lat: Double, lng: Double, heading: Double): String = {
-    val url = "https://maps.googleapis.com/maps/api/streetview?" +
-      "location=" + lat + "," + lng +
-      "&radius=40" + // Search as far as 40 meters from the given lat/lng, same as we use on the frontend
-      "&source=outdoor" +
-      "&size=640x640" + // 640x640 is the max size for the static API
-      "&heading=" + heading +
-      "&pitch=-10" + // Default pitch of -10 degrees, facing slightly downwards towards the ground
-      "&fov=90" +
-      "&return_error_code=true" +
-      "&key=" + googleApiKey
-    signUrl(url)
-  }
+  def getGsvImageUrlFromLatLng(lat: Double, lng: Double, heading: Double): String =
+    signUrl(staticLocationUrl(lat, lng, heading, googleApiKey))
 
   /**
    * Gets the image URLs for a street edge, which includes the start and end points of the street.

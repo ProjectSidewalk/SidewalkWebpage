@@ -174,7 +174,7 @@ class ShareController @Inject() (
           case Some(meta) =>
             buildAndCacheShareImage(meta, commonData.imagerySource, cachedFile).map {
               case Some(file) => serveImage(file)
-              case None       => serveFallbackImage()
+              case None       => serveLegacyOrFallbackImage(labelId)
             }
         }
       } yield result
@@ -205,7 +205,9 @@ class ShareController @Inject() (
     val base: String    = commonData.prodUrl.stripSuffix("/")
     val pageUrl: String =
       s"$base/label/${meta.labelId}" + linkedStory.map(s => s"?storyId=${s.storyId}").getOrElse("")
-    val imageUrl: String = s"$base/label/${meta.labelId}/image"
+    // The generation rides along as a query param: platforms cache og:image by URL (Facebook until a manual
+    // re-scrape), so a bumped cache on disk reaches an already-scraped card only if its URL changes too.
+    val imageUrl: String = s"$base/label/${meta.labelId}/image?g=${ShareImageCache.Generation}"
     val typeName: String = Messages(meta.labelType.nameKey)
     val cityName: String = cityNameOf(commonData)
     // The description is short, fully-localized sentences joined in a fixed order, with the data-dependent ones
@@ -290,6 +292,7 @@ class ShareController @Inject() (
           cacheFile.getParentFile.mkdirs()
           writeJpeg(composited, cacheFile)
           if (cacheFile.exists()) {
+            shareImageCache.dropLegacy(meta.labelId)
             evictStaleShareImages(cacheFile.getParentFile)
             Some(cacheFile)
           } else {
@@ -312,14 +315,22 @@ class ShareController @Inject() (
   }
 
   /**
-   * Evicts the least-recently-served cached previews once the per-city cache holds more than `maxFiles` images.
+   * Evicts the least-recently-served cached previews once the per-city cache holds more than `maxFiles` of them.
    *
    * serveImage touches each file's mtime on every hit, so sorting by mtime approximates LRU. Runs on the cache-miss
    * path only (right after a build), where the O(n) directory listing is noise next to the imagery fetch + composite
-   * it follows. The branded fallback can be evicted like any other file — it's rebuilt on demand.
+   * it follows.
+   *
+   * Only previews count and only previews go — never the branded fallback or a `.tmp` another request is still
+   * writing (unlinking that makes its atomic rename fail). Earlier-generation previews are ordinary candidates: they
+   * are dropped per label as their replacement is built, and one that is still the only imagery left for its label
+   * keeps getting served, so its mtime keeps it in; the rest are the oldest files here and age out first.
    */
   private[controllers] def evictStaleShareImages(dir: File, maxFiles: Int = MAX_CACHED_SHARE_IMAGES): Unit = {
-    val cached = Option(dir.listFiles()).getOrElse(Array.empty[File]).filter(_.isFile)
+    val cached =
+      Option(dir.listFiles())
+        .getOrElse(Array.empty[File])
+        .filter(f => f.isFile && ShareImageCache.generationOf(f).isDefined)
     if (cached.length > maxFiles) {
       cached.sortBy(_.lastModified()).take(cached.length - maxFiles).foreach { f =>
         val _ = f.delete()
@@ -383,7 +394,7 @@ class ShareController @Inject() (
    * Renders the base image onto a fixed SHARE_IMAGE_WIDTH×HEIGHT canvas and draws the label-type icon at the label's
    * canvas position so the shared preview points at the labeled spot. The output size is fixed (cover-scale, center-
    * crop) so the og:image:width/height the meta advertises is always true regardless of the base image's source
-   * (stored crops are 1440×960 but GSV stills come back 640×480), and cards stay high-res on every platform.
+   * (stored crops are 1440×960 but GSV stills are 640×427), and cards stay high-res on every platform.
    */
   private[controllers] def compositeMarker(
       base: BufferedImage,
@@ -423,7 +434,10 @@ class ShareController @Inject() (
     out
   }
 
-  /** Serves a cached JPEG with a long cache lifetime (the image content for a label is immutable once generated). */
+  /**
+   * Serves a cached JPEG with a long cache lifetime: a label's preview only changes when a crop lands (`invalidate`)
+   * or the generation is bumped (a new `og:image` URL), and neither needs a client to re-fetch the same URL sooner.
+   */
   private def serveImage(file: File): Result = {
     // Best-effort mtime touch so evictStaleShareImages approximates LRU; eviction order degrades gracefully if the
     // filesystem refuses.
@@ -438,13 +452,22 @@ class ShareController @Inject() (
   /**
    * Branded fallback served when no pano image is available for a label: the logo centered on a white
    * SHARE_IMAGE_WIDTH×HEIGHT canvas, so even the fallback matches the dimensions the meta advertises. Built once per
-   * city and cached alongside the per-label images.
+   * city and cached alongside the per-label images, which the sweep leaves alone (it only evicts previews).
    */
   private def serveFallbackImage(): Result = {
     val cached: File = new File(shareImageDir, "share_fallback.jpg")
     if (!cached.exists()) buildFallbackImage(cached)
     if (cached.exists()) serveImage(cached) else NotFound("No preview image available.")
   }
+
+  /**
+   * What to serve when no current-generation preview can be built: the label's preview from an earlier generation
+   * if one survives (promoted to current, so the next request is a disk hit), else the branded fallback. A rebuild
+   * only fails for a crop-less label whose still is gone too, so the old preview — the same photo, marker a little
+   * off — is the last imagery there is for it.
+   */
+  private[controllers] def serveLegacyOrFallbackImage(labelId: Int): Result =
+    shareImageCache.promoteLegacy(labelId).map(serveImage).getOrElse(serveFallbackImage())
 
   /** Renders the logo centered on a white fixed-size canvas to the given cache file (no-op if the logo is missing). */
   private[controllers] def buildFallbackImage(cached: File): Unit = {

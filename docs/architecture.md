@@ -92,7 +92,12 @@ reads.
 
 Crops are the image the Gallery, the landing validation grid and label popups fall back to when live imagery is
 unavailable; they are written by the browser's `POST /saveImage` canvas snapshot at labeling time and by the job for
-every label that has none (AI submissions, failed uploads, any past city). The geometry — `CropSizingRule` (the
+every label that has none (AI submissions, failed uploads, any past city). The card surfaces (Gallery, landing grid,
+dashboard mistakes, the share preview) fall back one step further for a GSV label with no crop, to a Street View
+Static API still requested at 640×427 — Google's 640-px cap at the Explore canvas's aspect — so it is the labeling
+frame at a smaller scale and a marker at the label's canvas fraction still lands on the feature (#3095; asking for
+720×480 got a 640×480 still with extra sky and ground). Label popups never use the still: their chain is live pano →
+self-hosted backup → crop → "imagery not available". The geometry — `CropSizingRule` (the
 swappable, versioned sizing rule) and `CropGeometry` (equirectangular mechanics) — is a port of panorama-tools'
 `CropRunner.py`, pinned to it by golden fixtures under `test/resources/crops/`. The two writers put the label in
 different places — the snapshot at its canvas fraction, the job's window wherever `CropGeometry.labelPositionInCrop`
@@ -231,9 +236,13 @@ A public, account-free share surface (issue #456, `ShareController`) lets a sing
 nearby-labels minimap fed by the cheap, bbox-bounded `/v3/api/rawLabels` API (deliberately not LabelMap's
 city-wide `/labels/all` layer) — with server-rendered Open Graph / Twitter Card meta so a pasted link produces a
 rich preview. `GET /label/:id/image` serves the preview image — self-hosted, with the label-type marker
-composited onto the crop (or a branded fallback) — cached under `share.image.directory`
+composited onto the crop (or a Street View still, or a branded fallback) — cached under `share.image.directory`
 (`SIDEWALK_SHARE_IMAGES_DIR`), the same mounted volume as label crops so share links persist across container
-recreation; the per-city cache is LRU-bounded so the public, enumerable URL space can't fill the volume. To
+recreation; the per-city cache is LRU-bounded so the public, enumerable URL space can't fill the volume. Previews
+never expire, so a change to how they are built bumps `ShareImageCache.Generation`: it is in the filename, so a
+label's old preview is replaced the next time it is requested (rebuilt, or renamed into place when nothing can be
+built any more — an old preview beats the logo), and in the advertised `og:image` URL, so platforms that cache the
+card by URL re-fetch. Old files for labels never requested again age out of the LRU cap. To
 support the anonymous landing, the `LabelController.getLabelData` read backing the label-detail popup was opened
 to anonymous access.
 
