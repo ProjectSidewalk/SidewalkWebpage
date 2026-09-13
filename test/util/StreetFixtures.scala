@@ -42,6 +42,18 @@ trait StreetFixtures { this: GuiceOneAppPerSuite with RolledBackDb =>
   }
 
   /**
+   * Flags a mapper as excluded, the way an admin does when their work turns out to be unreliable.
+   *
+   * A [[insertUser]] mapper has no `user_stat` row at all, which is not a state prod reaches; queries that filter on
+   * `excluded` treat a missing row as not-excluded, so this seeds the row only when a case needs the flag set.
+   *
+   * @return The number of rows written.
+   */
+  protected def excludeUser(userId: String): DBIO[Int] =
+    sqlu"""INSERT INTO user_stat (user_id, excluded) VALUES ($userId, TRUE)
+           ON CONFLICT (user_id) DO UPDATE SET excluded = TRUE"""
+
+  /**
    * A region of the spec's own, so the streets hung there are reachable only by the case that seeded them.
    *
    * Explicit ids throughout these helpers: the dev dumps insert rows with explicit ids without advancing the

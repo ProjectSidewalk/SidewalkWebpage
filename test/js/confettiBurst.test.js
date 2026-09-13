@@ -16,7 +16,6 @@ const path = require('path');
 const SOURCE = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/common/Confetti.js'), 'utf8'
 );
-// eslint-disable-next-line no-new-func
 const Confetti = new Function(`${SOURCE}; return Confetti;`)();
 
 // iOS Safari's canvas-area ceiling, spelled out here rather than read off the class so a change to the constant

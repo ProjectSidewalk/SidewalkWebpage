@@ -4,7 +4,7 @@
  * Building the map, layering chips and legends over it, and reading GeoJSON properties back off a rendered feature
  * live here. Data fetching, colors, and popup content belong to each page's own `*Preview.js`.
  *
- * @requires mapbox-gl, mapbox-gl-language, i18next
+ * @requires mapbox-gl, mapbox-gl-language, i18next, ScoreRamp (js/common/scoreRamp.js)
  */
 
 window.ApiDocsMap = (function () {
@@ -13,9 +13,6 @@ window.ApiDocsMap = (function () {
 
   // The preview layers are small dots over a busy street grid, so the basemap is knocked back behind them.
   const BASEMAP_DIM_OPACITY = 0.5;
-
-  // ColorBrewer RdYlGn: low accessibility is red and high is green, as in the paper the score comes from.
-  const ACCESS_SCORE_RAMP = ['#d7191c', '#fdae61', '#ffffbf', '#a6d96a', '#1a9641'];
 
   /**
    * Builds a Mapbox map in the given container and resolves once it has loaded.
@@ -299,6 +296,28 @@ window.ApiDocsMap = (function () {
   }
 
   /**
+   * Fills a legend overlay with one swatch-and-name row per category, plus an optional note beneath them.
+   *
+   * @param {HTMLElement} element - The overlay element to fill.
+   * @param {string} title - Legend heading.
+   * @param {Array<{color: string, label: string}>} items - One row per category, in display order.
+   * @param {string} [note] - A line of context under the rows, e.g. how to read the geometry.
+   */
+  function renderSwatchLegend(element, title, items, note) {
+    const rows = items.map((item) => `
+      <div class="map-legend-item">
+        <span class="map-legend-swatch" style="background-color: ${item.color};"></span>
+        ${item.label}
+      </div>
+    `).join('');
+    element.innerHTML = `
+      <h4>${title}</h4>
+      ${rows}
+      ${note ? `<div class="map-legend-note">${note}</div>` : ''}
+    `;
+  }
+
+  /**
    * Fills a legend overlay with one swatch-and-name row per label type present in the rendered data.
    *
    * @param {HTMLElement} element - The overlay element to fill.
@@ -325,7 +344,10 @@ window.ApiDocsMap = (function () {
 
   return {
     STYLE_PROJECT_SIDEWALK,
-    ACCESS_SCORE_RAMP,
+    // The AccessScore ramp lives in main.css (read through ScoreRamp) so the docs and the AccessScore tool agree.
+    get ACCESS_SCORE_RAMP() {
+      return ScoreRamp.colors();
+    },
     create,
     popup,
     addOverlay,
@@ -338,6 +360,7 @@ window.ApiDocsMap = (function () {
     whenHovered,
     addHoverState,
     renderGradientLegend,
+    renderSwatchLegend,
     renderLabelTypeLegend,
   };
 })();

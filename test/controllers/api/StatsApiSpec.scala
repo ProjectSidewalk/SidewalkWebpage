@@ -1,5 +1,6 @@
 package controllers.api
 
+import models.label.LabelTypeEnum
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -30,7 +31,7 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       contentType(resp) mustBe Some("application/json")
 
       val json = contentAsJson(resp)
-      (json \ "status").as[String] mustBe "OK"
+      (json \ "status").toOption mustBe None
       (json \ "km_explored").asOpt[Double] mustBe defined
       (json \ "total_labels").asOpt[Long] mustBe defined
       (json \ "tutorial_labels").asOpt[Long] mustBe defined
@@ -55,8 +56,8 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     // Regression guard for #3981: the per-label-type breakdown must reconcile with the headline total. This held only
-    // for overallStats before; aggregateStats derived the two from differently-filtered queries (and a legacy DC
-    // constant whose total didn't match its own breakdown), so they drifted. Data-independent: holds for any test DB.
+    // for overallStats before; aggregateStats derived the two from differently-filtered queries, so they drifted.
+    // Data-independent: holds for any test DB.
     "report total_labels equal to the sum of by_label_type label counts" in {
       val json          = contentAsJson(route(app, FakeRequest(GET, "/v3/api/aggregateStats")).get)
       val totalLabels   = (json \ "total_labels").as[Long]
@@ -108,14 +109,44 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       explorable mustBe (open +- 0.001)
     }
 
+    // Data-independent. Per-type columns are read back by position, so a wrong sum or stray rating stats means a
+    // column landed in the wrong field.
+    "report per-label-type counts that sum to the total, with no rating stats on unrated types" in {
+      val labels = (contentAsJson(route(app, FakeRequest(GET, "/v3/api/overallStats")).get) \ "labels").as[JsObject]
+      val byType = LabelTypeEnum.ordered.map(lt => lt -> (labels \ lt.name).as[JsObject])
+
+      byType.map { case (_, stats) => (stats \ "count").as[Int] }.sum mustBe (labels \ "count").as[Int]
+      byType.filter(_._1.ratingScale == LabelTypeEnum.RatingScale.Unrated).foreach { case (_, stats) =>
+        (stats \ "count_with_severity").asOpt[Int] mustBe None
+        (stats \ "severity_mean").asOpt[Double] mustBe None
+      }
+    }
+
     "return 200 CSV containing the new km rows" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/overallStats?filetype=csv")).get
       status(resp) mustBe OK
       val body = contentAsString(resp)
+      // km_explorable is an alias of km_by_status.open, not a second flat km_open row.
       Seq(
-        "km_explored_multiple_users", "km_explored_single_user", "km_needs_reaudit", "km_explorable", "km_open",
-        "km_no_imagery", "km_closed", "km_disabled"
+        "km_explored_multiple_users", "km_explored_single_user", "km_needs_reaudit", "km_explorable",
+        "km_by_status.open", "km_by_status.no_imagery", "km_by_status.closed", "km_by_status.disabled"
       ).foreach(key => body must include(key))
+    }
+  }
+
+  "GET /v3/api/userStats" should {
+    // Data-independent. Per-type columns are read back by position, so a wrong sum means one landed in the wrong field.
+    "report counts for every label type that sum to each user's totals" in {
+      val rows = contentAsJson(route(app, FakeRequest(GET, "/v3/api/userStats")).get).as[Seq[JsObject]]
+      rows.foreach { row =>
+        val byType = (row \ "stats_by_label_type").as[JsObject]
+        byType.keys mustBe LabelTypeEnum.labelTypeNames
+        def sumOf(field: String): Int = byType.values.map { (lt: JsValue) => (lt \ field).as[Int] }.sum
+        sumOf("labels") mustBe (row \ "labels").as[Int]
+        sumOf("validated_correct") mustBe (row \ "labels_validated_correct").as[Int]
+        sumOf("validated_incorrect") mustBe (row \ "labels_validated_incorrect").as[Int]
+        sumOf("not_validated") mustBe (row \ "labels_not_validated").as[Int]
+      }
     }
   }
 

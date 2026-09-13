@@ -1,0 +1,74 @@
+[
+  {
+    "name": "CurbRamp",
+    "color": "#90C31F",
+    "accessImpact": "feature",
+    "ratingScale": "quality",
+    "isPrimary": true,
+    "isPrimaryValidate": true
+  },
+  {
+    "name": "NoCurbRamp",
+    "color": "#E679B6",
+    "accessImpact": "problem",
+    "ratingScale": "severity",
+    "isPrimary": true,
+    "isPrimaryValidate": true
+  },
+  {
+    "name": "Obstacle",
+    "color": "#78B0EA",
+    "accessImpact": "problem",
+    "ratingScale": "severity",
+    "isPrimary": true,
+    "isPrimaryValidate": true
+  },
+  {
+    "name": "SurfaceProblem",
+    "color": "#F68D3E",
+    "accessImpact": "problem",
+    "ratingScale": "severity",
+    "isPrimary": true,
+    "isPrimaryValidate": true
+  },
+  {
+    "name": "Crosswalk",
+    "color": "#FABF1C",
+    "accessImpact": "feature",
+    "ratingScale": "quality",
+    "isPrimary": true,
+    "isPrimaryValidate": true
+  },
+  {
+    "name": "Signal",
+    "color": "#63C0AB",
+    "accessImpact": "feature",
+    "ratingScale": "unrated",
+    "isPrimary": true,
+    "isPrimaryValidate": true
+  },
+  {
+    "name": "NoSidewalk",
+    "color": "#BE87D8",
+    "accessImpact": "problem",
+    "ratingScale": "unrated",
+    "isPrimary": true,
+    "isPrimaryValidate": false
+  },
+  {
+    "name": "Occlusion",
+    "color": "#B3B3B3",
+    "accessImpact": "neutral",
+    "ratingScale": "unrated",
+    "isPrimary": false,
+    "isPrimaryValidate": false
+  },
+  {
+    "name": "Other",
+    "color": "#B3B3B3",
+    "accessImpact": "neutral",
+    "ratingScale": "severity",
+    "isPrimary": false,
+    "isPrimaryValidate": false
+  }
+]

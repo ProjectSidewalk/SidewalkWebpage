@@ -186,12 +186,20 @@ consistent with it.
   should still default to kebab-case.
 
 **Icons.** SVG icons live as **their own files** in `public/images/icons/` — **never inlined** in Twirl templates
-(inlined SVGs are hard to find, reuse, and review — see #4058). Reference them with an `<img>`, e.g.
-`<img src='@assets.path("images/icons/map-pin-feather.svg")' alt="">` (empty `alt` when the icon sits next to a text
-label). Default to icons from the **feather** and **material** sets in the "Design System Tokens" Figma, and name each
-file `<icon>-<set>.svg` (`map-pin-feather.svg`, `comment-material.svg`). These SVGs carry a **fixed** stroke color
-(`#242424` for the standard dark icon), so a different color is a **separate file** with a color qualifier
-(`chevron-left-white-feather.svg`) rather than a CSS override.
+(inlined SVGs are hard to find, reuse, and review — see #4058). Default to icons from the **feather** and **material**
+sets in the "Design System Tokens" Figma, named `<icon>-<set>.svg` (`map-pin-feather.svg`, `comment-material.svg`).
+How to show one depends on where its color comes from:
+
+- **Color baked into the file: an `<img>`**, e.g.
+  `<img src='@assets.path("images/icons/map-pin-feather.svg")' alt="">` (empty `alt` when the icon sits next to a
+  text label). Feather/material SVGs carry a **fixed** stroke color (`#242424` for the standard dark icon), so another
+  color this way is a **separate file** with a color qualifier (`chevron-left-white-feather.svg`).
+- **Color set in CSS: a mask.** When the color is a token or changes with state (hover, correct/incorrect,
+  error/info), give an empty `<span>` the **`.ps-mask-icon`** primitive from `main.css`, then set its file with
+  `mask-image` (plus the `-webkit-mask-image` copy), its size, and its `color`. One file then serves every color, as
+  in `.au-icon` on the auth pages and `.mst-arrow-icon` in the mission-start carousel. Only the file's shape is used,
+  so a stroke-drawn icon needs a stroke color in the file or nothing shows. Put the mask on a child `<span>`, never on
+  a button or link itself, since it would hide their focus ring too.
 
 **Deferred namespace mismatch:** the reorg renamed the app *directories* (`SVLabel → explore`, `SVValidate →
 validate`, `Progress → user-dashboard`), but the apps' internal JS namespace **globals** `svl` (Explore) and `sg`

@@ -2,6 +2,23 @@
 window.svv = window.svv || {};
 
 /**
+ * The elements the busy state covers while a label loads (LabelContainer's `#setUiBusy`, #5211), per layout.
+ *
+ * Desktop dims the whole tool through its application holder, with the menu column alongside it. Mobile has neither
+ * of those elements — its controls are laid over the pano rather than sitting in a column of their own — so they are
+ * named one by one: dimming the holder they share would take the imagery, and the fallback viewer's progress box,
+ * down with them.
+ *
+ * Every id here has to exist in the matching view, which validateLoadingGuard.test.js checks: a selector that matches
+ * nothing fails silently, and that is how mobile came to have no busy state at all.
+ */
+const VALIDATE_BUSY_SELECTORS = {
+  desktop: ['#svv-application-holder', '#validation-menu-holder'],
+  mobile: ['#validation-button-holder', '#validate-why-no-section', '#validate-why-unsure-section',
+    '#mobile-popup-notch', '#validate-undo-button', '#label-visibility-control-holder'],
+};
+
+/**
  * Main module for Validate / Expert Validate / and Mobile Validate.
  */
 class Main {
@@ -55,9 +72,10 @@ class Main {
     }, {});
     svv.ui = {};
     svv.ui.holder = $('.tool-ui');
+    const busySelectors = util.isMobile() ? VALIDATE_BUSY_SELECTORS.mobile : VALIDATE_BUSY_SELECTORS.desktop;
+    svv.ui.busyRegion = $(busySelectors.join(', '));
 
     svv.ui.validationMenu = {};
-    svv.ui.validationMenu.holder = $('#validation-menu-holder');
     svv.ui.validationMenu.header = $('#main-validate-header');
 
     svv.ui.validationMenu.yesButton = $('#validate-yes-button');
@@ -125,7 +143,6 @@ class Main {
     };
 
     svv.ui.viewer = {};
-    svv.ui.viewer.holder = $('#svv-application-holder');
     svv.ui.viewer.controlLayer = $('#view-control-layer');
     svv.ui.viewer.dateHolder = $('#svv-panorama-date-holder');
     svv.ui.viewer.date = $('#svv-panorama-date');

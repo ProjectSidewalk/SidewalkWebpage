@@ -83,7 +83,7 @@
               }
               <div class="story-card__foot">
                 <span class="community-chip community-chip--type" data-type-color="@s.labelType.color">
-                  <img class="community-chip__icon" src="@s.labelType.smallIconSvgPath" alt="">
+                  <img class="community-chip__icon" src="@assets.path(s.labelType.smallIconSvgPath)" alt="">
                   <span class="community-chip__text">@Messages(s.labelType.nameKey)</span>
                 </span>
                 <a class="button-ps button--primary button--small story-card__label-link" data-label-id="@s.labelId"
@@ -101,13 +101,13 @@
       }
     }
   </main>
-  @common.miniFooter(commonData)
 
   @* Interactive label popup (shared common/label-detail stack) so a story's "view label" opens the pano + detail
      inline, the same way the dashboard's story rows do. Entirely optional: if it fails to initialize, the links
      keep their /labelMap?labelId= href. *@
   @common.labelPopup(admin = false)
   <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
   <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
   <link href='@assets.path("css/pages/community-list.css")' rel="stylesheet">
   <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>

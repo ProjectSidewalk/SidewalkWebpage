@@ -294,9 +294,14 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .update(description)
   }
 
-  /** Gets the id of the non-deleted route with the given slug, if any. */
-  def getRouteIdBySlug(slug: String): DBIO[Option[Int]] = {
-    routes.filter(r => r.slug === slug && r.deleted === false).map(_.routeId).result.headOption
+  /**
+   * Gets the (slug, route id) pairs of the non-deleted routes carrying any of the given slugs.
+   *
+   * Plural so one `slug IN (...)` covers every spelling a share link is tried under (#5150) and still serves from
+   * route_slug_idx, where a probe per spelling would be a round trip each. The caller decides which spelling wins.
+   */
+  def getRouteIdsBySlugs(slugs: Seq[String]): DBIO[Seq[(String, Int)]] = {
+    routes.filter(r => r.slug.inSet(slugs) && r.deleted === false).map(r => (r.slug, r.routeId)).result
   }
 
   /**

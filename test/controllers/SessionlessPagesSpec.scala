@@ -36,7 +36,7 @@ class SessionlessPagesSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   /** A representative set of the converted pages: landing, static/docs pages, and the JS-app pages. */
   private val publicPages: Seq[String] = Seq(
-    "/", "/help", "/about", "/api", "/terms", "/cities", "/leaderboard", "/gallery", "/labelMap", "/routeBuilder",
+    "/", "/about", "/api", "/terms", "/cities", "/leaderboard", "/gallery", "/labelMap", "/routeBuilder",
     "/mobileLanding", "/labelingGuide", "/labelingGuide/curbRamps", "/v3/api-docs/rawLabels"
   )
 
@@ -51,6 +51,12 @@ class SessionlessPagesSpec extends PlaySpec with GuiceOneAppPerSuite {
       }
     }
 
+    "return 404 for /help, which is not a route" in {
+      val resp = route(app, FakeRequest(GET, "/help")).get
+      status(resp) mustBe NOT_FOUND
+      cookies(resp).get(authCookieName) mustBe None
+    }
+
     "redirect a cookie-less mobile visitor from / to /mobileLanding without setting the authenticator cookie" in {
       val resp = route(app, FakeRequest(GET, "/").withHeaders(UserAgents.mobile)).get
       status(resp) mustBe SEE_OTHER
@@ -62,6 +68,13 @@ class SessionlessPagesSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/labelMap").withHeaders(UserAgents.mobile)).get
       status(resp) mustBe OK
       cookies(resp).get(authCookieName) mustBe None
+    }
+
+    "redirect a mobile visitor from /accessScore to /mobileLanding, as the desktop-only Route Builder does" in {
+      val resp = route(app, FakeRequest(GET, "/accessScore").withHeaders(UserAgents.mobile)).get
+      status(resp) mustBe SEE_OTHER
+      redirectLocation(resp).value mustBe "/mobileLanding"
+      status(route(app, FakeRequest(GET, "/accessScore")).get) mustBe OK
     }
   }
 

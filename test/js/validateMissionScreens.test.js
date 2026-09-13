@@ -11,6 +11,8 @@
  * The classes are top-level declarations concatenated into page scope by Grunt, so the tests evaluate the sources.
  */
 
+/* global MissionStartTutorial -- pulled into scope by the eval() loader below. */
+
 const fs = require('fs');
 const path = require('path');
 

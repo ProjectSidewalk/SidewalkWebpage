@@ -86,6 +86,8 @@
       "small_icon_url": "/assets/images/icons/label_type_icons/CurbRamp_small.png",
       "tiny_icon_url": "/assets/images/icons/label_type_icons/CurbRamp_tiny.png",
       "color": "#90C31F",
+      "access_impact": "feature",
+      "rating_scale": "quality",
       "is_primary": true,
       "is_primary_validate": true
     },
@@ -97,6 +99,8 @@
       "small_icon_url": "/assets/images/icons/label_type_icons/NoCurbRamp_small.png",
       "tiny_icon_url": "/assets/images/icons/label_type_icons/NoCurbRamp_tiny.png",
       "color": "#E679B6",
+      "access_impact": "problem",
+      "rating_scale": "severity",
       "is_primary": true,
       "is_primary_validate": true
     },
@@ -159,6 +163,16 @@
             <td><code>label_types[].color</code></td>
             <td><code>string</code></td>
             <td>Hex color code (e.g., "#90C31F") associated with this label type.</td>
+          </tr>
+          <tr>
+            <td><code>label_types[].access_impact</code></td>
+            <td><code>string</code></td>
+            <td>What this label type says about accessibility: <code>"problem"</code> (a barrier, e.g. a missing curb ramp), <code>"feature"</code> (something that helps, e.g. a curb ramp), or <code>"neutral"</code> (not an accessibility judgment at all, e.g. an occlusion). This is about framing, not ratings — to interpret a label's <code>severity</code>, use <code>rating_scale</code>.</td>
+          </tr>
+          <tr>
+            <td><code>label_types[].rating_scale</code></td>
+            <td><code>string</code></td>
+            <td>Which 1&ndash;3 rating this type's labels carry: <code>"quality"</code> (1 is good, 3 is bad), <code>"severity"</code> (1 is low, 3 is high), or <code>"unrated"</code> for a type whose labels never carry one. Independent of <code>access_impact</code> &mdash; a label type can be an access problem and still be unrated.</td>
           </tr>
           <tr>
             <td><code>label_types[].is_primary</code></td>

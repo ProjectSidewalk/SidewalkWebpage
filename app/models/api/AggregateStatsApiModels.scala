@@ -4,7 +4,7 @@
  */
 package models.api
 
-import models.api.ApiModelUtils.{labelTypeOrdering, toSnakeKey}
+import models.api.ApiModelUtils.{labelTypeOrdering, toCsvKeyValueRows}
 import play.api.libs.json.{JsObject, Json}
 
 /**
@@ -35,8 +35,7 @@ case class LabelTypeStats(
  * @param totalUsers Number of distinct contributors across all cities — users who added at least one (non-tutorial)
  *                   label or validated at least one label. Counted as distinct people: because `user_id` is a global
  *                   identifier shared across city schemas, a user active in multiple cities is counted once (the union
- *                   of contributor ids, not the sum of per-city counts). The legacy DC deployment contributes a fixed
- *                   historical estimate (`legacyDCUserCount`) since it has no per-user records.
+ *                   of contributor ids, not the sum of per-city counts).
  * @param numCities Number of cities where Project Sidewalk is deployed
  * @param numCountries Number of countries where Project Sidewalk is deployed
  * @param numLanguages Number of distinct languages supported
@@ -66,7 +65,6 @@ case class AggregateStats(
     })
 
     Json.obj(
-      "status"                 -> "OK",
       "km_explored"            -> kmExplored,
       "km_explored_no_overlap" -> kmExploredNoOverlap,
       "total_labels"           -> totalLabels,
@@ -80,40 +78,10 @@ case class AggregateStats(
     )
   }
 
-  /**
-   * One response is a single object rather than a series of records, so the CSV is a vertical listing under the
-   * companion's two-column header.
-   *
-   * @return One "snake_case_key,value" line per stat (#3871).
-   */
-  def toCsvRows: Seq[String] = {
-    def row(label: String, value: Any): String = s"${toSnakeKey(label)},$value"
-
-    val basicStats = Seq(
-      row("KM Explored", kmExplored),
-      row("KM Explored No Overlap", kmExploredNoOverlap),
-      row("Total Labels", totalLabels),
-      row("Tutorial Labels", tutorialLabels),
-      row("Total Validations", totalValidations),
-      row("Total Users", totalUsers),
-      row("Number of Cities", numCities),
-      row("Number of Countries", numCountries),
-      row("Number of Languages", numLanguages)
-    )
-
-    val labelTypeStats = byLabelType.toSeq.sorted(labelTypeOrdering).flatMap { case (labelType, labelStats) =>
-      Seq(
-        row(s"$labelType Labels", labelStats.labels),
-        row(s"$labelType Labels Validated", labelStats.labelsValidated),
-        row(s"$labelType Labels Validated Agree", labelStats.labelsValidatedAgree),
-        row(s"$labelType Labels Validated Disagree", labelStats.labelsValidatedDisagree)
-      )
-    }
-
-    basicStats ++ labelTypeStats
-  }
+  /** @return One "key,value" line per stat, each key the value's dotted path through the JSON (#3871, #4320). */
+  def toCsvRows: Seq[String] = toCsvKeyValueRows(toJson)
 }
 
 object AggregateStats {
-  val csvHeader: String = "metric,value"
+  val csvHeader: String = ApiModelUtils.keyValueCsvHeader
 }

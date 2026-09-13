@@ -155,6 +155,9 @@
     "mission-resume": {
       "message": "Retomando sua missão em {{neighborhoodName}} — faltam {{distanceLeft, distance(style: small)}}."
     },
+    "route-unavailable": {
+      "message": "Essa rota não está disponível. Ela pode ter sido excluída."
+    },
     "minimap": {
       "coach-dismiss": "Entendi",
       "distance-left": "Faltam {{distance}}",

@@ -182,7 +182,7 @@ class ValidationServiceImpl @Inject() (
    */
   def replaceComment(comment: ValidationTaskComment): Future[Int] = runWithUniqueViolationRetry {
     (for {
-      _         <- validationTaskCommentTable.deleteIfExists(comment.labelId, comment.userId)
+      _         <- validationTaskCommentTable.archive(comment.labelId, comment.userId, ValidationCommentChangeType.Edit)
       commentId <- validationTaskCommentTable.insert(comment)
     } yield commentId).transactionally
   }
@@ -193,10 +193,13 @@ class ValidationServiceImpl @Inject() (
    * Backs the label card's explicit Delete control (#5015). Deleting is otherwise only reachable by clearing the
    * vote the comment rode in on, which throws away the verdict along with the text.
    *
+   * The text leaves every read path in the tool but is kept in `validation_task_comment_history`, marked a
+   * deliberate delete rather than a side effect (#5076).
+   *
    * @return Count of comments deleted, 0 or 1.
    */
   def deleteComment(labelId: Int, userId: String): Future[Int] =
-    db.run(validationTaskCommentTable.deleteIfExists(labelId, userId))
+    db.run(validationTaskCommentTable.archive(labelId, userId, ValidationCommentChangeType.Delete))
 
   /**
    * Submits a set of validations from a POST request on Validate.
@@ -229,9 +232,15 @@ class ValidationServiceImpl @Inject() (
         // validation_task_comment_label_id_user_id_unique (#4942) — so only clear them when this submission accounts
         // for them: an undo/redo retracts the comment that came with
         // the vote, and a submission carrying its own replaces it. A repeat validation carrying none must leave the
-        // user's earlier free text alone — nothing could restore it.
+        // user's earlier free text alone — the user said nothing about it, so nothing about it changed.
         val oldCommentRemoved = if (valSubmission.undone || valSubmission.redone || valSubmission.comment.isDefined) {
-          validationTaskCommentTable.deleteIfExists(validation.labelId, validation.userId)
+          // A retracted vote taking the text with it is no request to erase anything, so the history tells it apart
+          // from an edit (#5076). An undo inserts nothing afterwards, so a comment riding along with one is
+          // retracted rather than replaced.
+          val changeType =
+            if (valSubmission.comment.isDefined && !valSubmission.undone) ValidationCommentChangeType.Edit
+            else ValidationCommentChangeType.ValidationChange
+          validationTaskCommentTable.archive(validation.labelId, validation.userId, changeType)
         } else DBIO.successful(0)
 
         // If the validation is new or is an update for an undone label, save it.

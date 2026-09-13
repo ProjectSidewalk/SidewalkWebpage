@@ -255,3 +255,34 @@ def test_main_reads_stdin_when_no_path_is_given(tmp_path, monkeypatch, capsys):
         monkeypatch.setattr("sys.stdin", f)
         assert vb.main() == 0
     assert "PASSED" in capsys.readouterr().out
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# The failure branches (the gate over tools/ measures these too)
+# --------------------------------------------------------------------------------------------------------------------
+
+def test_self_test_reports_every_fixture_when_the_projection_is_wrong(monkeypatch):
+    # Wrong, and wrong differently per resolution, so the resolution-independence fixture disagrees as well.
+    monkeypatch.setattr(vb, "to_lat_lng", lambda lat, lng, x, y, width, height, heading: (width / 1e6, 0.0))
+    failures = vb.self_test()
+    assert [f.split(":")[0] for f in failures] == ["center-column fixture", "quarter-width fixture",
+                                                    "negative-bearing fixture", "resolution-independence fixture"]
+
+
+def test_verify_rows_caps_every_kind_of_failure_at_twenty():
+    # Twenty out-of-tolerance rows fill the cap; a wrong stamp and a NULL after that are counted but not reported.
+    good = _row()
+    rows = ([dict(good, label_point_id=str(i), new_lat=repr(float(good["new_lat"]) + 1e-6)) for i in range(20)]
+            + [_row(label_point_id="100", computation_method="depth"), _row(label_point_id="101", new_lat="",
+                                                                              new_lng="")])
+    stats, failures = vb.verify_rows(rows, eps=1e-9)
+    assert len(failures) == 20 and stats["rows"] == 22
+    assert not any("stamped" in f or "NULL" in f for f in failures)
+
+
+def test_main_stops_when_the_self_test_fails(monkeypatch, capsys):
+    monkeypatch.setattr("sys.argv", ["verify_latlng_backfill.py", "--self-test-only"])
+    monkeypatch.setattr(vb, "self_test", lambda: ["distance(60.0) = 1.0, pinned 1.35"])
+    assert vb.main() == 1
+    out = capsys.readouterr().out
+    assert "SELF-TEST FAILED" in out and "distance(60.0)" in out

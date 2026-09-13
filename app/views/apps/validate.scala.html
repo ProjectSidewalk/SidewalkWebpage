@@ -14,7 +14,6 @@
 @common.main(commonData, title, defaultI18nNamespace = "validate", i18Namespaces = Seq("validate", "common"), url,
   pageMeta = service.PageMeta(description = Some(Messages("seo.description.validate", currentCity.cityNameShort)))) {
   @common.navbar(commonData, Some(user))
-  @common.icons()
 
   <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
   <script src='@assets.path("vendor/selectize/selectize-0.15.2.min.js")'></script>
@@ -26,6 +25,9 @@
   <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
   <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
   <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  } else if (commonData.imagerySource == PanoSource.Panoramax) {
+  <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
+  <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
   }
   <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
   <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
@@ -54,9 +56,7 @@
     @* JS clones them, adjusts the attributes and then appends to DOM. *@
     <div class="current-tag tag-pill tag-pill--interactive tag-pill--active template">
       <div class="tag-name tag-pill__label"></div>
-      <div class="remove-tag-x">
-        <svg viewBox="0 0 22 22"><use xlink:href="#close-icon"></use></svg>
-      </div>
+      <button type="button" class="remove-tag-x"><span class="remove-tag-x__icon ps-mask-icon" aria-hidden="true"></span></button>
     </div>
     <template id="admin-info-template">
       <div id="admin-info-content">
@@ -191,7 +191,11 @@
         <div id="validate-severity-section" class="validation-menu-section">
           @* Header and severity level labels are swapped by DesktopValidationMenu JS based on curr label type. *@
           <div id="validate-severity-header" class="validation-menu-section-header"></div>
-          <div id="severity-radio-holder">
+          @* Named by the header: the radios share a name, so they already form a group for a screen reader, but an
+             unnamed one announces "1, radio button, 1 of 3" without saying what is being rated. The header's text is
+             swapped between severity and quality wording by #renderSeverity, which runs before the section is
+             shown, so the name follows the label type. *@
+          <div id="severity-radio-holder" role="radiogroup" aria-labelledby="validate-severity-header">
             <label class="severity-button" id="severity-button-1" for="validate-severity-radio-1" data-severity="1" data-toggle="tooltip">
               <input type="radio" name="label-severity" id="validate-severity-radio-1" value="1" class="severity-button__radio">
               <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
@@ -263,7 +267,8 @@
       param.language = "@messages.lang.code";
       param.countryId = "@currentCity.countryId";
       const imagerySrc = "@commonData.imagerySource.toString";
-      param.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+      param.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
+        : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
       param.viewerAccessToken = "@commonData.imageryAccessToken";
       param.validateParams = {
         adminVersion: @validateParams.adminVersion,

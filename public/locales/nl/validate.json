@@ -15,6 +15,7 @@
     "visibility-control-tooltip-show": "Toont het label weer. (<u>H</u>)"
   },
   "validate-menu": {
+    "remove-tag": "Tag verwijderen: {{tag}}",
     "disagree-reason": {
       "curb-ramp": {
         "no-button-1": "Dit is een oprit.",

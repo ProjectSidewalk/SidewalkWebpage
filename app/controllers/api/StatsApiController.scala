@@ -81,6 +81,7 @@ class StatsApiController @Inject() (
           case Some("csv") =>
             val sidewalkStatsFile = new java.io.File(s"$baseFileName.csv")
             val writer            = new java.io.PrintStream(sidewalkStatsFile, "UTF-8")
+            writer.println(ProjectSidewalkStats.csvHeader)
             stats.toCsvRows.foreach(writer.println)
             writer.close()
             Ok.sendFile(content = sidewalkStatsFile, onClose = () => { sidewalkStatsFile.delete(); () })
@@ -180,14 +181,8 @@ class StatsApiController @Inject() (
       case Some("csv") =>
         val file   = new java.io.File(s"${timestampedFilename(baseName)}.csv")
         val writer = new java.io.PrintStream(file, "UTF-8")
-        writer.print(DailyStatRecord.csvHeader)
-        stats.foreach { r =>
-          writer.println(
-            s"${r.date},${r.labelType},${r.humanLabels},${r.aiLabels}," +
-              s"${r.humanValidationsAgree},${r.humanValidationsDisagree},${r.humanValidationsUnsure}," +
-              s"${r.aiValidationsAgree},${r.aiValidationsDisagree},${r.aiValidationsUnsure}"
-          )
-        }
+        writer.println(DailyStatRecord.csvHeader)
+        stats.foreach(record => writer.println(DailyStatRecord.toCsvRow(record)))
         writer.close()
         Ok.sendFile(content = file, onClose = () => { file.delete(); () })
       case _ =>

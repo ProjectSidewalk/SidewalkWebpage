@@ -60,7 +60,66 @@ class MapSidebarFilter {
 
     // Sync the streets layer visibility with the initial checkbox state (the streets layer starts hidden).
     filterStreetLayer(this.#map);
+    this.#bindStreetRowEmphasis();
     this.#updateCounts();
+  }
+
+  /**
+   * Thickens a street state's lines on the map while its sidebar row is hovered or focused (#5258).
+   *
+   * The three states differ only by color and dash pattern, which at a 1px line width is most of a pixel to read a
+   * legend by. Pointing at a row swells the streets it stands for, so the mapping is shown rather than described.
+   *
+   * Pointer and keyboard are tracked separately, not as one "active row": they overlap, and collapsing them means a
+   * pointer leaving the panel cancels an emphasis the keyboard still holds. The pointer wins while both are on a row,
+   * being the later intent. Focus counts only when it is `:focus-visible`, the same test the sidebar's own CSS makes
+   * -- clicking a row focuses its checkbox, so without it a mouse user's click would strand the emphasis on after
+   * they moved away.
+   *
+   * The emphasis is decorative and the row label already names the state, so nothing here needs announcing.
+   */
+  #bindStreetRowEmphasis() {
+    let hovered = null;
+    let focused = null;
+    const apply = () => emphasizeStreetState(this.#map, hovered ?? focused);
+
+    this.#sidebar.querySelectorAll('[data-filter-section="streets"] .filter-sidebar__item').forEach((row) => {
+      const checkboxId = row.querySelector('input[data-filter-type="streets"]')?.id;
+      if (!checkboxId) return;
+      const streetState = checkboxId.replace('-street', '');
+
+      row.addEventListener('mouseenter', () => {
+        hovered = streetState;
+        apply();
+      });
+      row.addEventListener('mouseleave', () => {
+        if (hovered === streetState) hovered = null;
+        apply();
+      });
+      row.addEventListener('focusin', (event) => {
+        if (!MapSidebarFilter.#isFocusVisible(event.target)) return;
+        focused = streetState;
+        apply();
+      });
+      row.addEventListener('focusout', () => {
+        if (focused === streetState) focused = null;
+        apply();
+      });
+    });
+  }
+
+  /**
+   * Whether an element is focused in a way the browser would draw a focus ring for.
+   * @param {EventTarget} element The element that just received focus.
+   * @returns {boolean} True when it matches `:focus-visible`, or when the engine can't tell us.
+   */
+  static #isFocusVisible(element) {
+    if (!(element instanceof Element)) return false;
+    try {
+      return element.matches(':focus-visible');
+    } catch {
+      return true; // An engine without the selector gets the affordance rather than silently losing it.
+    }
   }
 
   /**

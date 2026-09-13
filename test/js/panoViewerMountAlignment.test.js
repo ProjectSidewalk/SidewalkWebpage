@@ -31,6 +31,7 @@ function loadViewers() {
         class GsvViewer {}
         class MapillaryViewer {}
         class PannellumViewer {}
+        class PanoramaxViewer {}
         ${panoViewerSrc}
         ${infra3dSrc}
         window.PanoViewer = PanoViewer;

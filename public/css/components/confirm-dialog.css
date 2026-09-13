@@ -4,7 +4,7 @@
  */
 dialog.ps-confirm {
   box-sizing: border-box;
-  width: 360px;
+  width: 380px;
   max-width: calc(100vw - 32px);
   border: none;
   border-radius: 12px;
@@ -23,48 +23,36 @@ dialog.ps-confirm::backdrop { background: rgb(0 0 0 / 45%); }
   line-height: 1.45;
 }
 
+.ps-confirm__btn {
+  gap: 6px;
+}
+
 .ps-confirm__actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
   margin-top: 16px;
 }
 
-.ps-confirm__cancel,
-.ps-confirm__confirm {
-  padding: 8px 16px;
-  border-radius: 999px;
-  cursor: pointer;
-  font-family: var(--font-primary);
-  font-weight: 600;
-  font-size: 13px;
+/* There's no destructive variant in the design system, so a delete's confirm button is a primary one re-tinted with
+   the error token — same workaround as .partners-row-btn--danger, and like it these re-assert over the variant's own
+   :hover and :focus, which would otherwise put the primary's colors back — the focus ring included, so it's this
+   button's red rather than the system's banana. error-300 rather than -200: white on -200 is 4.38:1, under the
+   4.5:1 AA floor, and the ring needs 3:1 of its own. Hover darkens instead of lightening for the same reason. */
+.ps-confirm__btn--danger,
+.ps-confirm__btn--danger:focus {
+  background-color: var(--color-error-300);
+  color: var(--color-neutral-white);
+  outline-color: var(--color-error-300);
 }
 
-.ps-confirm__cancel {
-  border: 1px solid var(--color-neutral-400);
-  background: var(--color-neutral-white);
-  color: var(--color-neutral-900);
-}
-
-.ps-confirm__confirm {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border: none;
-  background: var(--color-asphalt-500);
+.ps-confirm__btn--danger:hover {
+  background-color: color-mix(in srgb, var(--color-error-200) 60%, black);
   color: var(--color-neutral-white);
 }
 
-.ps-confirm__confirm--danger { background: var(--color-error-200); }
-
-.ps-confirm__confirm-icon {
-  width: 14px;
-  height: 14px;
-}
-
-.ps-confirm__cancel:focus-visible,
-.ps-confirm__confirm:focus-visible {
-  outline: 2px solid #4a90e2;
-  outline-offset: 2px;
+.ps-confirm__btn-icon {
+  width: 16px;
+  height: 16px;
 }

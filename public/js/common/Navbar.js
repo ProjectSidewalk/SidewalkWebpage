@@ -71,7 +71,6 @@ class NavbarController {
     'navbar-validate-btn': 'Click_module=StartValidating',
     'navbar-guide-btn': 'Click_module=LabelingGuide',
     'navbar-retake-tutorial-btn': 'Click_module=RetakeTutorial',
-    'navbar-help-btn': 'Click_module=Help',
     'navbar-api-btn': 'Click_module=SidewalkAPI',
     'navbar-cities-btn': 'Click_module=DeploymentSitesDashboard',
     'navbar-gallery-btn': 'Click_module=Gallery',

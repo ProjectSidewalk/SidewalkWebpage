@@ -13,6 +13,40 @@ util.pano = {};
 util.pano.TUTORIAL_PANO_IDS = new Set(['tutorial', 'afterWalkTutorial']);
 
 /**
+ * Ranking weights and decay scales for a provider that picks its own pano from a box of candidates.
+ *
+ * The numbers come from conf/pano-scoring.json by way of the data-pano-scoring stamp main.scala.html puts on every
+ * page. They live in that file, not in the viewers, because score_pano() in scripts/check_streets_for_imagery.py has
+ * to rank Mapillary candidates identically: it records the capture date of the pano we would display, and a street
+ * whose recorded date came from a pano we never show is a street we stop flagging as outdated while still serving the
+ * old imagery (#4411). Mapillary and Panoramax share every term but the resolution cap, so they share this file too.
+ *
+ * The stamp is parsed on first call, not at load, so these files can also be evaluated outside a rendered page (the
+ * jsdom suite does exactly that). The memo lives in a closure because the bundle is concatenated, not modularized —
+ * a bare top-level binding here would be a global.
+ *
+ * @param {string} provider Lowercase provider name, a key of the file's `providers` object ('mapillary', 'panoramax').
+ * @returns {Object} The shared weights and decay scales, with the provider's own parameters merged over them.
+ */
+/**
+ * Milliseconds in an average (Julian) year, for turning a capture-timestamp delta into an age in years.
+ *
+ * It sits beside the ranking weights rather than in conf/pano-scoring.json because it is a property of the calendar,
+ * not a tuning knob — check_streets_for_imagery.py names it as its own MS_PER_YEAR constant for the same reason.
+ *
+ * @type {number}
+ */
+util.pano.MS_PER_JULIAN_YEAR = 365.25 * 24 * 3600 * 1000;
+
+util.pano.scoring = (() => {
+  let params = null;
+  return (provider) => {
+    params ??= JSON.parse(document.documentElement.dataset.panoScoring);
+    return { ...params, ...params.providers[provider] };
+  };
+})();
+
+/**
  * sgn( a ) is +1 if a >= 0 else -1.
  *
  * @param {number} x The number whose sign we're checking

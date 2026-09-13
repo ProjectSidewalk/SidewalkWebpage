@@ -704,7 +704,7 @@ class LabelServiceImpl @Inject() (
         findValidLabelsForType(
           labelTable.getValidatedLabelsForUserQuery(userId, labelType),
           randomize = false,
-          useCrops = false,
+          useCrops = true,
           nPerType
         )
           .map(labels => (labelType, labels))

@@ -155,6 +155,9 @@
     "mission-resume": {
       "message": "Je missie in {{neighborhoodName}} wordt hervat — nog {{distanceLeft, distance(style: small)}} te gaan."
     },
+    "route-unavailable": {
+      "message": "Die route is niet beschikbaar. Mogelijk is hij verwijderd."
+    },
     "minimap": {
       "coach-dismiss": "Begrepen",
       "distance-left": "Nog {{distance}}",

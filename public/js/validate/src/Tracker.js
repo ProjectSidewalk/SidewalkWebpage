@@ -43,7 +43,9 @@ class Tracker {
    */
   #createAction(action, notes) {
     const panoViewer = svv.panoManager && svv.panoViewer ? svv.panoViewer : null;
-    const position = panoViewer ? panoViewer.getPosition() : { lat: null, lng: null };
+    // Both are null until the viewer's first pano has loaded, and the first push can land before then: when the
+    // first label's pano is expired, the primary viewer never loads one and Pannellum takes over mid-init.
+    const position = (panoViewer && panoViewer.getPosition()) || { lat: null, lng: null };
     const pov = panoViewer ? panoViewer.getPov() : { heading: null, pitch: null, zoom: null };
 
     const missionContainer = svv.missionContainer ? svv.missionContainer : null;

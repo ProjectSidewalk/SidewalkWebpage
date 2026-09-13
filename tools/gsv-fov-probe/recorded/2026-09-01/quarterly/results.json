@@ -1,0 +1,2030 @@
+{
+  "generatedAt": "2026-09-03T18:15:50.768Z",
+  "runDir": "2026-09-01T18-31-57-133Z",
+  "mapsVersionRequested": "quarterly",
+  "mapsVersion": "3.65.12f",
+  "estimatorHash": "295422a5a946",
+  "panos": {
+    "tutorial": {
+      "panoId": "tutorial",
+      "imageDate": "2014-05",
+      "copyright": null,
+      "centerHeading": 50.3866,
+      "worldSize": {
+        "width": 4096,
+        "height": 2048
+      },
+      "resolvedLatLng": null
+    },
+    "dc-tutorial-site": {
+      "panoId": "IFV_yjectxTWxaCUsSJJPQ",
+      "imageDate": "2025-07",
+      "copyright": "© 2026 Google",
+      "centerHeading": 163.53581,
+      "worldSize": {
+        "width": 16384,
+        "height": 8192
+      },
+      "resolvedLatLng": {
+        "lat": 38.940389726355775,
+        "lng": -77.06767910389866
+      }
+    },
+    "seattle-downtown": {
+      "panoId": "erzPskgSojarymja9qCAmA",
+      "imageDate": "2025-09",
+      "copyright": "© 2026 Google",
+      "centerHeading": 328.0927,
+      "worldSize": {
+        "width": 16384,
+        "height": 8192
+      },
+      "resolvedLatLng": {
+        "lat": 47.605749164140285,
+        "lng": -122.3326134894049
+      }
+    },
+    "teaneck-residential": {
+      "panoId": "QwxdoBVuTo0KdmF08kDWVQ",
+      "imageDate": "2024-09",
+      "copyright": "© 2026 Google",
+      "centerHeading": 292.2498,
+      "worldSize": {
+        "width": 16384,
+        "height": 8192
+      },
+      "resolvedLatLng": {
+        "lat": 40.88595197088945,
+        "lng": -74.01241160549158
+      }
+    }
+  },
+  "thresholds": {
+    "METHOD_GATE_FOV_TOL_DEG": 1.5,
+    "MODEL_GATE_DELTA_TOL": 0.005,
+    "VERDICT_INVARIANCE_TOL_DEG": 0.5,
+    "OUTLIER_MAD_MULT": 5,
+    "OUTLIER_MIN_WINDOW_FRAC": 0.001,
+    "CELL_MAX_DROP_FRAC": 0.2,
+    "MIN_PAIR_NCC": 0.8,
+    "SEED_AGREEMENT_TOL": 0.03,
+    "analysisStep": 2
+  },
+  "gates": {
+    "method": {
+      "pass": true,
+      "detail": [
+        {
+          "panoName": "dc-tutorial-site",
+          "zoom": 1,
+          "hFovDeg": 89.875,
+          "expected": 89.75,
+          "errDeg": 0.125,
+          "pass": true
+        },
+        {
+          "panoName": "dc-tutorial-site",
+          "zoom": 2,
+          "hFovDeg": 53.046,
+          "expected": 53,
+          "errDeg": 0.046,
+          "pass": true
+        },
+        {
+          "panoName": "dc-tutorial-site",
+          "zoom": 3,
+          "hFovDeg": 28.03,
+          "expected": 27.68198649088542,
+          "errDeg": 0.348,
+          "pass": true
+        },
+        {
+          "panoName": "seattle-downtown",
+          "zoom": 1,
+          "hFovDeg": 89.864,
+          "expected": 89.75,
+          "errDeg": 0.114,
+          "pass": true
+        },
+        {
+          "panoName": "seattle-downtown",
+          "zoom": 2,
+          "hFovDeg": 53.055,
+          "expected": 53,
+          "errDeg": 0.055,
+          "pass": true
+        },
+        {
+          "panoName": "seattle-downtown",
+          "zoom": 3,
+          "hFovDeg": 28.025,
+          "expected": 27.68198649088542,
+          "errDeg": 0.343,
+          "pass": true
+        },
+        {
+          "panoName": "teaneck-residential",
+          "zoom": 1,
+          "hFovDeg": 89.883,
+          "expected": 89.75,
+          "errDeg": 0.133,
+          "pass": true
+        },
+        {
+          "panoName": "teaneck-residential",
+          "zoom": 2,
+          "hFovDeg": 53.056,
+          "expected": 53,
+          "errDeg": 0.056,
+          "pass": true
+        },
+        {
+          "panoName": "teaneck-residential",
+          "zoom": 3,
+          "hFovDeg": 28.033,
+          "expected": 27.68198649088542,
+          "errDeg": 0.351,
+          "pass": true
+        }
+      ]
+    },
+    "model": {
+      "pass": true,
+      "detail": [
+        {
+          "panoName": "dc-tutorial-site",
+          "containerName": "control-720x480",
+          "zoom": 1,
+          "deltaSpread": 0.00128,
+          "pass": true
+        },
+        {
+          "panoName": "dc-tutorial-site",
+          "containerName": "control-720x480",
+          "zoom": 2,
+          "deltaSpread": 0.00147,
+          "pass": true
+        },
+        {
+          "panoName": "dc-tutorial-site",
+          "containerName": "control-720x480",
+          "zoom": 3,
+          "deltaSpread": 0.00068,
+          "pass": true
+        },
+        {
+          "panoName": "dc-tutorial-site",
+          "containerName": "xwide-2400x480",
+          "zoom": 1,
+          "deltaSpread": 0.00012,
+          "pass": true
+        },
+        {
+          "panoName": "dc-tutorial-site",
+          "containerName": "xwide-2400x480",
+          "zoom": 2,
+          "deltaSpread": 0.00007,
+          "pass": true
+        },
+        {
+          "panoName": "dc-tutorial-site",
+          "containerName": "xwide-2400x480",
+          "zoom": 3,
+          "deltaSpread": 0.00007,
+          "pass": true
+        },
+        {
+          "panoName": "seattle-downtown",
+          "containerName": "control-720x480",
+          "zoom": 1,
+          "deltaSpread": 0.0033,
+          "pass": true
+        },
+        {
+          "panoName": "seattle-downtown",
+          "containerName": "control-720x480",
+          "zoom": 2,
+          "deltaSpread": 0.00188,
+          "pass": true
+        },
+        {
+          "panoName": "seattle-downtown",
+          "containerName": "control-720x480",
+          "zoom": 3,
+          "deltaSpread": 0.00053,
+          "pass": true
+        },
+        {
+          "panoName": "seattle-downtown",
+          "containerName": "xwide-2400x480",
+          "zoom": 1,
+          "deltaSpread": 0.0004,
+          "pass": true
+        },
+        {
+          "panoName": "seattle-downtown",
+          "containerName": "xwide-2400x480",
+          "zoom": 2,
+          "deltaSpread": 0.00022,
+          "pass": true
+        },
+        {
+          "panoName": "seattle-downtown",
+          "containerName": "xwide-2400x480",
+          "zoom": 3,
+          "deltaSpread": 0.00022,
+          "pass": true
+        },
+        {
+          "panoName": "teaneck-residential",
+          "containerName": "control-720x480",
+          "zoom": 1,
+          "deltaSpread": 0.0015,
+          "pass": true
+        },
+        {
+          "panoName": "teaneck-residential",
+          "containerName": "control-720x480",
+          "zoom": 2,
+          "deltaSpread": 0.00031,
+          "pass": true
+        },
+        {
+          "panoName": "teaneck-residential",
+          "containerName": "control-720x480",
+          "zoom": 3,
+          "deltaSpread": 0.00078,
+          "pass": true
+        },
+        {
+          "panoName": "teaneck-residential",
+          "containerName": "xwide-2400x480",
+          "zoom": 1,
+          "deltaSpread": 0.00013,
+          "pass": true
+        },
+        {
+          "panoName": "teaneck-residential",
+          "containerName": "xwide-2400x480",
+          "zoom": 2,
+          "deltaSpread": 0.00012,
+          "pass": true
+        },
+        {
+          "panoName": "teaneck-residential",
+          "containerName": "xwide-2400x480",
+          "zoom": 3,
+          "deltaSpread": 0.00012,
+          "pass": true
+        },
+        {
+          "panoName": "tutorial",
+          "containerName": "control-720x480",
+          "zoom": 1,
+          "deltaSpread": 0.00173,
+          "pass": true
+        },
+        {
+          "panoName": "tutorial",
+          "containerName": "control-720x480",
+          "zoom": 2,
+          "deltaSpread": 0.00066,
+          "pass": true
+        },
+        {
+          "panoName": "tutorial",
+          "containerName": "control-720x480",
+          "zoom": 3,
+          "deltaSpread": 0.00017,
+          "pass": true
+        },
+        {
+          "panoName": "tutorial",
+          "containerName": "xwide-2400x480",
+          "zoom": 1,
+          "deltaSpread": 0.00021,
+          "pass": true
+        },
+        {
+          "panoName": "tutorial",
+          "containerName": "xwide-2400x480",
+          "zoom": 2,
+          "deltaSpread": 0.00005,
+          "pass": true
+        },
+        {
+          "panoName": "tutorial",
+          "containerName": "xwide-2400x480",
+          "zoom": 3,
+          "deltaSpread": 0.00005,
+          "pass": true
+        }
+      ]
+    },
+    "anisotropy": {
+      "pass": true,
+      "nPitchCells": 8,
+      "nExcludedUnreliable": 5,
+      "detail": [
+        {
+          "panoName": "seattle-downtown",
+          "containerName": "control-720x480",
+          "zoom": 2,
+          "fVertical": 720.54,
+          "fHorizontal": 721.19,
+          "relDiff": 0.0009,
+          "pass": true
+        },
+        {
+          "panoName": "seattle-downtown",
+          "containerName": "xwide-2400x480",
+          "zoom": 2,
+          "fVertical": 1825.86,
+          "fHorizontal": 1826.19,
+          "relDiff": 0.0002,
+          "pass": true
+        },
+        {
+          "panoName": "tutorial",
+          "containerName": "control-720x480",
+          "zoom": 2,
+          "fVertical": 721.99,
+          "fHorizontal": 722.56,
+          "relDiff": 0.0008,
+          "pass": true
+        }
+      ]
+    },
+    "seed": {
+      "pass": true,
+      "nPairs": 640,
+      "relMedian": 0.01448,
+      "relP95": 0.03985
+    }
+  },
+  "verdict": {
+    "verdict": "width-pinned-vfov-clamped",
+    "invariantHypotheses": [],
+    "clamp": {
+      "ceilingDeg": null,
+      "floorDeg": 14.974,
+      "nCeilingCells": 0,
+      "nFloorCells": 8
+    },
+    "comparisons": [
+      {
+        "panoName": "dc-tutorial-site",
+        "containerName": "xwide-2400x480",
+        "zoom": 1,
+        "aspect": 5,
+        "dhDeg": 0.012,
+        "dvDeg": -44.689,
+        "ddDeg": -9.343,
+        "dlDeg": 0.012,
+        "dsDeg": -44.688,
+        "tolDeg": 0.5,
+        "hInvariant": true,
+        "vInvariant": false,
+        "dInvariant": false,
+        "lInvariant": true,
+        "sInvariant": false,
+        "regime": "unclamped"
+      },
+      {
+        "panoName": "dc-tutorial-site",
+        "containerName": "xwide-2400x480",
+        "zoom": 2,
+        "aspect": 5,
+        "dhDeg": 13.572,
+        "dvDeg": -21.833,
+        "ddDeg": 5.74,
+        "dlDeg": 13.572,
+        "dsDeg": -21.833,
+        "tolDeg": 0.5,
+        "hInvariant": false,
+        "vInvariant": false,
+        "dInvariant": false,
+        "lInvariant": false,
+        "sInvariant": false,
+        "regime": "floor-bound",
+        "measuredVFov": 14.974,
+        "unclampedVFov": 11.4
+      },
+      {
+        "panoName": "dc-tutorial-site",
+        "containerName": "xwide-2400x480",
+        "zoom": 3,
+        "aspect": 5,
+        "dhDeg": 38.588,
+        "dvDeg": -3.921,
+        "ddDeg": 34.256,
+        "dlDeg": 38.588,
+        "dsDeg": -3.921,
+        "tolDeg": 0.5,
+        "hInvariant": false,
+        "vInvariant": false,
+        "dInvariant": false,
+        "lInvariant": false,
+        "sInvariant": false,
+        "regime": "floor-bound",
+        "measuredVFov": 14.974,
+        "unclampedVFov": 5.72
+      },
+      {
+        "panoName": "seattle-downtown",
+        "containerName": "xwide-2400x480",
+        "zoom": 1,
+        "aspect": 5,
+        "dhDeg": 0.023,
+        "dvDeg": -44.679,
+        "ddDeg": -9.331,
+        "dlDeg": 0.022,
+        "dsDeg": -44.679,
+        "tolDeg": 0.5,
+        "hInvariant": true,
+        "vInvariant": false,
+        "dInvariant": false,
+        "lInvariant": true,
+        "sInvariant": false,
+        "regime": "unclamped"
+      },
+      {
+        "panoName": "seattle-downtown",
+        "containerName": "xwide-2400x480",
+        "zoom": 2,
+        "aspect": 5,
+        "dhDeg": 13.563,
+        "dvDeg": -21.839,
+        "ddDeg": 5.732,
+        "dlDeg": 13.564,
+        "dsDeg": -21.839,
+        "tolDeg": 0.5,
+        "hInvariant": false,
+        "vInvariant": false,
+        "dInvariant": false,
+        "lInvariant": false,
+        "sInvariant": false,
+        "regime": "floor-bound",
+        "measuredVFov": 14.974,
+        "unclampedVFov": 11.4
+      },
+      {
+        "panoName": "seattle-downtown",
+        "containerName": "xwide-2400x480",
+        "zoom": 3,
+        "aspect": 5,
+        "dhDeg": 38.593,
+        "dvDeg": -3.918,
+        "ddDeg": 34.263,
+        "dlDeg": 38.594,
+        "dsDeg": -3.918,
+        "tolDeg": 0.5,
+        "hInvariant": false,
+        "vInvariant": false,
+        "dInvariant": false,
+        "lInvariant": false,
+        "sInvariant": false,
+        "regime": "floor-bound",
+        "measuredVFov": 14.974,
+        "unclampedVFov": 5.71
+      },
+      {
+        "panoName": "teaneck-residential",
+        "containerName": "xwide-2400x480",
+        "zoom": 1,
+        "aspect": 5,
+        "dhDeg": 0.005,
+        "dvDeg": -44.695,
+        "ddDeg": -9.349,
+        "dlDeg": 0.004,
+        "dsDeg": -44.696,
+        "tolDeg": 0.5,
+        "hInvariant": true,
+        "vInvariant": false,
+        "dInvariant": false,
+        "lInvariant": true,
+        "sInvariant": false,
+        "regime": "unclamped"
+      },
+      {
+        "panoName": "teaneck-residential",
+        "containerName": "xwide-2400x480",
+        "zoom": 2,
+        "aspect": 5,
+        "dhDeg": 13.564,
+        "dvDeg": -21.841,
+        "ddDeg": 5.732,
+        "dlDeg": 13.564,
+        "dsDeg": -21.84,
+        "tolDeg": 0.5,
+        "hInvariant": false,
+        "vInvariant": false,
+        "dInvariant": false,
+        "lInvariant": false,
+        "sInvariant": false,
+        "regime": "floor-bound",
+        "measuredVFov": 14.974,
+        "unclampedVFov": 11.4
+      },
+      {
+        "panoName": "teaneck-residential",
+        "containerName": "xwide-2400x480",
+        "zoom": 3,
+        "aspect": 5,
+        "dhDeg": 38.587,
+        "dvDeg": -3.923,
+        "ddDeg": 34.255,
+        "dlDeg": 38.587,
+        "dsDeg": -3.923,
+        "tolDeg": 0.5,
+        "hInvariant": false,
+        "vInvariant": false,
+        "dInvariant": false,
+        "lInvariant": false,
+        "sInvariant": false,
+        "regime": "floor-bound",
+        "measuredVFov": 14.974,
+        "unclampedVFov": 5.72
+      },
+      {
+        "panoName": "tutorial",
+        "containerName": "xwide-2400x480",
+        "zoom": 1,
+        "aspect": 5,
+        "dhDeg": -0.01,
+        "dvDeg": -44.644,
+        "ddDeg": -9.366,
+        "dlDeg": -0.01,
+        "dsDeg": -44.643,
+        "tolDeg": 0.5,
+        "hInvariant": true,
+        "vInvariant": false,
+        "dInvariant": false,
+        "lInvariant": true,
+        "sInvariant": false,
+        "regime": "unclamped"
+      },
+      {
+        "panoName": "tutorial",
+        "containerName": "xwide-2400x480",
+        "zoom": 2,
+        "aspect": 5,
+        "dhDeg": 13.554,
+        "dvDeg": -21.801,
+        "ddDeg": 5.731,
+        "dlDeg": 13.555,
+        "dsDeg": -21.801,
+        "tolDeg": 0.5,
+        "hInvariant": false,
+        "vInvariant": false,
+        "dInvariant": false,
+        "lInvariant": false,
+        "sInvariant": false,
+        "regime": "floor-bound",
+        "measuredVFov": 14.947,
+        "unclampedVFov": 11.38
+      },
+      {
+        "panoName": "tutorial",
+        "containerName": "xwide-2400x480",
+        "zoom": 3,
+        "aspect": 5,
+        "dhDeg": 38.533,
+        "dvDeg": -3.92,
+        "ddDeg": 34.208,
+        "dlDeg": 38.533,
+        "dsDeg": -3.92,
+        "tolDeg": 0.5,
+        "hInvariant": false,
+        "vInvariant": false,
+        "dInvariant": false,
+        "lInvariant": false,
+        "sInvariant": false,
+        "regime": "floor-bound",
+        "measuredVFov": 14.947,
+        "unclampedVFov": 5.71
+      }
+    ]
+  },
+  "controlHFovDeg": {
+    "1": 89.875,
+    "2": 53.055,
+    "3": 28.03
+  },
+  "bindingAspects": [
+    {
+      "zoom": 1,
+      "controlHFovDeg": 89.875,
+      "floorBindsAtAspectAtLeast": 7.593,
+      "ceilingBindsAtAspectAtMost": null
+    },
+    {
+      "zoom": 2,
+      "controlHFovDeg": 53.055,
+      "floorBindsAtAspectAtLeast": 3.798,
+      "ceilingBindsAtAspectAtMost": null
+    },
+    {
+      "zoom": 3,
+      "controlHFovDeg": 28.03,
+      "floorBindsAtAspectAtLeast": 1.899,
+      "ceilingBindsAtAspectAtMost": null
+    }
+  ],
+  "pairNccHistogram": {
+    "binEdges": [
+      0,
+      0.05,
+      0.1,
+      0.15,
+      0.2,
+      0.25,
+      0.3,
+      0.35,
+      0.4,
+      0.45,
+      0.5,
+      0.55,
+      0.6,
+      0.65,
+      0.7,
+      0.75,
+      0.8,
+      0.85,
+      0.9,
+      0.95,
+      1
+    ],
+    "counts": [
+      0,
+      2,
+      0,
+      0,
+      4,
+      4,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      692
+    ],
+    "nonFinite": 0,
+    "nPairs": 704,
+    "nBelowFloor": 12
+  },
+  "cells": [
+    {
+      "panoName": "dc-tutorial-site",
+      "containerName": "control-720x480",
+      "kind": "yaw",
+      "zoom": 1,
+      "widthCss": 720,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 1.5,
+      "n": 32,
+      "nKept": 32,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 360.79,
+      "sigmaF": 0.21,
+      "ciLo": 360.73,
+      "ciHi": 360.83,
+      "hFovDeg": 89.875,
+      "vFovDeg": 67.265,
+      "dFovDeg": 100.353,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 360.6
+        },
+        {
+          "deltaDeg": 2,
+          "f": 361.06
+        },
+        {
+          "deltaDeg": 4,
+          "f": 360.67
+        },
+        {
+          "deltaDeg": 8,
+          "f": 360.86
+        }
+      ],
+      "deltaSpread": 0.00128,
+      "meanNcc": 0.979,
+      "seedRelMedian": 0.03039,
+      "unreliable": false,
+      "zoomReadbacks": [
+        1
+      ]
+    },
+    {
+      "panoName": "dc-tutorial-site",
+      "containerName": "control-720x480",
+      "kind": "pitch",
+      "zoom": 2,
+      "widthCss": 720,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 1.5,
+      "n": 8,
+      "nKept": 6,
+      "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
+      "fCss": 720.7,
+      "sigmaF": 0.1,
+      "ciLo": 720.63,
+      "ciHi": 720.9,
+      "hFovDeg": 53.086,
+      "vFovDeg": 36.837,
+      "dFovDeg": 61.956,
+      "deltaMedians": [
+        {
+          "deltaDeg": 2,
+          "f": 720.7
+        }
+      ],
+      "deltaSpread": 0,
+      "meanNcc": 0.9896,
+      "seedRelMedian": null,
+      "unreliable": true,
+      "zoomReadbacks": [
+        2
+      ]
+    },
+    {
+      "panoName": "dc-tutorial-site",
+      "containerName": "control-720x480",
+      "kind": "yaw",
+      "zoom": 2,
+      "widthCss": 720,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 1.5,
+      "n": 24,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 721.32,
+      "sigmaF": 0.63,
+      "ciLo": 721.25,
+      "ciHi": 721.43,
+      "hFovDeg": 53.046,
+      "vFovDeg": 36.807,
+      "dFovDeg": 61.913,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 721.94
+        },
+        {
+          "deltaDeg": 2,
+          "f": 720.89
+        },
+        {
+          "deltaDeg": 4,
+          "f": 721.32
+        }
+      ],
+      "deltaSpread": 0.00147,
+      "meanNcc": 0.9884,
+      "seedRelMedian": 0.00988,
+      "unreliable": false,
+      "zoomReadbacks": [
+        2
+      ]
+    },
+    {
+      "panoName": "dc-tutorial-site",
+      "containerName": "control-720x480",
+      "kind": "yaw",
+      "zoom": 3,
+      "widthCss": 720,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 1.5,
+      "n": 24,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1442.28,
+      "sigmaF": 0.43,
+      "ciLo": 1442.16,
+      "ciHi": 1442.5,
+      "hFovDeg": 28.03,
+      "vFovDeg": 18.895,
+      "dFovDeg": 33.397,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 1441.51
+        },
+        {
+          "deltaDeg": 2,
+          "f": 1442.48
+        },
+        {
+          "deltaDeg": 4,
+          "f": 1442.44
+        }
+      ],
+      "deltaSpread": 0.00068,
+      "meanNcc": 0.9963,
+      "seedRelMedian": 0.00224,
+      "unreliable": false,
+      "zoomReadbacks": [
+        3
+      ]
+    },
+    {
+      "panoName": "dc-tutorial-site",
+      "containerName": "xwide-2400x480",
+      "kind": "yaw",
+      "zoom": 1,
+      "widthCss": 2400,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 5,
+      "n": 32,
+      "nKept": 32,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1202.38,
+      "sigmaF": 0.14,
+      "ciLo": 1202.31,
+      "ciHi": 1202.44,
+      "hFovDeg": 89.887,
+      "vFovDeg": 22.576,
+      "dFovDeg": 91.01,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 1202.4
+        },
+        {
+          "deltaDeg": 2,
+          "f": 1202.33
+        },
+        {
+          "deltaDeg": 4,
+          "f": 1202.32
+        },
+        {
+          "deltaDeg": 8,
+          "f": 1202.46
+        }
+      ],
+      "deltaSpread": 0.00012,
+      "meanNcc": 0.9922,
+      "seedRelMedian": 0.02174,
+      "unreliable": false,
+      "zoomReadbacks": [
+        1
+      ]
+    },
+    {
+      "panoName": "dc-tutorial-site",
+      "containerName": "xwide-2400x480",
+      "kind": "pitch",
+      "zoom": 2,
+      "widthCss": 2400,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 5,
+      "n": 8,
+      "nKept": 6,
+      "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
+      "fCss": 1826.45,
+      "sigmaF": 0.05,
+      "ciLo": 1826.35,
+      "ciHi": 1826.49,
+      "hFovDeg": 66.611,
+      "vFovDeg": 14.972,
+      "dFovDeg": 67.646,
+      "deltaMedians": [
+        {
+          "deltaDeg": 2,
+          "f": 1826.45
+        }
+      ],
+      "deltaSpread": 0,
+      "meanNcc": 0.9986,
+      "seedRelMedian": null,
+      "unreliable": true,
+      "zoomReadbacks": [
+        2
+      ]
+    },
+    {
+      "panoName": "dc-tutorial-site",
+      "containerName": "xwide-2400x480",
+      "kind": "yaw",
+      "zoom": 2,
+      "widthCss": 2400,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 5,
+      "n": 24,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1826.2,
+      "sigmaF": 0.33,
+      "ciLo": 1826.06,
+      "ciHi": 1826.41,
+      "hFovDeg": 66.618,
+      "vFovDeg": 14.974,
+      "dFovDeg": 67.653,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 1826.14
+        },
+        {
+          "deltaDeg": 2,
+          "f": 1826.24
+        },
+        {
+          "deltaDeg": 4,
+          "f": 1826.27
+        }
+      ],
+      "deltaSpread": 0.00007,
+      "meanNcc": 0.9966,
+      "seedRelMedian": 0.01442,
+      "unreliable": false,
+      "zoomReadbacks": [
+        2
+      ]
+    },
+    {
+      "panoName": "dc-tutorial-site",
+      "containerName": "xwide-2400x480",
+      "kind": "yaw",
+      "zoom": 3,
+      "widthCss": 2400,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 5,
+      "n": 24,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1826.2,
+      "sigmaF": 0.33,
+      "ciLo": 1826.06,
+      "ciHi": 1826.41,
+      "hFovDeg": 66.618,
+      "vFovDeg": 14.974,
+      "dFovDeg": 67.653,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 1826.14
+        },
+        {
+          "deltaDeg": 2,
+          "f": 1826.24
+        },
+        {
+          "deltaDeg": 4,
+          "f": 1826.27
+        }
+      ],
+      "deltaSpread": 0.00007,
+      "meanNcc": 0.9966,
+      "seedRelMedian": 0.01442,
+      "unreliable": false,
+      "zoomReadbacks": [
+        3
+      ]
+    },
+    {
+      "panoName": "seattle-downtown",
+      "containerName": "control-720x480",
+      "kind": "yaw",
+      "zoom": 1,
+      "widthCss": 720,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 1.5,
+      "n": 32,
+      "nKept": 30,
+      "dropFrac": 0.063,
+      "nNccRejected": 0,
+      "nMadRejected": 2,
+      "fCss": 360.85,
+      "sigmaF": 0.22,
+      "ciLo": 360.84,
+      "ciHi": 360.98,
+      "hFovDeg": 89.864,
+      "vFovDeg": 67.255,
+      "dFovDeg": 100.342,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 360.22
+        },
+        {
+          "deltaDeg": 2,
+          "f": 361.41
+        },
+        {
+          "deltaDeg": 4,
+          "f": 360.7
+        },
+        {
+          "deltaDeg": 8,
+          "f": 360.88
+        }
+      ],
+      "deltaSpread": 0.0033,
+      "meanNcc": 0.9877,
+      "seedRelMedian": 0.02893,
+      "unreliable": false,
+      "zoomReadbacks": [
+        1
+      ]
+    },
+    {
+      "panoName": "seattle-downtown",
+      "containerName": "control-720x480",
+      "kind": "pitch",
+      "zoom": 2,
+      "widthCss": 720,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 1.5,
+      "n": 8,
+      "nKept": 8,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 720.54,
+      "sigmaF": 0.15,
+      "ciLo": 720.4,
+      "ciHi": 720.94,
+      "hFovDeg": 53.096,
+      "vFovDeg": 36.844,
+      "dFovDeg": 61.967,
+      "deltaMedians": [
+        {
+          "deltaDeg": 2,
+          "f": 720.54
+        }
+      ],
+      "deltaSpread": 0,
+      "meanNcc": 0.9895,
+      "seedRelMedian": null,
+      "unreliable": false,
+      "zoomReadbacks": [
+        2
+      ]
+    },
+    {
+      "panoName": "seattle-downtown",
+      "containerName": "control-720x480",
+      "kind": "yaw",
+      "zoom": 2,
+      "widthCss": 720,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 1.5,
+      "n": 24,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 721.19,
+      "sigmaF": 0.56,
+      "ciLo": 721.09,
+      "ciHi": 721.53,
+      "hFovDeg": 53.055,
+      "vFovDeg": 36.813,
+      "dFovDeg": 61.922,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 722.17
+        },
+        {
+          "deltaDeg": 2,
+          "f": 720.81
+        },
+        {
+          "deltaDeg": 4,
+          "f": 721.29
+        }
+      ],
+      "deltaSpread": 0.00188,
+      "meanNcc": 0.9896,
+      "seedRelMedian": 0.01028,
+      "unreliable": false,
+      "zoomReadbacks": [
+        2
+      ]
+    },
+    {
+      "panoName": "seattle-downtown",
+      "containerName": "control-720x480",
+      "kind": "yaw",
+      "zoom": 3,
+      "widthCss": 720,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 1.5,
+      "n": 24,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1442.56,
+      "sigmaF": 0.28,
+      "ciLo": 1442.47,
+      "ciHi": 1442.71,
+      "hFovDeg": 28.025,
+      "vFovDeg": 18.892,
+      "dFovDeg": 33.391,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 1442
+        },
+        {
+          "deltaDeg": 2,
+          "f": 1442.76
+        },
+        {
+          "deltaDeg": 4,
+          "f": 1442.64
+        }
+      ],
+      "deltaSpread": 0.00053,
+      "meanNcc": 0.9957,
+      "seedRelMedian": 0.00217,
+      "unreliable": false,
+      "zoomReadbacks": [
+        3
+      ]
+    },
+    {
+      "panoName": "seattle-downtown",
+      "containerName": "xwide-2400x480",
+      "kind": "yaw",
+      "zoom": 1,
+      "widthCss": 2400,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 5,
+      "n": 32,
+      "nKept": 32,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1202.37,
+      "sigmaF": 0.22,
+      "ciLo": 1202.22,
+      "ciHi": 1202.51,
+      "hFovDeg": 89.887,
+      "vFovDeg": 22.576,
+      "dFovDeg": 91.011,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 1201.99
+        },
+        {
+          "deltaDeg": 2,
+          "f": 1202.4
+        },
+        {
+          "deltaDeg": 4,
+          "f": 1202.39
+        },
+        {
+          "deltaDeg": 8,
+          "f": 1202.47
+        }
+      ],
+      "deltaSpread": 0.0004,
+      "meanNcc": 0.9937,
+      "seedRelMedian": 0.02115,
+      "unreliable": false,
+      "zoomReadbacks": [
+        1
+      ]
+    },
+    {
+      "panoName": "seattle-downtown",
+      "containerName": "xwide-2400x480",
+      "kind": "pitch",
+      "zoom": 2,
+      "widthCss": 2400,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 5,
+      "n": 8,
+      "nKept": 8,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1825.86,
+      "sigmaF": 0.84,
+      "ciLo": 1824.53,
+      "ciHi": 1826.43,
+      "hFovDeg": 66.628,
+      "vFovDeg": 14.977,
+      "dFovDeg": 67.663,
+      "deltaMedians": [
+        {
+          "deltaDeg": 2,
+          "f": 1825.86
+        }
+      ],
+      "deltaSpread": 0,
+      "meanNcc": 0.996,
+      "seedRelMedian": null,
+      "unreliable": false,
+      "zoomReadbacks": [
+        2
+      ]
+    },
+    {
+      "panoName": "seattle-downtown",
+      "containerName": "xwide-2400x480",
+      "kind": "yaw",
+      "zoom": 2,
+      "widthCss": 2400,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 5,
+      "n": 24,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1826.19,
+      "sigmaF": 0.36,
+      "ciLo": 1825.98,
+      "ciHi": 1826.41,
+      "hFovDeg": 66.618,
+      "vFovDeg": 14.974,
+      "dFovDeg": 67.654,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 1825.91
+        },
+        {
+          "deltaDeg": 2,
+          "f": 1826.31
+        },
+        {
+          "deltaDeg": 4,
+          "f": 1826.13
+        }
+      ],
+      "deltaSpread": 0.00022,
+      "meanNcc": 0.9946,
+      "seedRelMedian": 0.01228,
+      "unreliable": false,
+      "zoomReadbacks": [
+        2
+      ]
+    },
+    {
+      "panoName": "seattle-downtown",
+      "containerName": "xwide-2400x480",
+      "kind": "yaw",
+      "zoom": 3,
+      "widthCss": 2400,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 5,
+      "n": 24,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1826.19,
+      "sigmaF": 0.36,
+      "ciLo": 1825.98,
+      "ciHi": 1826.41,
+      "hFovDeg": 66.618,
+      "vFovDeg": 14.974,
+      "dFovDeg": 67.654,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 1825.91
+        },
+        {
+          "deltaDeg": 2,
+          "f": 1826.31
+        },
+        {
+          "deltaDeg": 4,
+          "f": 1826.13
+        }
+      ],
+      "deltaSpread": 0.00022,
+      "meanNcc": 0.9946,
+      "seedRelMedian": 0.01228,
+      "unreliable": false,
+      "zoomReadbacks": [
+        3
+      ]
+    },
+    {
+      "panoName": "teaneck-residential",
+      "containerName": "control-720x480",
+      "kind": "yaw",
+      "zoom": 1,
+      "widthCss": 720,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 1.5,
+      "n": 32,
+      "nKept": 28,
+      "dropFrac": 0.125,
+      "nNccRejected": 0,
+      "nMadRejected": 4,
+      "fCss": 360.73,
+      "sigmaF": 0.13,
+      "ciLo": 360.68,
+      "ciHi": 360.82,
+      "hFovDeg": 89.883,
+      "vFovDeg": 67.272,
+      "dFovDeg": 100.361,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 360.49
+        },
+        {
+          "deltaDeg": 2,
+          "f": 361.03
+        },
+        {
+          "deltaDeg": 4,
+          "f": 360.66
+        },
+        {
+          "deltaDeg": 8,
+          "f": 360.76
+        }
+      ],
+      "deltaSpread": 0.0015,
+      "meanNcc": 0.9875,
+      "seedRelMedian": 0.02983,
+      "unreliable": false,
+      "zoomReadbacks": [
+        1
+      ]
+    },
+    {
+      "panoName": "teaneck-residential",
+      "containerName": "control-720x480",
+      "kind": "pitch",
+      "zoom": 2,
+      "widthCss": 720,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 1.5,
+      "n": 8,
+      "nKept": 6,
+      "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
+      "fCss": 720.83,
+      "sigmaF": 0.19,
+      "ciLo": 720.7,
+      "ciHi": 721.19,
+      "hFovDeg": 53.077,
+      "vFovDeg": 36.83,
+      "dFovDeg": 61.947,
+      "deltaMedians": [
+        {
+          "deltaDeg": 2,
+          "f": 720.83
+        }
+      ],
+      "deltaSpread": 0,
+      "meanNcc": 0.989,
+      "seedRelMedian": null,
+      "unreliable": true,
+      "zoomReadbacks": [
+        2
+      ]
+    },
+    {
+      "panoName": "teaneck-residential",
+      "containerName": "control-720x480",
+      "kind": "yaw",
+      "zoom": 2,
+      "widthCss": 720,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 1.5,
+      "n": 24,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 721.16,
+      "sigmaF": 0.29,
+      "ciLo": 721.05,
+      "ciHi": 721.28,
+      "hFovDeg": 53.056,
+      "vFovDeg": 36.815,
+      "dFovDeg": 61.924,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 721.21
+        },
+        {
+          "deltaDeg": 2,
+          "f": 721.01
+        },
+        {
+          "deltaDeg": 4,
+          "f": 721.23
+        }
+      ],
+      "deltaSpread": 0.00031,
+      "meanNcc": 0.9917,
+      "seedRelMedian": 0.00809,
+      "unreliable": false,
+      "zoomReadbacks": [
+        2
+      ]
+    },
+    {
+      "panoName": "teaneck-residential",
+      "containerName": "control-720x480",
+      "kind": "yaw",
+      "zoom": 3,
+      "widthCss": 720,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 1.5,
+      "n": 24,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1442.12,
+      "sigmaF": 0.53,
+      "ciLo": 1441.81,
+      "ciHi": 1442.2,
+      "hFovDeg": 28.033,
+      "vFovDeg": 18.897,
+      "dFovDeg": 33.401,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 1441.29
+        },
+        {
+          "deltaDeg": 2,
+          "f": 1442.31
+        },
+        {
+          "deltaDeg": 4,
+          "f": 1442.42
+        }
+      ],
+      "deltaSpread": 0.00078,
+      "meanNcc": 0.997,
+      "seedRelMedian": 0.00255,
+      "unreliable": false,
+      "zoomReadbacks": [
+        3
+      ]
+    },
+    {
+      "panoName": "teaneck-residential",
+      "containerName": "xwide-2400x480",
+      "kind": "yaw",
+      "zoom": 1,
+      "widthCss": 2400,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 5,
+      "n": 32,
+      "nKept": 32,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1202.34,
+      "sigmaF": 0.12,
+      "ciLo": 1202.31,
+      "ciHi": 1202.4,
+      "hFovDeg": 89.888,
+      "vFovDeg": 22.577,
+      "dFovDeg": 91.012,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 1202.29
+        },
+        {
+          "deltaDeg": 2,
+          "f": 1202.31
+        },
+        {
+          "deltaDeg": 4,
+          "f": 1202.44
+        },
+        {
+          "deltaDeg": 8,
+          "f": 1202.43
+        }
+      ],
+      "deltaSpread": 0.00013,
+      "meanNcc": 0.994,
+      "seedRelMedian": 0.02875,
+      "unreliable": false,
+      "zoomReadbacks": [
+        1
+      ]
+    },
+    {
+      "panoName": "teaneck-residential",
+      "containerName": "xwide-2400x480",
+      "kind": "pitch",
+      "zoom": 2,
+      "widthCss": 2400,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 5,
+      "n": 8,
+      "nKept": 4,
+      "dropFrac": 0.5,
+      "nNccRejected": 4,
+      "nMadRejected": 0,
+      "fCss": 1826.5,
+      "sigmaF": 0.46,
+      "ciLo": 1826.18,
+      "ciHi": 1826.81,
+      "hFovDeg": 66.61,
+      "vFovDeg": 14.971,
+      "dFovDeg": 67.645,
+      "deltaMedians": [
+        {
+          "deltaDeg": 2,
+          "f": 1826.5
+        }
+      ],
+      "deltaSpread": 0,
+      "meanNcc": 0.9983,
+      "seedRelMedian": null,
+      "unreliable": true,
+      "zoomReadbacks": [
+        2
+      ]
+    },
+    {
+      "panoName": "teaneck-residential",
+      "containerName": "xwide-2400x480",
+      "kind": "yaw",
+      "zoom": 2,
+      "widthCss": 2400,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 5,
+      "n": 24,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1826.12,
+      "sigmaF": 0.17,
+      "ciLo": 1826.07,
+      "ciHi": 1826.27,
+      "hFovDeg": 66.62,
+      "vFovDeg": 14.974,
+      "dFovDeg": 67.656,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 1826.06
+        },
+        {
+          "deltaDeg": 2,
+          "f": 1826.27
+        },
+        {
+          "deltaDeg": 4,
+          "f": 1826.1
+        }
+      ],
+      "deltaSpread": 0.00012,
+      "meanNcc": 0.9964,
+      "seedRelMedian": 0.01651,
+      "unreliable": false,
+      "zoomReadbacks": [
+        2
+      ]
+    },
+    {
+      "panoName": "teaneck-residential",
+      "containerName": "xwide-2400x480",
+      "kind": "yaw",
+      "zoom": 3,
+      "widthCss": 2400,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 5,
+      "n": 24,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1826.12,
+      "sigmaF": 0.17,
+      "ciLo": 1826.07,
+      "ciHi": 1826.27,
+      "hFovDeg": 66.62,
+      "vFovDeg": 14.974,
+      "dFovDeg": 67.656,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 1826.06
+        },
+        {
+          "deltaDeg": 2,
+          "f": 1826.27
+        },
+        {
+          "deltaDeg": 4,
+          "f": 1826.1
+        }
+      ],
+      "deltaSpread": 0.00012,
+      "meanNcc": 0.9964,
+      "seedRelMedian": 0.01651,
+      "unreliable": false,
+      "zoomReadbacks": [
+        3
+      ]
+    },
+    {
+      "panoName": "tutorial",
+      "containerName": "control-720x480",
+      "kind": "yaw",
+      "zoom": 1,
+      "widthCss": 720,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 1.5,
+      "n": 32,
+      "nKept": 32,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 361.41,
+      "sigmaF": 0.3,
+      "ciLo": 361.32,
+      "ciHi": 361.45,
+      "hFovDeg": 89.776,
+      "vFovDeg": 67.174,
+      "dFovDeg": 100.256,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 361.02
+        },
+        {
+          "deltaDeg": 2,
+          "f": 361.64
+        },
+        {
+          "deltaDeg": 4,
+          "f": 361.29
+        },
+        {
+          "deltaDeg": 8,
+          "f": 361.52
+        }
+      ],
+      "deltaSpread": 0.00173,
+      "meanNcc": 0.9781,
+      "seedRelMedian": 0.0316,
+      "unreliable": false,
+      "zoomReadbacks": [
+        1
+      ]
+    },
+    {
+      "panoName": "tutorial",
+      "containerName": "control-720x480",
+      "kind": "pitch",
+      "zoom": 2,
+      "widthCss": 720,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 1.5,
+      "n": 8,
+      "nKept": 8,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 721.99,
+      "sigmaF": 0.16,
+      "ciLo": 721.88,
+      "ciHi": 722.12,
+      "hFovDeg": 53.004,
+      "vFovDeg": 36.775,
+      "dFovDeg": 61.866,
+      "deltaMedians": [
+        {
+          "deltaDeg": 2,
+          "f": 721.99
+        }
+      ],
+      "deltaSpread": 0,
+      "meanNcc": 0.9953,
+      "seedRelMedian": null,
+      "unreliable": false,
+      "zoomReadbacks": [
+        2
+      ]
+    },
+    {
+      "panoName": "tutorial",
+      "containerName": "control-720x480",
+      "kind": "yaw",
+      "zoom": 2,
+      "widthCss": 720,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 1.5,
+      "n": 24,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 722.56,
+      "sigmaF": 0.21,
+      "ciLo": 722.53,
+      "ciHi": 722.68,
+      "hFovDeg": 52.968,
+      "vFovDeg": 36.748,
+      "dFovDeg": 61.826,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 722.87
+        },
+        {
+          "deltaDeg": 2,
+          "f": 722.39
+        },
+        {
+          "deltaDeg": 4,
+          "f": 722.62
+        }
+      ],
+      "deltaSpread": 0.00066,
+      "meanNcc": 0.9943,
+      "seedRelMedian": 0.00938,
+      "unreliable": false,
+      "zoomReadbacks": [
+        2
+      ]
+    },
+    {
+      "panoName": "tutorial",
+      "containerName": "control-720x480",
+      "kind": "yaw",
+      "zoom": 3,
+      "widthCss": 720,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 1.5,
+      "n": 24,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1444.48,
+      "sigmaF": 0.29,
+      "ciLo": 1444.29,
+      "ciHi": 1444.56,
+      "hFovDeg": 27.989,
+      "vFovDeg": 18.867,
+      "dFovDeg": 33.349,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 1444.39
+        },
+        {
+          "deltaDeg": 2,
+          "f": 1444.52
+        },
+        {
+          "deltaDeg": 4,
+          "f": 1444.64
+        }
+      ],
+      "deltaSpread": 0.00017,
+      "meanNcc": 0.9977,
+      "seedRelMedian": 0.0027,
+      "unreliable": false,
+      "zoomReadbacks": [
+        3
+      ]
+    },
+    {
+      "panoName": "tutorial",
+      "containerName": "xwide-2400x480",
+      "kind": "yaw",
+      "zoom": 1,
+      "widthCss": 2400,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 5,
+      "n": 32,
+      "nKept": 32,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1204.9,
+      "sigmaF": 0.84,
+      "ciLo": 1204.24,
+      "ciHi": 1205.37,
+      "hFovDeg": 89.766,
+      "vFovDeg": 22.53,
+      "dFovDeg": 90.89,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 1205.01
+        },
+        {
+          "deltaDeg": 2,
+          "f": 1204.78
+        },
+        {
+          "deltaDeg": 4,
+          "f": 1204.82
+        },
+        {
+          "deltaDeg": 8,
+          "f": 1204.75
+        }
+      ],
+      "deltaSpread": 0.00021,
+      "meanNcc": 0.9948,
+      "seedRelMedian": 0.02715,
+      "unreliable": false,
+      "zoomReadbacks": [
+        1
+      ]
+    },
+    {
+      "panoName": "tutorial",
+      "containerName": "xwide-2400x480",
+      "kind": "pitch",
+      "zoom": 2,
+      "widthCss": 2400,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 5,
+      "n": 8,
+      "nKept": 6,
+      "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
+      "fCss": 1828.21,
+      "sigmaF": 0.05,
+      "ciLo": 1828.07,
+      "ciHi": 1828.24,
+      "hFovDeg": 66.56,
+      "vFovDeg": 14.958,
+      "dFovDeg": 67.595,
+      "deltaMedians": [
+        {
+          "deltaDeg": 2,
+          "f": 1828.21
+        }
+      ],
+      "deltaSpread": 0,
+      "meanNcc": 0.9993,
+      "seedRelMedian": null,
+      "unreliable": true,
+      "zoomReadbacks": [
+        2
+      ]
+    },
+    {
+      "panoName": "tutorial",
+      "containerName": "xwide-2400x480",
+      "kind": "yaw",
+      "zoom": 2,
+      "widthCss": 2400,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 5,
+      "n": 24,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1829.53,
+      "sigmaF": 0.6,
+      "ciLo": 1829.13,
+      "ciHi": 1830.39,
+      "hFovDeg": 66.522,
+      "vFovDeg": 14.947,
+      "dFovDeg": 67.557,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 1829.53
+        },
+        {
+          "deltaDeg": 2,
+          "f": 1829.54
+        },
+        {
+          "deltaDeg": 4,
+          "f": 1829.44
+        }
+      ],
+      "deltaSpread": 0.00005,
+      "meanNcc": 0.9982,
+      "seedRelMedian": 0.01595,
+      "unreliable": false,
+      "zoomReadbacks": [
+        2
+      ]
+    },
+    {
+      "panoName": "tutorial",
+      "containerName": "xwide-2400x480",
+      "kind": "yaw",
+      "zoom": 3,
+      "widthCss": 2400,
+      "heightCss": 480,
+      "dsf": 1,
+      "aspect": 5,
+      "n": 24,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1829.53,
+      "sigmaF": 0.6,
+      "ciLo": 1829.13,
+      "ciHi": 1830.39,
+      "hFovDeg": 66.522,
+      "vFovDeg": 14.947,
+      "dFovDeg": 67.557,
+      "deltaMedians": [
+        {
+          "deltaDeg": 1,
+          "f": 1829.53
+        },
+        {
+          "deltaDeg": 2,
+          "f": 1829.54
+        },
+        {
+          "deltaDeg": 4,
+          "f": 1829.44
+        }
+      ],
+      "deltaSpread": 0.00005,
+      "meanNcc": 0.9982,
+      "seedRelMedian": 0.01595,
+      "unreliable": false,
+      "zoomReadbacks": [
+        3
+      ]
+    }
+  ]
+}

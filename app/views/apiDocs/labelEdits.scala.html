@@ -174,8 +174,8 @@
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code> is specified, the response is CSV data with the same fields:</p>
     <pre><code class="language-csv">label_edit_id,label_id,label_type,user_id,old_severity,new_severity,old_tags,new_tags,source,edit_time,label_validation_id
-501,67890,NoCurbRamp,user_abc123,2,3,"[narrow]","[narrow,steep]",ExpertValidate,2025-08-04T21:52:05.158Z,12345
-502,67891,CurbRamp,user_def456,1,2,"[points into traffic]","[points into traffic]",LabelMap,2025-08-05T14:10:41.002Z,</code></pre>
+501,67890,NoCurbRamp,user_abc123,2,3,"[""narrow""]","[""narrow"",""steep""]",ExpertValidate,2025-08-04T21:52:05.158Z,12345
+502,67891,CurbRamp,user_def456,1,2,"[""points into traffic""]","[""points into traffic""]",LabelMap,2025-08-05T14:10:41.002Z,</code></pre>
 
     <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
     <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>

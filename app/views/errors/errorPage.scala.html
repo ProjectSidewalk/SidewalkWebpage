@@ -2,9 +2,11 @@
  * Branded, self-contained error page shared by the 404 and 500 handlers (modules.CustomErrorHandler).
  * Deliberately does NOT use common.main: an error page has to render when the app/DB is degraded, so it takes no
  * per-city CommonPageData and only links static, design-token stylesheets. `errorId` is shown for server errors so
- * users can quote it when reporting (it matches the id in the application log).
+ * users can quote it when reporting (it matches the id in the application log). `action` is an optional way onward,
+ * supplied by the raising controller rather than by the handler.
  *@
-@(statusCode: Int, heading: String, message: String, requestedPath: Option[String] = None, errorId: Option[String] = None)(implicit messages: Messages, assets: AssetsFinder)
+@import views.ErrorPageAction
+@(statusCode: Int, heading: String, message: String, requestedPath: Option[String] = None, errorId: Option[String] = None, action: Option[ErrorPageAction] = None)(implicit messages: Messages, assets: AssetsFinder)
 
 @* GitHub is a static URL, so the report path keeps the page dependency-free. *@
 @reportLink = @{
@@ -37,7 +39,12 @@
           <p class="error-chip">@Messages("error.500.id", id)</p>
           <p class="error-report">@Html(Messages("error.500.report", reportLink))</p>
         }
-        <a class="button-ps button--primary button--medium error-home" href="@routes.ApplicationController.index">@Messages("error.home")</a>
+        <div class="error-actions">
+          @action.map { cta =>
+            <a class="button-ps button--primary button--medium" href="@cta.href">@cta.label</a>
+          }
+          <a class="button-ps @if(action.isDefined){button--secondary}else{button--primary} button--medium error-home" href="@routes.ApplicationController.index">@Messages("error.home")</a>
+        </div>
       </div>
     </main>
   </body>

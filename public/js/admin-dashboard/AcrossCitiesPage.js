@@ -33,12 +33,12 @@ class AcrossCitiesPage {
   /** How many cities the "Most active cities" table shows; the full list lives in the Activity section below it. */
   static #TOP_CITIES_LIMIT = 5;
 
-  /** Canonical label-type order + short display names for the data-patterns bars. */
-  static #LABEL_TYPES = [
-    ['CurbRamp', 'Curb ramp'], ['NoCurbRamp', 'Missing curb ramp'], ['Obstacle', 'Obstacle'],
-    ['SurfaceProblem', 'Surface problem'], ['NoSidewalk', 'No sidewalk'], ['Crosswalk', 'Crosswalk'],
-    ['Signal', 'Signal'], ['Occlusion', 'Occlusion'], ['Other', 'Other'],
-  ];
+  /** Short display names for the data-patterns bars. The order comes from util.misc, which is backend-sourced. */
+  static #LABEL_TYPE_NAMES = {
+    CurbRamp: 'Curb ramp', NoCurbRamp: 'Missing curb ramp', Obstacle: 'Obstacle',
+    SurfaceProblem: 'Surface problem', NoSidewalk: 'No sidewalk', Crosswalk: 'Crosswalk',
+    Signal: 'Signal', Occlusion: 'Occlusion', Other: 'Other',
+  };
 
   /** Lifecycle → map circle color (matches the badge tones). */
   static #LIFECYCLE_COLOR = {
@@ -1135,8 +1135,10 @@ class AcrossCitiesPage {
     if (!host) return;
 
     // Only show label types that actually appear in at least one city, in canonical order.
-    const present = AcrossCitiesPage.#LABEL_TYPES.filter(([key]) =>
-      this.#cities.some((c) => c.by_label_type && c.by_label_type[key] && c.by_label_type[key].labels > 0));
+    const present = util.misc.VALID_LABEL_TYPES
+      .map((key) => [key, AcrossCitiesPage.#LABEL_TYPE_NAMES[key] || key])
+      .filter(([key]) =>
+        this.#cities.some((c) => c.by_label_type && c.by_label_type[key] && c.by_label_type[key].labels > 0));
 
     if (legendEl) {
       legendEl.innerHTML = present.map(([key, name]) => `

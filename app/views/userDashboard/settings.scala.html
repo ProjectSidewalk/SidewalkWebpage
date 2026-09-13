@@ -1,8 +1,9 @@
-@import controllers.helper.ControllerUtils.MeasurementSystem
 @import service.CommonPageData
+@import models.user.MeasurementSystem
 @import models.user.SidewalkUserWithRole
 @import models.user.Team
 @import play.api.Configuration
+@import views.html.helper.CSRF
 @(commonData: CommonPageData, user: SidewalkUserWithRole, openTeams: Seq[Team], currTeam: Option[Team],
     onLeaderboard: Boolean, publicProfile: Boolean, unitsChoice: String, privateByDefault: Boolean
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
@@ -11,7 +12,8 @@
 * User Dashboard — Settings page. Editable username (#4373), read-only email, a measurement-units choice (#4404),
 * team membership, and the two privacy toggles from #4323 — "Show me on the leaderboard" (on_leaderboard) and
 * "Make my dashboard public" (public_profile). The whole form saves in one POST to /dashboard/settings via
-* Settings.js. Shown on the shared shell as its own nav item (#2545).
+* Settings.js, which also warns before the page is left with unsaved edits (#5226). The password change (#2285) is
+* the exception, with its own form and ChangePasswordForm.js. Shown on the shared shell as its own nav item (#2545).
 *
 * @param unitsChoice The user's own units selection: "auto" (follow the site language), "metric", or "imperial".
 *@
@@ -40,14 +42,80 @@
         <input class="ps-input ps-input--large" id="set-email" type="email" value="@user.email" readonly disabled>
         <span class="ud-field-help">@Html(Messages("dashboard.settings.email.help"))</span>
       </div>
+    </div>
+    <h3 class="page-subhead ud-settings-subhead" id="change-password">@Messages("dashboard.settings.password")</h3>
+    @* Separate from "Save changes": it needs the current password and can fail on its own. *@
+    <form class="ud-form" id="set-password-form" method="post" action="@routes.UserDashboardController.changePassword"
+        data-error-generic="@Messages("authenticate.error.generic")">
+      @CSRF.formField
+      @* Tells password managers which login to update. The email, since every account has one. *@
+      <label for="set-password-username" hidden>@Messages("dashboard.settings.email")</label>
+      <input id="set-password-username" type="email" autocomplete="username" value="@user.email" hidden readonly>
+      <div class="au-field">
+        <label class="au-label" for="set-current-password">@Messages("dashboard.settings.password.current")</label>
+        <div class="au-input-wrap">
+          <input class="au-input au-input--with-eye" id="set-current-password" name="currentPassword" type="password"
+              autocomplete="current-password" required>
+          @common.authEyeButton("set-current-password")
+        </div>
+        <span class="ud-field-help">
+          @Html(Messages("dashboard.settings.password.forgot", routes.UserController.forgotPassword.url))
+        </span>
+      </div>
+      @common.authPasswordFields("set", "newPassword", "newPasswordConfirm", "dashboard.settings.password.new",
+        "dashboard.settings.password.new.confirm")
+      <div>
+        <button type="submit" class="ud-btn-primary">@Messages("dashboard.settings.password.submit")</button>
+        @* Where a reset finished while signed in shows its message. *@
+        @defining(request.flash.get("success")) { resetMessage =>
+          <span class="ud-save-status @if(resetMessage.isDefined){ud-save-ok}" role="status"
+              aria-live="polite">@resetMessage</span>
+        }
+      </div>
+    </form>
+  </div>
+
+  <div class="page-section" id="settings-preferences-section">
+    <h2 class="page-heading" id="preferences">@Messages("dashboard.settings.preferences") <a href="#preferences" class="permalink">#</a></h2>
+    <div class="ud-form">
       <div class="ud-field">
         <label class="ud-label" for="set-units">@Messages("dashboard.settings.units")</label>
         <select class="ps-select ps-select--large" id="set-units">
-          @for(choice <- Seq(MeasurementSystem.FollowLanguage, MeasurementSystem.Metric, MeasurementSystem.Imperial)) {
+          @for(choice <- MeasurementSystem.FollowLanguage +: MeasurementSystem.values.toSeq.map(_.toString)) {
             <option value="@choice" @selectedIfChosen(choice)>@Messages(s"dashboard.settings.units.$choice")</option>
           }
         </select>
         <span class="ud-field-help">@Messages("dashboard.settings.units.help")</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-section" id="settings-team-section">
+    <h2 class="page-heading" id="team">@Messages("dashboard.settings.team") <a href="#team" class="permalink">#</a></h2>
+    <div class="ud-form">
+      <div class="ud-field">
+        <label class="ud-label" for="set-team">@Messages("dashboard.settings.team.label")</label>
+        <div class="ud-field-inline">
+          @* Your current team is the default choice, listed alongside only the teams you could switch to; leaving
+             is the button, so an empty value means "don't touch my team" and no selection can drop a membership.
+             The save compares against `data-current-team` to skip re-writing the team you're already on. *@
+          <select class="ps-select ps-select--large" id="set-team"
+              data-current-team="@currTeam.map(_.teamId.toString).getOrElse("")"
+              data-placeholder="@Messages("dashboard.team.choose")">
+            @currTeam.map { t =>
+              <option value="@t.teamId" selected>@t.name</option>
+            }.getOrElse {
+              <option value="" selected>@Messages("dashboard.team.choose")</option>
+            }
+            @defining(openTeams.filterNot(t => currTeam.exists(_.teamId == t.teamId))) { joinableTeams =>
+              @for(t <- joinableTeams) {
+                <option value="@t.teamId">@t.name</option>
+              }
+            }
+          </select>
+          @userDashboard._teamActions(currTeam, user.userId, createIsPrimary = false)
+        </div>
+        <span class="ud-field-help">@Messages("dashboard.settings.team.help")</span>
       </div>
     </div>
   </div>
@@ -63,30 +131,6 @@
           <a href="@routes.ApplicationController.serviceHoursInstructions">@Messages("dashboard.settings.service.hours.link")</a></span>
         </span>
       </label>
-    </div>
-  </div>
-
-  <div class="page-section" id="settings-team-section">
-    <h2 class="page-heading" id="team">@Messages("dashboard.settings.team") <a href="#team" class="permalink">#</a></h2>
-    <div class="ud-form">
-      <div class="ud-field">
-        <label class="ud-label" for="set-team">@Messages("dashboard.settings.team.label")</label>
-        <div class="ud-field-inline">
-          <select class="ps-select ps-select--large" id="set-team">
-            @currTeam.map { t =>
-              <option value="@t.teamId" selected>@t.name</option>
-            }
-            @defining(openTeams.filterNot(t => currTeam.exists(_.teamId == t.teamId))) { joinableTeams =>
-              @for(t <- joinableTeams) {
-                <option value="@t.teamId">@t.name</option>
-              }
-            }
-            <option value="">@Messages("dashboard.settings.team.none")</option>
-          </select>
-          <button type="button" class="ud-btn-secondary ud-create-team-btn">@Messages("dashboard.create.team")</button>
-        </div>
-        <span class="ud-field-help">@Messages("dashboard.settings.team.help")</span>
-      </div>
     </div>
   </div>
 
@@ -119,8 +163,12 @@
   </div>
 
   @userDashboard._createTeamDialog()
-  <script src="@assets.path("js/user-dashboard/TeamCreate.js")"></script>
+  <script src="@assets.path("js/common/ConfirmDialog.js")"></script>
+  <script src="@assets.path("js/common/UnsavedChangesGuard.js")"></script>
+  <script src="@assets.path("js/user-dashboard/TeamActions.js")"></script>
+  <script src="@assets.path("js/common/saveUserSettings.js")"></script>
   <script src="@assets.path("js/user-dashboard/Settings.js")"></script>
+  <script src="@assets.path("js/user-dashboard/ChangePasswordForm.js")"></script>
   <script>
     // appManager.ready (not DOMContentLoaded) so i18next is initialized before Settings can show a status string.
     window.appManager.ready(function () {
@@ -130,10 +178,15 @@
         currentUnits: '@unitsChoice'
       });
     });
+    // Not appManager.ready, which waits on i18next: until this runs, a submit shows raw JSON. Not sooner either, since
+    // AuthModal.js (which it uses) is a deferred script.
+    document.addEventListener('DOMContentLoaded', function () {
+      new ChangePasswordForm(document.getElementById('set-password-form'));
+    });
   </script>
 }
 
-@* dashboard namespace: Settings.js's and TeamCreate.js's client-side status/error strings. *@
+@* dashboard namespace: Settings.js's and TeamActions.js's client-side status/error strings. *@
 @common.main(commonData, Messages("seo.title.settings"), i18Namespaces = Seq("common", "dashboard")) {
   @common.navbar(commonData, Some(user))
   @userDashboard.layout("settings")(content)

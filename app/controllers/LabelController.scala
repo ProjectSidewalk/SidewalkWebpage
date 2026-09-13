@@ -10,7 +10,7 @@ import models.utils.LatLngBBox
 import play.api.Logger
 import play.api.libs.json._
 import play.silhouette.api.Silhouette
-import service.{LabelEditOutcome, LabelEditService, LabelService, PanoDataService}
+import service.{CropService, LabelEditOutcome, LabelEditService, LabelService, PanoDataService}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -22,7 +22,8 @@ class LabelController @Inject() (
     implicit val ec: ExecutionContext,
     labelService: LabelService,
     labelEditService: LabelEditService,
-    panoDataService: PanoDataService
+    panoDataService: PanoDataService,
+    cropService: CropService
 ) extends CustomBaseController(cc) {
 
   private val logger = Logger(this.getClass)
@@ -59,17 +60,20 @@ class LabelController @Inject() (
    */
   def getLabelData(labelId: Int) = silhouette.UserAwareAction.async { implicit request =>
     val userId: String = request.identity.map(_.userId).getOrElse(NoUserId)
-    labelService.getSingleLabelMetadata(labelId, userId).map {
+    labelService.getSingleLabelMetadata(labelId, userId).flatMap {
       case Some(metadata) =>
-        Ok(
-          LabelFormats.labelMetadataWithValidationToJson(metadata, request.identity.map(_.username)) ++
-            Json.obj(
-              "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
-              "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
-              "can_edit"         -> (metadata.fromCurrentUser || isAdmin(request.identity))
-            )
-        )
-      case None => NotFound(s"No label found with ID: $labelId")
+        cropService.cropMarker(labelId).map { marker =>
+          Ok(
+            LabelFormats.labelMetadataWithValidationToJson(metadata, request.identity.map(_.username)) ++
+              Json.obj(
+                "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
+                "crop_marker"      -> marker,
+                "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
+                "can_edit"         -> (metadata.fromCurrentUser || isAdmin(request.identity))
+              )
+          )
+        }
+      case None => Future.successful(NotFound(s"No label found with ID: $labelId"))
     }
   }
 

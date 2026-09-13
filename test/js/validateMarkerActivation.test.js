@@ -12,6 +12,8 @@
  * TouchEvent constructor, so they are plain Events carrying the fields the handlers read).
  */
 
+/* global PanoMarker -- pulled into scope by the eval() loader below. */
+
 const fs = require('fs');
 const path = require('path');
 

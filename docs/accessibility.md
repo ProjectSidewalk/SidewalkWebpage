@@ -100,14 +100,15 @@ This covers every message the api-docs previews emit, including the one rendered
 
 ### Third-party embeds
 
-axe descends into same-page frames, so an embedded player's own chrome reports as our violations — the four YouTube
-embeds on `/help` were worth 11 findings in markup we cannot touch. Those frames are **excluded** rather than
-allowlisted: an allowlist entry claims a work item, and there is no work to do. `THIRD_PARTY_FRAMES` in
-`a11y.spec.js` holds the selector.
+No gated page embeds a third-party frame today. If one does, note that axe descends into same-page frames, so an
+embedded player's own chrome reports as our violations in markup we cannot touch. **Exclude** such frames from the
+`AxeBuilder` run (by element selector — axe's frame-path exclude syntax does not reach frames that
+`@axe-core/playwright` injects into itself) rather than allowlisting them: an allowlist entry claims a work item,
+and there is no work to do.
 
 Excluding the frame takes our own `<iframe>` tag out of scope with it, so the accessible name on it — the thing a
-screen reader announces in place of the video — gets its own test in the same file. Add to that test if you exclude
-another kind of embed.
+screen reader announces in place of the embedded content — needs its own test in `a11y.spec.js` (a `title` or
+`aria-label` on every excluded frame).
 
 A third-party widget rendered into **our** DOM is a different case: it *is* fixable — report it upstream, shim it,
 or replace the widget — so an allowlist entry only holds the place until one of those lands. The Mapbox search box

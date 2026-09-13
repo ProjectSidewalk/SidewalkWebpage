@@ -28,8 +28,8 @@ class LabelMapPage {
     // wait and the same need to say so when the feed fails.
     this.#overlay = new MapLoadingOverlay();
 
-    // Build the label-detail popup first so the map can hand clicks to it. If it fails (e.g. pano libs missing),
-    // the map still renders and the search box falls back to opening /admin/label/:id as a page.
+    // Build the label-detail popup first so the map can hand clicks to it. If it fails (e.g. the dialog markup is
+    // missing), the map still renders and the search box falls back to opening /admin/label/:id as a page.
     try {
       this.#popup = await LabelPopup(true, this.#opts.viewerType, this.#opts.accessToken, this.#opts.username, {
         showExploreHereLink: true,

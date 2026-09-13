@@ -1,0 +1,35 @@
+{
+  "_comment": [
+    "Weights and decay scales for ranking candidate panoramas at a location. Two of our imagery providers rank",
+    "candidates themselves — Mapillary and Panoramax both answer a location query with every picture in a box, and we",
+    "choose one. (GSV delegates selection to Google's StreetViewService, and Infra3d/Pannellum never search by",
+    "location.) The two rank on the same terms with the same weights so that they pick comparably; only the",
+    "resolution cap differs, because their camera fleets do.",
+    "Three consumers must agree on these numbers, which is why they live here rather than in any one of them:",
+    "MapillaryViewer.#scorePano and PanoramaxViewer.#scorePano pick the pano Explore displays, and score_pano",
+    "(scripts/check_streets_for_imagery.py) picks the pano whose capture date we record for a street. If those",
+    "disagreed, we would report a street as freshly imaged and then never show the imagery that said so (#4411).",
+    "The weights sum to 1, so a score is always in [0, 1]. models.utils.PanoScoring parses this into a typed shape,",
+    "so a typo fails loudly and this comment never reaches the browser.",
+    "Not here on purpose: the milliseconds-per-Julian-year divisor that turns a timestamp delta into an age. It is a",
+    "property of the calendar rather than a tuning knob, so each consumer names it as its own constant."
+  ],
+
+  "distanceWeight": 0.45,
+  "resolutionWeight": 0.25,
+  "recencyWeight": 0.25,
+  "sequenceWeight": 0.05,
+
+  "distanceDecayMeters": 10,
+  "recencyDecayYears": 5,
+
+  "providers": {
+    "mapillary": {
+      "maxImageWidthPx": 16384
+    },
+    "panoramax": {
+      "maxImageWidthPx": 12288,
+      "unknownDateAgeYears": 3
+    }
+  }
+}

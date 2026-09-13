@@ -221,12 +221,14 @@
         "severity": 1,
         "tags": [],
         "description": null,
-        "time_created": 1692227245041,
+        "time_created": "2023-08-16T23:47:25.041Z",
         "high_quality_user": true,
         "street_edge_id": 951,
         "osm_way_id": 11584845,
         "region_id": 1,
         "region_name": "Teaneck Community Charter School",
+        "street_side": "left",
+        "centerline_offset_m": 4.62,
         "correct": true,
         "agree_count": 2,
         "disagree_count": 0,
@@ -234,11 +236,13 @@
         "validations": [
           {
             "user_id": "056df9f9-a7de-46f1-ae52-02c069f5829f",
-            "validation": "1"
+            "validation": "Agree",
+            "validator_type": "Human"
           },
           {
             "user_id": "de691775-ac79-45f9-b265-e867702adc1d",
-            "validation": "1"
+            "validation": "Agree",
+            "validator_type": "Human"
           }
         ],
         "audit_task_id": 6,
@@ -249,8 +253,8 @@
         "zoom": 2,
         "canvas_x": 395,
         "canvas_y": 151,
-        "canvas_width": 480,
-        "canvas_height": 720,
+        "canvas_width": 720,
+        "canvas_height": 480,
         "pano_x": 1781,
         "pano_y": 3980,
         "pano_width": 13312,
@@ -276,11 +280,13 @@
         "severity": 1,
         "tags": [],
         "description": null,
-        "time_created": 1692227248747,
+        "time_created": "2023-08-16T23:47:28.747Z",
         "street_edge_id": 95,
         "osm_way_id": 11566031,
         "region_id": 1,
         "region_name": "Teaneck Community Charter School",
+        "street_side": null,
+        "centerline_offset_m": -0.71,
         "correct": true,
         "agree_count": 2,
         "disagree_count": 1,
@@ -288,15 +294,18 @@
         "validations": [
           {
             "user_id": "2e602097-9e49-4217-ba24-816b2093e491",
-            "validation": "1"
+            "validation": "Agree",
+            "validator_type": "Human"
           },
           {
             "user_id": "8af92eb8-fb84-4aa6-9539-abc95216dcd7",
-            "validation": "1"
+            "validation": "Agree",
+            "validator_type": "AI"
           },
           {
             "user_id": "be481045-4448-42ae-bbac-3455ce914202",
-            "validation": "2"
+            "validation": "Disagree",
+            "validator_type": "Human"
           }
         ],
         "audit_task_id": 6,
@@ -307,8 +316,8 @@
         "zoom": 2,
         "canvas_x": 246,
         "canvas_y": 225,
-        "canvas_width": 480,
-        "canvas_height": 720,
+        "canvas_width": 720,
+        "canvas_height": 480,
         "pano_x": 3038,
         "pano_y": 3948,
         "pano_width": 13312,
@@ -374,8 +383,8 @@
           </tr>
           <tr>
             <td><code>properties.time_created</code></td>
-            <td><code>long</code></td>
-            <td>Unix timestamp (milliseconds since epoch) when the label was created.</td>
+            <td><code>string</code></td>
+            <td>ISO 8601 timestamp of when the label was created.</td>
           </tr>
           <tr>
             <td><code>properties.high_quality_user</code></td>
@@ -404,6 +413,16 @@
             <td><code>string</code></td>
             <td>Name of the region (neighborhood) the label falls within, as defined in Project Sidewalk's regions.</td>
           </tr>
+          <tr>
+            <td><code>properties.street_side</code></td>
+            <td><code>string | null</code></td>
+            <td><strong>Added September 2026:</strong> which side of the street the label sits on, <code>left</code> or <code>right</code> relative to the digitized direction of <code>street_edge_id</code> (its <code>geometry</code> in the Streets API runs start to end). Derived from <code>centerline_offset_m</code> with a 1&nbsp;m floor: <code>null</code> when the label is within a metre of the centerline (where the side is a coin flip, e.g. most crosswalks) or has no position. Two labels on the same <code>street_edge_id</code> with the same <code>street_side</code> are on the same sidewalk. See <a href="#street-side">how confident the side is</a>.</td>
+          </tr>
+          <tr>
+            <td><code>properties.centerline_offset_m</code></td>
+            <td><code>number | null</code></td>
+            <td><strong>Added September 2026:</strong> signed geodesic distance in metres from the label's estimated position to the centerline of <code>street_edge_id</code>, positive on the left of the digitized direction and negative on the right. This is the side's confidence: use it to choose your own threshold instead of the 1&nbsp;m floor. Measured across the street rather than along it, so a label sitting past the end of its street edge reports only how far to the side it is, not how far past the end. <code>null</code> when the label has no position.</td>
+          </tr>
 
             <!-- Validation Information -->
           <tr>
@@ -414,22 +433,22 @@
           <tr>
             <td><code>properties.agree_count</code></td>
             <td><code>integer</code></td>
-            <td>Number of users and/or AI who agreed with (confirmed) this label during validation tasks. To separate human vs. AI validations, use the <a href="@routes.ApiDocsController.validations">validations endpoint</a> (its <code>validator_type</code> field).</td>
+            <td>Number of users and/or AI who agreed with (confirmed) this label during validation tasks. For a human vs. AI split, see <code>properties.validations</code>.</td>
           </tr>
           <tr>
             <td><code>properties.disagree_count</code></td>
             <td><code>integer</code></td>
-            <td>Number of users and/or AI who disagreed with (disputed) this label during validation tasks. To separate human vs. AI validations, use the <a href="@routes.ApiDocsController.validations">validations endpoint</a> (its <code>validator_type</code> field).</td>
+            <td>Number of users and/or AI who disagreed with (disputed) this label during validation tasks. For a human vs. AI split, see <code>properties.validations</code>.</td>
           </tr>
           <tr>
             <td><code>properties.unsure_count</code></td>
             <td><code>integer</code></td>
-            <td>Number of users and/or AI who marked "unsure" for this label during validation tasks. To separate human vs. AI validations, use the <a href="@routes.ApiDocsController.validations">validations endpoint</a> (its <code>validator_type</code> field).</td>
+            <td>Number of users and/or AI who marked "unsure" for this label during validation tasks. For a human vs. AI split, see <code>properties.validations</code>.</td>
           </tr>
           <tr>
             <td><code>properties.validations</code></td>
             <td><code>array</code></td>
-            <td>Array of individual validation objects. Each object contains: <code>user_id</code> (anonymized identifier of the validating user) and <code>validation</code> (the validation value: "1" for agree, "2" for disagree, "3" for unsure).</td>
+            <td>Array of individual validation objects. Each object contains: <code>user_id</code> (anonymized identifier of the validating user), <code>validation</code> (<code>Agree</code>, <code>Disagree</code>, or <code>Unsure</code>), and <code>validator_type</code> (<code>Human</code> or <code>AI</code>). Matches the three counts above.</td>
           </tr>
 
             <!-- Task Information -->
@@ -453,7 +472,7 @@
           <tr>
             <td><code>properties.pano_source</code></td>
             <td><code>string</code></td>
-            <td>Imagery provider the panorama came from: <code>gsv</code> (Google Street View), <code>mapillary</code>, or <code>infra3d</code>.</td>
+            <td>Imagery provider the panorama came from: <code>gsv</code> (Google Street View), <code>mapillary</code>, <code>panoramax</code>, or <code>infra3d</code>.</td>
           </tr>
           <tr>
             <td><code>properties.image_capture_date</code></td>
@@ -463,7 +482,7 @@
           <tr>
             <td><code>properties.pano_url</code></td>
             <td><code>string | null</code></td>
-            <td>Link to view the panorama where this label was placed in its imagery provider's viewer, positioned at the label's heading and pitch. For Google Street View panoramas this uses Google's <a target="_blank" href="https://developers.google.com/maps/documentation/urls/get-started#street-view-action">Maps URLs</a> format (no API key required); for Mapillary it links to the Mapillary web app. <code>null</code> for providers without a shareable public viewer (e.g., infra3d).</td>
+            <td>Link to view the panorama where this label was placed in its imagery provider's viewer, positioned at the label's heading and pitch. For Google Street View panoramas this uses Google's <a target="_blank" href="https://developers.google.com/maps/documentation/urls/get-started#street-view-action">Maps URLs</a> format (no API key required); for Mapillary it links to the Mapillary web app; for Panoramax it links to the picture on the Panoramax federated viewer. <code>null</code> for providers without a shareable public viewer (e.g., infra3d).</td>
           </tr>
 
             <!-- Camera and View Position Information -->
@@ -543,17 +562,40 @@
       </table>
     </div>
 
+    <h5 id="street-side">How confident <code>street_side</code> is <a href="#street-side" class="permalink">#</a></h5>
+    <p>The side is computed from the label's estimated position, so it is only as sure as that position is far from the centerline. Scored against Seattle's official sidewalk and curb-ramp inventory, its accuracy is a function of <code>|centerline_offset_m|</code> alone, the same for every label type (details and method in <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/blob/develop/docs/experiments/2026-09-03-street-side-assignment.md">the #2886 report</a>). The 1&nbsp;m floor is where the value stops being a coin flip; raise it if you need a surer side:</p>
+    <div class="ps-table-wrapper" tabindex="0" role="region" aria-labelledby="street-side">
+      <table class="ps-table ps-table--compact">
+        <thead>
+          <tr>
+            <th scope="col"><code>|centerline_offset_m|</code></th>
+            <th scope="col">Side agrees with the inventory</th>
+            <th scope="col">Share of positioned labels</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>under 0.5&nbsp;m</td><td>63–70%</td><td>1.8%</td></tr>
+          <tr><td>0.5–1&nbsp;m (still <code>null</code>)</td><td>84–87%</td><td>1.7%</td></tr>
+          <tr><td>1–1.5&nbsp;m</td><td>94–96%</td><td>2.0%</td></tr>
+          <tr><td>1.5–2&nbsp;m</td><td>97–98%</td><td>2.6%</td></tr>
+          <tr><td>2–3&nbsp;m</td><td>98–99%</td><td>7.7%</td></tr>
+          <tr><td>3&nbsp;m and beyond</td><td>99%+</td><td>84%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>These figures come from the report linked above, which scored an earlier form of the offset that also counted distance <em>along</em> the street for labels sitting past the end of their street edge. Restricting the measurement to the across-street component moved about 5% of labels into a lower band without changing any label's side, so the accuracies above are, if anything, slightly conservative for the values the API returns today.</p>
+
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus <code>latitude</code> and <code>longitude</code> columns derived from the geometry. CRS is WGS84 (EPSG:4326).</p>
-    <pre tabindex="0"><code class="language-csv">label_id,user_id,pano_id,pano_source,label_type,severity,tags,description,...,disagree_count,unsure_count,latitude,longitude
-115,18b26a38-...,YQScv...,gsv,CurbRamp,2,[missing tactile warning],,...,1,0,40.715,-74.005
-116,...,...,gsv,Obstacle,4,[construction],"Temporary fence",...,3,0,40.7151,-74.0051
+    <pre tabindex="0"><code class="language-csv">label_id,user_id,pano_id,pano_source,label_type,severity,tags,description,...,region_name,street_side,centerline_offset_m,correct,...,latitude,longitude
+115,18b26a38-...,YQScv...,gsv,CurbRamp,2,"[""missing tactile warning""]",,...,Teaneck,left,4.62,true,...,40.715,-74.005
+116,...,...,gsv,Obstacle,4,"[""construction""]","Temporary fence",...,Teaneck,right,-3.1,true,...,40.7151,-74.0051
 ...</code></pre>
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
-    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj). The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326). </p>
+    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated. The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326). </p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
-    <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage file (<code>.gpkg</code>). This is an open standard format based on SQLite that contains both geometry and attributes in a single file, generally without the field name limitations of Shapefiles. CRS is typically WGS84 (EPSG:4326). </p>
+    <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage file (<code>.gpkg</code>). This is an open standard format based on SQLite that contains both geometry and attributes in a single file, with the same field names as the GeoJSON properties. Array and object fields (<code>tags</code>, <code>validations</code>) are written out as JSON text. CRS is typically WGS84 (EPSG:4326).</p>
 
 
     <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
@@ -561,6 +603,7 @@
     <ul>
       <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values (e.g., malformed bounding box, invalid date format).</li>
       <li><strong><code>404 Not Found</code>:</strong> The requested resource does not exist (e.g., incorrect base URL path).</li>
+      <li><strong><code>429 Too Many Requests</code>:</strong> The same file is already being built for an earlier request; wait <code>Retry-After</code> seconds and try again. A <code>HEAD</code> request gets the same answer without building anything.</li>
       <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
       <li><strong><code>503 Service Unavailable</code>:</strong> The server is temporarily unable to handle the request (e.g., during maintenance).</li>
     </ul>

@@ -1,32 +1,67 @@
 """
-Finds streets that lack street-view imagery (Google Street View, Mapillary, or Infra3d) and writes them to a CSV.
+Finds streets that lack street-view imagery (Google Street View, Mapillary, Panoramax, or Infra3d) and writes them to a
+CSV.
 
 This is a standalone, manually-run utility (it is not invoked by the app). Workflow:
 
   1. Export a CSV of the ``street_edge`` table with columns ``street_edge_id, region_id, x1, y1, x2, y2, geom`` (geom as
-     WKB hex), named ``street_edge_endpoints.csv``, in the repo root.
+     WKB hex) to ``db/onboarding/<city-id>/street_edge_endpoints.csv`` — every scan file lives in that per-city dir.
   2. Run one of (from anywhere — all data files are resolved relative to the repo root, not your working directory):
 
-         python3.13 scripts/check_streets_for_imagery.py --gsv
-         python3.13 scripts/check_streets_for_imagery.py --mapillary
-         python3.13 scripts/check_streets_for_imagery.py --infra3d
+         python3.13 scripts/check_streets_for_imagery.py --city-id newport-ky --gsv
+         python3.13 scripts/check_streets_for_imagery.py --city-id newport-ky --mapillary
+         python3.13 scripts/check_streets_for_imagery.py --city-id newport-ky --infra3d
+         python3.13 scripts/check_streets_for_imagery.py --city-id newport-ky --panoramax
 
+     ``--panoramax`` needs no credential (the API is public);
      ``--gsv`` needs ``GOOGLE_MAPS_API_KEY``; ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``; ``--infra3d`` needs
      ``INFRA3D_CLIENT_ID`` and ``INFRA3D_CLIENT_SECRET`` (one city's pair — the same OAuth client-credentials the app
      holds per city as ``INFRA3D_CLIENT_ID_<CITY>``), plus ``--campaign <uid>`` if the city's tenant holds more than
      one campaign. It is ``python3.13`` rather than the container's default ``python3`` because this tool's libraries
      need Python >= 3.11.
-  3. It writes streets without imagery to ``db/streets_with_no_imagery.csv``, and a per-street imagery summary
-     (presence + capture-date range) to ``db/street_imagery_summary.csv``.
+  3. It writes streets without imagery to ``streets_with_no_imagery.csv`` and a per-street imagery summary (presence +
+     capture-date range) to ``street_imagery_summary.csv``, both in the same dir.
   4. Run ``make hide-streets-without-imagery`` to mark those streets in the database.
+
+Preflight (``--sample N``): the same check on a random sample of streets, kept apart from a full scan's files under
+``db/onboarding/<city-id>/preflight/<provider>/``, with every provider sampled so far summarized side by side in
+``db/onboarding/<city-id>/preflight_report.md``. ``scripts/onboard_city.py`` writes the endpoints CSV this reads, so
+"does this city have GSV / Mapillary / Panoramax imagery, and how fresh is it?" is answered from the build artifacts in
+a few minutes, before the city has a database:
+
+         make check-imagery id=newport-ky args="--sample 150 --gsv"
 
 For each street it first checks both endpoints; if neither has imagery the street is flagged immediately. Otherwise it
 walks points along the street (added roughly every 15 m) and flags the street once enough points lack imagery (see
 ``imagery_verdict`` for the exact thresholds).
 
-Imagery age: the GSV and Infra3d responses we already fetch also carry a capture date, so for no extra API calls we
-record each street's imagery capture-date range (oldest/newest) into the summary file — telling us not just whether a
-street has imagery but how old it is. (Mapillary capture dates are a future enhancement.)
+Imagery age: the responses we already fetch also carry a capture date, so for no extra API calls we record each
+street's imagery capture-date range (oldest/newest) into the summary file — telling us not just whether a street has
+imagery but how old it is. GSV and Infra3d each answer with one pano, so their date is simply that pano's. A Mapillary
+bbox query instead returns every image in the box, and the one whose date we record is the one Explore's pano viewer
+would actually display: ``score_pano`` is a port of ``MapillaryViewer.#scorePano``, sharing its weights through
+``conf/pano-scoring.json``. Taking the newest image instead would let us record a fresh date for a street whose
+imagery the viewer never shows, so we would stop flagging it as outdated while users still saw the old panos
+(#4411). The formula matches; the candidate set the formula runs over does not, in five ways, so treat the recorded
+date as the viewer's pick at a sampled point rather than as the pano a user will see:
+
+  * The sequence-continuity term has no offline meaning — there is no current pano when sampling a street cold — so it
+    is a uniform 0 here. This one cannot change a ranking, being a constant shift.
+  * The viewer searches a 25 m box; along-street points here search 15 m (``POINT_RADIUS_KM``). The narrower box is a
+    subset, but an argmax over a subset can move in *either* direction, by years: distance is only 45% of the score,
+    so a fresh high-resolution pano just outside 15 m routinely outranks a stale one inside it. Aligning the two radii
+    is #5091, which also replaces the box with an along/cross-track test; this module's dates stop diverging on that
+    axis when it lands.
+  * ``#selectBestPano`` filters out panos the session has already rejected (``excludedPanoIds``,
+    ``excludedTimestamps``) before scoring, so the viewer's pick is often the runner-up here.
+  * ``#findNearestPrefetch`` reuses a search centred up to 5 m away, so the viewer's box is frequently not centred on
+    the target at all.
+  * ``#fetchImages`` narrows its radius and retries when Mapillary reports too many images in the box, so a dense
+    location's viewer box can be smaller than 25 m.
+
+Panoramax searches return a box of pictures too, and ``panoramax_capture_date`` takes the newest of them rather than
+the one ``PanoramaxViewer.#scorePano`` would pick, so its dates carry the mismatch this port removes for Mapillary
+(#5284).
 
 Infra3d has no metadata endpoint of its own; the check uses the same nearest-frame query (``framegate``'s
 ``knn/query``) that the vendored Infra3d viewer SDK issues on every ``setLocation``, authenticated with the same
@@ -41,14 +76,18 @@ chosen by the operator once there are several -- so it never counts frames Explo
 
 Resilience (so a long scan survives a flaky network): each request is retried with exponential backoff; a street that
 still fails is logged and the scan continues rather than aborting, and the failed set is retried once at the end (any
-still-failing streets land in ``db/failed_streets.csv``). Progress is checkpointed per street to
-``db/streets_imagery_checkpoint.csv``, so a re-run resumes where it left off and re-attempts only failed/unprocessed
-streets. The final ``db/streets_with_no_imagery.csv`` is derived from the checkpoint, so its schema is unchanged.
+still-failing streets land in ``failed_streets.csv``, rewritten every run so a fixed key clears it). Progress is
+checkpointed per street to ``streets_imagery_checkpoint_<provider>.csv``, so a re-run resumes where it left off and
+re-attempts only failed/unprocessed streets — and because every city's files live in its own dir and the checkpoint is
+per provider, a scan can never resume another city's, or another provider's, results: switching from ``--gsv`` to
+``--mapillary`` starts over and regenerates the output CSVs from the Mapillary checkpoint. The final no-imagery CSV is
+derived from the checkpoint, so its schema is unchanged.
 
 The pure functions (``create_bounding_box``, ``redistribute_vertices``, ``gsv_has_imagery``, ``mapillary_has_imagery``,
-``infra3d_pano_info``, ``infra3d_campaigns``, ``standardize_capture_date``, ``gsv_capture_date``, ``imagery_verdict``,
-``street_has_no_imagery``, ``summarize_dates``) are import-safe and unit-tested in
-``test/python/test_check_streets_for_imagery.py``; network and file I/O live in thin wrappers and ``main``.
+``infra3d_pano_info``, ``infra3d_campaigns``, ``standardize_capture_date``, ``gsv_capture_date``, ``score_pano``,
+``best_pano``, ``mapillary_capture_date``, ``imagery_verdict``, ``street_has_no_imagery``, ``summarize_dates``) are
+import-safe and unit-tested in ``test/python/test_check_streets_for_imagery.py``; network and file I/O live in thin
+wrappers and ``main``.
 
 The paths above are resolved relative to the repo root (this script's parent directory), so the tool works the same no
 matter which directory you launch it from.
@@ -61,8 +100,8 @@ concurrent fetching. We deliberately differ from it in three ways, because the t
 
   * Sampling: GSV Tracker samples a uniform geographic *grid* (it measures area-wide coverage and temporal patterns).
     We instead follow each street's geometry with early-exit, because our question is per-street ("does this
-    ``street_edge`` have usable imagery?"). Street-following is more targeted and makes far fewer API calls than gridding
-    a whole city, and it attributes results directly to a ``street_edge`` instead of needing a spatial join.
+    ``street_edge`` have usable imagery?"). Street-following is more targeted and makes far fewer API calls than
+    gridding a whole city, and it attributes results directly to a ``street_edge`` instead of needing a spatial join.
   * Concurrency: GSV Tracker uses asyncio/aiohttp tuned for maximum throughput (toward Google's ~500 req/s ceiling). We
     use a small thread pool plus a conservative token-bucket QPS cap, deliberately staying well under the limit; at that
     bounded concurrency, threads are simpler and sufficient, and async's scale advantage would be wasted.
@@ -71,16 +110,20 @@ concurrent fetching. We deliberately differ from it in three ways, because the t
 
 import argparse
 import base64
+import contextlib
 import csv
 import json
 import logging
+import math
 import os
+import re
 import sys
 import threading
 import time
 from collections import namedtuple
+from collections.abc import Callable, Collection, Iterable, Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import quote
 
 import pandas as pd
@@ -100,16 +143,27 @@ logger = logging.getLogger(__name__)
 # surfaced as a confusing traceback after the progress bar had already painted 0% (#4359).
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Input CSV export of street_edge endpoints + geom (see module docstring), expected in the repo root.
-INPUT_FILE = 'street_edge_endpoints.csv'
+# Path templates, filled with --city-id: every scan file lives in the city's own db/onboarding/<city-id>/ dir
+# (git-ignored, shared with onboard_city.py's artifacts, and visible to the db container at /opt/onboarding/), so
+# scans for different cities can't collide or resume each other's checkpoints.
+# Input CSV export of street_edge endpoints + geom (see module docstring).
+INPUT_FILE = 'db/onboarding/{}/street_edge_endpoints.csv'
 # Final output of streets found to be missing imagery (consumed by `make hide-streets-without-imagery`).
-OUTPUT_FILE = 'db/streets_with_no_imagery.csv'
+OUTPUT_FILE = 'db/onboarding/{}/streets_with_no_imagery.csv'
 # Per-street imagery summary (presence + capture-date range) for every settled street.
-SUMMARY_FILE = 'db/street_imagery_summary.csv'
-# Per-street progress log; enables crash-safe resume and is the source the other outputs are derived from.
-CHECKPOINT_FILE = 'db/streets_imagery_checkpoint.csv'
+SUMMARY_FILE = 'db/onboarding/{}/street_imagery_summary.csv'
+# Per-street progress log; enables crash-safe resume and is the source the other outputs are derived from. Keyed by
+# provider as well as city: the outputs above are regenerated from whichever provider's checkpoint the run uses, so a
+# --mapillary run after a --gsv one rescans rather than re-deriving GSV results under a Mapillary name.
+CHECKPOINT_FILE = 'db/onboarding/{}/streets_imagery_checkpoint_{}.csv'
 # Streets that still errored after the end-of-run retry, for follow-up.
-FAILED_FILE = 'db/failed_streets.csv'
+FAILED_FILE = 'db/onboarding/{}/failed_streets.csv'
+# A --sample preflight keeps its files apart from a full scan's, per provider, so sampling several providers never
+# touches the checkpoint a full scan resumes from; the report collects every provider sampled so far.
+PREFLIGHT_DIR = 'db/onboarding/{}/preflight/{}'
+PREFLIGHT_REPORT = 'db/onboarding/{}/preflight_report.md'
+# Streets a bare --sample checks: enough for a coverage estimate within ~±8 points at 95%, a few minutes per provider.
+DEFAULT_SAMPLE = 150
 
 # Seconds before a single request to Google/Mapillary is abandoned (each attempt; retries are layered on top).
 REQUEST_TIMEOUT = 30
@@ -124,10 +178,53 @@ DEFAULT_MAX_QPS = 10.0
 # Spacing between interpolated vertices along a street, in lat/lng degrees (~15 m). Accuracy here is not critical.
 DISTANCE = 0.000135
 
+# Weights and decay scales for ranking the Mapillary panos at a point, shared with MapillaryViewer.#scorePano so the
+# date we record for a street is the date of the pano Explore would actually show (see the JSON file's own comment,
+# and score_pano below). Loaded at import so a malformed file fails once, at startup, rather than as a KeyError from
+# inside a worker thread forty minutes into a scan; the browser half gets the same guarantee from
+# models.utils.PanoScoring.
+PANO_SCORING_FILE = 'conf/pano-scoring.json'
+PANO_SCORING_KEYS = ('distanceWeight', 'resolutionWeight', 'recencyWeight', 'distanceDecayMeters', 'recencyDecayYears')
+
+
+def _load_pano_scoring(provider: str = 'mapillary') -> dict:
+    """
+    Reads one provider's ranking parameters out of ``conf/pano-scoring.json``.
+
+    Args:
+        provider: Key of the file's ``providers`` object.
+
+    Returns:
+        The shared weights and decay scales with that provider's own parameters merged over them.
+
+    Raises:
+        KeyError: If the file is missing a key this module ranks on.
+    """
+    with open(os.path.join(REPO_ROOT, PANO_SCORING_FILE), encoding='utf-8') as handle:
+        raw = json.load(handle)
+    scoring = {**raw, **raw['providers'][provider]}
+    missing = [key for key in (*PANO_SCORING_KEYS, 'maxImageWidthPx') if key not in scoring]
+    if missing:
+        raise KeyError('%s is missing %s for %s' % (PANO_SCORING_FILE, ', '.join(missing), provider))
+    return scoring
+
+
+PANO_SCORING = _load_pano_scoring()
+
+# Milliseconds in an average (Julian) year, for converting a captured_at delta into the age in years that the recency
+# term decays over. Matches the constant MapillaryViewer.#scorePano uses.
+MS_PER_YEAR = 365.25 * 24 * 3600 * 1000
+
 # Search radii, in km: 25 m at street endpoints, 15 m at along-street points — the smaller mid-street radius avoids
 # picking up imagery from a nearby parallel street.
 ENDPOINT_RADIUS_KM = 0.025
 POINT_RADIUS_KM = 0.015
+
+# Panoramax: the federated meta-catalog's STAC search, filtered to 360° pictures (the only kind the viewer serves),
+# newest first so the capture date read from the first result is the street's newest. No key, no documented limit.
+PANORAMAX_SEARCH_URL = 'https://api.panoramax.xyz/api/search?filter=field_of_view%3D360&sortby=-ts&limit=100'
+# The API is keyless and community-run, so nothing but this says whose scan traffic it is or where to complain.
+PANORAMAX_HEADERS = {'User-Agent': 'ProjectSidewalk-check-streets/1.0 (sidewalk@cs.uw.edu)'}
 
 # Infra3d: the token grant mirrors PanoDataService.getInfra3dToken; the framegate route is what the vendored viewer SDK
 # calls for setLocation. The route's tenant segment comes from the token's scope, so there is no per-city config.
@@ -181,7 +278,7 @@ class ImageryApiError(Exception):
     """Raised when an imagery provider returns an unexpected error response that should abort checking a street."""
 
 
-def _jwt_claims(token):
+def _jwt_claims(token: str) -> dict:
     """Decodes a JWT's payload (no signature check -- we only read our own token's scope/expiry)."""
     payload = token.split('.')[1]
     return json.loads(base64.urlsafe_b64decode(payload + '=' * (-len(payload) % 4)))
@@ -196,7 +293,8 @@ class Infra3dAuth:
     call from the worker threads; the clock and HTTP ``post`` are injectable for deterministic tests.
     """
 
-    def __init__(self, client_id, client_secret, post=None, now=time.time):
+    def __init__(self, client_id: str, client_secret: str, post: Callable[..., object] | None = None,
+                 now: Callable[[], float] = time.time):
         self._client_id = client_id
         self._client_secret = client_secret
         self._post = post if post is not None else requests.post
@@ -206,7 +304,7 @@ class Infra3dAuth:
         self._expires_at = 0
         self.tenant = None
 
-    def _refresh(self):
+    def _refresh(self) -> None:
         body = {'client_id': self._client_id, 'client_secret': self._client_secret, 'grant_type': 'client_credentials'}
         response = self._post(INFRA3D_TOKEN_URL, data=body, headers={'Accept': 'application/json'},
                               timeout=REQUEST_TIMEOUT)
@@ -227,7 +325,7 @@ class Infra3dAuth:
             raise ImageryApiError('Infra3d token must carry exactly one framegate/<tenant> scope, got: %s' % scope)
         self._token, self._expires_at, self.tenant = token, expires_at, tenants[0]
 
-    def headers(self):
+    def headers(self) -> dict[str, str]:
         """Returns the auth headers for a framegate request, minting/refreshing the token first if needed."""
         with self._lock:
             if self._now() >= self._expires_at - INFRA3D_TOKEN_REFRESH_MARGIN:
@@ -241,11 +339,12 @@ class RateLimiter:
     A thread-safe token-bucket rate limiter shared across worker threads.
 
     ``acquire()`` blocks until a token is available, capping the global request rate at ``max_per_second`` (allowing
-    short bursts up to ``capacity``). Bounding the *rate* — rather than just the worker count — keeps us safely under
-    the provider's limit even if responses come back fast. The clock and sleep are injectable for deterministic tests.
+    short bursts up to ``capacity``). Bounding the *rate* — rather than just the worker count — keeps us safely
+    under the provider's limit even if responses come back fast. The clock and sleep are injectable for tests.
     """
 
-    def __init__(self, max_per_second, capacity=None, monotonic=time.monotonic, sleep=time.sleep):
+    def __init__(self, max_per_second: float, capacity: float | None = None,
+                 monotonic: Callable[[], float] = time.monotonic, sleep: Callable[[float], None] = time.sleep) -> None:
         self._rate = max_per_second
         self._capacity = capacity if capacity is not None else max_per_second
         self._tokens = self._capacity
@@ -254,7 +353,7 @@ class RateLimiter:
         self._sleep = sleep
         self._lock = threading.Lock()
 
-    def acquire(self):
+    def acquire(self) -> None:
         """Block until a token is available, then consume it."""
         while True:
             with self._lock:
@@ -268,7 +367,7 @@ class RateLimiter:
             self._sleep(wait)  # Sleep outside the lock so other threads can refill/observe progress.
 
 
-def redistribute_vertices(geom, distance=DISTANCE):
+def redistribute_vertices(geom: LineString, distance: float = DISTANCE) -> LineString:
     """
     Returns a copy of a LineString with extra vertices interpolated along it.
 
@@ -288,7 +387,7 @@ def redistribute_vertices(geom, distance=DISTANCE):
     return LineString([geom.interpolate(float(n) / num_vert, normalized=True) for n in range(num_vert + 1)])
 
 
-def create_bounding_box(lat, lng, radius_km):
+def create_bounding_box(lat: float, lng: float, radius_km: float) -> tuple[float, float, float, float]:
     """
     Builds an axis-aligned bounding box around a point.
 
@@ -308,7 +407,7 @@ def create_bounding_box(lat, lng, radius_km):
     return (west, south, east, north)
 
 
-def gsv_has_imagery(response_json):
+def gsv_has_imagery(response_json: dict) -> bool:
     """
     Interprets a Google Street View metadata response.
 
@@ -316,13 +415,24 @@ def gsv_has_imagery(response_json):
         response_json: The decoded JSON from the GSV metadata endpoint.
 
     Returns:
-        ``True`` if imagery is present, ``False`` if the response status is ``ZERO_RESULTS``.
+        ``True`` if imagery is present (status ``OK``), ``False`` if there is none (``ZERO_RESULTS`` / ``NOT_FOUND``).
+
+    Raises:
+        ImageryApiError: On any other status (``OVER_QUERY_LIMIT``, ``REQUEST_DENIED``, ``INVALID_REQUEST``,
+                         ``UNKNOWN_ERROR``). Google returns these with HTTP 200, so treating them as "not
+                         ZERO_RESULTS" made a throttled or mis-keyed run report every street as covered, with no
+                         capture dates (#5091). The street fails instead and is retried; a run with a bad key ends
+                         with every street in ``failed_streets.csv`` rather than a clean-looking 100%.
     """
     status = pd.json_normalize(response_json).status[0]
-    return status != 'ZERO_RESULTS'
+    if status == 'OK':
+        return True
+    if status in ('ZERO_RESULTS', 'NOT_FOUND'):
+        return False
+    raise ImageryApiError('GSV metadata status %s' % status)
 
 
-def standardize_capture_date(raw):
+def standardize_capture_date(raw: str | float | None) -> str | None:
     """
     Normalizes a GSV capture date to an ISO ``YYYY-MM-DD`` string.
 
@@ -345,7 +455,7 @@ def standardize_capture_date(raw):
     return None
 
 
-def gsv_capture_date(response_json):
+def gsv_capture_date(response_json: dict) -> str | None:
     """
     Extracts the standardized imagery capture date from a GSV metadata response.
 
@@ -361,7 +471,7 @@ def gsv_capture_date(response_json):
     return standardize_capture_date(results['date'][0])
 
 
-def mapillary_has_imagery(response_json):
+def mapillary_has_imagery(response_json: dict) -> bool:
     """
     Interprets a Mapillary images response.
 
@@ -385,7 +495,150 @@ def mapillary_has_imagery(response_json):
     return not no_imagery
 
 
-def infra3d_pano_info(response_json, lat, lng, radius_km):
+def score_pano(image: dict, lat: float, lng: float, now_ms: float) -> float | None:
+    """
+    Scores one candidate Mapillary image for a location, the way Explore's pano viewer does.
+
+    This is a port of ``MapillaryViewer.#scorePano`` (``public/js/common/pano-viewer/src/MapillaryViewer.js``); the
+    weights and decay scales come from ``conf/pano-scoring.json`` so the two can't drift. Recency is only a
+    quarter of the decision and distance dominates it, so the newest image at a point is frequently *not* the one the
+    viewer shows — which is the whole reason this port exists (#4411).
+
+    One term is deliberately absent: the viewer adds ``sequenceWeight`` for staying in the sequence it is already
+    viewing, and sampling a street cold there is no current sequence. Scoring it as 0 for every candidate is a uniform
+    shift, so it cannot change which candidate wins here.
+
+    Distance is measured geodesically (geopy) rather than by turf.js's haversine; over these tens of meters the two
+    agree to well under a percent, far inside the gaps that decide a ranking.
+
+    Args:
+        image:  One entry from the response's ``data`` array.
+        lat:    Latitude of the sampled point.
+        lng:    Longitude of the sampled point.
+        now_ms: Current time as a Unix epoch timestamp in milliseconds, for the recency term.
+
+    Returns:
+        A score in ``[0, 1]``, higher being better, or ``None`` if the image can't be scored: no position, or a
+        ``captured_at`` that is absent or not a number. Both fields are requested via ``fields=``, but Mapillary
+        answers with the key present and ``null`` where it has no value, so this is a real path rather than a
+        defensive one. The viewer reaches the same outcome by arithmetic rather than by a guard — an unparseable
+        ``captured_at`` makes its score ``NaN``, which loses every ``>`` comparison in ``#selectBestPano`` — so a
+        dropped candidate here is one the viewer would not have chosen either.
+    """
+    geometry = image.get('computed_geometry') or image.get('geometry')
+    coordinates = (geometry or {}).get('coordinates') or ()
+    captured_at = image.get('captured_at')
+    # bool is a subclass of int, so it would otherwise pass as a timestamp of 0 or 1.
+    if len(coordinates) < 2 or isinstance(captured_at, bool) or not isinstance(captured_at, (int, float)):
+        return None
+
+    # Distance to the sampled point (dominant factor). Exponential decay, so at the default 10 m scale:
+    # 0 m -> 1.0, 10 m -> 0.37, 25 m -> 0.08. GeoJSON positions may carry an altitude the viewer's turf.point also
+    # ignores, so only the first two ordinates are read.
+    image_lng, image_lat = coordinates[0], coordinates[1]
+    distance_m = geodesic((lat, lng), (image_lat, image_lng)).meters
+    distance_score = math.exp(-distance_m / PANO_SCORING['distanceDecayMeters'])
+
+    # Resolution: linear in width, capped. Against the default 16384 px cap: 2048 -> 0.13, 8192 -> 0.50, 16384 -> 1.0.
+    # A missing width scores 0 rather than dropping the candidate — a real pano with an unknown size still beats none.
+    resolution_score = min((image.get('width') or 0) / PANO_SCORING['maxImageWidthPx'], 1)
+
+    # Recency: exponential decay by age in years, so at the default 5-year scale: fresh -> 1.0, 3 yr -> 0.55.
+    # captured_at is a Unix epoch timestamp in milliseconds, UTC.
+    age_years = (now_ms - captured_at) / MS_PER_YEAR
+    recency_score = math.exp(-age_years / PANO_SCORING['recencyDecayYears'])
+
+    return (PANO_SCORING['distanceWeight'] * distance_score
+            + PANO_SCORING['resolutionWeight'] * resolution_score
+            + PANO_SCORING['recencyWeight'] * recency_score)
+
+
+def best_pano(response_json: dict, lat: float, lng: float, now_ms: float) -> dict | None:
+    """
+    Picks the image in a Mapillary images response that the viewer would display at the sampled point.
+
+    Args:
+        response_json: The decoded JSON from the Mapillary images endpoint.
+        lat:           Latitude of the sampled point.
+        lng:           Longitude of the sampled point.
+        now_ms:        Current time as a Unix epoch timestamp in milliseconds, for the recency term.
+
+    Returns:
+        The highest-scoring entry of ``data``, or ``None`` if nothing in the response is scorable (an empty ``data``
+        array, or no ``data`` at all — e.g. an error-code-100 response).
+    """
+    scored = [(score, image) for score, image
+              in ((score_pano(image, lat, lng, now_ms), image) for image in response_json.get('data', []))
+              if score is not None]
+    if not scored:
+        return None
+    return max(scored, key=lambda pair: pair[0])[1]
+
+
+def mapillary_capture_date(response_json: dict, lat: float, lng: float, now_ms: float | None = None) -> str | None:
+    """
+    Extracts the standardized capture date of the image the viewer would show at a Mapillary-sampled point.
+
+    A Mapillary bbox query returns many images per sampled point (unlike GSV's one pano per metadata response), so each
+    point is reduced to a single date — one per queried location, which keeps ``n_panos`` (a count of dated points)
+    comparable between the two providers. That date is the *winner* of ``score_pano``, not the newest image: recording
+    a newer pano than the one Explore serves would stop us flagging a street as outdated while the old imagery is
+    still what users see (#4411).
+
+    Args:
+        response_json: The decoded JSON from the Mapillary images endpoint.
+        lat:           Latitude of the sampled point.
+        lng:           Longitude of the sampled point.
+        now_ms:        Current time as a Unix epoch timestamp in milliseconds; defaults to now.
+
+    Returns:
+        An ISO ``YYYY-MM-DD`` string, or ``None`` if the response carries no scorable images.
+    """
+    if now_ms is None:
+        now_ms = datetime.now(tz=timezone.utc).timestamp() * 1000
+    winner = best_pano(response_json, lat, lng, now_ms)
+    if winner is None:
+        return None
+    return datetime.fromtimestamp(winner['captured_at'] / 1000, tz=timezone.utc).date().isoformat()
+
+
+def panoramax_has_imagery(response_json: dict) -> bool:
+    """
+    Interprets a Panoramax STAC search response.
+
+    A search answers with a GeoJSON FeatureCollection; no ``features`` key at all means the API returned an error body.
+
+    Args:
+        response_json: The decoded JSON from the Panoramax search endpoint.
+
+    Returns:
+        ``True`` if any 360° picture lies in the searched box, ``False`` if ``features`` is empty.
+
+    Raises:
+        ImageryApiError: If the response is not a FeatureCollection.
+    """
+    if 'features' not in response_json:
+        raise ImageryApiError('unexpected Panoramax response: ' + str(response_json)[:200])
+    return len(response_json['features']) > 0
+
+
+def panoramax_capture_date(response_json: dict) -> str | None:
+    """
+    Extracts the newest picture's standardized capture date from a Panoramax search response.
+
+    Args:
+        response_json: The decoded JSON from the Panoramax search endpoint (a FeatureCollection).
+
+    Returns:
+        An ISO ``YYYY-MM-DD`` string, or ``None`` if no picture carries a ``datetime``.
+    """
+    dates = [standardize_capture_date(str(f.get('properties', {}).get('datetime', ''))[:10])
+             for f in response_json.get('features', [])]
+    dates = [d for d in dates if d]
+    return max(dates) if dates else None
+
+
+def infra3d_pano_info(response_json: dict, lat: float, lng: float, radius_km: float) -> PanoInfo:
     """
     Interprets an Infra3d nearest-frame (``knn/query``) response for a query point.
 
@@ -417,7 +670,7 @@ def infra3d_pano_info(response_json, lat, lng, radius_km):
         raise ImageryApiError('malformed Infra3d frame: %r' % err) from err
 
 
-def infra3d_campaigns(response_json):
+def infra3d_campaigns(response_json: dict) -> list[tuple[str, str | None]]:
     """
     Interprets an Infra3d campaign-list (``campaigns/{tenant}/query``) response.
 
@@ -436,7 +689,7 @@ def infra3d_campaigns(response_json):
         raise ImageryApiError('malformed Infra3d campaign: %r' % err) from err
 
 
-def _infra3d_value_list(response_json):
+def _infra3d_value_list(response_json: dict) -> list:
     """Returns the ``value`` list of a framegate query response, or raises ``ImageryApiError`` if there isn't one."""
     value = response_json.get('value') if isinstance(response_json, dict) else None
     if not isinstance(value, list):
@@ -444,7 +697,7 @@ def _infra3d_value_list(response_json):
     return value
 
 
-def imagery_verdict(n_fail, n_success, n_coords, endpoint_failed):
+def imagery_verdict(n_fail: int, n_success: int, n_coords: int, endpoint_failed: bool) -> str | None:
     """
     Decides, from running point counts, whether the street's imagery status is settled yet.
 
@@ -465,7 +718,8 @@ def imagery_verdict(n_fail, n_success, n_coords, endpoint_failed):
     return None
 
 
-def street_has_no_imagery(first_endpoint_fail, second_endpoint_fail, point_has_imagery, n_coords=None):
+def street_has_no_imagery(first_endpoint_fail: bool, second_endpoint_fail: bool,
+                          point_has_imagery: Iterable[bool], n_coords: int | None = None) -> bool:
     """
     Decides whether a street should be flagged as missing imagery.
 
@@ -505,7 +759,7 @@ def street_has_no_imagery(first_endpoint_fail, second_endpoint_fail, point_has_i
     return False
 
 
-def _get_json(url, **kwargs):
+def _get_json(url: str, **kwargs) -> dict:
     """
     Requests a URL and returns the decoded JSON (with a bounded per-attempt timeout).
 
@@ -516,7 +770,8 @@ def _get_json(url, **kwargs):
     return requests.request(url=url, timeout=REQUEST_TIMEOUT, **kwargs).json()
 
 
-def make_fetch(max_attempts=MAX_ATTEMPTS, sleep=None, rate_limiter=None):
+def make_fetch(max_attempts: int = MAX_ATTEMPTS, sleep: Callable[[float], None] | None = None,
+               rate_limiter: RateLimiter | None = None) -> Callable[..., dict]:
     """
     Builds a ``fetch(url, **kwargs) -> json`` that retries transient network errors with exponential backoff + jitter.
 
@@ -538,7 +793,7 @@ def make_fetch(max_attempts=MAX_ATTEMPTS, sleep=None, rate_limiter=None):
         reraise=True,
     )
 
-    def attempt(url, **kwargs):
+    def attempt(url: str, **kwargs) -> dict:
         if rate_limiter is not None:
             rate_limiter.acquire()
         return _get_json(url, **kwargs)
@@ -546,38 +801,46 @@ def make_fetch(max_attempts=MAX_ATTEMPTS, sleep=None, rate_limiter=None):
     return lambda url, **kwargs: retryer(lambda: attempt(url, **kwargs))
 
 
-def _mapillary_bbox_url(mapillary_url, lat, lng, radius_km):
+def _mapillary_bbox_url(mapillary_url: str, lat: float, lng: float, radius_km: float) -> str:
     """Appends a ``&bbox=`` query (a box of ``radius_km`` around the point) to the Mapillary base URL."""
     bbox = create_bounding_box(lat, lng, radius_km)
     return mapillary_url + '&bbox=' + ','.join(str(coord) for coord in bbox)
 
 
-def _infra3d_frame_filter(campaign_uids):
+def _panoramax_bbox_url(lat: float, lng: float, radius_km: float) -> str:
+    """Appends a ``&bbox=`` query (a box of ``radius_km`` around the point) to the Panoramax search URL."""
+    bbox = create_bounding_box(lat, lng, radius_km)
+    return PANORAMAX_SEARCH_URL + '&bbox=' + ','.join(str(coord) for coord in bbox)
+
+
+def _infra3d_frame_filter(campaign_uids: Iterable[str]) -> str:
     """The framegate ``filter`` restricting frames to 360° types within the given campaigns, as the viewer does."""
     return "%s and campaign_uid in '(%s)'" % (INFRA3D_PANO_FILTER, ', '.join(campaign_uids))
 
 
-def _infra3d_knn_url(tenant, lat, lng, campaign_uids):
+def _infra3d_knn_url(tenant: str, lat: float, lng: float, campaign_uids: Iterable[str]) -> str:
     """Builds the framegate nearest-360°-frame query URL for a point, scoped to ``campaign_uids``."""
     return '%s/frames/%s/knn/query?longitude=%s&latitude=%s&filter=%s' % (
         INFRA3D_API_URL, tenant, lng, lat, quote(_infra3d_frame_filter(campaign_uids), safe=''))
 
 
-def _infra3d_point_pano_info(infra3d, lat, lng, radius_km, fetch):
+def _infra3d_point_pano_info(infra3d: Infra3dScan, lat: float, lng: float, radius_km: float,
+                             fetch: Callable[..., dict]) -> PanoInfo:
     """Queries Infra3d for the nearest 360° frame to a point (via ``fetch``) and returns its ``PanoInfo``."""
     headers = infra3d.auth.headers()  # Before the URL: minting the token is what populates auth.tenant.
     url = _infra3d_knn_url(infra3d.auth.tenant, lat, lng, infra3d.campaign_uids)
     return infra3d_pano_info(fetch(url, method='POST', headers=headers), lat, lng, radius_km)
 
 
-def _infra3d_list_campaigns(auth, fetch):
+def _infra3d_list_campaigns(auth: Infra3dAuth, fetch: Callable[..., dict]) -> list[tuple[str, str | None]]:
     """Lists the campaigns the token's tenant holds, as ``(uid, name)`` pairs."""
     headers = auth.headers()
     return infra3d_campaigns(fetch(INFRA3D_CAMPAIGNS_URL % (INFRA3D_API_URL, auth.tenant), method='POST',
                                    headers=headers))
 
 
-def choose_infra3d_campaigns(campaigns, requested):
+def choose_infra3d_campaigns(campaigns: Collection[tuple[str, str | None]],
+                             requested: Collection[str]) -> list[str]:
     """
     Picks the campaign uids an Infra3d scan is restricted to.
 
@@ -604,33 +867,39 @@ def choose_infra3d_campaigns(campaigns, requested):
     return [campaigns[0][0]]
 
 
-def _pano_info(api, response_json):
+def _pano_info(api: str, response_json: dict, lat: float, lng: float) -> PanoInfo:
     """
     Builds a ``PanoInfo`` (imagery present? + capture date) from one provider response.
 
-    GSV responses carry a capture date; Mapillary capture dates are not yet captured (a future enhancement), so
-    Mapillary panos report ``capture_date=None``.
+    GSV's and Panoramax's dates come from the one pano each response carries. Mapillary returns every image in the
+    queried box, so the point it was queried at is needed to rank them; see ``mapillary_capture_date`` for which wins.
     """
     if api == 'GSV':
         return PanoInfo(gsv_has_imagery(response_json), gsv_capture_date(response_json))
-    return PanoInfo(mapillary_has_imagery(response_json), None)
+    if api == 'Panoramax':
+        return PanoInfo(panoramax_has_imagery(response_json), panoramax_capture_date(response_json))
+    return PanoInfo(mapillary_has_imagery(response_json), mapillary_capture_date(response_json, lat, lng))
 
 
-def _point_pano_info(api, lat, lng, fetch, gsv_url, mapillary_url, radius_km, infra3d=None):
+def _point_pano_info(api: str, lat: float, lng: float, fetch: Callable[..., dict], gsv_url: str,
+                     mapillary_url: str, radius_km: float, infra3d: Infra3dScan | None = None) -> PanoInfo:
     """
     Queries the configured provider at one point (via ``fetch``) and returns its ``PanoInfo``.
 
-    ``radius_km`` is the Mapillary bbox half-extent / Infra3d max frame distance; GSV bakes its radius into ``gsv_url``.
-    ``infra3d`` is the ``Infra3dScan`` (token holder + campaign scope), needed only for that provider.
+    ``radius_km`` is the Mapillary/Panoramax bbox half-extent / Infra3d max frame distance; GSV bakes its radius into
+    ``gsv_url``. ``infra3d`` is the ``Infra3dScan`` (token holder + campaign scope), needed only for that provider.
     """
     if api == 'GSV':
-        return _pano_info(api, fetch(gsv_url + '&location=' + str(lat) + ',' + str(lng)))
+        return _pano_info(api, fetch(gsv_url + '&location=' + str(lat) + ',' + str(lng)), lat, lng)
+    if api == 'Panoramax':
+        return _pano_info(api, fetch(_panoramax_bbox_url(lat, lng, radius_km), headers=PANORAMAX_HEADERS), lat, lng)
     if api == 'Infra3d':
         return _infra3d_point_pano_info(infra3d, lat, lng, radius_km, fetch)
-    return _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, lat, lng, radius_km)))
+    return _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, lat, lng, radius_km)), lat, lng)
 
 
-def _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url, infra3d=None):
+def _check_endpoints(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_url_endpoint: str,
+                     mapillary_url: str, infra3d: Infra3dScan | None = None) -> tuple[PanoInfo, PanoInfo]:
     """Checks both of a street's endpoints; returns ``(first_pano_info, second_pano_info)``."""
     # GSV carries its radius in the URL, so the endpoint URL goes where the along-street point URL normally would.
     first = _point_pano_info(api, street.y1, street.x1, fetch, gsv_url_endpoint, mapillary_url, ENDPOINT_RADIUS_KM,
@@ -640,7 +909,7 @@ def _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url, infra3
     return first, second
 
 
-def summarize_dates(dates):
+def summarize_dates(dates: Collection[str]) -> tuple[str | None, str | None, int]:
     """
     Summarizes a street's observed imagery capture dates.
 
@@ -655,7 +924,8 @@ def summarize_dates(dates):
     return min(dates), max(dates), len(dates)
 
 
-def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url, infra3d=None):
+def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_url: str, gsv_url_endpoint: str,
+                   mapillary_url: str, infra3d: Infra3dScan | None = None) -> StreetResult:
     """
     Checks one street for imagery and returns its outcome (pure of any file/checkpoint I/O, so it is pool-safe).
 
@@ -665,7 +935,7 @@ def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url,
 
     Args:
         street:           A street row (Series) with ``street_edge_id``, ``region_id``, endpoint x/y, and ``geom``.
-        api:              ``'GSV'``, ``'Mapillary'``, or ``'Infra3d'``.
+        api:              ``'GSV'``, ``'Mapillary'``, ``'Panoramax'``, or ``'Infra3d'``.
         fetch:            A ``fetch(url, **kwargs) -> json`` (typically from ``make_fetch``, with retry).
         gsv_url:          GSV metadata base URL with the along-street radius baked in (GSV only).
         gsv_url_endpoint: GSV metadata base URL with the endpoint radius baked in (GSV only).
@@ -685,7 +955,7 @@ def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url,
         # Yield the per-point has_imagery booleans to the (unchanged) decision function, recording each point's capture
         # date as a side effect. Because street_has_no_imagery consumes this lazily and stops at the verdict, we only
         # fetch — and only collect dates for — the points actually visited.
-        def has_imagery_stream():
+        def has_imagery_stream() -> Iterator[bool]:
             # `no branch`: street_has_no_imagery settles and stops consuming before this loop is exhausted (for any
             # real street, which has >= 2 points), so the generator is abandoned rather than run to completion.
             for coord in coords:  # pragma: no branch  -- Shapely coords are (x=lng, y=lat).
@@ -705,7 +975,7 @@ def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url,
     return StreetResult(int(street.street_edge_id), int(street.region_id), outcome, oldest, newest, n_panos)
 
 
-def load_processed(checkpoint_file=CHECKPOINT_FILE):
+def load_processed(checkpoint_file: str) -> set[int]:
     """Returns the set of ``street_edge_id`` already settled (failed streets are excluded so they get re-attempted)."""
     if not os.path.isfile(checkpoint_file):
         return set()
@@ -713,7 +983,7 @@ def load_processed(checkpoint_file=CHECKPOINT_FILE):
     return set(checkpoint[checkpoint['outcome'] != FAILED]['street_edge_id'])
 
 
-def append_checkpoint(result, checkpoint_file=CHECKPOINT_FILE):
+def append_checkpoint(result: StreetResult, checkpoint_file: str) -> None:
     """Appends one street's result to the checkpoint (writing the header on first use)."""
     write_header = not os.path.isfile(checkpoint_file)
     with open(checkpoint_file, 'a', newline='') as handle:
@@ -723,7 +993,7 @@ def append_checkpoint(result, checkpoint_file=CHECKPOINT_FILE):
         writer.writerow(list(result))
 
 
-def _write_ids_csv(rows, output_file):
+def _write_ids_csv(rows: pd.DataFrame, output_file: str) -> None:
     """Writes a ``(street_edge_id, region_id)`` frame as CSV with integer ids."""
     df = pd.DataFrame(rows, columns=['street_edge_id', 'region_id'])
     df['street_edge_id'] = df['street_edge_id'].astype('int32')
@@ -731,7 +1001,7 @@ def _write_ids_csv(rows, output_file):
     df.to_csv(output_file, index=False)
 
 
-def _write_summary_csv(settled, summary_file):
+def _write_summary_csv(settled: pd.DataFrame, summary_file: str) -> None:
     """Writes the per-street imagery summary (presence + capture-date range) for the settled streets."""
     summary = pd.DataFrame(settled, columns=CHECKPOINT_COLUMNS).copy()
     summary['has_imagery'] = summary['outcome'] == HAS_IMAGERY
@@ -741,14 +1011,14 @@ def _write_summary_csv(settled, summary_file):
     summary[SUMMARY_COLUMNS].to_csv(summary_file, index=False)
 
 
-def finalize_outputs(checkpoint_file=CHECKPOINT_FILE, output_file=OUTPUT_FILE, failed_file=FAILED_FILE,
-                     summary_file=SUMMARY_FILE):
+def finalize_outputs(checkpoint_file: str, output_file: str, failed_file: str, summary_file: str) -> None:
     """
     Derives the final output files from the checkpoint.
 
     Writes ``output_file`` (streets with no imagery), ``summary_file`` (every settled street with its imagery
-    presence + capture-date range), and, if any remain, ``failed_file`` (streets that errored out). The latest outcome
-    per street wins, so a street that failed then succeeded on retry is counted as succeeded.
+    presence + capture-date range), and ``failed_file`` (streets that errored out — written even when empty, so a
+    rerun with a fixed key or quota clears the previous run's list rather than leaving it to be read as current). The
+    latest outcome per street wins, so a street that failed then succeeded on retry is counted as succeeded.
     """
     if os.path.isfile(checkpoint_file):
         checkpoint = pd.read_csv(checkpoint_file).drop_duplicates('street_edge_id', keep='last')
@@ -757,29 +1027,139 @@ def finalize_outputs(checkpoint_file=CHECKPOINT_FILE, output_file=OUTPUT_FILE, f
         checkpoint = pd.DataFrame(columns=CHECKPOINT_COLUMNS)
     _write_ids_csv(checkpoint[checkpoint['outcome'] == NO_IMAGERY], output_file)
     _write_summary_csv(checkpoint[checkpoint['outcome'] != FAILED], summary_file)
-    failed = checkpoint[checkpoint['outcome'] == FAILED]
-    if not failed.empty:
-        _write_ids_csv(failed, failed_file)
+    _write_ids_csv(checkpoint[checkpoint['outcome'] == FAILED], failed_file)
 
 
-def main(argv=None):
+def preflight_summary(summary: pd.DataFrame, n_failed: int = 0) -> dict:
     """
-    Parses arguments and scans every street for imagery, writing those without it to ``OUTPUT_FILE``.
+    Aggregates a preflight sample's per-street summary into the headline figures the report shows.
+
+    Args:
+        summary:  A DataFrame in ``SUMMARY_COLUMNS`` shape (the settled streets of one provider's sample).
+        n_failed: Streets that errored out of the sample (a mis-keyed provider shows up here, not as coverage).
+
+    Returns:
+        A dict: ``n_streets``, ``n_covered``, ``pct_covered``, ``n_failed``, the ``oldest`` / ``median`` / ``newest``
+        of the streets' newest capture dates (None without dates), and ``years`` — a ``{year: streets}`` count of the
+        newest capture year.
+    """
+    n_streets = len(summary)
+    n_covered = int(summary['has_imagery'].sum()) if n_streets else 0
+    newest = summary['newest_capture'].dropna().astype(str).sort_values().tolist() if n_streets else []
+    years = {}
+    for date in newest:
+        years[date[:4]] = years.get(date[:4], 0) + 1
+    return {
+        'n_streets': n_streets,
+        'n_covered': n_covered,
+        'pct_covered': 100.0 * n_covered / n_streets if n_streets else 0.0,
+        'n_failed': n_failed,
+        'oldest': newest[0] if newest else None,
+        'median': newest[(len(newest) - 1) // 2] if newest else None,   # Lower-middle for an even count.
+        'newest': newest[-1] if newest else None,
+        'years': years,
+    }
+
+
+def collect_preflight_summaries(city_dir: str) -> dict[str, dict]:
+    """
+    Reads every provider's preflight results under ``<city_dir>/preflight/``.
+
+    Args:
+        city_dir: The city's ``db/onboarding/<city-id>`` directory.
+
+    Returns:
+        ``{provider: preflight_summary(...)}`` for each provider dir holding a summary CSV.
+    """
+    preflight_root = os.path.join(city_dir, 'preflight')
+    summaries = {}
+    if not os.path.isdir(preflight_root):
+        return summaries
+    for provider in sorted(os.listdir(preflight_root)):
+        summary_path = os.path.join(preflight_root, provider, os.path.basename(SUMMARY_FILE))
+        if not os.path.isfile(summary_path):
+            continue
+        failed_path = os.path.join(preflight_root, provider, os.path.basename(FAILED_FILE))
+        n_failed = len(pd.read_csv(failed_path)) if os.path.isfile(failed_path) else 0
+        summaries[provider] = preflight_summary(pd.read_csv(summary_path), n_failed)
+    return summaries
+
+
+def write_preflight_report(path: str, city_id: str, summaries: dict[str, dict]) -> None:
+    """
+    Writes the per-city preflight comparison: one row per provider sampled so far, so the imagery choice is a table.
+
+    Args:
+        path:      Output ``.md`` path.
+        city_id:   The city id, for the title.
+        summaries: ``{provider: preflight_summary(...)}``.
+    """
+    lines = [
+        '# Imagery preflight — %s' % city_id,
+        '',
+        '- Updated: %s by `scripts/check_streets_for_imagery.py --sample`' % datetime.now(timezone.utc).strftime(
+            '%Y-%m-%d %H:%M UTC'),
+        '- Each row is an independent random sample of the built streets; a street counts as covered when the full',
+        "  scan's verdict rules would keep it open. Dates are each covered street's newest capture (Mapillary reports",
+        '  no dates). A non-zero `failed` column means requests errored — check the key or quota before reading the',
+        '  coverage figure.',
+        '',
+        '| provider | sample | covered | failed | oldest | median | newest | newest capture by year |',
+        '|---|---|---|---|---|---|---|---|',
+    ]
+    for provider, s in sorted(summaries.items()):
+        years = ', '.join('%s: %d' % (year, count) for year, count in sorted(s['years'].items())) or '—'
+        lines.append('| %s | %d | %d (%.0f%%) | %d | %s | %s | %s | %s |' % (
+            provider, s['n_streets'], s['n_covered'], s['pct_covered'], s['n_failed'], s['oldest'] or '—',
+            s['median'] or '—', s['newest'] or '—', years))
+    lines += ['', 'Rerun with another `--<provider>` to add a row; `--seed` picks a different sample.', '']
+    with open(path, 'w') as handle:
+        handle.write('\n'.join(lines))
+
+
+def valid_city_id(value: str) -> str:
+    """
+    argparse type for ``--city-id``: the cityparams id shape (same rule as ``onboard_city.py``, kept local so this
+    module never imports the geo stack). It is interpolated into every data-file path, so it must be a plain
+    kebab-case token.
+    """
+    if not re.fullmatch(r'[a-z][a-z0-9-]*', value):
+        raise argparse.ArgumentTypeError(f'"{value}" — use lowercase kebab-case, e.g. "newport-ky".')
+    return value
+
+
+def checkpoint_ids(checkpoint_file: str) -> set[int]:
+    """Every ``street_edge_id`` a checkpoint holds, settled or failed (empty when there is no checkpoint)."""
+    if not os.path.isfile(checkpoint_file):
+        return set()
+    return set(pd.read_csv(checkpoint_file)['street_edge_id'])
+
+
+def main(argv: list[str] | None = None) -> int:
+    """
+    Parses arguments and scans every street for imagery, writing those without it to ``OUTPUT_FILE`` — or, with
+    ``--sample``, checks a random sample and refreshes the city's ``preflight_report.md``.
 
     Args:
         argv: Optional argument list (defaults to ``sys.argv``); accepted to make the entrypoint testable.
 
     Returns:
         Process exit code: 0 on success, 1 on a missing API key, an unusable Infra3d setup, or a user interrupt.
+        Panoramax needs no key, so its scan can only fail per street.
     """
     parser = argparse.ArgumentParser(
         description='Loops through streets, outputting any without imagery to a separate file.')
+    parser.add_argument('--city-id', required=True, type=valid_city_id,
+                        help='The cityparams city id being scanned, e.g. "newport-ky"; every data file lives in '
+                             'db/onboarding/<city-id>/.')
     provider = parser.add_mutually_exclusive_group(required=True)
     provider.add_argument('--gsv', action='store_true', help='Check for GSV imagery (needs GOOGLE_MAPS_API_KEY)')
     provider.add_argument('--mapillary', action='store_true',
                           help='Check for Mapillary imagery (needs MAPILLARY_ACCESS_TOKEN)')
     provider.add_argument('--infra3d', action='store_true',
                           help='Check for Infra3d imagery (needs INFRA3D_CLIENT_ID + INFRA3D_CLIENT_SECRET)')
+    provider.add_argument('--panoramax', action='store_true',
+                          help='Check for Panoramax 360° imagery (public API, no credential needed)')
     parser.add_argument('--campaign', action='append', default=[], metavar='UID',
                         help='Infra3d campaign to count imagery from (repeatable). Required only when the tenant '
                              'holds more than one campaign; the scan lists them if so.')
@@ -787,8 +1167,17 @@ def main(argv=None):
                         help='Number of streets to check concurrently (default: %(default)s).')
     parser.add_argument('--max-qps', type=float, default=DEFAULT_MAX_QPS,
                         help='Global cap on requests per second across all workers (default: %(default)s).')
+    parser.add_argument('--sample', type=int, nargs='?', const=DEFAULT_SAMPLE, metavar='N',
+                        help='Preflight: check a random sample of N streets (%d when bare) and refresh the city\'s '
+                             'preflight_report.md instead of running the full scan. Files go to '
+                             'db/onboarding/<city-id>/preflight/<provider>/, apart from a full scan\'s.'
+                             % DEFAULT_SAMPLE)
+    parser.add_argument('--seed', type=int, default=0,
+                        help='Random seed for --sample (default: %(default)s, so a rerun checks the same streets).')
     args = parser.parse_args(argv)
-    api = 'GSV' if args.gsv else 'Mapillary' if args.mapillary else 'Infra3d'
+    if args.sample is not None and args.sample <= 0:
+        parser.error('--sample needs a positive number of streets (bare --sample checks %d).' % DEFAULT_SAMPLE)
+    api = 'GSV' if args.gsv else 'Mapillary' if args.mapillary else 'Panoramax' if args.panoramax else 'Infra3d'
     # One shared rate limiter caps total request rate across all worker threads.
     fetch = make_fetch(rate_limiter=RateLimiter(args.max_qps))
 
@@ -811,31 +1200,61 @@ def main(argv=None):
         names = dict(campaigns)
         print('Checking Infra3d tenant %s, campaign(s): %s' % (
             auth.tenant, ', '.join('%s (%s)' % (uid, names[uid]) for uid in campaign_uids)))
+    elif api == 'Panoramax':
+        print('Checking Panoramax 360° coverage via %s (public API, no credential needed)' % PANORAMAX_SEARCH_URL)
     else:
         api_key = os.getenv('GOOGLE_MAPS_API_KEY') if api == 'GSV' else os.getenv('MAPILLARY_ACCESS_TOKEN')
         if api_key is None:
             print("Couldn't read API key environment variable.")
             return 1
 
-    # Resolve every data file against the repo root so the script works regardless of the working directory.
-    input_path = os.path.join(REPO_ROOT, INPUT_FILE)
-    checkpoint_path = os.path.join(REPO_ROOT, CHECKPOINT_FILE)
-    output_path = os.path.join(REPO_ROOT, OUTPUT_FILE)
-    failed_path = os.path.join(REPO_ROOT, FAILED_FILE)
-    summary_path = os.path.join(REPO_ROOT, SUMMARY_FILE)
+    # Resolve every data file against the repo root so the script works regardless of the working directory. A
+    # preflight keeps the same file names under its own preflight/<provider>/ dir.
+    provider = api.lower()
+    input_path = os.path.join(REPO_ROOT, INPUT_FILE.format(args.city_id))
+    if args.sample:
+        scan_dir = os.path.join(REPO_ROOT, PREFLIGHT_DIR.format(args.city_id, provider))
+        os.makedirs(scan_dir, exist_ok=True)
+    else:
+        scan_dir = os.path.dirname(input_path)
+    checkpoint_path, output_path, failed_path, summary_path = (
+        os.path.join(scan_dir, os.path.basename(template.format(args.city_id, provider)))
+        for template in (CHECKPOINT_FILE, OUTPUT_FILE, FAILED_FILE, SUMMARY_FILE))
+
+    if not os.path.isfile(input_path):
+        print(f"Couldn't find {input_path} — export this city's street_edge endpoints there first "
+              '(see the module docstring).')
+        return 1
 
     # Read street edge data and interpolate vertices roughly every 15 m so we can sample imagery along each street.
     street_data = pd.read_csv(input_path)
+    if args.sample:
+        n_all = len(street_data)
+        street_data = street_data.sample(n=min(args.sample, n_all), random_state=args.seed)
+        print('Preflight: checking a random %d of %d streets for %s imagery (seed %d)'
+              % (len(street_data), n_all, api, args.seed))
+        # A preflight is one sample, and its report row says so. A checkpoint from a different sample (another
+        # --seed or N) would otherwise accumulate into it, and the outputs are derived from the whole checkpoint.
+        if checkpoint_ids(checkpoint_path) - set(street_data['street_edge_id']):
+            print('A previous %s preflight sampled different streets; starting this sample fresh.' % api)
+            for path in (checkpoint_path, output_path, failed_path, summary_path):
+                with contextlib.suppress(FileNotFoundError):
+                    os.remove(path)
     street_data = street_data.sort_values(by=['region_id', 'street_edge_id'])
     street_data['geom'] = list(map(lambda g: redistribute_vertices(wkb.loads(g, hex=True)), list(street_data['geom'])))
 
     gsv_base_url = 'https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor&key=%s' % api_key
     gsv_url = gsv_base_url + '&radius=15'
     gsv_url_endpoint = gsv_base_url + '&radius=25'
-    mapillary_url = 'https://graph.mapillary.com/images?is_pano=true&access_token=%s' % api_key
+    # fields= is what makes each image carry the attributes score_pano ranks on; a default response holds only `id`.
+    # Same request count either way, so the ranking is free. Both geometry fields are requested because the viewer
+    # prefers computed_geometry (Mapillary's refined position) and falls back to the raw one.
+    mapillary_fields = 'captured_at,geometry,computed_geometry,width'
+    mapillary_url = 'https://graph.mapillary.com/images?is_pano=true&fields=%s&access_token=%s' % (mapillary_fields,
+                                                                                                  api_key)
     checkpoint_lock = threading.Lock()
 
-    def check_and_record(street):
+    def check_and_record(street: pd.Series) -> StreetResult:
         result = process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url, infra3d)
         with checkpoint_lock:  # process_street does no file I/O; only the checkpoint append needs serializing.
             append_checkpoint(result, checkpoint_path)
@@ -874,6 +1293,16 @@ def main(argv=None):
         # Derive the outputs however the scan ended -- interrupt, or a bug escaping a worker -- so the streets already
         # settled in the checkpoint are never lost to a traceback.
         finalize_outputs(checkpoint_path, output_path, failed_path, summary_path)
+        if args.sample:
+            city_dir = os.path.join(REPO_ROOT, 'db', 'onboarding', args.city_id)
+            summaries = collect_preflight_summaries(city_dir)
+            report_path = os.path.join(REPO_ROOT, PREFLIGHT_REPORT.format(args.city_id))
+            write_preflight_report(report_path, args.city_id, summaries)
+            result = summaries[api.lower()]
+            print('%s: %d of %d sampled streets covered (%.0f%%), %d failed; newest captures %s .. %s (median %s). '
+                  'Report: %s' % (api, result['n_covered'], result['n_streets'], result['pct_covered'],
+                                  result['n_failed'], result['oldest'] or '—', result['newest'] or '—',
+                                  result['median'] or '—', report_path))
     return 0
 
 

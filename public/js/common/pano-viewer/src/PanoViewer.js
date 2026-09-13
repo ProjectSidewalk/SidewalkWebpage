@@ -47,18 +47,18 @@ class PanoViewer {
   constructor() {
     if (new.target === PanoViewer) {
       throw new Error('Cannot instantiate abstract class directly');
-    } else if (new.target === GsvViewer) {
-      this.viewerType = 'gsv';
+    }
+    this.viewerType = new.target.SOURCE;
+    if (new.target === GsvViewer) {
       this.canvasClass = 'widget-scene-canvas';
     } else if (new.target === MapillaryViewer) {
-      this.viewerType = 'mapillary';
       this.canvasClass = 'mapillary-canvas';
     } else if (new.target === Infra3dViewer) {
-      this.viewerType = 'infra3d';
       this.canvasClass = 'infra3dsdk-canvas';
     } else if (new.target === PannellumViewer) {
-      this.viewerType = 'pannellum';
       this.canvasClass = 'pannellum-canvas';
+    } else if (new.target === PanoramaxViewer) {
+      this.canvasClass = 'psv-canvas';
     }
   }
 
@@ -243,6 +243,14 @@ class PanoViewer {
    * @returns {Promise<void>}
    */
   async preloadPanoNear(_latLng, _excludedPanos = new Set()) {}
+
+  /**
+   * Downloads the provider's viewer code ahead of create(), so a viewer built later on a user action doesn't wait on
+   * the network. Must not construct a viewer: for providers that bill per viewer instance (GSV), that is the whole
+   * point of deferring create() (#5128). No-op by default; override in providers that load code on demand.
+   * @returns {Promise<void>}
+   */
+  static async preloadLibrary() {}
 
   /**
    * Moves the current panorama to the specified panorama ID.

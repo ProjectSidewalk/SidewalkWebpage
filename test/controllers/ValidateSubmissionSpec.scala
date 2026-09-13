@@ -297,6 +297,18 @@ class ValidateSubmissionSpec
       sql"SELECT comment FROM validation_task_comment WHERE label_id = $labelId AND user_id = $userId".as[String]
     )
 
+  /**
+   * The superseded versions of the user's comment on the label, oldest first (#5076).
+   *
+   * @return Each version's text paired with what ended it, the pair the live table cannot answer for.
+   */
+  private def commentVersionsOn(labelId: Int, userId: String): Seq[(String, String)] =
+    run(
+      sql"""SELECT comment, change_type::text FROM validation_task_comment_history
+            WHERE label_id = $labelId AND user_id = $userId
+            ORDER BY superseded_at, validation_task_comment_history_id""".as[(String, String)]
+    )
+
   /** The `validation` chip on the session user's own comment, read back through `GET /label/id/:labelId`. */
   private def ownCommentValidation(session: Seq[Cookie], labelId: Int): Option[String] = {
     val res = route(app, FakeRequest(GET, s"/label/id/$labelId").withCookies(session: _*)).get
@@ -340,6 +352,7 @@ class ValidateSubmissionSpec
           sqlu"DELETE FROM label_edit WHERE user_id = $uId",
           sqlu"""DELETE FROM label_ai_assessment
                  WHERE label_validation_id IN (SELECT label_validation_id FROM label_validation WHERE user_id = $uId)""",
+          sqlu"DELETE FROM validation_task_comment_history WHERE user_id = $uId",
           sqlu"DELETE FROM validation_task_comment WHERE mission_id IN (SELECT mission_id FROM mission WHERE user_id = $uId)",
           sqlu"""DELETE FROM validation_task_environment
                  WHERE mission_id IN (SELECT mission_id FROM mission WHERE user_id = $uId)""",
@@ -577,6 +590,48 @@ class ValidateSubmissionSpec
       val newComment = Seq(validationJson(label, b.missionId, "Agree", comment = Some("Looking again, it is fine.")))
       status(postValidationTask(session, taskSubmission(b, newComment, progress))) mustBe OK
       commentsOn(labelId, b.userId) mustBe Seq("Looking again, it is fine.")
+
+      // One version, not two: the repeat in the middle superseded nothing, so it recorded nothing (#5076).
+      commentVersionsOn(labelId, b.userId) mustBe Seq(("Ramp is behind the parked car.", "edit"))
+    }
+
+    "keep the comment a retracted vote takes with it (#5076)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      val label   = b.labels.head
+      val labelId = (label \ "label_id").as[Int]
+      val _       = backupLabel(labelId)
+
+      val progress  = Some(missionProgressJson(b, 1))
+      val commented = Seq(validationJson(label, b.missionId, "Agree", comment = Some("Ramp is buried in snow.")))
+      status(postValidationTask(session, taskSubmission(b, commented, progress))) mustBe OK
+
+      // Undoing the vote clears the comment that rode in with it, which is no request to erase the text — so it is
+      // recorded apart from the label card's Delete control.
+      val undone = Seq(validationJson(label, b.missionId, "Agree", undone = true))
+      status(postValidationTask(session, taskSubmission(b, undone, progress))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe empty
+      commentVersionsOn(labelId, b.userId) mustBe Seq(("Ramp is buried in snow.", "validation_change"))
+    }
+
+    "record an undo that carries a comment as a retraction, not an edit (#5076)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      val label   = b.labels.head
+      val labelId = (label \ "label_id").as[Int]
+      val _       = backupLabel(labelId)
+
+      val progress  = Some(missionProgressJson(b, 1))
+      val commented = Seq(validationJson(label, b.missionId, "Agree", comment = Some("Ramp is buried in snow.")))
+      status(postValidationTask(session, taskSubmission(b, commented, progress))) mustBe OK
+
+      // An undo inserts nothing afterwards, so a comment attached to one supersedes nothing. Calling it an edit
+      // would claim a replacement that never arrives, in the field that exists to tell the two apart.
+      val undoneWithComment =
+        Seq(validationJson(label, b.missionId, "Agree", undone = true, comment = Some("Never mind.")))
+      status(postValidationTask(session, taskSubmission(b, undoneWithComment, progress))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe empty
+      commentVersionsOn(labelId, b.userId) mustBe Seq(("Ramp is buried in snow.", "validation_change"))
     }
 
     "answer 200 to a duplicate mission-complete submission and still hand back the next mission (#4377)" in {
@@ -649,6 +704,26 @@ class ValidateSubmissionSpec
       commentsOn(labelId, b.userId) mustBe Seq("Looking again, it is fine.")
     }
 
+    "keep every wording a comment has passed through, not just the current one (#5076)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      val label   = b.labels.head
+      val labelId = (label \ "label_id").as[Int]
+
+      status(postLabelMapComment(session, labelMapCommentJson(label, "Ramp is behind the car."))) mustBe OK
+      commentVersionsOn(labelId, b.userId) mustBe empty
+
+      // Two revisions, so the order of the versions is checkable and not an accident of there being only one.
+      status(postLabelMapComment(session, labelMapCommentJson(label, "Ramp is behind the parked car."))) mustBe OK
+      status(postLabelMapComment(session, labelMapCommentJson(label, "Looking again, it is fine."))) mustBe OK
+
+      commentsOn(labelId, b.userId) mustBe Seq("Looking again, it is fine.")
+      commentVersionsOn(labelId, b.userId) mustBe Seq(
+        ("Ramp is behind the car.", "edit"),
+        ("Ramp is behind the parked car.", "edit")
+      )
+    }
+
     "pair each comment with the commenter's current vote when read back (#5015)" in {
       val session = freshAnonSession()
       val b       = fetchValidateBootstrap(session)
@@ -686,6 +761,10 @@ class ValidateSubmissionSpec
       // The verdict survives. Removing a comment and retracting a vote are separate acts, which is what this route
       // is for — the vote-clearing path deletes both together.
       validationRow(labelId, b.userId).map(_._1) mustBe Some("Unsure")
+
+      // Delete means it leaves the tool, not that the words are destroyed, and it is marked the deliberate act it
+      // is, apart from a comment a vote change dropped (#5076).
+      commentVersionsOn(labelId, b.userId) mustBe Seq(("Cannot tell under the snow.", "delete"))
     }
 
     "treat deleting a comment that isn't there as a no-op rather than an error (#5015)" in {
@@ -698,6 +777,8 @@ class ValidateSubmissionSpec
       val res = deleteLabelMapComment(session, labelId)
       status(res) mustBe OK
       (contentAsJson(res) \ "deleted").as[Int] mustBe 0
+      // A version records a comment that stopped being current, so a delete that removed nothing must write none.
+      commentVersionsOn(labelId, b.userId) mustBe empty
     }
 
     "delete only the caller's own comment, leaving other users' alone (#5015)" in {

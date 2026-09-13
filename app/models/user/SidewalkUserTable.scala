@@ -10,13 +10,22 @@ import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
 case class SidewalkUser(userId: String, username: String, email: String)
+
+/**
+ * The user behind a request, loaded on every request. Account-wide settings ride along so pages needn't query again.
+ *
+ * @param communityService  Whether they're tracking their time for community service hours.
+ * @param infra3dAccess     Whether they may view this city's infra3D imagery (always false in non-infra3D cities).
+ * @param measurementSystem The units they chose on the Settings page, or None to follow the site language.
+ */
 case class SidewalkUserWithRole(
     userId: String,
     username: String,
     email: String,
     role: Role.Value,
     communityService: Boolean,
-    infra3dAccess: Boolean
+    infra3dAccess: Boolean,
+    measurementSystem: Option[MeasurementSystem.Value]
 ) extends Identity
 
 class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, "sidewalk_user") {
@@ -47,11 +56,22 @@ class SidewalkUserTable @Inject() (
 
   val sidewalkUser           = TableQuery[SidewalkUserTableDef]
   val userRole               = TableQuery[UserRoleTableDef]
+  val userSettings           = TableQuery[UserSettingsTableDef]
   val sidewalkUserToRoleJoin = sidewalkUser.join(userRole).on(_.userId === _.userId)
-  val sidewalkUserWithRole   = sidewalkUserToRoleJoin
-    .map { case (user, userRole) =>
-      (user.userId, user.username, user.email, userRole.role, userRole.communityService,
-        userRoleTable.infra3dAccessForCurrentCity(userRole))
+  // A left join, because a user with no user_settings row has every setting at its default.
+  val sidewalkUserWithRole = sidewalkUserToRoleJoin
+    .joinLeft(userSettings)
+    .on(_._1.userId === _.userId)
+    .map { case ((user, userRole), settings) =>
+      (
+        user.userId,
+        user.username,
+        user.email,
+        userRole.role,
+        settings.map(_.communityService).getOrElse(false),
+        userRoleTable.infra3dAccessForCurrentCity(userRole),
+        settings.flatMap(_.measurementSystem)
+      )
     }
   val aiUsers    = sidewalkUserToRoleJoin.filter(_._2.role === Role.Ai).map(_._1)
   val humanUsers = sidewalkUserToRoleJoin.filter(_._2.role =!= Role.Ai).map(_._1)

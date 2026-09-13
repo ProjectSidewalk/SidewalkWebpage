@@ -439,6 +439,26 @@ class AuditTaskTable @Inject() (
   }
 
   /**
+   * When any user last finished auditing the street, or `None` if nobody ever has.
+   *
+   * Counts audits regardless of the auditor's quality rating, matching the `audit_activity` bookkeeping in
+   * [[models.street.StreetEdgePriorityTable]]: this is the audited/outdated record the rest of the app reports, not
+   * the priority formula's weighted view of the same audits.
+   */
+  def getLastCompletedAuditTime(streetEdgeId: Int): DBIO[Option[OffsetDateTime]] = {
+    completedTasks.filter(_.streetEdgeId === streetEdgeId).map(_.taskEnd).max.result
+  }
+
+  /**
+   * Whether the street has a completed audit made against the current imagery (#4384).
+   *
+   * The public form of [[hasUpToDateAudit]], for callers that have one street rather than a query of them.
+   */
+  def hasUpToDateAuditFor(streetEdgeId: Int): DBIO[Boolean] = {
+    upToDateCompletedTasks.filter(_.streetEdgeId === streetEdgeId).exists.result
+  }
+
+  /**
    * Count the streets a user audited that still need a re-audit (#4896).
    *
    * Shares [[outdatedStreetsForUserQuery]] with [[getOutdatedStreetsForUser]] so the count can't disagree with the

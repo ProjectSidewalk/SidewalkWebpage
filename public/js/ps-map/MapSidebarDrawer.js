@@ -135,9 +135,26 @@ class MapSidebarDrawer {
     const left = this.#open && !this.#narrowMq.matches ? this.#sidebar.offsetWidth : 0;
     if (left === this.#appliedPaddingLeft) return;
     this.#appliedPaddingLeft = left;
-    const padding = { left, top: 0, right: 0, bottom: 0 };
+    // Only the left edge is the drawer's to set; another overlay (the AccessScore dock, along the bottom) owns its
+    // own edge, and a fresh `{top: 0, right: 0, bottom: 0}` here would silently undo it.
+    const padding = { ...this.#map.getPadding(), left };
     if (animate) this.#map.easeTo({ padding });
     else this.#map.setPadding(padding);
+    this.#publishWidth();
+  }
+
+  /**
+   * Publishes the drawer's live width on its parent as `--filter-sidebar-width`, so an overlay positioned beside
+   * the drawer (the AccessScore insights band) can follow a drag — a resize writes an inline width, so a
+   * stylesheet that hardcodes the 350px default detaches from the drawer's edge mid-drag — and how much of the
+   * map's left edge the drawer covers as `--map-inset-left` (zero when closed or covering the map), so something
+   * centered over the map (the status pill) centers on the part the reader can see.
+   */
+  #publishWidth() {
+    const style = this.#sidebar.parentElement?.style;
+    if (!style) return;
+    style.setProperty('--filter-sidebar-width', `${this.#sidebar.offsetWidth}px`);
+    style.setProperty('--map-inset-left', `${this.#appliedPaddingLeft ?? 0}px`);
   }
 
   /** Re-derives the drawer and the camera from the new breakpoint. */
@@ -154,6 +171,7 @@ class MapSidebarDrawer {
       if (this.#draggedWidth) this.#sidebar.style.width = this.#draggedWidth;
       if (this.#handle) this.#handle.style.left = `${this.#sidebar.offsetWidth}px`;
       this.#setOpen(this.#open, { animate: false, moveFocus: false, log: false });
+      this.#publishWidth();
     }
   }
 
@@ -175,7 +193,8 @@ class MapSidebarDrawer {
       this.#draggedWidth = `${newWidth}px`;
       handle.style.left = `${newWidth}px`;
       this.#appliedPaddingLeft = newWidth;
-      this.#map.setPadding({ left: newWidth, top: 0, right: 0, bottom: 0 });
+      this.#map.setPadding({ ...this.#map.getPadding(), left: newWidth });
+      this.#publishWidth();
     };
 
     const onPointerUp = (e) => {

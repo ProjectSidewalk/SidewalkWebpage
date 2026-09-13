@@ -46,6 +46,7 @@ class SharedLabelPage {
     const src = this.#data.imagerySource;
     if (src === 'mapillary') return MapillaryViewer;
     if (src === 'infra3d') return Infra3dViewer;
+    if (src === 'panoramax') return PanoramaxViewer;
     return GsvViewer;
   }
 
@@ -90,7 +91,7 @@ class SharedLabelPage {
       const KM_TO_MI = 0.621371;
       const km = s.km_explored_no_overlap;
       const values = {
-        labels: s.labels?.label_count,
+        labels: s.labels?.count,
         validations: s.validations?.combined?.total_validations,
         miles: km === null || km === undefined ? null : Math.round(km * KM_TO_MI),
       };

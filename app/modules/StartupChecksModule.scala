@@ -6,5 +6,6 @@ import com.google.inject.AbstractModule
 class StartupChecksModule extends AbstractModule {
   override def configure(): Unit = {
     bind(classOf[PersistentMediaDirCheck]).asEagerSingleton()
+    bind(classOf[SearchIndexingCheck]).asEagerSingleton()
   }
 }

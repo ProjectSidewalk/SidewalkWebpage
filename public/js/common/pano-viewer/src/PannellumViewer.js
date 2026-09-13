@@ -12,15 +12,97 @@
  * Internally, the viewer is initialized in Pannellum's tour mode (default + scenes config) so that loadPano() can
  * swap panos via addScene()/loadScene() without destroying and recreating the WebGL context.
  */
+/**
+ * The widest equirectangular panorama this device can actually render, or null if that can't be determined.
+ *
+ * Pannellum uploads an equirect as two halves, so its own refusal test is `max(width / 2, height) > MAX_TEXTURE_SIZE`
+ * — twice the texture limit, which is why a device advertising 8192 renders a 16384-wide pano and most hardware needs
+ * no downscaled copy at all. Asking the GPU is the only honest answer here; guessing a fixed cap server-side either
+ * downscales for devices that never needed it or fails on the ones that did.
+ *
+ * Cached because it costs a throwaway WebGL context, and released immediately so it doesn't count against the
+ * browser's small per-page context budget.
+ *
+ * @returns {?number} Maximum renderable panorama width in pixels, or null when WebGL is unavailable.
+ */
+let cachedMaxPanoWidth;
+const deviceMaxPanoWidth = () => {
+  if (cachedMaxPanoWidth !== undefined) return cachedMaxPanoWidth;
+  cachedMaxPanoWidth = null;
+  try {
+    const gl = document.createElement('canvas').getContext('webgl');
+    if (gl) {
+      cachedMaxPanoWidth = 2 * gl.getParameter(gl.MAX_TEXTURE_SIZE);
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
+    }
+  } catch {
+    // A blocked or unavailable context tells us nothing; fall through to the native image and let Pannellum decide.
+  }
+  return cachedMaxPanoWidth;
+};
+
+/**
+ * The URL to hand Pannellum for a panorama, asking the server for a smaller copy only when this device can't texture
+ * the stored one (#5256). Every device that can render it as stored gets it untouched.
+ *
+ * @param {object} metadata Pano metadata; uses `imageUrl` and `width`.
+ * @returns {string} The image URL, with `maxWidth` appended when a copy is needed.
+ */
+const panoramaUrlFor = (metadata) => {
+  const cap = deviceMaxPanoWidth();
+  if (!cap || !metadata.width || metadata.width <= cap) return metadata.imageUrl;
+  return panoUrlWithMaxWidth(metadata.imageUrl, cap);
+};
+
+// These are top-level declarations in a file Grunt concatenates into one bundle with a dozen others, so a name that
+// reads generically here is a site-wide SyntaxError if any of them ever declares it too. Hence the pano- prefixes.
+
+/** @returns {string} `url` with a maxWidth the server will honour. */
+const panoUrlWithMaxWidth = (url, width) => `${url}${url.includes('?') ? '&' : '?'}maxWidth=${width}`;
+
+/** The narrowest copy worth asking for; below this the server's allowlist snaps up anyway. */
+const PANO_MIN_FALLBACK_WIDTH = 2048;
+
+/**
+ * The URLs to try for a panorama, widest first.
+ *
+ * The first is what the GPU's advertised limit calls for, and on nearly all hardware it is the only one used. The
+ * rest exist because that limit is a promise about dimensions, not about memory: a device can report a size it
+ * cannot actually allocate — 16384 x 8192 is two 8192-square textures, half a gigabyte of RGBA — and a phone under
+ * memory pressure fails a load its own `MAX_TEXTURE_SIZE` said would work. Nothing readable from the page predicts
+ * that, so the fallback is to be told by the failure and ask for half as much.
+ *
+ * The ladder steps down from the width the first candidate is actually served at, which is the pano's own width
+ * whenever that is under the cap. Stepping down from the cap instead spends rungs on widths at or above the pano,
+ * and the server answers those with the native file — so the "retry" re-fetches, re-decodes and re-uploads the
+ * image that just failed, making the next allocation likelier to fail rather than less.
+ *
+ * @param {object} metadata Pano metadata; uses `imageUrl` and `width`.
+ * @returns {string[]} Candidate URLs, in the order they should be tried.
+ */
+const panoramaUrlCandidates = (metadata) => {
+  const urls = [panoramaUrlFor(metadata)];
+  const cap = deviceMaxPanoWidth();
+  const start = Math.min(cap || Infinity, metadata.width || Infinity);
+  // With neither a cap nor a width there is nothing to step down from, and a guess would ask for a width the
+  // allowlist would only snap back up.
+  if (!Number.isFinite(start)) return urls;
+  // Two retries: a device that can't hold a quarter of what it advertised is not going to be rescued by an eighth.
+  for (let w = Math.floor(start / 2); w >= PANO_MIN_FALLBACK_WIDTH && urls.length < 3; w = Math.floor(w / 2)) {
+    urls.push(panoUrlWithMaxWidth(metadata.imageUrl, w));
+  }
+  return urls;
+};
+
 class PannellumViewer extends PanoViewer {
+  /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
+  static SOURCE = 'pannellum';
+
   /** @type {object} The underlying pannellum viewer instance. */
   #viewer = undefined;
 
   /** @type {number} Cached cameraHeading for the current pano (degrees, wrt true north). */
   #cameraHeading = 0;
-
-  /** @type {number} Cached cameraPitch for the current pano (degrees, positive = camera tilted up). */
-  #cameraPitch = 0;
 
   /** @type {string|undefined} Scene ID currently loaded in the Pannellum viewer. */
   #currentSceneId = undefined;
@@ -61,7 +143,6 @@ class PannellumViewer extends PanoViewer {
     if (!panoId) throw new Error('PannellumViewer requires startPanoId or panoMetadata.panoId');
 
     this.#cameraHeading = metadata.cameraHeading || 0;
-    this.#cameraPitch = metadata.cameraPitch || 0;
     this.currPanoData = this.#buildPanoData(panoId, metadata);
     this.#currentSceneId = panoId;
 
@@ -90,32 +171,49 @@ class PannellumViewer extends PanoViewer {
       scenes: {
         [panoId]: {
           type: 'equirectangular',
-          panorama: metadata.imageUrl,
+          panorama: panoramaUrlFor(metadata),
           haov: 360,
           vaov: 180,
           yaw: this.#headingToYaw(startHeading),
-          pitch: startPitch - this.#cameraPitch,
+          pitch: startPitch,
           hfov: util.pano.zoomToFov(startZoom),
           northOffset: this.#cameraHeading, // Only used by Pannellum's compass UI, which we keep hidden.
         },
       },
     };
 
-    await new Promise((resolve, reject) => {
-      this.#viewer = pannellum.viewer(canvasElem, pannellumConfig);
-      const onLoad = () => {
-        this.#viewer.off('load', onLoad);
-        this.#viewer.off('error', onError);
-        resolve();
-      };
-      const onError = (err) => {
-        this.#viewer.off('load', onLoad);
-        this.#viewer.off('error', onError);
-        reject(new Error(err || 'Pannellum failed to load image'));
-      };
-      this.#viewer.on('load', onLoad);
-      this.#viewer.on('error', onError);
-    });
+    const candidates = panoramaUrlCandidates(metadata);
+    for (let attempt = 0; attempt < candidates.length; attempt++) {
+      pannellumConfig.scenes[panoId].panorama = candidates[attempt];
+      try {
+        await new Promise((resolve, reject) => {
+          this.#viewer = pannellum.viewer(canvasElem, pannellumConfig);
+          const onLoad = () => {
+            this.#viewer.off('load', onLoad);
+            this.#viewer.off('error', onError);
+            resolve();
+          };
+          const onError = (err) => {
+            this.#viewer.off('load', onLoad);
+            this.#viewer.off('error', onError);
+            reject(new Error(err || 'Pannellum failed to load image'));
+          };
+          this.#viewer.on('load', onLoad);
+          this.#viewer.on('error', onError);
+        });
+        break;
+      } catch (e) {
+        // The viewer holds a WebGL context and a half-built scene either way, so it goes before the next attempt.
+        try {
+          this.#viewer?.destroy();
+        } catch {
+          // Already torn down by the failure itself; nothing left to release.
+        }
+        this.#viewer = null;
+        if (attempt === candidates.length - 1) throw e;
+        console.warn(`Pano ${panoId} failed to load; retrying at a smaller size.`, e);
+      }
+    }
 
     // Tag the rendered canvas so the screenshot helper (Canvas.js) can find it via getCanvasClass().
     const renderedCanvas = canvasElem.querySelector('.pnlm-render-container canvas');
@@ -150,7 +248,6 @@ class PannellumViewer extends PanoViewer {
     if (panoId === oldSceneId) {
       // Same pano — update calibration (e.g. if metadata was re-fetched) and reposition.
       this.#cameraHeading = metadata.cameraHeading || 0;
-      this.#cameraPitch = metadata.cameraPitch || 0;
       this.currPanoData = this.#buildPanoData(panoId, metadata);
       this.setPov(pov);
       for (const listener of this.panoChangedListeners) await listener();
@@ -161,55 +258,64 @@ class PannellumViewer extends PanoViewer {
     // (which #headingToYaw and #yawToHeading read from). The instance fields are updated after the load resolves so
     // the rAF loop doesn't emit pov_changed with a mismatched cameraHeading during the transition.
     const newCameraHeading = metadata.cameraHeading || 0;
-    const newCameraPitch = metadata.cameraPitch || 0;
-    const pitch = (pov.pitch ?? 0) - newCameraPitch;
+    const pitch = pov.pitch ?? 0;
     const yaw = this.#headingToYaw(pov.heading ?? newCameraHeading, newCameraHeading);
     const hfov = util.pano.zoomToFov(pov.zoom ?? 1);
-
-    this.#viewer.addScene(panoId, {
-      type: 'equirectangular',
-      panorama: metadata.imageUrl,
-      haov: 360,
-      vaov: 180,
-      northOffset: newCameraHeading,
-    });
 
     // Pause the rAF POV-tracking loop for the duration of the transition to avoid emitting pov_changed events
     // with values that mix the old scene's calibration with the new scene's yaw/pitch.
     this.#loading = true;
     try {
-      await new Promise((resolve, reject) => {
-        const onLoad = () => {
-          this.#viewer.off('load', onLoad);
-          this.#viewer.off('error', onError);
-          resolve();
-        };
-        const onError = (err) => {
-          this.#viewer.off('load', onLoad);
-          this.#viewer.off('error', onError);
-          reject(new Error(err || 'Pannellum failed to load scene'));
-        };
-        this.#viewer.on('load', onLoad);
-        this.#viewer.on('error', onError);
-        this.#viewer.loadScene(panoId, pitch, yaw, hfov);
-      });
+      const candidates = panoramaUrlCandidates(metadata);
+      for (let attempt = 0; attempt < candidates.length; attempt++) {
+        this.#viewer.addScene(panoId, {
+          type: 'equirectangular',
+          panorama: candidates[attempt],
+          haov: 360,
+          vaov: 180,
+          northOffset: newCameraHeading,
+        });
+        try {
+          await new Promise((resolve, reject) => {
+            const onLoad = () => {
+              this.#viewer.off('load', onLoad);
+              this.#viewer.off('error', onError);
+              resolve();
+            };
+            const onError = (err) => {
+              this.#viewer.off('load', onLoad);
+              this.#viewer.off('error', onError);
+              reject(new Error(err || 'Pannellum failed to load scene'));
+            };
+            this.#viewer.on('load', onLoad);
+            this.#viewer.on('error', onError);
+            this.#viewer.loadScene(panoId, pitch, yaw, hfov);
+          });
+          break;
+        } catch (e) {
+          // No teardown between rungs: addScene overwrites the entry, and removeScene would refuse anyway, since
+          // loadScene has already made this the current scene and Pannellum will not remove that one.
+          if (attempt === candidates.length - 1) {
+            // Pannellum is showing its own error table with the render container hidden. Leaving the id here would
+            // let a later label on this same pano take the "already loaded" path and draw its marker over that.
+            this.#currentSceneId = undefined;
+            throw e;
+          }
+          console.warn(`Pano ${panoId} failed to load; retrying at a smaller size.`, e);
+        }
+      }
     } finally {
       this.#loading = false;
     }
 
     // Update instance calibration only after the new scene is fully loaded so getPov()/setPov() are consistent.
     this.#cameraHeading = newCameraHeading;
-    this.#cameraPitch = newCameraPitch;
     this.currPanoData = this.#buildPanoData(panoId, metadata);
     this.#currentSceneId = panoId;
 
-    if (oldSceneId) {
-      try {
-        this.#viewer.removeScene(oldSceneId);
-      } catch {
-        // Pannellum throws if the scene doesn't exist; safe to ignore since we only wanted it gone anyway.
-      }
-    }
+    // Safe unguarded: removeScene returns false for an id it won't drop rather than throwing, and the one id it
+    // refuses is the current scene, which by here is the new pano rather than this one.
+    if (oldSceneId) this.#viewer.removeScene(oldSceneId);
 
     for (const listener of this.panoChangedListeners) await listener();
     return this.currPanoData;
@@ -322,10 +428,15 @@ class PannellumViewer extends PanoViewer {
     return this.currPanoData.getProperty('linkedPanos');
   };
 
+  // Heading is calibrated against cameraHeading but pitch is not, and the asymmetry is real: a pano's column 0
+  // sits at an arbitrary bearing, so yaw needs a reference, while row panoHeight/2 is the horizon by construction.
+  // povToPanoCoord, calculatePovFromPanoXY and CropGeometry all agree on that, and the stored images really are
+  // gravity-aligned — a label's pano_x/pano_y reads back onto the labelled feature. Subtracting cameraPitch here
+  // displaced the label marker by that angle, nonzero on ~98% of panos (#5174).
   getPov = () => {
     return {
       heading: this.#yawToHeading(this.#viewer.getYaw()),
-      pitch: this.#viewer.getPitch() + this.#cameraPitch,
+      pitch: this.#viewer.getPitch(),
       zoom: util.pano.fovToZoom(this.#viewer.getHfov()),
     };
   };
@@ -333,7 +444,7 @@ class PannellumViewer extends PanoViewer {
   setPov = (pov) => {
     // Second arg `false` disables Pannellum's animation; we want the change to apply immediately.
     this.#viewer.setYaw(this.#headingToYaw(pov.heading), false);
-    this.#viewer.setPitch(pov.pitch - this.#cameraPitch, false);
+    this.#viewer.setPitch(pov.pitch, false);
     if (pov.zoom !== null && pov.zoom !== undefined) {
       this.#viewer.setHfov(util.pano.zoomToFov(pov.zoom), false);
     }

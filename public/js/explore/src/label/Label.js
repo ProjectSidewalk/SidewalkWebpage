@@ -373,7 +373,8 @@ class Label {
    *
    * The camera height and blend angle are fitted values, not tuning knobs — PanoDataService.LatLngEstimation is where
    * they live and where their derivation is documented, and the research behind them (held-out splits, the falsified
-   * alternatives, the reports) is in https://github.com/ProjectSidewalk/label-latlng-estimation.
+   * alternatives, the reports) is in https://github.com/ProjectSidewalk/label-latlng-estimation. The in-repo summary,
+   * including the parity fixture this must keep reproducing, is docs/label-latlng-estimation.md.
    *
    * @returns {{lat: number, lng: number, latLngComputationMethod: string}}
    */

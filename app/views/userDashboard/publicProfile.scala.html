@@ -114,6 +114,7 @@
   @* Label popup stack (shared common/label-detail + pano-viewer), loaded directly like the redesign's other src. *@
   @common.labelPopup(admin = false)
   <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
   @if(commonData.imagerySource == PanoSource.Infra3d) {
     <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
     <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>

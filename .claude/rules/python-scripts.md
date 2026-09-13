@@ -17,4 +17,9 @@ Full details: `scripts/README.md` and `test/python/README.md`.
   `scripts/` is bundled into the staged package via `Universal / mappings` in `build.sbt`. Moving or renaming it
   means updating both.
 - Keep I/O in thin wrappers and `main`; pure logic is importable and unit-tested under `test/python/`. Coverage is
-  gated at 100% (`make test-python` runs both interpreter halves; a new test file runs in both by default).
+  gated at 100% over `scripts/` and `tools/` alike (`make test-python` runs both interpreter halves; a new test file
+  runs in both by default) — the two CI helpers in `tools/` are the only exemptions, listed in `pyproject.toml`.
+- `onboard_city.py` (new-city street/region build) and `check_streets_for_imagery.py` (imagery scan + `--sample`
+  preflight) are the onboarding pair; `tools/setup_new_city.py` orchestrates them with the db scripts. Runbook:
+  `docs/onboarding-a-city.md`. Their test files are 3.13-only, so the 3.8 half `--ignore`s them (Makefile + CI matrix
+  must agree).

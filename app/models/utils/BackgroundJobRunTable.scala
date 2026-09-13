@@ -183,6 +183,21 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
   }
 
   /**
+   * When the named job last finished successfully, under any trigger — the "data as of" clock for anything derived
+   * from that job's output (the AccessScore is computed from the clusters the nightly clustering run writes).
+   *
+   * @param jobName The job, e.g. `ClusteringActor.Name`.
+   * @return        The latest successful run's finish time, or None if the job has never succeeded here.
+   */
+  def lastSuccessfulFinish(jobName: String): DBIO[Option[OffsetDateTime]] = {
+    backgroundJobRuns
+      .filter(run => run.jobName === jobName && run.status === JobRunStatus.Succeeded)
+      .map(_.finishedAt)
+      .max
+      .result
+  }
+
+  /**
    * Every run of the named jobs since a cutoff, newest first, for charting a job's history rather than its last run.
    *
    * The per-run `details` is the payload here: the imagery panel reads its nightly poll/flag counts out of it (#4908),

@@ -152,7 +152,7 @@ class StoriesSection {
       edit.setAttribute('aria-label', i18next.t('labelmap:story.edit-aria', { labelType: typeName, date: postedDate }));
       edit.addEventListener('click', () => {
         // Problem-vs-feature phrasing comes from the payload's LabelTypeEnum-sourced flag, never derived here.
-        this.#composer.setCopyVariant(story.is_access_problem);
+        this.#composer.setCopyVariant(story.access_impact);
         this.#composer.openForEdit(story, this.#maxTextLength);
       });
       meta.appendChild(edit);
@@ -192,7 +192,7 @@ class StoriesSection {
       confirmText: i18next.t('labelmap:story.delete'),
       cancelText: i18next.t('labelmap:story.cancel'),
       danger: true,
-      confirmIconSrc: util.assetPath('images/icons/delete-white-material.svg'),
+      confirmIconSrc: util.assetPath('images/icons/trash-2-white-feather.svg'),
     });
     if (!confirmed) return;
     window.logWebpageActivity?.(`Click_module=StoryDeleteClient_storyId=${story.story_id}`);

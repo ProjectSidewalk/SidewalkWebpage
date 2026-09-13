@@ -1,5 +1,9 @@
 /**
- * Handles keyboard shortcuts for the Gallery's expanded view.
+ * Handles the Gallery-specific keyboard shortcuts for the expanded view.
+ *
+ * Paging (left/right arrows) and voting (A/Y, D/N, U) belong to the label detail card itself, which owns them on
+ * every host it has (#5194) — see LabelDetail's `#wireKeyboard`. What is left here is the pair only the Gallery
+ * offers: Z / Shift+Z to zoom the imagery, and Escape to close the expanded view and restore the card grid.
  */
 class KeyboardManager {
   #expandedView;
@@ -20,47 +24,19 @@ class KeyboardManager {
     // Prevent shortcuts in the comment box.
     const activeTag = document.activeElement && document.activeElement.tagName;
     if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
+    if (!e.code || e.ctrlKey || e.metaKey || e.altKey || !this.#expandedView.open) return;
 
-    if (e.key && !e.ctrlKey) {
-      switch (e.key.toUpperCase()) {
-        case 'ARROWLEFT':
-          if (this.#expandedView.open && !this.#expandedView.leftArrowDisabled) {
-            this.#expandedView.previousLabel(true);
-          }
-          break;
-        case 'ARROWRIGHT':
-          if (this.#expandedView.open && !this.#expandedView.rightArrowDisabled) {
-            this.#expandedView.nextLabel(true);
-          }
-          break;
-        case 'A':
-        case 'Y':
-          this.#expandedView.validate('Agree');
-          break;
-        case 'D':
-        case 'N':
-          this.#expandedView.validate('Disagree');
-          break;
-        case 'U':
-          this.#expandedView.validate('Unsure');
-          break;
-        case 'Z':
-          if (this.#expandedView.open) {
-            if (e.shiftKey) {
-              this.#expandedView.panoManager.zoomOut();
-            } else {
-              this.#expandedView.panoManager.zoomIn();
-            }
-          }
-          break;
-        case 'ESCAPE':
-          if (this.#expandedView.open) {
-            this.#expandedView.closeExpandedViewAndRemoveCardTransparency();
-          }
-          break;
-        default:
-          break;
-      }
+    switch (e.code) {
+      // Zoom in on 'Z', zoom out on 'Shift+Z'.
+      case 'KeyZ':
+        if (e.shiftKey) this.#expandedView.panoManager.zoomOut();
+        else this.#expandedView.panoManager.zoomIn();
+        break;
+      case 'Escape':
+        this.#expandedView.closeExpandedViewAndRemoveCardTransparency();
+        break;
+      default:
+        break;
     }
   }
 }
