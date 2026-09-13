@@ -5,8 +5,9 @@ one pipeline: `LabelTable.retrieveLabelListForValidationQuery` selects candidate
 `LabelService.getLabelTypeToValidate` picks the label type for the mission, and
 `LabelService.retrieveLabelListForValidation` assembles the mission. What that pipeline is *allowed* to serve, and in
 what order, is a policy, and the whole policy lives in one object: `app/models/validation/ValidationQueuePolicy.scala`.
-This page is the human-facing companion to that object (#4715). The ScalaDoc there points here; when a number or a
-predicate changes, change it in the object and update this page in the same commit.
+This page is the human-facing companion to that object (#4715, and #5285 for NoSidewalk's per-block-face variant).
+The ScalaDoc there points here; when a number or a predicate changes, change it in the object and update this page in
+the same commit.
 
 The values are in code rather than `conf/` because the predicates are Slick expressions shared by the label query and
 the per-type counts, and because a per-city override of a correctness policy is not something we want. Lifting a value
@@ -129,7 +130,10 @@ prevent.
 `greatest(score, 1)` guards the division. Postgres `random()` is in `[0, 1)`; `ln(0) = -Infinity` sorts last, which is
 harmless. Each batch is a fresh sample, so `findValidLabelsForType`'s accumulator dedupe and its `drop(offset)` behave
 the same as for any other randomized query, and its post-query shuffle (which de-clusters the 50 → 10 selection) still
-applies.
+applies — except for NoSidewalk, which keeps the sampled order so its one-label-per-face rule keeps each face's
+highest-ranked label (see [NoSidewalk](#nosidewalk-the-block-face-is-the-unit)). The clamp also sets the floor of the
+soft deprioritization below: a face with very many agreeing votes scores under 1 and shares the minimum weight with
+every other such face, still servable, never certain.
 
 ## Label-type selection
 
@@ -140,12 +144,146 @@ selection cannot disagree about what "needs validation" means.
 
 1. Keep types with at least one full mission's worth of available labels, honoring a requested type if there is one.
    The counts apply `unvalidatedOnly` when the page does, so they describe the same pool the label query draws from.
-2. Drop `NoSidewalk` unless it is the only type left (validating it is near-always trivial). This happens before the
-   cascade is walked, so thin crowd queues for the other types fall back to their settled labels, not to `NoSidewalk`.
-3. Walk the cascade and take the **first queue in which some type can fill a whole mission**. That queue decides both
+   Every primary type qualifies, `NoSidewalk` included (#5285); the gate is on labels for every type, so a small city
+   with eight faces across forty labels still gets `NoSidewalk` missions.
+2. Walk the cascade and take the **first queue in which some type can fill a whole mission**. That queue decides both
    which types are in play and what they are weighted by. For `Any` the weights are uniform — it is the fallback, and
    its counts carry no priority signal.
-4. Give every remaining type a 2% floor and split the rest in proportion to its weight, then draw.
+3. Give every remaining type a 2% floor and split the rest in proportion to its weight, then draw. In `NeedsVotes` a
+   type weighs its labels still needing votes — except `NoSidewalk`, which weighs its **block faces** still needing
+   votes (`LabelTypeValidationsLeft.facesNeedingVotes`): Seattle has ~138k undecided labels across the other types and
+   ~9k `NoSidewalk` faces, so `NoSidewalk` takes roughly 6–8% of missions plus the floor, rather than the quarter its
+   48k labels would claim.
+
+## NoSidewalk: the block face is the unit
+
+`NoSidewalk` is the one type scored per **block face** rather than per label (#5285). A face is one side of one
+street edge, `(label.street_edge_id, label_point.street_side)`; the side is the DB-generated column from #2886, so a
+label within 1 m of the centerline has no side and no face. People drop a `NoSidewalk` label every pano or two along a
+stretch with no sidewalk, so per label the work is endless — 36k of Seattle's 48k sided `NoSidewalk` labels sit on
+3.5k faces that carry five or more — while per face it is finite (~9.7k faces). One validator looking at one label on
+a face settles the question for the whole stretch. That matters because `NoSidewalk` is the evidence behind
+`sidewalk_presence` (#5279) and AccessScore: Sidewalks (#5282), and the #5222 study found the false "no sidewalk" calls
+concentrate on faces resting on a **single labeler** (1,047 of 1,142 unexplained false faces; validators rejected 85%
+of the ones they saw).
+
+Before #5285, `NoSidewalk` was dropped from the type lottery unless it was the only type with a mission's worth of
+labels, so it was effectively never validated (Seattle: 2% of its labels had any vote).
+
+### Face evidence, live
+
+`LabelTable.noSidewalkFaceEvidence` aggregates, per `(street_edge_id, street_side)`, over the same label population
+every query uses (not deleted, not tutorial, labeler not excluded):
+
+| column | meaning |
+|---|---|
+| `labelerCount` | distinct **human** labelers with a `NoSidewalk` label on the face (the AI's labels, when #3995 lands, do not count as a second opinion) |
+| `support` | agreeing **human** votes across the face's labels: `sum(agree_count − AI Agree)`, because the AI's vote sits inside `agree_count` and a face whose labels were all AI-agreed must not sink before a human has looked |
+| `labelCount` | labels on the face, for the tooling |
+
+It is computed in the label query itself, not read from the nightly `sidewalk_presence` table, so a vote cast a
+minute ago already lowers its face's priority; otherwise the same face would be served to every validator online that
+day. The label query `LEFT JOIN`s it only when the requested type is `NoSidewalk`; every other type's query is
+unchanged. Disagreeing votes are deliberately not aggregated — see the score.
+
+### The NoSidewalk score
+
+```
+noSidewalkScore = (priorityScore + faceEvidenceNeed + ageBonus) × faceSupportFactor
+
+faceEvidenceNeed  = FaceSingleLabelerBonus / labelerCount²     200 for one labeler, 50 for two, 22 for three;
+                                                               0 for an unsided label; floored at one labeler
+ageBonus          = least(AgeBonusMax, AgePointsPerYear × years)  10 per year, capped at 60 (so 2019 and 2020 tie)
+faceSupportFactor = 1 / (1 + support)                          1, ½, ⅓, … per agreeing vote anywhere on the face
+```
+
+Fed to the same `pickKey` sampler (P ∝ score²): a single-labeler, unconfirmed 2019 face scores ≈ 460 against ≈ 74 for
+a three-labeler face with two agreeing votes, so it is served about 39× as often. The issue's order falls out —
+single labeler first, then oldest, three-plus labelers last — and each confirming vote *softens* a face rather than
+retiring it: **a face is never retired.** Its labels stay in `NeedsVotes` under the same per-label rule as every type
+(two concurring votes or the cap retire a *label*), and `Any` still serves everything. Disagreeing votes do not lower a
+face's priority at all: a rejected label makes the face contested, not settled, and its remaining labels should keep
+coming up so someone else weighs in.
+
+Two details that look like bugs and are not: an unsided label (no face row) has NULL evidence, not a NULL score — it
+gets the base score plus the age bonus and competes on those; and under `?unvalidatedOnly=true` a face can show
+support with no servable label, because one AI Agree flips `correct`, which is that flag's behaviour for every type.
+
+### Mission share and spread
+
+- **Type weight.** In the crowd's `NeedsVotes` queue `NoSidewalk` weighs `facesNeedingVotes`: distinct sided faces
+  among the requester's servable labels with fewer than `FaceSettledSupport` (2) agreeing votes. Faces past that stop
+  counting toward the share but stay servable. `needsVotes` itself stays label-based, because the mission-length gate
+  reads it; `Triage` is label-based too (an expert clearing a stuck label is per-label work); `Any` is uniform.
+- **One label per face per mission**, distinct streets preferred (`LabelServiceImpl.spreadAcrossFaces`). The fetch
+  keeps the sampler's order, so the rule keeps each face's highest-ranked label; faces the client already holds (a
+  `/validationTask/moreLabels` top-up) count as taken. The rule runs as a batch hook inside `findValidLabelsForType`,
+  *before* the imagery check, so the labels it drops cost no provider lookups; only when the queue cannot fill the
+  mission that way does a second pass fall back to more labels from the same faces. An unsided label is a face of its
+  own, so two unsided labels on one street are two candidates, not one.
+- `LabelValidationMetadata` carries `streetSide`, sent to the page as `street_side`; the frontend does not read it.
+
+### Performance
+
+The face aggregate is a `GROUP BY` over every `NoSidewalk` label, joined once. Postgres only does it once if it plans a
+hash join, and it plans a nested loop — re-running the aggregate per label — when it estimates the outer side at a
+row or two. The "not yet validated by this user" filter, written as a left join with an `IS NULL` test, produced
+exactly that estimate (one surviving row), and the `NoSidewalk` query took 3 s on Teaneck's 6.9k labels. Written as
+`NOT EXISTS` (`LabelTable.validatedByUser`) the anti-join is estimated sensibly and the same query takes 0.1 s
+(`EXPLAIN ANALYZE`, Teaneck, 2026-09-13: `GroupAggregate … loops=1`, 117 ms; the `CurbRamp` query 37 ms with no face
+subquery; the face count 66 ms; the per-type counts 31 ms). Seattle has about seven times the `NoSidewalk` rows, so
+expect the `NoSidewalk` mission query there in the high hundreds of milliseconds, in line with the other types' sorts
+over their own pools. If that filter is ever rewritten, re-check the plan: the symptom is `loops=<thousands>` on the
+aggregate.
+
+### Evidence (Teaneck, 2026-09-13)
+
+From `tools/validation_queue/run.sh sidewalk_teaneck` against the dev schema (evolution 385, the only local schema
+with `street_side`); the section is the tool's "NoSidewalk by block face" output. Seattle's dev dump predates
+evolution 377, so its face numbers above come from the #5222 study and the prod checks on the issue.
+
+| human labelers on the face | agreeing votes on the face | faces | % faces | labels | labels / face |
+|---|---|---|---|---|---|
+| 1 | 0 | 513 | 57.4 | 1,230 | 2.4 |
+| 1 | 1 | 6 | 0.7 | 12 | 2.0 |
+| 1 | 2+ | 1 | 0.1 | 2 | 2.0 |
+| 2 | 0 | 268 | 30.0 | 1,667 | 6.2 |
+| 2 | 1 | 8 | 0.9 | 49 | 6.1 |
+| 2 | 2+ | 5 | 0.6 | 22 | 4.4 |
+| 3+ | 0 | 90 | 10.1 | 886 | 9.8 |
+| 3+ | 1 | 1 | 0.1 | 5 | 5.0 |
+| 3+ | 2+ | 2 | 0.2 | 12 | 6.0 |
+| **all faces** |  | 894 | 100.0 | 3,885 | 4.3 |
+
+3,885 sided `NoSidewalk` labels on 894 faces (4.3 per face), 135 unsided. 520 faces (58.2%) rest on a single human
+labeler; 8 carry two or more agreeing votes. `NoSidewalk`'s weight in the type lottery is 886 faces.
+
+Where `NoSidewalk`'s own picks land — the #4715 per-label score with `NoSidewalk` served like any other type, against
+the per-face score with the one-per-face spread:
+
+| NoSidewalk labels by face | labels | % of NoSidewalk | % of picks, per label | % of picks, per face |
+|---|---|---|---|---|
+| 1 labeler | 1,244 | 30.9 | 30.3 | 51.3 |
+| 2 labelers | 1,738 | 43.2 | 43.9 | 33.0 |
+| 3+ labelers | 903 | 22.5 | 22.4 | 13.7 |
+| unsided | 135 | 3.4 | 3.4 | 2.0 |
+
+Forward simulation of the next 1,788 `NoSidewalk` votes (two per face, the point at which a face settles; the voter
+model is section (iv)'s with one coin per face):
+
+| metric | OLD sort key | per label (#4715) | per face (#5285) |
+|---|---|---|---|
+| distinct faces reached | 676 | 663 | 910 |
+| faces reached per 1,000 votes | 378 | 371 | **509** |
+| faces newly settled (2+ agreeing votes) | 307 | 314 | 404 |
+| votes per settled face | 5.82 | 5.69 | **4.43** |
+| % of votes on single-labeler faces | 29.8 | 30.0 | 52.6 |
+| % of votes on already-settled faces | 37.6 | 39.3 | 10.3 |
+| most votes on any one face | 52 | 68 | 24 |
+
+The two metrics the issue names move the right way — 37% more faces per thousand votes, 22% fewer votes per settled
+face — and the pile-on drops from 68 votes on one face to 24. The constants are starting points; re-run the tool after
+the queue has been live for a while and tune them against the settled-face rate.
 
 ## Expert Validate's `?triage=`
 
@@ -177,8 +315,12 @@ All of these are `val`s in `ValidationQueuePolicy`, pinned by `test/service/Vali
 | `ConsensusNeedMax` | 200 | The score a zero-vote label gets from consensus need alone, and the scale of the whole decay curve. |
 | `RecencyBonus` / `RecencyWindowDays` | 25 / 7 | Freshness nudge (#3018). Small on purpose: it breaks ties toward recent work without outranking the consensus need. |
 | `PickWeightExponent` | 2 | How sharply the score translates into a serve rate. 1 is plain proportional sampling; 2 squares the gaps and keeps the new-labeler emphasis where the additive score puts it. |
+| `FaceSingleLabelerBonus` | 200 | `NoSidewalk` only. Weight of "only one person ever said this face has no sidewalk", divided by `labelerCount²`. Set to outscore an established labeler's unvoted base score (200) on its own. |
+| `AgePointsPerYear` / `AgeBonusMax` | 10 / 60 | `NoSidewalk` only. Older labels first; the cap is where 2019 and 2020 labels tie rather than 2019 dominating. |
+| `FaceSettledSupport` | 2 | `NoSidewalk` only. Agreeing votes on a face at which it stops counting toward `NoSidewalk`'s mission share (still servable). Mirrors `SettledMargin` for the lottery alone. |
 
-`MaxScore` (425) is the sum of the four terms. It is documented for readers and is not used in the sort.
+`MaxScore` (425) is the sum of the four label terms; `NoSidewalk` adds its face terms on top. It is documented for
+readers and is not used in the sort.
 
 ## Evidence (Seattle, 2026-09)
 
@@ -186,13 +328,14 @@ Every number below is pasted from `tools/analyze_validation_queue.py` (see
 [Re-running the analysis](#re-running-the-analysis)) against the Seattle city schema of the dev DB dump — a recent
 production snapshot, 304,948 non-deleted labels and 422,284 validations. Nothing here is typed by hand. Those three
 counts are direct `count(*)`s against the schema; every other number comes from the tool's report, and the tables are
-its **excluding-`NoSidewalk`** half, which is what validators actually see (a mission takes `NoSidewalk` only when no
-other type has a full mission left).
+its **excluding-`NoSidewalk`** half — the other six types' queue on its own, which is what validators saw before
+#5285 brought `NoSidewalk` back (its own numbers are in the [NoSidewalk](#nosidewalk-the-block-face-is-the-unit)
+section).
 
 "Honest servable pool" means the exact joins and filters the label query applies, so it counts what Validate could
 actually serve today: **206,657** labels excluding `NoSidewalk`, of which **33.1%** already have
 a decided outcome. Two inflations to be aware of when reading the issue's original figures: `NoSidewalk` labels
-(50,806, which missions avoid whenever another type is available) and tutorial labels
+(50,806, which missions avoided whenever another type was available) and tutorial labels
 (36,112, which the queue never serves at all).
 
 ### Pool composition
@@ -402,6 +545,20 @@ locally against your dev schema — `make dev` then `npm start`, or `make qa-wor
    and `triage=true` → 200, labels returned without `admin_data`.
 7. Finish a mission on `/validate` → the next mission arrives (this is the cascade plus type-selection path).
 
+`NoSidewalk` (#5285), against a schema with `street_side` (Teaneck locally):
+
+8. `/expertValidate?labelType=NoSidewalk` → labels arrive; in devtools each `svv.labelList` entry carries
+   `street_side` (`left`/`right`/`null`); the first labels come from distinct streets; the admin panel shows 0 votes
+   on them, and `SELECT street_edge_id, street_side, count(*) FROM label JOIN label_point USING (label_id) WHERE
+   label_id IN (…) GROUP BY 1, 2` shows one label per face.
+9. Agree on one, then reload `/expertValidate?labelType=NoSidewalk` several times: the other labels on that face
+   should now appear rarely (their face has `support = 1`, so half the score).
+10. `/validate` as a non-admin: across a handful of missions a `NoSidewalk` mission appears at roughly the face
+    share — compare `getAvailableValidationsLabelsByType` (log it at debug) with the missions you got.
+11. `/validate?unvalidatedOnly=true` still serves; `/mobile` still loads.
+12. The dashboard's mistake cards (`/dashboard`) for a user with a rejected `NoSidewalk` label now show it, since
+    `primaryValidateLabelTypes` includes `NoSidewalk`.
+
 ## Follow-ups
 
 Tracked on #4715; none of these are implemented here.
@@ -420,3 +577,7 @@ Tracked on #4715; none of these are implemented here.
   a label has been stuck may serve experts better.
 - **Per-city tunables** — the constants are global; a deployment with a very different validator population might want
   its own.
+- **`NoSidewalk` follow-ups (#5285)** — a priority term for "disagrees with the opposite face or a city inventory" (we
+  hold no inventory in-app, and both faces absent is the common true case); picking the label nearest the middle of
+  the face's span once #5281 stores it; feeding validations back into `sidewalk_presence` (the second PR, evolution
+  386); and the AI validator (#3995), which selects its own labels and does not read this queue.
