@@ -462,23 +462,30 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       ShareImageCache.generationOf(cache.fileFor(syntheticLabelId)) mustBe Some(ShareImageCache.Generation)
       ShareImageCache.generationOf(new File(cache.dir, ShareImageCache.fileName(syntheticLabelId, 1))) mustBe Some(1)
       ShareImageCache.fileName(12, 1) mustBe "share_12.jpg" // Generation 1 predates the suffix.
-      ShareImageCache.generationOf(new File(cache.dir, "share_12_g1.jpg")) mustBe Some(1)
+      ShareImageCache.generationOf(new File(cache.dir, "share_12_g1.jpg")) mustBe None // Never written; a stray.
       ShareImageCache.generationOf(new File(cache.dir, "share_fallback.jpg")) mustBe None
       ShareImageCache.generationOf(new File(cache.dir, "share_12_g2.jpg.8675309.tmp")) mustBe None
       ShareImageCache.generationOf(new File(cache.dir, "story_12.jpg")) mustBe None
     }
 
-    "hand back the newest earlier-generation preview for a label, and drop them all once the current one exists" in {
+    "promote the newest earlier-generation preview to current, and drop them all once the current one exists" in {
       val _          = cache.dir.mkdirs()
       val legacyGen1 = new File(cache.dir, ShareImageCache.fileName(syntheticLabelId, 1))
+      val current    = cache.fileFor(syntheticLabelId)
       try {
-        cache.legacyFileFor(syntheticLabelId) mustBe None
-        val _ = legacyGen1.createNewFile()
-        cache.legacyFileFor(syntheticLabelId) mustBe Some(legacyGen1)
+        cache.promoteLegacy(syntheticLabelId) mustBe None
+        Files.write(legacyGen1.toPath, Array[Byte](7))
+        cache.promoteLegacy(syntheticLabelId) mustBe Some(current)
+        legacyGen1.exists() mustBe false
+        Files.readAllBytes(current.toPath) mustBe Array[Byte](7)
+        // A concurrent build that already wrote the real thing must win over the promotion.
+        Files.write(legacyGen1.toPath, Array[Byte](1))
+        cache.promoteLegacy(syntheticLabelId) mustBe Some(current)
+        Files.readAllBytes(current.toPath) mustBe Array[Byte](7)
         cache.dropLegacy(syntheticLabelId)
         legacyGen1.exists() mustBe false
         cache.dropLegacy(syntheticLabelId) // Nothing left: must not throw or warn its way into a failure.
-      } finally { val _ = legacyGen1.delete() }
+      } finally { val _ = legacyGen1.delete(); val _ = current.delete() }
     }
 
     "delete a cached preview so the next request rebuilds it from the crop that just landed (#4726)" in {
@@ -541,7 +548,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       val dir = Files.createTempDirectory("share-evict-spec").toFile
       try {
         val current = fillCache(dir, 2)
-        val legacy  = Seq(new File(dir, "share_7.jpg"), new File(dir, "share_8_g1.jpg"))
+        val legacy  = Seq(new File(dir, "share_7.jpg"), new File(dir, "share_8.jpg"))
         legacy.zipWithIndex.foreach { case (f, i) =>
           val _ = f.createNewFile()
           val _ = f.setLastModified(1600000000000L + i * 60000L) // Both older than every current file.
@@ -584,15 +591,18 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     val cache      = app.injector.instanceOf[service.ShareImageCache]
     val labelId    = -987655 // Its own synthetic id: the ShareImageCache block above creates and deletes -987654.
 
-    "serve the label's earlier-generation preview when nothing better can be built (#3095)" in {
-      val _      = cache.dir.mkdirs()
-      val legacy = new File(cache.dir, ShareImageCache.fileName(labelId, 1))
+    "serve the label's earlier-generation preview when nothing better can be built, as the current one (#3095)" in {
+      val _       = cache.dir.mkdirs()
+      val legacy  = new File(cache.dir, ShareImageCache.fileName(labelId, 1))
+      val current = cache.fileFor(labelId)
       try {
         Files.write(legacy.toPath, Array[Byte](1, 2, 3)) // Any bytes: the point is which file is served.
         val result = Future.successful(controller.serveLegacyOrFallbackImage(labelId))
         status(result) mustBe OK
         contentAsBytes(result).toArray mustBe Array[Byte](1, 2, 3)
-      } finally { val _ = legacy.delete() }
+        current.exists() mustBe true // The next request is a plain cache hit, not another build attempt.
+        legacy.exists() mustBe false
+      } finally { val _ = legacy.delete(); val _ = current.delete() }
     }
 
     "fall back to the branded image when the label has no preview of any generation" in {

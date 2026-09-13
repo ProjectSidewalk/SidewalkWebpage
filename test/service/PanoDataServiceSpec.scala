@@ -21,6 +21,9 @@ import java.nio.file.{Files, Path}
  *
  * A refit that changes the constants must re-pin these from the new summary in the same change — and the jsdom
  * suite's fixture with them (test/js/exploreLabelLatLngEstimate.test.js).
+ *
+ * Also here, pure for the same reason: the two Street View Static API requests (#3095) and the fov curve they and the
+ * canvas projection share, held to `util.pano.zoomToFov` and to the measured fixture behind gsvFovContract.test.js.
  */
 class PanoDataServiceSpec extends AnyFunSuite with Matchers {
 
@@ -182,7 +185,9 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
     val curve = """(?s)util\.pano\.zoomToFov = \(zoom\) => \{\s*return zoom <= 2\s*""" +
       """\?\s*([\d.]+) - zoom \* ([\d.]+)\s*(?://[^\n]*)?\s*""" +
       """:\s*([\d.]+) / Math\.pow\(([\d.]+), zoom\)"""
-    val m = curve.r.findFirstMatchIn(js).getOrElse(fail("util.pano.zoomToFov is not the two-piece curve this spec parses"))
+    val m = curve.r
+      .findFirstMatchIn(js)
+      .getOrElse(fail("util.pano.zoomToFov is not the two-piece curve this spec parses"))
     val (a, b, c, d) = (m.group(1).toDouble, m.group(2).toDouble, m.group(3).toDouble, m.group(4).toDouble)
     for (zoom <- Seq(1.0, 1.5, 2.0, 2.5, 3.0)) {
       val jsFov = if (zoom <= 2) a - zoom * b else c / math.pow(d, zoom)

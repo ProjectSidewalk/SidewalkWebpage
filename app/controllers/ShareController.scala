@@ -434,7 +434,10 @@ class ShareController @Inject() (
     out
   }
 
-  /** Serves a cached JPEG with a long cache lifetime (the image content for a label is immutable once generated). */
+  /**
+   * Serves a cached JPEG with a long cache lifetime: a label's preview only changes when a crop lands (`invalidate`)
+   * or the generation is bumped (a new `og:image` URL), and neither needs a client to re-fetch the same URL sooner.
+   */
   private def serveImage(file: File): Result = {
     // Best-effort mtime touch so evictStaleShareImages approximates LRU; eviction order degrades gracefully if the
     // filesystem refuses.
@@ -459,11 +462,12 @@ class ShareController @Inject() (
 
   /**
    * What to serve when no current-generation preview can be built: the label's preview from an earlier generation
-   * if one survives, else the branded fallback. A rebuild only fails for a crop-less label whose still is gone too,
-   * so the old preview — the same photo, marker a little off — is the last imagery there is for it.
+   * if one survives (promoted to current, so the next request is a disk hit), else the branded fallback. A rebuild
+   * only fails for a crop-less label whose still is gone too, so the old preview — the same photo, marker a little
+   * off — is the last imagery there is for it.
    */
   private[controllers] def serveLegacyOrFallbackImage(labelId: Int): Result =
-    shareImageCache.legacyFileFor(labelId).map(serveImage).getOrElse(serveFallbackImage())
+    shareImageCache.promoteLegacy(labelId).map(serveImage).getOrElse(serveFallbackImage())
 
   /** Renders the logo centered on a white fixed-size canvas to the given cache file (no-op if the logo is missing). */
   private[controllers] def buildFallbackImage(cached: File): Unit = {
