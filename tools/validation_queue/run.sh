@@ -53,16 +53,25 @@ else
     TYPE_JOIN="INNER JOIN label_type ON label.label_type_id = label_type.label_type_id"
 fi
 
+# label_point.street_side arrived with evolution 377; before it there is no side to export, and the face analysis
+# reports every NoSidewalk label as unsided.
+if [ "$LEVEL" -ge 377 ]; then
+    STREET_SIDE_EXPR="label_point.street_side::text"
+else
+    STREET_SIDE_EXPR="NULL::text"
+fi
+
 # Whichever imagery source the city's labels actually live on; Validate only ever serves one source at a time.
 PANO_SOURCE=$(psql_ro -Atc \
     "SELECT source FROM $SCHEMA.pano_data GROUP BY source ORDER BY count(*) DESC LIMIT 1")
 
-echo "schema=$SCHEMA evolution=$LEVEL label_type=$TYPE_EXPR pano_source=$PANO_SOURCE" >&2
+echo "schema=$SCHEMA evolution=$LEVEL label_type=$TYPE_EXPR street_side=$STREET_SIDE_EXPR pano_source=$PANO_SOURCE" >&2
 
 for query in pool validations; do
     echo "exporting $query.csv ..." >&2
     psql_ro -v schema="$SCHEMA" -v label_type_expr="$TYPE_EXPR" -v label_type_join="$TYPE_JOIN" \
-        -v pano_source="$PANO_SOURCE" -f - < "$HERE/$query.sql" > "$OUT_HOST/$query.csv"
+        -v pano_source="$PANO_SOURCE" -v street_side_expr="$STREET_SIDE_EXPR" \
+        -f - < "$HERE/$query.sql" > "$OUT_HOST/$query.csv"
 done
 wc -l "$OUT_HOST"/pool.csv "$OUT_HOST"/validations.csv >&2
 

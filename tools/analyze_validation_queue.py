@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Measure what Validate's queue actually serves, and what the #4715 policy would serve instead.
+"""Measure what Validate's queue actually serves, and what the #4715 and #5285 policies would serve instead.
 
 The issue's headline numbers came from ad-hoc SQL that nobody could re-run. This module is the reproducible
 replacement: it takes two CSV exports of a city schema (tools/validation_queue/pool.sql and validations.sql, both
-driven by tools/validation_queue/run.sh) and answers four questions, each once with NoSidewalk excluded and once
-with it included, because Validate only serves NoSidewalk when it is the last type standing (#4715, @misaugstad):
+driven by tools/validation_queue/run.sh) and answers five questions. The first four run once with NoSidewalk
+excluded -- the other six types' queue on its own -- and once with it included:
 
   (i)   What is in the servable pool, by consensus status and by label type.
   (ii)  Where the picks go under today's sort key versus the candidate policies -- and how much of that is the
@@ -14,6 +14,9 @@ with it included, because Validate only serves NoSidewalk when it is the last ty
   (iii) What the crowd already spent: every validation replayed in cast order, so each vote can be labelled with the
         label's margin at the moment it was cast, plus the settle-rate-by-prior-votes table that sets N_max.
   (iv)  A forward simulation of the next K votes under the old and the new policy, with an explicit voter model.
+  (v)   NoSidewalk by block face (#5285): the faces by how many people labeled them and how many votes confirm them,
+        where NoSidewalk picks land under a per-label queue versus the per-face one, and a forward simulation of
+        NoSidewalk votes alone reporting votes per settled face and faces reached per 1,000 votes.
 
 Everything here is pure and vectorized so the tests can pin it; the CLI only reads CSVs and formats markdown.
 
@@ -50,6 +53,14 @@ CONSENSUS_NEED_MAX = 200.0
 RECENCY_BONUS = 25.0
 PICK_WEIGHT_EXPONENT = 2.0
 
+# NoSidewalk's per-block-face terms (#5285): a bonus for faces resting on few human labelers, an age bonus, and a
+# factor that halves, then thirds, a face's remaining labels as agreeing human votes land on any of them. A face stops
+# counting toward NoSidewalk's share of missions at FACE_SETTLED_SUPPORT agreeing votes but stays servable.
+FACE_SINGLE_LABELER_BONUS = 200.0
+AGE_POINTS_PER_YEAR = 10.0
+AGE_BONUS_MAX = 60.0
+FACE_SETTLED_SUPPORT = 2
+
 # The old sort key draws uniformly between a label's deterministic score and this ceiling, which is one point above
 # the largest score the additive formula can produce.
 OLD_SCORE_CEILING = 426.0
@@ -66,9 +77,9 @@ TYPE_PROBABILITY_FLOOR = 0.02
 # The bounded-jitter alternative the issue floated (`det + random() * 25`), kept as a comparison column.
 JITTER_WIDTH = 25.0
 
-# LabelTypeEnum.primaryLabelTypes and primaryValidateLabelTypes.
+# LabelTypeEnum.primaryLabelTypes, and the six of them Validate served before #5285 brought NoSidewalk back.
 PRIMARY_LABEL_TYPES = ("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal", "NoSidewalk")
-PRIMARY_VALIDATE_LABEL_TYPES = tuple(t for t in PRIMARY_LABEL_TYPES if t != "NoSidewalk")
+TYPES_WITHOUT_NO_SIDEWALK = tuple(t for t in PRIMARY_LABEL_TYPES if t != "NoSidewalk")
 
 # Voter model for the forward simulation (§iv). A validator agrees with a correct label 85% of the time and with an
 # incorrect one 20% of the time; the unsure rate is flat at Seattle's observed 8%. These are assumptions, not
@@ -78,6 +89,8 @@ VOTE_PROBS_IF_INCORRECT = (0.20, 0.72, 0.08)
 
 STATUS_ORDER = ("unvalidated", "unsure-only", "margin 1", "tied", "decided")
 VOTE_BUCKET_ORDER = ("0", "1", "2", "3-4", "5+")
+LABELER_BUCKET_ORDER = ("1", "2", "3+")
+SUPPORT_BUCKET_ORDER = ("0", "1", "2+")
 
 
 # Policy predicates and scores. Every one takes numpy arrays (or scalars) and returns the same shape.
@@ -304,8 +317,8 @@ def eligible_types(available_by_type, mission_length=MISSION_LENGTH, serve_no_si
     """Types Validate will consider: enough labels for a whole mission, and NoSidewalk only when nothing else is.
 
     @param available_by_type: Mapping of label type name to how many labels of it the viewer could be served.
-    @param serve_no_sidewalk: Keep NoSidewalk in the running even when other types are available. The app never
-                              does this; it is how the report answers "and what if we did serve NoSidewalk?".
+    @param serve_no_sidewalk: Keep NoSidewalk in the running even when other types are available, as #5285 does;
+                              False is the pre-#5285 gate, which the OLD and NEW (#4715) policies model.
     @returns: List of type names in PRIMARY_LABEL_TYPES order.
 
     >>> eligible_types({"CurbRamp": 40, "NoSidewalk": 40, "Signal": 3})
@@ -316,7 +329,7 @@ def eligible_types(available_by_type, mission_length=MISSION_LENGTH, serve_no_si
     avail = [t for t in PRIMARY_LABEL_TYPES if available_by_type.get(t, 0) >= mission_length]
     if serve_no_sidewalk or len(avail) == 1:
         return avail
-    return [t for t in avail if t in PRIMARY_VALIDATE_LABEL_TYPES]
+    return [t for t in avail if t in TYPES_WITHOUT_NO_SIDEWALK]
 
 
 # Bucketing.
@@ -356,6 +369,20 @@ def vote_bucket(votes):
 
 
 # Historical replay.
+
+
+def labeler_bucket(labelers):
+    """Bucket a face's distinct human labeler count as the report groups it: 1 / 2 / 3+."""
+    labelers = np.asarray(labelers)
+    out = np.where(labelers <= 1, "1", np.where(labelers == 2, "2", "3+"))
+    return out.astype(object)
+
+
+def support_bucket(support):
+    """Bucket a face's agreeing human votes: 0 / 1 / 2+ (the last is where it leaves the mission lottery)."""
+    support = np.asarray(support)
+    out = np.where(support <= 0, "0", np.where(support < FACE_SETTLED_SUPPORT, "1", "2+"))
+    return out.astype(object)
 
 
 def replay_margins(validations, settled_margin=SETTLED_MARGIN):
@@ -468,11 +495,142 @@ def waste_by(replayed, key_fn):
     ]
 
 
-# Pool container and the two policies as data.
+# NoSidewalk block faces (#5285).
+
+
+def face_keys(label_type, street_edge_id, street_side, label_id):
+    """The block face each label sits on, as a string key, or "" for a label that has none.
+
+    A face is one side of one street edge. Only sided NoSidewalk labels have one; an unsided NoSidewalk label
+    (within 1 m of the centerline) is keyed on itself so that two of them on one street stay two candidates for the
+    one-per-face spread, exactly as LabelServiceImpl.FaceKey does. Labels of other types get "".
+
+    >>> list(face_keys(np.array(["NoSidewalk", "NoSidewalk", "CurbRamp"], dtype=object), np.array([7, 7, 7]),
+    ...                np.array(["left", "", "left"], dtype=object), np.array([1, 2, 3])))
+    ['7:left', 'label:2', '']
+    """
+    label_type = np.asarray(label_type, dtype=object)
+    street_side = np.asarray(street_side, dtype=object)
+    out = np.full(label_type.shape, "", dtype=object)
+    for i in range(label_type.size):
+        if label_type[i] != "NoSidewalk":
+            continue
+        out[i] = "{0}:{1}".format(street_edge_id[i], street_side[i]) if street_side[i] else "label:{0}".format(
+            label_id[i])
+    return out
+
+
+def face_evidence(pool):
+    """Per-label face evidence: (has_face, labelers, support), each aligned with the pool.
+
+    Mirrors LabelTable.noSidewalkFaceEvidence: over sided NoSidewalk labels grouped by (street edge, side), the
+    distinct *human* labelers and the agreeing human votes (the AI's Agree subtracted out, since it sits inside
+    agree_count). Unsided and non-NoSidewalk labels have no face: has_face False, labelers 0, support 0.
+
+    The pool is the servable one, so a face's evidence here omits any of its labels whose imagery is gone; the app
+    aggregates over every live label. The difference is the imagery-dead tail and does not change the buckets.
+    """
+    n = len(pool)
+    has_face = (pool.label_type == "NoSidewalk") & (pool.street_side != "")
+    labelers = np.zeros(n, dtype=np.int64)
+    support = np.zeros(n, dtype=np.int64)
+    idx = np.flatnonzero(has_face)
+    if idx.size == 0:
+        return has_face, labelers, support
+    keys = np.array(["{0}:{1}".format(e, sd) for e, sd in zip(pool.street_edge_id[idx], pool.street_side[idx])],
+                    dtype=object)
+    uniq, inverse = np.unique(keys, return_inverse=True)
+    # Distinct human labelers per face: unique (face, labeler) pairs among non-AI rows, counted per face.
+    human = ~pool.ai_labeler[idx]
+    pairs = np.array(["{0}|{1}".format(g, u) for g, u in zip(inverse[human], pool.labeler_id[idx][human])],
+                     dtype=object)
+    pair_groups = np.array([int(p.split("|", 1)[0]) for p in np.unique(pairs)], dtype=np.int64)
+    per_face_labelers = np.bincount(pair_groups, minlength=uniq.size)
+    ai_agree = (pool.ai_result[idx] == "Agree").astype(np.int64)
+    per_face_support = np.bincount(inverse, weights=pool.agree[idx] - ai_agree, minlength=uniq.size)
+    labelers[idx] = per_face_labelers[inverse]
+    support[idx] = np.rint(per_face_support[inverse]).astype(np.int64)
+    return has_face, labelers, support
+
+
+def no_sidewalk_priority_score(base_score, has_face, face_labelers, face_support, age_years):
+    """ValidationQueuePolicy.noSidewalkPriorityScore: (base + face evidence need + age bonus) / (1 + face support).
+
+    The evidence need is FACE_SINGLE_LABELER_BONUS / labelers^2 for a sided label (200, 50, 22 for one, two, three
+    labelers; floored at one labeler so a face with only AI labels needs a look as much as a one-labeler face) and 0
+    for an unsided one; the age bonus is AGE_POINTS_PER_YEAR per year, capped at AGE_BONUS_MAX.
+
+    >>> float(no_sidewalk_priority_score(200.0, True, 1, 0, 7.0)), float(no_sidewalk_priority_score(200.0, True, 3, 2, 7.0))
+    (460.0, 94.07407407407408)
+    """
+    has_face = np.asarray(has_face, dtype=bool)
+    labelers = np.maximum(np.asarray(face_labelers, dtype=np.float64), 1.0)
+    evidence_need = np.where(has_face, FACE_SINGLE_LABELER_BONUS / (labelers * labelers), 0.0)
+    age_bonus = np.minimum(AGE_BONUS_MAX, AGE_POINTS_PER_YEAR * np.asarray(age_years, dtype=np.float64))
+    support_factor = 1.0 / (1.0 + np.asarray(face_support, dtype=np.float64))
+    return (np.asarray(base_score, dtype=np.float64) + evidence_need + age_bonus) * support_factor
+
+
+def spread_mission(keys, face_key, street_edge_id, rng, mission_length=MISSION_LENGTH,
+                   batch_multiplier=BATCH_MULTIPLIER):
+    """The NoSidewalk mission selection (#5285): top batch by key, then one label per face, distinct streets first.
+
+    Mirrors LabelService.retrieveLabelListForValidation's NoSidewalk path and LabelServiceImpl.spreadAcrossFaces:
+    the batch keeps the sampler's order (no shuffle), the first pass takes a label whose face and street are both
+    new, the second a label whose face is new, and only then does the mission fill from the same faces.
+
+    @param keys: Sort keys for every candidate NoSidewalk label; larger sorts first.
+    @param face_key: Face key per candidate (see `face_keys`).
+    @param street_edge_id: Street per candidate.
+    @returns: Array of up to `mission_length` indices into `keys`.
+    """
+    keys = np.asarray(keys)
+    n = keys.size
+    if n == 0:
+        return np.empty(0, dtype=np.intp)
+    batch = min(n, mission_length * batch_multiplier)
+    top = np.argsort(-keys, kind="stable")[:batch]
+    picked = []
+    used_faces = set()
+    used_streets = set()
+
+    def take(i):
+        picked.append(i)
+        used_faces.add(face_key[i])
+        used_streets.add(int(street_edge_id[i]))
+
+    for i in top:
+        if len(picked) >= mission_length:
+            break
+        if face_key[i] not in used_faces and int(street_edge_id[i]) not in used_streets:
+            take(i)
+    for i in top:
+        if len(picked) >= mission_length:
+            break
+        if face_key[i] not in used_faces:
+            take(i)
+    for i in top:
+        if len(picked) >= mission_length:
+            break
+        if i not in picked:
+            take(i)
+    return np.array(picked, dtype=np.intp)
+
+
+# Pool container and the policies as data.
 
 
 class Pool(object):
     """The servable label pool as parallel numpy arrays, plus the derived columns every section needs."""
+
+    # Columns a pre-#5285 export lacks; a pool built without them reads as every label unsided and fresh.
+    OPTIONAL_DEFAULTS = {
+        "street_edge_id": (0, np.int64),
+        "street_side": ("", object),
+        "labeler_id": ("", object),
+        "ai_labeler": (False, bool),
+        "age_years": (0.0, np.float64),
+    }
 
     def __init__(self, columns):
         """@param columns: Mapping of pool.sql column name to a numpy array, all the same length."""
@@ -488,32 +646,53 @@ class Pool(object):
         self.stale = columns["stale"]
         self.recent = columns["recent"]
         self.ai_result = columns["ai_result"]
+        n = self.label_id.size
+        for name, (default, dtype) in self.OPTIONAL_DEFAULTS.items():
+            value = columns.get(name)
+            setattr(self, name, np.full(n, default, dtype=dtype) if value is None else np.asarray(value, dtype=dtype))
+        self._faces = None
 
     def __len__(self):
         return int(self.label_id.size)
 
+    def columns(self):
+        """The pool as the column mapping `__init__` takes, for `subset` and for tests that tweak one column."""
+        return {
+            "label_id": self.label_id,
+            "label_type": self.label_type,
+            "agree_count": self.agree,
+            "disagree_count": self.disagree,
+            "unsure_count": self.unsure,
+            "correct_is_null": self.correct_is_null,
+            "own_labels_validated": self.own_labels_validated,
+            "high_quality": self.high_quality,
+            "low_quality": self.low_quality,
+            "stale": self.stale,
+            "recent": self.recent,
+            "ai_result": self.ai_result,
+            "street_edge_id": self.street_edge_id,
+            "street_side": self.street_side,
+            "labeler_id": self.labeler_id,
+            "ai_labeler": self.ai_labeler,
+            "age_years": self.age_years,
+        }
+
     def subset(self, mask):
         """A new Pool holding only the rows `mask` selects."""
-        return Pool(
-            {
-                "label_id": self.label_id[mask],
-                "label_type": self.label_type[mask],
-                "agree_count": self.agree[mask],
-                "disagree_count": self.disagree[mask],
-                "unsure_count": self.unsure[mask],
-                "correct_is_null": self.correct_is_null[mask],
-                "own_labels_validated": self.own_labels_validated[mask],
-                "high_quality": self.high_quality[mask],
-                "low_quality": self.low_quality[mask],
-                "stale": self.stale[mask],
-                "recent": self.recent[mask],
-                "ai_result": self.ai_result[mask],
-            }
-        )
+        return Pool({name: values[mask] for name, values in self.columns().items()})
 
     def without_no_sidewalk(self):
-        """The pool as Validate normally sees it: NoSidewalk is held back unless it is the last type available."""
+        """The other six types' queue: the pool Validate drew from before #5285, when NoSidewalk was held back."""
         return self.subset(self.label_type != "NoSidewalk")
+
+    def face_keys(self):
+        return face_keys(self.label_type, self.street_edge_id, self.street_side, self.label_id)
+
+    def faces(self):
+        """(has_face, labelers, support) per label, computed once; see `face_evidence`."""
+        if self._faces is None:
+            self._faces = face_evidence(self)
+        return self._faces
 
     def status(self):
         return status_of(self.agree, self.disagree, self.unsure)
@@ -551,29 +730,53 @@ class Pool(object):
         return new_priority_score(self.agree, self.disagree, self.unsure, self.own_labels_validated,
                                   self.high_quality, self.low_quality, self.stale, self.recent)
 
+    def faces_score(self):
+        """The #5285 score: the #4715 score for every type, with NoSidewalk's rows rescored by block face."""
+        base = self.new_score()
+        has_face, labelers, support = self.faces()
+        no_sidewalk = self.label_type == "NoSidewalk"
+        face_scored = no_sidewalk_priority_score(base, has_face, labelers, support, self.age_years)
+        return np.where(no_sidewalk, face_scored, base)
 
-# Each policy is (deterministic score, sort key, which labels are eligible, what type selection weights on).
-# 'old' is today's behaviour; 'new' is #4715. The three in between change one thing at a time, which is how the
-# report can say whether the sampler or the retirement rule is doing the work.
+    def face_needs_votes(self):
+        """Per label: its face still counts toward NoSidewalk's mission share (sided, under the settled support)."""
+        has_face, _, support = self.faces()
+        return has_face & (support < FACE_SETTLED_SUPPORT)
+
+
+# Each policy is (deterministic score, sort key, which labels are eligible, what type selection weights on, and
+# whether NoSidewalk competes for missions). 'old' is the pre-#4715 behaviour; 'new' is #4715, which still held
+# NoSidewalk back; 'faces' is #4715 plus the #5285 per-face queue. The three in between change one thing at a time,
+# which is how the report can say whether the sampler or the retirement rule is doing the work.
 POLICIES = {
-    "old": {"score": "old", "key": "old", "queue": "any", "type_weight": "unvalidated"},
-    "es1": {"score": "new", "key": "es1", "queue": "any", "type_weight": "unvalidated"},
-    "es2": {"score": "new", "key": "es2", "queue": "any", "type_weight": "unvalidated"},
-    "jitter": {"score": "new", "key": "jitter", "queue": "any", "type_weight": "unvalidated"},
-    "new": {"score": "new", "key": "es2", "queue": "needs_votes", "type_weight": "needs_votes"},
+    "old": {"score": "old", "key": "old", "queue": "any", "type_weight": "unvalidated", "no_sidewalk": False},
+    "es1": {"score": "new", "key": "es1", "queue": "any", "type_weight": "unvalidated", "no_sidewalk": False},
+    "es2": {"score": "new", "key": "es2", "queue": "any", "type_weight": "unvalidated", "no_sidewalk": False},
+    "jitter": {"score": "new", "key": "jitter", "queue": "any", "type_weight": "unvalidated", "no_sidewalk": False},
+    "new": {"score": "new", "key": "es2", "queue": "needs_votes", "type_weight": "needs_votes", "no_sidewalk": False},
+    "faces": {"score": "faces", "key": "es2", "queue": "needs_votes", "type_weight": "faces", "no_sidewalk": True},
 }
 
 POLICY_LABELS = {
-    "old": "OLD (today)",
+    "old": "OLD (pre-#4715)",
     "es1": "sampler only, P(pick) prop. score",
     "es2": "sampler only, P(pick) prop. score^2",
     "jitter": "sampler only, bounded jitter +25",
-    "new": "NEW (retirement + score^2)",
+    "new": "NEW (#4715: retirement + score^2)",
+    "faces": "NEW + faces (#5285)",
 }
+
+# The policies the main tables compare; 'faces' only differs from 'new' on NoSidewalk, which has its own section.
+MAIN_POLICIES = ("old", "es1", "es2", "jitter", "new")
 
 
 def _policy_scores(pool, policy):
-    return pool.old_score() if POLICIES[policy]["score"] == "old" else pool.new_score()
+    kind = POLICIES[policy]["score"]
+    if kind == "old":
+        return pool.old_score()
+    if kind == "faces":
+        return pool.faces_score()
+    return pool.new_score()
 
 
 def _policy_keys(policy, scores, rng):
@@ -613,9 +816,29 @@ def _policy_eligible(pool, policy):
 
 def _policy_type_weights(pool, policy):
     """Per-label indicator of what type selection counts for this policy."""
-    if POLICIES[policy]["type_weight"] == "needs_votes":
+    if POLICIES[policy]["type_weight"] in ("needs_votes", "faces"):
         return pool.needs_votes()
     return pool.correct_is_null
+
+
+def _type_weight(pool, policy, label_type, weight_col, face_key):
+    """One type's weight in the lottery: its counted labels, or for NoSidewalk under #5285 its faces needing votes.
+
+    @param label_type: The type's name.
+    @param weight_col: Per-label indicator from `_policy_type_weights`, evaluated on the current counts.
+    @param face_key: Per-label face key, read only for NoSidewalk under the faces policy.
+    """
+    type_mask = pool.label_type == label_type
+    if POLICIES[policy]["type_weight"] == "faces" and label_type == "NoSidewalk":
+        has_face, _, support = pool.faces()
+        counted = type_mask & weight_col & has_face & (support < FACE_SETTLED_SUPPORT)
+        return float(np.unique(face_key[counted]).size) if counted.any() else 0.0
+    return float(np.count_nonzero(weight_col & type_mask))
+
+
+def _serves_no_sidewalk(policy, serve_no_sidewalk):
+    """Whether NoSidewalk is in the type lottery: the report's switch, or the policy's own rule."""
+    return serve_no_sidewalk or POLICIES[policy]["no_sidewalk"]
 
 
 # (ii) Where the picks go.
@@ -637,29 +860,35 @@ def pick_probabilities(pool, policy, rng, missions_per_type=2000, serve_no_sidew
     scores = _policy_scores(pool, policy)
     eligible = _policy_eligible(pool, policy)
     weight_col = _policy_type_weights(pool, policy)
+    face_key = pool.face_keys()
 
     available = {}
     for label_type in PRIMARY_LABEL_TYPES:
         available[label_type] = int(np.count_nonzero(pool.label_type == label_type))
-    types = eligible_types(available, serve_no_sidewalk=serve_no_sidewalk)
+    types = eligible_types(available, serve_no_sidewalk=_serves_no_sidewalk(policy, serve_no_sidewalk))
     if not types:
         return np.zeros(len(pool), dtype=np.float64)
 
-    weights = np.array([np.count_nonzero(weight_col & (pool.label_type == t)) for t in types], dtype=np.float64)
+    weights = np.array([_type_weight(pool, policy, t, weight_col, face_key) for t in types], dtype=np.float64)
     probs = type_probabilities(weights)
 
     shares = np.zeros(len(pool), dtype=np.float64)
     for label_type, prob in zip(types, probs):
         of_type = pool.label_type == label_type
+        # The queue, or the whole type when the queue is thinner than a mission (the cascade's last step). Never
+        # empty: `eligible_types` only admits a type with a mission's worth of labels.
         idx = np.flatnonzero(of_type & eligible)
         if idx.size < MISSION_LENGTH:
             idx = np.flatnonzero(of_type)
-        if idx.size == 0:
-            continue
         counts = np.zeros(idx.size, dtype=np.int64)
         draw_keys = _key_sampler(policy, scores[idx])
+        spread = POLICIES[policy]["score"] == "faces" and label_type == "NoSidewalk"
         for _ in range(missions_per_type):
-            np.add.at(counts, sample_mission(draw_keys(rng), rng), 1)
+            if spread:
+                chosen = spread_mission(draw_keys(rng), face_key[idx], pool.street_edge_id[idx], rng)
+            else:
+                chosen = sample_mission(draw_keys(rng), rng)
+            np.add.at(counts, chosen, 1)
         total = counts.sum()
         if total:
             shares[idx] += prob * (counts / total)
@@ -691,17 +920,12 @@ def simulate_votes(pool, policy, n_votes, rng, p_correct, missions=None, serve_n
     @param missions: Cap on missions simulated; defaults to exactly enough for `n_votes`.
     @returns: Dict of headline metrics, all counts of the simulated votes only.
     """
-    agree = pool.agree.astype(np.int64).copy()
-    disagree = pool.disagree.astype(np.int64).copy()
-    unsure = pool.unsure.astype(np.int64).copy()
-    correct_is_null = pool.correct_is_null.copy()
-    truth = rng.random(len(pool)) < p_correct
+    sim = _VoteSim(pool, policy, rng, p_correct)
+    agree, disagree, unsure, correct_is_null = sim.agree, sim.disagree, sim.unsure, sim.correct_is_null
+    truth = sim.truth
 
-    available = {t: int(np.count_nonzero(pool.label_type == t)) for t in PRIMARY_LABEL_TYPES}
-    types = eligible_types(available, serve_no_sidewalk=serve_no_sidewalk)
+    types = eligible_types(sim.available, serve_no_sidewalk=_serves_no_sidewalk(policy, serve_no_sidewalk))
     type_masks = {t: pool.label_type == t for t in types}
-    weight_kind = POLICIES[policy]["type_weight"]
-    queue_kind = POLICIES[policy]["queue"]
 
     votes_cast = np.zeros(len(pool), dtype=np.int64)
     started_at_zero = total_votes(agree, disagree, unsure) == 0
@@ -714,28 +938,11 @@ def simulate_votes(pool, policy, n_votes, rng, p_correct, missions=None, serve_n
     for _ in range(max_missions):
         if cast >= n_votes or not types:
             break
-        nv = needs_votes(agree, disagree, unsure)
-        weight_col = nv if weight_kind == "needs_votes" else correct_is_null
-        weights = np.array([np.count_nonzero(weight_col & type_masks[t]) for t in types], dtype=np.float64)
+        weights = sim.type_weights(types, type_masks)
         label_type = types[int(rng.choice(len(types), p=type_probabilities(weights)))]
+        idx = sim.candidates(type_masks[label_type])
 
-        of_type = type_masks[label_type]
-        idx = np.flatnonzero(of_type & nv) if queue_kind == "needs_votes" else np.flatnonzero(of_type)
-        if idx.size < MISSION_LENGTH:
-            idx = np.flatnonzero(of_type)
-        if idx.size == 0:
-            continue
-
-        if POLICIES[policy]["score"] == "old":
-            scores = old_priority_score(agree[idx], disagree[idx], correct_is_null[idx],
-                                        pool.own_labels_validated[idx], pool.high_quality[idx],
-                                        pool.low_quality[idx], pool.stale[idx], pool.recent[idx])
-        else:
-            scores = new_priority_score(agree[idx], disagree[idx], unsure[idx], pool.own_labels_validated[idx],
-                                        pool.high_quality[idx], pool.low_quality[idx], pool.stale[idx],
-                                        pool.recent[idx])
-
-        for position in sample_mission(_policy_keys(policy, scores, rng), rng):
+        for position in sim.mission(idx, label_type):
             if cast >= n_votes:
                 break
             i = int(idx[position])
@@ -744,15 +951,7 @@ def simulate_votes(pool, policy, n_votes, rng, p_correct, missions=None, serve_n
                 on_decided += 1
             if agree[i] + disagree[i] + unsure[i] >= MAX_CROWD_VOTES:
                 on_capped += 1
-            probs = VOTE_PROBS_IF_CORRECT if truth[i] else VOTE_PROBS_IF_INCORRECT
-            roll = rng.random()
-            if roll < probs[0]:
-                agree[i] += 1
-            elif roll < probs[0] + probs[1]:
-                disagree[i] += 1
-            else:
-                unsure[i] += 1
-            correct_is_null[i] = False
+            sim.vote(i)
             votes_cast[i] += 1
             cast += 1
             if not was_settled and abs(agree[i] - disagree[i]) >= SETTLED_MARGIN:
@@ -767,6 +966,154 @@ def simulate_votes(pool, policy, n_votes, rng, p_correct, missions=None, serve_n
         "newly_settled": newly_settled,
         "max_votes_on_one_label": int(votes_cast.max()) if cast else 0,
         "votes_per_settled_label": cast / newly_settled if newly_settled else float("nan"),
+    }
+
+
+class _VoteSim(object):
+    """Mutable vote counts plus the policy-dependent selection steps the two forward simulations share.
+
+    Truth is drawn per block face for NoSidewalk labels -- a street side either lacks a sidewalk or has one, so every
+    label on it is right or wrong together -- and per label for everything else. Face support is recomputed from the
+    live agree counts, so a vote on one label of a face lowers the face's whole score for the next mission, as in
+    the app.
+    """
+
+    def __init__(self, pool, policy, rng, p_correct):
+        self.pool = pool
+        self.policy = policy
+        self.rng = rng
+        self.agree = pool.agree.astype(np.int64).copy()
+        self.disagree = pool.disagree.astype(np.int64).copy()
+        self.unsure = pool.unsure.astype(np.int64).copy()
+        self.correct_is_null = pool.correct_is_null.copy()
+        self.face_key = pool.face_keys()
+        self.has_face, self.face_labelers, face_support = pool.faces()
+        self.initial_face_support = face_support
+        self.added_agree = np.zeros(len(pool), dtype=np.int64)
+        self.available = {t: int(np.count_nonzero(pool.label_type == t)) for t in PRIMARY_LABEL_TYPES}
+        # One coin per face, shared by its labels.
+        keys = np.where(self.face_key == "", np.array(["label:{0}".format(i) for i in pool.label_id], dtype=object),
+                        self.face_key)
+        uniq, inverse = np.unique(keys, return_inverse=True)
+        self.truth = (rng.random(uniq.size) < p_correct)[inverse]
+        self._face_index = inverse
+        self._n_faces = uniq.size
+
+    def face_support(self):
+        """Agreeing human votes per face, live: the export's support plus the simulated agrees on the face's labels."""
+        if not self.has_face.any():
+            return self.initial_face_support
+        added = np.bincount(self._face_index, weights=self.added_agree, minlength=self._n_faces)
+        return self.initial_face_support + np.rint(added[self._face_index]).astype(np.int64)
+
+    def type_weights(self, types, type_masks):
+        nv = needs_votes(self.agree, self.disagree, self.unsure)
+        kind = POLICIES[self.policy]["type_weight"]
+        weight_col = nv if kind in ("needs_votes", "faces") else self.correct_is_null
+        weights = []
+        for t in types:
+            if kind == "faces" and t == "NoSidewalk":
+                counted = type_masks[t] & weight_col & self.has_face & (self.face_support() < FACE_SETTLED_SUPPORT)
+                weights.append(float(np.unique(self.face_key[counted]).size) if counted.any() else 0.0)
+            else:
+                weights.append(float(np.count_nonzero(weight_col & type_masks[t])))
+        return np.array(weights, dtype=np.float64)
+
+    def candidates(self, of_type):
+        """Indices the policy's first queue offers for one type, falling back to the whole type when too thin.
+
+        Never empty for an eligible type: `eligible_types` admits only types with a mission's worth of labels.
+        """
+        if POLICIES[self.policy]["queue"] == "needs_votes":
+            idx = np.flatnonzero(of_type & needs_votes(self.agree, self.disagree, self.unsure))
+        else:
+            idx = np.flatnonzero(of_type)
+        return idx if idx.size >= MISSION_LENGTH else np.flatnonzero(of_type)
+
+    def scores(self, idx):
+        pool = self.pool
+        if POLICIES[self.policy]["score"] == "old":
+            return old_priority_score(self.agree[idx], self.disagree[idx], self.correct_is_null[idx],
+                                      pool.own_labels_validated[idx], pool.high_quality[idx],
+                                      pool.low_quality[idx], pool.stale[idx], pool.recent[idx])
+        base = new_priority_score(self.agree[idx], self.disagree[idx], self.unsure[idx],
+                                  pool.own_labels_validated[idx], pool.high_quality[idx], pool.low_quality[idx],
+                                  pool.stale[idx], pool.recent[idx])
+        if POLICIES[self.policy]["score"] == "faces":
+            no_sidewalk = pool.label_type[idx] == "NoSidewalk"
+            scored = no_sidewalk_priority_score(base, self.has_face[idx], self.face_labelers[idx],
+                                                self.face_support()[idx], pool.age_years[idx])
+            return np.where(no_sidewalk, scored, base)
+        return base
+
+    def mission(self, idx, label_type):
+        """Positions into `idx` of one mission's labels, with the one-per-face spread for #5285 NoSidewalk."""
+        keys = _policy_keys(self.policy, self.scores(idx), self.rng)
+        if POLICIES[self.policy]["score"] == "faces" and label_type == "NoSidewalk":
+            return spread_mission(keys, self.face_key[idx], self.pool.street_edge_id[idx], self.rng)
+        return sample_mission(keys, self.rng)
+
+    def vote(self, i):
+        """Cast one simulated vote on label i under the voter model."""
+        probs = VOTE_PROBS_IF_CORRECT if self.truth[i] else VOTE_PROBS_IF_INCORRECT
+        roll = self.rng.random()
+        if roll < probs[0]:
+            self.agree[i] += 1
+            self.added_agree[i] += 1
+        elif roll < probs[0] + probs[1]:
+            self.disagree[i] += 1
+        else:
+            self.unsure[i] += 1
+        self.correct_is_null[i] = False
+
+
+def simulate_no_sidewalk_votes(pool, policy, n_votes, rng, p_correct):
+    """Cast `n_votes` simulated NoSidewalk validations and report them per block face (#5285).
+
+    Only NoSidewalk missions are simulated, so the two metrics the issue names -- votes per settled face and faces
+    reached per 1,000 votes -- measure how the queue spends NoSidewalk effort, not how often it chooses NoSidewalk.
+    A face is settled when its agreeing human votes reach FACE_SETTLED_SUPPORT; an unsided label is its own face.
+
+    @returns: Dict of headline metrics over the simulated votes.
+    """
+    sim = _VoteSim(pool, policy, rng, p_correct)
+    of_type = pool.label_type == "NoSidewalk"
+    if not of_type.any():
+        return {"votes": 0}
+    face_of = sim._face_index
+    started_settled = sim.face_support() >= FACE_SETTLED_SUPPORT
+    single_labeler = sim.has_face & (sim.face_labelers <= 1)
+    votes_on_face = np.zeros(sim._n_faces, dtype=np.int64)
+    on_single = 0
+    on_settled = 0
+    cast = 0
+    # One mission per iteration, each casting at most MISSION_LENGTH votes, so the count is reached inside a mission
+    # and never before one starts.
+    for _ in range(-(-n_votes // MISSION_LENGTH)):
+        idx = sim.candidates(of_type)
+        for position in sim.mission(idx, "NoSidewalk"):
+            if cast >= n_votes:
+                break
+            i = int(idx[position])
+            if sim.face_support()[i] >= FACE_SETTLED_SUPPORT:
+                on_settled += 1
+            if single_labeler[i]:
+                on_single += 1
+            sim.vote(i)
+            votes_on_face[face_of[i]] += 1
+            cast += 1
+    settled_now = sim.face_support() >= FACE_SETTLED_SUPPORT
+    newly_settled_faces = np.unique(face_of[sim.has_face & settled_now & ~started_settled]).size
+    faces_reached = int(np.count_nonzero(votes_on_face))
+    return {
+        "votes": cast,
+        "faces_reached": faces_reached,
+        "faces_reached_per_1000": 1000.0 * faces_reached / cast if cast else 0.0,
+        "faces_newly_settled": int(newly_settled_faces),
+        "votes_per_settled_face": cast / newly_settled_faces if newly_settled_faces else float("nan"),
+        "on_single_labeler_pct": 100.0 * on_single / cast if cast else 0.0,
+        "on_settled_face_pct": 100.0 * on_settled / cast if cast else 0.0,
+        "max_votes_on_one_face": int(votes_on_face.max()) if cast else 0,
     }
 
 
@@ -786,9 +1133,13 @@ def load_pool(path):
     """
     rows = {name: [] for name in ("label_id", "label_type", "agree_count", "disagree_count", "unsure_count",
                                   "correct_is_null", "own_labels_validated", "high_quality", "low_quality", "stale",
-                                  "recent", "ai_result")}
+                                  "recent", "ai_result", "street_edge_id", "street_side", "labeler_id", "ai_labeler",
+                                  "age_years")}
     with open(path, newline="") as handle:
-        for record in csv.DictReader(handle):
+        reader = csv.DictReader(handle)
+        # The face columns arrived with #5285; an older export still loads, as a pool with no faces.
+        has_faces = reader.fieldnames is not None and "street_side" in reader.fieldnames
+        for record in reader:
             rows["label_id"].append(int(record["label_id"]))
             rows["label_type"].append(record["label_type"])
             rows["agree_count"].append(int(record["agree_count"]))
@@ -801,6 +1152,11 @@ def load_pool(path):
             rows["stale"].append(_to_bool(record["stale"]))
             rows["recent"].append(_to_bool(record["recent"]))
             rows["ai_result"].append(record["ai_result"])
+            rows["street_edge_id"].append(int(record["street_edge_id"]) if has_faces else 0)
+            rows["street_side"].append(record["street_side"] if has_faces else "")
+            rows["labeler_id"].append(record["labeler_id"] if has_faces else "")
+            rows["ai_labeler"].append(_to_bool(record["ai_labeler"]) if has_faces else False)
+            rows["age_years"].append(float(record["age_years"]) if has_faces else 0.0)
     return Pool(
         {
             "label_id": np.array(rows["label_id"], dtype=np.int64),
@@ -815,6 +1171,11 @@ def load_pool(path):
             "stale": np.array(rows["stale"], dtype=bool),
             "recent": np.array(rows["recent"], dtype=bool),
             "ai_result": np.array(rows["ai_result"], dtype=object),
+            "street_edge_id": np.array(rows["street_edge_id"], dtype=np.int64),
+            "street_side": np.array(rows["street_side"], dtype=object),
+            "labeler_id": np.array(rows["labeler_id"], dtype=object),
+            "ai_labeler": np.array(rows["ai_labeler"], dtype=bool),
+            "age_years": np.array(rows["age_years"], dtype=np.float64),
         }
     )
 
@@ -928,17 +1289,17 @@ def _pick_share_section(pool, rng, missions_per_type, serve_no_sidewalk):
     analytic = analytic / analytic.sum()
 
     shares = {policy: pick_probabilities(pool, policy, rng, missions_per_type, serve_no_sidewalk)
-              for policy in POLICIES}
+              for policy in MAIN_POLICIES}
 
-    headers = ["status", "labels", "% pool", "OLD analytic"] + [POLICY_LABELS[p] for p in POLICIES]
+    headers = ["status", "labels", "% pool", "OLD analytic"] + [POLICY_LABELS[p] for p in MAIN_POLICIES]
     n = len(pool)
     analytic_by_status = share_by_group(analytic, status, STATUS_ORDER)
-    shares_by_status = {p: share_by_group(shares[p], status, STATUS_ORDER) for p in POLICIES}
+    shares_by_status = {p: share_by_group(shares[p], status, STATUS_ORDER) for p in MAIN_POLICIES}
     rows = []
     for name in STATUS_ORDER:
         count = int(np.count_nonzero(status == name))
         rows.append([name, _int(count), _pct(100.0 * count / n), _pct(analytic_by_status[name])]
-                    + [_pct(shares_by_status[p][name]) for p in POLICIES])
+                    + [_pct(shares_by_status[p][name]) for p in MAIN_POLICIES])
     by_status = markdown_table(headers, rows)
 
     new_labeler_sets = (
@@ -950,9 +1311,9 @@ def _pick_share_section(pool, rng, missions_per_type, serve_no_sidewalk):
     for name, mask in new_labeler_sets:
         labeler_rows.append([name, _int(np.count_nonzero(mask)), _pct(100.0 * np.count_nonzero(mask) / n),
                              _pct(100.0 * analytic[mask].sum())]
-                            + [_pct(100.0 * shares[p][mask].sum()) for p in POLICIES])
+                            + [_pct(100.0 * shares[p][mask].sum()) for p in MAIN_POLICIES])
     by_labeler = markdown_table(["label group", "labels", "% pool", "OLD analytic"]
-                                + [POLICY_LABELS[p] for p in POLICIES], labeler_rows)
+                                + [POLICY_LABELS[p] for p in MAIN_POLICIES], labeler_rows)
 
     bucket_rows = []
     for name in VOTE_BUCKET_ORDER:
@@ -1027,6 +1388,100 @@ def _simulation_section(pool, rng, n_votes, serve_no_sidewalk):
     return table, model
 
 
+def _faces_section(pool, rng, missions_per_type, n_votes):
+    """(v) NoSidewalk by block face: the face table, where NoSidewalk picks land, and the face-level simulation.
+
+    @param pool: The whole pool, NoSidewalk included.
+    @returns: (face table, pick-share table, simulation table, notes) as markdown strings, or None when the pool
+              has no NoSidewalk labels or no sides to group them by.
+    """
+    has_face, labelers, support = pool.faces()
+    no_sidewalk = pool.label_type == "NoSidewalk"
+    if not has_face.any():
+        return None
+    face_key = pool.face_keys()
+    sided = np.flatnonzero(has_face)
+    faces, first = np.unique(face_key[sided], return_index=True)
+    face_rows = sided[first]  # one representative label per face
+    lab_b = labeler_bucket(labelers[face_rows])
+    sup_b = support_bucket(support[face_rows])
+    labels_per_face = np.bincount(np.unique(face_key[sided], return_inverse=True)[1])
+
+    rows = []
+    for lb in LABELER_BUCKET_ORDER:
+        for sb in SUPPORT_BUCKET_ORDER:
+            mask = (lab_b == lb) & (sup_b == sb)
+            count = int(np.count_nonzero(mask))
+            if not count:
+                continue
+            rows.append([lb, sb, _int(count), _pct(100.0 * count / faces.size), _int(labels_per_face[mask].sum()),
+                         "{0:.1f}".format(labels_per_face[mask].mean())])
+    unsided = int(np.count_nonzero(no_sidewalk & ~has_face))
+    rows.append(["**all faces**", "", _int(faces.size), "100.0", _int(sided.size),
+                 "{0:.1f}".format(labels_per_face.mean())])
+    face_table = markdown_table(
+        ["human labelers on the face", "agreeing votes on the face", "faces", "% faces", "labels", "labels / face"],
+        rows)
+
+    # Where NoSidewalk's own picks land, by labeler bucket: per label under #4715 (as if NoSidewalk were served like
+    # any type) against per face under #5285. Shares are normalized within NoSidewalk.
+    share_rows = []
+    shares = {p: pick_probabilities(pool, p, rng, missions_per_type, serve_no_sidewalk=True)
+              for p in ("new", "faces")}
+    ns_total = {p: shares[p][no_sidewalk].sum() for p in shares}
+    label_lab_b = labeler_bucket(labelers)
+    for lb in LABELER_BUCKET_ORDER:
+        mask = no_sidewalk & has_face & (label_lab_b == lb)
+        share_rows.append(
+            ["{0} labeler{1}".format(lb, "" if lb == "1" else "s"), _int(np.count_nonzero(mask)),
+             _pct(100.0 * np.count_nonzero(mask) / np.count_nonzero(no_sidewalk))]
+            + [_pct(100.0 * shares[p][mask].sum() / ns_total[p]) if ns_total[p] else "0.0" for p in ("new", "faces")])
+    mask = no_sidewalk & ~has_face
+    share_rows.append(["unsided", _int(unsided), _pct(100.0 * unsided / np.count_nonzero(no_sidewalk))]
+                      + [_pct(100.0 * shares[p][mask].sum() / ns_total[p]) if ns_total[p] else "0.0"
+                         for p in ("new", "faces")])
+    share_table = markdown_table(
+        ["NoSidewalk labels by face", "labels", "% of NoSidewalk", "% of NoSidewalk picks, per label (#4715)",
+         "% of NoSidewalk picks, per face (#5285)"], share_rows)
+
+    decided = margin(pool.agree, pool.disagree) >= SETTLED_MARGIN
+    p_correct = float(np.count_nonzero(decided & (pool.agree > pool.disagree)) / max(np.count_nonzero(decided), 1))
+    # Two votes per face is where a face settles, so that many votes is the horizon at which the two queues can still
+    # differ; past it every policy has reached every face and the metrics converge on the pool's size.
+    horizon = min(n_votes, FACE_SETTLED_SUPPORT * faces.size)
+    sims = {p: simulate_no_sidewalk_votes(pool, p, horizon, rng, p_correct) for p in ("old", "new", "faces")}
+    sim_rows = [
+        ["NoSidewalk votes simulated"] + [_int(sims[p]["votes"]) for p in sims],
+        ["distinct faces reached"] + [_int(sims[p]["faces_reached"]) for p in sims],
+        ["faces reached per 1,000 votes"] + ["{0:.0f}".format(sims[p]["faces_reached_per_1000"]) for p in sims],
+        ["faces newly settled ({0}+ agreeing votes)".format(FACE_SETTLED_SUPPORT)]
+        + [_int(sims[p]["faces_newly_settled"]) for p in sims],
+        ["votes per settled face"] + ["{0:.2f}".format(sims[p]["votes_per_settled_face"]) for p in sims],
+        ["% of votes on single-labeler faces"] + [_pct(sims[p]["on_single_labeler_pct"]) for p in sims],
+        ["% of votes on already-settled faces"] + [_pct(sims[p]["on_settled_face_pct"]) for p in sims],
+        ["most votes on any one face"] + [_int(sims[p]["max_votes_on_one_face"]) for p in sims],
+    ]
+    sim_table = markdown_table(["metric", "OLD sort key", "per label (#4715)", "per face (#5285)"], sim_rows)
+
+    single = int(np.count_nonzero(lab_b == "1"))
+    settled = int(np.count_nonzero(sup_b == "2+"))
+    notes = [
+        "{0} sided NoSidewalk labels on {1} block faces ({2} labels per face); {3} NoSidewalk labels are unsided and "
+        "are each their own candidate.".format(_int(sided.size), _int(faces.size),
+                                               "{0:.1f}".format(labels_per_face.mean()), _int(unsided)),
+        "{0} faces ({1}%) rest on a single human labeler, the shape the #5222 study found the false calls in; {2} "
+        "({3}%) already carry {4}+ agreeing votes and are out of NoSidewalk's mission share (still servable).".format(
+            _int(single), _pct(100.0 * single / faces.size), _int(settled), _pct(100.0 * settled / faces.size),
+            FACE_SETTLED_SUPPORT),
+        "Faces still needing votes, which is NoSidewalk's weight in the type lottery under #5285: {0}.".format(
+            _int(np.unique(face_key[pool.face_needs_votes() & pool.needs_votes()]).size)),
+        "Voter model as in section (iv), with one coin per face: every label on a street side is right or wrong "
+        "together (p_correct = {0:.3f}). The simulation casts {1} votes, {2} per face, the point at which a face "
+        "settles.".format(p_correct, _int(horizon), FACE_SETTLED_SUPPORT),
+    ]
+    return face_table, share_table, sim_table, notes
+
+
 def build_report(pool, validations, schema, seed=4715, votes=20000, missions_per_type=2000):
     """Assemble the whole markdown report, both with and without NoSidewalk.
 
@@ -1043,9 +1498,12 @@ def build_report(pool, validations, schema, seed=4715, votes=20000, missions_per
         "",
         "Policy under test: a label still needs votes while `total_votes = 0 OR (|agree - disagree| < {0} AND "
         "total_votes < {1})`, priority is the additive score with `{2} / (1 + margin^2 + unsure)` as the "
-        "consensus term, and pick probability is proportional to `score^{3:g}`. Pool rows: {4}; validations "
-        "replayed: {5}; seed {6}; {7} missions simulated per type; {8} votes in the forward simulation.".format(
-            SETTLED_MARGIN, MAX_CROWD_VOTES, int(CONSENSUS_NEED_MAX), PICK_WEIGHT_EXPONENT, _int(len(pool)),
+        "consensus term, and pick probability is proportional to `score^{3:g}`. NoSidewalk is scored per block face "
+        "(#5285): `(score + {4:g} / labelers^2 + min({5:g}, {6:g} x years)) / (1 + agreeing votes on the face)`, "
+        "and a face leaves NoSidewalk's mission share at {7} agreeing votes. Pool rows: {8}; validations "
+        "replayed: {9}; seed {10}; {11} missions simulated per type; {12} votes in each forward simulation.".format(
+            SETTLED_MARGIN, MAX_CROWD_VOTES, int(CONSENSUS_NEED_MAX), PICK_WEIGHT_EXPONENT,
+            FACE_SINGLE_LABELER_BONUS, AGE_BONUS_MAX, AGE_POINTS_PER_YEAR, FACE_SETTLED_SUPPORT, _int(len(pool)),
             _int(len(validations)), seed, _int(missions_per_type), _int(votes)),
     ]
 
@@ -1065,9 +1523,10 @@ def build_report(pool, validations, schema, seed=4715, votes=20000, missions_per
             "",
             "## {0}{1}".format(title[0].upper(), title[1:]),
             "",
-            "NoSidewalk is {0} here. Validate holds it back unless it is the only type with a full mission left, so "
-            "the excluding-NoSidewalk tables are the ones that describe what validators actually see.".format(
-                "left out" if "excluding" in title else "counted as if it were served like any other type"),
+            "NoSidewalk is {0} here. Before #5285 Validate held it back unless it was the only type with a full "
+            "mission left, so the excluding-NoSidewalk tables describe the other six types' queue on its own; the "
+            "including tables are the whole pool, which is what #5285 serves (its per-face scoring is in section "
+            "(v)).".format("left out" if "excluding" in title else "counted as if it were served like any other type"),
             "",
             "### (i) Pool composition",
             "",
@@ -1108,6 +1567,37 @@ def build_report(pool, validations, schema, seed=4715, votes=20000, missions_per
             "### (iv) Forward simulation of the next {0} votes".format(_int(votes)),
             "",
             sim_model,
+            "",
+            sim_table,
+        ]
+
+    faces = _faces_section(pool, np.random.default_rng(seed), missions_per_type, votes)
+    parts += ["", "## NoSidewalk by block face (#5285)", ""]
+    if faces is None:
+        parts.append("No sided NoSidewalk labels in this export (a schema below evolution 377 has no "
+                     "`label_point.street_side`), so there is nothing to group by face.")
+    else:
+        face_table, share_table, sim_table, notes = faces
+        parts += [
+            "A face is one side of one street edge, `(label.street_edge_id, label_point.street_side)`. The unit of "
+            "NoSidewalk work is the face, not the label: one validator looking at one label on a face settles the "
+            "question for the whole stretch.",
+            "",
+            face_table,
+            "",
+            "\n".join("- " + note for note in notes),
+            "",
+            "Where NoSidewalk's own picks land. \"Per label\" is the #4715 score with NoSidewalk served like any "
+            "other type; \"per face\" adds the #5285 terms and the one-label-per-face mission spread. Both columns "
+            "sum to 100 over NoSidewalk.",
+            "",
+            share_table,
+            "",
+            "### (v) Forward simulation of the next NoSidewalk votes",
+            "",
+            "NoSidewalk missions only, so the table measures how each queue spends NoSidewalk effort. Counts are "
+            "updated per vote, and a vote on any label of a face lowers the whole face's score for the next "
+            "mission, as in the app.",
             "",
             sim_table,
         ]

@@ -9,9 +9,12 @@
 --   :label_type_expr   the label's type as text  ('label_type.label_type' pre-373, 'label.label_type::text' after)
 --   :label_type_join   the join that :label_type_expr needs (empty after evolution 373 dropped the lookup table)
 --   :pano_source       the city's pano viewer source ('gsv' everywhere today)
+--   :street_side_expr  the label's side of its street as text ('label_point.street_side::text' from evolution 377,
+--                      'NULL::text' before it, when no schema had a side)
 --
--- NoSidewalk is deliberately kept in the export. The queue only serves it when it is the last type standing, so the
--- analysis reports every table both with and without it; filtering here would make that impossible.
+-- NoSidewalk is kept in the export with the columns its per-block-face queue reads (#5285): the street edge and side
+-- that make up the face, who placed the label and whether that was the AI, and the label's age. The analysis reports
+-- every table both with and without NoSidewalk, so the other six types' queue can be read on its own.
 --
 -- Policy inputs are exported raw (own_labels_validated, low_quality, stale) rather than pre-reduced to a boolean, so
 -- the analysis can vary the new-labeler threshold without a new export.
@@ -34,7 +37,12 @@ COPY (
            audit_task.low_quality,
            audit_task.stale,
            label.time_created > now() - interval '7 days' AS recent,
-           label_validation.validation_result AS ai_result
+           label_validation.validation_result AS ai_result,
+           label.street_edge_id,
+           :street_side_expr AS street_side,
+           label.user_id AS labeler_id,
+           sidewalk_login.user_role.role = 'AI' AS ai_labeler,
+           EXTRACT(EPOCH FROM now() - label.time_created) / 31557600 AS age_years
     FROM label
     :label_type_join
     INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id

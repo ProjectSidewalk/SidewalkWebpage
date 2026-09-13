@@ -27,7 +27,8 @@ def make_pool(rows):
     columns = {
         "label_id": [], "label_type": [], "agree_count": [], "disagree_count": [], "unsure_count": [],
         "correct_is_null": [], "own_labels_validated": [], "high_quality": [], "low_quality": [], "stale": [],
-        "recent": [], "ai_result": [],
+        "recent": [], "ai_result": [], "street_edge_id": [], "street_side": [], "labeler_id": [], "ai_labeler": [],
+        "age_years": [],
     }
     for index, row in enumerate(rows):
         label_type, agree, disagree, unsure = row[:4]
@@ -44,12 +45,44 @@ def make_pool(rows):
         columns["stale"].append(extra.get("stale", False))
         columns["recent"].append(extra.get("recent", False))
         columns["ai_result"].append(extra.get("ai_result", ""))
+        # Face columns (#5285): by default every label is on street 1, unsided, by its own labeler, and fresh.
+        columns["street_edge_id"].append(extra.get("street_edge_id", 1))
+        columns["street_side"].append(extra.get("street_side", ""))
+        columns["labeler_id"].append(extra.get("labeler_id", "labeler-{0}".format(index + 1)))
+        columns["ai_labeler"].append(extra.get("ai_labeler", False))
+        columns["age_years"].append(extra.get("age_years", 0.0))
     dtypes = {
         "label_id": np.int64, "label_type": object, "agree_count": np.int64, "disagree_count": np.int64,
         "unsure_count": np.int64, "correct_is_null": bool, "own_labels_validated": np.int64, "high_quality": bool,
-        "low_quality": bool, "stale": bool, "recent": bool, "ai_result": object,
+        "low_quality": bool, "stale": bool, "recent": bool, "ai_result": object, "street_edge_id": np.int64,
+        "street_side": object, "labeler_id": object, "ai_labeler": bool, "age_years": np.float64,
     }
     return avq.Pool({name: np.array(values, dtype=dtypes[name]) for name, values in columns.items()})
+
+
+def face(street, side, labeler, agree=0, ai_result="", ai_labeler=False, age_years=7.0):
+    """A sided NoSidewalk label row for `make_pool`: on `street`'s `side`, placed by `labeler`."""
+    return ("NoSidewalk", agree, 0, 0, {"street_edge_id": street, "street_side": side, "labeler_id": labeler,
+                                        "ai_result": ai_result, "ai_labeler": ai_labeler, "age_years": age_years,
+                                        "correct_is_null": agree == 0})
+
+
+def face_pool():
+    """Three faces and an unsided label, covering every bucket the face section reports.
+
+    Face A (street 10, left): one labeler, three labels, no votes -- the study's error signal.
+    Face B (street 10, right): two labelers, one human Agree plus one label whose only Agree is the AI's.
+    Face C (street 20, left): three labelers (one of them the AI), two agreeing votes -- settled for the lottery.
+    Plus an unsided NoSidewalk label on street 20 and enough CurbRamps for a second eligible type.
+    """
+    rows = [face(10, "left", "alice"), face(10, "left", "alice"), face(10, "left", "alice"),
+            face(10, "right", "alice", agree=1), face(10, "right", "bob", agree=1, ai_result="Agree"),
+            face(20, "left", "alice", agree=1), face(20, "left", "bob", agree=1), face(20, "left", "robot",
+                                                                                      ai_labeler=True),
+            ("NoSidewalk", 0, 0, 0, {"street_edge_id": 20, "labeler_id": "carol", "age_years": 0.5})]
+    rows += [face(30 + i, "left", "dan-{0}".format(i)) for i in range(12)]  # a dozen lone faces to fill missions
+    rows += [("CurbRamp", 0, 0, 0)] * 12
+    return make_pool(rows)
 
 
 def toy_pool(n_per_status=10):
@@ -262,7 +295,7 @@ def test_type_probabilities_fall_back_to_uniform_when_nothing_is_outstanding():
     assert avq.type_probabilities(np.array([])).size == 0
 
 
-def test_no_sidewalk_is_held_back_unless_it_is_the_only_type_left():
+def test_no_sidewalk_is_held_back_unless_it_is_the_only_type_left_or_the_policy_serves_it():
     assert avq.eligible_types({"CurbRamp": 40, "NoSidewalk": 900}) == ["CurbRamp"]
     assert avq.eligible_types({"NoSidewalk": 900}) == ["NoSidewalk"]
     assert avq.eligible_types({"CurbRamp": 9, "NoSidewalk": 900}) == ["NoSidewalk"]
@@ -528,3 +561,248 @@ def test_main_writes_the_report_to_the_requested_path(tmp_path):
     ])
     assert exit_code == 0
     assert out_path.read_text().startswith("# Validate queue analysis")
+
+
+# NoSidewalk by block face (#5285).
+
+
+def test_face_keys_name_sided_labels_by_face_and_unsided_ones_by_themselves():
+    keys = avq.face_keys(np.array(["NoSidewalk", "NoSidewalk", "CurbRamp"], dtype=object), np.array([7, 7, 7]),
+                         np.array(["left", "", "left"], dtype=object), np.array([1, 2, 3]))
+    assert list(keys) == ["7:left", "label:2", ""]
+
+
+def test_face_evidence_counts_human_labelers_and_subtracts_the_ai_agree():
+    pool = face_pool()
+    has_face, labelers, support = pool.faces()
+    keys = pool.face_keys()
+    by_face = {keys[i]: (int(labelers[i]), int(support[i])) for i in np.flatnonzero(has_face)}
+    assert by_face["10:left"] == (1, 0)
+    # Two humans; the AI's Agree sits inside agree_count and is taken back out.
+    assert by_face["10:right"] == (2, 1)
+    # The AI-placed label adds to the face's labels but not to its human labelers.
+    assert by_face["20:left"] == (2, 2)
+    unsided = np.flatnonzero((pool.label_type == "NoSidewalk") & ~has_face)
+    assert unsided.size == 1 and labelers[unsided[0]] == 0 and support[unsided[0]] == 0
+    assert not has_face[pool.label_type == "CurbRamp"].any()
+
+
+def test_face_evidence_is_empty_when_nothing_is_sided():
+    pool = make_pool([("NoSidewalk", 0, 0, 0), ("CurbRamp", 0, 0, 0)])
+    has_face, labelers, support = avq.face_evidence(pool)
+    assert not has_face.any() and labelers.sum() == 0 and support.sum() == 0
+
+
+@pytest.mark.parametrize("has_face, labelers, support, age, expected", [
+    (True, 1, 0, 7.0, 460.0),               # lone labeler, unconfirmed, old: the top of the range
+    (True, 3, 2, 7.0, (200 + 200 / 9 + 60) / 3),
+    (True, 0, 0, 0.0, 400.0),               # no human labeler at all is floored to one
+    (False, 0, 0, 2.0, 220.0),              # unsided: no face terms, just the age bonus
+    (True, 1, 0, 100.0, 460.0),             # the age bonus caps at 60
+])
+def test_no_sidewalk_priority_score_matches_the_policy(has_face, labelers, support, age, expected):
+    assert float(avq.no_sidewalk_priority_score(200.0, has_face, labelers, support, age)) == pytest.approx(expected)
+
+
+def test_labeler_and_support_buckets_cover_every_count():
+    assert list(avq.labeler_bucket([0, 1, 2, 3, 9])) == ["1", "1", "2", "3+", "3+"]
+    assert list(avq.support_bucket([0, 1, 2, 5])) == ["0", "1", "2+", "2+"]
+
+
+def test_spread_mission_takes_one_label_per_face_with_distinct_streets_first_then_fills():
+    # Keys in descending order of position: the first candidate has the largest key.
+    face_key = np.array(["1:left", "2:right", "1:left", "1:left", "label:5", "2:right"], dtype=object)
+    streets = np.array([1, 2, 1, 1, 1, 2])
+    keys = -np.arange(6, dtype=np.float64)
+    rng = np.random.default_rng(0)
+    # Three distinct faces: one each, the unsided one last because its street was already touched.
+    assert list(avq.spread_mission(keys, face_key, streets, rng, mission_length=3)) == [0, 1, 4]
+    # Short of faces, the mission fills from faces it already holds, still in key order.
+    assert list(avq.spread_mission(keys, face_key, streets, rng, mission_length=5)) == [0, 1, 4, 2, 3]
+    assert avq.spread_mission(np.empty(0), face_key[:0], streets[:0], rng).size == 0
+
+
+def test_pool_defaults_the_face_columns_when_an_export_lacks_them():
+    pool = make_pool([("NoSidewalk", 0, 0, 0)])
+    bare = avq.Pool({name: values for name, values in pool.columns().items()
+                     if name not in avq.Pool.OPTIONAL_DEFAULTS})
+    assert list(bare.street_side) == [""] and list(bare.age_years) == [0.0] and not bare.ai_labeler.any()
+    assert list(bare.face_keys()) == ["label:1"]
+    assert not bare.faces()[0].any()
+
+
+def test_faces_score_rescores_only_no_sidewalk_and_face_needs_votes_stops_at_the_settled_support():
+    pool = face_pool()
+    base = pool.new_score()
+    scored = pool.faces_score()
+    curb = pool.label_type == "CurbRamp"
+    assert np.allclose(scored[curb], base[curb])
+    keys = pool.face_keys()
+    lone = np.flatnonzero(keys == "10:left")[0]
+    settled = np.flatnonzero(keys == "20:left")[0]
+    assert float(scored[lone]) == pytest.approx(200.0 + 200.0 + 60.0)
+    assert float(scored[settled]) == pytest.approx((100.0 + 200.0 / 4 + 60.0) / 3)
+    needs = pool.face_needs_votes()
+    assert needs[lone] and not needs[settled]
+    assert not needs[(pool.label_type == "NoSidewalk") & (pool.street_side == "")]
+
+
+def test_type_weight_counts_faces_for_no_sidewalk_under_the_faces_policy():
+    pool = face_pool()
+    weight_col = pool.needs_votes()
+    face_key = pool.face_keys()
+    no_sidewalk = pool.label_type == "NoSidewalk"
+    # Faces A and B and the twelve lone faces still need votes; C has two agreeing votes, the unsided label no face.
+    assert avq._type_weight(pool, "faces", "NoSidewalk", weight_col, face_key) == 14.0
+    assert avq._type_weight(pool, "new", "NoSidewalk", weight_col, face_key) == float(np.count_nonzero(no_sidewalk))
+    # Other types weigh by labels under every policy.
+    assert avq._type_weight(pool, "faces", "CurbRamp", weight_col, face_key) == 12.0
+    # And NoSidewalk weighs nothing once every face is settled or every label is out of the queue.
+    assert avq._type_weight(pool, "faces", "NoSidewalk", np.zeros(len(pool), dtype=bool), face_key) == 0.0
+
+
+def test_pick_probabilities_under_the_faces_policy_serve_no_sidewalk_and_favour_lone_faces():
+    pool = face_pool()
+    rng = np.random.default_rng(4715)
+    shares = avq.pick_probabilities(pool, "faces", rng, missions_per_type=200)
+    assert shares.sum() == pytest.approx(1.0)
+    no_sidewalk = pool.label_type == "NoSidewalk"
+    assert shares[no_sidewalk].sum() > 0.0
+    keys = pool.face_keys()
+    lone = shares[keys == "10:left"].sum() / 3
+    settled = shares[keys == "20:left"].sum() / 3
+    assert lone > 4 * settled
+    # The #4715 policy still holds NoSidewalk back while another type can fill a mission.
+    held_back = avq.pick_probabilities(pool, "new", rng, missions_per_type=20)
+    assert held_back[no_sidewalk].sum() == 0.0
+
+
+def test_simulate_votes_under_the_faces_policy_spreads_no_sidewalk_votes_across_faces():
+    pool = face_pool()
+    rng = np.random.default_rng(4715)
+    result = avq.simulate_votes(pool, "faces", 60, rng, p_correct=0.7)
+    assert result["votes"] == 60
+    assert result["on_decided_pct"] == 0.0
+
+
+def test_simulate_no_sidewalk_votes_reports_faces_reached_and_votes_per_settled_face():
+    pool = face_pool()
+    rng = np.random.default_rng(4715)
+    # 35 is not a multiple of the mission length, so the last mission stops partway.
+    result = avq.simulate_no_sidewalk_votes(pool, "faces", 35, rng, p_correct=0.9)
+    assert result["votes"] == 35
+    assert 1 <= result["faces_reached"] <= 16
+    assert result["faces_reached_per_1000"] == pytest.approx(1000.0 * result["faces_reached"] / 35)
+    assert result["faces_newly_settled"] >= 1
+    assert result["votes_per_settled_face"] == pytest.approx(35 / result["faces_newly_settled"])
+    assert 0.0 <= result["on_single_labeler_pct"] <= 100.0
+    assert result["max_votes_on_one_face"] >= 1
+    # The per-label policies run the same simulation without the spread.
+    for policy in ("old", "new"):
+        assert avq.simulate_no_sidewalk_votes(pool, policy, 20, np.random.default_rng(1), 0.9)["votes"] == 20
+
+
+def test_simulate_no_sidewalk_votes_with_nothing_to_vote_on():
+    assert avq.simulate_no_sidewalk_votes(make_pool([("CurbRamp", 0, 0, 0)]), "faces", 10,
+                                          np.random.default_rng(1), 0.9) == {"votes": 0}
+    # NoSidewalk labels that never settle (all votes disagree) report no votes-per-settled-face.
+    pool = make_pool([face(1, "left", "a")] * 3)
+    result = avq.simulate_no_sidewalk_votes(pool, "faces", 6, np.random.default_rng(1), p_correct=0.0)
+    assert result["faces_newly_settled"] == 0 and np.isnan(result["votes_per_settled_face"])
+
+
+def test_vote_sim_face_support_moves_with_simulated_agrees():
+    pool = face_pool()
+    sim = avq._VoteSim(pool, "faces", np.random.default_rng(4715), p_correct=1.0)
+    lone = int(np.flatnonzero(pool.face_keys() == "10:left")[0])
+    before = int(sim.face_support()[lone])
+    sim.vote(lone)  # p_correct = 1 and VOTE_PROBS_IF_CORRECT can still roll Unsure, so loop until an Agree lands
+    while sim.added_agree[lone] == 0:
+        sim.vote(lone)
+    assert all(sim.face_support()[pool.face_keys() == "10:left"] == before + sim.added_agree[lone])
+    # A pool with no faces at all returns the export's support untouched.
+    bare = avq._VoteSim(make_pool([("CurbRamp", 0, 0, 0)]), "new", np.random.default_rng(1), 0.5)
+    assert bare.face_support() is bare.initial_face_support
+
+
+def test_load_pool_reads_the_face_columns_and_tolerates_their_absence(tmp_path):
+    fieldnames = ["label_id", "label_type", "agree_count", "disagree_count", "unsure_count", "correct",
+                  "own_labels_validated", "high_quality", "low_quality", "stale", "recent", "ai_result"]
+    base = {"agree_count": 0, "disagree_count": 0, "unsure_count": 0, "correct": "", "own_labels_validated": 300,
+            "high_quality": "f", "low_quality": "f", "stale": "f", "recent": "f", "ai_result": ""}
+    with_faces = tmp_path / "pool.csv"
+    _write_csv(with_faces, fieldnames + ["street_edge_id", "street_side", "labeler_id", "ai_labeler", "age_years"],
+               [dict(base, label_id=1, label_type="NoSidewalk", street_edge_id=7, street_side="left",
+                     labeler_id="u1", ai_labeler="f", age_years="6.5"),
+                dict(base, label_id=2, label_type="NoSidewalk", street_edge_id=7, street_side="",
+                     labeler_id="u2", ai_labeler="t", age_years="0.25")])
+    pool = avq.load_pool(str(with_faces))
+    assert list(pool.street_edge_id) == [7, 7] and list(pool.street_side) == ["left", ""]
+    assert list(pool.ai_labeler) == [False, True] and list(pool.age_years) == [6.5, 0.25]
+    without = tmp_path / "old-pool.csv"
+    _write_csv(without, fieldnames, [dict(base, label_id=1, label_type="NoSidewalk")])
+    old = avq.load_pool(str(without))
+    assert list(old.street_side) == [""] and list(old.age_years) == [0.0]
+
+
+def test_build_report_adds_the_face_section_when_labels_have_sides():
+    pool = face_pool()
+    report = avq.build_report(pool, [validation_row(1, "Agree")], "sidewalk_test", votes=60, missions_per_type=20)
+    assert "## NoSidewalk by block face (#5285)" in report
+    assert "### (v) Forward simulation of the next NoSidewalk votes" in report
+    assert "The simulation casts 30 votes, 2 per face" in report  # 15 faces, capped below the 60 requested
+    assert "| 1 | 0 |" in report  # the lone-labeler, unconfirmed bucket
+    assert "faces reached per 1,000 votes" in report
+
+
+def test_build_report_explains_a_pool_without_sides():
+    pool = make_pool([("CurbRamp", 0, 0, 0)] * 30 + [("NoSidewalk", 0, 0, 0)] * 30)
+    report = avq.build_report(pool, [], "sidewalk_test", votes=20, missions_per_type=5)
+    assert "nothing to group by face" in report
+
+
+# Gaps the #4715 tests left.
+
+
+def test_policy_keys_dispatch_every_sort_key_kind():
+    scores = np.array([100.0, 400.0])
+    rng = np.random.default_rng(1)
+    assert avq._policy_keys("jitter", scores, rng).shape == (2,)
+    assert avq._policy_keys("old", scores, rng).shape == (2,)
+    assert avq._policy_keys("es1", scores, rng).shape == (2,)
+
+
+def test_pick_probabilities_are_all_zero_when_no_type_can_fill_a_mission():
+    pool = make_pool([("CurbRamp", 0, 0, 0)] * 3)
+    assert not avq.pick_probabilities(pool, "new", np.random.default_rng(1), missions_per_type=5).any()
+
+
+def test_pick_probabilities_fall_back_to_the_whole_type_when_its_queue_is_thin():
+    # Ten CurbRamps make the type eligible, but only three still need votes, so the queue falls back to all ten.
+    pool = make_pool([("CurbRamp", 0, 0, 0)] * 3 + [("CurbRamp", 4, 0, 0)] * 7)
+    shares = avq.pick_probabilities(pool, "new", np.random.default_rng(1), missions_per_type=20)
+    assert shares.sum() == pytest.approx(1.0)
+    assert shares[3:].sum() > 0.0
+
+
+def test_pick_probabilities_with_no_missions_simulated_are_all_zero():
+    pool = make_pool([("CurbRamp", 0, 0, 0)] * 10)
+    assert not avq.pick_probabilities(pool, "new", np.random.default_rng(1), missions_per_type=0).any()
+
+
+def test_main_writes_to_stdout_without_an_out_path(tmp_path, capsys):
+    pool_path = tmp_path / "pool.csv"
+    _write_csv(
+        pool_path,
+        ["label_id", "label_type", "agree_count", "disagree_count", "unsure_count", "correct",
+         "own_labels_validated", "high_quality", "low_quality", "stale", "recent", "ai_result"],
+        [{"label_id": index, "label_type": "CurbRamp", "agree_count": 0, "disagree_count": 0, "unsure_count": 0,
+          "correct": "", "own_labels_validated": 300, "high_quality": "f", "low_quality": "f", "stale": "f",
+          "recent": "f", "ai_result": ""} for index in range(1, 12)],
+    )
+    validations_path = tmp_path / "validations.csv"
+    _write_csv(validations_path,
+               ["label_id", "label_type", "validation_result", "end_timestamp", "source", "self_vote", "is_ai"], [])
+    assert avq.main(["--pool", str(pool_path), "--validations", str(validations_path), "--votes", "10",
+                     "--missions", "2"]) == 0
+    assert capsys.readouterr().out.startswith("# Validate queue analysis")
