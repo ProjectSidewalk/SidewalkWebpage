@@ -18,7 +18,7 @@ import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, File}
 import java.nio.file.Files
 import javax.imageio.ImageIO
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 /**
@@ -89,7 +89,8 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
           body must include("twitter:card")
           body must include("twitter:image:alt")
           body must include("summary_large_image")
-          body must include(s"/label/$id/image")
+          // Versioned so a platform that cached the card image by URL re-fetches after a generation bump (#3095).
+          body must include(s"/label/$id/image?g=${ShareImageCache.Generation}")
       }
     }
 
@@ -371,7 +372,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     val bg           = 0xcc0000 // Solid red; no label-type icon is red, so any non-red pixel is the marker.
     val canvasCenter = CropMarker(0.5, 0.5)
 
-    "output the fixed share dimensions and keep a centered marker centered for a 4:3 base" in {
+    "output the fixed share dimensions and keep a centered marker centered when a taller base is cover-cropped" in {
       val out = controller.compositeMarker(solidBase(640, 480, bg), LabelTypeEnum.CurbRamp, canvasCenter)
       out.getWidth mustBe 1440
       out.getHeight mustBe 960
@@ -380,10 +381,9 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       cy must be(480 +- 3)
     }
 
-    "put an edge marker on a Street View still where the crop path puts it, which a 4:3 still cannot (#3095)" in {
-      // A 640x480 still holds the frame inside ~27 px bands of extra sky and ground, so the same fraction lands
-      // 42 px higher on it (102 vs 144 of 960); the still has to be the canvas's aspect for the fraction to mean the
-      // same thing as on the crop.
+    "put an edge marker on a Street View still where the crop path puts it (#3095)" in {
+      // The marker is the label's fraction of the Explore frame on both bases, so the still only agrees with the crop
+      // if it is that frame — any extra rows would shift the same fraction (a 640x480 still lands this one 42 px up).
       val nearTop = CropMarker(0.62, 0.15)
       val still   = solidBase(PanoDataService.StaticStillWidth, PanoDataService.StaticStillHeight, bg)
       val onStill = markerCenter(controller.compositeMarker(still, LabelTypeEnum.Crosswalk, nearTop), bg)
@@ -392,9 +392,6 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       onStill._1 must be(onCrop._1 +- 3)
       onStill._2 must be(onCrop._2 +- 3)
       onCrop._2 must be(144 +- 3)
-      val onOldStill =
-        markerCenter(controller.compositeMarker(solidBase(640, 480, bg), LabelTypeEnum.Crosswalk, nearTop), bg)
-      onOldStill._2 must be(102 +- 3)
     }
 
     "keep a centered marker centered for a crop-sized (already 3:2) base" in {
@@ -457,20 +454,45 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     // a running app is serving from.
     val syntheticLabelId = -987654
 
-    "name a label's preview inside the cache directory" in {
+    "name a label's preview inside the cache directory, and recognize what it named" in {
       cache.fileFor(syntheticLabelId).getParentFile.getAbsolutePath mustBe cache.dir.getAbsolutePath
-      cache.fileFor(syntheticLabelId).getName mustBe s"share_${syntheticLabelId}_g${ShareImageCache.Generation}.jpg"
+      cache.fileFor(syntheticLabelId).getName mustBe ShareImageCache.fileName(syntheticLabelId)
+      // The sweep trusts generationOf to find every preview fileFor writes: a name the two disagree on would either
+      // never be evicted or be evicted on every build.
+      ShareImageCache.generationOf(cache.fileFor(syntheticLabelId)) mustBe Some(ShareImageCache.Generation)
+      ShareImageCache.generationOf(new File(cache.dir, ShareImageCache.fileName(syntheticLabelId, 1))) mustBe Some(1)
+      ShareImageCache.fileName(12, 1) mustBe "share_12.jpg" // Generation 1 predates the suffix.
+      ShareImageCache.generationOf(new File(cache.dir, "share_12_g1.jpg")) mustBe Some(1)
+      ShareImageCache.generationOf(new File(cache.dir, "share_fallback.jpg")) mustBe None
+      ShareImageCache.generationOf(new File(cache.dir, "share_12_g2.jpg.8675309.tmp")) mustBe None
+      ShareImageCache.generationOf(new File(cache.dir, "story_12.jpg")) mustBe None
+    }
+
+    "hand back the newest earlier-generation preview for a label, and drop them all once the current one exists" in {
+      val _          = cache.dir.mkdirs()
+      val legacyGen1 = new File(cache.dir, ShareImageCache.fileName(syntheticLabelId, 1))
+      try {
+        cache.legacyFileFor(syntheticLabelId) mustBe None
+        val _ = legacyGen1.createNewFile()
+        cache.legacyFileFor(syntheticLabelId) mustBe Some(legacyGen1)
+        cache.dropLegacy(syntheticLabelId)
+        legacyGen1.exists() mustBe false
+        cache.dropLegacy(syntheticLabelId) // Nothing left: must not throw or warn its way into a failure.
+      } finally { val _ = legacyGen1.delete() }
     }
 
     "delete a cached preview so the next request rebuilds it from the crop that just landed (#4726)" in {
-      val _    = cache.dir.mkdirs()
-      val file = cache.fileFor(syntheticLabelId)
-      val _    = file.createNewFile()
+      val _      = cache.dir.mkdirs()
+      val file   = cache.fileFor(syntheticLabelId)
+      val legacy = new File(cache.dir, ShareImageCache.fileName(syntheticLabelId, 1))
+      val _      = file.createNewFile()
+      val _      = legacy.createNewFile() // An old still-based preview is just as stale once the crop is here.
       file.exists() mustBe true
 
       cache.invalidate(syntheticLabelId)
 
       file.exists() mustBe false
+      legacy.exists() mustBe false
     }
 
     "do nothing when the label has no cached preview, which is the common case" in {
@@ -515,22 +537,70 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       }
     }
 
-    "sweep previews from an older generation even under the ceiling, and keep the current ones (#3095)" in {
+    "count earlier-generation previews toward the ceiling and evict them by age like any other (#3095)" in {
       val dir = Files.createTempDirectory("share-evict-spec").toFile
       try {
         val current = fillCache(dir, 2)
         val legacy  = Seq(new File(dir, "share_7.jpg"), new File(dir, "share_8_g1.jpg"))
-        legacy.foreach { f =>
+        legacy.zipWithIndex.foreach { case (f, i) =>
           val _ = f.createNewFile()
-          val _ = f.setLastModified(1800000000000L) // Newer than every current file: age must not protect it.
+          val _ = f.setLastModified(1600000000000L + i * 60000L) // Both older than every current file.
         }
         controller.evictStaleShareImages(dir, maxFiles = 10)
-        legacy.map(_.exists()) mustBe Seq(false, false)
+        legacy.map(_.exists()) mustBe Seq(true, true) // Under the ceiling nothing goes, whatever its generation.
+        controller.evictStaleShareImages(dir, maxFiles = 3)
+        legacy.map(_.exists()) mustBe Seq(false, true)
         current.map(_.exists()) mustBe Seq(true, true)
       } finally {
         Option(dir.listFiles()).getOrElse(Array.empty[File]).foreach(f => f.delete())
         val _ = dir.delete()
       }
+    }
+
+    "never touch the branded fallback or a temp file another build is still writing, even past the ceiling" in {
+      // ImageUtils.writeJpeg fills `<name>.<random>.tmp` beside the target and renames it into place; unlinking it
+      // mid-write fails that rename and 500s the other request. The fallback is rebuilt on demand but serves from
+      // disk in the meantime, so evicting it races every fallback serve.
+      val dir = Files.createTempDirectory("share-evict-spec").toFile
+      try {
+        val current   = fillCache(dir, 4)
+        val untouched = Seq(new File(dir, "share_fallback.jpg"), new File(dir, "share_9_g2.jpg.12345.tmp"))
+        untouched.foreach { f =>
+          val _ = f.createNewFile()
+          val _ = f.setLastModified(1600000000000L) // Older than everything: age alone would evict these first.
+        }
+        controller.evictStaleShareImages(dir, maxFiles = 2)
+        untouched.map(_.exists()) mustBe Seq(true, true)
+        current.map(_.exists()) mustBe Seq(false, false, true, true)
+      } finally {
+        Option(dir.listFiles()).getOrElse(Array.empty[File]).foreach(f => f.delete())
+        val _ = dir.delete()
+      }
+    }
+  }
+
+  "serveLegacyOrFallbackImage" should {
+    val controller = app.injector.instanceOf[ShareController]
+    val cache      = app.injector.instanceOf[service.ShareImageCache]
+    val labelId    = -987655 // Its own synthetic id: the ShareImageCache block above creates and deletes -987654.
+
+    "serve the label's earlier-generation preview when nothing better can be built (#3095)" in {
+      val _      = cache.dir.mkdirs()
+      val legacy = new File(cache.dir, ShareImageCache.fileName(labelId, 1))
+      try {
+        Files.write(legacy.toPath, Array[Byte](1, 2, 3)) // Any bytes: the point is which file is served.
+        val result = Future.successful(controller.serveLegacyOrFallbackImage(labelId))
+        status(result) mustBe OK
+        contentAsBytes(result).toArray mustBe Array[Byte](1, 2, 3)
+      } finally { val _ = legacy.delete() }
+    }
+
+    "fall back to the branded image when the label has no preview of any generation" in {
+      val result = Future.successful(controller.serveLegacyOrFallbackImage(labelId))
+      status(result) mustBe OK
+      val img = ImageIO.read(new ByteArrayInputStream(contentAsBytes(result).toArray))
+      img.getWidth mustBe 1440
+      img.getHeight mustBe 960
     }
   }
 
