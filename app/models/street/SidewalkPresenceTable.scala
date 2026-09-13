@@ -21,14 +21,19 @@ import scala.concurrent.ExecutionContext
  * `label_point.street_side` is. A street therefore has exactly two rows, whatever its status; the derivation covers
  * every street so the table can answer "unknown" for the unaudited ones rather than having no row to point at.
  *
- * @param presence                Present, absent, or unknown; a function of `presenceBasis` (a CHECK in the DB).
- * @param presenceBasis           Which evidence produced the call, in the order the derivation tries them.
- * @param noSidewalkLabelCount    Sided NoSidewalk labels on this face, the confidence behind an `absent` call.
- * @param noSidewalkUserCount     Distinct users behind those labels.
- * @param labelCount              Every sided label on this face, of any type.
- * @param auditCount              Completed audits of the street (both faces share it).
- * @param firstNoSidewalkLabelAt  When the first NoSidewalk label on this face was placed, if any.
- * @param lastNoSidewalkLabelAt   When the latest one was.
+ * @param presence                  Present, absent, or unknown; a function of `presenceBasis` (a CHECK in the DB).
+ * @param presenceBasis             Which evidence produced the call, in the order the derivation tries them.
+ * @param noSidewalkLabelCount      Sided NoSidewalk labels on this face that validators have not rejected, the
+ *                                  confidence behind an `absent` call.
+ * @param noSidewalkUserCount       Distinct users behind those labels.
+ * @param validatedNoSidewalkCount  Of those, the ones validators have confirmed (`label.correct`), the strongest
+ *                                  evidence a face can carry (#5285).
+ * @param rejectedNoSidewalkCount   Sided NoSidewalk labels on this face validators rejected; counted here and in
+ *                                  `labelCount` but nowhere else, since a rejected call is not evidence.
+ * @param labelCount                Every sided label on this face, of any type.
+ * @param auditCount                Completed audits of the street (both faces share it).
+ * @param firstNoSidewalkLabelAt    When the first counted NoSidewalk label on this face was placed, if any.
+ * @param lastNoSidewalkLabelAt     When the latest one was.
  */
 case class SidewalkPresence(
     streetEdgeId: Int,
@@ -37,6 +42,8 @@ case class SidewalkPresence(
     presenceBasis: SidewalkPresenceBasis.Value,
     noSidewalkLabelCount: Int,
     noSidewalkUserCount: Int,
+    validatedNoSidewalkCount: Int,
+    rejectedNoSidewalkCount: Int,
     labelCount: Int,
     auditCount: Int,
     firstNoSidewalkLabelAt: Option[OffsetDateTime],
@@ -47,23 +54,28 @@ case class SidewalkPresence(
 case class SidewalkPresenceRebuildCounts(total: Int, inserted: Int, updated: Int, deleted: Int)
 
 class SidewalkPresenceTableDef(tag: Tag) extends Table[SidewalkPresence](tag, "sidewalk_presence") {
-  def streetEdgeId: Rep[Int]                              = column[Int]("street_edge_id")
-  def streetSide: Rep[StreetSide.Value]                   = column[StreetSide.Value]("street_side")
-  def presence: Rep[SidewalkPresenceStatus.Value]         = column[SidewalkPresenceStatus.Value]("presence")
-  def presenceBasis: Rep[SidewalkPresenceBasis.Value]     = column[SidewalkPresenceBasis.Value]("presence_basis")
-  def noSidewalkLabelCount: Rep[Int]                      = column[Int]("no_sidewalk_label_count") // CHECK (>= 0)
-  def noSidewalkUserCount: Rep[Int]                       = column[Int]("no_sidewalk_user_count")  // CHECK (>= 0)
-  def labelCount: Rep[Int]                                = column[Int]("label_count")             // CHECK (>= 0)
-  def auditCount: Rep[Int]                                = column[Int]("audit_count")             // CHECK (>= 0)
+  def streetEdgeId: Rep[Int]                          = column[Int]("street_edge_id")
+  def streetSide: Rep[StreetSide.Value]               = column[StreetSide.Value]("street_side")
+  def presence: Rep[SidewalkPresenceStatus.Value]     = column[SidewalkPresenceStatus.Value]("presence")
+  def presenceBasis: Rep[SidewalkPresenceBasis.Value] = column[SidewalkPresenceBasis.Value]("presence_basis")
+  def noSidewalkLabelCount: Rep[Int]                  = column[Int]("no_sidewalk_label_count") // CHECK (>= 0)
+  def noSidewalkUserCount: Rep[Int]                   = column[Int]("no_sidewalk_user_count")  // CHECK (>= 0)
+  // DEFAULT 0 in the DB (386.sql added them to populated tables); CHECK (>= 0) each.
+  def validatedNoSidewalkCount: Rep[Int]                  = column[Int]("validated_no_sidewalk_count", O.Default(0))
+  def rejectedNoSidewalkCount: Rep[Int]                   = column[Int]("rejected_no_sidewalk_count", O.Default(0))
+  def labelCount: Rep[Int]                                = column[Int]("label_count") // CHECK (>= 0)
+  def auditCount: Rep[Int]                                = column[Int]("audit_count") // CHECK (>= 0)
   def firstNoSidewalkLabelAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("first_no_sidewalk_label_at")
   def lastNoSidewalkLabelAt: Rep[Option[OffsetDateTime]]  = column[Option[OffsetDateTime]]("last_no_sidewalk_label_at")
-  // Cross-column CHECKs in the DB (383.sql), which Slick can't express: presence is a function of presence_basis,
-  // no_sidewalk_labels <=> no_sidewalk_label_count >= 1, unaudited => audit_count = 0, user count <= NoSidewalk
-  // count <= label count, and the two timestamps are present exactly when the NoSidewalk count is positive.
+  // Cross-column CHECKs in the DB (383.sql, 386.sql), which Slick can't express: presence is a function of
+  // presence_basis, no_sidewalk_labels <=> no_sidewalk_label_count >= 1, unaudited => audit_count = 0, user count <=
+  // NoSidewalk count <= label count, validated count <= NoSidewalk count, and the two timestamps are present exactly
+  // when the NoSidewalk count is positive.
 
   def * = (
-    streetEdgeId, streetSide, presence, presenceBasis, noSidewalkLabelCount, noSidewalkUserCount, labelCount,
-    auditCount, firstNoSidewalkLabelAt, lastNoSidewalkLabelAt
+    streetEdgeId, streetSide, presence, presenceBasis, noSidewalkLabelCount, noSidewalkUserCount,
+    validatedNoSidewalkCount, rejectedNoSidewalkCount, labelCount, auditCount, firstNoSidewalkLabelAt,
+    lastNoSidewalkLabelAt
   ) <> ((SidewalkPresence.apply _).tupled, SidewalkPresence.unapply)
 
   def pk = primaryKey("sidewalk_presence_pkey", (streetEdgeId, streetSide))
@@ -99,8 +111,9 @@ trait SidewalkPresenceTableRepository {
 /**
  * The derived per-face sidewalk presence table and its rebuild (#5279).
  *
- * The derivation is raw SQL held once in [[SidewalkPresenceTable.derivationSql]]; evolution 383 carries a pasted copy
- * for the one-time population of existing cities, and `SidewalkPresenceTableSpec` checks the two still agree.
+ * The derivation is raw SQL held once in [[SidewalkPresenceTable.derivationSql]]; evolution 386 (which superseded
+ * 383's) carries a pasted copy for the one-time population of existing cities, and `SidewalkPresenceTableSpec` checks
+ * the two still agree.
  */
 @Singleton
 class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
@@ -118,14 +131,16 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
       _ <- sqlu"""CREATE TEMP TABLE derived_presence ON COMMIT DROP AS
                   #${SidewalkPresenceTable.derivationSql}
                   SELECT street_edge_id, street_side, presence, presence_basis, no_sidewalk_label_count,
-                         no_sidewalk_user_count, label_count, audit_count, first_no_sidewalk_label_at,
-                         last_no_sidewalk_label_at
+                         no_sidewalk_user_count, validated_no_sidewalk_count, rejected_no_sidewalk_count, label_count,
+                         audit_count, first_no_sidewalk_label_at, last_no_sidewalk_label_at
                   FROM derived_face"""
       updated <- sqlu"""UPDATE sidewalk_presence
                         SET presence = derived_presence.presence,
                             presence_basis = derived_presence.presence_basis,
                             no_sidewalk_label_count = derived_presence.no_sidewalk_label_count,
                             no_sidewalk_user_count = derived_presence.no_sidewalk_user_count,
+                            validated_no_sidewalk_count = derived_presence.validated_no_sidewalk_count,
+                            rejected_no_sidewalk_count = derived_presence.rejected_no_sidewalk_count,
                             label_count = derived_presence.label_count,
                             audit_count = derived_presence.audit_count,
                             first_no_sidewalk_label_at = derived_presence.first_no_sidewalk_label_at,
@@ -137,6 +152,10 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
                                OR sidewalk_presence.presence_basis <> derived_presence.presence_basis
                                OR sidewalk_presence.no_sidewalk_label_count <> derived_presence.no_sidewalk_label_count
                                OR sidewalk_presence.no_sidewalk_user_count <> derived_presence.no_sidewalk_user_count
+                               OR sidewalk_presence.validated_no_sidewalk_count
+                                  <> derived_presence.validated_no_sidewalk_count
+                               OR sidewalk_presence.rejected_no_sidewalk_count
+                                  <> derived_presence.rejected_no_sidewalk_count
                                OR sidewalk_presence.label_count <> derived_presence.label_count
                                OR sidewalk_presence.audit_count <> derived_presence.audit_count
                                OR sidewalk_presence.first_no_sidewalk_label_at
@@ -150,11 +169,12 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
                               AND derived_presence.street_side = sidewalk_presence.street_side
                         )"""
       inserted <- sqlu"""INSERT INTO sidewalk_presence (street_edge_id, street_side, presence, presence_basis,
-                             no_sidewalk_label_count, no_sidewalk_user_count, label_count, audit_count,
-                             first_no_sidewalk_label_at, last_no_sidewalk_label_at)
+                             no_sidewalk_label_count, no_sidewalk_user_count, validated_no_sidewalk_count,
+                             rejected_no_sidewalk_count, label_count, audit_count, first_no_sidewalk_label_at,
+                             last_no_sidewalk_label_at)
                          SELECT street_edge_id, street_side, presence, presence_basis, no_sidewalk_label_count,
-                                no_sidewalk_user_count, label_count, audit_count, first_no_sidewalk_label_at,
-                                last_no_sidewalk_label_at
+                                no_sidewalk_user_count, validated_no_sidewalk_count, rejected_no_sidewalk_count,
+                                label_count, audit_count, first_no_sidewalk_label_at, last_no_sidewalk_label_at
                          FROM derived_presence
                          WHERE NOT EXISTS (
                              SELECT 1 FROM sidewalk_presence
@@ -189,6 +209,9 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
     val minNoSidewalkLabelsFilter = filters.minNoSidewalkLabels
       .map(n => s"AND sidewalk_presence.no_sidewalk_label_count >= $n")
       .getOrElse("")
+    val minValidatedNoSidewalkLabelsFilter = filters.minValidatedNoSidewalkLabels
+      .map(n => s"AND sidewalk_presence.validated_no_sidewalk_count >= $n")
+      .getOrElse("")
     val minAuditCountFilter =
       filters.minAuditCount.map(n => s"AND sidewalk_presence.audit_count >= $n").getOrElse("")
 
@@ -202,9 +225,10 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
       SELECT sidewalk_presence.street_edge_id, sidewalk_presence.street_side, osm_way_street_edge.osm_way_id,
              region.region_id, region.name, street_edge.way_type, street_edge.status, sidewalk_presence.presence,
              sidewalk_presence.presence_basis, sidewalk_presence.no_sidewalk_label_count,
-             sidewalk_presence.no_sidewalk_user_count, sidewalk_presence.label_count, sidewalk_presence.audit_count,
-             sidewalk_presence.first_no_sidewalk_label_at, sidewalk_presence.last_no_sidewalk_label_at,
-             street_edge.geom
+             sidewalk_presence.no_sidewalk_user_count, sidewalk_presence.validated_no_sidewalk_count,
+             sidewalk_presence.rejected_no_sidewalk_count, sidewalk_presence.label_count,
+             sidewalk_presence.audit_count, sidewalk_presence.first_no_sidewalk_label_at,
+             sidewalk_presence.last_no_sidewalk_label_at, street_edge.geom
       FROM sidewalk_presence
       INNER JOIN street_edge ON sidewalk_presence.street_edge_id = street_edge.street_edge_id
       INNER JOIN osm_way_street_edge ON street_edge.street_edge_id = osm_way_street_edge.street_edge_id
@@ -218,6 +242,7 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
         $statusFilter
         $presenceFilter
         $minNoSidewalkLabelsFilter
+        $minValidatedNoSidewalkLabelsFilter
         $minAuditCountFilter
       ORDER BY sidewalk_presence.street_edge_id, sidewalk_presence.street_side
     """
@@ -235,6 +260,8 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
         presenceBasis = r.nextString(),
         noSidewalkLabelCount = r.nextInt(),
         noSidewalkUserCount = r.nextInt(),
+        validatedNoSidewalkCount = r.nextInt(),
+        rejectedNoSidewalkCount = r.nextInt(),
         labelCount = r.nextInt(),
         auditCount = r.nextInt(),
         firstNoSidewalkLabelDate =
@@ -254,13 +281,19 @@ object SidewalkPresenceTable {
   /**
    * The derivation of every block face's verdict from labels and audits, as a `WITH` prefix defining `derived_face`
    * with exactly the columns of `sidewalk_presence`. Held once so [[SidewalkPresenceTable.rebuild]] and the specs use
-   * exactly what evolution 383 ran; see that file for the reasoning behind each step.
+   * exactly what evolution 386 ran; see that file and 383.sql for the reasoning behind each step.
    *
    * The rule (the #5222 study, Planning PR #20): a face's own sided NoSidewalk labels call it `absent`, with the
    * count as the confidence; failing that, a "street has no sidewalks" tag on the opposite face does; failing that,
    * a completed audit of the street calls it `present`; and an unaudited street is `unknown`. Obstacle and
    * SurfaceProblem labels never veto a NoSidewalk call — on a face without a sidewalk they describe the roadway.
    * Labels within a meter of the centerline have no side (`street_side` is NULL) and carry no face evidence.
+   *
+   * Validation feeds back (#5285): a NoSidewalk label validators rejected (`label.correct = FALSE`) is no evidence at
+   * all — it leaves every NoSidewalk count, date and tag test, and is reported only in `rejected_no_sidewalk_count`
+   * (and `label_count`). A face whose every NoSidewalk label was rejected therefore falls through to the next rule,
+   * usually `audited_no_labels` → `present`. Confirmed labels (`correct = TRUE`) are counted in
+   * `validated_no_sidewalk_count`, the top confidence tier the API exposes.
    *
    * Labels *and* audits from `user_stat.excluded` contributors are dropped, the population [[models.label.LabelTable.labels]]
    * serves everywhere else. It has to be both: dropping only their labels would leave their audit behind, and an audit with no labels
@@ -276,7 +309,10 @@ object SidewalkPresenceTable {
       |),
       |sided_label AS (
       |    SELECT label.street_edge_id, label_point.street_side, label.label_type, label.user_id, label.time_created,
-      |           label.tags
+      |           label.tags,
+      |           label.label_type = 'NoSidewalk' AND label.correct IS DISTINCT FROM FALSE AS counted_no_sidewalk,
+      |           label.label_type = 'NoSidewalk' AND label.correct AS validated_no_sidewalk,
+      |           label.label_type = 'NoSidewalk' AND NOT label.correct AS rejected_no_sidewalk
       |    FROM label
       |    INNER JOIN label_point ON label.label_id = label_point.label_id
       |    LEFT JOIN user_stat ON label.user_id = user_stat.user_id
@@ -286,12 +322,14 @@ object SidewalkPresenceTable {
       |face_label AS (
       |    SELECT street_edge_id, street_side,
       |           COUNT(*) AS label_count,
-      |           COUNT(*) FILTER (WHERE label_type = 'NoSidewalk') AS no_sidewalk_label_count,
-      |           COUNT(DISTINCT user_id) FILTER (WHERE label_type = 'NoSidewalk') AS no_sidewalk_user_count,
-      |           COUNT(*) FILTER (WHERE label_type = 'NoSidewalk' AND 'street has no sidewalks' = ANY(tags))
+      |           COUNT(*) FILTER (WHERE counted_no_sidewalk) AS no_sidewalk_label_count,
+      |           COUNT(DISTINCT user_id) FILTER (WHERE counted_no_sidewalk) AS no_sidewalk_user_count,
+      |           COUNT(*) FILTER (WHERE validated_no_sidewalk) AS validated_no_sidewalk_count,
+      |           COUNT(*) FILTER (WHERE rejected_no_sidewalk) AS rejected_no_sidewalk_count,
+      |           COUNT(*) FILTER (WHERE counted_no_sidewalk AND 'street has no sidewalks' = ANY(tags))
       |               AS no_sidewalks_tag_count,
-      |           MIN(time_created) FILTER (WHERE label_type = 'NoSidewalk') AS first_no_sidewalk_label_at,
-      |           MAX(time_created) FILTER (WHERE label_type = 'NoSidewalk') AS last_no_sidewalk_label_at
+      |           MIN(time_created) FILTER (WHERE counted_no_sidewalk) AS first_no_sidewalk_label_at,
+      |           MAX(time_created) FILTER (WHERE counted_no_sidewalk) AS last_no_sidewalk_label_at
       |    FROM sided_label
       |    GROUP BY street_edge_id, street_side
       |),
@@ -310,6 +348,8 @@ object SidewalkPresenceTable {
       |                ELSE 'unaudited' END AS presence_basis,
       |           COALESCE(this_face.no_sidewalk_label_count, 0)::INTEGER AS no_sidewalk_label_count,
       |           COALESCE(this_face.no_sidewalk_user_count, 0)::INTEGER AS no_sidewalk_user_count,
+      |           COALESCE(this_face.validated_no_sidewalk_count, 0)::INTEGER AS validated_no_sidewalk_count,
+      |           COALESCE(this_face.rejected_no_sidewalk_count, 0)::INTEGER AS rejected_no_sidewalk_count,
       |           COALESCE(this_face.label_count, 0)::INTEGER AS label_count,
       |           COALESCE(street_audit.audit_count, 0)::INTEGER AS audit_count,
       |           this_face.first_no_sidewalk_label_at,
@@ -328,8 +368,9 @@ object SidewalkPresenceTable {
       |                WHEN 'unaudited' THEN 'unknown'
       |                ELSE 'absent' END::sidewalk_presence_status AS presence,
       |           presence_basis::sidewalk_presence_basis AS presence_basis,
-      |           no_sidewalk_label_count, no_sidewalk_user_count, label_count, audit_count,
-      |           first_no_sidewalk_label_at, last_no_sidewalk_label_at
+      |           no_sidewalk_label_count, no_sidewalk_user_count, validated_no_sidewalk_count,
+      |           rejected_no_sidewalk_count, label_count, audit_count, first_no_sidewalk_label_at,
+      |           last_no_sidewalk_label_at
       |    FROM face_basis
       |)""".stripMargin
 }

@@ -25,15 +25,16 @@ class SidewalkPresenceApiModelsSpec extends AnyFunSuite with Matchers {
   private def absentFace: SidewalkPresenceForApi = SidewalkPresenceForApi(
     streetEdgeId = 10425, streetSide = "left", osmWayId = 6479562L, regionId = 44, regionName = "Highland Park",
     wayType = "residential", status = "open", presence = "absent", presenceBasis = "no_sidewalk_labels",
-    noSidewalkLabelCount = 3, noSidewalkUserCount = 2, labelCount = 5, auditCount = 2,
-    firstNoSidewalkLabelDate = Some(OffsetDateTime.parse("2019-11-04T22:31:07Z")),
+    noSidewalkLabelCount = 3, noSidewalkUserCount = 2, validatedNoSidewalkCount = 1, rejectedNoSidewalkCount = 1,
+    labelCount = 5, auditCount = 2, firstNoSidewalkLabelDate = Some(OffsetDateTime.parse("2019-11-04T22:31:07Z")),
     lastNoSidewalkLabelDate = Some(OffsetDateTime.parse("2023-02-18T17:05:44Z")), geometry = line
   )
 
   /** The other side of the same street, with nothing to date. */
   private def presentFace: SidewalkPresenceForApi = absentFace.copy(
     streetSide = "right", presence = "present", presenceBasis = "audited_no_labels", noSidewalkLabelCount = 0,
-    noSidewalkUserCount = 0, labelCount = 2, firstNoSidewalkLabelDate = None, lastNoSidewalkLabelDate = None
+    noSidewalkUserCount = 0, validatedNoSidewalkCount = 0, rejectedNoSidewalkCount = 0, labelCount = 2,
+    firstNoSidewalkLabelDate = None, lastNoSidewalkLabelDate = None
   )
 
   test("a face is a GeoJSON Feature carrying the street's LineString") {
@@ -50,6 +51,8 @@ class SidewalkPresenceApiModelsSpec extends AnyFunSuite with Matchers {
     (props \ "street_side").as[String] shouldBe "left"
     (props \ "presence_basis").as[String] shouldBe "no_sidewalk_labels"
     (props \ "no_sidewalk_label_count").as[Int] shouldBe 3
+    (props \ "validated_no_sidewalk_count").as[Int] shouldBe 1
+    (props \ "rejected_no_sidewalk_count").as[Int] shouldBe 1
     (props \ "first_no_sidewalk_label_date").as[String] shouldBe "2019-11-04T22:31:07Z"
     (props \ "streetSide").toOption shouldBe None
   }
@@ -63,8 +66,8 @@ class SidewalkPresenceApiModelsSpec extends AnyFunSuite with Matchers {
   test("the CSV header names the JSON properties plus the geometry's two endpoints, in order") {
     SidewalkPresenceForApi.csvHeader shouldBe
       "street_edge_id,street_side,osm_way_id,region_id,region_name,way_type,status,presence,presence_basis," +
-      "no_sidewalk_label_count,no_sidewalk_user_count,label_count,audit_count,first_no_sidewalk_label_date," +
-      "last_no_sidewalk_label_date,start_point,end_point"
+      "no_sidewalk_label_count,no_sidewalk_user_count,validated_no_sidewalk_count,rejected_no_sidewalk_count," +
+      "label_count,audit_count,first_no_sidewalk_label_date,last_no_sidewalk_label_date,start_point,end_point"
   }
 
   test("a CSV row has one cell per header column, empty where the JSON is null") {

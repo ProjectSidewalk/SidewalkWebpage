@@ -24,8 +24,11 @@ import java.time.OffsetDateTime
  * @param presence                  `present`, `absent`, or `unknown`
  * @param presenceBasis             The evidence behind the call: `no_sidewalk_labels`, `other_side_tag`,
  *                                  `audited_no_labels`, or `unaudited`
- * @param noSidewalkLabelCount      Sided NoSidewalk labels on this face; the confidence behind an `absent` call
+ * @param noSidewalkLabelCount      Sided NoSidewalk labels on this face that validators have not rejected; the
+ *                                  confidence behind an `absent` call
  * @param noSidewalkUserCount       Distinct users who placed those labels
+ * @param validatedNoSidewalkCount  Of those labels, the ones validators confirmed: the top confidence tier (#5285)
+ * @param rejectedNoSidewalkCount   NoSidewalk labels on this face validators rejected, which count as no evidence
  * @param labelCount                All sided labels on this face, of any type
  * @param auditCount                Completed audits of the street
  * @param firstNoSidewalkLabelDate  When the first NoSidewalk label on this face was placed, if any
@@ -44,6 +47,8 @@ case class SidewalkPresenceForApi(
     presenceBasis: String,
     noSidewalkLabelCount: Int,
     noSidewalkUserCount: Int,
+    validatedNoSidewalkCount: Int,
+    rejectedNoSidewalkCount: Int,
     labelCount: Int,
     auditCount: Int,
     firstNoSidewalkLabelDate: Option[OffsetDateTime] = None,
@@ -75,6 +80,8 @@ object SidewalkPresenceForApi extends ApiFields[SidewalkPresenceForApi] {
     field("presence_basis")(_.presenceBasis),
     field("no_sidewalk_label_count")(_.noSidewalkLabelCount),
     field("no_sidewalk_user_count")(_.noSidewalkUserCount),
+    field("validated_no_sidewalk_count")(_.validatedNoSidewalkCount),
+    field("rejected_no_sidewalk_count")(_.rejectedNoSidewalkCount),
     field("label_count")(_.labelCount),
     field("audit_count")(_.auditCount),
     field("first_no_sidewalk_label_date")(_.firstNoSidewalkLabelDate.map(_.toString)),
@@ -98,9 +105,10 @@ object SidewalkPresenceForApi extends ApiFields[SidewalkPresenceForApi] {
  * @param presence            Optional verdicts to keep (`present`, `absent`, `unknown`); all three by default
  * @param statuses            Optional street statuses to keep (`open`, `no_imagery`, `closed`, `disabled`); all by
  *                            default, as on the Streets API
- * @param minNoSidewalkLabels Optional minimum NoSidewalk label count, the confidence dial for `absent` calls
- * @param minAuditCount       Optional minimum number of completed audits of the street
- * @param wayTypes            Optional list of way types to include (e.g., "residential", "primary")
+ * @param minNoSidewalkLabels          Optional minimum NoSidewalk label count, the confidence dial for `absent` calls
+ * @param minValidatedNoSidewalkLabels Optional minimum validator-confirmed NoSidewalk label count, the top tier
+ * @param minAuditCount                Optional minimum number of completed audits of the street
+ * @param wayTypes                     Optional list of way types to include (e.g., "residential", "primary")
  */
 case class SidewalkPresenceFiltersForApi(
     bbox: Option[LatLngBBox] = None,
@@ -109,6 +117,7 @@ case class SidewalkPresenceFiltersForApi(
     presence: Option[Seq[String]] = None,
     statuses: Option[Seq[String]] = None,
     minNoSidewalkLabels: Option[Int] = None,
+    minValidatedNoSidewalkLabels: Option[Int] = None,
     minAuditCount: Option[Int] = None,
     wayTypes: Option[Seq[String]] = None
 )

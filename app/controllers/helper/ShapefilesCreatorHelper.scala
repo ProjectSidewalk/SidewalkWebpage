@@ -918,6 +918,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         + "basis:String,"     // presence_basis
         + "nsLabels:Integer," // no_sidewalk_label_count
         + "nsUsers:Integer,"  // no_sidewalk_user_count
+        + "nsValid:Integer,"  // validated_no_sidewalk_count
+        + "nsReject:Integer," // rejected_no_sidewalk_count
         + "labelCount:Integer,"
         + "auditCount:Integer,"
         + "firstNsLbl:String," // first_no_sidewalk_label_date
@@ -937,6 +939,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(face.presenceBasis)
       featureBuilder.add(face.noSidewalkLabelCount)
       featureBuilder.add(face.noSidewalkUserCount)
+      featureBuilder.add(face.validatedNoSidewalkCount)
+      featureBuilder.add(face.rejectedNoSidewalkCount)
       featureBuilder.add(face.labelCount)
       featureBuilder.add(face.auditCount)
       featureBuilder.add(face.firstNoSidewalkLabelDate.map(_.toString).orNull)
