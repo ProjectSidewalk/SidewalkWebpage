@@ -66,11 +66,11 @@ class UserPasswordInfoTable @Inject() (protected val dbConfigProvider: DatabaseC
     (userPasswordInfo returning userPasswordInfo.map(_.userPasswordInfoId)) += newUserPasswordInfo
   }
 
-  /** Sets a login row's password, creating the row if it has none. One statement, so two resets at once can't race. */
-  def upsert(loginInfoId: Long, pwInfo: PasswordInfo): DBIO[Int] = {
-    sqlu"""INSERT INTO sidewalk_login.user_password_info (hasher, password, salt, login_info_id)
-           VALUES (${pwInfo.hasher}, ${pwInfo.password}, ${pwInfo.salt}, $loginInfoId)
-           ON CONFLICT (login_info_id)
-           DO UPDATE SET hasher = EXCLUDED.hasher, password = EXCLUDED.password, salt = EXCLUDED.salt"""
+  def updateByUserId(userId: String, pwInfo: PasswordInfo): DBIO[Int] = {
+    val loginInfoIds = userLoginInfo.filter(_.userId === userId).map(_.loginInfoId)
+    userPasswordInfo
+      .filter(_.loginInfoId in loginInfoIds)
+      .map(p => (p.hasher, p.password, p.salt))
+      .update((pwInfo.hasher, pwInfo.password, pwInfo.salt))
   }
 }

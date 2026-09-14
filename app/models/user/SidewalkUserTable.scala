@@ -107,10 +107,6 @@ class SidewalkUserTable @Inject() (
       .map(_.map(SidewalkUserWithRole.tupled))
   }
 
-  def findEmail(userId: String): DBIO[Option[String]] = {
-    sidewalkUser.filter(_.userId === userId).map(_.email).result.headOption
-  }
-
   /**
    * Updates the username of a user.
    * @param userId The user ID of the user whose username is to be updated

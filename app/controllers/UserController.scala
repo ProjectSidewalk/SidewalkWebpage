@@ -14,7 +14,7 @@ import play.api.libs.mailer.{Email, MailerClient}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Authenticator.Implicits._
 import play.silhouette.api._
-import org.postgresql.util.PSQLException
+import org.postgresql.util.{PSQLException, PSQLState}
 import play.silhouette.api.exceptions.ProviderException
 import play.silhouette.api.util.{Clock, PasswordHasher}
 import play.silhouette.impl.exceptions.IdentityNotFoundException
@@ -475,7 +475,7 @@ class UserController @Inject() (
                 }).recoverWith {
                   // Two sign-ups for one email or username at once both pass the checks above, or the account holding
                   // it has no role row and is invisible to them; either way the schema rejects the second insert.
-                  case e: PSQLException if e.getSQLState == "23505" =>
+                  case e: PSQLException if e.getSQLState == PSQLState.UNIQUE_VIOLATION.getState =>
                     if (e.getServerErrorMessage.getConstraint == "sidewalk_user_username_key")
                       rejection(
                         "Duplicate_Username_Error",

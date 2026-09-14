@@ -172,8 +172,6 @@ class LabelValidationTable @Inject() (
   /**
    * Select validation counts per user.
    *
-   * Deliberately does not join user_role: nothing reads the labeler's role here.
-   *
    * @return list of tuples (labeler_id, (labels_validated, agreed_count))
    */
   def getValidationCountsByUser: DBIO[Seq[(String, (Int, Int))]] = {

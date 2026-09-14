@@ -280,24 +280,12 @@ class AuthenticationServiceImpl @Inject() (
     db.run(updatePasswordDBIO(userId, pwInfo))
   }
 
-  /** Sets the password, creating the login and password rows an account lacks (migration leftovers) on the way. */
+  /** Every account has a login row with a password (387.sql), so a missing one is an error, not a case to handle. */
   private def updatePasswordDBIO(userId: String, pwInfo: PasswordInfo): DBIO[Int] = {
-    userLoginInfoTable
-      .find(userId)
-      .flatMap {
-        case Some(userLoginInfo) => userPasswordInfoTable.upsert(userLoginInfo.loginInfoId, pwInfo)
-        case None                =>
-          sidewalkUserTable.findEmail(userId).flatMap {
-            case Some(email) =>
-              for {
-                loginInfoId <- loginInfoTable.insert(DBLoginInfo(0, ID, email))
-                _           <- userLoginInfoTable.insert(UserLoginInfo(0, userId, loginInfoId))
-                rowsWritten <- userPasswordInfoTable.upsert(loginInfoId, pwInfo)
-              } yield rowsWritten
-            case None => DBIO.failed(new IdentityNotFoundException(s"No account found for user ID: $userId"))
-          }
-      }
-      .transactionally
+    userPasswordInfoTable.updateByUserId(userId, pwInfo).flatMap {
+      case 0           => DBIO.failed(new IdentityNotFoundException(s"No password row for user ID: $userId"))
+      case rowsUpdated => DBIO.successful(rowsUpdated)
+    }
   }
 
   /** Replaces a user's password if `currentPassword` is right; returns false, writing nothing, if it isn't. */

@@ -1,6 +1,7 @@
 # --- !Ups
 -- Auth schema cleanup and constraints (#5317): sign-in found a password by email while reset and change-password
 -- found it by account, and nothing stopped an email from having several login rows or accounts, so they could disagree.
+-- Afterwards every account has exactly one login row with exactly one password, and one account per email.
 --
 -- Everything here is in the shared sidewalk_login schema and evolutions run once per city, so the script is one plpgsql
 -- block that exits once the index it creates last exists, with doubled semicolons (docs/evolutions.md). The
@@ -114,6 +115,27 @@ BEGIN
       WHERE user_login_info.login_info_id = login_info.login_info_id
         AND login_info.provider_key <> sidewalk_user.email;;
 
+      -- Accounts missing a login row (the site-wide anonymous account, SidewalkAI, and about 4,100 anonymous ones,
+      -- mostly from the DC migration) or a password row (4 DC accounts) get them, so reset and sign-in can count on
+      -- both. The password is a real bcrypt hash of a secret nobody has: sign-in fails as a wrong password rather
+      -- than crashing on a malformed hash, and a reset replaces it.
+      INSERT INTO sidewalk_login.login_info (provider_id, provider_key)
+      SELECT 'credentials', sidewalk_user.email
+      FROM sidewalk_login.sidewalk_user
+      LEFT JOIN sidewalk_login.user_login_info ON user_login_info.user_id = sidewalk_user.user_id
+      WHERE user_login_info.user_id IS NULL;;
+      INSERT INTO sidewalk_login.user_login_info (user_id, login_info_id)
+      SELECT sidewalk_user.user_id, login_info.login_info_id
+      FROM sidewalk_login.sidewalk_user
+      INNER JOIN sidewalk_login.login_info ON login_info.provider_key = sidewalk_user.email
+      LEFT JOIN sidewalk_login.user_login_info ON user_login_info.user_id = sidewalk_user.user_id
+      WHERE user_login_info.user_id IS NULL;;
+      INSERT INTO sidewalk_login.user_password_info (hasher, password, salt, login_info_id)
+      SELECT 'bcrypt', '$2a$10$r8wWR8uXuIIHkk9iCN6jMuEH7dRU6rlbk.dR6WC8mkYdi10AYw.a.', NULL, login_info.login_info_id
+      FROM sidewalk_login.login_info
+      LEFT JOIN sidewalk_login.user_password_info ON user_password_info.login_info_id = login_info.login_info_id
+      WHERE user_password_info.login_info_id IS NULL;;
+
       -- === The constraints. A unique index replaces the plain index on the same column. ===
 
       ALTER TABLE sidewalk_login.user_login_info
@@ -131,7 +153,6 @@ BEGIN
 
       -- Exact-match rather than lower(): with the CHECK it's case-insensitive anyway, and it doubles as the lookup
       -- index.
-      -- The site-wide anonymous account and SidewalkAI have no login row on purpose, so this is what covers them.
       ALTER TABLE sidewalk_login.sidewalk_user
         ADD CONSTRAINT sidewalk_user_email_lower_check CHECK (email = lower(email)),
         ADD CONSTRAINT sidewalk_user_email_key UNIQUE (email);;
