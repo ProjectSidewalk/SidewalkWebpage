@@ -453,8 +453,14 @@ class Onboarding {
     this.#savedAnnotations = util.misc.carryOverOnboardingAnnotations(currAnnotations, state.id);
   }
 
+  /**
+   * @param {string} stateId An id from OnboardingStates.js.
+   * @returns {object} The state with that id.
+   */
   #getState(stateId) {
-    return this.#states.find((state) => state.id === stateId);
+    const found = this.#states.find((state) => state.id === stateId);
+    if (!found) throw new Error(`Onboarding has no state with id "${stateId}".`);
+    return found;
   }
 
   /**
@@ -469,27 +475,15 @@ class Onboarding {
   }
 
   /**
-   * Transition to the next state.
-   * @param {string|Function} nextState
-   * @param {object} params Optional parameters that might be used by transition function.
-   */
-  next(nextState, params) {
-    this.#transitionTo(nextState, params);
-  }
-
-  /**
-   * Resolve and visit the next state, passing `thisArg` through to a function-valued transition (which reads it as
-   * the DOM element the user interacted with).
+   * Resolve and visit the next state, passing `thisArg` through to a function-valued transition.
    * @param {string|Function} nextState State id, or a function returning a state id.
-   * @param {object} params Optional parameters that might be used by the transition function.
-   * @param {EventTarget|Label} [thisArg] The `this` context for a function-valued transition.
+   * @param {object} [params] Parameters the transition function may read.
+   * @param {EventTarget|Label} [thisArg] The `this` for a function-valued transition: the element the user interacted
+   *     with, or the label being tagged.
    */
   #transitionTo(nextState, params, thisArg) {
     const stateId = typeof nextState === 'function' ? nextState.call(thisArg, params) : nextState;
-    const state = this.#getState(stateId);
-    // A missing state is a typo in OnboardingStates.js; name it rather than fail on `state.id` inside #visit.
-    if (!state) throw new Error(`Onboarding has no state with id "${stateId}".`);
-    this.#visit(state);
+    this.#visit(this.#getState(stateId));
   }
 
   /**

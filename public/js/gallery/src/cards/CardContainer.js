@@ -234,8 +234,8 @@ class CardContainer {
    * @param {*} neighborhoods Region IDs the labels to be grabbed can be from (Set to undefined if N/A).
    * @param {*} severities Severities the labels to be grabbed can have (Set to undefined if N/A).
    * @param {object} tagsByLabelType Tags each label type is narrowed to, keyed by type name.
-   * @param {string[]} [aiValidationOptions] AI validation options for labels: correct, incorrect, and/or unvalidated.
-   * @param {*} callback Function to be called when labels arrive.
+   * @param {string[]|undefined} aiValidationOptions AI validation options: correct, incorrect, and/or unvalidated.
+   * @param {Function} [callback] Called when labels arrive (or the request fails).
    */
   fetchLabels(
     labelTypes, n, validationOptions, loadedLabels, neighborhoods, severities, tagsByLabelType, aiValidationOptions,

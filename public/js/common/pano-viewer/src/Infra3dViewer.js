@@ -207,7 +207,7 @@ class Infra3dViewer extends PanoViewer {
   /**
    * Ensures that all image metadata has been saved before letting setPano or setLocation resolve.
    *
-   * @param {object} node Infra3d's internal node object; moveToKey sends it but moteToPosition does not
+   * @param {object} node Infra3d's internal node object.
    * @returns {Promise<PanoData>}
    * @private
    */

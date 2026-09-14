@@ -57,7 +57,7 @@ class Mission {
 
   /**
    * Function that checks if the current mission is complete.
-   * @returns {boolean} True if this mission is complete, false if in progress.
+   * @returns {boolean|undefined} True if this mission is complete, false if in progress, undefined if not yet known.
    */
   isComplete() {
     return this.getProperty('completed');

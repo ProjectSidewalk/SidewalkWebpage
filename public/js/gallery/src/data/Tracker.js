@@ -62,7 +62,7 @@ class Tracker {
    *
    * @param {string} action Action name.
    * @param {?{panoId: string}} [suppData] Supplementary data to be logged about action.
-   * @param {object} [notes] Notes to be logged into the notes field in database.
+   * @param {?object} [notes] Notes to be logged into the notes field in database.
    */
   push(action, suppData, notes) {
     const item = this.#createAction(action, suppData, notes);

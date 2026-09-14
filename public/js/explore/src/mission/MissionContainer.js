@@ -64,7 +64,7 @@ class MissionContainer {
 
   /**
    * Get the sum of the distance of all the user's completed missions in this neighborhood.
-   * @param {string} unit
+   * @param {string} [unit]
    * @returns {number}
    */
   getCompletedMissionDistance(unit) {
@@ -86,7 +86,7 @@ class MissionContainer {
 
   /**
    * This method sets the current mission
-   * @param {object} mission A Mission object
+   * @param {Mission} mission A Mission object
    * @returns {MissionContainer}
    */
   setCurrentMission(mission) {
