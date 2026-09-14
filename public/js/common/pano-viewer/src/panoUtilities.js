@@ -13,6 +13,16 @@ util.pano = {};
 util.pano.TUTORIAL_PANO_IDS = new Set(['tutorial', 'afterWalkTutorial']);
 
 /**
+ * Milliseconds in an average (Julian) year, for turning a capture-timestamp delta into an age in years.
+ *
+ * It sits beside the ranking weights rather than in conf/pano-scoring.json because it is a property of the calendar,
+ * not a tuning knob — check_streets_for_imagery.py names it as its own MS_PER_YEAR constant for the same reason.
+ *
+ * @type {number}
+ */
+util.pano.MS_PER_JULIAN_YEAR = 365.25 * 24 * 3600 * 1000;
+
+/**
  * Ranking weights and decay scales for a provider that picks its own pano from a box of candidates.
  *
  * The numbers come from conf/pano-scoring.json by way of the data-pano-scoring stamp main.scala.html puts on every
@@ -28,16 +38,6 @@ util.pano.TUTORIAL_PANO_IDS = new Set(['tutorial', 'afterWalkTutorial']);
  * @param {string} provider Lowercase provider name, a key of the file's `providers` object ('mapillary', 'panoramax').
  * @returns {object} The shared weights and decay scales, with the provider's own parameters merged over them.
  */
-/**
- * Milliseconds in an average (Julian) year, for turning a capture-timestamp delta into an age in years.
- *
- * It sits beside the ranking weights rather than in conf/pano-scoring.json because it is a property of the calendar,
- * not a tuning knob — check_streets_for_imagery.py names it as its own MS_PER_YEAR constant for the same reason.
- *
- * @type {number}
- */
-util.pano.MS_PER_JULIAN_YEAR = 365.25 * 24 * 3600 * 1000;
-
 util.pano.scoring = (() => {
   let params = null;
   return (provider) => {

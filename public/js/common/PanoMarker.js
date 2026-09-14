@@ -29,7 +29,6 @@ class PanoMarker {
    * Creates a PanoMarker with the options specified. If a panorama is specified, the marker is added to the map
    * upon construction. Note that the position must be set for the marker to display.
    *
-   * @class
    * @param {object} opts A set of parameters to customize the marker.
    * @param {PanoViewer} opts.panoViewer Panorama viewer on which to display marker.
    * @param {HTMLDivElement} opts.markerContainer The container holding the markers.
@@ -46,37 +45,37 @@ class PanoMarker {
     if (!opts.panoViewer) throw new Error('A panorama viewer needs to be defined.');
     if (!opts.markerContainer) throw new Error('A panorama markerContainer needs to be defined.');
 
-    /** @private @type {HTMLDivElement} */
+    /** @type {HTMLDivElement} */
     this.markerContainer_ = opts.markerContainer;
 
-    /** @private @type {PanoViewer} */
+    /** @type {PanoViewer} */
     this.panoViewer_ = opts.panoViewer;
 
-    /** @private @type {?string} */
+    /** @type {?string} */
     this.className_ = opts.className || null;
 
-    /** @private @type {?string} */
+    /** @type {?string} */
     this.icon_ = opts.icon || null;
 
-    /** @private @type {?string} */
+    /** @type {?string} */
     this.id_ = opts.id || null;
 
-    /** @private @ŧype {?HTMLDivElement} */
+    /** @type {?HTMLDivElement} */
     this.marker_ = null;
 
-    /** @private @type {?Object} */
+    /** @type {{heading: number, pitch: number}} */
     this.position_ = opts.position || { heading: 0, pitch: 0 };
 
-    /** @private @type {object} */
+    /** @type {{width: number, height: number}} */
     this.size_ = opts.size || { width: 32, height: 32 };
 
-    /** @private @type {string} */
+    /** @type {string} */
     this.title_ = opts.title || '';
 
-    /** @private @type {boolean} */
+    /** @type {boolean} */
     this.visible_ = (typeof opts.visible === 'boolean') ? opts.visible : true;
 
-    /** @private @type {number} */
+    /** @type {number} */
     this.zIndex_ = opts.zIndex || 1;
 
     /**
@@ -302,17 +301,17 @@ class PanoMarker {
 
   // Getter to be roughly equivalent to the regular google.maps.Marker. //
 
-  /** @returns {string} The className or null if not set upon marker creation. */
+  /** @returns {?string} The className or null if not set upon marker creation. */
   getClassName = function () {
     return this.className_;
   };
 
-  /** @returns {string} The current icon, if any. */
+  /** @returns {?string} The current icon, if any. */
   getIcon = function () {
     return this.icon_;
   };
 
-  /** @returns {string} The identifier or null if not set upon marker creation. */
+  /** @returns {?string} The identifier or null if not set upon marker creation. */
   getId = function () {
     return this.id_;
   };
@@ -322,7 +321,7 @@ class PanoMarker {
     return this.panoViewer_;
   };
 
-  /** @returns {PanoViewer} The current PanoViewer. */
+  /** @returns {HTMLDivElement} The container holding the markers. */
   getMarkerContainer = function () {
     return this.markerContainer_;
   };
@@ -332,7 +331,7 @@ class PanoMarker {
     return this.position_;
   };
 
-  /** {{width: number, height: number}} size The new size of the marker in pixels. */
+  /** @returns {{width: number, height: number}} The size of the marker in pixels. */
   getSize = function () {
     return this.size_;
   };

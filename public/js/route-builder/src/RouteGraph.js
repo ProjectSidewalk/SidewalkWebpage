@@ -45,7 +45,7 @@ class RouteGraph {
    * The source GeoJSON feature for a street id, so callers don't rescan the city's street array to find one.
    *
    * @param {number} streetId
-   * @returns {?object} The feature, or undefined if the id isn't in the loaded street data.
+   * @returns {object|undefined} The feature, or undefined if the id isn't in the loaded street data.
    */
   getFeature(streetId) {
     return this.#features.get(streetId);

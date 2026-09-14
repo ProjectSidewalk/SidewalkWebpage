@@ -327,7 +327,7 @@ function enhanceAuthForms() {
 
 /**
  * Controller for the navbar sign-in / sign-up <dialog>: open/close, sign-in↔sign-up panel switching, and trigger
- * buttons only. The forms inside it are enhanced by `enhanceAuthForms(document)`, like every other auth form.
+ * buttons only. The forms inside it are enhanced by `enhanceAuthForms()`, like every other auth form.
  */
 class AuthModal {
   #modal;

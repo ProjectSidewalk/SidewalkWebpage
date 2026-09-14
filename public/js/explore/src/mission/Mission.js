@@ -24,7 +24,6 @@ class Mission {
    * @param {number} params.distance
    * @param {number} params.distanceProgress
    * @param {boolean} params.skipped
-   * @class
    */
   constructor(params) {
     this.setProperty('missionId', params.missionId);

@@ -67,10 +67,11 @@ class PanoViewer {
    * @param {Element} _canvasElem
    * @param {object} _panoOptions Object containing initialization options
    * @param {string} [_panoOptions.startPanoId] Pano to start at; either this or startLatLng is required
-   * @param {{lat: number, lng: number}} [_panoOptions.startLatLng] Starting loc; either this or startLatLng is required
+   * @param {{lat: number, lng: number}} [_panoOptions.startLatLng] Starting loc; either this or startPanoId is required
    * @param {boolean} [_panoOptions.preloadNeighbors=false] Pre-download panos linked to the current one, so that
    *     moving to them is fast. Only supported by Mapillary; other viewers ignore it.
    * @returns {Promise<void>}
+   * @abstract
    */
   initialize(_canvasElem, _panoOptions = {}) {
     return Promise.reject(new Error('Subclasses must implement initialize()'));
@@ -81,7 +82,7 @@ class PanoViewer {
    * @param {Element} canvasElem
    * @param {object} panoOptions Object containing initialization options
    * @param {string} [panoOptions.startPanoId] Pano to start at; either this or startLatLng is required
-   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Starting loc; either this or startLatLng is required
+   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Starting loc; either this or startPanoId is required
    * @returns {Promise<PanoViewer>}
    * @static
    */
@@ -219,6 +220,7 @@ class PanoViewer {
    * @param {{lat: number, lng: number}} _latLng The desired location to move to.
    * @param {Set<PanoData>} [_excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to.
    * @returns {Promise<PanoData>} The panorama data object. Rejects if closest image is in excludedPanos or none found.
+   * @abstract
    */
   setLocation(_latLng, _excludedPanos = new Set()) {
     return Promise.reject(new Error('setLocation(latLng, excludedPanos) must be implemented by subclass'));
@@ -258,6 +260,7 @@ class PanoViewer {
    * Moves the current panorama to the specified panorama ID.
    * @param {string} _panoId The panorama ID to set.
    * @returns {Promise<PanoData>} The panorama data object.
+   * @abstract
    */
   setPano(_panoId) {
     return Promise.reject(new Error('setPano(panoId) must be implemented by subclass'));
@@ -289,6 +292,7 @@ class PanoViewer {
    * @param {number} _pov.pitch - Desired pitch in degrees (-90 to 90, where 0 is horizontal)
    * @param {number} _pov.zoom - Desired zoom (1, 2, or 3)
    * @returns {void}
+   * @abstract
    */
   setPov(_pov) {
     throw new Error('setPov() must be implemented by subclass');
@@ -297,6 +301,7 @@ class PanoViewer {
   /**
    * Hides the navigation arrows in the panorama viewer.
    * @returns {void}
+   * @abstract
    */
   hideNavigationArrows() {
     throw new Error('hideNavigationArrows() must be implemented by subclass');
@@ -305,6 +310,7 @@ class PanoViewer {
   /**
    * Shows the navigation arrows in the panorama viewer.
    * @returns {void}
+   * @abstract
    */
   showNavigationArrows() {
     throw new Error('showNavigationArrows() must be implemented by subclass');

@@ -159,6 +159,8 @@ module.exports = [
       // Skips destructured keys: we often document a destructured param as the one object it is.
       'jsdoc/check-param-names': ['error', {checkDestructured: false}],
       'jsdoc/check-tag-names': 'error',
+      // Also catches two tags on one line (`/** @private @type {X} */`), which hides the second from every other rule.
+      'jsdoc/empty-tags': 'error',
       'jsdoc/check-types': 'error',
       'jsdoc/valid-types': 'error',
       'jsdoc/require-returns-check': 'error',

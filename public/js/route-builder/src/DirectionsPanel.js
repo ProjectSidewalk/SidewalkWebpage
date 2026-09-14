@@ -25,7 +25,7 @@ class DirectionsPanel {
    * @param {object} opts
    * @param {object} opts.map - The Mapbox map.
    * @param {string} opts.mapboxApiKey
-   * @param {object} opts.bbox - Search bounds: [[west, south], [east, north]].
+   * @param {[[number, number], [number, number]]} opts.bbox - Search bounds: [[west, south], [east, north]].
    * @param {Function} opts.onSetStart - Called with {lng, lat} when a Start address is chosen.
    * @param {Function} opts.onSetEnd - Called with {lng, lat} when an End address is chosen.
    */
@@ -43,7 +43,7 @@ class DirectionsPanel {
    * Creates a Mapbox search box bound to one of the panel's slots.
    *
    * @param {string} which - 'start' or 'end'.
-   * @param {object} bbox - Search bounds.
+   * @param {[[number, number], [number, number]]} bbox - Search bounds.
    * @param {string} placeholder
    * @returns {object} The MapboxSearchBox instance.
    */

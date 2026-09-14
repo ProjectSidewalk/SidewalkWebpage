@@ -322,7 +322,7 @@ Rules:
 - Use `@returns` (not `@return`) — that is the JSDoc standard (opposite of ScalaDoc).
 - Always include `{Type}` in `@param` and `@returns`.
 - Write types TypeScript-style: `object` and `string` (not `Object`/`String`), `Record<string, number>` for a map,
-  and an arrow signature like `(id: number) => void` (or at least `Function`, never `function`) for a callback.
+  and an arrow signature like `(id: number) => void` (or at least `Function`, not a bare `function`) for a callback.
   `make eslint` checks that types parse, that `@param` names match the real parameters, and that tag names are
   valid.
 - Use `{Type} [paramName]` (square brackets) for optional parameters, and `{Type} [paramName=default]` when a

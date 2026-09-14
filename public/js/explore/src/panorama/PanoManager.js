@@ -36,7 +36,6 @@ class PanoManager {
    * @param {Task} errorParams.task The assigned Task; used if no imagery is found to record the street
    * @param {number} errorParams.missionId The current mission ID; used if no imagery is found
    * @returns {Promise<PanoManager>} The PanoManager instance
-   * @class
    */
   static async create(panoViewerType, viewerAccessToken, params = {}, errorParams) {
     const newPanoManager = new this();
