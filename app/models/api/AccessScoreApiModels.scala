@@ -108,7 +108,7 @@ object AccessScoreApiModels {
  * @param streetEdgeId           Project Sidewalk street segment identifier.
  * @param osmWayId               OpenStreetMap way identifier.
  * @param streetName             The street's name from its OpenStreetMap way's `name` tag, if it has one.
- * @param regionId               Region (neighborhood) the street belongs to.
+ * @param regionId               Region the street belongs to.
  * @param score                  Headline access score in (0, 1): the mean of `segmentScore` and the end intersections'
  *                               scores, over those that exist. None if the street has not been audited and neither
  *                               end is scored.
@@ -200,7 +200,7 @@ object StreetAccessScoreForApi extends ApiFields[StreetAccessScoreForApi] {
  * street meeting there.
  *
  * @param intersectionId Project Sidewalk intersection identifier.
- * @param regionId       Region (neighborhood) most of the intersection's streets are in, or None.
+ * @param regionId       Region most of the intersection's streets are in, or None.
  * @param degree         How many streets meet here.
  * @param gradeSeparated Whether this is a bridge or tunnel crossing rather than a place to cross: such a node is never
  *                       scored and holds no clusters.
@@ -267,7 +267,7 @@ object IntersectionAccessScoreForApi extends ApiFields[IntersectionAccessScoreFo
 }
 
 /**
- * AccessScore for a region (neighborhood), for the v3 API.
+ * AccessScore for a region, for the v3 API.
  *
  * @param regionId            Project Sidewalk region identifier.
  * @param name                Region name.

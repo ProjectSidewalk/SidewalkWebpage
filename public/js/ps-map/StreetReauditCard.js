@@ -6,7 +6,7 @@
  * found there last time — so "newer imagery available" becomes a reason to look rather than a label.
  *
  * The card is interactive, so it follows the search pin's hover contract (labelMapLocationSearch.js) rather than the
- * neighborhood popup's: leaving the street hands off to a short grace period that checks whether the pointer landed
+ * region popup's: leaving the street hands off to a short grace period that checks whether the pointer landed
  * in the card, and Escape dismisses it (WCAG 1.4.13 hoverable/dismissible). A Mapbox line layer has no focusable DOM
  * node, so there is no keyboard path *to* a street; the same information is keyboard-reachable on the dashboard's
  * re-audit list.

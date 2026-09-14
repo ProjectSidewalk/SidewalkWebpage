@@ -1,7 +1,7 @@
 /**
  * The AccessScore insights dock (#5217): the collapsible band along the bottom of the map that holds the KPI
  * strip and four linked views — the score histogram (which doubles as the score legend), what's here, the ranked
- * neighborhoods, and the photo strip — and coordinates them with the map.
+ * regions, and the photo strip — and coordinates them with the map.
  *
  * Three composition rules keep the views agreeing with each other:
  *
@@ -10,12 +10,12 @@
  * 2. **A brush emphasizes in the overview views and filters the detail views.** The histogram marks brushed bins
  *    and mutes the rest, the rank list mutes non-matching rows, and what's here is counted over the brush. On
  *    the map, everything outside the brush dims.
- * 3. **A selection marks the overview views and scopes the detail views.** Selecting a neighborhood leaves the
- *    histogram city-wide and drops a caret at that neighborhood's score — the point of the view is to place it
+ * 3. **A selection marks the overview views and scopes the detail views.** Selecting a region leaves the
+ *    histogram city-wide and drops a caret at that region's score — the point of the view is to place it
  *    among the others — while what's here and the photo strip narrow to it, and the map fades every other
- *    neighborhood (in the streets unit, every street outside the selected street's neighborhood) so the selection
+ *    region (in the streets unit, every street outside the selected street's region) so the selection
  *    is the one thing in focus. With nothing selected, the detail views take the city (the photo strip, which
- *    reads one neighborhood's feed, takes the lowest-scoring one and says so).
+ *    reads one region's feed, takes the lowest-scoring one and says so).
  *
  * The map's dim follows one precedence: a transient hover set (a histogram bin, a rank row) if any, else the
  * brush, else the selection; a hover never drops the brush. Every change is batched into one animation frame,
@@ -41,7 +41,7 @@ class AccessScoreDock {
 
   /** Below this zoom the viewport spans most of a city, and "the area in view" would say nothing. */
   static PHOTO_VIEWPORT_ZOOM = 13;
-  /** At most this many neighborhood feeds (the nearest to the center) per viewport, so a pan is a few fetches. */
+  /** At most this many region feeds (the nearest to the center) per viewport, so a pan is a few fetches. */
   static PHOTO_VIEWPORT_REGIONS = 4;
   /** A pan settles in a few moveends; one refetch per settle, not per tick. */
   static PHOTO_MOVE_DEBOUNCE_MS = 500;
@@ -55,13 +55,13 @@ class AccessScoreDock {
   #mapHover = null;
   /** The city's short name, for the histogram's needle label. */
   #cityName;
-  /** A neighborhood chosen from the rank list as the band's scope, when the map has no selection of its own. */
+  /** A region chosen from the rank list as the band's scope, when the map has no selection of its own. */
   #focusRegionId = null;
 
   #frame = null;
   #needDim = true;
   /** Whether the next flush re-aims the photo strip; a slider mid-drag leaves it, so the city's lowest-scoring
-   *  neighborhood flipping under the drag never refetches a strip nobody is looking at yet. */
+   *  region flipping under the drag never refetches a strip nobody is looking at yet. */
   #needPhotos = true;
   /** Whether the next flush should read the brush out to the live region. */
   #announce = false;
@@ -140,9 +140,9 @@ class AccessScoreDock {
   }
 
   /**
-   * Scopes the band to a neighborhood without a map selection — what a rank-list click means in the streets unit,
+   * Scopes the band to a region without a map selection — what a rank-list click means in the streets unit,
    * where a region can't be selected on the map. Any map selection, a unit switch, or a full reset clears it.
-   * @param {?number} regionId - The neighborhood, or null to clear.
+   * @param {?number} regionId - The region, or null to clear.
    */
   setFocusRegion(regionId) {
     const next = regionId === null || regionId === undefined ? null : regionId;
@@ -167,7 +167,7 @@ class AccessScoreDock {
    * @param {{kind: string, final: boolean}} meta - The change; a weight mid-drag skips the map's dim rewrite.
    */
   applyChange(meta) {
-    // A focused neighborhood belongs to the unit it was chosen in; the reset puts the band back to the city.
+    // A focused region belongs to the unit it was chosen in; the reset puts the band back to the city.
     if (meta.kind === 'Unit' || meta.kind === 'ResetAll') this.setFocusRegion(null);
     const settled = !(meta.kind === 'Weight' && !meta.final);
     this.#schedule({ dim: settled, photos: settled });
@@ -313,12 +313,12 @@ class AccessScoreDock {
   }
 
   /**
-   * What the detail views describe: the selected street or neighborhood, else the neighborhood focused from the
+   * What the detail views describe: the selected street or region, else the region focused from the
    * rank list, else the city. A selection made in the other unit is not one here, matching the histogram's caret.
    * What's here never narrows to the viewport: its counts must be the histogram's population, or the two panels
    * would disagree about the same city.
    * @returns {{kind: string, id: ?number, regionId: ?number, name: ?string}} `kind` is 'street', 'region' or
-   *   'city'; `regionId` the neighborhood the scope sits in, if any; `name` the street's or neighborhood's.
+   *   'city'; `regionId` the region the scope sits in, if any; `name` the street's or region's.
    */
   #scope() {
     const unit = this.#model.state.unit;
@@ -341,8 +341,8 @@ class AccessScoreDock {
 
   /**
    * Where the photo strip draws from: the selection, else the area in view once zoomed in enough for that to mean
-   * something, else the city rule. A viewport is the nearest few neighborhoods it touches plus its own bounds, so
-   * a pan inside one neighborhood costs no new fetch.
+   * something, else the city rule. A viewport is the nearest few regions it touches plus its own bounds, so
+   * a pan inside one region costs no new fetch.
    * @returns {object} A `#scope()` result, or `{kind: 'viewport', regionIds, bounds: [west, south, east, north]}`.
    */
   #photoScope() {
@@ -415,7 +415,7 @@ class AccessScoreDock {
     return text;
   }
 
-  /** Points the photo strip at the scope's neighborhoods, only when the scope actually changed. */
+  /** Points the photo strip at the scope's regions, only when the scope actually changed. */
   #showPhotos(scope) {
     let key;
     let request;
@@ -447,7 +447,7 @@ class AccessScoreDock {
         bounds: scope.bounds,
       };
     } else {
-      // The strip reads one neighborhood's feed; with nothing selected, the one most in need of a look.
+      // The strip reads one region's feed; with nothing selected, the one most in need of a look.
       const ranked = this.#model.rankedRegions();
       const lowest = ranked.length ? ranked[ranked.length - 1] : null;
       key = `city:${lowest ? lowest.regionId : 'none'}`;
@@ -487,7 +487,7 @@ class AccessScoreDock {
     return this.#model.regionIdsInBins(from, to);
   }
 
-  /** The ids of the active unit a selection keeps bright: its neighborhood, as regions or as streets. */
+  /** The ids of the active unit a selection keeps bright: its region, as regions or as streets. */
   #selectionUnitIds() {
     if (!this.#selection) return null;
     const regionId = this.#regionOf(this.#selection);
@@ -534,7 +534,7 @@ class AccessScoreDock {
     if (show) caret.style.left = `${Math.min(100, Math.max(0, score * 100))}%`;
   }
 
-  /** The neighborhood a selection or hover belongs to: the region itself, or the street's region. */
+  /** The region a selection or hover belongs to: the region itself, or the street's region. */
   #regionOf({ unit, id }) {
     if (unit === 'regions') return id;
     return this.#model.explainStreet(id)?.regionId ?? null;
@@ -580,7 +580,7 @@ class AccessScoreDock {
     }
   }
 
-  /** What the views count: the city's streets, or its neighborhoods. */
+  /** What the views count: the city's streets, or its regions. */
   #renderCaption() {
     const unit = this.#model.state.unit;
     this.#els.caption.textContent = unit === 'regions'

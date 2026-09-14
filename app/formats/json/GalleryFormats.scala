@@ -71,7 +71,7 @@ object GalleryFormats {
     (JsPath \ "n").read[Int] and
       (JsPath \ "label_types").readNullable[Seq[String]] and
       (JsPath \ "validation_options").readNullable[Seq[String]] and
-      (JsPath \ "neighborhoods").readNullable[Seq[Int]] and
+      (JsPath \ "region_ids").readNullable[Seq[Int]] and
       (JsPath \ "severities").readNullable[Seq[String]] and
       (JsPath \ "tags_by_label_type").readNullable[Map[String, Seq[String]]] and
       (JsPath \ "ai_validation_options").readNullable[Seq[String]] and

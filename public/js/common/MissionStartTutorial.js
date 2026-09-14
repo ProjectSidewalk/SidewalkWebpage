@@ -153,7 +153,7 @@ class MissionStartTutorial {
   /**
    * @param {string} missionType - Mission type ('validate' or 'audit').
    * @param {string} labelType - One of the seven label types for which the tutorial is initialized.
-   * @param {object} data - Mission data: `nLabels` (VALIDATE) or `neighborhood` (EXPLORE), plus optional `resuming`
+   * @param {object} data - Mission data: `nLabels` (VALIDATE) or `region` (EXPLORE), plus optional `resuming`
    *                      (the mission already has progress, so the done button reads "Resume mission").
    * @param {object} svvOrsvl - SVValidate or SVLabel object that logs interactions and acts on tutorial close.
    * @param {string} [language] - Language code that tweaks spacing for verbose translations.
@@ -194,13 +194,13 @@ class MissionStartTutorial {
     const isValidate = missionType === MissionStartTutorial.#MISSION_TYPES.VALIDATE;
     const lesson = MissionStartTutorial.#LABEL_TYPE_LESSONS[this.#labelType];
 
-    // Validate counts out the labels of one type this mission holds; Explore names the neighborhood it covers.
+    // Validate counts out the labels of one type this mission holds; Explore names the region it covers.
     this.#labelTypeModule = {
       missionInstruction1: i18next.t(`${missionType}:mission-start-tutorial.mst-instruction-1`),
       missionInstruction2: isValidate
         ? i18next.t('validate:mission-start-tutorial.mst-instruction-2',
             { nLabels: this.#data.nLabels, labelType: i18next.t(lesson.nameKey) })
-        : i18next.t('audit:mission-start-tutorial.mst-instruction-2', { neighborhood: this.#data.neighborhood }),
+        : i18next.t('audit:mission-start-tutorial.mst-instruction-2', { region: this.#data.region }),
       slides: MissionStartTutorial.slidesFor(missionType, this.#labelType),
     };
     this.#nSlides = this.#labelTypeModule.slides.length;

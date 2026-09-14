@@ -5,7 +5,7 @@
  *
  * All geometry math is self-contained (haversine / equirectangular approximations) so the class stays fast and
  * unit-testable without the map or turf. Routing is restricted to a single region, matching the current
- * one-neighborhood-per-route constraint (#3488 tracks lifting it).
+ * one-region-per-route constraint (#3488 tracks lifting it).
  */
 class RouteGraph {
   // Endpoints within this distance are considered the same intersection (mirrors #computeContiguousRoutes).
@@ -219,13 +219,13 @@ class RouteGraph {
    * @param {object} start - {lng, lat}.
    * @param {object} end - {lng, lat}.
    * @param {?number} [snapRegionId=null] - When set, both endpoints snap only to streets in this region. A route is
-   *   locked to one neighborhood, so passing its region keeps the snap deterministic at a boundary node where streets
-   *   from two neighborhoods share the exact same endpoint (0 m). Without it, the unfiltered nearest-street tie can
-   *   resolve to the other neighborhood, making an already-placed start read as a different region than every end.
+   *   locked to one region, so passing its region keeps the snap deterministic at a boundary node where streets
+   *   from two regions share the exact same endpoint (0 m). Without it, the unfiltered nearest-street tie can
+   *   resolve to the other region, making an already-placed start read as a different region than every end.
    * @returns {object} One of:
    *   {streets: [{streetId, flip}]} — the ordered streets; flip means "traverse against the feature's current
    *     coordinate order" so the caller can orient each street for the route;
-   *   {error: 'different-region'} — the pins snap to streets in different neighborhoods;
+   *   {error: 'different-region'} — the pins snap to streets in different regions;
    *   {error: 'no-path'} — no connected path exists (or a pin found no street).
    */
   route(start, end, snapRegionId = null) {

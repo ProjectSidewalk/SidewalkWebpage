@@ -72,7 +72,7 @@ class ViewportLabelLoader {
    *     bbox, so nearby pans need no request. 0.5 fetches roughly four viewports' worth.
    * @param {number} [options.debounceMs=350] - Quiet time after a moveend before the viewport is evaluated.
    * @param {mapboxgl.LngLatBounds} [options.dataBounds] - The extent the labels live in (the city's streets and
-   *     neighborhoods); a fetch covering it has fetched everything, so no later move refetches. maxBounds
+   *     regions); a fetch covering it has fetched everything, so no later move refetches. maxBounds
    *     can't stand in for it — several cities draw one degrees larger than the city itself (#5170).
    */
   constructor(map, labelsURL,

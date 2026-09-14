@@ -7,7 +7,7 @@ package models.street
  *   - `open`       the street is usable (has imagery, is in an opened region, and is not manually disabled)
  *   - `no_imagery` no street-view imagery is available, so the street can't be audited
  *   - `closed`     the street's region has not been opened to the public (mirrors `region.deleted`; kept in sync by
- *                  db/scripts/reveal-or-hide-neighborhoods.sh, which flips streets between `open` and `closed`)
+ *                  db/scripts/reveal-or-hide-regions.sh, which flips streets between `open` and `closed`)
  *   - `disabled`   manually hidden for some other reason (e.g. OSM miscategorized a highway as a road); the catch-all
  *
  * NOTE: if changing these values, update the `street_edge_status` Postgres enum type as well (see 325.sql). The

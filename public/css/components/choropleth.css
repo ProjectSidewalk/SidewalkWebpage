@@ -215,7 +215,7 @@
   padding: 0;
 }
 
-/* Shared 11-bucket sequential scale for the landing + admin neighborhood-coverage choropleth legends. */
+/* Shared 11-bucket sequential scale for the landing + admin region-coverage choropleth legends. */
 .legend-scale {
   width: 100%;
   padding: 0;
@@ -331,7 +331,7 @@
   white-space: nowrap;
 }
 
-/* Neighborhood completion, shown as a bar so progress reads at a glance rather than as another number to parse. */
+/* Region completion, shown as a bar so progress reads at a glance rather than as another number to parse. */
 .explore-here__track {
   height: 6px;
   margin-bottom: 10px;

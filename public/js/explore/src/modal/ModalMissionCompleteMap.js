@@ -118,7 +118,7 @@ class ModalMissionCompleteMap {
    * @param {mapboxgl.Map} map - The modal's Mapbox map.
    */
   #drawRouteFlags(map) {
-    if (!svl.neighborhoodModel.isRoute) return;
+    if (!svl.regionModel.isRoute) return;
     const endpoints = svl.taskContainer.getRouteEndpoints();
     if (!endpoints) return;
     const size = Math.round(ModalMissionCompleteMap.#ROUTE_FLAG_SIZE_PX * util.uiScale());
@@ -142,7 +142,7 @@ class ModalMissionCompleteMap {
    * @param {mapboxgl.Map} map - The modal's Mapbox map.
    */
   async #drawRouteDirection(map) {
-    if (!svl.neighborhoodModel.isRoute) return;
+    if (!svl.regionModel.isRoute) return;
     const coords = svl.taskContainer.getRoutePathCoordinates();
     if (coords.length < 2) return;
     await this.#ensureRouteIcons(map);

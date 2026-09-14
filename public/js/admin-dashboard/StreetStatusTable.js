@@ -1,7 +1,7 @@
 /**
  * Searchable, sortable per-region street-status table for the Street Status page (#4331). Each row breaks a region's
  * streets down by status (open / no_imagery / closed / disabled) with a total and an inline 100%-stacked bar, so an
- * admin can eyeball which neighborhoods have lots of missing imagery or disabled streets. Defaults to most-missing-
+ * admin can eyeball which regions have lots of missing imagery or disabled streets. Defaults to most-missing-
  * imagery first — the actionable end. Hover/click a row to brush that region's segments on the map; highlightRows()
  * reflects a selection coming from the map.
  */

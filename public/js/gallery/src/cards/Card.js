@@ -134,7 +134,7 @@ class Card {
     const cardInfo = document.createElement('div');
     cardInfo.className = 'card-info';
 
-    // Create the div to store the label type, and the neighborhood the label sits in when we know its name.
+    // Create the div to store the label type, and the region the label sits in when we know its name.
     const cardHeader = document.createElement('div');
     cardHeader.className = 'card-header';
     cardHeader.innerHTML = `<div class="card-header__type">${labelTypeName}</div>`;
@@ -147,7 +147,7 @@ class Card {
       location.className = 'card-location';
       location.href = `/labelMap?labelId=${properties.label_id}`;
       location.title = i18next.t('labelmap:open-label-on-labelmap');
-      // The visible text is the neighborhood, so the accessible name leads with it (WCAG 2.5.3) and the promise
+      // The visible text is the region, so the accessible name leads with it (WCAG 2.5.3) and the promise
       // the sighted user gets on hover follows.
       location.setAttribute('aria-label', `${regionName}: ${i18next.t('labelmap:open-label-on-labelmap')}`);
       location.addEventListener('click', () => {
@@ -162,7 +162,7 @@ class Card {
       pin.alt = '';
       const name = document.createElement('span');
       name.className = 'card-location__name';
-      name.textContent = regionName; // Set as text, not markup: neighborhood names are city data, not ours.
+      name.textContent = regionName; // Set as text, not markup: region names are city data, not ours.
       location.append(pin, name);
       cardHeader.appendChild(location);
     }

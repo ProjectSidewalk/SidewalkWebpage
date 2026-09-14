@@ -141,9 +141,9 @@ class GalleryFilter {
     // One occurrence per tag rather than a comma-joined list: tag names are free-form and one of them contains a
     // comma (#4783); see util.url.setRepeated.
     util.url.setRepeated(params, 'tags', this.getAppliedTagNames());
-    // TODO once we add a UI for neighborhood filtering, have that process mirror what we have for other filters.
-    const { neighborhoods, aiValidationOptions } = this.#initialFilters;
-    if (neighborhoods.length > 0) params.set('neighborhoods', neighborhoods.join());
+    // TODO once we add a UI for region filtering, have that process mirror what we have for other filters.
+    const { regionIds, aiValidationOptions } = this.#initialFilters;
+    if (regionIds.length > 0) params.set('regions', regionIds.join());
     if (severities.length !== 4) params.set('severities', severities.join());
     if (valOptions.join() !== GalleryFilter.#DEFAULT_VALIDATIONS.join()) {
       params.set('validationOptions', valOptions.join());

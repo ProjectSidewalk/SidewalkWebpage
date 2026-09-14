@@ -61,6 +61,8 @@ The backend follows a consistent layering: **routes → Controller → Service �
   than to one city: `user_settings` holds choices the user makes (units, service-hours tracking) and
   `user_account_state` holds what the site records about them (having finished the Explore tutorial). Both only get a
   row once there's something to store (#3720). Per-city stats and privacy flags stay in each city's `user_stat`.
+  The schema holds auth to one account per email, one login row per account, and one password per login row
+  (#5317), and sign-in, reset, and change-password all reach the password through the account.
 - **Evolutions** — schema changes are Play evolutions: numbered SQL files in `conf/evolutions/default/`, each with
   `# --- !Ups` / `# --- !Downs`, auto-applied at startup to every city schema. Numbers are gapless, a PR's changes go
   in one file, every new table gets `ALTER TABLE <name> OWNER TO sidewalk;` and its full set of constraints, and the
@@ -145,10 +147,10 @@ actors in `app/actor/`; HTTP filters in `app/filters/`, registered through `play
 
 Each deployment runs a set of nightly jobs as pekko actors in `app/actor/` — the imagery expiry sweep, the
 imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, the sidewalk presence
-rebuild (which re-derives the `sidewalk_presence` table, one verdict per side of each street, from the day's labels
-and audits, #5279), label clustering (which opens with the intersection rebuild that re-derives the `intersection`
-table from the street graph and attributes corner-feature clusters to it, #5095), crop generation, OSM way refresh,
-AI validations, and auth-token cleanup. The schedule lives in one place,
+rebuild (which re-derives the `sidewalk_presence` table, one verdict per side of each street, from the day's labels,
+audits and validator verdicts, #5279/#5285), label clustering (which opens with the intersection rebuild that
+re-derives the `intersection` table from the street graph and attributes corner-feature clusters to it, #5095), crop
+generation, OSM way refresh, AI validations, and auth-token cleanup. The schedule lives in one place,
 `app/actor/ScheduledJobs.scala`: each actor reads its own time from there, staggered across the small hours and
 shifted per city by `ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and
 provider quotas.
@@ -161,7 +163,8 @@ job: a bookkeeping failure is logged and swallowed, and a job's own failure prop
 
 The two derived tables, `intersection` and `sidewalk_presence`, share one pattern: the derivation is raw SQL held once
 in the DAO (`IntersectionTable.derivationSql`, `SidewalkPresenceTable.derivationSql`), the evolution that created the
-table carries a pasted copy for the one-time population of existing cities, the nightly rebuild re-runs the DAO's copy
+table — or the latest one to change the derivation, with a real Down that re-derives the old way (388.sql) — carries
+a pasted copy for the one-time population of existing cities, the nightly rebuild re-runs the DAO's copy
 into a temp table and touches only the rows that changed, and a spec (`IntersectionTableSpec`,
 `SidewalkPresenceTableSpec`) runs the evolution's statement and then the rebuild to prove the two copies still agree.
 
@@ -252,7 +255,8 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 corresponding Twirl view:
 
 - **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
-- **`validate/`** — the Validate tool (confirm/reject others' labels).
+- **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
+  and why: [`docs/validation-queue.md`](validation-queue.md).
 - **`gallery/`** — browsable, filterable gallery of labels.
 - **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one
   `<PageName>Page.js` per route, loaded by that page's Twirl template. `AdminShell.js` loads on every one of those

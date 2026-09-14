@@ -188,11 +188,11 @@ class ExploreController @Inject() (
   }
 
   /**
-   * Return the completed missions in the user's current region in a JSON array.
+   * Return the user's completed Explore missions in the given region in a JSON array.
    */
-  def getUserMissionsInRegion(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
+  def getCompletedExploreMissionsInRegion(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
     missionService
-      .getUserMissionsInRegion(request.identity.userId, regionId)
+      .getCompletedExploreMissionsInRegion(request.identity.userId, regionId)
       .map(missions => Ok(JsArray(missions.map(Json.toJson(_)))))
   }
 

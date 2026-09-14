@@ -156,5 +156,11 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
       val (userId, _, _) = signUpFreshUser()
       resetRedirect(userId, Seq.empty) mustBe Some("/signIn")
     }
+
+    "find the account when the email is typed in a different case" in {
+      val (userId, email, _) = signUpFreshUser()
+      val found              = await(app.injector.instanceOf[AuthenticationService].findByEmail(email.toUpperCase))
+      found.map(_.userId) mustBe Some(userId)
+    }
   }
 }

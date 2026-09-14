@@ -154,7 +154,7 @@ class Onboarding {
   }
 
   /**
-   * Sizes the tutorial minimap to the largest square that fits the sidebar space below the neighborhood heading.
+   * Sizes the tutorial minimap to the largest square that fits the sidebar space below the region heading.
    *
    * The minimap renders at a native square size and is zoomed up uniformly, which keeps the screenshot, Google
    * markers, and fog aligned. We cap that zoom at the available height so the whole rounded square stays visible and

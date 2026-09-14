@@ -650,7 +650,7 @@ def main(argv=None):
             print(f'  {region_id}: {name}')
         tutorial_region = prompt('Tutorial region id (a central region with imagery)', '1')
         # Phased launches start with only some regions open (streets in the others are seeded 'closed'; open them
-        # later with reveal-or-hide-neighborhoods.sh). The imagery scan below covers the whole city either way.
+        # later with reveal-or-hide-regions.sh). The imagery scan below covers the whole city either way.
         regions_spec = prompt('Regions to open at launch ("all", "include:<ids>", or "exclude:<ids>", '
                               'ids space-separated)', 'all')
         while not re.fullmatch(r'all|(include|exclude):\d+( \d+)*', regions_spec):

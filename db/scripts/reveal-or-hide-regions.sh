@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # =====================================================================================================================
-# reveal-or-hide-neighborhoods.sh — open or close whole neighborhoods (regions) for auditing.
+# reveal-or-hide-regions.sh — open or close whole regions for auditing.
 #
-# WHY THIS EXISTS: cities are often launched with only some neighborhoods open, then opened up over time (or pulled back
+# WHY THIS EXISTS: cities are often launched with only some regions open, then opened up over time (or pulled back
 # if a problem is found). "Hiding" a region marks it deleted and flips its streets to 'closed' (removing them from the
 # audit pool); "revealing" does the reverse. It also handles the one tricky case — if you hide the region that holds
 # the tutorial street, it relocates the tutorial to another open region first.
 #
-# HOW IT'S RUN:  make reveal-or-hide-neighborhoods   →   /opt/scripts/reveal-or-hide-neighborhoods.sh.
+# HOW IT'S RUN:  make reveal-or-hide-regions   →   /opt/scripts/reveal-or-hide-regions.sh.
 #                Interactive: works against the local dev DB or, with different connection params, the test/prod server.
 #
 # STATUS MODEL (#3888): street availability lives on street_edge.status (open/no_imagery/closed/disabled). This script
@@ -54,14 +54,14 @@ else
     fi
 fi
 
-# Ask if we are revealing neighborhoods or hiding them.
+# Ask if we are revealing regions or hiding them.
 REVEAL_OR_HIDE=$(prompt_with_default "Revealing or hiding regions?" "reveal" "reveal|hide")
 
 if [ "$REVEAL_OR_HIDE" = "reveal" ]; then
     # Ask which regions to reveal.
     regions_to_reveal=$(prompt_with_default "Region IDs to reveal (space-separated)")
 
-    # Reveal the neighborhoods. We only flip the regions' 'closed' streets back to 'open'; 'no_imagery' and 'disabled'
+    # Reveal the regions. We only flip the regions' 'closed' streets back to 'open'; 'no_imagery' and 'disabled'
     # streets keep their status, so the old cross-toggle CSV bookkeeping (which existed to remember no-imagery streets)
     # is no longer needed. A one-time no-imagery CSV can still be applied for a first reveal -- see below.
     psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -v ON_ERROR_STOP=1 -U "$PSQL_USER" -p $PORT <<EOSQL
@@ -82,7 +82,7 @@ if [ "$REVEAL_OR_HIDE" = "reveal" ]; then
         SELECT street_edge_id,
                'closed'::street_edge_status,
                'open'::street_edge_status,
-               'reveal_neighborhoods'::street_edge_status_change_source
+               'reveal_regions'::street_edge_status_change_source
         FROM changed;
 
         -- Add street_edge_priority entries for the newly re-opened streets that don't have one yet.
@@ -93,7 +93,7 @@ if [ "$REVEAL_OR_HIDE" = "reveal" ]; then
             WHERE street_edge.status = 'open'
                 AND priority IS NULL;
 
-        -- Reveal the neighborhoods.
+        -- Reveal the regions.
         UPDATE region SET deleted = FALSE WHERE region_id IN (${regions_to_reveal// /,});
 
         -- Truncate the region_completion table to force recalculation of distances.
@@ -109,10 +109,10 @@ EOSQL
     if [ "$no_imagery_csv" != "none" ]; then
         no_imagery_ids=$(read_street_ids_from_csv "$WORKING_DIR/$no_imagery_csv")
         echo "Marking streets without imagery: $no_imagery_ids"
-        mark_streets_no_imagery "$no_imagery_ids" reveal_neighborhoods "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -U "$PSQL_USER" -p $PORT
+        mark_streets_no_imagery "$no_imagery_ids" reveal_regions "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -U "$PSQL_USER" -p $PORT
     fi
 
-# If hiding neighborhoods.
+# If hiding regions.
 else
     # Ask which regions to hide.
     regions_to_hide=$(prompt_with_default "Region IDs to hide (space-separated)")
@@ -139,8 +139,8 @@ EOSQL
 EOSQL
         )
 
-        # Ask which neighborhood to transfer to. Converts region list to being pipe-separated.
-        echo "The tutorial street is in one of the neighborhoods you're hiding, so we'll need to move it to a new region."
+        # Ask which region to transfer to. Converts region list to being pipe-separated.
+        echo "The tutorial street is in one of the regions you're hiding, so we'll need to move it to a new region."
         echo "Valid regions for the street are in order of descending total distance (if none listed, may need to initialize region_completion table)."
         new_tutorial_region=$(prompt_with_default "Which region should the tutorial street be moved to?" "${safe_region_ids[0]:-}" "$(IFS="|"; echo "${safe_region_ids[*]}")")
 
@@ -177,7 +177,7 @@ EOSQL
         SELECT street_edge_id,
                'open'::street_edge_status,
                'closed'::street_edge_status,
-               'hide_neighborhoods'::street_edge_status_change_source
+               'hide_regions'::street_edge_status_change_source
         FROM changed;
 
         DELETE FROM user_current_region WHERE region_id IN (${regions_to_hide// /,});

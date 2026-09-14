@@ -223,10 +223,10 @@ function setRegionFocus(map) {
   const regionId = util.getURLParameter('regionId');
   // Small timeout to allow map to load before focusing on region.
   setTimeout(() => {
-    if (regionId && map.getLayer('neighborhood-polygons')) {
-      const region = map.queryRenderedFeatures({ layers: ['neighborhood-polygons'] })
+    if (regionId && map.getLayer('region-polygons')) {
+      const region = map.queryRenderedFeatures({ layers: ['region-polygons'] })
         .filter((f) => f.id === Number(regionId))[0];
-      // Fitting the region's own bounds frames neighborhoods of every size, where one zoom level can only suit one.
+      // Fitting the region's own bounds frames regions of every size, where one zoom level can only suit one.
       if (region) map.fitBounds(geometryBounds(region.geometry), { padding: 40 });
     }
   }, 250);
