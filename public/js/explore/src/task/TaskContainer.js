@@ -18,9 +18,9 @@ class TaskContainer {
   _tasks = [];
 
   /**
-   * @param neighborhoodModel
-   * @param svl
-   * @param tracker
+   * @param {NeighborhoodModel} neighborhoodModel
+   * @param {object} svl
+   * @param {Tracker} tracker
    */
   constructor(neighborhoodModel, svl, tracker) {
     this.#neighborhoodModel = neighborhoodModel;

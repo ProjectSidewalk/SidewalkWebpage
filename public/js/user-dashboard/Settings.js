@@ -11,12 +11,12 @@ class Settings {
   #baseline;
 
   /**
-     * @param {object} opts - Configuration.
-     * @param {string} opts.saveUrl - Endpoint the form POSTs to.
-     * @param {string} opts.currentUsername - The user's existing username, so an edit to the same value is a no-op.
-     * @param {string} opts.currentUnits - The user's existing units choice ('auto', 'metric', or 'imperial'), so a
-     *   save that changes it can reload the page onto the new units.
-     */
+   * @param {object} opts - Configuration.
+   * @param {string} opts.saveUrl - Endpoint the form POSTs to.
+   * @param {string} opts.currentUsername - The user's existing username, so an edit to the same value is a no-op.
+   * @param {string} opts.currentUnits - The user's existing units choice ('auto', 'metric', or 'imperial'), so a
+   *   save that changes it can reload the page onto the new units.
+   */
   constructor(opts) {
     this.saveUrl = opts.saveUrl;
     this.currentUsername = opts.currentUsername;
@@ -57,13 +57,13 @@ class Settings {
   }
 
   /**
-     * Reads the form, posts it, and reflects the outcome in the status line.
-     *
-     * @param {object} [opts]
-     * @param {boolean} [opts.reloadOnUnitsChange=true] - Whether a save that moves the units reloads the page so
-     *   every distance on screen is redrawn in them.
-     * @returns {Promise<boolean>} Whether the settings were saved.
-     */
+   * Reads the form, posts it, and reflects the outcome in the status line.
+   *
+   * @param {object} [opts]
+   * @param {boolean} [opts.reloadOnUnitsChange=true] - Whether a save that moves the units reloads the page so
+   *   every distance on screen is redrawn in them.
+   * @returns {Promise<boolean>} Whether the settings were saved.
+   */
   async #save({ reloadOnUnitsChange = true } = {}) {
     const payload = this.#payload();
 
@@ -97,10 +97,10 @@ class Settings {
   }
 
   /**
-     * Updates the inline status message next to the Save button.
-     * @param {string} text - Message to show.
-     * @param {boolean|null} ok - true = success styling, false = error styling, null = neutral.
-     */
+   * Updates the inline status message next to the Save button.
+   * @param {string} text - Message to show.
+   * @param {boolean|null} ok - true = success styling, false = error styling, null = neutral.
+   */
   #setStatus(text, ok) {
     if (!this.status) return;
     this.status.textContent = text;

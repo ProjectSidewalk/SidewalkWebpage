@@ -9,7 +9,7 @@ class AudioEffect {
   #muteIcon;
 
   /**
-   * @param storage TemporaryStorage used to persist the muted state.
+   * @param {TemporaryStorage} storage TemporaryStorage used to persist the muted state.
    */
   constructor(storage) {
     this.#storage = storage;

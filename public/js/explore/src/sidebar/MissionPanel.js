@@ -16,7 +16,7 @@ class MissionPanel {
 
   /**
    * Sets the header and description text for the given mission.
-   * @param mission The current Mission object.
+   * @param {Mission} mission The current Mission object.
    */
   setMessage(mission) {
     const missionType = mission.getProperty('missionType');

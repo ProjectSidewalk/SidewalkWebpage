@@ -256,7 +256,7 @@ class Card {
   /**
    * Get a property.
    *
-   * @param propName Property name.
+   * @param {string} propName Property name.
    * @returns {*} Property value if property name is valid. Otherwise false.
    */
   getProperty(propName) {
@@ -334,7 +334,7 @@ class Card {
    * Renders the card.
    * TODO: should there be a safety check here to make sure pano is loaded?
    *
-   * @param cardContainer UI element to render card in.
+   * @param {jQuery} cardContainer UI element to render card in.
    */
   render(cardContainer) {
     // If the card had transparent background from the expanded view opening earlier, remove transparency on rerender.
@@ -363,8 +363,8 @@ class Card {
   /**
    * Sets a property.
    *
-   * @param key Property name.
-   * @param value Property value.
+   * @param {string} key Property name.
+   * @param {*} value Property value.
    * @returns {Card}
    */
   setProperty(key, value) {
@@ -431,7 +431,7 @@ class Card {
 
   /**
    * Returns the current ImageID being displayed in the image.
-   * @returns the image ID of the card that is being displayed.
+   * @returns {string} the image ID of the card that is being displayed.
    */
   getImageId() {
     return this.#imageId;

@@ -143,7 +143,7 @@ class TagDisplay {
   /**
    * Orders tags by placing tags that match applied tags first.
    * @param {*} tags Tags to order.
-   * @returns Ordered tag list.
+   * @returns {string[]} Ordered tag list.
    */
   #orderTags(tags) {
     let orderedTags = [];

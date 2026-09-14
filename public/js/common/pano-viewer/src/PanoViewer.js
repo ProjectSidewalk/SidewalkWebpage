@@ -326,8 +326,8 @@ class PanoViewer {
 
   /**
    * Adds an event listener for the specified event type.
-   * @param event One of ['pano_changed', 'pov_changed']
-   * @param handler The function to call when the event occurs.
+   * @param {string} event One of ['pano_changed', 'pov_changed']
+   * @param {Function} handler The function to call when the event occurs.
    * @returns {void}
    */
   addListener(event, handler) {

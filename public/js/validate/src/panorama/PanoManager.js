@@ -484,7 +484,7 @@ class PanoManager {
 
   /**
    * Adds or removes the AI badge on the validation marker.
-   * @param showIndicator  True to show the AI badge, false to remove it.
+   * @param {boolean} showIndicator True to show the AI badge, false to remove it.
    * @private
    */
   #updateMarkerAiIndicator(showIndicator) {
@@ -537,7 +537,7 @@ class PanoManager {
 
   /**
    * Sets the zoom level for this panorama.
-   * @param zoom  Desired zoom level for this panorama. In general, values in {1.1, 2.1, 3.1}
+   * @param {number} zoom Desired zoom level for this panorama. In general, values in {1.1, 2.1, 3.1}
    * @returns {void}
    */
   setZoom(zoom) {

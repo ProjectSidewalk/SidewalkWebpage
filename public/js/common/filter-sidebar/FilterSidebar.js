@@ -12,7 +12,6 @@
  *
  * Sections are discovered from the markup: every `input[data-filter-type="<section>"]` belongs to that section, and
  * the severity toggles form a section of their own ("severity") because they're buttons rather than checkboxes.
-
  */
 class FilterSidebar {
   /** Section name for the severity toggles, which are buttons rather than checkboxes. */

@@ -17,8 +17,8 @@ class MissionContainer {
   #tasksMissionsOffset = null;
 
   /**
-   * @param missionPanel Renders the current mission's header and description in the sidebar.
-   * @param missionModel Mission model object.
+   * @param {MissionPanel} missionPanel Renders the current mission's header and description in the sidebar.
+   * @param {MissionModel} missionModel Mission model object.
    */
   constructor(missionPanel, missionModel) {
     this.#missionPanel = missionPanel;
@@ -64,7 +64,7 @@ class MissionContainer {
 
   /**
    * Get the sum of the distance of all the user's completed missions in this neighborhood.
-   * @param unit
+   * @param {string} unit
    * @returns {number}
    */
   getCompletedMissionDistance(unit) {
@@ -86,7 +86,7 @@ class MissionContainer {
 
   /**
    * This method sets the current mission
-   * @param mission {object} A Mission object
+   * @param {object} mission A Mission object
    * @returns {MissionContainer}
    */
   setCurrentMission(mission) {

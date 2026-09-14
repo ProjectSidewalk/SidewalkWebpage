@@ -432,7 +432,10 @@ class AccessScoreDock {
       };
     } else if (scope.kind === 'region') {
       key = `region:${scope.id}`;
-      request = { caption: AccessScoreDock.#text('accessscore:photos-from', { scope: scope.name }), regionId: scope.id };
+      request = {
+        caption: AccessScoreDock.#text('accessscore:photos-from', { scope: scope.name }),
+        regionId: scope.id,
+      };
     } else if (scope.kind === 'viewport') {
       // Bounds to ~100 m: a nudge inside the same view is the same key, and the strip itself skips a redraw when the
       // clusters it picks are unchanged.

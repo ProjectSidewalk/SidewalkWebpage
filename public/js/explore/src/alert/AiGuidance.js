@@ -6,8 +6,8 @@ class AiGuidance {
   #popUpMessage;
 
   /**
-   * @param tracker
-   * @param popUpMessage
+   * @param {Tracker} tracker
+   * @param {PopUpMessage} popUpMessage
    */
   constructor(tracker, popUpMessage) {
     this.#tracker = tracker;

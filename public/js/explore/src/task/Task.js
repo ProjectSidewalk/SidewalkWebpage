@@ -39,8 +39,8 @@ class Task {
   };
 
   /**
-   * @param geojson
-   * @param tutorialTask
+   * @param {GeoJSON.Feature} geojson
+   * @param {boolean} tutorialTask
    * @param {{lat: number, lng: number}} [currentLatLng] The user's current lat/lng to use if resuming.
    */
   constructor(geojson, tutorialTask, currentLatLng) {
@@ -50,7 +50,7 @@ class Task {
 
   /**
    * This method takes a task parameters and set up the current task.
-   * @param {GeoJSON.LineString} geojson The GeoJSON representation of the street
+   * @param {GeoJSON.Feature} geojson The GeoJSON representation of the street
    * @param {{lat: number, lng: number}} [currentLatLng] The user's current lat/lng to use if resuming
    */
   initialize(geojson, currentLatLng) {
@@ -210,7 +210,7 @@ class Task {
 
   /**
    * Get the GeoJSON representation of the street.
-   * @returns {GeoJSON.LineString}
+   * @returns {?GeoJSON.Feature}
    */
   getFeature() {
     return this.#geojson ? this.#geojson : null;
@@ -219,7 +219,7 @@ class Task {
   /**
    * Get the GeoJSON representation of the street.
    * TODO why do we have both this and getFeature()? Can the geojson be null ever? During initialization maybe..?
-   * @returns {GeoJSON.LineString}
+   * @returns {GeoJSON.Feature}
    */
   getGeoJSON() {
     return this.#geojson;

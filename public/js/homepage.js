@@ -242,8 +242,8 @@ const pausedVideos = {};
 
 /**
  * Returns a function that invokes fn at most once per `wait` ms, firing on the leading edge.
- * @param fn {Function} Function to throttle.
- * @param wait {number} Minimum ms between invocations.
+ * @param {Function} fn Function to throttle.
+ * @param {number} wait Minimum ms between invocations.
  */
 function throttle(fn, wait) {
   let lastCall = 0;
@@ -258,8 +258,8 @@ function throttle(fn, wait) {
 
 /**
  * Returns a function that delays invoking fn until `wait` ms have passed since the last call.
- * @param fn {Function} Function to debounce.
- * @param wait {number} Ms of inactivity required before fn fires.
+ * @param {Function} fn Function to debounce.
+ * @param {number} wait Ms of inactivity required before fn fires.
  */
 function debounce(fn, wait) {
   let timer;

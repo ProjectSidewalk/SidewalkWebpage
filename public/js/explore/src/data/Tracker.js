@@ -141,8 +141,8 @@ class Tracker {
 
   /**
    * @param {string} action the action to be stored in the database
-   * @param [notes] the notes field in the database
-   * @param [extraData] extra data that should not be stored in the notes field in db
+   * @param {object} [notes] the notes field in the database
+   * @param {object} [extraData] extra data that should not be stored in the notes field in db
    */
   push(action, notes, extraData) {
     let labelProperties;

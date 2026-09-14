@@ -8,8 +8,8 @@
  */
 class DashboardBadges {
   /**
-     * @param {HTMLElement} rootEl - The `.ud-badge-tracks` container. Its `data-metric` flag selects km vs miles.
-     */
+   * @param {HTMLElement} rootEl - The `.ud-badge-tracks` container. Its `data-metric` flag selects km vs miles.
+   */
   constructor(rootEl) {
     this.root = rootEl;
     this.isMetric = rootEl.dataset.metric === 'true';
@@ -21,9 +21,9 @@ class DashboardBadges {
   }
 
   /**
-     * Fills in one track from its `data-badge-type` and `data-value`.
-     * @param {HTMLElement} track - A `.ud-badge-track` element.
-     */
+   * Fills in one track from its `data-badge-type` and `data-value`.
+   * @param {HTMLElement} track - A `.ud-badge-track` element.
+   */
   #renderTrack(track) {
     const type = track.dataset.badgeType;
     const value = parseFloat(track.dataset.value) || 0;
@@ -66,11 +66,11 @@ class DashboardBadges {
   }
 
   /**
-     * Formats the amount remaining to the next tier in the user's units.
-     * @param {string} type - Badge type.
-     * @param {number} remaining - Remaining amount in canonical units (miles for distance, plain counts otherwise).
-     * @returns {string} e.g. "716 more labels" or "1.6 km more".
-     */
+   * Formats the amount remaining to the next tier in the user's units.
+   * @param {string} type - Badge type.
+   * @param {number} remaining - Remaining amount in canonical units (miles for distance, plain counts otherwise).
+   * @returns {string} e.g. "716 more labels" or "1.6 km more".
+   */
   #formatRemaining(type, remaining) {
     if (type === 'distance') {
       const dist = (this.isMetric ? util.math.milesToKms(remaining) : remaining).toFixed(1);

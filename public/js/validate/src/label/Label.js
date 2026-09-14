@@ -138,7 +138,7 @@ class Label {
   /**
    * Returns a specific originalProperty of this label.
    * @param {string} key Name of property.
-   * @returns Value associated with this key.
+   * @returns {*} Value associated with this key.
    */
   getAuditProperty(key) {
     return key in this.#auditProperties ? this.#auditProperties[key] : null;
@@ -169,7 +169,7 @@ class Label {
 
   /**
    * Returns the entire properties object for this label.
-   * @returns Object for properties.
+   * @returns {object} Object for properties.
    */
   getProperties() {
     return this.#properties;
@@ -178,7 +178,7 @@ class Label {
   /**
    * Gets a specific validation property of this label.
    * @param {string} key Name of property.
-   * @returns Value associated with this key.
+   * @returns {*} Value associated with this key.
    */
   getProperty(key) {
     return key in this.#properties ? this.#properties[key] : null;
@@ -187,7 +187,7 @@ class Label {
   /**
    * Sets the value of a single property in properties.
    * @param {string} key Name of property.
-   * @param value Value to set property to.
+   * @param {*} value Value to set property to.
    */
   setProperty(key, value) {
     this.#properties[key] = value;

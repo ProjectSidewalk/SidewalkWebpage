@@ -17,10 +17,10 @@ class ModalMissionComplete {
   #legendBuilt = false;
 
   /**
-   * @param missionContainer The mission container.
-   * @param missionModel The mission model (emits mission lifecycle events).
-   * @param taskContainer The task container.
-   * @param modalMissionCompleteMap The map component for the modal.
+   * @param {MissionContainer} missionContainer The mission container.
+   * @param {MissionModel} missionModel The mission model (emits mission lifecycle events).
+   * @param {TaskContainer} taskContainer The task container.
+   * @param {ModalMissionCompleteMap} modalMissionCompleteMap The map component for the modal.
    */
   constructor(missionContainer, missionModel, taskContainer, modalMissionCompleteMap) {
     this.#missionContainer = missionContainer;
@@ -73,8 +73,8 @@ class ModalMissionComplete {
 
   /**
    * Populates the modal for the just-completed mission: title, badge, map, legend, progress bar, and stats.
-   * @param mission The completed mission.
-   * @param neighborhood The neighborhood the mission was in.
+   * @param {Mission} mission The completed mission.
+   * @param {Neighborhood} neighborhood The neighborhood the mission was in.
    */
   update(mission, neighborhood) {
     const unit = { units: util.turfDistanceUnits() };
@@ -189,7 +189,7 @@ class ModalMissionComplete {
   /**
    * Builds the three street-tier FeatureCollections from the task data: the streets covered in the just-finished
    * mission, the streets the user covered in earlier missions, and the streets completed by the wider community.
-   * @param mission The completed mission.
+   * @param {Mission} mission The completed mission.
    * @param {number} missionId The completed mission's id.
    * @returns {object} { thisMission, previous, community } GeoJSON FeatureCollections.
    */

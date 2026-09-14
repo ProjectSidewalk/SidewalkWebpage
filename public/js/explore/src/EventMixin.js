@@ -4,8 +4,8 @@
 const EventMixin = {
   /**
    * Subscribe a callback to a named event.
-   * @param event {string} Event name.
-   * @param callback {Function} Invoked with the args passed to trigger().
+   * @param {string} event Event name.
+   * @param {Function} callback Invoked with the args passed to trigger().
    */
   on(event, callback) {
     if (!this._listeners) this._listeners = {};
@@ -15,8 +15,8 @@ const EventMixin = {
 
   /**
    * Fire a named event, invoking all subscribed callbacks with the given args.
-   * @param event {string} Event name.
-   * @param args {...*} Forwarded to each callback.
+   * @param {string} event Event name.
+   * @param {...*} args Forwarded to each callback.
    */
   trigger(event, ...args) {
     const callbacks = this._listeners && this._listeners[event];

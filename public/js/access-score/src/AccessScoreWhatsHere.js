@@ -38,12 +38,14 @@ class AccessScoreWhatsHere extends AccessScoreChart {
       const segments = rated
         ? Object.keys(buckets).map((b) => `<span class="acs-whats-here__segment" data-bucket="${b}"></span>`)
         : ['<span class="acs-whats-here__segment acs-whats-here__segment--unrated" data-bucket="all"></span>'];
+      const longName = AccessScoreChart.esc(AccessScoreChart.typeName(type));
+      const shortName = AccessScoreChart.esc(AccessScoreWhatsHere.#shortName(type));
       li.innerHTML = `
         <span class="acs-whats-here__type">
           <img class="acs-whats-here__icon" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
           <span class="acs-whats-here__name">
-            <span class="acs-whats-here__name-long">${AccessScoreChart.esc(AccessScoreChart.typeName(type))}</span>
-            <span class="acs-whats-here__name-short">${AccessScoreChart.esc(AccessScoreWhatsHere.#shortName(type))}</span>
+            <span class="acs-whats-here__name-long">${longName}</span>
+            <span class="acs-whats-here__name-short">${shortName}</span>
           </span>
         </span>
         <span class="acs-whats-here__track" role="img" tabindex="0">

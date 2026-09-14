@@ -83,7 +83,7 @@ class ValidationMenu {
 
   /**
    * Add onClick functions for the thumbs up/down buttons.
-   * @param valInfoDisplay
+   * @param {ValidationInfoDisplay} valInfoDisplay
    */
   #addValidationInfoOnClicks(valInfoDisplay) {
     valInfoDisplay.agreeContainer.onclick = this.validateOnClickOrKeyPress('validate-agree', true, false);
@@ -107,7 +107,7 @@ class ValidationMenu {
    * The buttons are toggles: clicking the option already selected clears the vote (#4653), matching the label detail
    * card that opens from this same card.
    *
-   * @param newValKey
+   * @param {string} newValKey
    * @param {boolean} thumbsClick Whether the validation came from clicking the thumb icons.
    * @param {boolean} keyboardShortcut Whether the validation came from a keyboard shortcut.
    * @returns {function(): Promise<?Response>} A function returning a Promise that resolves once the validation has

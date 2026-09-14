@@ -34,20 +34,20 @@ class Onboarding {
   #floatingCleanup = null;
 
   /**
-   * @param svl
-   * @param compass
-   * @param handAnimation
-   * @param navigationService
-   * @param missionContainer
-   * @param panoOverlayControls
-   * @param onboardingStates
-   * @param ribbon
-   * @param tracker
-   * @param canvas
-   * @param uiCanvas
-   * @param contextMenu
-   * @param uiOnboarding
-   * @param zoomControl
+   * @param {object} svl
+   * @param {Compass} compass
+   * @param {HandAnimation} handAnimation
+   * @param {NavigationService} navigationService
+   * @param {MissionContainer} missionContainer
+   * @param {PanoOverlayControls} panoOverlayControls
+   * @param {OnboardingStates} onboardingStates
+   * @param {RibbonMenu} ribbon
+   * @param {Tracker} tracker
+   * @param {Canvas} canvas
+   * @param {object} uiCanvas
+   * @param {ContextMenu} contextMenu
+   * @param {object} uiOnboarding
+   * @param {ZoomControl} zoomControl
    */
   constructor(svl, compass, handAnimation, navigationService, missionContainer, panoOverlayControls, onboardingStates,
     ribbon, tracker, canvas, uiCanvas, contextMenu, uiOnboarding, zoomControl) {
@@ -216,9 +216,9 @@ class Onboarding {
 
   /**
    * Draw a label on the onboarding canvas. Draws only static labels as examples in the tutorial.
-   * @param labelType {string} Label type that selects the correct icon
-   * @param x {number} canvas x-position of the center of the label
-   * @param y {number} canvas y-position of the center of the label
+   * @param {string} labelType Label type that selects the correct icon
+   * @param {number} x canvas x-position of the center of the label
+   * @param {number} y canvas y-position of the center of the label
    * @param {number} [progress=1] - Entrance progress in [0, 1]; the icon fades and scales up as it pops in.
    */
   #drawStaticLabel(labelType, x, y, progress = 1) {
@@ -237,11 +237,11 @@ class Onboarding {
 
   /**
    * Draw a box on the onboarding canvas.
-   * @param x {number} top-left x coordinate
-   * @param y {number} top-left y coordinate
-   * @param width {number} pixel width
-   * @param height {number} pixel height
-   * @param parameters {object} parameters
+   * @param {number} x top-left x coordinate
+   * @param {number} y top-left y coordinate
+   * @param {number} width pixel width
+   * @param {number} height pixel height
+   * @param {object} parameters parameters
    */
   #drawBox(x, y, width, height, parameters) {
     if (this.#ctx) {
@@ -256,11 +256,11 @@ class Onboarding {
 
   /**
    * Draw an arrow on the onboarding canvas.
-   * @param x1 {number} Starting x coordinate
-   * @param y1 {number} Starting y coordinate
-   * @param x2 {number} Ending x coordinate
-   * @param y2 {number} Ending y coordinate
-   * @param parameters {object} parameters
+   * @param {number} x1 Starting x coordinate
+   * @param {number} y1 Starting y coordinate
+   * @param {number} x2 Ending x coordinate
+   * @param {number} y2 Ending y coordinate
+   * @param {object} parameters parameters
    * @returns {Onboarding}
    */
   #drawArrow(x1, y1, x2, y2, parameters) {
@@ -470,8 +470,8 @@ class Onboarding {
 
   /**
    * Transition to the next state.
-   * @param nextState
-   * @param params Optional parameters that might be used by transition function.
+   * @param {string|Function} nextState
+   * @param {object} params Optional parameters that might be used by transition function.
    */
   next(nextState, params) {
     this.#transitionTo(nextState, params);
@@ -480,18 +480,16 @@ class Onboarding {
   /**
    * Resolve and visit the next state, passing `thisArg` through to a function-valued transition (which reads it as
    * the DOM element the user interacted with).
-   * @param nextState State id, or a function returning a state id.
-   * @param params Optional parameters that might be used by the transition function.
-   * @param [thisArg] The `this` context for a function-valued transition.
+   * @param {string|Function} nextState State id, or a function returning a state id.
+   * @param {object} params Optional parameters that might be used by the transition function.
+   * @param {EventTarget|Label} [thisArg] The `this` context for a function-valued transition.
    */
   #transitionTo(nextState, params, thisArg) {
-    if (typeof nextState === 'function') {
-      this.#visit(this.#getState(nextState.call(thisArg, params)));
-    } else if (this.#states.find((state) => state.id === nextState)) {
-      this.#visit(this.#getState(nextState));
-    } else {
-      this.#visit(null);
-    }
+    const stateId = typeof nextState === 'function' ? nextState.call(thisArg, params) : nextState;
+    const state = this.#getState(stateId);
+    // A missing state is a typo in OnboardingStates.js; name it rather than fail on `state.id` inside #visit.
+    if (!state) throw new Error(`Onboarding has no state with id "${stateId}".`);
+    this.#visit(state);
   }
 
   /**
@@ -683,7 +681,7 @@ class Onboarding {
 
   /**
    * Show a message box.
-   * @param parameters
+   * @param {object} parameters
    */
   #showMessage(parameters) {
     const message = parameters.message;
@@ -814,7 +812,7 @@ class Onboarding {
 
   /**
    * Execute an instruction based on the current state.
-   * @param state
+   * @param {object} state
    */
   #visit(state) {
     const svl = this.#svl;
@@ -931,8 +929,8 @@ class Onboarding {
    * The welcome/skip UI lives in the pre-tutorial intro (TutorialIntro), whose "Start Mission" button leads here, so
    * this state is non-interactive: it just sets the POV and moves on.
    *
-   * @param state    The 'initialize' state from OnboardingStates.js.
-   * @param listener An optional Google Maps event listener to remove before advancing.
+   * @param {object} state The 'initialize' state from OnboardingStates.js.
+   * @param {google.maps.MapsEventListener} [listener] A Google Maps event listener to remove before advancing.
    */
   #visitIntroduction(state, listener) {
     if (listener) google.maps.event.removeListener(listener);
@@ -948,8 +946,9 @@ class Onboarding {
 
   /**
    * Called when the user is told to click on the compass or nav arrows to move to the next image.
-   * @param state The current state defined in OnboardingStates.js
-   * @param listener An optional listener on a Google Maps event, to be removed before moving to the next state
+   * @param {object} state The current state defined in OnboardingStates.js
+   * @param {google.maps.MapsEventListener} [listener] An optional listener on a Google Maps event, to be removed
+   *     before moving to the next state
    */
   #visitWalkTowards(state, listener) {
     const svl = this.#svl;
@@ -1104,8 +1103,8 @@ class Onboarding {
   /**
    * Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
    * Move on to the next state if they click the button.
-   * @param state
-   * @param listener
+   * @param {object} state
+   * @param {google.maps.MapsEventListener} [listener]
    */
   #visitSelectLabelTypeState(state, listener) {
     const labelType = state.properties.labelType;
@@ -1135,8 +1134,8 @@ class Onboarding {
 
   /**
    * Tell the user to zoom in/out.
-   * @param state
-   * @param listener
+   * @param {object} state
+   * @param {google.maps.MapsEventListener} [listener]
    */
   #visitZoomState(state, listener) {
     const zoomType = state.properties.type;
@@ -1183,8 +1182,8 @@ class Onboarding {
 
   /**
    * Tell the user to label the multiple possible target attributes.
-   * @param state
-   * @param listener
+   * @param {object} state
+   * @param {google.maps.MapsEventListener} [listener]
    */
   #visitLabelAccessibilityAttributeState(state, listener) {
     const svl = this.#svl;
@@ -1229,8 +1228,8 @@ class Onboarding {
   /**
    * Tell the user to delete the label they placed that is far away from where they were supposed to place it.
    *
-   * @param state
-   * @param listener
+   * @param {object} state
+   * @param {google.maps.MapsEventListener} [listener]
    */
   #visitDeleteAccessibilityAttributeState(state, listener) {
     this.#ribbon.disableMode(state.properties.labelType);
@@ -1253,7 +1252,7 @@ class Onboarding {
   /**
    * Reset the id of the label that the user most recently added.
    *
-   * @param labelId
+   * @param {number} labelId
    */
   setCurrentLabelId(labelId) {
     this.#currentLabelId = labelId;

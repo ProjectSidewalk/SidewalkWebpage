@@ -41,7 +41,7 @@ class Mission {
   /**
    * Gets a single property for this mission object.
    * @param {string} key String representation of property.
-   * @returns Property if it exists, null otherwise.
+   * @returns {*} Property if it exists, null otherwise.
    */
   getProperty(key) {
     return key in this.#properties ? this.#properties[key] : null;
@@ -49,7 +49,7 @@ class Mission {
 
   /**
    * Returns all properties associated with this mission.
-   * @returns Object for properties.
+   * @returns {object} Object for properties.
    */
   getProperties() {
     return this.#properties;
@@ -57,7 +57,7 @@ class Mission {
 
   /**
    * Function that checks if the current mission is complete.
-   * @returns True if this mission is complete, false if in progress.
+   * @returns {boolean} True if this mission is complete, false if in progress.
    */
   isComplete() {
     return this.getProperty('completed');
@@ -66,7 +66,7 @@ class Mission {
   /**
    * Sets a property of this mission.
    * @param {string} key Name of property.
-   * @param value Value.
+   * @param {*} value Value.
    * @returns {Mission}
    */
   setProperty(key, value) {

@@ -3,7 +3,7 @@
  */
 class PanoData {
   /**
-   * @param params {object}
+   * @param {object} params
    * @param {string} params.panoId The unique ID for this panorama
    * @param {string} params.source The data source for the image: "gsv", "mapillary", "infra3d", "panoramax", or
    *     "pannellum" for our own backup copy of a pano

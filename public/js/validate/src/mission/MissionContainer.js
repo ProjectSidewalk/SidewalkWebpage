@@ -69,7 +69,7 @@ class MissionContainer {
 
   /**
    * Returns the current mission in progress.
-   * @returns Mission object for the current mission.
+   * @returns {Mission} Mission object for the current mission.
    */
   getCurrentMission() {
     return this.#currentMission;

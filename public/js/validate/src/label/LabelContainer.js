@@ -56,7 +56,7 @@ class LabelContainer {
   /**
    * Gets a specific property from the LabelContainer.
    * @param {string} key Property name.
-   * @returns Value associated with this property or null.
+   * @returns {*} Value associated with this property or null.
    */
   getProperty(key) {
     return key in this.#properties ? this.#properties[key] : null;
@@ -65,7 +65,7 @@ class LabelContainer {
   /**
    * Sets a property for the LabelContainer.
    * @param {string} key Name of property.
-   * @param value Value of property.
+   * @param {*} value Value of property.
    * @returns {LabelContainer}
    */
   setProperty(key, value) {
@@ -75,7 +75,7 @@ class LabelContainer {
 
   /**
    * Returns the last validated label's form data for submission to the back end, useful for undoing a label.
-   * @returns Form data for last validated label from this mission.
+   * @returns {?object} Form data for last validated label from this mission.
    */
   getPriorLabelFormData() {
     return this.#lastLabelFormData;

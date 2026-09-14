@@ -164,6 +164,9 @@ module.exports = [
       'jsdoc/check-types': 'error',
       'jsdoc/valid-types': 'error',
       'jsdoc/require-returns-check': 'error',
+      'jsdoc/check-alignment': 'error',
+      'jsdoc/require-param-type': 'error',
+      'jsdoc/require-returns-type': 'error',
     },
   },
 

@@ -229,12 +229,12 @@ class CardContainer {
    *
    * @param {string[]} labelTypes Label type names specifying which types of labels to grab.
    * @param {*} n Number of labels to grab.
-   * @param validationOptions List of validation options for fetched labels: correct, incorrect, and/or unvalidated.
+   * @param {string[]} validationOptions Validation options for fetched labels: correct, incorrect, and/or unvalidated.
    * @param {*} loadedLabels Label Ids of labels already grabbed.
    * @param {*} neighborhoods Region IDs the labels to be grabbed can be from (Set to undefined if N/A).
    * @param {*} severities Severities the labels to be grabbed can have (Set to undefined if N/A).
    * @param {object} tagsByLabelType Tags each label type is narrowed to, keyed by type name.
-   * @param aiValidationOptions List of AI validation options for labels: correct, incorrect, and/or unvalidated.
+   * @param {string[]} [aiValidationOptions] AI validation options for labels: correct, incorrect, and/or unvalidated.
    * @param {*} callback Function to be called when labels arrive.
    */
   fetchLabels(
@@ -295,7 +295,7 @@ class CardContainer {
 
   /**
    * Push a card into the CardBucket of its label type.
-   * @param card Card to add.
+   * @param {Card} card Card to add.
    */
   push(card) {
     this.#cardsByType[card.getLabelType()].push(card);
@@ -479,7 +479,7 @@ class CardContainer {
 
   /**
    * Get the cards that form the current page.
-   * @returns Array of cards from the current page.
+   * @returns {Card[]} Array of cards from the current page.
    */
   getCurrentPageCards() {
     let idx = (this.#currentPage - 1) * CardContainer.#cardsPerPage;
@@ -496,7 +496,7 @@ class CardContainer {
 
   /**
    * Returns whether the current page is the last page of queried cards.
-   * @returns True if current page is last page of cards that satisfies applied query, false otherwise.
+   * @returns {boolean} True if current page is last page of cards that satisfies applied query, false otherwise.
    */
   isLastPage() {
     return this.#lastPage;

@@ -10,8 +10,8 @@ class LabelContainer {
   #nextTempLabelId;
 
   /**
-   * @param $ jQuery object.
-   * @param nextTemporaryLabelId
+   * @param {JQueryStatic} $ jQuery object.
+   * @param {number} nextTemporaryLabelId
    */
   constructor($, nextTemporaryLabelId) {
     this.#jquery = $;
@@ -20,8 +20,8 @@ class LabelContainer {
 
   /**
    * Helper func to add a label to given list. Our labels are sorted in objects with panoId keys and lists as values.
-   * @param labelListObj
-   * @param label
+   * @param {Record<string, Label[]>} labelListObj
+   * @param {Label} label
    */
   #addLabelToListObject(labelListObj, label) {
     const panoId = label.getPanoId();
@@ -76,8 +76,8 @@ class LabelContainer {
 
   /**
    * Query server for previous labels placed by this user and create label objects for them.
-   * @param regionId
-   * @param callback
+   * @param {number} regionId
+   * @param {(result: object) => void} [callback]
    */
   fetchLabelsToResumeMission(regionId, callback) {
     this.#jquery.getJSON('/label/resumeMission', { regionId }, (result) => {
@@ -132,7 +132,7 @@ class LabelContainer {
 
   /**
    * Find a label with matching temporary ID.
-   * @param tempId
+   * @param {number} tempId
    */
   findLabelByTempId(tempId) {
     const matchingLabels = this.getCanvasLabels().filter((l) => l.getProperty('temporaryLabelId') === tempId);
@@ -146,7 +146,7 @@ class LabelContainer {
 
   /**
    * Adds a label to the list of labels that should be logged; called when a user interacts with an existing label.
-   * @param tempId
+   * @param {number} tempId
    */
   addToLabelsToLog(tempId) {
     const match = this.findLabelByTempId(tempId);
