@@ -18,7 +18,7 @@ class CommunityListPage {
 
   /**
    * @param {string} pageName - Activity-log prefix for this page (e.g. 'StoryListPage').
-   * @param {Object<string, {key: string, numeric?: boolean, desc?: boolean}>} sortKeys - For each sort <option>
+   * @param {Record<string, {key: string, numeric?: boolean, desc?: boolean}>} sortKeys - For each sort <option>
    *        value, which card data-* key to sort on and how. Ties always break newest-first.
    */
   constructor(pageName, sortKeys) {

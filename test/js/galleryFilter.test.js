@@ -127,7 +127,7 @@ describe('GalleryFilter', () => {
     function build(initialFilters = {}) {
         buildFixture();
         return new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), {
-            neighborhoods: [], aiValidationOptions: [], ...initialFilters,
+            regionIds: [], aiValidationOptions: [], ...initialFilters,
         });
     }
 
@@ -234,9 +234,9 @@ describe('GalleryFilter', () => {
         });
 
         it('keeps reporting the filters that have no UI of their own', () => {
-            filter = build({ neighborhoods: [7, 9], aiValidationOptions: ['correct'] });
+            filter = build({ regionIds: [7, 9], aiValidationOptions: ['correct'] });
 
-            expect(currentUrl()).toBe('/gallery?neighborhoods=7,9&aiValidationOptions=correct');
+            expect(currentUrl()).toBe('/gallery?regions=7,9&aiValidationOptions=correct');
         });
     });
 

@@ -7,7 +7,7 @@ import models.cluster._
 import models.intersection.{IntersectionInfo, IntersectionStreetEnd, IntersectionTable}
 import models.label._
 import models.region.{Region, RegionTable}
-import models.street.{SidewalkPresenceTable, StreetEdgeInfo, StreetEdgeTable}
+import models.street.{OsmWayTable, SidewalkPresenceTable, StreetEdgeInfo, StreetEdgeTable}
 import models.user.UserStatTable
 import models.utils.BackgroundJobRunTable
 import models.utils.MyPostgresProfile.api._
@@ -31,7 +31,7 @@ trait ApiService {
 
   def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetEdgeInfo]]
 
-  def getNeighborhoodsWithin(bbox: LatLngBBox): Future[Seq[Region]]
+  def getRegionsFullyInsideBbox(bbox: LatLngBBox): Future[Seq[Region]]
 
   /** Streams lean per-cluster scoring inputs for the v3 AccessScore endpoints (#3855). */
   def getClusterScoreRows(
@@ -43,6 +43,9 @@ trait ApiService {
 
   /** Returns the length in meters of each given street edge, used to length-weight region AccessScores (#3855). */
   def getStreetLengths(streetEdgeIds: Seq[Int]): Future[Map[Int, Double]]
+
+  /** The OSM name of each given street edge, for the AccessScore API's `street_name`; unnamed streets are absent. */
+  def getStreetNames(streetEdgeIds: Seq[Int]): Future[Map[Int, String]]
 
   /** The intersections at the ends of the streets the filter selects, with what AccessScore needs to score them (#5095). */
   def getIntersectionsForStreets(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[IntersectionInfo]]
@@ -118,7 +121,7 @@ trait ApiService {
   def getSidewalkPresence(filters: SidewalkPresenceFiltersForApi, batchSize: Int): Source[SidewalkPresenceForApi, _]
 
   /**
-   * Retrieves regions (neighborhoods) based on the provided filters and returns them as a reactive stream source.
+   * Retrieves regions based on the provided filters and returns them as a reactive stream source.
    *
    * @param filters   The filters to apply when retrieving regions.
    * @param batchSize The number of records to fetch in each batch from the database.
@@ -227,6 +230,7 @@ class ApiServiceImpl @Inject() (
     config: Configuration,
     clusterTable: ClusterTable,
     streetEdgeTable: StreetEdgeTable,
+    osmWayTable: OsmWayTable,
     sidewalkPresenceTable: SidewalkPresenceTable,
     regionTable: RegionTable,
     labelTable: LabelTable,
@@ -304,8 +308,8 @@ class ApiServiceImpl @Inject() (
   def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetEdgeInfo]] =
     db.run(streetEdgeTable.selectStreetsIntersecting(spatialQueryType, bbox))
 
-  def getNeighborhoodsWithin(bbox: LatLngBBox): Future[Seq[Region]] =
-    db.run(regionTable.getNeighborhoodsWithin(bbox))
+  def getRegionsFullyInsideBbox(bbox: LatLngBBox): Future[Seq[Region]] =
+    db.run(regionTable.getRegionsFullyInsideBbox(bbox))
 
   def getClusterScoreRows(
       spatialQueryType: SpatialQueryType,
@@ -324,6 +328,9 @@ class ApiServiceImpl @Inject() (
 
   def getStreetLengths(streetEdgeIds: Seq[Int]): Future[Map[Int, Double]] =
     db.run(streetEdgeTable.getStreetLengths(streetEdgeIds))
+
+  def getStreetNames(streetEdgeIds: Seq[Int]): Future[Map[Int, String]] =
+    db.run(osmWayTable.getStreetNames(streetEdgeIds))
 
   /** Derives a lat/lng bounding box from a region's MultiPolygon envelope (geometry is stored in EPSG:4326). */
   private def regionToBBox(region: Region): LatLngBBox = {

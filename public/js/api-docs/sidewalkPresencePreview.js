@@ -65,11 +65,12 @@
    * Rolls up the figures the summary panel draws on.
    *
    * @param {Array<object>} features - The face features.
-   * @returns {object} Face counts by verdict, streets with a face called absent, and absent faces by label tier.
+   * @returns {object} Face counts by verdict, streets with a face called absent, absent faces by label tier, and
+   *   absent faces a validator has confirmed.
    */
   function summarize(features) {
     const stats = {
-      faces: features.length, byPresence: {}, streetsAbsent: new Set(), tier1: 0, tier2: 0, tier3: 0,
+      faces: features.length, byPresence: {}, streetsAbsent: new Set(), tier1: 0, tier2: 0, tier3: 0, validated: 0,
     };
     features.forEach(({ properties }) => {
       stats.byPresence[properties.presence] = (stats.byPresence[properties.presence] || 0) + 1;
@@ -79,6 +80,7 @@
         if (n >= 3) stats.tier3++;
         else if (n === 2) stats.tier2++;
         else if (n === 1) stats.tier1++;
+        if ((properties.validated_no_sidewalk_count || 0) >= 1) stats.validated++;
       }
     });
     return stats;
@@ -96,13 +98,16 @@
    * The evidence behind a face's verdict, in words. The four cases are the backend's sidewalk_presence_basis enum.
    *
    * @param {object} props - A face feature's properties.
-   * @returns {string} e.g. '3 NoSidewalk labels from 2 users'.
+   * @returns {string} e.g. '3 NoSidewalk labels from 2 users, 1 validator-confirmed'.
    */
   function describeBasis(props) {
     switch (props.presence_basis) {
-      case 'no_sidewalk_labels':
+      case 'no_sidewalk_labels': {
+        const validated = props.validated_no_sidewalk_count || 0;
+        const confirmed = validated ? `, ${validated} validator-confirmed` : '';
         return `${plural(props.no_sidewalk_label_count, 'NoSidewalk label')} from `
-          + `${plural(props.no_sidewalk_user_count, 'user')}`;
+          + `${plural(props.no_sidewalk_user_count, 'user')}${confirmed}`;
+      }
       case 'other_side_tag':
         return 'the other side is tagged "street has no sidewalks"';
       case 'audited_no_labels':
@@ -270,6 +275,7 @@
         <div><strong>Unknown:</strong> ${percent(stats.byPresence.unknown, stats.faces)}%</div>
         <div><strong>Streets missing a side:</strong> ${stats.streetsAbsent.size}</div>
         <div><strong>By label count (1 / 2 / 3+):</strong> ${stats.tier1} / ${stats.tier2} / ${stats.tier3}</div>
+        <div><strong>Validator-confirmed:</strong> ${stats.validated}</div>
       `;
     },
 
@@ -303,6 +309,9 @@
           <p><strong>Verdict:</strong> ${presenceLabel(props.presence)}</p>
           <p><strong>Basis:</strong> ${describeBasis(props)}</p>
           ${firstLabel ? `<p><strong>NoSidewalk labels placed:</strong> ${firstLabel} to ${lastLabel}</p>` : ''}
+          ${props.rejected_no_sidewalk_count
+    ? `<p><strong>Rejected by validators:</strong> ${plural(props.rejected_no_sidewalk_count, 'NoSidewalk label')}</p>`
+    : ''}
           <p><strong>Labels on this side:</strong> ${props.label_count || 0}</p>
           <p><strong>Other side:</strong> ${other ? presenceLabel(other.presence) : 'N/A'}</p>
           <p><strong>Type:</strong> ${props.way_type || 'Unknown'}</p>

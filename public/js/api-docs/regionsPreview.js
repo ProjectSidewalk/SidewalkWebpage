@@ -1,7 +1,7 @@
 /**
  * Regions Map Preview Generator.
  *
- * Renders a single live choropleth map of all of a city's regions (neighborhoods), fed directly from the
+ * Renders a single live choropleth map of all of a city's regions, fed directly from the
  * /v3/api/regions endpoint. A metric toggle recolors the same polygons by label count, completed-audit count, or
  * contributing-user count. Hover/click a region to see its full statistics.
  *

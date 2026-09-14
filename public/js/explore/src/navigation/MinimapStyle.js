@@ -177,7 +177,7 @@ class MinimapStyle {
   }
 
   /**
-   * A street in the neighborhood that isn't part of the current task: quiet context.
+   * A street in the region that isn't part of the current task: quiet context.
    * @param {google.maps.LatLng[]} path - The polyline path.
    * @returns {google.maps.PolylineOptions}
    */

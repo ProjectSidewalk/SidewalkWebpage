@@ -15,8 +15,8 @@ class Compass {
   };
 
   /**
-   * @param {Object} navigationService - NavigationService module.
-   * @param {Object} taskContainer - TaskContainer module.
+   * @param {object} navigationService - NavigationService module.
+   * @param {object} taskContainer - TaskContainer module.
    */
   constructor(navigationService, taskContainer) {
     this.#navigationService = navigationService;
@@ -141,9 +141,9 @@ class Compass {
 
   #makeTheLabelBeforeJumpMessageBoxClickable() {
     let jumpMessageOnclick;
-    if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
+    if (svl.regionModel.isRouteOrRegionComplete()) {
       jumpMessageOnclick = () => {
-        svl.missionController.wrapUpRouteOrNeighborhood();
+        svl.missionController.wrapUpRouteOrRegion();
       };
     } else {
       jumpMessageOnclick = this.#jumpToTheNewTask;
@@ -231,10 +231,10 @@ class Compass {
   }
 
   #setLabelBeforeJumpMessage() {
-    if (svl.neighborhoodModel.isRouteComplete) {
+    if (svl.regionModel.isRouteComplete) {
       this.#uiCompass.message.html(`<div>${i18next.t('center-ui.compass.end-route')}</div>`);
-    } else if (svl.neighborhoodModel.isNeighborhoodComplete) {
-      this.#uiCompass.message.html(`<div>${i18next.t('center-ui.compass.end-neighborhood')}</div>`);
+    } else if (svl.regionModel.isRegionComplete) {
+      this.#uiCompass.message.html(`<div>${i18next.t('center-ui.compass.end-region')}</div>`);
     } else {
       this.#uiCompass.message.html(`<div>${i18next.t('center-ui.compass.end-street')}</div>`);
     }

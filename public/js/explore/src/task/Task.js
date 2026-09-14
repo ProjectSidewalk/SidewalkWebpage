@@ -227,7 +227,7 @@ class Task {
 
   /**
    * Get the last coordinate in the geojson.
-   * @returns {{lat: number, lng: number}
+   * @returns {{lat: number, lng: number}}
    */
   getEndCoordinate() {
     const len = this.#geojson.geometry.coordinates.length - 1;
@@ -443,11 +443,11 @@ class Task {
         .map((coord) => new google.maps.LatLng(coord[1], coord[0]));
       if (drawAsWalked) {
         this.#paths = [new google.maps.Polyline(MinimapStyle.completedTask(gCoordinates))];
-      } else if (svl.neighborhoodModel.isRoute) {
+      } else if (svl.regionModel.isRoute) {
         // On a designated route every street ahead is part of the planned path, so paint it as the route-to-walk: a
         // dashed line with direction chevrons over a white casing — the same encoding as the current street's
         // remaining half (and RouteBuilder's own rendering) — so the whole route reads as a dotted, arrowed path when
-        // zoomed out. A free neighborhood audit has no planned path, so its non-current streets stay quiet context.
+        // zoomed out. A free region audit has no planned path, so its non-current streets stay quiet context.
         this.#paths = [
           new google.maps.Polyline(MinimapStyle.routeCasing(gCoordinates)),
           new google.maps.Polyline(MinimapStyle.remainingRoute(gCoordinates)),

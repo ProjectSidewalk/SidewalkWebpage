@@ -49,12 +49,12 @@ function cityBoundingBox(geojson) {
   return [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]];
 }
 
-// Layer id the neighborhood polygons are rendered under. Must match NEIGHBORHOOD_LAYER_NAME in
-// `public/js/ps-map/addNeighborhoodsToMap.js`, which owns the layer and attaches `completionRate` to each feature.
-const NEIGHBORHOOD_LAYER_ID = 'neighborhood-polygons';
+// Layer id the region polygons are rendered under. Must match REGION_LAYER_NAME in
+// `public/js/ps-map/addRegionsToMap.js`, which owns the layer and attaches `completionRate` to each feature.
+const REGION_LAYER_ID = 'region-polygons';
 
 /**
- * Find the neighborhood the given point falls in, reading the polygon the map already renders.
+ * Find the region the given point falls in, reading the polygon the map already renders.
  *
  * Queried from the rendered layer rather than re-fetched so the completion figure shown here is by construction the
  * same one the choropleth is displaying underneath the pin.
@@ -62,15 +62,15 @@ const NEIGHBORHOOD_LAYER_ID = 'neighborhood-polygons';
  * @param {mapboxgl.Map} map - The LabelMap.
  * @param {number} lat - Latitude of the point.
  * @param {number} lng - Longitude of the point.
- * @returns {{name: string, completionRate: number}|null} Neighborhood name and 0-100 completion, or null if the
- *          point isn't inside a rendered neighborhood (outside the deployment, or the layer hasn't loaded).
+ * @returns {{name: string, completionRate: number}|null} Region name and 0-100 completion, or null if the
+ *          point isn't inside a rendered region (outside the deployment, or the layer hasn't loaded).
  */
-function neighborhoodAt(map, lat, lng) {
-  if (!map.getLayer(NEIGHBORHOOD_LAYER_ID)) return null;
-  const hits = map.queryRenderedFeatures(map.project([lng, lat]), { layers: [NEIGHBORHOOD_LAYER_ID] });
+function regionAt(map, lat, lng) {
+  if (!map.getLayer(REGION_LAYER_ID)) return null;
+  const hits = map.queryRenderedFeatures(map.project([lng, lat]), { layers: [REGION_LAYER_ID] });
   const props = hits?.[0]?.properties;
   if (!props) return null;
-  return { name: props.region_name, completionRate: props.completionRate };
+  return { name: props.name, completionRate: props.completionRate };
 }
 
 /**
@@ -93,7 +93,7 @@ function streetAddress(props) {
 /**
  * Build the "explore here" popup body.
  *
- * @param {mapboxgl.Map} map - The LabelMap, for looking up the surrounding neighborhood.
+ * @param {mapboxgl.Map} map - The LabelMap, for looking up the surrounding region.
  * @param {number} lat - Latitude the Explore session should open at.
  * @param {number} lng - Longitude the Explore session should open at.
  * @param {string} placeName - Name of the searched place, or '' when the result carried none.
@@ -105,12 +105,12 @@ function buildExploreHereContent(map, lat, lng, placeName, address, exploreHref)
   const wrapper = document.createElement('div');
   wrapper.className = 'explore-here';
 
-  const neighborhood = neighborhoodAt(map, lat, lng);
-  // Only pitch an incomplete neighborhood — telling someone a finished area is "100% explored" reads as "nothing to
+  const region = regionAt(map, lat, lng);
+  // Only pitch an incomplete region — telling someone a finished area is "100% explored" reads as "nothing to
   // do here", the opposite of the invitation this popup is making.
-  const showProgress = neighborhood && Number.isFinite(neighborhood.completionRate)
-    && neighborhood.completionRate < 100;
-  const percent = showProgress ? Math.round(neighborhood.completionRate) : 0;
+  const showProgress = region && Number.isFinite(region.completionRate)
+    && region.completionRate < 100;
+  const percent = showProgress ? Math.round(region.completionRate) : 0;
 
   // Only trusted markup goes through innerHTML. The place, address, and region strings come from outside this codebase
   // (Mapbox search results are built on user-editable OSM data), so they are set via textContent below — interpolating
@@ -131,7 +131,7 @@ function buildExploreHereContent(map, lat, lng, placeName, address, exploreHref)
     </a>`;
   if (placeName) wrapper.querySelector('.explore-here__place').textContent = placeName;
   if (address) wrapper.querySelector('.explore-here__address').textContent = address;
-  if (showProgress) wrapper.querySelector('.explore-here__region').textContent = neighborhood.name;
+  if (showProgress) wrapper.querySelector('.explore-here__region').textContent = region.name;
 
   wrapper.querySelector('.explore-here-button').addEventListener('click', () => {
     if (typeof window.logWebpageActivity === 'function') {
@@ -266,9 +266,9 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
   });
 
   // Hard-limit suggestions to the deployment city's actual footprint (the bounding box of its
-  // neighborhoods), NOT the map's deliberately-generous pan-bounds (which can span a whole metro area).
+  // regions), NOT the map's deliberately-generous pan-bounds (which can span a whole metro area).
   // Merge onto the existing options so we don't clobber a proximity the map binding may have added.
-  fetch('/neighborhoods')
+  fetch('/regions')
     .then((response) => response.json())
     .then((geojson) => {
       const bbox = cityBoundingBox(geojson);

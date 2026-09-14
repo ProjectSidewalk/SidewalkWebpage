@@ -630,8 +630,7 @@ class AuditTaskTable @Inject() (
     possibleTasks.map(_._9).max.result.flatMap {
       case Some(maxPriority) =>
         // Choose one of the highest priority tasks at random.
-        val rand = SimpleFunction.nullary[Double]("random")
-        possibleTasks.filter(_._9 === maxPriority).sortBy(_ => rand).result.map(_.headOption.map(NewTask.tupled))
+        possibleTasks.filter(_._9 === maxPriority).sortBy(_ => random).result.map(_.headOption.map(NewTask.tupled))
       case None =>
         DBIO.successful(None)
     }

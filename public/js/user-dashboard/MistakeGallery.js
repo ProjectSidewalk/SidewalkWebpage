@@ -10,7 +10,7 @@
 class MistakeGallery {
   /**
      * @param {HTMLElement} rootEl - Container to fill with cards.
-     * @param {Object} opts
+     * @param {object} opts
      * @param {string} opts.userId - The signed-in user's id (the endpoint is self-or-admin only).
      * @param {number} [opts.limit=6] - Max cards to show.
      * @param {HTMLElement} [opts.seeAllEl] - Optional "see all" link, shown only when there are mistakes.
@@ -39,7 +39,7 @@ class MistakeGallery {
   /**
      * Re-renders every vote/note section currently in the DOM for a label (its card + the popup panel), so a change in
      * one place is reflected in the other.
-     * @param {Object} m - The label record.
+     * @param {object} m - The label record.
      */
   #sync(m) {
     document.querySelectorAll(`[data-ud-vote="${m.label_id}"]`)
@@ -87,7 +87,7 @@ class MistakeGallery {
 
   /**
      * Builds one mistake card.
-     * @param {Object} m - A label record from the endpoint.
+     * @param {object} m - A label record from the endpoint.
      * @returns {HTMLElement}
      */
   #renderCard(m) {
@@ -187,7 +187,7 @@ class MistakeGallery {
 
   /**
      * Opens the interactive label popup for a card and mirrors the vote/note controls inside it.
-     * @param {Object} m - The label record.
+     * @param {object} m - The label record.
      */
   async #openPopup(m) {
     try {
@@ -206,7 +206,7 @@ class MistakeGallery {
 
   /**
      * Injects (or replaces) the vote/note panel inside the popup dialog for the given label.
-     * @param {Object} m - The label record.
+     * @param {object} m - The label record.
      */
   #mountPopupPanel(m) {
     const dialog = document.getElementById('label-modal');
@@ -225,7 +225,7 @@ class MistakeGallery {
   /**
      * The agree/contest vote control, driven by shared per-label state. Unvoted shows the two buttons; voted shows the
      * choice + a "Change response" button. Instant (no separate submit). Tagged with data-ud-vote for #sync.
-     * @param {Object} m - The label record.
+     * @param {object} m - The label record.
      * @returns {HTMLElement} The vote-section element.
      */
   #voteSection(m) {
@@ -271,7 +271,7 @@ class MistakeGallery {
 
   /**
      * Records a vote and, on success, updates shared state and re-renders every vote section for this label.
-     * @param {Object} m - The label record.
+     * @param {object} m - The label record.
      * @param {HTMLElement} sec - The vote section (buttons disabled during the request).
      * @param {boolean} agrees - True = agree it was a mistake; false = contest.
      */
@@ -296,7 +296,7 @@ class MistakeGallery {
      * The optional note control, independent of the vote. Shows the saved note (if any) plus an "Add/Edit note" link
      * that reveals a textarea + "Save note". A note can be left with or without a vote.
      *
-     * @param {Object} m - The label record.
+     * @param {object} m - The label record.
      * @returns {HTMLElement} The note-section element (tagged data-ud-note for #sync).
      */
   #noteSection(m) {
@@ -354,7 +354,7 @@ class MistakeGallery {
 
   /**
      * Saves a note and, on success, updates shared state and re-renders every note section for this label.
-     * @param {Object} m - The label record.
+     * @param {object} m - The label record.
      * @param {HTMLElement} sec - The note section (disabled during the request).
      * @param {string} comment - The note text.
      */
@@ -380,7 +380,7 @@ class MistakeGallery {
      * Places the label-type icon over whichever image the card ended up showing.
      *
      * @param {HTMLImageElement} marker - The marker element.
-     * @param {Object} m - The label record.
+     * @param {object} m - The label record.
      * @param {?string} source - Which source is showing: 'crop', 'api', or null for the bare gradient.
      */
   static #positionMarker(marker, m, source) {
@@ -394,7 +394,7 @@ class MistakeGallery {
      * disk, where the Static API image is billed per request. A crop's URL expires, so a failure retries the API image,
      * and a second failure removes the photo. Alt is empty: the card's title names the type below it.
      *
-     * @param {Object} m - The label record.
+     * @param {object} m - The label record.
      * @param {function(?string): void} onSourceChange - Called with the source now on screen ('api', or null once
      *     every source has failed), since the marker's position depends on which image is showing.
      * @returns {?HTMLImageElement} The image, or null when the label has no source at all.

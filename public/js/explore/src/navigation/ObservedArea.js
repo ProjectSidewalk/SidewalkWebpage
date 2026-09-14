@@ -38,7 +38,7 @@ class ObservedArea {
   #progressCircleCtx;
 
   /**
-   * @param {Object} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
+   * @param {object} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
    */
   constructor(uiMinimap) {
     this.#uiMinimap = uiMinimap;
@@ -268,12 +268,12 @@ class ObservedArea {
 
   /**
    * Center of the 360°-observed progress ring. On a designated route the overview inset takes the top-right corner, so
-   * the ring tucks below the mission-progress bar in the top-left; on a neighborhood audit (no inset) it stays in its
+   * the ring tucks below the mission-progress bar in the top-left; on a region audit (no inset) it stays in its
    * usual top-right corner. Both the ring and its one-time celebration pulse read this so they can't drift apart.
    * @returns {{x: number, y: number}} Ring center in canvas CSS px.
    */
   #progressRingCenter() {
-    if (svl.neighborhoodModel && svl.neighborhoodModel.isRoute) {
+    if (svl.regionModel && svl.regionModel.isRoute) {
       return { x: 18 * this.#scaleFactor, y: 42 * this.#scaleFactor };
     }
     return { x: this.#width - 18 * this.#scaleFactor, y: 18 * this.#scaleFactor };

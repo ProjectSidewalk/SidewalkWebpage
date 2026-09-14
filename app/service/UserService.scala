@@ -425,6 +425,12 @@ trait UserService {
   def getUserStats(userId: String): Future[Option[UserStat]]
   def getPrivacySettings(userId: String): Future[Option[(Boolean, Boolean)]]
   def updatePrivacySettings(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): Future[Int]
+
+  /** Turns community service hour tracking on or off, for every city. */
+  def setCommunityService(userId: String, enabled: Boolean): Future[Int]
+
+  /** Saves the user's units for every city; None follows the site language. */
+  def setMeasurementSystem(userId: String, system: Option[MeasurementSystem.Value]): Future[Int]
   def getPublicProfile(
       username: String,
       isOwner: Boolean,
@@ -516,6 +522,7 @@ class UserServiceImpl @Inject() (
     userTeamTable: UserTeamTable,
     teamTable: TeamTable,
     userUtmTable: UserUtmTable,
+    userSettingsTable: UserSettingsTable,
     configService: ConfigService,
     cacheApi: AsyncCacheApi,
     implicit val ec: ExecutionContext
@@ -594,6 +601,12 @@ class UserServiceImpl @Inject() (
 
   def updatePrivacySettings(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): Future[Int] =
     db.run(userStatTable.updatePrivacySettings(userId, onLeaderboard, publicProfile))
+
+  def setCommunityService(userId: String, enabled: Boolean): Future[Int] =
+    db.run(userSettingsTable.setCommunityService(userId, enabled))
+
+  def setMeasurementSystem(userId: String, system: Option[MeasurementSystem.Value]): Future[Int] =
+    db.run(userSettingsTable.setMeasurementSystem(userId, system))
 
   def getPublicProfile(
       username: String,
@@ -859,7 +872,7 @@ class UserServiceImpl @Inject() (
     db.run(userStatTable.getLabelTypeAccuracy(userId)).map(UserService.computeAccuracyByType)
   }
 
-  /** Explore-this-neighborhood link for a region trophy — opens the audit tool scoped to that region. */
+  /** Explore-this-region link for a region trophy — opens the audit tool scoped to that region. */
   private def exploreRegionLink(regionId: Int): String = s"/explore?regionId=$regionId"
 
   /**

@@ -1259,7 +1259,7 @@ def main(argv=None):
         while not is_region_id(tutorial_region):
             tutorial_region = prompt('Invalid — the tutorial region is a region id from the list above')
         # Phased launches start with only some regions open (streets in the others are seeded 'closed'; open them
-        # later with reveal-or-hide-neighborhoods.sh). The imagery scan below covers the whole city either way.
+        # later with reveal-or-hide-regions.sh). The imagery scan below covers the whole city either way.
         regions_spec = args.regions or prompt('Regions to open at launch ("all", "include:<ids>", or '
                                               '"exclude:<ids>", ids space-separated)', 'all')
         # No default on the re-ask: under --yes a default is taken without asking, and "all" in place of the

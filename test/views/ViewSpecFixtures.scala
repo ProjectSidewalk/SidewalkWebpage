@@ -35,5 +35,5 @@ trait ViewSpecFixtures extends GuiceOneAppPerSuite { self: org.scalatest.TestSui
 
   protected val user: SidewalkUserWithRole =
     SidewalkUserWithRole("test-user", "testmapper", "test@example.com", Role.Registered, communityService = false,
-      infra3dAccess = false)
+      infra3dAccess = false, measurementSystem = None)
 }

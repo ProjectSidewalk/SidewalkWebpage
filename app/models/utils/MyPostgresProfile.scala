@@ -15,7 +15,7 @@ import models.street.{
   StreetImagerySource,
   WayType
 }
-import models.user.Role
+import models.user.{MeasurementSystem, Role}
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.{ValidationCommentChangeType, ValidationOption}
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
@@ -63,6 +63,9 @@ trait MyPostgresProfile
       with HStoreImplicits
       with SearchImplicits
       with SearchAssistants {
+
+    /** Postgres's `random()`, a fresh draw in [0, 1) per row, so `sortBy(_ => random)` shuffles a query's rows. */
+    val random: Rep[Double] = SimpleFunction.nullary[Double]("random")
 
     // Adds implicit conversion from JTS Geometry types to Play JSON JsValue. Need to explicitly add each geom type.
     private val mapper = new ObjectMapper()
@@ -271,6 +274,15 @@ trait MyPostgresProfile
     // Mapper for the role enum type, which lives in the shared sidewalk_login schema rather than the city's.
     implicit val roleMapper: BaseColumnType[Role.Value] =
       createEnumJdbcType[Role.Value]("role", _.toString, Role.withName, quoteName = false)
+
+    // Mapper for the measurement_system enum type, which also lives in the shared sidewalk_login schema.
+    implicit val measurementSystemMapper: BaseColumnType[MeasurementSystem.Value] =
+      createEnumJdbcType[MeasurementSystem.Value](
+        "measurement_system",
+        _.toString,
+        MeasurementSystem.withName,
+        quoteName = false
+      )
   }
 }
 

@@ -501,7 +501,7 @@ def test_onboarding_tables_are_exactly_what_the_scripts_write():
     writes = re.compile(r'(?i)(?:insert\s+into|\\copy|\bcopy)\s+(?:"?\$\{?\w+\}?"?\.)?"?(\w+)"?\s*'
                         r'(?:\(|from|values|select)')
     for name in ('fill-new-schema.sh', 'import-street-imagery.sh', 'helpers.sh', 'hide-streets-without-imagery.sh',
-                 'reveal-or-hide-neighborhoods.sh'):
+                 'reveal-or-hide-regions.sh'):
         text = (scripts / name).read_text()
         # A staging table the script creates for its own session is gone before the dump can see it.
         written |= set(writes.findall(text)) - set(re.findall(r'(?i)create temp(?:orary)? table (\w+)', text))

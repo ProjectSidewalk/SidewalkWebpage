@@ -182,7 +182,7 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
     val timeCreated    = OffsetDateTime.now.minusDays(createdDaysAgo.toLong)
     runDb((for {
       _ <- sqlu"""INSERT INTO sidewalk_login.sidewalk_user (user_id, username, email)
-                  VALUES ($userId, $username, ${username + "@test.invalid"})"""
+                  VALUES ($userId, $username, ${username.toLowerCase + "@test.invalid"})"""
       _ <- sqlu"""INSERT INTO user_stat (user_stat_id, user_id, meters_audited, high_quality, excluded)
                   VALUES ((SELECT COALESCE(MAX(user_stat_id), 0) + 1 FROM user_stat), $userId, 0, TRUE, $excluded)"""
       // Only the AI labeler gets a role row: the reconcile pass must classify a user with no role row too.

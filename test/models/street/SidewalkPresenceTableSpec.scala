@@ -12,9 +12,9 @@ import util.{RolledBackDb, StreetFixtures}
 import scala.io.Source
 
 /**
- * The derived sidewalk presence table (#5279): what the rebuild makes of a street's labels and audits, and that it
- * reproduces evolution 383 — against the connected Postgres+PostGIS database, every case inside a rolled-back
- * transaction.
+ * The derived sidewalk presence table (#5279): what the rebuild makes of a street's labels and audits, how validator
+ * verdicts feed back into it (#5285), and that it reproduces evolution 388 — against the connected Postgres+PostGIS
+ * database, every case inside a rolled-back transaction.
  *
  * Labels are seeded with an explicit `centerline_offset_m` rather than a position, since the side that offset
  * derives is the input here; `StreetSideSpec` covers the geometry that produces the offset. The seeded rows borrow
@@ -44,6 +44,7 @@ class SidewalkPresenceTableSpec
    *
    * @param offsetM The offset the label sits at; None leaves the point unpositioned. Inside a metre it has no side.
    * @param daysAgo How old the label is, so first/last dates can be told apart.
+   * @param correct The validators' verdict on the label, as `label.correct` records it: confirmed, rejected, or none.
    */
   private def insertLabel(
       streetEdgeId: Int,
@@ -53,15 +54,17 @@ class SidewalkPresenceTableSpec
       tags: Seq[String] = Seq.empty,
       deleted: Boolean = false,
       tutorial: Boolean = false,
-      daysAgo: Int = 0
+      daysAgo: Int = 0,
+      correct: Option[Boolean] = None
   ): DBIO[Int] = {
     val tagsLiteral = tags.map(t => s"'${t.replace("'", "''")}'").mkString("ARRAY[", ", ", "]::text[]")
     for {
       labelId <- sql"""INSERT INTO label (label_id, audit_task_id, mission_id, user_id, pano_id, label_type, deleted,
-                                          temporary_label_id, time_created, tutorial, street_edge_id, tags)
+                                          temporary_label_id, time_created, tutorial, street_edge_id, tags, correct)
                        SELECT (SELECT COALESCE(MAX(label_id), 0) + 1 FROM label), audit_task_id, mission_id, $userId,
                               pano_id, CAST($labelType AS label_type), $deleted, 0,
-                              now() - make_interval(days => $daysAgo), $tutorial, $streetEdgeId, #$tagsLiteral
+                              now() - make_interval(days => $daysAgo), $tutorial, $streetEdgeId, #$tagsLiteral,
+                              $correct
                        FROM label
                        LIMIT 1
                        RETURNING label_id""".as[Int].headOption
@@ -77,33 +80,134 @@ class SidewalkPresenceTableSpec
   private def facesOf(streetEdgeId: Int): DBIO[Map[StreetSide.Value, SidewalkPresence]] =
     table.sidewalkPresence.filter(_.streetEdgeId === streetEdgeId).result.map(_.map(f => f.streetSide -> f).toMap)
 
+  /** The data statements (the `WITH … INSERT` derivation) of one half of evolution 388, comments stripped. */
+  private def evolution388Statements(half: String): Seq[String] = {
+    val script: String = {
+      val source = Source.fromFile("conf/evolutions/default/388.sql", "UTF-8")
+      try source.mkString
+      finally source.close()
+    }
+    val halves = script.split("# --- !Downs")
+    halves must have size 2
+    (if (half == "ups") halves(0) else halves(1))
+      .split("(?<!;);(?!;)")
+      .map(_.linesIterator.filterNot(_.trim.startsWith("--")).mkString("\n").trim)
+      .filter(_.startsWith("WITH"))
+      .toSeq
+  }
+
   "the sidewalk presence rebuild" should {
-    "reproduce exactly what evolution 383 populated, so the two copies of the derivation agree" in {
+    "reproduce exactly what evolution 388 populated, so the two copies of the derivation agree" in {
       // The evolution's data statement, run on the schema as it stands, then the Scala rebuild over the same
       // labels: a derivation that drifted would insert, update, or delete something.
-      val ups: String = {
-        val source = Source.fromFile("conf/evolutions/default/383.sql", "UTF-8")
-        try source.mkString.split("# --- !Downs").head
-        finally source.close()
-      }
-      val dataStatements: Seq[String] = ups
-        .split("(?<!;);(?!;)")
-        .map(_.linesIterator.filterNot(_.trim.startsWith("--")).mkString("\n").trim)
-        .filter(_.startsWith("WITH"))
-        .toSeq
+      val dataStatements = evolution388Statements("ups")
       dataStatements must have size 1
 
-      val (populated, rebuilt) = runRolledBack(for {
+      val (populated, seeded, rebuilt) = runRolledBack(for {
+        // CI's seed carries no verdict on any NoSidewalk label, so without rows of its own this comparison would never
+        // reach the validated/rejected branches 388 added: a confirmed, an unvalidated and a rejected tagged label on
+        // one face, and a rejected tagged label alone on another street.
+        streetEdgeId <- insertStreet()
+        otherStreet  <- insertStreet()
+        user1        <- insertUser()
+        user2        <- insertUser()
+        _            <- audit(streetEdgeId, user1)
+        _            <- audit(otherStreet, user1)
+        _            <- insertLabel(streetEdgeId, user1, "NoSidewalk", Some(3.0), correct = Some(true))
+        _            <- insertLabel(streetEdgeId, user2, "NoSidewalk", Some(2.5))
+        _            <- insertLabel(streetEdgeId, user2, "NoSidewalk", Some(2.0), correct = Some(false),
+          tags = Seq(NoSidewalksTag))
+        _ <- insertLabel(otherStreet, user1, "NoSidewalk", Some(-3.0), correct = Some(false),
+          tags = Seq(NoSidewalksTag))
         _         <- sqlu"DELETE FROM sidewalk_presence"
         _         <- sqlu"#${dataStatements.head}"
         populated <- sql"SELECT COUNT(*) FROM sidewalk_presence".as[Int].head
+        seeded    <- facesOf(streetEdgeId)
         rebuilt   <- table.rebuild
-      } yield (populated, rebuilt))
+      } yield (populated, seeded, rebuilt))
 
+      // The seed took, so the agreement below covers the verdict branches rather than passing vacuously.
+      seeded(StreetSide.Left).validatedNoSidewalkCount mustBe 1
+      seeded(StreetSide.Left).rejectedNoSidewalkCount mustBe 1
       rebuilt.total mustBe populated
       rebuilt.inserted mustBe 0
       rebuilt.updated mustBe 0
       rebuilt.deleted mustBe 0
+    }
+
+    "count validator verdicts: a confirmed label is validated, a rejected one is no evidence at all" in {
+      val (mixed, rejectedOnly) = runRolledBack(for {
+        mixedStreet        <- insertStreet()
+        rejectedOnlyStreet <- insertStreet()
+        user1              <- insertUser()
+        user2              <- insertUser()
+        _                  <- audit(mixedStreet, user1)
+        _                  <- audit(rejectedOnlyStreet, user1)
+        // Left of the mixed street: one confirmed, one unvalidated, one rejected NoSidewalk label. The rejected one
+        // is the oldest, so the dates show whether it was left out.
+        _ <- insertLabel(mixedStreet, user1, "NoSidewalk", Some(3.0), correct = Some(true), daysAgo = 10)
+        _ <- insertLabel(mixedStreet, user1, "NoSidewalk", Some(2.5), daysAgo = 5)
+        _ <- insertLabel(mixedStreet, user2, "NoSidewalk", Some(2.0), correct = Some(false), daysAgo = 30,
+          tags = Seq(NoSidewalksTag))
+        // The only NoSidewalk label on this face was rejected: the face is audited with no evidence, so present.
+        _ <- insertLabel(rejectedOnlyStreet, user2, "NoSidewalk", Some(-3.0), correct = Some(false),
+          tags = Seq(NoSidewalksTag))
+        _            <- table.rebuild
+        mixed        <- facesOf(mixedStreet)
+        rejectedOnly <- facesOf(rejectedOnlyStreet)
+      } yield (mixed, rejectedOnly))
+
+      val left = mixed(StreetSide.Left)
+      left.presence mustBe SidewalkPresenceStatus.Absent
+      left.noSidewalkLabelCount mustBe 2
+      left.noSidewalkUserCount mustBe 1 // user2's label was rejected, so only user1 stands behind the call
+      left.validatedNoSidewalkCount mustBe 1
+      left.rejectedNoSidewalkCount mustBe 1
+      left.labelCount mustBe 3
+      // The rejected label is the oldest, and it is not the first counted one.
+      left.firstNoSidewalkLabelAt.value must be > java.time.OffsetDateTime.now().minusDays(11)
+      // Its tag does not fill the other face either.
+      mixed(StreetSide.Right).presenceBasis mustBe SidewalkPresenceBasis.AuditedNoLabels
+
+      val right = rejectedOnly(StreetSide.Right)
+      right.presence mustBe SidewalkPresenceStatus.Present
+      right.presenceBasis mustBe SidewalkPresenceBasis.AuditedNoLabels
+      right.noSidewalkLabelCount mustBe 0
+      right.rejectedNoSidewalkCount mustBe 1
+      right.labelCount mustBe 1
+      right.firstNoSidewalkLabelAt mustBe None
+    }
+
+    "be re-derived the 383 way by evolution 388's Downs, so a rolled-back deploy reads rows it agrees with" in {
+      // The Down drops the two columns and re-populates without the verdict rules: a rejected label counts as
+      // evidence again, which is what the code the Down accompanies expects to find.
+      val downStatements = evolution388Statements("downs")
+      downStatements must have size 1
+
+      val (columns, total, streets, oldWayCount) = runRolledBack(for {
+        streetEdgeId <- insertStreet()
+        user         <- insertUser()
+        _            <- audit(streetEdgeId, user)
+        _            <- insertLabel(streetEdgeId, user, "NoSidewalk", Some(3.0), correct = Some(false))
+        _            <- sqlu"""ALTER TABLE sidewalk_presence
+                               DROP CONSTRAINT IF EXISTS sidewalk_presence_validated_within_labels_check,
+                               DROP CONSTRAINT IF EXISTS sidewalk_presence_no_sidewalk_within_labels_check,
+                               DROP COLUMN IF EXISTS validated_no_sidewalk_count,
+                               DROP COLUMN IF EXISTS rejected_no_sidewalk_count"""
+        _       <- sqlu"DELETE FROM sidewalk_presence"
+        _       <- sqlu"#${downStatements.head}"
+        columns <- sql"""SELECT column_name FROM information_schema.columns
+                              WHERE table_schema = current_schema() AND table_name = 'sidewalk_presence'""".as[String]
+        total       <- sql"SELECT COUNT(*) FROM sidewalk_presence".as[Int].head
+        streets     <- sql"SELECT COUNT(*) FROM street_edge".as[Int].head
+        oldWayCount <- sql"""SELECT no_sidewalk_label_count FROM sidewalk_presence
+                              WHERE street_edge_id = $streetEdgeId AND street_side = 'left'""".as[Int].head
+      } yield (columns, total, streets, oldWayCount))
+
+      columns must not contain "validated_no_sidewalk_count"
+      columns must not contain "rejected_no_sidewalk_count"
+      total mustBe streets * 2
+      oldWayCount mustBe 1
     }
 
     "give every street two faces, unknown until the street is audited" in {

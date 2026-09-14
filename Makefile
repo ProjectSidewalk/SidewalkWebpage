@@ -3,7 +3,7 @@
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
         hide-streets-without-imagery \
-        import-street-imagery reveal-or-hide-neighborhoods \
+        import-street-imagery reveal-or-hide-regions \
         lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-vendor-versions \
         scalafmt scalafmt-fix compile test-scala \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
@@ -334,8 +334,8 @@ test-e2e-host:
 	  || { echo "error: @playwright/test isn't installed on the host — run 'npm ci && npx playwright install chromium'"; exit 2; }
 	@npx playwright test $(args)
 
-reveal-or-hide-neighborhoods:
-	@docker exec -it $(db-container) sh -c "/opt/scripts/reveal-or-hide-neighborhoods.sh"
+reveal-or-hide-regions:
+	@docker exec -it $(db-container) sh -c "/opt/scripts/reveal-or-hide-regions.sh"
 
 # Static checks on conf/evolutions/default/*.sql. Host-side bash, no container needed. Also a blocking CI job.
 lint-evolutions:

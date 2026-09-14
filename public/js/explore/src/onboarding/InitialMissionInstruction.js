@@ -107,14 +107,14 @@ class InitialMissionInstruction {
 
   /**
    * Shows the starter notification when you begin your first mission.
-   * @param {Neighborhood} neighborhood
+   * @param {Region} region
    */
-  start(neighborhood) {
+  start(region) {
     this.#tracker.push('PopUpShow_LetsGetStarted');
 
     const title = i18next.t('popup.start-title');
     const message = i18next.t(
-      'popup.start-body', { neighborhood: neighborhood.getProperty('name'), city: window.cityNameShort },
+      'popup.start-body', { region: region.getProperty('name'), city: window.cityNameShort },
     );
     this.#popUpMessage.notify(title, message, () => {
       this.#navigationService.bindPositionUpdate(this.#instructToCheckSidewalks);

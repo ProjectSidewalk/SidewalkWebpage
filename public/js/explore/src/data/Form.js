@@ -56,7 +56,7 @@ class Form {
    * Serializes a pano's metadata into the block the back end expects (both in `data.panos` and on each label).
    *
    * @param {PanoData} panoData - The pano metadata held by the PanoStore.
-   * @returns {Object} The pano metadata in the submission's wire format.
+   * @returns {object} The pano metadata in the submission's wire format.
    */
   #compilePanoData(panoData) {
     const props = panoData.getProperties();
@@ -92,7 +92,7 @@ class Form {
    * Gathers all the data needed to submit logs to the back end.
    *
    * @param {Task} task - The audit task to compile submission data for.
-   * @returns {Object} The JSON data to submit to the back end.
+   * @returns {object} The JSON data to submit to the back end.
    */
   #compileSubmissionData(task) {
     const mission = this.#missionContainer.getCurrentMission();
@@ -209,7 +209,7 @@ class Form {
   /**
    * Submit the compiled data to the back end and apply the server's response.
    *
-   * @param {Object} data - The compiled submission data.
+   * @param {object} data - The compiled submission data.
    * @param {Task} task - The audit task the data belongs to.
    * @returns {Promise<void>}
    */

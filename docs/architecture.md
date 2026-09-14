@@ -57,7 +57,12 @@ The backend follows a consistent layering: **routes → Controller → Service �
 - **`app/models/utils/MyPostgresProfile.scala`** — a custom Slick Postgres profile wiring in PostGIS geometry,
   JSON, and other slick-pg extensions. Spatial query helpers live in `SpatialQueryDefs.scala`.
 - **Per-city schemas** — each city is its own schema (`sidewalk_<city>`); they're essentially identical.
-  Authentication lives in `sidewalk_login`.
+  Authentication lives in the shared `sidewalk_login` schema, along with anything that belongs to the account rather
+  than to one city: `user_settings` holds choices the user makes (units, service-hours tracking) and
+  `user_account_state` holds what the site records about them (having finished the Explore tutorial). Both only get a
+  row once there's something to store (#3720). Per-city stats and privacy flags stay in each city's `user_stat`.
+  The schema holds auth to one account per email, one login row per account, and one password per login row
+  (#5317), and sign-in, reset, and change-password all reach the password through the account.
 - **Evolutions** — schema changes are Play evolutions: numbered SQL files in `conf/evolutions/default/`, each with
   `# --- !Ups` / `# --- !Downs`, auto-applied at startup to every city schema. Numbers are gapless, a PR's changes go
   in one file, every new table gets `ALTER TABLE <name> OWNER TO sidewalk;` and its full set of constraints, and the
@@ -89,7 +94,12 @@ reads.
 
 Crops are the image the Gallery, the landing validation grid and label popups fall back to when live imagery is
 unavailable; they are written by the browser's `POST /saveImage` canvas snapshot at labeling time and by the job for
-every label that has none (AI submissions, failed uploads, any past city). The geometry — `CropSizingRule` (the
+every label that has none (AI submissions, failed uploads, any past city). The card surfaces (Gallery, landing grid,
+dashboard mistakes, the share preview) fall back one step further for a GSV label with no crop, to a Street View
+Static API still requested at 640×427 — Google's 640-px cap at the Explore canvas's aspect — so it is the labeling
+frame at a smaller scale and a marker at the label's canvas fraction still lands on the feature (#3095; asking for
+720×480 got a 640×480 still with extra sky and ground). Label popups never use the still: their chain is live pano →
+self-hosted backup → crop → "imagery not available". The geometry — `CropSizingRule` (the
 swappable, versioned sizing rule) and `CropGeometry` (equirectangular mechanics) — is a port of panorama-tools'
 `CropRunner.py`, pinned to it by golden fixtures under `test/resources/crops/`. The two writers put the label in
 different places — the snapshot at its canvas fraction, the job's window wherever `CropGeometry.labelPositionInCrop`
@@ -137,10 +147,10 @@ actors in `app/actor/`; HTTP filters in `app/filters/`, registered through `play
 
 Each deployment runs a set of nightly jobs as pekko actors in `app/actor/` — the imagery expiry sweep, the
 imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, the sidewalk presence
-rebuild (which re-derives the `sidewalk_presence` table, one verdict per side of each street, from the day's labels
-and audits, #5279), label clustering (which opens with the intersection rebuild that re-derives the `intersection`
-table from the street graph and attributes corner-feature clusters to it, #5095), crop generation, OSM way refresh,
-AI validations, and auth-token cleanup. The schedule lives in one place,
+rebuild (which re-derives the `sidewalk_presence` table, one verdict per side of each street, from the day's labels,
+audits and validator verdicts, #5279/#5285), label clustering (which opens with the intersection rebuild that
+re-derives the `intersection` table from the street graph and attributes corner-feature clusters to it, #5095), crop
+generation, OSM way refresh, AI validations, and auth-token cleanup. The schedule lives in one place,
 `app/actor/ScheduledJobs.scala`: each actor reads its own time from there, staggered across the small hours and
 shifted per city by `ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and
 provider quotas.
@@ -153,7 +163,8 @@ job: a bookkeeping failure is logged and swallowed, and a job's own failure prop
 
 The two derived tables, `intersection` and `sidewalk_presence`, share one pattern: the derivation is raw SQL held once
 in the DAO (`IntersectionTable.derivationSql`, `SidewalkPresenceTable.derivationSql`), the evolution that created the
-table carries a pasted copy for the one-time population of existing cities, the nightly rebuild re-runs the DAO's copy
+table — or the latest one to change the derivation, with a real Down that re-derives the old way (388.sql) — carries
+a pasted copy for the one-time population of existing cities, the nightly rebuild re-runs the DAO's copy
 into a temp table and touches only the rows that changed, and a spec (`IntersectionTableSpec`,
 `SidewalkPresenceTableSpec`) runs the evolution's statement and then the rebuild to prove the two copies still agree.
 
@@ -173,12 +184,19 @@ The `/v3` API is the canonical public surface (handlers in `app/controllers/api/
   GeoPackage fields (`label_id`, `region_name`, `city_id`) — one canonical field name across those formats. A
   response DTO declares its fields once, in the `ApiFields` list on its companion (below), and every format is
   built from that list, so a field cannot be named one thing in one format and something else in another. A value
-  the JSON nests gets a dotted name (`labels.CurbRamp.count`), which is a nested key in the JSON and a CSV column
-  of exactly that name. (GeoPackage is the one format not yet driven from the list — see #5273.)
+  the JSON nests gets a dotted name (`labels.CurbRamp.count`), which is a nested key in the JSON, a CSV column
+  of exactly that name, and a GeoPackage column with each dot turned into an underscore (`labels_CurbRamp_count`),
+  since ArcGIS rejects a dot in a column name (#5273).
 - **Shapefile is the exception:** its fields stay **camelCase and abbreviated** (`labelId`, `regionName`,
   `neighborhd`, `cameraHdng`). The DBF format hard-truncates field names to 10 chars, so shapefiles can't carry the
   canonical snake_case names regardless of casing; camelCase reclaims the byte the underscore would waste. Shapefile
   is a legacy export being phased out — GeoPackage is the modern GIS export that carries the canonical snake_case names.
+- **File downloads** (shapefile, GeoPackage, zipped CSVs) are each built in their own folder under `api-downloads/`
+  and deleted once streamed; a folder untouched for two hours (its client gave up) is swept on a later download (#4133).
+- **One file download per URL at a time.** While a file is being built and streamed, a repeat of the same URL gets a
+  429 with `Retry-After`, so an impatient retry can't double minutes of work (#4161). Plain CSV/GeoJSON streams are
+  not guarded, since the site's own pages fetch the same URLs in parallel. A `HEAD` request gets the same 429 without
+  building anything, which is how the Label Map and API docs download buttons warn before they start.
 - v3 is a **preview** surface: breaking changes are made in place rather than minting a new version (precedent: #4223).
 
 **Data structures (DTOs).** The response/filter types live in **`app/models/api/`** (`package models.api`), in
@@ -194,7 +212,9 @@ home: a `*Table.scala` DAO *produces* its DTOs but never *defines* them (issue #
   entries, from which `csvHeader`, `toCsvRow`, and `toJson` are all derived. `csvOnlyFields` adds columns the CSV
   carries but the JSON expresses another way — a geometry the CSV can only summarize as `start_point`/`end_point`,
   say — and `csvFields` can be overridden where the CSV needs an order the JSON doesn't have. A GeoJSON DTO puts
-  `toJson(this)` in the Feature's `properties` and passes the geometry separately.
+  `toJson(this)` in the Feature's `properties` and passes the geometry separately. A GeoPackage layer
+  (`ShapefilesCreatorHelper.GeoPackageLayer`) takes `fields` as its columns, each typed from the field's Scala type
+  (`GeoColumnFor`) and holding the field's JSON value.
 - **Single-object endpoints** (`overallStats`, `aggregateStats`) return one object rather than a list of records, so
   their CSV lists stats down the page: `ApiModelUtils.toCsvKeyValueRows(toJson)` under `keyValueCsvHeader`, keying
   each row by its dotted path.
@@ -219,9 +239,13 @@ A public, account-free share surface (issue #456, `ShareController`) lets a sing
 nearby-labels minimap fed by the cheap, bbox-bounded `/v3/api/rawLabels` API (deliberately not LabelMap's
 city-wide `/labels/all` layer) — with server-rendered Open Graph / Twitter Card meta so a pasted link produces a
 rich preview. `GET /label/:id/image` serves the preview image — self-hosted, with the label-type marker
-composited onto the crop (or a branded fallback) — cached under `share.image.directory`
+composited onto the crop (or a Street View still, or a branded fallback) — cached under `share.image.directory`
 (`SIDEWALK_SHARE_IMAGES_DIR`), the same mounted volume as label crops so share links persist across container
-recreation; the per-city cache is LRU-bounded so the public, enumerable URL space can't fill the volume. To
+recreation; the per-city cache is LRU-bounded so the public, enumerable URL space can't fill the volume. Previews
+never expire, so a change to how they are built bumps `ShareImageCache.Generation`: it is in the filename, so a
+label's old preview is replaced the next time it is requested (rebuilt, or renamed into place when nothing can be
+built any more — an old preview beats the logo), and in the advertised `og:image` URL, so platforms that cache the
+card by URL re-fetch. Old files for labels never requested again age out of the LRU cap. To
 support the anonymous landing, the `LabelController.getLabelData` read backing the label-detail popup was opened
 to anonymous access.
 
@@ -231,7 +255,8 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 corresponding Twirl view:
 
 - **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
-- **`validate/`** — the Validate tool (confirm/reject others' labels).
+- **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
+  and why: [`docs/validation-queue.md`](validation-queue.md).
 - **`gallery/`** — browsable, filterable gallery of labels.
 - **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one
   `<PageName>Page.js` per route, loaded by that page's Twirl template. `AdminShell.js` loads on every one of those
@@ -242,6 +267,28 @@ corresponding Twirl view:
   that endpoint, alongside `apiDocs.js` (shell behavior), `apiTableWrapper.js`, and `apiDocsTheme.js`
   (`ApiDocsTheme.color(token, alpha?)`, the one way preview code reads a CSS color token for Chart.js/Mapbox so
   chart colors follow the design system). Served file-by-file — no Grunt bundle.
+- **`access-score/`** — the AccessScore tool (`/accessScore`, #5217): a pure scoring model that re-runs the engine's
+  math in the browser (`AccessScoreModel.js`, pinned to the Scala engine through `test/fixtures/accessScoreParity.json`;
+  it ingests `/v3/api/accessScoreStreets` and `/v3/api/accessScoreIntersections` and reproduces a street's
+  `segment_score`, every intersection's score, and the headline `score` #5095 averages from them — so the map's
+  colors are the API's numbers, reweighted live; the one departure is that an unaudited street stays unscored
+  rather than borrowing a headline from its crossings),
+  the map view (streets and a neighborhood choropleth colored from feature-state, with a ramp legend beside the
+  zoom buttons, `AccessScoreMapLegend.js`), the cluster evidence layer
+  (`AccessScoreClusterLayer.js`, fed by `/v3/api/labelClusters` — the clusters the engine actually scores, not the
+  raw labels), the cluster sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop
+  cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
+  coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
+  drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and
+  intersections (`AccessScoreWhatsHere.js`); the ranked neighborhoods; and a photo strip of label crops from the
+  scope's neighborhood feed (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
+  the whole city is the population, a brush emphasizes in the overview views, narrows what's here and dims the
+  map, and a selection marks the overview views, scopes what's here and the photos, and fades the rest of the
+  map). An optional dark basemap (`?dark=1`, or the sidebar toggle, which is a live `map.setStyle` followed by a
+  `remount()` of the map view and the cluster layer on `style.load`) reads the ramp in its dark stepping
+  (`--color-score-ramp-dark-*`, passed per call as `{ mode: 'dark' }`) with a second chrome palette; the band and
+  popups stay light and keep the light ramp. Grunt-bundled to `access-score/build/`; the shared score ramp is
+  `common/scoreRamp.js`.
 - **`ps-map/`** — shared map component used across pages.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is

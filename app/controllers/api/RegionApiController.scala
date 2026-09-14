@@ -13,7 +13,7 @@ import scala.concurrent.{ExecutionContext, Future}
 /**
  * Controller for the Regions API endpoints.
  *
- * Provides access to neighborhood/region data for Project Sidewalk deployments, including
+ * Provides access to region data for Project Sidewalk deployments, including
  * label counts, audit coverage, and geographic boundaries. Supports GeoJSON, CSV, shapefile,
  * and GeoPackage output formats.
  *
@@ -35,7 +35,7 @@ class RegionApiController @Inject() (
     extends BaseApiController(cc) {
 
   /**
-   * Gets regions (neighborhoods) with filters applied.
+   * Gets regions with filters applied.
    *
    * @param bbox Bounding box in format "minLng,minLat,maxLng,maxLat"
    * @param regionId Optional region ID to filter for a single region

@@ -63,7 +63,7 @@ class MissionContainer {
   }
 
   /**
-   * Get the sum of the distance of all the user's completed missions in this neighborhood.
+   * Get the sum of the distance of all the user's completed missions in this region.
    * @param unit
    * @returns {number}
    */

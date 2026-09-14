@@ -4,7 +4,7 @@
  * ahead dashed in the ahead color) with green/red start and finish dots at its ends, a "you are here" marker, and a
  * box outlining the minimap's current zoomed extent, so the user always sees the whole route alongside the street-level
  * view — the way a game shows a world map beside your local view. It sits in the upper-right corner; the mini-legend
- * keeps the bottom-left. On a neighborhood audit the route grows street-by-street, so there's nothing to preview and
+ * keeps the bottom-left. On a region audit the route grows street-by-street, so there's nothing to preview and
  * this stays hidden (#4639).
  *
  * It draws the route geometry the tool already has (svl.taskContainer) onto a small canvas — no second Google map — so
@@ -22,14 +22,14 @@ class RouteOverview {
   #enabled;
 
   /**
-   * @param {Object} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
+   * @param {object} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
    * @param {Tracker} tracker - Interaction logger.
    */
   constructor(uiMinimap, tracker) {
     this.#tracker = tracker;
     this.#canvas = uiMinimap.routeOverviewCanvas[0];
     this.#ctx = this.#canvas.getContext('2d');
-    this.#enabled = !!(svl.neighborhoodModel && svl.neighborhoodModel.isRoute);
+    this.#enabled = !!(svl.regionModel && svl.regionModel.isRoute);
 
     if (this.#enabled) {
       // Reveal the upper-right overview inset (CSS keys off this holder class); the mini-legend stays bottom-left.

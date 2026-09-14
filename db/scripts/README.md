@@ -45,7 +45,7 @@ are **git-ignored** and must be placed in `db/` yourself; see [`docs/dev-environ
 | `create-new-schema.sh` | `make create-new-schema name=<schema> donor=<schema>` | Builds a **brand-new empty city schema** by cloning a live city's structure plus its seed rows (evolutions, version, `config` + tutorial street, tags, surveys) and bumping the sequences. Refuses a donor that has applied an evolution beyond the checkout's highest, or whose top evolution is another branch's under the same number — accepted when its hash is the file's (`make` passes both), otherwise the other city schemas must agree with it. The committed template is not used here — it is frozen at evolution 252 and can't be replayed past 372 (#5198). | When standing up a city you don't yet have a dump for. |
 | `fill-new-schema.sh` | `make fill-new-schema` | Populates a new city's `street_edge` / `region` / priority tables from the **staging tables** (`qgis_road`, `qgis_region` — from `scripts/onboard_city.py` or a QGIS export), relocates the seeded tutorial street past the imported ids, sets the city center, map bounds, and zoom from the open regions, and prints what landed. | After `create-new-schema` + loading the staging SQL, to bring the city online. |
 | `hide-streets-without-imagery.sh` | `make hide-streets-without-imagery` | Marks streets listed in a CSV as `status = 'no_imagery'` so they're not handed out for auditing. | After running `check_streets_for_imagery.py`. |
-| `reveal-or-hide-neighborhoods.sh` | `make reveal-or-hide-neighborhoods` | Opens or closes whole **regions** for auditing (flips `region.deleted` + street status between `open`/`closed`); relocates the tutorial street if its region is hidden. | Phased city launches; pulling a region back. |
+| `reveal-or-hide-regions.sh` | `make reveal-or-hide-regions` | Opens or closes whole **regions** for auditing (flips `region.deleted` + street status between `open`/`closed`); relocates the tutorial street if its region is hidden. | Phased city launches; pulling a region back. |
 | `import-street-imagery.sh` | `make import-street-imagery` | Ingests `check_streets_for_imagery.py`'s per-street imagery summary CSV into the `street_imagery` table. | When backfilling imagery-age data for a city (#4348). |
 | `lint-evolutions.sh` | `make lint-evolutions` | **Static lint** for `conf/evolutions/default/*.sql` (catches semicolons mid-comment and missing `!Ups`/`!Downs` markers). Runs in CI. | Automatically in CI; run locally before pushing an evolution. |
 | `helpers.sh` | _(sourced, not run)_ | Shared bash functions: `prompt_with_default`, `read_street_ids_from_csv`, `mark_streets_no_imagery` (which takes a `street_edge_status_change_source` value as its second argument), and `run_with_progress` (the spinner/clock used by the restore scripts). | Never directly — it's `source`d by the others. |
@@ -85,7 +85,7 @@ and `db/scripts/` are invisible to it.
 
 **Ongoing maintenance:**
 
-- Open/close neighborhoods: `make reveal-or-hide-neighborhoods`
+- Open/close regions: `make reveal-or-hide-regions`
 - Mark no-imagery streets: `make hide-streets-without-imagery`
 - Remove specific streets / validations: run `remove_streets.sql` / `remove_validations.sql` by hand (below).
 
@@ -118,13 +118,13 @@ or `ROLLBACK`. Edit the candidate-id list and the `search_path` (target city sch
   ~20 min for all ~6M into a fresh DB, which is why the first import uses `replace=1`.
 - **`init.sh` only runs on a fresh volume.** Editing it does nothing to an existing dev DB until you recreate the volume
   (`make docker-stop` + remove the db volume, or `docker compose down -v`).
-- **`reveal-or-hide-neighborhoods.sh` has a server mode** (test/prod) with different connection params; the default is
+- **`reveal-or-hide-regions.sh` has a server mode** (test/prod) with different connection params; the default is
   local. Only run the server mode if you know what you're doing.
 - **Inspect the DB read-only** with the `readonly_user` role (created by `init.sh`): it has `SELECT` only — never use
   `-U sidewalk` for exploration. The import scripts re-grant it after each restore, so read access survives re-imports.
 - **Maintenance scripts assume the *current* (post-evolution) schema.** A freshly imported dump sits at whatever schema
   version it was dumped at; Play applies pending evolutions only when the **app next starts**. So right after
-  `import-dump`, a script like `reveal-or-hide-neighborhoods.sh` can fail with `column ... does not exist` (e.g.
+  `import-dump`, a script like `reveal-or-hide-regions.sh` can fail with `column ... does not exist` (e.g.
   `street_edge.status` from evolution 325 / #3888) because the dump is older. Start the app once against that city to
   apply pending evolutions, then re-run the script. (These run in a transaction, so such a failure rolls back cleanly.)
 - **Every script that writes `street_edge.status` records the transition** in `street_edge_status_change` — old status,

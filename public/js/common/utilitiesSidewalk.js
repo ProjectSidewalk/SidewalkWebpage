@@ -30,7 +30,7 @@ function UtilitiesMisc(JSON) {
    * any of these files goes missing.
    *
    * @param {string} [category] - A label type name, or 'Walk'. Omit for the whole map.
-   * @returns {Object} `{id, iconImagePath}` for that type, or a map of them keyed by type name.
+   * @returns {object} `{id, iconImagePath}` for that type, or a map of them keyed by type name.
    */
   function getIconImagePaths(category) {
     const imagePaths = { Walk: { id: 'Walk', iconImagePath: null } };
@@ -501,9 +501,9 @@ function UtilitiesMisc(JSON) {
    * the icons overdraw at identical coordinates, and the arrow-blink period — derived from how many arrows are in
    * the list — stretches out as it fills up (#4832). Annotations are shared by reference, so identity dedupes them.
    *
-   * @param {Array<Object>} savedAnnotations - Annotations carried over from previous states.
-   * @param {?Array<Object>} stateAnnotations - The current state's own annotations, if it declares any.
-   * @returns {Array<Object>} The union, in carry-over-then-own order, each annotation appearing once.
+   * @param {Array<object>} savedAnnotations - Annotations carried over from previous states.
+   * @param {?Array<object>} stateAnnotations - The current state's own annotations, if it declares any.
+   * @returns {Array<object>} The union, in carry-over-then-own order, each annotation appearing once.
    */
   function mergeOnboardingAnnotations(savedAnnotations, stateAnnotations) {
     return [...new Set([...savedAnnotations, ...(stateAnnotations || [])])];
@@ -512,9 +512,9 @@ function UtilitiesMisc(JSON) {
   /**
    * Picks the annotations that should stay on screen after the given state, i.e. those tagged to outlive it.
    *
-   * @param {Array<Object>} annotations - The state's merged annotation list.
+   * @param {Array<object>} annotations - The state's merged annotation list.
    * @param {string} stateId - Id of the state being drawn; an annotation kept "until" it expires here.
-   * @returns {Array<Object>} The subset to carry into the next state.
+   * @returns {Array<object>} The subset to carry into the next state.
    */
   function carryOverOnboardingAnnotations(annotations, stateId) {
     return annotations.filter((a) => a.keepUntil && a.keepUntil !== stateId);
@@ -523,7 +523,7 @@ function UtilitiesMisc(JSON) {
   /**
    * Returns a map from rating level (1/2/3) to the i18n key (under the `common` namespace) for that level's label.
    * @param {string} labelType
-   * @returns {Object.<number, string>}
+   * @returns {Record<number, string>}
    */
   function getRatingLevelKeys(labelType) {
     return isPositiveLabelType(labelType)
@@ -682,7 +682,7 @@ function UtilitiesMisc(JSON) {
   /**
    * One label type's canvas fill colour, or the whole `{fillStyle, strokeStyle}` table when no type is named.
    * @param {string} [category] - A label type name, or 'Walk'. Omit for the whole table.
-   * @returns {string|Object}
+   * @returns {string|object}
    */
   function getLabelColors(category) {
     return category ? colors[category].fillStyle : colors;

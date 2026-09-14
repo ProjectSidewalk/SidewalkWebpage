@@ -27,7 +27,7 @@
   "street-count-in-region_other": "{{count}} calles en {{region}}",
   "see-all-routes_other": "Ver las {{count}} rutas en tu panel",
   "copied-to-clipboard": "¡Copiado al portapapeles!",
-  "one-neighborhood-warning": "Una ruta solo puede tener calles de un vecindario en este momento.",
+  "one-region-warning": "Una ruta solo puede tener calles de un vecindario en este momento.",
   "route-name-default": "Ruta en {{region}}",
   "route-name-streets": "{{start}} a {{end}}",
   "save-error": "Algo salió mal al guardar. Inténtalo de nuevo.",

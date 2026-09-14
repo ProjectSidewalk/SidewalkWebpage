@@ -18,7 +18,7 @@ class CrossCityStats {
 
   /**
    * @param {HTMLElement} section - The #ud-cities-section element.
-   * @param {Object} opts
+   * @param {object} opts
    * @param {string} opts.currentCityName - Display name of the deployment being viewed.
    * @param {string} [opts.statsUrl='/userapi/crossCityStats'] - Endpoint to fetch; the admin's view of a user's
    *     dashboard points it at that user's breakdown instead of the viewer's own.
@@ -90,8 +90,8 @@ class CrossCityStats {
   /**
    * Fills the shared community band with the mapper's own cross-city totals.
    *
-   * @param {Array<Object>} cities - Per-city rows from the endpoint.
-   * @param {Object} data - The endpoint payload; its integer totals are exactly the row sums.
+   * @param {Array<object>} cities - Per-city rows from the endpoint.
+   * @param {object} data - The endpoint payload; its integer totals are exactly the row sums.
    */
   #renderBand(cities, data) {
     this.#setText('ud-cities-total-cities', CrossCityStats.#num(cities.length));
@@ -114,7 +114,7 @@ class CrossCityStats {
    * Renders the per-city table. Built as a table rather than cards because every row carries the same five numbers
    * and the point is comparing them down a column.
    *
-   * @param {Array<Object>} cities - Per-city rows from the endpoint, most labels first.
+   * @param {Array<object>} cities - Per-city rows from the endpoint, most labels first.
    * @param {string} unit - Distance abbreviation for this viewer ("km" / "mi").
    */
   #renderTable(cities, unit) {
@@ -218,7 +218,7 @@ class CrossCityStats {
    * Coordinates come from /v3/api/cities rather than being shipped with the stats, so city geography has one source.
    * Skipped silently when Mapbox or the coordinates are unavailable — the table above already carries the numbers.
    *
-   * @param {Array<Object>} cities - Per-city rows from the endpoint.
+   * @param {Array<object>} cities - Per-city rows from the endpoint.
    */
   async #renderMap(cities) {
     const host = this.#section.querySelector('#ud-cities-map');
@@ -327,7 +327,7 @@ class CrossCityStats {
    * Names the deployment being viewed, preferring the marked row over the config-derived name handed in — the two can
    * disagree on a misconfigured box, and the table is what the reader sees.
    *
-   * @param {Array<Object>} cities - Per-city rows from the endpoint.
+   * @param {Array<object>} cities - Per-city rows from the endpoint.
    * @returns {string} The current city's display name.
    */
   #cityHereName(cities) {
@@ -396,7 +396,7 @@ class CrossCityStats {
    * case and a double-escaped `&amp;#39;` in the second.
    *
    * @param {string} key - Namespaced i18next key.
-   * @param {Object} [vars] - Interpolation values.
+   * @param {object} [vars] - Interpolation values.
    * @returns {string} The translated string, unescaped.
    */
   static #t(key, vars) {
@@ -407,7 +407,7 @@ class CrossCityStats {
    * {@link CrossCityStats.#t}, escaped once for insertion into innerHTML.
    *
    * @param {string} key - Namespaced i18next key.
-   * @param {Object} [vars] - Interpolation values.
+   * @param {object} [vars] - Interpolation values.
    * @returns {string} The translated string with HTML metacharacters replaced by entities.
    */
   static #tEsc(key, vars) {

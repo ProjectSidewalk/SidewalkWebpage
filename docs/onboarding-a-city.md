@@ -226,7 +226,7 @@ its default either way.
 - **Uptime monitoring.** In [Uptime Robot](https://uptimerobot.com/), add an HTTP(s) monitor at a 5-minute interval
   on the `/signIn` endpoint of each stage (e.g. `https://sidewalk-<city>-test.cs.washington.edu/signIn`).
 - **A launch limited to an arbitrary boundary** (streets around transit stations, say) has no tooling: phased launches
-  are by region (`include:`/`exclude:` at fill time, `make reveal-or-hide-neighborhoods` later). The retired runbook's
+  are by region (`include:`/`exclude:` at fill time, `make reveal-or-hide-regions` later). The retired runbook's
   hand recipe for it is in the wiki page history linked above, but it predates `street_edge.status`.
 
 ## Re-running, and doing it by hand

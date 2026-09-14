@@ -347,5 +347,13 @@
     "on-facebook": "Delen op Facebook",
     "on-linkedin": "Delen op LinkedIn",
     "via-email": "Delen via e-mail"
-  }
+  },
+  "mini-card": {
+    "no-image": "Geen afbeelding",
+    "open": "Dit label openen: {{label}}",
+    "votes": "Dit label valideren",
+    "no-image-to-judge": "Geen afbeelding om dit label op te beoordelen",
+    "vote-failed": "Je stem is niet opgeslagen. Probeer het opnieuw."
+  },
+  "download-already-preparing": "Dit bestand wordt al voorbereid voor een andere aanvraag. Probeer het zo opnieuw."
 }

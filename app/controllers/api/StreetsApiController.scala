@@ -111,12 +111,13 @@ class StreetsApiController @Inject() (
    * @param regionId            Optional region ID to filter faces by geographic region
    * @param regionName          Optional region name to filter faces by geographic region
    * @param presence            Comma-separated verdicts to keep: "present", "absent", "unknown" (default: all)
-   * @param minNoSidewalkLabels Optional minimum number of NoSidewalk labels on the face
-   * @param minAuditCount       Optional minimum number of completed audits of the street
-   * @param wayType             Comma-separated list of way types to include (e.g., "residential,primary")
-   * @param status              Comma-separated list of street statuses to include (e.g., "open,no_imagery")
-   * @param filetype            Output format: "geojson" (default), "csv", "shapefile", "geopackage"
-   * @param inline              Whether to display the file inline or as an attachment
+   * @param minNoSidewalkLabels          Optional minimum number of NoSidewalk labels on the face
+   * @param minValidatedNoSidewalkLabels Optional minimum number of validator-confirmed NoSidewalk labels (#5285)
+   * @param minAuditCount                Optional minimum number of completed audits of the street
+   * @param wayType                      Comma-separated list of way types to include (e.g., "residential,primary")
+   * @param status                       Comma-separated list of street statuses (e.g., "open,no_imagery")
+   * @param filetype                     Output format: "geojson" (default), "csv", "shapefile", "geopackage"
+   * @param inline                       Whether to display the file inline or as an attachment
    */
   def getSidewalkPresence(
       bbox: Option[String],
@@ -124,6 +125,7 @@ class StreetsApiController @Inject() (
       regionName: Option[String],
       presence: Option[String],
       minNoSidewalkLabels: Option[Int],
+      minValidatedNoSidewalkLabels: Option[Int],
       minAuditCount: Option[Int],
       wayType: Option[String],
       status: Option[String],
@@ -155,7 +157,8 @@ class StreetsApiController @Inject() (
           val filters = SidewalkPresenceFiltersForApi(
             bbox = finalBbox, regionId = finalRegionId, regionName = finalRegionName,
             presence = parsedPresence.toOption.flatten, statuses = parsedStatuses,
-            minNoSidewalkLabels = minNoSidewalkLabels, minAuditCount = minAuditCount, wayTypes = parsedWayTypes
+            minNoSidewalkLabels = minNoSidewalkLabels, minValidatedNoSidewalkLabels = minValidatedNoSidewalkLabels,
+            minAuditCount = minAuditCount, wayTypes = parsedWayTypes
           )
 
           val dbDataStream: Source[SidewalkPresenceForApi, _] =

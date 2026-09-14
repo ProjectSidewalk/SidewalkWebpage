@@ -440,7 +440,7 @@
   border-top: 4px solid var(--color-neutral-300);
 }
 
-/* Region/pioneer trophies link to Explore that neighborhood: keep the card look, add a lift + reveal the affordance. */
+/* Region/pioneer trophies link to Explore that region: keep the card look, add a lift + reveal the affordance. */
 .ud-trophy-link {
   text-decoration: none;
   color: inherit;
@@ -1513,6 +1513,11 @@
 .ud-label {
   font: var(--text-body-bold);
   color: var(--color-neutral-900);
+}
+
+/* A subsection of a Settings section (e.g. Change password under Account): page-subhead's spacing, a heavier font. */
+.ud-settings-subhead {
+  font: var(--text-title-bold);
 }
 
 .ud-check input:enabled { cursor: pointer; }

@@ -18,7 +18,7 @@ import models.label.LabelTypeEnum
  *     many pins a labeler dropped along it.
  *   - The intersection types ([[intersectionTypeNames]]: CurbRamp, NoCurbRamp, Crosswalk, Signal) are corner
  *     features. Their clusters are pooled on the intersection they sit at, across every street meeting there, and
- *     score it; a cluster too far from any intersection (a mid-block crosswalk, a driveway ramp) stays with its
+ *     score it; a cluster too far from any intersection (a mid-block crossing and its ramps) stays with its
  *     street and scores the segment as an ordinary point feature.
  *   - The along-length types ([[segmentTypeNames]]) score the segment. The [[lengthNormalized]] ones (Obstacle,
  *     SurfaceProblem) are scaled to a per-100 m density by [[lengthFactor]], so a long street is not penalized for
@@ -116,7 +116,7 @@ object AccessScoreCalculator {
   val orderedIntersectionTypes: Seq[String] = orderedScoredTypes.filter(intersectionTypeNames.contains)
 
   // --- TUNABLE: how far (geodesic meters) from the nearest intersection a corner-type cluster is still attributed to
-  // it. The 5-8% of such clusters farther out are mid-block crosswalks and driveway ramps, which stay with the street.
+  // it. The 5-8% of such clusters farther out are mid-block crossings and their ramps, which stay with the street.
   // Cited by the SQL that attributes clusters (IntersectionTable) and published by /v3/api/accessScoreConfig. ---
   val attributionRadiusMeters: Double = 25.0
 

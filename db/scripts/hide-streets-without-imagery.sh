@@ -10,7 +10,7 @@
 # INPUT:         a headered CSV whose first column is street_edge_id
 #                (db/onboarding/<city-id>/streets_with_no_imagery.csv).
 #
-# The actual UPDATE/DELETE lives in mark_streets_no_imagery() in helpers.sh, shared with reveal-or-hide-neighborhoods.sh
+# The actual UPDATE/DELETE lives in mark_streets_no_imagery() in helpers.sh, shared with reveal-or-hide-regions.sh
 # so the two can't drift. It's idempotent, so re-running on an already-processed region is safe.
 # =====================================================================================================================
 set -euo pipefail
@@ -33,7 +33,7 @@ fi
 STREET_IDS=$(read_street_ids_from_csv "$CSV_FILENAME")
 echo "Streets to exclude: $STREET_IDS"
 
-# Mark the streets without imagery (shared with reveal-or-hide-neighborhoods.sh via helpers.sh).
+# Mark the streets without imagery (shared with reveal-or-hide-regions.sh via helpers.sh).
 mark_streets_no_imagery "$STREET_IDS" hide_streets_without_imagery -d sidewalk -U "$SCHEMA_NAME"
 
 echo "Done! You can now safely delete $CSV_FILENAME — but keep the street_imagery_summary CSV until it has been"

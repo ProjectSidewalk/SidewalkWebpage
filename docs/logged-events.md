@@ -58,8 +58,12 @@ Every `/v3/api-docs/*` page records `Visit_APIDocs_<Endpoint>` (e.g. `Visit_APID
 Follow these when adding a page or action. A settings save that actually moves the measurement units also logs
 `Click_module=ChangeUnits_from=<auto|metric|imperial>_to=<auto|metric|imperial>` beside the `SaveSettings` event, in the
 shape of the navbar's `Click_module=ChangeLanguage_from=<lang>_to=<lang>_location=<…>_route=<…>`, so units adoption can
-be measured the same way language switching is (`auto` means "follow the site language", the default). Leaving the
-settings page with unsaved edits logs the user's answer to the shared unsaved-changes prompt
+be measured the same way language switching is (`auto` means "follow the site language", the default). The
+Settings page's change-password form (#2285) has its own button and logs, server-side, `Click_module=ChangePassword`
+on success, `ChangePasswordFailed_Reason=<WrongCurrentPassword|Invalid>` on a rejection (`Invalid` covers a new
+password that breaks the rules, doesn't match its confirmation, or equals the current one), and
+`ChangePasswordThrottled` once the account has used up its attempts (10 per 15 minutes, successes included).
+Leaving the settings page with unsaved edits logs the user's answer to the shared unsaved-changes prompt
 (`common/UnsavedChangesGuard.js`) as `Click_module=UnsavedSettings_choice=<save|discard|stay>`, so a prompt people
 mostly answer "discard" to says the form is asking too late (#5226). The browser's own refresh/close warning can't
 be logged, so this counts link clicks only. The landing page's validation grid logs
@@ -87,6 +91,24 @@ The LabelMap's "Download" control (`ps-map/MapDownloadControl.js`, #4095) logs t
 `MapDownload_Download_format=<geojson|csv|shapefile|geopackage>` when a format is picked (the download itself is a
 `/v3/api/rawLabels` request, so it also appears in the API request log), and `MapDownload_DocsLink` when the panel's
 API-documentation link is followed.
+
+The AccessScore tool (`/accessScore`, `public/js/access-score/`, #5217) logs its sidebar and map interactions as the
+**`Click_module=AccessScore_<Action>`** family, on a control's settled `change` (never per slider tick):
+`AccessScore_Unit_value=<streets|regions>`, `AccessScore_Weight_value=<labelType>_value=<magnitude>`,
+`AccessScore_ShowUnaudited_value=<bool>`, `AccessScore_ShowClusters_value=<bool>` (the evidence layer),
+`AccessScore_DarkMap_value=<bool>` (the dark basemap toggled), `AccessScore_Reset` (the weights), `AccessScore_ResetAll`
+(weights, view options, selection, brush, band, basemap and camera back to the page as first opened),
+`AccessScore_Select_streetId=<id>` / `AccessScore_Select_regionId=<id>` (a click on a street or neighborhood),
+`AccessScore_SelectCluster_labelType=<type>` (a click on a cluster dot, which opens the cluster sheet) and
+`AccessScore_SheetOpenLabel_labelId=<id>` (a card in that sheet opening the full label card), `AccessScore_ClearVote_result=<Agree|Disagree|Unsure>_labelId=<id>` (a vote cleared from a mini-card's chips in the sheet or the photo strip — casting one lands in `label_validation` with `source = 'AccessScoreSheet'` or `'AccessScoreStrip'` and is not logged here, the label card's rule),
+and the popup's hop `AccessScore_ExploreHere`. A click on a
+cluster dot also opens the shared label card, whose actions log as `Click_module=LabelDetail_…` (above). The insights
+dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`,
+`AccessScore_Brush_value=<from>-<to>` (the brushed score range in whole percent, logged once on release, never per
+sweep tick) / `AccessScore_Brush_value=clear`, `AccessScore_PhotoStrip_labelId=<id>` (a photo-strip thumbnail opening the full
+label card), and `AccessScore_RankSelect_regionId=<id>` (a rank row clicked: the band scopes to that neighborhood in
+either unit, and in the neighborhoods unit the map selection it also makes logs `AccessScore_Select_regionId`). The drawer's `MapSidebar_Open` /
+`MapSidebar_Close` fire here too (shared chrome); the server logs `Visit_AccessScore` per page load, or `Visit_AccessScore_RedirectMobileLanding` when a mobile UA is bounced to `/mobileLanding` instead (the tool is desktop-only, like the Route Builder, and its Tools-menu entry is not rendered on a phone).
 
 The Gallery renders the same sidebar (`gallery/src/filter/GalleryFilter.js`) and logs to `gallery_task_interaction`
 under its own names, one `<Section>Apply` / `<Section>Unapply` pair per section with the toggled value in the notes:
@@ -230,7 +252,7 @@ ones whose meaning, parameters, or history aren't obvious:
 | `Click_module=ReauditShowMore_shown=<n>` | Expanding the same section's list by one page (`OutdatedStreets.js`, #4896). `shown` is how many rows that click revealed, so a mapper who works past the first page is distinguishable from one who takes the first street offered. |
 | `Click_module=<mapName>_streetId=<id>_audited=<bool>_outdated=<bool>_target=explore` | Clicking a street's "explore this street" popup link on a `ps-map` street layer (`addStreetsToMap.js`). `audited` = the street has an audit on current imagery; `outdated` = audited before but newer imagery exists (#4384); both `false` = unaudited. |
 | `Click_module=<mapName>_action=StreetReauditCardExplore_streetId=<id>` | Following the Explore link inside the re-audit hover card a `ps-map` street layer shows for a street whose audits predate its imagery (`StreetReauditCard.js`, #5258). Distinct from the plain street popup's `..._target=explore` above, which the same street can also emit: the card is the path taken *after* seeing when the street was last mapped and what was found on it, so the two separate a browsing click from an informed one. Pointer-only — a Mapbox line layer has no focusable node, so there is no keyboard equivalent to log. |
-| `Click_module=<mapName>_regionId=<id>_distanceLeft=<0\|<1\|1\|>1>_needsReaudit=<bool>_target=audit` | Clicking a neighborhood tooltip's "Click here" link on a `ps-map` choropleth (`addNeighborhoodsToMap.js`) to start exploring that region. `distanceLeft` is the unaudited distance bucket at click time; `needsReaudit` = the region had streets flagged for re-audit (#4384), distinguishing re-audit CTA clicks from first-audit ones. |
+| `Click_module=<mapName>_regionId=<id>_distanceLeft=<0\|<1\|1\|>1>_needsReaudit=<bool>_target=audit` | Clicking a neighborhood tooltip's "Click here" link on a `ps-map` choropleth (`addRegionsToMap.js`) to start exploring that region. `distanceLeft` is the unaudited distance bucket at click time; `needsReaudit` = the region had streets flagged for re-audit (#4384), distinguishing re-audit CTA clicks from first-audit ones. |
 | `Visit_Stories` / `Visit_Routes` | Page views of the public community listing pages, `/stories` and `/routes` (#4688). |
 | `Click_module=<StoryListPage\|RouteListPage>_Search` / `..._Sort=<option>` | The listing pages' toolbar: the first use of the search box per page view (never the typed query), and each sort change. |
 | `Click_module=StoryListPage_ViewLabel_LabelId=<id>` | Opening a story's label from a `/stories` card (inline popup, or navigation when the popup failed to initialize). |

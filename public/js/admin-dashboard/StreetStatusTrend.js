@@ -16,7 +16,7 @@ class StreetStatusTrend {
   #reloadQueued = false;
 
   /**
-   * @param {Object} opts
+   * @param {object} opts
    * @param {string} opts.trendUrl - URL of the trend JSON endpoint, without the `weeks` parameter.
    * @param {number} [opts.weeks] - Initial window size in weeks, injected from the server's own default so the two
    *   can't drift. Omitted leaves the window off the request, which lets the server apply that same default.
@@ -85,7 +85,7 @@ class StreetStatusTrend {
   }
 
   /**
-   * @param {Object} data - The `/adminapi/streetStatusTrend` payload.
+   * @param {object} data - The `/adminapi/streetStatusTrend` payload.
    */
   #render(data) {
     const weekStarts = StreetStatusTrend.#weekStarts(data.since, data.weeks);

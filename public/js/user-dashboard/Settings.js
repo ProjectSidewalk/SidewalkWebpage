@@ -11,7 +11,7 @@ class Settings {
   #baseline;
 
   /**
-     * @param {Object} opts - Configuration.
+     * @param {object} opts - Configuration.
      * @param {string} opts.saveUrl - Endpoint the form POSTs to.
      * @param {string} opts.currentUsername - The user's existing username, so an edit to the same value is a no-op.
      * @param {string} opts.currentUnits - The user's existing units choice ('auto', 'metric', or 'imperial'), so a
@@ -34,7 +34,7 @@ class Settings {
     });
   }
 
-  /** @returns {Object} The form's current values, in the shape the save endpoint takes. */
+  /** @returns {object} The form's current values, in the shape the save endpoint takes. */
   #payload() {
     const teamEl = document.getElementById('set-team');
     const teamVal = teamEl?.value ?? '';
@@ -43,7 +43,7 @@ class Settings {
       onLeaderboard: document.getElementById('set-on-leaderboard')?.checked ?? true,
       publicProfile: document.getElementById('set-public-profile')?.checked ?? true,
       communityService: document.getElementById('set-community-service')?.checked ?? false,
-      // 'auto' = follow the site language; the server clears the override cookie rather than setting one.
+      // 'auto' = follow the site language, which the server saves as no choice.
       measurementSystem: document.getElementById('set-units')?.value ?? 'auto',
       // null tells the server not to touch team membership: the "Choose a team…" placeholder, or the team they're
       // already on. Leaving is the Leave button (TeamActions.js), never a save (#5147).
@@ -59,7 +59,7 @@ class Settings {
   /**
      * Reads the form, posts it, and reflects the outcome in the status line.
      *
-     * @param {Object} [opts]
+     * @param {object} [opts]
      * @param {boolean} [opts.reloadOnUnitsChange=true] - Whether a save that moves the units reloads the page so
      *   every distance on screen is redrawn in them.
      * @returns {Promise<boolean>} Whether the settings were saved.

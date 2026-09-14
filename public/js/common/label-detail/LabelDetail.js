@@ -48,7 +48,7 @@ class LabelDetail {
    * @param {?{panoId: ?string, position: ?{lat: number, lng: number},
    *     pov: ?{heading: number, pitch: number, zoom: number}}} viewer - What the viewer showing this label reports,
    *     or null when none is (the static-crop fallback). Its own fields may still be null before imagery resolves.
-   * @param {Object} meta - The current label's metadata payload.
+   * @param {object} meta - The current label's metadata payload.
    * @returns {{panoId: ?string, lat: ?number, lng: ?number, heading: ?number, pitch: ?number, zoom: ?number}}
    */
   static submissionContext(viewer, meta) {
@@ -137,15 +137,15 @@ class LabelDetail {
 
   /**
    * @param {HTMLElement} root - The host element containing the labelDetail markup (see labelDetail.scala.html).
-   * @param {Object} opts
+   * @param {object} opts
    * @param {boolean} opts.admin - If true, this is an admin UI, so additional info can be shown.
    * @param {typeof PanoViewer} opts.viewerType - The type of pano viewer to initialize.
    * @param {string} opts.viewerAccessToken - An access token for requesting pano viewer images.
    * @param {string} [opts.currUsername] - Username of the current viewer; identifies comments from this user.
-   * @param {(action: ?('Agree'|'Disagree'|'Unsure'), meta: Object) => void} [opts.onVote] - Fired after a vote is
+   * @param {(action: ?('Agree'|'Disagree'|'Unsure'), meta: object) => void} [opts.onVote] - Fired after a vote is
    *      successfully submitted, with null when the user cleared their vote (#4653). Hosts use this to sync upstream
    *      UI (e.g. recolor a Gallery card).
-   * @param {(meta: Object) => void} [opts.onEdit] - Fired with the updated metadata after an edit to the label's
+   * @param {(meta: object) => void} [opts.onEdit] - Fired with the updated metadata after an edit to the label's
    *      severity or tags is saved (#2575), so hosts that cache label data (Gallery's cards) can stay in sync.
    * @param {string} [opts.panoOverlaySource] - Source recorded when voting via the pano overlay buttons.
    * @param {string} [opts.voteColumnSource] - Source recorded when voting via the column vote buttons.
@@ -180,7 +180,7 @@ class LabelDetail {
    * Builds a LabelDetail and its pano manager (whose viewer is created on the first showLabel()).
    *
    * @param {HTMLElement} root
-   * @param {Object} opts - See the constructor.
+   * @param {object} opts - See the constructor.
    * @returns {Promise<LabelDetail>} Resolves once the view is wired and ready for showLabel().
    */
   static async create(root, opts) {
@@ -672,9 +672,9 @@ class LabelDetail {
    *
    * An arrow instance field (not a prototype method) because LabelPopup detaches and re-invokes it.
    *
-   * @param {number|Object} idOrMeta - Either a label id (number) to fetch, or a pre-built meta object.
+   * @param {number|object} idOrMeta - Either a label id (number) to fetch, or a pre-built meta object.
    * @param {string} source - The UI that created the popup (recorded with validations).
-   * @returns {Promise<Object>} The label metadata payload that was rendered.
+   * @returns {Promise<object>} The label metadata payload that was rendered.
    */
   showLabel = async (idOrMeta, source) => {
     this.#source = source;
@@ -703,7 +703,7 @@ class LabelDetail {
 
   /**
    * Populates the view with the label metadata fetched (or passed in directly) by showLabel().
-   * @param {Object} meta - The label metadata payload.
+   * @param {object} meta - The label metadata payload.
    */
   #handleData(meta) {
     const els = this.#els;
@@ -1133,7 +1133,7 @@ class LabelDetail {
   /**
    * Whether a comment entry belongs to the current viewer. Admin payloads carry usernames; non-admin ones carry a
    * `mine` flag instead (no identifiers on public surfaces), so the test differs by surface.
-   * @param {Object|string} comment - An entry from #comments.
+   * @param {object|string} comment - An entry from #comments.
    * @returns {boolean}
    */
   #isOwnComment(comment) {
@@ -1730,7 +1730,7 @@ class LabelDetail {
 
   /**
    * External link for viewing the label's pano on its imagery provider's own site, at the label's stored POV.
-   * @param {Object} meta - The label metadata payload (pano id + the label's POV).
+   * @param {object} meta - The label metadata payload (pano id + the label's POV).
    * @returns {?{url: string, tooltip: string}} The provider link, or null for providers without a public
    *     viewer (e.g. Infra3d).
    */
@@ -1854,7 +1854,7 @@ class LabelDetail {
    * failure asks the reader to do something about it.
    *
    * @param {string} text - The visible word. Empty to clear every column's status.
-   * @param {Object} [opts]
+   * @param {object} [opts]
    * @param {string[]} [opts.columns] - Which columns to show it on ('severity' and/or 'tags'); all when omitted.
    * @param {boolean} [opts.error=false] - Style it as a failure rather than a confirmation.
    * @param {string} [opts.detail=''] - The full sentence, when the visible word is only a summary of it.
@@ -1975,7 +1975,7 @@ class LabelDetail {
    * would draw reaches a card showing some other label; see the guard in `render`.
    *
    * @param {{severity?: ?number, tags?: string[]}} change
-   * @param {Object} meta - The metadata of the label the change was made on.
+   * @param {object} meta - The metadata of the label the change was made on.
    */
   async #saveEdit(change, meta) {
     if (!meta || !meta.can_edit) return;
@@ -2076,7 +2076,7 @@ class LabelDetail {
    * The vote is the commenter's *current* one — the server joins it per (label_id, user_id) rather than storing it
    * with the comment — so a comment from someone whose vote was since cleared gets no chip (#5015).
    *
-   * @param {Object|string} c - An entry from #comments. Bare strings and entries with no vote yield null.
+   * @param {object|string} c - An entry from #comments. Bare strings and entries with no vote yield null.
    * @returns {?HTMLSpanElement} The chip, or null when there is no vote to show.
    */
   static voteChipFor(c) {

@@ -6,9 +6,10 @@ import org.scalatest.matchers.should.Matchers
 /**
  * Pure (no DB, no app boot) unit test for the auth form bindings (#4375).
  *
- * Exercises the full validation contract of `SignUpForm`, `SignInForm`, and `ResetPasswordForm` by binding maps of
- * raw input and asserting which error keys come back. This is where the field-level rules (username charset/length,
- * password requirements, confirm-match, terms) are pinned; the controller/service specs assume these hold.
+ * Exercises the full validation contract of `SignUpForm`, `SignInForm`, `ResetPasswordForm`, and `ChangePasswordForm`
+ * by binding maps of raw input and asserting which error keys come back. This is where the field-level rules (username
+ * charset/length, password requirements, confirm-match, terms) are pinned; the controller/service specs assume these
+ * hold.
  */
 class AuthFormsSpec extends AnyFunSuite with Matchers {
 
@@ -132,5 +133,25 @@ class AuthFormsSpec extends AnyFunSuite with Matchers {
     cases.flatMap(ResetPasswordForm.form.bind(_).errors.map(_.message)).distinct.foreach { key =>
       defined should contain(key)
     }
+  }
+
+  private def changePassword(
+      current: String = "OldPass1",
+      newPassword: String = "TestPass1",
+      confirm: String = "TestPass1"
+  ): Map[String, String] =
+    Map("currentPassword" -> current, "newPassword" -> newPassword, "newPasswordConfirm" -> confirm)
+
+  test("change-password holds the new password to the same rules as reset, and requires the current one") {
+    ChangePasswordForm.form.bind(changePassword()).errors shouldBe empty
+    ChangePasswordForm.form.bind(changePassword(newPassword = "weak", confirm = "weak")).errors should not be empty
+    ChangePasswordForm.form.bind(changePassword(current = "")).errors.map(_.key) should contain("currentPassword")
+    ChangePasswordForm.form.bind(changePassword(confirm = "TestPass2")).errors.map(_.message) should
+      contain("authenticate.error.password.mismatch")
+  }
+
+  test("change-password rejects a new password that is the same as the current one") {
+    ChangePasswordForm.form.bind(changePassword(current = "TestPass1")).errors.map(_.message) should
+      contain("dashboard.settings.password.error.same")
   }
 }
