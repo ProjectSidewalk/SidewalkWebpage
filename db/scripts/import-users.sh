@@ -295,7 +295,7 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
     AND login_info.provider_key = lower(renamed_account.old_email)
     AND renamed_account.new_email <> renamed_account.old_email;
 
-  -- A dump taken before the site enforced one account per email (evolution 386) can still hold shared or mixed-case
+  -- A dump taken before the site enforced one account per email (evolution 387) can still hold shared or mixed-case
   -- emails, which your copy now rejects. Among the dump's own duplicates the account with the oldest login row keeps
   -- the email and the rest are renamed like the clashes above; the login records follow.
   UPDATE sidewalk_login_import.sidewalk_user SET email = lower(email) WHERE email <> lower(email);
