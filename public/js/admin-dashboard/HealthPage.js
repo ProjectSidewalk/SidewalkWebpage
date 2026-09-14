@@ -13,7 +13,7 @@ class HealthPage {
   #lastUpdatedMs = null;
 
   /**
-   * @param {Object} opts
+   * @param {object} opts
    * @param {string} opts.healthUrl - URL of the JSON health endpoint.
    * @param {number} [opts.pollSeconds=20] - Refresh interval in seconds.
    */
@@ -38,7 +38,7 @@ class HealthPage {
 
   /**
    * @param {string} url
-   * @returns {Promise<Object>} Parsed JSON body.
+   * @returns {Promise<object>} Parsed JSON body.
    */
   async #fetchJson(url) {
     const resp = await fetch(url, { headers: { Accept: 'application/json' } });
@@ -346,7 +346,7 @@ class HealthPage {
    * Ordered worst-first rather than by schedule: on a healthy night every row says the same thing, and the whole point
    * of the panel is the one row that doesn't.
    *
-   * @param {Array<Object>} jobs - `nightly_jobs` entries from the health payload.
+   * @param {Array<object>} jobs - `nightly_jobs` entries from the health payload.
    */
   #renderNightlyJobs(jobs) {
     // The roster is a compile-time constant, so the server always returns a row per job unless the read of

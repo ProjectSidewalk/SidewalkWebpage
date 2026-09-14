@@ -6,7 +6,7 @@
  * done and decides whether anything changed; the editor never talks to the server itself.
  */
 class TagEditor {
-  /** @type {?Promise<Map<string, Object[]>>} The city's tags grouped by label type; fetched once per page. */
+  /** @type {?Promise<Map<string, object[]>>} The city's tags grouped by label type; fetched once per page. */
   static #tagsByType = null;
 
   #container;
@@ -24,7 +24,7 @@ class TagEditor {
 
   /**
    * The city's tags, grouped by label type name. `/label/tags` is the same source Explore's context menu reads.
-   * @returns {Promise<Map<string, Object[]>>}
+   * @returns {Promise<Map<string, object[]>>}
    */
   static #loadTags() {
     if (!TagEditor.#tagsByType) {
@@ -88,7 +88,7 @@ class TagEditor {
   }
 
   /**
-   * @param {Object[]} tags - The tags offered for the label type, each `{tag, mutually_exclusive_with}`.
+   * @param {object[]} tags - The tags offered for the label type, each `{tag, mutually_exclusive_with}`.
    */
   #render(tags) {
     const pills = new Map();

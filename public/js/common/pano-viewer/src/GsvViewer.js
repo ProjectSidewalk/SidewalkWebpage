@@ -196,7 +196,7 @@ class GsvViewer extends PanoViewer {
    *
    * @param {string} newPano       Id of the pano to load.
    * @param {PanoData} resolveValue Value to resolve with once the pano has loaded (the current PanoData).
-   * @return {Promise<PanoData>}   Resolves with resolveValue on load; rejects if the load times out.
+   * @returns {Promise<PanoData>}   Resolves with resolveValue on load; rejects if the load times out.
    */
   _loadPanoWithTimeout(newPano, resolveValue) {
     return new Promise((resolve, reject) => {

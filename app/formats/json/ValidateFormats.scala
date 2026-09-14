@@ -10,7 +10,7 @@ import models.utils.CommonUtils.ViewerType.ViewerType
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.ValidationOption
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{JsError, JsPath, JsSuccess, Reads}
+import play.api.libs.json.{JsError, JsPath, JsSuccess, JsonValidationError, Reads}
 
 import java.time.OffsetDateTime
 import scala.util.{Failure, Success, Try}
@@ -220,13 +220,21 @@ object ValidateFormats {
       (JsPath \ "completed").read[Boolean]
   )(ValidationMissionProgress.apply _)
 
+  // The admin-only fields are checked before `ValidateParams` is built: its constructor rejects them without
+  // `admin_version` too, but as an exception, which would answer a malformed body with a 500 instead of this 400.
   implicit val adminValidateParamsReads: Reads[ValidateParams] = (
     (JsPath \ "admin_version").read[Boolean] and
       (JsPath \ "label_type").readNullable[LabelTypeEnum.Base] and
       (JsPath \ "user_ids").readNullable[Seq[String]] and
       (JsPath \ "neighborhood_ids").readNullable[Seq[Int]] and
-      (JsPath \ "unvalidated_only").read[Boolean]
-  )(ValidateParams.apply _)
+      (JsPath \ "unvalidated_only").read[Boolean] and
+      // An older tab can post without this field; defaulting it to false keeps that request on the crowd queue.
+      (JsPath \ "triage").readWithDefault[Boolean](false)
+  ).tupled.collect(JsonValidationError("label_type, user_ids and triage can only be set if admin_version is true")) {
+    case (adminVersion, labelType, userIds, neighborhoodIds, unvalidatedOnly, triage)
+        if adminVersion || (labelType.isEmpty && userIds.isEmpty && !triage) =>
+      ValidateParams(adminVersion, labelType, userIds, neighborhoodIds, unvalidatedOnly, triage)
+  }
 
   implicit val validationTaskSubmissionReads: Reads[ValidationTaskSubmission] = (
     (JsPath \ "interactions").read[Seq[InteractionSubmission]] and

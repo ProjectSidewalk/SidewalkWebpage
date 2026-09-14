@@ -6,7 +6,7 @@
  * CSRF is added by the global fetch wrapper.
  *
  * @param {string} url - The save endpoint.
- * @param {Object} payload - Fields to write. Every field is optional server-side, so one left out is left alone.
+ * @param {object} payload - Fields to write. Every field is optional server-side, so one left out is left alone.
  * @returns {Promise<{ok: boolean, error: ?string}>} `error` is already localized when the server supplied it.
  */
 async function saveUserSettings(url, payload) {

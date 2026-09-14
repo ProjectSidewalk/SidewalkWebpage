@@ -36,7 +36,7 @@ class StoryComposer {
 
   /**
    * @param {HTMLDialogElement} dialog - The `.story-composer` dialog element.
-   * @param {Object} opts
+   * @param {object} opts
    * @param {string} [opts.currUsername] - The viewer's username; empty/absent hides the show-username option.
    * @param {boolean} [opts.omitDashboardLink] - Set by a host that is itself the dashboard, so the privacy note
    *     drops the link back to it.
@@ -139,7 +139,7 @@ class StoryComposer {
    * here, and prefilled content isn't a draft).
    * Accepts either author-visible payload shape: the card's StoryForView (byline resolved into `display_name`) or the
    * dashboard's StoryForOwner (the raw `display_name_mode`).
-   * @param {Object} story - The story being edited (must be the viewer's own).
+   * @param {object} story - The story being edited (must be the viewer's own).
    * @param {?number} maxTextLength - Character cap from the story payload (backend source of truth).
    */
   openForEdit(story, maxTextLength) {
@@ -484,7 +484,7 @@ class StoryComposer {
     });
   }
 
-  /** @param {Object} draft - The stashed draft, keyed by its `labelId`. */
+  /** @param {object} draft - The stashed draft, keyed by its `labelId`. */
   async #putDraft(draft) {
     const db = await this.#openDraftDb();
     try {
@@ -503,7 +503,7 @@ class StoryComposer {
    * Reads the draft for a label without removing it. The delete is a separate step (#deleteDraft) so a restore only
    * consumes the draft once it has committed to applying it — a stale-label bail must not destroy the stash.
    * @param {number} labelId
-   * @returns {Promise<?Object>} The draft, or null if none is stored.
+   * @returns {Promise<?object>} The draft, or null if none is stored.
    */
   async #readDraft(labelId) {
     const db = await this.#openDraftDb();

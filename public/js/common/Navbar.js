@@ -62,7 +62,7 @@ class NavbarController {
 
   /**
    * Click-target id → activity string logged for that navbar element.
-   * @type {Object<string, string>}
+   * @type {Record<string, string>}
    */
   #logMap = {
     'navbar-brand': 'Click_module=PSLogo',
@@ -152,7 +152,7 @@ class NavbarController {
   /**
    * Closes every open dropdown, optionally sparing one or limiting the sweep to a container.
    *
-   * @param {Object} [opts] - Options.
+   * @param {object} [opts] - Options.
    * @param {?HTMLElement} [opts.except] - A <li> to leave open.
    * @param {?HTMLElement} [opts.within] - Close only dropdowns inside this element; all of them when omitted.
    */

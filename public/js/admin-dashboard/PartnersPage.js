@@ -12,15 +12,15 @@ class PartnersPage {
 
   #isOwner;
   #statusEl;
-  /** @type {{city: Array<Object>, global: Array<Object>}} The current metadata rows, in display order. */
+  /** @type {{city: Array<object>, global: Array<object>}} The current metadata rows, in display order. */
   #partners = { city: [], global: [] };
-  /** @type {?{scope: string, partner: Object}} The row a form is currently editing, or null when adding. */
+  /** @type {?{scope: string, partner: object}} The row a form is currently editing, or null when adding. */
   #editing = null;
   /** @type {{city: boolean, global: boolean}} Whether a reorder PUT is in flight, per scope. */
   #reorderBusy = { city: false, global: false };
 
   /**
-   * @param {Object} opts
+   * @param {object} opts
    * @param {boolean} opts.isOwner - Whether the signed-in admin holds the Owner role (may edit the global scope).
    */
   constructor(opts) {
@@ -71,7 +71,7 @@ class PartnersPage {
 
   /**
    * @param {string} scope - 'city' or 'global'.
-   * @param {Object} partner - A partner metadata payload.
+   * @param {object} partner - A partner metadata payload.
    * @param {number} index - The row's position within its scope.
    * @returns {HTMLElement}
    */

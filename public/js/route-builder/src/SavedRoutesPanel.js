@@ -19,7 +19,7 @@ class SavedRoutesPanel {
   #activeRouteId = null; // Route currently previewed on the map (its card carries the active style).
 
   /**
-   * @param {Object} opts
+   * @param {object} opts
    * @param {boolean} opts.isSignedIn - Whether the user is signed in (selects the routes source).
    * @param {Function} opts.formatMeta - (distanceMeters, regionName) => the card's meta line.
    * @param {Function} opts.setTemporaryTooltip - (buttonEl, message) that flashes a confirmation tooltip.
@@ -78,7 +78,7 @@ class SavedRoutesPanel {
   /**
    * Prepends a guest-saved route to the device-local list (capped, newest first).
    *
-   * @param {Object} route - {routeId, name, regionName, url, distanceMeters}.
+   * @param {object} route - {routeId, name, regionName, url, distanceMeters}.
    */
   recordGuestRoute(route) {
     const routes = this.#readGuestRoutes().filter((r) => r.routeId !== route.routeId);
@@ -94,7 +94,7 @@ class SavedRoutesPanel {
 
   /**
    * Reads the guest routes list from localStorage.
-   * @returns {Array<Object>} Saved route records, newest first; empty if none or storage is unavailable.
+   * @returns {Array<object>} Saved route records, newest first; empty if none or storage is unavailable.
    */
   #readGuestRoutes() {
     try {
@@ -109,7 +109,7 @@ class SavedRoutesPanel {
   /**
    * Renders the newest few routes as cards (the section hides itself when there are none).
    *
-   * @param {Array<Object>} routes - {routeId, name, regionName, distanceMeters, savedAt, [url]}.
+   * @param {Array<object>} routes - {routeId, name, regionName, distanceMeters, savedAt, [url]}.
    * @param {number|null} highlightRouteId
    */
   #render(routes, highlightRouteId) {

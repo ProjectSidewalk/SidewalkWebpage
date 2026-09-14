@@ -206,6 +206,16 @@ class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
 trait UserStatTableRepository {}
 
 @Singleton
+object UserStatTable {
+
+  /**
+   * Own labels validated before a labeler's accuracy is trusted. Under it they are high quality by default, whatever
+   * their accuracy, and the Validate queue treats them as a new labeler. Evolution 347 mirrors the value in SQL, so
+   * changing it here means a new evolution that recomputes `high_quality`.
+   */
+  val OwnLabelsValidatedToJudge: Int = 50
+}
+
 class UserStatTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     sidewalkUserTable: SidewalkUserTable,
@@ -418,7 +428,7 @@ class UserStatTable @Inject() (
    * Users are considered low quality if they either:
    * 1. have been manually marked as high_quality_manual = FALSE in the user_stat table,
    * 2. have a labeling frequency below `LABEL_PER_METER_THRESHOLD`, or
-   * 3. have an accuracy rating below 60% (with at least 50 of their labels validated).
+   * 3. have an accuracy rating below 60% (with at least `OwnLabelsValidatedToJudge` of their labels validated).
    *
    * @param userId The user whose high_quality column should be updated
    * @return The number of rows updated; should be 1, or 0 if no user is found
@@ -437,7 +447,8 @@ class UserStatTable @Inject() (
               // `updateHighQuality` below would disagree for an accuracy in that sliver. Evolution 347 and
               // GeodesicDistanceSpec both assume the two agree exactly.
               (x.metersAudited === 0d || x.labelsPerMeter.getOrElse(5d) > LABEL_PER_METER_THRESHOLD)
-                && (x.accuracy.getOrElse(1.0d) > 0.6d.asColumnOf[Double] || x.ownLabelsValidated < 50.asColumnOf[Int])
+                && (x.accuracy.getOrElse(1.0d) > 0.6d
+                  .asColumnOf[Double] || x.ownLabelsValidated < UserStatTable.OwnLabelsValidatedToJudge.asColumnOf[Int])
             )
           )
         }
@@ -480,7 +491,8 @@ class UserStatTable @Inject() (
             x.userId,
             x.highQualityManual.getOrElse(false) || (
               (x.metersAudited === 0d || x.labelsPerMeter.getOrElse(5d) > LABEL_PER_METER_THRESHOLD)
-                && (x.accuracy.getOrElse(1.0d) > 0.6d.asColumnOf[Double] || x.ownLabelsValidated < 50.asColumnOf[Int])
+                && (x.accuracy.getOrElse(1.0d) > 0.6d
+                  .asColumnOf[Double] || x.ownLabelsValidated < UserStatTable.OwnLabelsValidatedToJudge.asColumnOf[Int])
             )
           )
         }

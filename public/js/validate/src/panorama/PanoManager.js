@@ -53,7 +53,7 @@ class PanoManager {
    * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
    * @param {string} viewerAccessToken An access token used to request images for the pano viewer
    * @param {string} startPanoId The ID of the panorama to load first
-   * @param {{object}|null} startBackupImage Self-hosted backup for the first pano, or null.
+   * @param {?object} startBackupImage Self-hosted backup for the first pano, or null.
    * @returns {Promise<void>} A Promise that resolves once the first pano has loaded
    */
   async #init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage) {
@@ -585,7 +585,7 @@ class PanoManager {
    * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
    * @param {string} viewerAccessToken An access token used to request images for the pano viewer
    * @param {string} startPanoId The ID of the panorama to load first
-   * @param {{object}|null} startBackupImage Self-hosted backup for the first pano, or null.
+   * @param {?object} startBackupImage Self-hosted backup for the first pano, or null.
    * @returns {Promise<PanoManager>} The panoManager instance, with the first pano already loaded.
    */
   static async create(panoViewerType, viewerAccessToken, startPanoId, startBackupImage = null) {

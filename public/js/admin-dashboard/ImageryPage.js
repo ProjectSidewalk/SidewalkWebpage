@@ -433,7 +433,7 @@ class ImageryPage {
   /**
    * Count, mileage, and observed priority range per tier.
    *
-   * @returns {Object<string, {count: number, miles: number, min: number, max: number}>} Keyed by tier key; an empty
+   * @returns {Record<string, {count: number, miles: number, min: number, max: number}>} Keyed by tier key; an empty
    *   tier reports min/max of 0 rather than the +/-Infinity the fold would otherwise leave behind.
    */
   #tierStats() {
