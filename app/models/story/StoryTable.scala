@@ -206,7 +206,7 @@ class StoryTable @Inject() (
   }
 
   /**
-   * Newest visible stories city-wide, each with its author's username, its label's type and neighborhood, and the
+   * Newest visible stories city-wide, each with its author's username, its label's type and region, and the
    * label's street address when known — the feed for the public /stories listing page (#4688).
    *
    * Public-only by design: hidden stories are absent for everyone (authors manage theirs on the dashboard, admins

@@ -96,11 +96,11 @@
       @* The filters with controls of their own are read off the rendered sidebar; these two have no UI yet, so the
          page carries them through for the card query and the URL. *@
       params.initialFilters = {
-        neighborhoods: @{regionIds.mkString("[", ",", "]")},
+        regionIds: @{regionIds.mkString("[", ",", "]")},
         aiValidationOptions: @{if (aiValOptions.isEmpty) "[]" else Html(aiValOptions.mkString("['", "','", "']"))}
       }
 
-      @* Neighborhood names, keyed by the region id each label carries, for the location line on a card. *@
+      @* Region names, keyed by the region id each label carries, for the location line on a card. *@
       params.regionNames = @Html(Json.stringify(Json.toJson(regionNames.map { case (id, name) => id.toString -> name })));
 
       params.language = "@messages.lang.code";

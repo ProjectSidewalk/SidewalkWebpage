@@ -23,7 +23,7 @@ const makeTask = ({ givenUp = false } = {}) => ({
     wasGivenUpOnImagery: () => givenUp,
 });
 
-describe('MissionController.wrapUpRouteOrNeighborhood', () => {
+describe('MissionController.wrapUpRouteOrRegion', () => {
     let svl;
     let controller;
     let currentTask;
@@ -41,7 +41,7 @@ describe('MissionController.wrapUpRouteOrNeighborhood', () => {
             missionsCompleted: 0,
             form: { submitData: jest.fn() },
             modalMissionComplete: { update: jest.fn(), show: jest.fn() },
-            neighborhoodModel: { isRoute: true },
+            regionModel: { isRoute: true },
             taskContainer: {
                 getCurrentTask: () => currentTask,
                 endTask: jest.fn(),
@@ -54,14 +54,14 @@ describe('MissionController.wrapUpRouteOrNeighborhood', () => {
         window.eval(`${SRC}; window.MissionController = MissionController;`);
         controller = new window.MissionController(
             { on: jest.fn(), completeMission: jest.fn() },
-            { ...svl.neighborhoodModel, currentNeighborhood: () => ({ getRegionId: () => 22 }) },
+            { ...svl.regionModel, currentRegion: () => ({ getRegionId: () => 22 }) },
             { getCurrentMission: () => mission },
             { push: jest.fn() },
         );
     });
 
     it('finishes a street the labeler walked to its end', () => {
-        controller.wrapUpRouteOrNeighborhood();
+        controller.wrapUpRouteOrRegion();
 
         expect(svl.taskContainer.endTask).toHaveBeenCalledWith(currentTask);
     });
@@ -69,7 +69,7 @@ describe('MissionController.wrapUpRouteOrNeighborhood', () => {
     it('never finishes a street given up on for missing imagery', () => {
         currentTask = makeTask({ givenUp: true });
 
-        controller.wrapUpRouteOrNeighborhood();
+        controller.wrapUpRouteOrRegion();
 
         expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
     });
@@ -77,7 +77,7 @@ describe('MissionController.wrapUpRouteOrNeighborhood', () => {
     it('still submits that street, since the mission\'s completed flag rides on the submission', () => {
         currentTask = makeTask({ givenUp: true });
 
-        controller.wrapUpRouteOrNeighborhood();
+        controller.wrapUpRouteOrRegion();
 
         expect(svl.form.submitData).toHaveBeenCalledWith(currentTask);
     });
@@ -85,7 +85,7 @@ describe('MissionController.wrapUpRouteOrNeighborhood', () => {
     it('shows the celebration either way', () => {
         currentTask = makeTask({ givenUp: true });
 
-        controller.wrapUpRouteOrNeighborhood();
+        controller.wrapUpRouteOrRegion();
 
         expect(svl.modalMissionComplete.show).toHaveBeenCalled();
     });

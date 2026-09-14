@@ -248,7 +248,7 @@ class AccessScoreService @Inject() (
   def getFullCityRegionScores(batchSize: Int): Future[Seq[RegionAccessScoreForApi]] =
     for {
       bbox    <- cityBbox
-      regions <- apiService.getNeighborhoodsWithin(bbox)
+      regions <- apiService.getRegionsFullyInsideBbox(bbox)
       scores  <- getFullCityScores(batchSize)
     } yield scoreRegions(regions, scores)
 
@@ -274,7 +274,7 @@ class AccessScoreService @Inject() (
     }
 
   /**
-   * Computes v3 AccessScores for every region (neighborhood) within the bbox (#3855).
+   * Computes v3 AccessScores for every region fully inside the bbox (#3855).
    *
    * Each region's score is the street-length-weighted mean of its audited streets' scores — the paper's normalization
    * that the v2 endpoint lacked — and its intersection score the plain mean of its scored intersections (#5095).
@@ -282,11 +282,11 @@ class AccessScoreService @Inject() (
    *
    * @param bbox      The bounding box to score within.
    * @param batchSize DB fetch size for the cluster stream.
-   * @return          One [[RegionAccessScoreForApi]] per region within the bbox.
+   * @return          One [[RegionAccessScoreForApi]] per region fully inside the bbox.
    */
   def computeRegionScoresV3(bbox: LatLngBBox, batchSize: Int): Future[Seq[RegionAccessScoreForApi]] = {
     for {
-      regions: Seq[Region] <- apiService.getNeighborhoodsWithin(bbox)
+      regions: Seq[Region] <- apiService.getRegionsFullyInsideBbox(bbox)
       scores: AccessScores <- computeAccessScoresV3(SpatialQueryType.Region, bbox, batchSize)
     } yield scoreRegions(regions, scores)
   }

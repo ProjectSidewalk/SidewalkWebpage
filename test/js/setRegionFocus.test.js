@@ -1,9 +1,9 @@
 /**
  * Tests for setRegionFocus (public/js/ps-map/psMapUtilities.js).
  *
- * A `?regionId=` link — a Gallery card's neighborhood, a dashboard link — has to land framed on that neighborhood,
+ * A `?regionId=` link — a Gallery card's region, a dashboard link — has to land framed on that region,
  * so these pin what the map is asked to do for one: the right region picked out of what's rendered, and its own
- * bounds fitted rather than a fixed zoom that can only suit one size of neighborhood.
+ * bounds fitted rather than a fixed zoom that can only suit one size of region.
  */
 
 const fs = require('fs');
@@ -85,7 +85,7 @@ describe('setRegionFocus', () => {
         expect(map.fitBounds).not.toHaveBeenCalled();
     });
 
-    it('leaves the map where it is on a page with no neighborhood layer', () => {
+    it('leaves the map where it is on a page with no region layer', () => {
         map.getLayer = () => false;
 
         window.setRegionFocus(map);

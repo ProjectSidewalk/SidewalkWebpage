@@ -8,7 +8,7 @@ object ValidateHelper {
       adminVersion: Boolean,
       labelType: Option[LabelTypeEnum.Base] = None,
       userIds: Option[Seq[String]] = None,
-      neighborhoodIds: Option[Seq[Int]] = None,
+      regionIds: Option[Seq[Int]] = None,
       unvalidatedOnly: Boolean = false,
       triage: Boolean = false
   ) {

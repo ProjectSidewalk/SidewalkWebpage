@@ -131,10 +131,10 @@
         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
         mapboxApiKey: '@commonData.mapboxApiKey',
         mapboxLogoLocation: 'bottom-right',
-        neighborhoodFillMode: 'singleColor',
-        neighborhoodFillColor: '#808080',
-        neighborhoodFillOpacity: 0.1,
-        neighborhoodTooltip: 'none',
+        regionFillMode: 'singleColor',
+        regionFillColor: '#808080',
+        regionFillOpacity: 0.1,
+        regionTooltip: 'none',
         differentiateUnauditedStreets: true,
         interactiveStreets: true,
         uiSource: 'LabelMap',
@@ -160,14 +160,14 @@
         navigationControlPosition: 'top-right',
         highQualityFilter: true
       };
-      params.neighborhoodsURL = new URL('/neighborhoods', window.location.origin);
-      params.completionRatesURL = new URL('/neighborhoods/completionRate', window.location.origin);
+      params.regionsURL = new URL('/regions', window.location.origin);
+      params.completionRatesURL = new URL('/regions/completionRates', window.location.origin);
       params.streetsURL = new URL('/contribution/streets/all?filterLowQuality=true', window.location.origin);
       params.labelsURL = new URL('/labels/all', window.location.origin);
 
       let regionsParam = '@{regionIds.mkString(",")}';
       if (regionsParam) {
-        params.neighborhoodsURL.searchParams.append('regions', regionsParam);
+        params.regionsURL.searchParams.append('regions', regionsParam);
         params.completionRatesURL.searchParams.append('regions', regionsParam);
         params.streetsURL.searchParams.append('regions', regionsParam);
         params.labelsURL.searchParams.append('regions', regionsParam);
@@ -207,11 +207,11 @@
       createPSMap($, params).then(m => {
         self.map = m[0];
         self.mapData = m[4];
-        // A ?regionId= link lands framed on that neighborhood, as it already does on the user dashboard's map —
+        // A ?regionId= link lands framed on that region, as it already does on the user dashboard's map —
         // unless the URL carries an explicit viewport, which wins (#4696).
         if (!self.hasUrlViewport) setRegionFocus(self.map);
         // Counts are view-scoped, matching the view-scoped downloads below: the viewport loader only holds a
-        // padded neighborhood of the view, not the whole city, so counting everything loaded would report an
+        // padded region of the view, not the whole city, so counting everything loaded would report an
         // arbitrary area.
         const sidebarFilter = new MapSidebarFilter(self.map, self.mapData, {
           highQualityFilter: true,

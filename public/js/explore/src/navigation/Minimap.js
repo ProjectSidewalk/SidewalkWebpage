@@ -10,7 +10,7 @@ class Minimap {
   /** @type {number} */
   static #DEFAULT_ZOOM = 18;
 
-  // Zoom floor while fitted to the whole route/neighborhood; far below MIN_ZOOM, which only bounds manual zooming.
+  // Zoom floor while fitted to the whole route/region; far below MIN_ZOOM, which only bounds manual zooming.
   /** @type {number} */
   static #OVERVIEW_MIN_ZOOM = 12;
 
@@ -25,7 +25,7 @@ class Minimap {
   /** @type {number} */
   #minimapPaneBlinkInterval;
 
-  /** True while the minimap is fitted to the whole route/neighborhood instead of following the user. */
+  /** True while the minimap is fitted to the whole route/region instead of following the user. */
   #overviewMode = false;
 
   /**
@@ -138,7 +138,7 @@ class Minimap {
   }
 
   /**
-   * Fits the minimap to all loaded streets (the route when on one, the neighborhood otherwise) so the user can see
+   * Fits the minimap to all loaded streets (the route when on one, the region otherwise) so the user can see
    * overall progress at a glance. The fog/FOV/ring overlays are hidden via the minimap-overview class while fitted —
    * they only make sense at street zoom, centered on the user.
    */
@@ -181,18 +181,18 @@ class Minimap {
   }
 
   /**
-   * Bounds framing "your route": on a designated route, every loaded street; on a neighborhood audit, the current
+   * Bounds framing "your route": on a designated route, every loaded street; on a region audit, the current
    * mission's streets plus the one you're on (the region as a whole would zoom out far past the route — #4639).
    * @returns {google.maps.LatLngBounds|null} Null if no street geometry is available yet.
    */
   #streetBounds() {
     if (!svl.taskContainer) return null;
     let tasks;
-    if (svl.neighborhoodModel && svl.neighborhoodModel.isRoute) {
+    if (svl.regionModel && svl.regionModel.isRoute) {
       // On a designated route every loaded street IS the route, so fit them all.
       tasks = svl.taskContainer.getTasks();
     } else {
-      // A neighborhood audit loads the entire region; fit just this mission's streets plus the street you're on. Early
+      // A region audit loads the entire region; fit just this mission's streets plus the street you're on. Early
       // in a mission that's essentially the current street — i.e. a normal street-level view, not the whole region.
       const mission = svl.missionContainer && svl.missionContainer.getCurrentMission();
       tasks = ((mission && mission.getRoute()) || []).slice();

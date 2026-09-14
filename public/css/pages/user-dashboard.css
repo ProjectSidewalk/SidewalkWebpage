@@ -440,7 +440,7 @@
   border-top: 4px solid var(--color-neutral-300);
 }
 
-/* Region/pioneer trophies link to Explore that neighborhood: keep the card look, add a lift + reveal the affordance. */
+/* Region/pioneer trophies link to Explore that region: keep the card look, add a lift + reveal the affordance. */
 .ud-trophy-link {
   text-decoration: none;
   color: inherit;

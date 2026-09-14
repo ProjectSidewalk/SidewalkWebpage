@@ -47,5 +47,5 @@ leaderboard.intro = Every label makes footpaths more accessible and safe for eve
 leaderboard.intro.you = Every label makes footpaths more accessible and safe for everyone. Here''s how the community — and you — are doing.
 
 # Community listing pages: /stories and /routes (#4688).
-community.page.sort.neighborhood = Neighbourhood
+community.page.sort.region = Neighbourhood
 stories.page.intro = Personal stories that community members have attached to footpath labels — real accounts of how accessibility barriers and features affect people''s lives.

@@ -1,4 +1,4 @@
-/* Shared progress-bar component used by the Explore sidebar (mission, badges, neighborhood), the mission-complete
+/* Shared progress-bar component used by the Explore sidebar (mission, badges, region), the mission-complete
    modal, and the Validate tools. A rounded track holds either a single fill or two flush color segments (the
    community's audited share, then the current user's), optionally followed by a label. The fill color is the shared
    pine green. The block is prefixed `ps-` to avoid colliding with Bootstrap's global .progress-bar class.

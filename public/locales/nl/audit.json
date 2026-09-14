@@ -108,9 +108,9 @@
   },
   "mission-complete": {
     "title-generic": "Missie geslaagd!",
-    "title-neighborhood-complete": "Bravo! Je hebt de {{neighborhoodName}} -buurt voltooid!",
+    "title-region-complete": "Bravo! Je hebt de {{regionName}} -buurt voltooid!",
     "title-route-complete": "Bravo! Je hebt je route voltooid!",
-    "subtitle": "Verken {{distance}} van {{neighborhoodName}}",
+    "subtitle": "Verken {{distance}} van {{regionName}}",
     "badge-alt": "Je missiebadge",
     "legend-title": "Missievoortgang",
     "legend-this-mission": "Deze missie",
@@ -146,14 +146,14 @@
       "message-route": "Verken {{routeName}}",
       "exit-route": "Aangepaste route verlaten",
       "header-free-explore": "Vrij verkennen",
-      "message": "Zoek __PLACEHOLDER__ voor {{neighborhoodName}}"
+      "message": "Zoek __PLACEHOLDER__ voor {{regionName}}"
     },
     "route-resume": {
       "message": "Je aangepaste route “{{routeName}}” wordt hervat waar je was gebleven.",
       "exit": "Aangepaste route verlaten"
     },
     "mission-resume": {
-      "message": "Je missie in {{neighborhoodName}} wordt hervat — nog {{distanceLeft, distance(style: small)}} te gaan."
+      "message": "Je missie in {{regionName}} wordt hervat — nog {{distanceLeft, distance(style: small)}} te gaan."
     },
     "route-unavailable": {
       "message": "Die route is niet beschikbaar. Mogelijk is hij verwijderd."
@@ -187,7 +187,7 @@
       "next-distance": "Verken {{distance}} om de volgende te verdienen.",
       "earned-all": "Je hebt het hoogste niveau van deze badge bereikt — geweldig gedaan!"
     },
-    "neighborhood-progress": {
+    "region-progress": {
       "title": "Wijk voortgang",
       "you-tooltip": "Jouw bijdragen",
       "community-tooltip": "Bijdragen van de gemeenschap"
@@ -299,14 +299,14 @@
       "u-turn": "Keer om",
       "end-route": "Je bent aan het einde van je route! Kijk helemaal om je heen om te voltooien, of <b>klik hier om nu te voltooien.</b>",
       "route-finish-look-around": "Laatste halte! Kijk helemaal om je heen om je route te voltooien.",
-      "end-neighborhood": "Je hebt deze hele buurt verkend! Voltooi het labelen van dit kruispunt en <b>klik hier om de buurt te voltooien.</b>",
+      "end-region": "Je hebt deze hele buurt verkend! Voltooi het labelen van dit kruispunt en <b>klik hier om de buurt te voltooien.</b>",
       "end-street": "We moeten u verhuizen naar een nieuwe locatie. Voltooi het labelen van dit kruispunt en <b>klik hier om naar een nieuwe locatie te gaan.</b>",
       "far-away": "Oh oh, je bent nogal ver weg van de route. <b>Klik hier om terug te gaan.</b>"
     }
   },
   "popup": {
     "start-title": "Laten we eraan beginnen!",
-    "start-body": "We hebben je verplaatst naar een straat in {{neighborhood}}, {{city}}! Je staat momenteel op het kruispunt. Vind en label alle trottoir opritten en toegankelijkheidsproblemen op dit kruispunt.",
+    "start-body": "We hebben je verplaatst naar een straat in {{region}}, {{city}}! Je staat momenteel op het kruispunt. Vind en label alle trottoir opritten en toegankelijkheidsproblemen op dit kruispunt.",
     "step-title": "Laten we vooruit verplaatsen!",
     "step-body": "Het lijkt erop dat je het hele kruispunt hebt bekeken, dus het is tijd om andere gebieden te verkennen. Beweeg je in de richting van de rode lijn die gehighlight is op de kaart.",
     "both-sides-title": "Bekijk alsjeblieft beide kanten van de straat",
@@ -340,7 +340,7 @@
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "ONTDEK MISSIE",
-    "mst-instruction-2": "Label deze toegankelijkheidsvoorzieningen in {{neighborhood}}",
+    "mst-instruction-2": "Label deze toegankelijkheidsvoorzieningen in {{region}}",
     "example-type-label-incorrect": "VEEL VOORKOMENDE FOUT",
     "label-on-image-title-incorrect": "Veel voorkomende fout",
     "label-on-image-description-correct": "Plaats een etiket",

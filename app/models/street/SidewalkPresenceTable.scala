@@ -195,7 +195,7 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
     // Region and OSM way are joined at read time rather than stored: both are one-to-one with the street, and the
     // Streets API resolves them the same way. Only the tutorial street is excluded, as there; every other street is
     // returned tagged with its `status` (#3888), so a consumer who wants only the live ones — the table also covers
-    // streets closed with their neighborhood, whose `region_id` /v3/api/regions never returns — asks for
+    // streets closed with their region, whose `region_id` /v3/api/regions never returns — asks for
     // `status=open`. User-supplied strings are single-quote-escaped above and numeric filters are safe; see #2756
     // for moving these to bound parameters.
     val queryStr = s"""

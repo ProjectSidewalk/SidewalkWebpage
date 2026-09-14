@@ -87,9 +87,9 @@ class RegionTable @Inject() (
   }
 
   /**
-   * Returns a list of neighborhoods within the given bounding box.
+   * Returns the regions that sit entirely inside the given bounding box; a region crossing its edge is left out.
    */
-  def getNeighborhoodsWithin(bbox: LatLngBBox): DBIO[Seq[Region]] = {
+  def getRegionsFullyInsideBbox(bbox: LatLngBBox): DBIO[Seq[Region]] = {
     regionsWithoutDeleted
       .filter(_.geom.within(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
       .result
@@ -98,8 +98,8 @@ class RegionTable @Inject() (
   /**
    * Gets regions w/ boolean noting if given user fully audited the region. If provided, filter for only given regions.
    */
-  def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): DBIO[Seq[(Region, Boolean)]] = {
-    // Ever-audited on purpose (#4384): this feeds the "you completed this neighborhood" display, and a user's credit
+  def getRegionsWithUserCompletion(userId: String, regionIds: Seq[Int]): DBIO[Seq[(Region, Boolean)]] = {
+    // Ever-audited on purpose (#4384): this feeds the "you completed this region" display, and a user's credit
     // is not revoked when imagery refreshes -- the needs-re-audit prompt carries that signal instead.
     val userTasks = auditTasks.filter(a => a.completed && a.userId === userId)
     // Get regions that the user has not fully audited.
@@ -110,7 +110,7 @@ class RegionTable @Inject() (
       .groupBy(_._1.regionId)                // GROUP BY region_id
       .map(_._1)                             // SELECT region_id
 
-    // Left join regions and incomplete neighborhoods to record completion status.
+    // Left join all regions against the ones the user hasn't finished to record completion status.
     regionsWithoutDeleted
       .filter(_r => (_r.regionId inSetBind regionIds) || regionIds.isEmpty) // WHERE region_id IN regionIds
       .joinLeft(incompleteRegionsForUser)
@@ -120,7 +120,7 @@ class RegionTable @Inject() (
   }
 
   /**
-   * Gets all region (neighborhood) data for the API with filters applied, designed for streaming.
+   * Gets all region data for the API with filters applied, designed for streaming.
    *
    * @param filters The filters to apply when retrieving regions.
    * @return        A streaming database action that yields RegionDataForApi objects.

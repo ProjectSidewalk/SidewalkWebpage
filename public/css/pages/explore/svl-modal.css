@@ -151,7 +151,7 @@
   inset: 0;
 }
 
-/* Map overlay cards (label/street legend on the left, neighborhood progress on the right). */
+/* Map overlay cards (label/street legend on the left, region progress on the right). */
 .mission-complete__overlay {
   position: absolute;
   top: calc(12px * var(--ui-scale));

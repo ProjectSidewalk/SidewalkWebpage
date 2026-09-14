@@ -121,7 +121,7 @@
   display: none;
 }
 
-/* Streets | Neighborhoods: two radios styled as one segmented control. */
+/* Streets | Regions: two radios styled as one segmented control. */
 .acs-segmented {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1102,7 +1102,7 @@
   display: none;
 }
 
-/* ---- Photo strip: label crops from the scope's neighborhood ---- */
+/* ---- Photo strip: label crops from the scope's region ---- */
 
 .acs-photos__status:empty {
   display: none;
@@ -1134,7 +1134,7 @@
   scroll-snap-align: start;
 }
 
-/* ---- Neighborhoods ranked ---- */
+/* ---- Regions ranked ---- */
 
 .acs-rank__rows {
   flex: 1 1 auto;

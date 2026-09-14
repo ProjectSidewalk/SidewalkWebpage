@@ -297,7 +297,7 @@ class LabelServiceImpl @Inject() (
    * @param labelTypes        Label types to grab, split evenly between them. Empty gives a mix of every type.
    * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
    * @param valOptions        Set of correctness values to filter for: correct, incorrect, unsure, and/or unvalidated.
-   * @param regionIds         Set of neighborhoods to get labels from. All neighborhoods if empty.
+   * @param regionIds         Set of regions to get labels from. All regions if empty.
    * @param severity          Set of severities the labels grabbed can have.
    * @param tagsByLabelType   Tags each label type is narrowed to; a type absent from the map is not narrowed.
    * @param aiValOptions      Set of AI validations to filter for: correct, incorrect, unsure, and/or unvalidated.
@@ -672,8 +672,8 @@ class LabelServiceImpl @Inject() (
             labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
             labelsToRetrieve: Int = labelsToValidate - labelsProgress
             labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, viewerType, labelType,
-              validateParams.queueCascade, validateParams.userIds.map(_.toSet),
-              validateParams.neighborhoodIds.map(_.toSet), validateParams.unvalidatedOnly)
+              validateParams.queueCascade, validateParams.userIds.map(_.toSet), validateParams.regionIds.map(_.toSet),
+              validateParams.unvalidatedOnly)
             adminData <- {
               if (validateParams.adminVersion) getExtraAdminValidateData(labelMetadata.map(_.labelId))
               else Future.successful(Seq.empty[AdminValidationData])
@@ -715,7 +715,7 @@ class LabelServiceImpl @Inject() (
     } else {
       for {
         labelList <- retrieveLabelListForValidation(user.userId, nToRetrieve, viewerType, labelType,
-          validateParams.queueCascade, validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
+          validateParams.queueCascade, validateParams.userIds.map(_.toSet), validateParams.regionIds.map(_.toSet),
           validateParams.unvalidatedOnly, excludedLabelIds)
         adminData <- {
           if (validateParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
@@ -755,7 +755,7 @@ class LabelServiceImpl @Inject() (
             )
             labelList: Seq[LabelValidationMetadata] <- retrieveLabelListForValidation(user.userId, labelsToRetrieve,
               viewerType, nextMissionLabelType, validateParams.queueCascade, validateParams.userIds.map(_.toSet),
-              validateParams.neighborhoodIds.map(_.toSet), validateParams.unvalidatedOnly)
+              validateParams.regionIds.map(_.toSet), validateParams.unvalidatedOnly)
             adminData <- {
               if (validateParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
               else Future.successful(Seq.empty[AdminValidationData])

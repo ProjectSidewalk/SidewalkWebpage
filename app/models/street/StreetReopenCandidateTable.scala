@@ -154,7 +154,7 @@ class StreetReopenCandidateTable @Inject() (protected val dbConfigProvider: Data
    *
    * Every path that retracts a candidate deliberately (reopen, empty poll, mark_streets_no_imagery) covers its own
    * case, but a street can leave `no_imagery` through a script that knows nothing about this table -- hiding a whole
-   * neighborhood closes its streets, say. `candidatesForReview` filters such rows out, so they are invisible rather
+   * region closes its streets, say. `candidatesForReview` filters such rows out, so they are invisible rather
    * than harmful; they matter only if the street is retired again later, when years-old evidence would reappear
    * under a Reopen button. The nightly poll runs this to keep that from happening.
    */

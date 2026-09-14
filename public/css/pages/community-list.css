@@ -289,7 +289,7 @@
   overflow-wrap: anywhere; /* Display names are usernames, which can be one long token. */
 }
 
-/* One combined place line: "address · neighborhood", or just the neighborhood when the address is unknown.
+/* One combined place line: "address · region", or just the region when the address is unknown.
    Links to the label on the LabelMap. The left margin matches the type chip's padding so the two icons align. */
 .story-card__location {
   display: flex;
