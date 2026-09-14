@@ -305,7 +305,7 @@ class Task {
    *
    * @param {{lat: number, lng: number}} latLng - The point to measure the distance from the start
    * @param {{units: string}} [units] - String can be degrees, radians, miles, or kilometers
-   * @returns {number} distance in meters
+   * @returns {number} Distance in meters
    */
   getDistanceFromStart(latLng, units) {
     if (!units) units = { units: 'kilometers' };

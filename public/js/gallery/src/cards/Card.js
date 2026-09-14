@@ -431,7 +431,7 @@ class Card {
 
   /**
    * Returns the current ImageID being displayed in the image.
-   * @returns {string} the image ID of the card that is being displayed.
+   * @returns {string} The image ID of the card that is being displayed.
    */
   getImageId() {
     return this.#imageId;

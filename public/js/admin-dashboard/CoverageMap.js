@@ -51,12 +51,18 @@ class CoverageColors {
 
 /** Small formatting helpers shared across the coverage page. */
 class CoverageFormat {
-  /** @param {number} rate - Fraction in [0,1]. @returns {string} e.g. "73%". */
+  /**
+   * @param {number} rate - Fraction in [0,1].
+   * @returns {string} A whole percentage, e.g. "73%".
+   */
   static pct(rate) {
     return `${Math.round((rate || 0) * 100)}%`;
   }
 
-  /** @param {number} meters - @returns {string} distance in km with one decimal, e.g. "4.2 km". */
+  /**
+   * @param {number} meters - A distance in meters.
+   * @returns {string} The distance in km with one decimal, e.g. "4.2 km".
+   */
   static km(meters) {
     return `${((meters || 0) / 1000).toFixed(1)} km`;
   }
@@ -95,7 +101,7 @@ class CoverageMap {
   /**
    * Initializes the map and draws the regions.
    * @param {object} geojson - A GeoJSON FeatureCollection of regions with completion_rate in properties.
-   * @returns {Promise<void>} resolves once the map's first render is ready.
+   * @returns {Promise<void>} Resolves once the map's first render is ready.
    */
   init(geojson) {
     if (!this.#mapboxToken) throw new Error('CoverageMap: missing Mapbox access token');

@@ -63,7 +63,7 @@
    * Human-readable age of a street's most recent label.
    *
    * @param {string|null} lastLabelDate - ISO date of the last label, or null if never labeled.
-   * @returns {string} e.g. 'Today', '3 weeks ago', 'Never audited'.
+   * @returns {string} A relative date, e.g. 'Today', '3 weeks ago', 'Never audited'.
    */
   function formatAuditAge(lastLabelDate) {
     if (!lastLabelDate) return 'Never audited';

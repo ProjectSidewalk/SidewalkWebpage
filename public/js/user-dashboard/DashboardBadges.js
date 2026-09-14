@@ -69,7 +69,7 @@ class DashboardBadges {
    * Formats the amount remaining to the next tier in the user's units.
    * @param {string} type - Badge type.
    * @param {number} remaining - Remaining amount in canonical units (miles for distance, plain counts otherwise).
-   * @returns {string} e.g. "716 more labels" or "1.6 km more".
+   * @returns {string} The remaining amount, e.g. "716 more labels" or "1.6 km more".
    */
   #formatRemaining(type, remaining) {
     if (type === 'distance') {

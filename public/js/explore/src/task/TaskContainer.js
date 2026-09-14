@@ -148,7 +148,7 @@ class TaskContainer {
    * Get the total distance of the segments the labeler is done with — walked, or given up on for lack of imagery —
    * plus their progress along the street they are on now.
    * @param {{units: string}} [units] - Object with field 'units' holding distance unit; defaults to the user's units
-   * @returns {number} distance in unit.
+   * @returns {number} Distance in unit.
    */
   getCompletedTaskDistance(units) {
     if (!units) units = { units: util.turfDistanceUnits() };
@@ -172,7 +172,7 @@ class TaskContainer {
   /**
    * Get the total distance of segments completed by any user.
    *
-   * @returns {number} distance in unit.
+   * @returns {number} Distance in unit.
    */
   getCompletedTaskDistanceAcrossAllUsersUsingPriority() {
     const unit = { units: util.turfDistanceUnits() };

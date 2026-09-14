@@ -60,13 +60,19 @@ class StreetPriorityTiers {
     return 'unaudited';
   }
 
-  /** @param {string} key - @returns {string} the tier's color, or the fallback if unrecognized. */
+  /**
+   * @param {string} key - A priority tier key.
+   * @returns {string} The tier's color, or the fallback if unrecognized.
+   */
   static colorFor(key) {
     const match = StreetPriorityTiers.TIERS.find((tier) => tier.key === key);
     return match ? match.color : StreetPriorityTiers.FALLBACK;
   }
 
-  /** @param {string} key - @returns {string} the tier's label, or the raw key if unrecognized. */
+  /**
+   * @param {string} key - A priority tier key.
+   * @returns {string} The tier's label, or the raw key if unrecognized.
+   */
   static labelFor(key) {
     const match = StreetPriorityTiers.TIERS.find((tier) => tier.key === key);
     return match ? match.label : key;
@@ -129,7 +135,7 @@ class StreetPriorityMap {
    *
    * @param {object} geojson - FeatureCollection of routable streets, each carrying priority_tier, priority, the audit
    *   counts, and region_id in its properties.
-   * @returns {Promise<void>} resolves once the map's first render is ready.
+   * @returns {Promise<void>} Resolves once the map's first render is ready.
    */
   init(geojson) {
     if (!this.#mapboxToken) throw new Error('StreetPriorityMap: missing Mapbox access token');

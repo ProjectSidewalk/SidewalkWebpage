@@ -50,7 +50,7 @@ function aiLabelIndicator(extraClasses = []) {
 /**
  * Ensures the provided icon has a tooltip initialized with shared options.
  * @param {HTMLElement} icon
- * @returns {JQuery} tooltip-enabled icon
+ * @returns {JQuery} The tooltip-enabled icon.
  */
 function ensureAiTooltip(icon) {
   const $icon = $(icon);

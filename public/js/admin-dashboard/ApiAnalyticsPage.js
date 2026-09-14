@@ -174,7 +174,7 @@ class ApiAnalyticsPage {
    * time" runs from the earliest day with data. Falls back to a plain note when there's no activity to bound.
    *
    * @param {object} d - The analytics payload (used for the All time start date).
-   * @returns {string} e.g. "May 28 – Jun 26, 2026", or "May 21, 2025 – Jun 26, 2026" across years.
+   * @returns {string} The range, e.g. "May 28 – Jun 26, 2026", or "May 21, 2025 – Jun 26, 2026" across years.
    */
   #rangeLabel(d) {
     const now = new Date();

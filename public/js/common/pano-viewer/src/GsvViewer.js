@@ -263,7 +263,7 @@ class GsvViewer extends PanoViewer {
   /**
    * Returns the stored pano data for either of the two tutorial panos.
    * @param {string} pano - The pano ID/name of the wanted custom panorama.
-   * @returns {google.maps.StreetViewPanoramaData|undefined} custom Google Street View panorama.
+   * @returns {google.maps.StreetViewPanoramaData|undefined} The custom Street View panorama, if one matches.
    */
   #getCustomPanoData = (pano) => {
     if (pano === 'tutorial') {

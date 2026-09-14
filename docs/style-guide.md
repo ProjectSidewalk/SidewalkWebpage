@@ -321,12 +321,13 @@ Rules:
 
 - Use `@returns` (not `@return`) — that is the JSDoc standard (opposite of ScalaDoc).
 - Always include `{Type}` in `@param` and `@returns`.
-- Separate a `@param` name from its description with ` - `, and start the description with a capital letter unless
-  it opens with a code identifier (`jQuery`, `true`).
+- Separate a `@param` name from its description with ` - `, and start `@param` and `@returns` descriptions with a
+  capital letter unless it opens with a code identifier (`this`, `true`, `jQuery`).
 - Write types TypeScript-style: `object` and `string` (not `Object`/`String`), `Record<string, number>` for a map,
   and an arrow signature like `(id: number) => void` (or at least `Function`, not a bare `function`) for a callback.
   `make eslint` checks that every `@param` and `@returns` has a type and that it parses, that `@param` names match
-  the real parameters, that each `@param` description follows a hyphen, and that tag names are valid.
+  the real parameters, that each `@param` description follows a hyphen, that each tag is on its own line, and that
+  tag names are valid.
 - Use `{Type} [paramName]` (square brackets) for optional parameters, and `{Type} [paramName=default]` when a
   default exists and is non-obvious.
 - Trivial one-line helpers may omit the header.
