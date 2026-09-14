@@ -56,6 +56,7 @@ class Form {
       user_ids: svv.validateParams.userIds,
       neighborhood_ids: svv.validateParams.regionIds,
       unvalidated_only: svv.validateParams.unvalidatedOnly,
+      triage: svv.validateParams.triage,
     };
   }
 
