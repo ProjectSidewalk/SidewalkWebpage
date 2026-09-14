@@ -28,6 +28,8 @@ class UserPasswordInfoTableDef(tag: Tag) extends Table[UserPasswordInfo](tag, "u
 
   def loginInfo =
     foreignKey("user_password_info_login_info_id_fkey", loginInfoId, TableQuery[LoginInfoTableDef])(_.loginInfoId)
+
+  def loginInfoIdUnique = index("user_password_info_login_info_id_key", loginInfoId, unique = true)
 }
 
 @ImplementedBy(classOf[UserPasswordInfoTable])

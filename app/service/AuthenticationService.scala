@@ -159,7 +159,7 @@ class AuthenticationServiceImpl @Inject() (
       pwInfo: PasswordInfo
   ): Future[SidewalkUserWithRole] = {
     val dbActions = for {
-      _                 <- sidewalkUserTable.insert(SidewalkUser(user.userId, user.username, user.email))
+      _                 <- sidewalkUserTable.insert(SidewalkUser(user.userId, user.username, user.email.toLowerCase))
       loginInfoId: Long <- loginInfoTable.insert(DBLoginInfo(0, providerId, user.email.toLowerCase))
       _                 <- userLoginInfoTable.insert(UserLoginInfo(0, user.userId, loginInfoId))
       _ <- userPasswordInfoTable.insert(UserPasswordInfo(0, pwInfo.hasher, pwInfo.password, pwInfo.salt, loginInfoId))
@@ -231,11 +231,13 @@ class AuthenticationServiceImpl @Inject() (
    * @return A Future containing the number of rows updated in both tables
    */
   private def updateEmailDBIO(userId: String, newEmail: String): DBIO[Int] = {
+    // Both tables CHECK that the email is lower-cased.
+    val email = newEmail.toLowerCase
     (for {
-      sidewalkUserRowsUpdated <- sidewalkUserTable.updateEmail(userId, newEmail)
+      sidewalkUserRowsUpdated <- sidewalkUserTable.updateEmail(userId, email)
       userLoginInfoOption     <- userLoginInfoTable.find(userId)
       loginInfoRowsUpdated    <- userLoginInfoOption match {
-        case Some(userLoginInfo) => loginInfoTable.updateProviderKey(userLoginInfo.loginInfoId, newEmail.toLowerCase)
+        case Some(userLoginInfo) => loginInfoTable.updateProviderKey(userLoginInfo.loginInfoId, email)
         case None                => DBIO.successful(0) // No login info found for this user
       }
       // Ensure both updates were successful. Returning DBIO.failed to force rollback if either update fails.
@@ -280,10 +282,16 @@ class AuthenticationServiceImpl @Inject() (
     db.run(updatePasswordDBIO(userId, pwInfo))
   }
 
+  /** Sets the password, creating the row when the account has none: a few migrated accounts have a login row only. */
   private def updatePasswordDBIO(userId: String, pwInfo: PasswordInfo): DBIO[Int] = {
     userLoginInfoTable.find(userId).flatMap {
       case Some(userLoginInfo) =>
-        userPasswordInfoTable.update(userLoginInfo.loginInfoId, pwInfo)
+        userPasswordInfoTable.update(userLoginInfo.loginInfoId, pwInfo).flatMap {
+          case 0 =>
+            val row = UserPasswordInfo(0, pwInfo.hasher, pwInfo.password, pwInfo.salt, userLoginInfo.loginInfoId)
+            userPasswordInfoTable.insert(row).map(_ => 1)
+          case rowsUpdated => DBIO.successful(rowsUpdated)
+        }
       case None => DBIO.failed(new IdentityNotFoundException(s"No login info found for user ID: $userId"))
     }
   }
@@ -302,17 +310,22 @@ class AuthenticationServiceImpl @Inject() (
     }
   }
 
+  /** Finds the password through the account, as reset and change-password do, so all three read the same row. */
   def authenticate(email: String, pw: String): Future[LoginInfo] = {
-    loginInfoTable.findByEmail(email).flatMap {
-      case Some(loginInfoId) =>
-        userPasswordInfoTable.find(loginInfoId).flatMap {
-          case Some(pwInfo) =>
-            if (passwordHasher.matches(PasswordInfo(pwInfo.hasher, pwInfo.password, pwInfo.salt), pw)) {
-              Future.successful(LoginInfo(ID, email))
-            } else {
-              throw new InvalidPasswordException(s"Invalid password for user with email: $email")
+    sidewalkUserTable.findByEmail(email).flatMap {
+      case Some(user) =>
+        db.run(userLoginInfoTable.find(user.userId)).flatMap {
+          case Some(userLoginInfo) =>
+            userPasswordInfoTable.find(userLoginInfo.loginInfoId).flatMap {
+              case Some(pwInfo) =>
+                if (passwordHasher.matches(PasswordInfo(pwInfo.hasher, pwInfo.password, pwInfo.salt), pw)) {
+                  Future.successful(LoginInfo(ID, email))
+                } else {
+                  throw new InvalidPasswordException(s"Invalid password for user with email: $email")
+                }
+              case None => throw new IdentityNotFoundException(s"No password found for user with email: $email")
             }
-          case None => throw new IdentityNotFoundException(s"No account found for user with email: $email")
+          case None => throw new IdentityNotFoundException(s"No login info found for user with email: $email")
         }
       case None => throw new IdentityNotFoundException(s"No account found for user with email: $email")
     }

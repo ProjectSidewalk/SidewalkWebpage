@@ -6,7 +6,6 @@ import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject._
-import scala.concurrent.Future
 
 case class DBLoginInfo(id: Long, providerID: String, providerKey: String)
 
@@ -15,6 +14,9 @@ class LoginInfoTableDef(tag: Tag) extends Table[DBLoginInfo](tag, "login_info") 
   def providerId: Rep[String]  = column[String]("provider_id")
   def providerKey: Rep[String] = column[String]("provider_key")
   def *                        = (loginInfoId, providerId, providerKey) <> (DBLoginInfo.tupled, DBLoginInfo.unapply)
+
+  // CHECK (provider_key = lower(provider_key)) in the DB.
+  def providerKeyUnique = index("login_info_provider_key_key", providerKey, unique = true)
 }
 
 @ImplementedBy(classOf[LoginInfoTable])
@@ -26,10 +28,6 @@ class LoginInfoTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val passwordInfo = TableQuery[LoginInfoTableDef]
-
-  def findByEmail(email: String): Future[Option[Long]] = {
-    db.run(passwordInfo.filter(_.providerKey === email).map(_.loginInfoId).result.headOption)
-  }
 
   /**
    * Updates the provider key (which is just the user's email address) for a given login info ID.
