@@ -78,7 +78,7 @@ trait SignedUpAccounts extends BeforeAndAfterAll { this: PlaySpec with GuiceOneA
       )
       .transactionally
 
-  private def runAccounts[R](action: DBIO[R]): R = Await.result(accountsDbConfig.db.run(action), 60.seconds)
+  protected def runAccounts[R](action: DBIO[R]): R = Await.result(accountsDbConfig.db.run(action), 60.seconds)
 
   override def afterAll(): Unit = {
     try createdUserIds.foreach(id => runAccounts(deleteAccount(id)))

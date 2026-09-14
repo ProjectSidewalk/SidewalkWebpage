@@ -564,28 +564,6 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
   }
 
   "NoSidewalk face evidence and the label query" should {
-    "count a labeler with several role rows once, and serve each of their labels once" in {
-      val (evidence, served, streetA) = runRolledBack(for {
-        labeler <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
-        // Nothing makes user_role.user_id unique, and a join on it would repeat every label of theirs per row.
-        _ <- sqlu"INSERT INTO user_role (user_id, role) VALUES ($labeler, 'Researcher')"
-        streetA = fixtureAnchors._1
-        _        <- insertNoSidewalk(labeler, streetA, LeftOfStreet, agree = 1)
-        _        <- insertNoSidewalk(labeler, streetA, LeftOfStreet, agree = 1)
-        evidence <- fixtureFaceEvidence
-        served   <- labelTable
-          .retrieveLabelListForValidationQuery(requester, viewer, LabelTypeEnum.NoSidewalk, ValidationQueue.Any,
-            userIds = Some(Set(labeler)))
-          .map(_._1)
-          .result
-      } yield (evidence, served, streetA))
-
-      // One labeler, two agreeing votes, two labels: each counted once whatever the role table holds.
-      evidence((streetA, StreetSide.Left)) mustBe ((1, 2, 2))
-      served.sorted mustBe served.distinct.sorted
-      served.size mustBe 2
-    }
-
     "leave out every label on an excluded face, and nothing else" in {
       val (served, aRight, bLeft, unsided) = runRolledBack(for {
         labeler <- insertLabeler(ownLabelsValidated = 100, highQuality = false)

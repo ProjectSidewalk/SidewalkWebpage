@@ -6,7 +6,7 @@ import models.route._
 import models.utils.{MyPostgresProfile, PolylineEncoder, ProfanityGuard, RouteThumbnail, SlugUtils}
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.LineString
-import org.postgresql.util.PSQLException
+import org.postgresql.util.{PSQLException, PSQLState}
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -55,7 +55,7 @@ class RouteServiceImpl @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   /** SQLState for a Postgres unique-constraint violation, the backstop for concurrent slug generation. */
-  private val UniqueViolation: String = "23505"
+  private val UniqueViolation: String = PSQLState.UNIQUE_VIOLATION.getState
 
   /**
    * Runs a slug-generating action, retrying once if a concurrent save grabbed the same slug between our
