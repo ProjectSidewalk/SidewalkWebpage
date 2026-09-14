@@ -3,7 +3,7 @@
  * providing `trigger`/`on`/etc. shared across the model modules.
  */
 class MissionModel {
-  fetchCompletedMissionsInNeighborhood(callback) {
+  fetchCompletedMissionsInRegion(callback) {
     const _onFetch = (missions) => {
       for (let i = 0, len = missions.length; i < len; i++) {
         this.createAMission(missions[i]);
@@ -11,9 +11,9 @@ class MissionModel {
     };
 
     if (callback) {
-      $.when($.ajax(`/neighborhoodMissions?regionId=${svl.regionId}`)).done(_onFetch).done(callback);
+      $.when($.ajax(`/completedMissionsInRegion?regionId=${svl.regionId}`)).done(_onFetch).done(callback);
     } else {
-      $.when($.ajax(`/neighborhoodMissions?regionId=${svl.regionId}`)).done(_onFetch);
+      $.when($.ajax(`/completedMissionsInRegion?regionId=${svl.regionId}`)).done(_onFetch);
     }
   }
 
@@ -71,8 +71,8 @@ class MissionModel {
   /**
    * Notify the mission modules with MissionProgress:update
    */
-  updateMissionProgress(mission, neighborhood) {
-    this.trigger('MissionProgress:update', { mission, neighborhood });
+  updateMissionProgress(mission, region) {
+    this.trigger('MissionProgress:update', { mission, region });
   }
 }
 Object.assign(MissionModel.prototype, EventMixin);

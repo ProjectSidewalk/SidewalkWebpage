@@ -1,5 +1,5 @@
 /**
- * RouteBuilder — the /routeBuilder page. Building is staged coarse-to-fine: the user first clicks the neighborhood
+ * RouteBuilder — the /routeBuilder page. Building is staged coarse-to-fine: the user first clicks the region
  * to build in (routes are constrained to one region, so the choice is made explicit and the map zooms to it), then
  * clicks points on the map — the first click drops a start (previewed by a ghost flag), and each further click
  * extends the route from the last point along an A* walking path over the street network (RouteGraph). Routes are
@@ -28,10 +28,10 @@ class RouteBuilder {
   static BUILD_ZOOM = 15.5;
   // How far a clicked or geocoded point may be from a street and still snap to it. Generous enough for a click
   // aimed at a street or an address set back from one, tight enough that a point in another part of the city
-  // doesn't silently attach to the nearest street of the selected neighborhood.
+  // doesn't silently attach to the nearest street of the selected region.
   static MAX_SNAP_DISTANCE_M = 250;
   // A point this close to a street of the selected region counts as inside that region even when the
-  // point-in-polygon test disagrees. Streets aren't strictly contained in their neighborhood polygon — one can run
+  // point-in-polygon test disagrees. Streets aren't strictly contained in their region polygon — one can run
   // along and slightly across a boundary — so deciding by polygon alone would refuse clicks/hovers on parts of the
   // region's own streets. Sized to cover that stray (~15 m) plus half a street width and click slop.
   static BOUNDARY_STREET_TOL_M = 25;
@@ -45,24 +45,24 @@ class RouteBuilder {
   // starts blank and clears it.
   static DRAFT_KEY = 'rb-route-draft';
 
-  // Muted categorical tints cycled by region id, so adjacent neighborhoods read as visually distinct choices.
-  static NEIGHBORHOOD_FILL_COLORS = ['#78C9AB', '#FBD98C', '#F29173', '#9F9DB1', '#78B0EA'];
+  // Muted categorical tints cycled by region id, so adjacent regions read as visually distinct choices.
+  static REGION_FILL_COLORS = ['#78C9AB', '#FBD98C', '#F29173', '#9F9DB1', '#78B0EA'];
 
-  // Neighborhood paints by stage: while choosing, every region is washed and outlined so the map reads as a set of
+  // Region paints by stage: while choosing, every region is washed and outlined so the map reads as a set of
   // clickable choices; once one is selected, only it stays outlined and the wash drops to a hover-only tint.
-  static NEIGHBORHOOD_PAINT_CHOOSING = {
+  static REGION_PAINT_CHOOSING = {
     fillOpacity: ['case', ['boolean', ['feature-state', 'hover'], false], 0.38, 0.18],
     lineOpacity: 0.4,
   };
 
-  static NEIGHBORHOOD_PAINT_SELECTED = {
+  static REGION_PAINT_SELECTED = {
     fillOpacity: ['case', ['boolean', ['feature-state', 'hover'], false], 0.15, 0.0],
     lineOpacity: ['case', ['boolean', ['feature-state', 'current'], false], 0.5, 0.0],
   };
 
   #status = {
     mapLoaded: false,
-    neighborhoodsRendered: false, // Neighborhood source/layers have been added to the map.
+    regionsRendered: false, // Region source/layers have been added to the map.
     streetsRendered: false, // Street source/layers/handlers have been added to the map.
     pendingRouteRestored: false,
   };
@@ -76,7 +76,7 @@ class RouteBuilder {
 
   // Route state. The route is #waypoints plus the resolved street list of each leg between them (#segments);
   // the drawn streets, endpoint flags, and stats are derived from those.
-  #neighborhoodData = null;
+  #regionData = null;
   #currRegionId = null;
   #streetData = null;
   #streetsInRoute = null; // The 'streets-chosen' GeoJSON source: cloned, oriented street features for the route.
@@ -156,7 +156,7 @@ class RouteBuilder {
     // Wire the route-management buttons.
     document.getElementById('cancel-button').addEventListener('click', () => this.#clickCancelRoute());
     // Clears everything so the user can start a fresh route (confirming first if unsaved work would be lost),
-    // zooming back out to the city view so the neighborhood choice is on screen.
+    // zooming back out to the city view so the region choice is on screen.
     document.getElementById('new-route-button').addEventListener('click', async () => {
       window.logWebpageActivity('RouteBuilder_Click=NewRoute');
       if (!(await this.#unsavedWorkConfirmed())) return;
@@ -230,14 +230,14 @@ class RouteBuilder {
     this.#map.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
     this.#map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
     this.#map.on('load', () => {
-      // If the streets and/or neighborhoods loaded before the map, render them now that the map has loaded.
+      // If the streets and/or regions loaded before the map, render them now that the map has loaded.
       // Each render is isolated so a failure in one can't silently block the other from ever wiring up.
       this.#status.mapLoaded = true;
-      if (this.#neighborhoodData !== null) {
+      if (this.#regionData !== null) {
         try {
-          this.#renderNeighborhoodsHelper();
+          this.#renderRegionsHelper();
         } catch (e) {
-          console.error('Failed to render neighborhoods:', e);
+          console.error('Failed to render regions:', e);
         }
       }
       if (this.#streetData !== null) {
@@ -306,10 +306,10 @@ class RouteBuilder {
   // Arrow field so the reference stays stable for the map on/off pair. Stacks the layers bottom-to-top.
   #moveLayers = () => {
     const map = this.#map;
-    if (map.getLayer('neighborhoods-outline') && map.getLayer('streets') && map.getLayer('streets-chosen')) {
+    if (map.getLayer('regions-outline') && map.getLayer('streets') && map.getLayer('streets-chosen')) {
       // The flag/explorer layers may not exist yet (their icons rasterize async); they are then added on top
       // anyway, so only the base layers gate the reordering.
-      ['neighborhoods-fill', 'neighborhoods-outline', 'streets', 'streets-chosen', 'neighborhoods-label',
+      ['regions-fill', 'regions-outline', 'streets', 'streets-chosen', 'regions-label',
         'ghost-start', 'route-endpoints', 'route-explorer']
         .filter((id) => map.getLayer(id))
         .forEach((id) => map.moveLayer(id));
@@ -382,7 +382,7 @@ class RouteBuilder {
   }
 
   /**
-   * Updates the on-map call-to-action for the pre-route stages: pick a neighborhood, then a start point. Once the
+   * Updates the on-map call-to-action for the pre-route stages: pick a region, then a start point. Once the
    * route has started, guidance moves to the hint anchored at the newest flag (#showHint) and the pill hides.
    */
   #updateCta() {
@@ -427,47 +427,47 @@ class RouteBuilder {
   }
 
   /**
-   * Renders the neighborhoods: an invisible fill that acts as the hover/click target while choosing where to
+   * Renders the regions: an invisible fill that acts as the hover/click target while choosing where to
    * build (lightly tinted on hover), name labels shown only during that choice, and a solid outline drawn for the
    * selected region alone — boundaries stay off the map otherwise to keep the visual noise down.
    */
-  #renderNeighborhoodsHelper() {
+  #renderRegionsHelper() {
     const map = this.#map;
     // Precompute each region's tint as a property — plain data beats a computed style expression here.
-    this.#neighborhoodData.features.forEach((feature) => {
-      const colors = RouteBuilder.NEIGHBORHOOD_FILL_COLORS;
+    this.#regionData.features.forEach((feature) => {
+      const colors = RouteBuilder.REGION_FILL_COLORS;
       feature.properties.fill_color = colors[Math.abs(feature.properties.region_id) % colors.length];
     });
-    map.addSource('neighborhoods', {
+    map.addSource('regions', {
       type: 'geojson',
-      data: this.#neighborhoodData,
+      data: this.#regionData,
       promoteId: 'region_id',
     });
     map.addLayer({
-      id: 'neighborhoods-fill',
+      id: 'regions-fill',
       type: 'fill',
-      source: 'neighborhoods',
+      source: 'regions',
       paint: {
         'fill-color': ['get', 'fill_color'],
-        'fill-opacity': RouteBuilder.NEIGHBORHOOD_PAINT_CHOOSING.fillOpacity,
+        'fill-opacity': RouteBuilder.REGION_PAINT_CHOOSING.fillOpacity,
       },
     });
     map.addLayer({
-      id: 'neighborhoods-outline',
+      id: 'regions-outline',
       type: 'line',
-      source: 'neighborhoods',
+      source: 'regions',
       paint: {
         'line-color': RouteBuilder.#token('--color-asphalt-500'),
         'line-width': ['case', ['boolean', ['feature-state', 'current'], false], 2, 1.5],
-        'line-opacity': RouteBuilder.NEIGHBORHOOD_PAINT_CHOOSING.lineOpacity,
+        'line-opacity': RouteBuilder.REGION_PAINT_CHOOSING.lineOpacity,
       },
     });
     map.addLayer({
-      id: 'neighborhoods-label',
+      id: 'regions-label',
       type: 'symbol',
-      source: 'neighborhoods',
+      source: 'regions',
       layout: {
-        'text-field': ['get', 'region_name'],
+        'text-field': ['get', 'name'],
         'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
         'text-size': ['interpolate', ['linear'], ['zoom'], 10, 11, 14, 15],
       },
@@ -478,33 +478,33 @@ class RouteBuilder {
       },
     });
 
-    // While choosing a neighborhood (any time the route hasn't started), regions highlight on hover.
+    // While choosing a region (any time the route hasn't started), regions highlight on hover.
     let hoveredRegion = null;
-    map.on('mousemove', 'neighborhoods-fill', (event) => {
+    map.on('mousemove', 'regions-fill', (event) => {
       if (this.#routeStarted()) return;
       const regionId = event.features[0].properties.region_id;
       if (regionId !== hoveredRegion) {
         if (hoveredRegion !== null) {
-          map.setFeatureState({ source: 'neighborhoods', id: hoveredRegion }, { hover: false });
+          map.setFeatureState({ source: 'regions', id: hoveredRegion }, { hover: false });
         }
         hoveredRegion = regionId;
-        map.setFeatureState({ source: 'neighborhoods', id: hoveredRegion }, { hover: true });
+        map.setFeatureState({ source: 'regions', id: hoveredRegion }, { hover: true });
       }
       // Inside the selected region the ghost flag is the affordance; elsewhere the region itself is clickable.
       if (this.#currRegionId === null || regionId !== this.#currRegionId) map.getCanvas().style.cursor = 'pointer';
     });
-    map.on('mouseleave', 'neighborhoods-fill', () => {
-      if (hoveredRegion !== null) map.setFeatureState({ source: 'neighborhoods', id: hoveredRegion }, { hover: false });
+    map.on('mouseleave', 'regions-fill', () => {
+      if (hoveredRegion !== null) map.setFeatureState({ source: 'regions', id: hoveredRegion }, { hover: false });
       hoveredRegion = null;
       map.getCanvas().style.cursor = '';
     });
 
-    this.#status.neighborhoodsRendered = true;
+    this.#status.regionsRendered = true;
     this.#maybeRestorePendingRoute();
   }
 
   /**
-   * Selects the neighborhood to build in: outlines it, hides the region-name labels and hover tint, and zooms the
+   * Selects the region to build in: outlines it, hides the region-name labels and hover tint, and zooms the
    * map to fit it. Re-selecting a different region (before any point is placed) just moves the selection.
    *
    * @param {number} regionId
@@ -514,34 +514,34 @@ class RouteBuilder {
     const map = this.#map;
     if (this.#currRegionId === regionId) return;
     if (this.#currRegionId !== null) {
-      map.setFeatureState({ source: 'neighborhoods', id: this.#currRegionId }, { current: false });
+      map.setFeatureState({ source: 'regions', id: this.#currRegionId }, { current: false });
     }
     this.#currRegionId = regionId;
-    map.setFeatureState({ source: 'neighborhoods', id: regionId }, { current: true });
-    if (map.getLayer('neighborhoods-label')) map.setLayoutProperty('neighborhoods-label', 'visibility', 'none');
-    map.setPaintProperty('neighborhoods-fill', 'fill-opacity', RouteBuilder.NEIGHBORHOOD_PAINT_SELECTED.fillOpacity);
+    map.setFeatureState({ source: 'regions', id: regionId }, { current: true });
+    if (map.getLayer('regions-label')) map.setLayoutProperty('regions-label', 'visibility', 'none');
+    map.setPaintProperty('regions-fill', 'fill-opacity', RouteBuilder.REGION_PAINT_SELECTED.fillOpacity);
     map.setPaintProperty(
-      'neighborhoods-outline', 'line-opacity', RouteBuilder.NEIGHBORHOOD_PAINT_SELECTED.lineOpacity,
+      'regions-outline', 'line-opacity', RouteBuilder.REGION_PAINT_SELECTED.lineOpacity,
     );
     // Mousemove doesn't fire during the zoom animation, so drop the stale pointer feedback now.
     this.#clearGhostStart();
     this.#setCursorGuide(null);
 
     if (fit) {
-      const region = this.#neighborhoodData?.features.find((n) => n.properties.region_id === regionId);
+      const region = this.#regionData?.features.find((n) => n.properties.region_id === regionId);
       if (region) map.fitBounds(turf.bbox(region), { padding: 60, duration: 1200, maxZoom: 16 });
     }
     this.#updateCta();
   }
 
   /**
-   * @param {Object} neighborhoodDataIn - GeoJSON of the city's neighborhoods.
+   * @param {Object} regionDataIn - GeoJSON of the city's regions.
    */
-  renderNeighborhoods(neighborhoodDataIn) {
-    this.#neighborhoodData = neighborhoodDataIn;
-    // If the map already loaded, it's safe to render neighborhoods now. O/w they will load after the map does.
+  renderRegions(regionDataIn) {
+    this.#regionData = regionDataIn;
+    // If the map already loaded, it's safe to render regions now. O/w they will load after the map does.
     if (this.#status.mapLoaded) {
-      this.#renderNeighborhoodsHelper();
+      this.#renderRegionsHelper();
     }
   }
 
@@ -689,7 +689,7 @@ class RouteBuilder {
 
     // Click handling follows the staged flow. On the drawn route: open the reverse/delete menu (a small pixel box
     // around the click gives the thin line a comfortable hit target). Before any point exists: clicking a
-    // neighborhood selects it (clicking a different one moves the selection); clicking inside the selected one
+    // region selects it (clicking a different one moves the selection); clicking inside the selected one
     // plants the start. After that, clicks extend the route.
     map.on('click', (event) => {
       const { x, y } = event.point;
@@ -705,7 +705,7 @@ class RouteBuilder {
         // A click on a street of the selected region falls through to the waypoint flow even when the ground under
         // it belongs to another polygon (or none) — the street, not the polygon, is what the user aimed at.
         if (!this.#onCurrentRegionStreet(event.lngLat)) {
-          if (clickedRegionId === null) return; // Clicked outside every neighborhood.
+          if (clickedRegionId === null) return; // Clicked outside every region.
           if (clickedRegionId !== this.#currRegionId) {
             window.logWebpageActivity(`RouteBuilder_Click=SelectRegion_RegionId=${clickedRegionId}`);
             this.#selectRegion(clickedRegionId);
@@ -721,29 +721,29 @@ class RouteBuilder {
   }
 
   /**
-   * Returns the region id of the neighborhood polygon under a screen point, or null if there is none.
+   * Returns the region id of the region polygon under a screen point, or null if there is none.
    *
    * @param {Object} point - Screen {x, y} of a map event.
    * @returns {number|null}
    */
   #regionIdAtPoint(point) {
-    if (!this.#map.getLayer('neighborhoods-fill')) return null;
-    const features = this.#map.queryRenderedFeatures(point, { layers: ['neighborhoods-fill'] });
+    if (!this.#map.getLayer('regions-fill')) return null;
+    const features = this.#map.queryRenderedFeatures(point, { layers: ['regions-fill'] });
     return features.length > 0 ? features[0].properties.region_id : null;
   }
 
   /**
-   * Returns the region id whose neighborhood polygon contains a coordinate, or null if none does.
+   * Returns the region id whose region polygon contains a coordinate, or null if none does.
    *
    * Tests the loaded polygons rather than what the map has rendered, so it answers for points outside the
-   * current viewport too — a geocoded address in another neighborhood is exactly the case that must not read as
-   * "no region" and slip past the one-neighborhood rule.
+   * current viewport too — a geocoded address in another region is exactly the case that must not read as
+   * "no region" and slip past the one-region rule.
    *
    * @param {Object} lngLat - {lng, lat}.
    * @returns {number|null}
    */
   #regionIdContaining(lngLat) {
-    const region = this.#neighborhoodData?.features.find(
+    const region = this.#regionData?.features.find(
       (f) => turf.booleanPointInPolygon([lngLat.lng, lngLat.lat], f),
     );
     return region ? region.properties.region_id : null;
@@ -753,7 +753,7 @@ class RouteBuilder {
    * Whether a coordinate is effectively on one of the selected region's streets.
    *
    * The polygon-based region tests treat such a point as inside the selected region: a street can stray slightly
-   * across (or run along) its neighborhood's boundary, so the polygon under the pointer alone would misclassify
+   * across (or run along) its region's boundary, so the polygon under the pointer alone would misclassify
    * points on the region's own streets.
    *
    * @param {Object} lngLat - {lng, lat}.
@@ -784,7 +784,7 @@ class RouteBuilder {
   }
 
   /**
-   * Moves the ghost flag to the intersection nearest the mouse. Once a neighborhood is selected this is the click
+   * Moves the ghost flag to the intersection nearest the mouse. Once a region is selected this is the click
    * affordance: a translucent start flag before the first point, then a translucent end flag while extending.
    * Snapping is restricted to the selected region; hovering a different region shows a not-allowed cursor once the
    * route is locked there — unless the pointer is on a current-region street that strays across the polygon line.
@@ -815,7 +815,7 @@ class RouteBuilder {
 
   /**
    * The cursor guide: a small bubble following the pointer that says what a click here does — pick or switch a
-   * neighborhood (named), start the route, or set the end point. It retires once the mechanic is demonstrably
+   * region (named), start the route, or set the end point. It retires once the mechanic is demonstrably
    * learned (2+ points) and stays out of the way of the drawn route's own menu.
    *
    * @param {number|null} hoverRegionId - Region under the pointer, if any.
@@ -899,24 +899,24 @@ class RouteBuilder {
    * @param {string} source - Where the point came from, for activity logging ('MapClick'/'AddressStart'/...).
    */
   #addWaypoint(lngLat, source) {
-    if (!this.#status.neighborhoodsRendered || this.#streetData === null || this.#streetsInRoute === null) return;
+    if (!this.#status.regionsRendered || this.#streetData === null || this.#streetsInRoute === null) return;
     // A route restored for the post-sign-in save flow is drawn but has no waypoints; a fresh click starts over
     // rather than leaving the (waypoint-derived) route and the drawn streets out of sync.
     if (this.#waypoints.length === 0 && this.#streetsInRoute.features.length > 0) this.#emptyRoute();
     const graph = this.#getRouteGraph();
 
-    // Region rule: a point in a different neighborhood than the selected one is refused (with a toast). The
+    // Region rule: a point in a different region than the selected one is refused (with a toast). The
     // polygon under the point decides — except for points on a current-region street that strays across the
     // polygon line — and snapping is restricted to the selected region, so a point near a boundary can't silently
     // slip across it.
     const pointRegionId = this.#regionIdContaining(lngLat);
     if (this.#currRegionId !== null && pointRegionId !== null && pointRegionId !== this.#currRegionId
       && !this.#onCurrentRegionStreet(lngLat)) {
-      this.#showMapMessage(i18next.t('one-neighborhood-warning'));
+      this.#showMapMessage(i18next.t('one-region-warning'));
       window.logWebpageActivity(`RouteBuilder_AddWaypoint=DifferentRegion_Source=${source}`);
       return;
     }
-    // Capped: an address the geocoder places outside the selected neighborhood would otherwise snap to whatever
+    // Capped: an address the geocoder places outside the selected region would otherwise snap to whatever
     // street of it happens to be nearest, silently extending the route to somewhere the user never pointed at.
     const snap = graph.snapToStreet(lngLat, this.#currRegionId, RouteBuilder.MAX_SNAP_DISTANCE_M);
     if (!snap) {
@@ -1049,7 +1049,7 @@ class RouteBuilder {
 
   /**
    * Updates the stats block in the planner card: a headline of estimated exploration time (distance x the city's
-   * labeling pace) and distance, with a street-count + neighborhood caption below. Cleared when the route is empty.
+   * labeling pace) and distance, with a street-count + region caption below. Cleared when the route is empty.
    */
   #updateStats() {
     const feats = this.#streetsInRoute.features;
@@ -1130,7 +1130,7 @@ class RouteBuilder {
   }
 
   /**
-   * One-line meta description for a saved-route card: distance, estimated exploration time, and neighborhood.
+   * One-line meta description for a saved-route card: distance, estimated exploration time, and region.
    *
    * @param {number} distanceMeters
    * @param {string|null} regionName
@@ -1325,14 +1325,14 @@ class RouteBuilder {
   #unlockRegion() {
     const map = this.#map;
     if (this.#currRegionId !== null) {
-      map.setFeatureState({ source: 'neighborhoods', id: this.#currRegionId }, { current: false });
+      map.setFeatureState({ source: 'regions', id: this.#currRegionId }, { current: false });
     }
     this.#currRegionId = null;
-    if (map.getLayer('neighborhoods-label')) {
-      map.setLayoutProperty('neighborhoods-label', 'visibility', 'visible');
-      map.setPaintProperty('neighborhoods-fill', 'fill-opacity', RouteBuilder.NEIGHBORHOOD_PAINT_CHOOSING.fillOpacity);
+    if (map.getLayer('regions-label')) {
+      map.setLayoutProperty('regions-label', 'visibility', 'visible');
+      map.setPaintProperty('regions-fill', 'fill-opacity', RouteBuilder.REGION_PAINT_CHOOSING.fillOpacity);
       map.setPaintProperty(
-        'neighborhoods-outline', 'line-opacity', RouteBuilder.NEIGHBORHOOD_PAINT_CHOOSING.lineOpacity,
+        'regions-outline', 'line-opacity', RouteBuilder.REGION_PAINT_CHOOSING.lineOpacity,
       );
     }
   }
@@ -1341,13 +1341,13 @@ class RouteBuilder {
    * Restores a route stashed in sessionStorage before a sign-in reload, then reopens the save modal. With no
    * stash, falls back to the in-progress draft (#restoreDraft) so a plain reload doesn't lose work either.
    *
-   * Runs once, after the map, neighborhoods, and streets have all *rendered* — the streets-rendered gate matters:
+   * Runs once, after the map, regions, and streets have all *rendered* — the streets-rendered gate matters:
    * drawing the route needs the 'streets-chosen' source, which doesn't exist while the street GeoJSON has merely
    * arrived.
    */
   #maybeRestorePendingRoute() {
     if (this.#status.pendingRouteRestored
-      || !this.#status.neighborhoodsRendered || !this.#status.streetsRendered) return;
+      || !this.#status.regionsRendered || !this.#status.streetsRendered) return;
 
     this.#status.pendingRouteRestored = true;
     const pending = SaveModal.consumePendingRoute();
@@ -1787,14 +1787,14 @@ class RouteBuilder {
   }
 
   /**
-   * Looks up a region's display name from the neighborhoods GeoJSON.
+   * Looks up a region's display name from the regions GeoJSON.
    *
    * @param {number} regionId
    * @returns {string|null} The region name, or null if unknown.
    */
   #getRegionName(regionId) {
-    const region = this.#neighborhoodData?.features.find((n) => n.properties.region_id === regionId);
-    return region ? region.properties.region_name : null;
+    const region = this.#regionData?.features.find((n) => n.properties.region_id === regionId);
+    return region ? region.properties.name : null;
   }
 
   /**

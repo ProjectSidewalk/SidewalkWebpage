@@ -78,9 +78,9 @@
   },
   "mission-complete": {
     "title-generic": "Mission terminée !",
-    "title-neighborhood-complete": "Bravo ! Vous avez terminé le quartier {{neighborhoodName}} !",
+    "title-region-complete": "Bravo ! Vous avez terminé le quartier {{regionName}} !",
     "title-route-complete": "Bravo ! Vous avez terminé votre itinéraire !",
-    "subtitle": "Explorez {{distance}} de {{neighborhoodName}}",
+    "subtitle": "Explorez {{distance}} de {{regionName}}",
     "badge-alt": "Votre badge de missions",
     "legend-title": "Progression de la mission",
     "legend-this-mission": "Cette mission",
@@ -146,14 +146,14 @@
       "message-route": "Explorer {{routeName}}",
       "exit-route": "Quitter l'itinéraire personnalisé",
       "header-free-explore": "Exploration libre",
-      "message": "Explorer __PLACEHOLDER__ de {{neighborhoodName}}"
+      "message": "Explorer __PLACEHOLDER__ de {{regionName}}"
     },
     "route-resume": {
       "message": "Reprise de votre itinéraire personnalisé « {{routeName}} » là où vous vous étiez arrêté.",
       "exit": "Quitter l'itinéraire personnalisé"
     },
     "mission-resume": {
-      "message": "Reprise de votre mission dans {{neighborhoodName}} — encore {{distanceLeft, distance(style: small)}} à parcourir."
+      "message": "Reprise de votre mission dans {{regionName}} — encore {{distanceLeft, distance(style: small)}} à parcourir."
     },
     "route-unavailable": {
       "message": "Cet itinéraire n'est pas disponible. Il a peut-être été supprimé."
@@ -187,7 +187,7 @@
       "next-distance": "Explorez {{distance}} pour gagner le prochain.",
       "earned-all": "Vous avez atteint le niveau maximum de ce badge — travail remarquable !"
     },
-    "neighborhood-progress": {
+    "region-progress": {
       "title": "Progression du quartier",
       "you-tooltip": "Vos contributions",
       "community-tooltip": "Contributions de la communauté"
@@ -299,14 +299,14 @@
       "u-turn": "Faites demi-tour",
       "end-route": "Vous êtes au bout de votre itinéraire ! Regardez tout autour de vous pour terminer — ou <b>cliquez ici pour terminer maintenant.</b>",
       "route-finish-look-around": "Dernier arrêt ! Faites un tour complet du regard pour terminer votre itinéraire.",
-      "end-neighborhood": "Vous avez exploré tout ce quartier ! Terminez d'étiqueter cette intersection, puis <b>cliquez ici pour terminer le quartier.</b>",
+      "end-region": "Vous avez exploré tout ce quartier ! Terminez d'étiqueter cette intersection, puis <b>cliquez ici pour terminer le quartier.</b>",
       "end-street": "Nous devons vous déplacer vers un nouvel endroit. Terminez d'étiqueter cette intersection, puis <b>cliquez ici pour être déplacé.</b>",
       "far-away": "Oups, vous êtes assez loin de l'itinéraire. <b>Cliquez ici pour y revenir.</b>"
     }
   },
   "popup": {
     "start-title": "C'est parti !",
-    "start-body": "Nous vous avons déplacé dans une rue de {{neighborhood}}, {{city}} ! Vous êtes actuellement à l'intersection. Repérez et étiquetez tous les bateaux de trottoir et les problèmes d'accessibilité de cette intersection.",
+    "start-body": "Nous vous avons déplacé dans une rue de {{region}}, {{city}} ! Vous êtes actuellement à l'intersection. Repérez et étiquetez tous les bateaux de trottoir et les problèmes d'accessibilité de cette intersection.",
     "step-title": "Avançons !",
     "step-body": "Il semble que vous ayez regardé toute cette intersection ; il est temps d'explorer d'autres zones. Avancez dans la direction de la ligne rouge mise en évidence sur la carte.",
     "both-sides-title": "Vérifiez les deux côtés de la rue",
@@ -340,7 +340,7 @@
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "MISSION D'EXPLORATION",
-    "mst-instruction-2": "Étiquetez ces éléments d'accessibilité dans {{neighborhood}}",
+    "mst-instruction-2": "Étiquetez ces éléments d'accessibilité dans {{region}}",
     "example-type-label-incorrect": "ERREUR FRÉQUENTE",
     "label-on-image-title-incorrect": "Erreur fréquente",
     "label-on-image-description-correct": "Placer une étiquette",

@@ -7,7 +7,7 @@ object ValidateHelper {
       adminVersion: Boolean,
       labelType: Option[LabelTypeEnum.Base] = None,
       userIds: Option[Seq[String]] = None,
-      neighborhoodIds: Option[Seq[Int]] = None,
+      regionIds: Option[Seq[Int]] = None,
       unvalidatedOnly: Boolean = false
   ) {
     require(labelType.isEmpty || adminVersion, "labelType can only be set if adminVersion is true")

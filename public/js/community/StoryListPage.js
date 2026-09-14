@@ -13,7 +13,7 @@ class StoryListPage {
   constructor() {
     this.#list = new CommunityListPage('StoryListPage', {
       newest: { key: 'created', numeric: true, desc: true },
-      neighborhood: { key: 'region' },
+      region: { key: 'region' },
       labeltype: { key: 'labeltype' },
     });
   }

@@ -145,10 +145,10 @@ describe('Explore, when the imagery search runs out along a street', () => {
             keyboard: { setStatus: jest.fn() },
             minimap: { setMinimapLocation: stub() },
             missionContainer: { getCurrentMission: () => ({ getProperty: () => 7, pushATaskToTheRoute: jest.fn() }) },
-            missionController: { wrapUpRouteOrNeighborhood: stub(), onRouteReadyToFinish: stub() },
+            missionController: { wrapUpRouteOrRegion: stub(), onRouteReadyToFinish: stub() },
             missionModel: { updateMissionProgress: stub() },
-            neighborhoodModel: {
-                currentNeighborhood: () => ({}), isRoute: false, isRouteOrNeighborhoodComplete: () => false,
+            regionModel: {
+                currentRegion: () => ({}), isRoute: false, isRouteOrRegionComplete: () => false,
                 setComplete: jest.fn(),
             },
             observedArea: { panoChanged: stub(), update: stub() },
@@ -327,7 +327,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
         it('gives each pass of an out-and-back route its own stuck panos (#5008)', async () => {
             // The two passes share a street edge id, so keying the reset on the street hands the return leg every
             // pano the outbound leg banked — on a short street, all of them.
-            svl.neighborhoodModel.isRoute = true;
+            svl.regionModel.isRoute = true;
             const [outbound, back] = [makeTask(101, { walkOrder: 1 }), makeTask(101, { walkOrder: 2 })];
             assignStreets(outbound, back);
             let standingOn = 'pano-street-start';
@@ -454,27 +454,27 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.stuckAlert.announceSkippedStreetNear).toHaveBeenCalledTimes(5);
         });
 
-        it('completes the neighborhood instead, when there are no streets left to hand out', async () => {
+        it('completes the region instead, when there are no streets left to hand out', async () => {
             assignStreets(makeTask(101));
             respondToSearch = emptyGround;
 
             await nav.moveForward();
 
-            expect(svl.neighborhoodModel.setComplete).toHaveBeenCalled();
-            expect(svl.missionController.wrapUpRouteOrNeighborhood).toHaveBeenCalled();
+            expect(svl.regionModel.setComplete).toHaveBeenCalled();
+            expect(svl.missionController.wrapUpRouteOrRegion).toHaveBeenCalled();
         });
 
         it('ends a route through its normal finish flow, not by firing the modal mid-stride (#5008)', async () => {
-            svl.neighborhoodModel.isRoute = true;
+            svl.regionModel.isRoute = true;
             assignStreets(makeTask(101, { walkOrder: 1 }));
             respondToSearch = emptyGround;
 
             await nav.moveForward();
 
-            expect(svl.neighborhoodModel.setComplete).toHaveBeenCalled();
+            expect(svl.regionModel.setComplete).toHaveBeenCalled();
             // The finish toast and its look-around gate, the same ending a route gets when its last street is walked.
             expect(svl.missionController.onRouteReadyToFinish).toHaveBeenCalled();
-            expect(svl.missionController.wrapUpRouteOrNeighborhood).not.toHaveBeenCalled();
+            expect(svl.missionController.wrapUpRouteOrRegion).not.toHaveBeenCalled();
             // The labeler has to be able to look around for that gate to ever open.
             expect(nav.getStatus('disableWalking')).toBe(false);
         });
@@ -482,7 +482,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
         it('gives up on a street once, however many times the labeler tries to walk off it (#5008)', async () => {
             // The route's finish gate needs the labeler able to look around, so the terminal branch hands the controls
             // back — which also lets them press forward again on the street it just gave up on.
-            svl.neighborhoodModel.isRoute = true;
+            svl.regionModel.isRoute = true;
             assignStreets(makeTask(101, { walkOrder: 1 }));
             respondToSearch = emptyGround;
 

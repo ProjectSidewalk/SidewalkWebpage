@@ -1,8 +1,8 @@
 /**
- * Drives the neighborhood progress bar (the shared .ps-progress-bar component). Filled by the distance audited by
+ * Drives the region progress bar (the shared .ps-progress-bar component). Filled by the distance audited by
  * everyone but the current user, then distance audited by the current user.
  */
-class NeighborhoodProgressBar {
+class RegionProgressBar {
   #fillEl;
   #youEl;
   #communityEl;
@@ -17,10 +17,10 @@ class NeighborhoodProgressBar {
    */
   constructor(elementIds = {}) {
     const ids = {
-      fill: 'neighborhood-progress-fill',
-      you: 'neighborhood-progress-you',
-      community: 'neighborhood-progress-community',
-      rate: 'neighborhood-progress-rate',
+      fill: 'region-progress-fill',
+      you: 'region-progress-you',
+      community: 'region-progress-community',
+      rate: 'region-progress-rate',
       ...elementIds,
     };
     this.#fillEl = document.getElementById(ids.fill);
@@ -30,7 +30,7 @@ class NeighborhoodProgressBar {
   }
 
   /**
-   * Recomputes the user's and the community's audited fractions of the neighborhood and resizes the two bar segments.
+   * Recomputes the user's and the community's audited fractions of the region and resizes the two bar segments.
    * Uses the same priority-based distances as the mission-complete modal.
    */
   update() {
@@ -38,7 +38,7 @@ class NeighborhoodProgressBar {
       || !('taskContainer' in svl) || !svl.taskContainer) return;
 
     const unit = { units: util.turfDistanceUnits() };
-    const totalDistance = svl.taskContainer.totalLineDistanceInNeighborhood(unit);
+    const totalDistance = svl.taskContainer.getTotalTaskDistance(unit);
     if (!totalDistance) return;
 
     // Your segment uses your *live* audited distance, which folds in progress on the street you're currently on.
@@ -48,12 +48,12 @@ class NeighborhoodProgressBar {
     // excluding your live in-progress partial. Both of those only change when a whole street is finished (a
     // street's priority drops below 1 only on completion), so the community segment holds steady between street
     // completions instead of being dragged around — and ticking down — on every step as you audit.
-    const allDistance = svl.taskContainer.getCompletedTaskDistanceAcrossAllUsersUsingPriority();
+    const allDistance = svl.taskContainer.getCommunityCompletedTaskDistance();
     const userCompletedDistance = (svl.taskContainer.getCompletedTasks() || [])
       .reduce((sum, task) => sum + turf.length(task.getGeoJSON(), unit), 0);
 
     // On a user-defined route we only track this user's own contributions, so don't show community progress.
-    const otherDistance = svl.neighborhoodModel.isRoute ? 0 : Math.max(0, allDistance - userCompletedDistance);
+    const otherDistance = svl.regionModel.isRoute ? 0 : Math.max(0, allDistance - userCompletedDistance);
 
     // Clamp each fraction to [0, 1] and keep their sum within 100% so the fill never overflows the track.
     const youFraction = Math.min(1, Math.max(0, userDistance / totalDistance));
@@ -68,8 +68,8 @@ class NeighborhoodProgressBar {
       this.#youEl.style.width = `${(youFraction / filledFraction * 100).toFixed(1)}%`;
     }
 
-    // Show the combined neighborhood completion percentage next to the bar, using the shared formatter so we
-    // never display 100% until the neighborhood is actually fully audited.
+    // Show the combined region completion percentage next to the bar, using the shared formatter so we
+    // never display 100% until the region is actually fully audited.
     this.#rateEl.textContent = `${ProgressBar.formatPercent(filledFraction)}%`;
   }
 }

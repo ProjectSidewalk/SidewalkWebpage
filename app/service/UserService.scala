@@ -872,7 +872,7 @@ class UserServiceImpl @Inject() (
     db.run(userStatTable.getLabelTypeAccuracy(userId)).map(UserService.computeAccuracyByType)
   }
 
-  /** Explore-this-neighborhood link for a region trophy — opens the audit tool scoped to that region. */
+  /** Explore-this-region link for a region trophy — opens the audit tool scoped to that region. */
   private def exploreRegionLink(regionId: Int): String = s"/explore?regionId=$regionId"
 
   /**

@@ -186,8 +186,8 @@ case class LabelValidationSummaryForApi(userId: String, validationType: String, 
  * @param highQualityUser Whether the labeler is flagged as a high-quality contributor (`user_stat.high_quality`)
  * @param streetEdgeId Project Sidewalk's street segment identifier
  * @param osmWayId OpenStreetMap way identifier
- * @param regionId Identifier of the region (neighborhood) the label falls within
- * @param regionName Name of the region (neighborhood) where the label is located
+ * @param regionId Identifier of the region the label falls within
+ * @param regionName Name of the region where the label is located
  * @param streetSide Side of `streetEdgeId` the label sits on, relative to the edge's digitized direction (#2886);
  *                   `None` within 1 m of the centerline or without a position
  * @param centerlineOffsetM Signed geodesic distance from the street's centerline in metres, positive on the left of

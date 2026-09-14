@@ -10,7 +10,7 @@ class RouteListPage {
   constructor() {
     this.#list = new CommunityListPage('RouteListPage', {
       newest: { key: 'created', numeric: true, desc: true },
-      neighborhood: { key: 'region' },
+      region: { key: 'region' },
       longest: { key: 'distance', numeric: true, desc: true },
       explored: { key: 'explored', numeric: true, desc: true },
     });

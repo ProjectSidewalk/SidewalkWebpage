@@ -58,17 +58,18 @@ class ValidateController @Inject() (
 
   /**
    * Returns the validation page.
-   * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
+   * @param regions         Comma-separated list of region names or region IDs to validate (could be mixed).
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
+   * @param neighborhoods   Old name for `regions`, still read so existing links keep working.
    */
-  def validate(neighborhoods: Option[String], unvalidatedOnly: Option[Boolean]) =
+  def validate(regions: Option[String], unvalidatedOnly: Option[Boolean], neighborhoods: Option[String]) =
     cc.securityService.SecuredAction { implicit request =>
       if (isMobile(request)) {
         // mobileValidate takes the same query params, so forward them along with the redirect.
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Validate_RedirectMobile")
         Future.successful(Redirect("/mobile", request.queryString))
       } else {
-        checkParams(adminVersion = false, None, None, neighborhoods, unvalidatedOnly).flatMap {
+        checkParams(adminVersion = false, None, None, regions.orElse(neighborhoods), unvalidatedOnly).flatMap {
           case (validateParams, response) =>
             if (response.header.status == 200) {
               val user: SidewalkUserWithRole = request.identity
@@ -93,21 +94,23 @@ class ValidateController @Inject() (
    * Returns the Expert Validate page, optionally with some admin filters.
    * @param labelType       Label type to validate, by name.
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
-   * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
+   * @param regions         Comma-separated list of region names or region IDs to validate (could be mixed).
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
+   * @param neighborhoods   Old name for `regions`, still read so existing links keep working.
    */
   def expertValidate(
       labelType: Option[String],
       users: Option[String],
-      neighborhoods: Option[String],
-      unvalidatedOnly: Option[Boolean]
+      regions: Option[String],
+      unvalidatedOnly: Option[Boolean],
+      neighborhoods: Option[String]
   ) =
     cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
       if (isMobile(request)) {
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_ExpertValidate_RedirectMobile")
         Future.successful(Redirect("/mobile"))
       } else {
-        checkParams(adminVersion = true, labelType, users, neighborhoods, unvalidatedOnly).flatMap {
+        checkParams(adminVersion = true, labelType, users, regions.orElse(neighborhoods), unvalidatedOnly).flatMap {
           case (validateParams, response) =>
             if (response.header.status == 200) {
               val user: SidewalkUserWithRole = request.identity
@@ -130,12 +133,13 @@ class ValidateController @Inject() (
 
   /**
    * Returns the validation page for mobile.
-   * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
+   * @param regions         Comma-separated list of region names or region IDs to validate (could be mixed).
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
+   * @param neighborhoods   Old name for `regions`, still read so existing links keep working.
    */
-  def mobileValidate(neighborhoods: Option[String], unvalidatedOnly: Option[Boolean]) =
+  def mobileValidate(regions: Option[String], unvalidatedOnly: Option[Boolean], neighborhoods: Option[String]) =
     cc.securityService.SecuredAction { implicit request =>
-      checkParams(adminVersion = false, None, None, neighborhoods, unvalidatedOnly).flatMap {
+      checkParams(adminVersion = false, None, None, regions.orElse(neighborhoods), unvalidatedOnly).flatMap {
         case (validateParams, response) =>
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
@@ -165,14 +169,14 @@ class ValidateController @Inject() (
    * @param adminVersion    Boolean indicating whether the admin version of the page is being shown.
    * @param labelType       Label type to validate, by name.
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
-   * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
+   * @param regions         Comma-separated list of region names or region IDs to validate (could be mixed).
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    */
   def checkParams(
       adminVersion: Boolean,
       labelType: Option[String],
       users: Option[String],
-      neighborhoods: Option[String],
+      regions: Option[String],
       unvalidatedOnly: Option[Boolean]
   ): Future[(ValidateParams, Result)] = {
     // Users and regions may be given by id or by name, so each is resolved both ways before deciding it is invalid.
@@ -193,7 +197,7 @@ class ValidateController @Inject() (
         }
         .toSeq
     )
-    val neighborhoodIdList: Option[Seq[Future[Option[Int]]]] = neighborhoods.map(
+    val regionIdList: Option[Seq[Future[Option[Int]]]] = regions.map(
       _.split(",")
         .map { regionStr =>
           val parsedRegionId: Try[Int] = Try(regionStr.toInt)
@@ -213,7 +217,7 @@ class ValidateController @Inject() (
         case Some(userIds) => Future.sequence(userIds).map(Some(_))
         case None          => Future.successful(None)
       }
-      regionIds: Option[Seq[Option[Int]]] <- neighborhoodIdList match {
+      regionIds: Option[Seq[Option[Int]]] <- regionIdList match {
         case Some(regionIds) => Future.sequence(regionIds).map(Some(_))
         case None            => Future.successful(None)
       }
@@ -232,7 +236,7 @@ class ValidateController @Inject() (
       } else if (regionIds.isDefined && regionIds.get.length != regionIds.get.flatten.length) {
         (
           ValidateParams(adminVersion),
-          BadRequest(s"One or more of the neighborhoods provided were not found; please double check your list of neighborhoods! You can use either their names or IDs. You provided: ${neighborhoods.get}")
+          BadRequest(s"One or more of the regions provided were not found; please double check your list of regions! You can use either their names or IDs. You provided: ${regions.get}")
         )
       } else {
         (
@@ -400,7 +404,7 @@ class ValidateController @Inject() (
     else
       ValidateParams(
         adminVersion = false,
-        neighborhoodIds = params.neighborhoodIds,
+        regionIds = params.regionIds,
         unvalidatedOnly = params.unvalidatedOnly
       )
   }

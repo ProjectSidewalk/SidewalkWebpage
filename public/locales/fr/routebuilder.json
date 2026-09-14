@@ -27,7 +27,7 @@
   "street-count-in-region_other": "{{count}} rues dans {{region}}",
   "see-all-routes_other": "Voir vos {{count}} itinéraires dans votre tableau de bord",
   "copied-to-clipboard": "Copié dans le presse-papiers !",
-  "one-neighborhood-warning": "Pour le moment, un itinéraire ne peut contenir que des rues d'un seul quartier.",
+  "one-region-warning": "Pour le moment, un itinéraire ne peut contenir que des rues d'un seul quartier.",
   "route-name-default": "Itinéraire dans {{region}}",
   "route-name-streets": "De {{start}} à {{end}}",
   "save-error": "Une erreur est survenue lors de l'enregistrement. Veuillez réessayer.",

@@ -54,7 +54,7 @@ class Form {
       admin_version: svv.adminVersion,
       label_type: svv.validateParams.labelType,
       user_ids: svv.validateParams.userIds,
-      neighborhood_ids: svv.validateParams.regionIds,
+      region_ids: svv.validateParams.regionIds,
       unvalidated_only: svv.validateParams.unvalidatedOnly,
     };
   }

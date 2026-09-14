@@ -40,10 +40,10 @@ class NavigationService {
   #povSettlePoll = null; // Interval id; see #refreshHeadingViewsAfterPovSettles.
 
   /**
-   * @param {Object} neighborhoodModel - NeighborhoodModel module.
+   * @param {Object} regionModel - RegionModel module.
    * @param {Object} uiStreetview - jQuery-wrapped street view UI elements.
    */
-  constructor(neighborhoodModel, uiStreetview) {
+  constructor(regionModel, uiStreetview) {
     this.#uiStreetview = uiStreetview;
     this.#properties.browser = util.getBrowser();
   }
@@ -161,7 +161,7 @@ class NavigationService {
     // The search never got an answer, so nothing is known about this street's imagery: don't report it and don't move
     // on to the next one. Just say so and let the user retry once the provider recovers. This is the same distinction
     // the page-load path draws, and it has to be drawn here too — otherwise a provider outage still walks the
-    // neighborhood, just three streets at a time instead of unbounded (#4918).
+    // region, just three streets at a time instead of unbounded (#4918).
     if (!streetLooksEmpty) {
       svl.tracker.push('PanoSearchFailed');
       // moveForward() locked the UI for a move that isn't going to happen, and this branch leaves the user standing
@@ -198,7 +198,7 @@ class NavigationService {
     }
 
     // The advance ceiling still bounds a run: give-ups leave a street eligible for assignment to everyone else, so a
-    // session that keeps finding empty ones is better explained by a broken session than by an empty neighborhood.
+    // session that keeps finding empty ones is better explained by a broken session than by an empty region.
     if (!NoImageryFlagGuard.canAdvance()) {
       svl.tracker.push('NoImageryAdvanceLimitReached');
       // The run is over, so the budget goes back: what follows can only be the labeler deciding to try again, which
@@ -245,13 +245,13 @@ class NavigationService {
       this.#status.movingToNewLocation = false;
       this.#status.headingSettling = false;
       this.#restoreUiAfterFailedMove();
-      svl.neighborhoodModel.setComplete();
+      svl.regionModel.setComplete();
       // Same ending a route gets when its last street is walked normally: the finish toast, then the celebration once
       // the labeler has looked around. Firing the modal straight from here made the route end mid-stride (#5008).
-      if (svl.neighborhoodModel.isRoute) {
+      if (svl.regionModel.isRoute) {
         svl.missionController.onRouteReadyToFinish();
       } else {
-        svl.missionController.wrapUpRouteOrNeighborhood();
+        svl.missionController.wrapUpRouteOrRegion();
       }
       return Promise.resolve(null);
     }
@@ -309,16 +309,16 @@ class NavigationService {
       const nextTask = svl.taskContainer.nextTask(task);
 
       // Check if the user will jump to another discontinuous location or if this is the last street in their
-      // route/neighborhood. If either is the case, let the user know to label the location before proceeding.
-      if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()
+      // route/region. If either is the case, let the user know to label the location before proceeding.
+      if (svl.regionModel.isRouteOrRegionComplete()
         || !nextTask
         || !task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD, { units: 'kilometers' })) {
-        // If we are out of streets, set the route/neighborhood as complete.
+        // If we are out of streets, set the route/region as complete.
         if (!nextTask) {
-          svl.neighborhoodModel.setComplete();
+          svl.regionModel.setComplete();
           // A route completes at its last reachable pano: show the finish toast and arm the 360°-gated auto-complete.
-          // Neighborhoods keep the manual compass-click flow.
-          if (svl.neighborhoodModel.isRoute) svl.missionController.onRouteReadyToFinish();
+          // Regions keep the manual compass-click flow.
+          if (svl.regionModel.isRoute) svl.missionController.onRouteReadyToFinish();
         } else if (!task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD, { units: 'kilometers' })) {
           // If jumping to a new place, record what the next task will be.
           svl.taskContainer.setNextTaskAfterJump(nextTask);
@@ -389,7 +389,7 @@ class NavigationService {
   #updateUiAfterMove() {
     const isOnboarding = svl.isOnboarding();
     const newLatLng = svl.panoViewer.getPosition();
-    const neighborhood = svl.neighborhoodModel.currentNeighborhood();
+    const region = svl.regionModel.currentRegion();
     const currentMission = svl.missionContainer.getCurrentMission();
 
     // Set delay until user can move again, to prevent spam running through a mission without labeling.
@@ -417,7 +417,7 @@ class NavigationService {
         // route" long before the last reachable pano (#4640 route manifestation). Defer to the imagery-exhaustion
         // path (#handleImageryNotFound) unless they've already walked most of the street — on a long street 25 m
         // really is the end, so preserve today's behavior there.
-        const finalRouteStreet = svl.neighborhoodModel.isRoute && !svl.taskContainer.nextTask(task);
+        const finalRouteStreet = svl.regionModel.isRoute && !svl.taskContainer.nextTask(task);
         const streetLen = task.lineDistance({ units: 'meters' });
         const walkedMostOfStreet = streetLen > 0
           && task.getDistanceFromStart(newLatLng, { units: 'meters' }) / streetLen >= 0.9;
@@ -427,7 +427,7 @@ class NavigationService {
       }
       svl.taskContainer.updateCurrentTask();
     }
-    svl.missionModel.updateMissionProgress(currentMission, neighborhood);
+    svl.missionModel.updateMissionProgress(currentMission, region);
 
     // Position is final, so position-dependent checks can run again; heading is still settling (handled below).
     this.#status.movingToNewLocation = false;
@@ -588,7 +588,7 @@ class NavigationService {
       // When the label-before-jump state is armed, the next forward move is the jump itself: predict the start of
       // the street being jumped to rather than a point on the street the user is about to leave (which would also
       // pollute the prefetch cache that #endTheCurrentTask() just re-primed for the new street). No jump target
-      // means the route/neighborhood is complete, so there is nothing to preload.
+      // means the route/region is complete, so there is nothing to preload.
       const targetTask = this.getLabelBeforeJumpState()
         ? svl.taskContainer.getNextTaskAfterJump()
         : svl.taskContainer.getCurrentTask();
@@ -616,7 +616,7 @@ class NavigationService {
    */
   #stuckPanosKeyFor(task) {
     const walkOrder = task.getWalkOrder();
-    return svl.neighborhoodModel.isRoute && walkOrder !== null && walkOrder !== undefined
+    return svl.regionModel.isRoute && walkOrder !== null && walkOrder !== undefined
       ? `route:${walkOrder}`
       : `street:${task.getStreetEdgeId()}`;
   }

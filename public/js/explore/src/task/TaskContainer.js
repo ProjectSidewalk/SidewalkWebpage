@@ -6,7 +6,7 @@
  * server (should go to TaskModel) and rendering segments on a map.
  */
 class TaskContainer {
-  #neighborhoodModel;
+  #regionModel;
   #svl;
   #tracker;
 
@@ -18,12 +18,12 @@ class TaskContainer {
   _tasks = [];
 
   /**
-   * @param neighborhoodModel
+   * @param regionModel
    * @param svl
    * @param tracker
    */
-  constructor(neighborhoodModel, svl, tracker) {
-    this.#neighborhoodModel = neighborhoodModel;
+  constructor(regionModel, svl, tracker) {
+    this.#regionModel = regionModel;
     this.#svl = svl;
     this.#tracker = tracker;
   }
@@ -58,9 +58,9 @@ class TaskContainer {
     // Updates the segments that the user has already explored.
     this.updateCurrentTask();
 
-    // Check if finishing this task completes the neighborhood across all users. Must run after task.complete() so
+    // Check if finishing this task completes the region across all users. Must run after task.complete() so
     // the just-finished task is filtered out of getIncompleteTasksAcrossAllUsersUsingPriority() naturally.
-    this.#updateNeighborhoodCompleteAcrossAllUsersStatus();
+    this.#updateRegionCompleteAcrossAllUsersStatus();
 
     return task;
   }
@@ -75,8 +75,8 @@ class TaskContainer {
     const currMission = svl.missionContainer.getCurrentMission();
     const currMissionId = currMission.getProperty('missionId');
     let url;
-    if (svl.neighborhoodModel.isRoute) url = `/routeTasks?userRouteId=${svl.userRouteId}`;
-    else url = `/tasks?regionId=${svl.neighborhoodModel.currentNeighborhood().getRegionId()}`;
+    if (svl.regionModel.isRoute) url = `/routeTasks?userRouteId=${svl.userRouteId}`;
+    else url = `/tasks?regionId=${svl.regionModel.currentRegion().getRegionId()}`;
 
     return fetch(url, {
       method: 'GET',
@@ -174,7 +174,7 @@ class TaskContainer {
    *
    * @returns {number} distance in unit.
    */
-  getCompletedTaskDistanceAcrossAllUsersUsingPriority() {
+  getCommunityCompletedTaskDistance() {
     const unit = { units: util.turfDistanceUnits() };
     const tasks = this.getTasks().filter((t) => t.getStreetPriority() < 1);
     let feature;
@@ -315,19 +315,19 @@ class TaskContainer {
   }
 
   /**
-   * Checks if the neighborhood is complete across all users; if so, displays the relevant overlay.
+   * Checks if the region is complete across all users; if so, displays the relevant overlay.
    */
-  #updateNeighborhoodCompleteAcrossAllUsersStatus() {
-    const neighborhoodModel = this.#neighborhoodModel;
-    // Only run this code if the neighborhood was set as incomplete and user is not on a designated route.
-    if (!neighborhoodModel.isRoute && !neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers()) {
-      // Indicates neighborhood is complete.
+  #updateRegionCompleteAcrossAllUsersStatus() {
+    const regionModel = this.#regionModel;
+    // Only run this code if the region was set as incomplete and user is not on a designated route.
+    if (!regionModel.isRoute && !regionModel.getRegionCompleteAcrossAllUsers()) {
+      // Indicates region is complete.
       if (this.getIncompleteTasksAcrossAllUsersUsingPriority().length === 0) {
-        neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
+        regionModel.setRegionCompleteAcrossAllUsers();
         $('#area-completion-overlay-wrapper').show();
-        const currentNeighborhood = this.#svl.neighborhoodModel.currentNeighborhood();
-        const currentNeighborhoodId = currentNeighborhood.getRegionId();
-        this.#tracker.push('NeighborhoodComplete_AcrossAllUsers', { RegionId: currentNeighborhoodId });
+        const currentRegion = this.#svl.regionModel.currentRegion();
+        const currentRegionId = currentRegion.getRegionId();
+        this.#tracker.push('NeighborhoodComplete_AcrossAllUsers', { RegionId: currentRegionId });
       }
     }
   }
@@ -355,7 +355,7 @@ class TaskContainer {
     const sameAsFinished = (t) => {
       if (!finishedTask) return false;
       const finishedWalkOrder = finishedTask.getWalkOrder();
-      return svl.neighborhoodModel.isRoute && finishedWalkOrder !== null && finishedWalkOrder !== undefined
+      return svl.regionModel.isRoute && finishedWalkOrder !== null && finishedWalkOrder !== undefined
         ? t.getWalkOrder() === finishedWalkOrder
         : t.getStreetEdgeId() === finishedTask.getStreetEdgeId();
     };
@@ -367,7 +367,7 @@ class TaskContainer {
       return null;
     }
 
-    if (svl.neighborhoodModel.isRoute) {
+    if (svl.regionModel.isRoute) {
       // For a route, the user walks the streets in the route's saved order.
       newTask = tasksNotCompletedByUser.reduce((min, current) => {
         return current.getWalkOrder() < min.getWalkOrder() ? current : min;
@@ -392,7 +392,7 @@ class TaskContainer {
       }
 
       // If any of the connected tasks has max discretized priority, pick the highest priority connected street,
-      // o/w take the highest priority task in the neighborhood.
+      // o/w take the highest priority task in the region.
       connectedTasks = connectedTasks.filter((t) => {
         return t.getStreetPriorityDiscretized() === highestPriorityDiscretized;
       }).sort((t1, t2) => {
@@ -463,7 +463,7 @@ class TaskContainer {
    *
    * @param {object} [unit] Object with field 'units' holding distance unit, default to 'kilometers'
    */
-  totalLineDistanceInNeighborhood(unit) {
+  getTotalTaskDistance(unit) {
     if (!unit) unit = { units: 'kilometers' };
     const tasks = this.getTasks();
 
@@ -487,22 +487,22 @@ class TaskContainer {
   }
 
   /**
-   * Update the audited distance in the right sidebar using the length of the streets in the current neighborhood.
+   * Update the audited distance in the right sidebar using the length of the streets in the current region.
    * @returns {TaskContainer}
    */
   updateAuditedDistance() {
     let distance = 0;
-    const neighborhood = this.#svl.neighborhoodModel.currentNeighborhood();
+    const region = this.#svl.regionModel.currentRegion();
 
-    if (neighborhood) {
+    if (region) {
       distance = this.getCompletedTaskDistance({ units: util.turfDistanceUnits() });
     }
-    this.#svl.overallStats.setNeighborhoodAuditedDistance(distance);
+    this.#svl.overallStats.setRegionAuditedDistance(distance);
     return this;
   }
 
   /**
-   * Checks if there are any max priority tasks remaining (proxy for neighborhood being complete across all users.
+   * Checks if there are any max priority tasks remaining (proxy for region being complete across all users.
    * @returns {null|boolean}
    */
   hasMaxPriorityTask() {

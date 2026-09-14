@@ -1,6 +1,6 @@
 /**
  * The "Your saved routes" section on the RouteBuilder intro panel: a card per route with its name, a meta line
- * (distance · est. exploration time · neighborhood), and Explore / copy-link actions. Signed-in users see their
+ * (distance · est. exploration time · region), and Explore / copy-link actions. Signed-in users see their
  * account's routes (GET /userapi/routes); anonymous users see the device-local list kept in localStorage, so a
  * forgotten share link isn't fatal.
  */

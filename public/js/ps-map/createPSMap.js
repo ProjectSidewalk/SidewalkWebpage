@@ -6,9 +6,9 @@
  * @param {string} params.mapName - Name of the HTML ID of the map.
  * @param {string} params.mapStyle - URL of a Mapbox style.
  * @param {string} [params.mapboxApiKey] - Mapbox API key to use for the map.
- * @param {string} [params.neighborhoodFillMode] - One of 'singleColor' or 'completionRate'.
- * @param {string|URL} [params.neighborhoodsURL] - URL of the endpoint containing neighborhood boundaries.
- * @param {string|URL} params.completionRatesURL - URL of the endpoint containing neighborhood completion rates.
+ * @param {string} [params.regionFillMode] - One of 'singleColor' or 'completionRate'.
+ * @param {string|URL} [params.regionsURL] - URL of the endpoint containing region boundaries.
+ * @param {string|URL} params.completionRatesURL - URL of the endpoint containing region completion rates.
  * @param {boolean} [params.loadCities] - Whether to load deployment cities on the map.
  * @param {boolean} [params.animateCityFit=true] - Whether the fit to all deployment cities is animated. Set false to
  *     have the world view simply appear, with no flight out from the city's own center.
@@ -26,10 +26,10 @@
  * @param {boolean} [params.scrollWheelZoom=true] - Whether to allow zooming with the scroll wheel.
  * @param {boolean} [params.cooperativeGestures=false] - Whether panning on touch takes two fingers.
  * @param {string} [params.mapboxLogoLocation=bottom-left] - 'top-left', 'top-right', 'bottom-left', or 'bottom-right'.
- * @param {string} [params.neighborhoodTooltip='none'] One of 'none' or 'completionRate'.
+ * @param {string} [params.regionTooltip='none'] One of 'none' or 'completionRate'.
  * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
- * @param {string} [params.neighborhoodFillColor] - Fill color to use if neighborhoodFillMode='singleColor'.
- * @param {number} [params.neighborhoodFillOpacity] - Fill opacity to use if neighborhoodFillMode='singleColor'
+ * @param {string} [params.regionFillColor] - Fill color to use if regionFillMode='singleColor'.
+ * @param {number} [params.regionFillOpacity] - Fill opacity to use if regionFillMode='singleColor'
  * @param {boolean} [params.differentiateUnauditedStreets=false] - Whether to color unaudited streets differently.
  * @param {boolean} [params.interactiveStreets=false] - Whether to include hover/click interactions on the streets.
  * @param {boolean} [params.includeLabelCounts=false] - Whether to include label counts for each type in the legend.
@@ -39,7 +39,7 @@
  * @param {string} [params.uiSource] - Records the UI used when submitting a validation through the popup.
  * @param {object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
  * @param {function} [params.onMapReady] - Called with the map as soon as it has loaded, BEFORE the
- *     (potentially large) neighborhoods/streets/labels layers render. Use this to mount map-bound UI
+ *     (potentially large) regions/streets/labels layers render. Use this to mount map-bound UI
  *     early (e.g. the LabelMap search box) instead of waiting on the returned all-loaded promise.
  * @returns {Promise} - Promise that resolves once all components of the map have loaded.
  */
@@ -47,7 +47,7 @@ function createPSMap($, params) {
   // Set default parameters.
   params.logClicks = params.logClicks === undefined ? true : params.logClicks;
   params.scrollWheelZoom = params.scrollWheelZoom === undefined ? true : params.scrollWheelZoom;
-  params.neighborhoodTooltip = params.neighborhoodTooltip === undefined ? 'none' : params.neighborhoodTooltip;
+  params.regionTooltip = params.regionTooltip === undefined ? 'none' : params.regionTooltip;
   params.differentiateUnauditedStreets = params.differentiateUnauditedStreets === undefined
     ? false
     : params.differentiateUnauditedStreets;
@@ -104,12 +104,12 @@ function createPSMap($, params) {
     return map;
   });
 
-  // Render the neighborhoods on the map if applicable. The fetches are kept inside the guard so callers that omit
+  // Render the regions on the map if applicable. The fetches are kept inside the guard so callers that omit
   // these URLs (e.g. the shared-label minimap) don't fire a stray $.getJSON(undefined) at the current page.
-  let renderNeighborhoods;
-  // Extent the labels live in; ViewportLabelLoader stops fetching once covered. Streets and neighborhoods both,
+  let renderRegions;
+  // Extent the labels live in; ViewportLabelLoader stops fetching once covered. Streets and regions both,
   // since /labels/all joins street_edge_region without excluding deleted regions — it serves labels the
-  // neighborhoods feed has no polygon for (3.9k of them in Seattle, up to 1.7 km outside its live extent).
+  // regions feed has no polygon for (3.9k of them in Seattle, up to 1.7 km outside its live extent).
   // Empty feeds (a city before its regions are imported, ?regions= naming none) leave it null, and the loader
   // then simply never latches.
   let labelDataBounds = null;
@@ -118,11 +118,11 @@ function createPSMap($, params) {
     if (bounds.isEmpty()) return;
     labelDataBounds = labelDataBounds ? labelDataBounds.extend(bounds) : bounds;
   };
-  if (params.neighborhoodsURL && params.completionRatesURL) {
-    const loadNeighborhoods = $.getJSON(params.neighborhoodsURL);
+  if (params.regionsURL && params.completionRatesURL) {
+    const loadRegions = $.getJSON(params.regionsURL);
     const loadCompletionRates = $.getJSON(params.completionRatesURL);
-    renderNeighborhoods = Promise.all([mapLoaded, loadNeighborhoods, loadCompletionRates]).then((data) => {
-      addNeighborhoodsToMap(map, data[1], data[2], params);
+    renderRegions = Promise.all([mapLoaded, loadRegions, loadCompletionRates]).then((data) => {
+      addRegionsToMap(map, data[1], data[2], params);
       extendLabelDataBounds(data[1]);
     });
   }
@@ -140,7 +140,7 @@ function createPSMap($, params) {
   let renderStreets;
   if (params.streetsURL) {
     const loadStreets = $.getJSON(params.streetsURL);
-    renderStreets = Promise.all([mapLoaded, renderNeighborhoods, loadStreets]).then((data) => {
+    renderStreets = Promise.all([mapLoaded, renderRegions, loadStreets]).then((data) => {
       extendLabelDataBounds(data[2]);
       return addStreetsToMap(map, data[2], params);
     });
@@ -149,8 +149,8 @@ function createPSMap($, params) {
   // Render the labels on the map if applicable.
   let renderLabels;
   if (params.labelsURL && params.viewportLabelLoading) {
-    // Neighborhoods are awaited directly, not just via renderStreets, which callers may omit.
-    renderLabels = Promise.all([mapLoaded, renderStreets, renderNeighborhoods]).then(async (data) => {
+    // Regions are awaited directly, not just via renderStreets, which callers may omit.
+    renderLabels = Promise.all([mapLoaded, renderStreets, renderRegions]).then(async (data) => {
       // Layers are created empty and filled by the loader, so filters, visibility, and the popup handlers bind
       // once and persist across viewport refetches.
       const mapData = await addLabelsToMap(map, { type: 'FeatureCollection', features: [] }, params);
@@ -177,7 +177,7 @@ function createPSMap($, params) {
   }
 
   // Return a promise that resolves once everything on the map has loaded.
-  const allLoaded = Promise.all([mapLoaded, renderNeighborhoods, renderCities, renderStreets, renderLabels]);
+  const allLoaded = Promise.all([mapLoaded, renderRegions, renderCities, renderStreets, renderLabels]);
   allLoaded.then(() => {
     // Resize the map when the window is resized.
     $(window).resize(() => {
@@ -204,7 +204,7 @@ function createPSMap($, params) {
     mapParamData.default_zoom = mapParamData.default_zoom + params.zoomCorrection;
 
     // Mobile opens zoomed in on the city center rather than fitted to the whole city: with viewport label
-    // loading the initial fetch then covers a neighborhood, not the entire feed (#5002). 14 shows a few blocks
+    // loading the initial fetch then covers a region, not the entire feed (#5002). 14 shows a few blocks
     // and sits above ViewportLabelLoader's default zoom floor, so labels are visible immediately. Deep links
     // still win — the URL viewport is applied after construction (applyUrlViewport in the page's onMapReady).
     if (params.mobileZoomedStart && util.isMobile()) {

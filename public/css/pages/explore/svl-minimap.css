@@ -1,4 +1,4 @@
-/* The minimap fills the bottom "neighborhood" section of the right sidebar, growing to take remaining vertical space.
+/* The minimap fills the bottom "region" section of the right sidebar, growing to take remaining vertical space.
    The minimap overlays (fow, fov, progress; see ObservedArea) read their displayed width/height at render time. */
 #minimap-holder {
   /* Reference size (px) used by ObservedArea to scale the FOV/progress geometry. Read via getComputedStyle. */
@@ -76,7 +76,7 @@
   pointer-events: auto;
 }
 
-/* "N% observed" label centered inside the progress-ring chip (ObservedArea). Top-right on a neighborhood audit; in
+/* "N% observed" label centered inside the progress-ring chip (ObservedArea). Top-right on a region audit; in
    route mode it drops below the mission-progress bar (see .minimap-route-mode override below) to clear the overview. */
 #minimap-percent-observed {
   font: var(--text-tiny-medium);
@@ -432,7 +432,7 @@ gmp-advanced-marker:has(> .minimap-peg) {
 
 /* Whole-route overview inset (RouteOverview.js): a small always-on map of the entire designated route, in the
    upper-right corner. Hidden by default; shown only in route mode, alongside the mini-legend/key (which grows
-   street-by-street on neighborhood audits, so there's no route to preview there). */
+   street-by-street on region audits, so there's no route to preview there). */
 #minimap-route-overview {
   display: none;
   position: absolute;

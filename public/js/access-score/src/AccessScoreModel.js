@@ -41,7 +41,7 @@ class AccessScoreModel {
    * The share of a region's street network that must be audited before its score is shown; below it the region is
    * hatched. Compared on the rounded percent so the rule can never disagree with the "N% explored" the page prints.
    * A tool-side literal because the engine has no such floor: its region roll-up scores whatever has been audited,
-   * and this page alone decides that a neighborhood a tenth explored is not yet a picture of the neighborhood.
+   * and this page alone decides that a region a tenth explored is not yet a picture of the region.
    */
   static MIN_COMPLETION = 0.5;
 
@@ -121,7 +121,7 @@ class AccessScoreModel {
    *                           geometry is left to the map).
    * @param {object} intersections - The `/v3/api/accessScoreIntersections` GeoJSON FeatureCollection; an empty
    *                                 one leaves every headline equal to its segment score.
-   * @param {Array<object>} regions - `/neighborhoods/completionRate` rows: `region_id`, `name`, `rate`,
+   * @param {Array<object>} regions - `/regions/completionRates` rows: `region_id`, `name`, `rate`,
    *                                  `total_distance_m`, `completed_distance_m`.
    * @param {object} [initialState] - Overrides of `DEFAULT_STATE` (e.g. from the URL).
    */
@@ -486,7 +486,7 @@ class AccessScoreModel {
   /**
    * The clusters behind the scores in a scope, by type and rating bucket — the population the score arithmetic
    * runs over. Streets and intersections are pooled: the corner types attach to intersections almost entirely,
-   * so a street-only count would show a neighborhood with hundreds of curb ramps as having none.
+   * so a street-only count would show a region with hundreds of curb ramps as having none.
    *
    * @param {object} [scope] - One of the two, or neither for the whole city.
    * @param {Set<number>} [scope.streetIds] - These streets (unaudited ones carry no clusters) plus the
@@ -567,7 +567,7 @@ class AccessScoreModel {
    *
    * The crossings are pooled in, like `clusterBreakdown`: the corner types attach to intersections almost entirely
    * (on Teaneck, 552 of 616 missing-curb-ramp clusters sit at a crossing), so a segment-only mean would show a
-   * neighborhood with hundreds of curb ramps as unaffected by them. Each intersection in scope is counted once,
+   * region with hundreds of curb ramps as unaffected by them. Each intersection in scope is counted once,
    * and its terms and clusters are added to the type's total before the division by the audited street count.
    *
    * @param {object} [options] - Scope, as for `clusterBreakdown`: one of the two, or neither for the city.
@@ -615,7 +615,7 @@ class AccessScoreModel {
    *
    * Unscoped, the distances are the completion figures the region rows carry (what the rest of the site calls
    * "explored"); scoped to a street set they are the summed lengths of the streets in it, since a viewport or a
-   * neighborhood has no completion row of its own. The two agree to within how the street graph is measured.
+   * region has no completion row of its own. The two agree to within how the street graph is measured.
    *
    * @param {object} [options] - Scope.
    * @param {Set<number>} [options.streetIds] - Restrict streets to these ids.
@@ -674,8 +674,8 @@ class AccessScoreModel {
   }
 
   /**
-   * What stands out about a street's or a neighborhood's score, for the hover tooltip: the type pushing it up
-   * the most, the type dragging it down the most, and — for a neighborhood — the type on which it differs most
+   * What stands out about a street's or a region's score, for the hover tooltip: the type pushing it up
+   * the most, the type dragging it down the most, and — for a region — the type on which it differs most
    * from the city-wide average per audited street.
    *
    * @param {string} unit - 'streets' or 'regions'.

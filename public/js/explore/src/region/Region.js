@@ -1,9 +1,9 @@
 /**
- * Represents a single neighborhood (region) the user is auditing.
+ * Represents a single region the user is auditing.
  *
  * @memberof svl
  */
-class Neighborhood {
+class Region {
   #properties = {
     geoJSON: null,
     name: null,
@@ -24,7 +24,7 @@ class Neighborhood {
 
   /**
    * @param {Object} [unit] - Turf-style units object; defaults to kilometers.
-   * @returns {?number} Distance the user has completed in this neighborhood, or null if unavailable.
+   * @returns {?number} Distance the user has completed in this region, or null if unavailable.
    */
   completedLineDistance(unit) {
     if (!unit) unit = { units: 'kilometers' };
@@ -38,9 +38,9 @@ class Neighborhood {
   /**
    * @returns {?number} Completed distance across all users (using priority), or null if unavailable.
    */
-  completedLineDistanceAcrossAllUsersUsingPriority() {
+  communityCompletedLineDistance() {
     if ('taskContainer' in svl && svl.taskContainer) {
-      return svl.taskContainer.getCompletedTaskDistanceAcrossAllUsersUsingPriority();
+      return svl.taskContainer.getCommunityCompletedTaskDistance();
     } else {
       return null;
     }
@@ -57,7 +57,7 @@ class Neighborhood {
   /**
    * @param {string} key
    * @param {*} value
-   * @returns {Neighborhood} this, for chaining.
+   * @returns {Region} this, for chaining.
    */
   setProperty(key, value) {
     this.#properties[key] = value;
@@ -65,27 +65,14 @@ class Neighborhood {
   }
 
   /**
-   * @returns {*} Region id of this neighborhood.
+   * @returns {*} Region id of this region.
    */
   getRegionId() {
     return this.getProperty('regionId');
   }
 
   /**
-   * @param {Object} [unit] - Turf-style units object; defaults to kilometers.
-   * @returns {?number} Total street distance in this neighborhood, or null if unavailable.
-   */
-  totalLineDistanceInNeighborhood(unit) {
-    if (!unit) unit = { units: 'kilometers' };
-    if ('taskContainer' in svl && svl.taskContainer) {
-      return svl.taskContainer.totalLineDistanceInNeighborhood(unit);
-    } else {
-      return null;
-    }
-  }
-
-  /**
-   * @returns {?Object} The neighborhood's GeoJSON, or null if not set.
+   * @returns {?Object} The region's GeoJSON, or null if not set.
    */
   getGeoJSON() {
     return this.#properties.geoJSON ? this.#properties.geoJSON : null;

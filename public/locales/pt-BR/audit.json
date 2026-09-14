@@ -108,9 +108,9 @@
   },
   "mission-complete": {
     "title-generic": "Missão Completa!",
-    "title-neighborhood-complete": "Viva! Você completou o bairro {{neighborhoodName}}!",
+    "title-region-complete": "Viva! Você completou o bairro {{regionName}}!",
     "title-route-complete": "Viva! Você completou sua rota!",
-    "subtitle": "Explore {{distance}} de {{neighborhoodName}}",
+    "subtitle": "Explore {{distance}} de {{regionName}}",
     "badge-alt": "Seu emblema de missões",
     "legend-title": "Progresso da missão",
     "legend-this-mission": "Esta missão",
@@ -146,14 +146,14 @@
       "message-route": "Explore {{routeName}}",
       "exit-route": "Sair da rota personalizada",
       "header-free-explore": "Exploração livre",
-      "message": "Explore __PLACEHOLDER__ de {{neighborhoodName}}"
+      "message": "Explore __PLACEHOLDER__ de {{regionName}}"
     },
     "route-resume": {
       "message": "Retomando sua rota personalizada “{{routeName}}” de onde você parou.",
       "exit": "Sair da rota personalizada"
     },
     "mission-resume": {
-      "message": "Retomando sua missão em {{neighborhoodName}} — faltam {{distanceLeft, distance(style: small)}}."
+      "message": "Retomando sua missão em {{regionName}} — faltam {{distanceLeft, distance(style: small)}}."
     },
     "route-unavailable": {
       "message": "Essa rota não está disponível. Ela pode ter sido excluída."
@@ -187,7 +187,7 @@
       "next-distance": "Explore {{distance}} para conquistar a próxima.",
       "earned-all": "Você alcançou o nível máximo desta insígnia — excelente trabalho!"
     },
-    "neighborhood-progress": {
+    "region-progress": {
       "title": "Progresso do bairro",
       "you-tooltip": "Suas contribuições",
       "community-tooltip": "Contribuições da comunidade"
@@ -299,14 +299,14 @@
       "u-turn": "Retorne",
       "end-route": "Você está no final da sua rota! Olhe totalmente ao seu redor para terminar, ou <b>clique aqui para completar agora.</b>",
       "route-finish-look-around": "Última parada! Olhe totalmente ao seu redor para completar sua rota.",
-      "end-neighborhood": "Você explorou todo este bairro! Termine de rotular este cruzamento e, em seguida, <b>clique aqui para completar o bairro.</b>",
+      "end-region": "Você explorou todo este bairro! Termine de rotular este cruzamento e, em seguida, <b>clique aqui para completar o bairro.</b>",
       "end-street": "Precisamos movê-lo para um novo local. Termine de rotular este cruzamento e, em seguida, <b>clique aqui para ir para um novo local.</b>",
       "far-away": "Opa, você está bem longe da rota. <b>Clique aqui para voltar.</b>"
     }
   },
   "popup": {
     "start-title": "Vamos começar!",
-    "start-body": "Nós o movemos para uma rua em {{neighborhood}}, {{city}}! Você está atualmente parado no cruzamento. Por favor, encontre e rotule todas as rampas de meio-fio e problemas de acessibilidade neste cruzamento.",
+    "start-body": "Nós o movemos para uma rua em {{region}}, {{city}}! Você está atualmente parado no cruzamento. Por favor, encontre e rotule todas as rampas de meio-fio e problemas de acessibilidade neste cruzamento.",
     "step-title": "Vamos seguir em frente!",
     "step-body": "Parece que você olhou ao redor de toda este cruzamento, então é hora de explorar outras áreas. Mova-se na direção da linha vermelha destacada no mapa.",
     "both-sides-title": "Por favor, verifique ambos os lados da rua",
@@ -340,7 +340,7 @@
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "EXPLORAR MISSÃO",
-    "mst-instruction-2": "Rotule estes recursos de acessibilidade em {{neighborhood}}",
+    "mst-instruction-2": "Rotule estes recursos de acessibilidade em {{region}}",
     "example-type-label-incorrect": "ERRO COMUM",
     "label-on-image-title-incorrect": "Erro comum",
     "label-on-image-description-correct": "Coloque um rótulo",

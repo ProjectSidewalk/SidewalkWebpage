@@ -148,13 +148,13 @@ with respect to the image holder. This allows the validation menu to be placed o
   font-size: max(12px, 4cqw);
 }
 
-/* The label type is what the card is about, so it keeps its width and the neighborhood beside it gives way. */
+/* The label type is what the card is about, so it keeps its width and the region beside it gives way. */
 .card-header__type {
   flex-shrink: 0;
   line-height: 1.2; /* Tokens carry a fixed line-height, which the vw font sizes here would otherwise pad out. */
 }
 
-/* The neighborhood a label sits in, opposite its type: quieter than the type, and cut off rather than wrapped so a
+/* The region a label sits in, opposite its type: quieter than the type, and cut off rather than wrapped so a
    long name can't push the type around or grow the card. */
 .card-location {
   display: flex;

@@ -224,7 +224,7 @@ object ValidateFormats {
     (JsPath \ "admin_version").read[Boolean] and
       (JsPath \ "label_type").readNullable[LabelTypeEnum.Base] and
       (JsPath \ "user_ids").readNullable[Seq[String]] and
-      (JsPath \ "neighborhood_ids").readNullable[Seq[Int]] and
+      (JsPath \ "region_ids").readNullable[Seq[Int]] and
       (JsPath \ "unvalidated_only").read[Boolean]
   )(ValidateParams.apply _)
 
