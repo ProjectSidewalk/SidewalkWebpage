@@ -146,7 +146,7 @@ describe('RouteGraph', () => {
             expect(result.streets).toContainEqual({ streetId: 30, flip: true });
         });
 
-        it('returns different-region when the pins snap to different neighborhoods', () => {
+        it('returns different-region when the pins snap to different regions', () => {
             const graph = new RouteGraph(gridStreets());
             const result = graph.route({ lng: A[0], lat: A[1] }, { lng: E[0], lat: E[1] });
             expect(result.error).toBe('different-region');

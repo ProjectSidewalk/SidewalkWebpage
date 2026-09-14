@@ -2,7 +2,7 @@
  * Tests for AccessScoreDock (public/js/access-score/src/AccessScoreDock.js, #5217): the coordinator's composition
  * rules. The whole city is the population; a brush narrows what's here and dims the map outside it; a hover in a
  * view outranks the brush on the map and never drops it; a selection scopes what's here and the photo strip and
- * fades everything but its neighborhood once no brush is in force; every change lands in one animation frame; and
+ * fades everything but its region once no brush is in force; every change lands in one animation frame; and
  * a weight slider mid-drag redraws the views but leaves the map's dim state alone.
  */
 
@@ -108,7 +108,7 @@ describe('AccessScoreDock', () => {
         expect(document.querySelectorAll('.acs-whats-here__row')).toHaveLength(FIXTURE.config.scored_types.length);
         expect(document.querySelector('.acs-whats-here__caption').textContent).toBe('scope-city');
         expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(2);
-        // With nothing selected the strip reads the lowest-ranked neighborhood and says so.
+        // With nothing selected the strip reads the lowest-ranked region and says so.
         const ranked = model.rankedRegions();
         const lowest = ranked[ranked.length - 1];
         await settle();
@@ -212,7 +212,7 @@ describe('AccessScoreDock', () => {
         dock.setSelection({unit: 'streets', id: lastId});
         flush();
         expect(document.querySelector('.acs-rank__row[aria-current="true"]').dataset.regionId).toBe('2');
-        // What's here narrows to the street; the strip reads its neighborhood's feed, filtered to the street.
+        // What's here narrows to the street; the strip reads its region's feed, filtered to the street.
         expect(document.querySelector('.acs-whats-here__caption').textContent).toBe(`scope-street id=${lastId}`);
         const counted = model.clusterBreakdown({streetIds: new Set([lastId])});
         expect(document.querySelector('.acs-whats-here__row[data-type="CurbRamp"] .acs-whats-here__count').textContent)
@@ -232,9 +232,9 @@ describe('AccessScoreDock', () => {
         expect(fetchMock.mock.calls.length).toBe(fetches);
         expect(document.querySelector('.acs-histogram__caret--selection').hidden).toBe(false);
         expect(document.querySelector('.acs-dock__strip-caret').hidden).toBe(false);
-        // The map fades everything outside the selected street's neighborhood.
+        // The map fades everything outside the selected street's region.
         expect(lastBrush()).toEqual(model.regionStreetIds(2));
-        // The rank list is never reduced to the selection: it is where the neighborhood sits among the others.
+        // The rank list is never reduced to the selection: it is where the region sits among the others.
         expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(2);
 
         // A brush outranks the selection on the map; clearing it hands the map back to the selection.
@@ -250,7 +250,7 @@ describe('AccessScoreDock', () => {
         expect(lastBrush()).toBeNull();
         expect(document.querySelector('.acs-rank__row[aria-current="true"]')).toBeNull();
 
-        // In the neighborhoods unit the selection is the region itself.
+        // In the regions unit the selection is the region itself.
         model.setState({unit: 'regions'});
         dock.applyChange({kind: 'Unit', final: true});
         dock.setSelection({unit: 'regions', id: 1});
@@ -279,7 +279,7 @@ describe('AccessScoreDock', () => {
         expect(callbacks.log).toHaveBeenCalledWith('Dock', 'open');
     });
 
-    test('a rank row focuses its neighborhood as the band\'s scope in the streets unit, until the map or a reset says otherwise', async () => {
+    test('a rank row focuses its region as the band\'s scope in the streets unit, until the map or a reset says otherwise', async () => {
         // The rows only read: no type is a switch for the map's dots.
         expect(document.querySelector('.acs-whats-here__row button')).toBeNull();
         const second = document.querySelectorAll('.acs-rank__row')[1];
@@ -377,7 +377,7 @@ describe('AccessScoreDock', () => {
         const ranked = model.rankedRegions();
         expect(captionEl()).toBe(`photos-from scope=photos-lowest name=${ranked[ranked.length - 1].name}`);
 
-        // Zoom in over both neighborhoods: the strip pools their feeds and keeps only the clusters inside the bounds
+        // Zoom in over both regions: the strip pools their feeds and keeps only the clusters inside the bounds
         // (cluster 2 sits at [5, 5], outside the ±1 view), worst first.
         map.getZoom = () => 14;
         mapView.visibleRegionIds.mockImplementation(() => new Set([1, 2]));

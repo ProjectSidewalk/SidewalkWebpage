@@ -31,7 +31,7 @@ trait ApiService {
 
   def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetEdgeInfo]]
 
-  def getNeighborhoodsWithin(bbox: LatLngBBox): Future[Seq[Region]]
+  def getRegionsFullyInsideBbox(bbox: LatLngBBox): Future[Seq[Region]]
 
   /** Streams lean per-cluster scoring inputs for the v3 AccessScore endpoints (#3855). */
   def getClusterScoreRows(
@@ -121,7 +121,7 @@ trait ApiService {
   def getSidewalkPresence(filters: SidewalkPresenceFiltersForApi, batchSize: Int): Source[SidewalkPresenceForApi, _]
 
   /**
-   * Retrieves regions (neighborhoods) based on the provided filters and returns them as a reactive stream source.
+   * Retrieves regions based on the provided filters and returns them as a reactive stream source.
    *
    * @param filters   The filters to apply when retrieving regions.
    * @param batchSize The number of records to fetch in each batch from the database.
@@ -308,8 +308,8 @@ class ApiServiceImpl @Inject() (
   def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetEdgeInfo]] =
     db.run(streetEdgeTable.selectStreetsIntersecting(spatialQueryType, bbox))
 
-  def getNeighborhoodsWithin(bbox: LatLngBBox): Future[Seq[Region]] =
-    db.run(regionTable.getNeighborhoodsWithin(bbox))
+  def getRegionsFullyInsideBbox(bbox: LatLngBBox): Future[Seq[Region]] =
+    db.run(regionTable.getRegionsFullyInsideBbox(bbox))
 
   def getClusterScoreRows(
       spatialQueryType: SpatialQueryType,

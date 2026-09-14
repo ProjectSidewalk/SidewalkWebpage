@@ -52,7 +52,7 @@ class UserCurrentRegionTable @Inject() (protected val dbConfigProvider: Database
   }
 
   /**
-   * Get the neighborhood that is currently assigned to the user.
+   * Get the region that is currently assigned to the user.
    */
   def getCurrentRegion(userId: String): DBIO[Option[Region]] = {
     (for {

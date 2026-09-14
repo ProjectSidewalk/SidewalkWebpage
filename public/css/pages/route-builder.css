@@ -124,7 +124,7 @@
 }
 
 /* Stats block, separated from the address fields by a rule: a bold est.-time + distance headline with a quiet
-   street-count + neighborhood caption under it, then the action row. */
+   street-count + region caption under it, then the action row. */
 .routebuilder-panel__building {
   gap: 14px;
   padding-top: 16px;

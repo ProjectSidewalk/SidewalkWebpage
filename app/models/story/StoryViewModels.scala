@@ -63,7 +63,7 @@ case class StoryForOwner(
 
 /**
  * A story card on the public /stories listing page (#4688): the viewer-safe card data plus its label's type and
- * neighborhood, so the page can render type/region chips and sort on them without extra lookups.
+ * region, so the page can render type/region chips and sort on them without extra lookups.
  *
  * `displayName` is already resolved against the story's display-name mode (None = show as anonymous).
  * `labelImageUrl` is a signed preview of the story's label (crop, else GSV static) — only populated when the story

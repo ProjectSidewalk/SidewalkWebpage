@@ -121,9 +121,9 @@
         </div>
       </div>
     </div>
-    <div id="already-completed-neighborhood-overlay">
+    <div id="already-completed-region-overlay">
       <div class="overlay-text">
-        <div id="already-completed-neighborhood-text">
+        <div id="already-completed-region-text">
           <p><span class="overlay-header">Neighborhood Already Complete!</span></p>
           <p>You already audited this entire neighborhood! We are going to send you to a neighborhood that could use some auditing.</p>
           <span class="overlay-option" id="accept-redirect">OK</span>
@@ -210,7 +210,7 @@
         </div>
       </div>
       <div id="action-stack-control-holder"></div>
-      @* Right-hand sidebar: current mission, global stats, badge progress, and the neighborhood minimap. *@
+      @* Right-hand sidebar: current mission, global stats, badge progress, and the region minimap. *@
       <div id="explore-sidebar" class="audit-selectable">
         @* Global user stats, matching the user dashboard (label count, accuracy, distance). *@
         <section id="explore-sidebar__stats" class="explore-sidebar__section">
@@ -285,7 +285,7 @@
           </a>
         </section>
 
-        @* Current mission: header, description, mission progress, plus the neighborhood progress bar and the minimap that fills the remaining sidebar height. *@
+        @* Current mission: header, description, mission progress, plus the region progress bar and the minimap that fills the remaining sidebar height. *@
         <section id="explore-sidebar__mission" class="explore-sidebar__section explore-sidebar__section--map">
           <h1 id="current-mission-header" class="explore-sidebar__heading"></h1>
 
@@ -301,7 +301,7 @@
             </svg>
           </a>
 
-          @* The mission and neighborhood progress bars, each paired with its label. *@
+          @* The mission and region progress bars, each paired with its label. *@
           <div class="explore-sidebar__progress-groups">
             <div id="mission-progress-group" class="explore-sidebar__progress-group">
               <p id="current-mission-description" class="explore-sidebar__subheading"></p>
@@ -319,18 +319,18 @@
               </div>
             }
 
-            @* Progress toward the whole neighborhood being audited. *@
+            @* Progress toward the whole region being audited. *@
             <div class="explore-sidebar__progress-group">
-              <p class="explore-sidebar__subheading" data-i18n="audit:right-ui.neighborhood-progress.title">Neighborhood progress</p>
+              <p class="explore-sidebar__subheading" data-i18n="audit:right-ui.region-progress.title">Neighborhood progress</p>
               @components.progressBar(
-                trackId = "neighborhood-progress-bar",
-                fillId = "neighborhood-progress-fill",
-                labelId = "neighborhood-progress-rate",
+                trackId = "region-progress-bar",
+                fillId = "region-progress-fill",
+                labelId = "region-progress-rate",
                 segmented = true,
-                communityId = "neighborhood-progress-community",
-                youId = "neighborhood-progress-you",
-                communityTooltip = "audit:right-ui.neighborhood-progress.community-tooltip",
-                youTooltip = "audit:right-ui.neighborhood-progress.you-tooltip"
+                communityId = "region-progress-community",
+                youId = "region-progress-you",
+                communityTooltip = "audit:right-ui.region-progress.community-tooltip",
+                youTooltip = "audit:right-ui.region-progress.you-tooltip"
               )
             </div>
           </div>
@@ -699,16 +699,16 @@
               </ul>
             </div>
 
-            @* Right overlay: the neighborhood progress bar (reused from the sidebar) plus distance/label stats. *@
+            @* Right overlay: the region progress bar (reused from the sidebar) plus distance/label stats. *@
             <div class="mission-complete__overlay mission-complete__overlay--right">
-              <h2 class="mission-complete__overlay-title" data-i18n="audit:right-ui.neighborhood-progress.title"></h2>
+              <h2 class="mission-complete__overlay-title" data-i18n="audit:right-ui.region-progress.title"></h2>
               @components.progressBar(
                 rootClass = "mission-complete__progress",
-                fillId = "modal-neighborhood-progress-fill",
-                labelId = "modal-neighborhood-progress-rate",
+                fillId = "modal-region-progress-fill",
+                labelId = "modal-region-progress-rate",
                 segmented = true,
-                communityId = "modal-neighborhood-progress-community",
-                youId = "modal-neighborhood-progress-you"
+                communityId = "modal-region-progress-community",
+                youId = "modal-region-progress-you"
               )
               <hr class="mission-complete__overlay-divider">
               <div class="mission-complete__stat">
@@ -900,7 +900,7 @@
       };
       enableTouchSupport();
 
-      // Neighborhood Completion Overlay
+      // Region Completion Overlay
       $('#continue-current').on('click', function() {
         $('#area-completion-overlay-wrapper').hide();
       });
@@ -909,7 +909,7 @@
         $(location).attr('href', '/explore?newRegion=true');
       });
 
-      // Already Completed Neighborhood Overlay
+      // Already Completed Region Overlay
       $('#accept-redirect').on('click', function() {
         $(location).attr('href', '/explore');
       });
@@ -947,13 +947,13 @@
     var svl = {};
     const mainParam = {};
 
-    @* Server-side conditional (@if), not a browser `if`: when the user has finished their assigned neighborhood the *@
+    @* Server-side conditional (@if), not a browser `if`: when the user has finished their assigned region the *@
     @* task is None, so `data.task.get` must never be evaluated at render time (that 500s the page — #4672). *@
     @if(data.task.isDefined) {
       mainParam.task = @jsonForScript(data.task.get);
     } else {
       $(".tool-ui").removeClass("ps-invisible");
-      $('#already-completed-neighborhood-overlay').show();
+      $('#already-completed-region-overlay').show();
     }
 
     mainParam.dataStoreUrl = '@routes.ExploreController.post';

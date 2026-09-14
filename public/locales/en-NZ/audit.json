@@ -48,7 +48,7 @@
     }
   },
   "right-ui": {
-    "neighborhood-progress": {
+    "region-progress": {
       "title": "Neighbourhood progress"
     }
   },
@@ -63,11 +63,11 @@
       }
     },
     "compass": {
-      "end-neighborhood": "You've explored this entire neighbourhood! Finish labeling this intersection, then <b>click here to complete the neighbourhood.</b>"
+      "end-region": "You've explored this entire neighbourhood! Finish labeling this intersection, then <b>click here to complete the neighbourhood.</b>"
     }
   },
   "popup": {
-    "start-body": "We have moved you to a street in {{neighborhood}}, {{city}}! You are currently standing at the intersection. Please find and label all the drop kerbs and accessibility problems at this intersection.",
+    "start-body": "We have moved you to a street in {{region}}, {{city}}! You are currently standing at the intersection. Please find and label all the drop kerbs and accessibility problems at this intersection.",
     "label-shortcuts-curb-ramp": "You can also press the <kbd>{{key}}</kbd> key for selecting the Drop Kerb label.",
     "label-shortcuts-no-curb-ramp": "You can also press the <kbd>{{key}}</kbd> key for selecting the Missing Drop Kerb label.",
     "label-shortcuts-no-sidewalk": "You can also press the <kbd>{{key}}</kbd> key for selecting the No Footpath label.",

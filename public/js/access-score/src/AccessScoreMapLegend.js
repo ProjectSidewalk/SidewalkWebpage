@@ -59,7 +59,7 @@ class AccessScoreMapLegend {
   }
 
   /**
-   * Swaps the no-score swatch for the unit: a thin grey line for an unaudited street, the hatch for a neighborhood
+   * Swaps the no-score swatch for the unit: a thin grey line for an unaudited street, the hatch for a region
    * under the completion floor.
    * @param {string} unit - 'streets' or 'regions'.
    */

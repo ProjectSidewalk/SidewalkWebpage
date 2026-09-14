@@ -107,7 +107,7 @@ class AccessScoreHistogram extends AccessScoreChart {
   }
 
   /**
-   * Moves the transient caret — the hovered map feature, or a hovered neighborhood in the rank list — without a
+   * Moves the transient caret — the hovered map feature, or a hovered region in the rank list — without a
    * full update.
    * @param {?number} score - A score in [0, 1], or null to hide the caret.
    */

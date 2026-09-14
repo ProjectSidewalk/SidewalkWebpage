@@ -27,7 +27,7 @@
   "street-count-in-region_other": "{{count}} streets in {{region}}",
   "see-all-routes_other": "See all {{count}} routes in your dashboard",
   "copied-to-clipboard": "Copied to clipboard!",
-  "one-neighborhood-warning": "A route can only have streets from one neighborhood in it at this time.",
+  "one-region-warning": "A route can only have streets from one neighborhood in it at this time.",
   "route-name-default": "Route in {{region}}",
   "route-name-streets": "{{start}} to {{end}}",
   "save-error": "Something went wrong while saving. Please try again.",

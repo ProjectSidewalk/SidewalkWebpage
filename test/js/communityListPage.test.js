@@ -119,7 +119,7 @@ describe('CommunityListPage', () => {
         expect(document.getElementById('community-no-results').hidden).toBe(true);
     });
 
-    test('search is case-insensitive and matches any card text (e.g. the neighborhood name)', () => {
+    test('search is case-insensitive and matches any card text (e.g. the region name)', () => {
         setupDom(THREE_CARDS);
         newCommunityPage();
         search('bEtA sQuArE');

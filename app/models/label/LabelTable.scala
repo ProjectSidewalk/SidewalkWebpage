@@ -21,7 +21,6 @@ import models.label.LabelTypeEnum._
 import models.mission.MissionTableDef
 import models.pano.PanoSource.PanoSource
 import models.pano.{PanoData, PanoDataTableDef, PanoSource, PanoViewerMetadata}
-import models.region.RegionTableDef
 import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTableDef}
 import models.user._
@@ -764,7 +763,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val labelAiAssessments     = TableQuery[LabelAiAssessmentTableDef]
   val labelAiFailures        = TableQuery[LabelAiFailureTableDef]
   val missions               = TableQuery[MissionTableDef]
-  val regions                = TableQuery[RegionTableDef]
   val usersUnfiltered        = TableQuery[SidewalkUserTableDef]
   val userStats              = TableQuery[UserStatTableDef]
   val userRoles              = TableQuery[UserRoleTableDef]
@@ -778,7 +776,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val aiData        = labelAiAssessments.joinLeft(labelValidations).on(_.labelValidationId === _.labelValidationId)
   val aiValidations = aiData.map(_._2)
 
-  val neighborhoods        = regions.filter(_.deleted === false)
   val usersWithoutExcluded = usersUnfiltered
     .join(userStats)
     .on(_.userId === _.userId)
@@ -1729,7 +1726,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param labelType         Label type specifying what type of labels to grab.
    * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
    * @param valOptions        Set of correctness values to filter for: correct, incorrect, unsure, and/or unvalidated.
-   * @param regionIds         Set of neighborhoods to get labels from. All neighborhoods if empty.
+   * @param regionIds         Set of regions to get labels from. All regions if empty.
    * @param severity          Set of severities the labels grabbed can have.
    * @param tags              Set of tags the labels grabbed can have.
    * @param aiValOptions      Set of AI validations to filter for: correct, incorrect, unsure, and/or unvalidated.

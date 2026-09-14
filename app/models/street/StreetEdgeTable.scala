@@ -111,7 +111,7 @@ class StreetEdgeTable @Inject() (
 
   // A street is live/auditable only when its status is `open`. Every other status (`no_imagery`, `closed`, `disabled`)
   // is unavailable; in particular streets in unopened regions carry `closed` (kept in sync with region.deleted by
-  // reveal-or-hide-neighborhoods.sh), so filtering on `open` matches the pre-enum behavior where the old `deleted`
+  // reveal-or-hide-regions.sh), so filtering on `open` matches the pre-enum behavior where the old `deleted`
   // flag was set on no-imagery, closed-region, and disabled streets alike.
   // `streetsWithTutorial` keeps the tutorial street; `streets` (the default set) also drops it, since it is randomly
   // assigned to a region at db init but should not be user-routable outside the tutorial. Use `streetsUnfiltered`
@@ -205,7 +205,7 @@ class StreetEdgeTable @Inject() (
       .on(_._2.map(_.userId) === _.userId)
       .map(row => (row._1._1._1._1._1, row._1._1._1._1._2, row._1._1._1._2, row._1._1._2, row._1._2, row._2))
 
-    // Either user bounding box filter on neighborhood or street boundaries.
+    // Either user bounding box filter on region or street boundaries.
     val filteredQuery = spatialQueryType match {
       case SpatialQueryType.Region =>
         baseQuery.filter(_._4.geom.within(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
