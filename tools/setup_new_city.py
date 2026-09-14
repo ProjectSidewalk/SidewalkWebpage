@@ -21,18 +21,28 @@ It chains every remaining setup step, pausing only where a human is required:
      `docker exec -e` (a running container's env is fixed at creation, so editing docker-compose.override.yml can't
      retarget it), and watches play_evolutions until the schema is current. Right after a clone the boot happens
      even when the donor was current: Play checks every applied evolution's hash against this checkout's files and
-     (autoApplyDowns) corrects one the donor picked up from another branch at the same number. On a rerun that kept
-     the schema, a current schema skips the boot.
+     (autoApplyDowns) corrects one the donor picked up from another branch at the same number. A schema kept from a
+     run that stopped before the fill gets the same treatment, since its hashes were never verified either; a kept
+     schema that already holds streets skips the boot. The boot listens on its own port, so `npm start` can stay
+     up; what it cannot share is the checkout it compiles, so the step asks the web container what is building
+     there first and waits (or stops naming it, unattended); --allow-running-apps overrides a build you know is idle.
   5. Loads db/onboarding/<city-id>/qgis_tables.sql into the schema.
-  6. Runs fill-new-schema.sh non-interactively (you pick the tutorial region and which regions open at launch).
+  6. Runs fill-new-schema.sh non-interactively (you pick the tutorial region and which regions open at launch, or
+     pass --tutorial-region and --regions).
   7. Runs the scripts/check_streets_for_imagery.py scan for the city's imagery provider in the web container (which
      holds the API keys and the python3.13 deps) against a freshly exported endpoints CSV, hides the no-imagery
      streets, and imports the imagery-age summary into street_imagery.
-  8. Dumps the finished schema to db/<schema>-dump — the file import-dump.sh and the server both restore — and
-     prints the server handoff checklist.
+  8. Dumps the finished schema to db/<schema>-dump — the file import-dump.sh and the server both restore — with the
+     data of every table onboarding does not write left out, so a local QA pass or a job run never rides into the
+     launched city; then prints the server handoff checklist.
 
-A rerun skips whatever already happened: registered configs, an existing schema (answer "n"), applied evolutions,
-a filled schema (jumping straight to the imagery scan), and a scan already applied. `--skip-scan` defers step 7.
+A rerun skips whatever already happened: registered configs, an existing schema (answer "n", or pass --recreate to
+drop it without being asked), applied evolutions, a filled schema (jumping straight to the imagery scan), and a scan
+already applied. `--skip-scan` defers step 7; `--dump-only` runs step 8 alone, for a city QA'd after its first dump.
+
+Every question takes its default with --yes (the review of the build report counts as answered), and only then:
+without a terminal, a question whose default would be a choice — the display name, the regions to open — stops the
+run rather than being decided by nobody. The cautious ones (keep an existing schema) take their default either way.
 
 Host-side and stdlib-only (it edits repo files and drives docker), unlike scripts/, which runs in the web container.
 Config edits are idempotent — a city already present in cityparams.conf is left alone — and `--dry-run` previews the
@@ -45,10 +55,9 @@ import re
 import subprocess
 import sys
 import time
-import urllib.error
-import urllib.request
 from datetime import date, timedelta
 from pathlib import Path
+from typing import NamedTuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CITYPARAMS = REPO_ROOT / 'conf' / 'cityparams.conf'
@@ -56,17 +65,63 @@ MESSAGES_DIR = REPO_ROOT / 'conf' / 'messages'
 EVOLUTIONS_DIR = REPO_ROOT / 'conf' / 'evolutions' / 'default'
 DB_CONTAINER = 'projectsidewalk-db'
 WEB_CONTAINER = 'projectsidewalk-web'
+# Where the checkout the containers were started from is mounted in the web container — the one the boot builds
+# from, and so the one an app already building there would collide with. The db container mounts its db/ at /opt.
+CHECKOUT_IN_CONTAINER = '/home'
 
 # The same sbt invocation `npm start` uses, minus `~` (one-shot, no watch). The tail pipe keeps stdin open — Play's
 # dev server stops on stdin EOF, which a detached `docker exec` would deliver immediately. Every process of the boot
-# carries BOOT_MARKER on its command line (tail via `exec -a`, sbt and its JVM via a -D property nothing reads), so
-# stopping it is one `pkill -f` that can't touch another `tail -f /dev/null` in the container (make qa-worktree
-# holds one open the same way).
+# carries BOOT_MARKER on its command line in one of two exact forms — the tail's argv[0] via `exec -a`, and a -D
+# property nothing reads on the sbt script and its JVM — and BOOT_PATTERN names those two forms rather than the bare
+# word: the boot log's path carries the word too, so an operator following the log hint (`tail -f
+# /tmp/onboard-city-boot.log`) must neither count as a stale boot nor be killed at the stop.
 BOOT_MARKER = 'onboard-city-boot'
-BOOT_CMD = (f"cd /home && (exec -a {BOOT_MARKER}-stdin tail -f /dev/null) | sbt -D{BOOT_MARKER}=1 "
-            "-Dconfig.file=/home/conf/application.local.conf "
+BOOT_PATTERN = f'-D{BOOT_MARKER}=1|{BOOT_MARKER}-stdin'
+BOOT_LOG = f'/tmp/{BOOT_MARKER}.log'
+# Not 9000: the boot shares nothing with the app on the published port except the checkout it compiles, so it takes
+# a port compose does not publish and `npm start` can stay up. Only a boot this script left behind can hold it.
+BOOT_PORT = 9100
+# What the boot is polled on: a path that matches no route, under the one prefix CustomErrorHandler keeps out of the
+# log. Play's dev mode starts the app — and so applies evolutions — for any request, including one it then 404s,
+# and a request that reaches no controller writes no webpage_activity row. Measured 2026-09-10 against a schema at
+# evolution 382 with the repo at 384: polling an unrouted path alone took it to 384 and left webpage_activity
+# untouched, where both "/" and /v3/api/cities log a row each (every /v3/api route goes through LoggingService). The
+# prefix matters as much as the miss: any other unrouted path is WARN-logged on every poll, so the log the timeout
+# message points at would be mostly probe noise (#5297).
+BOOT_URL = f'http://localhost:{BOOT_PORT}/.well-known/{BOOT_MARKER}-probe'
+# The boot's config is CI's: application.ci.conf includes application.local.conf (the dev profile the boot needs)
+# and switches the nightly actors off, for the reason its own comment gives — a boot that straddles an actor's
+# scheduled minute would write background_job_run, funnel_stat, sidewalk_presence, ... into a schema nothing has
+# used yet, and the first Laurens rebuild picked up two such rows that way. sbt.server.forcestart is load-bearing:
+# with a build already running in the same checkout, sbt 1.12.13's getSocketOrExit asks "Create a new server?" only
+# when it has a console, and without one exits 2 unless this property is set — so without it --allow-running-apps
+# would start a boot that dies at once (#5297).
+BOOT_CMD = (f"cd {CHECKOUT_IN_CONTAINER} && (exec -a {BOOT_MARKER}-stdin tail -f /dev/null) | "
+            f"sbt -D{BOOT_MARKER}=1 -Dconfig.resource=application.ci.conf -Dhttp.port={BOOT_PORT} "
+            "-Dsbt.server.forcestart=true "
             "-Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' "
-            "-Dsbt.repository.config='.sbt/repositories' -J-Xmx1536m run > /tmp/onboard-city-boot.log 2>&1")
+            f"-Dsbt.repository.config='.sbt/repositories' -J-Xmx1536m run > {BOOT_LOG} 2>&1")
+
+# Runs inside the web container and prints what the boot needs to know, one fact per line, in a shape that cannot
+# read as "clear" by accident: a missing `port` or `boot` line, or a `pid` line without a directory, reports as
+# "could not inspect" rather than as nothing in the way (#5297).
+#   port taken|free   asked from inside the container (bash's /dev/tcp): Docker's published-port forwarder on the
+#                     host accepts a connect for the container's whole lifetime, listener or not, so a host-side
+#                     probe of a published port reads "taken" whatever is running (measured). tools/qa-worktree.sh
+#                     asks the same way.
+#   boot stale|none   whether a boot an earlier run left behind is still up, by BOOT_PATTERN.
+#   pid <pid> <cwd>   every sbt JVM and its working directory ('?' when unreadable).
+# `docker exec` starts the probe shell with this whole text on its own command line, so every pattern here has its
+# first letter bracketed (`[s]bt-launch` matches sbt-launch and not itself) and $$ is skipped as well, so that stays
+# true if a pattern is ever widened (`[s]bt-launch|sbtn` would match the shell again).
+_PROBE_BOOT_PATTERN = BOOT_PATTERN.replace(BOOT_MARKER, f'[{BOOT_MARKER[0]}]{BOOT_MARKER[1:]}')
+PROBE_CMD = (
+    'command -v pgrep >/dev/null || { echo "pgrep is not installed in the container" >&2; exit 3; }; '
+    f'if (exec 3<>/dev/tcp/127.0.0.1/{BOOT_PORT}) 2>/dev/null; then echo "port taken"; else echo "port free"; fi; '
+    f'if pgrep -f -- "{_PROBE_BOOT_PATTERN}" >/dev/null; then echo "boot stale"; else echo "boot none"; fi; '
+    'for pid in $(pgrep -f "[s]bt-launch"); do [ "$pid" = "$$" ] && continue; '
+    'echo "pid $pid $(readlink /proc/$pid/cwd 2>/dev/null || echo "?")"; done'
+)
 
 US_STATES = {
     'al': 'alabama', 'ak': 'alaska', 'az': 'arizona', 'ar': 'arkansas', 'ca': 'california', 'co': 'colorado',
@@ -94,8 +149,9 @@ PROVIDERS = {
 # that a maintainer opts a city into; a missing entry is the default.
 OPTIONAL_FLAG_MAPS = ('private-profiles-by-default', 'global-leaderboard-excluded', 'ai-label-submission-enabled')
 
-# The message files besides the base `messages` that carry place names; each needs a line only where its rendering
-# differs from the base (zh-TW always does).
+# The message files besides the base `messages` that carry place names. Each carries a line for every place name —
+# the English value where the name reads the same, a transliteration in zh-TW — so that a missing line always means
+# "not looked at yet" (docs/internationalization.md).
 TRANSLATED_MESSAGE_FILES = ('messages.zh-TW', 'messages.es', 'messages.nl', 'messages.de', 'messages.pt-BR',
                             'messages.fr')
 
@@ -116,11 +172,61 @@ def valid_city_id(value):
     return value
 
 
-def prompt(text, default=None):
-    """Prompts on the terminal; empty input takes the default (re-prompts when there is none)."""
+def is_region_id(value):
+    """Whether a typed answer is a region id: region serials start at 1, so 0 is a typo, not a region."""
+    return value.isdigit() and int(value) > 0
+
+
+def valid_region_id(value):
+    """argparse type for --tutorial-region, kept as the string fill-new-schema.sh and the regions spec both take."""
+    if not is_region_id(value):
+        raise argparse.ArgumentTypeError(f'"{value}" is not a region id (a positive integer from the build report).')
+    return value
+
+
+# Set by --yes: every question takes its default without being asked.
+ASSUME_DEFAULTS = False
+
+
+def prompt(text, default=None, cautious=False, yes_takes=None):
+    """
+    Prompts on the terminal; empty input takes the default (re-prompts when there is none).
+
+    With nothing on stdin to answer — CI, a scripted rebuild, an agent — the answer is taken from the default only
+    where that was asked for: --yes says so for the whole run, and a ``cautious`` question is one whose default is
+    the answer that does nothing (keep the schema), which nobody can be sorry to have taken. Any other question stops
+    the run with a usable message instead of an EOFError traceback. Without that rule one piped `y` would clear the
+    review of the build report and then let every later question — the display name, the tutorial region, which
+    regions open — be decided by nobody, ending in a fill that cannot be undone (#5297).
+
+    Args:
+        text:      The question.
+        default:   What an empty answer means; None makes the question mandatory.
+        cautious:  Whether the default is safe to take unattended without --yes.
+        yes_takes: What --yes answers when the question has no default — the build-report review, which a person
+                   must read but a scripted rebuild has read already.
+
+    Returns:
+        The answer, stripped.
+    """
     suffix = f' [{default}]' if default is not None else ''
+    taken_by_yes = default if default is not None else yes_takes
+    if ASSUME_DEFAULTS and taken_by_yes is not None:
+        print(f'{text}{suffix}: {taken_by_yes}  (--yes)')
+        return taken_by_yes
     while True:
-        value = input(f'{text}{suffix}: ').strip()
+        try:
+            value = input(f'{text}{suffix}: ').strip()
+        except EOFError:
+            if default is None:
+                sys.exit(f'\nerror: "{text}" has no default and there is nothing on stdin to answer it. '
+                         'Rerun attached to a terminal, or pass the flag that answers it (--country, --pano-type, '
+                         '--tutorial-region, --regions).')
+            if not cautious:
+                sys.exit(f'\nerror: "{text}" needs an answer and there is nothing on stdin to give one. Rerun '
+                         f'attached to a terminal, or pass --yes to take every default (this one: {default}).')
+            print(f'\n  (nothing on stdin; taking the default: {default})')
+            return default
         if value:
             return value
         if default is not None:
@@ -221,38 +327,60 @@ def preflight_table(preflight_text):
     return lines if len(lines) > 2 else []
 
 
-def translation_todo(city_id, state, new_country):
+def translation_todo(city_id, state, country, added=()):
     """
-    The message keys a human still has to translate after the English lines are in.
+    The place-name keys the translated files still lack, one line per key naming the files that lack it.
+
+    Every file is owed every name (TRANSLATED_MESSAGE_FILES says why), so a gap is a gap and the list needs no
+    judgement: it is the same whichever run reads it, and empty only when every file carries every name (#5297).
 
     Args:
-        city_id:     The city id (its ``city.name.<id>`` key).
-        state:       The US state id whose ``state.name.<state>`` line was just added, or None.
-        new_country: The country id whose ``country.name.<country>`` line was just added, or None.
+        city_id: The city id (its ``city.name.<id>`` key).
+        state:   The US state id the city sits in, or None; its ``state.name.<state>`` key is listed too.
+        country: The country id the city sits in, or None for one whose name every file already carries.
+        added:   Keys this run put in the base file, or would under --dry-run, when the file cannot be read back
+                 for them yet.
 
     Returns:
-        Human-readable lines, one per file, naming the keys to add where the language renders them differently
-        (zh-TW always transliterates; Latin-script languages only for well-known exonyms).
+        Human-readable lines, one per key that any translated file lacks.
     """
     keys = [f'city.name.{city_id}']
     if state:
         keys.append(f'state.name.{state}')
-    if new_country:
-        keys.append(f'country.name.{new_country}')
-    return [f'  conf/messages/{file_name}: {", ".join(keys)}' for file_name in TRANSLATED_MESSAGE_FILES]
+    if country:
+        keys.append(f'country.name.{country}')
+    # Only what English defines: a territory outside US_STATES never gets a base state.name line, and asking for a
+    # translation of a key that does not exist sends someone looking for nothing.
+    keys = [key for key in keys if key in added or message_key_exists('messages', key)]
+    contents = {file_name: (MESSAGES_DIR / file_name).read_text().split('\n')
+                for file_name in TRANSLATED_MESSAGE_FILES}
+    lines = []
+    for key in keys:
+        missing = [file_name for file_name, file_lines in contents.items() if not _has_key(file_lines, key)]
+        if missing:
+            lines.append(f'  {key}: {", ".join(missing)}')
+    return lines
 
 
 def handoff_checklist(city_id, schema, prod_url, test_url):
     """The steps outside this repo that stand between a finished local schema and a live city."""
     return f'''
 Server handoff for {city_id}:
-  1. Copy the dump to the server:  scp db/{schema}-dump makelab1.cs.washington.edu:/www/sidewalk/new-city-dumps/
+  1. Copy the dump to the server, renaming it to the convention every file there follows (the local name stays
+     `{schema}-dump`, which is what `make import-dump` restores, and which a populated prod pull also uses):
+       scp db/{schema}-dump <netid>@makelab1.cs.washington.edu:/www/sidewalk/new-city-dumps/{schema}-empty-dump
+     (or an ssh alias of your own that sets the user; a bare hostname without one fails with "Permission denied").
   2. On the server, register the city with the IT tooling (uwcseit-sidewalk-tools: bin/setup-new.pl), which creates the
      DB role, restores the dump into sidewalk_test / sidewalk_prod, and writes the vhost — test stage first.
   3. DNS + Google Cloud: add {test_url} and {prod_url} as referrers on the Maps API key (docs/google-cloud.md).
   4. Open the PR with the config, message, and docs changes; the auto-deploy picks the city up once it lands on
      develop (test) and in a release (prod).
-  5. Round-trip check any time: make import-dump db={schema} restores db/{schema}-dump into the dev DB.
+  5. Nightly jobs fill what onboarding leaves empty, so the dump you just copied has none of it: `intersection`
+     (with each street's corner links), `cluster`, `sidewalk_presence`, and the `osm_way` tag cache each arrive
+     with their job's first nightly run (the schedule is actor/ScheduledJobs.scala, shifted by the city's
+     update_offset_hours), and AccessScore reads zero until then. An admin can force the intersections and
+     clusters early from /clustering; the osm_way tags have their own nightly refresh (#5297).
+  6. Round-trip check any time: make import-dump db={schema} restores db/{schema}-dump into the dev DB.
 '''
 
 
@@ -295,6 +423,31 @@ def insert_entry(lines, path, entry):
     lines.insert(close, f'{indent}{entry}')
 
 
+def cityparams_value(lines, path, city_id, missing=None):
+    """
+    The city's raw value (quotes stripped) inside the (possibly nested) cityparams block at ``path``.
+
+    Args:
+        lines:   cityparams.conf, split into lines.
+        path:    The block names from the top level down, e.g. ``['landing-page-url', 'prod']``.
+        city_id: The city whose entry to read.
+        missing: What to return when the block has no entry for the city; None stops the run instead, for a caller
+                 that cannot go on without the value.
+    """
+    start = 0
+    close = None
+    for name in path:
+        start, close = find_block(lines, name, start)
+        start += 1
+    for line in lines[start:close]:
+        match = re.match(rf'\s*{re.escape(city_id)}\s*=\s*(.+?)\s*$', line)
+        if match:
+            return match.group(1).strip('"')
+    if missing is not None:
+        return missing
+    sys.exit(f'error: {city_id} has no {".".join(path)} entry in cityparams.conf — run `make onboard-city` first.')
+
+
 def add_cityparams_entries(city_id, values, dry_run):
     """Registers the city in every per-city map of cityparams.conf; no-op if the id is already present."""
     text = CITYPARAMS.read_text()
@@ -313,10 +466,14 @@ def add_cityparams_entries(city_id, values, dry_run):
     return True
 
 
+def _has_key(lines, key):
+    """Whether a message file's lines define ``key``."""
+    return any(line.startswith(f'{key} ') or line.startswith(f'{key}=') for line in lines)
+
+
 def message_key_exists(file_name, key):
     """Whether ``key`` is already defined in the given message file."""
-    lines = (MESSAGES_DIR / file_name).read_text().split('\n')
-    return any(line.startswith(f'{key} ') or line.startswith(f'{key}=') for line in lines)
+    return _has_key((MESSAGES_DIR / file_name).read_text().split('\n'), key)
 
 
 def add_message_line(file_name, key, value, dry_run):
@@ -365,8 +522,13 @@ def add_docs_city_row(city_id, schema, dry_run):
 # Docker / DB steps.
 # ---------------------------------------------------------------------------------------------------------------------
 
+def docker_argv(container, *args, flags=()):
+    """A `docker exec` command line, with ``flags`` (-i, -t, -d, -e ...) where docker wants them: before the name."""
+    return ['docker', 'exec', *flags, container, *args]
+
+
 def docker_db(*args, **kwargs):
-    return subprocess.run(['docker', 'exec', '-i', DB_CONTAINER, *args], **kwargs)
+    return subprocess.run(docker_argv(DB_CONTAINER, *args, flags=('-i',)), **kwargs)
 
 
 def db_query(sql):
@@ -375,24 +537,209 @@ def db_query(sql):
     return result.stdout.strip() if result.returncode == 0 else None
 
 
+def container_up(container):
+    """Whether a container is running, by the cheapest exec there is."""
+    return subprocess.run(docker_argv(container, 'true'), capture_output=True).returncode == 0
+
+
+def schema_exists(schema):
+    """Whether the schema is in the dev database — None when the database could not be asked at all."""
+    answer = db_query(f"SELECT 1 FROM pg_namespace WHERE nspname = '{schema}'")
+    return None if answer is None else bool(answer)
+
+
+def street_count(schema):
+    """The schema's street_edge rows, or None when they could not be counted (a clone interrupted mid-restore)."""
+    count = db_query(f'SELECT count(*) FROM {schema}.street_edge')
+    return None if count is None else int(count)
+
+
 def web_env(name):
     """An environment variable's value inside the web container, or None when unset."""
-    result = subprocess.run(['docker', 'exec', WEB_CONTAINER, 'printenv', name], capture_output=True, text=True)
+    result = subprocess.run(docker_argv(WEB_CONTAINER, 'printenv', name), capture_output=True, text=True)
     return result.stdout.strip() or None if result.returncode == 0 else None
 
 
-def sbt_running():
-    return subprocess.run(['docker', 'exec', WEB_CONTAINER, 'pgrep', '-f', 'sbt-launch'],
+def mount_mismatch(local_path, container_path):
+    """
+    Why the db container's copy of a file is not this checkout's, or None when the two match.
+
+    The containers mount the checkout they were started from — `./db` at /opt, `./` at /home — and every db step
+    reads that copy, so a run from a git worktree, or from a second clone, would check its own artifacts and
+    evolutions while the steps used the other checkout's. The topology is not what matters, the bytes are, so the
+    check is a hash of the very file the steps are about to use (#5297).
+    """
+    theirs = docker_db('md5sum', container_path, capture_output=True, text=True)
+    if theirs.returncode != 0 or not theirs.stdout.split():
+        return f'{container_path} is not in the db container'
+    if theirs.stdout.split()[0] != hashlib.md5(local_path.read_bytes()).hexdigest():
+        return f"the db container's {container_path} is not this checkout's {local_path}"
+    return None
+
+
+def require_mounted(local_path, container_path):
+    """Stops the run unless the db container's copy of ``local_path`` is this checkout's (see mount_mismatch)."""
+    why = mount_mismatch(local_path, container_path)
+    if why:
+        sys.exit(f'error: {why}. The containers mount the checkout they were started from — not a git worktree, '
+                 'and not another clone — and every step reads that copy, so this must run from that checkout: '
+                 'check the branch out there and rerun, or restart the containers from here (make docker-stop, '
+                 'then make dev).')
+
+
+class Inspection(NamedTuple):
+    """What the web container said about the one-shot boot's way being clear, or why it could not say."""
+    port_taken: bool = False
+    builds: tuple = ()
+    stale_boot: bool = False
+    problem: str = None
+
+
+def inspect_container():
+    """
+    What the web container can say about the one-shot boot's way being clear, asked with PROBE_CMD.
+
+    Returns:
+        An Inspection: whether BOOT_PORT has a listener, ``((pid, cwd), ...)`` for every sbt JVM in the container,
+        and whether a boot an earlier run left behind is still up — or one whose ``problem`` says why the container
+        could not be inspected. Not knowing is not the same as being clear, so a caller treats the problem as a
+        conflict in its own right.
+    """
+    listing = subprocess.run(docker_argv(WEB_CONTAINER, 'bash', '-c', PROBE_CMD), capture_output=True, text=True)
+    if listing.returncode != 0:
+        why = listing.stderr.strip() or f'exit {listing.returncode}'
+        return Inspection(problem=f'could not inspect {WEB_CONTAINER} for running builds ({why})')
+    port_taken = stale_boot = None
+    builds = []
+    for line in listing.stdout.split('\n'):
+        words = line.split(' ', 2)
+        if words[0] == 'port' and words[1:] in (['taken'], ['free']):
+            port_taken = words[1] == 'taken'
+        elif words[0] == 'boot' and words[1:] in (['stale'], ['none']):
+            stale_boot = words[1] == 'stale'
+        elif words[0] == 'pid' and len(words) == 3 and words[1].isdigit() and words[2].strip():
+            builds.append((int(words[1]), words[2].strip()))
+        elif line.strip():
+            return Inspection(problem=f'could not read {WEB_CONTAINER}\'s answer about running builds '
+                                      f'("{line.strip()}")')
+    if port_taken is None or stale_boot is None:
+        return Inspection(problem=f'could not tell whether :{BOOT_PORT} is free in {WEB_CONTAINER}')
+    return Inspection(port_taken, tuple(builds), stale_boot)
+
+
+def boot_conflicts():
+    """
+    What would stop the one-shot boot, as two lists of human-readable strings — both empty when the way is clear.
+
+    The boot needs BOOT_PORT, which only a boot this script left behind can hold, and the checkout it compiles: two
+    compiles sharing one `target/` corrupt it, so an sbt whose working directory is CHECKOUT_IN_CONTAINER is in the
+    way. One in a worktree is not — the caches under /home/.sbt and /home/.coursier are shared by every worktree on
+    purpose (qa-worktree.sh points each at them to reuse the warm download) and are built for concurrent use; the
+    Laurens rebuild ran to completion with five worktree JVMs up. `target/` is the only thing a checkout has to
+    itself (#5297).
+
+    Returns:
+        ``(hard, soft)``: what no flag overrides — the port is taken, so the boot could not bind and every poll
+        would be answered by whatever holds it; a stale boot of this script's own; or the container could not be
+        inspected — and what --allow-running-apps may: a build in the boot's own checkout, for a caller who knows it
+        is idle.
+    """
+    found = inspect_container()
+    if found.problem:
+        return [found.problem], []
+    hard = [f':{BOOT_PORT} is already taken (the boot needs it)'] if found.port_taken else []
+    soft = []
+    for pid, cwd in found.builds:
+        if cwd == CHECKOUT_IN_CONTAINER:
+            soft.append(f'pid {pid} is building in {cwd} (shares the boot\'s target/)')
+        elif cwd == '?':
+            soft.append(f'pid {pid} is an sbt whose working directory could not be read, so it may be building '
+                        f'in {CHECKOUT_IN_CONTAINER}')
+    # A boot an earlier run left behind (killed by SIGTERM, a closed terminal) compiles in /home and may hold no
+    # port yet, so it would file as overridable — and then boot_jvm_alive() would answer for the stale JVM, not the
+    # new one, for the whole wait. It is never overridable: nothing legitimate carries the marker.
+    if found.stale_boot:
+        hard.append(f'a boot this script left behind is still up — a run killed outright never reaches the stop; '
+                    f'clear it with: docker exec {WEB_CONTAINER} pkill -f -- "{BOOT_PATTERN}"')
+    return hard, soft
+
+
+def boot_jvm_alive():
+    """
+    Whether the one-shot boot's JVM is still running.
+
+    The marker alone does not say: the `tail` that holds the boot's stdin open and the shell around the pipeline
+    both carry it, and both outlive an sbt that has exited (a pipeline's shell waits for every member, and
+    `tail -f /dev/null` never ends). Only the JVM's command line carries the marker property *and* the launcher jar.
+    """
+    # `--` because the pattern starts with -D, which pgrep otherwise reads as an option and exits 2 — the same exit
+    # a dead boot gives, so a fresh boot would read as dead ten seconds in (measured).
+    return subprocess.run(docker_argv(WEB_CONTAINER, 'pgrep', '-f', '--', f'-D{BOOT_MARKER}=1 .*sbt-launch'),
                           capture_output=True).returncode == 0
 
 
-def evolution_problem(schema):
-    """The newest evolution Play failed on, as ``"<id>: <problem>"``, or None when every row is clean."""
-    return db_query(f"SELECT id || ': ' || left(last_problem, 300) FROM {schema}.play_evolutions "
-                    "WHERE last_problem IS NOT NULL AND last_problem <> '' ORDER BY id DESC LIMIT 1")
+def boot_answered():
+    """
+    Whether the boot answers HTTP on BOOT_PORT — asked from inside the container, since compose publishes no
+    such port. Any response, an error page included, means the app booted; the evolutions check is the real gate.
+    curl exits non-zero for everything short of a response — refused, timed out (Play's dev server holds the
+    request while it compiles, hence the long --max-time), or a listener that is not speaking HTTP.
+    """
+    return subprocess.run(docker_argv(WEB_CONTAINER, 'curl', '-s', '-o', '/dev/null', '--max-time', '240', BOOT_URL),
+                          capture_output=True).returncode == 0
 
 
-def apply_evolutions(schema, city_id, verify=False):
+def run_or_exit(args, what_failed, hint):
+    """
+    Runs a db-container command with its output streaming, and on failure exits quoting the reason it gave.
+
+    stdout is left alone: fill-new-schema.sh prints its configuration summary and then runs one long psql heredoc,
+    the longest step in the run. stderr is echoed line by line as it arrives, because it carries both the diagnosis
+    worth quoting — which donor was refused and why, which SQL statement broke — and, for create-new-schema.sh, the
+    progress of helpers.sh's run_with_progress, which writes all of it to stderr and would go silent for minutes if
+    the pipe were only drained at the end. Read through a pipe that helper sees no TTY and prints its heartbeat lines
+    instead of a spinner, which is what the heartbeat is for. Quoting the reason into the exit message means it
+    survives however the caller is handling streams, where an unhandled CalledProcessError leaves only a traceback
+    and an argv list (#5297).
+
+    Args:
+        args:        The command, as it would be passed to docker_db.
+        what_failed: The first line of the error, naming the step in the operator's terms.
+        hint:        What to do about it, printed under the quoted reason — a string, or a function of the quoted
+                     lines for a step whose failures need different advice.
+    """
+    process = subprocess.Popen(docker_argv(DB_CONTAINER, *args, flags=('-i',)), stderr=subprocess.PIPE, text=True)
+    captured = []
+    for line in process.stderr:
+        print(line, end='', file=sys.stderr, flush=True)
+        captured.append(line.rstrip())
+    returncode = process.wait()
+    if returncode != 0:
+        said = [line for line in captured if line.strip()]
+        reason = '\n'.join(f'  | {line}' for line in said) if said \
+            else '  | (it gave no reason of its own; look at its output above)'
+        advice = hint(said) if callable(hint) else hint
+        sys.exit(f'error: {what_failed} (exit {returncode}):\n{reason}\n  {advice}')
+
+
+def evolution_state(schema):
+    """
+    The schema's highest applied evolution and the newest one Play failed on (``"<id>: <problem>"``), in one round
+    trip because the boot's wait loop asks every ten seconds.
+
+    Returns:
+        ``(applied, problem)``, each None when there is none — and both None when the table could not be read.
+    """
+    row = db_query(f"SELECT coalesce(max(id)::text, ''), coalesce((SELECT id || ': ' || left(last_problem, 300) "
+                   f"FROM {schema}.play_evolutions WHERE last_problem IS NOT NULL AND last_problem <> '' "
+                   f"ORDER BY id DESC LIMIT 1), '') FROM {schema}.play_evolutions")
+    if row is None:
+        return None, None
+    applied, _, problem = row.partition('|')
+    return applied or None, problem or None
+
+
+def apply_evolutions(schema, city_id, verify=False, allow_running_apps=False):
     """
     Boots the app one-shot as the new city and blocks until play_evolutions reaches the repo's latest.
 
@@ -403,49 +750,73 @@ def apply_evolutions(schema, city_id, verify=False):
                  only check that the donor's evolutions are *this checkout's*: Play compares every applied hash
                  with the file and, with autoApplyDowns on, reverts and re-applies from the first mismatch — the case
                  of a dev schema that hosted another branch's evolution at the same number.
+        allow_running_apps: Boot even with a build running in the boot's own checkout (see [[boot_conflicts]]),
+                 for a caller who knows it is idle. A taken port is never overridden: the boot could not bind it,
+                 and every poll would then be answered by whatever holds it — a stale boot on the donor's schema,
+                 whose play_evolutions reads current, so the verification this boot exists for would be skipped and
+                 reported as done (#5297).
     """
     latest = highest_evolution()
-    applied = db_query(f'SELECT max(id) FROM {schema}.play_evolutions')
+    applied, _ = evolution_state(schema)
     current = bool(applied) and int(applied) >= latest
     if current and not verify:
         print(f'  Schema is already at evolution {applied}; no app boot needed.')
         return
-    while sbt_running():
-        input('  An app/sbt is already running in the web container; it would fight the one-shot boot over :9000 '
-              'and the build locks. Ctrl-C your `npm start`, then press Enter... ')
-    subprocess.run(['docker', 'exec', '-d', '-e', f'DATABASE_USER={schema}', '-e', f'SIDEWALK_CITY_ID={city_id}',
-                    WEB_CONTAINER, 'bash', '-c', BOOT_CMD], check=True)
+    # Re-read after every clear: what the operator left in place is what the boot is then passed over, and what
+    # the timeout message has to blame.
+    while True:
+        hard, soft = boot_conflicts()
+        overridden = soft if allow_running_apps and not hard else []
+        conflicts = hard + (soft if not allow_running_apps else [])
+        if not conflicts:
+            break
+        clear_it = (f'Clear it (docker exec {WEB_CONTAINER} kill <pid>, or Ctrl-C the sbt in {CHECKOUT_IN_CONTAINER}) '
+                    'and rerun' + ('.' if hard else ', or pass --allow-running-apps to boot anyway.'))
+        if not sys.stdin.isatty():
+            sys.exit(f'error: the one-shot boot cannot start — {"; ".join(conflicts)}.\n  {clear_it}')
+        try:
+            input(f'  The one-shot boot cannot start — {"; ".join(conflicts)}. Clear it, then press Enter... ')
+        except EOFError:
+            sys.exit('\nerror: nothing left on stdin to answer with; clear the conflict and rerun.')
+    if overridden:
+        print(f'  --allow-running-apps: booting anyway, with {"; ".join(overridden)}.')
+    subprocess.run(docker_argv(WEB_CONTAINER, 'bash', '-c', BOOT_CMD,
+                               flags=('-d', '-e', f'DATABASE_USER={schema}', '-e', f'SIDEWALK_CITY_ID={city_id}')),
+                   check=True)
     if current:
         print(f'  Schema reads evolution {applied}; booting the app as {city_id} once anyway so Play checks every '
               'applied hash against this checkout (the dev compile takes a while)...')
     else:
         print(f'  Booting the app as {city_id} to apply evolutions (needs {latest}; the dev compile takes a while)...')
+    log_hint = f'docker exec {WEB_CONTAINER} tail -50 {BOOT_LOG}'
     try:
         deadline = time.monotonic() + 30 * 60
+        # No `continue` in this loop: Python 3.8's compiler folds the jump into the preceding block's, so the
+        # tracer never reports the line and the 100% coverage gate fails on the 3.8 half of the suite.
         while time.monotonic() < deadline:
-            # Any HTTP response (even an error page) means the app booted; the evolutions check is the real gate.
-            try:
-                urllib.request.urlopen('http://localhost:9000/', timeout=240).close()
-            except urllib.error.HTTPError:
-                pass
-            except (urllib.error.URLError, OSError):
+            if boot_answered():
+                applied, problem = evolution_state(schema)
+                if problem:
+                    sys.exit(f'error: Play could not apply evolution {problem}\n  Fix the cause ({log_hint}), then '
+                             'rerun.')
+                if applied and int(applied) >= latest:
+                    print(f'  Evolutions applied and verified (at {applied}).')
+                    return
+                print(f'  ...at {applied or "?"} of {latest}')
                 time.sleep(10)
-                continue
-            problem = evolution_problem(schema)
-            if problem:
-                sys.exit(f'error: Play could not apply evolution {problem}\n  Fix the cause (docker exec '
-                         f'{WEB_CONTAINER} tail -50 /tmp/onboard-city-boot.log), then rerun.')
-            applied = db_query(f'SELECT max(id) FROM {schema}.play_evolutions')
-            if applied and int(applied) >= latest:
-                print(f'  Evolutions applied and verified (at {applied}).')
-                return
-            print(f'  ...at {applied or "?"} of {latest}')
-            time.sleep(10)
-        sys.exit(f'error: evolutions never reached {latest}. Check the boot log: '
-                 f'docker exec {WEB_CONTAINER} tail -50 /tmp/onboard-city-boot.log — then rerun.')
+            else:
+                time.sleep(10)
+                # A boot that died — failed to bind, or fell over compiling — would otherwise be waited on for the
+                # full half hour. Checked after the sleep so the JVM has had time to appear at all.
+                if not boot_jvm_alive():
+                    sys.exit(f'error: the one-shot boot exited before the app answered. Check the boot log: '
+                             f'{log_hint} — then rerun.')
+        blamed = f'\n  --allow-running-apps was passed over: {"; ".join(overridden)} — a compile sharing the ' \
+                 f'boot\'s target/ can wedge it; stop that build and rerun.' if overridden else ''
+        sys.exit(f'error: evolutions never reached {latest}. Check the boot log: {log_hint} — then rerun.{blamed}')
     finally:
-        subprocess.run(['docker', 'exec', WEB_CONTAINER, 'pkill', '-f', BOOT_MARKER], capture_output=True)
-        print('  One-shot app stopped; :9000 is free again.')
+        subprocess.run(docker_argv(WEB_CONTAINER, 'pkill', '-f', '--', BOOT_PATTERN), capture_output=True)
+        print(f'  One-shot app stopped; :{BOOT_PORT} is free again.')
 
 
 def run_imagery_scan(schema, city_id, pano_type):
@@ -476,8 +847,8 @@ def run_imagery_scan(schema, city_id, pano_type):
           'own checkpoint if interrupted)...')
     # A TTY (when we have one to give) lets the scan's tqdm progress bar render; over a plain pipe it auto-hides.
     tty = ['-t'] if sys.stdin.isatty() else []
-    subprocess.run(['docker', 'exec', '-i', *tty, WEB_CONTAINER, 'python3.13',
-                    'scripts/check_streets_for_imagery.py', '--city-id', city_id, flag], check=True)
+    subprocess.run(docker_argv(WEB_CONTAINER, 'python3.13', 'scripts/check_streets_for_imagery.py',
+                               '--city-id', city_id, flag, flags=('-i', *tty)), check=True)
 
     no_imagery = city_dir / 'streets_with_no_imagery.csv'
     n_hidden = max(0, len(no_imagery.read_text().strip().split('\n')) - 1) if no_imagery.exists() else 0
@@ -492,15 +863,130 @@ def run_imagery_scan(schema, city_id, pano_type):
               f'onboarding/{city_id}/street_imagery_summary.csv', check=True)
 
 
+# The tables onboarding itself fills, and so the only ones whose rows belong in the dump: the seed rows the clone
+# copies (create-new-schema.sh), the streets and regions the fill derives (fill-new-schema.sh), the scan's
+# imagery-age summary and the status trail of the streets it hides (import-street-imagery.sh, helpers.sh), and
+# region_completion, which the app computes from the streets on first use — and recomputes whenever the table is
+# empty, which is why the dump leaves its data out (a QA walk moves audited_distance, which the landing page's
+# completion figure is divided by). Every other table's data stays out of the dump too: a local QA pass fills some
+# (one walk in Explore writes an audit_task and thousands of audit_task_interaction rows), the nightly jobs fill
+# others (intersection, cluster, sidewalk_presence, osm_way, background_job_run — an admin forcing them from
+# /clustering, or an app left running as the city, produces the same), and none of it belongs in a launched city.
+# Naming what is kept rather than what is left out is the point: a denylist has to know every table a QA pass or a
+# job can reach. test_setup_new_city.py pins this list against the scripts' own INSERTs, and pins the evolutions'
+# own seed rows too: an evolution applied at the boot (a donor behind the checkout) that seeded a table outside this
+# list would have that seed silently left out of the dump (#5297).
+ONBOARDING_TABLES = frozenset((
+    'play_evolutions', 'version', 'tag', 'survey_question', 'survey_option', 'street_edge', 'config',
+    'region', 'street_edge_region', 'street_edge_priority', 'osm_way_street_edge',
+    'street_imagery', 'street_edge_status_change', 'region_completion',
+))
+KEPT_IN_DUMP = ONBOARDING_TABLES - {'region_completion'}
+
+
+def quote_ident(name):
+    """A Postgres identifier, quoted: a scratch table with a capital letter or a space is a table too (#5297)."""
+    return '"' + name.replace('"', '""') + '"'
+
+
+def dump_exclusions(schema):
+    """
+    What the dump leaves out: the pg_dump --exclude-table-data patterns for every table outside KEPT_IN_DUMP and
+    the sequences those tables' serials draw from, and the row counts of the excluded tables that hold rows, so the
+    operator sees what a QA pass or a job wrote.
+
+    The tables come from the catalog rather than a list here, so one added by a later evolution is left out the
+    day it lands and a schema old enough to lack one cannot break the count. The sequences are found the way
+    create-new-schema.sh finds them — SERIAL sequences are owned by their column (pg_depend), the schema's older
+    hand-made ones only named in the column DEFAULT (pg_attrdef) — so a restored city's serials start where a fresh
+    schema's would. pg_class is joined to itself, hence the one alias.
+
+    Returns:
+        ``(patterns, counts)``, with ``counts`` as ``[(table, rows), ...]`` — or None when the catalog could not be
+        read, since "couldn't tell" must not read as "nothing to leave out".
+    """
+    catalog = db_query(
+        f"SELECT 'table|' || relname FROM pg_class JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace "
+        f"WHERE pg_namespace.nspname = '{schema}' AND pg_class.relkind = 'r' "
+        "UNION ALL "
+        "SELECT 'sequence|' || pg_class.relname || '|' || table_class.relname "
+        "FROM pg_class JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace "
+        "JOIN pg_depend ON pg_depend.objid = pg_class.oid AND pg_depend.deptype = 'a' "
+        "JOIN pg_class table_class ON table_class.oid = pg_depend.refobjid "
+        f"WHERE pg_namespace.nspname = '{schema}' AND pg_class.relkind = 'S' "
+        "UNION ALL "
+        "SELECT 'sequence|' || pg_class.relname || '|' || table_class.relname "
+        "FROM pg_class JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace "
+        "JOIN pg_attrdef ON pg_get_expr(pg_attrdef.adbin, pg_attrdef.adrelid) "
+        "LIKE 'nextval(''' || pg_namespace.nspname || '.' || pg_class.relname || '''%' "
+        "JOIN pg_class table_class ON table_class.oid = pg_attrdef.adrelid "
+        f"WHERE pg_namespace.nspname = '{schema}' AND pg_class.relkind = 'S'")
+    if catalog is None:
+        return None
+    tables, sequences = [], {}
+    for line in catalog.split('\n'):
+        kind, _, rest = line.strip().partition('|')
+        if kind == 'table':
+            tables.append(rest)
+        elif kind == 'sequence':
+            sequence, _, table = rest.partition('|')
+            sequences[sequence] = table
+    excluded = sorted(table for table in tables if table not in KEPT_IN_DUMP)
+    excluded_sequences = sorted(sequence for sequence, table in sequences.items() if table in excluded)
+    patterns = [f'{schema}.{quote_ident(name)}' for name in excluded + excluded_sequences]
+    if not excluded:
+        return patterns, []
+    counted = db_query(' UNION ALL '.join(f"SELECT '{table}|' || count(*) FROM {schema}.{quote_ident(table)}"
+                                          for table in excluded))
+    if counted is None:
+        return None
+    counts = []
+    for line in counted.split('\n'):
+        table, _, n_rows = line.strip().rpartition('|')
+        if n_rows.isdigit() and int(n_rows):
+            counts.append((table, int(n_rows)))
+    return patterns, counts
+
+
 def dump_schema(schema):
     """
-    Dumps the finished schema to db/<schema>-dump in the format import-dump.sh and the server restore (-Fc).
+    Dumps the finished schema to db/<schema>-dump in the format import-dump.sh and the server restore (-Fc), with
+    the data of every table onboarding did not write left out (see ONBOARDING_TABLES).
 
     Returns:
         The number of objects the dump lists (a sanity check that it isn't empty).
     """
+    exclusions = dump_exclusions(schema)
+    if exclusions is None:
+        sys.exit(f'error: could not read {schema}\'s catalog to decide what the dump leaves out, and "couldn\'t '
+                 f'tell" must not ship as "nothing". Is the db container up and the schema there? Rerun with '
+                 '--dump-only.')
+    patterns, counts = exclusions
+    if counts:
+        print('  Left out of the dump (rows a QA pass or a job wrote; the launched city starts without them): '
+              + ', '.join(f'{table}: {n_rows}' for table, n_rows in counts))
+    # The one in-place value a QA walk changes in a table the dump keeps: walking a street moves its priority off
+    # the 1 the fill assigns. Derived data the app recomputes nightly, so the reset is safe to take under --yes.
+    moved = db_query(f'SELECT count(*) FROM {schema}.street_edge_priority WHERE priority <> 1')
+    if moved is None:
+        sys.exit(f'error: could not read {schema}.street_edge_priority; is the schema filled? Rerun with --dump-only.')
+    if int(moved):
+        print(f'  A QA walk moved the priority of {moved} street(s) off the 1 the fill assigns, and the dump keeps '
+              'street_edge_priority.')
+        if prompt('  Reset every priority to 1 before dumping? (y/n)', 'y') != 'y':
+            sys.exit('Stopped before writing the dump. Reset them (UPDATE street_edge_priority SET priority = 1) '
+                     'or rerun with --dump-only and answer y.')
+        # A lock timeout, because an app left running as the city with an open transaction would otherwise hang
+        # this step without a word.
+        run_or_exit(['psql', '-v', 'ON_ERROR_STOP=1', '-U', schema, '-d', 'sidewalk',
+                     '-c', "SET lock_timeout = '30s'; UPDATE street_edge_priority SET priority = 1;"],
+                    f'resetting {schema}\'s street priorities failed',
+                    'Stop any app running as the city, then rerun with --dump-only.')
+        print('  Reset.')
+
     dump_path = f'/opt/{schema}-dump'
-    docker_db('pg_dump', '-U', 'sidewalk', '-d', 'sidewalk', '-Fc', '-n', schema, '-f', dump_path, check=True)
+    docker_db('pg_dump', '-U', 'sidewalk', '-d', 'sidewalk', '-Fc', '-n', schema,
+              *[f'--exclude-table-data={pattern}' for pattern in patterns], '-f', dump_path, check=True)
     listing = docker_db('pg_restore', '--list', dump_path, capture_output=True, text=True, check=True)
     n_objects = sum(1 for line in listing.stdout.split('\n') if line and not line.startswith(';'))
     size = docker_db('stat', '-c', '%s', dump_path, capture_output=True, text=True, check=True).stdout.strip()
@@ -514,20 +1000,107 @@ def parse_report(city_id):
     return re.findall(r'^\| (\d+) \| (.+?) \|', report, re.MULTILINE)
 
 
+REGIONS_SPEC_RE = r'all|(include|exclude):\d+( \d+)*'
+
+
+def region_opens_at_launch(region_id, regions_spec):
+    """Whether ``regions_spec`` (``all``, ``include:<ids>`` or ``exclude:<ids>``) leaves ``region_id`` open."""
+    mode, _, ids = regions_spec.partition(':')
+    return mode == 'all' or (region_id in ids.split()) == (mode == 'include')
+
+
+def regions_problem(tutorial_region, regions_spec):
+    """
+    What is wrong with a regions-to-open answer, or None when it can be used.
+
+    Asked before the fill runs — of the flags at parse time, of a typed answer before it is re-asked — because
+    fill-new-schema.sh refuses a tutorial region that the spec closes, and asking here lets the answer be corrected
+    instead of the whole step failing. ``tutorial_region`` may be None when it is not known yet (#5297).
+    """
+    if not re.fullmatch(REGIONS_SPEC_RE, regions_spec):
+        return f'"{regions_spec}" is not a regions spec — use "all", "include:1 2 3", or "exclude:4 5"'
+    if tutorial_region and not region_opens_at_launch(tutorial_region, regions_spec):
+        return f'"{regions_spec}" closes the tutorial region {tutorial_region}, which has to be open at launch'
+    return None
+
+
+def cityparams_landing_urls(city_id):
+    """
+    The city's prod and test landing-page URLs as cityparams.conf carries them, for a --dump-only run, which asks
+    none of the questions the handoff is otherwise built from.
+
+    Returns:
+        ``(prod_url, test_url)``, each a placeholder naming the gap where the file has no entry.
+    """
+    lines = CITYPARAMS.read_text().split('\n')
+    return tuple(cityparams_value(lines, ['landing-page-url', stage], city_id,
+                                  missing=f'<{stage} URL: not in cityparams.conf>') for stage in ('prod', 'test'))
+
+
 def main(argv=None):
+    global ASSUME_DEFAULTS
     parser = argparse.ArgumentParser(description='Guided end-to-end new-city setup from onboarding artifacts.')
     parser.add_argument('city_id', type=valid_city_id,
                         help='The cityparams city id, e.g. "laurens-ia" (must match the scripts/onboard_city.py '
                              '--city-id used to generate the artifacts).')
     parser.add_argument('--dry-run', action='store_true',
                         help='Preview the config-file edits and stop before any docker/db step.')
+    parser.add_argument('--yes', action='store_true',
+                        help='Take every default without asking, the review of the build report included. '
+                             'Without it a run with nothing on stdin stops at the first question that is a '
+                             'choice; the cautious ones (keep an existing schema) take their default either way.')
     parser.add_argument('--donor', help='City schema to clone the structure from (default: the dev container\'s '
                                         'DATABASE_USER). Refused if it sits ahead of this checkout\'s evolutions.')
+    parser.add_argument('--recreate', action='store_true',
+                        help='Drop and recreate the schema if it already exists, without asking — the one answer '
+                             'a rerun cannot take unattended otherwise.')
+    parser.add_argument('--country', help='Country id (e.g. usa, mexico, france); asked for otherwise, and the one '
+                                          'answer a non-US city has no default for.')
+    parser.add_argument('--pano-type', choices=sorted(PROVIDERS),
+                        help='Pano viewer type (default: gsv; asked for otherwise).')
+    parser.add_argument('--tutorial-region', type=valid_region_id,
+                        help='Region id of the tutorial region (step 6; asked for otherwise).')
+    parser.add_argument('--regions', help='Regions to open at launch (step 6; asked for otherwise): "all", '
+                                          '"include:1 2 3", or "exclude:4 5".')
     parser.add_argument('--skip-scan', action='store_true',
                         help='Skip the imagery scan (step 7); a later rerun picks it up.')
+    parser.add_argument('--dump-only', action='store_true',
+                        help='Run only step 8 — the dump and the handoff — for a city QA\'d after its first dump.')
+    parser.add_argument('--allow-running-apps', action='store_true',
+                        help="Boot for the evolutions even with a build running in the web container's checkout, "
+                             'when you know it is idle. Without it, an interactive run waits for you to stop that '
+                             'build and an unattended one stops with its pid.')
     args = parser.parse_args(argv)
+    ASSUME_DEFAULTS = args.yes
     city_id = args.city_id
     schema = schema_name(city_id)
+    problem = regions_problem(args.tutorial_region, args.regions) if args.regions else None
+    if problem:
+        parser.error(f'--regions {problem}')
+    if args.dry_run and args.dump_only:
+        parser.error('--dry-run drives no container and --dump-only does nothing else; pick one')
+    if args.recreate and args.dump_only:
+        parser.error('--recreate drops the schema and --dump-only dumps it; pick one')
+
+    if args.dump_only:
+        exists = schema_exists(schema)
+        if exists is None:
+            sys.exit(f'error: the {DB_CONTAINER} container could not be asked; is it running (make docker-up / '
+                     'make dev)?')
+        if not exists:
+            sys.exit(f'error: there is no schema {schema} to dump; run without --dump-only to build it.')
+        require_mounted(REPO_ROOT / 'db' / 'scripts' / 'fill-new-schema.sh', '/opt/scripts/fill-new-schema.sh')
+        streets = street_count(schema)
+        if streets is None:
+            sys.exit(f'error: could not count {schema}.street_edge — is the schema a finished clone? Run without '
+                     '--dump-only to see where it stands.')
+        if streets <= 1:
+            sys.exit(f'error: {schema} is still an unfilled clone ({streets} street(s)), so there is nothing to '
+                     'dump yet; run without --dump-only to fill it.')
+        print(f'Step 8/8 — dump the finished schema {schema} for the server...')
+        dump_schema(schema)
+        print(handoff_checklist(city_id, schema, *cityparams_landing_urls(city_id)))
+        return
 
     city_dir = REPO_ROOT / 'db' / 'onboarding' / city_id
     sql_file = city_dir / 'qgis_tables.sql'
@@ -547,14 +1120,14 @@ def main(argv=None):
     else:
         print(f'  No imagery preflight yet — `make check-imagery id={city_id} args="--sample --<provider>"` answers '
               '"does this city have imagery?" in a few minutes, before any database work.')
-    if prompt('Continue with this data? (y/n)', 'y') != 'y':
+    if prompt('Continue with this data? (y/n)', yes_takes='y') != 'y':
         sys.exit('Stopped; rerun the build (or --from-gpkg after QGIS edits) and come back.')
 
     display_default, us_state = split_city_id(city_id)
     display_name = prompt('City display name', display_default)
-    country = prompt('Country id (e.g. usa, mexico, france)', 'usa' if us_state else None)
+    country = args.country or prompt('Country id (e.g. usa, mexico, france)', 'usa' if us_state else None)
     state = prompt('State id', us_state) if country == 'usa' else None
-    pano_type = prompt('Pano viewer type (gsv, mapillary, panoramax, infra3d)', 'gsv')
+    pano_type = args.pano_type or prompt(f'Pano viewer type ({", ".join(PROVIDERS)})', 'gsv')
     while pano_type not in PROVIDERS:
         pano_type = prompt(f'Unknown viewer type; one of {", ".join(PROVIDERS)}', 'gsv')
     status = prompt('Visibility status (public, private)', 'private')
@@ -589,19 +1162,27 @@ def main(argv=None):
     ], args.dry_run)
     if registered:
         print(f'  Left unset (false by default; opt in by hand if wanted): {", ".join(OPTIONAL_FLAG_MAPS)}.')
-    add_message_line('messages', f'city.name.{city_id}', display_name, args.dry_run)
-    new_state = None
-    if state and state in US_STATES.values() and not message_key_exists('messages', f'state.name.{state}'):
-        new_state = state
-        add_message_line('messages', f'state.name.{state}', state.replace('-', ' ').title(), args.dry_run)
+    added = set()
+    if add_message_line('messages', f'city.name.{city_id}', display_name, args.dry_run):
+        added.add(f'city.name.{city_id}')
+    if state and state in US_STATES.values():
+        if add_message_line('messages', f'state.name.{state}', state.replace('-', ' ').title(), args.dry_run):
+            added.add(f'state.name.{state}')
+        # Asked of its own file, not tied to the base line: a run that added the base line and then died at a db
+        # step would otherwise never write the abbreviation, and nothing else checks messages.en for it (#5297).
         abbrev = {name: code for code, name in US_STATES.items()}[state].upper()
         add_message_line('messages.en', f'state.name.{state}', abbrev, args.dry_run)
-    if new_country:
-        add_message_line('messages', f'country.name.{country}', country_name, args.dry_run)
+    if new_country and add_message_line('messages', f'country.name.{country}', country_name, args.dry_run):
+        added.add(f'country.name.{country}')
     add_docs_city_row(city_id, schema, args.dry_run)
-    print('  Translations still owed (zh-TW always; the others only where the name differs from English):')
-    for line in translation_todo(city_id, new_state, new_country):
-        print(line)
+    owed = translation_todo(city_id, state, country, added)
+    if owed:
+        print('  Translations still owed (conf/messages/; every file gets a line for every place name — the English '
+              'spelling where it reads the same, a transliteration in zh-TW):')
+        for line in owed:
+            print(line)
+    else:
+        print('  Translations: every locale file already carries the city, state, and country names.')
 
     if args.dry_run:
         print('\n[dry-run] stopping before the docker/db steps.')
@@ -618,44 +1199,79 @@ def main(argv=None):
         create_ga_properties.create_for_city(city_id)
 
     for container in (DB_CONTAINER, WEB_CONTAINER):
-        if subprocess.run(['docker', 'exec', container, 'true'], capture_output=True).returncode != 0:
+        if not container_up(container):
             sys.exit(f'error: the {container} container is not running (make docker-up / make dev).')
+    require_mounted(sql_file, f'/opt/onboarding/{city_id}/qgis_tables.sql')
 
     print(f'\nStep 3/8 — create the empty schema {schema} by cloning a donor city...')
     cloned = False
-    if db_query(f"SELECT 1 FROM pg_namespace WHERE nspname = '{schema}'") and \
-            prompt(f'Schema {schema} already exists. Drop and recreate it? (y/n)', 'n') != 'y':
+    if schema_exists(schema) and not args.recreate and \
+            prompt(f'Schema {schema} already exists. Drop and recreate it? (y/n)', 'n', cautious=True) != 'y':
         print('  Keeping the existing schema.')
     else:
         donor = args.donor or web_env('DATABASE_USER') or prompt('Donor schema to clone (e.g. sidewalk_richmond)')
-        docker_db('/opt/scripts/create-new-schema.sh', schema, donor, str(highest_evolution()),
-                  highest_evolution_hash(), check=True)
+
+        def clone_hint(said):
+            # The script's own refusals — a donor it will not clone — are the `Error:` lines it prints before it
+            # starts; anything else failed inside the copy and may have left the schema half-made.
+            if any(line.startswith('Error:') for line in said):
+                return ('Name an eligible donor with --donor <schema>; docs/onboarding-a-city.md says what makes one '
+                        'eligible (a city at this checkout\'s evolution level, carrying this checkout\'s hashes).')
+            return (f'The clone stopped part-way, so {schema} may be half-created: fix the cause, then rerun with '
+                    '--recreate to drop it and clone again.')
+
+        run_or_exit(['/opt/scripts/create-new-schema.sh', schema, donor, str(highest_evolution()),
+                     highest_evolution_hash()],
+                    f'create-new-schema.sh would not clone {donor} into {schema}', clone_hint)
         cloned = True
 
+    # A schema kept from an earlier run that stopped before the fill still holds only its clone's seed rows, so its
+    # donor's evolution hashes have never been checked against this checkout — verify it as if it were fresh (#5297).
+    streets = street_count(schema)
+    if streets is None:
+        # A clone interrupted mid-restore has the schema and only a prefix of its tables; "couldn't count" must
+        # not read as "unfilled" any more than it may read as "clean" at the dump.
+        sys.exit(f'error: could not count {schema}.street_edge — the kept schema may be a clone that never '
+                 'finished. Rerun with --recreate to drop and recreate it.')
+    unfilled = streets <= 1
+    if unfilled and not cloned:
+        print('  The kept schema is still an unfilled clone, so its evolutions have never been verified against this '
+              'checkout; verifying now.')
+
     print('\nStep 4/8 — apply evolutions via a one-shot app boot...')
-    apply_evolutions(schema, city_id, verify=cloned)
+    apply_evolutions(schema, city_id, verify=cloned or unfilled, allow_running_apps=args.allow_running_apps)
 
     # A filled schema means steps 5-6 already ran (a fresh clone holds just the tutorial street); rerunning the fill
     # would collide on street_edge ids.
-    streets = db_query(f'SELECT count(*) FROM {schema}.street_edge')
-    if streets and int(streets) > 1:
+    if not unfilled:
         print(f'\nSteps 5-6/8 — skipped: {schema} already holds {streets} streets.')
     else:
         print(f'\nStep 5/8 — load the staging tables from {sql_file.name}...')
-        docker_db('psql', '-v', 'ON_ERROR_STOP=1', '-U', schema, '-d', 'sidewalk',
-                  '-f', f'/opt/onboarding/{city_id}/qgis_tables.sql', check=True)
+        run_or_exit(['psql', '-v', 'ON_ERROR_STOP=1', '-U', schema, '-d', 'sidewalk',
+                     '-f', f'/opt/onboarding/{city_id}/qgis_tables.sql'],
+                    f'loading {sql_file.name} into {schema} failed',
+                    'Fix the file (the db container reads it from this checkout\'s db/) and rerun.')
 
         print('\nStep 6/8 — fill the schema from the staging tables. Regions:')
         for region_id, name in regions:
             print(f'  {region_id}: {name}')
-        tutorial_region = prompt('Tutorial region id (a central region with imagery)', '1')
+        tutorial_region = args.tutorial_region or prompt('Tutorial region id (a central region with imagery)', '1')
+        while not is_region_id(tutorial_region):
+            tutorial_region = prompt('Invalid — the tutorial region is a region id from the list above')
         # Phased launches start with only some regions open (streets in the others are seeded 'closed'; open them
         # later with reveal-or-hide-regions.sh). The imagery scan below covers the whole city either way.
-        regions_spec = prompt('Regions to open at launch ("all", "include:<ids>", or "exclude:<ids>", '
-                              'ids space-separated)', 'all')
-        while not re.fullmatch(r'all|(include|exclude):\d+( \d+)*', regions_spec):
-            regions_spec = prompt('Invalid — use "all", "include:1 2 3", or "exclude:4 5"', 'all')
-        docker_db('/opt/scripts/fill-new-schema.sh', schema, tutorial_region, regions_spec, check=True)
+        regions_spec = args.regions or prompt('Regions to open at launch ("all", "include:<ids>", or '
+                                              '"exclude:<ids>", ids space-separated)', 'all')
+        # No default on the re-ask: under --yes a default is taken without asking, and "all" in place of the
+        # phased launch that was typed would run the one fill nobody can undo with every region open.
+        problem = regions_problem(tutorial_region, regions_spec)
+        while problem:
+            regions_spec = prompt(f'{problem}. Regions to open')
+            problem = regions_problem(tutorial_region, regions_spec)
+        run_or_exit(['/opt/scripts/fill-new-schema.sh', schema, tutorial_region, regions_spec],
+                    f'fill-new-schema.sh failed on {schema}',
+                    'The fill runs in one transaction, so nothing was committed and the schema is still the '
+                    'unfilled clone: fix the cause and rerun, and the rerun comes straight back to this step.')
 
     print('\nStep 7/8 — imagery scan (finds streets with no street-view imagery and hides them)...')
     if args.skip_scan:

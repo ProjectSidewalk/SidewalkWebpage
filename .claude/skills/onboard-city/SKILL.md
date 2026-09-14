@@ -86,20 +86,39 @@ launch date (the Friday of next week), and URLs; registers the city in `conf/cit
 the docs City IDs table; creates GA properties when `ga-service-account.json` is present; clones a donor schema
 (the dev container's city by default — refused, with the schemas that disagree named, if its top evolution is another
 branch's under the same number, i.e. its hash is neither the file's nor the other schemas'; pass `--donor` then);
-boots the app once to apply any missing evolutions — and,
-right after a clone, to let Play verify every applied hash; loads and fills; runs the full imagery scan for the
-chosen provider; dumps the
-schema to `db/<schema>-dump`; prints the handoff. Rerunning skips finished steps; `--skip-scan` defers the scan;
-`--dry-run` previews the file edits.
+boots the app once to apply any missing evolutions — and, right after a clone, to let Play verify every applied
+hash; loads and fills; runs the full imagery scan for the chosen provider; checks that nothing but onboarding has
+written to the schema; dumps it to `db/<schema>-dump`; prints the handoff. Rerunning skips finished steps. The
+script's flags go through `args=` (`make onboard-city id=<city-id> args="--skip-scan"`):
+
+- `--dry-run` previews the file edits and drives no container (the one mode allowed from a checkout the
+  containers do not mount — the script hashes the file each step uses against the container's copy, so a
+  worktree or a second clone is refused).
+- `--yes` takes every default without asking — the only way to run unattended; without it, a run with nothing
+  on stdin stops at the first question that is a choice. Pair it with `--donor`, `--country`, `--pano-type`,
+  `--tutorial-region` and `--regions` for the answers that have no default worth taking, and `--recreate` to
+  drop an existing schema without being asked.
+- **The boot gate (step 4).** The boot listens on its own port (`:9100`), so `npm start` and `make qa-worktree`
+  stay up; what it needs is the main checkout's `target/`. If a build holds that, the step stops and names its
+  pid. A build in a worktree is not in the way (the caches are shared by design). `--allow-running-apps` boots
+  past an idle build in the main checkout; a boot an earlier run left behind is never overridable. The nightly
+  actors are off for the boot, so it writes no job rows into the new schema.
+- **The dump (step 8).** The dump leaves out the data of every table the clone, fill and scan do not write
+  (`region_completion` too, which the app recomputes), so a local QA pass or a job run as the city (from
+  `/clustering`, or an app left pointed at the schema) stays local and out of the dump; the step prints what it
+  left out. The one value it changes is `street_edge_priority`, which a QA walk moves: it resets them to 1 on
+  `y` (the default; `--yes` takes it). `--dump-only` reruns only this step, which is how a city QA'd after its
+  first dump gets a clean one without passing "drop and recreate?"; it refuses a schema that is still unfilled.
 
 Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, center/zoom) against the report.
 
 ## 5. What the scripts leave to you
 
-- **Translations.** The orchestrator prints the exact keys. `messages.zh-TW` always gets the city (and any new state
-  or country) transliterated; `es`/`nl`/`de`/`pt-BR`/`fr` only where the exonym differs from English (`Nueva York`,
-  `États-Unis`). English city/state/country names go in the base `messages` (proper nouns are language-neutral);
-  the US state abbreviation goes in `messages.en`. `make lint-locales` must stay green.
+- **Translations.** The orchestrator prints the exact keys and the files that lack each. Every `messages.<lang>`
+  gets a line: `zh-TW` transliterated; `es`/`nl`/`de`/`pt-BR`/`fr` with the exonym where one exists (`Nueva York`,
+  `États-Unis`) and the English spelling otherwise — the line goes in even then, so a missing line always means
+  "not looked at yet". English city/state/country names go in the base `messages` (proper nouns are
+  language-neutral); the US state abbreviation goes in `messages.en`. `make lint-locales` must stay green.
 - **`config` row review.** The clone carries the donor's `excluded_tags` (a European city may want a different tag
   set), `update_offset_hours` (Mikey's load-spreading spreadsheet assigns these), and `make_crops`; the fill prints
   all three and clears the donor's `mapathon_event_link`. Ask; don't guess.
@@ -111,7 +130,10 @@ Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, ce
 
 ## 6. Hand it off
 
-Follow the checklist the orchestrator prints: dump to the server, the IT tooling's `setup-new.pl`, Maps-key
-referrers, DNS, then the PR (configs + messages + docs). Point the maintainer at the QA items only a person can do:
-open the landing page as the new city (map centered, neighborhood names right), walk one street in Explore on the
-chosen imagery, check the Explore tag lists against `excluded_tags`.
+Follow the checklist the orchestrator prints: dump to the server (`scp` to `<netid>@makelab1.cs.washington.edu`,
+renamed to `<schema>-empty-dump` at the destination), the IT tooling's `setup-new.pl`, Maps-key referrers, DNS, then
+the PR (configs + messages + docs). Point the maintainer at the QA items only a person can do: open the landing page
+as the new city (map centered, neighborhood names right), walk one street in Explore on the chosen imagery, check the
+Explore tag lists against `excluded_tags`. That walk leaves an `audit_task`, thousands of interaction rows and a
+moved `audited_distance` in the schema, so **after local QA, dump again**: `make onboard-city id=<city-id>
+args="--dump-only"` lists what the walk left, clears it on `y`, and writes the dump the server should get.
