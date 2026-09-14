@@ -172,8 +172,7 @@ class LabelValidationTable @Inject() (
   /**
    * Select validation counts per user.
    *
-   * Deliberately does not join user_role: nothing reads the labeler's role here, and user_role has only a non-unique
-   * index on user_id, so a user carrying more than one role row would double every count.
+   * Deliberately does not join user_role: nothing reads the labeler's role here.
    *
    * @return list of tuples (labeler_id, (labels_validated, agreed_count))
    */

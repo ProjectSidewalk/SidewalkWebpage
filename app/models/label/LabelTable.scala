@@ -1365,8 +1365,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     labelValidations.filter(v => v.userId === userId && v.labelId === l.labelId).exists
 
   /**
-   * Whether the AI placed the label, as an `EXISTS` rather than a join on `user_role`: nothing makes `user_id` unique
-   * there, and a labeler with two role rows would have every one of their labels repeated by a join, once per row.
+   * Whether the AI placed the label, as an `EXISTS` rather than a join on `user_role`, so it reads as the predicate it
+   * is and can never fan the labels out.
    */
   private def isAiLabeler(l: LabelTableDef): Rep[Boolean] =
     userRoles.filter(r => r.userId === l.userId && r.role === Role.Ai).exists
@@ -2398,9 +2398,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
       INNER JOIN user_stat ON label.user_id = user_stat.user_id
       LEFT JOIN (
-          -- EXISTS, not a join: a user can have several user_role rows, which would repeat their vote. The parser below
-          -- reads the EXISTS as t/f. Skips the same votes the counts skip (self-votes, excluded users), so the list adds
-          -- up to agree/disagree/unsure_count.
+          -- EXISTS, not a join, so it can never repeat a vote and the parser below reads it as t/f. Skips the same votes
+          -- the counts skip (self-votes, excluded users), so the list adds up to agree/disagree/unsure_count.
           SELECT label.label_id,
                  array_to_string(array_agg(CONCAT(
                    label_validation.user_id, ':', label_validation.validation_result, ':',

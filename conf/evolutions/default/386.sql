@@ -62,12 +62,12 @@ BEGIN
 
       -- One email shared by several accounts (8 emails on prod, from June 2025 when the duplicate check was broken).
       -- The keeper per email has the most labels, then audit tasks, then is the newest (activity sweep in the issue).
-      -- The rest keep their data under "<email>.<first 8 of user_id>.invalid": unique, and no mail can reach a .invalid
-      -- domain (RFC 2606), so nobody can register a look-alike and reset their way in. Only emails still shared are
-      -- renamed, in case one was fixed by hand since the sweep, and the Downs can't undo a rename, so a re-applied Ups
-      -- must not rename twice.
+      -- The rest keep their data under "<email>.<first 8 of user_id>.renamed.invalid": unique, self-explaining, and no
+      -- mail can reach a .invalid domain (RFC 2606), so nobody can register a look-alike and reset in. Only emails
+      -- still shared are renamed, in case one was fixed by hand since the sweep, and the Downs can't undo a rename, so
+      -- a re-applied Ups must not rename twice.
       UPDATE sidewalk_login.sidewalk_user
-      SET email = email || '.' || left(user_id, 8) || '.invalid'
+      SET email = email || '.' || left(user_id, 8) || '.renamed.invalid'
       WHERE email NOT LIKE '%.invalid'
         AND email IN (SELECT email FROM sidewalk_login.sidewalk_user GROUP BY email HAVING count(*) > 1)
         AND user_id IN (
@@ -91,7 +91,7 @@ BEGIN
 
       -- Any email still shared (none on prod, but other deployments may differ): the oldest login row keeps it.
       UPDATE sidewalk_login.sidewalk_user
-      SET email = sidewalk_user.email || '.' || left(sidewalk_user.user_id, 8) || '.invalid'
+      SET email = sidewalk_user.email || '.' || left(sidewalk_user.user_id, 8) || '.renamed.invalid'
       FROM (SELECT sidewalk_user.user_id,
                    row_number() OVER (PARTITION BY lower(sidewalk_user.email)
                                       ORDER BY user_login_info.login_info_id NULLS LAST, sidewalk_user.user_id) AS rank

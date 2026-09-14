@@ -254,8 +254,8 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
 
   -- The app looks accounts up by username and by email, so no two may share either. When a new account has the same
   -- username or email as one of yours, yours gets the first 8 characters of its user_id added, which keeps it unique
-  -- (and usernames under 30 characters). A renamed email ends in .invalid, which no mail can reach, so nobody can
-  -- register a look-alike and reset their way into the account. Anonymous accounts always get a new username and
+  -- (and usernames under 30 characters). A renamed email ends in .renamed.invalid, which no mail can reach, so nobody
+  -- can register a look-alike and reset their way into the account. Anonymous accounts always get a new username and
   -- matching email.
   CREATE TEMP TABLE renamed_account ON COMMIT DROP AS
   WITH clashing AS (
@@ -277,7 +277,7 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
   )
   SELECT user_id, anonymous, username AS old_username, new_username, email AS old_email,
          CASE WHEN anonymous THEN 'anonymous@' || new_username || '.com'
-              WHEN email_taken THEN email || '.' || left(user_id, 8) || '.invalid'
+              WHEN email_taken THEN email || '.' || left(user_id, 8) || '.renamed.invalid'
               ELSE email END AS new_email
   FROM renamed;
 
@@ -300,7 +300,7 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
   -- the email and the rest are renamed like the clashes above; the login records follow.
   UPDATE sidewalk_login_import.sidewalk_user SET email = lower(email) WHERE email <> lower(email);
   UPDATE sidewalk_login_import.sidewalk_user
-  SET email = sidewalk_user.email || '.' || left(sidewalk_user.user_id, 8) || '.invalid'
+  SET email = sidewalk_user.email || '.' || left(sidewalk_user.user_id, 8) || '.renamed.invalid'
   FROM (SELECT sidewalk_user.user_id,
                row_number() OVER (PARTITION BY sidewalk_user.email
                                   ORDER BY user_login_info.login_info_id NULLS LAST, sidewalk_user.user_id) AS rank
