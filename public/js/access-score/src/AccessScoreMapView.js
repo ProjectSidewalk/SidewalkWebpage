@@ -59,13 +59,13 @@ class AccessScoreMapView {
    * @param {object} options.streets - The API's street FeatureCollection (geometry + `street_edge_id`, `region_id`,
    *                                   `audit_count`).
    * @param {object} options.regions - The `/neighborhoods` polygon FeatureCollection (`region_id`, `region_name`).
-   * @param {function} options.onSelect - Called with `{unit, id, lngLat}` on a click, or `null` on deselect.
-   * @param {function} [options.onHover] - Called with `{unit, id, score}` as the pointer enters a feature (score
+   * @param {Function} options.onSelect - Called with `{unit, id, lngLat}` on a click, or `null` on deselect.
+   * @param {Function} [options.onHover] - Called with `{unit, id, score}` as the pointer enters a feature (score
    *                                       null where it has none), and with `null` as it leaves.
-   * @param {function} options.tooltipHtml - Called with `{unit, id}`; returns the hover tooltip's HTML or null.
-   * @param {function} [options.clickClaimed] - Called with the Mapbox click event; return true when something
+   * @param {Function} options.tooltipHtml - Called with `{unit, id}`; returns the hover tooltip's HTML or null.
+   * @param {Function} [options.clickClaimed] - Called with the Mapbox click event; return true when something
    *                                            drawn above these layers (a cluster dot) owns the click.
-   * @param {function} [options.hoverClaimed] - Called with the Mapbox mousemove event; return true when something
+   * @param {Function} [options.hoverClaimed] - Called with the Mapbox mousemove event; return true when something
    *                                            drawn above these layers owns the hover, so its tooltip is the
    *                                            only one showing.
    * @param {boolean} [options.dark=false] - True on a dark basemap.

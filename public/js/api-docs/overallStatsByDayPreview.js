@@ -15,7 +15,10 @@
     cityName: 'this city',
   };
 
-  /** @param {string} msg */
+  /**
+   * @param {HTMLElement} container
+   * @param {string} msg
+   */
   function showError(container, msg) {
     container.innerHTML = `<div class="message message-error" role="alert">${msg}</div>`;
   }

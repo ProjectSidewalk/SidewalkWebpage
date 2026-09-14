@@ -46,7 +46,7 @@ window.AccessScoreApp = (function () {
    *
    * @param {object} options - Page options.
    * @param {string} options.mapboxApiKey - The Mapbox access token.
-   * @param {function} options.viewerType - The pano viewer class for the city's imagery, for the label card.
+   * @param {typeof PanoViewer} options.viewerType - The pano viewer class for the city's imagery, for the label card.
    * @param {string} options.imageryAccessToken - The imagery provider's token.
    * @param {?string} options.username - The signed-in user's name, or null.
    * @returns {Promise<object>} Resolves with `{map, model, mapView}` once the map is scored (also exposed as

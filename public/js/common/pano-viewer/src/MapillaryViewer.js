@@ -240,7 +240,7 @@ class MapillaryViewer extends PanoViewer {
   /**
    * Scores a candidate Mapillary image for selection, balancing multiple factors.
    *
-   * @param {Object} pano Raw pano object from the Mapillary API response.
+   * @param {object} pano Raw pano object from the Mapillary API response.
    * @param {turf.Point} centerPoint The target location we're trying to move to.
    * @param {string|null} currentSequenceId The sequence ID of the current image (null on initial load).
    * @returns {number} A score between 0 and 1 where higher is better.
@@ -339,7 +339,7 @@ class MapillaryViewer extends PanoViewer {
    * @param {turf.Point} center The target location.
    * @param {number} radius Search radius in kilometers.
    * @param {Set<PanoData>} excludedPanos Panos that are not viable candidates.
-   * @returns {Promise<Object|null>} The best candidate pano from the Mapillary API, or null if none are viable.
+   * @returns {Promise<object|null>} The best candidate pano from the Mapillary API, or null if none are viable.
    */
   #searchAndSelectPano = async (center, radius, excludedPanos) => {
     const currSequenceId = this.currImage ? this.currImage.sequenceId : null;
@@ -505,7 +505,7 @@ class MapillaryViewer extends PanoViewer {
    * @param {Set<number>} excludedTimestamps Capture timestamps to exclude (handles duplicate Mapillary images).
    * @param {turf.Point} centerPoint The target location.
    * @param {string|null} currentSequenceId The sequence ID of the current image (null on initial load).
-   * @returns {Object|null} The best candidate pano, or null if none are viable.
+   * @returns {object|null} The best candidate pano, or null if none are viable.
    */
   #selectBestPano = (panos, excludedPanoIds, excludedTimestamps, centerPoint, currentSequenceId) => {
     const candidates = panos.filter(

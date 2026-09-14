@@ -26,7 +26,7 @@ util.pano.TUTORIAL_PANO_IDS = new Set(['tutorial', 'afterWalkTutorial']);
  * a bare top-level binding here would be a global.
  *
  * @param {string} provider Lowercase provider name, a key of the file's `providers` object ('mapillary', 'panoramax').
- * @returns {Object} The shared weights and decay scales, with the provider's own parameters merged over them.
+ * @returns {object} The shared weights and decay scales, with the provider's own parameters merged over them.
  */
 /**
  * Milliseconds in an average (Julian) year, for turning a capture-timestamp delta into an age in years.
@@ -82,7 +82,7 @@ util.pano.sgn = (x) => (x >= 0 ? 1 : -1);
  * their camera in *vertical* fov, so they bridge through vFovToHFov()/hFovToVFov() (#4852).
  *
  * @param {number} zoom The zoom level according to GSV
- * @return {number} The (horizontal) field of view angle for the given zoom
+ * @returns {number} The (horizontal) field of view angle for the given zoom
  */
 util.pano.zoomToFov = (zoom) => {
   return zoom <= 2

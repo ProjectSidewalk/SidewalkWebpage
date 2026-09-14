@@ -36,7 +36,7 @@ class PanoManager {
    * @param {Task} errorParams.task The assigned Task; used if no imagery is found to record the street
    * @param {number} errorParams.missionId The current mission ID; used if no imagery is found
    * @returns {Promise<PanoManager>} The PanoManager instance
-   * @constructor
+   * @class
    */
   static async create(panoViewerType, viewerAccessToken, params = {}, errorParams) {
     const newPanoManager = new this();
@@ -676,7 +676,7 @@ class PanoManager {
    * Changes the image pov. If a transition duration is given, smoothly updates the pov over that time.
    * @param {{heading: number, pitch: number, zoom: number}} pov Target pov
    * @param {number} [durationMs] Transition duration in milliseconds, happens immediately if undefined
-   * @param {function} [callback] Optional callback function executed after updating pov.
+   * @param {Function} [callback] Optional callback function executed after updating pov.
    * @returns {void}
    */
   setPov(pov, durationMs, callback) {

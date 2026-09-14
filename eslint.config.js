@@ -9,6 +9,7 @@ const js = require('@eslint/js');
 const globals = require('globals');
 const stylistic = require('@stylistic/eslint-plugin');
 const json = require('@eslint/json').default;
+const jsdoc = require('eslint-plugin-jsdoc');
 
 module.exports = [
   // ESLint core "recommended" -- ~45 correctness rules. Listed first so the explicit block below overrides it.
@@ -137,6 +138,30 @@ module.exports = [
         {blankLine: 'always', prev: 'function', next: '*'},
         {blankLine: 'always', prev: '*', next: 'function'},
       ],
+    },
+  },
+
+  // --- JSDoc (#5278) ---
+  // A short list rather than `recommended`, grown as the tree is cleaned up. `require-jsdoc` stays off: which methods
+  // are "non-trivial" enough to need a header is a judgment call.
+  {
+    files: ['public/js/**/*.js'],
+    plugins: {jsdoc},
+    settings: {
+      jsdoc: {
+        // Our types are TypeScript-style (`() => void`, `typeof PanoViewer`), which a future `tsc --checkJs` reads.
+        mode: 'typescript',
+        // We use @requires as a free-text list of what a file needs loaded first, not a single module name.
+        structuredTags: {requires: {name: 'text'}},
+      },
+    },
+    rules: {
+      // Skips destructured keys: we often document a destructured param as the one object it is.
+      'jsdoc/check-param-names': ['error', {checkDestructured: false}],
+      'jsdoc/check-tag-names': 'error',
+      'jsdoc/check-types': 'error',
+      'jsdoc/valid-types': 'error',
+      'jsdoc/require-returns-check': 'error',
     },
   },
 

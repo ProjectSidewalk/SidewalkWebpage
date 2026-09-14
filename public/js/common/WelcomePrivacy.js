@@ -6,7 +6,7 @@
  * order, and a failed save puts the box back rather than leaving a setting on screen that wasn't written.
  */
 class WelcomePrivacy {
-  /** @param {Object} opts - Configuration; `saveUrl` is the Settings save endpoint. */
+  /** @param {object} opts - Configuration; `saveUrl` is the Settings save endpoint. */
   constructor(opts) {
     this.saveUrl = opts.saveUrl;
     this.leaderboard = document.getElementById('wl-on-leaderboard');

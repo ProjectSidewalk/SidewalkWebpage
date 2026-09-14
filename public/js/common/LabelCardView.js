@@ -26,7 +26,7 @@ class LabelCardView {
 
   /**
    * @param {HTMLElement} card The card container rendered by views/components/labelCard.scala.html.
-   * @param {Object} [options]
+   * @param {object} [options]
    * @param {?number} [options.descriptionMaxLength] Cut the description to this many characters, ellipsis included.
    *     Explore truncates because clicking the label reopens the full text in an editable field; Validate leaves
    *     this unset and shows the description whole, because there the card is the only place it appears.
@@ -50,7 +50,7 @@ class LabelCardView {
   /**
    * Renders a label into the card, overwriting whatever label was shown before.
    *
-   * @param {Object} data Display-ready facts about the label.
+   * @param {object} data Display-ready facts about the label.
    * @param {string} data.labelType The label type, in CamelCase (e.g. 'CurbRamp').
    * @param {?number} [data.severity] The label's 1-3 rating, or null when unrated.
    * @param {Array<string>} [data.tagNames] Localized, plain-text tag names.

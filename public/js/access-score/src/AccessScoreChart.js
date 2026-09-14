@@ -18,7 +18,7 @@ class AccessScoreChart {
 
   /**
    * @param {HTMLElement} container - The element the view renders into (its content is replaced on render).
-   * @param {Object<string, function>} [callbacks] - Handlers the view reports through, by name (`onHover`,
+   * @param {Record<string, Function>} [callbacks] - Handlers the view reports through, by name (`onHover`,
    *                                                `onHoverEnd`, `onSelect`, `onBrush`, …); a missing one is a no-op.
    */
   constructor(container, callbacks = {}) {

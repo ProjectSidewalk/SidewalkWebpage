@@ -16,7 +16,7 @@ class AdminUser {
   #saveStatus;
 
   /**
-   * @param {Object} opts
+   * @param {object} opts
    * @param {string} opts.userId - The user being administered.
    * @param {string} opts.username - Their current username.
    * @param {string} opts.saveUrl - Endpoint the settings form PUTs to.
@@ -97,7 +97,7 @@ class AdminUser {
 
   /**
    * Builds the per-city hours table and reveals it.
-   * @param {Array<Object>} cities - Per-city rows from the endpoint, most hours first.
+   * @param {Array<object>} cities - Per-city rows from the endpoint, most hours first.
    */
   static #renderHoursCities(cities) {
     const holder = document.getElementById('au-hours-cities-table');

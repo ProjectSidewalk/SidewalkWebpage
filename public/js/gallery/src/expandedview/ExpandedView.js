@@ -172,7 +172,7 @@ class ExpandedView {
 
   /**
    * Called by LabelDetail after a successful edit (#2575). Syncs the new severity and tags onto the small card.
-   * @param {Object} meta - The label's metadata with its new severity and tags.
+   * @param {object} meta - The label's metadata with its new severity and tags.
    */
   #handleEdit = (meta) => {
     if (this.refCard) {

@@ -22,10 +22,10 @@ class DirectionsPanel {
   #geocodeSeq = { start: 0, end: 0 }; // Per-field lookup counter, so only the newest response may write.
 
   /**
-   * @param {Object} opts
-   * @param {Object} opts.map - The Mapbox map.
+   * @param {object} opts
+   * @param {object} opts.map - The Mapbox map.
    * @param {string} opts.mapboxApiKey
-   * @param {Object} opts.bbox - Search bounds: [[west, south], [east, north]].
+   * @param {object} opts.bbox - Search bounds: [[west, south], [east, north]].
    * @param {Function} opts.onSetStart - Called with {lng, lat} when a Start address is chosen.
    * @param {Function} opts.onSetEnd - Called with {lng, lat} when an End address is chosen.
    */
@@ -43,9 +43,9 @@ class DirectionsPanel {
    * Creates a Mapbox search box bound to one of the panel's slots.
    *
    * @param {string} which - 'start' or 'end'.
-   * @param {Object} bbox - Search bounds.
+   * @param {object} bbox - Search bounds.
    * @param {string} placeholder
-   * @returns {Object} The MapboxSearchBox instance.
+   * @returns {object} The MapboxSearchBox instance.
    */
   #buildSearchBox(which, bbox, placeholder) {
     const box = new MapboxSearchBox();
@@ -96,7 +96,7 @@ class DirectionsPanel {
    * replay it as ArrowDown + Enter, the library's own keyboard protocol for "take the first suggestion". An
    * Enter that lands before the suggestions arrive is remembered and honored when they do.
    *
-   * @param {Object} box - The mounted MapboxSearchBox element.
+   * @param {object} box - The mounted MapboxSearchBox element.
    * @param {string} which - 'start' or 'end'.
    */
   #wireEnterToFirstSuggestion(box, which) {
@@ -189,7 +189,7 @@ class DirectionsPanel {
    * Extracts the bare street name from a Mapbox geocoding/search feature's properties: the street context of an
    * address result, or the feature's own name for a street result.
    *
-   * @param {Object} [props] - The feature's properties.
+   * @param {object} [props] - The feature's properties.
    * @returns {string|null}
    */
   static #streetNameFromProps(props) {
@@ -204,7 +204,7 @@ class DirectionsPanel {
    * lookup or the user is typing in / recently typed that field.
    *
    * @param {string} which - 'start' or 'end'.
-   * @param {Object} lngLat - {lng, lat}.
+   * @param {object} lngLat - {lng, lat}.
    */
   #reverseGeocodeInto(which, lngLat) {
     const coord = [lngLat.lng, lngLat.lat];

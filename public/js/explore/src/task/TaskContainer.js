@@ -147,7 +147,7 @@ class TaskContainer {
   /**
    * Get the total distance of the segments the labeler is done with — walked, or given up on for lack of imagery —
    * plus their progress along the street they are on now.
-   * @params {{units: string}} [units] Object with field 'units' holding distance unit, default to 'kilometers'
+   * @param {{units: string}} [units] Object with field 'units' holding distance unit, default to 'kilometers'
    * @returns {number} distance in unit.
    */
   getCompletedTaskDistance(units) {

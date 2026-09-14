@@ -6,7 +6,7 @@
  *
  * @author kaktus621@gmail.com (Martin Matysiak)
  * @author michaelssaugstad@gmail.com (Mikey Saugstad) - Updated Dec 2025 to use generic Panorama viewer (not just GSV).
- * @fileoverview A marker that can be placed inside custom StreetView panoramas.
+ * @file A marker that can be placed inside custom StreetView panoramas.
  *
  * This class takes simple heading and pitch values from the panorama's center in order to move the marker correctly
  * with the user's viewport changes. The marker actually sits on top of the panorama DOM-wise.
@@ -29,7 +29,7 @@ class PanoMarker {
    * Creates a PanoMarker with the options specified. If a panorama is specified, the marker is added to the map
    * upon construction. Note that the position must be set for the marker to display.
    *
-   * @constructor
+   * @class
    * @param {object} opts A set of parameters to customize the marker.
    * @param {PanoViewer} opts.panoViewer Panorama viewer on which to display marker.
    * @param {HTMLDivElement} opts.markerContainer The container holding the markers.
@@ -302,32 +302,32 @@ class PanoMarker {
 
   // Getter to be roughly equivalent to the regular google.maps.Marker. //
 
-  /** @return {string} The className or null if not set upon marker creation. */
+  /** @returns {string} The className or null if not set upon marker creation. */
   getClassName = function () {
     return this.className_;
   };
 
-  /** @return {string} The current icon, if any. */
+  /** @returns {string} The current icon, if any. */
   getIcon = function () {
     return this.icon_;
   };
 
-  /** @return {string} The identifier or null if not set upon marker creation. */
+  /** @returns {string} The identifier or null if not set upon marker creation. */
   getId = function () {
     return this.id_;
   };
 
-  /** @return {PanoViewer} The current PanoViewer. */
+  /** @returns {PanoViewer} The current PanoViewer. */
   getPanoViewer = function () {
     return this.panoViewer_;
   };
 
-  /** @return {PanoViewer} The current PanoViewer. */
+  /** @returns {PanoViewer} The current PanoViewer. */
   getMarkerContainer = function () {
     return this.markerContainer_;
   };
 
-  /** @return {{heading: number, pitch: number}} The marker's location on the panorama. */
+  /** @returns {{heading: number, pitch: number}} The marker's location on the panorama. */
   getPosition = function () {
     return this.position_;
   };
@@ -337,17 +337,17 @@ class PanoMarker {
     return this.size_;
   };
 
-  /** @return {string} The marker's rollover text. */
+  /** @returns {string} The marker's rollover text. */
   getTitle = function () {
     return this.title_;
   };
 
-  /** @return {boolean} Whether the marker is currently visible. */
+  /** @returns {boolean} Whether the marker is currently visible. */
   getVisible = function () {
     return this.visible_;
   };
 
-  /** @return {number} The marker's z-index. */
+  /** @returns {number} The marker's z-index. */
   getZIndex = function () {
     return this.zIndex_;
   };
