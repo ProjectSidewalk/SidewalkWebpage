@@ -36,7 +36,7 @@ class AccessScoreSidebar {
   /**
    * Subscribes to changes. The callback receives `(partialState, {kind, final})`: `final` is false for a slider
    * mid-drag and true for a settled value (the one to log).
-   * @param {function} callback - The subscriber.
+   * @param {Function} callback - The subscriber.
    */
   onChange(callback) {
     this.#listeners.push(callback);
@@ -65,7 +65,7 @@ class AccessScoreSidebar {
   /**
    * Draws each type's mean contribution as a small bar beside its slider, so the effect of a weight is visible in
    * the panel itself and not only on the map.
-   * @param {Object<string, number>} means - Mean term per type (from `AccessScoreModel#contributions`).
+   * @param {Record<string, number>} means - Mean term per type (from `AccessScoreModel#contributions`).
    */
   setContributions(means) {
     const max = Math.max(0.05, ...Object.values(means).map((v) => Math.abs(v)));

@@ -44,20 +44,20 @@ class PanoInfoPopover {
 
   /**
    * @param {HTMLElement} container Element where the info button will be appended
-   * @param {function} panoViewer Function that returns the currently active PanoViewer
-   * @param {function} coords Function that returns { lat, lng } for the current position
-   * @param {function} panoId Function that returns the current panorama/image ID
-   * @param {function} streetEdgeId Function that returns the current Street Edge ID
-   * @param {function} regionId Function that returns the current Region ID
-   * @param {function} panoDate Function that returns the current pano's capture date as a moment object
-   * @param {function} panoAddress Function that returns the current pano's address string, or null
-   * @param {function} pov Function that returns the current { heading, pitch }
+   * @param {Function} panoViewer Function that returns the currently active PanoViewer
+   * @param {Function} coords Function that returns { lat, lng } for the current position
+   * @param {Function} panoId Function that returns the current panorama/image ID
+   * @param {Function} streetEdgeId Function that returns the current Street Edge ID
+   * @param {Function} regionId Function that returns the current Region ID
+   * @param {Function} panoDate Function that returns the current pano's capture date as a moment object
+   * @param {Function} panoAddress Function that returns the current pano's address string, or null
+   * @param {Function} pov Function that returns the current { heading, pitch }
    * @param {boolean} whiteIcon True for the white icon variant, false for blue
-   * @param {function} infoLogging Called when the info button is clicked
-   * @param {function} clipboardLogging Called when the clipboard button is clicked
-   * @param {function} viewPanoLogging Called when the view-in-pano link is clicked
-   * @param {function} [labelId] Optional — returns the Label ID
-   * @param {function} [labelDate] Optional — returns the label's timestamp as a moment object
+   * @param {Function} infoLogging Called when the info button is clicked
+   * @param {Function} clipboardLogging Called when the clipboard button is clicked
+   * @param {Function} viewPanoLogging Called when the view-in-pano link is clicked
+   * @param {Function} [labelId] Optional — returns the Label ID
+   * @param {Function} [labelDate] Optional — returns the label's timestamp as a moment object
    */
   constructor(container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, whiteIcon,
     infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate) {

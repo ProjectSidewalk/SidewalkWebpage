@@ -41,9 +41,9 @@ class SpeedLimit {
   #watchedViewers = new Set();
 
   /**
-   * @param {function} panoViewer Function that returns the currently active PanoViewer.
-   * @param {function} coords Function that returns current longitude and latitude coordinates.
-   * @param {function} isOnboarding Function that returns a boolean on whether the current mission is the tutorial task.
+   * @param {Function} panoViewer Function that returns the currently active PanoViewer.
+   * @param {Function} coords Function that returns current longitude and latitude coordinates.
+   * @param {Function} isOnboarding Function that returns a boolean on whether the current mission is the tutorial task.
    * @param {string} countryId The current city's country id (e.g. 'usa'), for sign design and fallback units.
    * @param {object} [sources] Where to read speed limits from; exactly one should be provided.
    * @param {TaskContainer} [sources.taskContainer] Explore's task container; the sign tracks the nearest loaded street.

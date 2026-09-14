@@ -227,7 +227,7 @@ class Task {
 
   /**
    * Get the last coordinate in the geojson.
-   * @returns {{lat: number, lng: number}
+   * @returns {{lat: number, lng: number}}
    */
   getEndCoordinate() {
     const len = this.#geojson.geometry.coordinates.length - 1;

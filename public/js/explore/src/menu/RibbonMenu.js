@@ -34,7 +34,7 @@ class RibbonMenu {
   #uiRibbonMenu;
 
   /**
-   * @param {Object} tracker - Interaction tracker for logging mode switches.
+   * @param {object} tracker - Interaction tracker for logging mode switches.
    */
   constructor(tracker) {
     this.#tracker = tracker;

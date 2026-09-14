@@ -29,8 +29,8 @@ class AccessScorePhotoStrip {
    * @param {HTMLElement} container - The element the strip renders into.
    * @param {object} options - Configuration and callbacks.
    * @param {Array<string>} options.types - The scored label types the feed is asked for.
-   * @param {function} options.onOpenLabel - Called with `(labelId, stripLabelIds)` when a thumbnail is chosen.
-   * @param {function} [options.log] - Called with `(kind, value)` for an interaction worth logging.
+   * @param {Function} options.onOpenLabel - Called with `(labelId, stripLabelIds)` when a thumbnail is chosen.
+   * @param {Function} [options.log] - Called with `(kind, value)` for an interaction worth logging.
    */
   constructor(container, { types, onOpenLabel, log = () => {} }) {
     this.#types = types;

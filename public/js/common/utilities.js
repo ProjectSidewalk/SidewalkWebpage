@@ -339,7 +339,7 @@ util.assetPath = function (logicalPath) {
  * A translated string names its unit by writing {{unitAbbr}} and friends — i18next fills them in with no argument at
  * the call site. This accessor is for the few places building a display string outside i18next.
  *
- * @returns {Object} The four unit words for this page.
+ * @returns {object} The four unit words for this page.
  */
 util.unitWords = () => i18next.options.interpolation.defaultVariables;
 

@@ -64,13 +64,14 @@ class PanoViewer {
 
   /**
    * Initializes the panorama viewer with the given canvas element and options.
-   * @param {Element} canvasElem
-   * @param {object} panoOptions Object containing initialization options
-   * @param {string} [panoOptions.startPanoId] Pano to start at; either this or startLatLng is required
-   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Starting loc; either this or startLatLng is required
-   * @param {boolean} [panoOptions.preloadNeighbors=false] Pre-download panos linked to the current one, so that
+   * @param {Element} _canvasElem
+   * @param {object} _panoOptions Object containing initialization options
+   * @param {string} [_panoOptions.startPanoId] Pano to start at; either this or startLatLng is required
+   * @param {{lat: number, lng: number}} [_panoOptions.startLatLng] Starting loc; either this or startPanoId is required
+   * @param {boolean} [_panoOptions.preloadNeighbors=false] Pre-download panos linked to the current one, so that
    *     moving to them is fast. Only supported by Mapillary; other viewers ignore it.
    * @returns {Promise<void>}
+   * @abstract
    */
   initialize(_canvasElem, _panoOptions = {}) {
     return Promise.reject(new Error('Subclasses must implement initialize()'));
@@ -81,7 +82,7 @@ class PanoViewer {
    * @param {Element} canvasElem
    * @param {object} panoOptions Object containing initialization options
    * @param {string} [panoOptions.startPanoId] Pano to start at; either this or startLatLng is required
-   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Starting loc; either this or startLatLng is required
+   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Starting loc; either this or startPanoId is required
    * @returns {Promise<PanoViewer>}
    * @static
    */
@@ -176,15 +177,15 @@ class PanoViewer {
   /**
    * The provider's public-site link for viewing a pano — the one URL shape every surface that links out to the
    * provider shares (PanoInfoPopover's view-in-pano link, the label card's address link).
-   * @param {string} panoId - The pano/image ID to link to.
-   * @param {Object} [opts]
-   * @param {number} [opts.heading] - Camera heading to open the viewer at (GSV).
-   * @param {number} [opts.pitch] - Camera pitch to open the viewer at (GSV).
-   * @param {Array<number>} [opts.center] - Normalized [x, y] view center to open the viewer at (Mapillary).
+   * @param {string} _panoId - The pano/image ID to link to.
+   * @param {object} [_opts]
+   * @param {number} [_opts.heading] - Camera heading to open the viewer at (GSV).
+   * @param {number} [_opts.pitch] - Camera pitch to open the viewer at (GSV).
+   * @param {Array<number>} [_opts.center] - Normalized [x, y] view center to open the viewer at (Mapillary).
    * @returns {?{url: string, i18nKey: string}} The URL plus the i18n key naming the destination, or null for
    *     providers without a public viewer (e.g. Infra3d).
    */
-  publicViewerLink() {
+  publicViewerLink(_panoId, _opts) {
     return null;
   }
 
@@ -199,6 +200,7 @@ class PanoViewer {
   /**
    * Gets the unique identifier of the current panorama.
    * @returns {string} The current panorama ID.
+   * @abstract
    */
   getPanoId() {
     throw new Error('getPanoId() must be implemented by subclass');
@@ -207,16 +209,18 @@ class PanoViewer {
   /**
    * Gets the lat/lng location of the current panorama.
    * @returns {{lat: number, lng: number}} The current location with lat and lng properties.
+   * @abstract
    */
   getPosition() {
-    throw new Error('getPov() must be implemented by subclass');
+    throw new Error('getPosition() must be implemented by subclass');
   }
 
   /**
    * Sets the panorama to the location closest to the specified lat/lng.
-   * @param {{lat: number, lng: number}} latLng The desired location to move to.
-   * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to.
+   * @param {{lat: number, lng: number}} _latLng The desired location to move to.
+   * @param {Set<PanoData>} [_excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to.
    * @returns {Promise<PanoData>} The panorama data object. Rejects if closest image is in excludedPanos or none found.
+   * @abstract
    */
   setLocation(_latLng, _excludedPanos = new Set()) {
     return Promise.reject(new Error('setLocation(latLng, excludedPanos) must be implemented by subclass'));
@@ -225,7 +229,7 @@ class PanoViewer {
   /**
    * Prefetches images near a location to reduce latency on a subsequent setLocation() call.
    * No-op by default; override in subclasses that support prefetching.
-   * @param {{lat: number, lng: number}} latLng
+   * @param {{lat: number, lng: number}} _latLng
    */
   prefetchLocation(_latLng) {}
 
@@ -238,8 +242,8 @@ class PanoViewer {
   /**
    * Pre-downloads the pano that setLocation() would pick near the given location, so a subsequent move there
    * doesn't wait on the network. No-op by default; override in subclasses that support preloading.
-   * @param {{lat: number, lng: number}} latLng The location the next move is expected to target.
-   * @param {Set<PanoData>} [excludedPanos] Panos the next move is expected to exclude.
+   * @param {{lat: number, lng: number}} _latLng The location the next move is expected to target.
+   * @param {Set<PanoData>} [_excludedPanos] Panos the next move is expected to exclude.
    * @returns {Promise<void>}
    */
   async preloadPanoNear(_latLng, _excludedPanos = new Set()) {}
@@ -254,8 +258,9 @@ class PanoViewer {
 
   /**
    * Moves the current panorama to the specified panorama ID.
-   * @param panoId The panorama ID to set.
+   * @param {string} _panoId The panorama ID to set.
    * @returns {Promise<PanoData>} The panorama data object.
+   * @abstract
    */
   setPano(_panoId) {
     return Promise.reject(new Error('setPano(panoId) must be implemented by subclass'));
@@ -264,6 +269,7 @@ class PanoViewer {
   /**
    * Gets the panos that are linked to the current one, to be used with navigation arrows.
    * @returns {Promise<Array<{panoId: string, heading: number}>>}
+   * @abstract
    */
   getLinkedPanos() {
     throw new Error('getLinkedPanos() must be implemented by subclass');
@@ -272,6 +278,7 @@ class PanoViewer {
   /**
    * Gets the current point of view (POV) of the panorama.
    * @returns {{heading: number, pitch: number, zoom: number}} The current POV.
+   * @abstract
    */
   getPov() {
     throw new Error('getPov() must be implemented by subclass');
@@ -280,11 +287,12 @@ class PanoViewer {
   /**
    * Sets the camera view to the specified heading, pitch, and zoom.
    *
-   * @param {object} pov - Object containing the desired heading, pitch, and zoom
-   * @param {number} pov.heading - Desired heading in degrees (0-360, where 0 is true north)
-   * @param {number} pov.pitch - Desired pitch in degrees (-90 to 90, where 0 is horizontal)
-   * @param {number} pov.zoom - Desired zoom (1, 2, or 3)
+   * @param {object} _pov - Object containing the desired heading, pitch, and zoom
+   * @param {number} _pov.heading - Desired heading in degrees (0-360, where 0 is true north)
+   * @param {number} _pov.pitch - Desired pitch in degrees (-90 to 90, where 0 is horizontal)
+   * @param {number} _pov.zoom - Desired zoom (1, 2, or 3)
    * @returns {void}
+   * @abstract
    */
   setPov(_pov) {
     throw new Error('setPov() must be implemented by subclass');
@@ -293,6 +301,7 @@ class PanoViewer {
   /**
    * Hides the navigation arrows in the panorama viewer.
    * @returns {void}
+   * @abstract
    */
   hideNavigationArrows() {
     throw new Error('hideNavigationArrows() must be implemented by subclass');
@@ -301,6 +310,7 @@ class PanoViewer {
   /**
    * Shows the navigation arrows in the panorama viewer.
    * @returns {void}
+   * @abstract
    */
   showNavigationArrows() {
     throw new Error('showNavigationArrows() must be implemented by subclass');
@@ -331,7 +341,7 @@ class PanoViewer {
   /**
    * Removes an event listener for the specified event type.
    * @param {string} event One of ['pano_changed', 'pov_changed']
-   * @param {function} handler The function to call when the event occurs.
+   * @param {Function} handler The function to call when the event occurs.
    * @returns {void}
    */
   removeListener(event, handler) {

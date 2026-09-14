@@ -13,7 +13,7 @@ class StoriesPage {
   #queueEl;
 
   /**
-   * @param {Object} opts
+   * @param {object} opts
    * @param {string} opts.feedUrl - The /adminapi/stories endpoint (with any ?n= cap baked in).
    */
   constructor(opts) {
@@ -47,7 +47,7 @@ class StoriesPage {
   }
 
   /**
-   * @param {Array<Object>} stories - StoryForAdmin payloads, newest first.
+   * @param {Array<object>} stories - StoryForAdmin payloads, newest first.
    */
   #render(stories) {
     const hiddenCount = stories.filter((s) => s.hidden).length;
@@ -63,7 +63,7 @@ class StoriesPage {
   }
 
   /**
-   * @param {Object} story - A StoryForAdmin payload.
+   * @param {object} story - A StoryForAdmin payload.
    * @returns {HTMLElement}
    */
   #buildRow(story) {
