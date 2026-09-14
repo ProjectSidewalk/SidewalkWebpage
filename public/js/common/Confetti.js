@@ -45,7 +45,7 @@ class Confetti {
   /**
    * Fires a burst from the top of the viewport.
    *
-   * @param {Object} [options]
+   * @param {object} [options]
    * @param {number} [options.count=90] How many pieces to throw.
    * @param {number} [options.duration=2600] How long, in ms, before the canvas is torn down.
    * @param {number} [options.zIndex=1000] Stacking order for the canvas, above whatever is being celebrated.

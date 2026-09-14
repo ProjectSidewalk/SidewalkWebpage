@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.isMobile
+import controllers.helper.ControllerUtils.{isMobile, regionsParam}
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.LabelMapValidationCommentSubmission
 import formats.json.LabelFormats
@@ -69,7 +69,7 @@ class ValidateController @Inject() (
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Validate_RedirectMobile")
         Future.successful(Redirect("/mobile", request.queryString))
       } else {
-        checkParams(adminVersion = false, None, None, regions.orElse(neighborhoods), unvalidatedOnly).flatMap {
+        checkParams(adminVersion = false, None, None, regionsParam(regions, neighborhoods), unvalidatedOnly, triage = None).flatMap {
           case (validateParams, response) =>
             if (response.header.status == 200) {
               val user: SidewalkUserWithRole = request.identity
@@ -96,6 +96,7 @@ class ValidateController @Inject() (
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param regions         Comma-separated list of region names or region IDs to validate (could be mixed).
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
+   * @param triage          Serve the triage queue first (the default); false gives the same stream /validate gets.
    * @param neighborhoods   Old name for `regions`, still read so existing links keep working.
    */
   def expertValidate(
@@ -103,6 +104,7 @@ class ValidateController @Inject() (
       users: Option[String],
       regions: Option[String],
       unvalidatedOnly: Option[Boolean],
+      triage: Option[Boolean],
       neighborhoods: Option[String]
   ) =
     cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
@@ -110,7 +112,7 @@ class ValidateController @Inject() (
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_ExpertValidate_RedirectMobile")
         Future.successful(Redirect("/mobile"))
       } else {
-        checkParams(adminVersion = true, labelType, users, regions.orElse(neighborhoods), unvalidatedOnly).flatMap {
+        checkParams(adminVersion = true, labelType, users, regionsParam(regions, neighborhoods), unvalidatedOnly, triage).flatMap {
           case (validateParams, response) =>
             if (response.header.status == 200) {
               val user: SidewalkUserWithRole = request.identity
@@ -139,7 +141,7 @@ class ValidateController @Inject() (
    */
   def mobileValidate(regions: Option[String], unvalidatedOnly: Option[Boolean], neighborhoods: Option[String]) =
     cc.securityService.SecuredAction { implicit request =>
-      checkParams(adminVersion = false, None, None, regions.orElse(neighborhoods), unvalidatedOnly).flatMap {
+      checkParams(adminVersion = false, None, None, regionsParam(regions, neighborhoods), unvalidatedOnly, triage = None).flatMap {
         case (validateParams, response) =>
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
@@ -171,13 +173,15 @@ class ValidateController @Inject() (
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param regions         Comma-separated list of region names or region IDs to validate (could be mixed).
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
+   * @param triage          Serve the triage queue first; only the admin pages offer it, where it defaults to on.
    */
   def checkParams(
       adminVersion: Boolean,
       labelType: Option[String],
       users: Option[String],
       regions: Option[String],
-      unvalidatedOnly: Option[Boolean]
+      unvalidatedOnly: Option[Boolean],
+      triage: Option[Boolean]
   ): Future[(ValidateParams, Result)] = {
     // Users and regions may be given by id or by name, so each is resolved both ways before deciding it is invalid.
     val parsedLabelType: Option[Option[LabelTypeEnum.Base]] = labelType.map(LabelTypeEnum.byName.get)
@@ -241,8 +245,12 @@ class ValidateController @Inject() (
       } else {
         (
           ValidateParams(
-            adminVersion, parsedLabelType.flatten, userIds.map(_.flatten), regionIds.map(_.flatten),
-            unvalidatedOnly.getOrElse(false)
+            adminVersion,
+            parsedLabelType.flatten,
+            userIds.map(_.flatten),
+            regionIds.map(_.flatten),
+            unvalidatedOnly.getOrElse(false),
+            triage = adminVersion && triage.getOrElse(true)
           ),
           Ok("")
         )
@@ -397,7 +405,8 @@ class ValidateController @Inject() (
    * adminVersion decides whether a response carries other people's data — the labeler's username and everyone who
    * has validated the label — and it arrives in the request body, so on its own it is a claim, not a fact. Only
    * /expertValidate sets it, and ADMIN_ROLES is the set `WithAdmin` gates that page on; keep the two together if
-   * that gate ever widens. The region and unvalidated-only filters are open to everyone on plain /validate.
+   * that gate ever widens. The same goes for the triage queue; the region and unvalidated-only filters are open to
+   * everyone on plain /validate.
    */
   private def paramsAllowedFor(params: ValidateParams, user: SidewalkUserWithRole): ValidateParams = {
     if (Role.ADMIN_ROLES.contains(user.role)) params

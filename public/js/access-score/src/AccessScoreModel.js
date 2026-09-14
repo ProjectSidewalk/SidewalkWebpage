@@ -492,7 +492,7 @@ class AccessScoreModel {
    * @param {Set<number>} [scope.streetIds] - These streets (unaudited ones carry no clusters) plus the
    *                                          intersections at their ends, each intersection counted once.
    * @param {Set<number>} [scope.regionIds] - The streets and intersections of these regions.
-   * @returns {{types: Array<{type: string, total: number, buckets: Object<string, number>}>, total: number,
+   * @returns {{types: Array<{type: string, total: number, buckets: Record<string, number>}>, total: number,
    *   streets: number, intersections: number}} Per type in the engine's order, its cluster count per severity
    *   bucket and in all; the grand total; and how many audited streets and how many intersections were counted.
    */
@@ -573,7 +573,7 @@ class AccessScoreModel {
    * @param {object} [options] - Scope, as for `clusterBreakdown`: one of the two, or neither for the city.
    * @param {Set<number>} [options.streetIds] - These streets plus the intersections at their ends.
    * @param {Set<number>} [options.regionIds] - The streets and intersections of these regions.
-   * @returns {{means: Object<string, number>, clusterMeans: Object<string, number>, streets: number,
+   * @returns {{means: Record<string, number>, clusterMeans: Record<string, number>, streets: number,
    *   intersections: number}} Mean term and mean cluster count per type, and how many audited streets and how many
    *   intersections were counted.
    */

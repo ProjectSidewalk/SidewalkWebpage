@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq, NoUserId}
+import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq, regionsParam, NoUserId}
 import formats.json.GalleryFormats._
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
@@ -74,7 +74,7 @@ class GalleryController @Inject() (
 
         // Make sure that list of region IDs, severities, and validation options are formatted correctly.
         val regionIdsList: Seq[Int] =
-          parseIntegerSeq(if (regions.nonEmpty) regions else neighborhoods).filter(regionNames.contains)
+          parseIntegerSeq(regionsParam(Some(regions), Some(neighborhoods))).filter(regionNames.contains)
         val validSeverities: Seq[String] = Seq("null", "1", "2", "3")
         val severityList: Seq[String]    = {
           val tokens = severities.split(",").filter(validSeverities.contains).distinct.toSeq

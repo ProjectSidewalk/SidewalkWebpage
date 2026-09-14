@@ -24,10 +24,10 @@ function centerShowingLabelAt(coords, dx, dy, zoom) {
  * gutter beside the centered dialog, a chat-bubble tail connecting the dialog to the dot, and a sidebar-filter
  * bypass so a label the user explicitly asked to see can't be hidden by the active filters.
  *
- * @param {Object} host Page adapter.
+ * @param {object} host Page adapter.
  * @param {HTMLDialogElement} host.dialog The label popup's <dialog>.
- * @param {function(): ?Object} host.getMap Returns the Mapbox map once created (null/undefined before).
- * @param {function(): ?Object} host.getMapData Returns the map layer tracker from addLabelsToMap, used for the
+ * @param {function(): ?object} host.getMap Returns the Mapbox map once created (null/undefined before).
+ * @param {function(): ?object} host.getMapData Returns the map layer tracker from addLabelsToMap, used for the
  *     filter bypass (null/undefined before the label layers exist).
  * @param {function(number): ?Array<number>} host.getCoords Best known [lng, lat] for a label ID.
  * @param {function(number): ?string} host.getLabelType Best known label type for a label ID.

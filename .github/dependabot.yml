@@ -44,6 +44,8 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@stylistic/eslint-plugin"
         update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint-plugin-jsdoc"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "@stylistic/stylelint-plugin"
         update-types: ["version-update:semver-major"]
       - dependency-name: "stylelint-plugin-use-baseline"

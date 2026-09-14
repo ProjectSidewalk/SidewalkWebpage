@@ -27,12 +27,12 @@ class Toast {
   #focused = false;
 
   /**
-   * @param {Object} opts
+   * @param {object} opts
    * @param {string} [opts.title] Bold heading line.
    * @param {string} [opts.message] Secondary message line.
    * @param {string} [opts.icon] Image URL shown to the left of the text.
    * @param {string} [opts.iconAlt] Alt text for the icon image (defaults to '').
-   * @param {Object} [opts.button] Optional action button: { label, href } or { label, onClick }.
+   * @param {object} [opts.button] Optional action button: { label, href } or { label, onClick }.
    * @param {HTMLElement} [opts.reference] Element the toast floats over (defaults to the viewport).
    * @param {number} [opts.duration] Milliseconds before auto-dismiss (defaults to 5000).
    * @param {boolean} [opts.dark] Dark surface instead of white — for toasts that float over photography, where a
@@ -52,7 +52,7 @@ class Toast {
 
   /**
    * Convenience factory: builds a toast, shows it, and returns the instance.
-   * @param {Object} opts See the constructor.
+   * @param {object} opts See the constructor.
    * @returns {Toast}
    */
   static show(opts = {}) {
@@ -133,7 +133,7 @@ class Toast {
 
   /**
    * Builds the action button using the shared design-system button classes.
-   * @param {Object} button { label, href, newTab } for a link-style action or { label, onClick } for a callback.
+   * @param {object} button { label, href, newTab } for a link-style action or { label, onClick } for a callback.
    * @returns {HTMLElement}
    */
   #buildButton(button) {

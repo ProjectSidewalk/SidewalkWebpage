@@ -38,7 +38,7 @@ class ObservedArea {
   #progressCircleCtx;
 
   /**
-   * @param {Object} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
+   * @param {object} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
    */
   constructor(uiMinimap) {
     this.#uiMinimap = uiMinimap;

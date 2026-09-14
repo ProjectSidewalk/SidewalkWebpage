@@ -26,7 +26,7 @@ class ConfirmDialog {
   /**
    * Shows a yes/no confirmation and resolves with the user's choice.
    *
-   * @param {Object} opts
+   * @param {object} opts
    * @param {string} opts.message - The question being confirmed.
    * @param {string} opts.confirmText - Label for the confirming button.
    * @param {string} opts.cancelText - Label for the dismissing button.
@@ -48,9 +48,9 @@ class ConfirmDialog {
   /**
    * Shows a prompt with an arbitrary set of buttons and resolves with the id of the one the user picked.
    *
-   * @param {Object} opts
+   * @param {object} opts
    * @param {string} opts.message - The question being asked.
-   * @param {Object[]} opts.buttons - The choices left to right, each `{ id, text, style, iconSrc }` with `style`
+   * @param {object[]} opts.buttons - The choices left to right, each `{ id, text, style, iconSrc }` with `style`
    *     'secondary' (the default), 'primary', or 'danger'.
    * @param {*} [opts.dismissValue=null] - Resolved on Esc or a backdrop click.
    * @param {string} [opts.focusId] - Button to focus. Defaults to the first that changes nothing.
@@ -97,7 +97,7 @@ class ConfirmDialog {
 
   /**
    * Builds the shared dialog on first use.
-   * @returns {Object} The message element and the container the buttons are rebuilt into.
+   * @returns {object} The message element and the container the buttons are rebuilt into.
    */
   static #ensureDialog() {
     if (ConfirmDialog.#els) return ConfirmDialog.#els;

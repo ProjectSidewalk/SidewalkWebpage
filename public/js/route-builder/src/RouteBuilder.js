@@ -122,7 +122,7 @@ class RouteBuilder {
 
   /**
    * @param {string} mapboxApiKey
-   * @param {Object} mapParams - City center/boundaries/zoom for initializing the map.
+   * @param {object} mapParams - City center/boundaries/zoom for initializing the map.
    * @param {boolean} isSignedIn - Whether the user is signed in (vs anonymous), from the server.
    * @param {number} minutesPer100m - The city's labeling pace (minutes per 100 m), for the exploration-time
    *   estimate; server-provided (ConfigService.getCityLabelingSpeed).
@@ -535,7 +535,7 @@ class RouteBuilder {
   }
 
   /**
-   * @param {Object} regionDataIn - GeoJSON of the city's regions.
+   * @param {object} regionDataIn - GeoJSON of the city's regions.
    */
   renderRegions(regionDataIn) {
     this.#regionData = regionDataIn;
@@ -723,7 +723,7 @@ class RouteBuilder {
   /**
    * Returns the region id of the region polygon under a screen point, or null if there is none.
    *
-   * @param {Object} point - Screen {x, y} of a map event.
+   * @param {object} point - Screen {x, y} of a map event.
    * @returns {number|null}
    */
   #regionIdAtPoint(point) {
@@ -739,7 +739,7 @@ class RouteBuilder {
    * current viewport too — a geocoded address in another region is exactly the case that must not read as
    * "no region" and slip past the one-region rule.
    *
-   * @param {Object} lngLat - {lng, lat}.
+   * @param {object} lngLat - {lng, lat}.
    * @returns {number|null}
    */
   #regionIdContaining(lngLat) {
@@ -756,7 +756,7 @@ class RouteBuilder {
    * across (or run along) its region's boundary, so the polygon under the pointer alone would misclassify
    * points on the region's own streets.
    *
-   * @param {Object} lngLat - {lng, lat}.
+   * @param {object} lngLat - {lng, lat}.
    * @returns {boolean}
    */
   #onCurrentRegionStreet(lngLat) {
@@ -769,7 +769,7 @@ class RouteBuilder {
    * frame): keeps the ghost flag (where the next click lands) and the cursor guide (what the next click does) in
    * sync with the mouse.
    *
-   * @param {Object} lngLat - The mouse position {lng, lat}.
+   * @param {object} lngLat - The mouse position {lng, lat}.
    */
   #onMapPointerMove(lngLat) {
     this.#ghostLngLat = lngLat;
@@ -819,7 +819,7 @@ class RouteBuilder {
    * learned (2+ points) and stays out of the way of the drawn route's own menu.
    *
    * @param {number|null} hoverRegionId - Region under the pointer, if any.
-   * @param {Object} point - Screen {x, y} of the pointer.
+   * @param {object} point - Screen {x, y} of the pointer.
    */
   #updateCursorGuide(hoverRegionId, point) {
     let text = null;
@@ -871,7 +871,7 @@ class RouteBuilder {
   }
 
   /**
-   * @param {Object} streetDataIn - GeoJSON of the city's streets.
+   * @param {object} streetDataIn - GeoJSON of the city's streets.
    */
   renderStreets(streetDataIn) {
     this.#streetData = streetDataIn;
@@ -895,7 +895,7 @@ class RouteBuilder {
    * The first waypoint locks the route to its region (kept lightly — a click in another region is refused with a
    * toast). A non-first waypoint must be reachable from the previous one along the street network.
    *
-   * @param {Object} lngLat - {lng, lat} of the click or geocoded address.
+   * @param {object} lngLat - {lng, lat} of the click or geocoded address.
    * @param {string} source - Where the point came from, for activity logging ('MapClick'/'AddressStart'/...).
    */
   #addWaypoint(lngLat, source) {
@@ -1009,7 +1009,7 @@ class RouteBuilder {
    * start" — feeding the typed point through would extend the route to it and flag it as the finish, the exact
    * opposite of what the field says it does. Rather than silently reinterpret it, say the route has to be cleared.
    *
-   * @param {Object} lngLat - {lng, lat} of the geocoded address.
+   * @param {object} lngLat - {lng, lat} of the geocoded address.
    */
   #setStartFromAddress(lngLat) {
     if (this.#waypoints.length > 0) {
@@ -1167,7 +1167,7 @@ class RouteBuilder {
    *
    * @param {string} kind - 'start' or 'end'; selects the flag image via the layer's icon-image expression.
    * @param {Array<number>} coord - [lng, lat] of the endpoint.
-   * @returns {Object} A GeoJSON Point feature.
+   * @returns {object} A GeoJSON Point feature.
    */
   static #endpointFeature(kind, coord) {
     return {
@@ -1618,7 +1618,7 @@ class RouteBuilder {
    * Restores a camera pose captured by #cameraSnapshot, so a reload puts the user back at the exact view they
    * left rather than a recomputed one.
    *
-   * @param {Object} [camera] - A stashed #cameraSnapshot (possibly absent or corrupt — stashes cross reloads).
+   * @param {object} [camera] - A stashed #cameraSnapshot (possibly absent or corrupt — stashes cross reloads).
    * @returns {boolean} False when the pose was unusable, so the caller can fall back (e.g. to a fitBounds).
    */
   #applyCamera(camera) {
@@ -1814,7 +1814,7 @@ class RouteBuilder {
    * map as an editing session — like saving a document, further edits update the same route via "Update route".
    * The new card is highlighted in "Your saved routes" and a toast confirms.
    *
-   * @param {Object} saved - The POST /saveRoute response: route_id, name, slug, distance_meters, thumbnail_url.
+   * @param {object} saved - The POST /saveRoute response: route_id, name, slug, distance_meters, thumbnail_url.
    */
   #handleRouteSaved(saved) {
     const routeId = saved.route_id;
@@ -1836,7 +1836,7 @@ class RouteBuilder {
    * guest card always describes what was actually stored — and an update refreshes it rather than leaving the
    * first save's numbers on the card forever.
    *
-   * @param {Object} saved - A /saveRoute or route-update response.
+   * @param {object} saved - A /saveRoute or route-update response.
    */
   #recordGuestRoute(saved) {
     this.#savedRoutes.recordGuestRoute({

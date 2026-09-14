@@ -17,8 +17,8 @@ class AccessScoreClusterSheet {
 
   /**
    * @param {object} options - Callbacks.
-   * @param {function} options.onOpenLabel - Called with `(labelId, clusterLabelIds)` when a card is chosen.
-   * @param {function} [options.log] - Called with `(kind, value)` for an interaction worth logging.
+   * @param {Function} options.onOpenLabel - Called with `(labelId, clusterLabelIds)` when a card is chosen.
+   * @param {Function} [options.log] - Called with `(kind, value)` for an interaction worth logging.
    */
   constructor({ onOpenLabel, log = () => {} }) {
     this.#onOpenLabel = onOpenLabel;

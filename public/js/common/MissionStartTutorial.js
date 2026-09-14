@@ -111,7 +111,7 @@ class MissionStartTutorial {
    *
    * @param {string} missionType Mission type ('validate' or 'audit').
    * @param {string} labelType One of the seven label types.
-   * @returns {Object[]} One entry per slide: `isExampleCorrect`, `slideTitle`, `slideSubtitle`, `slideDescription`,
+   * @returns {object[]} One entry per slide: `isExampleCorrect`, `slideTitle`, `slideSubtitle`, `slideDescription`,
    *      `imageURL`, and `labelOnImage.position`.
    */
   static slidesFor(missionType, labelType) {

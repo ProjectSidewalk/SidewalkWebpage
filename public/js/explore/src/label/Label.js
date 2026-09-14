@@ -58,7 +58,7 @@ class Label {
   };
 
   /**
-   * @param {Object} params - Initial label property values (only keys present in #properties are copied).
+   * @param {object} params - Initial label property values (only keys present in #properties are copied).
    */
   constructor(params) {
     for (const attrName in params) {
@@ -130,7 +130,7 @@ class Label {
 
   /**
    * Returns a deep copy of the properties object, so callers can't mutate the label's internal state directly.
-   * @returns {Object}
+   * @returns {object}
    */
   getProperties() {
     return structuredClone(this.#properties);
@@ -225,7 +225,7 @@ class Label {
   /**
    * Renders this label on a canvas.
    * @param {CanvasRenderingContext2D} ctx
-   * @param {Object} pov
+   * @param {object} pov
    * @returns {Label} this.
    */
   render(ctx, pov) {

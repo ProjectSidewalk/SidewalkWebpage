@@ -140,8 +140,8 @@ GET     /audit                                          controllers.ExploreContr
 
 # Label validation tasks
 GET     /validate                                       controllers.ValidateController.validate(regions: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None, neighborhoods: Option[String] ?= None)
-GET     /expertValidate                                 controllers.ValidateController.expertValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, regions: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None, neighborhoods: Option[String] ?= None)
-GET     /adminValidate                                  controllers.ValidateController.expertValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, regions: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None, neighborhoods: Option[String] ?= None)
+GET     /expertValidate                                 controllers.ValidateController.expertValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, regions: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None, triage: Option[Boolean] ?= None, neighborhoods: Option[String] ?= None)
+GET     /adminValidate                                  controllers.ValidateController.expertValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, regions: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None, triage: Option[Boolean] ?= None, neighborhoods: Option[String] ?= None)
 
 # Task API
 GET     /tasks                                          controllers.ExploreController.getTasksInARegion(regionId: Int)

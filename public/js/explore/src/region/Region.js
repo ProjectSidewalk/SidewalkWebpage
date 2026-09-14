@@ -11,7 +11,7 @@ class Region {
   };
 
   /**
-   * @param {Object} parameters - May contain regionId, geoJSON, and name.
+   * @param {object} parameters - May contain regionId, geoJSON, and name.
    */
   constructor(parameters) {
     if ('regionId' in parameters) {
@@ -23,7 +23,7 @@ class Region {
   }
 
   /**
-   * @param {Object} [unit] - Turf-style units object; defaults to kilometers.
+   * @param {object} [unit] - Turf-style units object; defaults to kilometers.
    * @returns {?number} Distance the user has completed in this region, or null if unavailable.
    */
   completedLineDistance(unit) {
@@ -72,7 +72,7 @@ class Region {
   }
 
   /**
-   * @returns {?Object} The region's GeoJSON, or null if not set.
+   * @returns {?object} The region's GeoJSON, or null if not set.
    */
   getGeoJSON() {
     return this.#properties.geoJSON ? this.#properties.geoJSON : null;

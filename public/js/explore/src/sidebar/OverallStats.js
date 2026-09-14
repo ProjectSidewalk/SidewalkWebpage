@@ -93,7 +93,7 @@ class OverallStats {
    * @param {string} type Badge type ('labels' or 'distance').
    * @param {number} oldValue The value before this update, in the user's units.
    * @param {number} newValue The value after this update, in the user's units.
-   * @param {Object} [opts] Passed through to BadgeAchievements (e.g. { isMetric }).
+   * @param {object} [opts] Passed through to BadgeAchievements (e.g. { isMetric }).
    */
   #checkBadgeUnlock(type, oldValue, newValue, opts = {}) {
     if (!this.#seeded) return;

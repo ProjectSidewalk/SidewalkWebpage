@@ -75,9 +75,9 @@ class BadgeAchievements {
    * Builds the badge descriptor for a given type and level.
    * @param {string} type Badge type.
    * @param {number} level Badge level (1–5).
-   * @param {Object} [opts]
+   * @param {object} [opts]
    * @param {boolean} [opts.isMetric] Whether to use the kilometer distance icon variant.
-   * @returns {?Object} { type, level, roman, name, iconSrc } or null for an out-of-range level.
+   * @returns {?object} { type, level, roman, name, iconSrc } or null for an out-of-range level.
    */
   static getBadge(type, level, opts = {}) {
     if (level < 1 || level > BadgeAchievements.ROMAN.length) return null;
@@ -102,9 +102,9 @@ class BadgeAchievements {
    *
    * @param {string} type Badge type.
    * @param {number} value Value in canonical units (miles for distance).
-   * @param {Object} [opts]
+   * @param {object} [opts]
    * @param {boolean} [opts.isMetric] Whether to use the kilometer distance icon variant on the returned badges.
-   * @returns {Object} `{ level, badge, next, earnedAt, nextAt, fraction, remaining }`. `badge` is null before the
+   * @returns {object} `{ level, badge, next, earnedAt, nextAt, fraction, remaining }`. `badge` is null before the
    *      first level; at the top level `next` is null, `nextAt` and `remaining` are 0, and `fraction` is 1. A type
    *      with no track reports an empty progress rather than throwing.
    */
@@ -130,9 +130,9 @@ class BadgeAchievements {
    * @param {string} type Badge type.
    * @param {number} oldValue Previous value, in the caller's units.
    * @param {number} newValue New value, in the caller's units.
-   * @param {Object} [opts]
+   * @param {object} [opts]
    * @param {boolean} [opts.isMetric] Whether the values are metric (only affects distance).
-   * @returns {?Object} The newly earned badge descriptor (see getBadge), or null if no new level was reached.
+   * @returns {?object} The newly earned badge descriptor (see getBadge), or null if no new level was reached.
    */
   static detectUnlock(type, oldValue, newValue, opts = {}) {
     const oldLevel = BadgeAchievements.getLevelForValue(
@@ -146,7 +146,7 @@ class BadgeAchievements {
 
   /**
    * Shows the celebratory "you unlocked a badge" toast — the badge-specific specialization of the generic Toast.
-   * @param {Object} badge A badge descriptor from getBadge/detectUnlock.
+   * @param {object} badge A badge descriptor from getBadge/detectUnlock.
    * @param {HTMLElement} referenceEl The element to float the toast over (the panorama or a modal).
    * @returns {Toast}
    */

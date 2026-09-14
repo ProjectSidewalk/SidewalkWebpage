@@ -196,7 +196,7 @@ class AdminShell {
    * How long ago a timestamp was, falling back to a plain date once "N days ago" stops being the useful reading.
    *
    * @param {string|number|Date} ts - Anything the Date constructor accepts.
-   * @param {Object} [opts]
+   * @param {object} [opts]
    * @param {string} [opts.invalid] - What to return for an unparseable timestamp; defaults to echoing the input.
    * @param {boolean} [opts.withYear=true] - Include the year in the date fallback.
    * @returns {string} A relative time ("just now", "12m ago", "3h ago", "5d ago") or a formatted date.
@@ -250,7 +250,7 @@ class AdminShell {
   /**
    * A job's last-run state as a toned badge, with overdue outranking whatever that last run reported.
    *
-   * @param {Object} job - One `nightly_jobs` entry.
+   * @param {object} job - One `nightly_jobs` entry.
    * @returns {string} The badge's HTML.
    */
   static jobStatusBadge(job) {
@@ -274,7 +274,7 @@ class AdminShell {
    * code works, not that anything is still firing it, so it is reported beside the schedule's record instead of in
    * place of it.
    *
-   * @param {Object} job - One `nightly_jobs` entry.
+   * @param {object} job - One `nightly_jobs` entry.
    * @returns {string} HTML: the scheduled run's age, with a muted manual-run note appended when one exists.
    */
   static jobLastRun(job) {
@@ -288,7 +288,7 @@ class AdminShell {
    * A run's own counts, flattened to `key: value` pairs. Every job reports a different shape, so this renders whatever
    * it stored rather than naming fields a panel would have to be taught one by one.
    *
-   * @param {Object} job - One `nightly_jobs` entry.
+   * @param {object} job - One `nightly_jobs` entry.
    * @returns {string} Plain text (the caller escapes it): the error when the run failed, else its counts.
    */
   static jobDetails(job) {

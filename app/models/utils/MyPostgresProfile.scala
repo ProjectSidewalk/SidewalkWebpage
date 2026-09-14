@@ -64,6 +64,9 @@ trait MyPostgresProfile
       with SearchImplicits
       with SearchAssistants {
 
+    /** Postgres's `random()`, a fresh draw in [0, 1) per row, so `sortBy(_ => random)` shuffles a query's rows. */
+    val random: Rep[Double] = SimpleFunction.nullary[Double]("random")
+
     // Adds implicit conversion from JTS Geometry types to Play JSON JsValue. Need to explicitly add each geom type.
     private val mapper = new ObjectMapper()
     mapper.registerModule(new JtsModule())

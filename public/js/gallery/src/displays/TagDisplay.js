@@ -13,7 +13,7 @@ class TagDisplay {
 
   /**
    * @param {HTMLElement} container The DOM element to contain the label information.
-   * @param {String[]} tags The tags to display.
+   * @param {string[]} tags The tags to display.
    */
   constructor(container, tags) {
     this.#container = container;

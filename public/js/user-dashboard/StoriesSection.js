@@ -20,8 +20,8 @@ class StoriesSection {
 
   /**
    * @param {HTMLElement} container - The #ud-stories element.
-   * @param {Object} opts
-   * @param {?Object} opts.labelPopup - A LabelPopup instance, or null (links then navigate to /label/:id).
+   * @param {object} opts
+   * @param {?object} opts.labelPopup - A LabelPopup instance, or null (links then navigate to /label/:id).
    * @param {?HTMLDialogElement} [opts.composerDialog] - The dashboard's `.story-composer` dialog; without it, rows
    *     render without an Edit control (editing stays available on the label card).
    * @param {string} [opts.currUsername] - The story owner's username, for the composer's post-as options.
@@ -72,7 +72,7 @@ class StoriesSection {
   }
 
   /**
-   * @param {Array<Object>} stories - StoryForOwner payloads, newest first.
+   * @param {Array<object>} stories - StoryForOwner payloads, newest first.
    */
   #renderStories(stories) {
     this.#container.replaceChildren();
@@ -89,7 +89,7 @@ class StoriesSection {
   }
 
   /**
-   * @param {Object} story - A StoryForOwner payload.
+   * @param {object} story - A StoryForOwner payload.
    * @returns {HTMLElement}
    */
   #buildRow(story) {
@@ -183,7 +183,7 @@ class StoriesSection {
 
   /**
    * The retraction path (#4054): a confirmed, permanent delete — the server removes the row and any photo bytes.
-   * @param {Object} story
+   * @param {object} story
    * @param {HTMLElement} row
    */
   async #deleteStory(story, row) {

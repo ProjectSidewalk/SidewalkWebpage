@@ -38,7 +38,7 @@
  *     viewports collapse it regardless, since there it covers the map.
  * @param {string} [params.uiSource] - Records the UI used when submitting a validation through the popup.
  * @param {object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
- * @param {function} [params.onMapReady] - Called with the map as soon as it has loaded, BEFORE the
+ * @param {Function} [params.onMapReady] - Called with the map as soon as it has loaded, BEFORE the
  *     (potentially large) regions/streets/labels layers render. Use this to mount map-bound UI
  *     early (e.g. the LabelMap search box) instead of waiting on the returned all-loaded promise.
  * @returns {Promise} - Promise that resolves once all components of the map have loaded.

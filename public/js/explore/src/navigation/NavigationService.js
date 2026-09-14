@@ -40,8 +40,8 @@ class NavigationService {
   #povSettlePoll = null; // Interval id; see #refreshHeadingViewsAfterPovSettles.
 
   /**
-   * @param {Object} regionModel - RegionModel module.
-   * @param {Object} uiStreetview - jQuery-wrapped street view UI elements.
+   * @param {object} regionModel - RegionModel module.
+   * @param {object} uiStreetview - jQuery-wrapped street view UI elements.
    */
   constructor(regionModel, uiStreetview) {
     this.#uiStreetview = uiStreetview;

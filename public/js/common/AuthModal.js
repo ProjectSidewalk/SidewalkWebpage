@@ -233,7 +233,7 @@ function clearAuthErrors(form) {
  * the `_summary` banner clears on the next edit to any field (#4532), so a stale error can't linger after it's fixed.
  *
  * @param {HTMLFormElement} form - The form the errors belong to.
- * @param {Object<string, string>} errors - Field name (or `_summary`) to localized message.
+ * @param {Record<string, string>} errors - Field name (or `_summary`) to localized message.
  */
 function renderAuthErrors(form, errors) {
   Object.entries(errors).forEach(([field, message]) => {
@@ -272,8 +272,8 @@ function renderAuthErrors(form, errors) {
  * without JS (or if this listener never binds) fall back to the regular full-page POST, so the flow always works.
  *
  * @param {HTMLFormElement} [form] - The auth form to enhance; a no-op if absent.
- * @param {Object} [opts]
- * @param {function(Object): void} [opts.onSuccess] - Handles a successful reply in place of following its `redirect`.
+ * @param {object} [opts]
+ * @param {function(object): void} [opts.onSuccess] - Handles a successful reply in place of following its `redirect`.
  */
 function wireAsyncSubmit(form, { onSuccess } = {}) {
   if (!form) return;
@@ -317,8 +317,6 @@ function wireAsyncSubmit(form, { onSuccess } = {}) {
  * Document-wide rather than scoped to the dialog, because a page can carry auth fields of its own *and* the navbar
  * dialog — reset-password does. Pages rendering the full-page sign-in/sign-up forms suppress the dialog via
  * navbar's renderAuthDialog, so the shared ids still resolve to one element each.
- *
- * @param {ParentNode} root - The subtree to enhance; the whole document in production.
  */
 function enhanceAuthForms() {
   document.querySelectorAll('.au-eye').forEach(wireEyeToggle);
@@ -329,7 +327,7 @@ function enhanceAuthForms() {
 
 /**
  * Controller for the navbar sign-in / sign-up <dialog>: open/close, sign-in↔sign-up panel switching, and trigger
- * buttons only. The forms inside it are enhanced by `enhanceAuthForms(document)`, like every other auth form.
+ * buttons only. The forms inside it are enhanced by `enhanceAuthForms()`, like every other auth form.
  */
 class AuthModal {
   #modal;

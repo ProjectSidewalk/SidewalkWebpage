@@ -25,7 +25,7 @@ class ContextMenu {
   #shareWidget = null;
 
   /**
-   * @param {Object} uiContextMenu - jQuery-wrapped context menu UI elements.
+   * @param {object} uiContextMenu - jQuery-wrapped context menu UI elements.
    */
   constructor(uiContextMenu) {
     this.#menuWindow = uiContextMenu.holder;
@@ -416,7 +416,7 @@ class ContextMenu {
 
   /**
    * Sets the color of a label's tags based off of tags that were chosen.
-   * @param {Object} label - Current label being modified.
+   * @param {object} label - Current label being modified.
    */
   #setTagColor(label) {
     const labelTags = label.getProperty('tagIds');
@@ -438,7 +438,7 @@ class ContextMenu {
 
   /**
    * Sets the description and value of the tag based on the label type.
-   * @param {Object} label - Current label being modified.
+   * @param {object} label - Current label being modified.
    */
   #setTags(label) {
     const maxTags = 17;
@@ -583,7 +583,7 @@ class ContextMenu {
 
   /**
    * Show the context menu.
-   * @param {Object} targetLabel - The label whose context menu should be shown.
+   * @param {object} targetLabel - The label whose context menu should be shown.
    */
   show(targetLabel) {
     this.#setStatus('targetLabel', null);

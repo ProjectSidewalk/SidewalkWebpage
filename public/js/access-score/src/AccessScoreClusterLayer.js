@@ -30,8 +30,8 @@ class AccessScoreClusterLayer {
    * @param {mapboxgl.Map} map - A loaded Mapbox map.
    * @param {object} options - Data and callbacks.
    * @param {Array<string>} options.types - The scored label types, in the engine's order (bottom layer first).
-   * @param {function} options.tooltipHtml - Called with a cluster's `properties`; returns tooltip HTML or null.
-   * @param {function} options.onSelect - Called with a cluster's `properties` on a click.
+   * @param {Function} options.tooltipHtml - Called with a cluster's `properties`; returns tooltip HTML or null.
+   * @param {Function} options.onSelect - Called with a cluster's `properties` on a click.
    */
   constructor(map, { types, tooltipHtml, onSelect }) {
     this.#map = map;

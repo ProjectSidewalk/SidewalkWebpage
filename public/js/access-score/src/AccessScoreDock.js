@@ -74,10 +74,10 @@ class AccessScoreDock {
    * @param {AccessScoreMapView} options.mapView - The map view, for the dim.
    * @param {mapboxgl.Map} options.map - The map, for the bottom padding.
    * @param {string} [options.cityName] - The city's short name, as the backend states it, for the needle label.
-   * @param {function} options.onRankSelect - Called with a region id when a rank row is clicked.
-   * @param {function} options.onOpenLabel - Called with `(labelId, stripLabelIds)` when a photo is chosen.
-   * @param {function} options.onStateChange - Called after any change the URL should carry.
-   * @param {function} [options.log] - Called with `(kind, value)` for an interaction worth logging.
+   * @param {Function} options.onRankSelect - Called with a region id when a rank row is clicked.
+   * @param {Function} options.onOpenLabel - Called with `(labelId, stripLabelIds)` when a photo is chosen.
+   * @param {Function} options.onStateChange - Called after any change the URL should carry.
+   * @param {Function} [options.log] - Called with `(kind, value)` for an interaction worth logging.
    */
   constructor(root, {
     model, mapView, map, cityName = '', onRankSelect, onOpenLabel = () => {}, onStateChange, log = () => {},

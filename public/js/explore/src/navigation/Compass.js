@@ -15,8 +15,8 @@ class Compass {
   };
 
   /**
-   * @param {Object} navigationService - NavigationService module.
-   * @param {Object} taskContainer - TaskContainer module.
+   * @param {object} navigationService - NavigationService module.
+   * @param {object} taskContainer - TaskContainer module.
    */
   constructor(navigationService, taskContainer) {
     this.#navigationService = navigationService;
