@@ -13,7 +13,8 @@ import play.api.test.Helpers._
 /**
  * Locks the response contract of the Sidewalk Presence API (#5279): GET /v3/api/sidewalkPresence returns a GeoJSON
  * FeatureCollection by default, a snake_case CSV header for filetype=csv, 400 INVALID_PARAMETER on a bad
- * `presence`, `status`, bbox, or regionId, and the two GIS exports assemble end to end. Asserts shape, not data.
+ * `presence`, `status`, bbox, or regionId, 400 on a non-integer `minValidatedNoSidewalkLabels`, and the two GIS
+ * exports assemble end to end. Asserts shape, not data.
  *
  * Boots the real application (real Slick/PostGIS) and exercises the route end to end. The endpoint is
  * `UserAwareAction` (no auth needed) and makes no external WS calls on the request path. The eager scheduling actors
@@ -63,7 +64,7 @@ class SidewalkPresenceApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       body must include(
         "street_edge_id,street_side,osm_way_id,region_id,region_name,way_type,status,presence,presence_basis," +
           "no_sidewalk_label_count,no_sidewalk_user_count,label_count,audit_count,first_no_sidewalk_label_date," +
-          "last_no_sidewalk_label_date,start_point,end_point"
+          "last_no_sidewalk_label_date,validated_no_sidewalk_count,rejected_no_sidewalk_count,start_point,end_point"
       )
       body must not include "streetEdgeId"
       body must not include "noSidewalkLabelCount"
@@ -72,6 +73,14 @@ class SidewalkPresenceApiSpec extends PlaySpec with GuiceOneAppPerSuite {
     "accept a valid presence filter" in {
       val resp = route(app, FakeRequest(GET, s"/v3/api/sidewalkPresence?$tinyBbox&presence=present,absent")).get
       status(resp) mustBe OK
+    }
+
+    "accept the validator-confirmed tier filter, and reject one that is not a number" in {
+      val ok = route(app, FakeRequest(GET, s"/v3/api/sidewalkPresence?$tinyBbox&minValidatedNoSidewalkLabels=1")).get
+      status(ok) mustBe OK
+      val bad =
+        route(app, FakeRequest(GET, s"/v3/api/sidewalkPresence?$tinyBbox&minValidatedNoSidewalkLabels=one")).get
+      status(bad) mustBe BAD_REQUEST
     }
 
     "return 400 INVALID_PARAMETER for an unrecognized presence value" in {
@@ -128,6 +137,7 @@ class SidewalkPresenceApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       bytes.take(15).utf8String mustBe "SQLite format 3"
       bytes.containsSlice(ByteString("presence_basis")) mustBe true
       bytes.containsSlice(ByteString("no_sidewalk_label_count")) mustBe true
+      bytes.containsSlice(ByteString("validated_no_sidewalk_count")) mustBe true
     }
   }
 
