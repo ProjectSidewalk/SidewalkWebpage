@@ -36,10 +36,12 @@ class LoginInfoTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
    * @return A DBIO action that returns the number of rows updated
    */
   def updateProviderKey(loginInfoId: Long, newProviderKey: String): DBIO[Int] = {
-    passwordInfo.filter(_.loginInfoId === loginInfoId).map(_.providerKey).update(newProviderKey)
+    passwordInfo.filter(_.loginInfoId === loginInfoId).map(_.providerKey).update(newProviderKey.toLowerCase)
   }
 
   def insert(loginInfo: DBLoginInfo): DBIO[Long] = {
-    (passwordInfo returning passwordInfo.map(_.loginInfoId)) += loginInfo
+    (passwordInfo returning passwordInfo.map(_.loginInfoId)) += loginInfo.copy(providerKey =
+      loginInfo.providerKey.toLowerCase
+    )
   }
 }

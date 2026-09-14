@@ -41,19 +41,36 @@ class UserPasswordInfoTable @Inject() (protected val dbConfigProvider: DatabaseC
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val userPasswordInfo = TableQuery[UserPasswordInfoTableDef]
+  private val userLoginInfo    = TableQuery[UserLoginInfoTableDef]
+  private val sidewalkUser     = TableQuery[SidewalkUserTableDef]
 
-  def find(loginInfoId: Long): Future[Option[UserPasswordInfo]] = {
-    db.run(userPasswordInfo.filter(_.loginInfoId === loginInfoId).result.headOption)
+  /** The password behind an email, reached through the account so it's the row reset and change-password write. */
+  def findByEmail(email: String): Future[Option[UserPasswordInfo]] = {
+    val query = for {
+      user     <- sidewalkUser if user.email === email.toLowerCase
+      link     <- userLoginInfo if link.userId === user.userId
+      password <- userPasswordInfo if password.loginInfoId === link.loginInfoId
+    } yield password
+    db.run(query.result.headOption)
+  }
+
+  def findByUserId(userId: String): Future[Option[UserPasswordInfo]] = {
+    val query = for {
+      link     <- userLoginInfo if link.userId === userId
+      password <- userPasswordInfo if password.loginInfoId === link.loginInfoId
+    } yield password
+    db.run(query.result.headOption)
   }
 
   def insert(newUserPasswordInfo: UserPasswordInfo): DBIO[Int] = {
     (userPasswordInfo returning userPasswordInfo.map(_.userPasswordInfoId)) += newUserPasswordInfo
   }
 
-  def update(loginInfoId: Long, newUserPasswordInfo: PasswordInfo): DBIO[Int] = {
-    userPasswordInfo
-      .filter(_.loginInfoId === loginInfoId)
-      .map(p => (p.hasher, p.password, p.salt))
-      .update((newUserPasswordInfo.hasher, newUserPasswordInfo.password, newUserPasswordInfo.salt))
+  /** Sets a login row's password, creating the row if it has none. One statement, so two resets at once can't race. */
+  def upsert(loginInfoId: Long, pwInfo: PasswordInfo): DBIO[Int] = {
+    sqlu"""INSERT INTO sidewalk_login.user_password_info (hasher, password, salt, login_info_id)
+           VALUES (${pwInfo.hasher}, ${pwInfo.password}, ${pwInfo.salt}, $loginInfoId)
+           ON CONFLICT (login_info_id)
+           DO UPDATE SET hasher = EXCLUDED.hasher, password = EXCLUDED.password, salt = EXCLUDED.salt"""
   }
 }

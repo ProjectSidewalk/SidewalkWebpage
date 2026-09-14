@@ -14,6 +14,7 @@ import play.api.libs.mailer.{Email, MailerClient}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Authenticator.Implicits._
 import play.silhouette.api._
+import org.postgresql.util.PSQLException
 import play.silhouette.api.exceptions.ProviderException
 import play.silhouette.api.util.{Clock, PasswordHasher}
 import play.silhouette.impl.exceptions.IdentityNotFoundException
@@ -458,7 +459,7 @@ class UserController @Inject() (
                     false, measurementSystem = None)
                 val pwInfo = passwordHasher.hash(data.password)
 
-                for {
+                (for {
                   user          <- authenticationService.createUser(newUser, CredentialsProvider.ID, pwInfo, oldUserId)
                   authenticator <- silhouette.env.authenticatorService.create(loginInfo)
                   value         <- silhouette.env.authenticatorService.init(authenticator)
@@ -471,6 +472,18 @@ class UserController @Inject() (
                   silhouette.env.eventBus.publish(SignUpEvent(user, request))
                   silhouette.env.eventBus.publish(LoginEvent(user, request))
                   result
+                }).recoverWith {
+                  // Two sign-ups for one email or username at once both pass the checks above, or the account holding
+                  // it has no role row and is invisible to them; either way the schema rejects the second insert.
+                  case e: PSQLException if e.getSQLState == "23505" =>
+                    if (e.getServerErrorMessage.getConstraint == "sidewalk_user_username_key")
+                      rejection(
+                        "Duplicate_Username_Error",
+                        "username",
+                        Messages("authenticate.error.username.exists"),
+                        Conflict
+                      )
+                    else rejection("Duplicate_Email_Error", "email", Messages("user.exists"), Conflict)
                 }
               }
             }).flatMap(identity) // Flatten the Future[Future[T]] to Future[T].

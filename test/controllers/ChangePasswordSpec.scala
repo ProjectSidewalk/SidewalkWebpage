@@ -158,6 +158,27 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
       resetRedirect(userId, Seq.empty) mustBe Some("/signIn")
     }
 
+    "find the account when the email is typed in a different case" in {
+      val (userId, email, _) = signUpFreshUser()
+      val found              = await(app.injector.instanceOf[AuthenticationService].findByEmail(email.toUpperCase))
+      found.map(_.userId) mustBe Some(userId)
+    }
+
+    "give an account that has no login row at all a login row and a password, so it can sign in again" in {
+      val (userId, email, _) = signUpFreshUser()
+      runAccounts(
+        DBIO.seq(
+          sqlu"""DELETE FROM sidewalk_login.user_password_info WHERE login_info_id IN (
+                 SELECT login_info_id FROM sidewalk_login.user_login_info WHERE user_id = $userId)""",
+          sqlu"""WITH unlinked AS (DELETE FROM sidewalk_login.user_login_info WHERE user_id = $userId RETURNING login_info_id)
+               DELETE FROM sidewalk_login.login_info WHERE login_info_id IN (SELECT login_info_id FROM unlinked)"""
+        )
+      )
+      signInStatus(email, signUpPassword) mustBe UNAUTHORIZED
+      resetRedirect(userId, Seq.empty) mustBe Some("/signIn")
+      signInStatus(email, NewPassword) mustBe OK
+    }
+
     "give an account that has a login row but no password row a password, so it can sign in again" in {
       val (userId, email, _) = signUpFreshUser()
       runAccounts(sqlu"""DELETE FROM sidewalk_login.user_password_info WHERE login_info_id IN (

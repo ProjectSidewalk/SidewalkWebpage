@@ -101,8 +101,14 @@ class SidewalkUserTable @Inject() (
     db.run(sidewalkUserWithRole.filter(_._2 === username).result.headOption).map(_.map(SidewalkUserWithRole.tupled))
   }
 
+  // Emails are stored lower-cased (the schema checks it), so lookups and writes lower-case here, not in every caller.
   def findByEmail(email: String): Future[Option[SidewalkUserWithRole]] = {
-    db.run(sidewalkUserWithRole.filter(_._3 === email).result.headOption).map(_.map(SidewalkUserWithRole.tupled))
+    db.run(sidewalkUserWithRole.filter(_._3 === email.toLowerCase).result.headOption)
+      .map(_.map(SidewalkUserWithRole.tupled))
+  }
+
+  def findEmail(userId: String): DBIO[Option[String]] = {
+    sidewalkUser.filter(_.userId === userId).map(_.email).result.headOption
   }
 
   /**
@@ -122,10 +128,10 @@ class SidewalkUserTable @Inject() (
    * @return A DBIO action that returns the number of rows updated
    */
   def updateEmail(userId: String, newEmail: String): DBIO[Int] = {
-    sidewalkUser.filter(_.userId === userId).map(_.email).update(newEmail)
+    sidewalkUser.filter(_.userId === userId).map(_.email).update(newEmail.toLowerCase)
   }
 
   def insert(newUser: SidewalkUser): DBIO[String] = {
-    (sidewalkUser returning sidewalkUser.map(_.userId)) += newUser
+    (sidewalkUser returning sidewalkUser.map(_.userId)) += newUser.copy(email = newUser.email.toLowerCase)
   }
 }
