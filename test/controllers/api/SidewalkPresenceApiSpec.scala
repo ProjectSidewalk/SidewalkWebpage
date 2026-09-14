@@ -63,8 +63,8 @@ class SidewalkPresenceApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val body = contentAsString(resp)
       body must include(
         "street_edge_id,street_side,osm_way_id,region_id,region_name,way_type,status,presence,presence_basis," +
-          "no_sidewalk_label_count,no_sidewalk_user_count,validated_no_sidewalk_count,rejected_no_sidewalk_count," +
-          "label_count,audit_count,first_no_sidewalk_label_date,last_no_sidewalk_label_date,start_point,end_point"
+          "no_sidewalk_label_count,no_sidewalk_user_count,label_count,audit_count,first_no_sidewalk_label_date," +
+          "last_no_sidewalk_label_date,validated_no_sidewalk_count,rejected_no_sidewalk_count,start_point,end_point"
       )
       body must not include "streetEdgeId"
       body must not include "noSidewalkLabelCount"

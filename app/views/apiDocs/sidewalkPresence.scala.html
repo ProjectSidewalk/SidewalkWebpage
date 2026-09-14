@@ -36,7 +36,7 @@
       <li><strong><code>unknown</code> from <code>unaudited</code>:</strong> the street has never been audited, so the absence of a label means nothing.</li>
     </ol>
     <p>Obstacle and SurfaceProblem labels never override a NoSidewalk label. On a face without a sidewalk they describe the roadway people walk in (a parked car, gravel, a bin), not a sidewalk. Curb ramp labels are corner features whose side is ambiguous and are not used as evidence either way. A label within a meter of the street's centerline has no side and does not count.</p>
-    <p>Validation feeds back. Project Sidewalk's Validate tool serves NoSidewalk labels one side of a street at a time, and each label's verdict is recorded on it. A NoSidewalk label validators rejected is not evidence: it drops out of every count above except <code>rejected_no_sidewalk_count</code> and <code>label_count</code>, and a side whose every NoSidewalk label was rejected falls through to the next rule, usually <code>present</code> from <code>audited_no_labels</code>. A label validators confirmed is counted in <code>validated_no_sidewalk_count</code>, and <code>minValidatedNoSidewalkLabels=1</code> selects the sides with at least one such label: the strongest tier this endpoint offers.</p>
+    <p>Validation feeds back. Project Sidewalk's Validate tool serves NoSidewalk labels one side of a street at a time, and each label's verdict is recorded on it. A NoSidewalk label validators rejected is not evidence: it drops out of every count above except <code>rejected_no_sidewalk_count</code> and <code>label_count</code>, and a side whose every NoSidewalk label was rejected falls through to the next rule, usually <code>present</code> from <code>audited_no_labels</code>. A label validators confirmed is counted in <code>validated_no_sidewalk_count</code>, and <code>minValidatedNoSidewalkLabels=1</code> selects the sides with at least one such label: the strongest tier this endpoint offers. A label's verdict is the majority of the Agree and Disagree votes on it (Unsure votes do not count, nor do a contributor's votes on their own labels), so a single vote on an otherwise unvalidated label decides it.</p>
     <p>Contributors whose work Project Sidewalk has flagged as unreliable count for nothing here: neither their labels nor their audits, so they can neither call a face <code>absent</code> nor, by way of an audit with no labels, call one <code>present</code>. This is the same population the rest of the APIs report on.</p>
     <p>We measured this rule against Seattle's per-face sidewalk inventory (about 41,000 audited faces). The figures are for Seattle and will differ elsewhere, but they are the best available guide to what each tier means:</p>
     <div class="ps-table-wrapper" tabindex="0" role="region" aria-labelledby="how-it-is-inferred">
@@ -59,7 +59,7 @@
       </table>
     </div>
     <p>Pooling NoSidewalk labels per street rather than per side, which is how <a href="/v3/api-docs/accessScoreStreets">AccessScore</a> currently treats them, is right on only 56% of its "no sidewalk" calls, because most streets that lack a sidewalk lack it on one side only. Divided roads and arterials are the weakest class: labels placed from a median can read as a missing sidewalk on the far side.</p>
-    <p>The validator-confirmed tier is new, so its precision is not yet measured. It should sit above the 84% of the three-label tier, since the same study found validators rejected 85% of the false "no sidewalk" calls they were shown; the figure will be filled in once enough faces have been validated to re-run the study.</p>
+    <p>The validator-confirmed tier is new, so its precision is not yet measured. The same study found validators rejected 85% of the false "no sidewalk" calls they were shown, which says how well validation removes bad calls, not how precise a confirmed one is; the figure will be filled in once enough faces have been validated to re-run the study.</p>
     <p>The table behind this endpoint is rebuilt nightly, so a label placed today, or a validation cast today, appears here tomorrow.</p>
   </div>
 
@@ -246,12 +246,12 @@
         "presence_basis": "no_sidewalk_labels",
         "no_sidewalk_label_count": 3,
         "no_sidewalk_user_count": 2,
-        "validated_no_sidewalk_count": 1,
-        "rejected_no_sidewalk_count": 0,
         "label_count": 5,
         "audit_count": 2,
         "first_no_sidewalk_label_date": "2019-11-04T22:31:07Z",
-        "last_no_sidewalk_label_date": "2023-02-18T17:05:44Z"
+        "last_no_sidewalk_label_date": "2023-02-18T17:05:44Z",
+        "validated_no_sidewalk_count": 1,
+        "rejected_no_sidewalk_count": 0
       }
     },
     {
@@ -275,12 +275,12 @@
         "presence_basis": "audited_no_labels",
         "no_sidewalk_label_count": 0,
         "no_sidewalk_user_count": 0,
-        "validated_no_sidewalk_count": 0,
-        "rejected_no_sidewalk_count": 1,
         "label_count": 2,
         "audit_count": 2,
         "first_no_sidewalk_label_date": null,
-        "last_no_sidewalk_label_date": null
+        "last_no_sidewalk_label_date": null,
+        "validated_no_sidewalk_count": 0,
+        "rejected_no_sidewalk_count": 1
       }
     },
     ...
@@ -361,16 +361,6 @@
             <td>Number of distinct contributors who placed those NoSidewalk labels. A call backed by one contributor is weaker than one several contributors agree on.</td>
           </tr>
           <tr>
-            <td><code>properties.validated_no_sidewalk_count</code></td>
-            <td><code>integer</code></td>
-            <td>Of those labels, the number validators have confirmed. The strongest evidence a side can carry; <code>minValidatedNoSidewalkLabels</code> filters on it.</td>
-          </tr>
-          <tr>
-            <td><code>properties.rejected_no_sidewalk_count</code></td>
-            <td><code>integer</code></td>
-            <td>Number of NoSidewalk labels on this side that validators rejected. They count here and in <code>label_count</code> but are not evidence for the verdict, so a <code>present</code> side can carry a positive value.</td>
-          </tr>
-          <tr>
             <td><code>properties.label_count</code></td>
             <td><code>integer</code></td>
             <td>Number of labels of any type on this side of the street (labels within a meter of the centerline have no side and are not counted on either).</td>
@@ -390,21 +380,31 @@
             <td><code>string</code></td>
             <td>Timestamp of the most recent NoSidewalk label on this side, in ISO 8601 format. <code>null</code> when there are none.</td>
           </tr>
+          <tr>
+            <td><code>properties.validated_no_sidewalk_count</code></td>
+            <td><code>integer</code></td>
+            <td>Of the NoSidewalk labels on this side that validators have not rejected, the number they have confirmed. The strongest evidence a side can carry; <code>minValidatedNoSidewalkLabels</code> filters on it. The CSV and Shapefile carry this field and the next last, after the dates.</td>
+          </tr>
+          <tr>
+            <td><code>properties.rejected_no_sidewalk_count</code></td>
+            <td><code>integer</code></td>
+            <td>Number of NoSidewalk labels on this side that validators rejected. They count here and in <code>label_count</code> but are not evidence for the verdict, so a <code>present</code> or <code>unknown</code> side can carry a positive value.</td>
+          </tr>
         </tbody>
       </table>
     </div>
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus geometry representation. CRS is WGS84 (EPSG:4326).</p>
-    <pre tabindex="0"><code class="language-csv">street_edge_id,street_side,osm_way_id,region_id,region_name,way_type,status,presence,presence_basis,no_sidewalk_label_count,no_sidewalk_user_count,validated_no_sidewalk_count,rejected_no_sidewalk_count,label_count,audit_count,first_no_sidewalk_label_date,last_no_sidewalk_label_date,start_point,end_point
-10425,left,6479562,44,Highland Park,residential,open,absent,no_sidewalk_labels,3,2,5,2,2019-11-04T22:31:07Z,2023-02-18T17:05:44Z,"-122.3546715,47.5309889","-122.3546693,47.5319025"
-10425,right,6479562,44,Highland Park,residential,open,present,audited_no_labels,0,0,2,2,,,"-122.3546715,47.5309889","-122.3546693,47.5319025"
+    <pre tabindex="0"><code class="language-csv">street_edge_id,street_side,osm_way_id,region_id,region_name,way_type,status,presence,presence_basis,no_sidewalk_label_count,no_sidewalk_user_count,label_count,audit_count,first_no_sidewalk_label_date,last_no_sidewalk_label_date,validated_no_sidewalk_count,rejected_no_sidewalk_count,start_point,end_point
+10425,left,6479562,44,Highland Park,residential,open,absent,no_sidewalk_labels,3,2,5,2,2019-11-04T22:31:07Z,2023-02-18T17:05:44Z,1,0,"-122.3546715,47.5309889","-122.3546693,47.5319025"
+10425,right,6479562,44,Highland Park,residential,open,present,audited_no_labels,0,0,2,2,,,0,1,"-122.3546715,47.5309889","-122.3546693,47.5319025"
 ...</code></pre>
 
     <p>Note: The complete LineString geometry is simplified to start and end points in the CSV format due to the tabular nature of CSV. For full geometry data, use the GeoJSON format.</p>
 
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
-    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated. The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object, with names abbreviated to the format's ten-character limit (<code>streetId</code>, <code>side</code>, <code>status</code>, <code>presence</code>, <code>basis</code>, <code>nsLabels</code>, <code>nsUsers</code>, <code>nsValid</code>, <code>nsReject</code>, <code>labelCount</code>, <code>auditCount</code>, <code>firstNsLbl</code>, <code>lastNsLbl</code>). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), WGS84 (EPSG:4326).</p>
+    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated. The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object, with names abbreviated to the format's ten-character limit (<code>streetId</code>, <code>side</code>, <code>status</code>, <code>presence</code>, <code>basis</code>, <code>nsLabels</code>, <code>nsUsers</code>, <code>labelCount</code>, <code>auditCount</code>, <code>firstNsLbl</code>, <code>lastNsLbl</code>, <code>nsValid</code>, <code>nsReject</code>). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), WGS84 (EPSG:4326).</p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
     <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage (.gpkg) file containing every street side with full geometry and the same field names as the GeoJSON properties. GeoPackage is a modern, open standard geospatial format that supports complex geometries and is widely supported by GIS software.</p>

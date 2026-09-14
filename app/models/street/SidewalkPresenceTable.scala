@@ -69,8 +69,8 @@ class SidewalkPresenceTableDef(tag: Tag) extends Table[SidewalkPresence](tag, "s
   def lastNoSidewalkLabelAt: Rep[Option[OffsetDateTime]]  = column[Option[OffsetDateTime]]("last_no_sidewalk_label_at")
   // Cross-column CHECKs in the DB (383.sql, 386.sql), which Slick can't express: presence is a function of
   // presence_basis, no_sidewalk_labels <=> no_sidewalk_label_count >= 1, unaudited => audit_count = 0, user count <=
-  // NoSidewalk count <= label count, validated count <= NoSidewalk count, and the two timestamps are present exactly
-  // when the NoSidewalk count is positive.
+  // NoSidewalk count <= label count, validated count <= NoSidewalk count, NoSidewalk count + rejected count <= label
+  // count, and the two timestamps are present exactly when the NoSidewalk count is positive.
 
   def * = (
     streetEdgeId, streetSide, presence, presenceBasis, noSidewalkLabelCount, noSidewalkUserCount,
@@ -293,7 +293,11 @@ object SidewalkPresenceTable {
    * all — it leaves every NoSidewalk count, date and tag test, and is reported only in `rejected_no_sidewalk_count`
    * (and `label_count`). A face whose every NoSidewalk label was rejected therefore falls through to the next rule,
    * usually `audited_no_labels` → `present`. Confirmed labels (`correct = TRUE`) are counted in
-   * `validated_no_sidewalk_count`, the top confidence tier the API exposes.
+   * `validated_no_sidewalk_count`, the top confidence tier the API exposes. `correct` is the strict majority of the
+   * Agree/Disagree votes on the label ([[service.ValidationService.updateValidationCounts]]: self-votes and excluded
+   * users' votes never count), so one vote on an otherwise unvalidated label decides it. The tier is human-only
+   * because [[models.label.LabelTypeEnum.aiLabelTypes]] leaves NoSidewalk out of AI validation; AI votes reach
+   * `correct` like any other, so adding it there would silently make this an AI-confirmed tier.
    *
    * Labels *and* audits from `user_stat.excluded` contributors are dropped, the population [[models.label.LabelTable.labels]]
    * serves everywhere else. It has to be both: dropping only their labels would leave their audit behind, and an audit with no labels

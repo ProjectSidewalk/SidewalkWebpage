@@ -103,13 +103,32 @@ class SidewalkPresenceTableSpec
       val dataStatements = evolution386Statements("ups")
       dataStatements must have size 1
 
-      val (populated, rebuilt) = runRolledBack(for {
+      val (populated, seeded, rebuilt) = runRolledBack(for {
+        // CI's seed carries no verdict on any NoSidewalk label, so without rows of its own this comparison would never
+        // reach the validated/rejected branches 386 added: a confirmed, an unvalidated and a rejected tagged label on
+        // one face, and a rejected tagged label alone on another street.
+        streetEdgeId <- insertStreet()
+        otherStreet  <- insertStreet()
+        user1        <- insertUser()
+        user2        <- insertUser()
+        _            <- audit(streetEdgeId, user1)
+        _            <- audit(otherStreet, user1)
+        _            <- insertLabel(streetEdgeId, user1, "NoSidewalk", Some(3.0), correct = Some(true))
+        _            <- insertLabel(streetEdgeId, user2, "NoSidewalk", Some(2.5))
+        _            <- insertLabel(streetEdgeId, user2, "NoSidewalk", Some(2.0), correct = Some(false),
+          tags = Seq(NoSidewalksTag))
+        _ <- insertLabel(otherStreet, user1, "NoSidewalk", Some(-3.0), correct = Some(false),
+          tags = Seq(NoSidewalksTag))
         _         <- sqlu"DELETE FROM sidewalk_presence"
         _         <- sqlu"#${dataStatements.head}"
         populated <- sql"SELECT COUNT(*) FROM sidewalk_presence".as[Int].head
+        seeded    <- facesOf(streetEdgeId)
         rebuilt   <- table.rebuild
-      } yield (populated, rebuilt))
+      } yield (populated, seeded, rebuilt))
 
+      // The seed took, so the agreement below covers the verdict branches rather than passing vacuously.
+      seeded(StreetSide.Left).validatedNoSidewalkCount mustBe 1
+      seeded(StreetSide.Left).rejectedNoSidewalkCount mustBe 1
       rebuilt.total mustBe populated
       rebuilt.inserted mustBe 0
       rebuilt.updated mustBe 0
@@ -172,6 +191,7 @@ class SidewalkPresenceTableSpec
         _            <- insertLabel(streetEdgeId, user, "NoSidewalk", Some(3.0), correct = Some(false))
         _            <- sqlu"""ALTER TABLE sidewalk_presence
                                DROP CONSTRAINT IF EXISTS sidewalk_presence_validated_within_labels_check,
+                               DROP CONSTRAINT IF EXISTS sidewalk_presence_no_sidewalk_within_labels_check,
                                DROP COLUMN IF EXISTS validated_no_sidewalk_count,
                                DROP COLUMN IF EXISTS rejected_no_sidewalk_count"""
         _       <- sqlu"DELETE FROM sidewalk_presence"

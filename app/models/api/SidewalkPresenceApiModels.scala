@@ -80,12 +80,14 @@ object SidewalkPresenceForApi extends ApiFields[SidewalkPresenceForApi] {
     field("presence_basis")(_.presenceBasis),
     field("no_sidewalk_label_count")(_.noSidewalkLabelCount),
     field("no_sidewalk_user_count")(_.noSidewalkUserCount),
-    field("validated_no_sidewalk_count")(_.validatedNoSidewalkCount),
-    field("rejected_no_sidewalk_count")(_.rejectedNoSidewalkCount),
     field("label_count")(_.labelCount),
     field("audit_count")(_.auditCount),
     field("first_no_sidewalk_label_date")(_.firstNoSidewalkLabelDate.map(_.toString)),
-    field("last_no_sidewalk_label_date")(_.lastNoSidewalkLabelDate.map(_.toString))
+    field("last_no_sidewalk_label_date")(_.lastNoSidewalkLabelDate.map(_.toString)),
+    // Appended after the 383 fields, not grouped with the counts: v11.12.0 shipped the endpoint before these existed,
+    // so a positional CSV or .dbf reader written against it keeps its column indexes (#5285).
+    field("validated_no_sidewalk_count")(_.validatedNoSidewalkCount),
+    field("rejected_no_sidewalk_count")(_.rejectedNoSidewalkCount)
   )
 
   override val csvOnlyFields: Seq[ApiField[SidewalkPresenceForApi]] = Seq(

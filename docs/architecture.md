@@ -146,9 +146,9 @@ actors in `app/actor/`; HTTP filters in `app/filters/`, registered through `play
 Each deployment runs a set of nightly jobs as pekko actors in `app/actor/` — the imagery expiry sweep, the
 imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, the sidewalk presence
 rebuild (which re-derives the `sidewalk_presence` table, one verdict per side of each street, from the day's labels,
-audits and validator verdicts, #5279/#5285), label clustering (which opens with the intersection rebuild that re-derives the `intersection`
-table from the street graph and attributes corner-feature clusters to it, #5095), crop generation, OSM way refresh,
-AI validations, and auth-token cleanup. The schedule lives in one place,
+audits and validator verdicts, #5279/#5285), label clustering (which opens with the intersection rebuild that
+re-derives the `intersection` table from the street graph and attributes corner-feature clusters to it, #5095), crop
+generation, OSM way refresh, AI validations, and auth-token cleanup. The schedule lives in one place,
 `app/actor/ScheduledJobs.scala`: each actor reads its own time from there, staggered across the small hours and
 shifted per city by `ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and
 provider quotas.

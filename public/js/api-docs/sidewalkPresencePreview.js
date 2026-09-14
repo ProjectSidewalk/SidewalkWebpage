@@ -98,13 +98,13 @@
    * The evidence behind a face's verdict, in words. The four cases are the backend's sidewalk_presence_basis enum.
    *
    * @param {object} props - A face feature's properties.
-   * @returns {string} e.g. '3 NoSidewalk labels from 2 users, 1 confirmed by a validator'.
+   * @returns {string} e.g. '3 NoSidewalk labels from 2 users, 1 validator-confirmed'.
    */
   function describeBasis(props) {
     switch (props.presence_basis) {
       case 'no_sidewalk_labels': {
         const validated = props.validated_no_sidewalk_count || 0;
-        const confirmed = validated ? `, ${validated} confirmed by a validator` : '';
+        const confirmed = validated ? `, ${validated} validator-confirmed` : '';
         return `${plural(props.no_sidewalk_label_count, 'NoSidewalk label')} from `
           + `${plural(props.no_sidewalk_user_count, 'user')}${confirmed}`;
       }

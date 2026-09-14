@@ -8,8 +8,11 @@
 --     label was rejected falls through to the next rule -- usually audited_no_labels, so present. They still count in
 --     label_count. No new enum value is needed for that, which matters because ALTER TYPE ... ADD VALUE cannot be
 --     used in the same transaction that populates with it.
--- Every CHECK from 383.sql keeps holding, since the counts that feed them are all filtered the same way. The new one
--- pins the validated count inside the counted NoSidewalk labels.
+-- label.correct is the strict majority of validators' Agree/Disagree votes (ValidationService.updateValidationCounts,
+-- where self-votes and excluded users' votes never count), so one vote on an otherwise unvalidated label decides it.
+-- It is human-only here because LabelTypeEnum.aiLabelTypes leaves NoSidewalk out of AI validation.
+-- Every CHECK from 383.sql keeps holding, since the counts that feed them are all filtered the same way. The new ones
+-- pin the validated count inside the counted NoSidewalk labels, and counted + rejected (disjoint) inside label_count.
 --
 -- The derivation below supersedes 383.sql's and is the same one SidewalkPresenceTable.derivationSql holds, so the
 -- nightly rebuild reproduces these rows exactly (SidewalkPresenceTableSpec checks that). The table is repopulated
@@ -19,7 +22,9 @@ ALTER TABLE sidewalk_presence
   ADD COLUMN validated_no_sidewalk_count INTEGER NOT NULL DEFAULT 0 CHECK (validated_no_sidewalk_count >= 0),
   ADD COLUMN rejected_no_sidewalk_count INTEGER NOT NULL DEFAULT 0 CHECK (rejected_no_sidewalk_count >= 0),
   ADD CONSTRAINT sidewalk_presence_validated_within_labels_check
-    CHECK (validated_no_sidewalk_count <= no_sidewalk_label_count);
+    CHECK (validated_no_sidewalk_count <= no_sidewalk_label_count),
+  ADD CONSTRAINT sidewalk_presence_no_sidewalk_within_labels_check
+    CHECK (no_sidewalk_label_count + rejected_no_sidewalk_count <= label_count);
 
 DELETE FROM sidewalk_presence;
 
@@ -107,6 +112,7 @@ FROM derived_face;
 -- columns, then re-derive every face the 383.sql way.
 ALTER TABLE sidewalk_presence
   DROP CONSTRAINT IF EXISTS sidewalk_presence_validated_within_labels_check,
+  DROP CONSTRAINT IF EXISTS sidewalk_presence_no_sidewalk_within_labels_check,
   DROP COLUMN IF EXISTS validated_no_sidewalk_count,
   DROP COLUMN IF EXISTS rejected_no_sidewalk_count;
 
