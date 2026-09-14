@@ -466,7 +466,11 @@ class StreetStatusTrend {
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
   }
 
-  /** @param {string} message @param {boolean} isError @param {boolean} [hide=false] */
+  /**
+   * @param {string} message - Text to show in the status line.
+   * @param {boolean} isError - Whether to style it as an error.
+   * @param {boolean} [hide=false] - Whether to hide the status line instead.
+   */
   #setStatus(message, isError, hide = false) {
     const el = document.getElementById('trend-status');
     if (!el) return;

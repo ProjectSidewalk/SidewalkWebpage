@@ -45,7 +45,7 @@ const deviceMaxPanoWidth = () => {
  * The URL to hand Pannellum for a panorama, asking the server for a smaller copy only when this device can't texture
  * the stored one (#5256). Every device that can render it as stored gets it untouched.
  *
- * @param {object} metadata Pano metadata; uses `imageUrl` and `width`.
+ * @param {object} metadata - Pano metadata; uses `imageUrl` and `width`.
  * @returns {string} The image URL, with `maxWidth` appended when a copy is needed.
  */
 const panoramaUrlFor = (metadata) => {
@@ -77,7 +77,7 @@ const PANO_MIN_FALLBACK_WIDTH = 2048;
  * and the server answers those with the native file — so the "retry" re-fetches, re-decodes and re-uploads the
  * image that just failed, making the next allocation likelier to fail rather than less.
  *
- * @param {object} metadata Pano metadata; uses `imageUrl` and `width`.
+ * @param {object} metadata - Pano metadata; uses `imageUrl` and `width`.
  * @returns {string[]} Candidate URLs, in the order they should be tried.
  */
 const panoramaUrlCandidates = (metadata) => {
@@ -125,14 +125,14 @@ class PannellumViewer extends PanoViewer {
   }
 
   /**
-   * @param {Element} canvasElem Container element to mount the viewer into.
+   * @param {Element} canvasElem - Container element to mount the viewer into.
    * @param {object} panoOptions
-   * @param {string} [panoOptions.startPanoId] The pano ID to load. Falls back to panoMetadata.panoId.
-   * @param {object} panoOptions.panoMetadata Required. Metadata for the pano (see PanoData fields).
-   * @param {number} [panoOptions.startHeading] Initial heading wrt true north; defaults to cameraHeading.
-   * @param {number} [panoOptions.startPitch=0] Initial pitch in degrees.
-   * @param {number} [panoOptions.startZoom=1] Initial zoom level (1, 2, or 3).
-   * @param {boolean} [panoOptions.zoomControl=true] Whether mouse-wheel zoom is enabled.
+   * @param {string} [panoOptions.startPanoId] - The pano ID to load. Falls back to panoMetadata.panoId.
+   * @param {object} panoOptions.panoMetadata - Required. Metadata for the pano (see PanoData fields).
+   * @param {number} [panoOptions.startHeading] - Initial heading wrt true north; defaults to cameraHeading.
+   * @param {number} [panoOptions.startPitch=0] - Initial pitch in degrees.
+   * @param {number} [panoOptions.startZoom=1] - Initial zoom level (1, 2, or 3).
+   * @param {boolean} [panoOptions.zoomControl=true] - Whether mouse-wheel zoom is enabled.
    * @returns {Promise<void>}
    */
   async initialize(canvasElem, panoOptions = {}) {
@@ -238,8 +238,8 @@ class PannellumViewer extends PanoViewer {
    * Loads a new panorama into the existing viewer, reusing the WebGL context rather than  recreating the viewer.
    *
    * @param {string} panoId
-   * @param {object} metadata Metadata for the new pano (same shape as panoOptions.panoMetadata in initialize()).
-   * @param {{heading: number, pitch: number, zoom: number}} pov Initial POV for the new pano.
+   * @param {object} metadata - Metadata for the new pano (same shape as panoOptions.panoMetadata in initialize()).
+   * @param {{heading: number, pitch: number, zoom: number}} pov - Initial POV for the new pano.
    * @returns {Promise<PanoData>}
    */
   loadPano = async (panoId, metadata, pov) => {
@@ -324,7 +324,7 @@ class PannellumViewer extends PanoViewer {
   /**
    * Builds a PanoData object from a metadata blob supplied by the caller.
    * @param {string} panoId
-   * @param {object} metadata Fields matching PanoData's constructor params.
+   * @param {object} metadata - Fields matching PanoData's constructor params.
    * @returns {PanoData}
    */
   #buildPanoData(panoId, metadata) {
@@ -353,7 +353,7 @@ class PannellumViewer extends PanoViewer {
   /**
    * Converts a heading (0 = true north, clockwise) to Pannellum's yaw (0 = image center, range [-180, 180]).
    * @param {number} heading
-   * @param {number} [cameraHeading] Defaults to the current scene's cameraHeading. Pass explicitly when computing
+   * @param {number} [cameraHeading] - Defaults to the current scene's cameraHeading. Pass explicitly when computing
    *     yaw for a scene that hasn't been loaded yet (e.g. inside loadPano() before calibration fields are updated).
    * @returns {number}
    */

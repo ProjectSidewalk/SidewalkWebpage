@@ -61,17 +61,17 @@ class ViewportLabelLoader {
   #onMoveEnd = () => this.#scheduleEvaluate();
 
   /**
-   * @param {mapboxgl.Map} map The map whose viewport scopes the feed.
-   * @param {string|URL} labelsURL The feed endpoint, already carrying any page-level params (regions, routes,
+   * @param {mapboxgl.Map} map - The map whose viewport scopes the feed.
+   * @param {string|URL} labelsURL - The feed endpoint, already carrying any page-level params (regions, routes,
    *     aiValidationOptions); the loader adds/replaces only `bbox`.
    * @param {object} [options]
-   * @param {number} [options.minFetchZoom=13] Zoom below which nothing is fetched where the floor applies.
-   * @param {() => boolean} [options.floorApplies] Whether the zoom floor is in force. Defaults to mobile only:
+   * @param {number} [options.minFetchZoom=13] - Zoom below which nothing is fetched where the floor applies.
+   * @param {() => boolean} [options.floorApplies] - Whether the zoom floor is in force. Defaults to mobile only:
    *     desktop keeps its at-a-glance city-wide view, which the padded first fetch already covers.
-   * @param {number} [options.padFactor=0.5] Fraction of the viewport span added on each side of the fetched
+   * @param {number} [options.padFactor=0.5] - Fraction of the viewport span added on each side of the fetched
    *     bbox, so nearby pans need no request. 0.5 fetches roughly four viewports' worth.
-   * @param {number} [options.debounceMs=350] Quiet time after a moveend before the viewport is evaluated.
-   * @param {mapboxgl.LngLatBounds} [options.dataBounds] The extent the labels live in (the city's streets and
+   * @param {number} [options.debounceMs=350] - Quiet time after a moveend before the viewport is evaluated.
+   * @param {mapboxgl.LngLatBounds} [options.dataBounds] - The extent the labels live in (the city's streets and
    *     regions); a fetch covering it has fetched everything, so no later move refetches. maxBounds
    *     can't stand in for it — several cities draw one degrees larger than the city itself (#5170).
    */
@@ -125,7 +125,7 @@ class ViewportLabelLoader {
    * Registers a callback for label data. Called with the fetched GeoJSON FeatureCollection and
    * `{isInitial}` (true only for the first emission, floor-cleared empty collections included). If data has
    * already been emitted, the callback is invoked immediately with the latest emission.
-   * @param {(featureCollection: object, meta: {isInitial: boolean}) => void} callback The subscriber.
+   * @param {(featureCollection: object, meta: {isInitial: boolean}) => void} callback - The subscriber.
    */
   onData(callback) {
     this.#listeners.data.push(callback);
@@ -135,7 +135,7 @@ class ViewportLabelLoader {
   /**
    * Registers a callback for fetch failures (including truncated chunked streams, which surface as JSON parse
    * errors under a 200 — see fetchLabelFeed). Aborted/superseded requests never reach it.
-   * @param {(error: Error) => void} callback The subscriber.
+   * @param {(error: Error) => void} callback - The subscriber.
    */
   onError(callback) {
     this.#listeners.error.push(callback);
@@ -144,7 +144,7 @@ class ViewportLabelLoader {
   /**
    * Registers a callback for state changes: 'idle' | 'loading' | 'belowFloor' | 'error'. If the loader is not
    * idle, the callback is invoked immediately with the current state.
-   * @param {(state: string) => void} callback The subscriber.
+   * @param {(state: string) => void} callback - The subscriber.
    */
   onStateChange(callback) {
     this.#listeners.state.push(callback);
@@ -190,7 +190,7 @@ class ViewportLabelLoader {
   /**
    * Fetches one bbox's worth of labels and fans the result out. Serialized by the caller's busy guard; the
    * sequence token additionally keeps a response that was superseded (floor abort, destroy) from applying.
-   * @param {{minLng: number, minLat: number, maxLng: number, maxLat: number}} bbox The padded bbox to fetch.
+   * @param {{minLng: number, minLat: number, maxLng: number, maxLat: number}} bbox - The padded bbox to fetch.
    */
   async #fetch(bbox) {
     this.#inFlight = true;
@@ -227,8 +227,8 @@ class ViewportLabelLoader {
    * for the latter: zoomed out past maxBounds (mapbox pins the center only once the bounds are smaller than
    * the view) it can never be contained in a bbox clamped to them (#5170).
    *
-   * @param {mapboxgl.LngLatBounds} viewport The current unpadded viewport.
-   * @param {number} pad Fraction of the viewport's span added on each side before clamping.
+   * @param {mapboxgl.LngLatBounds} viewport - The current unpadded viewport.
+   * @param {number} pad - Fraction of the viewport's span added on each side before clamping.
    * @returns {{minLng: number, minLat: number, maxLng: number, maxLat: number}} The clamped, rounded box.
    */
   #boxFor(viewport, pad) {
@@ -246,7 +246,7 @@ class ViewportLabelLoader {
   /**
    * Every box the loader compares or fetches passes through here, so an edge pinned to maxBounds is the same
    * number on both sides of a comparison rather than one rounding itself out of containment.
-   * @param {{minLng: number, minLat: number, maxLng: number, maxLat: number}} box The box to normalize.
+   * @param {{minLng: number, minLat: number, maxLng: number, maxLat: number}} box - The box to normalize.
    * @returns {{minLng: number, minLat: number, maxLng: number, maxLat: number}} It, held inside maxBounds —
    *     the limit of what any viewport, and so any fetch, can reach — and rounded to the 5 decimals (~1 m)
    *     the server filters by.
@@ -270,8 +270,8 @@ class ViewportLabelLoader {
 
   /**
    * Returns whether the viewed box lies fully inside the fetched bbox.
-   * @param {{minLng: number, minLat: number, maxLng: number, maxLat: number}} bbox The fetched bbox.
-   * @param {{minLng: number, minLat: number, maxLng: number, maxLat: number}} view The current viewed box.
+   * @param {{minLng: number, minLat: number, maxLng: number, maxLat: number}} bbox - The fetched bbox.
+   * @param {{minLng: number, minLat: number, maxLng: number, maxLat: number}} view - The current viewed box.
    * @returns {boolean} True when no refetch is needed.
    */
   #contains(bbox, view) {
@@ -281,7 +281,7 @@ class ViewportLabelLoader {
 
   /**
    * Emits a data event and records it for replay to late subscribers.
-   * @param {object} featureCollection The GeoJSON FeatureCollection to fan out.
+   * @param {object} featureCollection - The GeoJSON FeatureCollection to fan out.
    */
   #emitData(featureCollection) {
     const meta = { isInitial: this.#lastEmission === null };
@@ -291,7 +291,7 @@ class ViewportLabelLoader {
 
   /**
    * Emits a state change, deduplicated so subscribers only hear transitions.
-   * @param {string} state One of 'idle' | 'loading' | 'belowFloor' | 'error'.
+   * @param {string} state - One of 'idle' | 'loading' | 'belowFloor' | 'error'.
    */
   #setState(state) {
     if (state === this.#state) return;

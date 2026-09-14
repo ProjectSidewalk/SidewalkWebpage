@@ -24,10 +24,10 @@ async function fetchLabelFeed(url, { signal } = {}) {
 
 /**
  * Toggles the visibility of a label type layer on the map.
- * @param {string} labelType The label type key (e.g., 'CurbRamp').
- * @param {boolean} visible Whether the layer should be visible.
- * @param {object} map The Mapbox map object.
- * @param {object} mapData The layer tracker from CreateMapLayerTracker.
+ * @param {string} labelType - The label type key (e.g., 'CurbRamp').
+ * @param {boolean} visible - Whether the layer should be visible.
+ * @param {object} map - The Mapbox map object.
+ * @param {object} mapData - The layer tracker from CreateMapLayerTracker.
  */
 function toggleLabelLayer(labelType, visible, map, mapData) {
   const layerName = mapData.layerNames[labelType];
@@ -38,11 +38,11 @@ function toggleLabelLayer(labelType, visible, map, mapData) {
 
 /**
  * Builds and applies Mapbox filter expressions to all label layers based on the current filter state in mapData.
- * @param {HTMLElement|null} checkbox The validation checkbox that was clicked, or null if the update was triggered by
+ * @param {HTMLElement|null} checkbox - The validation checkbox that was clicked, or null if the update was triggered by
  *      something else (e.g., a severity toggle).
- * @param {object} map The Mapbox map object.
- * @param {object} mapData The layer tracker containing current filter state.
- * @param {boolean} highQualityFilter Whether to apply the high-quality user filter.
+ * @param {object} map - The Mapbox map object.
+ * @param {object} mapData - The layer tracker containing current filter state.
+ * @param {boolean} highQualityFilter - Whether to apply the high-quality user filter.
  */
 function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
   if (checkbox && typeof checkbox === 'object') {
@@ -127,7 +127,7 @@ const STREET_STATE_FILTERS = {
  * Emphasis borrows the pointer-hover thickness rather than a size of its own, so a state called out from the sidebar
  * looks like the same street a mapper would get by hovering it on the map.
  *
- * @param {?string} [emphasizedState=null] An audit state to thicken (a `STREET_STATE_FILTERS` key), or null for none.
+ * @param {?string} [emphasizedState=null] - An audit state to thicken (a `STREET_STATE_FILTERS` key), or null for none.
  * @returns {Array} A Mapbox zoom-interpolated line-width expression.
  */
 function streetLineWidth(emphasizedState = null) {
@@ -146,8 +146,8 @@ function streetLineWidth(emphasizedState = null) {
  * thousands of features per pointer entry would cost far more than swapping one paint expression. Mapbox transitions
  * the width for free, so the change reads as a swell rather than a jump.
  *
- * @param {object} map The Mapbox map object.
- * @param {?string} streetState The audit state to thicken, or null to return every street to its normal width.
+ * @param {object} map - The Mapbox map object.
+ * @param {?string} streetState - The audit state to thicken, or null to return every street to its normal width.
  */
 function emphasizeStreetState(map, streetState) {
   if (!map.getLayer('streets')) return;
@@ -158,7 +158,7 @@ function emphasizeStreetState(map, streetState) {
  * Filters the street layer based on the audited/outdated/unaudited street checkboxes.
  *
  * On pages without the outdated checkbox, outdated streets follow the audited checkbox.
- * @param {object} map The Mapbox map object.
+ * @param {object} map - The Mapbox map object.
  */
 function filterStreetLayer(map) {
   const includeAudited = document.getElementById('audited-street').checked;
@@ -217,7 +217,7 @@ function CreateMapLayerTracker() {
 
 /**
  * Searches for a region id in the query string. If found, frames the map on that region.
- * @param {object} map The Mapbox map object.
+ * @param {object} map - The Mapbox map object.
  */
 function setRegionFocus(map) {
   const regionId = util.getURLParameter('regionId');
@@ -234,7 +234,7 @@ function setRegionFocus(map) {
 
 /**
  * Returns the bounds enclosing a GeoJSON geometry, whatever its nesting depth (point through multi-polygon).
- * @param {object} geometry The GeoJSON geometry.
+ * @param {object} geometry - The GeoJSON geometry.
  * @returns {mapboxgl.LngLatBounds} Bounds covering every coordinate in it.
  */
 function geometryBounds(geometry) {
@@ -249,7 +249,7 @@ function geometryBounds(geometry) {
 
 /**
  * Returns the bounds enclosing every feature in a GeoJSON FeatureCollection.
- * @param {object} featureCollection The collection.
+ * @param {object} featureCollection - The collection.
  * @returns {mapboxgl.LngLatBounds} Bounds covering all of its features.
  */
 function featureCollectionBounds(featureCollection) {

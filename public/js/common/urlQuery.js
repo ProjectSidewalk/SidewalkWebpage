@@ -18,7 +18,7 @@ util.url = util.url || {};
  * ":" and "@"), and our params are comma-separated lists of values that can carry a colon — so a shared LabelMap
  * link reads `tags=CurbRamp:narrow` instead of `tags=CurbRamp%3Anarrow` (#4782).
  *
- * @param {URLSearchParams} params The params to serialize.
+ * @param {URLSearchParams} params - The params to serialize.
  * @returns {string} The query string, without a leading "?" (empty when there are no params).
  */
 util.url.serialize = (params) => params.toString().replace(/%2C/g, ',').replace(/%3A/g, ':');
@@ -29,7 +29,7 @@ util.url.serialize = (params) => params.toString().replace(/%2C/g, ',').replace(
  * `replaceState` rather than `pushState` throughout: filter toggles and popup opens are not navigation, and rapid
  * toggling would otherwise bury the page the user arrived from under dozens of back-button steps.
  *
- * @param {URL} url The URL whose pathname/params/hash should become the current URL.
+ * @param {URL} url - The URL whose pathname/params/hash should become the current URL.
  */
 util.url.replaceQuery = (url) => {
   const query = util.url.serialize(url.searchParams);
@@ -45,9 +45,9 @@ util.url.replaceQuery = (url) => {
  * Lists of closed values (severities, label types, validation options) stay comma-joined, since they can't contain
  * a comma and one readable param beats several.
  *
- * @param {URLSearchParams} params The params to write into.
- * @param {string} name The param name.
- * @param {string[]} values The values; an empty array deletes the param.
+ * @param {URLSearchParams} params - The params to write into.
+ * @param {string} name - The param name.
+ * @param {string[]} values - The values; an empty array deletes the param.
  */
 util.url.setRepeated = (params, name, values) => {
   params.delete(name);
@@ -62,9 +62,9 @@ util.url.setRepeated = (params, name, values) => {
  * before splitting is what makes the two forms distinguishable, so `isValid` has to be a real membership test
  * against what the page can render, not a shape check.
  *
- * @param {URLSearchParams} params The params to read.
- * @param {string} name The param name.
- * @param {(value: string) => boolean} isValid Whether a value is one this page recognizes.
+ * @param {URLSearchParams} params - The params to read.
+ * @param {string} name - The param name.
+ * @param {(value: string) => boolean} isValid - Whether a value is one this page recognizes.
  * @returns {?string[]} The valid values, `[]` when the param is present but selects nothing, `null` when absent.
  */
 util.url.getRepeated = (params, name, isValid) => {

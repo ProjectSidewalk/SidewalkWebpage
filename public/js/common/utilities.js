@@ -221,8 +221,8 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {})
  * Sets the --ui-scale CSS variable on .tool-ui; every tool dimension is expressed as base-size * var(--ui-scale),
  * so the pano, menus, and text all grow/shrink together in proportion. The tool's reference footprint at
  * --ui-scale = 1 is the sum of the given base-size CSS variables, which each tool defines on its .tool-ui element.
- * @param {string[]} widthVarNames Base-size CSS variables that sum to the tool's reference width.
- * @param {string[]} heightVarNames Base-size CSS variables that sum to the tool's reference height.
+ * @param {string[]} widthVarNames - Base-size CSS variables that sum to the tool's reference width.
+ * @param {string[]} heightVarNames - Base-size CSS variables that sum to the tool's reference height.
  * @returns {number} The applied scale factor.
  */
 util.applyToolScale = function (widthVarNames, heightVarNames) {

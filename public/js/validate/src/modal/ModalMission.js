@@ -10,7 +10,7 @@ class ModalMission {
   #currentSlideIdx = 0;
 
   /**
-   * @param {object} uiModalMission Mission modal UI elements.
+   * @param {object} uiModalMission - Mission modal UI elements.
    */
   constructor(uiModalMission) {
     this.#uiModalMission = uiModalMission;
@@ -57,7 +57,7 @@ class ModalMission {
    * The slides come from MissionStartTutorial, so a phone validator is taught from exactly the same examples, in the
    * same order, as someone on a laptop — the desktop steps through them behind arrows, this one swipes.
    *
-   * @param {string} labelType The mission's label type, e.g. 'NoCurbRamp'.
+   * @param {string} labelType - The mission's label type, e.g. 'NoCurbRamp'.
    * @returns {string} The carousel's HTML.
    */
   static #buildExamples(labelType) {
@@ -126,7 +126,7 @@ class ModalMission {
    * A title that already fits is left entirely alone: the size it keeps is the heading token's, so retuning that
    * token moves this heading with every other one instead of leaving it behind at a number copied into here.
    *
-   * @param {HTMLElement} title The title element, already holding the text to fit.
+   * @param {HTMLElement} title - The title element, already holding the text to fit.
    */
   static #fitToOneLine(title) {
     // Cleared first so the starting size read below is the stylesheet's, not whatever the last title was shrunk to.
@@ -149,7 +149,7 @@ class ModalMission {
    * fit until the next mission. Asking for the face resolves immediately once it is in hand, so every mission after
    * the first costs a microtask.
    *
-   * @param {HTMLElement} title The title element, already holding the text to fit.
+   * @param {HTMLElement} title - The title element, already holding the text to fit.
    */
   static #fitTitleWhenReady(title) {
     ModalMission.#fitToOneLine(title);
@@ -185,7 +185,7 @@ class ModalMission {
    * A resumed mission gets the same briefing as a new one: the examples are as worth a look on the way back in, and
    * the count in the title is the mission's, not a progress figure.
    *
-   * @param {Mission} mission Mission object for the new mission.
+   * @param {Mission} mission - Mission object for the new mission.
    */
   setMissionMessage(mission) {
     const labelType = mission.getProperty('labelType');
@@ -200,9 +200,9 @@ class ModalMission {
   }
 
   /**
-   * @param {string} title What this mission is, e.g. "Validate 10 Curb Ramp Labels".
-   * @param {string} [instruction] Body HTML — the examples carousel.
-   * @param {string} [labelType] The mission's label type, whose marker icon heads the screen.
+   * @param {string} title - What this mission is, e.g. "Validate 10 Curb Ramp Labels".
+   * @param {string} [instruction] - Body HTML — the examples carousel.
+   * @param {string} [labelType] - The mission's label type, whose marker icon heads the screen.
    */
   show(title, instruction, labelType) {
     // ModalNoNewMission paints these same elements, and what it puts there is a dead end with its own button and

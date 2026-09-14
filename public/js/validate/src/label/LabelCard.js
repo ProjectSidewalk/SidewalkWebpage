@@ -64,7 +64,7 @@ class LabelCard {
   /**
    * Fills the card in for the given label. Called once per label, when it is rendered onto the pano.
    *
-   * @param {Label} label The label whose information the card should show.
+   * @param {Label} label - The label whose information the card should show.
    */
   render(label) {
     const labelType = label.getAuditProperty('labelType');

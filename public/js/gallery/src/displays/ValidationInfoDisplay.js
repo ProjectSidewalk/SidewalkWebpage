@@ -7,11 +7,11 @@ class ValidationInfoDisplay {
   #lockReason = null;
 
   /**
-   * @param {HTMLElement} container The DOM element that contains the display.
-   * @param {number} agreeCount The agree count to display.
-   * @param {number} disagreeCount The disagree count to display.
-   * @param {string} aiValidation Either 'Agree' or 'Disagree', showing AI validation if there is any.
-   * @param {?string} userValidation The viewer's own vote on this label, or null if they haven't voted.
+   * @param {HTMLElement} container - The DOM element that contains the display.
+   * @param {number} agreeCount - The agree count to display.
+   * @param {number} disagreeCount - The disagree count to display.
+   * @param {string} aiValidation - Either 'Agree' or 'Disagree', showing AI validation if there is any.
+   * @param {?string} userValidation - The viewer's own vote on this label, or null if they haven't voted.
    */
   constructor(container, agreeCount, disagreeCount, aiValidation, userValidation) {
     this.agreeCount = agreeCount;
@@ -67,7 +67,7 @@ class ValidationInfoDisplay {
   /**
    * Builds an <img> for the agree/disagree vote icon. The icon carries no tooltip of its own; hovering it falls
    * through to the one on its container, so the icon and the count beside it explain the vote the same way.
-   * @param {string} action 'Agree' or 'Disagree'.
+   * @param {string} action - 'Agree' or 'Disagree'.
    * @returns {HTMLImageElement} The icon, in its outline state.
    */
   #makeVoteIcon(action) {
@@ -84,8 +84,8 @@ class ValidationInfoDisplay {
    * Rebuilt from the logical path rather than edited out of the <img>'s current `src`, which carries the outline
    * file's content fingerprint and so can't name the filled one (#5204).
    *
-   * @param {string} action 'Agree' or 'Disagree'.
-   * @param {boolean} filled Whether to use the filled variant rather than the outline one.
+   * @param {string} action - 'Agree' or 'Disagree'.
+   * @param {boolean} filled - Whether to use the filled variant rather than the outline one.
    * @returns {string} The icon's URL.
    */
   #voteIconSrc(action, filled) {
@@ -96,8 +96,8 @@ class ValidationInfoDisplay {
 
   /**
    * Fills or unfills one thumb's icon — the hover hint that the thumb can be clicked to vote.
-   * @param {string} action 'Agree' or 'Disagree'.
-   * @param {boolean} filled Whether the icon should show its filled variant.
+   * @param {string} action - 'Agree' or 'Disagree'.
+   * @param {boolean} filled - Whether the icon should show its filled variant.
    */
   setVoteIconFilled(action, filled) {
     const container = action === 'Agree' ? this.agreeContainer : this.disagreeContainer;
@@ -139,7 +139,7 @@ class ValidationInfoDisplay {
 
   /**
    * Locks both thumbs' tooltips to a single reason, in place of the per-vote text.
-   * @param {string} reason Why validating is blocked on this card.
+   * @param {string} reason - Why validating is blocked on this card.
    */
   setLockReason(reason) {
     this.#lockReason = reason;
@@ -147,9 +147,9 @@ class ValidationInfoDisplay {
   }
 
   /**
-   * @param {number} agreeCount The agree count to display.
-   * @param {number} disagreeCount The disagree count to display.
-   * @param {?string} [userValidation] The viewer's vote once the change lands; omit to leave it as it was.
+   * @param {number} agreeCount - The agree count to display.
+   * @param {number} disagreeCount - The disagree count to display.
+   * @param {?string} [userValidation] - The viewer's vote once the change lands; omit to leave it as it was.
    */
   updateValCounts(agreeCount, disagreeCount, userValidation = this.#userValidation) {
     this.agreeCount = agreeCount;

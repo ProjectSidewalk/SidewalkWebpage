@@ -21,7 +21,7 @@ class MissionContainer {
 
   /**
    * This function adds the current mission to a list of completed missions.
-   * @param {Mission} mission Mission object of the current mission.
+   * @param {Mission} mission - Mission object of the current mission.
    */
   #addToCompletedMissions(mission) {
     const existingMissionIds = this.#completedMissions.map((m) => m.getProperty('missionId'));
@@ -44,8 +44,8 @@ class MissionContainer {
 
   /**
    * Creates a mission by parsing a JSON file.
-   * @param {object} missionMetadata JSON metadata for mission (from backend).
-   * @param {object} progressMetadata JSON metadata about mission progress
+   * @param {object} missionMetadata - JSON metadata for mission (from backend).
+   * @param {object} progressMetadata - JSON metadata about mission progress
    *                                  (counts of agree/disagree/unsure labels for this mission).
    */
   createAMission(missionMetadata, progressMetadata) {
@@ -69,7 +69,7 @@ class MissionContainer {
 
   /**
    * Returns the current mission in progress.
-   * @returns Mission object for the current mission.
+   * @returns {Mission|undefined} The current mission, or undefined if none is in progress.
    */
   getCurrentMission() {
     return this.#currentMission;

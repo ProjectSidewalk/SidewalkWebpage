@@ -88,7 +88,7 @@ class Tracker {
   /**
    * Pushes information to action list (to be submitted to the database).
    * @param {string} action
-   * @param {object} [notes] Notes to be logged into the notes field database.
+   * @param {object} [notes] - Notes to be logged into the notes field database.
    */
   push(action, notes) {
     const item = this.#createAction(action, notes);

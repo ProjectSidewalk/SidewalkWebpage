@@ -3,10 +3,10 @@
  * web-mercator math. Computed by hand because mapbox's instant camera moves silently drop CameraOptions.offset
  * (jumpTo ignores it, and a zero-duration easeTo is treated as a jump) — so to drop a deep-linked dot into the
  * gutter beside the dialog without an animation, we shift the center ourselves instead of passing an offset.
- * @param {Array<number>} coords [lng, lat] to show.
- * @param {number} dx Horizontal pixel offset from the viewport center (positive puts `coords` right of center).
- * @param {number} dy Vertical pixel offset from the viewport center.
- * @param {number} zoom Target zoom (the mercator world size depends on it).
+ * @param {Array<number>} coords - [lng, lat] to show.
+ * @param {number} dx - Horizontal pixel offset from the viewport center (positive puts `coords` right of center).
+ * @param {number} dy - Vertical pixel offset from the viewport center.
+ * @param {number} zoom - Target zoom (the mercator world size depends on it).
  * @returns {Array<number>} The [lng, lat] to pass as the map center.
  */
 function centerShowingLabelAt(coords, dx, dy, zoom) {
@@ -24,13 +24,13 @@ function centerShowingLabelAt(coords, dx, dy, zoom) {
  * gutter beside the centered dialog, a chat-bubble tail connecting the dialog to the dot, and a sidebar-filter
  * bypass so a label the user explicitly asked to see can't be hidden by the active filters.
  *
- * @param {object} host Page adapter.
- * @param {HTMLDialogElement} host.dialog The label popup's <dialog>.
- * @param {function(): ?object} host.getMap Returns the Mapbox map once created (null/undefined before).
- * @param {function(): ?object} host.getMapData Returns the map layer tracker from addLabelsToMap, used for the
+ * @param {object} host - Page adapter.
+ * @param {HTMLDialogElement} host.dialog - The label popup's <dialog>.
+ * @param {function(): ?object} host.getMap - Returns the Mapbox map once created (null/undefined before).
+ * @param {function(): ?object} host.getMapData - Returns the map layer tracker from addLabelsToMap, used for the
  *     filter bypass (null/undefined before the label layers exist).
- * @param {function(number): ?Array<number>} host.getCoords Best known [lng, lat] for a label ID.
- * @param {function(number): ?string} host.getLabelType Best known label type for a label ID.
+ * @param {function(number): ?Array<number>} host.getCoords - Best known [lng, lat] for a label ID.
+ * @param {function(number): ?string} host.getLabelType - Best known label type for a label ID.
  * @returns {{spotlight: function(number, boolean=): void, pulse: function(number): void,
  *     updateTail: function(): void, spotlightedLabelId: function(): ?number}}
  *     `spotlight(labelId, jump)` beacons + positions the camera while the popup shows the label, `pulse(labelId)`

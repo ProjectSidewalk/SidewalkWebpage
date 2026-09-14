@@ -1,7 +1,7 @@
 /**
  * Adds cities to the map as circles and returns a promise.
  *
- * @param {object} map The Mapbox map object.
+ * @param {object} map - The Mapbox map object.
  * @param {object} citiesData - GeoJSON object containing cities to draw on the map.
  * @param {object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.

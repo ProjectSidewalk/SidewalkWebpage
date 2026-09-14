@@ -100,12 +100,12 @@ class PanoramaxViewer extends PanoViewer {
   }
 
   /**
-   * @param {Element} canvasElem Container element to mount the viewer into.
+   * @param {Element} canvasElem - Container element to mount the viewer into.
    * @param {object} panoOptions
-   * @param {string} [panoOptions.startPanoId] Picture to start at; either this or startLatLng is required.
-   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Starting location.
-   * @param {Array<{lat: number, lng: number}>} [panoOptions.backupLatLngs] Fallback locations, tried in order.
-   * @param {boolean} [panoOptions.zoomControl=true] Whether mouse-wheel zoom is enabled (`scrollwheel` also works).
+   * @param {string} [panoOptions.startPanoId] - Picture to start at; either this or startLatLng is required.
+   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] - Starting location.
+   * @param {Array<{lat: number, lng: number}>} [panoOptions.backupLatLngs] - Fallback locations, tried in order.
+   * @param {boolean} [panoOptions.zoomControl=true] - Whether mouse-wheel zoom is enabled (`scrollwheel` also works).
    * @returns {Promise<void>}
    */
   async initialize(canvasElem, panoOptions = {}) {
@@ -259,7 +259,7 @@ class PanoramaxViewer extends PanoViewer {
   /**
    * Prefetches pictures near a location so that a subsequent setLocation() call can skip the API round-trip.
    * Safe to call multiple times — skips the fetch if a nearby prefetch already exists.
-   * @param {{lat: number, lng: number}} latLng The location to prefetch pictures for.
+   * @param {{lat: number, lng: number}} latLng - The location to prefetch pictures for.
    */
   prefetchLocation = (latLng) => {
     const centerPoint = turf.point([latLng.lng, latLng.lat]);
@@ -276,8 +276,8 @@ class PanoramaxViewer extends PanoViewer {
   /**
    * Pre-downloads the picture that setLocation() would pick so a subsequent move there doesn't wait on the network:
    * runs the same search + scoring, then warms the browser cache with its base image, which is what PSV shows first.
-   * @param {{lat: number, lng: number}} latLng The location the next move is expected to target.
-   * @param {Set<PanoData>} [excludedPanos] Panos the next move is expected to exclude.
+   * @param {{lat: number, lng: number}} latLng - The location the next move is expected to target.
+   * @param {Set<PanoData>} [excludedPanos] - Panos the next move is expected to exclude.
    * @returns {Promise<void>}
    */
   preloadPanoNear = async (latLng, excludedPanos = new Set()) => {
@@ -308,8 +308,8 @@ class PanoramaxViewer extends PanoViewer {
    * exists near the location, otherwise fetches and caches it. If a prefetched search yields no viable candidate
    * (e.g. all excluded), falls back to a fresh search centered exactly on the target.
    *
-   * @param {object} center The target location as a turf point.
-   * @param {Set<PanoData>} excludedPanos Panos that are not viable candidates.
+   * @param {object} center - The target location as a turf point.
+   * @param {Set<PanoData>} excludedPanos - Panos that are not viable candidates.
    * @returns {Promise<object|null>} The best candidate's STAC item, or null if none are viable.
    */
   #searchAndSelectPano = async (center, excludedPanos) => {
@@ -328,8 +328,8 @@ class PanoramaxViewer extends PanoViewer {
    * Scores a candidate picture for selection, balancing the same factors with the same weights as
    * MapillaryViewer.#scorePano so the two providers pick comparably.
    *
-   * @param {object} item The picture's STAC item.
-   * @param {object} centerPoint The target location as a turf point.
+   * @param {object} item - The picture's STAC item.
+   * @param {object} centerPoint - The target location as a turf point.
    * @returns {number} A score between 0 and 1 where higher is better.
    */
   #scorePano = (item, centerPoint) => {
@@ -359,9 +359,9 @@ class PanoramaxViewer extends PanoViewer {
 
   /**
    * Filters and scores candidate pictures, returning the best one (or null if none are viable).
-   * @param {Array<object>} items STAC items from a search.
-   * @param {Set<string>} excludedIds Picture ids to exclude.
-   * @param {object} centerPoint The target location as a turf point.
+   * @param {Array<object>} items - STAC items from a search.
+   * @param {Set<string>} excludedIds - Picture ids to exclude.
+   * @param {object} centerPoint - The target location as a turf point.
    * @returns {object|null}
    */
   #selectBestPano = (items, excludedIds, centerPoint) => {
@@ -380,8 +380,8 @@ class PanoramaxViewer extends PanoViewer {
 
   /**
    * Fetches the 360° pictures inside a box around a point.
-   * @param {object} centerPoint The center of the search area as a turf point.
-   * @param {number} radiusM Half the box's side, in meters.
+   * @param {object} centerPoint - The center of the search area as a turf point.
+   * @param {number} radiusM - Half the box's side, in meters.
    * @returns {Promise<Array<object>>} STAC items, each also stored in the id cache.
    */
   #searchNear = async (centerPoint, radiusM) => {
@@ -411,7 +411,7 @@ class PanoramaxViewer extends PanoViewer {
 
   /**
    * Finds the nearest prefetched search to the given point, if one is close enough (within 5 m) to be useful.
-   * @param {object} centerPoint The target location as a turf point.
+   * @param {object} centerPoint - The target location as a turf point.
    * @returns {{centerPoint: object, promise: Promise<Array<object>>}|null}
    */
   #findNearestPrefetch = (centerPoint) => {
@@ -459,7 +459,7 @@ class PanoramaxViewer extends PanoViewer {
    * `field_of_view=360`; `/api/pictures/:id` doesn't, so a stored label id can name a picture with no pyramid, and
    * that has to fail the way a missing picture does rather than as a TypeError the seed fallback can't classify.
    *
-   * @param {object} item The picture's STAC item.
+   * @param {object} item - The picture's STAC item.
    * @returns {object} Its first tile matrix.
    * @throws {NoImageryError} When the picture has no pyramid, tile template, or base image.
    */
@@ -549,7 +549,7 @@ class PanoramaxViewer extends PanoViewer {
    * an arrow only when it opens a genuinely different direction — a cross street — rather than the same road from a
    * parallel pass. Without that filter a dense network (Bayonne: a picture every few meters, several sequences per
    * road) fills all eight compass sectors and the user faces a star of arrows.
-   * @param {object} item The current picture.
+   * @param {object} item - The current picture.
    * @returns {Promise<Array<{panoId: string, heading: number}>>}
    */
   #findLinkedPanos = async (item) => {

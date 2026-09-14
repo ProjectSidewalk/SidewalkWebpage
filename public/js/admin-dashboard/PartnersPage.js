@@ -141,7 +141,10 @@ class PartnersPage {
     return btn;
   }
 
-  /** @param {string} scope @returns {boolean} */
+  /**
+   * @param {string} scope - 'city' or 'global'.
+   * @returns {boolean} Whether this user may edit that scope's partners.
+   */
   #canEdit(scope) {
     return scope === 'city' || this.#isOwner;
   }
@@ -343,7 +346,10 @@ class PartnersPage {
     }
   }
 
-  /** @param {string} scope @returns {HTMLFormElement} */
+  /**
+   * @param {string} scope - 'city' or 'global'.
+   * @returns {HTMLFormElement} That scope's add-partner form.
+   */
   #formFor(scope) {
     return document.querySelector(`.partners-add-form[data-scope="${scope}"]`);
   }

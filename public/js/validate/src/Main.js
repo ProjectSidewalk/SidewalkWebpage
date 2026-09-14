@@ -32,7 +32,7 @@ class Main {
   #param;
 
   /**
-   * @param {object} param Object passed from validation.scala.html containing data from the back end.
+   * @param {object} param - Object passed from validation.scala.html containing data from the back end.
    */
   constructor(param) {
     this.#param = param;

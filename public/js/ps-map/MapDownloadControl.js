@@ -72,13 +72,13 @@ class MapDownloadControl {
 
   /**
    * @param {object} options
-   * @param {() => object} options.getFilterState Returns FilterSidebar.getState()'s shape.
-   * @param {() => number} options.getVisibleLabelCount Returns the number of labels the filters leave visible.
-   * @param {?() => string} [options.getBbox] Returns the current viewport as "minLng,minLat,maxLng,maxLat" to
+   * @param {() => object} options.getFilterState - Returns FilterSidebar.getState()'s shape.
+   * @param {() => number} options.getVisibleLabelCount - Returns the number of labels the filters leave visible.
+   * @param {?() => string} [options.getBbox] - Returns the current viewport as "minLng,minLat,maxLng,maxLat" to
    *      scope downloads to the visible map area (GIS "export what you see", #5002). When provided, regionId is
    *      not sent — the endpoint gives bbox precedence anyway, so it could never narrow the file further.
-   * @param {?number} [options.regionId] Single deep-linked region id to scope downloads to, or null.
-   * @param {boolean} [options.showsPartialFilterCaveat=false] Whether to warn that some page-level filters
+   * @param {?number} [options.regionId] - Single deep-linked region id to scope downloads to, or null.
+   * @param {boolean} [options.showsPartialFilterCaveat=false] - Whether to warn that some page-level filters
    *      (multi-region, routes, AI validation) are not reflected in downloads.
    */
   constructor({ getFilterState, getVisibleLabelCount, getBbox = null, regionId = null,
@@ -99,11 +99,11 @@ class MapDownloadControl {
    * in that case (the endpoint cannot express an empty selection).
    *
    * @param {{severities: number[], allSeverities: number[], sections: object, tags: object,
-   *      allLabelTypes: string[]}} state FilterSidebar.getState()'s shape.
+   *      allLabelTypes: string[]}} state - FilterSidebar.getState()'s shape.
    * @param {object} options
-   * @param {string} options.format One of 'geojson', 'csv', 'shapefile', 'geopackage'.
-   * @param {?number} [options.regionId] Single region id to scope the download to, or null.
-   * @param {?string} [options.bbox] Viewport bbox "minLng,minLat,maxLng,maxLat" to scope the download to, or
+   * @param {string} options.format - One of 'geojson', 'csv', 'shapefile', 'geopackage'.
+   * @param {?number} [options.regionId] - Single region id to scope the download to, or null.
+   * @param {?string} [options.bbox] - Viewport bbox "minLng,minLat,maxLng,maxLat" to scope the download to, or
    *      null. Takes regionId's place when set — see the getBbox constructor option.
    * @returns {string} The relative URL, e.g. "/v3/api/rawLabels?filetype=csv&highQualityUserOnly=true".
    */
@@ -224,7 +224,7 @@ class MapDownloadControl {
 
   /**
    * Opens the panel: refreshes the count line, disables the format actions when nothing is shown, and moves focus in.
-   * @param {boolean} [focusLast=false] Whether to focus the last item instead of the first (ArrowUp convention).
+   * @param {boolean} [focusLast=false] - Whether to focus the last item instead of the first (ArrowUp convention).
    */
   #openPanel(focusLast = false) {
     const count = this.#getVisibleLabelCount();
@@ -251,7 +251,7 @@ class MapDownloadControl {
 
   /**
    * Closes the panel and tears down the outside-click listener.
-   * @param {boolean} [returnFocus=true] Whether to move focus back to the pill (skip on outside-click/Tab).
+   * @param {boolean} [returnFocus=true] - Whether to move focus back to the pill (skip on outside-click/Tab).
    */
   #closePanel(returnFocus = true) {
     this.#panel.hidden = true;
@@ -266,7 +266,7 @@ class MapDownloadControl {
    * Navigates to the rawLabels URL for the current filter state via an ephemeral anchor; the server's
    * Content-Disposition names the downloaded file. Asks the server first whether that exact file is already being
    * built for someone else: the browser download would just fail silently on the 429, so the pill says so instead.
-   * @param {string} format One of 'geojson', 'csv', 'shapefile', 'geopackage'.
+   * @param {string} format - One of 'geojson', 'csv', 'shapefile', 'geopackage'.
    */
   async #triggerDownload(format) {
     const url = MapDownloadControl.buildDownloadUrl(this.#getFilterState(), {
@@ -292,7 +292,7 @@ class MapDownloadControl {
   /**
    * Whether the server is already building this exact file for an earlier request. A HEAD builds nothing; a network
    * failure answers "no" so the download proceeds as it would have anyway.
-   * @param {string} url The download URL.
+   * @param {string} url - The download URL.
    * @returns {Promise<boolean>} True if the server would refuse the download right now.
    */
   static async #alreadyBuilding(url) {
@@ -305,7 +305,7 @@ class MapDownloadControl {
 
   /**
    * Switches the pill's label and announces it, then restores the idle label after a few seconds.
-   * @param {'idle'|'busy'|'refused'} state The label to show.
+   * @param {'idle'|'busy'|'refused'} state - The label to show.
    */
   #setPill(state) {
     let shown;
@@ -324,7 +324,7 @@ class MapDownloadControl {
   /**
    * Renders the count line: the visible-label count in a pill ("17224 labels"), followed by "match your filters".
    * Both halves receive the count so each locale can inflect its own half (e.g. "matches" vs "match").
-   * @param {number} count The current visible-label count.
+   * @param {number} count - The current visible-label count.
    */
   #renderCount(count) {
     const hasI18n = typeof i18next !== 'undefined';
@@ -347,7 +347,7 @@ class MapDownloadControl {
   /**
    * Handles keyboard interaction: ArrowDown/ArrowUp open the panel from the pill; inside it, arrows cycle,
    * Home/End jump, Escape closes and refocuses the pill, and Tab closes while letting focus move on.
-   * @param {KeyboardEvent} e The keydown event.
+   * @param {KeyboardEvent} e - The keydown event.
    */
   #onKeydown(e) {
     if (!this.#open) {
@@ -385,7 +385,7 @@ class MapDownloadControl {
 
   /**
    * Closes the panel when a click lands outside the control.
-   * @param {MouseEvent} e The document-level click event.
+   * @param {MouseEvent} e - The document-level click event.
    */
   #onOutsideClick(e) {
     if (!this.#container.contains(e.target)) this.#closePanel(false);
@@ -393,7 +393,7 @@ class MapDownloadControl {
 
   /**
    * Logs an interaction to the `webpage_activity` table. No-op on pages without the shared logger.
-   * @param {string} activity The activity string, following the Click_module=<Action> convention.
+   * @param {string} activity - The activity string, following the Click_module=<Action> convention.
    */
   #logActivity(activity) {
     window.logWebpageActivity?.(activity);

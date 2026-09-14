@@ -113,9 +113,9 @@ class PopUpMessage {
 
   /**
    * Notification
-   * @param {string} title HTML content to add to the h2 header for the pop-up
-   * @param {string} message HTML content to add to the p body for the pop-up
-   * @param {Function} [callback] Function to call when the user clicks OK to dismiss the pop-up
+   * @param {string} title - HTML content to add to the h2 header for the pop-up
+   * @param {string} message - HTML content to add to the p body for the pop-up
+   * @param {Function} [callback] - Function to call when the user clicks OK to dismiss the pop-up
    * @returns {boolean} Returns true if the message is shown, false if it isn't (because another is already visible)
    */
   notify(title, message, callback) {
@@ -132,13 +132,13 @@ class PopUpMessage {
 
   /**
    * Notification with image
-   * @param {string} title HTML content to add to the h2 header for the pop-up
-   * @param {string} message HTML content to add to the p body for the pop-up
-   * @param {string} image URL of the image to add to the pop-up
-   * @param {string} width width of the image, including units
-   * @param {string} height height of the image, including units
-   * @param {string} x left position of the image, including units
-   * @param {Function} [callback] Function to call when the user clicks OK to dismiss the pop-up
+   * @param {string} title - HTML content to add to the h2 header for the pop-up
+   * @param {string} message - HTML content to add to the p body for the pop-up
+   * @param {string} image - URL of the image to add to the pop-up
+   * @param {string} width - Width of the image, including units
+   * @param {string} height - Height of the image, including units
+   * @param {string} x - Left position of the image, including units
+   * @param {Function} [callback] - Function to call when the user clicks OK to dismiss the pop-up
    * @returns {boolean} Returns true if the message is shown, false if it isn't (because another is already visible)
    */
   notifyWithImage(title, message, image, width, height, x, callback) {
@@ -217,10 +217,10 @@ class PopUpMessage {
 
   /**
    * Adds an image to the pop-up window.
-   * @param {string} image URL of the image.
-   * @param {string} width width of the image, including units
-   * @param {string} height height of the image, including units
-   * @param {string} x left position of the image, including units
+   * @param {string} image - URL of the image.
+   * @param {string} width - Width of the image, including units
+   * @param {string} height - Height of the image, including units
+   * @param {string} x - Left position of the image, including units
    */
   #setImage(image, width, height, x) {
     const img = document.createElement('img');
@@ -238,10 +238,10 @@ class PopUpMessage {
 
   /**
    * Creates a button in the pop-up's button holder; clicking it runs the callback and then hides the pop-up.
-   * @param {string} id HTML id for the button.
-   * @param {string} classNames Space-separated CSS classes for the button.
-   * @param {string} label HTML content of the button.
-   * @param {Function} [callback] Called on click, before the pop-up is hidden.
+   * @param {string} id - HTML id for the button.
+   * @param {string} classNames - Space-separated CSS classes for the button.
+   * @param {string} label - HTML content of the button.
+   * @param {Function} [callback] - Called on click, before the pop-up is hidden.
    * @returns {HTMLButtonElement} The appended button.
    */
   #appendButton(id, classNames, label, callback) {
@@ -261,7 +261,7 @@ class PopUpMessage {
 
   /**
    * Adds the OK button and wires up both dismissal paths (clicking OK and the Enter shortcut).
-   * @param {Function} [callback] Called after the pop-up is hidden.
+   * @param {Function} [callback] - Called after the pop-up is hidden.
    */
   #appendOkButton(callback) {
     const handleClickOk = () => {

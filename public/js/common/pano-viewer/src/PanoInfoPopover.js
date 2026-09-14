@@ -43,21 +43,21 @@ class PanoInfoPopover {
   #watchedViewers = new Set();
 
   /**
-   * @param {HTMLElement} container Element where the info button will be appended
-   * @param {Function} panoViewer Function that returns the currently active PanoViewer
-   * @param {Function} coords Function that returns { lat, lng } for the current position
-   * @param {Function} panoId Function that returns the current panorama/image ID
-   * @param {Function} streetEdgeId Function that returns the current Street Edge ID
-   * @param {Function} regionId Function that returns the current Region ID
-   * @param {Function} panoDate Function that returns the current pano's capture date as a moment object
-   * @param {Function} panoAddress Function that returns the current pano's address string, or null
-   * @param {Function} pov Function that returns the current { heading, pitch }
-   * @param {boolean} whiteIcon True for the white icon variant, false for blue
-   * @param {Function} infoLogging Called when the info button is clicked
-   * @param {Function} clipboardLogging Called when the clipboard button is clicked
-   * @param {Function} viewPanoLogging Called when the view-in-pano link is clicked
-   * @param {Function} [labelId] Optional — returns the Label ID
-   * @param {Function} [labelDate] Optional — returns the label's timestamp as a moment object
+   * @param {HTMLElement} container - Element where the info button will be appended
+   * @param {Function} panoViewer - Function that returns the currently active PanoViewer
+   * @param {Function} coords - Function that returns { lat, lng } for the current position
+   * @param {Function} panoId - Function that returns the current panorama/image ID
+   * @param {Function} streetEdgeId - Function that returns the current Street Edge ID
+   * @param {Function} regionId - Function that returns the current Region ID
+   * @param {Function} panoDate - Function that returns the current pano's capture date as a moment object
+   * @param {Function} panoAddress - Function that returns the current pano's address string, or null
+   * @param {Function} pov - Function that returns the current { heading, pitch }
+   * @param {boolean} whiteIcon - True for the white icon variant, false for blue
+   * @param {Function} infoLogging - Called when the info button is clicked
+   * @param {Function} clipboardLogging - Called when the clipboard button is clicked
+   * @param {Function} viewPanoLogging - Called when the view-in-pano link is clicked
+   * @param {Function} [labelId] - Optional — returns the Label ID
+   * @param {Function} [labelDate] - Optional — returns the label's timestamp as a moment object
    */
   constructor(container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, whiteIcon,
     infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate) {
@@ -82,7 +82,7 @@ class PanoInfoPopover {
 
   /**
    * Creates the info button, wires up event listeners, and unhides optional rows.
-   * @param {HTMLElement} container Element where the info button will be appended
+   * @param {HTMLElement} container - Element where the info button will be appended
    */
   #init(container) {
     if (!this.#popoverEl) {
@@ -135,7 +135,7 @@ class PanoInfoPopover {
    *
    * Called again on every open because viewers are created lazily: Validate and the label card only build their
    * Pannellum viewer once an expired pano needs it, so it doesn't exist yet at construction time.
-   * @param {PanoViewer} viewer The viewer to subscribe to; ignored if null or already subscribed
+   * @param {PanoViewer} viewer - The viewer to subscribe to; ignored if null or already subscribed
    */
   #watchViewer(viewer) {
     if (!viewer || this.#watchedViewers.has(viewer)) return;
@@ -147,7 +147,7 @@ class PanoInfoPopover {
 
   /**
    * Unhides an optional row by removing its hidden modifier class.
-   * @param {string} field The data-optional-row attribute value
+   * @param {string} field - The data-optional-row attribute value
    */
   #showOptionalRow(field) {
     const row = this.#popoverEl.querySelector(`[data-optional-row="${field}"]`);
@@ -193,8 +193,8 @@ class PanoInfoPopover {
 
     /**
      * Sets the text content of a value span identified by [data-field].
-     * @param {string} field The data-field attribute value
-     * @param {string|number|null} val The value to display
+     * @param {string} field - The data-field attribute value
+     * @param {string|number|null} val - The value to display
      */
     const setVal = (field, val) => {
       const span = this.#popoverEl.querySelector(`[data-field="${field}"]`);

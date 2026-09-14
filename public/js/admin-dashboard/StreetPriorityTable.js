@@ -24,7 +24,7 @@ class StreetPriorityTable {
   #wired = false;
 
   /**
-   * @param {string} tableId - id of the <table> element.
+   * @param {string} tableId - ID of the <table> element.
    * @param {{columns: Array<{key: string, label: string, numeric?: boolean, format?: function(object): string,
    *          sortValue?: function(object): (number|string)}>, rowKey: string, searchId?: string,
    *          searchFields?: string[], sortKey?: string, sortDir?: number, onRowClick?: function(number): void,

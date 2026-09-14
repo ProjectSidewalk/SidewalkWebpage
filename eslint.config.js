@@ -164,6 +164,18 @@ module.exports = [
       'jsdoc/check-types': 'error',
       'jsdoc/valid-types': 'error',
       'jsdoc/require-returns-check': 'error',
+      'jsdoc/check-alignment': 'error',
+      'jsdoc/require-param-type': 'error',
+      'jsdoc/require-returns-type': 'error',
+      'jsdoc/require-hyphen-before-param-description': 'error',
+      // A second tag written on the same line (`/** @param {X} x - @returns {Y} */`) is read as description text.
+      'jsdoc/match-description': ['error', {
+        mainDescription: false,
+        tags: Object.fromEntries(['param', 'returns', 'type'].map((tag) => [tag, {
+          match: '^(?![\\s\\S]*(?:^|\\s)@[a-z]+\\b)',
+          message: 'Put each JSDoc tag on its own line.',
+        }])),
+      }],
     },
   },
 

@@ -14,7 +14,7 @@ class HandAnimation {
   #$handGestureHolder;
 
   /**
-   * @param {object} uiOnboarding Onboarding UI elements.
+   * @param {object} uiOnboarding - Onboarding UI elements.
    */
   constructor(uiOnboarding) {
     this.#uiOnboarding = uiOnboarding;
@@ -75,7 +75,7 @@ class HandAnimation {
    * Kineticjs callback: http://www.html5canvastutorials.com/kineticjs/html5-canvas-transition-callback-with-kineticjs/
    * Setposition: http://www.html5canvastutorials.com/labs/html5-canvas-animals-on-the-beach-game-with-kineticjs/
    *
-   * @param {string} direction Either 'left-to-right' or anything else for right-to-left.
+   * @param {string} direction - Either 'left-to-right' or anything else for right-to-left.
    */
   animateHand(direction) {
     if (direction === 'left-to-right') {
@@ -137,7 +137,7 @@ class HandAnimation {
 
   /**
    * Hides the hand animation and stops its loop.
-   * @param {number} [interval] The interval ID returned by showGrabAndDragAnimation.
+   * @param {number} [interval] - The interval ID returned by showGrabAndDragAnimation.
    */
   hideGrabAndDragAnimation(interval) {
     clearInterval(interval);

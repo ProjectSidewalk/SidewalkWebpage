@@ -127,7 +127,10 @@ class AdminUser {
     note.hidden = false;
   }
 
-  /** @param {string} s - Text going into an HTML string. @returns {string} It, with HTML metacharacters escaped. */
+  /**
+   * @param {string} s - Text going into an HTML string.
+   * @returns {string} The text with HTML metacharacters escaped.
+   */
   static #esc(s) {
     return String(s).replace(/[&<>"']/g, (c) =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));

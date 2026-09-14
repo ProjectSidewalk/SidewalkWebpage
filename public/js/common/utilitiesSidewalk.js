@@ -748,7 +748,7 @@ util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'came
  * Old pano_data rows carry nulls for these and PanoData rejects them (#4804). Guards the buildBackupImageData path
  * only — the /backupImage/:panoId/metadata payload is already filtered server-side by `getLocalBackupImage`.
  *
- * @param {?object} data Backup pano metadata in the camelCase shape buildBackupImageData produces, or null.
+ * @param {?object} data - Backup pano metadata in the camelCase shape buildBackupImageData produces, or null.
  * @returns {boolean} True when every field the viewer needs is present and numeric.
  */
 function backupImageDataIsComplete(data) {
@@ -761,13 +761,13 @@ function backupImageDataIsComplete(data) {
  *
  * Returns null if backup_image_url is absent or null, if pano_data is missing, or if pano_data is too incomplete to
  * render (see backupImageDataIsComplete).
- * @param {object} meta Label metadata object from the server.
- * @param {string|null} meta.backup_image_url URL for the self-hosted backup image, or null.
- * @param {object|null} meta.pano_data Nested pano viewer metadata, or null.
- * @param {string} meta.pano_id The panorama ID.
- * @param {number} meta.camera_lat Latitude of the camera.
- * @param {number} meta.camera_lng Longitude of the camera.
- * @param {string} meta.image_capture_date Date the panorama was captured.
+ * @param {object} meta - Label metadata object from the server.
+ * @param {string|null} meta.backup_image_url - URL for the self-hosted backup image, or null.
+ * @param {object|null} meta.pano_data - Nested pano viewer metadata, or null.
+ * @param {string} meta.pano_id - The panorama ID.
+ * @param {number} meta.camera_lat - Latitude of the camera.
+ * @param {number} meta.camera_lng - Longitude of the camera.
+ * @param {string} meta.image_capture_date - Date the panorama was captured.
  * @returns {{metadata: object}|null}
  */
 function buildBackupImageData(meta) {

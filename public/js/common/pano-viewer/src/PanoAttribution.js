@@ -11,9 +11,9 @@
  * The container must establish a CSS positioning context, as for createPanoViewerLogo. Each host positions the
  * overlay where its own controls leave room; the look lives in css/components/pano-attribution.css.
  *
- * @param {Element} container The positioned pano container element.
+ * @param {Element} container - The positioned pano container element.
  * @param {object} [options]
- * @param {boolean} [options.compact=false] Card-sized form: smaller type, wrapping rather than truncating, and no
+ * @param {boolean} [options.compact=false] - Card-sized form: smaller type, wrapping rather than truncating, and no
  *     provider name, since the source logo opposite it is already carrying that.
  * @returns {{ show: Function, hide: Function }}
  */
