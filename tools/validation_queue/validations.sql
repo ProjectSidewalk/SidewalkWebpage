@@ -10,6 +10,9 @@
 --
 -- Rows come out grouped by label and ordered within a label, so the replay's running margin is well defined without
 -- a sort that depends on timestamp ties; label_validation_id breaks a tie the same way every run.
+--
+-- is_ai is an EXISTS over sidewalk_login.user_role rather than a join, for the same reason as pool.sql's ai_labeler:
+-- a user with several role rows would otherwise have every vote counted once per row.
 SET search_path = :schema;
 
 COPY (
@@ -19,11 +22,11 @@ COPY (
            label_validation.end_timestamp,
            label_validation.source,
            label_validation.user_id = label.user_id AS self_vote,
-           sidewalk_login.user_role.role = 'AI' AS is_ai
+           EXISTS (SELECT 1 FROM sidewalk_login.user_role
+                   WHERE user_role.user_id = label_validation.user_id AND user_role.role = 'AI') AS is_ai
     FROM label_validation
     INNER JOIN label ON label_validation.label_id = label.label_id
     :label_type_join
-    INNER JOIN sidewalk_login.user_role ON label_validation.user_id = sidewalk_login.user_role.user_id
     WHERE label.deleted = FALSE
         AND label.tutorial = FALSE
     ORDER BY label_validation.label_id, label_validation.end_timestamp, label_validation.label_validation_id

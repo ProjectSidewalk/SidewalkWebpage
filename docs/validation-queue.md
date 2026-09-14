@@ -107,7 +107,7 @@ The score is turned into a serve rate by an Efraimidis–Spirakis weighted sampl
 row gets a key and the query takes the top rows by that key:
 
 ```sql
-ORDER BY ln(random()) / power(greatest(score, 1), 2) DESC
+ORDER BY ln(1 - random()) / power(greatest(score, 1), 2) DESC
 ```
 
 This is the exponential-race form of the same sampler: `−ln(U)/w` is an Exponential(w) draw, so the smallest such draw
@@ -127,11 +127,13 @@ Bounded jitter (`score + random() * 25`) was considered and rejected: it is effe
 concurrent validator gets the same handful of top-scoring labels, which recreates the pile-on the sampler exists to
 prevent.
 
-`greatest(score, 1)` guards the division. Postgres `random()` is in `[0, 1)`; `ln(0) = -Infinity` sorts last, which is
-harmless. Each batch is a fresh sample, so `findValidLabelsForType`'s accumulator dedupe and its `drop(offset)` behave
-the same as for any other randomized query, and its post-query shuffle (which de-clusters the 50 → 10 selection) still
-applies — except for NoSidewalk, which keeps the sampled order so its one-label-per-face rule keeps each face's
-highest-ranked label (see [NoSidewalk](#nosidewalk-the-block-face-is-the-unit)). The clamp also sets the floor of the
+`greatest(score, 1)` guards the division. The draw is `1 − random()`, in `(0, 1]`: Postgres `random()` can return
+exactly 0, and its `ln(0)` raises "cannot take logarithm of zero" rather than returning `-Infinity`, which would fail
+the whole query for that page load. Each batch is a fresh sample, and each batch's query excludes the labels the walk
+already holds, so `findValidLabelsForType`'s `drop(offset)` behaves the same as for any other randomized query, and
+its post-query shuffle (which de-clusters the 50 → 10 selection) still applies — except for NoSidewalk, which keeps
+the sampled order so its one-label-per-face rule keeps each face's highest-ranked label (see
+[NoSidewalk](#nosidewalk-the-block-face-is-the-unit)). The clamp also sets the floor of the
 soft deprioritization below: a face with very many agreeing votes scores under 1 and shares the minimum weight with
 every other such face, still servable, never certain.
 
@@ -140,7 +142,10 @@ every other such face, still servable, never certain.
 `getLabelTypeToValidate` picks the mission's label type before any labels are drawn.
 `getAvailableValidationsLabelsByType` returns, per label type, how many labels the user could validate at all and how
 many of those each queue holds — computed with the *same* predicates as the label query, so type selection and label
-selection cannot disagree about what "needs validation" means.
+selection cannot disagree about what "needs validation" means. It runs on every Validate page load and mission
+completion, so the two dearer counts are only taken for a cascade that can read them: the `Triage` count (which joins
+the AI's vote onto every servable label) only when the cascade has a `Triage` queue, and the `NoSidewalk` face count
+only when the cascade has `NeedsVotes` and the mission is not pinned to another type.
 
 1. Keep types with at least one full mission's worth of available labels, honoring a requested type if there is one.
    The counts apply `unvalidatedOnly` when the page does, so they describe the same pool the label query draws from.
@@ -151,9 +156,12 @@ selection cannot disagree about what "needs validation" means.
    its counts carry no priority signal.
 3. Give every remaining type a 2% floor and split the rest in proportion to its weight, then draw. In `NeedsVotes` a
    type weighs its labels still needing votes — except `NoSidewalk`, which weighs its **block faces** still needing
-   votes (`LabelTypeValidationsLeft.facesNeedingVotes`): Seattle has ~138k undecided labels across the other types and
+   votes (`LabelTypeValidationsLeft.weightFor`): Seattle has ~138k undecided labels across the other types and
    ~9k `NoSidewalk` faces, so `NoSidewalk` takes roughly 6–8% of missions plus the floor, rather than the quarter its
-   48k labels would claim.
+   48k labels would claim. A type with labels enough but no weight cannot win a queue
+   (`LabelTypeValidationsLeft.canFill`); that only ever bites `NoSidewalk`, whose labels can all sit on faces the crowd
+   has settled, and it keeps such a city from getting every mission on finished faces — the cascade falls through to
+   `Any` instead.
 
 ## NoSidewalk: the block face is the unit
 
@@ -177,14 +185,16 @@ every query uses (not deleted, not tutorial, labeler not excluded):
 
 | column | meaning |
 |---|---|
-| `labelerCount` | distinct **human** labelers with a `NoSidewalk` label on the face (the AI's labels, when #3995 lands, do not count as a second opinion) |
+| `labelerCount` | distinct **human** labelers with a `NoSidewalk` label on the face (the AI's labels, when #3995 lands, do not count as a second opinion). `sidewalk_presence.no_sidewalk_user_count` counts every labeler; the two agree until an AI labeler places a `NoSidewalk` label, and the human-only rule is the one to carry over then |
 | `support` | agreeing **human** votes across the face's labels: `sum(agree_count − AI Agree)`, because the AI's vote sits inside `agree_count` and a face whose labels were all AI-agreed must not sink before a human has looked |
 | `labelCount` | labels on the face, for the tooling |
 
 It is computed in the label query itself, not read from the nightly `sidewalk_presence` table, so a vote cast a
 minute ago already lowers its face's priority; otherwise the same face would be served to every validator online that
 day. The label query `LEFT JOIN`s it only when the requested type is `NoSidewalk`; every other type's query is
-unchanged. Disagreeing votes are deliberately not aggregated — see the score.
+unchanged. Disagreeing votes are deliberately not aggregated — see the score. Whether a labeler is the AI is an
+`EXISTS` on `user_role`, not a join: nothing makes `user_role.user_id` unique, and a labeler with two role rows would
+otherwise have every label of theirs counted twice (and served twice by the label query, which uses the same test).
 
 ### The NoSidewalk score
 
@@ -216,11 +226,13 @@ support with no servable label, because one AI Agree flips `correct`, which is t
   counting toward the share but stay servable. `needsVotes` itself stays label-based, because the mission-length gate
   reads it; `Triage` is label-based too (an expert clearing a stuck label is per-label work); `Any` is uniform.
 - **One label per face per mission**, distinct streets preferred (`LabelServiceImpl.spreadAcrossFaces`). The fetch
-  keeps the sampler's order, so the rule keeps each face's highest-ranked label; faces the client already holds (a
-  `/validationTask/moreLabels` top-up) count as taken. The rule runs as a batch hook inside `findValidLabelsForType`,
-  *before* the imagery check, so the labels it drops cost no provider lookups; only when the queue cannot fill the
-  mission that way does a second pass fall back to more labels from the same faces. An unsided label is a face of its
-  own, so two unsided labels on one street are two candidates, not one.
+  keeps the sampler's order, so the rule keeps each face's highest-ranked label. Faces already taken — by the client
+  (a `/validationTask/moreLabels` top-up), by an earlier queue in the cascade, or by an earlier batch of the same
+  walk — are excluded in the query itself (`excludedFaces`), so a face with many high-scoring labels cannot fill a
+  batch with rows the rule would drop; within a batch the rule runs as a hook inside `findValidLabelsForType`,
+  *before* the imagery check, so the labels it drops cost no provider lookups. Only when the whole cascade cannot fill
+  the mission that way does a second pass fall back to more labels from the same faces. An unsided label is a face of
+  its own, so two unsided labels on one street are two candidates, not one.
 - `LabelValidationMetadata` carries `streetSide`, sent to the page as `street_side`; the frontend does not read it.
 
 ### Performance
@@ -292,8 +304,9 @@ true**: an expert minute goes to the labels the crowd cannot finish. `?triage=fa
 serves. `/validate` and `/mobile` have no such parameter and always use the crowd cascade.
 
 The flag rides `ValidateHelper.ValidateParams` as `triage`, which `require`s `adminVersion` the same way `labelType`
-and `userIds` do, and `ValidateController.paramsAllowedFor` rebuilds a non-admin's params without the admin-only
-fields — so a non-admin who posts `triage: true` gets the crowd cascade. The Twirl views embed it in
+and `userIds` do; the JSON reader checks the same constraint before building the params, so a body that breaks it is
+a 400 rather than the 500 the constructor's exception would be. `ValidateController.paramsAllowedFor` rebuilds a
+non-admin's params without the admin-only fields — so a non-admin who posts `triage: true` gets the crowd cascade. The Twirl views embed it in
 `param.validateParams`, and `public/js/validate/src/data/Form.js` sends it back as `validate_params.triage`; the JSON
 reader defaults a missing field to `false`, so a tab opened before the field existed still submits successfully.
 
@@ -319,8 +332,10 @@ All of these are `val`s in `ValidationQueuePolicy`, pinned by `test/service/Vali
 | `AgePointsPerYear` / `AgeBonusMax` | 10 / 60 | `NoSidewalk` only. Older labels first; the cap is where 2019 and 2020 labels tie rather than 2019 dominating. |
 | `FaceSettledSupport` | 2 | `NoSidewalk` only. Agreeing votes on a face at which it stops counting toward `NoSidewalk`'s mission share (still servable). Mirrors `SettledMargin` for the lottery alone. |
 
-`MaxScore` (425) is the sum of the four label terms; `NoSidewalk` adds its face terms on top. It is documented for
-readers and is not used in the sort.
+`MaxScore` (425) is the sum of the four label terms; `NoSidewalk` adds its face terms on top. The sort never reads
+it; the sampler spec sizes its bands from it. `NewLabelerOwnLabelsValidated` is
+`UserStatTable.OwnLabelsValidatedToJudge`, the threshold under which `high_quality` stops trusting accuracy, so the
+two cannot drift apart.
 
 ## Evidence (Seattle, 2026-09)
 

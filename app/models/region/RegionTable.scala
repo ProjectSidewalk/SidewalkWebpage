@@ -61,7 +61,7 @@ class RegionTable @Inject() (
       .sortBy(_._1._2.desc)
       .take(5)
       .map(_._2) // Take the 5 with highest average priority
-      .sortBy(_ => SimpleFunction.nullary[Double]("random"))
+      .sortBy(_ => random)
       .result
       .headOption // Randomly select one of the 5
   }

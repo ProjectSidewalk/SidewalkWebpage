@@ -16,6 +16,9 @@
 -- that make up the face, who placed the label and whether that was the AI, and the label's age. The analysis reports
 -- every table both with and without NoSidewalk, so the other six types' queue can be read on its own.
 --
+-- ai_labeler is an EXISTS over sidewalk_login.user_role rather than a join: a user can hold several role rows, and a
+-- join would repeat every one of their labels once per row.
+--
 -- Policy inputs are exported raw (own_labels_validated, low_quality, stale) rather than pre-reduced to a boolean, so
 -- the analysis can vary the new-labeler threshold without a new export.
 --
@@ -41,13 +44,13 @@ COPY (
            label.street_edge_id,
            :street_side_expr AS street_side,
            label.user_id AS labeler_id,
-           sidewalk_login.user_role.role = 'AI' AS ai_labeler,
+           EXISTS (SELECT 1 FROM sidewalk_login.user_role
+                   WHERE user_role.user_id = label.user_id AND user_role.role = 'AI') AS ai_labeler,
            EXTRACT(EPOCH FROM now() - label.time_created) / 31557600 AS age_years
     FROM label
     :label_type_join
     INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
     INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
-    INNER JOIN sidewalk_login.user_role ON user_stat.user_id = sidewalk_login.user_role.user_id
     INNER JOIN label_point ON label.label_id = label_point.label_id
     INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
     INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id

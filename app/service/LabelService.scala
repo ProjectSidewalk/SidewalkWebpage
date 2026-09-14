@@ -124,26 +124,9 @@ object LabelServiceImpl {
       missionLength: Int
   ): (ValidationQueue, Seq[LabelTypeValidationsLeft]) = {
     queues
-      .map(queue => (queue, candidates.filter(_.countFor(queue) >= missionLength)))
+      .map(queue => (queue, candidates.filter(_.canFill(queue, missionLength))))
       .find { case (_, types) => types.nonEmpty }
       .getOrElse((ValidationQueue.Any, Seq.empty[LabelTypeValidationsLeft]))
-  }
-
-  /**
-   * How much a label type's share of the type lottery is weighted.
-   *
-   * `Any` is the endless-game fallback rather than a statement about what needs validating, so it weighs every type
-   * equally; the other queues weigh a type by how many labels it has left in that queue — except NoSidewalk in the
-   * crowd's queue, which weighs by block faces still needing votes (#5285): its labels are placed every pano or two
-   * along a sidewalk-less stretch, so counting them would hand it most missions for work that is finite per face.
-   * `Triage` stays label-based for it too, since an expert clearing a stuck label is still per-label work.
-   */
-  private[service] def typeWeight(queue: ValidationQueue, labelType: LabelTypeValidationsLeft): Int = {
-    queue match {
-      case ValidationQueue.Any        => 1
-      case ValidationQueue.NeedsVotes => labelType.facesNeedingVotes.getOrElse(labelType.countFor(queue))
-      case ValidationQueue.Triage     => labelType.countFor(queue)
-    }
   }
 
   /**
@@ -166,39 +149,40 @@ object LabelServiceImpl {
   }
 
   /**
-   * Picks at most one label per block face from `candidates`, keeping their order, and preferring faces on streets no
-   * pick has touched yet (#5285).
+   * Picks one label per block face from `candidates`, faces on streets no pick has touched yet first (#5285).
    *
-   * Two passes: first every candidate whose face and street are both new, then any whose face is new. Walking in order
-   * means "one per face" keeps the face's highest-ranked label, which is why the NoSidewalk fetch does not shuffle.
-   * Filling with a second label from a face the mission already holds is the caller's decision, not this method's.
+   * Two passes: first every candidate whose face and street are both new, then any whose face is new, each in the
+   * candidates' order. Walking in order means "one per face" keeps the face's highest-ranked label, which is why the
+   * NoSidewalk fetch does not shuffle. Every face is picked from rather than only a mission's worth: the caller checks
+   * imagery next and keeps what it needs, and a pick that fails that check should not cost a face further down. Filling
+   * with a second label from a face the mission already holds is the caller's decision, not this method's.
    *
    * @param candidates Labels in priority order.
-   * @param heldFaces  Faces the mission already holds (labels the client was handed earlier).
-   * @param n          How many to pick.
-   * @return           Up to `n` labels, one per face, in their original order.
+   * @param heldFaces  Faces the mission already holds, whose streets count as touched.
+   * @return           One label per face not already held, distinct-street picks first.
    */
   private[service] def spreadAcrossFaces(
       candidates: Seq[LabelValidationMetadata],
-      heldFaces: Set[FaceKey],
-      n: Int
+      heldFaces: Set[FaceKey]
   ): Seq[LabelValidationMetadata] = {
     val picked      = scala.collection.mutable.ArrayBuffer.empty[LabelValidationMetadata]
+    val pickedIds   = scala.collection.mutable.Set.empty[Int]
     val usedFaces   = scala.collection.mutable.Set.empty[FaceKey] ++ heldFaces
     val usedStreets = scala.collection.mutable.Set.empty[Int] ++ heldFaces.map(_.streetEdgeId)
 
     def take(label: LabelValidationMetadata): Unit = {
       picked += label
+      pickedIds += label.labelId
       usedFaces += FaceKey.of(label)
       usedStreets += label.streetEdgeId
     }
 
     candidates.foreach { label =>
-      if (picked.size < n && !usedFaces.contains(FaceKey.of(label)) && !usedStreets.contains(label.streetEdgeId))
-        take(label)
+      if (!usedFaces.contains(FaceKey.of(label)) && !usedStreets.contains(label.streetEdgeId)) take(label)
     }
-    candidates.foreach { label => if (picked.size < n && !usedFaces.contains(FaceKey.of(label))) take(label) }
-    candidates.filter(picked.contains)
+    candidates.foreach { label => if (!usedFaces.contains(FaceKey.of(label))) take(label) }
+    // Back to the candidates' order: the second pass appended its picks after the first's.
+    candidates.filter(label => pickedIds.contains(label.labelId))
   }
 }
 
@@ -360,19 +344,25 @@ class LabelServiceImpl @Inject() (
       val nPerType: Int = math.max(1, n / typesToSpread.size)
       Future
         .sequence(typesToSpread.map { labelType =>
-          findValidLabelsForType(
-            labelTable.getGalleryLabelsQuery(
-              viewer,
-              labelType,
-              loadedLabelIds,
-              valOptions,
-              regionIds,
-              severity,
-              tagsByLabelType.getOrElse(labelType, Set()),
-              aiValOptions,
-              userId,
-              recentFirst
-            ),
+          // The type arguments are spelled out because nothing else in the call pins the label type down.
+          findValidLabelsForType[
+            LabelValidationMetadata,
+            LabelValidationMetadataTupleRep,
+            LabelValidationMetadataTuple
+          ](
+            _ =>
+              labelTable.getGalleryLabelsQuery(
+                viewer,
+                labelType,
+                loadedLabelIds,
+                valOptions,
+                regionIds,
+                severity,
+                tagsByLabelType.getOrElse(labelType, Set()),
+                aiValOptions,
+                userId,
+                recentFirst
+              ),
             randomize = true,
             useCrops = true,
             nPerType
@@ -411,75 +401,93 @@ class LabelServiceImpl @Inject() (
       excludedLabelIds: Set[Int] = Set.empty
   ): Future[Seq[LabelValidationMetadata]] = {
     // TODO can we make this and the Gallery queries transactions to prevent label dupes?
-    def query(queue: ValidationQueue, excluded: Set[Int]) = labelTable.retrieveLabelListForValidationQuery(
-      userId, viewer, labelType, queue, configService.getAiTagSuggestionsEnabled, userIds, regionIds, unvalidatedOnly,
-      excluded
-    )
+    def query(queue: ValidationQueue, excluded: Set[Int], excludedFaces: Set[LabelServiceImpl.FaceKey]) =
+      labelTable.retrieveLabelListForValidationQuery(
+        userId,
+        viewer,
+        labelType,
+        queue,
+        configService.getAiTagSuggestionsEnabled,
+        userIds,
+        regionIds,
+        unvalidatedOnly,
+        excluded,
+        // An unsided label is a face of its own, and it is already excluded by id.
+        excludedFaces.collect { case LabelServiceImpl.FaceKey(edge, Some(side), _) => (edge, side) }
+      )
 
-    // Drain the cascade: each queue tops up what the earlier ones left short, never handing back a label already held.
+    // Drain the cascade: each queue tops up what the earlier ones left short. The labels held so far — by the client
+    // and by every queue before this one — ride along as the walk's accumulator, so each batch's query excludes them
+    // (and, for a one-per-face mission, their faces) and the per-batch selector sees the whole mission.
     def drainCascade(
         alreadyFound: Seq[LabelValidationMetadata],
         randomize: Boolean,
-        selectFromBatch: (Seq[LabelValidationMetadata], Seq[LabelValidationMetadata]) => Seq[LabelValidationMetadata]
+        oneLabelPerFace: Boolean,
+        heldFaces: Set[LabelServiceImpl.FaceKey]
     ): Future[Seq[LabelValidationMetadata]] = {
+      def facesTaken(held: Seq[LabelValidationMetadata]): Set[LabelServiceImpl.FaceKey] =
+        if (oneLabelPerFace) heldFaces ++ held.map(LabelServiceImpl.FaceKey.of) else Set.empty
+      val selectFromBatch
+          : (Seq[LabelValidationMetadata], Seq[LabelValidationMetadata]) => Seq[LabelValidationMetadata] =
+        if (oneLabelPerFace) (batch, held) => LabelServiceImpl.spreadAcrossFaces(batch, facesTaken(held))
+        else (batch, _) => batch
+
       queues.foldLeft(Future.successful(alreadyFound)) { (foundSoFar, queue) =>
         foundSoFar.flatMap { found =>
           if (found.size >= n) Future.successful(found)
           else
             findValidLabelsForType(
-              query(queue, excludedLabelIds ++ found.map(_.labelId)),
+              (held: Seq[LabelValidationMetadata]) =>
+                query(queue, excludedLabelIds ++ held.map(_.labelId), facesTaken(held)),
               randomize,
               useCrops = false,
               n - found.size,
+              accumulator = found,
               selectFromBatch = selectFromBatch
-            ).map(found ++ _)
+            )
         }
       }
     }
 
     if (labelType != LabelTypeEnum.NoSidewalk) {
-      drainCascade(Seq.empty, randomize = true, (batch, _) => batch)
+      drainCascade(Seq.empty, randomize = true, oneLabelPerFace = false, Set.empty)
     } else {
       // A NoSidewalk mission holds one label per block face, distinct streets preferred, so a validator sees the city's
       // faces rather than ten labels along one stretch (#5285). The fetch keeps the sampler's order, so "one per face"
       // keeps each face's highest-ranked label. Faces the client already holds (a top-up) count as taken. Only once
-      // the queue cannot fill the mission that way does a second pass fall back to more labels from the same faces.
+      // the whole cascade cannot fill the mission that way does a second pass fall back to more labels from the same
+      // faces; that pass re-runs the queue queries, but only in a city whose faces have run out, where they are small.
       for {
         heldFaces <- db
           .run(labelTable.getFacesOfLabels(excludedLabelIds))
           .map(_.map { case (labelId, edge, side) =>
             LabelServiceImpl.FaceKey.of(edge, side, labelId)
           }.toSet)
-        spread <- drainCascade(
-          Seq.empty,
-          randomize = false,
-          (batch, accumulated) => {
-            val faces = heldFaces ++ accumulated.map(LabelServiceImpl.FaceKey.of)
-            LabelServiceImpl.spreadAcrossFaces(batch, faces, n - accumulated.size)
-          }
-        )
+        spread <- drainCascade(Seq.empty, randomize = false, oneLabelPerFace = true, heldFaces)
         filled <-
-          if (spread.size >= n) Future.successful(spread) else drainCascade(spread, randomize = true, (b, _) => b)
+          if (spread.size >= n) Future.successful(spread)
+          else drainCascade(spread, randomize = true, oneLabelPerFace = false, Set.empty)
       } yield filled
     }
   }
 
   /**
    * Query labels from the db in batches until we have enough labels that have imagery available. Works recursively.
-   * @param labelQuery Query to get labels from the db.
+   * @param queryFor Builds the query for a batch from the labels the walk holds so far, so a query that can exclude
+   *                 those rows (and, for NoSidewalk, their block faces) does, and every batch is fresh candidates.
    * @param randomize Whether to randomize the label order or not.
    * @param useCrops If true, local static crop of pano around the label also works as well as an API call.
    * @param remaining Number of labels remaining to get.
    * @param offset Number of rows to skip; each batch advances it by the number of rows it read.
-   * @param accumulator Accumulator of labels we've found so far.
-   * @param selectFromBatch Narrows a fetched batch (after any shuffle, before the imagery check) given the labels found
+   * @param accumulator Labels held so far, the caller's included; the result contains them, and each batch's query
+   *                    and selector are given them.
+   * @param selectFromBatch Narrows a fetched batch (after any shuffle, before the imagery check) given the labels held
    *                        so far; the NoSidewalk one-per-face rule. Runs before the imagery check so that the labels
-   *                        it drops cost no provider lookups. A batch it empties ends the recursion, which is how the
-   *                        caller learns the rule can no longer be satisfied from what is left.
+   *                        it drops cost no provider lookups.
    * @param tupleConverter Implicit converter to convert the tuple from the db to the appropriate case class.
    */
   private def findValidLabelsForType[A <: BasicLabelMetadata, TupleRep, Tuple](
-      labelQuery: Query[TupleRep, Tuple, Seq],
+      queryFor: Seq[A] => Query[TupleRep, Tuple, Seq],
       randomize: Boolean,
       useCrops: Boolean,
       remaining: Int,
@@ -492,8 +500,9 @@ class LabelServiceImpl @Inject() (
     } else {
       val batchSize = remaining * 5 // Get 5x the needed amount, shouldn't need to query again.
 
-      // Query for a batch of labels.
-      db.run(labelQuery.drop(offset).take(batchSize).result)
+      // The query is built against what the walk holds so far, so a caller whose query can exclude those rows never
+      // sees them again; the offset still walks past rows an earlier batch read.
+      db.run(queryFor(accumulator).drop(offset).take(batchSize).result)
         .map(l => l.map(tupleConverter.fromTuple))
         .flatMap { labels =>
           // Randomize the labels to prevent similar labels in a mission.
@@ -516,7 +525,7 @@ class LabelServiceImpl @Inject() (
             } else {
               // Add the valid labels to the accumulator and recurse.
               findValidLabelsForType(
-                labelQuery,
+                queryFor,
                 randomize,
                 useCrops,
                 remaining - newValidLabels.size,
@@ -604,9 +613,11 @@ class LabelServiceImpl @Inject() (
       queues: Seq[ValidationQueue],
       unvalidatedOnly: Boolean
   ): Future[Option[LabelTypeEnum.Base]] = {
-    db.run(labelTable.getAvailableValidationsLabelsByType(userId, viewerType, unvalidatedOnly).map { availValidations =>
+    val counts =
+      labelTable.getAvailableValidationsLabelsByType(userId, viewerType, unvalidatedOnly, queues, requiredLabelType)
+    db.run(counts.map { availValidations =>
       // NoSidewalk competes like any other type; its weight in the lottery is its count of block faces still needing
-      // votes rather than its label count (LabelServiceImpl.typeWeight, #5285).
+      // votes rather than its label count (LabelTypeValidationsLeft.weightFor, #5285).
       val candidates: Seq[LabelTypeValidationsLeft] = availValidations
         .filter(_.validationsAvailable >= missionLength)
         .filter(x => requiredLabelType.isEmpty || requiredLabelType.contains(x.labelType))
@@ -619,13 +630,9 @@ class LabelServiceImpl @Inject() (
       } else {
         // Each label type has at least a 2% chance of being selected. Remaining probability is divvied up
         // proportionally based on how many labels of that type the chosen queue holds.
-        val totalWeight: Int = typesFiltered.map(t => LabelServiceImpl.typeWeight(queue, t)).sum
+        val totalWeight: Int                                     = typesFiltered.map(_.weightFor(queue)).sum
         val typeProbabilities: Seq[(LabelTypeEnum.Base, Double)] = typesFiltered.map { t =>
-          (
-            t.labelType,
-            0.02 + (1 - typesFiltered.length * 0.02)
-              * (LabelServiceImpl.typeWeight(queue, t).toDouble / totalWeight)
-          )
+          (t.labelType, 0.02 + (1 - typesFiltered.length * 0.02) * (t.weightFor(queue).toDouble / totalWeight))
         }
 
         // Get cumulative probabilities.
@@ -797,8 +804,8 @@ class LabelServiceImpl @Inject() (
     // Get labels for each type in parallel.
     Future
       .sequence(labelTypes.map { labelType =>
-        findValidLabelsForType(
-          labelTable.getValidatedLabelsForUserQuery(userId, labelType),
+        findValidLabelsForType[LabelMetadataUserDash, LabelMetadataUserDashTupleRep, LabelMetadataUserDashTuple](
+          _ => labelTable.getValidatedLabelsForUserQuery(userId, labelType),
           randomize = false,
           useCrops = true,
           nPerType

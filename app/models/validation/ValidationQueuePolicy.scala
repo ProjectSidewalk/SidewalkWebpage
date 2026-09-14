@@ -2,7 +2,7 @@ package models.validation
 
 import models.audit.AuditTaskTableDef
 import models.label.LabelTableDef
-import models.user.UserStatTableDef
+import models.user.{UserStatTable, UserStatTableDef}
 import models.utils.MyPostgresProfile.api._
 
 import java.time.{Duration, OffsetDateTime}
@@ -29,8 +29,11 @@ object ValidationQueuePolicy {
   /** Unsure votes at or above which, when they also outnumber agree + disagree, a label is "unsure-heavy". */
   val UnsureHeavyMinVotes: Int = 2
 
-  /** A labeler with fewer own labels validated than this is new, and their labels get [[NewLabelerBonus]]. */
-  val NewLabelerOwnLabelsValidated: Int = 50
+  /**
+   * A labeler with fewer own labels validated than this is new, and their labels get [[NewLabelerBonus]]. It is the
+   * same threshold under which `user_stat.high_quality` stops trusting accuracy: too few verdicts to judge them yet.
+   */
+  val NewLabelerOwnLabelsValidated: Int = UserStatTable.OwnLabelsValidatedToJudge
 
   val NewLabelerBonus: Double         = 150
   val HighQualityLabelerBonus: Double = 50
@@ -38,7 +41,7 @@ object ValidationQueuePolicy {
   val RecencyBonus: Double            = 25
   val RecencyWindowDays: Int          = 7
 
-  /** Highest score a label can have; documented for readers, not used in the sort. NoSidewalk adds its face terms. */
+  /** Highest score a label can have, which the sampler spec sizes its bands from. NoSidewalk adds its face terms. */
   val MaxScore: Double = NewLabelerBonus + HighQualityLabelerBonus + ConsensusNeedMax + RecencyBonus
 
   /**
@@ -189,7 +192,7 @@ object ValidationQueuePolicy {
    */
   case class FaceEvidenceRep(labelerCount: Rep[Option[Int]], support: Rep[Option[Int]])
 
-  /** Seconds since the label was placed; `extract(epoch from …)` is the one portable way to get an interval as a number. */
+  /** Seconds since the label was placed; `extract(epoch from …)` is the portable way to read an interval as a number. */
   private val ageSeconds = SimpleExpression.unary[OffsetDateTime, Double] { (timeCreated, qb) =>
     qb.sqlBuilder += "extract(epoch from (current_timestamp - "
     qb.expr(timeCreated)
@@ -241,7 +244,6 @@ object ValidationQueuePolicy {
   def faceNeedsVotes(support: Rep[Option[Int]]): Rep[Boolean] =
     support.isDefined && support.getOrElse(0) < FaceSettledSupport
 
-  private val random   = SimpleFunction.nullary[Double]("random")
   private val ln       = SimpleFunction.unary[Double, Double]("ln")
   private val power    = SimpleFunction.binary[Double, Double, Double]("power")
   private val greatest = SimpleFunction.binary[Double, Double, Double]("greatest")
@@ -254,11 +256,12 @@ object ValidationQueuePolicy {
    *
    * This is the exponential-race form, `ln(U) / weight`: it is the logarithm of the textbook `U^(1/weight)` key, which
    * orders identically and keeps the arithmetic away from the 1-epsilon corner where every key of a large weight would
-   * round to the same double. `greatest(score, 1)` guards the division in case a future tunable lets the score reach 0;
-   * `random()` is in [0, 1), and the ln(0) = -infinity that yields simply sorts last, which is harmless.
+   * round to the same double. `greatest(score, 1)` guards the division in case a future tunable lets the score reach 0.
+   * The draw is `1 - random()`, in (0, 1]: `random()` itself can return exactly 0, and Postgres's `ln(0)` raises
+   * "cannot take logarithm of zero" rather than returning -infinity, which would fail the whole query.
    *
    * @param score The label's deterministic priority, from [[priorityScore]].
    */
   def pickKey(score: Rep[Double]): Rep[Double] =
-    ln(random) / power(greatest(score, 1d.bind), PickWeightExponent.bind)
+    ln(1d.bind - random) / power(greatest(score, 1d.bind), PickWeightExponent.bind)
 }

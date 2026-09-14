@@ -8,7 +8,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsNull, JsObject, JsValue, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
@@ -40,15 +40,7 @@ class ValidateAdminParamsSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   private val XHR = "X-Requested-With" -> "XMLHttpRequest"
 
-  /** `validate_params` claiming Expert Validate's admin view. */
-  private val AdminClaim: JsObject = Json.obj(
-    "admin_version"    -> true,
-    "label_type"       -> JsNull,
-    "user_ids"         -> JsNull,
-    "neighborhood_ids" -> JsNull,
-    "unvalidated_only" -> false,
-    "triage"           -> true
-  )
+  private val AdminClaim: JsObject = ValidateSpecSupport.AdminClaim
 
   /**
    * Creates a throwaway UUID-tagged registered user — never an admin, whatever accounts the schema happens to hold.
@@ -101,20 +93,7 @@ class ValidateAdminParamsSpec extends PlaySpec with GuiceOneAppPerSuite {
   "POST /validationTask/moreLabels" should {
     "answer a registered user's adminVersion claim without admin data" in {
       val (_, userCookies) = signUpFreshUser()
-      val body             = Json.obj(
-        "label_type"         -> "CurbRamp",
-        "labels_needed"      -> 3,
-        "excluded_label_ids" -> Json.arr(),
-        "validate_params"    -> AdminClaim
-      )
-      val resp = route(
-        app,
-        FakeRequest(POST, "/validationTask/moreLabels")
-          .withHeaders(XHR)
-          .withCookies(userCookies: _*)
-          .withJsonBody(body)
-          .withCSRFToken
-      ).get
+      val resp             = ValidateSpecSupport.postMoreLabels(app, AdminClaim, userCookies)
 
       status(resp) mustBe OK
       val labels = (contentAsJson(resp) \ "labels").as[Seq[JsValue]]

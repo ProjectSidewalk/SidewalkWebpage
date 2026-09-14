@@ -130,6 +130,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
    * @param streetEdgeIdOpt   The street it is on; defaults to the fixture's first street.
    * @param centerlineOffsetM `label_point.centerline_offset_m`, which the DB turns into the label's `street_side`
    *                          (the block face); None leaves the label unsided.
+   * @param panoIdOpt         The pano it was placed on; defaults to the fixture's pano.
    * @return                  The new label's id.
    */
   private def insertLabel(
@@ -141,10 +142,12 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
       createdDaysAgo: Int = 30,
       labelType: String = "CurbRamp",
       streetEdgeIdOpt: Option[Int] = None,
-      centerlineOffsetM: Option[Double] = None
+      centerlineOffsetM: Option[Double] = None,
+      panoIdOpt: Option[String] = None
   ): DBIO[Int] = {
-    val (defaultStreetEdgeId, panoId) = fixtureAnchors
-    val streetEdgeId                  = streetEdgeIdOpt.getOrElse(defaultStreetEdgeId)
+    val (defaultStreetEdgeId, defaultPanoId) = fixtureAnchors
+    val streetEdgeId                         = streetEdgeIdOpt.getOrElse(defaultStreetEdgeId)
+    val panoId                               = panoIdOpt.getOrElse(defaultPanoId)
     for {
       missionId <- sql"""INSERT INTO mission
                              (mission_type, user_id, mission_start, mission_end, completed, pay, paid, skipped)
@@ -176,7 +179,8 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
       streetEdgeId: Int,
       centerlineOffsetM: Option[Double],
       agree: Int = 0,
-      createdDaysAgo: Int = 30
+      createdDaysAgo: Int = 30,
+      panoIdOpt: Option[String] = None
   ): DBIO[Int] =
     insertLabel(
       labelerId,
@@ -187,8 +191,54 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
       createdDaysAgo,
       "NoSidewalk",
       Some(streetEdgeId),
-      centerlineOffsetM
+      centerlineOffsetM,
+      panoIdOpt
     )
+
+  /**
+   * A pano the service's imagery check answers from the row: the viewer's source, unexpired, and checked just now,
+   * so `PanoDataService.getReusableImageryStatus` reuses it (its TTL is 7 days) and never asks the provider.
+   *
+   * @return The new pano's id.
+   */
+  private def insertPano(): DBIO[String] = {
+    val panoId = s"spec-4715-${UUID.randomUUID().toString.take(8)}"
+    sqlu"""INSERT INTO pano_data (pano_id, capture_date, expired, last_viewed, last_checked, source)
+            VALUES ($panoId, '2024-01', FALSE, now(), now(), ${viewer.toString}::pano_source)""".map(_ => panoId)
+  }
+
+  /**
+   * Runs `body` against fixture rows the service can see, then deletes them whatever the outcome.
+   *
+   * The service checks imagery on its own connections, which cannot see a rolled-back fixture, so the cases that go
+   * through it commit theirs: a pano of their own plus every row the labelers' labels hang off.
+   *
+   * @param fixture Inserts the rows; given the committed pano's id, returns the labelers it created and a value for
+   *                the body.
+   * @param body    The assertions, given the fixture's value.
+   */
+  private def withCommittedFixture[T](fixture: String => DBIO[(Seq[String], T)])(body: T => Any): Unit = {
+    val panoId                = run(insertPano())
+    var labelers: Seq[String] = Seq.empty
+    try {
+      val (created, value) = run(fixture(panoId))
+      labelers = created
+      val _ = body(value)
+    } finally {
+      val perLabeler = labelers.flatMap { id =>
+        Seq(
+          sqlu"DELETE FROM label_point WHERE label_id IN (SELECT label_id FROM label WHERE user_id = $id)",
+          sqlu"DELETE FROM label WHERE user_id = $id",
+          sqlu"DELETE FROM audit_task WHERE user_id = $id",
+          sqlu"DELETE FROM mission WHERE user_id = $id",
+          sqlu"DELETE FROM user_stat WHERE user_id = $id",
+          sqlu"DELETE FROM user_role WHERE user_id = $id",
+          sqlu"DELETE FROM sidewalk_user WHERE user_id = $id"
+        )
+      }
+      run(DBIO.seq(perLabeler :+ sqlu"DELETE FROM pano_data WHERE pano_id = $panoId": _*).transactionally)
+    }
+  }
 
   /**
    * Records an AI vote on a label: the validation row the counts already reflect, and the assessment that links the
@@ -345,23 +395,52 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
 
   "getAvailableValidationsLabelsByType" should {
     "count each queue with the same predicates the label query filters on" in {
-      def curbRampCounts: DBIO[LabelTypeValidationsLeft] =
+      def curbRampCounts(queues: Seq[ValidationQueue]): DBIO[LabelTypeValidationsLeft] =
         labelTable
-          .getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false)
+          .getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false, queues, None)
           .map(
             _.find(_.labelType == LabelTypeEnum.CurbRamp)
               .getOrElse(LabelTypeValidationsLeft(LabelTypeEnum.CurbRamp, 0, 0, 0))
           )
 
-      val (before, after) = runRolledBack(for {
-        before <- curbRampCounts
+      val (before, after, crowd) = runRolledBack(for {
+        before <- curbRampCounts(ValidationQueue.expertCascade)
         _      <- queueFixture
-        after  <- curbRampCounts
-      } yield (before, after))
+        after  <- curbRampCounts(ValidationQueue.expertCascade)
+        crowd  <- curbRampCounts(ValidationQueue.crowdCascade)
+      } yield (before, after, crowd))
 
       after.validationsAvailable - before.validationsAvailable mustBe 13
       after.needsVotes - before.needsVotes mustBe 8
       after.triage - before.triage mustBe 5
+      // The crowd's cascade never reads the triage count, so its query is not run at all.
+      crowd.triage mustBe 0
+      crowd.needsVotes mustBe after.needsVotes
+    }
+
+    "take the face count only for a cascade that could serve NoSidewalk from NeedsVotes" in {
+      def noSidewalkCounts(
+          queues: Seq[ValidationQueue],
+          required: Option[LabelTypeEnum.Base]
+      ): DBIO[Option[LabelTypeValidationsLeft]] =
+        labelTable
+          .getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false, queues, required)
+          .map(_.find(_.labelType == LabelTypeEnum.NoSidewalk))
+
+      val (crowd, pinnedElsewhere, triageOnly, pinnedHere) = runRolledBack(for {
+        labeler         <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
+        _               <- insertNoSidewalk(labeler, fixtureAnchors._1, LeftOfStreet)
+        crowd           <- noSidewalkCounts(ValidationQueue.crowdCascade, None)
+        pinnedElsewhere <- noSidewalkCounts(ValidationQueue.crowdCascade, Some(LabelTypeEnum.CurbRamp))
+        triageOnly      <- noSidewalkCounts(Seq(ValidationQueue.Triage), None)
+        pinnedHere      <- noSidewalkCounts(ValidationQueue.expertCascade, Some(LabelTypeEnum.NoSidewalk))
+      } yield (crowd, pinnedElsewhere, triageOnly, pinnedHere))
+
+      crowd.flatMap(_.facesNeedingVotes).isDefined mustBe true
+      pinnedHere.flatMap(_.facesNeedingVotes).isDefined mustBe true
+      // A mission pinned to another type, or a cascade without NeedsVotes, has nothing to weigh the faces for.
+      pinnedElsewhere.flatMap(_.facesNeedingVotes) mustBe None
+      triageOnly.flatMap(_.facesNeedingVotes) mustBe None
     }
   }
 
@@ -405,7 +484,10 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
     "top a queue that cannot fill a mission up from the next queue in the list" in {
       // This one runs against the schema's own labels: the service checks imagery on its own connection, which cannot
       // see a rolled-back fixture's rows.
-      val counts    = run(labelTable.getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false))
+      val counts = run(
+        labelTable.getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false,
+          ValidationQueue.expertCascade, None)
+      )
       val needed    = 3
       val shortType = counts.find(t => t.triage < needed && t.needsVotes >= needed)
       assume(shortType.isDefined, "no label type in this schema has a short triage queue and a full NeedsVotes queue")
@@ -431,7 +513,10 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
     }
 
     "serve only labels that still need votes when NeedsVotes is the whole cascade" in {
-      val counts   = run(labelTable.getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false))
+      val counts = run(
+        labelTable.getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false,
+          ValidationQueue.expertCascade, None)
+      )
       val fullType = counts.find(_.needsVotes >= 5)
       assume(fullType.isDefined, "no label type in this schema has enough labels needing votes")
 
@@ -475,6 +560,57 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
       evidence.get((streetA, StreetSide.Left)) mustBe Some((1, 0, 3))
       evidence.get((streetA, StreetSide.Right)) mustBe Some((2, 1, 2))
       evidence.keys.filter(_._1 == streetB) mustBe empty
+    }
+  }
+
+  "NoSidewalk face evidence and the label query" should {
+    "count a labeler with several role rows once, and serve each of their labels once" in {
+      val (evidence, served, streetA) = runRolledBack(for {
+        labeler <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
+        // Nothing makes user_role.user_id unique, and a join on it would repeat every label of theirs per row.
+        _ <- sqlu"INSERT INTO user_role (user_id, role) VALUES ($labeler, 'Researcher')"
+        streetA = fixtureAnchors._1
+        _        <- insertNoSidewalk(labeler, streetA, LeftOfStreet, agree = 1)
+        _        <- insertNoSidewalk(labeler, streetA, LeftOfStreet, agree = 1)
+        evidence <- fixtureFaceEvidence
+        served   <- labelTable
+          .retrieveLabelListForValidationQuery(requester, viewer, LabelTypeEnum.NoSidewalk, ValidationQueue.Any,
+            userIds = Some(Set(labeler)))
+          .map(_._1)
+          .result
+      } yield (evidence, served, streetA))
+
+      // One labeler, two agreeing votes, two labels: each counted once whatever the role table holds.
+      evidence((streetA, StreetSide.Left)) mustBe ((1, 2, 2))
+      served.sorted mustBe served.distinct.sorted
+      served.size mustBe 2
+    }
+
+    "leave out every label on an excluded face, and nothing else" in {
+      val (served, aRight, bLeft, unsided) = runRolledBack(for {
+        labeler <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
+        streetA = fixtureAnchors._1
+        streetB = secondStreetEdgeId
+        _       <- insertNoSidewalk(labeler, streetA, LeftOfStreet)
+        _       <- insertNoSidewalk(labeler, streetA, LeftOfStreet)
+        aRight  <- insertNoSidewalk(labeler, streetA, RightOfStreet)
+        bLeft   <- insertNoSidewalk(labeler, streetB, LeftOfStreet)
+        unsided <- insertNoSidewalk(labeler, streetA, Unsided)
+        served  <- labelTable
+          .retrieveLabelListForValidationQuery(
+            requester,
+            viewer,
+            LabelTypeEnum.NoSidewalk,
+            ValidationQueue.Any,
+            userIds = Some(Set(labeler)),
+            excludedFaces = Set((streetA, StreetSide.Left))
+          )
+          .map(_._1)
+          .result
+      } yield (served, aRight, bLeft, unsided))
+
+      // The other side of the same street, another street, and an unsided label on the street are all still served.
+      served.toSet mustBe Set(aRight, bLeft, unsided)
     }
   }
 
@@ -559,6 +695,62 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
     }
   }
 
+  "The NoSidewalk cascade" should {
+    "hold one label per face across the queues it drains" in {
+      assume(models.pano.PanoSource.providerCheckedSources.contains(viewer), "the imagery check is not row-answerable")
+      // Face A carries a label the crowd is stuck on (five votes, no margin) and an unvoted one; face B an unvoted one.
+      // An expert's cascade fills a two-label mission from Triage first, which yields A's stuck label, and the queue
+      // after it must then go to B rather than back to A.
+      withCommittedFixture { panoId =>
+        for {
+          labeler <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
+          streetA = fixtureAnchors._1
+          streetB = secondStreetEdgeId
+          stuck <- insertLabel(labeler, 2, 2, 1, None, labelType = "NoSidewalk", streetEdgeIdOpt = Some(streetA),
+            centerlineOffsetM = LeftOfStreet, panoIdOpt = Some(panoId))
+          _ <- insertNoSidewalk(labeler, streetA, LeftOfStreet, panoIdOpt = Some(panoId))
+          _ <- insertNoSidewalk(labeler, streetB, LeftOfStreet, panoIdOpt = Some(panoId))
+        } yield (Seq(labeler), (labeler, streetA, streetB, stuck))
+      } { case (labeler, streetA, streetB, stuck) =>
+        val served = await(
+          labelService.retrieveLabelListForValidation(requester, 2, viewer, LabelTypeEnum.NoSidewalk,
+            ValidationQueue.expertCascade, userIds = Some(Set(labeler)))
+        )
+        served.map(_.labelId) must contain(stuck)
+        served.map(l => (l.streetEdgeId, l.streetSide)).toSet mustBe
+          Set((streetA, Some(StreetSide.Left)), (streetB, Some(StreetSide.Left)))
+      }
+    }
+
+    "top a mission up from a face it does not hold, however many labels outrank it on a held face" in {
+      assume(models.pano.PanoSource.providerCheckedSources.contains(viewer), "the imagery check is not row-answerable")
+      // Face A: six lone-labeler labels seven years old, the top of the queue under the face score. Face B: one label
+      // with an agreeing vote, scoring far below them. A client holding one of A's labels asks for one more; it must
+      // come from B, even though A's other five outrank it and a five-row batch would be all A.
+      withCommittedFixture { panoId =>
+        for {
+          labeler <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
+          streetA = fixtureAnchors._1
+          streetB = secondStreetEdgeId
+          onA <- DBIO.sequence(
+            (1 to 6).map(_ =>
+              insertNoSidewalk(labeler, streetA, LeftOfStreet, createdDaysAgo = 365 * 7, panoIdOpt = Some(panoId))
+            )
+          )
+          onB <- insertNoSidewalk(labeler, streetB, LeftOfStreet, agree = 1, panoIdOpt = Some(panoId))
+        } yield (Seq(labeler), (labeler, onA.head, onB))
+      } { case (labeler, held, onB) =>
+        (1 to 5).foreach { _ =>
+          val served = await(
+            labelService.retrieveLabelListForValidation(requester, 1, viewer, LabelTypeEnum.NoSidewalk,
+              ValidationQueue.crowdCascade, userIds = Some(Set(labeler)), excludedLabelIds = Set(held))
+          )
+          served.map(_.labelId) mustBe Seq(onB)
+        }
+      }
+    }
+  }
+
   "spreadAcrossFaces" should {
     "take one label per face, distinct streets first, and fall back to a repeat face only when short" in {
       def label(id: Int, street: Int, side: Option[StreetSide.Value]): LabelValidationMetadata = {
@@ -594,16 +786,14 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
       def ids(labels: Seq[LabelValidationMetadata]): Seq[Int] = labels.map(_.labelId)
 
       // Three faces available: one of each, in the candidates' order, and street 100's unsided label after both
-      // streets have been touched once.
-      ids(LabelServiceImpl.spreadAcrossFaces(ordered, Set.empty, 3)) mustBe Seq(1, 6, 8)
-      // Nothing to fall back to within the rule: the fourth slot stays empty rather than repeating a face.
-      ids(LabelServiceImpl.spreadAcrossFaces(ordered, Set.empty, 4)) mustBe Seq(1, 6, 8)
+      // streets have been touched once. Nothing repeats a face, however many candidates a face has.
+      ids(LabelServiceImpl.spreadAcrossFaces(ordered, Set.empty)) mustBe Seq(1, 6, 8)
       // A face the mission already holds is skipped, and the highest-ranked label of each face wins.
       val held = Set(LabelServiceImpl.FaceKey(100, Some(StreetSide.Left), None))
-      ids(LabelServiceImpl.spreadAcrossFaces(ordered, held, 3)) mustBe Seq(6, 8)
+      ids(LabelServiceImpl.spreadAcrossFaces(ordered, held)) mustBe Seq(6, 8)
       // Two unsided labels on one street are two faces, not one.
       val twoUnsided = Seq(label(8, 100, None), label(9, 100, None))
-      ids(LabelServiceImpl.spreadAcrossFaces(twoUnsided, Set.empty, 2)) mustBe Seq(8, 9)
+      ids(LabelServiceImpl.spreadAcrossFaces(twoUnsided, Set.empty)) mustBe Seq(8, 9)
     }
   }
 
@@ -618,16 +808,23 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
         LabelServiceImpl.chooseQueueAndTypes(Seq(noSidewalk, curbRamp), ValidationQueue.crowdCascade, missionLength)
       queue mustBe ValidationQueue.NeedsVotes
       types must contain(noSidewalk)
-      LabelServiceImpl.typeWeight(ValidationQueue.NeedsVotes, noSidewalk) mustBe 3
-      LabelServiceImpl.typeWeight(ValidationQueue.Any, noSidewalk) mustBe 1
-      LabelServiceImpl.typeWeight(ValidationQueue.Triage, noSidewalk.copy(triage = 7)) mustBe 7
+      noSidewalk.weightFor(ValidationQueue.NeedsVotes) mustBe 3
+      noSidewalk.weightFor(ValidationQueue.Any) mustBe 1
+      noSidewalk.copy(triage = 7).weightFor(ValidationQueue.Triage) mustBe 7
 
       // A small city with 8 faces across 40 labels still gets NoSidewalk missions: the gate is on labels.
       val smallCity = noSidewalk.copy(needsVotes = 40, facesNeedingVotes = Some(8))
       LabelServiceImpl.chooseQueueAndTypes(Seq(smallCity), ValidationQueue.crowdCascade, missionLength)._2 mustBe
         Seq(smallCity)
-      // And a type without a face count weighs by its labels, as before.
-      LabelServiceImpl.typeWeight(ValidationQueue.NeedsVotes, curbRamp) mustBe 50
+      // Labels enough but every face settled: NoSidewalk cannot be the crowd's queue's winner, or every mission would
+      // land on faces the crowd has finished, so the cascade falls through to Any.
+      val settledFaces = noSidewalk.copy(facesNeedingVotes = Some(0))
+      settledFaces.canFill(ValidationQueue.NeedsVotes, missionLength) mustBe false
+      LabelServiceImpl.chooseQueueAndTypes(Seq(settledFaces), ValidationQueue.crowdCascade, missionLength) mustBe
+        ((ValidationQueue.Any, Seq(settledFaces)))
+      // The face count only ever weighs NoSidewalk; any other type weighs by its labels whatever it carries.
+      curbRamp.weightFor(ValidationQueue.NeedsVotes) mustBe 50
+      curbRamp.copy(facesNeedingVotes = Some(8)).weightFor(ValidationQueue.NeedsVotes) mustBe 50
     }
 
     "use the first queue in the cascade that can fill a mission, and weight uniformly once it falls back to Any" in {
@@ -649,14 +846,14 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
         LabelServiceImpl.chooseQueueAndTypes(Seq(thin), ValidationQueue.crowdCascade, missionLength)
       fallbackQueue mustBe ValidationQueue.Any
       fallbackTypes mustBe Seq(thin)
-      LabelServiceImpl.typeWeight(ValidationQueue.Any, thin) mustBe 1
+      thin.weightFor(ValidationQueue.Any) mustBe 1
 
       // An expert's cascade skips a triage queue too thin to fill a mission and lands on the crowd's queue.
       val (expertQueue, expertTypes) =
         LabelServiceImpl.chooseQueueAndTypes(Seq(plenty), ValidationQueue.expertCascade, missionLength)
       expertQueue mustBe ValidationQueue.NeedsVotes
       expertTypes mustBe Seq(plenty)
-      LabelServiceImpl.typeWeight(ValidationQueue.NeedsVotes, plenty) mustBe 50
+      plenty.weightFor(ValidationQueue.NeedsVotes) mustBe 50
 
       // And no queue at all leaves the caller with no type to serve.
       val (emptyQueue, emptyTypes) =

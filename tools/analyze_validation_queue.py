@@ -560,8 +560,10 @@ def no_sidewalk_priority_score(base_score, has_face, face_labelers, face_support
     labelers; floored at one labeler so a face with only AI labels needs a look as much as a one-labeler face) and 0
     for an unsided one; the age bonus is AGE_POINTS_PER_YEAR per year, capped at AGE_BONUS_MAX.
 
-    >>> float(no_sidewalk_priority_score(200.0, True, 1, 0, 7.0)), float(no_sidewalk_priority_score(200.0, True, 3, 2, 7.0))
-    (460.0, 94.07407407407408)
+    >>> float(no_sidewalk_priority_score(200.0, True, 1, 0, 7.0))
+    460.0
+    >>> float(no_sidewalk_priority_score(200.0, True, 3, 2, 7.0))
+    94.07407407407408
     """
     has_face = np.asarray(has_face, dtype=bool)
     labelers = np.maximum(np.asarray(face_labelers, dtype=np.float64), 1.0)
@@ -650,7 +652,10 @@ class Pool(object):
         for name, (default, dtype) in self.OPTIONAL_DEFAULTS.items():
             value = columns.get(name)
             setattr(self, name, np.full(n, default, dtype=dtype) if value is None else np.asarray(value, dtype=dtype))
+        # Derived columns, computed on first use. Safe to cache because nothing writes to a Pool after construction:
+        # `subset` builds a new one, and the simulations copy the columns they mutate.
         self._faces = None
+        self._face_keys = None
 
     def __len__(self):
         return int(self.label_id.size)
@@ -686,7 +691,10 @@ class Pool(object):
         return self.subset(self.label_type != "NoSidewalk")
 
     def face_keys(self):
-        return face_keys(self.label_type, self.street_edge_id, self.street_side, self.label_id)
+        """Per-label face key, computed once; see `face_keys`."""
+        if self._face_keys is None:
+            self._face_keys = face_keys(self.label_type, self.street_edge_id, self.street_side, self.label_id)
+        return self._face_keys
 
     def faces(self):
         """(has_face, labelers, support) per label, computed once; see `face_evidence`."""
@@ -780,12 +788,8 @@ def _policy_scores(pool, policy):
 
 
 def _policy_keys(policy, scores, rng):
-    kind = POLICIES[policy]["key"]
-    if kind == "old":
-        return old_sort_keys(scores, rng)
-    if kind == "jitter":
-        return jitter_sort_keys(scores, rng)
-    return es_sort_keys(scores, rng, 1.0 if kind == "es1" else PICK_WEIGHT_EXPONENT)
+    """One draw of a policy's sort key for `scores`; the unhoisted form of `_key_sampler` for a one-off draw."""
+    return _key_sampler(policy, scores)(rng)
 
 
 def _key_sampler(policy, scores):
@@ -814,24 +818,26 @@ def _policy_eligible(pool, policy):
     return np.ones(len(pool), dtype=bool)
 
 
-def _policy_type_weights(pool, policy):
-    """Per-label indicator of what type selection counts for this policy."""
+def _policy_type_weights(policy, agree, disagree, unsure, correct_is_null):
+    """Per-label indicator of what type selection counts for this policy, from whichever counts are current."""
     if POLICIES[policy]["type_weight"] in ("needs_votes", "faces"):
-        return pool.needs_votes()
-    return pool.correct_is_null
+        return needs_votes(agree, disagree, unsure)
+    return correct_is_null
 
 
-def _type_weight(pool, policy, label_type, weight_col, face_key):
+def _type_weight(policy, label_type, type_mask, weight_col, face_key, has_face, face_support):
     """One type's weight in the lottery: its counted labels, or for NoSidewalk under #5285 its faces needing votes.
 
+    The face inputs are passed in rather than read off the pool so the forward simulation can feed its live support.
+
     @param label_type: The type's name.
+    @param type_mask: Per-label indicator of the type.
     @param weight_col: Per-label indicator from `_policy_type_weights`, evaluated on the current counts.
     @param face_key: Per-label face key, read only for NoSidewalk under the faces policy.
+    @param has_face, face_support: Per-label face evidence, as `face_evidence` shapes it.
     """
-    type_mask = pool.label_type == label_type
     if POLICIES[policy]["type_weight"] == "faces" and label_type == "NoSidewalk":
-        has_face, _, support = pool.faces()
-        counted = type_mask & weight_col & has_face & (support < FACE_SETTLED_SUPPORT)
+        counted = type_mask & weight_col & has_face & (face_support < FACE_SETTLED_SUPPORT)
         return float(np.unique(face_key[counted]).size) if counted.any() else 0.0
     return float(np.count_nonzero(weight_col & type_mask))
 
@@ -859,22 +865,23 @@ def pick_probabilities(pool, policy, rng, missions_per_type=2000, serve_no_sidew
     """
     scores = _policy_scores(pool, policy)
     eligible = _policy_eligible(pool, policy)
-    weight_col = _policy_type_weights(pool, policy)
+    weight_col = _policy_type_weights(policy, pool.agree, pool.disagree, pool.unsure, pool.correct_is_null)
     face_key = pool.face_keys()
+    has_face, _, face_support = pool.faces()
 
-    available = {}
-    for label_type in PRIMARY_LABEL_TYPES:
-        available[label_type] = int(np.count_nonzero(pool.label_type == label_type))
+    type_masks = {t: pool.label_type == t for t in PRIMARY_LABEL_TYPES}
+    available = {t: int(np.count_nonzero(mask)) for t, mask in type_masks.items()}
     types = eligible_types(available, serve_no_sidewalk=_serves_no_sidewalk(policy, serve_no_sidewalk))
     if not types:
         return np.zeros(len(pool), dtype=np.float64)
 
-    weights = np.array([_type_weight(pool, policy, t, weight_col, face_key) for t in types], dtype=np.float64)
+    weights = np.array([_type_weight(policy, t, type_masks[t], weight_col, face_key, has_face, face_support)
+                        for t in types], dtype=np.float64)
     probs = type_probabilities(weights)
 
     shares = np.zeros(len(pool), dtype=np.float64)
     for label_type, prob in zip(types, probs):
-        of_type = pool.label_type == label_type
+        of_type = type_masks[label_type]
         # The queue, or the whole type when the queue is thinner than a mission (the cascade's last step). Never
         # empty: `eligible_types` only admits a type with a mission's worth of labels.
         idx = np.flatnonzero(of_type & eligible)
@@ -990,6 +997,9 @@ class _VoteSim(object):
         self.has_face, self.face_labelers, face_support = pool.faces()
         self.initial_face_support = face_support
         self.added_agree = np.zeros(len(pool), dtype=np.int64)
+        # Simulated agrees per face, kept as votes land so no vote pays for a pass over the whole pool. The export's
+        # support is per label and the simulated part per face, so the live view is a gather, never a bincount.
+        self._face_added = None
         self.available = {t: int(np.count_nonzero(pool.label_type == t)) for t in PRIMARY_LABEL_TYPES}
         # One coin per face, shared by its labels.
         keys = np.where(self.face_key == "", np.array(["label:{0}".format(i) for i in pool.label_id], dtype=object),
@@ -998,26 +1008,28 @@ class _VoteSim(object):
         self.truth = (rng.random(uniq.size) < p_correct)[inverse]
         self._face_index = inverse
         self._n_faces = uniq.size
+        # A pool with no sided label has no face to accumulate on: its support stays the export's, untouched.
+        if self.has_face.any():
+            self._face_added = np.zeros(uniq.size, dtype=np.int64)
 
     def face_support(self):
         """Agreeing human votes per face, live: the export's support plus the simulated agrees on the face's labels."""
-        if not self.has_face.any():
+        if self._face_added is None:
             return self.initial_face_support
-        added = np.bincount(self._face_index, weights=self.added_agree, minlength=self._n_faces)
-        return self.initial_face_support + np.rint(added[self._face_index]).astype(np.int64)
+        return self.initial_face_support + self._face_added[self._face_index]
+
+    def face_support_of(self, i):
+        """`face_support()[i]` for one label, without materializing the whole pool's view for a single vote."""
+        if self._face_added is None:
+            return int(self.initial_face_support[i])
+        return int(self.initial_face_support[i] + self._face_added[self._face_index[i]])
 
     def type_weights(self, types, type_masks):
-        nv = needs_votes(self.agree, self.disagree, self.unsure)
-        kind = POLICIES[self.policy]["type_weight"]
-        weight_col = nv if kind in ("needs_votes", "faces") else self.correct_is_null
-        weights = []
-        for t in types:
-            if kind == "faces" and t == "NoSidewalk":
-                counted = type_masks[t] & weight_col & self.has_face & (self.face_support() < FACE_SETTLED_SUPPORT)
-                weights.append(float(np.unique(self.face_key[counted]).size) if counted.any() else 0.0)
-            else:
-                weights.append(float(np.count_nonzero(weight_col & type_masks[t])))
-        return np.array(weights, dtype=np.float64)
+        """Each type's lottery weight on the live counts; see `_type_weight`."""
+        weight_col = _policy_type_weights(self.policy, self.agree, self.disagree, self.unsure, self.correct_is_null)
+        face_support = self.face_support()
+        return np.array([_type_weight(self.policy, t, type_masks[t], weight_col, self.face_key, self.has_face,
+                                      face_support) for t in types], dtype=np.float64)
 
     def candidates(self, of_type):
         """Indices the policy's first queue offers for one type, falling back to the whole type when too thin.
@@ -1060,6 +1072,8 @@ class _VoteSim(object):
         if roll < probs[0]:
             self.agree[i] += 1
             self.added_agree[i] += 1
+            if self._face_added is not None:
+                self._face_added[self._face_index[i]] += 1
         elif roll < probs[0] + probs[1]:
             self.disagree[i] += 1
         else:
@@ -1095,7 +1109,7 @@ def simulate_no_sidewalk_votes(pool, policy, n_votes, rng, p_correct):
             if cast >= n_votes:
                 break
             i = int(idx[position])
-            if sim.face_support()[i] >= FACE_SETTLED_SUPPORT:
+            if sim.face_support_of(i) >= FACE_SETTLED_SUPPORT:
                 on_settled += 1
             if single_labeler[i]:
                 on_single += 1

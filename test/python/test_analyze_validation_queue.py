@@ -8,11 +8,24 @@ Both halves of `make test-python` collect this directory, so everything here mus
 """
 
 import csv
+import re
+from pathlib import Path
 
 import numpy as np
 import pytest
 
 import analyze_validation_queue as avq
+
+# The repo root is three levels up from test/python/, which is where the Scala policy and the SQL export live.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+POLICY_SCALA = REPO_ROOT / "app" / "models" / "validation" / "ValidationQueuePolicy.scala"
+POOL_SQL = REPO_ROOT / "tools" / "validation_queue" / "pool.sql"
+
+# The column order of the two CSV exports (pool.sql without the #5285 face columns, and validations.sql).
+POOL_CSV_FIELDS = ["label_id", "label_type", "agree_count", "disagree_count", "unsure_count", "correct",
+                   "own_labels_validated", "high_quality", "low_quality", "stale", "recent", "ai_result"]
+VALIDATION_CSV_FIELDS = ["label_id", "label_type", "validation_result", "end_timestamp", "source", "self_vote",
+                         "is_ai"]
 
 
 # Fixtures and helpers.
@@ -488,8 +501,7 @@ def test_load_pool_reads_psql_booleans_and_the_nullable_correct_column(tmp_path)
     path = tmp_path / "pool.csv"
     _write_csv(
         path,
-        ["label_id", "label_type", "agree_count", "disagree_count", "unsure_count", "correct",
-         "own_labels_validated", "high_quality", "low_quality", "stale", "recent", "ai_result"],
+        POOL_CSV_FIELDS,
         [
             {"label_id": 1, "label_type": "CurbRamp", "agree_count": 0, "disagree_count": 0, "unsure_count": 0,
              "correct": "", "own_labels_validated": 3, "high_quality": "t", "low_quality": "f", "stale": "f",
@@ -510,7 +522,7 @@ def test_load_validations_reads_the_flags_as_booleans(tmp_path):
     path = tmp_path / "validations.csv"
     _write_csv(
         path,
-        ["label_id", "label_type", "validation_result", "end_timestamp", "source", "self_vote", "is_ai"],
+        VALIDATION_CSV_FIELDS,
         [{"label_id": 1, "label_type": "CurbRamp", "validation_result": "Agree",
           "end_timestamp": "2026-01-01 00:00:00+00", "source": "SidewalkAI", "self_vote": "f", "is_ai": "t"}],
     )
@@ -541,8 +553,7 @@ def test_main_writes_the_report_to_the_requested_path(tmp_path):
     pool_path = tmp_path / "pool.csv"
     _write_csv(
         pool_path,
-        ["label_id", "label_type", "agree_count", "disagree_count", "unsure_count", "correct",
-         "own_labels_validated", "high_quality", "low_quality", "stale", "recent", "ai_result"],
+        POOL_CSV_FIELDS,
         [{"label_id": index, "label_type": "CurbRamp", "agree_count": index % 3, "disagree_count": 0,
           "unsure_count": 0, "correct": "", "own_labels_validated": 300, "high_quality": "f", "low_quality": "f",
           "stale": "f", "recent": "f", "ai_result": ""} for index in range(1, 41)],
@@ -550,7 +561,7 @@ def test_main_writes_the_report_to_the_requested_path(tmp_path):
     validations_path = tmp_path / "validations.csv"
     _write_csv(
         validations_path,
-        ["label_id", "label_type", "validation_result", "end_timestamp", "source", "self_vote", "is_ai"],
+        VALIDATION_CSV_FIELDS,
         [{"label_id": 1, "label_type": "CurbRamp", "validation_result": "Agree",
           "end_timestamp": "2026-01-01 00:00:00+00", "source": "Validate", "self_vote": "f", "is_ai": "f"}],
     )
@@ -650,15 +661,20 @@ def test_faces_score_rescores_only_no_sidewalk_and_face_needs_votes_stops_at_the
 def test_type_weight_counts_faces_for_no_sidewalk_under_the_faces_policy():
     pool = face_pool()
     weight_col = pool.needs_votes()
-    face_key = pool.face_keys()
+    has_face, _, support = pool.faces()
     no_sidewalk = pool.label_type == "NoSidewalk"
+    curb_ramp = pool.label_type == "CurbRamp"
+
+    def weight(policy, label_type, type_mask, counted=weight_col):
+        return avq._type_weight(policy, label_type, type_mask, counted, pool.face_keys(), has_face, support)
+
     # Faces A and B and the twelve lone faces still need votes; C has two agreeing votes, the unsided label no face.
-    assert avq._type_weight(pool, "faces", "NoSidewalk", weight_col, face_key) == 14.0
-    assert avq._type_weight(pool, "new", "NoSidewalk", weight_col, face_key) == float(np.count_nonzero(no_sidewalk))
+    assert weight("faces", "NoSidewalk", no_sidewalk) == 14.0
+    assert weight("new", "NoSidewalk", no_sidewalk) == float(np.count_nonzero(no_sidewalk))
     # Other types weigh by labels under every policy.
-    assert avq._type_weight(pool, "faces", "CurbRamp", weight_col, face_key) == 12.0
+    assert weight("faces", "CurbRamp", curb_ramp) == 12.0
     # And NoSidewalk weighs nothing once every face is settled or every label is out of the queue.
-    assert avq._type_weight(pool, "faces", "NoSidewalk", np.zeros(len(pool), dtype=bool), face_key) == 0.0
+    assert weight("faces", "NoSidewalk", no_sidewalk, np.zeros(len(pool), dtype=bool)) == 0.0
 
 
 def test_pick_probabilities_under_the_faces_policy_serve_no_sidewalk_and_favour_lone_faces():
@@ -720,18 +736,25 @@ def test_vote_sim_face_support_moves_with_simulated_agrees():
     while sim.added_agree[lone] == 0:
         sim.vote(lone)
     assert all(sim.face_support()[pool.face_keys() == "10:left"] == before + sim.added_agree[lone])
+    assert sim.face_support_of(lone) == before + sim.added_agree[lone]
     # A pool with no faces at all returns the export's support untouched.
     bare = avq._VoteSim(make_pool([("CurbRamp", 0, 0, 0)]), "new", np.random.default_rng(1), 0.5)
     assert bare.face_support() is bare.initial_face_support
+    assert bare.face_support_of(0) == 0
+
+
+def test_pool_face_keys_are_computed_once():
+    pool = face_pool()
+    assert pool.face_keys() is pool.face_keys()
+    assert pool.faces() is pool.faces()
 
 
 def test_load_pool_reads_the_face_columns_and_tolerates_their_absence(tmp_path):
-    fieldnames = ["label_id", "label_type", "agree_count", "disagree_count", "unsure_count", "correct",
-                  "own_labels_validated", "high_quality", "low_quality", "stale", "recent", "ai_result"]
     base = {"agree_count": 0, "disagree_count": 0, "unsure_count": 0, "correct": "", "own_labels_validated": 300,
             "high_quality": "f", "low_quality": "f", "stale": "f", "recent": "f", "ai_result": ""}
     with_faces = tmp_path / "pool.csv"
-    _write_csv(with_faces, fieldnames + ["street_edge_id", "street_side", "labeler_id", "ai_labeler", "age_years"],
+    _write_csv(with_faces,
+               POOL_CSV_FIELDS + ["street_edge_id", "street_side", "labeler_id", "ai_labeler", "age_years"],
                [dict(base, label_id=1, label_type="NoSidewalk", street_edge_id=7, street_side="left",
                      labeler_id="u1", ai_labeler="f", age_years="6.5"),
                 dict(base, label_id=2, label_type="NoSidewalk", street_edge_id=7, street_side="",
@@ -740,7 +763,7 @@ def test_load_pool_reads_the_face_columns_and_tolerates_their_absence(tmp_path):
     assert list(pool.street_edge_id) == [7, 7] and list(pool.street_side) == ["left", ""]
     assert list(pool.ai_labeler) == [False, True] and list(pool.age_years) == [6.5, 0.25]
     without = tmp_path / "old-pool.csv"
-    _write_csv(without, fieldnames, [dict(base, label_id=1, label_type="NoSidewalk")])
+    _write_csv(without, POOL_CSV_FIELDS, [dict(base, label_id=1, label_type="NoSidewalk")])
     old = avq.load_pool(str(without))
     assert list(old.street_side) == [""] and list(old.age_years) == [0.0]
 
@@ -794,15 +817,90 @@ def test_main_writes_to_stdout_without_an_out_path(tmp_path, capsys):
     pool_path = tmp_path / "pool.csv"
     _write_csv(
         pool_path,
-        ["label_id", "label_type", "agree_count", "disagree_count", "unsure_count", "correct",
-         "own_labels_validated", "high_quality", "low_quality", "stale", "recent", "ai_result"],
+        POOL_CSV_FIELDS,
         [{"label_id": index, "label_type": "CurbRamp", "agree_count": 0, "disagree_count": 0, "unsure_count": 0,
           "correct": "", "own_labels_validated": 300, "high_quality": "f", "low_quality": "f", "stale": "f",
           "recent": "f", "ai_result": ""} for index in range(1, 12)],
     )
     validations_path = tmp_path / "validations.csv"
-    _write_csv(validations_path,
-               ["label_id", "label_type", "validation_result", "end_timestamp", "source", "self_vote", "is_ai"], [])
+    _write_csv(validations_path, VALIDATION_CSV_FIELDS, [])
     assert avq.main(["--pool", str(pool_path), "--validations", str(validations_path), "--votes", "10",
                      "--missions", "2"]) == 0
     assert capsys.readouterr().out.startswith("# Validate queue analysis")
+
+
+# The policy constants against their source of truth.
+
+# Python name -> Scala name, where the mechanical CamelCase <-> UPPER_SNAKE mapping does not hold.
+SCALA_NAME_EXCEPTIONS = {"HIGH_QUALITY_BONUS": "HighQualityLabelerBonus"}
+
+MIRRORED_CONSTANTS = (
+    "SETTLED_MARGIN", "MAX_CROWD_VOTES", "UNSURE_HEAVY_MIN_VOTES", "NEW_LABELER_OWN_LABELS_VALIDATED",
+    "NEW_LABELER_BONUS", "HIGH_QUALITY_BONUS", "CONSENSUS_NEED_MAX", "RECENCY_BONUS", "PICK_WEIGHT_EXPONENT",
+    "FACE_SINGLE_LABELER_BONUS", "AGE_POINTS_PER_YEAR", "AGE_BONUS_MAX", "FACE_SETTLED_SUPPORT",
+)
+
+_SCALA_VAL = re.compile(r"^\s*val\s+(\w+)\s*:\s*(?:Int|Double)\s*=\s*(.+?)\s*$")
+_NUMERIC = re.compile(r"^-?\d+(?:\.\d+)?[dDfFlL]?$")
+
+
+def scala_name(python_name):
+    """`SETTLED_MARGIN` -> `SettledMargin`, unless the two sides chose different words."""
+    return SCALA_NAME_EXCEPTIONS.get(python_name, "".join(part.capitalize() for part in python_name.split("_")))
+
+
+def scala_vals(path):
+    """Every `val Name: Int|Double = <rhs>` in a Scala file, as name -> the RHS text, untouched."""
+    out = {}
+    for line in path.read_text().splitlines():
+        match = _SCALA_VAL.match(line)
+        if match:
+            out[match.group(1)] = match.group(2)
+    return out
+
+
+def resolve_scala_value(rhs, vals, depth=0):
+    """A numeric literal as a float, or a same-file / `Object.Name` reference followed once; None when neither.
+
+    The policy file is allowed to point one constant at another (`UserStatTable.OwnLabelsValidatedToJudge`), so a
+    bare or qualified identifier is looked up in the file it names under app/models before giving up. Anything
+    fancier is a sign the mirror in the Python tool needs a human, not a smarter parser.
+    """
+    if _NUMERIC.match(rhs):
+        return float(rhs.rstrip("dDfFlL"))
+    if depth > 2 or not re.match(r"^[\w.]+$", rhs):
+        return None
+    if "." not in rhs:
+        return resolve_scala_value(vals[rhs], vals, depth + 1) if rhs in vals else None
+    obj, name = rhs.rsplit(".", 1)
+    for path in (REPO_ROOT / "app" / "models").rglob("*.scala"):
+        if re.search(r"^\s*object\s+{0}\b".format(re.escape(obj)), path.read_text(), re.M):
+            other = scala_vals(path)
+            return resolve_scala_value(other[name], other, depth + 1) if name in other else None
+    return None
+
+
+@pytest.fixture(scope="module")
+def policy_vals():
+    if not POLICY_SCALA.exists():
+        pytest.skip("{0} is not in this checkout".format(POLICY_SCALA))
+    return scala_vals(POLICY_SCALA)
+
+
+@pytest.mark.parametrize("python_name", MIRRORED_CONSTANTS)
+def test_policy_constants_mirror_the_scala_source_of_truth(python_name, policy_vals):
+    name = scala_name(python_name)
+    assert name in policy_vals, "{0} has no `val {1}` in ValidationQueuePolicy.scala".format(python_name, name)
+    value = resolve_scala_value(policy_vals[name], policy_vals)
+    if value is None:
+        pytest.skip("{0} = {1} is not a numeric literal the test can resolve; check {2} by hand".format(
+            name, policy_vals[name], python_name))
+    assert float(getattr(avq, python_name)) == value
+
+
+def test_recency_window_in_the_sql_export_matches_the_scala_policy(policy_vals):
+    if not POOL_SQL.exists():
+        pytest.skip("{0} is not in this checkout".format(POOL_SQL))
+    window = re.search(r"interval '(\d+) days'", POOL_SQL.read_text())
+    assert window is not None, "pool.sql no longer derives `recent` from an interval literal"
+    assert float(window.group(1)) == resolve_scala_value(policy_vals["RecencyWindowDays"], policy_vals)

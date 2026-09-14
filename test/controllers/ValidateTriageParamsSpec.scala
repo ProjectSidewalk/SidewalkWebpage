@@ -6,9 +6,8 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsNull, JsObject, JsValue, Json}
+import play.api.libs.json.{JsObject, JsValue}
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import util.{AnonSession, RoleSession}
@@ -33,8 +32,6 @@ class ValidateTriageParamsSpec extends PlaySpec with RoleSession with GuiceOneAp
       .build()
 
   implicit lazy val mat: Materializer = app.materializer
-
-  private val XHR = "X-Requested-With" -> "XMLHttpRequest"
 
   /** The Twirl views embed `param.validateParams` as a JS object literal, so the flag is read back as text. */
   private def embeddedTriage(body: String): Option[Boolean] =
@@ -76,36 +73,12 @@ class ValidateTriageParamsSpec extends PlaySpec with RoleSession with GuiceOneAp
   }
 
   "POST /validationTask/moreLabels" should {
-
-    /** A `validate_params` body claiming both Expert Validate's admin view and its triage queue. */
-    val triageClaim: JsObject = Json.obj(
-      "admin_version"    -> true,
-      "label_type"       -> JsNull,
-      "user_ids"         -> JsNull,
-      "neighborhood_ids" -> JsNull,
-      "unvalidated_only" -> false,
-      "triage"           -> true
-    )
+    val triageClaim: JsObject = ValidateSpecSupport.AdminClaim
 
     /** The same body from an older tab, which omits the triage field. */
     val claimWithoutTriage: JsObject = triageClaim - "triage"
 
-    def moreLabels(params: JsObject, cookies: Seq[Cookie]) = {
-      val body = Json.obj(
-        "label_type"         -> "CurbRamp",
-        "labels_needed"      -> 3,
-        "excluded_label_ids" -> Json.arr(),
-        "validate_params"    -> params
-      )
-      route(
-        app,
-        FakeRequest(POST, "/validationTask/moreLabels")
-          .withHeaders(XHR)
-          .withCookies(cookies: _*)
-          .withJsonBody(body)
-          .withCSRFToken
-      ).get
-    }
+    def moreLabels(params: JsObject, cookies: Seq[Cookie]) = ValidateSpecSupport.postMoreLabels(app, params, cookies)
 
     "answer a registered user's triage claim as the ordinary validator they are" in {
       val resp = moreLabels(triageClaim, sessionAs(Role.Registered))
@@ -117,6 +90,14 @@ class ValidateTriageParamsSpec extends PlaySpec with RoleSession with GuiceOneAp
 
     "still parse a body that carries no triage field at all" in {
       status(moreLabels(claimWithoutTriage, sessionAs(Role.Registered))) mustBe OK
+    }
+
+    "reject triage without the admin view as a malformed body, not a server error" in {
+      // A body that breaks the params' own invariant is the client's error, never the constructor's exception.
+      val resp =
+        moreLabels(triageClaim + ("admin_version" -> play.api.libs.json.JsBoolean(false)), sessionAs(Role.Registered))
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "status").as[String] mustBe "Error"
     }
   }
 }
