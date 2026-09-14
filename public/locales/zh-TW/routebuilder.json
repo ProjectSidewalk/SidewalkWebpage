@@ -25,7 +25,7 @@
   "street-count-in-region_other": "{{region}}的 {{count}} 條街道",
   "see-all-routes_other": "在儀表板中查看全部 {{count}} 條路線",
   "copied-to-clipboard": "已複製到剪貼板！",
-  "one-neighborhood-warning": "目前，一條路線內只能包涵一個社區內的街道。",
+  "one-region-warning": "目前，一條路線內只能包涵一個社區內的街道。",
   "route-name-default": "{{region}}的路線",
   "route-name-streets": "{{start}}到{{end}}",
   "save-error": "儲存時發生錯誤，請再試一次。",

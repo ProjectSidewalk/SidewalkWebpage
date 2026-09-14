@@ -50,9 +50,9 @@ class RegionCompletionTable @Inject() (
   def count: DBIO[Int] = regionCompletions.length.result
 
   /**
-   * Returns a list of all neighborhoods with names. If provided, filter for only given regions.
+   * Returns each region's completion distances along with its name. If provided, filter for only given regions.
    */
-  def selectAllNamedNeighborhoodCompletions(regionIds: Seq[Int]): DBIO[Seq[NamedRegionCompletion]] = {
+  def getRegionCompletions(regionIds: Seq[Int]): DBIO[Seq[NamedRegionCompletion]] = {
     val namedRegionCompletions = for {
       _rc <- regionCompletions
       _r  <- regionsWithoutDeleted if _rc.regionId === _r.regionId
@@ -89,7 +89,7 @@ class RegionCompletionTable @Inject() (
         .result
         .head
 
-      // Check if neighborhood is fully audited. Exclude the tutorial street (permanent priority=1.0) and the street
+      // Check if region is fully audited. Exclude the tutorial street (permanent priority=1.0) and the street
       // currently being audited (its priority update runs separately in partiallyUpdatePriority — if we don't exclude
       // it here, the last street in a region always appears un-audited at this point, so regionIncomplete is always
       // true and the floating-point equalization never fires).
@@ -102,10 +102,10 @@ class RegionCompletionTable @Inject() (
         .exists
         .result
 
-      // Check if the neighborhood is fully audited, and set audited_distance equal to total_distance if so. We are
+      // Check if the region is fully audited, and set audited_distance equal to total_distance if so. We are
       // doing this to fix floating point error, so that in the end, the region is marked as exactly 100% complete. Also
       // doing a check to see if the completion is erroneously over 100%, when the streets have not all been audited in
-      // that neighborhood; this has never been observed, but it could theoretically be an issue if there is a sizable
+      // that region; this has never been observed, but it could theoretically be an issue if there is a sizable
       // error, while there is a single (very short) street segment left to be audited. That case shouldn't happen, but
       // we are just being safe, and setting audited_distance to be less than total_distance.
       rCQuery = regionCompletions.filter(_.regionId === regionId)

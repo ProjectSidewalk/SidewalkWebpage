@@ -32,7 +32,7 @@ class Canvas {
   #canvasProperties = { height: 0, width: 0 };
 
   /**
-   * @param {Object} ribbon - The RibbonMenu, queried for the selected label type / mode.
+   * @param {object} ribbon - The RibbonMenu, queried for the selected label type / mode.
    */
   constructor(ribbon) {
     this.#ribbon = ribbon;
@@ -538,7 +538,7 @@ class Canvas {
 
   /**
    * Returns the label that the mouse is over.
-   * @returns {?Object}
+   * @returns {?object}
    */
   getCurrentLabel() {
     return this.#status.currentLabel;
@@ -552,7 +552,7 @@ class Canvas {
    * Takes cursor coordinates x and y on the canvas and returns the label right below the cursor, or false if none.
    * @param {number} x
    * @param {number} y
-   * @returns {Object|boolean}
+   * @returns {object|boolean}
    */
   onLabel(x, y) {
     const labels = svl.labelContainer.getCanvasLabels();
@@ -622,7 +622,7 @@ class Canvas {
 
   /**
    * Sets the passed label's hoverInfoVisibility to 'visible' and all the others to 'hidden'.
-   * @param {Object} label
+   * @param {object} label
    */
   showLabelHoverInfo(label) {
     let needToRerender = false;
@@ -694,7 +694,7 @@ class Canvas {
 
   /**
    * Saves a screenshot of the canvas when the label was placed, to be uploaded to the server later.
-   * @param {Object} label
+   * @param {object} label
    */
   saveCanvasScreenshot(label) {
     // If there is no label to associate this crop with, don't save the crop.

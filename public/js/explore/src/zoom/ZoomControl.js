@@ -35,8 +35,8 @@ class ZoomControl {
   #wheelTrackTimeout;
 
   /**
-   * @param {Object} canvas - The Explore canvas (cleared/rendered on zoom changes).
-   * @param {Object} [tracker] - Optional interaction tracker for logging zoom events.
+   * @param {object} canvas - The Explore canvas (cleared/rendered on zoom changes).
+   * @param {object} [tracker] - Optional interaction tracker for logging zoom events.
    */
   constructor(canvas, tracker) {
     this.#canvas = canvas;
@@ -240,7 +240,7 @@ class ZoomControl {
 
   /**
    * Callback for the scroll wheel / trackpad over the pano.
-   * @param {Object} e - jQuery wheel event.
+   * @param {object} e - jQuery wheel event.
    */
   #handleZoomWheel(e) {
     // Prevent the page from scrolling while zooming the pano.

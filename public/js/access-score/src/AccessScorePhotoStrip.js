@@ -3,11 +3,11 @@
  * view, so the imagery behind a score is one glance away rather than a click into a cluster. A thumbnail opens the
  * full label card, whose arrows page through the strip.
  *
- * Source is the cluster feed for one neighborhood (`/v3/api/labelClusters?regionId=…`), cached for the page's life,
- * because a street is a filter over its neighborhood's clusters and a city has too many clusters to fetch for a
- * dozen pictures; the area in view pools the few nearest neighborhoods' feeds and keeps the clusters inside the
+ * Source is the cluster feed for one region (`/v3/api/labelClusters?regionId=…`), cached for the page's life,
+ * because a street is a filter over its region's clusters and a city has too many clusters to fetch for a
+ * dozen pictures; the area in view pools the few nearest regions' feeds and keeps the clusters inside the
  * map's bounds. The brush never narrows the strip: a brush is a set of street ids across the city and the strip
- * draws from neighborhood feeds. One label per cluster, worst-rated and largest clusters first, capped at
+ * draws from region feeds. One label per cluster, worst-rated and largest clusters first, capped at
  * `MAX_PHOTOS`; each is a `LabelMiniCard`, so a picture can be agreed or disagreed with where it is seen.
  */
 class AccessScorePhotoStrip {
@@ -29,8 +29,8 @@ class AccessScorePhotoStrip {
    * @param {HTMLElement} container - The element the strip renders into.
    * @param {object} options - Configuration and callbacks.
    * @param {Array<string>} options.types - The scored label types the feed is asked for.
-   * @param {function} options.onOpenLabel - Called with `(labelId, stripLabelIds)` when a thumbnail is chosen.
-   * @param {function} [options.log] - Called with `(kind, value)` for an interaction worth logging.
+   * @param {Function} options.onOpenLabel - Called with `(labelId, stripLabelIds)` when a thumbnail is chosen.
+   * @param {Function} [options.log] - Called with `(kind, value)` for an interaction worth logging.
    */
   constructor(container, { types, onOpenLabel, log = () => {} }) {
     this.#types = types;
@@ -48,14 +48,14 @@ class AccessScorePhotoStrip {
   }
 
   /**
-   * Shows the photos of a scope. No neighborhood (a city with nothing scored yet) shows the empty state. A viewport
+   * Shows the photos of a scope. No region (a city with nothing scored yet) shows the empty state. A viewport
    * scope keeps the current pictures up while its feeds load and skips the redraw when it picks the same clusters:
    * a pan arrives as a run of such calls, and a ribbon that blinks on each one is unreadable.
    *
    * @param {object} scope - Where the photos come from.
    * @param {string} scope.caption - The strip's caption, already worded.
-   * @param {?number} [scope.regionId] - The neighborhood whose cluster feed is read; null for none.
-   * @param {?Array<number>} [scope.regionIds] - Several neighborhoods' feeds, pooled (the area in view).
+   * @param {?number} [scope.regionId] - The region whose cluster feed is read; null for none.
+   * @param {?Array<number>} [scope.regionIds] - Several regions' feeds, pooled (the area in view).
    * @param {?Array<number>} [scope.bounds] - `[west, south, east, north]`; keep only the clusters inside.
    * @param {?number} [scope.streetId] - Keep only the clusters on this street…
    * @param {Set<number>} [scope.intersectionIds] - …or at these intersections (its ends).
@@ -77,7 +77,7 @@ class AccessScorePhotoStrip {
       return;
     }
     if (!keepWhileLoading) this.#els.status.textContent = i18next.t('accessscore:photos-loading');
-    // A neighborhood whose feed fails contributes nothing rather than sinking the others.
+    // A region whose feed fails contributes nothing rather than sinking the others.
     const perRegion = await Promise.all(ids.map((id) => this.#clusters(id).catch((e) => {
       console.warn('AccessScore photo strip: cluster feed failed', e);
       return [];
@@ -146,7 +146,7 @@ class AccessScorePhotoStrip {
     this.#cards.get(label.label_id)?.update(label);
   }
 
-  /** One neighborhood's scored clusters, fetched once. */
+  /** One region's scored clusters, fetched once. */
   #clusters(regionId) {
     if (!this.#clustersByRegion.has(regionId)) {
       const url = new URL('/v3/api/labelClusters', window.location.origin);

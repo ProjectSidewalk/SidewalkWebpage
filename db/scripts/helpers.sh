@@ -73,7 +73,7 @@ read_street_ids_from_csv() {
 # Marks a set of streets as having no imagery: sets status='no_imagery', drops their street_edge_priority rows so they
 # aren't assignable for auditing, records each real transition in street_edge_status_change, and truncates
 # region_completion to force distance recalculation. Idempotent, so it's safe to run on a region that's already been
-# processed. Shared by hide-streets-without-imagery.sh and the reveal branch of reveal-or-hide-neighborhoods.sh so the
+# processed. Shared by hide-streets-without-imagery.sh and the reveal branch of reveal-or-hide-regions.sh so the
 # two can't drift (#4335).
 # $1:   comma-separated street_edge_id list (e.g. "1,2,3"); a no-op when empty.
 # $2:   street_edge_status_change_source value naming the caller, so the trail says which script did this (#4928).

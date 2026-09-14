@@ -29,10 +29,10 @@ class LabelMiniCard {
    * @param {object} label - A `/label/id/:id` JSON.
    * @param {object} options - Presentation and callbacks.
    * @param {string} [options.size='sheet'] - 'sheet' (a grid card with a caption) or 'strip' (a bare thumbnail).
-   * @param {function} [options.onOpen] - Called with the label id when the picture is chosen.
-   * @param {function} [options.onVote] - Called with `(action|null, label)` after a vote has landed server-side.
+   * @param {Function} [options.onOpen] - Called with the label id when the picture is chosen.
+   * @param {Function} [options.onVote] - Called with `(action|null, label)` after a vote has landed server-side.
    * @param {string} options.source - The `source` recorded with a vote, naming the surface (e.g. 'AccessScoreStrip').
-   * @param {function} [options.log] - Called with an event name for an interaction worth logging.
+   * @param {Function} [options.log] - Called with an event name for an interaction worth logging.
    * @param {string} [options.className] - Extra class(es) for the root, for the host's layout rules.
    * @param {string} [options.tag='li'] - The root element's tag.
    */

@@ -1,4 +1,4 @@
-/* Right sidebar: a vertical flex column holding the current mission, global stats, badge progress, and the neighborhood
+/* Right sidebar: a vertical flex column holding the current mission, global stats, badge progress, and the region
    minimap. Sits to the right of the pano and spans the app's full height; the minimap section grows to fill whatever
    vertical space the other sections leave. All sizes scale with --ui-scale like the rest of the tool. */
 #explore-sidebar {
@@ -39,7 +39,7 @@
   margin: 0;
 }
 
-/* Long neighborhood names (e.g. "Teaneck Creek Conservancy") would wrap to a second line; clamp the mission line to
+/* Long region names (e.g. "Teaneck Creek Conservancy") would wrap to a second line; clamp the mission line to
    one line with an ellipsis. MissionPanel sets the element's title to the full text so it stays available on hover. */
 #current-mission-description {
   white-space: nowrap;
@@ -47,7 +47,7 @@
   text-overflow: ellipsis;
 }
 
-/* Holds the mission and neighborhood progress groups, spaced from each other and from the minimap below. */
+/* Holds the mission and region progress groups, spaced from each other and from the minimap below. */
 .explore-sidebar__progress-groups {
   display: flex;
   flex-direction: column;
@@ -60,7 +60,7 @@
   flex-direction: column;
 }
 
-/* The badge progress bars are slightly slimmer than the mission/neighborhood bars, with a smaller text. */
+/* The badge progress bars are slightly slimmer than the mission/region bars, with a smaller text. */
 .explore-sidebar__badge-progress {
   --ps-progress-bar-height: calc(10px * var(--ui-scale));
 }
@@ -74,7 +74,7 @@
   min-width: calc(64px * var(--ui-scale));
 }
 
-/* Same equal-length treatment for the mission and neighborhood bars (#4450): their labels are percentages
+/* Same equal-length treatment for the mission and region bars (#4450): their labels are percentages
    ("0%"–"100%"), so a narrower reserved column keeps both bars aligned regardless of the value. */
 .explore-sidebar__progress-group .ps-progress-bar__label {
   flex: 0 0 auto;
@@ -276,7 +276,7 @@
   border: 0;
 }
 
-/* Current mission section (mission progress, neighborhood progress, and minimap): grows to fill the remaining
+/* Current mission section (mission progress, region progress, and minimap): grows to fill the remaining
    sidebar height so the minimap takes whatever vertical space the other sections leave. */
 .explore-sidebar__section--map {
   flex: 1 1 auto;

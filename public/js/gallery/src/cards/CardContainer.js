@@ -103,7 +103,7 @@ class CardContainer {
       CardContainer.#initialLoad,
       filters.valOptions,
       Array.from(this.#loadedLabelIds),
-      initialFilters.neighborhoods,
+      initialFilters.regionIds,
       filters.severities,
       filters.tagsByType,
       initialFilters.aiValidationOptions,
@@ -231,14 +231,14 @@ class CardContainer {
    * @param {*} n Number of labels to grab.
    * @param validationOptions List of validation options for fetched labels: correct, incorrect, and/or unvalidated.
    * @param {*} loadedLabels Label Ids of labels already grabbed.
-   * @param {*} neighborhoods Region IDs the labels to be grabbed can be from (Set to undefined if N/A).
+   * @param {*} regionIds Region IDs the labels to be grabbed can be from (Set to undefined if N/A).
    * @param {*} severities Severities the labels to be grabbed can have (Set to undefined if N/A).
    * @param {object} tagsByLabelType Tags each label type is narrowed to, keyed by type name.
    * @param aiValidationOptions List of AI validation options for labels: correct, incorrect, and/or unvalidated.
    * @param {*} callback Function to be called when labels arrive.
    */
   fetchLabels(
-    labelTypes, n, validationOptions, loadedLabels, neighborhoods, severities, tagsByLabelType, aiValidationOptions,
+    labelTypes, n, validationOptions, loadedLabels, regionIds, severities, tagsByLabelType, aiValidationOptions,
     callback,
   ) {
     const url = '/label/labels';
@@ -246,7 +246,7 @@ class CardContainer {
       label_types: labelTypes,
       n,
       validation_options: validationOptions,
-      ...(neighborhoods !== undefined && { neighborhoods }),
+      ...(regionIds !== undefined && { region_ids: regionIds }),
       ...(severities !== undefined && { severities }),
       ...(tagsByLabelType !== undefined && { tags_by_label_type: tagsByLabelType }),
       ...(aiValidationOptions !== undefined && { ai_validation_options: aiValidationOptions }),
@@ -366,7 +366,7 @@ class CardContainer {
         CardContainer.#cardsPerPage * 2,
         filters.valOptions,
         Array.from(this.#loadedLabelIds),
-        this.#initialFilters.neighborhoods,
+        this.#initialFilters.regionIds,
         filters.severities,
         filters.tagsByType,
         this.#initialFilters.aiValidationOptions,

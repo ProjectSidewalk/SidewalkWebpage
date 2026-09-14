@@ -193,7 +193,7 @@ class ValidateSubmissionSpec
         "admin_version"    -> false,
         "label_type"       -> JsNull,
         "user_ids"         -> JsNull,
-        "neighborhood_ids" -> JsNull,
+        "region_ids"       -> JsNull,
         "unvalidated_only" -> false
       ),
       "pano_histories" -> Json.arr(),

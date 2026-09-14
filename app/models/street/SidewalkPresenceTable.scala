@@ -60,14 +60,14 @@ class SidewalkPresenceTableDef(tag: Tag) extends Table[SidewalkPresence](tag, "s
   def presenceBasis: Rep[SidewalkPresenceBasis.Value] = column[SidewalkPresenceBasis.Value]("presence_basis")
   def noSidewalkLabelCount: Rep[Int]                  = column[Int]("no_sidewalk_label_count") // CHECK (>= 0)
   def noSidewalkUserCount: Rep[Int]                   = column[Int]("no_sidewalk_user_count")  // CHECK (>= 0)
-  // DEFAULT 0 in the DB (386.sql added them to populated tables); CHECK (>= 0) each.
+  // DEFAULT 0 in the DB (388.sql added them to populated tables); CHECK (>= 0) each.
   def validatedNoSidewalkCount: Rep[Int]                  = column[Int]("validated_no_sidewalk_count", O.Default(0))
   def rejectedNoSidewalkCount: Rep[Int]                   = column[Int]("rejected_no_sidewalk_count", O.Default(0))
   def labelCount: Rep[Int]                                = column[Int]("label_count") // CHECK (>= 0)
   def auditCount: Rep[Int]                                = column[Int]("audit_count") // CHECK (>= 0)
   def firstNoSidewalkLabelAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("first_no_sidewalk_label_at")
   def lastNoSidewalkLabelAt: Rep[Option[OffsetDateTime]]  = column[Option[OffsetDateTime]]("last_no_sidewalk_label_at")
-  // Cross-column CHECKs in the DB (383.sql, 386.sql), which Slick can't express: presence is a function of
+  // Cross-column CHECKs in the DB (383.sql, 388.sql), which Slick can't express: presence is a function of
   // presence_basis, no_sidewalk_labels <=> no_sidewalk_label_count >= 1, unaudited => audit_count = 0, user count <=
   // NoSidewalk count <= label count, validated count <= NoSidewalk count, NoSidewalk count + rejected count <= label
   // count, and the two timestamps are present exactly when the NoSidewalk count is positive.
@@ -111,7 +111,7 @@ trait SidewalkPresenceTableRepository {
 /**
  * The derived per-face sidewalk presence table and its rebuild (#5279).
  *
- * The derivation is raw SQL held once in [[SidewalkPresenceTable.derivationSql]]; evolution 386 (which superseded
+ * The derivation is raw SQL held once in [[SidewalkPresenceTable.derivationSql]]; evolution 388 (which superseded
  * 383's) carries a pasted copy for the one-time population of existing cities, and `SidewalkPresenceTableSpec` checks
  * the two still agree.
  */
@@ -218,7 +218,7 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
     // Region and OSM way are joined at read time rather than stored: both are one-to-one with the street, and the
     // Streets API resolves them the same way. Only the tutorial street is excluded, as there; every other street is
     // returned tagged with its `status` (#3888), so a consumer who wants only the live ones — the table also covers
-    // streets closed with their neighborhood, whose `region_id` /v3/api/regions never returns — asks for
+    // streets closed with their region, whose `region_id` /v3/api/regions never returns — asks for
     // `status=open`. User-supplied strings are single-quote-escaped above and numeric filters are safe; see #2756
     // for moving these to bound parameters.
     val queryStr = s"""
@@ -281,7 +281,7 @@ object SidewalkPresenceTable {
   /**
    * The derivation of every block face's verdict from labels and audits, as a `WITH` prefix defining `derived_face`
    * with exactly the columns of `sidewalk_presence`. Held once so [[SidewalkPresenceTable.rebuild]] and the specs use
-   * exactly what evolution 386 ran; see that file and 383.sql for the reasoning behind each step.
+   * exactly what evolution 388 ran; see that file and 383.sql for the reasoning behind each step.
    *
    * The rule (the #5222 study, Planning PR #20): a face's own sided NoSidewalk labels call it `absent`, with the
    * count as the confidence; failing that, a "street has no sidewalks" tag on the opposite face does; failing that,

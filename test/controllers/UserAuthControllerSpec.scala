@@ -8,6 +8,8 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import util.SignedUpAccounts
+import models.utils.MyPostgresProfile.api._
 
 import java.util.UUID
 
@@ -22,7 +24,7 @@ import java.util.UUID
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class UserAuthControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
+class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -133,6 +135,24 @@ class UserAuthControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/welcome")).get
       status(resp) mustBe SEE_OTHER
       redirectLocation(resp) mustBe Some("/")
+    }
+  }
+
+  "POST /signUp against the schema's uniqueness" should {
+    "turn a duplicate email the pre-check can't see into the same 409, not a 500" in {
+      // An account with no role row is invisible to the pre-check, so only the unique index stops the second sign-up.
+      val (userId, email, _) = signUpFreshUser()
+      runAccounts(sqlu"DELETE FROM sidewalk_login.user_role WHERE user_id = $userId")
+      val (otherUsername, _, password) = freshCreds()
+      val dup                          = route(
+        app,
+        FakeRequest(POST, "/signUp")
+          .withHeaders(XHR)
+          .withFormUrlEncodedBody(signUpBody(otherUsername, email, password, password): _*)
+          .withCSRFToken
+      ).get
+      status(dup) mustBe CONFLICT
+      (contentAsJson(dup) \ "errors" \ "email").asOpt[String] mustBe defined
     }
   }
 

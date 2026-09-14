@@ -136,8 +136,8 @@
 
     <div id="landing-choropleth-container" class="container choropleth-container">
       <div class="section-title-and-subtitle">
-        <h2 class="row section-title" id="choose-neighborhood-title">@Messages("landing.choropleth.title")</h2>
-        <div class="row section-subtitle" id="choose-neighborhood-subtitle">
+        <h2 class="row section-title" id="choose-region-title">@Messages("landing.choropleth.title")</h2>
+        <div class="row section-subtitle" id="choose-region-subtitle">
           <div id="exploredesc">@Html(Messages("landing.choropleth.content"))</div>
         </div>
       </div>
@@ -292,10 +292,10 @@
               mapboxApiKey: '@commonData.mapboxApiKey',
               mapboxLogoLocation: 'bottom-right',
               scrollWheelZoom: false,
-              neighborhoodsURL: '/neighborhoods',
-              completionRatesURL: '/neighborhoods/completionRate',
-              neighborhoodFillMode: 'completionRate',
-              neighborhoodTooltip: 'completionRate'
+              regionsURL: '/regions',
+              completionRatesURL: '/regions/completionRates',
+              regionFillMode: 'completionRate',
+              regionTooltip: 'completionRate'
             };
             createPSMap($, choroplethParams).then(m => {
               window.choropleth = m[0];

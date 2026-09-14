@@ -1,9 +1,9 @@
 /**
- * The neighborhoods ranked by score in the AccessScore insights dock (#5217): every region with enough data,
+ * The regions ranked by score in the AccessScore insights dock (#5217): every region with enough data,
  * best first, each a button carrying its name, a bar colored by the ramp at its score, and the figure.
  *
  * This view answers "where does this one sit among the others", so it is never reduced to the selection: a
- * selected neighborhood is marked in place (`aria-current`) and a brush mutes the rows outside its range rather
+ * selected region is marked in place (`aria-current`) and a brush mutes the rows outside its range rather
  * than removing them. Rows keep their identity across updates — a weight change reorders the existing buttons
  * rather than rebuilding them, so focus and hover survive a slider drag.
  *

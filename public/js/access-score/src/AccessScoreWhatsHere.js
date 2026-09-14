@@ -1,6 +1,6 @@
 /**
  * What's here, in the AccessScore insights dock (#5217): one row per scored label type — its icon, name, cluster
- * count, and a bar split by rating — over the scope in view (the city, the selected neighborhood or street, further
+ * count, and a bar split by rating — over the scope in view (the city, the selected region or street, further
  * narrowed by a brush). It answers the tool's "why" in the vocabulary readers already know from Explore: how many
  * curb ramps, how many of them bad; how many obstacles, how many severe.
  *

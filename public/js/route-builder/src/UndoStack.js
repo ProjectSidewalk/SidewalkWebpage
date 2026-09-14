@@ -15,7 +15,7 @@ class UndoStack {
   }
 
   /**
-   * @param {Object} action - An action record (e.g. {type: 'add', streetId: 123}).
+   * @param {object} action - An action record (e.g. {type: 'add', streetId: 123}).
    */
   push(action) {
     this.#actions.push(action);
@@ -23,7 +23,7 @@ class UndoStack {
   }
 
   /**
-   * @returns {Object|null} The most recent action, or null if there is nothing to undo.
+   * @returns {object|null} The most recent action, or null if there is nothing to undo.
    */
   pop() {
     const action = this.#actions.pop() ?? null;

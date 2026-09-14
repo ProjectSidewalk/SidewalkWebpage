@@ -1,5 +1,5 @@
 /**
- * The AccessScore tool's map layers: streets as score-colored lines, neighborhoods as a score choropleth with a
+ * The AccessScore tool's map layers: streets as score-colored lines, regions as a score choropleth with a
  * hatch for regions below the completion floor, plus hover and selection (#5217).
  *
  * The map owns geometry and paint; the scores live in feature-state. A slider move therefore never re-uploads a
@@ -58,14 +58,14 @@ class AccessScoreMapView {
    * @param {AccessScoreModel} options.model - The scoring model.
    * @param {object} options.streets - The API's street FeatureCollection (geometry + `street_edge_id`, `region_id`,
    *                                   `audit_count`).
-   * @param {object} options.regions - The `/neighborhoods` polygon FeatureCollection (`region_id`, `region_name`).
-   * @param {function} options.onSelect - Called with `{unit, id, lngLat}` on a click, or `null` on deselect.
-   * @param {function} [options.onHover] - Called with `{unit, id, score}` as the pointer enters a feature (score
+   * @param {object} options.regions - The `/regions` polygon FeatureCollection (`region_id`, `name`).
+   * @param {Function} options.onSelect - Called with `{unit, id, lngLat}` on a click, or `null` on deselect.
+   * @param {Function} [options.onHover] - Called with `{unit, id, score}` as the pointer enters a feature (score
    *                                       null where it has none), and with `null` as it leaves.
-   * @param {function} options.tooltipHtml - Called with `{unit, id}`; returns the hover tooltip's HTML or null.
-   * @param {function} [options.clickClaimed] - Called with the Mapbox click event; return true when something
+   * @param {Function} options.tooltipHtml - Called with `{unit, id}`; returns the hover tooltip's HTML or null.
+   * @param {Function} [options.clickClaimed] - Called with the Mapbox click event; return true when something
    *                                            drawn above these layers (a cluster dot) owns the click.
-   * @param {function} [options.hoverClaimed] - Called with the Mapbox mousemove event; return true when something
+   * @param {Function} [options.hoverClaimed] - Called with the Mapbox mousemove event; return true when something
    *                                            drawn above these layers owns the hover, so its tooltip is the
    *                                            only one showing.
    * @param {boolean} [options.dark=false] - True on a dark basemap.
@@ -174,7 +174,7 @@ class AccessScoreMapView {
     this.#schedule();
   }
 
-  /** Shows the active unit's layers and hides the other's; region outlines stay on as neighborhood context. */
+  /** Shows the active unit's layers and hides the other's; region outlines stay on as region context. */
   #applyUnitVisibility() {
     const streets = this.#unit === 'streets';
     this.#map.setLayoutProperty(AccessScoreMapView.STREET_LAYER, 'visibility', streets ? 'visible' : 'none');
@@ -261,7 +261,7 @@ class AccessScoreMapView {
   }
 
   /**
-   * A region's bounds, for ranking the neighborhoods in view by their distance from the map center.
+   * A region's bounds, for ranking the regions in view by their distance from the map center.
    * @param {number} regionId - The region.
    * @returns {?mapboxgl.LngLatBounds} Its bounds, or null for an unknown id.
    */
@@ -318,7 +318,7 @@ class AccessScoreMapView {
     this.#map.addImage(AccessScoreMapView.HATCH_IMAGE, ctx.getImageData(0, 0, size, size), { pixelRatio: 1 });
   }
 
-  /** Neighborhood fill, hatch, outline, and name layers, bottom to top. */
+  /** Region fill, hatch, outline, and name layers, bottom to top. */
   #addRegionLayers(regions) {
     for (const f of regions.features || []) this.#regionBounds.set(f.properties.region_id, geometryBounds(f.geometry));
     this.#map.addSource(AccessScoreMapView.REGION_SOURCE, {
@@ -364,7 +364,7 @@ class AccessScoreMapView {
       source: AccessScoreMapView.REGION_SOURCE,
       minzoom: 12,
       layout: {
-        'text-field': ['get', 'region_name'],
+        'text-field': ['get', 'name'],
         'text-size': 12,
         'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
         'text-allow-overlap': false,
@@ -459,7 +459,7 @@ class AccessScoreMapView {
         const id = e.features[0].id;
         if (this.#hover.id !== id || this.#hover.source !== source) {
           this.#clearHover();
-          // The tooltip's HTML is built once per feature, not per pixel: a neighborhood's explanation is a pass
+          // The tooltip's HTML is built once per feature, not per pixel: a region's explanation is a pass
           // over every street in it, and the pointer moves a hundred times while resting on one.
           this.#hover = { source, id, html: this.#tooltipHtml({ unit, id }) };
           this.#map.setFeatureState({ source, id }, { hover: true });

@@ -11,20 +11,20 @@
  * @param {typeof PanoViewer} viewerType The type of pano viewer to initialize.
  * @param {string} viewerAccessToken An access token used to request images for the pano viewer.
  * @param {string} [currUsername] Username of the current viewer; identifies this user's own comments.
- * @param {Object} [opts]
+ * @param {object} [opts]
  * @param {string} [opts.syncUrlSource] When set, the open label is mirrored into the page URL as ?labelId=<id>
  *     (cleared on close) so the view is shareable and survives a refresh; a labelId already in the URL is opened
  *     after init, using this string as the validation source (e.g. 'LabelMap').
  * @param {function(number): void} [opts.onShow] Called with the label's ID every time one is shown (map click,
  *     deep link, prev/next arrows); LabelMap uses it to keep the shown label spotlighted on the map.
- * @param {function(number, Object): void} [opts.onMetadata] Called with the label's ID and its fetched metadata
+ * @param {function(number, object): void} [opts.onMetadata] Called with the label's ID and its fetched metadata
  *     payload once the shown label's data has loaded (skipped if another label was opened in the meantime);
  *     LabelMap uses the payload's camera coords to position the map for labels its own layer data can't locate.
  * @param {function(number): void} [opts.onClose] Called with the last-shown label's ID whenever the dialog
  *     closes (X, ESC, or backdrop); LabelMap uses it to pulse that label's spot on the map.
  * @param {boolean} [opts.showLabelMapLink] Show the popup's "View on Label Map" footer link (for hosts that
  *     aren't the label map themselves — e.g. the user dashboard).
- * @param {function(?string, Object): void} [opts.onVote] Called with the vote cast (or null for a cleared one) and
+ * @param {function(?string, object): void} [opts.onVote] Called with the vote cast (or null for a cleared one) and
  *   the label's metadata after a validation lands, so a host that also shows the label elsewhere can refresh it.
  * @param {boolean} [opts.showExploreHereLink] Show the popup's "Explore here" footer link, which opens Explore at
  *     the shown label's pano and point of view (#4637).
@@ -155,8 +155,8 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
 
   /**
    * Enables the prev/next arrows, stepping through labels via the given navigator (see nearbyLabelNavigator.js).
-   * @param {{next: function, prev: function, hasPrev: function, hasNext: function,
-   *     onRefresh: function}} nav Navigator over the host's label set. Its onRefresh is what keeps the arrows
+   * @param {{next: Function, prev: Function, hasPrev: Function, hasNext: Function,
+   *     onRefresh: Function}} nav Navigator over the host's label set. Its onRefresh is what keeps the arrows
    *     honest on a host whose reachable set changes under them: LabelMap loads labels by viewport (#5002), so a
    *     deep-linked popup opens over an empty set and has nowhere to page until the set fills (#5068), and its
    *     sidebar filters narrow where "next" may land (#5124).

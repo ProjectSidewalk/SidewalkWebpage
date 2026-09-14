@@ -30,8 +30,8 @@ class AccessScoreClusterLayer {
    * @param {mapboxgl.Map} map - A loaded Mapbox map.
    * @param {object} options - Data and callbacks.
    * @param {Array<string>} options.types - The scored label types, in the engine's order (bottom layer first).
-   * @param {function} options.tooltipHtml - Called with a cluster's `properties`; returns tooltip HTML or null.
-   * @param {function} options.onSelect - Called with a cluster's `properties` on a click.
+   * @param {Function} options.tooltipHtml - Called with a cluster's `properties`; returns tooltip HTML or null.
+   * @param {Function} options.onSelect - Called with a cluster's `properties` on a click.
    */
   constructor(map, { types, tooltipHtml, onSelect }) {
     this.#map = map;
@@ -93,7 +93,7 @@ class AccessScoreClusterLayer {
   }
 
   /**
-   * Whether a cluster sits under a pointer event — the map's street/neighborhood tooltip yields to this one, and
+   * Whether a cluster sits under a pointer event — the map's street/region tooltip yields to this one, and
    * a click on a dot must not also select the street beneath it.
    * @param {object} e - A Mapbox pointer event.
    * @returns {boolean} True when a visible cluster is under the pointer.
@@ -163,7 +163,7 @@ class AccessScoreClusterLayer {
     this.#map.on('mouseleave', this.#layers, () => this.#clearHover());
     this.#map.on('click', this.#layers, (e) => {
       if (!this.#visible || !e.features.length) return;
-      // The street or neighborhood under the dot keeps its selection; AccessScoreMapView checks defaultPrevented.
+      // The street or region under the dot keeps its selection; AccessScoreMapView checks defaultPrevented.
       e.preventDefault();
       this.#onSelect(AccessScoreClusterLayer.#props(e.features[0]));
     });

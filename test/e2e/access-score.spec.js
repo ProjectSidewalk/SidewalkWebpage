@@ -44,7 +44,7 @@ const REGIONS = {
   features: [{
     type: 'Feature',
     geometry: {type: 'MultiPolygon', coordinates: [[[[-74.02, 40.87], [-74.0, 40.87], [-74.0, 40.89], [-74.02, 40.89], [-74.02, 40.87]]]]},
-    properties: {region_id: 1, region_name: 'Fixture'},
+    properties: {region_id: 1, name: 'Fixture'},
   }],
 };
 const COMPLETION = [{region_id: 1, name: 'Fixture', rate: 1, total_distance_m: 300, completed_distance_m: 200, outdated_distance_m: 0}];
@@ -62,8 +62,9 @@ async function stubFeeds(context) {
   await context.route('**/v3/api/accessScoreStreets*', (route) => route.fulfill({json: streetsFixture()}));
   await context.route('**/v3/api/accessScoreIntersections*', (route) =>
     route.fulfill({json: {type: 'FeatureCollection', features: []}}));
-  await context.route('**/neighborhoods', (route) => route.fulfill({json: REGIONS}));
-  await context.route('**/neighborhoods/completionRate*', (route) => route.fulfill({json: COMPLETION}));
+  await context.route((url) => url.pathname === '/regions', (route) => route.fulfill({json: REGIONS}));
+  await context.route((url) => url.pathname === '/regions/completionRates',
+    (route) => route.fulfill({json: COMPLETION}));
   await context.route('**/v3/api/labelClusters*', (route) => route.fulfill({json: clustersFixture()}));
   await context.route('**/label/id/*', (route) => {
     const id = Number(route.request().url().split('/').pop());
@@ -173,7 +174,7 @@ test.describe('/accessScore', () => {
     await expect.poll(() => page.evaluate(() => new URL(window.location.href).searchParams.has('w'))).toBe(false);
   });
 
-  test('switching to neighborhoods shows the choropleth and rolls the streets up', async ({page}) => {
+  test('switching to regions shows the choropleth and rolls the streets up', async ({page}) => {
     await page.goto('/accessScore');
     await waitForAppReady(page);
     await waitForTool(page);
@@ -245,7 +246,7 @@ test.describe('/accessScore', () => {
       expect(scoreRequests.length).toBe(requestsAfterLoad);
     });
 
-  test('in the neighborhoods unit the brush dims regions, a rank click selects and flies, and the selection marks the histogram',
+  test('in the regions unit the brush dims regions, a rank click selects and flies, and the selection marks the histogram',
     async ({page}) => {
       await page.goto('/accessScore');
       await waitForAppReady(page);
@@ -277,7 +278,7 @@ test.describe('/accessScore', () => {
       expect(await dimOf(page, 'acs-regions', 1)).toBe(false);
     });
 
-  test('in the streets unit a rank click scopes the band to the neighborhood without selecting it on the map', async ({page}) => {
+  test('in the streets unit a rank click scopes the band to the region without selecting it on the map', async ({page}) => {
     await page.goto('/accessScore');
     await waitForAppReady(page);
     await waitForTool(page);
@@ -301,7 +302,7 @@ test.describe('/accessScore', () => {
     await expect.poll(() => urlParam(page, 'focus')).toBeNull();
   });
 
-  test('selecting a street fades the streets outside its neighborhood, and the collapsed band keeps the legend',
+  test('selecting a street fades the streets outside its region, and the collapsed band keeps the legend',
     async ({page}) => {
       await page.goto('/accessScore');
       await waitForAppReady(page);
@@ -332,7 +333,7 @@ test.describe('/accessScore', () => {
         legend.boundingBox(), page.locator('.mapboxgl-ctrl-zoom-in').boundingBox()]);
       expect(legendBox.x + legendBox.width).toBeLessThanOrEqual(zoomBox.x);
       expect(Math.abs(legendBox.y - zoomBox.y)).toBeLessThan(2);
-      // In the neighborhoods unit the swatch is the hatch, since the no-score case there is the completion floor.
+      // In the regions unit the swatch is the hatch, since the no-score case there is the completion floor.
       await page.locator('input[name="acs-unit"][value="regions"]').check({force: true});
       await expect(legend.locator('.acs-map-legend__swatch--hatch')).toBeVisible();
     });
@@ -361,7 +362,7 @@ test.describe('/accessScore', () => {
     await expect(page.locator('.acs-whats-here__row[data-type="Obstacle"] .acs-whats-here__count')).toHaveText('2');
     await expect(page.locator('.acs-whats-here__row[data-type="Obstacle"] .acs-whats-here__segment[data-bucket="3"]'))
       .toBeVisible();
-    // Nothing selected: the strip reads the lowest-scoring neighborhood — the fixture's only one — and says so.
+    // Nothing selected: the strip reads the lowest-scoring region — the fixture's only one — and says so.
     await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from Fixture (lowest scoring)');
     const items = page.locator('.acs-photos__item');
     await expect(items).toHaveCount(2);

@@ -78,9 +78,9 @@
   },
   "mission-complete": {
     "title-generic": "Mission Complete!",
-    "title-neighborhood-complete": "Bravo! You completed the {{neighborhoodName}} neighborhood!",
+    "title-region-complete": "Bravo! You completed the {{regionName}} neighborhood!",
     "title-route-complete": "Bravo! You completed your route!",
-    "subtitle": "Explore {{distance}} of {{neighborhoodName}}",
+    "subtitle": "Explore {{distance}} of {{regionName}}",
     "badge-alt": "Your missions badge",
     "legend-title": "Mission Progress",
     "legend-this-mission": "This mission",
@@ -146,14 +146,14 @@
       "message-route": "Explore {{routeName}}",
       "exit-route": "Exit Custom Route",
       "header-free-explore": "Free Exploration",
-      "message": "Explore __PLACEHOLDER__ of {{neighborhoodName}}"
+      "message": "Explore __PLACEHOLDER__ of {{regionName}}"
     },
     "route-resume": {
       "message": "Resuming your custom route “{{routeName}}” where you left off.",
       "exit": "Exit Custom Route"
     },
     "mission-resume": {
-      "message": "Resuming your mission in {{neighborhoodName}} — {{distanceLeft, distance(style: small)}} to go."
+      "message": "Resuming your mission in {{regionName}} — {{distanceLeft, distance(style: small)}} to go."
     },
     "route-unavailable": {
       "message": "That route isn't available. It may have been deleted."
@@ -187,7 +187,7 @@
       "next-distance": "Explore {{distance}} to earn the next one.",
       "earned-all": "You've reached the highest level for this badge — amazing work!"
     },
-    "neighborhood-progress": {
+    "region-progress": {
       "title": "Neighborhood progress",
       "you-tooltip": "Your contributions",
       "community-tooltip": "Community contributions"
@@ -299,14 +299,14 @@
       "u-turn": "U turn",
       "end-route": "You're at the end of your route! Look all the way around to finish — or <b>click here to complete now.</b>",
       "route-finish-look-around": "Last stop! Take a full look around to finish your route.",
-      "end-neighborhood": "You've explored this entire neighborhood! Finish labeling this intersection, then <b>click here to complete the neighborhood.</b>",
+      "end-region": "You've explored this entire neighborhood! Finish labeling this intersection, then <b>click here to complete the neighborhood.</b>",
       "end-street": "We need to move you to a new location. Finish labeling this intersection, then <b>click here to move to a new location.</b>",
       "far-away": "Uh-oh, you're quite far away from the route. <b>Click here to jump back.</b>"
     }
   },
   "popup": {
     "start-title": "Let's get started!",
-    "start-body": "We have moved you to a street in {{neighborhood}}, {{city}}! You are currently standing at the intersection. Please find and label all the curb ramps and accessibility problems at this intersection.",
+    "start-body": "We have moved you to a street in {{region}}, {{city}}! You are currently standing at the intersection. Please find and label all the curb ramps and accessibility problems at this intersection.",
     "step-title": "Let's move forward!",
     "step-body": "It looks like you've looked around this entire intersection, so it's time to explore other areas. Move in the direction of the red line highlighted on the map.",
     "both-sides-title": "Please check both sides of the street",
@@ -340,7 +340,7 @@
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "EXPLORE MISSION",
-    "mst-instruction-2": "Label these accessibility features in {{neighborhood}}",
+    "mst-instruction-2": "Label these accessibility features in {{region}}",
     "example-type-label-incorrect": "COMMON MISTAKE",
     "label-on-image-title-incorrect": "Common mistake",
     "label-on-image-description-correct": "Place a label",

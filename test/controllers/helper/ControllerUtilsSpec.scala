@@ -9,6 +9,22 @@ import play.api.test.Helpers._
  */
 class ControllerUtilsSpec extends PlaySpec {
 
+  "ControllerUtils.regionsParam" should {
+    "prefer regions over the old neighborhoods name" in {
+      ControllerUtils.regionsParam(Some("1,2"), Some("3")) mustBe Some("1,2")
+    }
+
+    "fall back to neighborhoods when regions is absent or empty" in {
+      ControllerUtils.regionsParam(None, Some("3")) mustBe Some("3")
+      ControllerUtils.regionsParam(Some(""), Some("3")) mustBe Some("3")
+    }
+
+    "treat an empty value as no filter" in {
+      ControllerUtils.regionsParam(Some(""), Some("")) mustBe None
+      ControllerUtils.regionsParam(None, None) mustBe None
+    }
+  }
+
   "ControllerUtils.internalKeyValid" should {
     val key = "s3cr3t-internal-key"
 

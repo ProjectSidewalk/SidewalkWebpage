@@ -14,8 +14,8 @@ class OutdatedStreets {
 
   /**
    * @param {HTMLElement} listEl - The <ul> of street rows.
-   * @param {Object} [opts] - Options.
-   * @param {Promise<Object|null>} [opts.mapReady] - Resolves with the contribution map, or null if it failed to load.
+   * @param {object} [opts] - Options.
+   * @param {Promise<object|null>} [opts.mapReady] - Resolves with the contribution map, or null if it failed to load.
    */
   constructor(listEl, opts = {}) {
     this.#list = listEl;

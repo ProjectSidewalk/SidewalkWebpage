@@ -1,5 +1,5 @@
 /**
- * Bootstraps the AccessScore tool page (#5217): loads the engine config, the city's streets, and the neighborhood
+ * Bootstraps the AccessScore tool page (#5217): loads the engine config, the city's streets, and the region
  * polygons and completion rates in parallel with the map, then wires the model, the map view, the cluster evidence
  * layer, the sidebar, the insights dock, and the URL together. Everything the page does after load is an event
  * flowing sidebar → model → map/dock/URL, or dock → map.
@@ -46,7 +46,7 @@ window.AccessScoreApp = (function () {
    *
    * @param {object} options - Page options.
    * @param {string} options.mapboxApiKey - The Mapbox access token.
-   * @param {function} options.viewerType - The pano viewer class for the city's imagery, for the label card.
+   * @param {typeof PanoViewer} options.viewerType - The pano viewer class for the city's imagery, for the label card.
    * @param {string} options.imageryAccessToken - The imagery provider's token.
    * @param {?string} options.username - The signed-in user's name, or null.
    * @returns {Promise<object>} Resolves with `{map, model, mapView}` once the map is scored (also exposed as
@@ -66,8 +66,8 @@ window.AccessScoreApp = (function () {
         console.warn('AccessScore intersections failed to load; scores are segment-only', e);
         return EMPTY_COLLECTION;
       }),
-      fetchJson('/neighborhoods'),
-      fetchJson('/neighborhoods/completionRate'),
+      fetchJson('/regions'),
+      fetchJson('/regions/completionRates'),
     ]);
 
     // A basemap asked for in the URL is chosen before the map exists, so the first paint is already right.
@@ -155,7 +155,7 @@ window.AccessScoreApp = (function () {
       onSelect: (selection) => select(selection),
       onHover: (hover) => dock?.markHover(hover),
       tooltipHtml: ({ unit, id }) => (unit === 'streets' ? streetTooltipHtml(id) : regionTooltipHtml(id)),
-      // A click on a cluster dot opens the label card; the street or neighborhood under it stays unselected.
+      // A click on a cluster dot opens the label card; the street or region under it stays unselected.
       clickClaimed: (e) => evidence?.layer.claims(e) === true,
       hoverClaimed: (e) => evidence?.layer.claims(e) === true,
       dark,
@@ -168,10 +168,10 @@ window.AccessScoreApp = (function () {
       model,
       mapView,
       map,
-      // A rank row goes to the neighborhood; in the neighborhoods unit it selects it too, in the streets unit the
+      // A rank row goes to the region; in the regions unit it selects it too, in the streets unit the
       // regions aren't selectable, so the fly-to is the whole answer.
-      // In the neighborhoods unit a rank click is a map selection; in the streets unit the dock's own focus scopes
-      // the band to the neighborhood without a region ever being "selected" on a streets map.
+      // In the regions unit a rank click is a map selection; in the streets unit the dock's own focus scopes
+      // the band to the region without a region ever being "selected" on a streets map.
       onRankSelect: (regionId) => {
         mapView.flyToRegion(regionId);
         if (model.state.unit === 'regions') {
@@ -513,7 +513,7 @@ window.AccessScoreApp = (function () {
     }
 
     /**
-     * The per-type breakdown shared by both popups: cluster count (a per-street average for a neighborhood, hence
+     * The per-type breakdown shared by both popups: cluster count (a per-street average for a region, hence
      * the decimal) and signed term per type that has any clusters.
      */
     function termsTableHtml(terms, clustersHeading = i18next.t('accessscore:popup-clusters')) {

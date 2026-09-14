@@ -402,7 +402,7 @@ describe('AccessScoreModel', () => {
         expect(ramp(city)).toBe(3 * onStreet + 2 * atCorner);
 
         // The contribution means and the problem-cluster KPI pool the same crossings, so a corner type's effect
-        // reaches the sidebar bars, the neighborhood popup, and the KPI strip rather than reading as ~0.
+        // reaches the sidebar bars, the region popup, and the KPI strip rather than reading as ~0.
         const cornerTerm = model.explainIntersection(10).terms.CurbRamp.term;
         const segmentTerm = model.explainStreet(1).terms.CurbRamp.term;
         expect(cornerTerm).not.toBe(0);

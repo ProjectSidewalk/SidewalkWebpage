@@ -13,7 +13,7 @@ import scala.io.Source
 
 /**
  * The derived sidewalk presence table (#5279): what the rebuild makes of a street's labels and audits, how validator
- * verdicts feed back into it (#5285), and that it reproduces evolution 386 — against the connected Postgres+PostGIS
+ * verdicts feed back into it (#5285), and that it reproduces evolution 388 — against the connected Postgres+PostGIS
  * database, every case inside a rolled-back transaction.
  *
  * Labels are seeded with an explicit `centerline_offset_m` rather than a position, since the side that offset
@@ -80,10 +80,10 @@ class SidewalkPresenceTableSpec
   private def facesOf(streetEdgeId: Int): DBIO[Map[StreetSide.Value, SidewalkPresence]] =
     table.sidewalkPresence.filter(_.streetEdgeId === streetEdgeId).result.map(_.map(f => f.streetSide -> f).toMap)
 
-  /** The data statements (the `WITH … INSERT` derivation) of one half of evolution 386, comments stripped. */
-  private def evolution386Statements(half: String): Seq[String] = {
+  /** The data statements (the `WITH … INSERT` derivation) of one half of evolution 388, comments stripped. */
+  private def evolution388Statements(half: String): Seq[String] = {
     val script: String = {
-      val source = Source.fromFile("conf/evolutions/default/386.sql", "UTF-8")
+      val source = Source.fromFile("conf/evolutions/default/388.sql", "UTF-8")
       try source.mkString
       finally source.close()
     }
@@ -97,15 +97,15 @@ class SidewalkPresenceTableSpec
   }
 
   "the sidewalk presence rebuild" should {
-    "reproduce exactly what evolution 386 populated, so the two copies of the derivation agree" in {
+    "reproduce exactly what evolution 388 populated, so the two copies of the derivation agree" in {
       // The evolution's data statement, run on the schema as it stands, then the Scala rebuild over the same
       // labels: a derivation that drifted would insert, update, or delete something.
-      val dataStatements = evolution386Statements("ups")
+      val dataStatements = evolution388Statements("ups")
       dataStatements must have size 1
 
       val (populated, seeded, rebuilt) = runRolledBack(for {
         // CI's seed carries no verdict on any NoSidewalk label, so without rows of its own this comparison would never
-        // reach the validated/rejected branches 386 added: a confirmed, an unvalidated and a rejected tagged label on
+        // reach the validated/rejected branches 388 added: a confirmed, an unvalidated and a rejected tagged label on
         // one face, and a rejected tagged label alone on another street.
         streetEdgeId <- insertStreet()
         otherStreet  <- insertStreet()
@@ -178,10 +178,10 @@ class SidewalkPresenceTableSpec
       right.firstNoSidewalkLabelAt mustBe None
     }
 
-    "be re-derived the 383 way by evolution 386's Downs, so a rolled-back deploy reads rows it agrees with" in {
+    "be re-derived the 383 way by evolution 388's Downs, so a rolled-back deploy reads rows it agrees with" in {
       // The Down drops the two columns and re-populates without the verdict rules: a rejected label counts as
       // evidence again, which is what the code the Down accompanies expects to find.
-      val downStatements = evolution386Statements("downs")
+      val downStatements = evolution388Statements("downs")
       downStatements must have size 1
 
       val (columns, total, streets, oldWayCount) = runRolledBack(for {

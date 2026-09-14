@@ -1,8 +1,7 @@
 /**
  * Models for the Project Sidewalk Regions API.
  *
- * This file contains the data structures used for API requests, responses, and error handling related to regions
- * (neighborhoods).
+ * This file contains the data structures used for API requests, responses, and error handling related to regions.
  */
 package models.api
 
@@ -14,7 +13,7 @@ import play.api.libs.json.{JsObject, Json, Writes}
 import java.time.OffsetDateTime
 
 /**
- * Represents a region (neighborhood) with associated metadata for the Regions API.
+ * Represents a region with associated metadata for the Regions API.
  * Implements StreamingApiType to support streaming output formats like GeoJSON and CSV.
  *
  * @param regionId Project Sidewalk's region identifier

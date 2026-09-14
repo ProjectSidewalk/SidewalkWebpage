@@ -28,6 +28,8 @@ class UserRoleTableDef(tag: Tag) extends Table[UserRole](tag, "user_role") {
     ((UserRole.apply _).tupled, UserRole.unapply)
 
   def user = foreignKey("user_role_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+
+  def userIdUnique = index("user_role_user_id_key", userId, unique = true)
 }
 
 @ImplementedBy(classOf[UserRoleTable])

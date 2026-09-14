@@ -56,7 +56,7 @@ class PanoramaxViewer extends PanoViewer {
    * Stamped onto the page by main.scala.html from ImageryAttribution.PanoramaxLicenses, which is the one copy of the
    * table (#5202): the server names the licence the same way when it renders a crop or a self-hosted pano itself.
    * Empty when a page didn't stamp it, which #attributionFor handles by showing the raw identifier.
-   * @returns {Object<string, {name: string, url: string}>}
+   * @returns {Record<string, {name: string, url: string}>}
    */
   static get #LICENSES() {
     return window.panoramaxLicenses ?? {};

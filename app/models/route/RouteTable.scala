@@ -69,7 +69,7 @@ case class SavedRoute(
  * A user-created route with the display stats shown in route listings (e.g. the dashboard's "My Routes").
  *
  * @param routeId        ID of the route.
- * @param regionId       ID of the region (neighborhood) the route is in.
+ * @param regionId       ID of the region the route is in.
  * @param regionName     Name of that region.
  * @param name           User-supplied route name.
  * @param slug           URL slug for the route's /r/<slug> share link.

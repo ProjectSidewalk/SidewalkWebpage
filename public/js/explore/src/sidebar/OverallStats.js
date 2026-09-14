@@ -11,7 +11,7 @@ class OverallStats {
 
   #isMetric;
   #sessionStartTotalDist = null;
-  #sessionStartNeighborhoodDist = null;
+  #sessionStartRegionDist = null;
   #sessionStartMissionCount = null;
   #stats = { distance: 0, labelCount: 0, accuracy: null };
 
@@ -73,17 +73,17 @@ class OverallStats {
   }
 
   /**
-   * Updates the global distance as the user explores. The neighborhood distance is offset against the session's
-   * starting totals so the global figure stays correct even when switching neighborhoods.
-   * @param {number} neighborhoodDistance Distance audited in the current neighborhood (user's unit).
+   * Updates the global distance as the user explores. The region distance is offset against the session's
+   * starting totals so the global figure stays correct even when switching regions.
+   * @param {number} regionDistance Distance audited in the current region (user's unit).
    */
-  setNeighborhoodAuditedDistance(neighborhoodDistance) {
+  setRegionAuditedDistance(regionDistance) {
     // Tutorial exploration isn't saved, so it doesn't count toward the global distance or the exploring badge.
     if (svl.isOnboarding()) return;
-    if (this.#sessionStartNeighborhoodDist === null) this.#sessionStartNeighborhoodDist = neighborhoodDistance;
+    if (this.#sessionStartRegionDist === null) this.#sessionStartRegionDist = regionDistance;
     if (this.#sessionStartTotalDist === null) return; // basicStats not loaded yet.
     const prev = this.#stats.distance;
-    this.#stats.distance = this.#sessionStartTotalDist - this.#sessionStartNeighborhoodDist + neighborhoodDistance;
+    this.#stats.distance = this.#sessionStartTotalDist - this.#sessionStartRegionDist + regionDistance;
     this.#renderDistance();
     this.#checkBadgeUnlock('distance', prev, this.#stats.distance, { isMetric: this.#isMetric });
   }
@@ -93,7 +93,7 @@ class OverallStats {
    * @param {string} type Badge type ('labels' or 'distance').
    * @param {number} oldValue The value before this update, in the user's units.
    * @param {number} newValue The value after this update, in the user's units.
-   * @param {Object} [opts] Passed through to BadgeAchievements (e.g. { isMetric }).
+   * @param {object} [opts] Passed through to BadgeAchievements (e.g. { isMetric }).
    */
   #checkBadgeUnlock(type, oldValue, newValue, opts = {}) {
     if (!this.#seeded) return;
