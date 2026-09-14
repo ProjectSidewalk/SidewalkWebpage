@@ -10,7 +10,7 @@ class LabelContainer {
   #nextTempLabelId;
 
   /**
-   * @param {JQueryStatic} $ jQuery object.
+   * @param {JQueryStatic} $ - jQuery object.
    * @param {number} nextTemporaryLabelId
    */
   constructor($, nextTemporaryLabelId) {

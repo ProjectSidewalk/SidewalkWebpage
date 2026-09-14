@@ -9,7 +9,7 @@ class AudioEffect {
   #muteIcon;
 
   /**
-   * @param {TemporaryStorage} storage TemporaryStorage used to persist the muted state.
+   * @param {TemporaryStorage} storage - TemporaryStorage used to persist the muted state.
    */
   constructor(storage) {
     this.#storage = storage;
@@ -51,7 +51,7 @@ class AudioEffect {
 
   /**
    * Loads a sound effect so it is ready to play with minimal latency.
-   * @param {string} name Name of the sound effect.
+   * @param {string} name - Name of the sound effect.
    */
   load(name) {
     if (name in this.#audios && typeof this.#audios[name].load === 'function') {
@@ -61,7 +61,7 @@ class AudioEffect {
 
   /**
    * Plays a sound effect, unless the user has muted sound.
-   * @param {string} name Name of the sound effect.
+   * @param {string} name - Name of the sound effect.
    */
   play(name) {
     if (name in this.#audios && !this.#storage.get('muted') && typeof this.#audios[name].play === 'function') {

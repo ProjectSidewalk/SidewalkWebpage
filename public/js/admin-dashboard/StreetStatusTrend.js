@@ -466,7 +466,7 @@ class StreetStatusTrend {
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
   }
 
-  /** @param {string} message @param {boolean} isError @param {boolean} [hide=false] */
+  /** @param {string} message - @param {boolean} isError @param {boolean} [hide=false] */
   #setStatus(message, isError, hide = false) {
     const el = document.getElementById('trend-status');
     if (!el) return;

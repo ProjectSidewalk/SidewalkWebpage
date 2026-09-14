@@ -25,12 +25,12 @@ class FilterSidebar {
   #i18nKeys;
 
   /**
-   * @param {HTMLElement} root The sidebar element containing the filter controls.
-   * @param {object} [options] Configuration options.
-   * @param {(change: object) => void} [options.onChange] Called after every interaction, with a change descriptor:
+   * @param {HTMLElement} root - The sidebar element containing the filter controls.
+   * @param {object} [options] - Configuration options.
+   * @param {(change: object) => void} [options.onChange] - Called after every interaction, with a change descriptor:
    *      `{kind, section, value, checked, labelType, tag, typeTurnedOn}`. `kind` is 'option', 'selectAll', 'only',
    *      or 'tag'. Read `getState()` inside the callback for the resulting filter state.
-   * @param {object} [options.i18nKeys] Overrides for the i18next keys of the section actions.
+   * @param {object} [options.i18nKeys] - Overrides for the i18next keys of the section actions.
    */
   constructor(root, { onChange = () => {}, i18nKeys = {} } = {}) {
     this.#root = root;
@@ -102,7 +102,7 @@ class FilterSidebar {
    * Renders per-option counts into the sidebar's count slots. Hosts compute the numbers — the map facets its loaded
    * labels, a server-backed host would ask the backend — because only they know what "how many" means.
    *
-   * @param {object} countsByValue Map of control value (label type or option id) to count.
+   * @param {object} countsByValue - Map of control value (label type or option id) to count.
    */
   setCounts(countsByValue) {
     for (const span of this.#root.querySelectorAll('.filter-sidebar__count')) {
@@ -130,7 +130,7 @@ class FilterSidebar {
 
   /**
    * Returns true when at least one control in the section is on.
-   * @param {string} section The section name (a `data-filter-type` value, or 'severity').
+   * @param {string} section - The section name (a `data-filter-type` value, or 'severity').
    * @returns {boolean} Whether anything in the section is currently selected.
    */
   isAnyActive(section) {
@@ -142,7 +142,7 @@ class FilterSidebar {
 
   /**
    * Returns true when every control in the section is on.
-   * @param {string} section The section name (a `data-filter-type` value, or 'severity').
+   * @param {string} section - The section name (a `data-filter-type` value, or 'severity').
    * @returns {boolean} Whether the section is fully selected.
    */
   isAllActive(section) {
@@ -186,8 +186,8 @@ class FilterSidebar {
 
   /**
    * Expands or collapses one label type's tag drawer, keeping the chevron's direction and ARIA state in step.
-   * @param {HTMLElement} item The label type's list item.
-   * @param {boolean} expanded Whether the drawer should end up open.
+   * @param {HTMLElement} item - The label type's list item.
+   * @param {boolean} expanded - Whether the drawer should end up open.
    */
   #setDrawer(item, expanded) {
     const pills = item.querySelector('.filter-sidebar__tag-pills');
@@ -236,10 +236,10 @@ class FilterSidebar {
   /**
    * Sets every control in a section from a predicate.
    *
-   * @param {string} section The section name.
-   * @param {(value: string) => boolean} isOn Given a control's value, whether it should end up selected.
-   * @param {object} [options] Configuration options.
-   * @param {boolean} [options.clearTagsWhenOff=false] Whether to drop the tag filters of label types turned off.
+   * @param {string} section - The section name.
+   * @param {(value: string) => boolean} isOn - Given a control's value, whether it should end up selected.
+   * @param {object} [options] - Configuration options.
+   * @param {boolean} [options.clearTagsWhenOff=false] - Whether to drop the tag filters of label types turned off.
    */
   setSection(section, isOn, { clearTagsWhenOff = false } = {}) {
     if (section === FilterSidebar.SEVERITY) {
@@ -298,7 +298,7 @@ class FilterSidebar {
    * caller never asked about. Pills on unchecked types are skipped — the same rule the server-rendered restore
    * applies (a tag narrows a type that is being shown), and implying the type here would re-enable types a
    * `labelTypes` filter had just excluded. Does not fire onChange.
-   * @param {Array<{labelType: string, tag: string}>} pairs The label-type/tag pairs to activate.
+   * @param {Array<{labelType: string, tag: string}>} pairs - The label-type/tag pairs to activate.
    */
   applyTags(pairs) {
     // Matched on dataset rather than an attribute selector: tag names carry characters (colons, spaces) that
@@ -320,7 +320,7 @@ class FilterSidebar {
 
   /**
    * Clears the tag filters of one label type.
-   * @param {string} labelType The label type key.
+   * @param {string} labelType - The label type key.
    */
   clearTags(labelType) {
     this.#root.querySelectorAll(`.tag-pill[data-label-type="${labelType}"]`).forEach((pill) => {
@@ -342,7 +342,7 @@ class FilterSidebar {
   /**
    * Swaps a section action between "Deselect all" and "Select all" to match what the click would do. No-op for
    * sections that don't render one (the admin-only filter).
-   * @param {string} section The section name.
+   * @param {string} section - The section name.
    */
   #syncSectionAction(section) {
     const btn = this.#root.querySelector(`.filter-sidebar__deselect-all[data-section="${section}"]`);
@@ -372,7 +372,7 @@ class FilterSidebar {
   }
 
   /**
-   * @param {string} section The section name.
+   * @param {string} section - The section name.
    * @returns {HTMLInputElement[]} The section's option checkboxes.
    */
   #optionsIn(section) {
@@ -380,7 +380,7 @@ class FilterSidebar {
   }
 
   /**
-   * @param {string} labelType The label type key.
+   * @param {string} labelType - The label type key.
    * @returns {?HTMLInputElement} That label type's checkbox, or null on pages that don't render it.
    */
   #checkboxFor(labelType) {
@@ -389,7 +389,7 @@ class FilterSidebar {
 
   /**
    * A control's semantic value: label types drop the `-checkbox` suffix their ids carry, everything else is its id.
-   * @param {HTMLInputElement} cb The option checkbox.
+   * @param {HTMLInputElement} cb - The option checkbox.
    * @returns {string} The value hosts filter on.
    */
   static #valueOf(cb) {

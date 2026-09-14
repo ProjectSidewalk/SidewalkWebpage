@@ -34,8 +34,8 @@ class LabelContainer {
   };
 
   /**
-   * @param {Array} labelList Initial list of labels to be validated (generated when the page is loaded).
-   * @param {string} labelType Label type of the mission these labels belong to.
+   * @param {Array} labelList - Initial list of labels to be validated (generated when the page is loaded).
+   * @param {string} labelType - Label type of the mission these labels belong to.
    */
   constructor(labelList, labelType) {
     this.resetLabelList(labelList, labelType);
@@ -43,8 +43,8 @@ class LabelContainer {
 
   /**
    * Creates a LabelContainer and renders its first label.
-   * @param {Array} labelList Initial list of labels to be validated.
-   * @param {string} labelType Label type of the mission these labels belong to.
+   * @param {Array} labelList - Initial list of labels to be validated.
+   * @param {string} labelType - Label type of the mission these labels belong to.
    * @returns {Promise<LabelContainer>}
    */
   static async create(labelList, labelType) {
@@ -55,7 +55,7 @@ class LabelContainer {
 
   /**
    * Gets a specific property from the LabelContainer.
-   * @param {string} key Property name.
+   * @param {string} key - Property name.
    * @returns {*} Value associated with this property or null.
    */
   getProperty(key) {
@@ -64,8 +64,8 @@ class LabelContainer {
 
   /**
    * Sets a property for the LabelContainer.
-   * @param {string} key Name of property.
-   * @param {*} value Value of property.
+   * @param {string} key - Name of property.
+   * @param {*} value - Value of property.
    * @returns {LabelContainer}
    */
   setProperty(key, value) {
@@ -98,7 +98,7 @@ class LabelContainer {
    * are read off the previous label's pano, and its endTimestamp predates the label appearing (#5211). The busy state
    * blocks the pointer; this covers what CSS can't, including a keypress on a button that kept focus after a click.
    *
-   * @param {string} source What was dropped, for the tracker: a verdict, a submit, an undo, or a label advance.
+   * @param {string} source - What was dropped, for the tracker: a verdict, a submit, an undo, or a label advance.
    * @returns {boolean} True if the caller must return without touching the current label.
    */
   dropInputWhileLoading(source) {
@@ -223,7 +223,7 @@ class LabelContainer {
    * modals live inside #svv-application-holder, so the `validate-disabled` class on that holder disables their
    * buttons too.
    *
-   * @param {boolean} busy True to lock the UI, false to hand it back.
+   * @param {boolean} busy - True to lock the UI, false to hand it back.
    */
   #setUiBusy(busy) {
     this.#loading = busy;
@@ -315,8 +315,8 @@ class LabelContainer {
 
   /**
    * Creates a list of label objects to be validated from label metadata. Called when a new mission is loaded.
-   * @param {Array} labelList List of label metadata objects.
-   * @param {string} labelType Label type of the mission these labels belong to.
+   * @param {Array} labelList - List of label metadata objects.
+   * @param {string} labelType - Label type of the mission these labels belong to.
    */
   resetLabelList(labelList, labelType) {
     this.#labels = labelList.map((key) => new Label(key));
@@ -341,9 +341,9 @@ class LabelContainer {
    * The last gate before a validation is recorded: a verdict that arrives while the label's pano is still loading is
    * dropped here even if it got past the menu that raised it (#5211).
    *
-   * @param {string} action The verdict cast: Agree, Disagree, or Unsure.
-   * @param {Date} timestamp When the verdict was cast.
-   * @param {string} comment The comment submitted with it, if any.
+   * @param {string} action - The verdict cast: Agree, Disagree, or Unsure.
+   * @param {Date} timestamp - When the verdict was cast.
+   * @param {string} comment - The comment submitted with it, if any.
    */
   validateCurrentLabel(action, timestamp, comment) {
     if (this.dropInputWhileLoading(`Validate=${action}`)) return;
@@ -362,9 +362,9 @@ class LabelContainer {
 
   /**
    * Pushes label metadata to the list of labels that need to be submitted to the backend.
-   * @param {number} labelId Integer label ID.
-   * @param {object} labelMetadata Label metadata (validationProperties object).
-   * @param {object} commentData Comment data (commentProperties object).
+   * @param {number} labelId - Integer label ID.
+   * @param {object} labelMetadata - Label metadata (validationProperties object).
+   * @param {object} commentData - Comment data (commentProperties object).
    */
   pushToLabelsToSubmit(labelId, labelMetadata, commentData) {
     // If the most recent label is the same as current (meaning it was an undo), remove the undo and use this one.
@@ -403,7 +403,7 @@ class LabelContainer {
 
   /**
    * Pushes a label object directly (for undo purposes) to the list of current labels.
-   * @param {object} validation The completed label validation object ready to be pushed to the list of labels.
+   * @param {object} validation - The completed label validation object ready to be pushed to the list of labels.
    */
   pushUndoValidation(validation) {
     validation.undone = true;

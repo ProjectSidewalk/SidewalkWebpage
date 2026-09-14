@@ -14,8 +14,8 @@
  * Keyed on the `pano_data.source` string rather than a viewer class, so this file can ship in the pano-credit
  * bundle that pages with no viewer load (#5202).
  *
- * @param {Element} container The positioned pano container element.
- * @param {string} primarySource The imagery source ('gsv', 'mapillary', 'infra3d', 'panoramax'); a viewer class
+ * @param {Element} container - The positioned pano container element.
+ * @param {string} primarySource - The imagery source ('gsv', 'mapillary', 'infra3d', 'panoramax'); a viewer class
  *     exposes its own as the static SOURCE.
  * @returns {{ showPrimaryLogo: Function, showSourceLogo: Function, hide: Function }}
  */
@@ -116,7 +116,7 @@ function createPanoViewerLogo(container, primarySource) {
    * a wider gap for that source than for one whose art runs flush. Reading the alpha channel keeps the gap
    * optically equal whatever art is dropped in.
    *
-   * @param {number} boxWidth The image's rendered width in unscaled px.
+   * @param {number} boxWidth - The image's rendered width in unscaled px.
    * @returns {number} The rightmost visible pixel's x in unscaled px, or boxWidth if the pixels can't be read.
    */
   function inkRightEdge(boxWidth) {

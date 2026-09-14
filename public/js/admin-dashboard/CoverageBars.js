@@ -16,7 +16,7 @@ class CoverageBars {
   #hoverId = null;
 
   /**
-   * @param {string} containerId - id of the chart container element.
+   * @param {string} containerId - ID of the chart container element.
    * @param {{onBarClick?: function(number): void, onBarHover?: function(number): void,
    *          onBarHoverEnd?: function(): void}} [opts]
    */

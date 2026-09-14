@@ -109,8 +109,8 @@ class MissionStartTutorial {
   /**
    * The example slides that teach one label type, translated and ready to render.
    *
-   * @param {string} missionType Mission type ('validate' or 'audit').
-   * @param {string} labelType One of the seven label types.
+   * @param {string} missionType - Mission type ('validate' or 'audit').
+   * @param {string} labelType - One of the seven label types.
    * @returns {object[]} One entry per slide: `isExampleCorrect`, `slideTitle`, `slideSubtitle`, `slideDescription`,
    *      `imageURL`, and `labelOnImage.position`.
    */
@@ -151,12 +151,12 @@ class MissionStartTutorial {
   #messagesPrefix;
 
   /**
-   * @param {string} missionType Mission type ('validate' or 'audit').
-   * @param {string} labelType One of the seven label types for which the tutorial is initialized.
-   * @param {object} data Mission data: `nLabels` (VALIDATE) or `neighborhood` (EXPLORE), plus optional `resuming`
+   * @param {string} missionType - Mission type ('validate' or 'audit').
+   * @param {string} labelType - One of the seven label types for which the tutorial is initialized.
+   * @param {object} data - Mission data: `nLabels` (VALIDATE) or `neighborhood` (EXPLORE), plus optional `resuming`
    *                      (the mission already has progress, so the done button reads "Resume mission").
-   * @param {object} svvOrsvl SVValidate or SVLabel object that logs interactions and acts on tutorial close.
-   * @param {string} [language] Language code that tweaks spacing for verbose translations.
+   * @param {object} svvOrsvl - SVValidate or SVLabel object that logs interactions and acts on tutorial close.
+   * @param {string} [language] - Language code that tweaks spacing for verbose translations.
    */
   constructor(missionType, labelType, data, svvOrsvl, language = 'en') {
     this.#missionType = missionType;
@@ -188,7 +188,7 @@ class MissionStartTutorial {
    *     - labelOnImage: object, containing the following:
    *         - position: object, containing 'top' and 'left' attributes (wrt image elem) for the on-image label.
    *
-   * @param {string} missionType Mission type ('validate' or 'audit').
+   * @param {string} missionType - Mission type ('validate' or 'audit').
    */
   #initModule(missionType) {
     const isValidate = missionType === MissionStartTutorial.#MISSION_TYPES.VALIDATE;
@@ -265,7 +265,7 @@ class MissionStartTutorial {
    * Renders the slide for the given idx. Includes setting title, subtitle, description, image, and on-image label.
    * - Updates the current slide indicator.
    * - Disables/enables the next/previous buttons based on the idx of the rendered slide.
-   * @param {number} idx Index of the slide to be rendered.
+   * @param {number} idx - Index of the slide to be rendered.
    */
   #renderSlide(idx) {
     const $mstSlide = $('.mst-slide');
@@ -277,9 +277,9 @@ class MissionStartTutorial {
 
     /**
      * Renders the 'on-image label' and positions it.
-     * @param {object} position Position of the on-image label as top and left attributes in px.
-     * @param {string} labelOnImageTitle Title to be shown on the label.
-     * @param {string} labelOnImageDescription Description to be shown on the label.
+     * @param {object} position - Position of the on-image label as top and left attributes in px.
+     * @param {string} labelOnImageTitle - Title to be shown on the label.
+     * @param {string} labelOnImageDescription - Description to be shown on the label.
      */
     const renderLabelOnImage = (position, labelOnImageTitle, labelOnImageDescription) => {
       $labelOnImage.css({

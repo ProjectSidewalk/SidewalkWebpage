@@ -9,7 +9,7 @@ class DesktopValidationMenu {
   #tagsAddedByUser = [];
 
   /**
-   * @param {object} menuUI Validation menu UI elements.
+   * @param {object} menuUI - Validation menu UI elements.
    */
   constructor(menuUI) {
     this.#menuUI = menuUI;
@@ -243,7 +243,7 @@ class DesktopValidationMenu {
    * The buttons are one shared set of elements, so a type that offers a given reason gets it shown and marked
    * `defaultOption` — the flag the number-key shortcuts check — while a type that doesn't offer it gets it hidden.
    *
-   * @param {object} label The label whose type the buttons should describe.
+   * @param {object} label - The label whose type the buttons should describe.
    */
   #renderReasonButtons(label) {
     const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
@@ -325,9 +325,9 @@ class DesktopValidationMenu {
 
   /**
    * Adds a jquery tooltip to the given element with the given text and image (if given).
-   * @param {jQuery} $elem Element to add the tooltip to, as jquery wrapped object.
-   * @param {string} tooltipText Text to display in the tooltip.
-   * @param {string} [img] Optional image to display in the tooltip.
+   * @param {jQuery} $elem - Element to add the tooltip to, as jquery wrapped object.
+   * @param {string} tooltipText - Text to display in the tooltip.
+   * @param {string} [img] - Optional image to display in the tooltip.
    */
   #addTooltip($elem, tooltipText, img) {
     const tooltipHtml = img ? `${tooltipText}<br/><img src="${img}" class="validate-tooltip-img"/>` : tooltipText;
@@ -553,7 +553,7 @@ class DesktopValidationMenu {
    * properties, so the reason would ride along invisibly and be submitted as the canned comment for a reason nobody
    * picked for the label it lands on.
    *
-   * @param {string} id Id of the chosen reason button, or 'other' for the free-text box.
+   * @param {string} id - Id of the chosen reason button, or 'other' for the free-text box.
    */
   #setDisagreeReason(id) {
     if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
@@ -580,7 +580,7 @@ class DesktopValidationMenu {
    * properties, so the reason would ride along invisibly and be submitted as the canned comment for a reason nobody
    * picked for the label it lands on.
    *
-   * @param {string} id Id of the chosen reason button, or 'other' for the free-text box.
+   * @param {string} id - Id of the chosen reason button, or 'other' for the free-text box.
    */
   #setUnsureReason(id) {
     if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
@@ -607,8 +607,8 @@ class DesktopValidationMenu {
 
   /**
    * Validates a single label from a button click.
-   * @param {string} action Validation action - must be one of Agree, Disagree, or Unsure.
-   * @param {boolean} keyboardShortcut Whether or not the validation was triggered by a keyboard shortcut.
+   * @param {string} action - Validation action - must be one of Agree, Disagree, or Unsure.
+   * @param {boolean} keyboardShortcut - Whether or not the validation was triggered by a keyboard shortcut.
    */
   #validateLabel(action, keyboardShortcut) {
     // Everything below writes to whatever getCurrentLabel() returns, which mid-load is already the next label (#5211).

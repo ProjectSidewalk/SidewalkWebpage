@@ -161,7 +161,7 @@ class Infra3dViewer extends PanoViewer {
    * Only a rejection backed by a real cameraType is a NoImageryError, since that is what lets a sweep conclude the
    * street is out of imagery rather than report a provider failure (#4918). The guessed case stays an ordinary Error:
    * this runs on the page's seed image, where a wrong guess would condemn a street with good imagery and reload.
-   * @param {object} node Infra3d's internal node object for the image we just moved to
+   * @param {object} node - Infra3d's internal node object for the image we just moved to
    * @returns {Promise<void>} Rejects if the image isn't panoramic; resolves otherwise
    */
   #filterNonPanoramicImages = async (node) => {
@@ -188,8 +188,8 @@ class Infra3dViewer extends PanoViewer {
    *
    * NoImageryError, matching GsvViewer: the search succeeded and there is nothing here the caller can use, so a
    * dead end whose last panos the user already stood on stays recognizable as one (#4918).
-   * @param {PanoData} newPanoData The pano data for the new panorama
-   * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to
+   * @param {PanoData} newPanoData - The pano data for the new panorama
+   * @param {Set<PanoData>} [excludedPanos=new Set()] - Set of PanoData objects that are not valid images to move to
    * @returns {Promise<PanoData>} The pano data, or a rejection with NoImageryError if the pano is excluded.
    */
   #filterExcludedPanos = (newPanoData, excludedPanos) => {
@@ -207,7 +207,7 @@ class Infra3dViewer extends PanoViewer {
   /**
    * Ensures that all image metadata has been saved before letting setPano or setLocation resolve.
    *
-   * @param {object} node Infra3d's internal node object.
+   * @param {object} node - Infra3d's internal node object.
    * @returns {Promise<PanoData>}
    * @private
    */

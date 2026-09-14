@@ -29,15 +29,15 @@ class MapStatusPill {
   #keys;
 
   /**
-   * @param {HTMLElement} mapContainer The map's container element (position: relative); the pill is appended
+   * @param {HTMLElement} mapContainer - The map's container element (position: relative); the pill is appended
    *     to it and centered along its top edge.
    * @param {object} [options]
-   * @param {() => boolean} [options.suppressLoading] Returns true while the loading state should not be shown —
+   * @param {() => boolean} [options.suppressLoading] - Returns true while the loading state should not be shown —
    *     e.g. while the initial full-map overlay is already up.
-   * @param {object} [options.keys] i18next keys for the two messages, for a host whose viewport layer isn't
+   * @param {object} [options.keys] - i18next keys for the two messages, for a host whose viewport layer isn't
    *     labels — the AccessScore tool draws label *clusters*, and the pill has to say what will appear.
-   * @param {string} [options.keys.belowFloor] Key for the "zoom in" message.
-   * @param {string} [options.keys.loading] Key for the "loading" message.
+   * @param {string} [options.keys.belowFloor] - Key for the "zoom in" message.
+   * @param {string} [options.keys.loading] - Key for the "loading" message.
    */
   constructor(mapContainer, { suppressLoading = () => false, keys = {} } = {}) {
     this.#suppressLoading = suppressLoading;
@@ -55,7 +55,7 @@ class MapStatusPill {
 
   /**
    * Shows the pill for the given loader state (or hides it).
-   * @param {string} state One of 'idle' | 'loading' | 'belowFloor' | 'error'.
+   * @param {string} state - One of 'idle' | 'loading' | 'belowFloor' | 'error'.
    */
   setState(state) {
     if (state === this.#state) return;
@@ -82,7 +82,7 @@ class MapStatusPill {
     }
   }
 
-  /** @param {string} text The localized message to show. */
+  /** @param {string} text - The localized message to show. */
   #show(text) {
     clearTimeout(this.#fadeTimer);
     this.#fadeTimer = null;

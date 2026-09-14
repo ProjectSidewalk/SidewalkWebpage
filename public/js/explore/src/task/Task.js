@@ -41,7 +41,7 @@ class Task {
   /**
    * @param {GeoJSON.Feature<GeoJSON.LineString>} geojson
    * @param {boolean} tutorialTask
-   * @param {{lat: number, lng: number}} [currentLatLng] The user's current lat/lng to use if resuming.
+   * @param {{lat: number, lng: number}} [currentLatLng] - The user's current lat/lng to use if resuming.
    */
   constructor(geojson, tutorialTask, currentLatLng) {
     this.#properties.tutorialTask = tutorialTask;
@@ -50,8 +50,8 @@ class Task {
 
   /**
    * This method takes a task parameters and set up the current task.
-   * @param {GeoJSON.Feature<GeoJSON.LineString>} geojson The GeoJSON representation of the street
-   * @param {{lat: number, lng: number}} [currentLatLng] The user's current lat/lng to use if resuming
+   * @param {GeoJSON.Feature<GeoJSON.LineString>} geojson - The GeoJSON representation of the street
+   * @param {{lat: number, lng: number}} [currentLatLng] - The user's current lat/lng to use if resuming
    */
   initialize(geojson, currentLatLng) {
     this.#geojson = geojson;
@@ -97,7 +97,7 @@ class Task {
 
   /**
    * Choose whether to reverse street direction based on the current position (should be where prev task ends).
-   * @param {{lat: number, lng: number}} currentLatLng User's current position
+   * @param {{lat: number, lng: number}} currentLatLng - User's current position
    */
   setStreetEdgeDirection(currentLatLng) {
     const lat1 = this.#geojson.geometry.coordinates[0][1];
@@ -236,7 +236,7 @@ class Task {
 
   /**
    * Return the property.
-   * @param {string} key Field name
+   * @param {string} key - Field name
    * @returns {null}
    */
   getProperty(key) {
@@ -290,7 +290,7 @@ class Task {
   }
 
   /**
-   * @param {{units: string}} [units={units: 'kilometers'}] Can be degrees, radians, miles, or kilometers
+   * @param {{units: string}} [units={units: 'kilometers'}] - Can be degrees, radians, miles, or kilometers
    * @returns {number}
    */
   getAuditedDistance(units = { units: 'kilometers' }) {
@@ -303,8 +303,8 @@ class Task {
   /**
    * Get the cumulative distance.
    *
-   * @param {{lat: number, lng: number}} latLng The point to measure the distance from the start
-   * @param {{units: string}} [units] String can be degrees, radians, miles, or kilometers
+   * @param {{lat: number, lng: number}} latLng - The point to measure the distance from the start
+   * @param {{units: string}} [units] - String can be degrees, radians, miles, or kilometers
    * @returns {number} distance in meters
    */
   getDistanceFromStart(latLng, units) {
@@ -325,8 +325,8 @@ class Task {
    * at the end" of a full block is most of a short one, and every caller inherits that — so the cap lives here
    * rather than being re-derived at each call site.
    *
-   * @param {{lat: number, lng: number}} latLng The user's current location
-   * @param {number} [threshold=10] Distance threshold in meters
+   * @param {{lat: number, lng: number}} latLng - The user's current location
+   * @param {number} [threshold=10] - Distance threshold in meters
    * @returns {boolean} false if the task has no geometry yet.
    */
   isAtEnd(latLng, threshold = 10) {
@@ -366,9 +366,9 @@ class Task {
   /**
    * Checks if the current task is connected to the given task.
    *
-   * @param {Task} task The task to check if this task is close to
-   * @param {number} threshold Distance threshold in km, unless specified in unit parameter
-   * @param {{units: string}} [units] Object with field 'units' holding distance unit, default to 'kilometers'
+   * @param {Task} task - The task to check if this task is close to
+   * @param {number} threshold - Distance threshold in km, unless specified in unit parameter
+   * @param {{units: string}} [units] - Object with field 'units' holding distance unit, default to 'kilometers'
    * @returns {boolean} true this task's endpoint is within threshold distance of either endpoint of given task
    */
   isConnectedTo(task, threshold, units) {
@@ -386,7 +386,7 @@ class Task {
 
   /**
    * Get the line distance of the task street edge
-   * @param {{units: string}} [units] Object with field 'units' holding distance unit, default to 'kilometers'
+   * @param {{units: string}} [units] - Object with field 'units' holding distance unit, default to 'kilometers'
    * @returns {number} The length of the street in the given units
    */
   lineDistance(units) {

@@ -216,9 +216,9 @@ class Onboarding {
 
   /**
    * Draw a label on the onboarding canvas. Draws only static labels as examples in the tutorial.
-   * @param {string} labelType Label type that selects the correct icon
-   * @param {number} x canvas x-position of the center of the label
-   * @param {number} y canvas y-position of the center of the label
+   * @param {string} labelType - Label type that selects the correct icon
+   * @param {number} x - Canvas x-position of the center of the label
+   * @param {number} y - Canvas y-position of the center of the label
    * @param {number} [progress=1] - Entrance progress in [0, 1]; the icon fades and scales up as it pops in.
    */
   #drawStaticLabel(labelType, x, y, progress = 1) {
@@ -237,11 +237,11 @@ class Onboarding {
 
   /**
    * Draw a box on the onboarding canvas.
-   * @param {number} x top-left x coordinate
-   * @param {number} y top-left y coordinate
-   * @param {number} width pixel width
-   * @param {number} height pixel height
-   * @param {object} parameters parameters
+   * @param {number} x - Top-left x coordinate
+   * @param {number} y - Top-left y coordinate
+   * @param {number} width - Pixel width
+   * @param {number} height - Pixel height
+   * @param {object} parameters - Parameters
    */
   #drawBox(x, y, width, height, parameters) {
     if (this.#ctx) {
@@ -256,11 +256,11 @@ class Onboarding {
 
   /**
    * Draw an arrow on the onboarding canvas.
-   * @param {number} x1 Starting x coordinate
-   * @param {number} y1 Starting y coordinate
-   * @param {number} x2 Ending x coordinate
-   * @param {number} y2 Ending y coordinate
-   * @param {object} parameters parameters
+   * @param {number} x1 - Starting x coordinate
+   * @param {number} y1 - Starting y coordinate
+   * @param {number} x2 - Ending x coordinate
+   * @param {number} y2 - Ending y coordinate
+   * @param {object} parameters - Parameters
    * @returns {Onboarding}
    */
   #drawArrow(x1, y1, x2, y2, parameters) {
@@ -454,7 +454,7 @@ class Onboarding {
   }
 
   /**
-   * @param {string} stateId An id from OnboardingStates.js.
+   * @param {string} stateId - An id from OnboardingStates.js.
    * @returns {object} The state with that id.
    */
   #getState(stateId) {
@@ -476,9 +476,9 @@ class Onboarding {
 
   /**
    * Resolve and visit the next state, passing `thisArg` through to a function-valued transition.
-   * @param {string|Function} nextState State id, or a function returning a state id.
-   * @param {object} [params] Parameters the transition function may read.
-   * @param {EventTarget|Label} [thisArg] The `this` for a function-valued transition: the element the user interacted
+   * @param {string|Function} nextState - State id, or a function returning a state id.
+   * @param {object} [params] - Parameters the transition function may read.
+   * @param {EventTarget|Label} [thisArg] - The `this` for a function-valued transition: the element the user interacted
    *     with, or the label being tagged.
    */
   #transitionTo(nextState, params, thisArg) {
@@ -492,7 +492,7 @@ class Onboarding {
    * The projection is left unbounded and the result clamped into the pano instead, so a label the user has panned
    * off-screen keeps a rect that rides the near edge.
    *
-   * @param {Label} label The label to measure.
+   * @param {Label} label - The label to measure.
    * @returns {DOMRect|null} null if there is no such label or its position can't be projected.
    */
   #labelRect(label) {
@@ -530,7 +530,7 @@ class Onboarding {
   /**
    * Builds an anchor resolver that points the message at a placed label.
    *
-   * @param {Label} label The label to point at.
+   * @param {Label} label - The label to point at.
    * @returns {Function} Resolver for #anchorMessageTo.
    */
   #labelAnchor(label) {
@@ -546,8 +546,8 @@ class Onboarding {
    * A callout anchored inside the context menu follows the menu's label while the menu is closed: the menu is
    * hidden with `visibility`, so it keeps a rect the callout would otherwise go on pointing at (#4859).
    *
-   * @param {string} selector CSS selector of the element to point the box at.
-   * @param {string} placement Preferred Floating UI placement (e.g. 'left', 'right', 'top', 'bottom').
+   * @param {string} selector - CSS selector of the element to point the box at.
+   * @param {string} placement - Preferred Floating UI placement (e.g. 'left', 'right', 'top', 'bottom').
    * @returns {Function} Resolver for #anchorMessageTo.
    */
   #elementAnchor(selector, placement) {
@@ -566,7 +566,7 @@ class Onboarding {
 
   /**
    * Position the onboarding message box beside its anchor using Floating UI lib, with an arrow pointing at it.
-   * @param {Function} resolveAnchor Returns {rect, placement, boundedByPane} for the current frame, or null.
+   * @param {Function} resolveAnchor - Returns {rect, placement, boundedByPane} for the current frame, or null.
    */
   #anchorMessageTo(resolveAnchor) {
     const floating = this.#uiOnboarding.messageHolder.get(0);
@@ -923,8 +923,8 @@ class Onboarding {
    * The welcome/skip UI lives in the pre-tutorial intro (TutorialIntro), whose "Start Mission" button leads here, so
    * this state is non-interactive: it just sets the POV and moves on.
    *
-   * @param {object} state The 'initialize' state from OnboardingStates.js.
-   * @param {google.maps.MapsEventListener} [listener] A Google Maps event listener to remove before advancing.
+   * @param {object} state - The 'initialize' state from OnboardingStates.js.
+   * @param {google.maps.MapsEventListener} [listener] - A Google Maps event listener to remove before advancing.
    */
   #visitIntroduction(state, listener) {
     if (listener) google.maps.event.removeListener(listener);
@@ -940,8 +940,8 @@ class Onboarding {
 
   /**
    * Called when the user is told to click on the compass or nav arrows to move to the next image.
-   * @param {object} state The current state defined in OnboardingStates.js
-   * @param {google.maps.MapsEventListener} [listener] An optional listener on a Google Maps event, to be removed
+   * @param {object} state - The current state defined in OnboardingStates.js
+   * @param {google.maps.MapsEventListener} [listener] - An optional listener on a Google Maps event, to be removed
    *     before moving to the next state
    */
   #visitWalkTowards(state, listener) {

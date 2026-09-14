@@ -141,7 +141,7 @@ class PartnersPage {
     return btn;
   }
 
-  /** @param {string} scope @returns {boolean} */
+  /** @param {string} scope - @returns {boolean} */
   #canEdit(scope) {
     return scope === 'city' || this.#isOwner;
   }
@@ -343,7 +343,7 @@ class PartnersPage {
     }
   }
 
-  /** @param {string} scope @returns {HTMLFormElement} */
+  /** @param {string} scope - @returns {HTMLFormElement} */
   #formFor(scope) {
     return document.querySelector(`.partners-add-form[data-scope="${scope}"]`);
   }

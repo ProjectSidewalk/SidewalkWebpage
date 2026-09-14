@@ -9,7 +9,7 @@ window.sg = window.sg || {};
 class Main {
   /**
    * Creates and initializes the Gallery Main module.
-   * @param {object} params Object passed from gallery.scala.html containing initial values pulled from the database
+   * @param {object} params - Object passed from gallery.scala.html containing initial values pulled from the database
    *              on page load.
    * @returns {Promise<Main>}
    */

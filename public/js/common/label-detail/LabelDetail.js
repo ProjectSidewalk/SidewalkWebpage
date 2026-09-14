@@ -15,7 +15,7 @@ class LabelDetail {
    * Sets or clears the ?labelId= query param without adding history entries, so the open label is shareable
    * and survives a refresh but Back still leaves the page. The single deep-link contract for every host
    * (LabelPopup, Gallery's ExpandedView, the LabelMap page).
-   * @param {?number} labelId The open label's ID, or null to clear the param.
+   * @param {?number} labelId - The open label's ID, or null to clear the param.
    */
   static syncUrlLabelId(labelId) {
     const url = new URL(window.location);

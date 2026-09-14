@@ -548,7 +548,7 @@ class NavigationService {
    * than cycling through other panos clustered at the current location. If they've wandered away from the route,
    * the target stays at the furthest point to bring them back.
    *
-   * @param {Task} currentTask The task whose street is being walked.
+   * @param {Task} currentTask - The task whose street is being walked.
    * @returns {{currLoc: {lat: number, lng: number}, remainder: turf.Feature<turf.LineString>}}
    */
   #computeMoveTarget(currentTask) {

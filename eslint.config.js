@@ -167,6 +167,7 @@ module.exports = [
       'jsdoc/check-alignment': 'error',
       'jsdoc/require-param-type': 'error',
       'jsdoc/require-returns-type': 'error',
+      'jsdoc/require-hyphen-before-param-description': 'error',
     },
   },
 

@@ -35,7 +35,7 @@ util.pano.MS_PER_JULIAN_YEAR = 365.25 * 24 * 3600 * 1000;
  * jsdom suite does exactly that). The memo lives in a closure because the bundle is concatenated, not modularized —
  * a bare top-level binding here would be a global.
  *
- * @param {string} provider Lowercase provider name, a key of the file's `providers` object ('mapillary', 'panoramax').
+ * @param {string} provider - Lowercase provider name, a key of the file's `providers` object (e.g. 'mapillary').
  * @returns {object} The shared weights and decay scales, with the provider's own parameters merged over them.
  */
 util.pano.scoring = (() => {
@@ -49,7 +49,7 @@ util.pano.scoring = (() => {
 /**
  * sgn( a ) is +1 if a >= 0 else -1.
  *
- * @param {number} x The number whose sign we're checking
+ * @param {number} x - The number whose sign we're checking
  * @returns {number} 1 if positive or 0, -1 if negative
  */
 util.pano.sgn = (x) => (x >= 0 ? 1 : -1);
@@ -81,7 +81,7 @@ util.pano.sgn = (x) => (x >= 0 ? 1 : -1);
  * speaks horizontal fov directly, so neither viewer needs an aspect correction; Mapillary and Infra3D express
  * their camera in *vertical* fov, so they bridge through vFovToHFov()/hFovToVFov() (#4852).
  *
- * @param {number} zoom The zoom level according to GSV
+ * @param {number} zoom - The zoom level according to GSV
  * @returns {number} The (horizontal) field of view angle for the given zoom
  */
 util.pano.zoomToFov = (zoom) => {
@@ -159,10 +159,10 @@ util.pano.fovToZoom = (fov) => {
  * panoHeight / 2 and column 0 at cameraHeading − 180°. Its only callers are the tutorial's annotation drawing
  * paths, whose coordinates in OnboardingStates.js are authored in this convention (#4957).
  *
- * @param {number} xFromNorth Heading in pano-pixel units east of true north; panoWidth spans 360°.
- * @param {number} yAboveHorizon Pitch in pano-pixel units above the horizon; panoHeight / 2 spans 90°.
- * @param {number} panoWidth The width of the panorama image
- * @param {number} panoHeight The height of the panorama image
+ * @param {number} xFromNorth - Heading in pano-pixel units east of true north; panoWidth spans 360°.
+ * @param {number} yAboveHorizon - Pitch in pano-pixel units above the horizon; panoHeight / 2 spans 90°.
+ * @param {number} panoWidth - The width of the panorama image
+ * @param {number} panoHeight - The height of the panorama image
  * @returns {{heading: number, pitch: number}}
  */
 util.pano.horizonRelativeCoordToPov = (xFromNorth, yAboveHorizon, panoWidth, panoHeight) => {
@@ -175,10 +175,10 @@ util.pano.horizonRelativeCoordToPov = (xFromNorth, yAboveHorizon, panoWidth, pan
 /**
  * Returns the XY coordinate on the panorama of the center point of the given pov.
  *
- * @param {{heading: number, pitch: number}} pov The point of view within the panorama to use; heading wrt true north
- * @param {number} cameraHeading The heading of the camera (center of the pano) with respect to true north
- * @param {number} panoWidth The width of the panorama
- * @param {number} panoHeight The height of the panorama
+ * @param {{heading: number, pitch: number}} pov - The point of view within the panorama to use; heading wrt true north
+ * @param {number} cameraHeading - The heading of the camera (center of the pano) with respect to true north
+ * @param {number} panoWidth - The width of the panorama
+ * @param {number} panoHeight - The height of the panorama
  * @returns {{x: number, y: number}} The XY coordinate on the full panoramic image
  */
 util.pano.povToPanoCoord = (pov, cameraHeading, panoWidth, panoHeight) => {
@@ -209,11 +209,11 @@ util.pano.povToPanoCoord = (pov, cameraHeading, panoWidth, panoHeight) => {
  * writer. AI labels need the identity directly — submitAiLabelData writes them at the canvas center so this returns
  * the submitted POV unchanged.
  *
- * @param {{heading: number, pitch: number, zoom: number}} pov The POV within the panorama to use wrt true north
- * @param {number} canvasX X-coordinate of the point of interest
- * @param {number} canvasY Y-coordinate of the point of interest
- * @param {number} canvasWidth Width of the canvas
- * @param {number} canvasHeight Height of the canvas
+ * @param {{heading: number, pitch: number, zoom: number}} pov - The POV within the panorama to use wrt true north
+ * @param {number} canvasX - X-coordinate of the point of interest
+ * @param {number} canvasY - Y-coordinate of the point of interest
+ * @param {number} canvasWidth - Width of the canvas
+ * @param {number} canvasHeight - Height of the canvas
  * @returns {{heading: number, pitch: number, zoom: number}} POV of the pano if centered on the given point
  */
 util.pano.canvasCoordToCenteredPov = (pov, canvasX, canvasY, canvasWidth, canvasHeight) => {
@@ -259,11 +259,11 @@ util.pano.canvasCoordToCenteredPov = (pov, canvasX, canvasY, canvasWidth, canvas
  *
  * The math is described here: http://martinmatysiak.de/blog/view/panomarker.
  *
- * @param {{heading: number, pitch: number}} centeredPov Translating the center point at this POV to newPov
- * @param {{heading: number, pitch: number, zoom: number}} newPov The POV within the panorama to use wrt true north
- * @param {number} canvasWidth Width of the canvas
- * @param {number} canvasHeight Height of the canvas
- * @param {number} margin The extra pixels around canvas width/height where we don't return null, usually label radius
+ * @param {{heading: number, pitch: number}} centeredPov - Translating the center point at this POV to newPov
+ * @param {{heading: number, pitch: number, zoom: number}} newPov - The POV within the panorama to use wrt true north
+ * @param {number} canvasWidth - Width of the canvas
+ * @param {number} canvasHeight - Height of the canvas
+ * @param {number} margin - The extra pixels around canvas width/height where we don't return null, usually label radius
  * @returns {{x: number, y: number}|null} Canvas coordinates for the point at `newPov`; null if not on the canvas
  */
 util.pano.centeredPovToCanvasCoord = (centeredPov, newPov, canvasWidth, canvasHeight, margin) => {
@@ -360,7 +360,7 @@ util.pano.centeredPovToCanvasCoord = (centeredPov, newPov, canvasWidth, canvasHe
 /**
  * Helper function that converts the heading to be in the range [-180,180).
  *
- * @param {number} heading The heading to convert.
+ * @param {number} heading - The heading to convert.
  * @returns {number} The heading converted to the range [-180,180).
  */
 util.pano.wrapHeading = (heading) => {
@@ -380,11 +380,11 @@ util.pano.wrapHeading = (heading) => {
  * PanoMarker starts here and upgrades to centeredPovToCanvasCoord only once the browser hands it a WebGL context,
  * so this is the projection every marker uses on a WebGL-less browser.
  *
- * @param {{heading: number, pitch: number}} centeredPov Translating the center point at this POV to newPov
- * @param {{heading: number, pitch: number, zoom: number}} newPov The POV within the panorama to use wrt true north
- * @param {number} canvasWidth Width of the canvas
- * @param {number} canvasHeight Height of the canvas
- * @param {number} margin The extra pixels around canvas width/height where we don't return null, usually label radius
+ * @param {{heading: number, pitch: number}} centeredPov - Translating the center point at this POV to newPov
+ * @param {{heading: number, pitch: number, zoom: number}} newPov - The POV within the panorama to use wrt true north
+ * @param {number} canvasWidth - Width of the canvas
+ * @param {number} canvasHeight - Height of the canvas
+ * @param {number} margin - The extra pixels around canvas width/height where we don't return null, usually label radius
  * @returns {{x: number, y: number}|null} Canvas coordinates for the point at `newPov`; null if not on the canvas
  */
 util.pano.centeredPovToCanvasCoord2d = (centeredPov, newPov, canvasWidth, canvasHeight, margin) => {

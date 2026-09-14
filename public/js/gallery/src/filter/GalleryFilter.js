@@ -24,9 +24,9 @@ class GalleryFilter {
   #initialFilters;
 
   /**
-   * @param {HTMLElement} root The sidebar element holding the filter controls.
-   * @param {HTMLElement} clearButton The button that resets every filter to its default.
-   * @param {object} initialFilters Filters parsed from the URL by the server, passed through the page.
+   * @param {HTMLElement} root - The sidebar element holding the filter controls.
+   * @param {HTMLElement} clearButton - The button that resets every filter to its default.
+   * @param {object} initialFilters - Filters parsed from the URL by the server, passed through the page.
    */
   constructor(root, clearButton, initialFilters) {
     this.#root = root;
@@ -48,7 +48,7 @@ class GalleryFilter {
 
   /**
    * Applies a sidebar change: log it, follow the label type if it moved, and refetch the cards.
-   * @param {object} change The change descriptor from FilterSidebar.
+   * @param {object} change - The change descriptor from FilterSidebar.
    */
   #onChange(change) {
     this.#log(change);
@@ -157,7 +157,7 @@ class GalleryFilter {
 
   /**
    * Translates a sidebar change into this page's tracker event.
-   * @param {object} change The change descriptor from FilterSidebar.
+   * @param {object} change - The change descriptor from FilterSidebar.
    */
   #log({ kind, section, value, checked, labelType, tag }) {
     if (!sg.tracker) return;
@@ -185,7 +185,7 @@ class GalleryFilter {
 
   /**
    * The event-name stem a section's batch actions log under, matching its per-option events.
-   * @param {string} section The section name.
+   * @param {string} section - The section name.
    * @returns {string} The stem, e.g. "Severity" for SeverityOnly / SeveritySelectAll.
    */
   static #eventPrefix(section) {

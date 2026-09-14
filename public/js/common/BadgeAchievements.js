@@ -45,9 +45,9 @@ class BadgeAchievements {
 
   /**
    * Converts a value in the caller's unit system into the canonical units used by the thresholds (miles for dist).
-   * @param {string} type Badge type.
-   * @param {number} value Value in the caller's units.
-   * @param {boolean} isMetric Whether `value` is metric (only affects distance).
+   * @param {string} type - Badge type.
+   * @param {number} value - Value in the caller's units.
+   * @param {boolean} isMetric - Whether `value` is metric (only affects distance).
    * @returns {number} The value in canonical units.
    */
   static #toCanonical(type, value, isMetric) {
@@ -56,8 +56,8 @@ class BadgeAchievements {
 
   /**
    * The highest badge level a value has earned for the given type.
-   * @param {string} type Badge type.
-   * @param {number} value Value in canonical units (miles for distance).
+   * @param {string} type - Badge type.
+   * @param {number} value - Value in canonical units (miles for distance).
    * @returns {number} The earned level (1–5), or 0 if no badge has been earned yet.
    */
   static getLevelForValue(type, value) {
@@ -73,10 +73,10 @@ class BadgeAchievements {
 
   /**
    * Builds the badge descriptor for a given type and level.
-   * @param {string} type Badge type.
-   * @param {number} level Badge level (1–5).
+   * @param {string} type - Badge type.
+   * @param {number} level - Badge level (1–5).
    * @param {object} [opts]
-   * @param {boolean} [opts.isMetric] Whether to use the kilometer distance icon variant.
+   * @param {boolean} [opts.isMetric] - Whether to use the kilometer distance icon variant.
    * @returns {?object} { type, level, roman, name, iconSrc } or null for an out-of-range level.
    */
   static getBadge(type, level, opts = {}) {
@@ -100,10 +100,10 @@ class BadgeAchievements {
    * lives: the dashboard's badge tracks and Validate's mission-complete screen both read it, and each having its own
    * copy is how the two would come to disagree about the same number.
    *
-   * @param {string} type Badge type.
-   * @param {number} value Value in canonical units (miles for distance).
+   * @param {string} type - Badge type.
+   * @param {number} value - Value in canonical units (miles for distance).
    * @param {object} [opts]
-   * @param {boolean} [opts.isMetric] Whether to use the kilometer distance icon variant on the returned badges.
+   * @param {boolean} [opts.isMetric] - Whether to use the kilometer distance icon variant on the returned badges.
    * @returns {object} `{ level, badge, next, earnedAt, nextAt, fraction, remaining }`. `badge` is null before the
    *      first level; at the top level `next` is null, `nextAt` and `remaining` are 0, and `fraction` is 1. A type
    *      with no track reports an empty progress rather than throwing.
@@ -127,11 +127,11 @@ class BadgeAchievements {
 
   /**
    * Detects whether moving from `oldValue` to `newValue` crossed into a higher badge level.
-   * @param {string} type Badge type.
-   * @param {number} oldValue Previous value, in the caller's units.
-   * @param {number} newValue New value, in the caller's units.
+   * @param {string} type - Badge type.
+   * @param {number} oldValue - Previous value, in the caller's units.
+   * @param {number} newValue - New value, in the caller's units.
    * @param {object} [opts]
-   * @param {boolean} [opts.isMetric] Whether the values are metric (only affects distance).
+   * @param {boolean} [opts.isMetric] - Whether the values are metric (only affects distance).
    * @returns {?object} The newly earned badge descriptor (see getBadge), or null if no new level was reached.
    */
   static detectUnlock(type, oldValue, newValue, opts = {}) {
@@ -146,8 +146,8 @@ class BadgeAchievements {
 
   /**
    * Shows the celebratory "you unlocked a badge" toast — the badge-specific specialization of the generic Toast.
-   * @param {object} badge A badge descriptor from getBadge/detectUnlock.
-   * @param {HTMLElement} referenceEl The element to float the toast over (the panorama or a modal).
+   * @param {object} badge - A badge descriptor from getBadge/detectUnlock.
+   * @param {HTMLElement} referenceEl - The element to float the toast over (the panorama or a modal).
    * @returns {Toast}
    */
   static showUnlockToast(badge, referenceEl) {
@@ -198,7 +198,7 @@ class BadgeAchievements {
 
   /**
    * Records a newly submitted validation and shows the unlock toast if it crossed into a new validation-badge level.
-   * @param {HTMLElement} [referenceEl] The element to float the toast over (the label's panorama, if any).
+   * @param {HTMLElement} [referenceEl] - The element to float the toast over (the label's panorama, if any).
    */
   static recordValidation(referenceEl) {
     if (BadgeAchievements.#validationCount === null) return;
@@ -210,7 +210,7 @@ class BadgeAchievements {
 
   /**
    * Records a freshly completed mission and shows the unlock toast if it crossed into a new mission-badge level.
-   * @param {HTMLElement} [referenceEl] The element to float the toast over (the mission-complete modal).
+   * @param {HTMLElement} [referenceEl] - The element to float the toast over (the mission-complete modal).
    */
   static recordMissionComplete(referenceEl) {
     if (BadgeAchievements.#missionCount === null) return;

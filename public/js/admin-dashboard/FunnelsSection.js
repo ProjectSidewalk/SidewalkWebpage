@@ -132,9 +132,9 @@ class FunnelsSection {
 
   /**
    * One funnel block: heading, description, optional legend, and the step bars for the active dimension.
-   * @param {string} funnelType 'mapping' | 'contribution'.
-   * @param {{steps: string[], segments: object}} funnel The funnel's step keys and per-segment data.
-   * @param {{key: string, label: string}[]} segs Segments to show for the active dimension.
+   * @param {string} funnelType - 'mapping' | 'contribution'.
+   * @param {{steps: string[], segments: object}} funnel - The funnel's step keys and per-segment data.
+   * @param {{key: string, label: string}[]} segs - Segments to show for the active dimension.
    * @returns {string} The block's HTML.
    */
   #funnelBlock(funnelType, funnel, segs) {

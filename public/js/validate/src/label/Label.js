@@ -67,7 +67,7 @@ class Label {
 
   /**
    * Initializes a label from metadata (if parameters are passed in).
-   * @param {object} params Label metadata from the backend.
+   * @param {object} params - Label metadata from the backend.
    */
   #init(params) {
     if (params) {
@@ -137,7 +137,7 @@ class Label {
 
   /**
    * Returns a specific originalProperty of this label.
-   * @param {string} key Name of property.
+   * @param {string} key - Name of property.
    * @returns {*} Value associated with this key.
    */
   getAuditProperty(key) {
@@ -146,7 +146,7 @@ class Label {
 
   /**
    * Returns a specific adminProperty of this label.
-   * @param {string} key Name of property.
+   * @param {string} key - Name of property.
    * @returns {*|null} Value associated with this key.
    */
   getAdminProperty(key) {
@@ -177,7 +177,7 @@ class Label {
 
   /**
    * Gets a specific validation property of this label.
-   * @param {string} key Name of property.
+   * @param {string} key - Name of property.
    * @returns {*} Value associated with this key.
    */
   getProperty(key) {
@@ -186,8 +186,8 @@ class Label {
 
   /**
    * Sets the value of a single property in properties.
-   * @param {string} key Name of property.
-   * @param {*} value Value to set property to.
+   * @param {string} key - Name of property.
+   * @param {*} value - Value to set property to.
    */
   setProperty(key, value) {
     this.#properties[key] = value;
@@ -221,8 +221,8 @@ class Label {
   /**
    * When a validation button is clicked, updates validation status for Label, StatusField, and logs interactions.
    *
-   * @param {string} validationResult Must be one of the following: {Agree, Disagree, Unsure}.
-   * @param {string} comment An optional comment submitted with the validation.
+   * @param {string} validationResult - Must be one of the following: {Agree, Disagree, Unsure}.
+   * @param {string} comment - An optional comment submitted with the validation.
    */
   validate(validationResult, comment) {
     // This is the POV if the label were in the center of the viewport.

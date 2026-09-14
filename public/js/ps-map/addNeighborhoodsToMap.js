@@ -1,13 +1,13 @@
 /**
  * Adds neighborhoods to the map and returns a promise.
  *
- * @param {object} map The Mapbox map object.
+ * @param {object} map - The Mapbox map object.
  * @param {object} neighborhoodGeoJSON - GeoJSON object containing neighborhood polygons to draw on the map.
  * @param {object} completionRates - Completion rates for each neighborhood.
  * @param {object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
  * @param {string} params.neighborhoodFillMode - One of 'singleColor' or 'completionRate'.
- * @param {string} [params.neighborhoodTooltip='none'] One of 'none' or 'completionRate'.
+ * @param {string} [params.neighborhoodTooltip='none'] - One of 'none' or 'completionRate'.
  * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
  * @param {string} [params.neighborhoodFillColor] - Fill color to use if neighborhoodFillMode='singleColor'.
  * @param {number} [params.neighborhoodFillOpacity] - Fill opacity to use if neighborhoodFillMode='singleColor'

@@ -10,9 +10,9 @@
  * already passed) and re-derives subscribers' state. "prev" is exempt from the predicate: it retraces where the
  * user has actually been, and the spotlight keeps that label visible whatever the filters say.
  *
- * @param {object} mapData The map layer tracker returned by addLabelsToMap (reads .sortedLabels).
- * @param {object} [options] Navigation options.
- * @param {function(string, object): boolean} [options.isCandidate] Called with a label's type and GeoJSON feature;
+ * @param {object} mapData - The map layer tracker returned by addLabelsToMap (reads .sortedLabels).
+ * @param {object} [options] - Navigation options.
+ * @param {function(string, object): boolean} [options.isCandidate] - Called with a label's type and GeoJSON feature;
  *     returns whether "next" may land on it. Omit to page over every loaded label.
  * @returns {{next: function(number): ?number, prev: function(number): ?number, hasPrev: function(number): boolean,
  *     hasNext: function(number): boolean, getCoords: function(number): ?Array<number>,
@@ -60,9 +60,9 @@ function createNearbyLabelNavigator(mapData, { isCandidate = () => true } = {}) 
    * Whether next() may land on a label: not the one being paged from, not yet toured, and passing the host's
    * predicate. The cheap checks come first so the predicate — the host's filter logic — runs only on labels that
    * are otherwise reachable.
-   * @param {string} labelType The label's type key.
-   * @param {object} feature   The label's GeoJSON feature.
-   * @param {number} currentId The label being paged from.
+   * @param {string} labelType - The label's type key.
+   * @param {object} feature   - The label's GeoJSON feature.
+   * @param {number} currentId - The label being paged from.
    * @returns {boolean}
    */
   const isReachable = (labelType, feature, currentId) => {
@@ -72,9 +72,9 @@ function createNearbyLabelNavigator(mapData, { isCandidate = () => true } = {}) 
 
   /**
    * Squared equirectangular distance — plenty for ranking nearby points.
-   * @param {Array<number>} a [lng, lat]
-   * @param {Array<number>} b [lng, lat]
-   * @param {number} kx cos(reference latitude), precomputed once per ranking pass.
+   * @param {Array<number>} a - [lng, lat]
+   * @param {Array<number>} b - [lng, lat]
+   * @param {number} kx - cos(reference latitude), precomputed once per ranking pass.
    * @returns {number}
    */
   const dist2 = (a, b, kx) => {

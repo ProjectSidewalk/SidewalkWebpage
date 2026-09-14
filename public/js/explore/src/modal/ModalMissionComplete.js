@@ -17,10 +17,10 @@ class ModalMissionComplete {
   #legendBuilt = false;
 
   /**
-   * @param {MissionContainer} missionContainer The mission container.
-   * @param {MissionModel} missionModel The mission model (emits mission lifecycle events).
-   * @param {TaskContainer} taskContainer The task container.
-   * @param {ModalMissionCompleteMap} modalMissionCompleteMap The map component for the modal.
+   * @param {MissionContainer} missionContainer - The mission container.
+   * @param {MissionModel} missionModel - The mission model (emits mission lifecycle events).
+   * @param {TaskContainer} taskContainer - The task container.
+   * @param {ModalMissionCompleteMap} modalMissionCompleteMap - The map component for the modal.
    */
   constructor(missionContainer, missionModel, taskContainer, modalMissionCompleteMap) {
     this.#missionContainer = missionContainer;
@@ -73,8 +73,8 @@ class ModalMissionComplete {
 
   /**
    * Populates the modal for the just-completed mission: title, badge, map, legend, progress bar, and stats.
-   * @param {Mission} mission The completed mission.
-   * @param {Neighborhood} neighborhood The neighborhood the mission was in.
+   * @param {Mission} mission - The completed mission.
+   * @param {Neighborhood} neighborhood - The neighborhood the mission was in.
    */
   update(mission, neighborhood) {
     const unit = { units: util.turfDistanceUnits() };
@@ -150,7 +150,7 @@ class ModalMissionComplete {
 
   /**
    * Fetches the neighborhood's total label count (across all users) and fills it in once it resolves.
-   * @param {number} regionId The current neighborhood's region id.
+   * @param {number} regionId - The current neighborhood's region id.
    */
   #fetchNeighborhoodLabelCount(regionId) {
     fetch(`/label/countInRegion?regionId=${regionId}`, { headers: { Accept: 'application/json' } })
@@ -189,8 +189,8 @@ class ModalMissionComplete {
   /**
    * Builds the three street-tier FeatureCollections from the task data: the streets covered in the just-finished
    * mission, the streets the user covered in earlier missions, and the streets completed by the wider community.
-   * @param {Mission} mission The completed mission.
-   * @param {number} missionId The completed mission's id.
+   * @param {Mission} mission - The completed mission.
+   * @param {number} missionId - The completed mission's id.
    * @returns {object} { thisMission, previous, community } GeoJSON FeatureCollections.
    */
   #buildStreetTiers(mission, missionId) {
@@ -270,7 +270,7 @@ class ModalMissionComplete {
    * turf.lineSlice/cleanCoords collapses the segment to a single point or nothing. Mapbox then throws deep in its
    * tiler ("Cannot read properties of null (reading 'x')") and the failure bubbles up into a page reload; filtering
    * those degenerate features out here keeps them out of the source entirely. (#4204)
-   * @param {object} feature A GeoJSON Feature, or null/undefined.
+   * @param {object} feature - A GeoJSON Feature, or null/undefined.
    * @returns {boolean} True if the feature is a LineString with at least two finite [lng, lat] coordinates.
    */
   #isDrawableLine(feature) {
@@ -281,7 +281,7 @@ class ModalMissionComplete {
 
   /**
    * Builds a GeoJSON FeatureCollection of the labels the user placed during the given mission.
-   * @param {number} missionId The completed mission's id.
+   * @param {number} missionId - The completed mission's id.
    * @returns {object} GeoJSON FeatureCollection of label points.
    */
   #buildLabelData(missionId) {
@@ -369,7 +369,7 @@ class ModalMissionComplete {
 
   /**
    * Handles a button click: opens validation, reloads explore, or starts the next mission.
-   * @param {string} button Which button was clicked: 'primary' or 'secondary'.
+   * @param {string} button - Which button was clicked: 'primary' or 'secondary'.
    */
   #closeModal(button) {
     const action = button === 'secondary' ? 'validate' : this.#primaryAction;
@@ -412,7 +412,7 @@ class ModalMissionComplete {
    * Not `util.longDistanceToString`: these come from turf measured in `util.turfDistanceUnits()`, so they are already
    * in the reader's units and must not be converted a second time — the string only has to name the unit.
    *
-   * @param {number} distance The distance, already in the reader's units.
+   * @param {number} distance - The distance, already in the reader's units.
    * @returns {string}
    */
   #formatDistance(distance) {
@@ -421,7 +421,7 @@ class ModalMissionComplete {
 
   /**
    * Formats a mission distance for the subtitle, rounded to the nearest 25 m/ft like the sidebar mission message.
-   * @param {number} distanceMiles The mission distance in miles.
+   * @param {number} distanceMiles - The mission distance in miles.
    * @returns {string}
    */
   #formatMissionDistance(distanceMiles) {

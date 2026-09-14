@@ -34,8 +34,8 @@ class ModalMissionCompleteMap {
   static #EMPTY_FC = { type: 'FeatureCollection', features: [] };
 
   /**
-   * @param {string} mapContainerId HTML id of the element that holds the map.
-   * @param {string} mapboxApiKey Mapbox API key.
+   * @param {string} mapContainerId - HTML id of the element that holds the map.
+   * @param {string} mapboxApiKey - Mapbox API key.
    */
   constructor(mapContainerId, mapboxApiKey) {
     this.#mapPromise = this.#createMap(mapContainerId, mapboxApiKey);
@@ -43,8 +43,8 @@ class ModalMissionCompleteMap {
 
   /**
    * Creates the Mapbox map centered on the city and resolves once it has loaded.
-   * @param {string} containerId HTML id of the map container.
-   * @param {string} mapboxApiKey Mapbox API key.
+   * @param {string} containerId - HTML id of the map container.
+   * @param {string} mapboxApiKey - Mapbox API key.
    * @returns {Promise} Resolves with the loaded Mapbox map.
    */
   #createMap(containerId, mapboxApiKey) {
@@ -75,8 +75,8 @@ class ModalMissionCompleteMap {
 
   /**
    * Draws the street tiers and mission labels, then frames the just-finished mission's streets.
-   * @param {object} streetTiers GeoJSON FeatureCollections keyed by tier: { thisMission, previous, community }.
-   * @param {object} labelData GeoJSON FeatureCollection of labels placed during the mission.
+   * @param {object} streetTiers - GeoJSON FeatureCollections keyed by tier: { thisMission, previous, community }.
+   * @param {object} labelData - GeoJSON FeatureCollection of labels placed during the mission.
    */
   async update(streetTiers, labelData) {
     const map = await this.#mapPromise;
@@ -115,7 +115,7 @@ class ModalMissionCompleteMap {
    * experience. Endpoints come from TaskContainer.getRouteEndpoints (the walk-ordered origin/destination); each flag is
    * anchored at its pole base on the point. The flags are decorative reinforcement of the route already drawn as a
    * line, so their images are marked decorative (empty alt) for screen readers.
-   * @param {mapboxgl.Map} map The modal's Mapbox map.
+   * @param {mapboxgl.Map} map - The modal's Mapbox map.
    */
   #drawRouteFlags(map) {
     if (!svl.neighborhoodModel.isRoute) return;
@@ -139,7 +139,7 @@ class ModalMissionCompleteMap {
    * On a user-defined route, draws direction chevrons along the whole route and walks the explorer ("flag person")
    * from start to finish — the same playful arrival RouteBuilder previews when saving a route. No-op off routes, or if
    * the route path has fewer than two points.
-   * @param {mapboxgl.Map} map The modal's Mapbox map.
+   * @param {mapboxgl.Map} map - The modal's Mapbox map.
    */
   async #drawRouteDirection(map) {
     if (!svl.neighborhoodModel.isRoute) return;
@@ -190,7 +190,7 @@ class ModalMissionCompleteMap {
    * Registers the map images the route-direction layers need — the explorer icon (rasterized from its PNG) and a
    * white-on-dark direction chevron drawn on a canvas — once per map. The images persist for the map's life, so this
    * is guarded to run a single time.
-   * @param {mapboxgl.Map} map The modal's Mapbox map.
+   * @param {mapboxgl.Map} map - The modal's Mapbox map.
    */
   async #ensureRouteIcons(map) {
     if (this.#routeIconsReady) return;
@@ -210,8 +210,8 @@ class ModalMissionCompleteMap {
    * Walks the explorer along the route from start to finish at a constant speed, then leaves it at the finish for a
    * beat before removing it. Interpolates over cumulative segment distance (not vertex count) so the pace is even
    * regardless of how the streets are subdivided.
-   * @param {mapboxgl.Map} map The modal's Mapbox map.
-   * @param {number[][]} coords The walk-ordered [lng, lat] route path.
+   * @param {mapboxgl.Map} map - The modal's Mapbox map.
+   * @param {number[][]} coords - The walk-ordered [lng, lat] route path.
    */
   #animateExplorer(map, coords) {
     const source = map.getSource('mc-route-explorer');
@@ -288,8 +288,8 @@ class ModalMissionCompleteMap {
   /**
    * Rasterizes an icon file into pixel data for map.addImage (Mapbox's loadImage can't decode SVGs). Rendered at 2x,
    * preserving aspect ratio.
-   * @param {string} url Same-origin image url (SVG or raster).
-   * @param {number} heightPx Displayed height in CSS pixels; width follows the image's aspect ratio.
+   * @param {string} url - Same-origin image url (SVG or raster).
+   * @param {number} heightPx - Displayed height in CSS pixels; width follows the image's aspect ratio.
    * @returns {Promise<{data: ImageData, pixelRatio: number}>}
    */
   static async #rasterizeIcon(url, heightPx) {

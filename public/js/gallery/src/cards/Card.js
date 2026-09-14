@@ -55,10 +55,10 @@ class Card {
   #panoImage;
 
   /**
-   * @param {*} params Properties of the associated label.
-   * @param {string} cropUrl Locally-saved crop image url, or null if no crop exists.
-   * @param {string} gsvImageUrl Google Street View static image url, or null if non-GSV imagery.
-   * @param {?{x: number, y: number}} [cropMarker=null] Where the label is in the crop, as fractions of its width and
+   * @param {*} params - Properties of the associated label.
+   * @param {string} cropUrl - Locally-saved crop image url, or null if no crop exists.
+   * @param {string} gsvImageUrl - Google Street View static image url, or null if non-GSV imagery.
+   * @param {?{x: number, y: number}} [cropMarker=null] - Where the label is in the crop, as fractions of its width and
    *     height; null when no crop exists or nothing has recorded it yet.
    */
   constructor(params, cropUrl, gsvImageUrl, cropMarker = null) {
@@ -82,7 +82,7 @@ class Card {
   /**
    * Initialize Card.
    *
-   * @param {*} param Label properties.
+   * @param {*} param - Label properties.
    */
   #init(param) {
     const properties = this.#properties;
@@ -256,7 +256,7 @@ class Card {
   /**
    * Get a property.
    *
-   * @param {string} propName Property name.
+   * @param {string} propName - Property name.
    * @returns {*} Property value if property name is valid. Otherwise false.
    */
   getProperty(propName) {
@@ -334,7 +334,7 @@ class Card {
    * Renders the card.
    * TODO: should there be a safety check here to make sure pano is loaded?
    *
-   * @param {JQuery} cardContainer UI element to render card in.
+   * @param {JQuery} cardContainer - UI element to render card in.
    */
   render(cardContainer) {
     // If the card had transparent background from the expanded view opening earlier, remove transparency on rerender.
@@ -363,8 +363,8 @@ class Card {
   /**
    * Sets a property.
    *
-   * @param {string} key Property name.
-   * @param {*} value Property value.
+   * @param {string} key - Property name.
+   * @param {*} value - Property value.
    * @returns {Card}
    */
   setProperty(key, value) {
@@ -393,8 +393,8 @@ class Card {
   /**
    * Set aspect of status.
    *
-   * @param {string} key Status name.
-   * @param {*} value Status value.
+   * @param {string} key - Status name.
+   * @param {*} value - Status value.
    */
   setStatus(key, value) {
     if (key in this.#status) {

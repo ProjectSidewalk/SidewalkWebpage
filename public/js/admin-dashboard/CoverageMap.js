@@ -56,7 +56,7 @@ class CoverageFormat {
     return `${Math.round((rate || 0) * 100)}%`;
   }
 
-  /** @param {number} meters @returns {string} distance in km with one decimal, e.g. "4.2 km". */
+  /** @param {number} meters - @returns {string} distance in km with one decimal, e.g. "4.2 km". */
   static km(meters) {
     return `${((meters || 0) / 1000).toFixed(1)} km`;
   }
@@ -80,7 +80,7 @@ class CoverageMap {
   #hoverId = null;
 
   /**
-   * @param {string} containerId - id of the map container element.
+   * @param {string} containerId - ID of the map container element.
    * @param {{mapboxToken: string, onRegionClick?: function(number): void, onRegionHover?: function(number): void,
    *          onRegionHoverEnd?: function(): void}} [opts]
    */
