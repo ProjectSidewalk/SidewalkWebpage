@@ -79,7 +79,30 @@ class ExploreSubmissionSpec
     bootstrap
   }
 
-  /** A label submission as the Explore frontend compiles one, placed at the task's current position. */
+  /** The fake pano's metadata, placed at the task's current position. */
+  private def panoJson(b: ExploreBootstrap): JsObject =
+    Json.obj(
+      "pano_id"        -> specPanoId,
+      "source"         -> "gsv",
+      "capture_date"   -> "2024-01",
+      "width"          -> 16384,
+      "height"         -> 8192,
+      "tile_width"     -> 512,
+      "tile_height"    -> 512,
+      "lat"            -> b.currentLat,
+      "lng"            -> b.currentLng,
+      "camera_heading" -> 180.0,
+      "camera_pitch"   -> 0.5,
+      "links"          -> Json.arr(),
+      "history"        -> Json.arr()
+    )
+
+  /**
+   * A label submission as the Explore frontend compiles one, placed at the task's current position.
+   *
+   * It carries its own pano block like the real client's labels do. Without it the label insert races the separate
+   * save of the top-level `panos` list, and loses to the pano foreign key whenever it runs first.
+   */
   private def labelJson(
       tempId: Int,
       b: ExploreBootstrap,
@@ -109,7 +132,8 @@ class ExploreSubmissionSpec
       ),
       "temporary_label_id" -> tempId,
       "time_created"       -> OffsetDateTime.now,
-      "tutorial"           -> tutorial
+      "tutorial"           -> tutorial,
+      "pano"               -> panoJson(b)
     )
 
   /**
@@ -163,24 +187,8 @@ class ExploreSubmissionSpec
         Json.obj("action" -> "TaskStart", "pano_id"                     -> specPanoId, "timestamp" -> now),
         Json.obj("action" -> "LabelingCanvas_FinishLabeling", "pano_id" -> specPanoId, "timestamp" -> now)
       ),
-      "environment" -> Json.obj("browser" -> "spec", "language" -> "en", "css_zoom" -> 100),
-      "panos"       -> Json.arr(
-        Json.obj(
-          "pano_id"        -> specPanoId,
-          "source"         -> "gsv",
-          "capture_date"   -> "2024-01",
-          "width"          -> 16384,
-          "height"         -> 8192,
-          "tile_width"     -> 512,
-          "tile_height"    -> 512,
-          "lat"            -> b.currentLat,
-          "lng"            -> b.currentLng,
-          "camera_heading" -> 180.0,
-          "camera_pitch"   -> 0.5,
-          "links"          -> Json.arr(),
-          "history"        -> Json.arr()
-        )
-      ),
+      "environment"   -> Json.obj("browser" -> "spec", "language" -> "en", "css_zoom" -> 100),
+      "panos"         -> Json.arr(panoJson(b)),
       "user_route_id" -> JsNull,
       "timestamp"     -> now
     )
