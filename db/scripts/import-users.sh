@@ -254,7 +254,9 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
 
   -- The app looks accounts up by username and by email, so no two may share either. When a new account has the same
   -- username or email as one of yours, yours gets the first 8 characters of its user_id added, which keeps it unique
-  -- (and usernames under 30 characters). Anonymous accounts always get a new username and matching email.
+  -- (and usernames under 30 characters). A renamed email ends in .renamed.invalid, which no mail can reach, so nobody
+  -- can register a look-alike and reset their way into the account. Anonymous accounts always get a new username and
+  -- matching email.
   CREATE TEMP TABLE renamed_account ON COMMIT DROP AS
   WITH clashing AS (
     SELECT sidewalk_user.user_id, sidewalk_user.username, sidewalk_user.email,
@@ -275,7 +277,7 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
   )
   SELECT user_id, anonymous, username AS old_username, new_username, email AS old_email,
          CASE WHEN anonymous THEN 'anonymous@' || new_username || '.com'
-              WHEN email_taken THEN left(user_id, 8) || '.' || email
+              WHEN email_taken THEN email || '.' || left(user_id, 8) || '.renamed.invalid'
               ELSE email END AS new_email
   FROM renamed;
 
@@ -284,7 +286,7 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
   FROM renamed_account
   WHERE renamed_account.user_id = sidewalk_user.user_id;
 
-  -- Sign-in finds the password by email, so the login record gets the new email too.
+  -- A login record's key is its account's email, so it gets the new one too.
   UPDATE sidewalk_login.login_info
   SET provider_key = lower(renamed_account.new_email)
   FROM renamed_account
@@ -292,6 +294,25 @@ psql -X -q -v ON_ERROR_STOP=1 -v dump_objects="{$dump_objects}" -U sidewalk -d "
   WHERE login_info.login_info_id = user_login_info.login_info_id
     AND login_info.provider_key = lower(renamed_account.old_email)
     AND renamed_account.new_email <> renamed_account.old_email;
+
+  -- A dump taken before the site enforced one account per email (evolution 387) can still hold shared or mixed-case
+  -- emails, which your copy now rejects. Among the dump's own duplicates the account with the oldest login row keeps
+  -- the email and the rest are renamed like the clashes above; the login records follow.
+  UPDATE sidewalk_login_import.sidewalk_user SET email = lower(email) WHERE email <> lower(email);
+  UPDATE sidewalk_login_import.sidewalk_user
+  SET email = sidewalk_user.email || '.' || left(sidewalk_user.user_id, 8) || '.renamed.invalid'
+  FROM (SELECT sidewalk_user.user_id,
+               row_number() OVER (PARTITION BY sidewalk_user.email
+                                  ORDER BY user_login_info.login_info_id NULLS LAST, sidewalk_user.user_id) AS rank
+        FROM sidewalk_login_import.sidewalk_user
+        INNER JOIN new_account ON new_account.user_id = sidewalk_user.user_id
+        LEFT JOIN sidewalk_login_import.user_login_info ON user_login_info.user_id = sidewalk_user.user_id) AS ranked
+  WHERE sidewalk_user.user_id = ranked.user_id AND ranked.rank > 1;
+  UPDATE sidewalk_login_import.login_info
+  SET provider_key = sidewalk_user.email
+  FROM sidewalk_login_import.user_login_info
+  INNER JOIN sidewalk_login_import.sidewalk_user ON sidewalk_user.user_id = user_login_info.user_id
+  WHERE user_login_info.login_info_id = login_info.login_info_id AND login_info.provider_key <> sidewalk_user.email;
 
   -- Your local sign-ups may already use the login ids of the dump's newer accounts, so merged accounts get new ids.
   -- This maps each old id to its new one.

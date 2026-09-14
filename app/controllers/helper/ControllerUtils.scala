@@ -157,6 +157,10 @@ object ControllerUtils {
     }
   }
 
+  /** The `regions` URL param, else its old name `neighborhoods` so existing links keep working; empty means absent. */
+  def regionsParam(regions: Option[String], neighborhoods: Option[String]): Option[String] =
+    regions.filter(_.nonEmpty).orElse(neighborhoods.filter(_.nonEmpty))
+
   def parseIntegerSeq(listOfInts: String): Seq[Int] = {
     listOfInts.split(",").flatMap(s => Try(s.toInt).toOption).toSeq.distinct
   }

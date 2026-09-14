@@ -159,7 +159,7 @@ async function stubMakeabilityLab(context) {
 }
 
 /**
- * Stubs the neighborhood and street layers that createPSMap loads before a map's label feed.
+ * Stubs the region and street layers that createPSMap loads before a map's label feed.
  *
  * On a seeded schema those are ~7.4 MB (Seattle) that must download, parse, and reach mapbox-gl before
  * createPSMap resolves — and only then can a label-feed assertion become true. That doesn't reliably fit the
@@ -170,10 +170,9 @@ async function stubMakeabilityLab(context) {
  */
 async function stubMapBaseLayers(context) {
   const emptyGeoJson = {type: 'FeatureCollection', features: []};
-  // `*` stops at a path separator, so the /neighborhoods route can't swallow /neighborhoods/completionRate —
-  // which answers with a rate array, not GeoJSON (addNeighborhoodsToMap looks regions up in it by region_id).
-  await context.route('**/neighborhoods*', (route) => route.fulfill({json: emptyGeoJson}));
-  await context.route('**/neighborhoods/completionRate*', (route) => route.fulfill({json: []}));
+  // Matched on the exact path: a `**/regions*` glob would also stub the public /v3/api/regions.
+  await context.route((url) => url.pathname === '/regions', (route) => route.fulfill({json: emptyGeoJson}));
+  await context.route((url) => url.pathname === '/regions/completionRates', (route) => route.fulfill({json: []}));
   await context.route('**/contribution/streets/all*', (route) => route.fulfill({json: emptyGeoJson}));
 }
 

@@ -551,7 +551,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       builder.add("streetId", classOf[Integer])
       text("osmWayId", 20) // OSM street ID, a long
       builder.add("regionId", classOf[Integer])
-      text("regionName", 100)                              // Region (neighborhood) name
+      text("regionName", 100)                              // Region name
       text("streetSide", 8)                                // left/right of the edge's digitized direction
       builder.add("ctrOffsetM", classOf[java.lang.Double]) // Signed offset from the street centerline in metres
       text("correct", 8)                                   // Validation correctness: true/false or empty

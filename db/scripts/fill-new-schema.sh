@@ -133,7 +133,7 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
     DELETE FROM street_edge WHERE street_edge_id <> (SELECT tutorial_street_edge_id FROM config);
 
     -- Fill in the street_edge table using the qgis_road table. A street in a hidden region is seeded 'closed' (the
-    -- whole neighborhood isn't open yet); everything else starts 'open' (#3888). $REGION_DELETED_Q is a boolean
+    -- whole region isn't open yet); everything else starts 'open' (#3888). $REGION_DELETED_Q is a boolean
     -- expression that is TRUE for streets whose region is hidden.
     INSERT INTO street_edge (street_edge_id, geom, way_type, status, timestamp, x1, y1, x2, y2)
         SELECT road_id, geom, (highway)::way_type,

@@ -1,7 +1,7 @@
 /**
  * The "mission complete" modal: a centered card shown over the dimmed Explore tool after a mission finishes. It shows
  *  a map of the streets worked on and labels placed during the mission, a label-type and street-tier legend, the
- *  neighborhood's progress, and distance/label totals for the neighborhood.
+ *  region's progress, and distance/label totals for the region.
  */
 class ModalMissionComplete {
   #missionContainer;
@@ -44,11 +44,11 @@ class ModalMissionComplete {
       secondaryButton: document.getElementById('modal-mission-complete-close-button-secondary'),
     };
 
-    this.#progressBar = new NeighborhoodProgressBar({
-      fill: 'modal-neighborhood-progress-fill',
-      you: 'modal-neighborhood-progress-you',
-      community: 'modal-neighborhood-progress-community',
-      rate: 'modal-neighborhood-progress-rate',
+    this.#progressBar = new RegionProgressBar({
+      fill: 'modal-region-progress-fill',
+      you: 'modal-region-progress-you',
+      community: 'modal-region-progress-community',
+      rate: 'modal-region-progress-rate',
     });
 
     // The primary button starts the next explore mission (or loads a new area); secondary opens validation.
@@ -74,14 +74,14 @@ class ModalMissionComplete {
   /**
    * Populates the modal for the just-completed mission: title, badge, map, legend, progress bar, and stats.
    * @param mission The completed mission.
-   * @param neighborhood The neighborhood the mission was in.
+   * @param region The region the mission was in.
    */
-  update(mission, neighborhood) {
+  update(mission, region) {
     const unit = { units: util.turfDistanceUnits() };
-    const isRoute = svl.neighborhoodModel.isRoute;
+    const isRoute = svl.regionModel.isRoute;
 
     this.#buildLabelLegend();
-    this.#updateTitle(mission, neighborhood);
+    this.#updateTitle(mission, region);
     this.#updateBadge();
 
     // Render the map asynchronously. We deliberately don't await it: the modal appears right away, and the streets
@@ -91,7 +91,7 @@ class ModalMissionComplete {
     this.#map.update(this.#buildStreetTiers(mission, missionId), this.#buildLabelData(missionId))
       .catch((e) => console.error('Failed to render the mission-complete map.', e));
 
-    // The neighborhood progress bar reads live task data, the same as the sidebar's copy.
+    // The region progress bar reads live task data, the same as the sidebar's copy.
     this.#progressBar.update();
 
     // The community totals don't apply on a user-defined route, so hide them there.
@@ -100,30 +100,30 @@ class ModalMissionComplete {
     this.#els.communityLegendItem.style.display = isRoute ? 'none' : '';
 
     // Distance and the user's own label count come from data already on the client (the user's labels for this
-    // neighborhood are loaded at page load; see /label/resumeMission), so they're filled in synchronously.
+    // region are loaded at page load; see /label/resumeMission), so they're filled in synchronously.
     this.#els.distanceAll.textContent = i18next.t('mission-complete.stat-distance-all', {
-      distance: this.#formatDistance(neighborhood.completedLineDistanceAcrossAllUsersUsingPriority()),
+      distance: this.#formatDistance(region.allUsersCompletedLineDistance()),
     });
     this.#els.distanceYou.textContent = i18next.t('mission-complete.stat-distance-you', {
-      distance: this.#formatDistance(neighborhood.completedLineDistance(unit)),
+      distance: this.#formatDistance(region.completedLineDistance(unit)),
     });
     this.#els.labelsYou.textContent = i18next.t('mission-complete.stat-labels-you', {
       count: this.#formatNumber(svl.labelContainer.countLabels()),
     });
 
-    // The neighborhood-wide label total is the only stat that needs the server, so fetch it (skipped on routes).
-    if (!isRoute) this.#fetchNeighborhoodLabelCount(neighborhood.getRegionId());
+    // The region-wide label total is the only stat that needs the server, so fetch it (skipped on routes).
+    if (!isRoute) this.#fetchRegionLabelCount(region.getRegionId());
   }
 
-  /** Sets the title and subtitle, accounting for finishing a route or a whole neighborhood. */
-  #updateTitle(mission, neighborhood) {
-    const neighborhoodName = neighborhood.getProperty('name');
-    if (svl.neighborhoodModel.isRouteComplete) {
+  /** Sets the title and subtitle, accounting for finishing a route or a whole region. */
+  #updateTitle(mission, region) {
+    const regionName = region.getProperty('name');
+    if (svl.regionModel.isRouteComplete) {
       this.#els.title.textContent = i18next.t('mission-complete.title-route-complete');
-    } else if (svl.neighborhoodModel.isNeighborhoodComplete) {
+    } else if (svl.regionModel.isRegionComplete) {
       // escapeValue off: the result lands in textContent, so i18next's HTML-escaping would show literal entities.
-      this.#els.title.textContent = i18next.t('mission-complete.title-neighborhood-complete', {
-        neighborhoodName, interpolation: { escapeValue: false },
+      this.#els.title.textContent = i18next.t('mission-complete.title-region-complete', {
+        regionName, interpolation: { escapeValue: false },
       });
     } else {
       this.#els.title.textContent = i18next.t('mission-complete.title-generic');
@@ -131,7 +131,7 @@ class ModalMissionComplete {
     // escapeValue off: the result lands in textContent, so i18next's HTML-escaping would show literal entities.
     this.#els.subtitle.textContent = i18next.t('mission-complete.subtitle', {
       distance: this.#formatMissionDistance(mission.getDistance('miles')),
-      neighborhoodName,
+      regionName,
       interpolation: { escapeValue: false },
     });
   }
@@ -149,10 +149,10 @@ class ModalMissionComplete {
   }
 
   /**
-   * Fetches the neighborhood's total label count (across all users) and fills it in once it resolves.
-   * @param {number} regionId The current neighborhood's region id.
+   * Fetches the region's total label count (across all users) and fills it in once it resolves.
+   * @param {number} regionId The current region's id.
    */
-  #fetchNeighborhoodLabelCount(regionId) {
+  #fetchRegionLabelCount(regionId) {
     fetch(`/label/countInRegion?regionId=${regionId}`, { headers: { Accept: 'application/json' } })
       .then((response) => response.json())
       .then((result) => {
@@ -160,7 +160,7 @@ class ModalMissionComplete {
           count: this.#formatNumber(result.label_count),
         });
       })
-      .catch((e) => console.error('Failed to load the neighborhood label count.', e));
+      .catch((e) => console.error('Failed to load the region label count.', e));
   }
 
   /** Builds the static label-type legend once, matching the label map's colors and names. */
@@ -250,7 +250,7 @@ class ModalMissionComplete {
     // Community tier: on a route, the streets still left to do; otherwise, all streets completed by any user. A street
     // given up on for missing imagery is drawn as walked above, so leaving it in here would draw it twice — done and
     // outstanding — on the map celebrating a route the labeler just finished.
-    const communityTasks = svl.neighborhoodModel.isRoute
+    const communityTasks = svl.regionModel.isRoute
       ? this.#taskContainer.getUnwalkedTasks()
       : this.#taskContainer.getCompletedTasksAllUsersUsingPriority();
 
@@ -322,15 +322,15 @@ class ModalMissionComplete {
     this.#map.resize();
 
     // The secondary button always opens validation. The primary button starts the next explore mission, or loads a
-    // fresh area once the user has finished the whole route/neighborhood.
+    // fresh area once the user has finished the whole route/region.
     this.#els.secondaryButton.textContent = i18next.t('mission-complete.button-try-validation');
-    if (svl.neighborhoodModel.isRouteComplete) {
+    if (svl.regionModel.isRouteComplete) {
       // After finishing a route, drop the user into free exploration right where they ended (#4451/#4579) rather
-      // than jumping to a fresh neighborhood mission elsewhere.
+      // than jumping to a fresh region mission elsewhere.
       this.#els.primaryButton.textContent = i18next.t('mission-complete.button-keep-exploring-here');
       this.#primaryAction = 'exploreHere';
       this.#canContinue = true;
-    } else if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
+    } else if (svl.regionModel.isRouteOrRegionComplete()) {
       this.#els.primaryButton.textContent = i18next.t('mission-complete.button-next-mission');
       this.#primaryAction = 'reloadExplore';
       this.#canContinue = true;

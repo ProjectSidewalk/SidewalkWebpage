@@ -79,6 +79,15 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
       activeTags(galleryPage("?tags=definitely-not-a-real-tag")) mustBe empty
     }
 
+    "filter by a regions parameter, and still by the older neighborhoods name" in {
+      val regionIds = contentAsJson(route(app, FakeRequest(GET, "/regions")).get) \ "features" \\ "region_id"
+      assume(regionIds.nonEmpty, "connected database has no regions")
+
+      val regionId = regionIds.head.as[Int]
+      galleryPage(s"?regions=$regionId") must include(s"regionIds: [$regionId]")
+      galleryPage(s"?neighborhoods=$regionId") must include(s"regionIds: [$regionId]")
+    }
+
     "serve the page to a mobile visitor instead of redirecting to /mobileLanding" in {
       val resp = route(app, FakeRequest(GET, "/gallery").withHeaders(UserAgents.mobile)).get
       status(resp) mustBe OK

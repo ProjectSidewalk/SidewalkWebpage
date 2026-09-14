@@ -109,6 +109,7 @@ object LabelFormats {
       "severity"            -> labelMetadata.severity,
       "description"         -> labelMetadata.description,
       "street_edge_id"      -> labelMetadata.streetEdgeId,
+      "street_side"         -> labelMetadata.streetSide.map(_.toString),
       "max_speed"           -> maxSpeed,
       "region_id"           -> labelMetadata.regionId,
       "correct"             -> labelMetadata.validationInfo.correct,

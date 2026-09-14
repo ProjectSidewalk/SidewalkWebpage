@@ -15,7 +15,7 @@
 class NoImageryFlagGuard {
   /**
    * Streets that may be flagged in an unbroken run before the session stops writing anything down. Three tolerates
-   * the real case this exists for — a short chain of dead-end alleys or driveways at the edge of a neighborhood —
+   * the real case this exists for — a short chain of dead-end alleys or driveways at the edge of a region —
    * while turning a provider outage from unbounded into a rounding error.
    */
   static MAX_CONSECUTIVE_FLAGS = 3;

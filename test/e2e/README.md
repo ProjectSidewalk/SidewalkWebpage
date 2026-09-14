@@ -100,7 +100,7 @@ ML-site outage from failing the run.
 ### Map base-layer stub
 
 The two `/labelMap` behavior specs (`labelmap-feed-failure.spec.js`, `labelmap-viewport-fetch.spec.js`) add
-`stubMapBaseLayers()`, which answers `/neighborhoods`, `/neighborhoods/completionRate`, and
+`stubMapBaseLayers()`, which answers `/regions`, `/regions/completionRates`, and
 `/contribution/streets/all` with empty collections. `createPSMap` loads all three before the label feed, and on a
 seeded schema they run to megabytes (~7.4 MB in Seattle) that must reach mapbox-gl before the page promise
 resolves — long enough to blow the 5s default `expect` timeout with four workers competing at the start of a run,

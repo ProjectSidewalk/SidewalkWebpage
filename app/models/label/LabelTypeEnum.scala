@@ -154,8 +154,9 @@ object LabelTypeEnum {
   // the signal pole, so confirming a real pedestrian signal means panning up — impossible without a pano viewer.
   lazy val staticValidatableLabelTypes: Set[Base] = primaryLabelTypes - Signal
 
-  // Set of label types that require primary validation. NoSidewalk is only validated once all others have been.
-  lazy val primaryValidateLabelTypes: Set[Base] = primaryLabelTypes - NoSidewalk
+  // Label types Validate serves in its primary missions. Every primary type qualifies since #5285 brought NoSidewalk
+  // back as a per-block-face queue; the val stays so the API's `is_primary_validate` keeps its meaning.
+  lazy val primaryValidateLabelTypes: Set[Base] = primaryLabelTypes
 
   // Set of label types are accepted for validation using the Sidewalk AI API.
   lazy val aiLabelTypes: Set[Base] = Set(CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk)

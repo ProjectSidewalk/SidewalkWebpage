@@ -10,7 +10,7 @@
  * region id, read with `unit`), `dark` (1 for the dark basemap); and the insights dock's `dock` (0 when collapsed,
  * 1 to open it on a narrow window, where it otherwise starts collapsed)
  * `b` (the brushed score range as `from-to` in whole percent, on the histogram's 10-point bin edges) and `focus`
- * (the neighborhood a rank-list click scoped the band to).
+ * (the region a rank-list click scoped the band to).
  */
 class AccessScoreUrlSync {
   static #WRITE_DELAY_MS = 300;
