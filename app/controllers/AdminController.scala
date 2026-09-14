@@ -191,12 +191,15 @@ class AdminController @Inject() (
 
   /**
    * Saves the admin-editable account settings for another user in one request, from the Manage user tab of their
-   * dashboard (`/admin/user/:username/manage`): username, role, team, manual quality flag, service-hours opt-in, the two
-   * privacy flags, and (on infra3D deployments) infra3D access.
+   * dashboard (`/admin/user/:username/manage`): username, role, team, manual quality flag, exclusion, service-hours
+   * opt-in, the two privacy flags, and (on infra3D deployments) infra3D access.
+   *
+   * An excluded user is always saved as manually low quality, whatever quality the request asked for. A change to
+   * quality or exclusion recalculates street priority in the background, since it changes whose audits count.
    *
    * Every setting is required (a missing one is a 400, never a reset to a default). Every check that can refuse the
-   * save — an Owner can't be changed at all, only an Owner can set an admin's quality, only someone with infra3D access
-   * can grant it, the username rules — runs before the first write, so a refused save applies nothing.
+   * save — an Owner can't be changed at all, only an Owner can set an admin's quality or exclusion, only someone with
+   * infra3D access can grant it, the username rules — runs before the first write, so a refused save applies nothing.
    */
   def saveUserSettings = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
     val admin                   = request.identity
@@ -225,10 +228,12 @@ class AdminController @Inject() (
                 val serviceChanged              = s.communityService != user.communityService
                 val privacyChanged              =
                   stats.exists(st => st.onLeaderboard != s.onLeaderboard || st.publicProfile != s.publicProfile)
-                val qualityChanged = stats.exists(_.highQualityManual != s.highQualityManual)
-                val infra3dChanged = s.infra3dAccess.exists(_ != user.infra3dAccess)
-                val anyChanged     = usernameChanged || roleChanged || teamChanged || serviceChanged ||
-                  privacyChanged || qualityChanged || infra3dChanged
+                val newQualityManual: Option[Boolean] = if (s.excluded) Some(false) else s.highQualityManual
+                val qualityChanged                    = stats.exists(_.highQualityManual != newQualityManual)
+                val excludedChanged                   = stats.exists(_.excluded != s.excluded)
+                val infra3dChanged                    = s.infra3dAccess.exists(_ != user.infra3dAccess)
+                val anyChanged = usernameChanged || roleChanged || teamChanged || serviceChanged ||
+                  privacyChanged || qualityChanged || excludedChanged || infra3dChanged
 
                 // Ordered from the broadest refusal to the narrowest.
                 val firstError: Option[String] =
@@ -237,6 +242,8 @@ class AdminController @Inject() (
                     Some(s"Can't assign role ${s.role}")
                   else if (roleChanged && !Role.ADMIN_ASSIGNABLE_ROLES.contains(user.role))
                     Some(s"A ${user.role} account's role can't be changed")
+                  else if (excludedChanged && user.role == Role.Administrator && admin.role != Role.Owner)
+                    Some("An admin can only be excluded by an Owner")
                   else if (qualityChanged && user.role == Role.Administrator && admin.role != Role.Owner)
                     Some("An admin's quality can only be set by an Owner")
                   else if (infra3dChanged && !admin.infra3dAccess) Some("Only a user with infra3D access can grant it")
@@ -270,9 +277,13 @@ class AdminController @Inject() (
                         .filter(_ => infra3dChanged)
                         .map(access => authenticationService.setInfra3dAccess(userId, access))
                         .getOrElse(Future.successful(0))
-                      newQuality <-
-                        if (qualityChanged) userService.setManualUserQuality(userId, s.highQualityManual)
+                      // Un-exclude before the quality write, which skips excluded users.
+                      excludedQuality <-
+                        if (excludedChanged) userService.setUserExcluded(userId, s.excluded)
                         else Future.successful(stats.map(_.highQuality))
+                      newQuality <-
+                        if (qualityChanged && !s.excluded) userService.setManualUserQuality(userId, newQualityManual)
+                        else Future.successful(excludedQuality)
                       _ <-
                         if (usernameChanged) userService.changeUsername(userId, s.username)
                         else Future.successful(Right(user.username))
@@ -293,11 +304,26 @@ class AdminController @Inject() (
                         cc.loggingService.insert(
                           admin.userId,
                           request.ipAddress,
-                          s"UpdateUserManualQuality_User=${userId}_Manual=${s.highQualityManual}_New=$newQuality"
+                          s"UpdateUserManualQuality_User=${userId}_Manual=${newQualityManual}_New=$newQuality"
                         )
                       }
+                      if (excludedChanged) {
+                        cc.loggingService.insert(
+                          admin.userId,
+                          request.ipAddress,
+                          s"UpdateUserExcluded_User=${userId}_New=${s.excluded}"
+                        )
+                      }
+                      if (qualityChanged || excludedChanged) recalculateStreetPriorityInBackground()
                       // The page's URL is keyed by username, so the client needs the saved name to re-point itself.
-                      Ok(Json.obj("success" -> true, "high_quality" -> newQuality, "username" -> s.username))
+                      Ok(
+                        Json.obj(
+                          "success"      -> true,
+                          "high_quality" -> newQuality,
+                          "excluded"     -> s.excluded,
+                          "username"     -> s.username
+                        )
+                      )
                     }
                 }
               }
@@ -997,6 +1023,22 @@ class AdminController @Inject() (
         RecalculateStreetPriorityActor.runDetails(None)
       )
       .map(_ => Ok("Successfully recalculated street priorities"))
+  }
+
+  /** Recalculates street priority without making the caller wait, since it rewrites every street. */
+  private def recalculateStreetPriorityInBackground(): Unit = {
+    jobRunService
+      .record(RecalculateStreetPriorityActor.Name, JobRunTrigger.Manual)(streetService.recalculateStreetPriority)(_ =>
+        RecalculateStreetPriorityActor.runDetails(None)
+      )
+      .failed
+      .foreach(e => logger.error("Background street priority recalculation failed.", e))
+  }
+
+  /** Recounts every label's validation counts; users' accuracy catches up on the next user stats run. */
+  def recalculateValidationCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    adminService.recalculateValidationCounts().map(n => Ok(Json.obj("labels_updated" -> n)))
   }
 
   /**

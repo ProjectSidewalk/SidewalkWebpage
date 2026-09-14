@@ -38,7 +38,7 @@ class ManagementPage {
   /**
    * @param {{userStatsUrl: string, setRoleUrl: string, setTeamUrl: string, teamStatusUrl: string,
    *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string,
-   *          generateCropsUrl: string, rebuildSidewalkPresenceUrl: string}} urls
+   *          recalcValidationCountsUrl: string, generateCropsUrl: string, rebuildSidewalkPresenceUrl: string}} urls
    */
   constructor(urls) {
     this.#urls = urls;
@@ -379,6 +379,8 @@ class ManagementPage {
     };
     run('mgmt-recalc-stats', this.#urls.recalcStatsUrl, 'GET', 'recalculate user stats');
     run('mgmt-recalc-priority', this.#urls.recalcPriorityUrl, 'GET', 'recalculate street priority');
+    run('mgmt-recalc-validation-counts', this.#urls.recalcValidationCountsUrl, 'POST',
+      'recalculate validation counts');
     run('mgmt-generate-crops', this.#urls.generateCropsUrl, 'POST', 'generate crops',
       'Started: generate crops. It runs in the background — the Health panel reports how it ended.');
     run('mgmt-rebuild-sidewalk-presence', this.#urls.rebuildSidewalkPresenceUrl, 'POST',

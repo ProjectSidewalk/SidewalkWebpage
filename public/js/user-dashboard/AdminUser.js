@@ -1,9 +1,9 @@
 /**
  * Drives the Manage user page beside a user's dashboard (#4964): saves the admin-editable account settings in one PUT
- * to /adminapi/saveUserSettings, sets or clears the low-quality/incomplete flags on every task the user completed
- * before a chosen date, fills in the user's cross-city logged hours, and localizes the Explore-comment timestamps. A
- * rejected save (username taken, a permission rule) comes back as a 400 whose message is shown inline without
- * applying anything.
+ * to /adminapi/saveUserSettings (confirming first when it excludes the user), sets or clears the low-quality/incomplete
+ * flags on every task the user completed before a chosen date, fills in the user's cross-city logged hours, and
+ * localizes the Explore-comment timestamps. A rejected save (username taken, a permission rule) comes back as a 400
+ * whose message is shown inline without applying anything.
  */
 class AdminUser {
   #userId;
@@ -14,6 +14,8 @@ class AdminUser {
   #pageUrlFor;
   #saveBtn;
   #saveStatus;
+  #excluded;
+  #qualityBeforeExcluded = null;
 
   /**
    * @param {object} opts
@@ -35,6 +37,10 @@ class AdminUser {
     this.#saveBtn = document.getElementById('au-save-btn');
     this.#saveStatus = document.getElementById('au-save-status');
     this.#saveBtn?.addEventListener('click', () => this.#save());
+
+    const excludedBox = document.getElementById('au-excluded');
+    this.#excluded = excludedBox?.checked ?? false;
+    excludedBox?.addEventListener('change', () => this.#syncQualityToExcluded(excludedBox.checked));
 
     document.querySelectorAll('.ud-admin-flag').forEach((block) => {
       block.querySelector('.ud-admin-flag-set').addEventListener('click', () => this.#setFlags(block, true));
@@ -133,10 +139,45 @@ class AdminUser {
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
   }
 
+  /**
+   * Excluded users are always low quality, so checking the box locks the dropdown on Low; unchecking restores the
+   * earlier choice so a stray click doesn't change the user's quality.
+   * @param {boolean} excluded - Whether the Excluded box is now checked.
+   */
+  #syncQualityToExcluded(excluded) {
+    const quality = document.getElementById('au-quality');
+    if (!quality) return;
+    if (excluded) {
+      this.#qualityBeforeExcluded = quality.value;
+      quality.value = 'false';
+    } else if (this.#qualityBeforeExcluded !== null) {
+      quality.value = this.#qualityBeforeExcluded;
+      this.#qualityBeforeExcluded = null;
+    }
+    quality.disabled = excluded;
+  }
+
+  /** @returns {Promise<boolean>} Whether the admin confirmed excluding this user. */
+  #confirmExclude() {
+    return ConfirmDialog.confirm({
+      title: `Exclude ${this.#username}?`,
+      warning: true,
+      danger: true,
+      message: [
+        'Everything they contributed in this city will be hidden.',
+        'Their labels won\'t appear anywhere, and their validations won\'t count. You can undo this later.',
+      ].join(' '),
+      confirmText: 'Exclude user',
+      cancelText: 'Cancel',
+    });
+  }
+
   /** Reads the form, PUTs it, and reflects the outcome (and any new computed quality) on the page. */
   async #save() {
     const quality = document.getElementById('au-quality').value;
+    const excluded = document.getElementById('au-excluded').checked;
     const infra3d = document.getElementById('au-infra3d-access');
+    if (excluded && !this.#excluded && !(await this.#confirmExclude())) return;
     const payload = {
       userId: this.#userId,
       username: document.getElementById('au-username').value.trim(),
@@ -144,6 +185,7 @@ class AdminUser {
       teamId: parseInt(document.getElementById('au-team').value, 10) || null,
       // 'auto' clears the manual flag so the server recomputes quality from the user's stats.
       highQualityManual: quality === 'auto' ? null : quality === 'true',
+      excluded,
       communityService: document.getElementById('au-community-service').checked,
       onLeaderboard: document.getElementById('au-on-leaderboard').checked,
       publicProfile: document.getElementById('au-public-profile').checked,
@@ -166,8 +208,12 @@ class AdminUser {
           return;
         }
         AdminUser.#setStatus(this.#saveStatus, 'Saved ✓', true);
+        this.#excluded = data.excluded === true;
+        // Once saved, the exclusion's low quality sticks if the box is unchecked later.
+        this.#qualityBeforeExcluded = null;
         const hq = document.getElementById('au-high-quality');
-        if (hq && typeof data.high_quality === 'boolean') hq.textContent = data.high_quality ? 'High' : 'Low';
+        if (hq && this.#excluded) hq.textContent = 'Excluded';
+        else if (hq && typeof data.high_quality === 'boolean') hq.textContent = data.high_quality ? 'High' : 'Low';
       } else {
         AdminUser.#setStatus(this.#saveStatus, data.error || 'Save failed.', false);
       }
