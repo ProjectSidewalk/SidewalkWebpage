@@ -62,8 +62,9 @@ async function stubFeeds(context) {
   await context.route('**/v3/api/accessScoreStreets*', (route) => route.fulfill({json: streetsFixture()}));
   await context.route('**/v3/api/accessScoreIntersections*', (route) =>
     route.fulfill({json: {type: 'FeatureCollection', features: []}}));
-  await context.route('**/regions', (route) => route.fulfill({json: REGIONS}));
-  await context.route('**/regions/completionRates*', (route) => route.fulfill({json: COMPLETION}));
+  await context.route((url) => url.pathname === '/regions', (route) => route.fulfill({json: REGIONS}));
+  await context.route((url) => url.pathname === '/regions/completionRates',
+    (route) => route.fulfill({json: COMPLETION}));
   await context.route('**/v3/api/labelClusters*', (route) => route.fulfill({json: clustersFixture()}));
   await context.route('**/label/id/*', (route) => {
     const id = Number(route.request().url().split('/').pop());

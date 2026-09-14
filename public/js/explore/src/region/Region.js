@@ -38,9 +38,9 @@ class Region {
   /**
    * @returns {?number} Completed distance across all users (using priority), or null if unavailable.
    */
-  communityCompletedLineDistance() {
+  allUsersCompletedLineDistance() {
     if ('taskContainer' in svl && svl.taskContainer) {
-      return svl.taskContainer.getCommunityCompletedTaskDistance();
+      return svl.taskContainer.getAllUsersCompletedTaskDistance();
     } else {
       return null;
     }

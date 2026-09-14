@@ -672,8 +672,8 @@ class LabelServiceImpl @Inject() (
             labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
             labelsToRetrieve: Int = labelsToValidate - labelsProgress
             labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, viewerType, labelType,
-              validateParams.queueCascade, validateParams.userIds.map(_.toSet),
-              validateParams.regionIds.map(_.toSet), validateParams.unvalidatedOnly)
+              validateParams.queueCascade, validateParams.userIds.map(_.toSet), validateParams.regionIds.map(_.toSet),
+              validateParams.unvalidatedOnly)
             adminData <- {
               if (validateParams.adminVersion) getExtraAdminValidateData(labelMetadata.map(_.labelId))
               else Future.successful(Seq.empty[AdminValidationData])

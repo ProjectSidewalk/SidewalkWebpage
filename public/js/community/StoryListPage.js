@@ -13,7 +13,8 @@ class StoryListPage {
   constructor() {
     this.#list = new CommunityListPage('StoryListPage', {
       newest: { key: 'created', numeric: true, desc: true },
-      region: { key: 'region' },
+      // Also logged as `_Sort=neighborhood`, so renaming it would split that event's history.
+      neighborhood: { key: 'region' },
       labeltype: { key: 'labeltype' },
     });
   }

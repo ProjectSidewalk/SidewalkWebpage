@@ -170,10 +170,9 @@ async function stubMakeabilityLab(context) {
  */
 async function stubMapBaseLayers(context) {
   const emptyGeoJson = {type: 'FeatureCollection', features: []};
-  // `*` stops at a path separator, so the /regions route can't swallow /regions/completionRates —
-  // which answers with a rate array, not GeoJSON (addRegionsToMap looks regions up in it by region_id).
-  await context.route('**/regions*', (route) => route.fulfill({json: emptyGeoJson}));
-  await context.route('**/regions/completionRates*', (route) => route.fulfill({json: []}));
+  // Matched on the exact path: a `**/regions*` glob would also stub the public /v3/api/regions.
+  await context.route((url) => url.pathname === '/regions', (route) => route.fulfill({json: emptyGeoJson}));
+  await context.route((url) => url.pathname === '/regions/completionRates', (route) => route.fulfill({json: []}));
   await context.route('**/contribution/streets/all*', (route) => route.fulfill({json: emptyGeoJson}));
 }
 

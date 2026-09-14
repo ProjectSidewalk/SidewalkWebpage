@@ -174,7 +174,7 @@ class TaskContainer {
    *
    * @returns {number} distance in unit.
    */
-  getCommunityCompletedTaskDistance() {
+  getAllUsersCompletedTaskDistance() {
     const unit = { units: util.turfDistanceUnits() };
     const tasks = this.getTasks().filter((t) => t.getStreetPriority() < 1);
     let feature;

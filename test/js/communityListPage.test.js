@@ -25,7 +25,7 @@ function loadClasses() {
 }
 
 /** Renders the toolbar + card list skeleton that CommunityListPage.init() expects. */
-function setupDom(cardsHtml, { sortOptions = ['newest', 'region', 'longest', 'explored', 'labeltype'] } = {}) {
+function setupDom(cardsHtml, { sortOptions = ['newest', 'neighborhood', 'longest', 'explored', 'labeltype'] } = {}) {
     document.body.innerHTML = `
         <input type="search" id="community-search">
         <select id="community-sort">
@@ -66,7 +66,7 @@ function sortBy(value) {
 function newCommunityPage() {
     const page = new window.CommunityListPage('SpecPage', {
         newest: { key: 'created', numeric: true, desc: true },
-        region: { key: 'region' },
+        neighborhood: { key: 'region' },
         longest: { key: 'distance', numeric: true, desc: true },
     });
     page.init();
@@ -150,7 +150,7 @@ describe('CommunityListPage', () => {
     test('string sort orders alphabetically; newest restores recency order', () => {
         setupDom(THREE_CARDS);
         newCommunityPage();
-        sortBy('region');
+        sortBy('neighborhood');
         // Alpha Park twice (newer card 1 first on the tie), then Beta Square.
         expect(cardIds()).toEqual(['1', '3', '2']);
         sortBy('newest');

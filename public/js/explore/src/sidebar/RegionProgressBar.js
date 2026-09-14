@@ -48,7 +48,7 @@ class RegionProgressBar {
     // excluding your live in-progress partial. Both of those only change when a whole street is finished (a
     // street's priority drops below 1 only on completion), so the community segment holds steady between street
     // completions instead of being dragged around — and ticking down — on every step as you audit.
-    const allDistance = svl.taskContainer.getCommunityCompletedTaskDistance();
+    const allDistance = svl.taskContainer.getAllUsersCompletedTaskDistance();
     const userCompletedDistance = (svl.taskContainer.getCompletedTasks() || [])
       .reduce((sum, task) => sum + turf.length(task.getGeoJSON(), unit), 0);
 

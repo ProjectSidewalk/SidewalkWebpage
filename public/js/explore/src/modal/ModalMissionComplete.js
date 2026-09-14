@@ -102,7 +102,7 @@ class ModalMissionComplete {
     // Distance and the user's own label count come from data already on the client (the user's labels for this
     // region are loaded at page load; see /label/resumeMission), so they're filled in synchronously.
     this.#els.distanceAll.textContent = i18next.t('mission-complete.stat-distance-all', {
-      distance: this.#formatDistance(region.communityCompletedLineDistance()),
+      distance: this.#formatDistance(region.allUsersCompletedLineDistance()),
     });
     this.#els.distanceYou.textContent = i18next.t('mission-complete.stat-distance-you', {
       distance: this.#formatDistance(region.completedLineDistance(unit)),

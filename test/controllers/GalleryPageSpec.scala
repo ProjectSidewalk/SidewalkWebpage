@@ -80,7 +80,7 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "filter by a regions parameter, and still by the older neighborhoods name" in {
-      val regionIds = (contentAsJson(route(app, FakeRequest(GET, "/regions")).get) \ "features" \\ "region_id")
+      val regionIds = contentAsJson(route(app, FakeRequest(GET, "/regions")).get) \ "features" \\ "region_id"
       assume(regionIds.nonEmpty, "connected database has no regions")
 
       val regionId = regionIds.head.as[Int]

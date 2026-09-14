@@ -69,23 +69,29 @@ class ValidateController @Inject() (
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Validate_RedirectMobile")
         Future.successful(Redirect("/mobile", request.queryString))
       } else {
-        checkParams(adminVersion = false, None, None, regionsParam(regions, neighborhoods), unvalidatedOnly, triage = None).flatMap {
-          case (validateParams, response) =>
-            if (response.header.status == 200) {
-              val user: SidewalkUserWithRole = request.identity
-              for {
-                validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
-                commonPageData   <- configService.getCommonPageData(request2Messages.lang)
-              } yield {
-                cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Validate")
-                Ok(
-                  views.html.apps.validate(commonPageData, "/validate", Messages("seo.title.validate"), user,
-                    validateParams, validatePageData)
-                )
-              }
-            } else {
-              Future.successful(response)
+        checkParams(
+          adminVersion = false,
+          None,
+          None,
+          regionsParam(regions, neighborhoods),
+          unvalidatedOnly,
+          triage = None
+        ).flatMap { case (validateParams, response) =>
+          if (response.header.status == 200) {
+            val user: SidewalkUserWithRole = request.identity
+            for {
+              validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
+              commonPageData   <- configService.getCommonPageData(request2Messages.lang)
+            } yield {
+              cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Validate")
+              Ok(
+                views.html.apps.validate(commonPageData, "/validate", Messages("seo.title.validate"), user,
+                  validateParams, validatePageData)
+              )
             }
+          } else {
+            Future.successful(response)
+          }
         }
       }
     }
@@ -112,23 +118,29 @@ class ValidateController @Inject() (
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_ExpertValidate_RedirectMobile")
         Future.successful(Redirect("/mobile"))
       } else {
-        checkParams(adminVersion = true, labelType, users, regionsParam(regions, neighborhoods), unvalidatedOnly, triage).flatMap {
-          case (validateParams, response) =>
-            if (response.header.status == 200) {
-              val user: SidewalkUserWithRole = request.identity
-              for {
-                validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
-                commonPageData   <- configService.getCommonPageData(request2Messages.lang)
-              } yield {
-                cc.loggingService.insert(user.userId, request.ipAddress, "Visit_ExpertValidate")
-                Ok(
-                  views.html.apps.validate(commonPageData, "/expertValidate", Messages("seo.title.expert.validate"),
-                    user, validateParams, validatePageData)
-                )
-              }
-            } else {
-              Future.successful(response)
+        checkParams(
+          adminVersion = true,
+          labelType,
+          users,
+          regionsParam(regions, neighborhoods),
+          unvalidatedOnly,
+          triage
+        ).flatMap { case (validateParams, response) =>
+          if (response.header.status == 200) {
+            val user: SidewalkUserWithRole = request.identity
+            for {
+              validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
+              commonPageData   <- configService.getCommonPageData(request2Messages.lang)
+            } yield {
+              cc.loggingService.insert(user.userId, request.ipAddress, "Visit_ExpertValidate")
+              Ok(
+                views.html.apps.validate(commonPageData, "/expertValidate", Messages("seo.title.expert.validate"), user,
+                  validateParams, validatePageData)
+              )
             }
+          } else {
+            Future.successful(response)
+          }
         }
       }
     }
@@ -141,28 +153,34 @@ class ValidateController @Inject() (
    */
   def mobileValidate(regions: Option[String], unvalidatedOnly: Option[Boolean], neighborhoods: Option[String]) =
     cc.securityService.SecuredAction { implicit request =>
-      checkParams(adminVersion = false, None, None, regionsParam(regions, neighborhoods), unvalidatedOnly, triage = None).flatMap {
-        case (validateParams, response) =>
-          if (response.header.status == 200) {
-            val user: SidewalkUserWithRole = request.identity
-            for {
-              validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
-              commonPageData   <- configService.getCommonPageData(request2Messages.lang)
-            } yield {
-              if (!isMobile(request)) {
-                cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate_RedirectHome")
-                Redirect("/")
-              } else {
-                cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate")
-                Ok(
-                  views.html.apps.mobileValidate(commonPageData, Messages("seo.title.validate"), user, validateParams,
-                    validatePageData)
-                )
-              }
+      checkParams(
+        adminVersion = false,
+        None,
+        None,
+        regionsParam(regions, neighborhoods),
+        unvalidatedOnly,
+        triage = None
+      ).flatMap { case (validateParams, response) =>
+        if (response.header.status == 200) {
+          val user: SidewalkUserWithRole = request.identity
+          for {
+            validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
+            commonPageData   <- configService.getCommonPageData(request2Messages.lang)
+          } yield {
+            if (!isMobile(request)) {
+              cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate_RedirectHome")
+              Redirect("/")
+            } else {
+              cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate")
+              Ok(
+                views.html.apps.mobileValidate(commonPageData, Messages("seo.title.validate"), user, validateParams,
+                  validatePageData)
+              )
             }
-          } else {
-            Future.successful(response)
           }
+        } else {
+          Future.successful(response)
+        }
       }
     }
 
