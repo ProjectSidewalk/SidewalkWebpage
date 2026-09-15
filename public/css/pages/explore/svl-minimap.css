@@ -482,16 +482,16 @@
   background: color-mix(in srgb, var(--color-link-100) 55%, var(--color-neutral-white));
 }
 
-/* Halos (the faced fill's and the hover outline's) are the crumb's stroke color at 30%: a soft field around the mark
+/* Halos (the faced fill's and the hover outline's) are the crumb's stroke color at 45%: a soft field around the mark
    rather than a thicker ring of the same color, so the mark itself stays readable inside it. */
 .minimap-crumb-faced::before {
   border: calc(1.5px * var(--ui-scale, 1)) solid var(--color-neutral-white);
   background: var(--crumb-fill);
-  box-shadow: 0 0 0 calc(3px * var(--ui-scale, 1)) color-mix(in srgb, var(--crumb-color) 30%, transparent);
+  box-shadow: 0 0 0 calc(3px * var(--ui-scale, 1)) color-mix(in srgb, var(--crumb-color) 45%, transparent);
 }
 
 .minimap-crumb-highlight::before {
-  box-shadow: 0 0 0 calc(3px * var(--ui-scale, 1)) color-mix(in srgb, var(--crumb-color) 30%, transparent);
+  box-shadow: 0 0 0 calc(3px * var(--ui-scale, 1)) color-mix(in srgb, var(--crumb-color) 45%, transparent);
 }
 
 /* Far crumbs are informational only: make their wrapper click-through so they can't intercept a click meant for a
