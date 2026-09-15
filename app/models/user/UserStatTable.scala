@@ -91,7 +91,7 @@ case class LeaderboardStat(
  * by the *current city's* total street distance — a denominator with no cross-city meaning.
  *
  * @param userId         The mapper's global user id, so the caller can resolve their profile visibility here.
- * @param username       Display name (email domain stripped, as on the per-city boards).
+ * @param username       The mapper's username.
  * @param labelCount     Labels placed across all included cities.
  * @param missionCount   Missions completed across all included cities.
  * @param distanceMeters Street distance audited across all included cities.
@@ -135,7 +135,7 @@ case class CrossCityUserStat(
  * One row in a user's "standing" slice — their neighbors on the board, ranked by label count for the period.
  *
  * @param rank       1-based rank among eligible users for the period.
- * @param username   Display name (email domain stripped).
+ * @param username   The mapper's username.
  * @param labelCount Labels placed in the period.
  * @param isYou      True for the viewing user's own row.
  */
@@ -727,12 +727,7 @@ class UserStatTable @Inject() (
       ORDER BY score DESC, label_counts.label_count DESC;
     """
         .as[(String, Int, Int, Double, Option[Double], Double)]
-        .map(_.map { stat =>
-          // Run the query and, if it's not a team name, remove the "@X.Y" from usernames that are just email addresses.
-          if (!byTeam && isValidEmail(stat._1))
-            LeaderboardStat(stat._1.slice(0, stat._1.lastIndexOf('@')), stat._2, stat._3, stat._4, stat._5, stat._6)
-          else LeaderboardStat.tupled(stat)
-        })
+        .map(_.map(LeaderboardStat.tupled))
     )
   }
 
@@ -870,10 +865,7 @@ class UserStatTable @Inject() (
         ORDER BY top_n.label_count DESC, top_n.user_id;
       """
         .as[(String, String, Int, Int, Double, Option[Double], String)]
-        .map(_.map { stat =>
-          val username: String = if (isValidEmail(stat._2)) stat._2.slice(0, stat._2.lastIndexOf('@')) else stat._2
-          GlobalLeaderboardStat(stat._1, username, stat._3, stat._4, stat._5, stat._6, stat._7)
-        })
+        .map(_.map(GlobalLeaderboardStat.tupled))
     }
   }
 
@@ -1019,10 +1011,7 @@ class UserStatTable @Inject() (
       ORDER BY ranked.rnk, ranked.uname;
     """.as[(Int, String, Int, Boolean, Int, Int, Int)].map { rows =>
       rows.headOption.map { head =>
-        val slice = rows.map { r =>
-          val name = if (isValidEmail(r._2)) r._2.slice(0, r._2.lastIndexOf('@')) else r._2
-          StandingRow(r._1, name, r._3, r._4)
-        }
+        val slice = rows.map(r => StandingRow(r._1, r._2, r._3, r._4))
         UserStanding(rank = head._6, cohortSize = head._5, labelCount = head._7, slice = slice)
       }
     }
@@ -1292,21 +1281,6 @@ class UserStatTable @Inject() (
           #$minMetersClause
           #$highQualityClause
           #$minAccuracyClause;""".as[UserStatForApi]
-  }
-
-  /**
-   * Check if the input string is a valid email address.
-   *
-   * We use a regex found in the Play Framework's code: https://github.com/playframework/playframework/blob/ddf3a7ee4285212ec665826ec268ef32b5a76000/core/play/src/main/scala/play/api/data/validation/Validation.scala#L79
-   */
-  def isValidEmail(maybeEmail: String): Boolean = {
-    val emailRegex =
-      """^[a-zA-Z0-9\.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
-    maybeEmail match {
-      case e if e.trim.isEmpty                           => false
-      case e if emailRegex.findFirstMatchIn(e).isDefined => true
-      case _                                             => false
-    }
   }
 
   /**
