@@ -5,8 +5,13 @@
 # WHY THIS EXISTS: when you're standing up a new city (before you have a data dump for it), you need an empty schema
 # with the full, *current* Project Sidewalk table structure. This copies a donor city's schema (structure only), the
 # handful of seed rows every city carries — the applied evolutions, the version history, `config` with its tutorial
-# street, the tag catalogue, and the survey questions — creates the owning role, and wires up search_path + read-only
-# grants. After this, you'd load the city's streets/regions with fill-new-schema.sh.
+# street, the tag catalogue, the survey questions, and the SidewalkAI user's stat row and validation missions —
+# creates the owning role, and wires up search_path + read-only grants. After this, you'd load the city's
+# streets/regions with fill-new-schema.sh.
+#
+# The AI rows are copied because they can come from nowhere else: 281.sql seeded them once per schema, and copying the
+# donor's play_evolutions marks 281 applied, so it never runs in the new city. Without its user_stat row the AI's
+# labels fail the user_stat join that nearly every label query carries, so they land but never show (#5349).
 #
 # It clones a donor rather than restoring the committed `sidewalk_init` template: the template is frozen at evolution
 # 252, and evolutions 270/295/355 read `sidewalk_login.role`, which 372 dropped, so replaying it forward wedges on the
@@ -25,6 +30,9 @@
 #                     when it differs (Play normalizes some files in ways the host-side hash doesn't reproduce, so a
 #                     difference alone proves nothing), the donor's top evolution must hash the same as in every
 #                     other city schema that has applied it.
+#                     A donor is also refused below evolution 373: until then `label_type` was a table that `tag`
+#                     referenced, and the seed copy below (which doesn't carry label_type) fails half-way on it.
+#                     Boot the app against such a donor first so Play brings it current.
 #
 # GOTCHA: the names are interpolated into DDL, so they must be safe bare SQL identifiers (validated below). Re-running
 # for an existing name drops and recreates that schema — destructive, as intended for a fresh setup.
@@ -32,6 +40,11 @@
 set -euo pipefail
 
 source /opt/scripts/helpers.sh
+
+# 373.sql replaced the label_type table with an enum; earlier donors still carry the table and tag's FK to it.
+MIN_DONOR_EVOLUTION=373
+# The SidewalkAI account (281.sql, init.sh). Global in sidewalk_login; its per-schema rows are what's copied below.
+AI_USER_ID=51b0b927-3c8a-45b2-93de-bd878d1e5cf4
 
 NAME=${1:-}
 DONOR=${2:-}
@@ -78,6 +91,23 @@ if [[ -n "$MAX_EVOLUTION" && "$donor_evolution" -gt "$MAX_EVOLUTION" ]]; then
     echo "Error: donor '$DONOR' is at evolution $donor_evolution, beyond this checkout's highest ($MAX_EVOLUTION)." >&2
     echo "       It has applied an evolution from another branch; pick a donor that hasn't" >&2
     echo "       (see docs/onboarding-a-city.md)." >&2
+    exit 1
+fi
+if [[ "$donor_evolution" -lt "$MIN_DONOR_EVOLUTION" ]]; then
+    echo "Error: donor '$DONOR' is at evolution $donor_evolution; this script needs a donor at $MIN_DONOR_EVOLUTION" >&2
+    echo "       or later. Boot the app against it once so Play applies the missing evolutions, or pick a" >&2
+    echo "       current city (see docs/onboarding-a-city.md)." >&2
+    exit 1
+fi
+
+# The AI rows must exist in the donor, or the new city silently repeats #5349. Nine missions: one per label type.
+ai_stat_rows=$(psql -U postgres -d sidewalk -tAc \
+    "SELECT count(*) FROM $DONOR.user_stat WHERE user_id = '$AI_USER_ID'")
+ai_missions=$(psql -U postgres -d sidewalk -tAc \
+    "SELECT count(*) FROM $DONOR.mission WHERE user_id = '$AI_USER_ID' AND mission_type = 'aiValidation'")
+if [[ "$ai_stat_rows" != "1" || "$ai_missions" != "9" ]]; then
+    echo "Error: donor '$DONOR' has $ai_stat_rows SidewalkAI user_stat row(s) and $ai_missions aiValidation" >&2
+    echo "       mission(s); expected 1 and 9 (281.sql). Pick a donor that has them, or seed them there first." >&2
     exit 1
 fi
 
@@ -142,6 +172,9 @@ copy_rows survey_option   "SELECT * FROM $DONOR.survey_option ORDER BY survey_op
 copy_rows street_edge     "SELECT * FROM $DONOR.street_edge
                            WHERE street_edge_id = (SELECT tutorial_street_edge_id FROM $DONOR.config)"
 copy_rows config          "SELECT * FROM $DONOR.config"
+copy_rows user_stat       "SELECT * FROM $DONOR.user_stat WHERE user_id = '$AI_USER_ID'"
+copy_rows mission         "SELECT * FROM $DONOR.mission
+                           WHERE user_id = '$AI_USER_ID' AND mission_type = 'aiValidation' ORDER BY mission_id"
 
 psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk <<-EOSQL
     ALTER SCHEMA $NAME OWNER TO sidewalk;
@@ -196,5 +229,5 @@ EOSQL
 n_tables=$(psql -U postgres -d sidewalk -tAc "SELECT count(*) FROM pg_tables WHERE schemaname = '$NAME'")
 n_tags=$(psql -U postgres -d sidewalk -tAc "SELECT count(*) FROM $NAME.tag")
 echo "Created $NAME from $DONOR: $n_tables tables, evolutions through $donor_evolution, $n_tags tags," \
-     "one tutorial street."
+     "one tutorial street, the SidewalkAI stat row and its 9 validation missions."
 echo "Next: load qgis_road + qgis_region into it, then make fill-new-schema."

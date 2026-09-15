@@ -134,10 +134,14 @@ its default either way.
    both the `G-…` measurement ids and the numeric property ids. Skipped with a pointer otherwise; run the script
    standalone later.
 3. **Schema** — `db/scripts/create-new-schema.sh` clones a **donor** city's structure and seed rows (evolutions,
-   version history, `config` with its tutorial street, tags, survey questions), creates the role, bumps the
-   sequences, grants `readonly_user`. The donor defaults to the dev container's `DATABASE_USER`; pass `--donor` to
-   choose. A donor is refused when it has applied an evolution beyond this checkout's highest — a dev schema that
-   hosted another branch's QA, which would otherwise carry that branch's evolution into the new city. The same
+   version history, `config` with its tutorial street, tags, survey questions, and the SidewalkAI user's `user_stat`
+   row and `aiValidation` missions — 281.sql seeded those once per schema, and since the clone marks 281 applied
+   they can come from nowhere else; without them the AI's labels land but never show, #5349), creates the role,
+   bumps the sequences, grants `readonly_user`. The donor defaults to the dev container's `DATABASE_USER`; pass
+   `--donor` to choose. A donor is refused below evolution 373 (it still has the `label_type` table that `tag`
+   references, so the seed copy fails half-way; boot the app against it once so Play brings it current) and when
+   it has applied an evolution beyond this checkout's highest — a dev schema that hosted another branch's QA,
+   which would otherwise carry that branch's evolution into the new city. The same
    schema can also hold another branch's evolution under the *same* number, so the donor's top evolution is
    checked too: it passes when its `play_evolutions` hash is the one Play computes from this checkout's file
    (`make` and the orchestrator pass it in); otherwise every other city schema that has applied that number must
