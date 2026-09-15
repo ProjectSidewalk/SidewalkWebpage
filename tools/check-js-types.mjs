@@ -49,14 +49,9 @@ const CHECKED = [
   'public/js/validate/src/zoom',
 ];
 
-// Each run, and the files whose errors it reports. A common/ file is in every run but reported only by `other`, so
-// its errors aren't printed four times.
-const RUNS = [
-  { config: 'explore.json', owns: (file) => file.startsWith('public/js/explore/') },
-  { config: 'validate.json', owns: (file) => file.startsWith('public/js/validate/') },
-  { config: 'gallery.json', owns: (file) => file.startsWith('public/js/gallery/') },
-  { config: 'other.json', owns: () => true },
-];
+// One tsc run per config. common/ is in every run, and each run can find different errors there (a common/ typedef
+// can clash with one app's class), so every run's errors count; the same error from several runs is printed once.
+const RUNS = ['tsconfig.explore.json', 'tsconfig.validate.json', 'tsconfig.gallery.json', 'tsconfig.other.json'];
 
 // A tsc error line: `public/js/foo.js(12,5): error TS2339: Property 'x' does not exist on type 'y'.`
 const ERROR_LINE = /^(.+?)\((\d+),(\d+)\): error (TS\d+): /;
@@ -113,7 +108,8 @@ for (const entry of CHECKED) {
   if (!existsSync(join(ROOT, entry))) problems.push(`CHECKED lists ${entry}, which doesn't exist.`);
 }
 
-const errors = RUNS.flatMap(({ config, owns }) => runTsc(config).filter((e) => !e.file || owns(e.file)));
+const seen = new Set();
+const errors = RUNS.flatMap(runTsc).filter((e) => !seen.has(e.text) && seen.add(e.text));
 const failing = errors.filter((e) => !e.file || isChecked(e.file));
 problems.push(...failing.map((e) => e.text));
 

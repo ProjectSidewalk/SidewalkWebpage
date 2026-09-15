@@ -1,5 +1,5 @@
 // Type information for public/js/, read by editors (hover, go-to-definition) and by `make lint-js-types` (#5278).
-// Checking stays off here so editors don't flag folders that don't pass yet; the configs in tools/js-types/ turn it on.
+// Checking stays off here so editors don't flag folders that don't pass yet; tools/js-types/tsconfig.*.json turn it on.
 {
   "compilerOptions": {
     "allowJs": true,

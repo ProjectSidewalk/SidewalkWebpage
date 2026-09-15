@@ -10,7 +10,7 @@
 
 /**
  * Where a value stands on its badge track.
- * @typedef {object} BadgeProgress
+ * @typedef {object} BadgeTrackProgress
  * @property {number} level - The earned level, or 0 before the first.
  * @property {?Badge} badge - The badge in hand; null before the first level.
  * @property {?Badge} next - The badge being climbed toward; null at the top level.
@@ -126,8 +126,7 @@ class BadgeAchievements {
    * @param {number} value - Value in canonical units (miles for distance).
    * @param {object} [opts]
    * @param {boolean} [opts.isMetric] - Whether to use the kilometer distance icon variant on the returned badges.
-   * @returns {BadgeProgress} The value's progress. A type with no track reports an empty progress rather than
-   *      throwing.
+   * @returns {BadgeTrackProgress} The value's progress; a type with no track gets an empty one rather than an error.
    */
   static getProgress(type, value, opts = {}) {
     const thresholds = BadgeAchievements.THRESHOLDS[type];

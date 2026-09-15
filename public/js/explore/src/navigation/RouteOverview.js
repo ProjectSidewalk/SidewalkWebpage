@@ -81,8 +81,7 @@ class RouteOverview {
    * @param {number} w - Canvas width in CSS px.
    * @param {number} h - Canvas height in CSS px.
    * @param {number} pad - Padding in px keeping the route off the edges.
-   * @returns {((lng: number, lat: number) => number[])|null} Projects (lng, lat) to [x, y]; null if the route has no
-   *   extent.
+   * @returns {((lng: number, lat: number) => number[])|null} Maps (lng, lat) to [x, y]; null for a zero-size route.
    */
   #buildProjection(tasks, w, h, pad) {
     let minLng = Infinity;
