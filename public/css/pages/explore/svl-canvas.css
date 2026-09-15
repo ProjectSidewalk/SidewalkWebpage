@@ -92,22 +92,36 @@
   filter: drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black));
 }
 
-/* .arrow-hover is the same look, applied when the user hovers the arrow's crumb on the minimap instead (#4682). */
-#arrow-group image:hover,
-#arrow-group image.arrow-hover {
+#arrow-group image:hover {
   filter:
     drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black))
     sepia(1) saturate(2) hue-rotate(315deg); /* Adds yellow highlight on hover. */
 }
 
+/* Lit from the minimap (the user is hovering the arrow's crumb, #4682): the pointer is elsewhere, so the arrow has
+   to catch the eye on its own — the hover tint plus a wide yellow bloom. */
+#arrow-group image.arrow-hover {
+  filter:
+    drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black))
+    sepia(1) saturate(5) hue-rotate(315deg)
+    drop-shadow(0 0 6px var(--color-warning-200)) drop-shadow(0 0 14px var(--color-warning-200));
+}
+
 /* The highlighted route-forward arrow (#4671) marks the way the route wants the user to go. It inherits the link-arrow
    base style (cursor + dark outline from #arrow-group image) but keeps its navigation-blue fill on hover — just
    brightened — instead of the link arrows' yellow tint, which would fight the blue. */
-#arrow-group image.route-forward-highlight:hover,
-#arrow-group image.route-forward-highlight.arrow-hover {
+#arrow-group image.route-forward-highlight:hover {
   filter:
     drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black))
     brightness(1.15);
+}
+
+/* The route-forward arrow lit from the minimap keeps its blue, with a blue bloom instead of the yellow one. */
+#arrow-group image.route-forward-highlight.arrow-hover {
+  filter:
+    drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black))
+    brightness(1.2)
+    drop-shadow(0 0 6px var(--color-link-100)) drop-shadow(0 0 14px var(--color-link-100));
 }
 
 /* Used to highlight/blink the nav arrows in the tutorial. */
