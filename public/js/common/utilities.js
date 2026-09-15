@@ -370,7 +370,7 @@ util.longDistanceToString = (km, precision = 0) =>
 function mousePosition(e, dom) {
   const mx = e.pageX - $(dom).offset().left;
   const my = e.pageY - $(dom).offset().top;
-  return { x: parseInt(mx, 10), y: parseInt(my, 10) };
+  return { x: Math.trunc(mx), y: Math.trunc(my) };
 }
 
 util.mousePosition = mousePosition;
@@ -398,7 +398,7 @@ function convertBlobToBase64(blob) {
     const reader = new FileReader();
     reader.onerror = reject;
     reader.onload = () => {
-      resolve(reader.result);
+      resolve(/** @type {string} */ (reader.result));
     };
     reader.readAsDataURL(blob);
   });
@@ -513,7 +513,7 @@ util.hasSession = hasSession;
  * When the work also costs the server something, prefer util.onFirstInteractionOrIdle, which adds an engagement gate
  * on top of this.
  *
- * @param {Function} fn - The work to run. Called once.
+ * @param {() => void} fn - The work to run. Called once.
  */
 function afterLoadIdle(fn) {
   const schedule = () => {
@@ -537,7 +537,8 @@ const INTERACTION_EVENTS = ['pointermove', 'pointerdown', 'scroll', 'keydown', '
 // callers here register at very different times (parse time vs. inside an appManager.ready callback, i.e. after
 // i18next's fetches resolve), and a single early mouse twitch has to satisfy all of them.
 const firstInteraction = new Promise((resolve) => {
-  for (const type of INTERACTION_EVENTS) window.addEventListener(type, () => resolve(), { once: true, passive: true });
+  const onInteraction = () => resolve(undefined);
+  for (const type of INTERACTION_EVENTS) window.addEventListener(type, onInteraction, { once: true, passive: true });
 });
 
 /**
@@ -555,7 +556,7 @@ const firstInteraction = new Promise((resolve) => {
  * fold, so actually looking at it requires a scroll, which trips the interaction path first. It exists only so a
  * visitor who somehow generates no input events still ends up with a working page.
  *
- * @param {Function} fn - The work to run. Called once, whichever path gets there first.
+ * @param {() => void} fn - The work to run. Called once, whichever path gets there first.
  * @param {number} [fallbackMs=5000] - How long after load-idle to give up waiting for an interaction.
  */
 function onFirstInteractionOrIdle(fn, fallbackMs = 5000) {

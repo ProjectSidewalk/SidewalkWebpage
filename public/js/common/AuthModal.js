@@ -26,7 +26,7 @@ const auIcon = () => {
  */
 function wireEyeToggle(btn) {
   btn.addEventListener('click', () => {
-    const input = document.getElementById(btn.dataset.eye);
+    const input = /** @type {HTMLInputElement} */ (document.getElementById(btn.dataset.eye));
     if (!input) return;
     const show = input.type === 'password';
     input.type = show ? 'text' : 'password';
@@ -103,8 +103,8 @@ async function isBreachedPassword(password, rangeUrl) {
  * @param {HTMLElement} group - An .au-pw-group rendered by common/authPasswordFields.scala.html.
  */
 function wirePasswordGroup(group) {
-  const pw = group.querySelector('.au-pw');
-  const pw2 = group.querySelector('.au-pw-confirm');
+  const pw = /** @type {HTMLInputElement} */ (group.querySelector('.au-pw'));
+  const pw2 = /** @type {HTMLInputElement} */ (group.querySelector('.au-pw-confirm'));
   if (!pw) return;
 
   const rules = [...group.querySelectorAll('.au-checklist li[data-rule-regex]')]
@@ -201,7 +201,7 @@ function wirePasswordGroup(group) {
 function wireLiveValidation() {
   document.querySelectorAll('.au-pw-group').forEach(wirePasswordGroup);
 
-  const username = document.getElementById('sign-up-username');
+  const username = /** @type {HTMLInputElement} */ (document.getElementById('sign-up-username'));
   if (username?.dataset.ruleRegex) {
     const usernameRegex = new RegExp(username.dataset.ruleRegex);
     const rule = document.getElementById('sign-up-username-rule');
@@ -287,7 +287,8 @@ function wireAsyncSubmit(form, { onSuccess } = {}) {
       const res = await fetch(form.action, {
         method: 'POST',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        body: new URLSearchParams(new FormData(form)),
+        // Browsers take FormData here, though TypeScript's DOM types don't list it.
+        body: new URLSearchParams(/** @type {any} */ (new FormData(form))),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && onSuccess) {
@@ -299,7 +300,7 @@ function wireAsyncSubmit(form, { onSuccess } = {}) {
         renderAuthErrors(form, data.errors || { _summary: form.dataset.errorGeneric });
       }
       if (res.status === 401) {
-        const pwField = form.querySelector('input[type="password"]');
+        const pwField = /** @type {HTMLInputElement} */ (form.querySelector('input[type="password"]'));
         if (pwField) pwField.value = '';
         form.querySelector('.au-input')?.focus();
       }
@@ -321,8 +322,8 @@ function wireAsyncSubmit(form, { onSuccess } = {}) {
 function enhanceAuthForms() {
   document.querySelectorAll('.au-eye').forEach(wireEyeToggle);
   wireLiveValidation();
-  wireAsyncSubmit(document.getElementById('sign-in-form'));
-  wireAsyncSubmit(document.getElementById('sign-up-form'));
+  wireAsyncSubmit(/** @type {HTMLFormElement} */ (document.getElementById('sign-in-form')));
+  wireAsyncSubmit(/** @type {HTMLFormElement} */ (document.getElementById('sign-up-form')));
 }
 
 /**

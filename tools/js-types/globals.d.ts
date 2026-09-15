@@ -9,6 +9,9 @@ declare var sg: any;
 // Shared helpers, built up piece by piece across common/ with `window.util = window.util || {}`.
 declare var util: any;
 
+// Set by common/scoreRamp.js, which the api-docs and AccessScore pages load.
+declare var ScoreRamp: any;
+
 // Libraries loaded from public/vendor/ by <script> tag that have no type package installed.
 declare const AsyncLock: any;
 declare const bowser: any;
@@ -31,18 +34,36 @@ declare namespace mapboxgl {
 }
 declare const MapboxLanguage: any;
 declare const MapboxSearchBox: any;
-declare const mapillary: any;
+// GraphDataProvider is spelled out because a class extending an `any` base gets a constructor that takes nothing.
+declare const mapillary: { GraphDataProvider: new (options?: object) => any; [name: string]: any };
 declare const moment: any;
 declare namespace moment {
   type Moment = any;
 }
 declare const pannellum: any;
+declare namespace pannellum {
+  type Viewer = any;
+}
 declare const panzoom: any;
 declare const PhotoSphereViewer: any;
+declare namespace PhotoSphereViewer {
+  type Viewer = any;
+}
 declare const proj4: any;
 declare const THREE: any;
 declare const turf: any;
+declare namespace turf {
+  type Feature<G = any> = any;
+  type LineString = any;
+  type Point = any;
+}
 declare const vegaEmbed: any;
+// GeoJSON shapes, named in JSDoc only.
+declare namespace GeoJSON {
+  type Feature<G = any> = any;
+  type FeatureCollection<G = any> = any;
+  type LineString = any;
+}
 
 // jQuery plugins from Bootstrap, Magnific Popup, and Selectize.
 interface JQuery {
@@ -51,6 +72,18 @@ interface JQuery {
   popover(...args: any[]): JQuery;
   selectize(...args: any[]): JQuery;
   tooltip(...args: any[]): JQuery;
+}
+
+declare namespace JQuery {
+  interface TriggeredEvent<TDelegateTarget = any, TData = any, TCurrentTarget = any, TTarget = any> {
+    // jQuery sets this on events fired from code with .trigger() or .click(), but its type package leaves it out.
+    isTrigger?: number;
+  }
+}
+
+// The Network Information API, which only Chromium browsers have, so TypeScript's DOM types leave it out.
+interface Navigator {
+  connection?: { saveData?: boolean };
 }
 
 // Values set on `window` by the site-wide layout (common/main.scala.html) or by AppManager from it.
@@ -74,7 +107,7 @@ interface Window {
   localizeElement: (el: Element) => void;
   localizeSubtree: (root: ParentNode) => void;
   logWebpageActivity: (activity: string, async?: boolean) => void;
-  panoramaxLicenses: Record<string, object>;
+  panoramaxLicenses: Record<string, { name: string; url: string }>;
   psAuthModal: AuthModal;
   PsModal: typeof Modal;
 }

@@ -75,7 +75,7 @@ class ModalMissionCompleteMap {
 
   /**
    * Draws the street tiers and mission labels, then frames the just-finished mission's streets.
-   * @param {object} streetTiers - GeoJSON FeatureCollections keyed by tier: { thisMission, previous, community }.
+   * @param {{thisMission: object, previous: object, community: object}} streetTiers - GeoJSON FeatureCollections.
    * @param {object} labelData - GeoJSON FeatureCollection of labels placed during the mission.
    */
   async update(streetTiers, labelData) {

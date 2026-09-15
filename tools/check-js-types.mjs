@@ -27,30 +27,12 @@ const TS_MAJOR = 7;
 // Folders under public/js/ (each with everything inside it) or single files that must type-check cleanly. Grow this
 // list; never shrink it.
 const CHECKED = [
-  'public/js/common/share',
+  'public/js/common',
   'public/js/community',
-  'public/js/explore/src/alert',
-  'public/js/explore/src/controls',
-  'public/js/explore/src/data',
-  'public/js/explore/src/game',
-  'public/js/explore/src/label',
-  'public/js/explore/src/menu',
-  'public/js/explore/src/panorama',
-  'public/js/explore/src/region',
-  'public/js/explore/src/user',
-  'public/js/explore/src/zoom',
-  'public/js/gallery/src/data',
-  'public/js/gallery/src/displays',
-  'public/js/gallery/src/expandedview',
-  'public/js/gallery/src/keyboard',
-  'public/js/gallery/src/validation',
-  'public/js/validate/src/data',
-  'public/js/validate/src/mission',
-  'public/js/validate/src/modal',
-  'public/js/validate/src/status',
-  'public/js/validate/src/user',
-  'public/js/validate/src/util',
-  'public/js/validate/src/zoom',
+  'public/js/explore',
+  'public/js/gallery',
+  'public/js/shared-label',
+  'public/js/validate',
 ];
 
 // common/ is in every run, and each run can find different errors there (a common/ typedef can clash with one app's

@@ -29,6 +29,7 @@ function createPanoAttribution(container, options = {}) {
    * @param {{holder: string, provider: ?string, license: ?string, license_url: ?string}} attribution
    */
   function render(attribution) {
+    /** @type {Node[]} */
     const parts = [document.createTextNode(attribution.holder)];
     if (attribution.provider && !compact) parts.push(document.createTextNode(attribution.provider));
     if (attribution.license) {

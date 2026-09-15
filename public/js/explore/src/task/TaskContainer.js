@@ -19,7 +19,7 @@ class TaskContainer {
 
   /**
    * @param {RegionModel} regionModel
-   * @param {object} svl
+   * @param {Record<string, any>} svl
    * @param {Tracker} tracker
    */
   constructor(regionModel, svl, tracker) {
@@ -108,7 +108,7 @@ class TaskContainer {
 
   /**
    * Updates the task priorities for the given set of streets. These should be updated from other users' audits.
-   * @param {{street_edge_id: number, priority: number}} updatedPriorities - Any streets with a new priority value
+   * @param {Array<{street_edge_id: number, priority: number}>} updatedPriorities - Any streets with a new priority
    */
   updateTaskPriorities(updatedPriorities) {
     // Loop through all updatedPriorities and update _tasks with the new priorities.
@@ -121,9 +121,9 @@ class TaskContainer {
   /**
    * Find incomplete tasks (i.e., street edges) that are connected to the given task.
    *
-   * @param {object} taskIn - Task to check whether any available tasks are connected
+   * @param {Task} taskIn - Task to check whether any available tasks are connected
    * @param {number} threshold - Distance threshold in km, unless specified in unit parameter
-   * @param {object} [unit] - Object with field 'units' holding distance unit; defaults to the user's units
+   * @param {{units: string}} [unit] - Holds the distance unit; defaults to the user's units
    * @returns {Task[]} Array of tasks that are connected to the given task
    */
   #findConnectedTasks(taskIn, threshold, unit) {

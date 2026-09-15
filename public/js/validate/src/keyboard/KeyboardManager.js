@@ -7,7 +7,7 @@ class KeyboardManager {
   #addingComment = false;
 
   /**
-   * @param {object} validationMenuUi - Validation menu UI elements.
+   * @param {Record<string, JQuery>} validationMenuUi - Validation menu UI elements.
    */
   constructor(validationMenuUi) {
     this.#validationMenuUi = validationMenuUi;
@@ -58,7 +58,7 @@ class KeyboardManager {
    * @param {number} n - The keyboard shortcut number that was hit. 1-3 map to a severity, disagree reason, or unsure
    *                   reason; 4 maps to a fourth disagree reason where one is offered. Any n with no matching option
    *                   focuses the comment box, which is what makes 5 reach it on a four-reason label type.
-   * @param {Event} e - The keypress event.
+   * @param {KeyboardEvent} e - The keypress event.
    */
   #handleNumberKeyShortcut(n, e) {
     const validationMenuUi = this.#validationMenuUi;
@@ -88,7 +88,7 @@ class KeyboardManager {
   /**
    * Sets focus to the appropriate comment box, depending on which validation option has been selected.
    *
-   * @param {Event} e - The keypress event.
+   * @param {KeyboardEvent} e - The keypress event.
    */
   #handleCommentBoxShortcut(e) {
     const validationMenuUi = this.#validationMenuUi;
@@ -105,7 +105,7 @@ class KeyboardManager {
   /**
    * Handles keyboard shortcuts by listening to the keydown event.
    *
-   * @param {Event} e
+   * @param {KeyboardEvent} e
    */
   #documentKeyDown = (e) => {
     const validationMenuUi = this.#validationMenuUi;
@@ -117,7 +117,7 @@ class KeyboardManager {
     // sees the key before the focused control does.
     const marker = document.getElementById('validate-pano-marker');
     const card = document.getElementById('label-card');
-    if (e.target === marker || (card && card.contains(e.target))) {
+    if (e.target === marker || (card && card.contains(/** @type {Node} */ (e.target)))) {
       if (e.code === 'Escape') {
         // Guarded, not unconditional: Escape on a focused marker with the card already closed is a common reflex,
         // and logging a dismissal for it would pad the event with no-ops. Focus still returns to the marker.

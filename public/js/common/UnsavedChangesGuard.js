@@ -79,7 +79,7 @@ class UnsavedChangesGuard {
    */
   #navigationTarget(e) {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return null;
-    const link = e.target?.closest?.('a[href]');
+    const link = /** @type {HTMLAnchorElement} */ (/** @type {Element} */ (e.target)?.closest?.('a[href]'));
     if (!link || link.hasAttribute('download')) return null;
     if (link.target && link.target !== '_self') return null;
     let url;

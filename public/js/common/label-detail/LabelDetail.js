@@ -18,8 +18,8 @@ class LabelDetail {
    * @param {?number} labelId - The open label's ID, or null to clear the param.
    */
   static syncUrlLabelId(labelId) {
-    const url = new URL(window.location);
-    if (labelId) url.searchParams.set('labelId', labelId);
+    const url = new URL(window.location.href);
+    if (labelId) url.searchParams.set('labelId', String(labelId));
     else url.searchParams.delete('labelId');
     util.url.replaceQuery(url);
   }
@@ -48,7 +48,7 @@ class LabelDetail {
    * @param {?{panoId: ?string, position: ?{lat: number, lng: number},
    *     pov: ?{heading: number, pitch: number, zoom: number}}} viewer - What the viewer showing this label reports,
    *     or null when none is (the static-crop fallback). Its own fields may still be null before imagery resolves.
-   * @param {object} meta - The current label's metadata payload.
+   * @param {Record<string, any>} meta - The current label's metadata payload.
    * @returns {{panoId: ?string, lat: ?number, lng: ?number, heading: ?number, pitch: ?number, zoom: ?number}}
    */
   static submissionContext(viewer, meta) {
@@ -87,6 +87,7 @@ class LabelDetail {
   // Updated in each showLabel() call so PanoInfoPopover's accessor closures see the current label.
   #currentLabelMeta = null;
 
+  /** @type {Array<'low_quality'|'incomplete'|'stale'>} */
   #FLAG_NAMES = ['low_quality', 'incomplete', 'stale'];
 
   // Field references — populated in #cacheElements().
@@ -180,7 +181,7 @@ class LabelDetail {
    * Builds a LabelDetail and its pano manager (whose viewer is created on the first showLabel()).
    *
    * @param {HTMLElement} root
-   * @param {object} opts - See the constructor.
+   * @param {ConstructorParameters<typeof LabelDetail>[1]} opts - See the constructor.
    * @returns {Promise<LabelDetail>} Resolves once the view is wired and ready for showLabel().
    */
   static async create(root, opts) {
@@ -192,7 +193,7 @@ class LabelDetail {
   /**
    * Scoped querySelector: finds a single element within the host root.
    * @param {string} sel
-   * @returns {?Element}
+   * @returns {?HTMLElement}
    */
   #q(sel) {
     return this.#root.querySelector(sel);
@@ -267,7 +268,7 @@ class LabelDetail {
   #initShareWidget() {
     const trigger = this.#q('.label-detail__share-trigger');
     if (trigger && typeof ShareWidget !== 'undefined') {
-      this.#shareWidget = new ShareWidget(trigger);
+      this.#shareWidget = new ShareWidget(/** @type {HTMLButtonElement} */ (trigger));
     }
   }
 
@@ -703,7 +704,7 @@ class LabelDetail {
 
   /**
    * Populates the view with the label metadata fetched (or passed in directly) by showLabel().
-   * @param {object} meta - The label metadata payload.
+   * @param {Record<string, any>} meta - The label metadata payload.
    */
   #handleData(meta) {
     const els = this.#els;
@@ -828,7 +829,7 @@ class LabelDetail {
         if ([meta.heading, meta.pitch, meta.zoom].every(Number.isFinite)) {
           exploreParams.set('heading', meta.heading);
           exploreParams.set('pitch', meta.pitch);
-          exploreParams.set('zoom', Math.round(meta.zoom));
+          exploreParams.set('zoom', String(Math.round(meta.zoom)));
         }
         // A known-expired pano is skipped up front; the coordinates above are the seed instead.
         if (meta.pano_id && !meta.expired) exploreParams.set('panoId', meta.pano_id);
@@ -1133,7 +1134,7 @@ class LabelDetail {
   /**
    * Whether a comment entry belongs to the current viewer. Admin payloads carry usernames; non-admin ones carry a
    * `mine` flag instead (no identifiers on public surfaces), so the test differs by surface.
-   * @param {object|string} comment - An entry from #comments.
+   * @param {Record<string, any>|string} comment - An entry from #comments.
    * @returns {boolean}
    */
   #isOwnComment(comment) {
@@ -1730,7 +1731,7 @@ class LabelDetail {
 
   /**
    * External link for viewing the label's pano on its imagery provider's own site, at the label's stored POV.
-   * @param {object} meta - The label metadata payload (pano id + the label's POV).
+   * @param {Record<string, any>} meta - The label metadata payload (pano id + the label's POV).
    * @returns {?{url: string, tooltip: string}} The provider link, or null for providers without a public
    *     viewer (e.g. Infra3d).
    */
@@ -1744,7 +1745,7 @@ class LabelDetail {
 
   /**
    * Highlights one of the three severity faces based on the label's numeric severity.
-   * @param {number} [severity] - The label's 1–3 severity, or null for unrated.
+   * @param {?number} severity - The label's 1–3 severity, or null for unrated.
    * @param {string} labelType - The label type (drives positive/negative icon set).
    */
   #renderSeverity(severity, labelType) {
@@ -1975,7 +1976,7 @@ class LabelDetail {
    * would draw reaches a card showing some other label; see the guard in `render`.
    *
    * @param {{severity?: ?number, tags?: string[]}} change
-   * @param {object} meta - The metadata of the label the change was made on.
+   * @param {Record<string, any>} meta - The metadata of the label the change was made on.
    */
   async #saveEdit(change, meta) {
     if (!meta || !meta.can_edit) return;
@@ -2076,7 +2077,7 @@ class LabelDetail {
    * The vote is the commenter's *current* one — the server joins it per (label_id, user_id) rather than storing it
    * with the comment — so a comment from someone whose vote was since cleared gets no chip (#5015).
    *
-   * @param {object|string} c - An entry from #comments. Bare strings and entries with no vote yield null.
+   * @param {Record<string, any>|string} c - An entry from #comments. Bare strings and entries with no vote yield null.
    * @returns {?HTMLSpanElement} The chip, or null when there is no vote to show.
    */
   static voteChipFor(c) {

@@ -223,7 +223,7 @@ class MapSidebarFilter {
 
   /**
    * Pushes a sidebar change onto the map: mirror the state into mapData, reapply the layer filters, refresh counts.
-   * @param {object} change - The change descriptor from FilterSidebar.
+   * @param {FilterSidebarChange} change - The change descriptor from FilterSidebar.
    */
   #onFilterChange(change) {
     this.#log(change);
@@ -420,7 +420,7 @@ class MapSidebarFilter {
 
   /**
    * Translates a sidebar change into this page's `Click_module=MapSidebar_*` activity string.
-   * @param {object} change - The change descriptor from FilterSidebar.
+   * @param {FilterSidebarChange} change - The change descriptor from FilterSidebar.
    */
   #log({ kind, section, value, checked, labelType, tag }) {
     const applied = checked ? 'Apply' : 'Unapply';
@@ -438,7 +438,7 @@ class MapSidebarFilter {
     } else if (section === 'label-validations') {
       this.#logActivity(`Click_module=MapSidebar_ValidationOption${applied}_option=${value}`);
     } else if (section === 'streets') {
-      this.#logActivity(`Click_module=MapSidebar_Street${applied}_street=${value.replace('-street', '')}`);
+      this.#logActivity(`Click_module=MapSidebar_Street${applied}_street=${String(value).replace('-street', '')}`);
     } else if (section === 'admin-validation') {
       this.#logActivity(`Click_module=MapSidebar_NotAdminValidated_checked=${checked}`);
     }

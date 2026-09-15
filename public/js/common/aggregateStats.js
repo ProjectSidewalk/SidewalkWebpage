@@ -96,7 +96,7 @@ async function fetchAggregateStats() {
       throw new Error(`Missing or invalid fields in API response: ${missingFields.join(', ')}`);
     }
 
-    return response;
+    return /** @type {AggregatedStats} */ (response);
   } catch (error) {
     console.error('Failed to fetch aggregate statistics:', error);
     throw new Error(`Unable to fetch aggregate statistics: ${error.message}`, { cause: error });

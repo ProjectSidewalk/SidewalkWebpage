@@ -49,7 +49,9 @@ class Main {
 
     // Initialize functional components of UI elements.
     sg.cardFilter = new GalleryFilter(
-      document.getElementById('card-filter'), document.getElementById('clear-filters'), params.initialFilters,
+      document.getElementById('card-filter'),
+      /** @type {HTMLButtonElement} */ (document.getElementById('clear-filters')),
+      params.initialFilters,
     );
     sg.cardContainer = await CardContainer.create(
       sg.ui.cardContainer, params.initialFilters, params.viewerType, params.viewerAccessToken, params.currUsername,

@@ -8,7 +8,7 @@ class MinimapLegend {
   #expanded = false;
 
   /**
-   * @param {object} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
+   * @param {Record<string, JQuery>} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
    * @param {Tracker} tracker - Interaction logger.
    */
   constructor(uiMinimap, tracker) {

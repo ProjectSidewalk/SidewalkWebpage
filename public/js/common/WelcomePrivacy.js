@@ -6,17 +6,19 @@
  * order, and a failed save puts the box back rather than leaving a setting on screen that wasn't written.
  */
 class WelcomePrivacy {
-  /** @param {object} opts - Configuration; `saveUrl` is the Settings save endpoint. */
+  /** @param {{saveUrl: string}} opts - Configuration; `saveUrl` is the Settings save endpoint. */
   constructor(opts) {
     this.saveUrl = opts.saveUrl;
-    this.leaderboard = document.getElementById('wl-on-leaderboard');
-    this.profile = document.getElementById('wl-public-profile');
+    this.leaderboard = /** @type {HTMLInputElement} */ (document.getElementById('wl-on-leaderboard'));
+    this.profile = /** @type {HTMLInputElement} */ (document.getElementById('wl-public-profile'));
     this.status = document.getElementById('wl-privacy-status');
     if (!this.leaderboard || !this.profile) return;
 
     // Rendered disabled so that without JS they are visibly inert rather than silently dropping a privacy choice.
     this.#setEnabled(true);
-    [[this.leaderboard, 'Leaderboard'], [this.profile, 'PublicProfile']].forEach(([box, name]) => {
+    /** @type {Array<[HTMLInputElement, string]>} */
+    const boxes = [[this.leaderboard, 'Leaderboard'], [this.profile, 'PublicProfile']];
+    boxes.forEach(([box, name]) => {
       box.addEventListener('change', () => {
         window.logWebpageActivity?.(`Click_module=WelcomePrivacy_setting=${name}_value=${box.checked}`);
         this.#save(box);

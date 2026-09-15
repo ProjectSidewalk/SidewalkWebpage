@@ -34,19 +34,19 @@ class Onboarding {
   #floatingCleanup = null;
 
   /**
-   * @param {object} svl
+   * @param {Record<string, any>} svl
    * @param {Compass} compass
    * @param {HandAnimation} handAnimation
    * @param {NavigationService} navigationService
    * @param {MissionContainer} missionContainer
    * @param {PanoOverlayControls} panoOverlayControls
-   * @param {OnboardingStates} onboardingStates
+   * @param {{get: () => Array<Record<string, any>>}} onboardingStates - Built by `new OnboardingStates()`.
    * @param {RibbonMenu} ribbon
    * @param {Tracker} tracker
    * @param {Canvas} canvas
-   * @param {object} uiCanvas
+   * @param {Record<string, JQuery>} uiCanvas
    * @param {ContextMenu} contextMenu
-   * @param {object} uiOnboarding
+   * @param {Record<string, JQuery>} uiOnboarding
    * @param {ZoomControl} zoomControl
    */
   constructor(svl, compass, handAnimation, navigationService, missionContainer, panoOverlayControls, onboardingStates,
@@ -148,7 +148,8 @@ class Onboarding {
     // map.setOptions({styles: [{ featureType: 'all', stylers: [{ visibility: 'off' }] }]});
     setTimeout(() => {
       // TODO extra hacky to set a timeout because the div wasn't ready even though map theoretically loaded.
-      const mapToHide = document.querySelector('#minimap')?.firstChild?.children[2]?.firstChild?.firstChild;
+      const mapDiv = /** @type {Element} */ (document.querySelector('#minimap')?.firstChild);
+      const mapToHide = /** @type {HTMLElement} */ (mapDiv?.children[2]?.firstChild?.firstChild);
       mapToHide.style.display = 'none';
     }, 1000);
   }
@@ -241,7 +242,7 @@ class Onboarding {
    * @param {number} y - Top-left y coordinate
    * @param {number} width - Pixel width
    * @param {number} height - Pixel height
-   * @param {object} parameters - Parameters
+   * @param {Record<string, any>} parameters - Parameters
    */
   #drawBox(x, y, width, height, parameters) {
     if (this.#ctx) {
@@ -260,7 +261,7 @@ class Onboarding {
    * @param {number} y1 - Starting y coordinate
    * @param {number} x2 - Ending x coordinate
    * @param {number} y2 - Ending y coordinate
-   * @param {object} parameters - Parameters
+   * @param {Record<string, any>} parameters - Parameters
    * @returns {Onboarding}
    */
   #drawArrow(x1, y1, x2, y2, parameters) {
@@ -675,7 +676,7 @@ class Onboarding {
 
   /**
    * Show a message box.
-   * @param {object} parameters
+   * @param {Record<string, any>} parameters
    */
   #showMessage(parameters) {
     const message = parameters.message;
@@ -806,7 +807,7 @@ class Onboarding {
 
   /**
    * Execute an instruction based on the current state.
-   * @param {object} state
+   * @param {Record<string, any>} state
    */
   #visit(state) {
     const svl = this.#svl;
@@ -923,7 +924,7 @@ class Onboarding {
    * The welcome/skip UI lives in the pre-tutorial intro (TutorialIntro), whose "Start Mission" button leads here, so
    * this state is non-interactive: it just sets the POV and moves on.
    *
-   * @param {object} state - The 'initialize' state from OnboardingStates.js.
+   * @param {Record<string, any>} state - The 'initialize' state from OnboardingStates.js.
    * @param {google.maps.MapsEventListener} [listener] - A Google Maps event listener to remove before advancing.
    */
   #visitIntroduction(state, listener) {
@@ -940,7 +941,7 @@ class Onboarding {
 
   /**
    * Called when the user is told to click on the compass or nav arrows to move to the next image.
-   * @param {object} state - The current state defined in OnboardingStates.js
+   * @param {Record<string, any>} state - The current state defined in OnboardingStates.js
    * @param {google.maps.MapsEventListener} [listener] - An optional listener on a Google Maps event, to be removed
    *     before moving to the next state
    */
@@ -1097,7 +1098,7 @@ class Onboarding {
   /**
    * Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
    * Move on to the next state if they click the button.
-   * @param {object} state
+   * @param {Record<string, any>} state
    * @param {google.maps.MapsEventListener} [listener]
    */
   #visitSelectLabelTypeState(state, listener) {
@@ -1128,7 +1129,7 @@ class Onboarding {
 
   /**
    * Tell the user to zoom in/out.
-   * @param {object} state
+   * @param {Record<string, any>} state
    * @param {google.maps.MapsEventListener} [listener]
    */
   #visitZoomState(state, listener) {
@@ -1176,7 +1177,7 @@ class Onboarding {
 
   /**
    * Tell the user to label the multiple possible target attributes.
-   * @param {object} state
+   * @param {Record<string, any>} state
    * @param {google.maps.MapsEventListener} [listener]
    */
   #visitLabelAccessibilityAttributeState(state, listener) {
@@ -1222,7 +1223,7 @@ class Onboarding {
   /**
    * Tell the user to delete the label they placed that is far away from where they were supposed to place it.
    *
-   * @param {object} state
+   * @param {Record<string, any>} state
    * @param {google.maps.MapsEventListener} [listener]
    */
   #visitDeleteAccessibilityAttributeState(state, listener) {

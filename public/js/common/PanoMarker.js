@@ -31,7 +31,7 @@ class PanoMarker {
    *
    * @param {object} opts - A set of parameters to customize the marker.
    * @param {PanoViewer} opts.panoViewer - Panorama viewer on which to display marker.
-   * @param {HTMLDivElement} opts.markerContainer - The container holding the markers.
+   * @param {HTMLElement} opts.markerContainer - The container holding the markers.
    * @param {string} [opts.className] - The class name which will be assigned to the created div node.
    * @param {string} [opts.icon] - URL to an image file that shall be used.
    * @param {string} [opts.id] - A unique identifier that will be assigned to the created div-node.
@@ -45,7 +45,7 @@ class PanoMarker {
     if (!opts.panoViewer) throw new Error('A panorama viewer needs to be defined.');
     if (!opts.markerContainer) throw new Error('A panorama markerContainer needs to be defined.');
 
-    /** @type {HTMLDivElement} */
+    /** @type {HTMLElement} */
     this.markerContainer_ = opts.markerContainer;
 
     /** @type {PanoViewer} */
@@ -246,7 +246,8 @@ class PanoMarker {
           // (which must stay closed) or Shift+Tab walking back out (whose focusout just scheduled a hide that
           // this cancel undoes).
           const card = document.getElementById('label-card');
-          if (card && card.contains(e.relatedTarget)) svv.labelVisibilityControl.cancelScheduledCardHide();
+          const cameFrom = /** @type {Node} */ (e.relatedTarget);
+          if (card && card.contains(cameFrom)) svv.labelVisibilityControl.cancelScheduledCardHide();
           else svv.labelVisibilityControl.showLabelCard({ viaKeyboard: true });
         });
         marker.addEventListener('blur', () => svv.labelVisibilityControl.scheduleHideLabelCard());
