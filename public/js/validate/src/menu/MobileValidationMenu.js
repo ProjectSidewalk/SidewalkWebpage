@@ -263,7 +263,7 @@ class MobileValidationMenu {
 
   /**
    * Adds a jquery tooltip to the given element with the given text and image (if given).
-   * @param {jQuery} $elem - Element to add the tooltip to, as jquery wrapped object.
+   * @param {JQuery} $elem - Element to add the tooltip to, as jquery wrapped object.
    * @param {string} tooltipText - Text to display in the tooltip.
    * @param {string} [img] - Optional image to display in the tooltip.
    */

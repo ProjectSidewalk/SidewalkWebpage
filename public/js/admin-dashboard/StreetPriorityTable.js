@@ -25,10 +25,10 @@ class StreetPriorityTable {
 
   /**
    * @param {string} tableId - ID of the <table> element.
-   * @param {{columns: Array<{key: string, label: string, numeric?: boolean, format?: function(object): string,
-   *          sortValue?: function(object): (number|string)}>, rowKey: string, searchId?: string,
-   *          searchFields?: string[], sortKey?: string, sortDir?: number, onRowClick?: function(number): void,
-   *          onRowHover?: function(number): void, onRowHoverEnd?: function(): void}} opts - Column definitions, the
+   * @param {{columns: Array<{key: string, label: string, numeric?: boolean, format?: (row: object) => string,
+   *          sortValue?: (row: object) => (number|string)}>, rowKey: string, searchId?: string,
+   *          searchFields?: string[], sortKey?: string, sortDir?: number, onRowClick?: (id: number) => void,
+   *          onRowHover?: (id: number) => void, onRowHoverEnd?: () => void}} opts - Column definitions, the
    *   row property used as the brushing id, and the optional search input + interaction hooks.
    */
   constructor(tableId, opts) {

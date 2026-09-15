@@ -26,13 +26,13 @@ function centerShowingLabelAt(coords, dx, dy, zoom) {
  *
  * @param {object} host - Page adapter.
  * @param {HTMLDialogElement} host.dialog - The label popup's <dialog>.
- * @param {function(): ?object} host.getMap - Returns the Mapbox map once created (null/undefined before).
- * @param {function(): ?object} host.getMapData - Returns the map layer tracker from addLabelsToMap, used for the
+ * @param {() => ?object} host.getMap - Returns the Mapbox map once created (null/undefined before).
+ * @param {() => ?object} host.getMapData - Returns the map layer tracker from addLabelsToMap, used for the
  *     filter bypass (null/undefined before the label layers exist).
- * @param {function(number): ?Array<number>} host.getCoords - Best known [lng, lat] for a label ID.
- * @param {function(number): ?string} host.getLabelType - Best known label type for a label ID.
- * @returns {{spotlight: function(number, boolean=): void, pulse: function(number): void,
- *     updateTail: function(): void, spotlightedLabelId: function(): ?number}}
+ * @param {(labelId: number) => ?Array<number>} host.getCoords - Best known [lng, lat] for a label ID.
+ * @param {(labelId: number) => ?string} host.getLabelType - Best known label type for a label ID.
+ * @returns {{spotlight: (labelId: number, jump?: boolean) => void, pulse: (labelId: number) => void,
+ *     updateTail: () => void, spotlightedLabelId: () => ?number}}
  *     `spotlight(labelId, jump)` beacons + positions the camera while the popup shows the label, `pulse(labelId)`
  *     flashes the dot once after the popup closes, `updateTail` repositions the tail (hosts call it on map
  *     'move'), and `spotlightedLabelId()` reports the currently spotlighted label (null when none).

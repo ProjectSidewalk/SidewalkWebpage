@@ -163,7 +163,6 @@ class PanoManager {
   /**
    * Initializes panoViewer on the Explore page, sets it to the starting location, and sets up listeners.
    * @returns {Promise<void>}
-   * @private
    */
   async #init(panoViewerType, viewerAccessToken, params = {}, errorParams) {
     const panoOptions = {
@@ -270,7 +269,6 @@ class PanoManager {
    * Refreshes all views for the new pano and saves historic pano metadata.
    * @param {PanoData} panoData - The PanoData extracted from the PanoViewer when loading the pano
    * @returns {Promise<PanoData>}
-   * @private
    */
   #panoSuccessCallback = (panoData) => {
     const panoId = panoData.getPanoId();
@@ -315,7 +313,6 @@ class PanoManager {
    * @param {Error} error
    * @param {string} panoId
    * @returns {Promise<void>}
-   * @private
    */
   #setPanoFailureCallback = (error, panoId) => {
     svl.tracker.push('PanoId_NotFound', { TargetPanoId: panoId });
@@ -329,7 +326,6 @@ class PanoManager {
    * Google injects the .gm-style-cc links asynchronously after each map/pano renders, so the pano's and minimap's
    * links can become available at different times. The two are handled independently (and guarded separately) so
    * the pano links get processed on the first call even if the minimap hasn't rendered its links yet.
-   * @private
    */
   #makeGsvAttributionClickable = () => {
     this.#makePanoLinksClickable();
@@ -343,7 +339,6 @@ class PanoManager {
 
   /**
    * Moves the GSV pano's bottom links to the top layer so they are clickable.
-   * @private
    */
   #makePanoLinksClickable = () => {
     const panoLinks = $('.gm-style-cc', this.panoCanvas);
@@ -366,11 +361,12 @@ class PanoManager {
    * Mapillary renders these inside the pano canvas itself, where the click-handling view-control-layer covers
    * them. We move the container up into that layer instead, the same trick used for the GSV links. Mapillary may
    * re-render its own container back into the pano (e.g. after an image change), so we keep watching for that.
-   * @private
    */
   #makeMapillaryAttributionClickable = () => {
     const tryMove = () => {
-      const attributionContainer = this.panoCanvas.querySelector('.mapillary-attribution-container');
+      const attributionContainer = /** @type {HTMLElement} */ (
+        this.panoCanvas.querySelector('.mapillary-attribution-container')
+      );
       if (attributionContainer) {
         svl.ui.streetview.viewControlLayer.append(attributionContainer);
         this.#liftBottomLeftAboveLinks(attributionContainer);
@@ -389,10 +385,9 @@ class PanoManager {
    * Publishes the links bar's height as the --bottom-left-links-clearance CSS variable, which those overlays add
    * to their bottom offset. Default position is kept for viewers without a bottom-left links bar.
    * @param {HTMLElement} linksBar - The links container now anchored at the bottom-left of the pano.
-   * @private
    */
   #liftBottomLeftAboveLinks = (linksBar) => {
-    const root = document.querySelector('.tool-ui');
+    const root = /** @type {HTMLElement} */ (document.querySelector('.tool-ui'));
     if (!root || !linksBar) return;
 
     const publishClearance = () => {
@@ -409,7 +404,6 @@ class PanoManager {
 
   /**
    * Moves the minimap's links to the top layer so they are clickable, removing the ones that duplicate the GSV links.
-   * @private
    */
   #makeMinimapLinksClickable = () => {
     const minimapLinks = $('.gm-style-cc', '#minimap');
@@ -491,7 +485,6 @@ class PanoManager {
    * from the current position. Null only when there is no route at all: free exploration, the scripted tutorial, no
    * current task, or before the task's geometry is ready. Drives which on-pano arrow is highlighted forward. (#4671)
    * @returns {?number}
-   * @private
    */
   #routeForwardHeading() {
     if (!svl.compass || svl.isExploreAddressMode() || svl.isOnboarding()) return null;
@@ -509,7 +502,6 @@ class PanoManager {
    * @param {Array<{panoId: string, heading: number}>} links - The current pano's linked panos.
    * @param {number} targetHeading - The route's forward heading in degrees.
    * @returns {number}
-   * @private
    */
   #closestForwardLinkIndex(links, targetHeading) {
     const FORWARD_LINK_THRESHOLD = 45;
@@ -528,7 +520,6 @@ class PanoManager {
   /**
    * Create svg navigation arrow, setting its width.
    * @returns {SVGImageElement}
-   * @private
    */
   #createArrow() {
     const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
@@ -547,7 +538,6 @@ class PanoManager {
    * the caller either keeps its pano-id (a highlighted real link) or adds route-forward-arrow (a synthesized
    * moveForward arrow at a dead-end). (#4671)
    * @returns {SVGImageElement}
-   * @private
    */
   #createForwardArrow() {
     const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
@@ -572,7 +562,6 @@ class PanoManager {
 
   /**
    * Updates various views when the POV has changed.
-   * @private
    */
   #handlePovChange = () => {
     const heading = svl.panoViewer.getPov().heading;
@@ -628,7 +617,6 @@ class PanoManager {
    * Prevents users from looking at the sky or straight to the ground. Restrict heading angle if specified in props.
    * @param {{heading: number, pitch: number, zoom: number}} pov - Target pov
    * @returns {{heading: number, pitch: number, zoom: number}} The input pov restricted within min/max pitch/heading
-   * @private
    */
   #restrictViewport(pov) {
     if (pov.pitch > this.properties.maxPitch) {

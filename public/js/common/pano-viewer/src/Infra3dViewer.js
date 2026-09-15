@@ -209,7 +209,6 @@ class Infra3dViewer extends PanoViewer {
    *
    * @param {object} node - Infra3d's internal node object.
    * @returns {Promise<PanoData>}
-   * @private
    */
   #finishRecordingMetadata = async (node) => {
     this.currNode = node;

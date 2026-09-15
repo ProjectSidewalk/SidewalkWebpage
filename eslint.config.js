@@ -168,6 +168,22 @@ module.exports = [
       'jsdoc/require-param-type': 'error',
       'jsdoc/require-returns-type': 'error',
       'jsdoc/require-hyphen-before-param-description': 'error',
+      // Two things this plugin accepts but TypeScript 7 can't read, so they'd break `make lint-js-types` in any folder
+      // it checks. Caught here too because most folders aren't checked by it yet.
+      'jsdoc/no-restricted-syntax': ['error', {
+        contexts: [
+          {
+            comment: 'JsdocBlock:has(JsdocTypeFunction[arrow=false])',
+            context: 'any',
+            message: 'Write a callback type as an arrow signature like `(id: number) => void`, not `function(number)`.',
+          },
+          {
+            comment: 'JsdocBlock:has(JsdocTag[tag="private"])',
+            context: ':matches(MethodDefinition, PropertyDefinition):has(> PrivateIdentifier.key)',
+            message: 'Drop `@private` on a `#private` member; the `#` already makes it private.',
+          },
+        ],
+      }],
       // A second tag written on the same line (`/** @param {X} x - @returns {Y} */`) is read as description text.
       'jsdoc/match-description': ['error', {
         mainDescription: false,

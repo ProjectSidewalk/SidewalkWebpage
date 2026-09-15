@@ -1,4 +1,26 @@
 /**
+ * One badge: a type at one level.
+ * @typedef {object} Badge
+ * @property {string} type - Badge type.
+ * @property {number} level - Badge level (1–5).
+ * @property {string} roman - The level as a Roman numeral.
+ * @property {string} name - The level's translated name.
+ * @property {string} iconSrc - URL of the badge icon.
+ */
+
+/**
+ * Where a value stands on its badge track.
+ * @typedef {object} BadgeProgress
+ * @property {number} level - The earned level, or 0 before the first.
+ * @property {?Badge} badge - The badge in hand; null before the first level.
+ * @property {?Badge} next - The badge being climbed toward; null at the top level.
+ * @property {number} earnedAt - The value that earned `badge` (0 before the first level).
+ * @property {number} nextAt - The value that earns `next` (0 at the top level).
+ * @property {number} fraction - How far across the current tier the value is, from 0 to 1 (1 at the top level).
+ * @property {number} remaining - How much more value earns `next` (0 at the top level).
+ */
+
+/**
  * Single source of truth for Project Sidewalk's achievement badges, shared across the user dashboard, Explore, and
  * Validate. Holds the level thresholds, level names, and badge icon paths, and provides helpers to figure out which
  * badge a value has earned and to detect (and celebrate) a freshly unlocked badge.
@@ -77,7 +99,7 @@ class BadgeAchievements {
    * @param {number} level - Badge level (1–5).
    * @param {object} [opts]
    * @param {boolean} [opts.isMetric] - Whether to use the kilometer distance icon variant.
-   * @returns {?object} { type, level, roman, name, iconSrc } or null for an out-of-range level.
+   * @returns {?Badge} The badge, or null for an out-of-range level.
    */
   static getBadge(type, level, opts = {}) {
     if (level < 1 || level > BadgeAchievements.ROMAN.length) return null;
@@ -104,9 +126,8 @@ class BadgeAchievements {
    * @param {number} value - Value in canonical units (miles for distance).
    * @param {object} [opts]
    * @param {boolean} [opts.isMetric] - Whether to use the kilometer distance icon variant on the returned badges.
-   * @returns {object} `{ level, badge, next, earnedAt, nextAt, fraction, remaining }`. `badge` is null before the
-   *      first level; at the top level `next` is null, `nextAt` and `remaining` are 0, and `fraction` is 1. A type
-   *      with no track reports an empty progress rather than throwing.
+   * @returns {BadgeProgress} The value's progress. A type with no track reports an empty progress rather than
+   *      throwing.
    */
   static getProgress(type, value, opts = {}) {
     const thresholds = BadgeAchievements.THRESHOLDS[type];
@@ -132,7 +153,7 @@ class BadgeAchievements {
    * @param {number} newValue - New value, in the caller's units.
    * @param {object} [opts]
    * @param {boolean} [opts.isMetric] - Whether the values are metric (only affects distance).
-   * @returns {?object} The newly earned badge descriptor (see getBadge), or null if no new level was reached.
+   * @returns {?Badge} The newly earned badge, or null if no new level was reached.
    */
   static detectUnlock(type, oldValue, newValue, opts = {}) {
     const oldLevel = BadgeAchievements.getLevelForValue(
@@ -146,7 +167,7 @@ class BadgeAchievements {
 
   /**
    * Shows the celebratory "you unlocked a badge" toast — the badge-specific specialization of the generic Toast.
-   * @param {object} badge - A badge descriptor from getBadge/detectUnlock.
+   * @param {Badge} badge - A badge from getBadge/detectUnlock.
    * @param {HTMLElement} referenceEl - The element to float the toast over (the panorama or a modal).
    * @returns {Toast}
    */

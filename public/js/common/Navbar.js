@@ -56,7 +56,7 @@ class NavbarController {
   /**
    * Space-freeing steps for the inline bar, ordered lowest priority first. Each takes a boolean and applies or
    * clears its effect; #fitNav applies as few as will make the bar fit.
-   * @type {Array<function(boolean): void>}
+   * @type {Array<(apply: boolean) => void>}
    */
   #shedSteps = [];
 

@@ -15,17 +15,18 @@
  * @param {string} [opts.syncUrlSource] - When set, the open label is mirrored into the page URL as ?labelId=<id>
  *     (cleared on close) so the view is shareable and survives a refresh; a labelId already in the URL is opened
  *     after init, using this string as the validation source (e.g. 'LabelMap').
- * @param {function(number): void} [opts.onShow] - Called with the label's ID every time one is shown (map click,
+ * @param {(labelId: number) => void} [opts.onShow] - Called with the label's ID every time one is shown (map click,
  *     deep link, prev/next arrows); LabelMap uses it to keep the shown label spotlighted on the map.
- * @param {function(number, object): void} [opts.onMetadata] - Called with the label's ID and its fetched metadata
- *     payload once the shown label's data has loaded (skipped if another label was opened in the meantime);
+ * @param {(labelId: number, metadata: object) => void} [opts.onMetadata] - Called with the label's ID and its fetched
+ *     metadata payload once the shown label's data has loaded (skipped if another label was opened in the meantime);
  *     LabelMap uses the payload's camera coords to position the map for labels its own layer data can't locate.
- * @param {function(number): void} [opts.onClose] - Called with the last-shown label's ID whenever the dialog
+ * @param {(labelId: number) => void} [opts.onClose] - Called with the last-shown label's ID whenever the dialog
  *     closes (X, ESC, or backdrop); LabelMap uses it to pulse that label's spot on the map.
  * @param {boolean} [opts.showLabelMapLink] - Show the popup's "View on Label Map" footer link (for hosts that
  *     aren't the label map themselves — e.g. the user dashboard).
- * @param {function(?string, object): void} [opts.onVote] - Called with the vote cast (or null for a cleared one) and
- *   the label's metadata after a validation lands, so a host that also shows the label elsewhere can refresh it.
+ * @param {(vote: ?string, metadata: object) => void} [opts.onVote] - Called with the vote cast (or null for a cleared
+ *   one) and the label's metadata after a validation lands, so a host that also shows the label elsewhere can refresh
+ *   it.
  * @param {boolean} [opts.showExploreHereLink] - Show the popup's "Explore here" footer link, which opens Explore at
  *     the shown label's pano and point of view (#4637).
  * @returns {Promise<object>} Resolves once the dialog is wired; the pano viewer itself is built on the first
