@@ -178,7 +178,10 @@
       "legend-other-links": "Andere Richtungen",
       "legend-faced": "Gefüllt: wohin Vorwärts führt",
       "link-crumb-title": "Zu diesem Panorama gehen",
-      "legend-next-step": "Hellblau: nächster Schritt (Leertaste)"
+      "legend-next-step": "Hellblau: nächster Schritt (Leertaste)",
+      "route-stop-title": "Haltepunkt {{rank}} auf deiner Route",
+      "breadcrumb-title": "Besucht: klicken, um hierher zurückzukehren",
+      "label-marker-title": "{{labelType}}-Markierung: klicken zum Überprüfen"
     },
     "stats": {
       "leaderboard-cta": "Bestenliste der Gemeinschaft ansehen"

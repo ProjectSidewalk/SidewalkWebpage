@@ -178,7 +178,10 @@
       "legend-other-links": "Autres directions",
       "legend-faced": "Rempli : où mène avancer",
       "link-crumb-title": "Aller à ce panorama",
-      "legend-next-step": "Bleu clair : prochaine étape (barre d’espace)"
+      "legend-next-step": "Bleu clair : prochaine étape (barre d’espace)",
+      "route-stop-title": "Arrêt {{rank}} sur votre itinéraire",
+      "breadcrumb-title": "Visité : cliquez pour y revenir",
+      "label-marker-title": "Étiquette {{labelType}} : cliquez pour la revoir"
     },
     "stats": {
       "leaderboard-cta": "Voir le classement de la communauté"

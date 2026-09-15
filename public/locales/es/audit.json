@@ -178,7 +178,10 @@
       "legend-other-links": "Otras direcciones",
       "legend-faced": "Relleno: adonde te lleva avanzar",
       "link-crumb-title": "Ir a esta panorámica",
-      "legend-next-step": "Azul claro: siguiente paso (barra espaciadora)"
+      "legend-next-step": "Azul claro: siguiente paso (barra espaciadora)",
+      "route-stop-title": "Parada {{rank}} de tu ruta",
+      "breadcrumb-title": "Visitado: clic para volver aquí",
+      "label-marker-title": "Etiqueta {{labelType}}: clic para revisarla"
     },
     "stats": {
       "leaderboard-cta": "Ver la clasificación de la comunidad"

@@ -437,8 +437,8 @@
   background: color-mix(in srgb, var(--color-neutral-white) 85%, transparent);
 }
 
-/* Only the nearest route stop is full size; the rest of the route is small so the next step stands out. Beyond the
-   next few, stops are also not steppable (#2561): quieter and click-through. */
+/* Route stops are small; only the spacebar's next step (below) is full size, so it stands out. Beyond the next few,
+   stops are also not steppable (#2561): quieter and click-through. */
 .minimap-crumb-small::before,
 .minimap-crumb-far::before {
   width: calc(6px * var(--ui-scale, 1));
@@ -470,6 +470,9 @@
 /* The spacebar's next step along the route: tinted the route line's blue whichever way the user looks, so the route's
    next crumb reads at a glance. The faced fill below still wins when the user turns to it. */
 .minimap-crumb-next::before {
+  width: calc(9px * var(--ui-scale, 1));
+  height: calc(9px * var(--ui-scale, 1));
+  border-width: calc(1.8px * var(--ui-scale, 1));
   background: color-mix(in srgb, var(--color-link-100) 55%, var(--color-neutral-white));
 }
 

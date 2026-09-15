@@ -507,17 +507,23 @@ class ForwardCrumbs {
    */
   #createMarker(crumb) {
     const content = document.createElement('div');
-    // Only the nearest route stop is full size; the rest of the route stays small so the next step stands out.
+    // Route stops are small; the spacebar's next step (.minimap-crumb-next, set per refresh) is the one full-size
+    // crumb on the route, so the next step stands out whether it is a sampled stop or an arrow's destination.
     content.className = [
       'minimap-crumb',
       `minimap-crumb-${crumb.kind}`,
       crumb.clickable ? '' : 'minimap-crumb-far',
-      crumb.kind === 'route' && crumb.rank > 1 ? 'minimap-crumb-small' : '',
+      crumb.kind === 'route' ? 'minimap-crumb-small' : '',
       crumb.visited ? 'minimap-crumb-visited' : '',
     ].join(' ').trim();
-    const title = crumb.kind === 'route'
-      ? i18next.t('audit:right-ui.minimap.forward-crumb-title', { rank: crumb.rank })
-      : i18next.t('audit:right-ui.minimap.link-crumb-title');
+    let title;
+    if (crumb.kind === 'link') {
+      title = i18next.t('audit:right-ui.minimap.link-crumb-title');
+    } else if (crumb.clickable) {
+      title = i18next.t('audit:right-ui.minimap.forward-crumb-title', { rank: crumb.rank });
+    } else {
+      title = i18next.t('audit:right-ui.minimap.route-stop-title', { rank: crumb.rank });
+    }
     const marker = new google.maps.marker.AdvancedMarkerElement({
       position: new google.maps.LatLng(crumb.lat, crumb.lng),
       map: svl.minimap.getMap(),
@@ -525,7 +531,7 @@ class ForwardCrumbs {
       gmpClickable: crumb.clickable,
       // Above the visited breadcrumbs and label icons, well below the peg (1000), which is click-through anyway.
       zIndex: crumb.clickable ? (crumb.kind === 'route' ? 30 : 25) : 20,
-      title: crumb.clickable ? title : undefined,
+      title, // Hover tooltip and accessible name: every mark on the minimap says what it is.
     });
     if (crumb.clickable) marker.addListener('gmp-click', () => this.#moveTo(crumb));
     return marker;

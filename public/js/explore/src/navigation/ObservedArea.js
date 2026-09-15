@@ -276,6 +276,7 @@ class ObservedArea {
       map: svl.minimap.getMap(),
       content,
       gmpClickable: true,
+      title: i18next.t('audit:right-ui.minimap.breadcrumb-title'), // Hover tooltip and accessible name.
     });
     marker.addListener('gmp-click', () => {
       svl.tracker.push('Click_MinimapBreadcrumb', { panoId: area.panoId });

@@ -178,7 +178,10 @@
       "legend-other-links": "Other directions",
       "legend-faced": "Filled: where forward takes you",
       "link-crumb-title": "Move to this pano",
-      "legend-next-step": "Light blue: next step (spacebar)"
+      "legend-next-step": "Light blue: next step (spacebar)",
+      "route-stop-title": "Stop {{rank}} on your route",
+      "breadcrumb-title": "Visited: click to go back here",
+      "label-marker-title": "{{labelType}} label: click to review it"
     },
     "stats": {
       "leaderboard-cta": "See the community leaderboard"
