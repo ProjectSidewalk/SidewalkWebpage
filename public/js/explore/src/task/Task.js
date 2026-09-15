@@ -323,8 +323,8 @@ class Task {
    *
    * Two ways to qualify. Within `threshold` of the endpoint, where the threshold is capped at a fraction of the
    * street's length: a distance that reads as "basically at the end" of a full block is most of a short one, and
-   * every caller inherits that, so the cap lives here rather than at each call site (#4640). Or past it: the
-   * position projects onto the street within that capped distance of the endpoint, and is within the uncapped
+   * every caller inherits that, so the cap lives here rather than at each call site (#4640). Or past or beside it:
+   * the position projects onto the street within that capped distance of the endpoint, and is within the uncapped
    * `threshold` of it. Imagery is under no obligation to put a pano near a street's endpoint — Mapillary spacing
    * is 10–15 m, and a divided road chops residential streets into stubs shorter than that — so on the capped test
    * alone a short street can be unfinishable from every pano that exists, and the labeler cycles the panos around

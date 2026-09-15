@@ -538,7 +538,8 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
             await nav.moveForward();
 
-            expect(walkedOut.isAtEnd).toHaveBeenCalledWith(svl.panoViewer.getPosition(), expect.any(Number));
+            expect(walkedOut.isAtEnd).toHaveBeenCalledWith(svl.panoViewer.getPosition(), 50);
+            expect(walkedOut.isAtEnd).toHaveBeenCalledWith({ lat: endOfStreet.lat, lng: endOfStreet.lng }, 50);
             expect(svl.taskContainer.endTask).toHaveBeenCalledWith(walkedOut);
             expect(reportNoImagery).not.toHaveBeenCalled();
         });

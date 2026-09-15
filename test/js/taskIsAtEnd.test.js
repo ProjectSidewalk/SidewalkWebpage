@@ -68,8 +68,10 @@ describe('Task.isAtEnd', () => {
         // is 10–18 m from the endpoint, so the capped threshold (0.4 × 8.6 = 3.45 m) alone can never be met.
         const STUB = [[-77.44193956, 37.54563697], [-77.4419307, 37.5456463], [-77.4418807, 37.545699]];
         const START_PANO = { lat: 37.545636, lng: -77.441974 }; // 632328559817823: 10.8 m from the endpoint.
-        const PAST_THE_END = { lat: 37.545798, lng: -77.441992 }; // 923613006534057: 14.7 m from it, projecting past it.
-        const BOUNCED_TO = [ // Where the sweep took the labeler next, each a fresh pano near the start or off to the side.
+        // 923613006534057: 14.7 m from the endpoint, projecting onto it.
+        const PAST_THE_END = { lat: 37.545798, lng: -77.441992 };
+        // Where the sweep took the labeler next: each a fresh pano near the start or off to the side.
+        const BOUNCED_TO = [
             { lat: 37.545605, lng: -77.441933 }, // 1811945129546329
             { lat: 37.54567, lng: -77.44204 }, // 586029333899979
             { lat: 37.545614, lng: -77.441957 }, // 481526768215200
@@ -87,9 +89,11 @@ describe('Task.isAtEnd', () => {
             expect(makeTask(STUB).isAtEnd(PAST_THE_END, END_OF_STREET_M)).toBe(true);
         });
 
-        it.each(BOUNCED_TO.map((pano, i) => [i + 2, pano]))('is not the end at hop %i, which landed back near the start', (_hop, pano) => {
-            expect(makeTask(STUB).isAtEnd(pano, END_OF_STREET_M)).toBe(false);
-        });
+        it.each(BOUNCED_TO.map((pano, i) => [i + 2, pano]))(
+            'is not the end at hop %i, which landed back near the start', (_hop, pano) => {
+                expect(makeTask(STUB).isAtEnd(pano, END_OF_STREET_M)).toBe(false);
+            },
+        );
 
         it('counts a pano beside the endpoint on the other carriageway of a divided road', () => {
             // The stub exists because a divided road split the street; imagery on the far carriageway sits well off
@@ -101,17 +105,26 @@ describe('Task.isAtEnd', () => {
     describe('on a 30 m final route street (#4640)', () => {
         const STREET = straightStreet([-122.335, 47.61], 30);
 
-        it('is not the end 5 m in, though that is within the uncapped 25 m of the endpoint', () => {
-            // The #4640 shape: 25 m from the endpoint is most of this street, and the pano before the last one.
-            expect(makeTask(STREET).isAtEnd(positionOn(STREET, 5), END_OF_STREET_M)).toBe(false);
+        it('is not the end 8 m in, though that is within the uncapped 25 m of the endpoint', () => {
+            // The #4640 shape: 22 m from the endpoint is most of this street, and the pano before the last one. Only
+            // the projection clause rejects it — 8 m along is nowhere near the last 12 m.
+            expect(makeTask(STREET).isAtEnd(positionOn(STREET, 8), END_OF_STREET_M)).toBe(false);
+        });
+
+        it('is not the end 20 m beside the 12 m mark, though that too is within 25 m of the endpoint', () => {
+            expect(makeTask(STREET).isAtEnd(positionOn(STREET, 12, 20), END_OF_STREET_M)).toBe(false);
         });
 
         it('is the end 20 m in, within the capped distance', () => {
             expect(makeTask(STREET).isAtEnd(positionOn(STREET, 20), END_OF_STREET_M)).toBe(true);
         });
 
-        it('is the end 10 m past the endpoint', () => {
+        it('is the end 10 m past the endpoint, inside the capped distance', () => {
             expect(makeTask(STREET).isAtEnd(positionOn(STREET, 40), END_OF_STREET_M)).toBe(true);
+        });
+
+        it('is the end 20 m past the endpoint, outside the capped distance but projecting onto it', () => {
+            expect(makeTask(STREET).isAtEnd(positionOn(STREET, 50), END_OF_STREET_M)).toBe(true);
         });
 
         it('is not the end 40 m past it: that is the next street, not this one', () => {
@@ -139,6 +152,10 @@ describe('Task.isAtEnd', () => {
         it('caps the more generous imagery-ran-out threshold at 40 m of the street', () => {
             expect(makeTask(STREET).isAtEnd(positionOn(STREET, 65), NEAR_END_NO_IMAGERY_M)).toBe(true);
             expect(makeTask(STREET).isAtEnd(positionOn(STREET, 55), NEAR_END_NO_IMAGERY_M)).toBe(false);
+        });
+
+        it('is the end 45 m past the endpoint at the imagery-ran-out threshold: past the cap, inside the bound', () => {
+            expect(makeTask(STREET).isAtEnd(positionOn(STREET, 145), NEAR_END_NO_IMAGERY_M)).toBe(true);
         });
     });
 });
