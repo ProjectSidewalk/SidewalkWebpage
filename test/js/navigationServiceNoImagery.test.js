@@ -525,6 +525,25 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.taskContainer.endTask).toHaveBeenCalled();
         });
 
+        it('credits the street on where the labeler got to, not on where the sweep last put them', async () => {
+            // The sweep's exclusions can land a move back near the start of a street already walked to its end —
+            // on an 8.6 m stub every unvisited pano within reach is as likely behind the endpoint as past it (#5350).
+            // The exhaustion that follows is then evidence of a street walked out, not of one without imagery.
+            const walkedOut = makeTask(101);
+            const endOfStreet = walkedOut.getEndCoordinate();
+            walkedOut.getFurthestPointReached = () => pointFeature([endOfStreet.lng, endOfStreet.lat]);
+            walkedOut.isAtEnd = jest.fn((latLng) => latLng.lng === endOfStreet.lng);
+            assignStreets(walkedOut, makeTask(102));
+            respondToSearch = emptyGround;
+
+            await nav.moveForward();
+
+            expect(walkedOut.isAtEnd).toHaveBeenCalledWith(svl.panoViewer.getPosition(), 50);
+            expect(walkedOut.isAtEnd).toHaveBeenCalledWith({ lat: endOfStreet.lat, lng: endOfStreet.lng }, 50);
+            expect(svl.taskContainer.endTask).toHaveBeenCalledWith(walkedOut);
+            expect(reportNoImagery).not.toHaveBeenCalled();
+        });
+
         it('still ends it when the provider stopped answering, since walking it is what earned the credit', async () => {
             // Finishing here rests on where the labeler actually got to, not on anything the provider said. Gating it
             // on a clean answer would mean a blip at the far end of a street withholds credit for work really done,
