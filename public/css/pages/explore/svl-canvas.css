@@ -92,7 +92,9 @@
   filter: drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black));
 }
 
-#arrow-group image:hover {
+/* .arrow-hover is the same look, applied when the user hovers the arrow's crumb on the minimap instead (#4682). */
+#arrow-group image:hover,
+#arrow-group image.arrow-hover {
   filter:
     drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black))
     sepia(1) saturate(2) hue-rotate(315deg); /* Adds yellow highlight on hover. */
@@ -101,7 +103,8 @@
 /* The highlighted route-forward arrow (#4671) marks the way the route wants the user to go. It inherits the link-arrow
    base style (cursor + dark outline from #arrow-group image) but keeps its navigation-blue fill on hover — just
    brightened — instead of the link arrows' yellow tint, which would fight the blue. */
-#arrow-group image.route-forward-highlight:hover {
+#arrow-group image.route-forward-highlight:hover,
+#arrow-group image.route-forward-highlight.arrow-hover {
   filter:
     drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black))
     brightness(1.15);

@@ -245,6 +245,19 @@ class PanoManager {
       }
     });
 
+    // Hovering an arrow outlines the minimap crumb it leads to, so "this arrow" and "that dot" read as one thing
+    // (#4682). The synthesized route-forward arrow has no pano id; it leads to the route walk's next stop. mouseover
+    // and mouseout bubble, so one delegated pair covers the arrows resetNavArrows recreates on every move.
+    svl.ui.streetview.navArrows.on('mouseover', (event) => {
+      if (!svl.forwardCrumbs) return;
+      const targetPanoId = event.target.getAttribute('pano-id');
+      if (targetPanoId) svl.forwardCrumbs.highlight(targetPanoId);
+      else if (event.target.classList.contains('route-forward-arrow')) svl.forwardCrumbs.highlightNextStop();
+    });
+    svl.ui.streetview.navArrows.on('mouseout', () => {
+      if (svl.forwardCrumbs) svl.forwardCrumbs.clearHighlight();
+    });
+
     const panoViewerLogo = createPanoViewerLogo(this.panoCanvas.parentElement, panoViewerType.SOURCE);
     panoViewerLogo.showPrimaryLogo();
 
@@ -491,6 +504,29 @@ class PanoManager {
       return (svl.compass.getTargetAngle() + 360) % 360;
     } catch {
       return null; // Route geometry not ready yet (e.g. mid-initialization).
+    }
+  }
+
+  /**
+   * Lights up the on-pano arrow that leads to a pano, as hovering the arrow itself would: the other half of the
+   * "this arrow ↔ that crumb" tie (#4682), for when the user hovers the crumb on the minimap. A pano no link leads
+   * to lights the synthesized route-forward arrow when it is the route walk's next stop; otherwise nothing.
+   * @param {string} panoId - The pano the hovered crumb marks.
+   */
+  highlightArrowTo(panoId) {
+    this.clearArrowHighlight();
+    const arrowGroup = svl.ui.streetview.navArrows[0];
+    let arrow = arrowGroup.querySelector(`image[pano-id="${CSS.escape(panoId)}"]`);
+    if (!arrow && svl.forwardCrumbs && svl.forwardCrumbs.isWalkNextStop(panoId)) {
+      arrow = arrowGroup.querySelector('.route-forward-arrow');
+    }
+    if (arrow) arrow.classList.add('arrow-hover');
+  }
+
+  /** Clears any arrow highlight set by {@link highlightArrowTo}. */
+  clearArrowHighlight() {
+    for (const arrow of svl.ui.streetview.navArrows[0].querySelectorAll('.arrow-hover')) {
+      arrow.classList.remove('arrow-hover');
     }
   }
 

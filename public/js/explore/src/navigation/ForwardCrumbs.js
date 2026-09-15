@@ -178,6 +178,20 @@ class ForwardCrumbs {
     this.#highlightedPanoId = panoId;
   }
 
+  /** Outlines the route walk's next stop: where the synthesized route-forward arrow leads (#4682). */
+  highlightNextStop() {
+    if (this.#walkNextPanoId !== null) this.highlight(this.#walkNextPanoId);
+  }
+
+  /**
+   * Whether a pano is the route walk's next stop, the one the synthesized route-forward arrow leads to.
+   * @param {string} panoId
+   * @returns {boolean}
+   */
+  isWalkNextStop(panoId) {
+    return panoId === this.#walkNextPanoId;
+  }
+
   /** Clears any outline set by {@link highlight}. */
   clearHighlight() {
     if (this.#highlightedPanoId === null) return;
@@ -538,7 +552,12 @@ class ForwardCrumbs {
       zIndex: crumb.clickable ? (crumb.kind === 'route' ? 30 : 25) : 20,
       title, // Hover tooltip and accessible name: every mark on the minimap says what it is.
     });
-    if (crumb.clickable) marker.addListener('gmp-click', () => this.#moveTo(crumb));
+    if (crumb.clickable) {
+      marker.addListener('gmp-click', () => this.#moveTo(crumb));
+      // Hovering a crumb lights the on-pano arrow that leads to it, the reverse of hovering the arrow (#4682).
+      content.addEventListener('mouseenter', () => svl.panoManager && svl.panoManager.highlightArrowTo(crumb.panoId));
+      content.addEventListener('mouseleave', () => svl.panoManager && svl.panoManager.clearArrowHighlight());
+    }
     return marker;
   }
 
