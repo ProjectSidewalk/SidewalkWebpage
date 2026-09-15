@@ -319,11 +319,17 @@ class Task {
   }
 
   /**
-   * This method checks if the task is completed by comparing the current position and the ending point.
+   * Whether a position counts as the end of this street.
    *
-   * The caller's threshold is capped at a fraction of this street's length. A distance that reads as "basically
-   * at the end" of a full block is most of a short one, and every caller inherits that — so the cap lives here
-   * rather than being re-derived at each call site.
+   * Two ways to qualify. Within `threshold` of the endpoint, where the threshold is capped at a fraction of the
+   * street's length: a distance that reads as "basically at the end" of a full block is most of a short one, and
+   * every caller inherits that, so the cap lives here rather than at each call site (#4640). Or past it: the
+   * position projects onto the street within that capped distance of the endpoint, and is within the uncapped
+   * `threshold` of it. Imagery is under no obligation to put a pano near a street's endpoint — Mapillary spacing
+   * is 10–15 m, and a divided road chops residential streets into stubs shorter than that — so on the capped test
+   * alone a short street can be unfinishable from every pano that exists, and the labeler cycles the panos around
+   * its endpoint forever (#5350). The uncapped bound is what keeps a pano well down the next street from counting
+   * as the end of this one.
    *
    * @param {{lat: number, lng: number}} latLng - The user's current location
    * @param {number} [threshold=10] - Distance threshold in meters
@@ -332,12 +338,15 @@ class Task {
   isAtEnd(latLng, threshold = 10) {
     if (!this.#geojson) return false;
     const coords = this.#geojson.geometry.coordinates;
-    const end = coords[coords.length - 1];
+    const end = { lat: coords[coords.length - 1][1], lng: coords[coords.length - 1][0] };
     const streetLengthM = this.lineDistance({ units: 'meters' });
     const effectiveThreshold = streetLengthM > 0
       ? Math.min(threshold, streetLengthM * Task.END_PROXIMITY_MAX_FRACTION)
       : threshold;
-    return util.math.haversine(latLng, { lat: end[1], lng: end[0] }) < effectiveThreshold;
+    const distToEnd = util.math.haversine(latLng, end);
+    if (distToEnd < effectiveThreshold) return true;
+    return distToEnd < threshold
+      && this.getDistanceFromStart(latLng, { units: 'meters' }) >= streetLengthM - effectiveThreshold;
   }
 
   /**
