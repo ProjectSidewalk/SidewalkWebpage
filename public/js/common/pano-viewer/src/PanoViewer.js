@@ -249,6 +249,56 @@ class PanoViewer {
   async preloadPanoNear(_latLng, _excludedPanos = new Set()) {}
 
   /**
+   * Finds the pano that setLocation() would move to near a location, without moving. A metadata-only lookup for
+   * callers that want to know where imagery is before the user goes there: Explore's forward crumbs on the minimap
+   * (#4669), which mark the panos ahead on the street being audited even where the provider's link graph dead-ends.
+   *
+   * Runs the same provider search + scoring as setLocation() and honours the same exclusions, so the answer is the
+   * pano a move to `latLng` would land on. Must not change what the viewer shows or any current/previous pano state,
+   * and must not fire pano_changed. Providers that prefetch searches (prefetchLocation) answer from that cache when
+   * one covers the point, so sampling a street that prefetchAlongStreet() already primed costs no network.
+   *
+   * @param {{lat: number, lng: number}} _latLng - The location to look near; the radius is setLocation()'s.
+   * @param {Set<PanoData>} [_excludedPanos] - Panos that don't count (already visited, stuck), as in setLocation().
+   * @returns {Promise<?{panoId: string, lat: number, lng: number}>} The pano's id and camera position, or null when
+   *     the search completed and found nothing usable, the cases setLocation() rejects with NoImageryError. Rejects
+   *     only when the provider couldn't be asked (network, SDK, timeout), so a caller can tell "empty" from
+   *     "unknown" (#4918). The default resolves null: a provider with no location search (Pannellum) simply has no
+   *     crumbs to offer.
+   */
+  findPanoNear(_latLng, _excludedPanos = new Set()) {
+    return Promise.resolve(null);
+  }
+
+  /**
+   * Budget for one findPanoNear() lookup, in ms. Generous, since a slow answer is still an answer; the point is that
+   * a lookup which never settles can't hold up the sampler that issued it alongside dozens of others.
+   * @type {number}
+   */
+  static FIND_PANO_TIMEOUT_MS = 10000;
+
+  /**
+   * Races a provider promise against a timeout so a lookup that never settles can't wedge a sampler. The underlying
+   * request is left running (it may be a shared prefetch promise another caller is waiting on); only this caller
+   * gives up. Underscore-prefixed rather than #private so subclasses can use it.
+   * @template T
+   * @param {Promise<T>} promise - The provider call.
+   * @param {number} ms - How long to wait before giving up.
+   * @param {string} what - Names the operation in the rejection message.
+   * @returns {Promise<T>} Resolves/rejects with the promise, or rejects with a "Timed out" Error after `ms`.
+   * @protected
+   */
+  static _withTimeout(promise, ms, what) {
+    let timer;
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`Timed out: ${what}`)), ms);
+      }),
+    ]).finally(() => clearTimeout(timer));
+  }
+
+  /**
    * Downloads the provider's viewer code ahead of create(), so a viewer built later on a user action doesn't wait on
    * the network. Must not construct a viewer: for providers that bill per viewer instance (GSV), that is the whole
    * point of deferring create() (#5128). No-op by default; override in providers that load code on demand.

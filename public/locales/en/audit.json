@@ -172,7 +172,9 @@
       "legend-ahead": "Route ahead",
       "legend-you": "You + view direction",
       "legend-visited": "Visited location",
-      "legend-unseen": "Not yet viewed"
+      "legend-unseen": "Not yet viewed",
+      "legend-next-stops": "Next stops (click to move)",
+      "forward-crumb-title": "Move ahead to stop {{rank}}"
     },
     "stats": {
       "leaderboard-cta": "See the community leaderboard"

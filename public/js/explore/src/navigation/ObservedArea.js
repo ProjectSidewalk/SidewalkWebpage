@@ -92,6 +92,16 @@ class ObservedArea {
   }
 
   /**
+   * Whether the user has stood at a pano this session. The minimap's forward crumbs skip visited panos, which the
+   * breadcrumb trail already marks (#4669).
+   * @param {string} panoId
+   * @returns {boolean}
+   */
+  hasVisited(panoId) {
+    return this.#observedAreas.some((area) => area.panoId === panoId);
+  }
+
+  /**
    * Forgets everything observed at the current pano, so the fog and progress ring restart from the current POV.
    *
    * A programmatic POV jump (e.g. the tutorial's opening heading) is otherwise credited as user panning: the sweep

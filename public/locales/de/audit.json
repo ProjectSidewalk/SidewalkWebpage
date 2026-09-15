@@ -172,7 +172,9 @@
       "legend-ahead": "Verbleibende Route",
       "legend-you": "Sie + Blickrichtung",
       "legend-visited": "Besuchter Ort",
-      "legend-unseen": "Noch nicht gesehen"
+      "legend-unseen": "Noch nicht gesehen",
+      "legend-next-stops": "Nächste Haltepunkte (klicken zum Bewegen)",
+      "forward-crumb-title": "Zu Haltepunkt {{rank}} gehen"
     },
     "stats": {
       "leaderboard-cta": "Bestenliste der Gemeinschaft ansehen"

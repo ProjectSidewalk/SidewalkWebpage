@@ -59,11 +59,8 @@ class Compass {
    */
   getTargetAngle() {
     const task = this.#taskContainer.getCurrentTask();
-    const geometry = task.getFeature();
     const latlng = svl.panoViewer.getPosition();
-    const startLatLng = turf.point(task.getFurthestPointReached().geometry.coordinates);
-    const streetEnd = turf.point([task.getEndCoordinate().lng, task.getEndCoordinate().lat]);
-    const remainder = turf.cleanCoords(turf.lineSlice(startLatLng, streetEnd, geometry));
+    const remainder = NavigationService.remainderOfStreet(task);
 
     // Get the point representing 15 meters further along the street (or the endpoint if there's fewer than 15m).
     const distIncrement = Math.min(0.015, turf.length(remainder));

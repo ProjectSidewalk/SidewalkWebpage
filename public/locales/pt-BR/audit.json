@@ -172,7 +172,9 @@
       "legend-ahead": "Rota restante",
       "legend-you": "Você + direção da vista",
       "legend-visited": "Local visitado",
-      "legend-unseen": "Ainda não visto"
+      "legend-unseen": "Ainda não visto",
+      "legend-next-stops": "Próximas paradas (clique para avançar)",
+      "forward-crumb-title": "Avançar para a parada {{rank}}"
     },
     "stats": {
       "leaderboard-cta": "Ver a classificação da comunidade"

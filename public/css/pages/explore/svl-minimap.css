@@ -323,6 +323,12 @@
   stroke-width: 2;
 }
 
+.minimap-legend-sample-next-stop {
+  fill: var(--color-banana-900);
+  stroke: var(--color-neutral-white);
+  stroke-width: 1.5;
+}
+
 .minimap-legend-sample-dashed {
   stroke-dasharray: 6 4;
 }
@@ -373,6 +379,50 @@
   border: calc(1.4px * var(--ui-scale, 1)) solid var(--color-link-100);
   border-radius: 50%;
   opacity: 0.8;
+}
+
+/* Forward crumbs (ForwardCrumbs.js): the panos ahead on the current street (#4669). Filled amber discs so they can't
+   be read as the hollow blue visited rings; the nearest few are larger, white-cased and clickable, the rest faint
+   (#2561). Same anchoring as the breadcrumbs: a roomy hit area, shifted down half its height to center on the pano. */
+.minimap-forward-crumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(20px * var(--ui-scale, 1));
+  height: calc(20px * var(--ui-scale, 1));
+  transform: translateY(50%);
+}
+
+.minimap-forward-crumb::before {
+  content: "";
+  box-sizing: border-box;
+  width: calc(5px * var(--ui-scale, 1));
+  height: calc(5px * var(--ui-scale, 1));
+  border-radius: 50%;
+  background: var(--color-banana-900);
+  opacity: 0.45;
+}
+
+.minimap-forward-crumb-reachable {
+  cursor: pointer;
+}
+
+.minimap-forward-crumb-reachable::before {
+  width: calc(9px * var(--ui-scale, 1));
+  height: calc(9px * var(--ui-scale, 1));
+  border: calc(1.5px * var(--ui-scale, 1)) solid var(--color-neutral-white);
+  box-shadow: 0 0 calc(2px * var(--ui-scale, 1)) rgb(0 0 0 / 35%);
+  opacity: 1;
+}
+
+.minimap-forward-crumb-highlight::before {
+  outline: calc(2px * var(--ui-scale, 1)) solid var(--color-banana-700);
+}
+
+/* Faint crumbs are informational only: make their wrapper click-through so they can't intercept a click meant for
+   a label marker or breadcrumb beneath them (the same wrapper quirk the peg rule below works around). */
+gmp-advanced-marker:has(> .minimap-forward-crumb:not(.minimap-forward-crumb-reachable)) {
+  pointer-events: none;
 }
 
 /* GSV-style "you are here" puck (Peg.js): a blue dot with a triangle pointing in the heading direction. Markers anchor
@@ -426,7 +476,8 @@ gmp-advanced-marker:has(> .minimap-peg) {
 
 /* Breadcrumbs are map-positioned markers, not canvas panes, so the rule above doesn't reach them; hide them explicitly
    in the fitted whole-route overview so the visited trail doesn't clutter the zoomed-out view (#4639). */
-#minimap-holder.minimap-overview .minimap-breadcrumb {
+#minimap-holder.minimap-overview .minimap-breadcrumb,
+#minimap-holder.minimap-overview .minimap-forward-crumb {
   display: none;
 }
 

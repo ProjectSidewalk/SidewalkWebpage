@@ -447,6 +447,8 @@ class TaskContainer {
       svl.compass.showMessage();
       svl.compass.update();
     }
+    // Every street switch and direction reversal passes through here, so this is where the crumbs ahead re-aim.
+    if (svl.forwardCrumbs) svl.forwardCrumbs.refresh();
 
     // Show AI guidance message if applicable.
     if (svl.aiGuidance) svl.aiGuidance.showAiGuidanceMessage();

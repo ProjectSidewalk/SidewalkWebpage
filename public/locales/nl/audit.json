@@ -172,7 +172,9 @@
       "legend-ahead": "Resterende route",
       "legend-you": "U + kijkrichting",
       "legend-visited": "Bezochte locatie",
-      "legend-unseen": "Nog niet bekeken"
+      "legend-unseen": "Nog niet bekeken",
+      "legend-next-stops": "Volgende stops (klik om te verplaatsen)",
+      "forward-crumb-title": "Ga vooruit naar stop {{rank}}"
     },
     "stats": {
       "leaderboard-cta": "Bekijk het scorebord van de gemeenschap"

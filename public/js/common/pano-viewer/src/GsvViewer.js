@@ -16,6 +16,12 @@ class GsvViewer extends PanoViewer {
     this.gsvPano = undefined;
     this.prevPanoData = undefined;
     this.currPanoData = undefined;
+
+    // Location searches memoised by rounded lat/lng: key -> Promise<StreetViewPanoramaData>. Filled by
+    // findPanoNear() and cleared by clearPrefetchCache(). The Street View Metadata SKU these calls fall under is
+    // free and unmetered (docs/google-cloud.md), so the memo is about latency and burst, not cost: a minimap crumb
+    // sampler re-asks about the same street points on every move, and each answer only needs fetching once.
+    this.locationSearches = new Map();
   }
 
   /**
@@ -233,6 +239,65 @@ class GsvViewer extends PanoViewer {
       `No outdoor GSV imagery within ${radius}m of ${latLng.lat},${latLng.lng}.`, { cause: err },
     );
   }
+
+  /**
+   * Memo key for a location search. Rounded to 5 decimals (~1.1 m) rather than matched by distance because turf is
+   * not loaded on every page that builds a GsvViewer; the callers that sample a street do so on a fixed grid
+   * (NavigationService.DIST_INCREMENT along the street geometry), so identical points produce identical keys.
+   * @param {{lat: number, lng: number}} latLng
+   * @returns {string}
+   */
+  static #searchKey(latLng) {
+    return `${latLng.lat.toFixed(5)},${latLng.lng.toFixed(5)}`;
+  }
+
+  /**
+   * The getPanorama({location}) request for a point, memoised. A ZERO_RESULTS rejection is kept (it is an answer);
+   * any other rejection is evicted so the next caller retries rather than inheriting a transient failure.
+   * @param {{lat: number, lng: number}} latLng - The point to search around.
+   * @returns {Promise<object>} Google's StreetViewPanoramaData; rejects as getPanorama does (see #asImageryError).
+   */
+  #searchLocation = (latLng) => {
+    const key = GsvViewer.#searchKey(latLng);
+    const cached = this.locationSearches.get(key);
+    if (cached) return cached;
+    const promise = google.maps.importLibrary('core').then(({ LatLng }) => this.streetViewService.getPanorama({
+      location: new LatLng(latLng.lat, latLng.lng),
+      radius: svl.STREETVIEW_MAX_DISTANCE,
+      source: google.maps.StreetViewSource.OUTDOOR,
+    }));
+    promise.catch((err) => {
+      if (err?.code !== 'ZERO_RESULTS') this.locationSearches.delete(key);
+    });
+    this.locationSearches.set(key, promise);
+    return promise;
+  };
+
+  clearPrefetchCache = () => {
+    this.locationSearches.clear();
+  };
+
+  /**
+   * See PanoViewer.findPanoNear(). Same nearest-outdoor-pano query as setLocation(), read straight off the metadata
+   * reply: #getPanoramaCallback is deliberately not involved, since it records the reply as the current pano and
+   * loads it into the viewer.
+   */
+  findPanoNear = async (latLng, excludedPanos = new Set()) => {
+    let data;
+    try {
+      ({ data } = await PanoViewer._withTimeout(
+        this.#searchLocation(latLng), PanoViewer.FIND_PANO_TIMEOUT_MS, `GSV metadata near ${latLng.lat},${latLng.lng}`,
+      ));
+    } catch (err) {
+      // ZERO_RESULTS is "nothing here"; anything else (UNKNOWN_ERROR, over-quota, transport, the timeout) means the
+      // question went unanswered, which the caller must not mistake for empty ground (#4918).
+      if (GsvViewer.#asImageryError(err, latLng) instanceof NoImageryError) return null;
+      throw err;
+    }
+    const panoId = data.location.pano;
+    if ([...excludedPanos].some((pano) => pano.getPanoId() === panoId)) return null;
+    return { panoId, lat: data.location.latLng.lat(), lng: data.location.latLng.lng() };
+  };
 
   setLocation = async (latLng, excludedPanos = new Set()) => {
     const { LatLng } = await google.maps.importLibrary('core');

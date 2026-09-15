@@ -290,6 +290,21 @@ class PanoramaxViewer extends PanoViewer {
   };
 
   /**
+   * See PanoViewer.findPanoNear(). The same search + scoring as setLocation(), stopping short of the move. Answers
+   * from the prefetched searches when one covers the point, so a street that prefetchAlongStreet() primed is sampled
+   * without any further API calls.
+   */
+  findPanoNear = async (latLng, excludedPanos = new Set()) => {
+    const best = await PanoViewer._withTimeout(
+      this.#searchAndSelectPano(turf.point([latLng.lng, latLng.lat]), excludedPanos),
+      PanoViewer.FIND_PANO_TIMEOUT_MS, `Panoramax search near ${latLng.lat},${latLng.lng}`,
+    );
+    if (!best) return null;
+    // STAC geometry is GeoJSON, so the coordinates come as [lng, lat].
+    return { panoId: best.id, lat: best.geometry.coordinates[1], lng: best.geometry.coordinates[0] };
+  };
+
+  /**
    * See PanoViewer.publicViewerLink(). Panoramax's `xyz` is heading/pitch/zoom, with zoom on its own 0–100 scale
    * (30 is its default view). `LabelDataForApi.panoUrl` builds the same URL server-side for the v3 API's `pano_url`
    * and can't share this code across the language line — change one and change the other.

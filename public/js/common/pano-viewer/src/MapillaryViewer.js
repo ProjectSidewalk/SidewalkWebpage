@@ -415,6 +415,24 @@ class MapillaryViewer extends PanoViewer {
   };
 
   /**
+   * See PanoViewer.findPanoNear(). The same search + scoring as setLocation(), stopping short of the move. Answers
+   * from the prefetched searches when one covers the point, so a street that prefetchAlongStreet() primed is sampled
+   * without any further API calls.
+   */
+  findPanoNear = async (latLng, excludedPanos = new Set()) => {
+    const center = turf.point([latLng.lng, latLng.lat]);
+    const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
+    const bestPano = await PanoViewer._withTimeout(
+      this.#searchAndSelectPano(center, radius, excludedPanos), PanoViewer.FIND_PANO_TIMEOUT_MS,
+      `Mapillary search near ${latLng.lat},${latLng.lng}`,
+    );
+    if (!bestPano) return null;
+    // Prefer the SfM-refined position, as #scorePano does, so the crumb sits where the move would put the peg.
+    const [lng, lat] = (bestPano.computed_geometry || bestPano.geometry).coordinates;
+    return { panoId: bestPano.id, lat, lng };
+  };
+
+  /**
    * Warms mapillary-js's cache for the given image: downloads its metadata, texture, and mesh so that a later moveTo()
    * doesn't hit the network. Uses the same internal graphService call that mapillary-js's own cache component uses for
    * neighbor prefetching — there is no public API for caching an arbitrary image.

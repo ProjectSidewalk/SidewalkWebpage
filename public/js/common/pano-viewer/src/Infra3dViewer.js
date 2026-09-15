@@ -151,6 +151,39 @@ class Infra3dViewer extends PanoViewer {
   };
 
   /**
+   * See PanoViewer.findPanoNear(). Uses the SDK's nearest-frame query (`imagesByKNN$`, the same HTTP request its
+   * own movePosition$ starts from) rather than movePosition(), which setLocation() relies on and which moves the
+   * viewer. The frame comes back with its position and camera type, so nothing is loaded.
+   *
+   * Two gaps against setLocation(), both in the safe direction (a missing crumb, never a wrong one): KNN returns the
+   * single nearest frame of any camera type, so a flat mono/stereo photo nearest the point hides a pano frame a
+   * metre behind it, and the query has no radius, so this applies the setLocation() radius the SDK never does.
+   */
+  findPanoNear = async (latLng, excludedPanos = new Set()) => {
+    const nearest = await PanoViewer._withTimeout(
+      new Promise((resolve, reject) => {
+        this.viewer._sdk_viewer._navigator._api.imagesByKNN$(latLng.lng, latLng.lat, 4326)
+          .subscribe({ next: resolve, error: reject });
+      }),
+      PanoViewer.FIND_PANO_TIMEOUT_MS, `Infra3d nearest frame to ${latLng.lat},${latLng.lng}`,
+    ).catch((err) => {
+      // The SDK rejects an empty neighbourhood with a bare string, not an Error; that one is an answer.
+      if (err === 'No frame found') return null;
+      throw err instanceof Error ? err : new Error(String(err));
+    });
+    if (!nearest) return null;
+    // Mirror #filterNonPanoramicImages: only 360° frames are places Explore can stand.
+    if (!['calotte', 'cubemap'].includes(nearest.camera_projection_type)) return null;
+    const { lat, lon: lng } = nearest.l;
+    const metersAway = turf.distance(
+      turf.point([latLng.lng, latLng.lat]), turf.point([lng, lat]), { units: 'meters' },
+    );
+    if (metersAway > svl.STREETVIEW_MAX_DISTANCE) return null;
+    if ([...excludedPanos].some((pano) => pano.getPanoId() === nearest.key)) return null;
+    return { panoId: nearest.key, lat, lng };
+  };
+
+  /**
    * If the image we arrived at isn't a 360° pano, move back to the previous pano and throw an error.
    *
    * Infra3D datasets mix panoramic imagery ('calotte'/'cubemap' stream types) with flat perspective photos
