@@ -100,6 +100,12 @@ describe('Task.isAtEnd', () => {
             // the line but projects onto the endpoint.
             expect(makeTask(STUB).isAtEnd(positionOn(STUB, 7, 15), END_OF_STREET_M)).toBe(true);
         });
+
+        it('does not count a pano 30 m beside the endpoint, even at the imagery-ran-out threshold', () => {
+            // Within 50 m of the endpoint and projecting onto its last stretch, but too far off the line to have
+            // counted as on this street at all — #hasAdvanced would not have moved the furthest point there either.
+            expect(makeTask(STUB).isAtEnd(positionOn(STUB, 7, 30), NEAR_END_NO_IMAGERY_M)).toBe(false);
+        });
     });
 
     describe('on a 30 m final route street (#4640)', () => {
@@ -132,6 +138,12 @@ describe('Task.isAtEnd', () => {
             // the next street would count as the end of this one.
             expect(makeTask(STREET).isAtEnd(positionOn(STREET, 70), END_OF_STREET_M)).toBe(false);
         });
+
+        it('at the imagery-ran-out threshold, is the end 20 m past the endpoint but not 30 m past it', () => {
+            // 50 m reaches well down the next street; the on-street bound, not the threshold, is what stops it.
+            expect(makeTask(STREET).isAtEnd(positionOn(STREET, 50), NEAR_END_NO_IMAGERY_M)).toBe(true);
+            expect(makeTask(STREET).isAtEnd(positionOn(STREET, 60), NEAR_END_NO_IMAGERY_M)).toBe(false);
+        });
     });
 
     describe('on a 100 m street, where the cap sits above the post-move threshold', () => {
@@ -154,8 +166,8 @@ describe('Task.isAtEnd', () => {
             expect(makeTask(STREET).isAtEnd(positionOn(STREET, 55), NEAR_END_NO_IMAGERY_M)).toBe(false);
         });
 
-        it('is the end 45 m past the endpoint at the imagery-ran-out threshold: past the cap, inside the bound', () => {
-            expect(makeTask(STREET).isAtEnd(positionOn(STREET, 145), NEAR_END_NO_IMAGERY_M)).toBe(true);
+        it('is not the end 45 m past the endpoint even at the imagery-ran-out threshold: off the street', () => {
+            expect(makeTask(STREET).isAtEnd(positionOn(STREET, 145), NEAR_END_NO_IMAGERY_M)).toBe(false);
         });
     });
 });

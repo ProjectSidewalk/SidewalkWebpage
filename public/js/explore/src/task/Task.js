@@ -7,6 +7,10 @@ class Task {
   // Ceiling on any "am I at the end of this street?" threshold, as a fraction of the street's length. Keeps a
   // fixed metre distance from swallowing most of a short street.
   static END_PROXIMITY_MAX_FRACTION = 0.4;
+  // How far from the street's line a position may sit and still count as on the street: past it a pano can neither
+  // advance the furthest point reached nor finish the street. Matches the pano search radius
+  // (svl.STREETVIEW_MAX_DISTANCE), so anything a street sweep lands on is within it by construction.
+  static ON_STREET_MAX_DISTANCE_M = 25;
 
   #geojson;
 
@@ -192,7 +196,7 @@ class Task {
     const snappedPosition = turf.nearestPointOnLine(streetEdge, currentPosition);
 
     return (distanceAtTheFurthestPoint < distanceAtCurrentPoint)
-      && turf.distance(currentPosition, snappedPosition) < 0.025;
+      && turf.distance(currentPosition, snappedPosition, { units: 'meters' }) < Task.ON_STREET_MAX_DISTANCE_M;
   }
 
   /**
@@ -324,12 +328,14 @@ class Task {
    * Two ways to qualify. Within `threshold` of the endpoint, where the threshold is capped at a fraction of the
    * street's length: a distance that reads as "basically at the end" of a full block is most of a short one, and
    * every caller inherits that, so the cap lives here rather than at each call site (#4640). Or past or beside it:
-   * the position projects onto the street within that capped distance of the endpoint, and is within the uncapped
-   * `threshold` of it. Imagery is under no obligation to put a pano near a street's endpoint — Mapillary spacing
-   * is 10–15 m, and a divided road chops residential streets into stubs shorter than that — so on the capped test
-   * alone a short street can be unfinishable from every pano that exists, and the labeler cycles the panos around
-   * its endpoint forever (#5350). The uncapped bound is what keeps a pano well down the next street from counting
-   * as the end of this one.
+   * the position projects onto the street within that capped distance of the endpoint, is within the uncapped
+   * `threshold` of it, and is close enough to the street's line to count as on the street at all. Imagery is under
+   * no obligation to put a pano near a street's endpoint — Mapillary spacing is 10–15 m, and a divided road chops
+   * residential streets into stubs shorter than that — so on the capped test alone a short street can be
+   * unfinishable from every pano that exists, and the labeler cycles the panos around its endpoint forever (#5350).
+   * The uncapped bound is what keeps a pano well down the next street from counting as the end of this one, and the
+   * on-street bound is the same one #hasAdvanced applies, so a pano that could never have advanced along the street
+   * cannot finish it either.
    *
    * @param {{lat: number, lng: number}} latLng - The user's current location
    * @param {number} [threshold=10] - Distance threshold in meters
@@ -345,7 +351,9 @@ class Task {
       : threshold;
     const distToEnd = util.math.haversine(latLng, end);
     if (distToEnd < effectiveThreshold) return true;
-    return distToEnd < threshold
+    if (distToEnd >= threshold) return false;
+    const point = turf.point([latLng.lng, latLng.lat]);
+    return turf.pointToLineDistance(point, this.#geojson, { units: 'meters' }) < Task.ON_STREET_MAX_DISTANCE_M
       && this.getDistanceFromStart(latLng, { units: 'meters' }) >= streetLengthM - effectiveThreshold;
   }
 
