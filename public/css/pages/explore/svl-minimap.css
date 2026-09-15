@@ -335,6 +335,12 @@
   stroke-width: 1.8;
 }
 
+.minimap-legend-sample-next-step {
+  fill: color-mix(in srgb, var(--color-link-100) 55%, var(--color-neutral-white));
+  stroke: var(--color-link-200);
+  stroke-width: 1.8;
+}
+
 .minimap-legend-sample-faced {
   fill: var(--color-banana-700);
   stroke: var(--color-neutral-white);
@@ -431,16 +437,27 @@
   background: color-mix(in srgb, var(--color-neutral-white) 85%, transparent);
 }
 
-/* Route stops beyond the next few are shown but not steppable (#2561): smaller, quieter, click-through. */
+/* Only the nearest route stop is full size; the rest of the route is small so the next step stands out. Beyond the
+   next few, stops are also not steppable (#2561): quieter and click-through. */
+.minimap-crumb-small::before,
+.minimap-crumb-far::before {
+  width: calc(6px * var(--ui-scale, 1));
+  height: calc(6px * var(--ui-scale, 1));
+  border-width: calc(1.4px * var(--ui-scale, 1));
+}
+
 .minimap-crumb-far {
   cursor: default;
 }
 
 .minimap-crumb-far::before {
-  width: calc(6px * var(--ui-scale, 1));
-  height: calc(6px * var(--ui-scale, 1));
-  border-width: calc(1.4px * var(--ui-scale, 1));
   opacity: 0.7;
+}
+
+/* The spacebar's next step along the route: tinted the route line's blue whichever way the user looks, so the route's
+   next crumb reads at a glance. The faced fill below still wins when the user turns to it. */
+.minimap-crumb-next::before {
+  background: color-mix(in srgb, var(--color-link-100) 55%, var(--color-neutral-white));
 }
 
 .minimap-crumb-faced::before {

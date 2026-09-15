@@ -177,7 +177,8 @@
       "forward-crumb-title": "Avançar para a parada {{rank}}",
       "legend-other-links": "Outras direções",
       "legend-faced": "Preenchido: para onde avançar leva",
-      "link-crumb-title": "Ir para este panorama"
+      "link-crumb-title": "Ir para este panorama",
+      "legend-next-step": "Azul claro: próximo passo (barra de espaço)"
     },
     "stats": {
       "leaderboard-cta": "Ver a classificação da comunidade"

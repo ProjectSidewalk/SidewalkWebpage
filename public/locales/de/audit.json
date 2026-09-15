@@ -177,7 +177,8 @@
       "forward-crumb-title": "Zu Haltepunkt {{rank}} gehen",
       "legend-other-links": "Andere Richtungen",
       "legend-faced": "Gefüllt: wohin Vorwärts führt",
-      "link-crumb-title": "Zu diesem Panorama gehen"
+      "link-crumb-title": "Zu diesem Panorama gehen",
+      "legend-next-step": "Hellblau: nächster Schritt (Leertaste)"
     },
     "stats": {
       "leaderboard-cta": "Bestenliste der Gemeinschaft ansehen"

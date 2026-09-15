@@ -169,6 +169,30 @@ describe('ForwardCrumbs.facedPanoId', () => {
     });
 });
 
+describe('ForwardCrumbs.nextStepPanoId', () => {
+    const links = [{ panoId: 'e', heading: 90 }, { panoId: 'w', heading: 270 }];
+
+    test('the link within 60° of the route direction is where the spacebar steps', () => {
+        expect(ForwardCrumbs.nextStepPanoId(links, 60, 'next')).toBe('e');
+        expect(ForwardCrumbs.nextStepPanoId(links, 300, 'next')).toBe('w');
+    });
+
+    test('with no link the route\'s way, the route walk\'s next stop is the step', () => {
+        expect(ForwardCrumbs.nextStepPanoId(links, 0, 'next')).toBe('next');
+        expect(ForwardCrumbs.nextStepPanoId(links, 151, 'next')).toBe('next');
+        expect(ForwardCrumbs.nextStepPanoId([], 0, 'next')).toBe('next');
+    });
+
+    test('the 60° cut-off matches moveToLinkedPano (cosine above one half)', () => {
+        expect(ForwardCrumbs.nextStepPanoId(links, 151, null)).toBeNull();
+        expect(ForwardCrumbs.nextStepPanoId(links, 149, null)).toBe('e');
+    });
+
+    test('nothing with no route', () => {
+        expect(ForwardCrumbs.nextStepPanoId(links, null, 'next')).toBeNull();
+    });
+});
+
 describe('ForwardCrumbs.memoKeyFor', () => {
     const task = (walkOrder, reversed) => ({
         getStreetEdgeId: () => 42,

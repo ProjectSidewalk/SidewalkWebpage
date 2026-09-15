@@ -2,9 +2,12 @@
  * Crumbs on the Explore minimap for where the user can go next (#4669, #4655): a ring at the destination of every
  * on-pano arrow, and rings along the route ahead on the street being audited, including past the gaps where the
  * imagery provider's link graph dead-ends and the arrows fall silent. The crumb the user is facing fills in, so a
- * filled disc has one meaning on the whole map: the forward arrow / up key takes you here. Route stops are deep
- * blue (the forward arrow's family, darker than the peg), other directions gold; the nearest few route stops and
- * every link are clickable and step the user there, the rest of the route is shown but not steppable (#2561).
+ * filled disc has one meaning on the whole map: the forward arrow / up key takes you here. The crumb the spacebar
+ * would step to (the link nearest the route's direction, else the route walk's next stop) is always tinted the
+ * route line's light blue, so the next step along the route reads at a glance whichever way the user looks. Route
+ * stops are deep blue (the forward arrow's family, darker than the peg), other directions gold; the nearest few
+ * route stops and every link are clickable and step the user there, the rest of the route is shown but not
+ * steppable (#2561).
  *
  * Positions come live from the pano viewer: arrow destinations through getLinkedPanoPositions(), route stops by
  * sampling the street with the metadata-only findPanoNear(), which every provider answers through the same search
@@ -56,6 +59,7 @@ class ForwardCrumbs {
   #links = []; // The current pano's positioned links, kept for setFacing().
   #routeStops = []; // Route stops ahead, nearest first, kept for setFacing().
   #facedPanoId = null;
+  #nextStepPanoId = null; // The crumb the spacebar would step to; tinted until the next refresh moves it.
   #highlightedPanoId = null;
   #memo = new Map(); // sampleIndex -> Promise<?PanoHit> for the street #memoKey names.
   #memoKey = null; // Identity of the traversal the memo belongs to; see memoKeyFor().
@@ -115,7 +119,23 @@ class ForwardCrumbs {
       reachableCount: ForwardCrumbs.REACHABLE_COUNT,
     });
     this.#render(crumbs);
+    this.#markNextStep(ForwardCrumbs.nextStepPanoId(
+      links, this.#targetAngle(), stops.length > 0 ? stops[0].panoId : null,
+    ));
     this.setFacing(svl.panoViewer.getPov().heading);
+  }
+
+  /**
+   * Tints the crumb the spacebar would step to and clears the previous one. Recomputed per refresh only: the
+   * spacebar aims at the route's direction, which changes with position, not with where the camera points.
+   * @param {?string} panoId
+   */
+  #markNextStep(panoId) {
+    const previous = this.#markers.get(this.#nextStepPanoId);
+    if (previous) previous.marker.content.classList.remove('minimap-crumb-next');
+    const next = this.#markers.get(panoId);
+    if (next) next.marker.content.classList.add('minimap-crumb-next');
+    this.#nextStepPanoId = next ? panoId : null;
   }
 
   /**
@@ -141,6 +161,7 @@ class ForwardCrumbs {
     this.#links = [];
     this.#routeStops = [];
     this.#facedPanoId = null;
+    this.#nextStepPanoId = null;
     this.#highlightedPanoId = null;
   }
 
@@ -205,6 +226,29 @@ class ForwardCrumbs {
     const routeHasLink = ForwardCrumbs.closestLinkIndex(links, routeHeading) >= 0;
     const facingRoute = ForwardCrumbs.closestLinkIndex([{ heading: routeHeading }], heading) === 0;
     return !routeHasLink && facingRoute ? nextStopPanoId : null;
+  }
+
+  /**
+   * The pano the spacebar steps to: the same choice KeyboardManager makes, the link nearest the route's direction
+   * when one lies within 60° of it (moveToLinkedPano's cosine > 0.5 rule), otherwise the route walk's next stop.
+   * Null with no route to follow.
+   * @param {Array<{panoId: string, heading: number}>} links - The current pano's links.
+   * @param {?number} routeHeading - The route's forward heading from here, or null when there is no route.
+   * @param {?string} nextStopPanoId - The nearest route stop ahead, if any.
+   * @returns {?string}
+   */
+  static nextStepPanoId(links, routeHeading, nextStopPanoId) {
+    if (routeHeading === null) return null;
+    let best = null;
+    let bestCosine = 0.5;
+    for (const link of links) {
+      const cosine = Math.cos(((routeHeading - link.heading) * Math.PI) / 180);
+      if (cosine > bestCosine) {
+        bestCosine = cosine;
+        best = link.panoId;
+      }
+    }
+    return best ?? nextStopPanoId;
   }
 
   /**
@@ -323,8 +367,18 @@ class ForwardCrumbs {
    * @returns {?number}
    */
   #routeHeading() {
+    if (!svl.compass || !svl.compass.isEnRoute()) return null;
+    return this.#targetAngle();
+  }
+
+  /**
+   * The compass's target heading from the current position (forward on route, back toward it off route), which is
+   * where the spacebar aims; null with no route to follow.
+   * @returns {?number}
+   */
+  #targetAngle() {
     if (!svl.compass || svl.isExploreAddressMode() || !svl.taskContainer) return null;
-    if (!svl.taskContainer.getCurrentTask() || !svl.compass.isEnRoute()) return null;
+    if (!svl.taskContainer.getCurrentTask()) return null;
     try {
       return (svl.compass.getTargetAngle() + 360) % 360;
     } catch {
@@ -427,6 +481,7 @@ class ForwardCrumbs {
         entry.marker.map = null;
         this.#markers.delete(panoId);
         if (this.#facedPanoId === panoId) this.#facedPanoId = null;
+        if (this.#nextStepPanoId === panoId) this.#nextStepPanoId = null;
         if (this.#highlightedPanoId === panoId) this.#highlightedPanoId = null;
       }
     }
@@ -444,8 +499,12 @@ class ForwardCrumbs {
    */
   #createMarker(crumb) {
     const content = document.createElement('div');
+    // Only the nearest route stop is full size; the rest of the route stays small so the next step stands out.
     content.className = [
-      'minimap-crumb', `minimap-crumb-${crumb.kind}`, crumb.clickable ? '' : 'minimap-crumb-far',
+      'minimap-crumb',
+      `minimap-crumb-${crumb.kind}`,
+      crumb.clickable ? '' : 'minimap-crumb-far',
+      crumb.kind === 'route' && crumb.rank > 1 ? 'minimap-crumb-small' : '',
     ].join(' ').trim();
     const title = crumb.kind === 'route'
       ? i18next.t('audit:right-ui.minimap.forward-crumb-title', { rank: crumb.rank })

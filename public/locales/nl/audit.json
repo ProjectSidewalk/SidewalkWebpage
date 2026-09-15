@@ -177,7 +177,8 @@
       "forward-crumb-title": "Ga vooruit naar stop {{rank}}",
       "legend-other-links": "Andere richtingen",
       "legend-faced": "Gevuld: waar vooruit je heen brengt",
-      "link-crumb-title": "Ga naar dit panorama"
+      "link-crumb-title": "Ga naar dit panorama",
+      "legend-next-step": "Lichtblauw: volgende stap (spatiebalk)"
     },
     "stats": {
       "leaderboard-cta": "Bekijk het scorebord van de gemeenschap"

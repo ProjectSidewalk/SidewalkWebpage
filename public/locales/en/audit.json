@@ -177,7 +177,8 @@
       "forward-crumb-title": "Move ahead to stop {{rank}}",
       "legend-other-links": "Other directions",
       "legend-faced": "Filled: where forward takes you",
-      "link-crumb-title": "Move to this pano"
+      "link-crumb-title": "Move to this pano",
+      "legend-next-step": "Light blue: next step (spacebar)"
     },
     "stats": {
       "leaderboard-cta": "See the community leaderboard"

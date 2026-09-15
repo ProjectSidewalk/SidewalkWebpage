@@ -177,7 +177,8 @@
       "forward-crumb-title": "Avancer jusqu'à l'arrêt {{rank}}",
       "legend-other-links": "Autres directions",
       "legend-faced": "Rempli : où mène avancer",
-      "link-crumb-title": "Aller à ce panorama"
+      "link-crumb-title": "Aller à ce panorama",
+      "legend-next-step": "Bleu clair : prochaine étape (barre d’espace)"
     },
     "stats": {
       "leaderboard-cta": "Voir le classement de la communauté"
