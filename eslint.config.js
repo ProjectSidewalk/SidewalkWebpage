@@ -149,7 +149,7 @@ module.exports = [
     plugins: {jsdoc},
     settings: {
       jsdoc: {
-        // Our types are TypeScript-style (`() => void`, `typeof PanoViewer`), which a future `tsc --checkJs` reads.
+        // Our types are TypeScript-style (`() => void`, `typeof PanoViewer`), which `make lint-js-types` reads.
         mode: 'typescript',
         // We use @requires as a free-text list of what a file needs loaded first, not a single module name.
         structuredTags: {requires: {name: 'text'}},
@@ -178,9 +178,9 @@ module.exports = [
             message: 'Write a callback type as an arrow signature like `(id: number) => void`, not `function(number)`.',
           },
           {
-            comment: 'JsdocBlock:has(JsdocTag[tag="private"])',
+            comment: 'JsdocBlock:has(JsdocTag[tag=/^(private|protected|public)$/])',
             context: ':matches(MethodDefinition, PropertyDefinition):has(> PrivateIdentifier.key)',
-            message: 'Drop `@private` on a `#private` member; the `#` already makes it private.',
+            message: 'Drop `@private`/`@protected`/`@public` on a `#private` member; the `#` already sets its access.',
           },
         ],
       }],

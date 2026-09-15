@@ -364,9 +364,7 @@ class PanoManager {
    */
   #makeMapillaryAttributionClickable = () => {
     const tryMove = () => {
-      const attributionContainer = /** @type {HTMLElement} */ (
-        this.panoCanvas.querySelector('.mapillary-attribution-container')
-      );
+      const attributionContainer = this.panoCanvas.querySelector('.mapillary-attribution-container');
       if (attributionContainer) {
         svl.ui.streetview.viewControlLayer.append(attributionContainer);
         this.#liftBottomLeftAboveLinks(attributionContainer);
@@ -387,7 +385,7 @@ class PanoManager {
    * @param {HTMLElement} linksBar - The links container now anchored at the bottom-left of the pano.
    */
   #liftBottomLeftAboveLinks = (linksBar) => {
-    const root = /** @type {HTMLElement} */ (document.querySelector('.tool-ui'));
+    const root = document.querySelector('.tool-ui');
     if (!root || !linksBar) return;
 
     const publishClearance = () => {

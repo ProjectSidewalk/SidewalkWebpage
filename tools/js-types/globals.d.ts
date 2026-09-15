@@ -1,5 +1,6 @@
-// Globals that public/js/ code uses but no file in it declares, so tsc can resolve them (#5278). Loaded by
-// jsconfig.json. Anything typed `any` here is unchecked at every use; swap in a real type as folders get cleaned up.
+// Globals that public/js/ code uses but tsc can't find a declaration for, such as vendor libraries and values set with
+// `window.x = ...` (#5278). Loaded by jsconfig.json. Anything typed `any` here is unchecked at every use; swap in a
+// real type as folders get cleaned up.
 
 // The app namespaces. Each page's Twirl view creates its own with `var svl = {}` and the app fills it in.
 declare var svl: any;
@@ -61,7 +62,15 @@ interface Window {
   cityNameShort: string;
   // Explore's rasterized label icons, by icon path. Set up by Label.js.
   labelIconCache: Record<string, HTMLCanvasElement>;
-  labelTypes: object[];
+  // Stamped from LabelTypeEnum.pageStampJson.
+  labelTypes: Array<{
+    name: string;
+    color: string;
+    accessImpact: string;
+    ratingScale: string;
+    isPrimary: boolean;
+    isPrimaryValidate: boolean;
+  }>;
   localizeElement: (el: Element) => void;
   localizeSubtree: (root: ParentNode) => void;
   logWebpageActivity: (activity: string, async?: boolean) => void;
@@ -72,12 +81,20 @@ interface Window {
 declare function localizeElement(el: Element): void;
 declare function localizeSubtree(root: ParentNode): void;
 
-// Selector lookups return HTMLElement rather than TypeScript's plain Element. Every page we query is HTML, so the
-// strict default would only mean a cast at nearly every lookup; a query that does find SVG needs one instead.
+// A selector lookup returns HTMLElement rather than TypeScript's plain Element. Every page we query is HTML, so the
+// strict default would only mean a cast at nearly every lookup; a class or id selector that finds SVG needs one.
+// These overloads take priority over the built-in ones, so the tag-name forms (`'input'`, `'svg'`) are repeated first
+// to keep their exact element types.
 interface ParentNode {
+  querySelector<K extends keyof HTMLElementTagNameMap>(selectors: K): HTMLElementTagNameMap[K] | null;
+  querySelector<K extends keyof SVGElementTagNameMap>(selectors: K): SVGElementTagNameMap[K] | null;
   querySelector<E extends Element = HTMLElement>(selectors: string): E | null;
+  querySelectorAll<K extends keyof HTMLElementTagNameMap>(selectors: K): NodeListOf<HTMLElementTagNameMap[K]>;
+  querySelectorAll<K extends keyof SVGElementTagNameMap>(selectors: K): NodeListOf<SVGElementTagNameMap[K]>;
   querySelectorAll<E extends Element = HTMLElement>(selectors: string): NodeListOf<E>;
 }
 interface Element {
+  closest<K extends keyof HTMLElementTagNameMap>(selector: K): HTMLElementTagNameMap[K] | null;
+  closest<K extends keyof SVGElementTagNameMap>(selector: K): SVGElementTagNameMap[K] | null;
   closest<E extends Element = HTMLElement>(selectors: string): E | null;
 }

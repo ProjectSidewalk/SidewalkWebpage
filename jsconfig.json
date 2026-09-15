@@ -11,7 +11,8 @@
     "types": ["jquery", "google.maps"],
     // Strict mode (TypeScript 7's default) is a later ratchet: it roughly triples the error count.
     "strict": false,
-    "skipLibCheck": true
+    // Library checks stay on so a mistake in tools/js-types/globals.d.ts is reported instead of becoming `any`.
+    "skipLibCheck": false
   },
   "include": ["public/js/**/*.js", "tools/js-types/*.d.ts"],
   "exclude": ["public/js/**/build/**"]

@@ -330,7 +330,7 @@ class PanoManager {
    * Sets the panorama. Tries the primary viewer first; falls back to Pannellum if there's a backup image available.
    *
    * @param {string} panoId - The ID for the panorama that we want to move to.
-   * @param {{object}|null} backupImage - Self-hosted pano data from the backend, or null.
+   * @param {?{panoId: string, cameraHeading?: number, attribution?: object}} backupImage - Self-hosted pano, or null.
    * @returns {Promise<PanoData|null>} The loaded pano's metadata, or `null` when no viewer could render it. A null
    *      return means the pano area is now empty, so the caller must not draw a label marker over it or ask for a
    *      validation of the label it was loading (#4810).
@@ -412,7 +412,7 @@ class PanoManager {
    * and the swap — canvas, active viewer, logo, attribution — happens in one step afterwards; nothing here paints,
    * and the outgoing label's imagery stays up until this one is ready.
    *
-   * @param {{object}} backupImage
+   * @param {{panoId: string, cameraHeading?: number, attribution?: object}} backupImage - Self-hosted pano data.
    * @returns {Promise<PanoData>}
    */
   async #showPannellumPano(backupImage) {
