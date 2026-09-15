@@ -93,7 +93,7 @@ BOOT_URL = f'http://localhost:{BOOT_PORT}/.well-known/{BOOT_MARKER}-probe'
 # and switches the nightly actors off, for the reason its own comment gives — a boot that straddles an actor's
 # scheduled minute would write background_job_run, funnel_stat, sidewalk_presence, ... into a schema nothing has
 # used yet, and the first Laurens rebuild picked up two such rows that way. sbt.server.forcestart is load-bearing:
-# with a build already running in the same checkout, sbt 1.12.13's getSocketOrExit asks "Create a new server?" only
+# with a build already running in the same checkout, sbt's getSocketOrExit asks "Create a new server?" only
 # when it has a console, and without one exits 2 unless this property is set — so without it --allow-running-apps
 # would start a boot that dies at once (#5297).
 BOOT_CMD = (f"cd {CHECKOUT_IN_CONTAINER} && (exec -a {BOOT_MARKER}-stdin tail -f /dev/null) | "

@@ -12,8 +12,8 @@
 // filename alone would satisfy a library whose entry had been deleted outright.
 //
 // It deliberately does *not* ask npm what the newest release is. Half these libraries aren't plain npm packages (the
-// Infra3d build is locally patched, the photo-sphere-viewer bundle is ours, bootstrap-accessibility vendors two other
-// libraries inside itself) and a third of the list is frozen on purpose, so such a report would need a hand-kept map
+// photo-sphere-viewer bundle is ours, bootstrap-accessibility vendors two other libraries inside itself, several
+// come from a project's own CDN) and a third of the list is frozen on purpose, so such a report would need a hand-kept map
 // of npm names and freeze reasons — a second copy of the doc — and would nag monthly about decisions already made.
 
 import { readFileSync, readdirSync } from 'node:fs';

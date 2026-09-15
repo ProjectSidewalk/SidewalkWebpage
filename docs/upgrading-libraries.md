@@ -224,16 +224,21 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
 - **i18next-http-backend: 3.0.6** — loads translation files (`i18nextHttpBackend-3.0.6.min.js`).
   [Project + downloads](https://github.com/i18next/i18next-http-backend) ·
   [Changelog](https://github.com/i18next/i18next-http-backend/blob/master/CHANGELOG.md)
-- **infra3dapi: 1.12.1** — Infra3d imagery provider. **Note:** `Infra3dViewer.js` reaches into the private
-  `_sdk_viewer` and the `spatialEdges$` stream, so after a bump confirm both still exist in the new file. Test by
-  panning in a circle — watch for jumpiness.
+- **infra3dapi: 1.12.1** — Infra3d imagery provider. **Note:** `Infra3dViewer.js` leans on the SDK's private surface,
+  not just its documented one — everything it calls through `_sdk_viewer` (`moveToKey`, `movePosition`, `setFilter`,
+  `resize`, the component toggles, the `nodechanged` event, the navigator's `imagesByKNN$`) plus each node's
+  `spatialEdges$` stream. None of it is covered by the changelog, so after a bump grep the new file for each name.
+  Test by panning in a circle — watch for jumpiness.
   [Download](https://cdn.jsdelivr.net/npm/@inovitas/infra3dapi@1.12.1/infra3dapi.js) ·
   [Changelog](https://developers.infra3d.com/javascript-api/reference/index.html#md:changelog)
-- **js-cookie: 3.0.8** — [Download](https://unpkg.com/js-cookie) ·
-  [Changelog](https://github.com/js-cookie/js-cookie/releases)
 - **kinetic: 4.4.3** — **note:** only used for the hand animation in the Explore tutorial;
   [no longer maintained](https://github.com/ericdrowell/KineticJS). Could bump to 5.1.0 and leave it.
-- **mapbox-gl (js & css): 3.30.0** — check with `mapboxgl.version`.
+- **mapbox-gl (js & css): 3.24.1** — check with `mapboxgl.version`. **Note:** held below 3.25 on purpose. From 3.25.0 a
+  symbol layer that shares a source with feature-state paint (Route Builder's region labels, AccessScore's) crashes
+  the map with `Cannot read properties of undefined (reading 'paint')` once that state changes
+  ([mapbox-gl-js#13714](https://github.com/mapbox/mapbox-gl-js/issues/13714)); take 3.25+ once the fix
+  ([#13721](https://github.com/mapbox/mapbox-gl-js/pull/13721)) ships, or give every such symbol layer a
+  feature-state paint expression first.
   [Install/download](https://docs.mapbox.com/mapbox-gl-js/guides/install/) ·
   [Changelog](https://github.com/mapbox/mapbox-gl-js/blob/main/CHANGELOG.md)
 - **mapbox-gl-language: 1.0.1** — [Download](https://unpkg.com/@mapbox/mapbox-gl-language) ·

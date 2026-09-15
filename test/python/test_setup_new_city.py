@@ -725,7 +725,7 @@ def test_boot_cmd_uses_the_ci_conf_its_own_port_and_forcestart():
     Three things the boot's command line has to keep (#5297). application.ci.conf is the config the boot needs —
     the dev profile with the nightly actors off, so a boot that straddles an actor's minute cannot write job rows
     into a schema nothing has used — and it already exists for CI. The port is one compose does not publish, so
-    `npm start` can stay up. And sbt.server.forcestart: with a build running in the same checkout, sbt 1.12.13's
+    `npm start` can stay up. And sbt.server.forcestart: with a build running in the same checkout, sbt's
     getSocketOrExit exits 2 without a console unless it is set, so --allow-running-apps could never boot.
     """
     ci_conf = (Path(snc.REPO_ROOT) / 'conf' / 'application.ci.conf').read_text()
