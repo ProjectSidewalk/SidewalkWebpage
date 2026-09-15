@@ -433,6 +433,45 @@ class MapillaryViewer extends PanoViewer {
   };
 
   /**
+   * See PanoViewer.lookupPanoPosition(). Answers from mapillary-js's own graph first: spatial edges are computed
+   * from images the SDK already loaded, so every arrow's destination is normally a node there, position included,
+   * at no network cost. A node the graph has since evicted falls back to one Graph API read of the image.
+   */
+  lookupPanoPosition = async (panoId) => {
+    const node = this.#graphNode(panoId);
+    if (node && node.lngLat) return { lat: node.lngLat.lat, lng: node.lngLat.lng };
+
+    const token = this.viewer._navigator._api._data._accessToken;
+    const url = `https://graph.mapillary.com/${encodeURIComponent(panoId)}`
+      + `?fields=geometry,computed_geometry&access_token=${token}`;
+    const image = await (await fetch(url)).json();
+    if (image.error) throw new Error(image.error.message);
+    // Prefer the SfM-refined position, as #scorePano does; GeoJSON coordinates are [lng, lat].
+    const geometry = image.computed_geometry || image.geometry;
+    if (!geometry || !geometry.coordinates) return null;
+    return { lat: geometry.coordinates[1], lng: geometry.coordinates[0] };
+  };
+
+  /**
+   * The SDK's graph node for an image id, if it holds one. The graph sits behind a hot replayed observable, so a
+   * subscribe delivers the current graph synchronously; there is no public accessor for it.
+   * @param {string} panoId - The Mapillary image id.
+   * @returns {?object} The mapillary-js Image, or null when the graph doesn't hold it (or the internals moved).
+   */
+  #graphNode = (panoId) => {
+    try {
+      let graph = null;
+      const subscription = this.viewer._navigator.graphService._graph$.subscribe((g) => {
+        graph = g;
+      });
+      subscription.unsubscribe();
+      return graph && graph.hasNode(panoId) ? graph.getNode(panoId) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  /**
    * Warms mapillary-js's cache for the given image: downloads its metadata, texture, and mesh so that a later moveTo()
    * doesn't hit the network. Uses the same internal graphService call that mapillary-js's own cache component uses for
    * neighbor prefetching — there is no public API for caching an arbitrary image.

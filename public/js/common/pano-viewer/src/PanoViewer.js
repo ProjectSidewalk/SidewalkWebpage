@@ -317,12 +317,50 @@ class PanoViewer {
   }
 
   /**
-   * Gets the panos that are linked to the current one, to be used with navigation arrows.
-   * @returns {Promise<Array<{panoId: string, heading: number}>>}
+   * Gets the panos that are linked to the current one, to be used with navigation arrows. Synchronous: every
+   * provider records the links while the pano loads. Entries carry `lat`/`lng` only when the provider had the
+   * destination's position in hand; getLinkedPanoPositions() fills in the rest.
+   * @returns {Array<{panoId: string, heading: number, description?: string, lat?: number, lng?: number}>}
    * @abstract
    */
   getLinkedPanos() {
     throw new Error('getLinkedPanos() must be implemented by subclass');
+  }
+
+  /**
+   * Position of a pano the provider can identify by id, without moving to it. Explore's minimap uses it to place a
+   * crumb at the destination of each on-pano arrow (#4669). Same contract as findPanoNear(): null when the provider
+   * answered that it has no such pano, a rejection when it couldn't answer. The default resolves null; a provider
+   * whose links already carry positions (Panoramax) needs no override.
+   * @param {string} _panoId - The provider's id for the pano.
+   * @returns {Promise<?{lat: number, lng: number}>}
+   */
+  lookupPanoPosition(_panoId) {
+    return Promise.resolve(null);
+  }
+
+  /**
+   * The current pano's links, each with its destination's position: what the minimap needs to draw a crumb per
+   * on-pano arrow. Links the provider positioned itself pass through; the rest are resolved with
+   * lookupPanoPosition() in parallel (a pano has a handful of links). A link whose position can't be found is left
+   * out rather than failing the lot: a missing crumb is the safe failure, and its arrow still works.
+   * @returns {Promise<Array<{panoId: string, heading: number, lat: number, lng: number}>>}
+   */
+  async getLinkedPanoPositions() {
+    const links = this.getLinkedPanos() || [];
+    const positioned = await Promise.all(links.map(async (link) => {
+      if (Number.isFinite(link.lat) && Number.isFinite(link.lng)) return link;
+      try {
+        const position = await PanoViewer._withTimeout(
+          this.lookupPanoPosition(link.panoId), PanoViewer.FIND_PANO_TIMEOUT_MS, `position of pano ${link.panoId}`,
+        );
+        return position ? { ...link, lat: position.lat, lng: position.lng } : null;
+      } catch (err) {
+        console.warn(`Could not position linked pano ${link.panoId}:`, err);
+        return null;
+      }
+    }));
+    return positioned.filter(Boolean);
   }
 
   /**

@@ -34,9 +34,27 @@ class MinimapStyle {
     return MinimapStyle.token('--color-pine-600', '#60A189');
   }
 
-  /** @returns {string} Color of the not-yet-audited part of the current route. */
+  /**
+   * Color of the not-yet-audited part of the current route: the forward arrow's blue lightened toward white, so the
+   * line reads as the arrow's path without matching the peg. The legend swatch draws the same mix in CSS
+   * (`color-mix(in srgb, var(--color-link-100) 55%, var(--color-neutral-white))`); Google Maps needs it resolved.
+   * @returns {string}
+   */
   static remainingColor() {
-    return MinimapStyle.token('--color-asphalt-400', '#424055');
+    return MinimapStyle.mix(MinimapStyle.pegColor(), MinimapStyle.token('--color-neutral-white', '#FFFFFF'), 0.55);
+  }
+
+  /**
+   * Mixes two 6-digit hex colors in sRGB, like CSS `color-mix(in srgb, a <weight>, b)`.
+   * @param {string} hexA - First color.
+   * @param {string} hexB - Second color.
+   * @param {number} weightA - Share of the first color, 0..1.
+   * @returns {string} A 6-digit hex color.
+   */
+  static mix(hexA, hexB, weightA) {
+    const channels = (hex) => hex.replace('#', '').match(/../g).map((pair) => parseInt(pair, 16));
+    const [a, b] = [channels(hexA), channels(hexB)];
+    return `#${a.map((v, i) => Math.round(v * weightA + b[i] * (1 - weightA)).toString(16).padStart(2, '0')).join('')}`;
   }
 
   /** @returns {string} Stroke color of the 360°-observed progress ring while in progress (matches the progress bar). */
@@ -64,8 +82,8 @@ class MinimapStyle {
     return MinimapStyle.token('--color-error-200', '#ED1C24');
   }
 
-  /** @returns {string} The peg's blue, reused for the breadcrumb trail and the route-overview "you are here" dot so
-   * they can't drift from the peg (which fills with the same --color-link-100). */
+  /** @returns {string} The peg's blue (--color-link-100), also the on-pano forward arrow's and, lightened, the
+   * route-ahead line's; the route-overview "you are here" dot reuses it so it can't drift from the peg. */
   static pegColor() {
     return MinimapStyle.token('--color-link-100', '#3E8BD9');
   }
@@ -138,10 +156,10 @@ class MinimapStyle {
             strokeColor: color,
             strokeOpacity: 1.0,
             strokeWeight: MinimapStyle.#ROUTE_WEIGHT,
-            scale: 4,
+            scale: 2.5, // 5px dashes with 7px gaps: the rhythm, not the hue, separates this line from the pine one.
           },
           offset: '0',
-          repeat: '15px',
+          repeat: '12px',
         },
         {
           icon: {

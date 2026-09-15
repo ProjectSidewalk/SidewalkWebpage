@@ -1,15 +1,16 @@
 /**
- * Forward crumbs on the Explore minimap (#4669, #4655): the panos that exist ahead of the user on the street being
- * audited, drawn as amber dots so the labeler can see that imagery continues, including past the gaps where the
- * imagery provider's own link graph dead-ends and the on-pano arrows fall silent. The nearest few are clickable and
- * step the user forward, the same move the compass's "go straight" makes; the rest are informational only, so a
- * user can't skip most of a street in one click (#2561).
+ * Crumbs on the Explore minimap for where the user can go next (#4669, #4655): a ring at the destination of every
+ * on-pano arrow, and rings along the route ahead on the street being audited, including past the gaps where the
+ * imagery provider's link graph dead-ends and the arrows fall silent. The crumb the user is facing fills in, so a
+ * filled disc has one meaning on the whole map: the forward arrow / up key takes you here. Route stops are deep
+ * blue (the forward arrow's family, darker than the peg), other directions gold; the nearest few route stops and
+ * every link are clickable and step the user there, the rest of the route is shown but not steppable (#2561).
  *
- * Positions come live from the pano viewer's metadata-only findPanoNear(), which every provider answers through the
- * same search that setLocation() moves with, so a crumb is exactly where a move there would land. The street is
- * sampled on the same fixed grid NavigationService.moveForward() walks (DIST_INCREMENT along the full street
- * geometry, never the remainder), which keeps the sample points identical from move to move: the answers are
- * memoised per street, so after the first burst on a street every later refresh costs no provider calls.
+ * Positions come live from the pano viewer: arrow destinations through getLinkedPanoPositions(), route stops by
+ * sampling the street with the metadata-only findPanoNear(), which every provider answers through the same search
+ * setLocation() moves with. The street is sampled on the same fixed grid NavigationService.moveForward() walks
+ * (DIST_INCREMENT along the full street geometry, never the remainder), which keeps the sample points identical
+ * from move to move: the answers are memoised per street, so after the first burst every later refresh is free.
  */
 
 /**
@@ -22,8 +23,13 @@
  * @typedef {{panoId: string, lat: number, lng: number, alongKm: number, offsetM: number}} MeasuredCrumb
  */
 
+/**
+ * One crumb to draw: a route stop or an arrow destination, and whether clicking it steps there.
+ * @typedef {{panoId: string, lat: number, lng: number, kind: ('route'|'link'), clickable: boolean, rank: number}} Crumb
+ */
+
 class ForwardCrumbs {
-  /** How many of the crumbs ahead are clickable. Stepping, not teleporting (#2561). */
+  /** How many of the route stops ahead are clickable. Stepping, not teleporting (#2561). */
   static REACHABLE_COUNT = 3;
 
   /** A pano farther than this from the street line belongs to a cross street or alley, not this street (m). */
@@ -35,19 +41,28 @@ class ForwardCrumbs {
   /** Long streets sample coarser than DIST_INCREMENT so one street can't queue hundreds of lookups. */
   static MAX_SAMPLES = 100;
 
+  /**
+   * How far (degrees) a link may sit from a heading and still count as "that way": the on-pano forward arrow and the
+   * faced crumb both use it, so the arrow the route highlights and the crumb that fills always agree (#4671).
+   */
+  static LINK_THRESHOLD_DEG = 45;
+
   /** Provider lookups allowed in flight at once; the rest queue. Keeps a fresh street from bursting the provider. */
   static #IN_FLIGHT_LIMIT = 4;
 
   #navigationService;
   #tracker;
-  #markers = new Map(); // panoId -> { marker: AdvancedMarkerElement, rank: number }; rank 0 = faint, 1..N = clickable.
-  #memo = new Map(); // sampleIndex -> Promise<?{panoId, lat, lng}> for the street #memoKey names.
+  #markers = new Map(); // panoId -> { marker: AdvancedMarkerElement, kind, clickable }.
+  #links = []; // The current pano's positioned links, kept for setFacing().
+  #routeStops = []; // Route stops ahead, nearest first, kept for setFacing().
+  #facedPanoId = null;
+  #highlightedPanoId = null;
+  #memo = new Map(); // sampleIndex -> Promise<?PanoHit> for the street #memoKey names.
   #memoKey = null; // Identity of the traversal the memo belongs to; see memoKeyFor().
   #providerFailed = false; // A lookup on this street rejected: stop asking until the street changes.
   #generation = 0; // Bumped per refresh(); a refresh whose lookups resolve after a newer one started is dropped.
   #inFlight = 0;
   #queue = [];
-  #highlightedPanoId = null;
 
   /**
    * @param {NavigationService} navigationService - Makes the moves a crumb click asks for.
@@ -59,16 +74,17 @@ class ForwardCrumbs {
   }
 
   /**
-   * Recomputes and redraws the crumbs for the current task and position. Safe to call often: lookups are memoised
-   * per street and a refresh superseded by a newer one is discarded when its lookups come back. Best-effort, like
-   * the move preloading it runs beside: it is called from the post-move fan-out, so it never lets an error escape.
+   * Recomputes and redraws the crumbs for the current pano, task and position. Safe to call often: route lookups are
+   * memoised per street and a refresh superseded by a newer one is discarded when its lookups come back. Best-effort,
+   * like the move preloading it runs beside: it is called from the post-move fan-out, so it never lets an error
+   * escape.
    * @returns {Promise<void>}
    */
   async refresh() {
     try {
       await this.#refresh();
     } catch (err) {
-      console.warn('Forward crumbs could not be refreshed:', err);
+      console.warn('Minimap crumbs could not be refreshed:', err);
     }
   }
 
@@ -77,69 +93,60 @@ class ForwardCrumbs {
    * @returns {Promise<void>}
    */
   async #refresh() {
-    const task = this.#taskToSample();
-    if (!task) {
+    const generation = ++this.#generation;
+    // Nothing is steppable in the tutorial or while walking is hard-locked (mission-complete modal).
+    if (!svl.panoViewer || svl.isOnboarding() || this.#navigationService.getStatus('lockDisableWalking')) {
       this.clear();
       return;
     }
-    const street = task.getFeature();
-    const key = ForwardCrumbs.memoKeyFor(task);
-    if (key !== this.#memoKey) {
-      this.#memoKey = key;
-      this.#memo.clear();
-      this.#providerFailed = false;
-    }
-    const generation = ++this.#generation;
-
-    const originKm = turf.nearestPointOnLine(street, task.getFurthestPointReached()).properties.location;
-    const offsets = ForwardCrumbs.sampleOffsetsKm(
-      turf.length(street), NavigationService.DIST_INCREMENT, ForwardCrumbs.MAX_SAMPLES,
-    );
-    const pending = [];
-    offsets.forEach((offsetKm, i) => {
-      // Points already walked can't hold a crumb, so they are never asked about.
-      if (offsetKm < originKm - NavigationService.DIST_INCREMENT) return;
-      if (!this.#memo.has(i)) {
-        if (this.#providerFailed) return;
-        const [lng, lat] = turf.along(street, offsetKm).geometry.coordinates;
-        this.#memo.set(i, this.#enqueue(() => svl.panoViewer.findPanoNear({ lat, lng }).catch((err) => {
-          // An unanswered lookup says nothing about the street (#4918); remember that it failed rather than
-          // re-asking on every move, and show whatever the answered points found.
-          this.#providerFailed = true;
-          console.warn('Forward crumb lookup failed; not sampling further on this street.', err);
-          return null;
-        })));
-      }
-      pending.push(this.#memo.get(i));
-    });
-
-    const hits = await Promise.all(pending);
+    const task = this.#taskToSample();
+    const [links, stops] = await Promise.all([
+      this.#positionedLinks(),
+      task ? this.#routeStopsAhead(task) : Promise.resolve([]),
+    ]);
     if (generation !== this.#generation) return; // A newer refresh owns the markers now.
 
+    this.#links = links;
+    this.#routeStops = stops;
     const currentPanoId = svl.panoViewer.getPanoId();
-    const candidates = ForwardCrumbs.dedupByPanoId(hits.filter(Boolean))
-      .filter((hit) => hit.panoId !== currentPanoId
-        && !(svl.observedArea && svl.observedArea.hasVisited(hit.panoId)))
-      .map((hit) => ForwardCrumbs.measureAgainstStreet(street, hit));
-    const { reachable, faint } = ForwardCrumbs.windowCandidates(candidates, {
-      fromKm: originKm,
-      minAheadM: ForwardCrumbs.MIN_AHEAD_M,
-      maxOffsetM: ForwardCrumbs.MAX_OFFSET_M,
+    const crumbs = ForwardCrumbs.mergeSources(stops, links, {
+      currentPanoId,
+      isVisited: (panoId) => Boolean(svl.observedArea && svl.observedArea.hasVisited(panoId)),
       reachableCount: ForwardCrumbs.REACHABLE_COUNT,
     });
-    this.#render(reachable, faint);
+    this.#render(crumbs);
+    this.setFacing(svl.panoViewer.getPov().heading);
   }
 
-  /** Removes every crumb from the map. The memo is kept, since re-showing the same street is then free. */
+  /**
+   * Fills in the crumb the user now faces (the one the forward arrow / up key would take them to) and empties the
+   * previous one. Called on every POV change, so it only toggles classes.
+   * @param {number} heading - The live POV heading, degrees clockwise from north.
+   */
+  setFacing(heading) {
+    const nextStop = this.#routeStops.length > 0 ? this.#routeStops[0].panoId : null;
+    const panoId = ForwardCrumbs.facedPanoId(this.#links, heading, nextStop, this.#routeHeading());
+    if (panoId === this.#facedPanoId) return;
+    const previous = this.#markers.get(this.#facedPanoId);
+    if (previous) previous.marker.content.classList.remove('minimap-crumb-faced');
+    const next = this.#markers.get(panoId);
+    if (next) next.marker.content.classList.add('minimap-crumb-faced');
+    this.#facedPanoId = next ? panoId : null;
+  }
+
+  /** Removes every crumb from the map. The route memo is kept, since re-showing the same street is then free. */
   clear() {
     for (const { marker } of this.#markers.values()) marker.map = null;
     this.#markers.clear();
+    this.#links = [];
+    this.#routeStops = [];
+    this.#facedPanoId = null;
     this.#highlightedPanoId = null;
   }
 
   /**
-   * Emphasizes the crumb at a pano, for tying an on-pano arrow to the crumb it leads to (#4682). No-op when no
-   * crumb marks that pano.
+   * Outlines the crumb at a pano, for tying a hovered on-pano arrow to the crumb it leads to (#4682). Distinct from
+   * the faced fill. No-op when no crumb marks that pano.
    * @param {string} panoId
    */
   highlight(panoId) {
@@ -147,16 +154,83 @@ class ForwardCrumbs {
     this.clearHighlight();
     const entry = this.#markers.get(panoId);
     if (!entry) return;
-    entry.marker.content.classList.add('minimap-forward-crumb-highlight');
+    entry.marker.content.classList.add('minimap-crumb-highlight');
     this.#highlightedPanoId = panoId;
   }
 
-  /** Clears any highlight set by {@link highlight}. */
+  /** Clears any outline set by {@link highlight}. */
   clearHighlight() {
     if (this.#highlightedPanoId === null) return;
     const entry = this.#markers.get(this.#highlightedPanoId);
-    if (entry) entry.marker.content.classList.remove('minimap-forward-crumb-highlight');
+    if (entry) entry.marker.content.classList.remove('minimap-crumb-highlight');
     this.#highlightedPanoId = null;
+  }
+
+  /**
+   * Index of the link whose heading is closest to `heading`, if one is within `threshold` degrees of it; -1
+   * otherwise. PanoManager uses it to pick the arrow the route highlights (a link-graph dead-end is -1, where it
+   * synthesizes a forward arrow instead, #4671); setFacing() uses it to pick the crumb that fills.
+   * @param {Array<{heading: number}>} links - The current pano's linked panos.
+   * @param {number} heading - The heading to match, degrees clockwise from north.
+   * @param {number} [threshold] - Degrees; defaults to LINK_THRESHOLD_DEG.
+   * @returns {number}
+   */
+  static closestLinkIndex(links, heading, threshold = ForwardCrumbs.LINK_THRESHOLD_DEG) {
+    let bestDelta = threshold;
+    let bestIndex = -1;
+    links.forEach((link, i) => {
+      const delta = Math.abs(((((link.heading - heading) % 360) + 540) % 360) - 180);
+      if (delta < bestDelta) {
+        bestDelta = delta;
+        bestIndex = i;
+      }
+    });
+    return bestIndex;
+  }
+
+  /**
+   * The pano the forward arrow / up key leads to from a heading: the link that way, or, where no link points the
+   * route's way and the on-pano arrow is the synthesized route-forward one, the route's next stop when the user
+   * faces the route's direction. Null when facing nowhere a step leads.
+   * @param {Array<{panoId: string, heading: number}>} links - The current pano's links.
+   * @param {number} heading - The live POV heading.
+   * @param {?string} nextStopPanoId - The nearest route stop ahead, if any.
+   * @param {?number} routeHeading - The route's forward heading, or null when not on a route.
+   * @returns {?string}
+   */
+  static facedPanoId(links, heading, nextStopPanoId, routeHeading) {
+    const linkIndex = ForwardCrumbs.closestLinkIndex(links, heading);
+    if (linkIndex >= 0) return links[linkIndex].panoId;
+    if (nextStopPanoId === null || routeHeading === null) return null;
+    const routeHasLink = ForwardCrumbs.closestLinkIndex(links, routeHeading) >= 0;
+    const facingRoute = ForwardCrumbs.closestLinkIndex([{ heading: routeHeading }], heading) === 0;
+    return !routeHasLink && facingRoute ? nextStopPanoId : null;
+  }
+
+  /**
+   * Combines the two crumb sources into one list keyed by pano. A route stop wins over a link to the same pano (the
+   * link's arrow is the route's forward arrow, so it should read as a route stop). The current pano and visited
+   * panos are left out: the peg and the breadcrumb trail already mark them.
+   * @param {MeasuredCrumb[]} stops - Route stops ahead, nearest first.
+   * @param {Array<{panoId: string, heading: number, lat: number, lng: number}>} links - Positioned arrow destinations.
+   * @param {object} options
+   * @param {?string} options.currentPanoId - The pano the user stands on.
+   * @param {(panoId: string) => boolean} options.isVisited - Whether the breadcrumb trail already marks a pano.
+   * @param {number} options.reachableCount - How many of the nearest route stops are clickable.
+   * @returns {Crumb[]}
+   */
+  static mergeSources(stops, links, { currentPanoId, isVisited, reachableCount }) {
+    const skip = (panoId) => panoId === currentPanoId || isVisited(panoId);
+    const crumbs = stops.filter((stop) => !skip(stop.panoId)).map((stop, i) => ({
+      panoId: stop.panoId, lat: stop.lat, lng: stop.lng, kind: 'route', clickable: i < reachableCount, rank: i + 1,
+    }));
+    const taken = new Set(crumbs.map((crumb) => crumb.panoId));
+    for (const link of links) {
+      if (skip(link.panoId) || taken.has(link.panoId)) continue;
+      taken.add(link.panoId);
+      crumbs.push({ panoId: link.panoId, lat: link.lat, lng: link.lng, kind: 'link', clickable: true, rank: 0 });
+    }
+    return crumbs;
   }
 
   /**
@@ -215,40 +289,110 @@ class ForwardCrumbs {
   }
 
   /**
-   * Picks the panos that are ahead on this street and splits them into the clickable few and the rest.
+   * Picks the panos that are ahead on this street, nearest first.
    * @param {MeasuredCrumb[]} measured - Panos located by {@link measureAgainstStreet}.
    * @param {object} options
    * @param {number} options.fromKm - Where "ahead" starts: the furthest point reached, along the street.
    * @param {number} options.minAheadM - Panos closer than this to `fromKm` are where the user already is.
    * @param {number} options.maxOffsetM - Panos farther than this from the line are on another street.
-   * @param {number} options.reachableCount - How many of the nearest to make clickable.
-   * @returns {{reachable: MeasuredCrumb[], faint: MeasuredCrumb[]}} Both in walk order, nearest first.
+   * @returns {MeasuredCrumb[]} In walk order, nearest first.
    */
-  static windowCandidates(measured, { fromKm, minAheadM, maxOffsetM, reachableCount }) {
-    const ahead = measured
+  static aheadOnStreet(measured, { fromKm, minAheadM, maxOffsetM }) {
+    return measured
       .filter((c) => c.offsetM <= maxOffsetM && (c.alongKm - fromKm) * 1000 > minAheadM)
       .sort((a, b) => a.alongKm - b.alongKm);
-    return { reachable: ahead.slice(0, reachableCount), faint: ahead.slice(reachableCount) };
   }
 
   /**
-   * The task whose street should carry crumbs, or null when none should show: no route to walk (free exploration,
-   * the tutorial, no current task yet), a finished street (the next one is a jump the compass owns), walking locked
-   * (mission-complete modal), or a provider with no location search (Pannellum). The same gates the on-pano
-   * route-forward arrow uses.
+   * The task whose street should carry route stops, or null when none should: no route to walk (free exploration,
+   * no current task yet) or a finished street (the next one is a jump the compass owns). Arrow-destination crumbs
+   * don't depend on this; they draw wherever there are arrows.
    * @returns {?Task}
    */
   #taskToSample() {
-    if (svl.isOnboarding() || svl.isExploreAddressMode()) return null;
-    if (!svl.taskContainer || !svl.panoViewer || typeof svl.panoViewer.findPanoNear !== 'function') return null;
-    if (this.#navigationService.getStatus('lockDisableWalking')) return null;
+    if (svl.isExploreAddressMode() || !svl.taskContainer) return null;
+    if (typeof svl.panoViewer.findPanoNear !== 'function') return null;
     const task = svl.taskContainer.getCurrentTask();
     return task && !task.isComplete() ? task : null;
   }
 
   /**
+   * The route's forward heading, or null when there is no route to follow (free exploration, no task, geometry not
+   * ready) or the user has left it: the synthesized forward arrow only exists on route, so off route facing the
+   * route's direction fills nothing.
+   * @returns {?number}
+   */
+  #routeHeading() {
+    if (!svl.compass || svl.isExploreAddressMode() || !svl.taskContainer) return null;
+    if (!svl.taskContainer.getCurrentTask() || !svl.compass.isEnRoute()) return null;
+    try {
+      return (svl.compass.getTargetAngle() + 360) % 360;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * The current pano's arrow destinations with positions, or none when the provider can't say.
+   * @returns {Promise<Array<{panoId: string, heading: number, lat: number, lng: number}>>}
+   */
+  async #positionedLinks() {
+    if (typeof svl.panoViewer.getLinkedPanoPositions !== 'function') return [];
+    try {
+      return await svl.panoViewer.getLinkedPanoPositions();
+    } catch (err) {
+      console.warn('Could not position the current pano\'s links:', err);
+      return [];
+    }
+  }
+
+  /**
+   * The panos ahead on the task's street, nearest first, from the memoised street sampling.
+   * @param {Task} task - The task being walked.
+   * @returns {Promise<MeasuredCrumb[]>}
+   */
+  async #routeStopsAhead(task) {
+    const street = task.getFeature();
+    const key = ForwardCrumbs.memoKeyFor(task);
+    if (key !== this.#memoKey) {
+      this.#memoKey = key;
+      this.#memo.clear();
+      this.#providerFailed = false;
+    }
+
+    const originKm = turf.nearestPointOnLine(street, task.getFurthestPointReached()).properties.location;
+    const offsets = ForwardCrumbs.sampleOffsetsKm(
+      turf.length(street), NavigationService.DIST_INCREMENT, ForwardCrumbs.MAX_SAMPLES,
+    );
+    const pending = [];
+    offsets.forEach((offsetKm, i) => {
+      // Points already walked can't hold a crumb, so they are never asked about.
+      if (offsetKm < originKm - NavigationService.DIST_INCREMENT) return;
+      if (!this.#memo.has(i)) {
+        if (this.#providerFailed) return;
+        const [lng, lat] = turf.along(street, offsetKm).geometry.coordinates;
+        this.#memo.set(i, this.#enqueue(() => svl.panoViewer.findPanoNear({ lat, lng }).catch((err) => {
+          // An unanswered lookup says nothing about the street (#4918); remember that it failed rather than
+          // re-asking on every move, and show whatever the answered points found.
+          this.#providerFailed = true;
+          console.warn('Route crumb lookup failed; not sampling further on this street.', err);
+          return null;
+        })));
+      }
+      pending.push(this.#memo.get(i));
+    });
+
+    const hits = await Promise.all(pending);
+    const measured = ForwardCrumbs.dedupByPanoId(hits.filter(Boolean))
+      .map((hit) => ForwardCrumbs.measureAgainstStreet(street, hit));
+    return ForwardCrumbs.aheadOnStreet(measured, {
+      fromKm: originKm, minAheadM: ForwardCrumbs.MIN_AHEAD_M, maxOffsetM: ForwardCrumbs.MAX_OFFSET_M,
+    });
+  }
+
+  /**
    * Runs a lookup with at most #IN_FLIGHT_LIMIT in flight, queueing the rest in order.
-   * @param {() => Promise<*>} lookup - Must not reject (refresh() catches before enqueueing).
+   * @param {() => Promise<*>} lookup - Must not reject (the caller catches before enqueueing).
    * @returns {Promise<*>}
    */
   #enqueue(lookup) {
@@ -271,49 +415,51 @@ class ForwardCrumbs {
   }
 
   /**
-   * Syncs the markers to the wanted set, keyed by pano. A crumb whose rank changed (a faint one becoming clickable
-   * as the user advances) is rebuilt, since clickability is fixed at marker construction.
-   * @param {MeasuredCrumb[]} reachable - Clickable crumbs, nearest first.
-   * @param {MeasuredCrumb[]} faint - The rest, nearest first.
+   * Syncs the markers to the wanted crumbs, keyed by pano. A crumb whose kind or clickability changed (a far route
+   * stop coming within reach as the user advances) is rebuilt, since clickability is fixed at marker construction.
+   * @param {Crumb[]} crumbs
    */
-  #render(reachable, faint) {
-    const wanted = new Map();
-    reachable.forEach((crumb, i) => wanted.set(crumb.panoId, { crumb, rank: i + 1 }));
-    faint.forEach((crumb) => wanted.set(crumb.panoId, { crumb, rank: 0 }));
-
+  #render(crumbs) {
+    const wanted = new Map(crumbs.map((crumb) => [crumb.panoId, crumb]));
     for (const [panoId, entry] of this.#markers) {
       const want = wanted.get(panoId);
-      if (!want || want.rank !== entry.rank) {
+      if (!want || want.kind !== entry.kind || want.clickable !== entry.clickable) {
         entry.marker.map = null;
         this.#markers.delete(panoId);
+        if (this.#facedPanoId === panoId) this.#facedPanoId = null;
         if (this.#highlightedPanoId === panoId) this.#highlightedPanoId = null;
       }
     }
-    for (const [panoId, { crumb, rank }] of wanted) {
-      if (!this.#markers.has(panoId)) this.#markers.set(panoId, { marker: this.#createMarker(crumb, rank), rank });
+    for (const [panoId, crumb] of wanted) {
+      if (!this.#markers.has(panoId)) {
+        this.#markers.set(panoId, { marker: this.#createMarker(crumb), kind: crumb.kind, clickable: crumb.clickable });
+      }
     }
   }
 
   /**
    * One crumb marker. Map-positioned, like the visited breadcrumbs, so it tracks zoom without manual projection.
-   * @param {MeasuredCrumb} crumb
-   * @param {number} rank - 1..N for the clickable crumbs (nearest first), 0 for a faint one.
+   * @param {Crumb} crumb
    * @returns {google.maps.marker.AdvancedMarkerElement}
    */
-  #createMarker(crumb, rank) {
-    const reachable = rank > 0;
+  #createMarker(crumb) {
     const content = document.createElement('div');
-    content.className = reachable ? 'minimap-forward-crumb minimap-forward-crumb-reachable' : 'minimap-forward-crumb';
+    content.className = [
+      'minimap-crumb', `minimap-crumb-${crumb.kind}`, crumb.clickable ? '' : 'minimap-crumb-far',
+    ].join(' ').trim();
+    const title = crumb.kind === 'route'
+      ? i18next.t('audit:right-ui.minimap.forward-crumb-title', { rank: crumb.rank })
+      : i18next.t('audit:right-ui.minimap.link-crumb-title');
     const marker = new google.maps.marker.AdvancedMarkerElement({
       position: new google.maps.LatLng(crumb.lat, crumb.lng),
       map: svl.minimap.getMap(),
       content,
-      gmpClickable: reachable,
+      gmpClickable: crumb.clickable,
       // Above the visited breadcrumbs and label icons, well below the peg (1000), which is click-through anyway.
-      zIndex: reachable ? 30 : 20,
-      title: reachable ? i18next.t('audit:right-ui.minimap.forward-crumb-title', { rank }) : undefined,
+      zIndex: crumb.clickable ? (crumb.kind === 'route' ? 30 : 25) : 20,
+      title: crumb.clickable ? title : undefined,
     });
-    if (reachable) marker.addListener('gmp-click', () => this.#moveTo(crumb, rank));
+    if (crumb.clickable) marker.addListener('gmp-click', () => this.#moveTo(crumb));
     return marker;
   }
 
@@ -321,14 +467,13 @@ class ForwardCrumbs {
    * Steps the user to a crumb's pano. A real move that advances the task, unlike the breadcrumbs' peek back. The
    * pano id is tried first; a provider that no longer serves it (GSV retires panos) gets the same coordinate search
    * moveForward() uses, which lands on whatever now stands there.
-   * @param {MeasuredCrumb} crumb
-   * @param {number} rank - The crumb's position among the clickable ones, for the log.
+   * @param {Crumb} crumb
    * @returns {Promise<void>}
    */
-  async #moveTo(crumb, rank) {
+  async #moveTo(crumb) {
     const nav = this.#navigationService;
     if (nav.getStatus('disableWalking')) return;
-    this.#tracker.push('Click_MinimapForwardCrumb', { panoId: crumb.panoId, rank });
+    this.#tracker.push('Click_MinimapForwardCrumb', { panoId: crumb.panoId, kind: crumb.kind, rank: crumb.rank });
     const moved = await nav.moveToPano(crumb.panoId, false, { alertOnFailure: false });
     if (moved) return;
     this.#tracker.push('ForwardCrumbMove_Fallback', { panoId: crumb.panoId });

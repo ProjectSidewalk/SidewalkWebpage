@@ -173,8 +173,11 @@
       "legend-you": "Sie + Blickrichtung",
       "legend-visited": "Besuchter Ort",
       "legend-unseen": "Noch nicht gesehen",
-      "legend-next-stops": "Nächste Haltepunkte (klicken zum Bewegen)",
-      "forward-crumb-title": "Zu Haltepunkt {{rank}} gehen"
+      "legend-next-stops": "Haltepunkte auf deiner Route",
+      "forward-crumb-title": "Zu Haltepunkt {{rank}} gehen",
+      "legend-other-links": "Andere Richtungen",
+      "legend-faced": "Gefüllt: wohin Vorwärts führt",
+      "link-crumb-title": "Zu diesem Panorama gehen"
     },
     "stats": {
       "leaderboard-cta": "Bestenliste der Gemeinschaft ansehen"

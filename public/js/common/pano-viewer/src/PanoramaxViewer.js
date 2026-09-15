@@ -614,7 +614,20 @@ class PanoramaxViewer extends PanoViewer {
       const current = bySector.get(sector);
       if (!current || score > current.score) bySector.set(sector, { ...candidate, score });
     }
-    return [...links, ...bySector.values()].map(({ panoId, heading }) => ({ panoId, heading }));
+    // The STAC item is in hand, so the link carries its destination's position (GeoJSON is [lng, lat]) and the
+    // minimap needs no lookup to place a crumb there.
+    return [...links, ...bySector.values()].map(({ panoId, heading, item: linkItem }) => ({
+      panoId, heading, lat: linkItem.geometry.coordinates[1], lng: linkItem.geometry.coordinates[0],
+    }));
+  };
+
+  /**
+   * See PanoViewer.lookupPanoPosition(). Links already carry their position, so this only serves a caller holding
+   * a bare id: answered from the items the searches cached, null once a street change has dropped them.
+   */
+  lookupPanoPosition = (panoId) => {
+    const item = this.#items.get(panoId);
+    return Promise.resolve(item ? { lat: item.geometry.coordinates[1], lng: item.geometry.coordinates[0] } : null);
   };
 
   // ---- Angles -----------------------------------------------------------------------------------------------------

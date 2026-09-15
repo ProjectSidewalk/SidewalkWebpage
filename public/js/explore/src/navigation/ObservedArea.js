@@ -28,8 +28,9 @@ class ObservedArea {
   // The canvas bitmaps are kept in sync with the displayed minimap size (which scales with the UI). This is required
   // because the fog is positioned via the map's projection, which returns coordinates in displayed pixels; if the
   // bitmap didn't match, the fog would be offset (e.g. drawn at displayed/2 inside a smaller bitmap).
-  #width = 0;          // Canvas bitmap width (set by #syncCanvasSize).
-  #height = 0;         // Canvas bitmap height.
+  #width = 0;          // Canvas width in CSS px (set by #syncCanvasSize); the bitmap is this times #dpr.
+  #height = 0;         // Canvas height in CSS px.
+  #dpr = 1;            // Device pixels per CSS px the bitmaps were last sized for.
   #scaleFactor = 1;    // width / baseSize; scales the FOV/progress geometry to match the minimap.
 
   // Canvas contexts for the various components of the fog of war view on the mini map.
@@ -58,17 +59,24 @@ class ObservedArea {
     const uiMinimap = this.#uiMinimap;
     const displayedWidth = Math.round(uiMinimap.fogOfWar.width()) || this.#baseSize;
     const displayedHeight = Math.round(uiMinimap.fogOfWar.height()) || this.#baseSize;
-    if (displayedWidth !== this.#width || displayedHeight !== this.#height) {
+    // Bitmaps are sized in device pixels so the fog frontier, cone edge and ring stay crisp on HiDPI screens; every
+    // draw call keeps working in CSS px through the transform set below.
+    const dpr = window.devicePixelRatio || 1;
+    if (displayedWidth !== this.#width || displayedHeight !== this.#height || dpr !== this.#dpr) {
       this.#width = displayedWidth;
       this.#height = displayedHeight;
+      this.#dpr = dpr;
       this.#scaleFactor = this.#width / this.#baseSize;
       for (const canvas of [uiMinimap.fogOfWar[0], uiMinimap.fov[0], uiMinimap.progressCircle[0]]) {
-        canvas.width = this.#width;
-        canvas.height = this.#height;
+        canvas.width = Math.round(this.#width * dpr);
+        canvas.height = Math.round(this.#height * dpr);
       }
     }
     // Set up ctx state that doesn't change between renders (and is reset by any resize above). The small blur keeps
     // a near-crisp seen/unseen frontier — the point of the fog is to make "not yet viewed" obvious (#4639).
+    for (const ctx of [this.#fogOfWarCtx, this.#fovCtx, this.#progressCircleCtx]) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
     this.#fogOfWarCtx.fillStyle = MinimapStyle.fogColor();
     this.#fogOfWarCtx.filter = `blur(${2 * this.#scaleFactor}px)`;
     this.#progressCircleCtx.lineCap = 'round';

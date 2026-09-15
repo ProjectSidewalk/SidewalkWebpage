@@ -173,8 +173,11 @@
       "legend-you": "你的位置與視角方向",
       "legend-visited": "已造訪的位置",
       "legend-unseen": "尚未查看",
-      "legend-next-stops": "下一站（點擊前往）",
-      "forward-crumb-title": "前往第 {{rank}} 站"
+      "legend-next-stops": "路線上的站點",
+      "forward-crumb-title": "前往第 {{rank}} 站",
+      "legend-other-links": "其他方向",
+      "legend-faced": "實心：向前會到達的位置",
+      "link-crumb-title": "前往此全景"
     },
     "stats": {
       "leaderboard-cta": "查看社群排行榜"

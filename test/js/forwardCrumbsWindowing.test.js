@@ -32,8 +32,6 @@ const STREET_KM = turf.length(STREET);
 /** A pano `alongM` metres down the street and `offsetM` metres north of it. */
 const hit = (panoId, alongM, offsetM = 0) => ({ panoId, lat: LAT + offsetM / 111320, lng: lngAt(alongM) });
 
-const WINDOW = { minAheadM: 5, maxOffsetM: 15, reachableCount: 3 };
-
 describe('ForwardCrumbs.sampleOffsetsKm', () => {
     test('walks the street at the requested step and always ends at the street end', () => {
         const offsets = ForwardCrumbs.sampleOffsetsKm(0.1, 0.01, 100);
@@ -79,41 +77,95 @@ describe('ForwardCrumbs.measureAgainstStreet', () => {
     });
 });
 
-describe('ForwardCrumbs.windowCandidates', () => {
+describe('ForwardCrumbs.aheadOnStreet', () => {
     const measure = (hits) => hits.map((h) => ForwardCrumbs.measureAgainstStreet(STREET, h));
+    const opts = { minAheadM: 5, maxOffsetM: 15 };
 
-    test('splits the panos ahead into the nearest clickable few and the faint rest, nearest first', () => {
+    test('orders the panos ahead nearest first', () => {
         const measured = measure([hit('D', 200), hit('B', 60), hit('A', 30), hit('E', 300), hit('C', 100)]);
-        const { reachable, faint } = ForwardCrumbs.windowCandidates(measured, { fromKm: 0.02, ...WINDOW });
-        expect(reachable.map((c) => c.panoId)).toEqual(['A', 'B', 'C']);
-        expect(faint.map((c) => c.panoId)).toEqual(['D', 'E']);
+        expect(ForwardCrumbs.aheadOnStreet(measured, { fromKm: 0.02, ...opts }).map((c) => c.panoId))
+            .toEqual(['A', 'B', 'C', 'D', 'E']);
     });
 
     test('drops panos at or behind the furthest point, and those within the standing-here cluster', () => {
         const measured = measure([hit('behind', 50), hit('here', 103), hit('ahead', 110)]);
-        const { reachable, faint } = ForwardCrumbs.windowCandidates(measured, { fromKm: 0.1, ...WINDOW });
-        expect(reachable.map((c) => c.panoId)).toEqual(['ahead']);
-        expect(faint).toEqual([]);
+        expect(ForwardCrumbs.aheadOnStreet(measured, { fromKm: 0.1, ...opts }).map((c) => c.panoId)).toEqual(['ahead']);
     });
 
     test('drops panos too far off the line to be on this street', () => {
         const measured = measure([hit('alley', 150, 30), hit('kerb', 160, 4)]);
-        const { reachable } = ForwardCrumbs.windowCandidates(measured, { fromKm: 0.1, ...WINDOW });
-        expect(reachable.map((c) => c.panoId)).toEqual(['kerb']);
-    });
-
-    test('fewer panos than the clickable count leaves nothing faint', () => {
-        const measured = measure([hit('A', 30), hit('B', 60)]);
-        const { reachable, faint } = ForwardCrumbs.windowCandidates(measured, { fromKm: 0, ...WINDOW });
-        expect(reachable).toHaveLength(2);
-        expect(faint).toEqual([]);
+        expect(ForwardCrumbs.aheadOnStreet(measured, { fromKm: 0.1, ...opts }).map((c) => c.panoId)).toEqual(['kerb']);
     });
 
     test('nothing ahead on a finished street', () => {
         const measured = measure([hit('A', 30), hit('B', 60)]);
-        const { reachable, faint } = ForwardCrumbs.windowCandidates(measured, { fromKm: STREET_KM, ...WINDOW });
-        expect(reachable).toEqual([]);
-        expect(faint).toEqual([]);
+        expect(ForwardCrumbs.aheadOnStreet(measured, { fromKm: STREET_KM, ...opts })).toEqual([]);
+    });
+});
+
+describe('ForwardCrumbs.mergeSources', () => {
+    const stop = (panoId, alongM) => ({ ...hit(panoId, alongM), alongKm: alongM / 1000, offsetM: 0 });
+    const link = (panoId, heading, alongM = 0, offsetM = 0) => ({ ...hit(panoId, alongM, offsetM), heading });
+    const opts = { currentPanoId: 'here', isVisited: (id) => id === 'seen', reachableCount: 3 };
+
+    test('route stops come first with the nearest few clickable, then the other arrows, all clickable', () => {
+        const crumbs = ForwardCrumbs.mergeSources(
+            [stop('A', 30), stop('B', 60), stop('C', 100), stop('D', 200)],
+            [link('east', 90, 10, 20), link('west', 270, -10, 20)], opts,
+        );
+        expect(crumbs.map((c) => [c.panoId, c.kind, c.clickable, c.rank])).toEqual([
+            ['A', 'route', true, 1], ['B', 'route', true, 2], ['C', 'route', true, 3], ['D', 'route', false, 4],
+            ['east', 'link', true, 0], ['west', 'link', true, 0],
+        ]);
+    });
+
+    test('a route stop wins over a link to the same pano, and the current and visited panos are left out', () => {
+        const crumbs = ForwardCrumbs.mergeSources(
+            [stop('A', 30), stop('here', 40)],
+            [link('A', 45), link('seen', 225), link('here', 0), link('side', 90)], opts,
+        );
+        expect(crumbs.map((c) => [c.panoId, c.kind])).toEqual([['A', 'route'], ['side', 'link']]);
+    });
+});
+
+describe('ForwardCrumbs.closestLinkIndex', () => {
+    const links = [{ panoId: 'n', heading: 0 }, { panoId: 'e', heading: 90 }, { panoId: 'sw', heading: 225 }];
+
+    test('picks the link nearest the heading within the threshold, across the 0/360 seam', () => {
+        expect(ForwardCrumbs.closestLinkIndex(links, 80)).toBe(1);
+        expect(ForwardCrumbs.closestLinkIndex(links, 350)).toBe(0);
+        expect(ForwardCrumbs.closestLinkIndex(links, 200)).toBe(2);
+    });
+
+    test('answers -1 when nothing lies within the threshold', () => {
+        expect(ForwardCrumbs.closestLinkIndex(links, 160)).toBe(-1);
+        expect(ForwardCrumbs.closestLinkIndex([], 0)).toBe(-1);
+        expect(ForwardCrumbs.closestLinkIndex(links, 160, 70)).toBe(2);
+    });
+});
+
+describe('ForwardCrumbs.facedPanoId', () => {
+    const links = [{ panoId: 'e', heading: 90 }, { panoId: 'w', heading: 270 }];
+
+    test('the link the user faces is where forward goes', () => {
+        expect(ForwardCrumbs.facedPanoId(links, 100, 'next', 45)).toBe('e');
+        expect(ForwardCrumbs.facedPanoId(links, 260, 'next', 45)).toBe('w');
+    });
+
+    test('at a link-graph dead-end, facing the route fills its next stop (the synthesized forward arrow)', () => {
+        expect(ForwardCrumbs.facedPanoId(links, 10, 'next', 0)).toBe('next');
+        expect(ForwardCrumbs.facedPanoId(links, 180, 'next', 0)).toBeNull();
+    });
+
+    test('when a link already serves the route, facing the route without facing that link fills nothing', () => {
+        // The route heads 60°: the east link (90°) is its arrow, so no synthesized arrow exists at 20°.
+        expect(ForwardCrumbs.facedPanoId(links, 20, 'next', 60)).toBeNull();
+    });
+
+    test('nothing to fill off route or with no route', () => {
+        expect(ForwardCrumbs.facedPanoId(links, 0, null, 0)).toBeNull();
+        expect(ForwardCrumbs.facedPanoId(links, 0, 'next', null)).toBeNull();
+        expect(ForwardCrumbs.facedPanoId([], 0, null, null)).toBeNull();
     });
 });
 

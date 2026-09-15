@@ -173,8 +173,11 @@
       "legend-you": "You + view direction",
       "legend-visited": "Visited location",
       "legend-unseen": "Not yet viewed",
-      "legend-next-stops": "Next stops (click to move)",
-      "forward-crumb-title": "Move ahead to stop {{rank}}"
+      "legend-next-stops": "Stops on your route",
+      "forward-crumb-title": "Move ahead to stop {{rank}}",
+      "legend-other-links": "Other directions",
+      "legend-faced": "Filled: where forward takes you",
+      "link-crumb-title": "Move to this pano"
     },
     "stats": {
       "leaderboard-cta": "See the community leaderboard"

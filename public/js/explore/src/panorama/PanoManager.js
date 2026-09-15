@@ -453,7 +453,7 @@ class PanoManager {
     // along — or back to — the route one pano at a time.
     const links = svl.panoViewer.getLinkedPanos();
     const targetHeading = this.#routeForwardHeading();
-    const forwardIndex = targetHeading === null ? -1 : this.#closestForwardLinkIndex(links, targetHeading);
+    const forwardIndex = targetHeading === null ? -1 : ForwardCrumbs.closestLinkIndex(links, targetHeading);
 
     // Create an arrow for each link, rotated to its direction; the forward one is drawn in the highlight color.
     links.forEach((link, i) => {
@@ -492,27 +492,6 @@ class PanoManager {
     } catch {
       return null; // Route geometry not ready yet (e.g. mid-initialization).
     }
-  }
-
-  /**
-   * Index of the link whose heading is closest to the route direction, if one is within FORWARD_LINK_THRESHOLD
-   * degrees of it; -1 otherwise (a link-graph dead-end, where the caller synthesizes a forward arrow instead). (#4671)
-   * @param {Array<{panoId: string, heading: number}>} links - The current pano's linked panos.
-   * @param {number} targetHeading - The route's forward heading in degrees.
-   * @returns {number}
-   */
-  #closestForwardLinkIndex(links, targetHeading) {
-    const FORWARD_LINK_THRESHOLD = 45;
-    let bestDelta = FORWARD_LINK_THRESHOLD;
-    let bestIndex = -1;
-    links.forEach((link, i) => {
-      const delta = Math.abs(((((link.heading - targetHeading) % 360) + 540) % 360) - 180);
-      if (delta < bestDelta) {
-        bestDelta = delta;
-        bestIndex = i;
-      }
-    });
-    return bestIndex;
   }
 
   /**
@@ -576,6 +555,8 @@ class PanoManager {
 
     const arrowGroup = svl.ui.streetview.navArrows[0];
     arrowGroup.setAttribute('transform', `rotate(${-heading})`);
+    // The minimap fills in the crumb the user now faces: the one the forward arrow / up key would take them to.
+    if (svl.forwardCrumbs) svl.forwardCrumbs.setFacing(heading);
 
     svl.tracker.push('POV_Changed');
   };

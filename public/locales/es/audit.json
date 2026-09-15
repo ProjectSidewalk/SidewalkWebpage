@@ -173,8 +173,11 @@
       "legend-you": "Usted + dirección de vista",
       "legend-visited": "Ubicación visitada",
       "legend-unseen": "Aún sin ver",
-      "legend-next-stops": "Próximas paradas (clic para avanzar)",
-      "forward-crumb-title": "Avanzar a la parada {{rank}}"
+      "legend-next-stops": "Paradas en tu ruta",
+      "forward-crumb-title": "Avanzar a la parada {{rank}}",
+      "legend-other-links": "Otras direcciones",
+      "legend-faced": "Relleno: adonde te lleva avanzar",
+      "link-crumb-title": "Ir a esta panorámica"
     },
     "stats": {
       "leaderboard-cta": "Ver la clasificación de la comunidad"

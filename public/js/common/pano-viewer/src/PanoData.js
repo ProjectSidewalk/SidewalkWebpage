@@ -20,8 +20,10 @@ class PanoData {
    * @param {string} [params.address] - Optional address for the current location
    * @param {string} [params.copyright] - Optional associated copyright info for the image
    * @param {string} [params.license] - Optional licence identifier the provider records per image (Panoramax only)
-   * @param {Array<{panoId: string, heading: number, description?: string}>} params.linkedPanos - Nearby panos linked
-   *     to with nav arrows
+   * @param {Array<{panoId: string, heading: number, description?: string, lat?: number, lng?: number}>}
+   *     params.linkedPanos - Nearby panos linked to with nav arrows. lat/lng are the destination's camera position
+   *     when the provider had it in hand without a move; absent otherwise (PanoViewer.getLinkedPanoPositions fills
+   *     them in).
    * @param {Array<{panoId: string, captureDate: moment.Moment}>} params.history - Past panos at this location
    * @param {boolean} [params.submitted=false] - Whether we've sent this data to the server; false unless in tutorial
    * @returns {PanoData}

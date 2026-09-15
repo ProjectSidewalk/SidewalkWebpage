@@ -173,8 +173,11 @@
       "legend-you": "Vous + direction du regard",
       "legend-visited": "Lieu visité",
       "legend-unseen": "Pas encore vu",
-      "legend-next-stops": "Prochains arrêts (cliquez pour avancer)",
-      "forward-crumb-title": "Avancer jusqu'à l'arrêt {{rank}}"
+      "legend-next-stops": "Arrêts sur votre itinéraire",
+      "forward-crumb-title": "Avancer jusqu'à l'arrêt {{rank}}",
+      "legend-other-links": "Autres directions",
+      "legend-faced": "Rempli : où mène avancer",
+      "link-crumb-title": "Aller à ce panorama"
     },
     "stats": {
       "leaderboard-cta": "Voir le classement de la communauté"

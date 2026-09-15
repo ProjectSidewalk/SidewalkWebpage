@@ -22,6 +22,9 @@ class GsvViewer extends PanoViewer {
     // free and unmetered (docs/google-cloud.md), so the memo is about latency and burst, not cost: a minimap crumb
     // sampler re-asks about the same street points on every move, and each answer only needs fetching once.
     this.locationSearches = new Map();
+    // Pano lookups by id, memoised the same way: panoId -> Promise<StreetViewResponse>. A minimap crumb for a
+    // linked pano and the move to it are the same request, so one warms the other.
+    this.panoLookups = new Map();
   }
 
   /**
@@ -273,8 +276,43 @@ class GsvViewer extends PanoViewer {
     return promise;
   };
 
+  /**
+   * The getPanorama({pano}) request for a pano id, memoised with the same policy as #searchLocation. The two
+   * locally-served tutorial panos answer from their stored data, never the network.
+   * @param {string} panoId - The pano to look up.
+   * @returns {Promise<google.maps.StreetViewResponse>} Rejects as getPanorama does (see #asImageryError).
+   */
+  #searchPano = (panoId) => {
+    const cached = this.panoLookups.get(panoId);
+    if (cached) return cached;
+    const promise = util.pano.TUTORIAL_PANO_IDS.has(panoId)
+      ? Promise.resolve({ data: this.#getCustomPanoData(panoId) })
+      : this.streetViewService.getPanorama({ pano: panoId });
+    promise.catch((err) => {
+      if (err?.code !== 'ZERO_RESULTS') this.panoLookups.delete(panoId);
+    });
+    this.panoLookups.set(panoId, promise);
+    return promise;
+  };
+
   clearPrefetchCache = () => {
     this.locationSearches.clear();
+    this.panoLookups.clear();
+  };
+
+  /**
+   * See PanoViewer.lookupPanoPosition(). Reads the position off the same metadata reply setPano() moves with, so a
+   * crumb at a linked pano costs nothing extra once the user steps there (or vice versa).
+   */
+  lookupPanoPosition = async (panoId) => {
+    let data;
+    try {
+      ({ data } = await this.#searchPano(panoId));
+    } catch (err) {
+      if (err?.code === 'ZERO_RESULTS') return null; // No such pano: an answer, not a failure.
+      throw err;
+    }
+    return { lat: data.location.latLng.lat(), lng: data.location.latLng.lng() };
   };
 
   /**
@@ -319,7 +357,7 @@ class GsvViewer extends PanoViewer {
       // For locally stored tutorial panos, skip the getPanorama step and continue w/ our saved data.
       return this.#getPanoramaCallback({ data: this.#getCustomPanoData(panoId) }, new Set());
     } else {
-      const panoData = await this.streetViewService.getPanorama({ pano: panoId });
+      const panoData = await this.#searchPano(panoId);
       return this.#getPanoramaCallback(panoData);
     }
   };

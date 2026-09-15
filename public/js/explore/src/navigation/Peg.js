@@ -23,6 +23,7 @@ class Peg {
     this.#content.className = 'minimap-peg';
     this.#content.innerHTML = `
       <svg viewBox="0 0 28 28" aria-hidden="true">
+        <circle class="minimap-peg-shadow" cx="14" cy="14.5" r="8"></circle>
         <path class="minimap-peg-heading" d="M14 0 18.5 8.5 9.5 8.5 Z"></path>
         <circle class="minimap-peg-dot" cx="14" cy="14" r="6.5"></circle>
       </svg>`;

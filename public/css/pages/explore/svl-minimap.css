@@ -311,7 +311,7 @@
 }
 
 .minimap-legend-sample-remaining {
-  stroke: var(--color-asphalt-400);
+  stroke: color-mix(in srgb, var(--color-link-100) 55%, var(--color-neutral-white));
   stroke-width: 6;
   stroke-linecap: round;
   fill: none;
@@ -319,23 +319,40 @@
 
 .minimap-legend-sample-visited {
   fill: none;
-  stroke: rgb(62 139 217);
+  stroke: var(--color-pine-700);
   stroke-width: 2;
 }
 
 .minimap-legend-sample-next-stop {
-  fill: var(--color-banana-900);
+  fill: var(--color-neutral-white);
+  stroke: var(--color-link-200);
+  stroke-width: 1.8;
+}
+
+.minimap-legend-sample-other-link {
+  fill: var(--color-neutral-white);
+  stroke: var(--color-banana-900);
+  stroke-width: 1.8;
+}
+
+.minimap-legend-sample-faced {
+  fill: var(--color-banana-700);
   stroke: var(--color-neutral-white);
   stroke-width: 1.5;
 }
 
+.minimap-legend-sample-faced-halo {
+  fill: var(--color-banana-700);
+  opacity: 0.25;
+}
+
 .minimap-legend-sample-dashed {
-  stroke-dasharray: 6 4;
+  stroke-dasharray: 5 7;
 }
 
 .minimap-legend-sample-chevron {
   fill: var(--color-neutral-white);
-  stroke: var(--color-asphalt-400);
+  stroke: color-mix(in srgb, var(--color-link-100) 55%, var(--color-neutral-white));
   stroke-width: 1;
 }
 
@@ -376,52 +393,70 @@
   box-sizing: border-box;
   width: calc(7px * var(--ui-scale, 1));
   height: calc(7px * var(--ui-scale, 1));
-  border: calc(1.4px * var(--ui-scale, 1)) solid var(--color-link-100);
+  border: calc(1.4px * var(--ui-scale, 1)) solid var(--color-pine-700);
   border-radius: 50%;
   opacity: 0.8;
 }
 
-/* Forward crumbs (ForwardCrumbs.js): the panos ahead on the current street (#4669). Filled amber discs so they can't
-   be read as the hollow blue visited rings; the nearest few are larger, white-cased and clickable, the rest faint
-   (#2561). Same anchoring as the breadcrumbs: a roomy hit area, shifted down half its height to center on the pano. */
-.minimap-forward-crumb {
+/* Minimap crumbs (ForwardCrumbs.js): where the current pano's arrows lead and where the route continues (#4669,
+   #4655). Every crumb is a ring until the user faces it; the faced one fills in, so a filled disc has one meaning on
+   the whole map: the forward arrow / up key takes you here. Route stops are deep blue (the forward arrow's family,
+   darker than the peg), other directions gold, visited panos pine rings (.minimap-breadcrumb). Same anchoring as the
+   breadcrumbs: a roomy hit area, shifted down half its height to center on the pano. */
+.minimap-crumb {
+  --crumb-color: var(--color-link-200);
+  --crumb-fill: var(--color-link-200);
+
   display: flex;
   align-items: center;
   justify-content: center;
   width: calc(20px * var(--ui-scale, 1));
   height: calc(20px * var(--ui-scale, 1));
+  cursor: pointer;
   transform: translateY(50%);
 }
 
-.minimap-forward-crumb::before {
+.minimap-crumb-link {
+  --crumb-color: var(--color-banana-900);
+  --crumb-fill: var(--color-banana-700);
+}
+
+.minimap-crumb::before {
   content: "";
   box-sizing: border-box;
-  width: calc(5px * var(--ui-scale, 1));
-  height: calc(5px * var(--ui-scale, 1));
-  border-radius: 50%;
-  background: var(--color-banana-900);
-  opacity: 0.45;
-}
-
-.minimap-forward-crumb-reachable {
-  cursor: pointer;
-}
-
-.minimap-forward-crumb-reachable::before {
   width: calc(9px * var(--ui-scale, 1));
   height: calc(9px * var(--ui-scale, 1));
+  border: calc(1.8px * var(--ui-scale, 1)) solid var(--crumb-color);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-neutral-white) 85%, transparent);
+}
+
+/* Route stops beyond the next few are shown but not steppable (#2561): smaller, quieter, click-through. */
+.minimap-crumb-far {
+  cursor: default;
+}
+
+.minimap-crumb-far::before {
+  width: calc(6px * var(--ui-scale, 1));
+  height: calc(6px * var(--ui-scale, 1));
+  border-width: calc(1.4px * var(--ui-scale, 1));
+  opacity: 0.7;
+}
+
+.minimap-crumb-faced::before {
   border: calc(1.5px * var(--ui-scale, 1)) solid var(--color-neutral-white);
-  box-shadow: 0 0 calc(2px * var(--ui-scale, 1)) rgb(0 0 0 / 35%);
-  opacity: 1;
+  background: var(--crumb-fill);
+  box-shadow: 0 0 0 calc(5px * var(--ui-scale, 1)) color-mix(in srgb, var(--crumb-fill) 25%, transparent);
 }
 
-.minimap-forward-crumb-highlight::before {
-  outline: calc(2px * var(--ui-scale, 1)) solid var(--color-banana-700);
+.minimap-crumb-highlight::before {
+  outline: calc(2px * var(--ui-scale, 1)) solid var(--crumb-color);
+  outline-offset: calc(1px * var(--ui-scale, 1));
 }
 
-/* Faint crumbs are informational only: make their wrapper click-through so they can't intercept a click meant for
-   a label marker or breadcrumb beneath them (the same wrapper quirk the peg rule below works around). */
-gmp-advanced-marker:has(> .minimap-forward-crumb:not(.minimap-forward-crumb-reachable)) {
+/* Far crumbs are informational only: make their wrapper click-through so they can't intercept a click meant for a
+   label marker or breadcrumb beneath them (the same wrapper quirk the peg rule below works around). */
+gmp-advanced-marker:has(> .minimap-crumb-far) {
   pointer-events: none;
 }
 
@@ -447,7 +482,12 @@ gmp-advanced-marker:has(> .minimap-peg) {
   width: 100%;
   height: 100%;
   overflow: visible;
-  filter: drop-shadow(0 0 calc(2px * var(--ui-scale, 1)) rgb(0 0 0 / 35%));
+}
+
+/* A vector shadow under the dot instead of a CSS drop-shadow filter: a filtered SVG is rasterized, and the heading
+   rotation then resamples that bitmap, which is what made the peg look soft. */
+.minimap-peg-shadow {
+  fill: color-mix(in srgb, var(--color-neutral-black) 25%, transparent);
 }
 
 .minimap-peg-dot {
@@ -477,7 +517,7 @@ gmp-advanced-marker:has(> .minimap-peg) {
 /* Breadcrumbs are map-positioned markers, not canvas panes, so the rule above doesn't reach them; hide them explicitly
    in the fitted whole-route overview so the visited trail doesn't clutter the zoomed-out view (#4639). */
 #minimap-holder.minimap-overview .minimap-breadcrumb,
-#minimap-holder.minimap-overview .minimap-forward-crumb {
+#minimap-holder.minimap-overview .minimap-crumb {
   display: none;
 }
 

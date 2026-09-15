@@ -151,6 +151,26 @@ class Infra3dViewer extends PanoViewer {
   };
 
   /**
+   * See PanoViewer.lookupPanoPosition(). The SDK is a mapillary-js fork, so as there, every spatial-edge target is
+   * already a node in its graph, position included. A key the graph doesn't hold answers null (a missing crumb; each
+   * Infra3d city is one commissioned drive, so there is no cheap by-key fallback worth adding).
+   */
+  lookupPanoPosition = (panoId) => {
+    let graph = null;
+    try {
+      const subscription = this.viewer._sdk_viewer._navigator.graphService._graph$.subscribe((g) => {
+        graph = g;
+      });
+      subscription.unsubscribe();
+    } catch {
+      return Promise.resolve(null);
+    }
+    if (!graph || !graph.hasNode(panoId)) return Promise.resolve(null);
+    const { lat, lon } = graph.getNode(panoId).latLon;
+    return Promise.resolve({ lat, lng: lon });
+  };
+
+  /**
    * See PanoViewer.findPanoNear(). Uses the SDK's nearest-frame query (`imagesByKNN$`, the same HTTP request its
    * own movePosition$ starts from) rather than movePosition(), which setLocation() relies on and which moves the
    * viewer. The frame comes back with its position and camera type, so nothing is loaded.

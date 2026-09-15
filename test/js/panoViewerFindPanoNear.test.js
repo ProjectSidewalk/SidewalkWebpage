@@ -102,6 +102,22 @@ describe('PanoViewer.findPanoNear (base)', () => {
     });
 });
 
+/** google.maps.LatLng as the viewers read it: accessor methods, not fields. */
+class FakeLatLng {
+    constructor(lat, lng) {
+        this._lat = lat;
+        this._lng = lng;
+    }
+
+    lat() {
+        return this._lat;
+    }
+
+    lng() {
+        return this._lng;
+    }
+}
+
 describe('GsvViewer.findPanoNear', () => {
     let viewer;
     let getPanorama;
@@ -112,14 +128,9 @@ describe('GsvViewer.findPanoNear', () => {
     beforeEach(() => {
         window.google = {
             maps: {
-                importLibrary: async () => ({
-                    LatLng: class {
-                        constructor(lat, lng) {
-                            this.lat = lat;
-                            this.lng = lng;
-                        }
-                    },
-                }),
+                importLibrary: async () => ({ LatLng: FakeLatLng }),
+                LatLng: FakeLatLng,
+                Size: class {},
                 StreetViewSource: { OUTDOOR: 'outdoor' },
             },
         };
@@ -364,6 +375,184 @@ describe('Infra3dViewer.findPanoNear', () => {
 
         imagesByKNN.mockReturnValueOnce(fails('some other string'));
         await expect(viewer.findPanoNear(HERE)).rejects.toThrow('some other string');
+    });
+});
+
+describe('PanoViewer.getLinkedPanoPositions (base)', () => {
+    test('passes through links the provider positioned, resolves the rest, and drops what it cannot place', async () => {
+        const { PanoViewer } = loadViewer('PannellumViewer');
+        const there = metersFromHere(10);
+        const viewer = new (class Probe extends PanoViewer {
+            getLinkedPanos() {
+                return [
+                    { panoId: 'placed', heading: 0, lat: there.lat, lng: there.lng },
+                    { panoId: 'lookup', heading: 90 },
+                    { panoId: 'unknown', heading: 180 },
+                    { panoId: 'broken', heading: 270 },
+                ];
+            }
+
+            lookupPanoPosition(panoId) {
+                if (panoId === 'lookup') return Promise.resolve(metersFromHere(12, 90));
+                if (panoId === 'broken') return Promise.reject(new Error('provider down'));
+                return Promise.resolve(null);
+            }
+        })();
+        jest.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            const links = await viewer.getLinkedPanoPositions();
+            expect(links.map((l) => l.panoId)).toEqual(['placed', 'lookup']);
+            expect(links[1]).toMatchObject({ heading: 90, ...metersFromHere(12, 90) });
+        } finally {
+            console.warn.mockRestore();
+        }
+    });
+});
+
+describe('GsvViewer.lookupPanoPosition', () => {
+    let viewer;
+    let getPanorama;
+
+    const reply = (pano, { lat, lng }) => ({ data: { location: { pano, latLng: new FakeLatLng(lat, lng) } } });
+
+    beforeEach(() => {
+        window.google = {
+            maps: {
+                importLibrary: async () => ({ LatLng: FakeLatLng }),
+                LatLng: FakeLatLng,
+                Size: class {},
+                StreetViewSource: { OUTDOOR: 'outdoor' },
+            },
+        };
+        window.util = window.util || {};
+        window.util.pano = window.util.pano || {};
+        window.util.pano.TUTORIAL_PANO_IDS = new Set(['tutorial', 'afterWalkTutorial']);
+        viewer = new (loadViewer('GsvViewer').Viewer)();
+        getPanorama = jest.fn();
+        viewer.streetViewService = { getPanorama };
+        viewer.gsvPano = { setPano: jest.fn(), addListener: jest.fn() };
+    });
+
+    test('answers with the pano\'s position from the by-id metadata reply, without loading it', async () => {
+        const there = metersFromHere(8);
+        getPanorama.mockResolvedValue(reply('P1', there));
+        await expect(viewer.lookupPanoPosition('P1')).resolves.toEqual({ lat: there.lat, lng: there.lng });
+        expect(getPanorama).toHaveBeenCalledWith({ pano: 'P1' });
+        expect(viewer.gsvPano.setPano).not.toHaveBeenCalled();
+        expect(viewer.currPanoData).toBeUndefined();
+    });
+
+    test('a retired id is an answer (null); any other failure rejects and is retried next time', async () => {
+        getPanorama.mockRejectedValueOnce({ code: 'ZERO_RESULTS' });
+        await expect(viewer.lookupPanoPosition('gone')).resolves.toBeNull();
+        getPanorama.mockRejectedValueOnce({ code: 'UNKNOWN_ERROR' }).mockResolvedValueOnce(reply('P2', metersFromHere(8)));
+        await expect(viewer.lookupPanoPosition('P2')).rejects.toEqual({ code: 'UNKNOWN_ERROR' });
+        await expect(viewer.lookupPanoPosition('P2')).resolves.toMatchObject({ lat: expect.any(Number) });
+    });
+
+    test('a lookup is remembered until the cache is cleared', async () => {
+        getPanorama.mockResolvedValue(reply('P1', metersFromHere(8)));
+        await viewer.lookupPanoPosition('P1');
+        await viewer.lookupPanoPosition('P1');
+        expect(getPanorama).toHaveBeenCalledTimes(1);
+        viewer.clearPrefetchCache();
+        await viewer.lookupPanoPosition('P1');
+        expect(getPanorama).toHaveBeenCalledTimes(2);
+    });
+
+    test('the locally served tutorial panos answer from their stored data, never the network', async () => {
+        await expect(viewer.lookupPanoPosition('tutorial')).resolves.toEqual({ lat: 38.94042608, lng: -77.06766133 });
+        expect(getPanorama).not.toHaveBeenCalled();
+    });
+});
+
+describe('MapillaryViewer.lookupPanoPosition', () => {
+    let viewer;
+    let nodes;
+
+    beforeEach(() => {
+        nodes = {};
+        viewer = new (loadViewer('MapillaryViewer').Viewer)();
+        viewer.viewer = {
+            _navigator: {
+                _api: { _data: { _accessToken: 'token' } },
+                graphService: {
+                    _graph$: {
+                        subscribe: (next) => {
+                            next({ hasNode: (id) => id in nodes, getNode: (id) => nodes[id] });
+                            return { unsubscribe: jest.fn() };
+                        },
+                    },
+                },
+            },
+            moveTo: jest.fn(),
+        };
+    });
+
+    test('reads a link target straight out of the SDK graph, no network', async () => {
+        const there = metersFromHere(9);
+        nodes.img1 = { lngLat: { lat: there.lat, lng: there.lng } };
+        window.fetch = jest.fn();
+        await expect(viewer.lookupPanoPosition('img1')).resolves.toEqual({ lat: there.lat, lng: there.lng });
+        expect(window.fetch).not.toHaveBeenCalled();
+        expect(viewer.viewer.moveTo).not.toHaveBeenCalled();
+    });
+
+    test('an image the graph has evicted is fetched once from the Graph API, refined position preferred', async () => {
+        const gps = metersFromHere(9);
+        const refined = metersFromHere(10);
+        window.fetch = jest.fn(async () => ({
+            json: async () => ({
+                id: 'img2',
+                geometry: { type: 'Point', coordinates: [gps.lng, gps.lat] },
+                computed_geometry: { type: 'Point', coordinates: [refined.lng, refined.lat] },
+            }),
+        }));
+        await expect(viewer.lookupPanoPosition('img2')).resolves.toEqual({ lat: refined.lat, lng: refined.lng });
+        expect(window.fetch.mock.calls[0][0]).toMatch(/^https:\/\/graph\.mapillary\.com\/img2\?fields=/);
+    });
+
+    test('a Graph API error rejects rather than reading as "no such image"', async () => {
+        window.fetch = jest.fn(async () => ({ json: async () => ({ error: { message: 'bad token' } }) }));
+        await expect(viewer.lookupPanoPosition('img3')).rejects.toThrow('bad token');
+    });
+});
+
+describe('Infra3dViewer.lookupPanoPosition', () => {
+    test('reads a link target out of the SDK graph as lat/lon, and answers null for an unknown key', async () => {
+        const viewer = new (loadViewer('Infra3dViewer').Viewer)();
+        const there = metersFromHere(9);
+        const nodes = { f1: { latLon: { lat: there.lat, lon: there.lng } } };
+        viewer.viewer = {
+            _sdk_viewer: {
+                _navigator: {
+                    graphService: {
+                        _graph$: {
+                            subscribe: (next) => {
+                                next({ hasNode: (key) => key in nodes, getNode: (key) => nodes[key] });
+                                return { unsubscribe: jest.fn() };
+                            },
+                        },
+                    },
+                },
+            },
+        };
+        await expect(viewer.lookupPanoPosition('f1')).resolves.toEqual({ lat: there.lat, lng: there.lng });
+        await expect(viewer.lookupPanoPosition('f9')).resolves.toBeNull();
+    });
+});
+
+describe('PanoramaxViewer link positions', () => {
+    test('a cached picture answers by id; an unknown one is null', async () => {
+        const viewer = new (loadViewer('PanoramaxViewer').Viewer)();
+        const there = metersFromHere(9);
+        window.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ features: [
+            { id: 'pic1', collection: 'c', geometry: { type: 'Point', coordinates: [there.lng, there.lat] },
+              properties: { datetime: '2026-08-11T15:02:33+00:00' }, assets: {} },
+        ] }) }));
+        await viewer.findPanoNear(HERE); // Runs a search, which caches its items.
+        await expect(viewer.lookupPanoPosition('pic1')).resolves.toEqual({ lat: there.lat, lng: there.lng });
+        await expect(viewer.lookupPanoPosition('nope')).resolves.toBeNull();
     });
 });
 
