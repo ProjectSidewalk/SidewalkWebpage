@@ -274,13 +274,13 @@
       util.onFirstInteractionOrIdle(function () {
         const mapboxCss = document.createElement('link');
         mapboxCss.rel = 'stylesheet';
-        mapboxCss.href = '@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")';
+        mapboxCss.href = '@assets.path("vendor/mapbox-gl/mapbox-gl-3.30.0.css")';
         document.head.appendChild(mapboxCss);
 
         util.loadScriptsInOrder([
-          '@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")',
+          '@assets.path("vendor/mapbox-gl/mapbox-gl-3.30.0.js")',
           '@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")',
-          '@assets.path("vendor/turf/turf-7.3.4.min.js")',
+          '@assets.path("vendor/turf/turf-7.4.0.min.js")',
           '@assets.path("js/ps-map/build/ps-map.js")'
         ]).then(function () {
           // createPSMap reads translated strings, so it still waits on the app's i18next setup.

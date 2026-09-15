@@ -15,12 +15,12 @@
   pageMeta = service.PageMeta(description = Some(Messages("seo.description.validate", currentCity.cityNameShort)))) {
   @common.navbar(commonData, Some(user))
 
-  <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
+  <script src='@assets.path("vendor/turf/turf-7.4.0.min.js")'></script>
   <script src='@assets.path("vendor/selectize/selectize-0.15.2.min.js")'></script>
   <link rel="stylesheet" href='@assets.path("vendor/selectize/selectize-0.15.2.min.css")'>
   @if(commonData.imagerySource == PanoSource.Infra3d) {
-    <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
-    <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
+    <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
+    <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
   } else if (commonData.imagerySource == PanoSource.Mapillary) {
   <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
   <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>

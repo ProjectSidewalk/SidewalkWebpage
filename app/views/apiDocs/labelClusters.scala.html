@@ -31,11 +31,11 @@
 
     <div id="label-clusters-preview" class="map-container">Loading label clusters data...</div>
 
-    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")'>
+    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.30.0.css")'>
     <link rel="stylesheet" href='@assets.path("css/pages/api-docs/label-clusters.css")'>
     @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
        set: the language plugin and the preview both read the mapboxgl global as they parse. *@
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")' defer></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.30.0.js")' defer></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
     <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
     <script src='@assets.path("js/api-docs/labelClustersPreview.js")' defer></script>

@@ -10,9 +10,9 @@ resolvers += "Typesafe repository" at "https://repo.typesafe.com/typesafe/releas
 // Use the Play sbt plugin for Play projects
 addSbtPlugin("org.playframework" % "sbt-plugin" % "3.0.11")
 
-// Code formatting check (scalafmtCheckAll). The scalafmt version itself is pinned in .scalafmt.conf (3.9.10); this
+// Code formatting check (scalafmtCheckAll). The scalafmt version itself is pinned in .scalafmt.conf (3.11.5); this
 // plugin fetches it dynamically. Wired into CI as advisory-only for now (no repo-wide reformat pass yet).
-addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.6")
+addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.6.2")
 
 // Test coverage (scoverage). Threshold and exclusions are in build.sbt; enforced by the `backend-tests` CI job.
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.4.4")
