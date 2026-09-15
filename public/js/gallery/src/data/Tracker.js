@@ -7,9 +7,9 @@ class Tracker {
   /**
    * Creates action to be added to action buffer.
    *
-   * @param {string} action Action name.
-   * @param suppData Optional supplementary data about action.
-   * @param notes Optional notes about action.
+   * @param {string} action - Action name.
+   * @param {?{panoId: string}} suppData - Optional supplementary data about action.
+   * @param {?object} notes - Optional notes about action.
    */
   #createAction(action, suppData, notes) {
     if (!notes) {
@@ -39,7 +39,7 @@ class Tracker {
   /**
    * Convert notes object to string.
    *
-   * @param {*} notes Notes object.
+   * @param {*} notes - Notes object.
    */
   #notesToString(notes) {
     if (!notes) {
@@ -60,9 +60,9 @@ class Tracker {
   /**
    * Pushes information to action list (to be submitted to the database).
    *
-   * @param {string} action Action name.
-   * @param [suppData] Supplementary data to be logged about action.
-   * @param [notes] Notes to be logged into the notes field in database.
+   * @param {string} action - Action name.
+   * @param {?{panoId: string}} [suppData] - Supplementary data to be logged about action.
+   * @param {?object} [notes] - Notes to be logged into the notes field in database.
    */
   push(action, suppData, notes) {
     const item = this.#createAction(action, suppData, notes);

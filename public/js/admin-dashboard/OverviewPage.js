@@ -157,7 +157,7 @@ class OverviewPage {
    *
    * @param {Map<string, object>} byDate - Day (YYYY-MM-DD) → record.
    * @param {Date} today - Local start-of-today, the right edge of the most recent bucket.
-   * @param {function(object): number} get - Extracts the metric from a record.
+   * @param {(record: object) => number} get - Extracts the metric from a record.
    * @returns {{values: number[], thisWeek: number, priorWeek: number}} Weekly sums oldest→newest plus the last two.
    */
   #weeklyBuckets(byDate, today, get) {

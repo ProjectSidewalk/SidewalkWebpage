@@ -50,7 +50,7 @@ class KeyboardManager {
   /**
    * Change the heading of the current panorama point of view by a particular degree value.
    *
-   * @param degree
+   * @param {number} degree
    */
   #rotatePovByDegree(degree) {
     const svl = this.#svl;
@@ -106,7 +106,7 @@ class KeyboardManager {
 
   /**
    * This is a callback for a key down event
-   * @param {object} e An event object
+   * @param {object} e - An event object
    */
   #documentKeyDown = (e) => {
     if (!this.#status.disableKeyboard && !this.#status.focusOnTextField) {
@@ -138,7 +138,7 @@ class KeyboardManager {
 
   /**
    * This is a callback for a key up event when focus is not on ContextMenu's textbox.
-   * @param {object} e An event object
+   * @param {object} e - An event object
    */
   #documentKeyUp = (e) => {
     const svl = this.#svl;
@@ -239,7 +239,7 @@ class KeyboardManager {
 
   /**
    * Get status
-   * @param {string} key Field name
+   * @param {string} key - Field name
    * @returns {*}
    */
   getStatus(key) {
@@ -251,8 +251,8 @@ class KeyboardManager {
 
   /**
    * Set status
-   * @param key Field name
-   * @param value Field value
+   * @param {string} key - Field name
+   * @param {boolean} value - Field value
    */
   setStatus(key, value) {
     if (key in this.#status) {

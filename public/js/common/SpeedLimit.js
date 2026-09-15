@@ -41,13 +41,13 @@ class SpeedLimit {
   #watchedViewers = new Set();
 
   /**
-   * @param {Function} panoViewer Function that returns the currently active PanoViewer.
-   * @param {Function} coords Function that returns current longitude and latitude coordinates.
-   * @param {Function} isOnboarding Function that returns a boolean on whether the current mission is the tutorial task.
-   * @param {string} countryId The current city's country id (e.g. 'usa'), for sign design and fallback units.
-   * @param {object} [sources] Where to read speed limits from; exactly one should be provided.
-   * @param {TaskContainer} [sources.taskContainer] Explore's task container; the sign tracks the nearest loaded street.
-   * @param {LabelContainer} [sources.labelContainer] Validate's label container; the sign shows the current label's
+   * @param {Function} panoViewer - Function that returns the currently active PanoViewer.
+   * @param {Function} coords - Function that returns current longitude and latitude coordinates.
+   * @param {Function} isOnboarding - Function that returns whether the current mission is the tutorial task.
+   * @param {string} countryId - The current city's country id (e.g. 'usa'), for sign design and fallback units.
+   * @param {object} [sources] - Where to read speed limits from; exactly one should be provided.
+   * @param {TaskContainer} [sources.taskContainer] - Explore's task container; the sign tracks the nearest street.
+   * @param {LabelContainer} [sources.labelContainer] - Validate's label container; the sign shows the current label's
    *                                                  street, and only for label types it is relevant to.
    */
   constructor(panoViewer, coords, isOnboarding, countryId, { taskContainer = null, labelContainer = null } = {}) {
@@ -97,7 +97,7 @@ class SpeedLimit {
    * Called from refresh() rather than only at construction because viewers are built lazily: Validate creates its
    * Pannellum viewer the first time a label's imagery has expired, so it may not exist yet.
    *
-   * @param {PanoViewer} viewer The viewer to subscribe to; ignored if null or already subscribed.
+   * @param {PanoViewer} viewer - The viewer to subscribe to; ignored if null or already subscribed.
    */
   #watchViewer(viewer) {
     if (!viewer || this.#watchedViewers.has(viewer)) return;
@@ -196,8 +196,8 @@ class SpeedLimit {
   /**
    * Asks our server for the speed limit at a point, memoized per pano id.
    *
-   * @param {number} lat The latitude of the current position.
-   * @param {number} lng The longitude of the current position.
+   * @param {number} lat - The latitude of the current position.
+   * @param {number} lng - The longitude of the current position.
    * @returns {Promise<string|null>} Raw OSM maxspeed value, or null if unknown or on failure.
    */
   async #fetchSpeedLimitAtPoint(lat, lng) {
@@ -228,8 +228,8 @@ class SpeedLimit {
   /**
    * Shows the sign for the given maxspeed value, or hides it when there is none.
    *
-   * @param {string|null} maxspeed Raw OSM maxspeed value (e.g. '25 mph', '30'), or null to hide the sign.
-   * @param {number} updateId The token from the update that produced this value; stale updates are dropped.
+   * @param {string|null} maxspeed - Raw OSM maxspeed value (e.g. '25 mph', '30'), or null to hide the sign.
+   * @param {number} updateId - The token from the update that produced this value; stale updates are dropped.
    */
   #render(maxspeed, updateId) {
     if (updateId !== this.#latestUpdateId) {

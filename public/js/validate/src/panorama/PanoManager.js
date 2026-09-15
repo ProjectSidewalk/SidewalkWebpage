@@ -50,10 +50,10 @@ class PanoManager {
    * Tries the primary viewer first; if the first pano is expired and a backup image is available, falls back to
    * Pannellum so that a pano is always loaded before this resolves.
    *
-   * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
-   * @param {string} viewerAccessToken An access token used to request images for the pano viewer
-   * @param {string} startPanoId The ID of the panorama to load first
-   * @param {?object} startBackupImage Self-hosted backup for the first pano, or null.
+   * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize
+   * @param {string} viewerAccessToken - An access token used to request images for the pano viewer
+   * @param {string} startPanoId - The ID of the panorama to load first
+   * @param {?object} startBackupImage - Self-hosted backup for the first pano, or null.
    * @returns {Promise<void>} A Promise that resolves once the first pano has loaded
    */
   async #init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage) {
@@ -125,8 +125,7 @@ class PanoManager {
    * same way. The one throttled logger is shared across viewers, so the interval covers the pano as a whole rather
    * than giving each viewer its own window.
    *
-   * @param {PanoViewer} viewer The viewer to subscribe; ignored if it is already subscribed.
-   * @private
+   * @param {PanoViewer} viewer - The viewer to subscribe; ignored if it is already subscribed.
    */
   #watchViewerPov(viewer) {
     if (this.#povWatchedViewers.has(viewer)) return;
@@ -136,7 +135,7 @@ class PanoManager {
 
   /**
    * Gets a specific property from the PanoManager.
-   * @param {string} key   Property name.
+   * @param {string} key   - Property name.
    * @returns {*} Value associated with this property or null.
    */
   getProperty(key) {
@@ -145,8 +144,8 @@ class PanoManager {
 
   /**
    * Sets a property for the PanoManager.
-   * @param {string} key Name of property
-   * @param {*} value Value of property
+   * @param {string} key - Name of property
+   * @param {*} value - Value of property
    */
   setProperty(key, value) {
     this.#properties[key] = value;
@@ -168,9 +167,8 @@ class PanoManager {
 
   /**
    * Saves historic pano metadata and updates the date text field on the pano in pano viewer.
-   * @param {PanoData} panoData The PanoData extracted from the PanoViewer when loading the pano
+   * @param {PanoData} panoData - The PanoData extracted from the PanoViewer when loading the pano
    * @returns {PanoData}
-   * @private
    */
   #setPanoCallback(panoData) {
     // Store the returned pano metadata.
@@ -187,7 +185,6 @@ class PanoManager {
 
   /**
    * Moves the buttons on the bottom-right of the GSV image to the top layer so they are clickable.
-   * @private
    */
   #makeGsvAttributionClickable() {
     const bottomLinks = $('.gm-style-cc');
@@ -210,7 +207,6 @@ class PanoManager {
    * Mapillary renders these inside the pano canvas itself, where the click-handling view-control-layer covers
    * them. We move the container up into that layer instead, the same trick used for the GSV links. Mapillary may
    * re-render its own container back into the pano (e.g. after an image change), so we keep watching for that.
-   * @private
    */
   #makeMapillaryAttributionClickable() {
     const tryMove = () => {
@@ -226,7 +222,7 @@ class PanoManager {
 
   /**
    * Renders a label onto the screen using a PanoMarker.
-   * @param {Label} currentLabel The label to render.
+   * @param {Label} currentLabel - The label to render.
    */
   renderPanoMarker(currentLabel) {
     const labelPov = currentLabel.getOriginalPov();
@@ -322,8 +318,7 @@ class PanoManager {
    * label is answered before its pulse has finished the class is still present, and the browser sees no change
    * to act on. Reading offsetWidth in between flushes the pending style change, which is what restarts it.
    *
-   * @param {HTMLElement} marker The marker element to pulse.
-   * @private
+   * @param {HTMLElement} marker - The marker element to pulse.
    */
   #restartMarkerPulse(marker) {
     marker.classList.remove('label-marker-pulse');
@@ -334,8 +329,8 @@ class PanoManager {
   /**
    * Sets the panorama. Tries the primary viewer first; falls back to Pannellum if there's a backup image available.
    *
-   * @param {string} panoId The ID for the panorama that we want to move to.
-   * @param {{object}|null} backupImage Self-hosted pano data from the backend, or null.
+   * @param {string} panoId - The ID for the panorama that we want to move to.
+   * @param {?{panoId: string, cameraHeading?: number, attribution?: object}} backupImage - Self-hosted pano, or null.
    * @returns {Promise<PanoData|null>} The loaded pano's metadata, or `null` when no viewer could render it. A null
    *      return means the pano area is now empty, so the caller must not draw a label marker over it or ask for a
    *      validation of the label it was loading (#4810).
@@ -377,7 +372,6 @@ class PanoManager {
    * Pannellum keeps its last canvas — so without this the validator would be looking at the *previous* label's
    * imagery, panned to the new label's POV with the new label's marker on it, and asked whether that label is
    * correct (#4810). An empty pano is the honest state; the caller decides what to show in its place.
-   * @private
    */
   #clearViewer() {
     this.setProperty('panoLoaded', false);
@@ -392,7 +386,6 @@ class PanoManager {
 
   /**
    * Shows the primary viewer canvas and hides the Pannellum canvas; resets svv.panoViewer to the primary viewer.
-   * @private
    */
   #teardownPannellum() {
     this.#hidePannellumCanvas();
@@ -419,9 +412,8 @@ class PanoManager {
    * and the swap — canvas, active viewer, logo, attribution — happens in one step afterwards; nothing here paints,
    * and the outgoing label's imagery stays up until this one is ready.
    *
-   * @param {{object}} backupImage
+   * @param {{panoId: string, cameraHeading?: number, attribution?: object}} backupImage - Self-hosted pano data.
    * @returns {Promise<PanoData>}
-   * @private
    */
   async #showPannellumPano(backupImage) {
     // Use a neutral POV here; renderPanoMarker will setPov to the correct heading immediately after.
@@ -475,7 +467,6 @@ class PanoManager {
 
   /**
    * Takes the Pannellum canvas back out of sight, and out of the layout so it can't sit over the primary viewer.
-   * @private
    */
   #hidePannellumCanvas() {
     this.#pannellumCanvas.style.display = 'none';
@@ -484,8 +475,7 @@ class PanoManager {
 
   /**
    * Adds or removes the AI badge on the validation marker.
-   * @param showIndicator  True to show the AI badge, false to remove it.
-   * @private
+   * @param {boolean} showIndicator - True to show the AI badge, false to remove it.
    */
   #updateMarkerAiIndicator(showIndicator) {
     const markerEl = this.labelMarker.marker_;
@@ -517,9 +507,8 @@ class PanoManager {
    * gets, and the two tools' markers drifted apart at the top of the range. The cap engages above ~1.73x, so every
    * scale below that is untouched. util.cappedMarkerDiameter leaves mobile's larger touch target alone.
    *
-   * @param {number} scale The UI scale factor (see util.applyToolScale).
+   * @param {number} scale - The UI scale factor (see util.applyToolScale).
    * @returns {number} Diameter in CSS px.
-   * @private
    */
   #markerDiameter(scale) {
     return Math.round(util.cappedMarkerDiameter(svv.labelRadius * 2 + 2, scale));
@@ -527,7 +516,7 @@ class PanoManager {
 
   /**
    * Resizes the label marker to match the given UI scale factor.
-   * @param {number} scale The current UI scale factor (see util.applyToolScale).
+   * @param {number} scale - The current UI scale factor (see util.applyToolScale).
    */
   setMarkerScale(scale) {
     if (!this.labelMarker) return;
@@ -537,7 +526,7 @@ class PanoManager {
 
   /**
    * Sets the zoom level for this panorama.
-   * @param zoom  Desired zoom level for this panorama. In general, values in {1.1, 2.1, 3.1}
+   * @param {number} zoom - Desired zoom level for this panorama. In general, values in {1.1, 2.1, 3.1}
    * @returns {void}
    */
   setZoom(zoom) {
@@ -582,10 +571,10 @@ class PanoManager {
 
   /**
    * Factory function that sets up the panorama viewer.
-   * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
-   * @param {string} viewerAccessToken An access token used to request images for the pano viewer
-   * @param {string} startPanoId The ID of the panorama to load first
-   * @param {?object} startBackupImage Self-hosted backup for the first pano, or null.
+   * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize
+   * @param {string} viewerAccessToken - An access token used to request images for the pano viewer
+   * @param {string} startPanoId - The ID of the panorama to load first
+   * @param {?object} startBackupImage - Self-hosted backup for the first pano, or null.
    * @returns {Promise<PanoManager>} The panoManager instance, with the first pano already loaded.
    */
   static async create(panoViewerType, viewerAccessToken, startPanoId, startBackupImage = null) {

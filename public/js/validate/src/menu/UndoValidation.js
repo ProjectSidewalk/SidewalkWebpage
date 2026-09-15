@@ -7,7 +7,7 @@ class UndoValidation {
   #uiUndo;
 
   /**
-   * @param {object} uiUndo Undo button UI elements.
+   * @param {object} uiUndo - Undo button UI elements.
    */
   constructor(uiUndo) {
     this.#uiUndo = uiUndo;

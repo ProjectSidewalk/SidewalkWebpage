@@ -20,7 +20,7 @@ class StreetStatusTrend {
    * @param {string} opts.trendUrl - URL of the trend JSON endpoint, without the `weeks` parameter.
    * @param {number} [opts.weeks] - Initial window size in weeks, injected from the server's own default so the two
    *   can't drift. Omitted leaves the window off the request, which lets the server apply that same default.
-   * @param {function(number): boolean} [opts.onShowStreet] - Asks the page to point its status map at one street,
+   * @param {(streetId: number) => boolean} [opts.onShowStreet] - Asks the page to point its status map at one street,
    *   returning false if it can't yet. Omitted renders the reopen queue's street ids as plain text.
    */
   constructor(opts = {}) {
@@ -466,7 +466,11 @@ class StreetStatusTrend {
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
   }
 
-  /** @param {string} message @param {boolean} isError @param {boolean} [hide=false] */
+  /**
+   * @param {string} message - Text to show in the status line.
+   * @param {boolean} isError - Whether to style it as an error.
+   * @param {boolean} [hide=false] - Whether to hide the status line instead.
+   */
   #setStatus(message, isError, hide = false) {
     const el = document.getElementById('trend-status');
     if (!el) return;

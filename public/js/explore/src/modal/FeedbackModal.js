@@ -17,10 +17,10 @@ class FeedbackModal {
   #cancelButton;
 
   /**
-   * @param {object} svl Shared app object (used for panoViewer, popUpMessage, and missionContainer).
+   * @param {object} svl - Shared app object (used for panoViewer, popUpMessage, and missionContainer).
    * @param {Tracker} tracker
-   * @param {RibbonMenu} ribbon Used to suspend mode switching while the textarea is focused.
-   * @param {TaskContainer} taskContainer Provides the current task for the submitted comment.
+   * @param {RibbonMenu} ribbon - Used to suspend mode switching while the textarea is focused.
+   * @param {TaskContainer} taskContainer - Provides the current task for the submitted comment.
    */
   constructor(svl, tracker, ribbon, taskContainer) {
     this.#svl = svl;
@@ -102,7 +102,7 @@ class FeedbackModal {
 
   /**
    * Posts the comment to the back end and shows a confirmation toast on success.
-   * @param {object} data Comment payload built by #prepareCommentData.
+   * @param {object} data - Comment payload built by #prepareCommentData.
    */
   #submitComment(data) {
     fetch('/explore/comment', {
@@ -124,8 +124,8 @@ class FeedbackModal {
    * @param {string} panoId
    * @param {number} lat
    * @param {number} lng
-   * @param {object} pov Current point of view ({ heading, pitch, zoom }).
-   * @param {object} task Current audit task.
+   * @param {object} pov - Current point of view ({ heading, pitch, zoom }).
+   * @param {object} task - Current audit task.
    * @returns {object}
    */
   #prepareCommentData(panoId, lat, lng, pov, task) {

@@ -242,7 +242,7 @@ class PopupPanoManager {
    * the billable step, so it must not run for a visitor who merely loaded the page. Never rejects — setPano() makes
    * the real attempt and owns the fallback.
    *
-   * @param {number} [maxWaitMs] Resolve after this long even if the build hasn't settled. For a host holding its
+   * @param {number} [maxWaitMs] - Resolve after this long even if the build hasn't settled. For a host holding its
    *     own init on the build: a provider whose bootstrap never loads leaves the build pending forever, and the host
    *     must not hang with it.
    * @returns {Promise<void>} Settles once the build has succeeded or failed (or the wait has elapsed), for a host
@@ -357,11 +357,11 @@ class PopupPanoManager {
    * has taken over or the host closed over this one. The overlay belongs here rather than at each call site so a
    * superseded load can't credit its own imagery over the label that replaced it.
    *
-   * @param {number} load The token this load was issued.
+   * @param {number} load - The token this load was issued.
    * @param {object} [options]
-   * @param {boolean} [options.showAttribution=false] Whether the image on screen is Project Sidewalk's own copy,
+   * @param {boolean} [options.showAttribution=false] - Whether the image on screen is Project Sidewalk's own copy,
    *     which carries the credit the provider's live viewer would otherwise draw itself (#4865).
-   * @param {?object} [options.attribution=null] The structured attribution to show, when there is one.
+   * @param {?object} [options.attribution=null] - The structured attribution to show, when there is one.
    */
   #finishLoad(load, { showAttribution = false, attribution = null } = {}) {
     if (load !== this.#loadToken) return;

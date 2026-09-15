@@ -92,7 +92,7 @@ class Form {
    * Gathers all the data needed to submit logs to the back end.
    *
    * @param {Task} task - The audit task to compile submission data for.
-   * @returns {object} The JSON data to submit to the back end.
+   * @returns {Record<string, any>} The JSON data to submit to the back end.
    */
   #compileSubmissionData(task) {
     const mission = this.#missionContainer.getCurrentMission();
@@ -209,7 +209,7 @@ class Form {
   /**
    * Submit the compiled data to the back end and apply the server's response.
    *
-   * @param {object} data - The compiled submission data.
+   * @param {Record<string, any>} data - The compiled submission data.
    * @param {Task} task - The audit task the data belongs to.
    * @returns {Promise<void>}
    */

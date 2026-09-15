@@ -15,7 +15,7 @@ class Mission {
   };
 
   /**
-   * @param {object} params Mission metadata passed in from MissionContainer.js.
+   * @param {object} params - Mission metadata passed in from MissionContainer.js.
    */
   constructor(params) {
     this.#init(params);
@@ -23,7 +23,7 @@ class Mission {
 
   /**
    * Initializes a front-end mission object from metadata.
-   * @param {object} params Mission metadata.
+   * @param {object} params - Mission metadata.
    */
   #init(params) {
     if ('agreeCount' in params) this.setProperty('agreeCount', params.agreeCount);
@@ -40,8 +40,8 @@ class Mission {
 
   /**
    * Gets a single property for this mission object.
-   * @param {string} key String representation of property.
-   * @returns Property if it exists, null otherwise.
+   * @param {string} key - String representation of property.
+   * @returns {*} Property if it exists, null otherwise.
    */
   getProperty(key) {
     return key in this.#properties ? this.#properties[key] : null;
@@ -49,7 +49,7 @@ class Mission {
 
   /**
    * Returns all properties associated with this mission.
-   * @returns Object for properties.
+   * @returns {object} Object for properties.
    */
   getProperties() {
     return this.#properties;
@@ -57,7 +57,7 @@ class Mission {
 
   /**
    * Function that checks if the current mission is complete.
-   * @returns True if this mission is complete, false if in progress.
+   * @returns {boolean|undefined} True if this mission is complete, false if in progress, undefined if not yet known.
    */
   isComplete() {
     return this.getProperty('completed');
@@ -65,8 +65,8 @@ class Mission {
 
   /**
    * Sets a property of this mission.
-   * @param {string} key Name of property.
-   * @param value Value.
+   * @param {string} key - Name of property.
+   * @param {*} value - Value.
    * @returns {Mission}
    */
   setProperty(key, value) {
@@ -76,7 +76,7 @@ class Mission {
 
   /**
    * Updates status bar (UI) and current mission properties.
-   * @param {boolean} undo If true, the user clicked the undo button, so we are progressing backwards.
+   * @param {boolean} undo - If true, the user clicked the undo button, so we are progressing backwards.
    */
   updateMissionProgress(undo) {
     let labelsProgress = this.getProperty('labelsProgress');
@@ -115,8 +115,8 @@ class Mission {
   /**
    * Updates the validation result for this mission by incrementing agree, disagree and unsure
    * counts collected in this mission. (Only persists for current session)
-   * @param {string} result Validation result - Can either be 'Agree', 'Disagree', or 'Unsure'.
-   * @param {boolean} removeValidation Whether user clicked "undo", meaning we would decrement the count.
+   * @param {string} result - Validation result - Can either be 'Agree', 'Disagree', or 'Unsure'.
+   * @param {boolean} removeValidation - Whether user clicked "undo", meaning we would decrement the count.
    */
   updateValidationResult(result, removeValidation) {
     const change = removeValidation ? -1 : 1;

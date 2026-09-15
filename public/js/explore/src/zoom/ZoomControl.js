@@ -240,7 +240,7 @@ class ZoomControl {
 
   /**
    * Callback for the scroll wheel / trackpad over the pano.
-   * @param {object} e - jQuery wheel event.
+   * @param {JQuery.TriggeredEvent & {originalEvent: WheelEvent}} e - jQuery wheel event.
    */
   #handleZoomWheel(e) {
     // Prevent the page from scrolling while zooming the pano.

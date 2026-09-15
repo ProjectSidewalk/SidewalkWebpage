@@ -81,7 +81,7 @@ class RouteOverview {
    * @param {number} w - Canvas width in CSS px.
    * @param {number} h - Canvas height in CSS px.
    * @param {number} pad - Padding in px keeping the route off the edges.
-   * @returns {(function(number, number): number[])|null} project(lng, lat) → [x, y]; null if the route has no extent.
+   * @returns {((lng: number, lat: number) => number[])|null} Maps (lng, lat) to [x, y]; null for a zero-size route.
    */
   #buildProjection(tasks, w, h, pad) {
     let minLng = Infinity;
@@ -114,7 +114,7 @@ class RouteOverview {
    * A street given up on for lack of imagery counts as walked here, matching the minimap (#5008).
    * @param {CanvasRenderingContext2D} ctx
    * @param {Task[]} tasks
-   * @param {function(number, number): number[]} project
+   * @param {(lng: number, lat: number) => number[]} project
    */
   #drawRoute(ctx, tasks, project) {
     ctx.lineCap = 'round';
@@ -139,7 +139,7 @@ class RouteOverview {
    * Traces one street's LineString as a canvas path and strokes it with the current context style.
    * @param {CanvasRenderingContext2D} ctx
    * @param {number[][]} coords - Array of [lng, lat] pairs.
-   * @param {function(number, number): number[]} project
+   * @param {(lng: number, lat: number) => number[]} project
    */
   #tracePath(ctx, coords, project) {
     ctx.beginPath();
@@ -157,7 +157,7 @@ class RouteOverview {
    * route. Uses TaskContainer.getRouteEndpoints so the endpoints are the walk-ordered origin/destination, not just the
    * first/last task in load order.
    * @param {CanvasRenderingContext2D} ctx
-   * @param {function(number, number): number[]} project
+   * @param {(lng: number, lat: number) => number[]} project
    */
   #drawEndpoints(ctx, project) {
     const endpoints = svl.taskContainer.getRouteEndpoints();
@@ -191,7 +191,7 @@ class RouteOverview {
    * Outlines the geographic extent the main minimap currently shows, so the inset reads as a zoomed-out companion to
    * the street-level view ("you're looking at this part of the route"). Skipped until the map's bounds are ready.
    * @param {CanvasRenderingContext2D} ctx
-   * @param {function(number, number): number[]} project
+   * @param {(lng: number, lat: number) => number[]} project
    */
   #drawViewportBox(ctx, project) {
     const map = svl.minimap && svl.minimap.getMap();
@@ -213,7 +213,7 @@ class RouteOverview {
    * north-up, so the wedge points up at heading 0 and rotates clockwise with the compass heading. The blue matches the
    * peg and the breadcrumb trail on the street-level view.
    * @param {CanvasRenderingContext2D} ctx
-   * @param {function(number, number): number[]} project
+   * @param {(lng: number, lat: number) => number[]} project
    */
   #drawYouAreHere(ctx, project) {
     const pos = svl.panoViewer.getPosition();

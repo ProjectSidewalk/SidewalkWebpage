@@ -490,9 +490,9 @@ function setupDownloadButtons() {
 
   /**
    * Shows the status box with the given lines.
-   * @param {string} message The headline.
-   * @param {string} detail The line under it.
-   * @param {?string} [tone] A status-message modifier class for a warning or error, or null for plain.
+   * @param {string} message - The headline.
+   * @param {string} detail - The line under it.
+   * @param {?string} [tone] - A status-message modifier class for a warning or error, or null for plain.
    */
   function showStatus(message, detail, tone = null) {
     clearTimeout(hideTimer);

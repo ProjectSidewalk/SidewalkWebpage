@@ -105,7 +105,7 @@ class GsvViewer extends PanoViewer {
 
   /**
    * Packages data the pano's data from Google into a PanoData object, saving it in this.currPanoData.
-   * @param {object} newPanoData The pano data returned from StreetViewService.getPanorama()
+   * @param {object} newPanoData - The pano data returned from StreetViewService.getPanorama()
    */
   #updateCurrPanoData = (newPanoData) => {
     // Putting the data returned from Google into the format for our generic PanoData object.
@@ -158,10 +158,9 @@ class GsvViewer extends PanoViewer {
 
   /**
    * A callback to getPanorama() that packages the data into a PanoData object. Resolves when pano has done loading.
-   * @param {object} newPanoData The pano data returned from StreetViewService.getPanorama()
-   * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to.
+   * @param {object} newPanoData - The pano data returned from StreetViewService.getPanorama()
+   * @param {Set<PanoData>} [excludedPanos=new Set()] - Set of PanoData objects that are not valid images to move to.
    * @returns {Promise<PanoData>} The PanoData object created from newPanoData
-   * @private
    */
   #getPanoramaCallback = async (newPanoData, excludedPanos = new Set()) => {
     // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing. This is a
@@ -194,8 +193,8 @@ class GsvViewer extends PanoViewer {
    * minimap/nav); rejecting instead lets moveToPano's catch restore interaction. Underscore-prefixed (not `#private`)
    * so it can be unit-tested.
    *
-   * @param {string} newPano       Id of the pano to load.
-   * @param {PanoData} resolveValue Value to resolve with once the pano has loaded (the current PanoData).
+   * @param {string} newPano       - Id of the pano to load.
+   * @param {PanoData} resolveValue - Value to resolve with once the pano has loaded (the current PanoData).
    * @returns {Promise<PanoData>}   Resolves with resolveValue on load; rejects if the load times out.
    */
   _loadPanoWithTimeout(newPano, resolveValue) {
@@ -262,8 +261,8 @@ class GsvViewer extends PanoViewer {
 
   /**
    * Returns the stored pano data for either of the two tutorial panos.
-   * @param pano - the pano ID/name of the wanted custom panorama.
-   * @returns custom Google Street View panorama.
+   * @param {string} pano - The pano ID/name of the wanted custom panorama.
+   * @returns {google.maps.StreetViewPanoramaData|undefined} The custom Street View panorama, if one matches.
    */
   #getCustomPanoData = (pano) => {
     if (pano === 'tutorial') {

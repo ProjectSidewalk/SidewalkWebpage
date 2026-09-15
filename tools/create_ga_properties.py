@@ -50,18 +50,8 @@ CITYPARAMS = setup_new_city.CITYPARAMS
 KEY_FILE = REPO_ROOT / 'ga-service-account.json'
 
 
-def cityparams_value(lines, path, city_id):
-    """The city's raw value (quotes stripped) inside the (possibly nested) cityparams block at ``path``."""
-    start = 0
-    close = None
-    for name in path:
-        start, close = setup_new_city.find_block(lines, name, start)
-        start += 1
-    for line in lines[start - 1:close]:
-        match = re.match(rf'\s*{re.escape(city_id)}\s*=\s*(.+?)\s*$', line)
-        if match:
-            return match.group(1).strip('"')
-    sys.exit(f'error: {city_id} has no {".".join(path)} entry in cityparams.conf — run `make onboard-city` first.')
+# The orchestrator reads cityparams the same way (its --dump-only handoff), so the reader lives there.
+cityparams_value = setup_new_city.cityparams_value
 
 
 def cityparams_block_lines(lines, path):

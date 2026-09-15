@@ -21,13 +21,19 @@ class StreetStatusColors {
   /** High-contrast color for the currently selected region's segments (distinct from all four status colors). */
   static SELECTED = '#0566f5'; // Near --color-link-200, which the dashboard uses for its other selected states.
 
-  /** @param {string} status @returns {string} the hex color for a status, or the fallback if unrecognized. */
+  /**
+   * @param {string} status - A street status key.
+   * @returns {string} The status's hex color, or the fallback if unrecognized.
+   */
   static colorFor(status) {
     const match = StreetStatusColors.STATUSES.find((s) => s.key === status);
     return match ? match.color : StreetStatusColors.FALLBACK;
   }
 
-  /** @param {string} status @returns {string} the human-readable label for a status, or the raw value if unknown. */
+  /**
+   * @param {string} status - A street status key.
+   * @returns {string} The status's human-readable label, or the raw value if unknown.
+   */
   static labelFor(status) {
     const match = StreetStatusColors.STATUSES.find((s) => s.key === status);
     return match ? match.label : status;
@@ -61,9 +67,9 @@ class StreetStatusMap {
   #hoverId = null;
 
   /**
-   * @param {string} containerId - id of the map container element.
-   * @param {{mapboxToken: string, onRegionClick?: function(number): void, onRegionHover?: function(number): void,
-   *          onRegionHoverEnd?: function(): void}} [opts]
+   * @param {string} containerId - ID of the map container element.
+   * @param {{mapboxToken: string, onRegionClick?: (id: number) => void, onRegionHover?: (id: number) => void,
+   *          onRegionHoverEnd?: () => void}} [opts]
    */
   constructor(containerId, opts = {}) {
     this.containerId = containerId;
@@ -76,7 +82,7 @@ class StreetStatusMap {
   /**
    * Initializes the map and draws the street segments.
    * @param {object} geojson - A GeoJSON FeatureCollection of streets with status + region_id in properties.
-   * @returns {Promise<void>} resolves once the map's first render is ready.
+   * @returns {Promise<void>} Resolves once the map's first render is ready.
    */
   init(geojson) {
     if (!this.#mapboxToken) throw new Error('StreetStatusMap: missing Mapbox access token');

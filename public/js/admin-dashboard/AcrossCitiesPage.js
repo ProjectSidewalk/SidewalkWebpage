@@ -1265,9 +1265,9 @@ class AcrossCitiesPage {
 
   /**
    * One funnel block: heading + description, the comparison table, and the per-city small-multiples.
-   * @param {string} funnelType  'mapping' | 'contribution'.
-   * @param {{steps: string[], cities: object[]}} funnel  The funnel's step keys and per-city rows.
-   * @param {{key: string, label: string}[]} segs  Segments to show for the active dimension.
+   * @param {string} funnelType  - 'mapping' | 'contribution'.
+   * @param {{steps: string[], cities: object[]}} funnel  - The funnel's step keys and per-city rows.
+   * @param {{key: string, label: string}[]} segs  - Segments to show for the active dimension.
    * @returns {string} The block's HTML.
    */
   #funnelBlock(funnelType, funnel, segs) {

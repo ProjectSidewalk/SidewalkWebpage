@@ -9,10 +9,10 @@ architecture. This page explains the conventions a linter can't, and the *why* b
 [`.htmlhintrc`](../.htmlhintrc); Scala formatting lives in [`.scalafmt.conf`](../.scalafmt.conf). When this guide and a
 config disagree, the config wins — fix the config and this doc together. **The linters are all blocking CI gates** —
 ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, the `public/css/` layout
-check, the `public/js/` asset-path check, and `scalafmtCheckAll` for Scala. The trees are kept fully lint-clean
-([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so run the relevant linter — or `make lint`
-for all of them — and get to zero before you push: `make lint-fix` autofixes the mechanical JS/CSS findings, hand-fix
-the rest. CI wiring is in [`docs/testing-and-ci.md`](testing-and-ci.md).
+check, the `public/js/` asset-path check, the JSDoc type check (`make lint-js-types`), and `scalafmtCheckAll` for
+Scala. The trees are kept fully lint-clean ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)),
+so run the relevant linter — or `make lint` for all of them — and get to zero before you push: `make lint-fix`
+autofixes the mechanical JS/CSS findings, hand-fix the rest. CI wiring is in [`docs/testing-and-ci.md`](testing-and-ci.md).
 
 ## General
 
@@ -287,7 +287,8 @@ Rules:
 ### JavaScript (JSDoc)
 
 Use `/** ... */` for all JSDoc. Every `class` and every non-trivial method gets one, including `#private` methods.
-Type annotations in `@param` matter because there is no static type checker.
+The types are checked: `make lint-js-types` runs TypeScript over the folders listed in
+[`tools/check-js-types.mjs`](../tools/check-js-types.mjs), so a type that doesn't match the code fails the build there.
 
 **Method / function:**
 
@@ -321,10 +322,23 @@ Rules:
 
 - Use `@returns` (not `@return`) — that is the JSDoc standard (opposite of ScalaDoc).
 - Always include `{Type}` in `@param` and `@returns`.
+- Separate a `@param` name from its description with ` - `, and start `@param` and `@returns` descriptions with a
+  capital letter unless it opens with a code identifier (`this`, `true`, `jQuery`).
 - Write types TypeScript-style: `object` and `string` (not `Object`/`String`), `Record<string, number>` for a map,
-  and an arrow signature like `(id: number) => void` (or at least `Function`, not a bare `function`) for a callback.
-  `make eslint` checks that types parse, that `@param` names match the real parameters, and that tag names are
-  valid.
+  and an arrow signature like `(id: number) => void` (not Closure's `function(number)`, which TypeScript can't read)
+  for a callback.
+  `make eslint` checks that every `@param` and `@returns` has a type and that it parses, that `@param` names match
+  the real parameters, that each `@param` description follows a hyphen, that each tag is on its own line, and that
+  tag names are valid.
+- Don't put `@private` on a `#private` member; the `#` already says it.
+- Use `object` only for a value whose properties you don't read. If you read them, name them inline
+  (`{{id: number, name: string}}`), or with a `@typedef` when several places share the shape. A free-form bag (page
+  params from a view, log notes) is `Record<string, any>`.
+- When you know more than TypeScript can see, cast in place: `/** @type {HTMLInputElement} */ (el)`. Selector lookups
+  (`querySelector`, `closest`) already return `HTMLElement`; `event.target` and `getElementById` often need a cast.
+- To add a folder to the type check, run `make lint-js-types args=--all`, fix that folder's errors, and add it to
+  `CHECKED`. Globals that no file in `public/js/` declares (vendor libraries, values a view sets on `window`) go in
+  [`tools/js-types/globals.d.ts`](../tools/js-types/globals.d.ts).
 - Use `{Type} [paramName]` (square brackets) for optional parameters, and `{Type} [paramName=default]` when a
   default exists and is non-obvious.
 - Trivial one-line helpers may omit the header.

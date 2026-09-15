@@ -65,10 +65,10 @@ class PanoViewer {
   /**
    * Initializes the panorama viewer with the given canvas element and options.
    * @param {Element} _canvasElem
-   * @param {object} _panoOptions Object containing initialization options
-   * @param {string} [_panoOptions.startPanoId] Pano to start at; either this or startLatLng is required
-   * @param {{lat: number, lng: number}} [_panoOptions.startLatLng] Starting loc; either this or startPanoId is required
-   * @param {boolean} [_panoOptions.preloadNeighbors=false] Pre-download panos linked to the current one, so that
+   * @param {object} _panoOptions - Object containing initialization options
+   * @param {string} [_panoOptions.startPanoId] - Pano to start at; either this or startLatLng is required
+   * @param {{lat: number, lng: number}} [_panoOptions.startLatLng] - Start loc; either this or startPanoId is required
+   * @param {boolean} [_panoOptions.preloadNeighbors=false] - Pre-download panos linked to the current one, so that
    *     moving to them is fast. Only supported by Mapillary; other viewers ignore it.
    * @returns {Promise<void>}
    * @abstract
@@ -80,9 +80,9 @@ class PanoViewer {
   /**
    * Factory method to create and initialize instances. Ex: `const viewer = await GsvViewer.create(canvasElem);`.
    * @param {Element} canvasElem
-   * @param {object} panoOptions Object containing initialization options
-   * @param {string} [panoOptions.startPanoId] Pano to start at; either this or startLatLng is required
-   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Starting loc; either this or startPanoId is required
+   * @param {object} panoOptions - Object containing initialization options
+   * @param {string} [panoOptions.startPanoId] - Pano to start at; either this or startLatLng is required
+   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] - Start loc; either this or startPanoId is required
    * @returns {Promise<PanoViewer>}
    * @static
    */
@@ -121,10 +121,10 @@ class PanoViewer {
   /**
    * Moves to the first initial location with usable imagery: startPanoId if given, falling back to startLatLng
    * followed by each point in backupLatLngs. Called from subclasses' initialize() implementations.
-   * @param {object} panoOptions Object containing initialization options
-   * @param {string} [panoOptions.startPanoId] Pano to start at; tried before the lat/lngs
-   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Preferred starting location
-   * @param {Array<{lat: number, lng: number}>} [panoOptions.backupLatLngs=[]] Fallback locations, tried in order
+   * @param {object} panoOptions - Object containing initialization options
+   * @param {string} [panoOptions.startPanoId] - Pano to start at; tried before the lat/lngs
+   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] - Preferred starting location
+   * @param {Array<{lat: number, lng: number}>} [panoOptions.backupLatLngs=[]] - Fallback locations, tried in order
    * @returns {Promise<void>} Rejects only when every given seed fails. The rejection is a NoImageryError only when
    *     every candidate location answered "nothing here"; if any failed for another reason, that error is rethrown
    *     as-is so callers can tell "this street is empty" from "we couldn't ask" (#4918)
@@ -217,8 +217,8 @@ class PanoViewer {
 
   /**
    * Sets the panorama to the location closest to the specified lat/lng.
-   * @param {{lat: number, lng: number}} _latLng The desired location to move to.
-   * @param {Set<PanoData>} [_excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to.
+   * @param {{lat: number, lng: number}} _latLng - The desired location to move to.
+   * @param {Set<PanoData>} [_excludedPanos=new Set()] - Set of PanoData objects that are not valid images to move to.
    * @returns {Promise<PanoData>} The panorama data object. Rejects if closest image is in excludedPanos or none found.
    * @abstract
    */
@@ -242,8 +242,8 @@ class PanoViewer {
   /**
    * Pre-downloads the pano that setLocation() would pick near the given location, so a subsequent move there
    * doesn't wait on the network. No-op by default; override in subclasses that support preloading.
-   * @param {{lat: number, lng: number}} _latLng The location the next move is expected to target.
-   * @param {Set<PanoData>} [_excludedPanos] Panos the next move is expected to exclude.
+   * @param {{lat: number, lng: number}} _latLng - The location the next move is expected to target.
+   * @param {Set<PanoData>} [_excludedPanos] - Panos the next move is expected to exclude.
    * @returns {Promise<void>}
    */
   async preloadPanoNear(_latLng, _excludedPanos = new Set()) {}
@@ -258,7 +258,7 @@ class PanoViewer {
 
   /**
    * Moves the current panorama to the specified panorama ID.
-   * @param {string} _panoId The panorama ID to set.
+   * @param {string} _panoId - The panorama ID to set.
    * @returns {Promise<PanoData>} The panorama data object.
    * @abstract
    */
@@ -326,8 +326,8 @@ class PanoViewer {
 
   /**
    * Adds an event listener for the specified event type.
-   * @param event One of ['pano_changed', 'pov_changed']
-   * @param handler The function to call when the event occurs.
+   * @param {string} event - One of ['pano_changed', 'pov_changed']
+   * @param {Function} handler - The function to call when the event occurs.
    * @returns {void}
    */
   addListener(event, handler) {
@@ -340,8 +340,8 @@ class PanoViewer {
 
   /**
    * Removes an event listener for the specified event type.
-   * @param {string} event One of ['pano_changed', 'pov_changed']
-   * @param {Function} handler The function to call when the event occurs.
+   * @param {string} event - One of ['pano_changed', 'pov_changed']
+   * @param {Function} handler - The function to call when the event occurs.
    * @returns {void}
    */
   removeListener(event, handler) {

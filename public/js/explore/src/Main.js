@@ -17,7 +17,7 @@ class Main {
   #onboardingStates = null;
 
   /**
-   * @param {object} params - Page params injected by explore.scala.html.
+   * @param {Record<string, any>} params - Page params injected by explore.scala.html.
    */
   constructor(params) {
     this.#params = params;

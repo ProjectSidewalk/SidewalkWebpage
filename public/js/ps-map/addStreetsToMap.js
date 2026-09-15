@@ -1,7 +1,7 @@
 /**
  * Adds streets to the map and returns a promise.
  *
- * @param {object} map The Mapbox map object.
+ * @param {object} map - The Mapbox map object.
  * @param {object} streetData - GeoJSON object containing streets to draw on the map.
  * @param {object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
