@@ -124,7 +124,7 @@ class PartnersPage {
    * @param {string} label - The accessible name (aria-label) for the button.
    * @param {string} text - The visible button text.
    * @param {boolean} disabled - Whether the action is currently unavailable (e.g. moving the first row up).
-   * @param {function(): void} onClick - The click handler.
+   * @param {() => void} onClick - The click handler.
    * @param {boolean} [danger=false] - Whether to style the button as destructive.
    * @returns {HTMLButtonElement}
    */

@@ -1,4 +1,15 @@
 /**
+ * One example slide in a label type's lesson, translated and ready to render.
+ * @typedef {object} TutorialSlide
+ * @property {boolean} isExampleCorrect - Whether the photo shows the label type (only the first slide does).
+ * @property {string} slideTitle - Translated title.
+ * @property {string} slideSubtitle - Translated subtitle; empty for the correct example.
+ * @property {string} slideDescription - Translated description.
+ * @property {string} imageURL - URL of the example photo.
+ * @property {{position: {left: string, top: string}}} labelOnImage - Where the callout sits, in EXAMPLE_PHOTO's frame.
+ */
+
+/**
  * A full-screen carousel for the mission start tutorial.
  */
 class MissionStartTutorial {
@@ -111,8 +122,7 @@ class MissionStartTutorial {
    *
    * @param {string} missionType - Mission type ('validate' or 'audit').
    * @param {string} labelType - One of the seven label types.
-   * @returns {object[]} One entry per slide: `isExampleCorrect`, `slideTitle`, `slideSubtitle`, `slideDescription`,
-   *      `imageURL`, and `labelOnImage.position`.
+   * @returns {TutorialSlide[]} One entry per slide.
    */
   static slidesFor(missionType, labelType) {
     const lesson = MissionStartTutorial.#LABEL_TYPE_LESSONS[labelType];
@@ -277,7 +287,7 @@ class MissionStartTutorial {
 
     /**
      * Renders the 'on-image label' and positions it.
-     * @param {object} position - Position of the on-image label as top and left attributes in px.
+     * @param {{left: string, top: string}} position - Position of the on-image label as top and left attributes in px.
      * @param {string} labelOnImageTitle - Title to be shown on the label.
      * @param {string} labelOnImageDescription - Description to be shown on the label.
      */

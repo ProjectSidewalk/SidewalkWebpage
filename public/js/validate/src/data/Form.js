@@ -162,9 +162,9 @@ class Form {
         body: JSON.stringify(data),
       });
       if (!response.ok) {
-        const httpError = new Error(`Validation submit failed with HTTP ${response.status}`);
-        httpError.status = response.status;
-        throw httpError;
+        throw Object.assign(new Error(`Validation submit failed with HTTP ${response.status}`), {
+          status: response.status,
+        });
       }
       result = await response.json();
     } catch (submitError) {

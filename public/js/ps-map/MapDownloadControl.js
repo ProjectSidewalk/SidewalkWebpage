@@ -23,7 +23,7 @@ class MapDownloadControl {
   #getFilterState;
   /** @type {() => number} */
   #getVisibleLabelCount;
-  /** @type {?() => string} */
+  /** @type {?(() => string)} */
   #getBbox;
   /** @type {?number} */
   #regionId;
@@ -74,7 +74,7 @@ class MapDownloadControl {
    * @param {object} options
    * @param {() => object} options.getFilterState - Returns FilterSidebar.getState()'s shape.
    * @param {() => number} options.getVisibleLabelCount - Returns the number of labels the filters leave visible.
-   * @param {?() => string} [options.getBbox] - Returns the current viewport as "minLng,minLat,maxLng,maxLat" to
+   * @param {?(() => string)} [options.getBbox] - Returns the current viewport as "minLng,minLat,maxLng,maxLat" to
    *      scope downloads to the visible map area (GIS "export what you see", #5002). When provided, regionId is
    *      not sent — the endpoint gives bbox precedence anyway, so it could never narrow the file further.
    * @param {?number} [options.regionId] - Single deep-linked region id to scope downloads to, or null.

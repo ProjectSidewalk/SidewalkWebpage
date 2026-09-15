@@ -23,7 +23,7 @@ class ValidationMenu {
 
   /**
    * @param {Card} referenceCard - The Card this menu belongs to.
-   * @param {jQuery} gsvImage - The HTML element to append the validation menu to.
+   * @param {JQuery} gsvImage - The HTML element to append the validation menu to.
    */
   constructor(referenceCard, gsvImage) {
     this.#refCard = referenceCard;
@@ -110,7 +110,7 @@ class ValidationMenu {
    * @param {string} newValKey
    * @param {boolean} thumbsClick - Whether the validation came from clicking the thumb icons.
    * @param {boolean} keyboardShortcut - Whether the validation came from a keyboard shortcut.
-   * @returns {function(): Promise<?Response>} A function returning a Promise that resolves once the validation has
+   * @returns {() => Promise<?Response>} A function returning a Promise that resolves once the validation has
    *     been submitted, with the server's response, or null if the request never completed.
    */
   validateOnClickOrKeyPress(newValKey, thumbsClick, keyboardShortcut) {

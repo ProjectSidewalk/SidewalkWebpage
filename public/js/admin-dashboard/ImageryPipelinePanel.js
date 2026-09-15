@@ -14,7 +14,7 @@ class ImageryPipelinePanel {
   #pending = null;
 
   /**
-   * @param {{pipelineUrl: string, days: number, onLoaded?: function(object): void}} opts - Endpoint, initial window,
+   * @param {{pipelineUrl: string, days: number, onLoaded?: (report: object) => void}} opts - Endpoint, initial window,
    *   and a callback handed the report so the page can fill its own KPIs from the same fetch.
    */
   constructor(opts) {

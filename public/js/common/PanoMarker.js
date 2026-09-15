@@ -82,11 +82,11 @@ class PanoMarker {
      * New code (April 17, 2019) -- modified by Aileen
      * Source: https://github.com/marmat/google-maps-api-addons/issues/36#issuecomment-342774699
      * @private
-     * @type {function(
-     *   {heading: number, pitch: number},
-     *   {heading: number, pitch: number, zoom: number},
-     *   number, number, number
-     * ): {x: number, y: number}}
+     * @type {(
+     *   centeredPov: {heading: number, pitch: number},
+     *   newPov: {heading: number, pitch: number, zoom: number},
+     *   canvasWidth: number, canvasHeight: number, margin: number
+     * ) => {x: number, y: number}|null}
      */
     this.povToPixel_ = util.pano.centeredPovToCanvasCoord2d;
     const pixelCanvas = document.createElement('canvas');

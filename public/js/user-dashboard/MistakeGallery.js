@@ -395,7 +395,7 @@ class MistakeGallery {
    * and a second failure removes the photo. Alt is empty: the card's title names the type below it.
    *
    * @param {object} m - The label record.
-   * @param {function(?string): void} onSourceChange - Called with the source now on screen ('api', or null once
+   * @param {(source: ?string) => void} onSourceChange - Called with the source now on screen ('api', or null once
    *     every source has failed), since the marker's position depends on which image is showing.
    * @returns {?HTMLImageElement} The image, or null when the label has no source at all.
    */

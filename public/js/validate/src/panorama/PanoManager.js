@@ -126,7 +126,6 @@ class PanoManager {
    * than giving each viewer its own window.
    *
    * @param {PanoViewer} viewer - The viewer to subscribe; ignored if it is already subscribed.
-   * @private
    */
   #watchViewerPov(viewer) {
     if (this.#povWatchedViewers.has(viewer)) return;
@@ -170,7 +169,6 @@ class PanoManager {
    * Saves historic pano metadata and updates the date text field on the pano in pano viewer.
    * @param {PanoData} panoData - The PanoData extracted from the PanoViewer when loading the pano
    * @returns {PanoData}
-   * @private
    */
   #setPanoCallback(panoData) {
     // Store the returned pano metadata.
@@ -187,7 +185,6 @@ class PanoManager {
 
   /**
    * Moves the buttons on the bottom-right of the GSV image to the top layer so they are clickable.
-   * @private
    */
   #makeGsvAttributionClickable() {
     const bottomLinks = $('.gm-style-cc');
@@ -210,7 +207,6 @@ class PanoManager {
    * Mapillary renders these inside the pano canvas itself, where the click-handling view-control-layer covers
    * them. We move the container up into that layer instead, the same trick used for the GSV links. Mapillary may
    * re-render its own container back into the pano (e.g. after an image change), so we keep watching for that.
-   * @private
    */
   #makeMapillaryAttributionClickable() {
     const tryMove = () => {
@@ -323,7 +319,6 @@ class PanoManager {
    * to act on. Reading offsetWidth in between flushes the pending style change, which is what restarts it.
    *
    * @param {HTMLElement} marker - The marker element to pulse.
-   * @private
    */
   #restartMarkerPulse(marker) {
     marker.classList.remove('label-marker-pulse');
@@ -335,7 +330,7 @@ class PanoManager {
    * Sets the panorama. Tries the primary viewer first; falls back to Pannellum if there's a backup image available.
    *
    * @param {string} panoId - The ID for the panorama that we want to move to.
-   * @param {{object}|null} backupImage - Self-hosted pano data from the backend, or null.
+   * @param {?{panoId: string, cameraHeading?: number, attribution?: object}} backupImage - Self-hosted pano, or null.
    * @returns {Promise<PanoData|null>} The loaded pano's metadata, or `null` when no viewer could render it. A null
    *      return means the pano area is now empty, so the caller must not draw a label marker over it or ask for a
    *      validation of the label it was loading (#4810).
@@ -377,7 +372,6 @@ class PanoManager {
    * Pannellum keeps its last canvas — so without this the validator would be looking at the *previous* label's
    * imagery, panned to the new label's POV with the new label's marker on it, and asked whether that label is
    * correct (#4810). An empty pano is the honest state; the caller decides what to show in its place.
-   * @private
    */
   #clearViewer() {
     this.setProperty('panoLoaded', false);
@@ -392,7 +386,6 @@ class PanoManager {
 
   /**
    * Shows the primary viewer canvas and hides the Pannellum canvas; resets svv.panoViewer to the primary viewer.
-   * @private
    */
   #teardownPannellum() {
     this.#hidePannellumCanvas();
@@ -419,9 +412,8 @@ class PanoManager {
    * and the swap — canvas, active viewer, logo, attribution — happens in one step afterwards; nothing here paints,
    * and the outgoing label's imagery stays up until this one is ready.
    *
-   * @param {{object}} backupImage
+   * @param {{panoId: string, cameraHeading?: number, attribution?: object}} backupImage - Self-hosted pano data.
    * @returns {Promise<PanoData>}
-   * @private
    */
   async #showPannellumPano(backupImage) {
     // Use a neutral POV here; renderPanoMarker will setPov to the correct heading immediately after.
@@ -475,7 +467,6 @@ class PanoManager {
 
   /**
    * Takes the Pannellum canvas back out of sight, and out of the layout so it can't sit over the primary viewer.
-   * @private
    */
   #hidePannellumCanvas() {
     this.#pannellumCanvas.style.display = 'none';
@@ -485,7 +476,6 @@ class PanoManager {
   /**
    * Adds or removes the AI badge on the validation marker.
    * @param {boolean} showIndicator - True to show the AI badge, false to remove it.
-   * @private
    */
   #updateMarkerAiIndicator(showIndicator) {
     const markerEl = this.labelMarker.marker_;
@@ -519,7 +509,6 @@ class PanoManager {
    *
    * @param {number} scale - The UI scale factor (see util.applyToolScale).
    * @returns {number} Diameter in CSS px.
-   * @private
    */
   #markerDiameter(scale) {
     return Math.round(util.cappedMarkerDiameter(svv.labelRadius * 2 + 2, scale));
