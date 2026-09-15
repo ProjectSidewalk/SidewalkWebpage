@@ -673,7 +673,6 @@ class ContextMenu {
   /**
    * Builds the header's share control. Unlike the hover card's, this one is only ever pointed at a label the menu
    * has actually opened for, so it re-points once per open rather than per frame.
-   * @private
    */
   #initShareWidget() {
     const trigger = document.getElementById('context-menu-share');
@@ -700,7 +699,6 @@ class ContextMenu {
    * Points the share control at the label this menu is open for, or hides it when that label can never have a
    * public URL (tutorial labels are never submitted).
    * @param {Label} label
-   * @private
    */
   #pointShareAtLabel(label) {
     const shareable = !svl.isOnboarding() && !label.isDeleted();

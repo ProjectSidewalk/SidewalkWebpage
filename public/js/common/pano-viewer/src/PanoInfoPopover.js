@@ -10,34 +10,34 @@ class PanoInfoPopover {
   /** @type {HTMLImageElement} The info button that triggers the popover. */
   #infoButton;
 
-  /** @type {function(): PanoViewer} Returns the *currently active* viewer — Validate and the label card swap
+  /** @type {() => PanoViewer} Returns the *currently active* viewer — Validate and the label card swap
    * viewers per label (primary ↔ Pannellum), so this must be resolved on each open, not captured once (#4813). */
   #panoViewer;
-  /** @type {function(): {lat: number, lng: number}} */
+  /** @type {() => {lat: number, lng: number}} */
   #coords;
-  /** @type {function(): string} */
+  /** @type {() => string} */
   #panoId;
-  /** @type {function(): number} */
+  /** @type {() => number} */
   #streetEdgeId;
-  /** @type {function(): number} */
+  /** @type {() => number} */
   #regionId;
-  /** @type {function(): object} Moment object */
+  /** @type {() => object} Moment object */
   #panoDate;
-  /** @type {function(): string|null} */
+  /** @type {() => string|null} */
   #panoAddress;
-  /** @type {function(): {heading: number, pitch: number}} */
+  /** @type {() => {heading: number, pitch: number}} */
   #pov;
   /** @type {boolean} */
   #whiteIcon;
-  /** @type {function()} */
+  /** @type {() => void} */
   #infoLogging;
-  /** @type {function()} */
+  /** @type {() => void} */
   #clipboardLogging;
-  /** @type {function()} */
+  /** @type {() => void} */
   #viewPanoLogging;
-  /** @type {function(): number|undefined} Optional — returns the Label ID. */
+  /** @type {() => number|undefined} Optional — returns the Label ID. */
   #labelId;
-  /** @type {function(): object|undefined} Optional — returns the label's timestamp as a moment object. */
+  /** @type {() => object|undefined} Optional — returns the label's timestamp as a moment object. */
   #labelDate;
   /** @type {Set<PanoViewer>} Viewers already subscribed to by #watchViewer(). */
   #watchedViewers = new Set();

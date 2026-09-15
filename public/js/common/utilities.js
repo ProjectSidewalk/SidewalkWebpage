@@ -163,7 +163,7 @@ util.sizeCanvasToDisplay = function (el, ctx) {
  * already positioned in on-screen pixels divides by the same `scale` before calling. Both tools' panos are 720x480
  * at --ui-scale = 1, so the default `frameHeight` suits either.
  *
- * @param {jQuery} panel - The panel to position. Must be .label-anchored-panel and a child of `opts.originEl`.
+ * @param {JQuery} panel - The panel to position. Must be .label-anchored-panel and a child of `opts.originEl`.
  * @param {{x: number, y: number}} labelCanvasXY - The label icon's center in the logical canvas frame.
  * @param {number} iconRadius - The label icon's radius, in that same logical frame.
  * @param {object} [opts] - Frame overrides. Omit them entirely for Explore, whose frame is the default.

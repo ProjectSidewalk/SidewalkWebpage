@@ -141,7 +141,7 @@ class Tracker {
 
   /**
    * @param {string} action - The action to be stored in the database
-   * @param {?object} [notes] - The notes field in the database
+   * @param {?Record<string, any>} [notes] - The notes field in the database
    * @param {?object} [extraData] - Extra data that should not be stored in the notes field in db
    */
   push(action, notes, extraData) {
@@ -200,7 +200,7 @@ class Tracker {
     }
 
     // If there is a one-hour break between interactions (in ms), refresh the page to avoid weird bugs.
-    if (prevItem && item.timestamp - prevItem.timestamp > 3600000) window.location.reload();
+    if (prevItem && item.timestamp.getTime() - prevItem.timestamp.getTime() > 3600000) window.location.reload();
 
     return this;
   }

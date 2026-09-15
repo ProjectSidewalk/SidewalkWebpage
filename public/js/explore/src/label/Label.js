@@ -454,7 +454,6 @@ class Label {
    * Uploads the crop, retrying once if the canvas hasn't produced it yet.
    * @param {number} labelId
    * @returns {Promise<void>}
-   * @private
    */
   async #uploadCrop(labelId) {
     if (!this.getProperty('crop')) {
@@ -492,7 +491,7 @@ class Label {
    */
   static preloadIcons() {
     const iconPaths = util.misc.getIconImagePaths();
-    const loads = Object.keys(iconPaths).map((labelType) => {
+    const loads = Object.keys(iconPaths).map(/** @returns {Promise<void>} */ (labelType) => {
       const iconPath = iconPaths[labelType].iconImagePath;
       if (!iconPath || window.labelIconCache[iconPath]) return Promise.resolve();
       return new Promise((resolve) => {

@@ -16,7 +16,7 @@ class MiniLineChart {
    *   `data-ps-tooltip` card and becomes focusable, so the breakdown is reachable by keyboard as well as hover (the
    *   plain `tooltips` string stays on as its accessible name). Card markup is first-party only — escape any name or
    *   other data that came from a user before putting it in one.
-   * @param {{yMax?: number, tickFormat?: function(number): string, valueFormat?: function(number): string,
+   * @param {{yMax?: number, tickFormat?: (value: number) => string, valueFormat?: (value: number) => string,
    *          ariaLabel?: string, dotRadius?: number, kind?: string, maxXLabels?: number, barValues?: boolean,
    *          emphasisIndex?: number, minMarginL?: number, minMarginR?: number,
    *          refLine?: {value: number, label?: string, key?: string}}} [opts] - yMax defaults to a nice

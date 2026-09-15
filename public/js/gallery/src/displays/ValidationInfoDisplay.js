@@ -101,7 +101,7 @@ class ValidationInfoDisplay {
    */
   setVoteIconFilled(action, filled) {
     const container = action === 'Agree' ? this.agreeContainer : this.disagreeContainer;
-    const icon = container?.querySelector('.validation-info-image');
+    const icon = /** @type {?HTMLImageElement} */ (container?.querySelector('.validation-info-image'));
     if (icon) icon.src = this.#voteIconSrc(action, filled);
   }
 

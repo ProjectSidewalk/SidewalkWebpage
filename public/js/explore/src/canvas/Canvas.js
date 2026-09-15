@@ -397,7 +397,6 @@ class Canvas {
    * it declined to schedule anything. The pointer is long gone by then and no second mouseleave is coming, so
    * without this the card would sit there until an unrelated event took it down. Skipped when the pointer is back
    * on the card, where it is meant to stay.
-   * @private
    */
   #handleShareDismissed() {
     if (!svl.ui.canvas.hoverCard[0]?.matches(':hover')) this.#scheduleHoverCardHide();
@@ -426,7 +425,7 @@ class Canvas {
     this.#setShareTarget(label, url);
   }
 
-  /** Writes the share target for a label. @private */
+  /** Writes the share target for a label. */
   #setShareTarget(label, url) {
     const labelTypeName = i18next.t(`common:${util.camelToKebab(label.getLabelType())}`).replace('&shy;', '');
     const text = i18next.t('common:share.text', { labelType: labelTypeName });
@@ -467,7 +466,6 @@ class Canvas {
    * so the deadline stays a hard 200ms from when the pointer left the label — the stream of mousemoves that follows
    * it off the label must not keep pushing the hide back. The hide is aborted if the pointer reaches the card
    * (mouseenter) or returns to a label before the timer fires.
-   * @private
    */
   #scheduleHoverCardHide() {
     // An open share popover hangs off the card, so the pointer leaving the card doesn't mean the user is done with

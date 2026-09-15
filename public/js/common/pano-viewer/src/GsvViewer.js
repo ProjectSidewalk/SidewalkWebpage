@@ -161,7 +161,6 @@ class GsvViewer extends PanoViewer {
    * @param {object} newPanoData - The pano data returned from StreetViewService.getPanorama()
    * @param {Set<PanoData>} [excludedPanos=new Set()] - Set of PanoData objects that are not valid images to move to.
    * @returns {Promise<PanoData>} The PanoData object created from newPanoData
-   * @private
    */
   #getPanoramaCallback = async (newPanoData, excludedPanos = new Set()) => {
     // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing. This is a

@@ -27,7 +27,7 @@ class StoriesPage {
   }
 
   /**
-   * @param {{showLabel: function(number, string): Promise}} popup - A LabelPopup instance.
+   * @param {{showLabel: (labelId: number, source: string) => Promise<void>}} popup - A LabelPopup instance.
    */
   setLabelPopup(popup) {
     this.#labelPopup = popup;

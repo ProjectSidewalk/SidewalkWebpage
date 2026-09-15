@@ -17,7 +17,7 @@ class ExpandedView {
   #currUsername;
 
   /**
-   * @param {jQuery} uiModal - The `.gallery-expanded-view` container element.
+   * @param {JQuery} uiModal - The `.gallery-expanded-view` container element.
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
    * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
    * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
@@ -32,7 +32,7 @@ class ExpandedView {
 
   /**
    * Creates an ExpandedView and initializes its LabelDetail controller.
-   * @param {jQuery} uiModal - The `.gallery-expanded-view` container element.
+   * @param {JQuery} uiModal - The `.gallery-expanded-view` container element.
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
    * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
    * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
@@ -172,7 +172,7 @@ class ExpandedView {
 
   /**
    * Called by LabelDetail after a successful edit (#2575). Syncs the new severity and tags onto the small card.
-   * @param {object} meta - The label's metadata with its new severity and tags.
+   * @param {{severity: ?number, tags: string[]}} meta - The label's metadata with its new severity and tags.
    */
   #handleEdit = (meta) => {
     if (this.refCard) {

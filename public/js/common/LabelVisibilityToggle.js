@@ -29,8 +29,8 @@ class LabelVisibilityToggle {
    * @param {object} opts
    * @param {HTMLElement[]} opts.buttons - Every button that runs the toggle; they always read the same.
    * @param {{hide: string, show: string, hideTooltip: string, showTooltip: string}} opts.text - Translated wording.
-   * @param {function(boolean, {viaClick: boolean}): void} opts.onChange - Handed each applied visibility, for the
-   *     host to move its markers and log the interaction.
+   * @param {(visible: boolean, info: {viaClick: boolean}) => void} opts.onChange - Handed each applied visibility, for
+   *     the host to move its markers and log the interaction.
    */
   constructor({ buttons, text, onChange }) {
     this.#buttons = buttons.filter(Boolean);

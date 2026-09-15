@@ -15,14 +15,14 @@
 /**
  * Wires a disclosure button to the sidebar it opens.
  *
- * @param {HTMLButtonElement} toggle - The button. Its `aria-expanded` tracks the open state.
+ * @param {HTMLElement} toggle - The button. Its `aria-expanded` tracks the open state.
  * @param {HTMLElement} root - Element carrying `mobile-visible` while open; the CSS keys the reveal off it.
  * @param {object} [options]
  * @param {?HTMLElement} [options.controlled] - What the button discloses. Given an id if it has none, so
  *     `aria-controls` can name it.
  * @param {string} [options.controlledId] - Id to assign when `controlled` has none.
- * @param {function(boolean): void} [options.onToggle] - Called with the new open state, for interaction logging.
- * @returns {HTMLButtonElement} The same button, for chaining.
+ * @param {(open: boolean) => void} [options.onToggle] - Called with the new open state, for interaction logging.
+ * @returns {HTMLElement} The same button, for chaining.
  */
 function wireSidebarDisclosure(toggle, root, options = {}) {
   const { controlled = null, controlledId = 'sidebar-disclosure-target', onToggle = null } = options;

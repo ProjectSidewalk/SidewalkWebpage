@@ -115,7 +115,7 @@ class PopUpMessage {
    * Notification
    * @param {string} title - HTML content to add to the h2 header for the pop-up
    * @param {string} message - HTML content to add to the p body for the pop-up
-   * @param {Function} [callback] - Function to call when the user clicks OK to dismiss the pop-up
+   * @param {() => void} [callback] - Function to call when the user clicks OK to dismiss the pop-up
    * @returns {boolean} Returns true if the message is shown, false if it isn't (because another is already visible)
    */
   notify(title, message, callback) {
@@ -138,7 +138,7 @@ class PopUpMessage {
    * @param {string} width - Width of the image, including units
    * @param {string} height - Height of the image, including units
    * @param {string} x - Left position of the image, including units
-   * @param {Function} [callback] - Function to call when the user clicks OK to dismiss the pop-up
+   * @param {() => void} [callback] - Function to call when the user clicks OK to dismiss the pop-up
    * @returns {boolean} Returns true if the message is shown, false if it isn't (because another is already visible)
    */
   notifyWithImage(title, message, image, width, height, x, callback) {
@@ -261,7 +261,7 @@ class PopUpMessage {
 
   /**
    * Adds the OK button and wires up both dismissal paths (clicking OK and the Enter shortcut).
-   * @param {Function} [callback] - Called after the pop-up is hidden.
+   * @param {() => void} [callback] - Called after the pop-up is hidden.
    */
   #appendOkButton(callback) {
     const handleClickOk = () => {

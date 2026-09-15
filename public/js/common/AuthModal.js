@@ -273,7 +273,7 @@ function renderAuthErrors(form, errors) {
  *
  * @param {HTMLFormElement} [form] - The auth form to enhance; a no-op if absent.
  * @param {object} [opts]
- * @param {function(object): void} [opts.onSuccess] - Handles a successful reply in place of following its `redirect`.
+ * @param {(reply: object) => void} [opts.onSuccess] - Handles a successful reply in place of following its `redirect`.
  */
 function wireAsyncSubmit(form, { onSuccess } = {}) {
   if (!form) return;

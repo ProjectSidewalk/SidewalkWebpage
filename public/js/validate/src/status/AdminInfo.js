@@ -6,9 +6,9 @@ class AdminInfo {
    * Saves the pointers to the admin info and template. Adds event listeners to close the popover.
    *
    * @param {object} adminUi - An object containing jQuery pointers to different elements of the Admin Info UI
-   * @param {jQuery} adminUi.holder - A jQuery pointer to the Admin Info button
-   * @param {jQuery} adminUi.button - A jQuery pointer to the Admin Info button
-   * @param {jQuery} adminUi.template - A jQuery pointer to the template HTML for the admin info popover
+   * @param {JQuery} adminUi.holder - A jQuery pointer to the Admin Info button
+   * @param {JQuery} adminUi.button - A jQuery pointer to the Admin Info button
+   * @param {JQuery} adminUi.template - A jQuery pointer to the template HTML for the admin info popover
    */
   constructor(adminUi) {
     this.$templateAdminContent = adminUi.template;

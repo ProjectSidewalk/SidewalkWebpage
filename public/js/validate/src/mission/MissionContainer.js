@@ -44,9 +44,10 @@ class MissionContainer {
 
   /**
    * Creates a mission by parsing a JSON file.
-   * @param {object} missionMetadata - JSON metadata for mission (from backend).
-   * @param {object} progressMetadata - JSON metadata about mission progress
-   *                                  (counts of agree/disagree/unsure labels for this mission).
+   * @param {{completed: boolean, labels_progress: ?number, labels_validated: ?number, label_type: string,
+   *     mission_id: number, mission_type: string}} missionMetadata - JSON metadata for mission (from backend).
+   * @param {{agree_count: number, disagree_count: number, unsure_count: number}} progressMetadata - JSON metadata
+   *     about mission progress (counts of agree/disagree/unsure labels for this mission).
    */
   createAMission(missionMetadata, progressMetadata) {
     svv.undoValidation.disableUndo();

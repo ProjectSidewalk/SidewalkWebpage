@@ -12,12 +12,13 @@
  *
  * @param {object} mapData - The map layer tracker returned by addLabelsToMap (reads .sortedLabels).
  * @param {object} [options] - Navigation options.
- * @param {function(string, object): boolean} [options.isCandidate] - Called with a label's type and GeoJSON feature;
- *     returns whether "next" may land on it. Omit to page over every loaded label.
- * @returns {{next: function(number): ?number, prev: function(number): ?number, hasPrev: function(number): boolean,
- *     hasNext: function(number): boolean, getCoords: function(number): ?Array<number>,
- *     getLabelType: function(number): ?string, refresh: function(): void, filtersChanged: function(): void,
- *     onRefresh: function(function(): void): void}}
+ * @param {(labelType: string, feature: object) => boolean} [options.isCandidate] - Called with a label's type and
+ *     GeoJSON feature; returns whether "next" may land on it. Omit to page over every loaded label.
+ * @returns {{next: (labelId: number) => ?number, prev: (labelId: number) => ?number,
+ *     hasPrev: (labelId: number) => boolean, hasNext: (labelId: number) => boolean,
+ *     getCoords: (labelId: number) => ?Array<number>, getLabelType: (labelId: number) => ?string,
+ *     refresh: () => void, filtersChanged: () => void,
+ *     onRefresh: (listener: () => void) => void}}
  *     Navigator whose paging methods take the currently shown label ID and return the label ID to show (null when
  *     there is nowhere to go); getCoords/getLabelType look up a loaded label's [lng, lat] / label type; refresh
  *     re-reads .sortedLabels after a viewport refetch has swapped the loaded labels, and filtersChanged restarts
