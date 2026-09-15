@@ -1,4 +1,21 @@
 /**
+ * @typedef {object} ConfirmDialogButton
+ * @property {string} id - Resolved when this button is picked.
+ * @property {string} text - The button's label.
+ * @property {'secondary'|'primary'|'danger'} [style] - Defaults to 'secondary'.
+ * @property {string|null} [iconSrc] - URL of a decorative icon before the text.
+ */
+
+/**
+ * @typedef {object} ConfirmDialogParts
+ * @property {HTMLElement} header - Wraps the warning icon and title; hidden without a title.
+ * @property {HTMLElement} icon - The warning icon.
+ * @property {HTMLElement} title - The heading.
+ * @property {HTMLElement} message - The question.
+ * @property {HTMLElement} actions - The container the buttons are rebuilt into.
+ */
+
+/**
  * ConfirmDialog — a promise-based, app-styled replacement for window.confirm().
  *
  * window.confirm() renders browser chrome ("localhost:9000 says…") that can't be styled or translated, so in-app
@@ -15,9 +32,13 @@ class ConfirmDialog {
     danger: 'button-ps button--medium button--primary ps-confirm__btn--danger',
   };
 
+  /** @type {HTMLDialogElement|null} */
   static #dialog = null;
+  /** @type {ConfirmDialogParts|null} */
   static #els = null;
+  /** @type {((choice: any) => void)|null} */
   static #resolve = null;
+  /** @type {any} */
   static #dismissValue = null;
   // Set while #settle closes the dialog, so the queued `close` event knows the close was ours and doesn't
   // re-settle a prompt that was reopened in the same tick.
@@ -32,11 +53,16 @@ class ConfirmDialog {
    * @param {string} opts.cancelText - Label for the dismissing button.
    * @param {boolean} [opts.danger=false] - Styles the confirm button red for destructive actions.
    * @param {string} [opts.confirmIconSrc] - URL of a decorative icon shown before the confirm button's text.
+   * @param {string} [opts.title] - A heading above the message.
+   * @param {boolean} [opts.warning=false] - Shows a warning icon beside the heading.
    * @returns {Promise<boolean>} true if confirmed; false on cancel, Esc, or any other dismissal.
    */
-  static confirm({ message, confirmText, cancelText, danger = false, confirmIconSrc = null }) {
+  static confirm({ message, confirmText, cancelText, danger = false, confirmIconSrc = null, title = null,
+    warning = false }) {
     return ConfirmDialog.choose({
       message,
+      title,
+      warning,
       buttons: [
         { id: 'cancel', text: cancelText },
         { id: 'confirm', text: confirmText, style: danger ? 'danger' : 'primary', iconSrc: confirmIconSrc },
@@ -50,18 +76,25 @@ class ConfirmDialog {
    *
    * @param {object} opts
    * @param {string} opts.message - The question being asked.
-   * @param {Array<{id: string, text: string, style?: string, iconSrc?: string}>} opts.buttons - The choices left to
-   *     right, with `style` 'secondary' (the default), 'primary', or 'danger'.
+   * @param {ConfirmDialogButton[]} opts.buttons - The choices, left to right.
    * @param {*} [opts.dismissValue=null] - Resolved on Esc or a backdrop click.
    * @param {string} [opts.focusId] - Button to focus. Defaults to the first that changes nothing.
+   * @param {string} [opts.title] - A heading above the message.
+   * @param {boolean} [opts.warning=false] - Shows a warning icon beside the heading.
    * @returns {Promise<*>} The chosen button's id, or `dismissValue`.
    */
-  static choose({ message, buttons, dismissValue = null, focusId = null }) {
+  static choose({ message, buttons, dismissValue = null, focusId = null, title = null, warning = false }) {
     const els = ConfirmDialog.#ensureDialog();
     // A prior prompt is still open (only reachable programmatically): settle it as a dismissal before reusing the
     // shared dialog, so its caller can't hang.
     if (ConfirmDialog.#resolve) ConfirmDialog.#settle(ConfirmDialog.#dismissValue);
     els.message.textContent = message;
+    els.title.textContent = title ?? '';
+    els.header.hidden = !title;
+    els.icon.hidden = !warning;
+    ConfirmDialog.#dialog.setAttribute('aria-labelledby', title ? 'ps-confirm-title' : 'ps-confirm-message');
+    if (title) ConfirmDialog.#dialog.setAttribute('aria-describedby', 'ps-confirm-message');
+    else ConfirmDialog.#dialog.removeAttribute('aria-describedby');
     els.actions.replaceChildren(...buttons.map((button) => ConfirmDialog.#buildButton(button)));
     // Fall back through: the named button, else the first that changes nothing, else the first button there is.
     const candidates = [
@@ -74,11 +107,14 @@ class ConfirmDialog {
       ConfirmDialog.#resolve = resolve;
       ConfirmDialog.#dismissValue = dismissValue;
       ConfirmDialog.#dialog.showModal();
-      /** @type {HTMLElement} */ (els.actions.children[focusIdx])?.focus();
+      /** @type {HTMLElement|undefined} */ (els.actions.children[focusIdx])?.focus();
     });
   }
 
-  /** @returns {HTMLButtonElement} A `buttons` entry as a button, wired to settle the pending promise with its id. */
+  /**
+   * @param {ConfirmDialogButton} button - The choice to render.
+   * @returns {HTMLButtonElement} The button, wired to settle the pending promise with its id.
+   */
   static #buildButton({ id, text, style = 'secondary', iconSrc = null }) {
     const el = document.createElement('button');
     el.type = 'button';
@@ -97,7 +133,7 @@ class ConfirmDialog {
 
   /**
    * Builds the shared dialog on first use.
-   * @returns {{message: HTMLElement, actions: HTMLElement}} The message element and the buttons' container.
+   * @returns {ConfirmDialogParts} The dialog's parts.
    */
   static #ensureDialog() {
     if (ConfirmDialog.#els) return ConfirmDialog.#els;
@@ -105,6 +141,10 @@ class ConfirmDialog {
     dialog.className = 'ps-confirm';
     dialog.setAttribute('aria-labelledby', 'ps-confirm-message');
     dialog.innerHTML = `
+      <div class="ps-confirm__header" hidden>
+        <span class="ps-confirm__warning-icon" aria-hidden="true" hidden></span>
+        <h2 class="ps-confirm__title" id="ps-confirm-title"></h2>
+      </div>
       <p class="ps-confirm__message" id="ps-confirm-message"></p>
       <div class="ps-confirm__actions"></div>
     `;
@@ -120,6 +160,9 @@ class ConfirmDialog {
     });
     ConfirmDialog.#dialog = dialog;
     ConfirmDialog.#els = {
+      header: dialog.querySelector('.ps-confirm__header'),
+      icon: dialog.querySelector('.ps-confirm__warning-icon'),
+      title: dialog.querySelector('.ps-confirm__title'),
       message: dialog.querySelector('.ps-confirm__message'),
       actions: dialog.querySelector('.ps-confirm__actions'),
     };
