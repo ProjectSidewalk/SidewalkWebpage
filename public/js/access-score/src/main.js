@@ -241,11 +241,13 @@ window.AccessScoreApp = (function () {
     }
     urlSync.setDark(dark);
 
-    // Everything back to the page as first opened: the weighting, what is drawn, the selection, the brush, the
-    // band, the basemap and the camera. Each piece goes through its own path so nothing is reset twice or half.
+    // Everything back to the page as first opened: the weighting, what is drawn, the selection, the searched
+    // place, the brush, the band, the basemap and the camera. Each piece goes through its own path so nothing is
+    // reset twice or half.
     document.getElementById('acs-reset-all')?.addEventListener('click', () => {
       log('ResetAll');
       select(null);
+      placeSearch?.clear();
       model.setState({ ...AccessScoreModel.DEFAULT_STATE, weights: { ...config.presets.default } });
       const state = model.state;
       mapView.setUnit(state.unit);

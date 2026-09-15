@@ -4,9 +4,9 @@
  * Mounts a Mapbox Search JS `MapboxSearchBox` at the top of the map's left filter sidebar and
  * hard-limits suggestions to the deployment city's actual extent, so this stays a within-city finder
  * (hospitals, schools, libraries, ...) rather than a general-purpose geocoder. Selecting a result flies
- * the map to the place and drops a Project Sidewalk pin; activating the pin opens the Explore tool at that
- * exact spot, and hovering or focusing it first previews the invitation (#4451). A "clear" button under the
- * search box, and Escape, take the place back off the map again (#5321). Mirrors the setup in
+ * the map to the place and drops a Project Sidewalk pin; hovering, focusing or activating the pin opens an
+ * invitation whose button opens the Explore tool at that exact spot (#4451). The search box's own ✕, and Escape,
+ * take the place back off the map again (#5321). Mirrors the setup in
  * `routeBuilder.js` (`#setUpSearchBox`), except the control is mounted inside the sidebar (per #4370)
  * rather than added as a floating control.
  */
@@ -173,50 +173,49 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
   // Seed the aria-expanded that Search JS itself only writes once its result list has opened (#5087).
   searchInput?.setAttribute('aria-expanded', 'false');
 
-  // The pin a search drops outlives the query that found it: the search box's own ✕ empties the input and leaves the
-  // map untouched, so once the text is gone there is nothing left on screen offering to put the place away (#5321).
-  // This button is that affordance. It is built here rather than in the two views that mount the control so the
-  // affordance and the state it undoes live in one file, and it is hidden until there is a place to clear.
-  const clearButton = document.createElement('button');
-  clearButton.type = 'button';
-  clearButton.id = 'labelmap-search-clear';
-  clearButton.className = 'filter-sidebar__deselect-all labelmap-search-clear';
-  clearButton.hidden = true;
-  clearButton.textContent = i18next.t('labelmap:search-clear');
-  container.insertAdjacentElement('afterend', clearButton);
-
   // On selecting a result, drop a pin the user can hover/focus to open the "explore here" invitation (#4451). The
   // popup is deliberately NOT opened on selection: someone searching an address on the LabelMap is there to look at
   // the labels around it, and a popup sitting open covers exactly what they came to see.
   let searchMarker = null;
   let searchPinEl = null;
   let exploreHerePopup = null;
+  // Cleared for the one moment hidePopup hands focus back to the pin, whose focus handler would otherwise reopen the
+  // popup that was just closed.
+  let openPopupOnPinFocus = true;
 
   const hidePopup = () => {
     if (!exploreHerePopup) return;
+    const hadFocus = exploreHerePopup.getElement()?.contains(document.activeElement);
     exploreHerePopup.remove();
     exploreHerePopup = null;
+    // Focus that was on the popup's button would otherwise drop to <body>; the pin is where it came from.
+    if (hadFocus && searchPinEl) {
+      openPopupOnPinFocus = false;
+      searchPinEl.focus();
+      openPopupOnPinFocus = true;
+    }
   };
 
   /**
-   * Take the searched place back off the map: its pin, the invitation popup, the search text, and this button.
+   * Take the searched place back off the map: its pin, the invitation popup, and the search text.
    *
-   * The one undo path for a selection — the clear button, Escape, and the search box's own ✕ all come through here,
-   * as the place card in #5311 will — so no caller can unwind half of the state and leave a pin with no owner.
+   * The one undo path for a selection — the search box's own ✕, Escape, and AccessScore's "Reset everything" all
+   * come through here, as the place card in #5311 will — so no caller can unwind half of the state and leave a pin
+   * with no owner.
    *
    * @param {string} trigger - Activity-log prefix naming how the clear was asked for ('Click', 'KeyboardShortcut').
    * @returns {boolean} True if a place was showing and is now cleared; false if there was nothing to clear.
    */
   const clearSelection = (trigger) => {
     if (!searchMarker) return false;
-    // Read before the teardown: focus sitting on something about to be removed (the pin) or hidden (this button)
-    // would fall to <body> and lose a keyboard user their place, so below it is handed back to the search field.
-    const focusWasOnSelection = document.activeElement === clearButton || document.activeElement === searchPinEl;
+    // Read before the teardown: focus sitting on something about to be removed (the pin, the popup's button) would
+    // fall to <body> and lose a keyboard user their place, so below it is handed back to the search field.
+    const active = document.activeElement;
+    const focusWasOnSelection = active === searchPinEl || !!exploreHerePopup?.getElement()?.contains(active);
     hidePopup();
     searchMarker.remove();
     searchMarker = null;
     searchPinEl = null;
-    clearButton.hidden = true;
     if (focusWasOnSelection) searchInput?.focus();
     // Empty the input too, so the box can't keep naming a place that is no longer on the map. The camera is
     // deliberately left where the search flew it: the user asked to go there and only asked to put the pin away.
@@ -227,9 +226,8 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
     return true;
   };
 
-  clearButton.addEventListener('click', () => clearSelection('Click'));
-  // Search JS fires `clear` when its own ✕ is pressed. Dropping the pin with it keeps the box and the map from
-  // disagreeing about whether a place is selected.
+  // Search JS fires `clear` when its own ✕ is pressed. That ✕ is the pointer route to undoing a search: dropping
+  // the pin with it keeps the box and the map from disagreeing about whether a place is selected.
   searchBox.addEventListener('clear', () => clearSelection('Click'));
 
   // Escape takes one step at a time: it closes an open invitation popup first, so a keyboard user previewing it can
@@ -255,8 +253,7 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
       return;
     }
     const focused = document.activeElement;
-    const inSearchControls = focused
-      && (searchBoxElement.contains(focused) || focused === clearButton || focused === searchPinEl);
+    const inSearchControls = focused && (searchBoxElement.contains(focused) || focused === searchPinEl);
     if (inSearchControls) clearSelection('KeyboardShortcut');
   }, true);
 
@@ -285,11 +282,12 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
     if (searchMarker) searchMarker.remove();
 
     // The pin is a button so it is reachable and operable by keyboard: hover-only content fails WCAG 2.1 AA (1.4.13),
-    // so the hover preview is mirrored on focus and the pin itself performs the navigation (see the click handler).
+    // so the hover preview is mirrored on focus, and activating the pin hands focus into the popup (see the click
+    // handler). Named for the place, not the action: the pin itself only opens the invitation.
     const pinEl = document.createElement('button');
     pinEl.type = 'button';
     pinEl.className = 'ps-search-pin';
-    pinEl.setAttribute('aria-label', i18next.t('labelmap:explore-here'));
+    pinEl.setAttribute('aria-label', placeName || address || i18next.t('labelmap:search-pin'));
     // Drawn as one SVG rather than a badge plus a CSS tail: Mapbox puts its own `.mapboxgl-marker` class (with
     // `position: absolute`) on this very element, so any tail positioned against it is at the mercy of which rule
     // wins. Baking the point into the path makes the geometry independent of the marker's own styling.
@@ -304,7 +302,6 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
 
     searchMarker = new mapboxgl.Marker({ element: pinEl, anchor: 'bottom' }).setLngLat([lng, lat]).addTo(map);
     searchPinEl = pinEl;
-    clearButton.hidden = false;
 
     const showPopup = () => {
       if (exploreHerePopup) return;
@@ -318,26 +315,39 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
         .setDOMContent(buildExploreHereContent(map, lat, lng, placeName, address, exploreHref))
         .setLngLat([lng, lat])
         .addTo(map);
+      const popupEl = exploreHerePopup.getElement();
+      popupEl.addEventListener('mouseleave', hidePopupWhenLeft);
+      popupEl.querySelector('.explore-here-button').addEventListener('blur', hidePopupWhenLeft);
     };
-    pinEl.addEventListener('mouseenter', showPopup);
-    pinEl.addEventListener('focus', showPopup);
-    pinEl.addEventListener('blur', hidePopup);
-    // Leaving the pin shouldn't close a popup the pointer has moved *into* (the user is reaching for the button), so
-    // hand off to the popup's own mouseleave. WCAG 1.4.13 requires hover content stay reachable this way.
-    pinEl.addEventListener('mouseleave', () => {
+    // Close the invitation only once neither the pointer nor keyboard focus is on the pin or in the popup, and only
+    // after a beat: the pointer leaving the pin is usually on its way *into* the popup (WCAG 1.4.13 requires hover
+    // content stay reachable that way), and a click on the popup's button blurs whatever was focused before it
+    // lands, so an immediate close would pull the button out from under the very click aimed at it.
+    const hidePopupWhenLeft = () => {
       setTimeout(() => {
         const el = exploreHerePopup?.getElement();
-        if (el && !el.matches(':hover') && !pinEl.matches(':hover')) hidePopup();
+        if (!el) return;
+        const active = document.activeElement;
+        const engaged = el.matches(':hover') || pinEl.matches(':hover') || el.contains(active) || active === pinEl;
+        if (!engaged) hidePopup();
       }, 120);
+    };
+    pinEl.addEventListener('mouseenter', showPopup);
+    pinEl.addEventListener('focus', () => {
+      if (openPopupOnPinFocus) showPopup();
     });
-    // Activating the pin navigates directly — it must perform the action its accessible name promises. The popup's
-    // link can never be the only path: for a keyboard user, Tabbing toward it blurs the pin, which tears the popup
-    // down before its link could receive focus, so a popup-only design fails WCAG 2.1.1 (Keyboard).
+    pinEl.addEventListener('blur', hidePopupWhenLeft);
+    pinEl.addEventListener('mouseleave', hidePopupWhenLeft);
+    // Activating the pin opens the invitation and hands focus to its button, so the button is the one thing that
+    // starts an Explore session — a pin that navigated on its own gave no hint that a click would leave the page. The
+    // focus hand-off is what keeps the button reachable by keyboard: Tabbing from the pin toward the popup blurs the
+    // pin, and a popup that closed on that blur could never receive focus (WCAG 2.1.1).
     pinEl.addEventListener('click', () => {
+      showPopup();
+      exploreHerePopup.getElement().querySelector('.explore-here-button').focus();
       if (typeof window.logWebpageActivity === 'function') {
-        window.logWebpageActivity(`Click_module=ExploreSidewalksHere_lat=${lat}_lng=${lng}`);
+        window.logWebpageActivity(`Click_module=SearchPin_lat=${lat}_lng=${lng}`);
       }
-      window.location.assign(exploreHref);
     });
   });
 

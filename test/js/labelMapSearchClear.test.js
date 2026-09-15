@@ -1,10 +1,11 @@
 /**
  * Tests for taking a searched place back off the map (public/js/labelMapLocationSearch.js, #5321).
  *
- * The pin a search drops is the state that outlives everything else: the search box's own ✕ empties the input and
- * leaves the map alone, so unless something else removes the pin there is no way back to an unselected map. These
- * tests pin the contract that `clearSelection` is the only undo path and that it unwinds the whole selection —
- * pin, invitation popup, search text, and the clear button itself — from each of the three triggers.
+ * The pin a search drops is the state that outlives everything else: on its own, the search box's ✕ empties the input
+ * and leaves the map alone, so unless something else removes the pin there is no way back to an unselected map. These
+ * tests pin the contract that `clearSelection` is the only undo path and that it unwinds the whole selection — pin,
+ * invitation popup and search text — from each of its triggers, and that the pin itself only opens the invitation
+ * rather than leaving the page.
  *
  * Like exploreHerePopup.test.js, the source is a set of top-level declarations written for the Grunt-concatenation
  * world, so it is eval'd into the jsdom global scope with an epilogue exposing what the tests need. Mapbox's Search
@@ -107,11 +108,13 @@ function setUpPage() {
 
             setLngLat() { return this; }
 
-            addTo() { return this; }
+            // The real Popup mounts its content in the map's container; it has to be in the document for the
+            // file's focus hand-off into the popup's button to work.
+            addTo() { document.body.appendChild(this.content); return this; }
 
             getElement() { return this.content; }
 
-            remove() { this.removed = true; return this; }
+            remove() { this.removed = true; this.content.remove(); return this; }
         },
     };
 }
@@ -163,45 +166,77 @@ describe('clearing a searched place', () => {
         search.clear();
     });
 
-    test('the clear button is mounted hidden and does nothing until a place is selected', () => {
-        const button = document.getElementById('labelmap-search-clear');
-        expect(button).not.toBeNull();
-        expect(button.hidden).toBe(true);
-        expect(button.textContent).toBe('labelmap:search-clear');
-        // It sits in the search section, not inside the Mapbox control, so the SDK can't re-render it away.
-        expect(button.parentElement.id).toBe('labelmap-search-section');
-
+    test('nothing is cleared, or logged, until a place is selected', () => {
         expect(search.clear()).toBe(false);
+        window.__searchBoxInstance.input.focus();
         pressEscape();
         expect(logged).toEqual([]);
     });
 
-    test('selecting a place drops a pin and reveals the clear button', () => {
+    test('selecting a place drops a pin named for the place', () => {
         retrieve();
 
         expect(markers).toHaveLength(1);
-        expect(document.querySelectorAll('.ps-search-pin')).toHaveLength(1);
-        expect(document.getElementById('labelmap-search-clear').hidden).toBe(false);
+        const pin = document.querySelectorAll('.ps-search-pin');
+        expect(pin).toHaveLength(1);
+        // The pin only opens the invitation, so it is named for what it marks, not for what the popup's button does.
+        expect(pin[0].getAttribute('aria-label')).toBe('Teaneck Public Library');
     });
 
-    test('the clear button removes the pin, empties the box, and hides itself', () => {
-        retrieve();
-        document.getElementById('labelmap-search-clear').click();
-
-        expect(markers[0].removed).toBe(true);
-        expect(document.querySelectorAll('.ps-search-pin')).toHaveLength(0);
-        expect(document.getElementById('labelmap-search-clear').hidden).toBe(true);
-        expect(window.__searchBoxInstance.value).toBe('');
-        expect(logged).toEqual(['Click_module=ClearSearchResult']);
-    });
-
-    test('the search box\'s own clear event drops the pin with it', () => {
+    test('the search box\'s own clear event removes the pin and empties the box', () => {
         retrieve();
         window.__searchBoxInstance.dispatchEvent(new CustomEvent('clear'));
 
         expect(markers[0].removed).toBe(true);
-        expect(document.getElementById('labelmap-search-clear').hidden).toBe(true);
+        expect(document.querySelectorAll('.ps-search-pin')).toHaveLength(0);
+        expect(window.__searchBoxInstance.value).toBe('');
         expect(logged).toEqual(['Click_module=ClearSearchResult']);
+    });
+
+    test('activating the pin opens the invitation and hands focus to its button instead of navigating', () => {
+        retrieve();
+        document.querySelector('.ps-search-pin').click();
+
+        expect(popups).toHaveLength(1);
+        expect(popups[0].removed).toBe(false);
+        const button = popups[0].content.querySelector('.explore-here-button');
+        expect(document.activeElement).toBe(button);
+        // The pin's own log row is not the ExploreSidewalksHere one: only the button's click means Explore opened.
+        expect(logged).toEqual(['Click_module=SearchPin_lat=40.9_lng=-74.02']);
+    });
+
+    test('the invitation stays open while focus is inside it, and closes once focus has left both it and the pin',
+        () => {
+            jest.useFakeTimers();
+            try {
+                retrieve();
+                const pin = document.querySelector('.ps-search-pin');
+                pin.focus();
+                pin.click();
+                jest.runAllTimers();
+                expect(popups[0].removed).toBe(false);
+
+                document.getElementById('elsewhere').focus();
+                expect(popups[0].removed).toBe(false);
+                jest.runAllTimers();
+                expect(popups[0].removed).toBe(true);
+                expect(markers[0].removed).toBe(false);
+            } finally {
+                jest.useRealTimers();
+            }
+        });
+
+    test('Escape with focus on the invitation\'s button closes it and returns focus to the pin', () => {
+        retrieve();
+        const pin = document.querySelector('.ps-search-pin');
+        pin.click();
+        pressEscape();
+
+        expect(popups[0].removed).toBe(true);
+        expect(markers[0].removed).toBe(false);
+        expect(document.activeElement).toBe(pin);
+        // Handing focus back must not reopen the popup that was just closed.
+        expect(popups).toHaveLength(1);
     });
 
     test('Escape closes an open invitation popup first, and only then clears the place', () => {
@@ -217,7 +252,6 @@ describe('clearing a searched place', () => {
 
         pressEscape();
         expect(markers[0].removed).toBe(true);
-        expect(document.getElementById('labelmap-search-clear').hidden).toBe(true);
         expect(logged).toEqual(['KeyboardShortcut_module=ClearSearchResult']);
     });
 
@@ -238,7 +272,6 @@ describe('clearing a searched place', () => {
         // Escape is the dismiss key for half the page (cluster sheet, label card, Mapbox popup, suggestion list);
         // none of those may take the pin with them.
         expect(markers[0].removed).toBe(false);
-        expect(document.getElementById('labelmap-search-clear').hidden).toBe(false);
         expect(logged).toEqual([]);
     });
 
@@ -272,7 +305,6 @@ describe('clearing a searched place', () => {
         expect(box.input.getAttribute('aria-expanded')).toBe('false');
         expect(markers[0].removed).toBe(false);
         expect(box.input.value).toBe('Second sea');
-        expect(document.getElementById('labelmap-search-clear').hidden).toBe(false);
         expect(logged).toEqual([]);
 
         // With the list gone, the next Escape is the clear.
@@ -294,13 +326,17 @@ describe('clearing a searched place', () => {
         document.getElementById('sheet').removeAttribute('open');
     });
 
-    test('clearing from the button hands focus back to the search field', () => {
+    test('clearing with focus on the pin or in its popup hands focus back to the search field', () => {
         retrieve();
-        const button = document.getElementById('labelmap-search-clear');
-        button.focus();
-        button.click();
+        document.querySelector('.ps-search-pin').focus();
+        expect(search.clear()).toBe(true);
+        // Not document.body: a keyboard user whose focus target is removed out from under them loses their place.
+        expect(document.activeElement).toBe(window.__searchBoxInstance.input);
 
-        // Not document.body: a keyboard user whose focus target is hidden out from under them loses their place.
+        retrieve();
+        document.querySelector('.ps-search-pin').click();
+        expect(document.activeElement.className).toContain('explore-here-button');
+        expect(search.clear()).toBe(true);
         expect(document.activeElement).toBe(window.__searchBoxInstance.input);
     });
 
@@ -311,7 +347,6 @@ describe('clearing a searched place', () => {
         expect(markers).toHaveLength(2);
         expect(markers[0].removed).toBe(true);
         expect(document.querySelectorAll('.ps-search-pin')).toHaveLength(1);
-        expect(document.getElementById('labelmap-search-clear').hidden).toBe(false);
     });
 
     test('clear() reports whether there was anything to clear, and logs only when there was', () => {

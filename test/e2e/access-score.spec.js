@@ -110,6 +110,25 @@ const dimOf = (page, source, id) => page.evaluate(([src, fid]) => new Promise((r
 
 const urlParam = (page, name) => page.evaluate((n) => new URL(window.location.href).searchParams.get(n), name);
 
+/**
+ * Stands in for picking a search suggestion. `retrieve` is the event Search JS fires with the chosen feature and is
+ * the whole contract between the SDK and our code — typing into the box instead would exercise Mapbox's network
+ * protocol (which stubMapbox answers 204 for), not the pin behavior under test. The value is set first, as the SDK
+ * does, so its own ✕ shows.
+ */
+const selectPlace = (page) => page.evaluate(() => {
+  const box = document.querySelector('mapbox-search-box');
+  box.value = 'Fixture Library';
+  // The SDK only re-evaluates its ✕'s visibility around a request; an input event starts one (stubbed to 204).
+  box.querySelector('input[role="combobox"]').dispatchEvent(new Event('input', {bubbles: true}));
+  box.dispatchEvent(new CustomEvent('retrieve', {
+    detail: {features: [{
+      geometry: {type: 'Point', coordinates: [-74.0105, 40.8805]},
+      properties: {name: 'Fixture Library', full_address: '1 Cedar Ln, Teaneck, NJ 07666'},
+    }]},
+  }));
+});
+
 test.describe('/accessScore', () => {
   test.beforeEach(async ({context}) => {
     await stubMapbox(context);
@@ -408,6 +427,8 @@ test.describe('/accessScore', () => {
     await page.evaluate(() => window.accessScore.dock.setSelection({unit: 'streets', id: 1}));
     await page.evaluate(() => window.accessScore.mapView.setSelection({unit: 'streets', id: 1}));
     await page.locator('.acs-histogram__bin').nth(1).click();
+    await selectPlace(page);
+    await expect(page.locator('.ps-search-pin')).toHaveCount(1);
     await expect.poll(() => urlParam(page, 'w')).toContain('CurbRamp:0');
     await expect.poll(() => urlParam(page, 'b')).toBe('10-20');
     await page.locator('#acs-reset-all').click();
@@ -415,6 +436,9 @@ test.describe('/accessScore', () => {
     await expect(page.locator('#acs-reset')).toBeHidden();
     await expect(page.locator('.acs-popup')).toHaveCount(0);
     await expect(page.locator('#acs-dock-brush')).toBeHidden();
+    // The searched place is part of "everything" (#5321).
+    await expect(page.locator('.ps-search-pin')).toHaveCount(0);
+    await expect(page.locator('#labelmap-search-box input[role="combobox"]')).toHaveValue('');
     for (const name of ['w', 'sel', 'b', 'unit', 'dock']) {
       await expect.poll(() => urlParam(page, name)).toBeNull();
     }
@@ -489,37 +513,48 @@ test.describe('/accessScore', () => {
     await waitForTool(page);
 
     const pin = page.locator('.ps-search-pin');
-    const clearButton = page.locator('#labelmap-search-clear');
-    await expect(clearButton).toBeHidden();
-
-    // Stands in for picking a suggestion. `retrieve` is the event Search JS fires with the chosen feature and is
-    // the whole contract between the SDK and our code — typing into the box instead would exercise Mapbox's
-    // network protocol (which stubMapbox answers 204 for), not the pin-and-clear behavior under test.
-    const selectPlace = () => page.evaluate(() => {
-      document.querySelector('mapbox-search-box').dispatchEvent(new CustomEvent('retrieve', {
-        detail: {features: [{
-          geometry: {type: 'Point', coordinates: [-74.0105, 40.8805]},
-          properties: {name: 'Fixture Library', full_address: '1 Cedar Ln, Teaneck, NJ 07666'},
-        }]},
-      }));
-    });
-
-    await selectPlace();
+    const input = page.locator('#labelmap-search-box input[role="combobox"]');
+    await selectPlace(page);
     await expect(pin).toHaveCount(1);
-    await expect(clearButton).toBeVisible();
+    await expect(pin).toHaveAccessibleName('Fixture Library');
 
-    await clearButton.click();
+    // The search box's own ✕ is the pointer route: it drops the pin along with the text.
+    await page.locator('mapbox-search-box [aria-label="Clear"]').click();
     await expect(pin).toHaveCount(0);
-    await expect(clearButton).toBeHidden();
+    await expect(input).toHaveValue('');
 
     // Escape is the keyboard route to the same clear, and it works with focus in the search field.
-    await selectPlace();
+    await selectPlace(page);
     await expect(pin).toHaveCount(1);
-    await page.locator('#labelmap-search-box input[role="combobox"]').focus();
+    await input.focus();
     await page.keyboard.press('Escape');
     await expect(pin).toHaveCount(0);
-    await expect(clearButton).toBeHidden();
   });
+
+  test('the pin opens the invitation and focuses its button; only the button leaves for Explore (#5321)',
+    async ({page}) => {
+      await page.goto('/accessScore');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      await selectPlace(page);
+
+      const pin = page.locator('.ps-search-pin');
+      const button = page.locator('.ps-explore-here-popup .explore-here-button');
+      await pin.click();
+      await expect(button).toBeVisible();
+      await expect(button).toBeFocused();
+      await expect(page).toHaveURL(/\/accessScore/);
+
+      // Escape steps back out to the pin, leaving the place in place.
+      await page.keyboard.press('Escape');
+      await expect(button).toHaveCount(0);
+      await expect(pin).toBeFocused();
+
+      await pin.click();
+      await button.click();
+      // The server re-encodes the space on its way in, so match either spelling.
+      await expect(page).toHaveURL(/\/explore\?lat=40\.8805&lng=-74\.0105&placeName=Fixture(%20|\+)Library/);
+    });
 
   test('Escape that closes the search suggestions keeps the searched place (#5321)', async ({page, context}) => {
     // Registered after beforeEach's stubMapbox, so it wins over the 204 catch-all for suggest requests only. Typing
@@ -535,19 +570,13 @@ test.describe('/accessScore', () => {
     await waitForAppReady(page);
     await waitForTool(page);
 
-    await page.evaluate(() => {
-      document.querySelector('mapbox-search-box').dispatchEvent(new CustomEvent('retrieve', {
-        detail: {features: [{
-          geometry: {type: 'Point', coordinates: [-74.0105, 40.8805]},
-          properties: {name: 'Fixture Library', full_address: '1 Cedar Ln, Teaneck, NJ 07666'},
-        }]},
-      }));
-    });
+    await selectPlace(page);
     const pin = page.locator('.ps-search-pin');
     await expect(pin).toHaveCount(1);
 
     const input = page.locator('#labelmap-search-box input[role="combobox"]');
-    await input.click();
+    // Typed over the selected text rather than after emptying the box: the SDK treats an emptied box as its ✕.
+    await input.selectText();
     await input.pressSequentially('Second Lib', {delay: 40});
     const option = page.locator('[role="option"]').filter({hasText: 'Second Library'});
     await expect(option).toBeVisible();
@@ -556,7 +585,6 @@ test.describe('/accessScore', () => {
     await expect(option).toBeHidden();
     await expect(pin).toHaveCount(1);
     await expect(input).toHaveValue('Second Lib');
-    await expect(page.locator('#labelmap-search-clear')).toBeVisible();
 
     // The list is closed now, so the next Escape is the clear.
     await page.keyboard.press('Escape');
