@@ -37,7 +37,7 @@ import org.locationtech.jts.geom.GeometryFactory
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
 import service.TimeInterval.TimeInterval
-import slick.jdbc.GetResult
+import slick.jdbc.{GetResult, SQLActionBuilder}
 import slick.sql.SqlStreamingAction
 
 import java.time._
@@ -2973,5 +2973,55 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       GROUP BY (label.time_created AT TIME ZONE 'US/Pacific')::date, label.label_type::text
       ORDER BY date ASC, label.label_type::text
     """.as[(LocalDate, String, Int, Int)]
+  }
+
+  /**
+   * Recounts agree/disagree/unsure counts and `correct` on labels from their validations.
+   *
+   * Must match the live counting in `ValidationService`: votes on your own label and votes from excluded users don't
+   * count, and a tie leaves `correct` empty. Only changed rows are written.
+   *
+   * @param validatorId Only recount the labels this user validated; recount every label if None.
+   * @return The number of labels whose counts changed.
+   */
+  def recalculateValidationCounts(validatorId: Option[String]): DBIO[Int] = {
+    val scope: SQLActionBuilder = validatorId match {
+      case Some(id) => sql"WHERE label.label_id IN (SELECT label_id FROM label_validation WHERE user_id = $id)"
+      case None     => sql""
+    }
+    sql"""
+      UPDATE label
+      SET (agree_count, disagree_count, unsure_count, correct) = (
+          validation_count.n_agree, validation_count.n_disagree, validation_count.n_unsure, validation_count.is_correct
+      )
+      FROM (
+          SELECT label_id, n_agree, n_disagree, n_unsure,
+                 CASE WHEN n_agree > n_disagree THEN TRUE WHEN n_disagree > n_agree THEN FALSE END AS is_correct
+          FROM (
+              SELECT label.label_id,
+                     COUNT(*) FILTER (WHERE label_validation.validation_result = 'Agree') AS n_agree,
+                     COUNT(*) FILTER (WHERE label_validation.validation_result = 'Disagree') AS n_disagree,
+                     COUNT(*) FILTER (WHERE label_validation.validation_result = 'Unsure') AS n_unsure
+              FROM label
+              LEFT JOIN label_validation ON label.label_id = label_validation.label_id
+                  AND label_validation.user_id <> label.user_id
+                  AND NOT EXISTS (
+                      SELECT 1 FROM user_stat
+                      WHERE user_stat.user_id = label_validation.user_id AND user_stat.excluded
+                  )
+      """
+      .concat(scope)
+      .concat(sql"""
+              GROUP BY label.label_id
+          ) AS counts
+      ) AS validation_count
+      WHERE label.label_id = validation_count.label_id
+          AND (label.agree_count, label.disagree_count, label.unsure_count, label.correct)
+              IS DISTINCT FROM (
+                  validation_count.n_agree, validation_count.n_disagree, validation_count.n_unsure,
+                  validation_count.is_correct
+              )
+    """)
+      .asUpdate
   }
 }

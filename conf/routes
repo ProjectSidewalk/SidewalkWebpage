@@ -125,6 +125,7 @@ PUT     /adminapi/partners/:partnerId                   controllers.PartnerContr
 DELETE  /adminapi/partners/:partnerId                   controllers.PartnerController.deletePartner(partnerId: Int)
 GET     /adminapi/refreshOsmWayData                     controllers.AdminController.refreshOsmWayData()
 GET     /adminapi/recalculateStreetPriority             controllers.AdminController.recalculateStreetPriority
+POST    /adminapi/recalculateValidationCounts           controllers.AdminController.recalculateValidationCounts
 GET     /adminapi/threadPoolStats                       controllers.AdminController.getThreadPoolStats
 
 # Auditing tasks

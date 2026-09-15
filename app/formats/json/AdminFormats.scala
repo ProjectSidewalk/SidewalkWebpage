@@ -32,6 +32,7 @@ object AdminFormats {
       role: String,
       teamId: Option[Int],
       highQualityManual: Option[Boolean],
+      excluded: Boolean,
       communityService: Boolean,
       onLeaderboard: Boolean,
       publicProfile: Boolean,
@@ -56,6 +57,7 @@ object AdminFormats {
       (JsPath \ "role").read[String] and
       (JsPath \ "teamId").readNullable[Int] and
       (JsPath \ "highQualityManual").readNullable[Boolean] and
+      (JsPath \ "excluded").read[Boolean] and
       (JsPath \ "communityService").read[Boolean] and
       (JsPath \ "onLeaderboard").read[Boolean] and
       (JsPath \ "publicProfile").read[Boolean] and

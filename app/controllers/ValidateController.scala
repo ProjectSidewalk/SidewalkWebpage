@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.{isMobile, regionsParam}
+import controllers.helper.ControllerUtils.{isAdmin, isMobile, regionsParam}
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.LabelMapValidationCommentSubmission
 import formats.json.LabelFormats
@@ -348,7 +348,8 @@ class ValidateController @Inject() (
             )
           ),
           newVal.undone,
-          newVal.redone
+          newVal.redone,
+          canEdit = isAdmin(user)
         )
       })
 
@@ -530,7 +531,8 @@ class ValidateController @Inject() (
                 newVal.tags,
                 comment = None,
                 newVal.undone,
-                newVal.redone
+                newVal.redone,
+                canEdit = isAdmin(request.identity)
               )
             )
           )

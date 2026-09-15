@@ -15,7 +15,7 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json.{__, Writes}
 import service.TimeInterval
 import service.TimeInterval.TimeInterval
-import slick.jdbc.GetResult
+import slick.jdbc.{GetResult, SQLActionBuilder}
 
 import java.time.OffsetDateTime
 import javax.inject._
@@ -286,6 +286,16 @@ class UserStatTable @Inject() (
   }
 
   /**
+   * Sets the excluded column; excluding also marks the user manually low quality in the same write.
+   * @return Number of rows updated; 0 if no user is found.
+   */
+  def updateExcluded(userId: String, newExcluded: Boolean): DBIO[Int] = {
+    val user = userStats.filter(_.userId === userId)
+    if (newExcluded) user.map(u => (u.excluded, u.highQualityManual, u.highQuality)).update((true, Some(false), false))
+    else user.map(_.excluded).update(false)
+  }
+
+  /**
    * Update the meters_audited column in the user_stat table for the given user.
    * @param userId The user whose audited distance is being calculated
    */
@@ -390,7 +400,28 @@ class UserStatTable @Inject() (
     val filterStatement: String =
       if (users.isEmpty) ""
       else s"""AND label.user_id IN ('${users.mkString("','")}')"""
+    updateAccuracyWhere(sql""" #$filterStatement""")
+  }
 
+  /**
+   * Update the accuracy column for everyone whose labels the given user validated, e.g. after excluding that user.
+   * @param validatorId The user whose validations decide which labelers are updated.
+   */
+  def updateAccuracyForLabelersValidatedBy(validatorId: String): DBIO[Unit] = {
+    updateAccuracyWhere(sql"""
+      AND label.user_id IN (
+          SELECT label.user_id
+          FROM label_validation
+          INNER JOIN label ON label_validation.label_id = label.label_id
+          WHERE label_validation.user_id = $validatorId
+      )""")
+  }
+
+  /**
+   * Recomputes own_labels_validated and accuracy for the labelers the filter keeps.
+   * @param labelFilter Extra conditions on `label`, starting with a space and AND; empty to update every user.
+   */
+  private def updateAccuracyWhere(labelFilter: SQLActionBuilder): DBIO[Unit] = {
     sql"""
       SELECT user_stat.user_id, new_validated_count, new_accuracy
       FROM user_stat
@@ -400,8 +431,9 @@ class UserStatTable @Inject() (
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS new_validated_count
           FROM label
           WHERE label.deleted = FALSE
-              AND label.tutorial = FALSE
-              #$filterStatement
+              AND label.tutorial = FALSE"""
+      .concat(labelFilter)
+      .concat(sql"""
           GROUP BY user_id
       ) "accuracy_subquery" ON user_stat.user_id = accuracy_subquery.user_id
       -- Filter out users if their validated count and accuracy are unchanged from what's already in the database.
@@ -409,7 +441,7 @@ class UserStatTable @Inject() (
           OR (accuracy IS NULL AND new_accuracy IS NOT NULL)
           OR (accuracy IS NOT NULL AND new_accuracy IS NULL)
           OR (accuracy IS NOT NULL AND new_accuracy IS NOT NULL AND ROUND(accuracy::NUMERIC, 3) <> ROUND(new_accuracy::NUMERIC, 3));
-    """
+    """)
       .as[(String, Int, Option[Double])]
       .flatMap { usersToUpdate: Seq[(String, Int, Option[Double])] =>
         // Update the own_labels_validated and accuracy columns in the user_stat table.
@@ -434,33 +466,48 @@ class UserStatTable @Inject() (
    * @return The number of rows updated; should be 1, or 0 if no user is found
    */
   def updateUserQuality(userId: String): DBIO[Int] = {
-    // Decide if each user is high quality. Conditions in the method comment. Users manually marked for exclusion or
-    // low quality are filtered out later (using results from the previous query).
-    val userQualQuery: DBIO[Seq[Boolean]] = {
-      userStats
-        .filter(_.userId === userId)
-        .map { x =>
-          !x.excluded &&                              // false if excluded=true
-          x.highQualityManual.getOrElse(true) && (    // false if high_quality_manual=false
-            x.highQualityManual.getOrElse(false) || ( // true if high_quality_manual set to true
-              // 0.6d, not 0.6f: widening the float would compare against 0.60000002, so this path and the bulk
-              // `updateHighQuality` below would disagree for an accuracy in that sliver. Evolution 347 and
-              // GeodesicDistanceSpec both assume the two agree exactly.
-              (x.metersAudited === 0d || x.labelsPerMeter.getOrElse(5d) > LABEL_PER_METER_THRESHOLD)
-                && (x.accuracy.getOrElse(1.0d) > 0.6d
-                  .asColumnOf[Double] || x.ownLabelsValidated < UserStatTable.OwnLabelsValidatedToJudge.asColumnOf[Int])
-            )
-          )
-        }
-        .result
-    }
     for {
-      newUserQuality <- userQualQuery
+      newUserQuality <- userStats.filter(_.userId === userId).map(computedHighQuality).result
       rowsUpdated    <-
         if (newUserQuality.nonEmpty) updateHighQuality(userId, newUserQuality.head)
         else DBIO.successful(0)
     } yield rowsUpdated
   }.transactionally
+
+  /**
+   * Update the high_quality column for everyone whose labels the given user validated.
+   *
+   * Run after [[updateAccuracyForLabelersValidatedBy]], since accuracy feeds quality. Set-based, so the labeler list
+   * never passes through Scala, however long it is.
+   * @param validatorId The user whose validations decide which labelers are updated.
+   * @return The number of rows updated.
+   */
+  def updateUserQualityForLabelersValidatedBy(validatorId: String): DBIO[Int] = {
+    val labelers = labelValidationTable
+      .filter(_.userId === validatorId)
+      .join(labelTable.labelsUnfiltered)
+      .on(_.labelId === _.labelId)
+      .map(_._2.userId)
+    val toUpdate = userStats.filter(u => u.userId.in(labelers) && !u.excluded)
+    for {
+      numHigh <- toUpdate.filter(u => computedHighQuality(u) && !u.highQuality).map(_.highQuality).update(true)
+      numLow  <- toUpdate.filter(u => !computedHighQuality(u) && u.highQuality).map(_.highQuality).update(false)
+    } yield numHigh + numLow
+  }.transactionally
+
+  /** Whether a user_stat row counts as high quality; conditions in the [[updateUserQuality]] comment. */
+  private def computedHighQuality(x: UserStatTableDef): Rep[Boolean] = {
+    !x.excluded &&                              // false if excluded=true
+    x.highQualityManual.getOrElse(true) && (    // false if high_quality_manual=false
+      x.highQualityManual.getOrElse(false) || ( // true if high_quality_manual set to true
+        // 0.6d, not 0.6f: widening the float would compare against 0.60000002. Evolution 347 and
+        // GeodesicDistanceSpec assume this matches its SQL copy exactly.
+        (x.metersAudited === 0d || x.labelsPerMeter.getOrElse(5d) > LABEL_PER_METER_THRESHOLD)
+          && (x.accuracy.getOrElse(1.0d) > 0.6d.asColumnOf[Double] ||
+            x.ownLabelsValidated < UserStatTable.OwnLabelsValidatedToJudge.asColumnOf[Int])
+      )
+    )
+  }
 
   /**
    * Update high_quality col in user_stat table, run after updateAuditedDistance, updateLabelsPerMeter, updateAccuracy.
@@ -486,16 +533,7 @@ class UserStatTable @Inject() (
     val userQualQuery: DBIO[Seq[(String, Boolean)]] = {
       userStats
         .filter(x => x.highQualityManual.isEmpty || x.highQualityManual)
-        .map { x =>
-          (
-            x.userId,
-            x.highQualityManual.getOrElse(false) || (
-              (x.metersAudited === 0d || x.labelsPerMeter.getOrElse(5d) > LABEL_PER_METER_THRESHOLD)
-                && (x.accuracy.getOrElse(1.0d) > 0.6d
-                  .asColumnOf[Double] || x.ownLabelsValidated < UserStatTable.OwnLabelsValidatedToJudge.asColumnOf[Int])
-            )
-          )
-        }
+        .map(x => (x.userId, computedHighQuality(x))) // Excluded users are forced low below, via lowQualUsers.
         .result
     }.transactionally
 
