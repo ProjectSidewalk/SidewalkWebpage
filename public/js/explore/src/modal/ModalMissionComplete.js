@@ -270,7 +270,7 @@ class ModalMissionComplete {
    * turf.lineSlice/cleanCoords collapses the segment to a single point or nothing. Mapbox then throws deep in its
    * tiler ("Cannot read properties of null (reading 'x')") and the failure bubbles up into a page reload; filtering
    * those degenerate features out here keeps them out of the source entirely. (#4204)
-   * @param {object} feature - A GeoJSON Feature, or null/undefined.
+   * @param {?GeoJSON.Feature} feature - A GeoJSON Feature, or null/undefined.
    * @returns {boolean} True if the feature is a LineString with at least two finite [lng, lat] coordinates.
    */
   #isDrawableLine(feature) {

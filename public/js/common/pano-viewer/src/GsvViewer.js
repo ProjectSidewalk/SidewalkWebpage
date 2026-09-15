@@ -320,8 +320,8 @@ class GsvViewer extends PanoViewer {
 
   getPov = () => {
     // GSV's getPov() returns undefined until the first pano finishes loading, and input-event logging can fire
-    // before then — report null rather than throwing.
-    const pov = this.gsvPano?.getPov();
+    // before then — report null rather than throwing. The pov does carry zoom, though Google's types leave it out.
+    const pov = /** @type {{heading: number, pitch: number, zoom: number}} */ (this.gsvPano?.getPov());
     if (!pov || typeof pov.heading !== 'number') return null;
     // Adjust heading to be between 0 and 360.
     while (pov.heading < 0) pov.heading += 360;

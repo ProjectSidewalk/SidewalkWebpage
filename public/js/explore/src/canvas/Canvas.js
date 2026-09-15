@@ -48,7 +48,7 @@ class Canvas {
     if (!el) {
       return;
     }
-    this.#ctx = el.getContext('2d');
+    this.#ctx = /** @type {HTMLCanvasElement} */ (el).getContext('2d');
 
     // Render the canvas at its on-screen (and HiDPI) resolution now that pano may be displayed at a different size
     // than the 720x480 logical frame, while keeping all drawing code in that logical frame via a context transform.
@@ -62,7 +62,7 @@ class Canvas {
     svl.ui.canvas.drawingLayer.on('mousedown', (e) => this.#handleDrawingLayerMouseDown(e));
     svl.ui.canvas.drawingLayer.on('mouseup', (e) => this.#handleDrawingLayerMouseUp(e));
     svl.ui.canvas.drawingLayer.on('mousemove', (e) => this.#handleDrawingLayerMouseMove(e));
-    $('#interaction-area-holder').on('mouseleave', (e) => this.#handleDrawingLayerMouseOut(e));
+    $('#interaction-area-holder').on('mouseleave', () => this.#handleDrawingLayerMouseOut());
     svl.ui.canvas.hoverCard.on('click', () => this.#handleHoverCardClick('card'));
     svl.ui.canvas.hoverCard.on('mouseenter', () => this.#cancelScheduledHoverCardHide());
     svl.ui.canvas.hoverCard.on('mouseleave', () => this.#scheduleHoverCardHide());
@@ -75,7 +75,7 @@ class Canvas {
     svl.ui.streetview.viewControlLayer.on('mousedown', (e) => this.#handlerViewControlLayerMouseDown(e));
     svl.ui.streetview.viewControlLayer.on('mouseup', (e) => this.#handlerViewControlLayerMouseUp(e));
     svl.ui.streetview.viewControlLayer.on('mousemove', (e) => this.#handlerViewControlLayerMouseMove(e));
-    svl.ui.streetview.viewControlLayer.on('mouseleave', (e) => this.#handlerViewControlLayerMouseLeave(e));
+    svl.ui.streetview.viewControlLayer.on('mouseleave', () => this.#handlerViewControlLayerMouseLeave());
     svl.ui.streetview.viewControlLayer[0].onselectstart = () => false;
   }
 
@@ -170,12 +170,11 @@ class Canvas {
    * The street view is displayed larger than the logical frame (see the --pano-width CSS variable), so we
    * divide the on-screen position by the display scale.
    *
-   * @param {MouseEvent} e - The mouse event.
-   * @param {HTMLElement} dom - The element the listener is bound to.
+   * @param {MouseEvent} e - The mouse event, measured against the element its listener is bound to.
    * @returns {{x: number, y: number}}
    */
-  #canvasMousePosition(e, dom) {
-    const pos = util.mousePosition(e, dom);
+  #canvasMousePosition(e) {
+    const pos = util.mousePosition(e, e.currentTarget);
     const scale = util.exploreDisplayScale();
     return { x: Math.round(pos.x / scale), y: Math.round(pos.y / scale) };
   }
@@ -185,7 +184,7 @@ class Canvas {
    * @param {MouseEvent} e
    */
   #handlerViewControlLayerMouseDown(e) {
-    const currMousePosition = this.#canvasMousePosition(e, e.currentTarget);
+    const currMousePosition = this.#canvasMousePosition(e);
     this.#mouseStatus.isLeftDown = true;
     svl.tracker.push('ViewControl_MouseDown', currMousePosition);
     this.#setViewControlLayerCursor('ClosedHand');
@@ -196,7 +195,7 @@ class Canvas {
    * @param {MouseEvent} e
    */
   #handlerViewControlLayerMouseUp(e) {
-    const currMousePosition = this.#canvasMousePosition(e, e.currentTarget);
+    const currMousePosition = this.#canvasMousePosition(e);
     this.#mouseStatus.isLeftDown = false;
     svl.tracker.push('ViewControl_MouseUp', currMousePosition);
     const currTime = new Date();
@@ -216,7 +215,7 @@ class Canvas {
       }
     } else {
       this.#setViewControlLayerCursor('OpenHand');
-      if (currTime - this.#mouseStatus.prevMouseUpTime < 300) {
+      if (currTime.getTime() - this.#mouseStatus.prevMouseUpTime < 300) {
         // Continue logging double click. We don't have any features for it now, but it's good to know how
         // frequently people are trying to double-click. They might be trying to zoom?
         svl.tracker.push('ViewControl_DoubleClick');
@@ -238,7 +237,7 @@ class Canvas {
    * @param {MouseEvent} e
    */
   #handlerViewControlLayerMouseMove(e) {
-    const currMousePosition = this.#canvasMousePosition(e, e.currentTarget);
+    const currMousePosition = this.#canvasMousePosition(e);
 
     const item = this.onLabel(currMousePosition.x, currMousePosition.y);
     if (this.#mouseStatus.isLeftDown && svl.panoManager.getStatus('disablePanning') === false) {
@@ -283,7 +282,7 @@ class Canvas {
    * @param {MouseEvent} e
    */
   #handleDrawingLayerMouseDown(e) {
-    svl.tracker.push('LabelingCanvas_MouseDown', this.#canvasMousePosition(e, e.currentTarget));
+    svl.tracker.push('LabelingCanvas_MouseDown', this.#canvasMousePosition(e));
   }
 
   /**
@@ -291,7 +290,7 @@ class Canvas {
    * @param {MouseEvent} e
    */
   async #handleDrawingLayerMouseUp(e) {
-    const currMousePosition = this.#canvasMousePosition(e, e.currentTarget);
+    const currMousePosition = this.#canvasMousePosition(e);
 
     if (!this.#status.disableLabeling) {
       this.#createLabel(currMousePosition.x, currMousePosition.y);
@@ -536,7 +535,7 @@ class Canvas {
 
   /**
    * Returns the label that the mouse is over.
-   * @returns {?object}
+   * @returns {?Label}
    */
   getCurrentLabel() {
     return this.#status.currentLabel;
@@ -550,7 +549,7 @@ class Canvas {
    * Takes cursor coordinates x and y on the canvas and returns the label right below the cursor, or false if none.
    * @param {number} x
    * @param {number} y
-   * @returns {object|boolean}
+   * @returns {Label|false}
    */
   onLabel(x, y) {
     const labels = svl.labelContainer.getCanvasLabels();
@@ -620,7 +619,7 @@ class Canvas {
 
   /**
    * Sets the passed label's hoverInfoVisibility to 'visible' and all the others to 'hidden'.
-   * @param {object} label
+   * @param {?Label} label
    */
   showLabelHoverInfo(label) {
     let needToRerender = false;
@@ -692,7 +691,7 @@ class Canvas {
 
   /**
    * Saves a screenshot of the canvas when the label was placed, to be uploaded to the server later.
-   * @param {object} label
+   * @param {Label} label
    */
   saveCanvasScreenshot(label) {
     // If there is no label to associate this crop with, don't save the crop.
@@ -702,7 +701,8 @@ class Canvas {
     }
 
     // Save a high-res version of the image to the label object. Uploaded after label is saved to the db.
-    const newCrop = $(`.${svl.panoViewer.getCanvasClass()}`)[0].toDataURL('image/jpeg', 1);
+    const panoCanvas = /** @type {HTMLCanvasElement} */ ($(`.${svl.panoViewer.getCanvasClass()}`)[0]);
+    const newCrop = panoCanvas.toDataURL('image/jpeg', 1);
     label.setProperty('crop', newCrop);
   }
 }

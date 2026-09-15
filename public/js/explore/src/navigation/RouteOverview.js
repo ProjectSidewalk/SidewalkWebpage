@@ -22,12 +22,12 @@ class RouteOverview {
   #enabled;
 
   /**
-   * @param {object} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
+   * @param {Record<string, JQuery>} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
    * @param {Tracker} tracker - Interaction logger.
    */
   constructor(uiMinimap, tracker) {
     this.#tracker = tracker;
-    this.#canvas = uiMinimap.routeOverviewCanvas[0];
+    this.#canvas = /** @type {HTMLCanvasElement} */ (uiMinimap.routeOverviewCanvas[0]);
     this.#ctx = this.#canvas.getContext('2d');
     this.#enabled = !!(svl.regionModel && svl.regionModel.isRoute);
 

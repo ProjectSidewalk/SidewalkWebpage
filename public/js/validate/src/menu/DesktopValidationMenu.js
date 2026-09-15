@@ -9,7 +9,7 @@ class DesktopValidationMenu {
   #tagsAddedByUser = [];
 
   /**
-   * @param {object} menuUI - Validation menu UI elements.
+   * @param {Record<string, JQuery>} menuUI - Validation menu UI elements.
    */
   constructor(menuUI) {
     this.#menuUI = menuUI;
@@ -243,7 +243,7 @@ class DesktopValidationMenu {
    * The buttons are one shared set of elements, so a type that offers a given reason gets it shown and marked
    * `defaultOption` — the flag the number-key shortcuts check — while a type that doesn't offer it gets it hidden.
    *
-   * @param {object} label - The label whose type the buttons should describe.
+   * @param {Label} label - The label whose type the buttons should describe.
    */
   #renderReasonButtons(label) {
     const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
@@ -529,7 +529,7 @@ class DesktopValidationMenu {
     if (holder) {
       holder.querySelectorAll('.severity-button').forEach((button) => {
         const sev = Number(button.dataset.severity);
-        const img = button.querySelector('.severity-button__icon');
+        const img = /** @type {HTMLImageElement} */ (button.querySelector('.severity-button__icon'));
         if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === Number(severity));
         // The radio is the only thing carrying the selection into the accessibility tree — the smiley above is an
         // <img> swap, which announces nothing — and the holder is a `radiogroup`, so the checked radio is what a
@@ -537,7 +537,7 @@ class DesktopValidationMenu {
         // label checks it, and it then stays checked across labels, so an unrated label would announce the previous
         // one's rating and an undo would announce whatever was clicked last rather than what it stored. NaN when
         // there is no rating, which no `sev` equals, so the whole group goes unchecked.
-        const radio = button.querySelector('.severity-button__radio');
+        const radio = /** @type {HTMLInputElement} */ (button.querySelector('.severity-button__radio'));
         if (radio) radio.checked = sev === Number(severity);
       });
     }
@@ -654,7 +654,7 @@ class DesktopValidationMenu {
     currLabel.setProperty('comment', comment);
 
     // If enough time has passed between validations, log the new validation.
-    if (timestamp - svv.labelContainer.getProperty('validationTimestamp') > 800) {
+    if (timestamp.getTime() - svv.labelContainer.getProperty('validationTimestamp') > 800) {
       svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
     }
   }

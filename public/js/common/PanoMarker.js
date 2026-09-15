@@ -31,7 +31,7 @@ class PanoMarker {
    *
    * @param {object} opts - A set of parameters to customize the marker.
    * @param {PanoViewer} opts.panoViewer - Panorama viewer on which to display marker.
-   * @param {HTMLDivElement} opts.markerContainer - The container holding the markers.
+   * @param {HTMLElement} opts.markerContainer - The container holding the markers.
    * @param {string} [opts.className] - The class name which will be assigned to the created div node.
    * @param {string} [opts.icon] - URL to an image file that shall be used.
    * @param {string} [opts.id] - A unique identifier that will be assigned to the created div-node.

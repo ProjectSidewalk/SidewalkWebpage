@@ -129,7 +129,7 @@ class NavigationService {
    *     street: true when every sampled point along it got a clean "nothing usable here" from the provider, false
    *     when any of them failed to get an answer at all (a provider error, a blocked or unreachable API). Only the
    *     true case may report the street as imagery-less, or move the labeler off it — see the bail-out below.
-   * @returns {Promise<null>}
+   * @returns {Promise<string|null|void>} What moveForward() resolves with if the labeler is moved on, otherwise null.
    */
   async #handleImageryNotFound(streetLooksEmpty) {
     const currentTask = svl.taskContainer.getCurrentTask();

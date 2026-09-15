@@ -3,6 +3,12 @@
  */
 class PanoViewer {
   /**
+   * The imagery source a subclass shows, like 'gsv'. Each subclass sets its own.
+   * @type {string}
+   */
+  static SOURCE;
+
+  /**
    * The type of panorama viewer.
    * @type {string}
    */
@@ -79,11 +85,11 @@ class PanoViewer {
 
   /**
    * Factory method to create and initialize instances. Ex: `const viewer = await GsvViewer.create(canvasElem);`.
-   * @param {Element} canvasElem
-   * @param {object} panoOptions - Object containing initialization options
-   * @param {string} [panoOptions.startPanoId] - Pano to start at; either this or startLatLng is required
-   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] - Start loc; either this or startPanoId is required
-   * @returns {Promise<PanoViewer>}
+   * @template {PanoViewer} T
+   * @this {new () => T}
+   * @param {HTMLElement} canvasElem
+   * @param {Record<string, any>} [panoOptions] - Passed to the subclass's initialize(), which lists what it takes.
+   * @returns {Promise<T>} The viewer, typed as the subclass it was called on.
    * @static
    */
   static async create(canvasElem, panoOptions = {}) {

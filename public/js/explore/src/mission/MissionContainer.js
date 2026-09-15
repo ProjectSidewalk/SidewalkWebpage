@@ -1,11 +1,8 @@
 /**
  * MissionContainer module.
- *
- * The `EventMixin` emitter is mixed onto the prototype below, providing `trigger`/`on`/etc.
- *
  * @memberof svl
  */
-class MissionContainer {
+class MissionContainer extends EventEmitter {
   #missionPanel;
   #completedMissions = [];
   #currentMission = null;
@@ -21,6 +18,7 @@ class MissionContainer {
    * @param {MissionModel} missionModel - Mission model object.
    */
   constructor(missionPanel, missionModel) {
+    super();
     this.#missionPanel = missionPanel;
 
     missionModel.on('MissionProgress:complete', (parameters) => {
@@ -116,9 +114,12 @@ class MissionContainer {
     // Check pull request for more details
     return this.#tasksMissionsOffset;
   }
-}
-Object.assign(MissionContainer.prototype, EventMixin);
 
-MissionContainer.prototype.notifyMissionLoaded = function (mission) {
-  this.trigger('MissionContainer:missionLoaded', mission);
-};
+  /**
+   * Tells listeners that a new current mission is ready.
+   * @param {Mission} mission - The mission that was loaded.
+   */
+  notifyMissionLoaded(mission) {
+    this.trigger('MissionContainer:missionLoaded', mission);
+  }
+}

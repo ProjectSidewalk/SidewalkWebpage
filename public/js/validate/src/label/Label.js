@@ -67,7 +67,7 @@ class Label {
 
   /**
    * Initializes a label from metadata (if parameters are passed in).
-   * @param {object} params - Label metadata from the backend.
+   * @param {Record<string, any>} params - Label metadata from the backend.
    */
   #init(params) {
     if (params) {

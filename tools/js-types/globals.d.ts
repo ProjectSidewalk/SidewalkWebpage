@@ -42,7 +42,16 @@ declare const PhotoSphereViewer: any;
 declare const proj4: any;
 declare const THREE: any;
 declare const turf: any;
+declare namespace turf {
+  type Feature<G = any> = any;
+  type LineString = any;
+}
 declare const vegaEmbed: any;
+// GeoJSON shapes, named in JSDoc only.
+declare namespace GeoJSON {
+  type Feature<G = any> = any;
+  type LineString = any;
+}
 
 // jQuery plugins from Bootstrap, Magnific Popup, and Selectize.
 interface JQuery {
@@ -51,6 +60,13 @@ interface JQuery {
   popover(...args: any[]): JQuery;
   selectize(...args: any[]): JQuery;
   tooltip(...args: any[]): JQuery;
+}
+
+declare namespace JQuery {
+  interface TriggeredEvent<TDelegateTarget = any, TData = any, TCurrentTarget = any, TTarget = any> {
+    // jQuery sets this on events fired from code with .trigger() or .click(), but its type package leaves it out.
+    isTrigger?: number;
+  }
 }
 
 // Values set on `window` by the site-wide layout (common/main.scala.html) or by AppManager from it.

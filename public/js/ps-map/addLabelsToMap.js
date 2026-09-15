@@ -4,7 +4,6 @@
  * @param {object} map - The Mapbox map object.
  * @param {object} labelData - GeoJSON FeatureCollection of labels to draw on the map.
  * @param {object} params - Properties that can change the process of choropleth creation.
- * @param {string} params.mapName - Name of the HTML ID of the map.
  * @param {string} [params.highQualityFilter] - If true, only show labels from users marked as high quality.
  * @param {boolean} [params.logClicks=true] - Whether clicks should be logged.
  * @param {string} [params.uiSource] - Used to record the UI used when submitting a validation through the popup.
