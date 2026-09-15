@@ -42,7 +42,7 @@ class CoverageTable {
 
   /**
    * Renders the table and wires search, sort, and row interactions (once).
-   * @param {Array<object>} rows - Region rows (region_id, name, completion_rate, distances, counts).
+   * @param {Array<Record<string, any>>} rows - Region rows (region_id, name, completion_rate, distances, counts).
    */
   render(rows) {
     this.#rows = rows;
@@ -98,7 +98,7 @@ class CoverageTable {
       }
     });
 
-    const search = document.getElementById(this.#searchId);
+    const search = /** @type {HTMLInputElement} */ (document.getElementById(this.#searchId));
     if (search) {
       search.addEventListener('input', () => {
         this.#filter = search.value;

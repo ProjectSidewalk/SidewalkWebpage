@@ -79,7 +79,7 @@
 
     /**
      * Render the street types table.
-     * @param {object} data - Street types data from the API
+     * @param {Record<string, any>} data - Street types data from the API
      * @param {HTMLElement} container - Container element
      * @returns {HTMLElement} The rendered table
      */

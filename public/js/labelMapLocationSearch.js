@@ -18,7 +18,7 @@ const CITY_BBOX_BUFFER_FRACTION = 0.1;
 /**
  * Compute a slightly-buffered bounding box of a GeoJSON FeatureCollection (or single Feature).
  *
- * @param {object} geojson - GeoJSON FeatureCollection or Feature with Polygon/MultiPolygon geometry.
+ * @param {Record<string, any>} geojson - GeoJSON FeatureCollection or Feature with Polygon/MultiPolygon geometry.
  * @returns {number[][]|null} bbox as [[minLng, minLat], [maxLng, maxLat]] (Mapbox LngLatBounds order),
  *                            padded by CITY_BBOX_BUFFER_FRACTION per edge, or null if no coordinates found.
  */
@@ -80,7 +80,7 @@ function regionAt(map, lat, lng) {
  * already knows — only the street line adds anything. Prefers the structured `context.address` the Search Box API
  * returns, falling back to the first segment of the formatted address.
  *
- * @param {object} props - Properties of the retrieved search feature.
+ * @param {Record<string, any>} props - Properties of the retrieved search feature.
  * @returns {string} Street address (e.g. "100 Elizabeth Ave"), or '' if the result carries none.
  */
 function streetAddress(props) {

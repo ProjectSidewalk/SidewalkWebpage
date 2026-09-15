@@ -68,7 +68,7 @@
   function formatAuditAge(lastLabelDate) {
     if (!lastLabelDate) return 'Never audited';
 
-    const daysDiff = (Date.now() - new Date(lastLabelDate)) / DAY_MS;
+    const daysDiff = (Date.now() - new Date(lastLabelDate).getTime()) / DAY_MS;
     if (daysDiff < 1) return 'Today';
     if (daysDiff < 7) {
       const days = Math.floor(daysDiff);
@@ -158,8 +158,8 @@
    * Stamps each street with its age in days, since Mapbox expressions have no date arithmetic to derive it from
    * `last_label_date` at paint time.
    *
-   * @param {object} streets - The GeoJSON FeatureCollection from the API.
-   * @returns {object} The same collection with `days_since_label` on every feature.
+   * @param {GeoJSON.FeatureCollection} streets - The GeoJSON FeatureCollection from the API.
+   * @returns {GeoJSON.FeatureCollection} The same collection with `days_since_label` on every feature.
    */
   function withAge(streets) {
     const now = Date.now();
@@ -170,7 +170,7 @@
         properties: {
           ...feature.properties,
           days_since_label: feature.properties.last_label_date
-            ? (now - new Date(feature.properties.last_label_date)) / DAY_MS
+            ? (now - new Date(feature.properties.last_label_date).getTime()) / DAY_MS
             : null,
         },
       })),
@@ -180,8 +180,8 @@
   /**
    * Rolls up the figures the three summary panels and color ramps draw on.
    *
-   * @param {Array<object>} features - The street features, after withAge().
-   * @returns {object} Totals, maxima, and the way types present.
+   * @param {Array<Record<string, any>>} features - The street features, after withAge().
+   * @returns {Record<string, any>} Totals, maxima, and the way types present.
    */
   function summarize(features) {
     const stats = {
@@ -289,10 +289,10 @@
      * Build one of the three maps, tearing it back down if anything fails to draw.
      *
      * @param {HTMLElement} container - Container element for this map
-     * @param {object} metric - The METRICS entry driving this map
-     * @param {object} regionData - GeoJSON Feature for the region the preview is scoped to
-     * @param {object} streets - GeoJSON FeatureCollection of streets
-     * @param {object} stats - The rollup from summarize()
+     * @param {Record<string, any>} metric - The METRICS entry driving this map
+     * @param {GeoJSON.Feature} regionData - GeoJSON Feature for the region the preview is scoped to
+     * @param {GeoJSON.FeatureCollection} streets - GeoJSON FeatureCollection of streets
+     * @param {Record<string, any>} stats - The rollup from summarize()
      * @returns {Promise} Resolves once the map has loaded and drawn
      */
     async renderMap(container, metric, regionData, streets, stats) {
@@ -300,7 +300,7 @@
       const map = await ApiDocsMap.create({
         container,
         mapboxApiKey: config.mapboxApiKey,
-        bounds: ApiDocsMap.geometryBounds(regionData.geometry),
+        bounds: geometryBounds(regionData.geometry),
       });
       try {
         this.drawMap(map, metric, regionData, streets, stats);
@@ -314,11 +314,11 @@
     /**
      * Draw one map's region outline, streets, legend, and summary onto a loaded map.
      *
-     * @param {object} map - The loaded Mapbox map
-     * @param {object} metric - The METRICS entry driving this map
-     * @param {object} regionData - GeoJSON Feature for the region the preview is scoped to
-     * @param {object} streets - GeoJSON FeatureCollection of streets
-     * @param {object} stats - The rollup from summarize()
+     * @param {mapboxgl.Map} map - The loaded Mapbox map
+     * @param {Record<string, any>} metric - The METRICS entry driving this map
+     * @param {GeoJSON.Feature} regionData - GeoJSON Feature for the region the preview is scoped to
+     * @param {GeoJSON.FeatureCollection} streets - GeoJSON FeatureCollection of streets
+     * @param {Record<string, any>} stats - The rollup from summarize()
      */
     drawMap(map, metric, regionData, streets, stats) {
       map.addSource(REGION_SOURCE, { type: 'geojson', data: regionData });
@@ -379,7 +379,7 @@
 
     /**
      * Wire up the click popup for the street layer.
-     * @param {object} map - The Mapbox map object
+     * @param {mapboxgl.Map} map - The Mapbox map object
      */
     addStreetPopups(map) {
       map.on('click', STREET_LAYER, (e) => {

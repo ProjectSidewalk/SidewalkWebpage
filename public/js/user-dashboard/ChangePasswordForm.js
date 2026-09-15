@@ -15,7 +15,7 @@ class ChangePasswordForm {
     this.#status = form.querySelector('[role="status"]');
     // Added before wireAsyncSubmit's listener, so a stale "changed" message clears as soon as the next submit starts.
     form.addEventListener('submit', () => this.#setStatus('', false));
-    wireAsyncSubmit(form, { onSuccess: (data) => this.#onChanged(data) });
+    wireAsyncSubmit(form, { onSuccess: (data) => this.#onChanged(/** @type {{message: string}} */ (data)) });
   }
 
   /**

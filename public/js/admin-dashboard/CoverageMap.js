@@ -31,6 +31,7 @@ class CoverageColors {
 
   /** Builds a Mapbox 'interpolate' expression over completion_rate using the same stops. */
   static mapboxExpression() {
+    /** @type {any[]} */
     const expr = ['interpolate', ['linear'], ['get', 'completion_rate']];
     for (const [rate, hex] of CoverageColors.STOPS) expr.push(rate, hex);
     return expr;
@@ -88,9 +89,9 @@ class CoverageMap {
   /**
    * @param {string} containerId - ID of the map container element.
    * @param {{mapboxToken: string, onRegionClick?: (id: number) => void, onRegionHover?: (id: number) => void,
-   *          onRegionHoverEnd?: () => void}} [opts]
+   *          onRegionHoverEnd?: () => void}} opts
    */
-  constructor(containerId, opts = {}) {
+  constructor(containerId, opts) {
     this.containerId = containerId;
     this.#mapboxToken = opts.mapboxToken;
     this.#onRegionClick = opts.onRegionClick || (() => {});
@@ -100,7 +101,7 @@ class CoverageMap {
 
   /**
    * Initializes the map and draws the regions.
-   * @param {object} geojson - A GeoJSON FeatureCollection of regions with completion_rate in properties.
+   * @param {GeoJSON.FeatureCollection} geojson - Regions, with completion_rate in their properties.
    * @returns {Promise<void>} Resolves once the map's first render is ready.
    */
   init(geojson) {

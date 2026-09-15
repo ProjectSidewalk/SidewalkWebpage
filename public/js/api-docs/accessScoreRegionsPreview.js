@@ -79,7 +79,7 @@
       mapElement.id = 'access-score-regions-map';
       container.appendChild(mapElement);
 
-      const bounds = features.length ? ApiDocsMap.featureCollectionBounds(features) : null;
+      const bounds = features.length ? featureCollectionBounds({ type: 'FeatureCollection', features }) : null;
       const map = await ApiDocsMap.create({
         container: mapElement,
         mapboxApiKey: config.mapboxApiKey,
@@ -122,10 +122,10 @@
       this.updateLegend();
 
       // Wired only now that there is a layer to recolor and a legend to rewrite.
-      const select = document.getElementById('as-region-metric-select');
+      const select = /** @type {HTMLSelectElement} */ (document.getElementById('as-region-metric-select'));
       select.value = this._metric;
-      select.addEventListener('change', (event) => {
-        this._metric = event.target.value;
+      select.addEventListener('change', () => {
+        this._metric = select.value;
         map.setPaintProperty(FILL_LAYER, 'fill-color', this.colorExpression());
         this.updateLegend();
       });

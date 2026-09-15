@@ -373,8 +373,8 @@ lint-vendor-versions:
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/check-vendor-versions.mjs"
 	@echo "Finished checking vendor versions";
 
-# Type-checks public/js/ from its JSDoc with TypeScript (#5278). Only the folders listed in tools/check-js-types.mjs
-# can fail; `args=--all` also prints every other folder's errors, with a count per folder. Also a blocking CI step.
+# Type-checks public/js/ from its JSDoc with TypeScript (#5278). Every file can fail except those under UNCHECKED in
+# tools/check-js-types.mjs; `args=--all` also prints their errors, with a count per folder. Also a blocking CI step.
 lint-js-types:
 	@echo "Checking JS types...";
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/check-js-types.mjs $(args)"

@@ -25,7 +25,7 @@ class ImageryPipelinePanel {
 
   /** Wires the window selector and loads the first report. */
   async init() {
-    const select = document.getElementById('imagery-range');
+    const select = /** @type {HTMLSelectElement} */ (document.getElementById('imagery-range'));
     if (select) {
       select.value = String(this.#days);
       select.addEventListener('change', () => {

@@ -30,7 +30,7 @@ document.addEventListener('touchstart', (event) => {
   const isSecondTap = doubleTouchStartTimestamp + DOUBLE_TAP_MS > now;
   doubleTouchStartTimestamp = now;
 
-  if (isSecondTap && event.touches.length === 1 && event.target?.closest?.(PANO_CANVASES)) {
+  if (isSecondTap && event.touches.length === 1 && /** @type {Element} */ (event.target)?.closest?.(PANO_CANVASES)) {
     event.preventDefault();
   }
 }, { passive: false });

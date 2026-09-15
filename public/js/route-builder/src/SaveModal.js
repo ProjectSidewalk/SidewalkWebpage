@@ -66,8 +66,7 @@ class SaveModal {
 
   /**
    * Reads and clears the route stashed before a sign-in reload.
-   * @returns {object|null} {regionId, name, description, streets, camera} or null if there is nothing (valid)
-   *                        to restore.
+   * @returns {?Record<string, any>} {regionId, name, description, streets, camera}; null if none is stashed.
    */
   static consumePendingRoute() {
     try {

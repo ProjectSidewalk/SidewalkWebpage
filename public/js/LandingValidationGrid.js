@@ -1,4 +1,13 @@
 /**
+ * One label card's data, as /label/labels returns it.
+ * @typedef {object} LabelEntry
+ * @property {Record<string, any>} label
+ * @property {?string} cropUrl
+ * @property {?{x: number, y: number}} cropMarker
+ * @property {?string} gsvImageUrl
+ */
+
+/**
  * Landing-page grid of recently-found labels with inline Agree/Disagree/Unsure buttons (#1638), so visitors can
  * contribute useful validations straight from the home page.
  *
@@ -71,7 +80,7 @@ class LandingValidationGrid {
   }
 
   /**
-   * @param {object} entry - One {label, cropUrl, cropMarker, gsvImageUrl} entry from /label/labels.
+   * @param {LabelEntry} entry - One entry from /label/labels.
    * @param {string} imageSource - Which source the card is actually showing: 'crop' or 'api'.
    * @returns {{x: number, y: number}} Fractions of the image's width and height.
    */
@@ -81,7 +90,7 @@ class LandingValidationGrid {
 
   /**
    * @param {?HTMLElement} marker - The marker element, or null for a label type with no icon.
-   * @param {object} entry - The card's {label, cropUrl, cropMarker, gsvImageUrl} entry.
+   * @param {LabelEntry} entry - The card's entry.
    * @param {string} imageSource - Which source the card is actually showing: 'crop' or 'api'.
    */
   static #positionMarker(marker, entry, imageSource) {
@@ -142,7 +151,7 @@ class LandingValidationGrid {
   /**
    * Builds one card: the label image with the label-type icon marked where the label is in it, the localized
    * "Is this a …?" question, and the three validation buttons.
-   * @param {object} entry - One {label, cropUrl, cropMarker, gsvImageUrl} entry from /label/labels.
+   * @param {LabelEntry} entry - One entry from /label/labels.
    * @param {number} index - The card's slot in the grid, which decides whether its image loads eagerly.
    * @returns {HTMLElement}
    */
@@ -230,7 +239,7 @@ class LandingValidationGrid {
    * at this label's public /label/:id spotlight page — so a visitor who spots something zany or particularly
    * problematic can pass it along, straight from the landing page.
    *
-   * @param {object} label - The card's label from /label/labels.
+   * @param {Record<string, any>} label - The card's label from /label/labels.
    * @param {string} typeKebab - The label type in kebab-case (e.g. 'curb-ramp'), as used in locale keys.
    * @returns {HTMLElement}
    */
@@ -273,7 +282,7 @@ class LandingValidationGrid {
    *
    * @param {HTMLElement} row - The question row (the tooltip's positioning anchor).
    * @param {HTMLElement} question - The question span whose <b> holds the label-type name.
-   * @param {object} label - The card's label from /label/labels.
+   * @param {Record<string, any>} label - The card's label from /label/labels.
    * @param {string} typeKebab - The label type in kebab-case (e.g. 'curb-ramp'), as used in locale keys.
    */
   #attachTypeTooltip(row, question, label, typeKebab) {
@@ -335,12 +344,12 @@ class LandingValidationGrid {
   /**
    * Submits the visitor's validation, shows a brief thanks state, then swaps in a fresh label.
    * @param {HTMLElement} card - The card being validated.
-   * @param {object} entry - The card's {label, cropUrl, cropMarker, gsvImageUrl} entry.
+   * @param {LabelEntry} entry - The card's entry.
    * @param {string} result - 'Agree', 'Disagree', or 'Unsure'.
    */
   async #validate(card, entry, result) {
     const label = entry.label;
-    const buttons = card.querySelectorAll('.lvg-btn');
+    const buttons = /** @type {NodeListOf<HTMLButtonElement>} */ (card.querySelectorAll('.lvg-btn'));
     buttons.forEach((button) => {
       button.disabled = true;
     });

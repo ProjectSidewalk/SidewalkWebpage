@@ -81,7 +81,7 @@
       mapElement.id = 'access-score-intersections-map';
       container.appendChild(mapElement);
 
-      const bounds = features.length ? ApiDocsMap.featureCollectionBounds(features) : null;
+      const bounds = features.length ? featureCollectionBounds({ type: 'FeatureCollection', features }) : null;
       const map = await ApiDocsMap.create({
         container: mapElement,
         mapboxApiKey: config.mapboxApiKey,
@@ -147,7 +147,7 @@
     /**
      * Builds the popup's call to action into Explore, or an empty string where it would be a dead end.
      *
-     * @param {object} feature - The clicked intersection feature.
+     * @param {GeoJSON.Feature} feature - The clicked intersection feature.
      * @returns {string} The link's HTML, or '' on mobile.
      */
     exploreHereLink(feature) {

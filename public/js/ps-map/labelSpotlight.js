@@ -26,8 +26,8 @@ function centerShowingLabelAt(coords, dx, dy, zoom) {
  *
  * @param {object} host - Page adapter.
  * @param {HTMLDialogElement} host.dialog - The label popup's <dialog>.
- * @param {() => ?object} host.getMap - Returns the Mapbox map once created (null/undefined before).
- * @param {() => ?object} host.getMapData - Returns the map layer tracker from addLabelsToMap, used for the
+ * @param {() => ?mapboxgl.Map} host.getMap - Returns the Mapbox map once created (null/undefined before).
+ * @param {() => ?MapLayerTracker} host.getMapData - Returns the map layer tracker from addLabelsToMap, used for the
  *     filter bypass (null/undefined before the label layers exist).
  * @param {(labelId: number) => ?Array<number>} host.getCoords - Best known [lng, lat] for a label ID.
  * @param {(labelId: number) => ?string} host.getLabelType - Best known label type for a label ID.

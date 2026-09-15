@@ -21,13 +21,13 @@ window.ApiDocsMap = (function () {
    * @param {HTMLElement|string} options.container - Map container element, or its element ID.
    * @param {string} options.mapboxApiKey - Mapbox access token.
    * @param {string} [options.style=STYLE_PROJECT_SIDEWALK] - Mapbox style URL.
-   * @param {object} [options.bounds] - mapboxgl.LngLatBounds to frame the initial view on.
+   * @param {mapboxgl.LngLatBounds} [options.bounds] - Bounds to frame the initial view on.
    * @param {number} [options.fitPadding] - Pixels of padding left around `bounds`. Defaults to a share of the map's
    *                                        width, capped at 75.
    * @param {Array<number>} [options.center] - Initial center as [lng, lat]. Used only when `bounds` is omitted.
    * @param {number} [options.zoom] - Initial zoom. Used only when `bounds` is omitted.
    * @param {number} [options.dim=BASEMAP_DIM_OPACITY] - Basemap dimming, 0 (none) to 1 (black).
-   * @returns {Promise<object>} Resolves with the Mapbox map once it has loaded and been dimmed.
+   * @returns {Promise<mapboxgl.Map>} Resolves with the Mapbox map once it has loaded and been dimmed.
    */
   function create(options) {
     mapboxgl.accessToken = options.mapboxApiKey;
@@ -85,7 +85,7 @@ window.ApiDocsMap = (function () {
   /**
    * Layers an element over the map in one of its four corners, returns it so callers can fill/refill as data arrives.
    *
-   * @param {object} map - The Mapbox map.
+   * @param {mapboxgl.Map} map - The Mapbox map.
    * @param {string} position - 'top-left', 'top-right', 'bottom-left', or 'bottom-right'.
    * @param {string} className - Class(es) to style the overlay with.
    * @returns {HTMLElement} The overlay element, already added to the map.
@@ -101,10 +101,10 @@ window.ApiDocsMap = (function () {
   /**
    * Opens a popup carrying the shared `.map-popup` styling.
    *
-   * @param {object} map - The Mapbox map.
+   * @param {mapboxgl.Map} map - The Mapbox map.
    * @param {object|Array<number>} lngLat - Where to anchor the popup.
    * @param {string} html - The popup's contents.
-   * @returns {object} The opened mapboxgl.Popup.
+   * @returns {mapboxgl.Popup} The opened popup.
    */
   function popup(map, lngLat, html) {
     return new mapboxgl.Popup({
@@ -121,41 +121,13 @@ window.ApiDocsMap = (function () {
   }
 
   /**
-   * Returns the bounds enclosing a GeoJSON geometry, whatever its nesting depth (point through multi-polygon).
-   *
-   * @param {object} geometry - The GeoJSON geometry.
-   * @returns {object} mapboxgl.LngLatBounds covering every coordinate in it.
-   */
-  function geometryBounds(geometry) {
-    const bounds = new mapboxgl.LngLatBounds();
-    const extend = (coords) => {
-      if (typeof coords[0] === 'number') bounds.extend(coords);
-      else coords.forEach(extend);
-    };
-    extend(geometry.coordinates);
-    return bounds;
-  }
-
-  /**
-   * Returns the bounds enclosing every feature in a GeoJSON FeatureCollection.
-   *
-   * @param {Array<object>} features - The collection's features.
-   * @returns {object} mapboxgl.LngLatBounds covering all of them.
-   */
-  function featureCollectionBounds(features) {
-    const bounds = new mapboxgl.LngLatBounds();
-    features.forEach((feature) => bounds.extend(geometryBounds(feature.geometry)));
-    return bounds;
-  }
-
-  /**
    * Reads a property off a rendered map feature, undoing Mapbox's flattening of non-scalar values.
    *
    * Mapbox GL carries only strings, numbers, and booleans through its feature pipeline, so an array or object in the
    * source GeoJSON (a label's `tags`) arrives on `e.features[].properties` as a JSON *string* — which reads back as
    * the string's characters rather than the array's, and looks fine until a popup renders `[` as its first tag.
    *
-   * @param {object} properties - The `properties` object from a rendered feature.
+   * @param {Record<string, any>} properties - The `properties` object from a rendered feature.
    * @param {string} name - Property name.
    * @returns {*} The value, parsed back into an array/object where Mapbox stringified one.
    */
@@ -188,7 +160,8 @@ window.ApiDocsMap = (function () {
   /**
    * Builds a Mapbox `match` expression that colors a feature by its label type.
    *
-   * @param {object} labelTypeInfo - Map of label type name to `{color, display, description}`, from /v3/api/labelTypes.
+   * @param {Record<string, {color: string, display: string, description: string}>} labelTypeInfo - Label type name
+   *     to its info, from /v3/api/labelTypes.
    * @param {string} [property=label_type] - Feature property holding the label type name.
    * @returns {Array} A Mapbox expression usable as a `circle-color` / `line-color` paint value.
    */
@@ -243,7 +216,7 @@ window.ApiDocsMap = (function () {
    * Tracks which of a layer's features the pointer is over as Mapbox feature-state, so `whenHovered` paint values
    * respond to it. Feature-state is keyed by feature id, so the layer's source needs a `promoteId`.
    *
-   * @param {object} map - The Mapbox map.
+   * @param {mapboxgl.Map} map - The Mapbox map.
    * @param {string} layerId - Layer to track hover on.
    * @param {string} sourceId - Source backing that layer.
    */
@@ -274,8 +247,9 @@ window.ApiDocsMap = (function () {
    * @param {string} title - Legend heading.
    * @param {Array<string>} ramp - The colors passed to the matching `gradientColorExpression`.
    * @param {Array<string>} tickLabels - Labels under the bar, low end first.
-   * @param {object} [none] - The `{color, label}` for features with no value, matching `gradientColorExpression`'s
-   *                          `noneColor`. Omit when every feature lands somewhere on the ramp.
+   * @param {{color: string, label: string}} [none] - Swatch color and name for features with no value, matching
+   *                                                 `gradientColorExpression`'s `noneColor`. Omit when every feature
+   *                                                 lands somewhere on the ramp.
    */
   function renderGradientLegend(element, title, ramp, tickLabels, none) {
     // A discrete category has no honest position on a continuous bar, so it gets its own row below the ticks.
@@ -323,7 +297,8 @@ window.ApiDocsMap = (function () {
    * @param {HTMLElement} element - The overlay element to fill.
    * @param {string} heading - Legend heading.
    * @param {Array<string>} typeNames - Label type names present in the data.
-   * @param {object} labelTypeInfo - Map of label type name to `{color, display, description}`, from /v3/api/labelTypes.
+   * @param {Record<string, {color: string, display: string, description: string}>} labelTypeInfo - Label type name
+   *     to its info, from /v3/api/labelTypes.
    * @param {string} emptyMessage - Shown in place of the rows when nothing was rendered.
    */
   function renderLabelTypeLegend(element, heading, typeNames, labelTypeInfo, emptyMessage) {
@@ -351,8 +326,6 @@ window.ApiDocsMap = (function () {
     create,
     popup,
     addOverlay,
-    geometryBounds,
-    featureCollectionBounds,
     featureProp,
     fetchJson,
     labelTypeColorExpression,
