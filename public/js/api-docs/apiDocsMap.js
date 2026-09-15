@@ -121,34 +121,6 @@ window.ApiDocsMap = (function () {
   }
 
   /**
-   * Returns the bounds enclosing a GeoJSON geometry, whatever its nesting depth (point through multi-polygon).
-   *
-   * @param {GeoJSON.Geometry} geometry - The GeoJSON geometry.
-   * @returns {mapboxgl.LngLatBounds} Bounds covering every coordinate in it.
-   */
-  function geometryBounds(geometry) {
-    const bounds = new mapboxgl.LngLatBounds();
-    const extend = (coords) => {
-      if (typeof coords[0] === 'number') bounds.extend(coords);
-      else coords.forEach(extend);
-    };
-    extend(geometry.coordinates);
-    return bounds;
-  }
-
-  /**
-   * Returns the bounds enclosing every feature in a GeoJSON FeatureCollection.
-   *
-   * @param {Array<Record<string, any>>} features - The collection's features.
-   * @returns {mapboxgl.LngLatBounds} Bounds covering all of them.
-   */
-  function featureCollectionBounds(features) {
-    const bounds = new mapboxgl.LngLatBounds();
-    features.forEach((feature) => bounds.extend(geometryBounds(feature.geometry)));
-    return bounds;
-  }
-
-  /**
    * Reads a property off a rendered map feature, undoing Mapbox's flattening of non-scalar values.
    *
    * Mapbox GL carries only strings, numbers, and booleans through its feature pipeline, so an array or object in the
@@ -354,8 +326,6 @@ window.ApiDocsMap = (function () {
     create,
     popup,
     addOverlay,
-    geometryBounds,
-    featureCollectionBounds,
     featureProp,
     fetchJson,
     labelTypeColorExpression,

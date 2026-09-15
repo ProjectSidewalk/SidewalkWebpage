@@ -79,7 +79,7 @@
       mapElement.id = 'access-score-streets-map';
       container.appendChild(mapElement);
 
-      const bounds = features.length ? ApiDocsMap.featureCollectionBounds(features) : null;
+      const bounds = features.length ? featureCollectionBounds({ type: 'FeatureCollection', features }) : null;
       const map = await ApiDocsMap.create({
         container: mapElement,
         mapboxApiKey: config.mapboxApiKey,

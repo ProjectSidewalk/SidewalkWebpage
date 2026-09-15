@@ -300,7 +300,7 @@
       const map = await ApiDocsMap.create({
         container,
         mapboxApiKey: config.mapboxApiKey,
-        bounds: ApiDocsMap.geometryBounds(regionData.geometry),
+        bounds: geometryBounds(regionData.geometry),
       });
       try {
         this.drawMap(map, metric, regionData, streets, stats);

@@ -1,4 +1,16 @@
 /**
+ * The sidebar's filter state, as getState() reads it off the DOM.
+ * @typedef {object} SidebarFilterState
+ * @property {number[]} severities - Enabled severities.
+ * @property {number[]} allSeverities - Every rendered severity.
+ * @property {Record<string, string[]>} sections - Each section's selected values: label types as bare type names,
+ *     everything else as control ids.
+ * @property {Record<string, string[]>} tags - Each label type's active tags, including types with none selected so
+ *     hosts can clear stale tag filters.
+ * @property {string[]} allLabelTypes - Every rendered label type.
+ */
+
+/**
  * What an onChange callback is told about the interaction that just happened.
  * @typedef {object} FilterSidebarChange
  * @property {'option'|'selectAll'|'only'|'tag'} kind
@@ -78,11 +90,7 @@ class FilterSidebar {
    * may drop the severity toggles or a label type entirely, and a consumer that needs to recognize "everything is
    * selected" has to compare against the rendered set rather than a hardcoded count.
    *
-   * @returns {{severities: number[], allSeverities: number[], sections: object, tags: object,
-   *      allLabelTypes: string[]}} Enabled severities and every rendered severity; per-section arrays of the
-   *      selected values (label types as bare type names, everything else as control ids); the active tags of
-   *      every label type, including types with none selected so hosts can clear stale tag filters; and every
-   *      rendered label type.
+   * @returns {SidebarFilterState}
    */
   getState() {
     const severityButtons = this.#severityButtons();

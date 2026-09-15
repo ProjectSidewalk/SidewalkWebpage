@@ -9,9 +9,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/ps-map/psMapUtilities.js'), 'utf8'
-);
+const SRC = ['public/js/common/geoBounds.js', 'public/js/ps-map/psMapUtilities.js']
+    .map((file) => fs.readFileSync(path.resolve(__dirname, '..', '..', file), 'utf8'))
+    .join('\n');
 
 /** A square region feature, as queryRenderedFeatures hands it back. */
 function region(id, [west, south], [east, north]) {

@@ -91,6 +91,7 @@ module.exports = function (grunt) {
           'public/js/common/urlQuery.js',
           // The shared filter sidebar owns the sidebar controls; MapSidebarFilter is the map's adapter for it.
           'public/js/common/filter-sidebar/*.js',
+          'public/js/common/geoBounds.js',
           'public/js/ps-map/*.js',
         ],
         dest: 'public/js/ps-map/build/ps-map.js'

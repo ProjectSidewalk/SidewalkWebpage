@@ -115,7 +115,7 @@
       const map = await ApiDocsMap.create({
         container,
         mapboxApiKey: config.mapboxApiKey,
-        bounds: ApiDocsMap.geometryBounds(regionData.geometry),
+        bounds: geometryBounds(regionData.geometry),
       });
 
       // Outline the region so it's clear which slice of the city the clusters below are drawn from.

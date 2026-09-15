@@ -1,14 +1,4 @@
 /**
- * FilterSidebar.getState()'s shape, with the sections and tags spelled out.
- * @typedef {object} SidebarFilterState
- * @property {number[]} severities - Enabled severities.
- * @property {number[]} allSeverities - Every rendered severity.
- * @property {Record<string, string[]>} sections - Each section's selected values.
- * @property {Record<string, string[]>} tags - Each label type's active tags.
- * @property {string[]} allLabelTypes - Every rendered label type.
- */
-
-/**
  * Applies the shared filter sidebar's state to a Mapbox map.
  *
  * The sidebar itself is FilterSidebar (`common/filter-sidebar/`), which owns the controls and their interaction
@@ -143,10 +133,10 @@ class MapSidebarFilter {
 
   /**
    * Returns the sidebar's current filter state.
-   * @returns {SidebarFilterState} FilterSidebar.getState()'s shape.
+   * @returns {SidebarFilterState}
    */
   getState() {
-    return /** @type {SidebarFilterState} */ (this.#filters.getState());
+    return this.#filters.getState();
   }
 
   /**

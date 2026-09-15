@@ -89,7 +89,7 @@ class CoverageMap {
   /**
    * @param {string} containerId - ID of the map container element.
    * @param {{mapboxToken: string, onRegionClick?: (id: number) => void, onRegionHover?: (id: number) => void,
-   *          onRegionHoverEnd?: () => void}} [opts]
+   *          onRegionHoverEnd?: () => void}} opts
    */
   constructor(containerId, opts) {
     this.containerId = containerId;

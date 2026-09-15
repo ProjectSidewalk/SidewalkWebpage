@@ -129,7 +129,8 @@ for (const config of RUNS) {
   run.files.forEach((f) => readFiles.add(f));
 }
 
-// A file only counts as checked if tsc actually read it; a new bundle no tsconfig includes would otherwise pass silently.
+// A file only counts as checked if tsc actually read it; a new bundle that no tsconfig includes would otherwise pass
+// silently.
 const coverageProblems = [
   ...UNCHECKED.filter((entry) => jsFilesUnder(entry).length === 0).map((e) => `UNCHECKED lists ${e}, which has no JS.`),
   ...jsFilesUnder('public/js')
@@ -139,8 +140,8 @@ const coverageProblems = [
 // Anything outside public/js/ (a config or globals.d.ts) affects every folder, so its errors always count.
 const failing = errors.filter((e) => !uncheckedEntry(e.file));
 
-if (showAll) {
-  const unchecked = errors.filter((e) => uncheckedEntry(e.file));
+const unchecked = errors.filter((e) => uncheckedEntry(e.file));
+if (showAll && unchecked.length) {
   for (const e of unchecked) console.log(e.text);
 
   // A count per folder, to show how much cleanup is left.
@@ -153,11 +154,12 @@ if (showAll) {
   for (const [folder, count] of [...perFolder].sort((a, b) => a[1] - b[1])) {
     console.log(`${String(count).padStart(6)}  ${folder}`);
   }
-  // Only a note, not a failure, so a folder that happens to be clean mid-rewrite doesn't break its author's build.
-  for (const entry of UNCHECKED.filter((en) => !unchecked.some((e) => uncheckedEntry(e.file) === en))) {
-    console.log(`\n${entry} has no type errors now; remove it from UNCHECKED.`);
-  }
   console.log('');
+}
+
+// Only a note, not a failure, so a folder that happens to be clean mid-rewrite doesn't break its author's build.
+for (const entry of UNCHECKED.filter((en) => !unchecked.some((e) => uncheckedEntry(e.file) === en))) {
+  console.log(`Note: ${entry} has no type errors now; remove it from UNCHECKED.`);
 }
 
 if (failing.length || coverageProblems.length) {
@@ -166,4 +168,4 @@ if (failing.length || coverageProblems.length) {
   if (coverageProblems.length) console.error(`\n✗ ${coverageProblems.length} coverage problem(s).`);
   process.exit(1);
 }
-console.log(`✓ No type errors in public/js/ outside ${UNCHECKED.join(', ')}.`);
+console.log(`✓ No type errors in public/js/${UNCHECKED.length ? ` outside ${UNCHECKED.join(', ')}` : ''}.`);

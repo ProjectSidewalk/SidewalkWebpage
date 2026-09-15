@@ -7,7 +7,7 @@
  * @param {string} params.mapName - Name of the HTML ID of the map.
  * @param {boolean} [params.logClicks] - Whether to log click activity.
  * @param {boolean} [params.animateCityFit=true] - Whether the fit to all deployment cities is animated.
- * @returns {Promise<void>} Promise that resolves when the streets have been added to the map.
+ * @returns {Promise<void>} Promise that resolves when the cities have been added to the map.
  */
 function addCitiesToMap(map, citiesData, params) {
   const CITIES_LAYER_NAME = 'cities';
