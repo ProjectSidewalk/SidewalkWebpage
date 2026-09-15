@@ -55,6 +55,20 @@ INFO m.SearchIndexingCheck - Search indexing: seattle-wa is INDEXABLE (environme
 pano-viewer-type=gsv); 39 of 60 configured cities are public. A vhost X-Robots-Tag header can still override this.
 ```
 
+`AiSeedRowsRepair` (the same module) logs one line per boot about the SidewalkAI user's per-schema rows, which a city
+created by cloning a donor or restoring an onboarding dump lacks until its first boot on a release that carries the
+repair (#5349). A restart is what triggers it; the two lines to expect are:
+
+```
+INFO m.AiSeedRowsRepair - SidewalkAI seed rows: present.
+WARN m.AiSeedRowsRepair - SidewalkAI seed rows: inserted its user_stat row and aiValidation missions for CurbRamp,
+NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk, Signal, NoSidewalk, Occlusion, Other. This schema was created without
+281.sql's rows (#5349).
+```
+
+An `ERROR` line there means the AI's labels stay invisible in that city; the message says whether it is the
+foreign-key case (`sidewalk_login` has no SidewalkAI account).
+
 It also sweeps every city's `status` and logs an error for any value that isn't `public` or `private`. Nothing there
 is fatal: an unrecognised value reads as private, which costs a launched city its search traffic silently, but
 refusing to boot over it would take the city offline instead. The public/total count is a tripwire for a bulk flip —
