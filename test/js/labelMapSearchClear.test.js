@@ -35,6 +35,19 @@ class SearchBoxStub extends EventTarget {
         this.input = document.createElement('input');
         this.input.setAttribute('role', 'combobox');
         this.element.appendChild(this.input);
+        // Mirrors Search JS 1.5.0's input keydown handler: with results showing, Escape hides them (flipping
+        // aria-expanded back to false) and returns WITHOUT stopping propagation, so the key still reaches the
+        // document. That leak is what a list-dismissing Escape must not turn into a clear.
+        this.input.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.input.getAttribute('aria-expanded') === 'true') {
+                this.input.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+
+    /** Shows the suggestion list the way Search JS does, as far as the file can observe it. */
+    openResults() {
+        this.input.setAttribute('aria-expanded', 'true');
     }
 
     /** @returns {HTMLElement} The control's DOM, as Search JS's onAdd returns it. */
@@ -244,6 +257,41 @@ describe('clearing a searched place', () => {
         pressEscape();
         expect(markers[0].removed).toBe(false);
         expect(logged).toEqual([]);
+    });
+
+    test('Escape that closes the suggestion list leaves the place and the typed query alone', () => {
+        retrieve();
+        const box = window.__searchBoxInstance;
+        box.input.focus();
+        box.input.value = 'Second sea';
+        box.openResults();
+
+        // Dispatched at the input, so the SDK's handler and the file's capture-phase one both see it in real order.
+        box.input.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+        expect(box.input.getAttribute('aria-expanded')).toBe('false');
+        expect(markers[0].removed).toBe(false);
+        expect(box.input.value).toBe('Second sea');
+        expect(document.getElementById('labelmap-search-clear').hidden).toBe(false);
+        expect(logged).toEqual([]);
+
+        // With the list gone, the next Escape is the clear.
+        box.input.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        expect(markers[0].removed).toBe(true);
+        expect(logged).toEqual(['KeyboardShortcut_module=ClearSearchResult']);
+    });
+
+    test('Escape aimed at an open modal leaves the invitation popup open', () => {
+        retrieve();
+        document.querySelector('.ps-search-pin').focus();
+        expect(popups).toHaveLength(1);
+        document.getElementById('sheet').setAttribute('open', '');
+
+        pressEscape();
+
+        expect(popups[0].removed).toBe(false);
+        expect(markers[0].removed).toBe(false);
+        document.getElementById('sheet').removeAttribute('open');
     });
 
     test('clearing from the button hands focus back to the search field', () => {

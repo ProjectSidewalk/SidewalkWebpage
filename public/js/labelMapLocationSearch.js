@@ -239,20 +239,26 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
   // Closing the popup is unscoped, as it has always been: it belongs to the pin and to nothing else on the page, so
   // Escape from anywhere is unambiguous. CLEARING is scoped to the search's own controls, because Escape is the
   // dismiss key for half the page — the AccessScore cluster sheet, a label card, a Mapbox popup, the suggestion list
-  // — and an unscoped clear would silently take the pin away every time one of those was dismissed. The dialog guard
-  // covers a modal that has taken focus away from its own contents.
+  // — and an unscoped clear would silently take the pin away every time one of those was dismissed. An open modal
+  // owns Escape outright, popup included, since that Escape is aimed at the dialog.
+  //
+  // Registered in the capture phase so it runs BEFORE Search JS's own input handler. With the suggestion list open,
+  // Escape means "close the list": Search JS does that without stopping propagation, and by the time a bubbling
+  // listener ran, `aria-expanded` would already read false, so the list-dismissing Escape would also clear the pin
+  // and erase the query the user was typing.
   document.addEventListener('keydown', (evt) => {
     if (evt.key !== 'Escape') return;
+    if (document.querySelector('dialog[open]')) return;
+    if (searchInput?.getAttribute('aria-expanded') === 'true') return;
     if (exploreHerePopup) {
       hidePopup();
       return;
     }
-    if (document.querySelector('dialog[open]')) return;
     const focused = document.activeElement;
     const inSearchControls = focused
       && (searchBoxElement.contains(focused) || focused === clearButton || focused === searchPinEl);
     if (inSearchControls) clearSelection('KeyboardShortcut');
-  });
+  }, true);
 
   searchBox.addEventListener('retrieve', (e) => {
     const feature = e.detail?.features?.[0];

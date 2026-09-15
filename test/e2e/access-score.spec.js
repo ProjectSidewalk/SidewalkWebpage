@@ -520,4 +520,46 @@ test.describe('/accessScore', () => {
     await expect(pin).toHaveCount(0);
     await expect(clearButton).toBeHidden();
   });
+
+  test('Escape that closes the search suggestions keeps the searched place (#5321)', async ({page, context}) => {
+    // Registered after beforeEach's stubMapbox, so it wins over the 204 catch-all for suggest requests only. Typing
+    // is the point here: the list has to be opened by the real Search JS for its own Escape handler to be in play.
+    await context.route(/https:\/\/api\.mapbox\.com\/search\/searchbox\/v1\/suggest.*/, (route) => route.fulfill({
+      json: {
+        suggestions: [{name: 'Second Library', mapbox_id: 'fixture-2', feature_type: 'poi',
+          place_formatted: 'Teaneck, NJ', full_address: '2 Cedar Ln, Teaneck, NJ 07666'}],
+        attribution: 'fixture', url: 'fixture',
+      },
+    }));
+    await page.goto('/accessScore');
+    await waitForAppReady(page);
+    await waitForTool(page);
+
+    await page.evaluate(() => {
+      document.querySelector('mapbox-search-box').dispatchEvent(new CustomEvent('retrieve', {
+        detail: {features: [{
+          geometry: {type: 'Point', coordinates: [-74.0105, 40.8805]},
+          properties: {name: 'Fixture Library', full_address: '1 Cedar Ln, Teaneck, NJ 07666'},
+        }]},
+      }));
+    });
+    const pin = page.locator('.ps-search-pin');
+    await expect(pin).toHaveCount(1);
+
+    const input = page.locator('#labelmap-search-box input[role="combobox"]');
+    await input.click();
+    await input.pressSequentially('Second Lib', {delay: 40});
+    const option = page.locator('[role="option"]').filter({hasText: 'Second Library'});
+    await expect(option).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(option).toBeHidden();
+    await expect(pin).toHaveCount(1);
+    await expect(input).toHaveValue('Second Lib');
+    await expect(page.locator('#labelmap-search-clear')).toBeVisible();
+
+    // The list is closed now, so the next Escape is the clear.
+    await page.keyboard.press('Escape');
+    await expect(pin).toHaveCount(0);
+  });
 });
