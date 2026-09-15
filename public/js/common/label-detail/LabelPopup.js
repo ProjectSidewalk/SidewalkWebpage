@@ -32,7 +32,7 @@
  *     showLabel().
  */
 async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, opts = {}) {
-  const dialog = document.getElementById('label-modal');
+  const dialog = /** @type {HTMLDialogElement} */ (document.getElementById('label-modal'));
   if (!dialog) {
     throw new Error('LabelPopup: #label-modal not found. Did you include common.labelPopup() on the page?');
   }
@@ -69,8 +69,8 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
 
   // Prev/next arrows (rendered when the host's labelPopup include sets withPaging): hidden until a navigator
   // arrives via setNearbyNavigator() — the map's label data loads after the popup is built.
-  const prevBtn = dialog.querySelector('.label-detail__paging--prev');
-  const nextBtn = dialog.querySelector('.label-detail__paging--next');
+  const prevBtn = /** @type {HTMLButtonElement} */ (dialog.querySelector('.label-detail__paging--prev'));
+  const nextBtn = /** @type {HTMLButtonElement} */ (dialog.querySelector('.label-detail__paging--next'));
   let nearbyNav = null;
   let currentLabelId = null;
   let lastSource = null;
@@ -161,7 +161,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
    *     deep-linked popup opens over an empty set and has nowhere to page until the set fills (#5068), and its
    *     sidebar filters narrow where "next" may land (#5124).
    */
-  labelDetail.setNearbyNavigator = (nav) => {
+  const setNearbyNavigator = (nav) => {
     // Subscribe only for a navigator we haven't seen, so a repeat call can't stack duplicate recomputes.
     if (nav !== nearbyNav) nav.onRefresh(updatePagingState);
     nearbyNav = nav;
@@ -173,6 +173,5 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
 
   // Expose the LabelDetail instance's properties for backwards compatibility with callsites that reach
   // into the popup (e.g. for `panoManager`).
-  labelDetail.showLabel = showLabel;
-  return labelDetail;
+  return Object.assign(labelDetail, { setNearbyNavigator, showLabel });
 }

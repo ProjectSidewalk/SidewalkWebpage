@@ -27,7 +27,7 @@ class AppManager {
   /**
    * Initialize all registered tasks and built-in page setup.
    * @param {string} csrfToken - The CSRF token to attach to outgoing AJAX/fetch requests.
-   * @param {object} i18nextParams - Parameters for i18next initialization (see _setupI18next).
+   * @param {Parameters<AppManager['_setupI18next']>[0]} i18nextParams - Parameters for i18next initialization.
    * @param {object} [globals] - Map of variable names to values to attach to `window` for global access.
    * @returns {Promise} Promise that resolves when all initialization is complete.
    */

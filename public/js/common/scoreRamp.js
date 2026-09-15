@@ -24,7 +24,11 @@ window.ScoreRamp = (function () {
     return [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16));
   }
 
-  /** Formats [r, g, b] components as `#rrggbb`. */
+  /**
+   * Formats [r, g, b] components as `#rrggbb`.
+   * @param {number[]} rgb - The red, green, and blue components, 0–255.
+   * @returns {string}
+   */
   function toHex([r, g, b]) {
     return `#${[r, g, b].map((c) => Math.round(c).toString(16).padStart(2, '0')).join('')}`;
   }
@@ -74,7 +78,7 @@ window.ScoreRamp = (function () {
   /**
    * The `[value, color, value, color, …]` stop list Mapbox's `interpolate` takes, spread evenly over the domain.
    *
-   * @param {object} [options] - Domain and surface, as for `at`.
+   * @param {{min?: number, max?: number, mode?: string}} [options] - Domain and surface, as for `at`.
    * @returns {Array} Alternating stop values and colors.
    */
   function stops(options = {}) {

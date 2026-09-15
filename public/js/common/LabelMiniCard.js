@@ -26,7 +26,7 @@ class LabelMiniCard {
   #busy = false;
 
   /**
-   * @param {object} label - A `/label/id/:id` JSON.
+   * @param {Record<string, any>} label - A `/label/id/:id` JSON.
    * @param {object} options - Presentation and callbacks.
    * @param {string} [options.size='sheet'] - 'sheet' (a grid card with a caption) or 'strip' (a bare thumbnail).
    * @param {Function} [options.onOpen] - Called with the label id when the picture is chosen.
@@ -37,7 +37,7 @@ class LabelMiniCard {
    * @param {string} [options.tag='li'] - The root element's tag.
    */
   constructor(label, { size = 'sheet', onOpen = () => {}, onVote = () => {}, source, log = () => {}, className = '',
-    tag = 'li' } = {}) {
+    tag = 'li' }) {
     this.#label = { ...label };
     this.#opts = { size, onOpen, onVote, source, log, className };
     this.#el = document.createElement(tag);
@@ -58,7 +58,7 @@ class LabelMiniCard {
 
   /**
    * Re-renders from fresh label JSON (after a vote elsewhere, say), keeping the root element in place.
-   * @param {object} label - A `/label/id/:id` JSON.
+   * @param {Record<string, any>} label - A `/label/id/:id` JSON.
    */
   update(label) {
     this.#label = { ...label };

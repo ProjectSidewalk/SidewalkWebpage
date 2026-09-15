@@ -46,9 +46,10 @@ class SpeedLimit {
    * @param {Function} isOnboarding - Function that returns whether the current mission is the tutorial task.
    * @param {string} countryId - The current city's country id (e.g. 'usa'), for sign design and fallback units.
    * @param {object} [sources] - Where to read speed limits from; exactly one should be provided.
-   * @param {TaskContainer} [sources.taskContainer] - Explore's task container; the sign tracks the nearest street.
-   * @param {LabelContainer} [sources.labelContainer] - Validate's label container; the sign shows the current label's
-   *                                                  street, and only for label types it is relevant to.
+   * @param {{getTasks: () => any[]}} [sources.taskContainer] - Explore's TaskContainer; the sign shows the limit
+   *     for the street nearest the labeler.
+   * @param {{getCurrentLabel: () => any}} [sources.labelContainer] - Validate's LabelContainer; the sign shows the
+   *     current label's street, and only for label types it is relevant to.
    */
   constructor(panoViewer, coords, isOnboarding, countryId, { taskContainer = null, labelContainer = null } = {}) {
     this.#coords = coords;

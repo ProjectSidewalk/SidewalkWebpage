@@ -50,8 +50,8 @@ class ConfirmDialog {
    *
    * @param {object} opts
    * @param {string} opts.message - The question being asked.
-   * @param {object[]} opts.buttons - The choices left to right, each `{ id, text, style, iconSrc }` with `style`
-   *     'secondary' (the default), 'primary', or 'danger'.
+   * @param {Array<{id: string, text: string, style?: string, iconSrc?: string}>} opts.buttons - The choices left to
+   *     right, with `style` 'secondary' (the default), 'primary', or 'danger'.
    * @param {*} [opts.dismissValue=null] - Resolved on Esc or a backdrop click.
    * @param {string} [opts.focusId] - Button to focus. Defaults to the first that changes nothing.
    * @returns {Promise<*>} The chosen button's id, or `dismissValue`.
@@ -74,7 +74,7 @@ class ConfirmDialog {
       ConfirmDialog.#resolve = resolve;
       ConfirmDialog.#dismissValue = dismissValue;
       ConfirmDialog.#dialog.showModal();
-      els.actions.children[focusIdx]?.focus();
+      /** @type {HTMLElement} */ (els.actions.children[focusIdx])?.focus();
     });
   }
 
@@ -97,7 +97,7 @@ class ConfirmDialog {
 
   /**
    * Builds the shared dialog on first use.
-   * @returns {object} The message element and the container the buttons are rebuilt into.
+   * @returns {{message: HTMLElement, actions: HTMLElement}} The message element and the buttons' container.
    */
   static #ensureDialog() {
     if (ConfirmDialog.#els) return ConfirmDialog.#els;

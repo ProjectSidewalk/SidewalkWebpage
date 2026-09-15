@@ -14,7 +14,7 @@
  * Keyed on the `pano_data.source` string rather than a viewer class, so this file can ship in the pano-credit
  * bundle that pages with no viewer load (#5202).
  *
- * @param {Element} container - The positioned pano container element.
+ * @param {HTMLElement} container - The positioned pano container element.
  * @param {string} primarySource - The imagery source ('gsv', 'mapillary', 'infra3d', 'panoramax'); a viewer class
  *     exposes its own as the static SOURCE.
  * @returns {{ showPrimaryLogo: Function, showSourceLogo: Function, hide: Function }}

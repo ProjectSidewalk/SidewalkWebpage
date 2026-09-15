@@ -40,6 +40,12 @@ class MapillaryViewer extends PanoViewer {
     this.prefetchedSearches = [];
   }
 
+  /**
+   * See PanoViewer.initialize().
+   * @param {HTMLElement} canvasElem
+   * @param {Record<string, any>} [panoOptions]
+   * @returns {Promise<void>}
+   */
   async initialize(canvasElem, panoOptions = {}) {
     // TODO Need to define a set of options and then find a nice way to map them onto viewer-specific configs.
     const disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
@@ -170,6 +176,17 @@ class MapillaryViewer extends PanoViewer {
 
     const pitchAndRoll = this.extractPitchRoll(this.currImage.rotation);
 
+    const linkedPanos = edges
+      .filter((link) => link.data.direction === 9) // Filter for only panoramas.
+      .map((link) => {
+        // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the
+        // X-axis in a spherical coordinate system", so we need to adjust it to be like a compass heading.
+        return {
+          panoId: link.target,
+          heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI)),
+        };
+      });
+
     // To get various info about the pano -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Image/
     // TODO merged, might want to record whether it's been merged thru sfm
     // TODO qualityScore is interesting: A number between zero and one determining the quality of the image.
@@ -188,18 +205,8 @@ class MapillaryViewer extends PanoViewer {
       cameraRoll: pitchAndRoll.roll,
       copyright: this.currImage.creatorUsername,
       history: [], // TODO could use /images endpoint to fill this. But can also see history in the UI https://www.mapillary.com/app/user/uwrapid?lat=47.66374856411&lng=-122.28224790652&z=17&x=0.5871305676894112&y=0.5159912788583514&zoom=0&panos=true&focus=photo&pKey=134748085384999&my_coverage=false&user_coverage=false
+      linkedPanos,
     };
-
-    panoDataParams.linkedPanos = edges
-      .filter((link) => link.data.direction === 9) // Filter for only panoramas.
-      .map((link) => {
-        // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the
-        // X-axis in a spherical coordinate system", so we need to adjust it to be like a compass heading.
-        return {
-          panoId: link.target,
-          heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI)),
-        };
-      });
 
     // Make sure that we keep the same pov in the new pano.
     if (oldPov) this.setPov(oldPov);
@@ -231,7 +238,7 @@ class MapillaryViewer extends PanoViewer {
       access_token: this.viewer._navigator._api._data._accessToken,
       fields: 'id,geometry,computed_geometry,captured_at,sequence,width,camera_type,computed_rotation',
       is_pano: 'true',
-      bbox: boundingBox,
+      bbox: boundingBox.join(','),
     });
 
     return `https://graph.mapillary.com/images?${params.toString()}`;
@@ -240,7 +247,7 @@ class MapillaryViewer extends PanoViewer {
   /**
    * Scores a candidate Mapillary image for selection, balancing multiple factors.
    *
-   * @param {object} pano - Raw pano object from the Mapillary API response.
+   * @param {Record<string, any>} pano - Raw pano object from the Mapillary API response.
    * @param {turf.Point} centerPoint - The target location we're trying to move to.
    * @param {string|null} currentSequenceId - The sequence ID of the current image (null on initial load).
    * @returns {number} A score between 0 and 1 where higher is better.
@@ -339,7 +346,7 @@ class MapillaryViewer extends PanoViewer {
    * @param {turf.Point} center - The target location.
    * @param {number} radius - Search radius in kilometers.
    * @param {Set<PanoData>} excludedPanos - Panos that are not viable candidates.
-   * @returns {Promise<object|null>} The best candidate pano from the Mapillary API, or null if none are viable.
+   * @returns {Promise<?Record<string, any>>} The best viable candidate pano from the Mapillary API, or null.
    */
   #searchAndSelectPano = async (center, radius, excludedPanos) => {
     const currSequenceId = this.currImage ? this.currImage.sequenceId : null;
@@ -505,7 +512,7 @@ class MapillaryViewer extends PanoViewer {
    * @param {Set<number>} excludedTimestamps - Capture timestamps to exclude (handles duplicate Mapillary images).
    * @param {turf.Point} centerPoint - The target location.
    * @param {string|null} currentSequenceId - The sequence ID of the current image (null on initial load).
-   * @returns {object|null} The best candidate pano, or null if none are viable.
+   * @returns {?Record<string, any>} The best candidate pano, or null if none are viable.
    */
   #selectBestPano = (panos, excludedPanoIds, excludedTimestamps, centerPoint, currentSequenceId) => {
     const candidates = panos.filter(
@@ -597,7 +604,12 @@ class MapillaryViewer extends PanoViewer {
     this.viewer.resize();
   };
 
-  /** See PanoViewer.publicViewerLink(). */
+  /**
+   * See PanoViewer.publicViewerLink().
+   * @param {string} panoId
+   * @param {{center?: number[]}} [opts]
+   * @returns {{url: string, i18nKey: string}}
+   */
   publicViewerLink(panoId, { center } = {}) {
     // TODO: include zoom parameter once we can retrieve it synchronously from the viewer.
     const centerStr = center ? `&x=${center[0]}&y=${center[1]}` : '';

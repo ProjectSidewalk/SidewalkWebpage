@@ -1,4 +1,16 @@
 /**
+ * What an onChange callback is told about the interaction that just happened.
+ * @typedef {object} FilterSidebarChange
+ * @property {'option'|'selectAll'|'only'|'tag'} kind
+ * @property {string} section
+ * @property {string|number} [value] - The option's value; a number for severity.
+ * @property {boolean} [checked]
+ * @property {string} [labelType]
+ * @property {string} [tag]
+ * @property {boolean} [typeTurnedOn]
+ */
+
+/**
  * Host-agnostic controller for the shared filter sidebar (#4585).
  *
  * Owns the sidebar's interaction rules — toggling an option, select/deselect all, the "Only" affordance, tag pills
@@ -19,7 +31,7 @@ class FilterSidebar {
 
   /** @type {HTMLElement} */
   #root;
-  /** @type {(change: object) => void} */
+  /** @type {(change: FilterSidebarChange) => void} */
   #onChange;
   /** @type {{selectAll: string, deselectAll: string, only: string}} */
   #i18nKeys;
@@ -27,9 +39,8 @@ class FilterSidebar {
   /**
    * @param {HTMLElement} root - The sidebar element containing the filter controls.
    * @param {object} [options] - Configuration options.
-   * @param {(change: object) => void} [options.onChange] - Called after every interaction, with a change descriptor:
-   *      `{kind, section, value, checked, labelType, tag, typeTurnedOn}`. `kind` is 'option', 'selectAll', 'only',
-   *      or 'tag'. Read `getState()` inside the callback for the resulting filter state.
+   * @param {(change: FilterSidebarChange) => void} [options.onChange] - Called after every interaction. Read
+   *      `getState()` inside the callback for the resulting filter state.
    * @param {object} [options.i18nKeys] - Overrides for the i18next keys of the section actions.
    */
   constructor(root, { onChange = () => {}, i18nKeys = {} } = {}) {
@@ -81,7 +92,7 @@ class FilterSidebar {
       .map((btn) => Number(btn.dataset.severity));
 
     const sections = {};
-    for (const cb of this.#root.querySelectorAll('input[data-filter-type]')) {
+    for (const cb of this.#optionCheckboxes()) {
       const section = cb.dataset.filterType;
       sections[section] ??= [];
       if (cb.checked) sections[section].push(FilterSidebar.#valueOf(cb));
@@ -115,7 +126,7 @@ class FilterSidebar {
   /** Drops the loading appearance and enables the controls, which render disabled until their data has loaded. */
   enable() {
     this.#root.classList.remove('filter-sidebar--loading');
-    this.#root.querySelectorAll('input[disabled]').forEach((cb) => {
+    /** @type {NodeListOf<HTMLInputElement>} */ (this.#root.querySelectorAll('input[disabled]')).forEach((cb) => {
       cb.disabled = false;
     });
   }
@@ -123,7 +134,7 @@ class FilterSidebar {
   /** Puts the controls back into the loading appearance, e.g. while a host refetches what the filters select. */
   disable() {
     this.#root.classList.add('filter-sidebar--loading');
-    this.#root.querySelectorAll('input[data-filter-type]').forEach((cb) => {
+    this.#optionCheckboxes().forEach((cb) => {
       cb.disabled = true;
     });
   }
@@ -171,7 +182,7 @@ class FilterSidebar {
    * only a control whose state actually moved reports one — a host refetches on the strength of these.
    */
   #initOptionCheckboxes() {
-    this.#root.querySelectorAll('input[data-filter-type]').forEach((cb) => {
+    this.#optionCheckboxes().forEach((cb) => {
       cb.addEventListener('change', () => {
         const section = cb.dataset.filterType;
         const value = FilterSidebar.#valueOf(cb);
@@ -377,6 +388,11 @@ class FilterSidebar {
    */
   #optionsIn(section) {
     return Array.from(this.#root.querySelectorAll(`input[data-filter-type="${section}"]`));
+  }
+
+  /** @returns {HTMLInputElement[]} Every section's option checkboxes. */
+  #optionCheckboxes() {
+    return Array.from(this.#root.querySelectorAll('input[data-filter-type]'));
   }
 
   /**

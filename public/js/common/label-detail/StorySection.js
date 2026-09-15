@@ -97,7 +97,7 @@ class StorySection {
    * @param {number} labelId
    */
   #maybeResumeDraft(labelId) {
-    const url = new URL(window.location);
+    const url = new URL(window.location.href);
     if (url.searchParams.get('resumeStory') !== String(labelId)) return;
     url.searchParams.delete('resumeStory');
     util.url.replaceQuery(url);
@@ -125,7 +125,7 @@ class StorySection {
   }
 
   /**
-   * @param {Array<object>} stories - StoryForView payloads, newest first.
+   * @param {Array<Record<string, any>>} stories - StoryForView payloads, newest first.
    */
   #render(stories) {
     const els = this.#els;
@@ -167,7 +167,7 @@ class StorySection {
   }
 
   /**
-   * @param {object} story - A StoryForView payload.
+   * @param {Record<string, any>} story - A StoryForView payload.
    * @returns {HTMLElement}
    */
   #buildStoryRow(story) {
@@ -276,7 +276,7 @@ class StorySection {
   }
 
   /**
-   * @param {object} media - The story's media payload; alt text doubles as the visible caption.
+   * @param {Record<string, any>} media - The story's media payload; alt text doubles as the visible caption.
    */
   #openLightbox(media) {
     window.logWebpageActivity?.(`Click_module=StoryPhotoEnlarge_storyMediaId=${media.story_media_id}`);

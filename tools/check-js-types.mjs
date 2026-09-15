@@ -27,14 +27,11 @@ const TS_MAJOR = 7;
 // Folders under public/js/ (each with everything inside it) or single files that must type-check cleanly. Grow this
 // list; never shrink it.
 const CHECKED = [
-  'public/js/common/share',
+  'public/js/common',
   'public/js/community',
   'public/js/explore',
-  'public/js/gallery/src/data',
-  'public/js/gallery/src/displays',
-  'public/js/gallery/src/expandedview',
-  'public/js/gallery/src/keyboard',
-  'public/js/gallery/src/validation',
+  'public/js/gallery',
+  'public/js/shared-label',
   'public/js/validate',
 ];
 

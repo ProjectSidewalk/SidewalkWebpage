@@ -8,7 +8,7 @@
  * @param {string} [params.mapboxApiKey] - Mapbox API key to use for the map.
  * @param {string} [params.regionFillMode] - One of 'singleColor' or 'completionRate'.
  * @param {string|URL} [params.regionsURL] - URL of the endpoint containing region boundaries.
- * @param {string|URL} params.completionRatesURL - URL of the endpoint containing region completion rates.
+ * @param {string|URL} [params.completionRatesURL] - URL of the endpoint containing region completion rates.
  * @param {boolean} [params.loadCities] - Whether to load deployment cities on the map.
  * @param {boolean} [params.animateCityFit=true] - Whether the fit to all deployment cities is animated. Set false to
  *     have the world view simply appear, with no flight out from the city's own center.

@@ -9,6 +9,12 @@ class PanoViewer {
   static SOURCE;
 
   /**
+   * The pano on screen, or the previous one while the next is loading. Undefined until the first pano loads.
+   * @type {PanoData|undefined}
+   */
+  currPanoData;
+
+  /**
    * The type of panorama viewer.
    * @type {string}
    */
@@ -127,10 +133,8 @@ class PanoViewer {
   /**
    * Moves to the first initial location with usable imagery: startPanoId if given, falling back to startLatLng
    * followed by each point in backupLatLngs. Called from subclasses' initialize() implementations.
-   * @param {object} panoOptions - Object containing initialization options
-   * @param {string} [panoOptions.startPanoId] - Pano to start at; tried before the lat/lngs
-   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] - Preferred starting location
-   * @param {Array<{lat: number, lng: number}>} [panoOptions.backupLatLngs=[]] - Fallback locations, tried in order
+   * @param {Record<string, any>} panoOptions - Initialization options. Reads `startPanoId` (tried first),
+   *     `startLatLng` (the preferred location), and `backupLatLngs` (fallback locations, tried in order).
    * @returns {Promise<void>} Rejects only when every given seed fails. The rejection is a NoImageryError only when
    *     every candidate location answered "nothing here"; if any failed for another reason, that error is rethrown
    *     as-is so callers can tell "this street is empty" from "we couldn't ask" (#4918)
