@@ -11,6 +11,17 @@
  * geometry, never the remainder), which keeps the sample points identical from move to move: the answers are
  * memoised per street, so after the first burst on a street every later refresh costs no provider calls.
  */
+
+/**
+ * A pano a provider found near a sample point: what PanoViewer.findPanoNear() resolves with.
+ * @typedef {{panoId: string, lat: number, lng: number}} PanoHit
+ */
+
+/**
+ * A hit located relative to the street: how far along it the pano projects (km) and how far off the line it sits (m).
+ * @typedef {{panoId: string, lat: number, lng: number, alongKm: number, offsetM: number}} MeasuredCrumb
+ */
+
 class ForwardCrumbs {
   /** How many of the crumbs ahead are clickable. Stepping, not teleporting (#2561). */
   static REACHABLE_COUNT = 3;
@@ -180,8 +191,8 @@ class ForwardCrumbs {
   /**
    * Collapses the hits of adjacent sample points that resolved to the same pano (a 25 m search radius over a 10 m
    * grid returns each pano several times), keeping the first.
-   * @param {Array<{panoId: string}>} hits
-   * @returns {Array<{panoId: string}>}
+   * @param {PanoHit[]} hits
+   * @returns {PanoHit[]}
    */
   static dedupByPanoId(hits) {
     const seen = new Set();
@@ -191,8 +202,8 @@ class ForwardCrumbs {
   /**
    * Locates a pano relative to the street: how far along it the pano projects, and how far off the line it sits.
    * @param {turf.Feature<turf.LineString>} street - The street geometry, in walk direction.
-   * @param {{panoId: string, lat: number, lng: number}} hit - A pano the provider found.
-   * @returns {{panoId: string, lat: number, lng: number, alongKm: number, offsetM: number}}
+   * @param {PanoHit} hit - A pano the provider found.
+   * @returns {MeasuredCrumb}
    */
   static measureAgainstStreet(street, hit) {
     const point = turf.point([hit.lng, hit.lat]);
@@ -205,13 +216,13 @@ class ForwardCrumbs {
 
   /**
    * Picks the panos that are ahead on this street and splits them into the clickable few and the rest.
-   * @param {Array<{alongKm: number, offsetM: number}>} measured - Panos located by {@link measureAgainstStreet}.
+   * @param {MeasuredCrumb[]} measured - Panos located by {@link measureAgainstStreet}.
    * @param {object} options
    * @param {number} options.fromKm - Where "ahead" starts: the furthest point reached, along the street.
    * @param {number} options.minAheadM - Panos closer than this to `fromKm` are where the user already is.
    * @param {number} options.maxOffsetM - Panos farther than this from the line are on another street.
    * @param {number} options.reachableCount - How many of the nearest to make clickable.
-   * @returns {{reachable: object[], faint: object[]}} Both in walk order, nearest first.
+   * @returns {{reachable: MeasuredCrumb[], faint: MeasuredCrumb[]}} Both in walk order, nearest first.
    */
   static windowCandidates(measured, { fromKm, minAheadM, maxOffsetM, reachableCount }) {
     const ahead = measured
@@ -262,8 +273,8 @@ class ForwardCrumbs {
   /**
    * Syncs the markers to the wanted set, keyed by pano. A crumb whose rank changed (a faint one becoming clickable
    * as the user advances) is rebuilt, since clickability is fixed at marker construction.
-   * @param {object[]} reachable - Clickable crumbs, nearest first.
-   * @param {object[]} faint - The rest, nearest first.
+   * @param {MeasuredCrumb[]} reachable - Clickable crumbs, nearest first.
+   * @param {MeasuredCrumb[]} faint - The rest, nearest first.
    */
   #render(reachable, faint) {
     const wanted = new Map();
@@ -285,7 +296,7 @@ class ForwardCrumbs {
 
   /**
    * One crumb marker. Map-positioned, like the visited breadcrumbs, so it tracks zoom without manual projection.
-   * @param {{panoId: string, lat: number, lng: number}} crumb
+   * @param {MeasuredCrumb} crumb
    * @param {number} rank - 1..N for the clickable crumbs (nearest first), 0 for a faint one.
    * @returns {google.maps.marker.AdvancedMarkerElement}
    */
@@ -310,7 +321,7 @@ class ForwardCrumbs {
    * Steps the user to a crumb's pano. A real move that advances the task, unlike the breadcrumbs' peek back. The
    * pano id is tried first; a provider that no longer serves it (GSV retires panos) gets the same coordinate search
    * moveForward() uses, which lands on whatever now stands there.
-   * @param {{panoId: string, lat: number, lng: number}} crumb
+   * @param {MeasuredCrumb} crumb
    * @param {number} rank - The crumb's position among the clickable ones, for the log.
    * @returns {Promise<void>}
    */

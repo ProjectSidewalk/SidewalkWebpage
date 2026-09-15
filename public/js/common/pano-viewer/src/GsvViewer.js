@@ -255,7 +255,7 @@ class GsvViewer extends PanoViewer {
    * The getPanorama({location}) request for a point, memoised. A ZERO_RESULTS rejection is kept (it is an answer);
    * any other rejection is evicted so the next caller retries rather than inheriting a transient failure.
    * @param {{lat: number, lng: number}} latLng - The point to search around.
-   * @returns {Promise<object>} Google's StreetViewPanoramaData; rejects as getPanorama does (see #asImageryError).
+   * @returns {Promise<google.maps.StreetViewResponse>} Rejects as getPanorama does (see #asImageryError).
    */
   #searchLocation = (latLng) => {
     const key = GsvViewer.#searchKey(latLng);
