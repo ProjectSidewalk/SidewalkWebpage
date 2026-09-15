@@ -446,7 +446,11 @@
   border-width: calc(1.4px * var(--ui-scale, 1));
 }
 
+/* Not steppable, but still hoverable for its tooltip: a hit box no bigger than the dot, so it can't sit over a label
+   marker or breadcrumb and swallow a click meant for them. */
 .minimap-crumb-far {
+  width: calc(8px * var(--ui-scale, 1));
+  height: calc(8px * var(--ui-scale, 1));
   cursor: default;
 }
 
@@ -494,11 +498,6 @@
   box-shadow: 0 0 0 calc(3px * var(--ui-scale, 1)) color-mix(in srgb, var(--crumb-color) 45%, transparent);
 }
 
-/* Far crumbs are informational only: make their wrapper click-through so they can't intercept a click meant for a
-   label marker or breadcrumb beneath them (the same wrapper quirk the peg rule below works around). */
-gmp-advanced-marker:has(> .minimap-crumb-far) {
-  pointer-events: none;
-}
 
 /* GSV-style "you are here" puck (Peg.js): a blue dot with a triangle pointing in the heading direction. Markers anchor
    bottom-center, so the wrapper shifts down half its height to center on the location, then rotates about that center
