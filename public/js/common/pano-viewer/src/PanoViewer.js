@@ -360,7 +360,9 @@ class PanoViewer {
         return null;
       }
     }));
-    return positioned.filter(Boolean);
+    return /** @type {Array<{panoId: string, heading: number, lat: number, lng: number}>} */ (
+      positioned.filter(Boolean)
+    );
   }
 
   /**

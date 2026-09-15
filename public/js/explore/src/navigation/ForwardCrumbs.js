@@ -221,9 +221,9 @@ class ForwardCrumbs {
    */
   static mergeSources(stops, links, { currentPanoId, isVisited, reachableCount }) {
     const skip = (panoId) => panoId === currentPanoId || isVisited(panoId);
-    const crumbs = stops.filter((stop) => !skip(stop.panoId)).map((stop, i) => ({
+    const crumbs = /** @type {Crumb[]} */ (stops.filter((stop) => !skip(stop.panoId)).map((stop, i) => ({
       panoId: stop.panoId, lat: stop.lat, lng: stop.lng, kind: 'route', clickable: i < reachableCount, rank: i + 1,
-    }));
+    })));
     const taken = new Set(crumbs.map((crumb) => crumb.panoId));
     for (const link of links) {
       if (skip(link.panoId) || taken.has(link.panoId)) continue;
