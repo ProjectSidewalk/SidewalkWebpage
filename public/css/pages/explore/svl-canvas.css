@@ -99,12 +99,11 @@
 }
 
 /* Lit from the minimap (the user is hovering the arrow's crumb, #4682): the pointer is elsewhere, so the arrow has
-   to catch the eye on its own — the hover tint plus a wide yellow bloom. */
+   to catch the eye on its own — a deeper, fully saturated yellow than the pale hover tint. */
 #arrow-group image.arrow-hover {
   filter:
     drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black))
-    sepia(1) saturate(5) hue-rotate(315deg)
-    drop-shadow(0 0 6px var(--color-warning-200)) drop-shadow(0 0 14px var(--color-warning-200));
+    sepia(1) saturate(8) hue-rotate(315deg) brightness(0.9);
 }
 
 /* The highlighted route-forward arrow (#4671) marks the way the route wants the user to go. It inherits the link-arrow
@@ -116,12 +115,11 @@
     brightness(1.15);
 }
 
-/* The route-forward arrow lit from the minimap keeps its blue, with a blue bloom instead of the yellow one. */
+/* The route-forward arrow lit from the minimap keeps its blue, brightened a step further than its own hover. */
 #arrow-group image.route-forward-highlight.arrow-hover {
   filter:
     drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black))
-    brightness(1.2)
-    drop-shadow(0 0 6px var(--color-link-100)) drop-shadow(0 0 14px var(--color-link-100));
+    brightness(1.3) saturate(1.3);
 }
 
 /* Used to highlight/blink the nav arrows in the tutorial. */
