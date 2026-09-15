@@ -184,8 +184,8 @@
       "label-marker-title": "{{labelType}}-label: klik om te bekijken",
       "route-start-flag": "Start van de route",
       "route-finish-flag": "Einde van de route",
-      "street-start-flag": "Begin van deze straat",
-      "street-finish-flag": "Einde van deze straat"
+      "mission-start-flag": "Waar deze missie begon",
+      "mission-finish-flag": "Waar deze missie eindigt"
     },
     "stats": {
       "leaderboard-cta": "Bekijk het scorebord van de gemeenschap"

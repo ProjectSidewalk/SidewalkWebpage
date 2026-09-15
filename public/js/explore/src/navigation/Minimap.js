@@ -19,8 +19,11 @@ class Minimap {
   static #START_FLAG_SRC = util.assetPath('images/icons/routebuilder/flag-start.svg');
   static #FINISH_FLAG_SRC = util.assetPath('images/icons/routebuilder/flag-end.svg');
 
-  /** @type {?{start: google.maps.marker.AdvancedMarkerElement, finish: google.maps.marker.AdvancedMarkerElement}} */
-  #streetFlags = null; // The current street's flags on a neighborhood mission; see showStreetEndpointsFor().
+  /**
+   * A neighborhood mission's start and finish flags, planted on first use and moved after; see updateMissionFlags().
+   * @type {{start: ?google.maps.marker.AdvancedMarkerElement, finish: ?google.maps.marker.AdvancedMarkerElement}}
+   */
+  #missionFlags = { start: null, finish: null };
 
   /** @type {google.maps.Map} */
   #map;
@@ -217,6 +220,7 @@ class Minimap {
    * @param {Mission} mission - The current mission.
    */
   updateMissionProgress(mission) {
+    this.updateMissionFlags(mission);
     const totalMeters = mission.getDistance('meters');
     // Free-exploration missions (#4451) have no distance target; a "0/0" progress bar would be meaningless, so hide it.
     if (!totalMeters) {
@@ -306,28 +310,61 @@ class Minimap {
   }
 
   /**
-   * Plants start and finish flags on the current street of a neighborhood mission, so a street reads the way a
-   * RouteBuilder route does: here is where it begins, there is where it ends. The two flags persist and move with
-   * each street switch. Routes keep their whole-route flags instead; the tutorial and free exploration have no
-   * street to frame.
-   * @param {Task} task - The task just made current, with its geometry already in walking direction.
+   * Plants a neighborhood mission's start and finish flags, so a mission reads the way a RouteBuilder route does.
+   * The start is where the mission began (recorded on the task it began on, and persisted with it). The finish is
+   * only knowable once the mission's remaining distance fits on the current street, since a neighborhood mission
+   * picks each next street as it goes; until then no finish flag shows. Routes keep their whole-route flags; the
+   * tutorial and free exploration have no mission to frame.
+   * @param {Mission} mission - The current mission.
    */
-  showStreetEndpointsFor(task) {
-    const noStreetToFrame = (svl.regionModel && svl.regionModel.isRoute)
+  updateMissionFlags(mission) {
+    const noMissionToFrame = (svl.regionModel && svl.regionModel.isRoute) || !svl.taskContainer
       || (svl.isOnboarding && svl.isOnboarding()) || (svl.isExploreAddressMode && svl.isExploreAddressMode());
-    if (noStreetToFrame) return;
-    const start = task.getStartCoordinate();
-    const finish = task.getEndCoordinate();
-    if (!this.#streetFlags) {
-      const t = (key) => i18next.t(`audit:right-ui.minimap.${key}`);
-      this.#streetFlags = {
-        start: this.#plantFlag(start, Minimap.#START_FLAG_SRC, t('street-start-flag')),
-        finish: this.#plantFlag(finish, Minimap.#FINISH_FLAG_SRC, t('street-finish-flag')),
-      };
+    if (noMissionToFrame) return;
+    const missionId = mission.getProperty('missionId');
+    const startTask = svl.taskContainer.getTasks().find((task) => task.getMissionStart(missionId));
+    this.#placeFlag('start', startTask ? startTask.getMissionStart(missionId) : null,
+      Minimap.#START_FLAG_SRC, 'mission-start-flag');
+    this.#placeFlag('finish', Minimap.missionFinish(mission, svl.taskContainer.getCurrentTask()),
+      Minimap.#FINISH_FLAG_SRC, 'mission-finish-flag');
+  }
+
+  /**
+   * Where a mission will end, once that point lies on the current street: the mission's remaining distance walked
+   * along the street from the furthest point reached. Null while a later, not-yet-chosen street will carry the end.
+   * @param {Mission} mission - The current mission.
+   * @param {?Task} task - The current task.
+   * @returns {?{lat: number, lng: number}}
+   */
+  static missionFinish(mission, task) {
+    const totalMeters = mission.getDistance('meters');
+    if (!totalMeters || !task) return null;
+    const remainingKm = Math.max(0, totalMeters - (mission.getProperty('distanceProgress') || 0)) / 1000;
+    const remainder = NavigationService.remainderOfStreet(task);
+    if (remainingKm > turf.length(remainder)) return null;
+    const [lng, lat] = turf.along(remainder, remainingKm).geometry.coordinates;
+    return { lat, lng };
+  }
+
+  /**
+   * Plants, moves, or hides one of the mission flags.
+   * @param {'start'|'finish'} which - Which flag.
+   * @param {?{lat: number, lng: number}} latLng - Where it goes, or null to hide it.
+   * @param {string} src - The flag image.
+   * @param {string} i18nKey - Key under audit:right-ui.minimap for its tooltip.
+   */
+  #placeFlag(which, latLng, src, i18nKey) {
+    const flag = this.#missionFlags[which];
+    if (!latLng) {
+      if (flag) flag.map = null;
       return;
     }
-    this.#streetFlags.start.position = new google.maps.LatLng(start.lat, start.lng);
-    this.#streetFlags.finish.position = new google.maps.LatLng(finish.lat, finish.lng);
+    if (!flag) {
+      this.#missionFlags[which] = this.#plantFlag(latLng, src, i18next.t(`audit:right-ui.minimap.${i18nKey}`));
+      return;
+    }
+    flag.position = new google.maps.LatLng(latLng.lat, latLng.lng);
+    flag.map = this.#map;
   }
 
   /**

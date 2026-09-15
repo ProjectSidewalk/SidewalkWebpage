@@ -59,7 +59,7 @@ class ForwardCrumbs {
   #tracker;
   #markers = new Map(); // panoId -> { marker: AdvancedMarkerElement, kind, clickable, visited }.
   #links = []; // The current pano's positioned links, kept for setFacing().
-  #routeStops = []; // Route stops ahead, nearest first, kept for setFacing().
+  #walkNextPanoId = null; // The stop the route walk (moveForward) would land on: the first ahead of the furthest point.
   #facedPanoId = null;
   #nextStepPanoId = null; // The crumb the spacebar would step to; tinted until the next refresh moves it.
   #highlightedPanoId = null;
@@ -113,17 +113,15 @@ class ForwardCrumbs {
     if (generation !== this.#generation) return; // A newer refresh owns the markers now.
 
     this.#links = links;
-    this.#routeStops = stops;
+    this.#walkNextPanoId = stops.walkNextPanoId;
     const currentPanoId = svl.panoViewer.getPanoId();
-    const crumbs = ForwardCrumbs.mergeSources(stops, links, {
+    const crumbs = ForwardCrumbs.mergeSources(stops.ahead, links, {
       currentPanoId,
       isVisited: (panoId) => Boolean(svl.observedArea && svl.observedArea.hasVisited(panoId)),
       reachableCount: ForwardCrumbs.REACHABLE_COUNT,
     });
     this.#render(crumbs);
-    this.#markNextStep(ForwardCrumbs.nextStepPanoId(
-      links, this.#targetAngle(), stops.length > 0 ? stops[0].panoId : null,
-    ));
+    this.#markNextStep(ForwardCrumbs.nextStepPanoId(links, this.#targetAngle(), this.#walkNextPanoId));
     this.setFacing(svl.panoViewer.getPov().heading);
   }
 
@@ -146,8 +144,7 @@ class ForwardCrumbs {
    * @param {number} heading - The live POV heading, degrees clockwise from north.
    */
   setFacing(heading) {
-    const nextStop = this.#routeStops.length > 0 ? this.#routeStops[0].panoId : null;
-    const panoId = ForwardCrumbs.facedPanoId(this.#links, heading, nextStop, this.#routeHeading());
+    const panoId = ForwardCrumbs.facedPanoId(this.#links, heading, this.#walkNextPanoId, this.#routeHeading());
     if (panoId === this.#facedPanoId) return;
     const previous = this.#markers.get(this.#facedPanoId);
     if (previous) previous.marker.content.classList.remove('minimap-crumb-faced');
@@ -161,7 +158,7 @@ class ForwardCrumbs {
     for (const { marker } of this.#markers.values()) marker.map = null;
     this.#markers.clear();
     this.#links = [];
-    this.#routeStops = [];
+    this.#walkNextPanoId = null;
     this.#facedPanoId = null;
     this.#nextStepPanoId = null;
     this.#highlightedPanoId = null;
@@ -407,9 +404,13 @@ class ForwardCrumbs {
   }
 
   /**
-   * The panos ahead on the task's street, nearest first, from the memoised street sampling.
+   * The panos ahead on the task's street, from the memoised street sampling. "Ahead" is measured from where the user
+   * stands, not only from the furthest point reached: after a backtrack the way back up to that point is route too,
+   * and its stops must read as route stops (blue when faced), not as mere arrow destinations. The route walk itself
+   * (moveForward, the spacebar's fallback) still resumes from the furthest point, so its landing stop is reported
+   * separately.
    * @param {Task} task - The task being walked.
-   * @returns {Promise<MeasuredCrumb[]>}
+   * @returns {Promise<{ahead: MeasuredCrumb[], walkNextPanoId: ?string}>} Stops nearest first, and the walk's stop.
    */
   async #routeStopsAhead(task) {
     const street = task.getFeature();
@@ -420,7 +421,10 @@ class ForwardCrumbs {
       this.#providerFailed = false;
     }
 
-    const originKm = turf.nearestPointOnLine(street, task.getFurthestPointReached()).properties.location;
+    const furthestKm = turf.nearestPointOnLine(street, task.getFurthestPointReached()).properties.location;
+    const here = svl.panoViewer.getPosition();
+    const hereKm = turf.nearestPointOnLine(street, turf.point([here.lng, here.lat])).properties.location;
+    const originKm = Math.min(furthestKm, hereKm);
     const offsets = ForwardCrumbs.sampleOffsetsKm(
       turf.length(street), NavigationService.DIST_INCREMENT, ForwardCrumbs.MAX_SAMPLES,
     );
@@ -445,9 +449,10 @@ class ForwardCrumbs {
     const hits = await Promise.all(pending);
     const measured = ForwardCrumbs.dedupByPanoId(hits.filter(Boolean))
       .map((hit) => ForwardCrumbs.measureAgainstStreet(street, hit));
-    return ForwardCrumbs.aheadOnStreet(measured, {
-      fromKm: originKm, minAheadM: ForwardCrumbs.MIN_AHEAD_M, maxOffsetM: ForwardCrumbs.MAX_OFFSET_M,
-    });
+    const window = { minAheadM: ForwardCrumbs.MIN_AHEAD_M, maxOffsetM: ForwardCrumbs.MAX_OFFSET_M };
+    const ahead = ForwardCrumbs.aheadOnStreet(measured, { fromKm: originKm, ...window });
+    const walkNext = ForwardCrumbs.aheadOnStreet(measured, { fromKm: furthestKm, ...window })[0];
+    return { ahead, walkNextPanoId: walkNext ? walkNext.panoId : null };
   }
 
   /**

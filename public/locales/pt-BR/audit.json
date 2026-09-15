@@ -184,8 +184,8 @@
       "label-marker-title": "Rótulo {{labelType}}: clique para revisar",
       "route-start-flag": "Início da rota",
       "route-finish-flag": "Fim da rota",
-      "street-start-flag": "Início desta rua",
-      "street-finish-flag": "Fim desta rua"
+      "mission-start-flag": "Onde esta missão começou",
+      "mission-finish-flag": "Onde esta missão termina"
     },
     "stats": {
       "leaderboard-cta": "Ver a classificação da comunidade"

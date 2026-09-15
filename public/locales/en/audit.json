@@ -184,8 +184,8 @@
       "label-marker-title": "{{labelType}} label: click to review it",
       "route-start-flag": "Route start",
       "route-finish-flag": "Route finish",
-      "street-start-flag": "Start of this street",
-      "street-finish-flag": "End of this street"
+      "mission-start-flag": "Where this mission started",
+      "mission-finish-flag": "Where this mission ends"
     },
     "stats": {
       "leaderboard-cta": "See the community leaderboard"

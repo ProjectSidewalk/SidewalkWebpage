@@ -184,8 +184,8 @@
       "label-marker-title": "{{labelType}}-Markierung: klicken zum Überprüfen",
       "route-start-flag": "Routenstart",
       "route-finish-flag": "Routenziel",
-      "street-start-flag": "Anfang dieser Straße",
-      "street-finish-flag": "Ende dieser Straße"
+      "mission-start-flag": "Wo diese Mission begann",
+      "mission-finish-flag": "Wo diese Mission endet"
     },
     "stats": {
       "leaderboard-cta": "Bestenliste der Gemeinschaft ansehen"

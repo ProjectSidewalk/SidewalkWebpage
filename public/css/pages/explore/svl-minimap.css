@@ -469,6 +469,12 @@
 
 /* The spacebar's next step along the route: tinted the route line's blue whichever way the user looks, so the route's
    next crumb reads at a glance. The faced fill below still wins when the user turns to it. */
+.minimap-crumb-next {
+  /* The next step is the correct path whatever kind of crumb it is (an arrow's destination included): blue. */
+  --crumb-color: var(--color-link-200);
+  --crumb-fill: var(--color-link-200);
+}
+
 .minimap-crumb-next::before {
   width: calc(9px * var(--ui-scale, 1));
   height: calc(9px * var(--ui-scale, 1));

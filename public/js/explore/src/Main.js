@@ -420,10 +420,8 @@ class Main {
       svl.observedArea.update();
       svl.compass.update();
       svl.compass.enableCompassClick();
-      // The first task was set before the crumbs existed, so draw the ones ahead now (#4669), and re-plant the
-      // street's flags in case its walking direction was settled after the task was set.
+      // The first task was set before the crumbs existed, so draw the ones ahead now (#4669).
       svl.forwardCrumbs.refresh();
-      svl.minimap.showStreetEndpointsFor(svl.taskContainer.getCurrentTask());
       // Re-render the nav arrows now that the compass and task exist, so the route-forward arrow is highlighted on
       // the very first pano too — PanoManager's own initial resetNavArrows ran before those were wired up. (#4671)
       svl.panoManager.resetNavArrows();
