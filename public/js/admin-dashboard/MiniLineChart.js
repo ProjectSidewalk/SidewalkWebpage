@@ -8,15 +8,15 @@
  */
 class MiniLineChart {
   /**
-   * @param {string[]} categories - x-axis labels (one per data index).
+   * @param {string[]} categories - X-axis labels (one per data index).
    * @param {Array<{name: string, key: string, values: Array<number|null>, tooltips?: string[],
-   *          tooltipsHtml?: string[]}>} series -
+   *          tooltipsHtml?: string[]}>} series
    *   each series' values align to `categories`; null = gap. Optional per-point tooltip strings, and optional
    *   per-point rich cards: where `tooltipsHtml` has an entry, the point trades its native `<title>` for a
    *   `data-ps-tooltip` card and becomes focusable, so the breakdown is reachable by keyboard as well as hover (the
    *   plain `tooltips` string stays on as its accessible name). Card markup is first-party only — escape any name or
    *   other data that came from a user before putting it in one.
-   * @param {{yMax?: number, tickFormat?: function(number): string, valueFormat?: function(number): string,
+   * @param {{yMax?: number, tickFormat?: (value: number) => string, valueFormat?: (value: number) => string,
    *          ariaLabel?: string, dotRadius?: number, kind?: string, maxXLabels?: number, barValues?: boolean,
    *          emphasisIndex?: number, minMarginL?: number, minMarginR?: number,
    *          refLine?: {value: number, label?: string, key?: string}}} [opts] - yMax defaults to a nice
@@ -176,9 +176,9 @@ class MiniLineChart {
    * size — a fixed-viewBox SVG stretched to 100% width would scale all of those up together on wide screens.
    *
    * @param {HTMLElement} container - The element to render into (its innerHTML is replaced).
-   * @param {string[]} categories - x-axis labels (see svg()).
-   * @param {Array<object>} series - data series (see svg()).
-   * @param {object} [opts] - same options as svg(); `width` is supplied automatically from the container.
+   * @param {string[]} categories - X-axis labels (see svg()).
+   * @param {Array<object>} series - Data series (see svg()).
+   * @param {object} [opts] - Same options as svg(); `width` is supplied automatically from the container.
    */
   static renderInto(container, categories, series, opts = {}) {
     if (!container) return;

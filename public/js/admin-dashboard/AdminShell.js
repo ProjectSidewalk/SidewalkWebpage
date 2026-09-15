@@ -46,10 +46,10 @@ class AdminShell {
   }
 
   /**
-     * Builds the TOC from the section headings (h2/h3.page-heading with ids) inside the main content area. Scoped to
-     * .page-heading so headings inside closed <dialog>s (e.g. the dashboard's create-team dialog) stay out — a hidden
-     * heading has offsetTop 0, which would also wedge the scroll-spy on its TOC entry forever.
-     */
+   * Builds the TOC from the section headings (h2/h3.page-heading with ids) inside the main content area. Scoped to
+   * .page-heading so headings inside closed <dialog>s (e.g. the dashboard's create-team dialog) stay out — a hidden
+   * heading has offsetTop 0, which would also wedge the scroll-spy on its TOC entry forever.
+   */
   #buildTableOfContents() {
     if (!this.#tocList) return;
     this.#tocList.replaceChildren();

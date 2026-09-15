@@ -56,7 +56,7 @@ class MapSidebarUrlSync {
   /**
    * Applies the URL's ?lat/?lng (and optional ?zoom) to the map via jumpTo. Called from onMapReady — before the
    * label layers stream in — so a deep-linked user isn't parked on the city-wide view while they load.
-   * @param {mapboxgl.Map} map The Mapbox map instance.
+   * @param {mapboxgl.Map} map - The Mapbox map instance.
    * @returns {boolean} Whether a viewport was applied.
    */
   static applyUrlViewport(map) {
@@ -67,8 +67,8 @@ class MapSidebarUrlSync {
   }
 
   /**
-   * @param {MapSidebarFilter} sidebarFilter The sidebar filter to read state from and apply URL state through.
-   * @param {mapboxgl.Map} map The Mapbox map instance, for viewport read/write.
+   * @param {MapSidebarFilter} sidebarFilter - The sidebar filter to read state from and apply URL state through.
+   * @param {mapboxgl.Map} map - The Mapbox map instance, for viewport read/write.
    */
   constructor(sidebarFilter, map) {
     this.#filter = sidebarFilter;
@@ -170,9 +170,9 @@ class MapSidebarUrlSync {
    * state has to come back as "nothing selected" rather than falling through to the rendered default, which
    * would restore a shared link as the exact inverse of what was shared.
    *
-   * @param {URLSearchParams} params The current query params.
-   * @param {string} name The param name.
-   * @param {string[]} knownValues The accepted values; anything else is dropped.
+   * @param {URLSearchParams} params - The current query params.
+   * @param {string} name - The param name.
+   * @param {string[]} knownValues - The accepted values; anything else is dropped.
    * @returns {?string[]} The valid values, [] when the param is present but empty, or null when the param is
    *      absent or holds nothing valid.
    */
@@ -192,7 +192,7 @@ class MapSidebarUrlSync {
    * the first colon is the delimiter (label type keys never contain one, but tag names do — "parallel
    * lines:yes"), and a comma-joined token from an older link is only split once it fails to match on its own.
    *
-   * @param {URLSearchParams} params The current query params.
+   * @param {URLSearchParams} params - The current query params.
    * @returns {?Array<{labelType: string, tag: string}>} The valid pairs, or null when the param is absent.
    */
   #parseTagPairs(params) {
@@ -207,7 +207,7 @@ class MapSidebarUrlSync {
 
   /**
    * Returns the ids of the sidebar checkboxes of a given filter type.
-   * @param {string} filterType The data-filter-type value.
+   * @param {string} filterType - The data-filter-type value.
    * @returns {string[]} The checkbox element ids.
    */
   #checkboxIds(filterType) {
@@ -219,7 +219,7 @@ class MapSidebarUrlSync {
    * page's default state, read from the DOM (defaultChecked, which survives programmatic .checked writes)
    * rather than re-declared here. Label types report their bare type name, everything else its id, matching
    * FilterSidebar.getState().
-   * @param {string} filterType The data-filter-type value.
+   * @param {string} filterType - The data-filter-type value.
    * @returns {string[]} The default-checked values.
    */
   #defaultCheckedValues(filterType) {
@@ -240,8 +240,8 @@ class MapSidebarUrlSync {
 
   /**
    * Returns true when two arrays hold the same values, order-insensitively.
-   * @param {Array<string|number>} a First array.
-   * @param {Array<string|number>} b Second array.
+   * @param {Array<string|number>} a - First array.
+   * @param {Array<string|number>} b - Second array.
    * @returns {boolean} Whether the arrays are equal as sets.
    */
   #sameSet(a, b) {
@@ -250,9 +250,9 @@ class MapSidebarUrlSync {
 
   /**
    * Sets a query param, or removes it when the value is null (the param's default state).
-   * @param {URL} url The URL being built.
-   * @param {string} name The param name.
-   * @param {?string} value The value to set, or null to delete.
+   * @param {URL} url - The URL being built.
+   * @param {string} name - The param name.
+   * @param {?string} value - The value to set, or null to delete.
    */
   #setOrDelete(url, name, value) {
     if (value === null) {

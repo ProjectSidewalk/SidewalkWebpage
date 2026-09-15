@@ -7,7 +7,7 @@ class StatusField {
   #progressBar;
 
   /**
-   * @param {number} completedValidationsParam The number of validations the user has completed all time.
+   * @param {number} completedValidationsParam - The number of validations the user has completed all time.
    */
   constructor(completedValidationsParam) {
     this.#completedValidations = completedValidationsParam;
@@ -18,7 +18,7 @@ class StatusField {
   /**
    * Resets the status field whenever a new mission is introduced.
    *
-   * @param {Mission} currentMission Mission object for the current mission.
+   * @param {Mission} currentMission - Mission object for the current mission.
    */
   reset(currentMission) {
     const progress = currentMission.getProperty('labelsProgress');
@@ -39,8 +39,8 @@ class StatusField {
   /**
    * Shows a badge-unlock toast over the panorama if this validation crossed into a new validation-badge level.
    *
-   * @param {number} oldCount The user's all-time validation count before this validation.
-   * @param {number} newCount The user's all-time validation count after this validation.
+   * @param {number} oldCount - The user's all-time validation count before this validation.
+   * @param {number} newCount - The user's all-time validation count after this validation.
    */
   #checkBadgeUnlock(oldCount, newCount) {
     const badge = BadgeAchievements.detectUnlock('validations', oldCount, newCount);
@@ -57,7 +57,7 @@ class StatusField {
   /**
    * Updates the label name that is displayed in the title bar and above the validation section.
    *
-   * @param {string} labelType Name of label without spaces.
+   * @param {string} labelType - Name of label without spaces.
    */
   updateLabelText(labelType) {
     const missionLength = svv.missionContainer

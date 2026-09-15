@@ -15,8 +15,8 @@
  */
 class ManagementPage {
   /** Roles an admin may assign from this page. Owner is intentionally excluded (the backend forbids it); the system
-     *  roles (Anonymous, AI) aren't hand-assignable here either. A user already in an unassignable role is shown it as
-     *  a disabled, locked select. */
+   *  roles (Anonymous, AI) aren't hand-assignable here either. A user already in an unassignable role is shown it as
+   *  a disabled, locked select. */
   static #ASSIGNABLE_ROLES = ['Registered', 'Turker', 'Researcher', 'Administrator'];
 
   /** Page-size options for the directory; the first is the default. */
@@ -148,7 +148,11 @@ class ManagementPage {
     }).join('');
 
     document.getElementById('mgmt-users').innerHTML = rows.length
-      ? `<table class="ps-table ps-table--compact contrib-table mgmt-table"><thead>${head}</thead><tbody>${body}</tbody></table>`
+      ? `
+        <table class="ps-table ps-table--compact contrib-table mgmt-table">
+          <thead>${head}</thead>
+          <tbody>${body}</tbody>
+        </table>`
       : '<p class="dq-empty">No users match your search.</p>';
 
     this.#renderCount(all.length);
@@ -324,7 +328,11 @@ class ManagementPage {
         <td>${ManagementPage.#toggle('status', t.teamId, t.open, 'Open', 'Closed')}</td>
         <td>${ManagementPage.#toggle('visibility', t.teamId, t.visible, 'Visible', 'Hidden')}</td>
       </tr>`).join('');
-    el.innerHTML = `<table class="ps-table ps-table--compact contrib-table mgmt-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+    el.innerHTML = `
+      <table class="ps-table ps-table--compact contrib-table mgmt-table">
+        <thead>${head}</thead>
+        <tbody>${body}</tbody>
+      </table>`;
   }
 
   #wireTeams() {

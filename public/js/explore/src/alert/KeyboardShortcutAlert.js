@@ -2,6 +2,7 @@
  * Nudges the user toward keyboard shortcuts after they've repeatedly clicked the mode buttons or the Stuck button.
  */
 class KeyboardShortcutAlert extends Alert {
+  /** @type {Record<string, number>} */
   #clickCount = {};
 
   static #MINIMUM_CLICKS_BEFORE_ALERT = 10;

@@ -75,7 +75,7 @@ class OverallStats {
   /**
    * Updates the global distance as the user explores. The region distance is offset against the session's
    * starting totals so the global figure stays correct even when switching regions.
-   * @param {number} regionDistance Distance audited in the current region (user's unit).
+   * @param {number} regionDistance - Distance audited in the current region (user's unit).
    */
   setRegionAuditedDistance(regionDistance) {
     // Tutorial exploration isn't saved, so it doesn't count toward the global distance or the exploring badge.
@@ -90,10 +90,10 @@ class OverallStats {
 
   /**
    * Shows a badge-unlock toast over the pano if the value just crossed into a new badge level.
-   * @param {string} type Badge type ('labels' or 'distance').
-   * @param {number} oldValue The value before this update, in the user's units.
-   * @param {number} newValue The value after this update, in the user's units.
-   * @param {object} [opts] Passed through to BadgeAchievements (e.g. { isMetric }).
+   * @param {string} type - Badge type ('labels' or 'distance').
+   * @param {number} oldValue - The value before this update, in the user's units.
+   * @param {number} newValue - The value after this update, in the user's units.
+   * @param {object} [opts] - Passed through to BadgeAchievements (e.g. { isMetric }).
    */
   #checkBadgeUnlock(type, oldValue, newValue, opts = {}) {
     if (!this.#seeded) return;

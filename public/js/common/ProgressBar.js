@@ -10,8 +10,8 @@ class ProgressBar {
   #labelEl;
 
   /**
-   * @param {string|HTMLElement} fill The fill element, or its id.
-   * @param {string|HTMLElement|null} [label] The label element, or its id; omit if the bar has no label.
+   * @param {string|HTMLElement} fill - The fill element, or its id.
+   * @param {string|HTMLElement|null} [label] - The label element, or its id; omit if the bar has no label.
    */
   constructor(fill, label = null) {
     this.#fillEl = typeof fill === 'string' ? document.getElementById(fill) : fill;
@@ -20,7 +20,7 @@ class ProgressBar {
 
   /**
    * Sizes the fill to a fraction of the track, clamped to [0, 100]%.
-   * @param {number} fraction Fraction complete (0–1).
+   * @param {number} fraction - Fraction complete (0–1).
    */
   setFraction(fraction) {
     const pct = Math.min(100, Math.max(0, fraction * 100));
@@ -29,7 +29,7 @@ class ProgressBar {
 
   /**
    * Sets arbitrary label text (e.g. a badge's "current / target" count). A no-op if the bar has no label.
-   * @param {string} text The text to display.
+   * @param {string} text - The text to display.
    */
   setLabel(text) {
     if (this.#labelEl) this.#labelEl.textContent = text;
@@ -37,7 +37,7 @@ class ProgressBar {
 
   /**
    * Sets the label to a completion percentage. A no-op if the bar has no label.
-   * @param {number} fraction Fraction complete (0–1).
+   * @param {number} fraction - Fraction complete (0–1).
    */
   setPercent(fraction) {
     this.setLabel(`${ProgressBar.formatPercent(fraction)}%`);
@@ -45,7 +45,7 @@ class ProgressBar {
 
   /**
    * Sizes the fill and sets a percentage label in one call, for bars whose label is just the percentage.
-   * @param {number} fraction Fraction complete (0–1).
+   * @param {number} fraction - Fraction complete (0–1).
    */
   update(fraction) {
     this.setFraction(fraction);
@@ -54,7 +54,7 @@ class ProgressBar {
 
   /**
    * Formats a fraction as an int percentage, clamped to 100 and rounded so it never reads 100% until actually full.
-   * @param {number} fraction Fraction complete (0–1).
+   * @param {number} fraction - Fraction complete (0–1).
    * @returns {string} The integer percentage, without a "%" sign.
    */
   static formatPercent(fraction) {

@@ -213,8 +213,8 @@ class MapillaryViewer extends PanoViewer {
   /**
    * Creates a bounding box around the given point with given radius, and creates a URL to fetch images in the box.
    *
-   * @param {turf.Point} centerPoint The center of the output bounding box
-   * @param {number} radius A distance (in km) to extend from the center point in each direction
+   * @param {turf.Point} centerPoint - The center of the output bounding box
+   * @param {number} radius - A distance (in km) to extend from the center point in each direction
    * @returns {string} A URL that can be called to fetch Mapillary images within the bounding box
    */
   #createPanoFetchUrl = (centerPoint, radius) => {
@@ -240,9 +240,9 @@ class MapillaryViewer extends PanoViewer {
   /**
    * Scores a candidate Mapillary image for selection, balancing multiple factors.
    *
-   * @param {object} pano Raw pano object from the Mapillary API response.
-   * @param {turf.Point} centerPoint The target location we're trying to move to.
-   * @param {string|null} currentSequenceId The sequence ID of the current image (null on initial load).
+   * @param {object} pano - Raw pano object from the Mapillary API response.
+   * @param {turf.Point} centerPoint - The target location we're trying to move to.
+   * @param {string|null} currentSequenceId - The sequence ID of the current image (null on initial load).
    * @returns {number} A score between 0 and 1 where higher is better.
    */
   #scorePano = (pano, centerPoint, currentSequenceId) => {
@@ -320,7 +320,7 @@ class MapillaryViewer extends PanoViewer {
    * Builds sets of excluded pano IDs and captured_at timestamps. Mapillary has an issue where duplicate images
    * can exist with different IDs but the same captured_at, so searches filter on both.
    *
-   * @param {Set<PanoData>} excludedPanos Panos to exclude from a search.
+   * @param {Set<PanoData>} excludedPanos - Panos to exclude from a search.
    * @returns {{ excludedPanoIds: Set<string>, excludedTimestamps: Set<number> }}
    */
   #buildExclusionSets = (excludedPanos) => {
@@ -336,9 +336,9 @@ class MapillaryViewer extends PanoViewer {
    * viable candidate (e.g. all excluded), falls back to a fresh API call centered exactly on the target, storing
    * those results in case they're useful later as well.
    *
-   * @param {turf.Point} center The target location.
-   * @param {number} radius Search radius in kilometers.
-   * @param {Set<PanoData>} excludedPanos Panos that are not viable candidates.
+   * @param {turf.Point} center - The target location.
+   * @param {number} radius - Search radius in kilometers.
+   * @param {Set<PanoData>} excludedPanos - Panos that are not viable candidates.
    * @returns {Promise<object|null>} The best candidate pano from the Mapillary API, or null if none are viable.
    */
   #searchAndSelectPano = async (center, radius, excludedPanos) => {
@@ -384,7 +384,7 @@ class MapillaryViewer extends PanoViewer {
    * Safe to call multiple times — skips the fetch if a nearby prefetch already exists.
    * Call clearPrefetchCache() when moving to a new street.
    *
-   * @param {{lat: number, lng: number}} latLng The location to prefetch images for.
+   * @param {{lat: number, lng: number}} latLng - The location to prefetch images for.
    */
   prefetchLocation = (latLng) => {
     const centerPoint = turf.point([latLng.lng, latLng.lat]);
@@ -399,8 +399,8 @@ class MapillaryViewer extends PanoViewer {
    * the same search + scoring as setLocation() (reusing prefetched search results when available) and warms
    * mapillary-js's cache with the winner.
    *
-   * @param {{lat: number, lng: number}} latLng The location the next move is expected to target.
-   * @param {Set<PanoData>} [excludedPanos] Panos the next move is expected to exclude.
+   * @param {{lat: number, lng: number}} latLng - The location the next move is expected to target.
+   * @param {Set<PanoData>} [excludedPanos] - Panos the next move is expected to exclude.
    * @returns {Promise<void>}
    */
   preloadPanoNear = async (latLng, excludedPanos = new Set()) => {
@@ -419,7 +419,7 @@ class MapillaryViewer extends PanoViewer {
    * doesn't hit the network. Uses the same internal graphService call that mapillary-js's own cache component uses for
    * neighbor prefetching — there is no public API for caching an arbitrary image.
    *
-   * @param {string} panoId The Mapillary image ID to cache.
+   * @param {string} panoId - The Mapillary image ID to cache.
    */
   #cachePanoAssets = (panoId) => {
     this.viewer._navigator.graphService.cacheImage$(panoId).subscribe({ error: () => {} });
@@ -429,7 +429,7 @@ class MapillaryViewer extends PanoViewer {
    * Creates a prefetch entry for the given location, stores it, and returns it.
    *
    * @param {turf.Point} centerPoint
-   * @param {number} radius Search radius in kilometers.
+   * @param {number} radius - Search radius in kilometers.
    * @returns {{ centerPoint: turf.Point, promise: Promise<Array> }}
    */
   #storePrefetch = (centerPoint, radius) => {
@@ -448,7 +448,7 @@ class MapillaryViewer extends PanoViewer {
   /**
    * Finds the nearest prefetched search result to the given point, if one is close enough to be useful.
    *
-   * @param {turf.Point} centerPoint The target location.
+   * @param {turf.Point} centerPoint - The target location.
    * @returns {{ centerPoint: turf.Point, promise: Promise<Array> }|null}
    */
   #findNearestPrefetch = (centerPoint) => {
@@ -468,8 +468,8 @@ class MapillaryViewer extends PanoViewer {
   /**
    * Fetches Mapillary images near the given point, retrying with smaller radii if the API returns too many results.
    *
-   * @param {turf.Point} centerPoint The center of the search area.
-   * @param {number} radius The search radius in kilometers.
+   * @param {turf.Point} centerPoint - The center of the search area.
+   * @param {number} radius - The search radius in kilometers.
    * @returns {Promise<Array>} Raw pano objects from the Mapillary API.
    */
   #fetchImages = async (centerPoint, radius) => {
@@ -500,11 +500,11 @@ class MapillaryViewer extends PanoViewer {
   /**
    * Filters and scores a list of candidate panos, returning the best one (or null if none are viable).
    *
-   * @param {Array} panos Raw pano objects from the Mapillary API.
-   * @param {Set<string>} excludedPanoIds Pano IDs to exclude.
-   * @param {Set<number>} excludedTimestamps Capture timestamps to exclude (handles duplicate Mapillary images).
-   * @param {turf.Point} centerPoint The target location.
-   * @param {string|null} currentSequenceId The sequence ID of the current image (null on initial load).
+   * @param {Array} panos - Raw pano objects from the Mapillary API.
+   * @param {Set<string>} excludedPanoIds - Pano IDs to exclude.
+   * @param {Set<number>} excludedTimestamps - Capture timestamps to exclude (handles duplicate Mapillary images).
+   * @param {turf.Point} centerPoint - The target location.
+   * @param {string|null} currentSequenceId - The sequence ID of the current image (null on initial load).
    * @returns {object|null} The best candidate pano, or null if none are viable.
    */
   #selectBestPano = (panos, excludedPanoIds, excludedTimestamps, centerPoint, currentSequenceId) => {

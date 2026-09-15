@@ -400,7 +400,7 @@ class StoryComposer {
     this.#renderTitle();
   }
 
-  /** Writes the dialog title for the current mode and label. @private */
+  /** Writes the dialog title for the current mode and label. */
   #renderTitle() {
     const base = this.#editStoryId !== null ? 'composer-title-edit' : 'composer-title';
     this.#els.title.textContent = this.#labelTypeName
@@ -628,7 +628,6 @@ class StoryComposer {
    *
    * @param {*} seconds - The server's `retry_after_seconds`, or anything non-numeric when it didn't say.
    * @returns {?string} The localized phrase, or null when there's nothing to format.
-   * @private
    */
   static #relativeTime(seconds) {
     const usable = typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0;

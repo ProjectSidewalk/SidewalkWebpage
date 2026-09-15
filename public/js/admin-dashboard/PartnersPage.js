@@ -124,7 +124,7 @@ class PartnersPage {
    * @param {string} label - The accessible name (aria-label) for the button.
    * @param {string} text - The visible button text.
    * @param {boolean} disabled - Whether the action is currently unavailable (e.g. moving the first row up).
-   * @param {function(): void} onClick - The click handler.
+   * @param {() => void} onClick - The click handler.
    * @param {boolean} [danger=false] - Whether to style the button as destructive.
    * @returns {HTMLButtonElement}
    */
@@ -141,7 +141,10 @@ class PartnersPage {
     return btn;
   }
 
-  /** @param {string} scope @returns {boolean} */
+  /**
+   * @param {string} scope - 'city' or 'global'.
+   * @returns {boolean} Whether this user may edit that scope's partners.
+   */
   #canEdit(scope) {
     return scope === 'city' || this.#isOwner;
   }
@@ -343,7 +346,10 @@ class PartnersPage {
     }
   }
 
-  /** @param {string} scope @returns {HTMLFormElement} */
+  /**
+   * @param {string} scope - 'city' or 'global'.
+   * @returns {HTMLFormElement} That scope's add-partner form.
+   */
   #formFor(scope) {
     return document.querySelector(`.partners-add-form[data-scope="${scope}"]`);
   }

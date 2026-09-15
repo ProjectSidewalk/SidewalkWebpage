@@ -26,7 +26,7 @@
  * @param {boolean} [params.scrollWheelZoom=true] - Whether to allow zooming with the scroll wheel.
  * @param {boolean} [params.cooperativeGestures=false] - Whether panning on touch takes two fingers.
  * @param {string} [params.mapboxLogoLocation=bottom-left] - 'top-left', 'top-right', 'bottom-left', or 'bottom-right'.
- * @param {string} [params.regionTooltip='none'] One of 'none' or 'completionRate'.
+ * @param {string} [params.regionTooltip='none'] - One of 'none' or 'completionRate'.
  * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
  * @param {string} [params.regionFillColor] - Fill color to use if regionFillMode='singleColor'.
  * @param {number} [params.regionFillOpacity] - Fill opacity to use if regionFillMode='singleColor'

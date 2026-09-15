@@ -4,11 +4,12 @@ Unit tests for tools/setup_new_city.py — the derivations, the config-file edit
 
 The file edits run against copies of the real conf/cityparams.conf, conf/messages/*, and docs/dev-environment.md, so
 a structural change to those files that would break the orchestrator fails here first. The docker/DB steps run with
-`subprocess.run`, the app's HTTP port, and the clock faked, and `main` end to end with its prompts scripted.
+`subprocess.run` and the clock faked, and `main` end to end with its prompts scripted.
 """
 
+import hashlib
+import re
 import shutil
-import urllib.error
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
@@ -19,6 +20,11 @@ import create_ga_properties as ga
 import setup_new_city as snc
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _no_stdin(text):
+    """input() with stdin closed: CI, a scripted rebuild, an agent."""
+    raise EOFError
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -60,7 +66,6 @@ def test_highest_evolution_reads_the_numbered_files(tmp_path):
 
 
 def test_evolution_hash_is_plays_sha1_of_the_trimmed_sections(tmp_path):
-    import hashlib
     (tmp_path / '7.sql').write_text('# a header line before the first marker is not part of either section\n'
                                     '# --- !Ups\n\nCREATE TABLE x (id int);\n\n# --- !Downs\nDROP TABLE x;\n\n')
     (tmp_path / '8.sql').write_text('-- !Ups\nSELECT 1;\n-- !Downs\nSELECT 2;\n')
@@ -87,17 +92,117 @@ def test_preflight_table_returns_rows_only_when_a_provider_was_sampled():
     assert snc.preflight_table('\n'.join(header + ['| gsv | 150 |'])) == header + ['| gsv | 150 |']
 
 
-def test_translation_todo_lists_only_the_keys_that_were_added():
-    lines = snc.translation_todo('laurens-ia', None, None)
-    assert len(lines) == len(snc.TRANSLATED_MESSAGE_FILES)
-    assert lines[0] == '  conf/messages/messages.zh-TW: city.name.laurens-ia'
-    assert snc.translation_todo('x', 'iowa', 'france')[0].endswith('city.name.x, state.name.iowa, country.name.france')
+def test_region_ids_are_positive_integers():
+    """Region serials start at 1, so a typed 0 is a typo and `--tutorial-region 0` must not read as unset."""
+    assert snc.valid_region_id('4') == '4' and snc.is_region_id('12')
+    for bad in ('0', '-1', 'west', ''):
+        assert not snc.is_region_id(bad)
+        with pytest.raises(snc.argparse.ArgumentTypeError):
+            snc.valid_region_id(bad)
 
 
-def test_handoff_checklist_names_the_dump_and_both_urls():
+def _append_key(file_name, key, value='x'):
+    path = snc.MESSAGES_DIR / file_name
+    path.write_text(path.read_text() + f'{key} = {value}\n')
+
+
+def test_the_build_review_gate_has_no_default_to_fall_back_on(monkeypatch, repo_copy):
+    """
+    Step 0 is a person reading the build report. Every other question can take a cautious default unattended, but
+    this one has nothing cautious to take: skipping it would let a run clone, evolve and irreversibly fill a schema
+    with choices nobody made (#5297).
+    """
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    _fake_run(monkeypatch, {})
+
+    def no_default(text):
+        assert '[' not in text, 'the build-review gate must not offer a default'
+        raise EOFError
+
+    monkeypatch.setattr('builtins.input', no_default)
+    with pytest.raises(SystemExit, match='has no default and there is nothing on stdin'):
+        snc.main(['testville-wa'])
+
+
+def test_prompt_takes_a_default_unattended_only_when_told_to(monkeypatch, capsys):
+    """
+    An unattended run must not die on an EOFError traceback, but it must not decide things either: one piped `y`
+    would clear the build-report gate and then let every later question fall to its default, down to the fill
+    nobody can undo. Only a cautious default (the answer that does nothing) or --yes may answer for a person (#5297).
+    """
+    monkeypatch.setattr('builtins.input', _no_stdin)
+    assert snc.prompt('Drop and recreate it? (y/n)', 'n', cautious=True) == 'n'
+    assert 'taking the default: n' in capsys.readouterr().out
+    with pytest.raises(SystemExit, match='pass --yes to take every default \\(this one: Nowhere\\)'):
+        snc.prompt('City display name', 'Nowhere')
+    # A question with no default names the flags that answer it, since a rerun with --yes alone would stop here again.
+    with pytest.raises(SystemExit, match='has no default and there is nothing on stdin.*--country'):
+        snc.prompt('Country id')
+    with pytest.raises(SystemExit, match='has no default'):
+        snc.prompt('Continue with this data? (y/n)', yes_takes='y')   # --yes is not on: a person must read
+    monkeypatch.setattr(snc, 'ASSUME_DEFAULTS', True)
+    assert snc.prompt('City display name', 'Nowhere') == 'Nowhere'
+    assert 'Nowhere  (--yes)' in capsys.readouterr().out
+    assert snc.prompt('Continue with this data? (y/n)', yes_takes='y') == 'y'
+    assert 'Continue with this data? (y/n): y  (--yes)' in capsys.readouterr().out
+    with pytest.raises(SystemExit, match='has no default'):    # --yes cannot invent an answer
+        snc.prompt('Donor schema to clone')
+
+
+def test_translation_todo_asks_only_for_what_english_defines(repo_copy):
+    """A key with no base line has nothing to translate from, so it is never listed (#5297)."""
+    assert snc.translation_todo('nowhere-xx', None, None) == []
+    # A territory outside US_STATES gets no base state.name line, so it stays unasked even alongside a real city.
+    _append_key('messages', 'city.name.nowhere-xx', 'Nowhere')
+    assert snc.translation_todo('nowhere-xx', 'guam', None, added={'city.name.nowhere-xx'}) == \
+        ['  city.name.nowhere-xx: ' + ', '.join(snc.TRANSLATED_MESSAGE_FILES)]
+
+
+def test_translation_todo_lists_every_file_that_lacks_the_line(repo_copy):
+    """
+    Every translated file carries every place name — the English spelling where it reads the same — so a missing
+    line is owed, in zh-TW and es alike, and the list needs no guess about what a person decided (#5297).
+    """
+    _append_key('messages', 'city.name.nowhere-xx', 'Nowhere')
+    _append_key('messages.zh-TW', 'city.name.nowhere-xx', '無處')
+    _append_key('messages.es', 'city.name.nowhere-xx', 'Nowhere')
+    [line] = snc.translation_todo('nowhere-xx', None, None)
+    assert line == '  city.name.nowhere-xx: messages.nl, messages.de, messages.pt-BR, messages.fr'
+
+
+def test_translation_todo_does_not_shrink_on_a_rerun(repo_copy):
+    """
+    Run 1 adds the English line and dies at a db step; the rerun has nothing in `added`. The list must come out the
+    same whether or not this run wrote the line (#5297, found independently by agy).
+    """
+    _append_key('messages', 'city.name.somewhere-ia', 'Somewhere')
+    first = snc.translation_todo('somewhere-ia', None, None, added={'city.name.somewhere-ia'})
+    rerun = snc.translation_todo('somewhere-ia', None, None)
+    assert first == rerun and len(rerun) == 1
+
+
+def test_translation_todo_stops_asking_once_every_file_has_the_name(repo_copy):
+    """The all-clear is reachable: it is every file carrying every name, and nothing else."""
+    _append_key('messages', 'city.name.nowhere-wa', 'Nowhere')
+    for file_name in snc.TRANSLATED_MESSAGE_FILES:
+        _append_key(file_name, 'city.name.nowhere-wa', 'Nowhere')
+    # state.name.washington is in the base file and zh-TW only in the tree: owed by the five Latin-script files.
+    [line] = snc.translation_todo('nowhere-wa', 'washington', 'usa')
+    assert line.startswith('  state.name.washington: ') and 'messages.zh-TW' not in line and 'messages.fr' in line
+    for file_name in snc.TRANSLATED_MESSAGE_FILES:
+        _append_key(file_name, 'state.name.washington', 'Washington')
+    assert snc.translation_todo('nowhere-wa', 'washington', 'usa') == []
+
+
+def test_handoff_checklist_names_the_dump_both_urls_and_what_the_nightly_jobs_owe():
     text = snc.handoff_checklist('laurens-ia', 'sidewalk_laurens_ia', 'https://p', 'https://t')
     assert 'scp db/sidewalk_laurens_ia-dump' in text
     assert 'https://t and https://p' in text
+    # The dump ships with these empty; saying so is the whole fix for #5297.
+    assert all(table in text for table in ('intersection', 'cluster', 'osm_way', 'sidewalk_presence'))
+    # The jobs run at different minutes (ScheduledJobs.scala), so the handoff names the schedule, not a time.
+    assert '04:00' not in text and 'ScheduledJobs.scala' in text
     assert 'make import-dump db=sidewalk_laurens_ia' in text
 
 
@@ -107,13 +212,15 @@ def test_handoff_checklist_names_the_dump_and_both_urls():
 
 @pytest.fixture
 def repo_copy(tmp_path, monkeypatch):
-    """Copies the files the orchestrator edits into tmp_path and points the module at them."""
+    """Copies the files the orchestrator edits or hashes into tmp_path and points the module at them."""
     (tmp_path / 'conf' / 'messages').mkdir(parents=True)
     (tmp_path / 'docs').mkdir()
+    (tmp_path / 'db' / 'scripts').mkdir(parents=True)
     shutil.copy(REPO_ROOT / 'conf' / 'cityparams.conf', tmp_path / 'conf' / 'cityparams.conf')
-    for name in ('messages', 'messages.en'):
+    for name in ('messages', 'messages.en', *snc.TRANSLATED_MESSAGE_FILES):
         shutil.copy(REPO_ROOT / 'conf' / 'messages' / name, tmp_path / 'conf' / 'messages' / name)
     shutil.copy(REPO_ROOT / 'docs' / 'dev-environment.md', tmp_path / 'docs' / 'dev-environment.md')
+    shutil.copy(REPO_ROOT / 'db' / 'scripts' / 'fill-new-schema.sh', tmp_path / 'db' / 'scripts' / 'fill-new-schema.sh')
     monkeypatch.setattr(snc, 'REPO_ROOT', tmp_path)
     monkeypatch.setattr(snc, 'CITYPARAMS', tmp_path / 'conf' / 'cityparams.conf')
     monkeypatch.setattr(snc, 'MESSAGES_DIR', tmp_path / 'conf' / 'messages')
@@ -161,6 +268,18 @@ def test_insert_entry_indents_like_its_neighbours_or_four_spaces_in_an_empty_blo
     snc.insert_entry(lines, ['x'], 'b = 2')
     snc.insert_entry(lines, ['y'], '"c"')
     assert lines == ['x {', '  a = 1', '  b = 2', '}', 'y = [', '', '    "c"', ']']
+
+
+def test_cityparams_value_reads_a_nested_entry_and_has_one_reader(repo_copy):
+    """The GA script reads cityparams through the same function, so the two cannot drift apart."""
+    snc.add_cityparams_entries('testville-wa', _ENTRIES, dry_run=False)
+    lines = snc.CITYPARAMS.read_text().split('\n')
+    assert snc.cityparams_value(lines, ['landing-page-url', 'prod'], 'testville-wa') == \
+        'https://sidewalk-testville.cs.washington.edu'
+    assert snc.cityparams_value(lines, ['landing-page-url', 'test'], 'testville-wa', missing='<none>') == '<none>'
+    with pytest.raises(SystemExit, match='has no landing-page-url.test entry'):
+        snc.cityparams_value(lines, ['landing-page-url', 'test'], 'testville-wa')
+    assert ga.cityparams_value is snc.cityparams_value
 
 
 def test_valid_city_id_accepts_kebab_case_only():
@@ -218,46 +337,287 @@ def test_add_docs_city_row_dry_run(repo_copy, capsys):
 # Docker-backed helpers with the subprocess faked
 # --------------------------------------------------------------------------------------------------------------------
 
-def _fake_run(monkeypatch, responses):
+def _fake_run(monkeypatch, responses, kwargs_seen=None):
     """
-    Answers subprocess.run from ``responses`` ({substring-of-command: (returncode, stdout)}), recording calls. A
-    value may also be a list of such pairs, handed out in order (the last one repeats), for a query whose answer
-    changes as the run progresses.
+    Answers subprocess.run from ``responses`` ({substring-of-command: (returncode, stdout[, stderr])}), recording
+    calls. A value may also be a list of such tuples, handed out in order (the last one repeats), for a query whose
+    answer changes as the run progresses. The first matching substring wins, so order the dict from the most to
+    the least specific. Pass ``kwargs_seen`` to also collect each call's keyword arguments.
     """
     calls = []
 
-    def run(cmd, **kwargs):
+    def answer(cmd, kwargs):
         calls.append(cmd)
+        if kwargs_seen is not None:
+            kwargs_seen.append((cmd, kwargs))
         joined = ' '.join(str(part) for part in cmd)
         for needle, response in responses.items():
             if needle in joined:
                 if isinstance(response, list):
-                    code, out = response.pop(0) if len(response) > 1 else response[0]
-                else:
-                    code, out = response
-                return SimpleNamespace(returncode=code, stdout=out)
-        return SimpleNamespace(returncode=0, stdout='')
+                    response = response.pop(0) if len(response) > 1 else response[0]
+                return (*response, '')[:3]
+        return 0, '', ''
+
+    def run(cmd, **kwargs):
+        code, out, err = answer(cmd, kwargs)
+        return SimpleNamespace(returncode=code, stdout=out, stderr=err)
+
+    class Popen:
+        """The little of a process that run_or_exit uses: stderr to read through, and an exit status to wait for."""
+
+        def __init__(self, cmd, **kwargs):
+            code, _, err = answer(cmd, kwargs)
+            self.stderr = iter(err.splitlines(keepends=True))
+            self.wait = lambda: code
 
     monkeypatch.setattr(snc.subprocess, 'run', run)
+    monkeypatch.setattr(snc.subprocess, 'Popen', Popen)
     return calls
 
 
-def test_web_env_and_db_query_read_through_docker(monkeypatch):
+def _joined(calls):
+    return [' '.join(map(str, cmd)) for cmd in calls]
+
+
+def test_the_docker_helpers_read_through_docker(monkeypatch):
     _fake_run(monkeypatch, {'printenv DATABASE_USER': (0, 'sidewalk_richmond\n'),
                             'printenv MISSING': (1, ''),
+                            "nspname = 'sidewalk_x'": (0, '1\n'), "nspname = 'sidewalk_y'": (0, ''),
+                            "nspname = 'sidewalk_z'": (1, ''),
+                            'sidewalk_x.street_edge': (0, '170\n'), 'sidewalk_z.street_edge': (1, ''),
+                            'projectsidewalk-db true': (0, ''), 'projectsidewalk-web true': (1, ''),
                             'SELECT 1': (0, '1\n'), 'SELECT boom': (2, '')})
     assert snc.web_env('DATABASE_USER') == 'sidewalk_richmond'
     assert snc.web_env('MISSING') is None
     assert snc.db_query('SELECT 1') == '1'
     assert snc.db_query('SELECT boom') is None
+    assert snc.schema_exists('sidewalk_x') is True and snc.schema_exists('sidewalk_y') is False
+    assert snc.schema_exists('sidewalk_z') is None    # the database could not be asked: not "no"
+    assert snc.street_count('sidewalk_x') == 170 and snc.street_count('sidewalk_z') is None
+    assert snc.container_up(snc.DB_CONTAINER) and not snc.container_up(snc.WEB_CONTAINER)
+    # Every exec goes through one argv builder, with docker's flags where docker wants them: before the name.
+    assert snc.docker_argv('c', 'psql', '-U', 'x', flags=('-i', '-t')) == ['docker', 'exec', '-i', '-t', 'c', 'psql',
+                                                                          '-U', 'x']
+
+
+def test_mount_check_compares_the_bytes_the_steps_will_use(monkeypatch, tmp_path):
+    """
+    A git worktree and a second full clone look different to git and identical to the containers, which mount the
+    checkout they were started from; a hash of the very file the steps are about to read tells them apart (#5297).
+    """
+    local = tmp_path / 'qgis_tables.sql'
+    local.write_text('BEGIN; COMMIT;\n')
+    digest = hashlib.md5(b'BEGIN; COMMIT;\n').hexdigest()
+    _fake_run(monkeypatch, {'md5sum /opt/same': (0, f'{digest}  /opt/same\n'),
+                            'md5sum /opt/other': (0, f'{"0" * 32}  /opt/other\n'),
+                            'md5sum /opt/gone': (1, '', 'md5sum: /opt/gone: No such file or directory\n'),
+                            'md5sum /opt/blank': (0, '')})
+    assert snc.mount_mismatch(local, '/opt/same') is None
+    assert snc.mount_mismatch(local, '/opt/other') == f"the db container's /opt/other is not this checkout's {local}"
+    assert snc.mount_mismatch(local, '/opt/gone') == '/opt/gone is not in the db container'
+    assert snc.mount_mismatch(local, '/opt/blank') == '/opt/blank is not in the db container'
+    snc.require_mounted(local, '/opt/same')
+    with pytest.raises(SystemExit, match='(?s)not this checkout.*not a git worktree, and not another clone'):
+        snc.require_mounted(local, '/opt/other')
+
+
+# A city schema's catalog as the dump step reads it: the onboarding tables plus a few a QA pass or a job fills, and
+# the sequences their serials draw from — SERIAL ones owned by a column, an older hand-made one named in a DEFAULT.
+_SCHEMA_TABLES = sorted(snc.ONBOARDING_TABLES | {'label', 'audit_task', 'mission', 'cluster', 'intersection',
+                                                  'webpage_activity', 'osm_way', 'user_route'})
+_SCHEMA_SEQUENCES = {'label_label_id_seq': 'label', 'audit_task_audit_task_id_seq': 'audit_task',
+                     'region_id_seq': 'region', 'street_edge_street_edge_id_seq': 'street_edge',
+                     'intersection_intersection_id_seq': 'intersection'}
+
+
+def _catalog(tables=_SCHEMA_TABLES, sequences=_SCHEMA_SEQUENCES):
+    return ''.join(f'table|{t}\n' for t in tables) + ''.join(f'sequence|{s}|{t}\n' for s, t in sequences.items())
+
+
+def _dump_env(monkeypatch, counts, tables=_SCHEMA_TABLES, moved='0'):
+    """
+    Fakes the dump step's docker calls: ``counts`` is the row-count query's raw psql output (or a list of them,
+    handed out in order), ``tables`` what the catalog lists, ``moved`` how many priorities a QA walk changed.
+    """
+    return _fake_run(monkeypatch, {'pg_restore --list': (0, ';\n; Archive header\n1; 0 0 TABLE x\n2; 0 0 TABLE y\n'),
+                                   'stat -c %s': (0, '2500000\n'),
+                                   'relkind': (0, _catalog(tables)),
+                                   'priority <> 1': (0, f'{moved}\n'),
+                                   'count(*)': counts})
 
 
 def test_dump_schema_counts_the_objects(monkeypatch, capsys):
-    calls = _fake_run(monkeypatch, {'pg_restore --list': (0, ';\n; Archive header\n1; 0 0 TABLE x\n2; 0 0 TABLE y\n'),
-                                    'stat -c %s': (0, '2500000\n')})
+    calls = _dump_env(monkeypatch, (0, 'label|0\naudit_task|0\n'))
     assert snc.dump_schema('sidewalk_testville_wa') == 2
-    assert any('pg_dump' in ' '.join(map(str, cmd)) and '/opt/sidewalk_testville_wa-dump' in cmd for cmd in calls)
-    assert 'db/sidewalk_testville_wa-dump (2.5 MB, 2 objects)' in capsys.readouterr().out
+    assert any('pg_dump' in cmd and '/opt/sidewalk_testville_wa-dump' in cmd for cmd in _joined(calls))
+    out = capsys.readouterr().out
+    assert 'db/sidewalk_testville_wa-dump (2.5 MB, 2 objects)' in out
+    assert 'Left out of the dump' not in out and 'QA walk' not in out
+
+
+def test_dump_exclusions_name_every_table_the_catalog_has_except_what_onboarding_fills(monkeypatch):
+    """
+    Naming what is kept rather than what is left out: a denylist has to know every table a QA pass or a job can
+    reach, so the excluded set is the schema's own catalog minus the kept tables — region_completion included,
+    since the app recomputes it from an empty table — with the sequences of the excluded tables, so the launched
+    city's serials start where a fresh schema's would (#5297).
+    """
+    calls = _dump_env(monkeypatch, (0, 'label|5\nintersection|1177\nosm_way|0\n'))
+    patterns, counts = snc.dump_exclusions('sidewalk_bayonne')
+    excluded = sorted(set(_SCHEMA_TABLES) - snc.ONBOARDING_TABLES) + ['region_completion']
+    assert patterns == [f'sidewalk_bayonne."{name}"' for name in sorted(excluded)] + \
+        ['sidewalk_bayonne."audit_task_audit_task_id_seq"', 'sidewalk_bayonne."intersection_intersection_id_seq"',
+         'sidewalk_bayonne."label_label_id_seq"']
+    assert counts == [('label', 5), ('intersection', 1177)]
+    counted = next(cmd for cmd in _joined(calls) if 'count(*)' in cmd)
+    for table in _SCHEMA_TABLES:
+        assert (f'FROM sidewalk_bayonne."{table}"' in counted) == (table in excluded), table
+    # A scratch table left by a QA session is a table too, whatever its name.
+    _dump_env(monkeypatch, (0, 'Region backup|3\nregion_completion|0\n'),
+              tables=[*snc.ONBOARDING_TABLES, 'Region backup'])
+    assert snc.dump_exclusions('sidewalk_bayonne') == (['sidewalk_bayonne."Region backup"',
+                                                        'sidewalk_bayonne."region_completion"'],
+                                                       [('Region backup', 3)])
+    # Nothing to leave out: no count query at all.
+    calls = _dump_env(monkeypatch, (0, ''), tables=list(snc.KEPT_IN_DUMP))
+    assert snc.dump_exclusions('sidewalk_bayonne') == ([], [])
+    assert not any('count(*)' in cmd for cmd in _joined(calls))
+    # The catalog, or the counts, cannot be read: not clean, not dirty — unknown.
+    _fake_run(monkeypatch, {'relkind': (1, '')})
+    assert snc.dump_exclusions('sidewalk_bayonne') is None
+    _fake_run(monkeypatch, {'relkind': (0, 'table|label\n'), 'count(*)': (1, '')})
+    assert snc.dump_exclusions('sidewalk_bayonne') is None
+
+
+def test_onboarding_tables_are_exactly_what_the_scripts_write():
+    """
+    The allowlist has to track the scripts it describes: a table one of them starts filling would otherwise have
+    its rows left out of every dump, and one they stop filling would ship whatever a QA pass put there. Every way a
+    shell script can write rows counts — INSERT in any case, \\copy and COPY, and a table qualified by the schema
+    variable, the form create-new-schema.sh already uses (#5297).
+    """
+    scripts = Path(snc.REPO_ROOT) / 'db' / 'scripts'
+    written = set(re.findall(r'copy_rows (\w+)', (scripts / 'create-new-schema.sh').read_text()))
+    writes = re.compile(r'(?i)(?:insert\s+into|\\copy|\bcopy)\s+(?:"?\$\{?\w+\}?"?\.)?"?(\w+)"?\s*'
+                        r'(?:\(|from|values|select)')
+    for name in ('fill-new-schema.sh', 'import-street-imagery.sh', 'helpers.sh', 'hide-streets-without-imagery.sh',
+                 'reveal-or-hide-regions.sh'):
+        text = (scripts / name).read_text()
+        # A staging table the script creates for its own session is gone before the dump can see it.
+        written |= set(writes.findall(text)) - set(re.findall(r'(?i)create temp(?:orary)? table (\w+)', text))
+    # region_completion is the one table the app computes from the streets on its own.
+    assert set(snc.ONBOARDING_TABLES) == written | {'region_completion'}
+    assert snc.KEPT_IN_DUMP == snc.ONBOARDING_TABLES - {'region_completion'}
+    assert writes.findall('INSERT INTO "$SCHEMA_NAME".osm_way (id)\n  SELECT 1;\n\\copy street_edge FROM x\n'
+                          'insert into region_completion values (1)') == ['osm_way', 'street_edge',
+                                                                           'region_completion']
+
+
+def test_evolutions_seed_no_table_the_dump_would_leave_out():
+    """
+    A donor behind the checkout gets the missing evolutions at the boot, and an evolution that seeds a table with
+    literal rows — the way label_type and mission_type were seeded before they became enums — would put rows the
+    launched city needs into a table whose data the dump leaves out. Nothing distinguishes that from a QA walk, so
+    the guard is here: every table an evolution seeds in place (INSERT ... VALUES, not dropped afterwards) is
+    either kept in the dump or in this pinned set, each of which is safe today: role and user_role now live in
+    sidewalk_login, outside a city's catalog; the mission, gsv_data and pano_data rows were one-off migrations of
+    data a clone does not carry. A new seeding evolution fails here and has to choose (#5297).
+    """
+    statement = re.compile(r'(?is)\b(INSERT\s+INTO|DROP\s+TABLE)\s+(?:IF\s+EXISTS\s+)?"?(?:([a-z_]+)\.)?"?'
+                           r'([a-z_]+)"?\s*(?:\([^)]*\))?\s*(VALUES)?')
+    seeded = {}
+    evolutions = sorted((Path(snc.REPO_ROOT) / 'conf' / 'evolutions' / 'default').glob('*.sql'),
+                        key=lambda path: int(path.stem))
+    for path in evolutions:
+        ups = path.read_text().split('!Downs')[0]
+        for kind, schema, table, values in statement.findall(ups):
+            if schema and schema != 'public':
+                continue
+            if kind.upper().startswith('INSERT') and values:
+                seeded[table] = True
+            elif kind.upper().startswith('DROP'):
+                seeded[table] = False
+    live = {table for table, alive in seeded.items() if alive} - snc.KEPT_IN_DUMP
+    assert live == {'role', 'user_role', 'mission', 'gsv_data', 'pano_data'}
+
+
+def test_dump_schema_leaves_qa_data_out_instead_of_clearing_it(monkeypatch, capsys):
+    """
+    A city QA'd locally carries session data the dump would hand to the launched site. The dump leaves it out
+    rather than clearing it, so the local schema keeps the QA and nothing here truncates anything (#5297).
+    """
+    calls = _dump_env(monkeypatch, (0, 'label|5\naudit_task|7\nmission|0\ncluster|5\nwebpage_activity|155\n'))
+    assert snc.dump_schema('sidewalk_bayonne') == 2
+    out = capsys.readouterr().out
+    assert 'Left out of the dump' in out
+    assert 'label: 5' in out and 'audit_task: 7' in out and 'webpage_activity: 155' in out and 'mission' not in out
+    dump = next(cmd for cmd in calls if 'pg_dump' in cmd)
+    assert '--exclude-table-data=sidewalk_bayonne."label"' in dump
+    assert '--exclude-table-data=sidewalk_bayonne."region_completion"' in dump
+    assert not any('street_edge' in arg and 'seq' not in arg for arg in dump if arg.startswith('--exclude'))
+    assert dump.index('-f') == len(dump) - 2
+    assert not any('TRUNCATE' in cmd for cmd in _joined(calls))
+
+
+def test_dump_schema_resets_moved_priorities_on_request(monkeypatch, capsys):
+    """
+    The one in-place value a QA walk changes in a table the dump keeps. The reset restores derived data the app
+    recomputes nightly, so its default is yes and --yes may take it; a refusal stops the dump (#5297).
+    """
+    calls = _dump_env(monkeypatch, (0, 'label|0\n'), moved='3')
+    monkeypatch.setattr('builtins.input', lambda text: '')
+    assert snc.dump_schema('sidewalk_bayonne') == 2
+    joined = _joined(calls)
+    reset = next(i for i, cmd in enumerate(joined) if 'UPDATE street_edge_priority SET priority = 1' in cmd)
+    assert '-U sidewalk_bayonne' in joined[reset] and "SET lock_timeout = '30s'" in joined[reset]
+    assert next(i for i, cmd in enumerate(joined) if 'pg_dump' in cmd) > reset
+    out = capsys.readouterr().out
+    assert 'moved the priority of 3 street(s)' in out and 'Reset.' in out
+    # Refused: no dump.
+    calls = _dump_env(monkeypatch, (0, 'label|0\n'), moved='3')
+    monkeypatch.setattr('builtins.input', lambda text: 'n')
+    with pytest.raises(SystemExit, match='Stopped before writing the dump.*--dump-only'):
+        snc.dump_schema('sidewalk_bayonne')
+    assert not any('pg_dump' in cmd for cmd in _joined(calls))
+    # Unattended without --yes: a choice nobody made, so it stops and says what would answer it.
+    monkeypatch.setattr('builtins.input', _no_stdin)
+    _dump_env(monkeypatch, (0, 'label|0\n'), moved='3')
+    with pytest.raises(SystemExit, match='pass --yes'):
+        snc.dump_schema('sidewalk_bayonne')
+    # A refused UPDATE (a lock an app still holds) is quoted with a way out, not a CalledProcessError traceback.
+    monkeypatch.setattr('builtins.input', lambda text: 'y')
+    _fake_run(monkeypatch, {'relkind': (0, 'table|label\n'), 'priority <> 1': (0, '3\n'), 'count(*)': (0, 'label|0\n'),
+                            'lock_timeout': (1, '', 'ERROR:  canceling statement due to lock timeout\n')})
+    with pytest.raises(SystemExit) as refused:
+        snc.dump_schema('sidewalk_bayonne')
+    assert 'street priorities failed (exit 1)' in str(refused.value)
+    assert 'lock timeout' in str(refused.value) and '--dump-only' in str(refused.value)
+
+
+def test_dump_schema_does_not_read_an_unreadable_schema_as_clean(monkeypatch, capsys):
+    """
+    A catalog that could not be read is "couldn't tell", which must neither pass as nothing-to-leave-out nor become
+    a warning the Done block and the handoff then bury: the dump is not written (#5297).
+    """
+    calls = _fake_run(monkeypatch, {'relkind': (1, '')})
+    with pytest.raises(SystemExit, match="could not read sidewalk_ancient's catalog.*--dump-only"):
+        snc.dump_schema('sidewalk_ancient')
+    assert not any('pg_dump' in cmd for cmd in _joined(calls))
+    calls = _fake_run(monkeypatch, {'relkind': (0, 'table|label\n'), 'priority <> 1': (1, ''),
+                                    'count(*)': (0, 'label|0\n')})
+    with pytest.raises(SystemExit, match='could not read sidewalk_ancient.street_edge_priority'):
+        snc.dump_schema('sidewalk_ancient')
+    assert not any('pg_dump' in cmd for cmd in _joined(calls))
+
+
+def test_handoff_renames_the_dump_to_the_servers_convention():
+    """
+    The local name is what import-dump.sh restores; the server's own files are all `-empty-dump`. The destination
+    is the full hostname with a user: an ssh alias is defined in nobody's repo but one person's (#5297).
+    """
+    text = snc.handoff_checklist('bayonne', 'sidewalk_bayonne', 'https://p', 'https://t')
+    assert 'scp db/sidewalk_bayonne-dump <netid>@makelab1.cs.washington.edu:/www/sidewalk/new-city-dumps/' in text
+    assert text.count('sidewalk_bayonne-empty-dump') == 1
 
 
 def test_run_imagery_scan_skips_unknown_providers_and_missing_credentials(monkeypatch, capsys):
@@ -266,7 +626,7 @@ def test_run_imagery_scan_skips_unknown_providers_and_missing_credentials(monkey
     assert 'No imagery scan for pano type "hologram"' in capsys.readouterr().out
     snc.run_imagery_scan('sidewalk_x', 'x', 'mapillary')
     assert 'MAPILLARY_ACCESS_TOKEN not set' in capsys.readouterr().out
-    assert not any('check_streets_for_imagery' in ' '.join(map(str, cmd)) for cmd in calls)
+    assert not any('check_streets_for_imagery' in cmd for cmd in _joined(calls))
 
 
 def test_run_imagery_scan_exports_scans_hides_and_imports(monkeypatch, tmp_path, capsys):
@@ -277,7 +637,7 @@ def test_run_imagery_scan_exports_scans_hides_and_imports(monkeypatch, tmp_path,
     city_dir.mkdir(parents=True)
     (city_dir / 'streets_with_no_imagery.csv').write_text('street_edge_id\n2\n')
     snc.run_imagery_scan('sidewalk_x', 'x', 'panoramax')
-    joined = [' '.join(map(str, cmd)) for cmd in calls]
+    joined = _joined(calls)
     assert (city_dir / 'street_edge_endpoints.csv').read_text().startswith('street_edge_id,region_id')
     assert any('check_streets_for_imagery.py --city-id x --panoramax' in cmd for cmd in joined)
     assert any('hide-streets-without-imagery.sh sidewalk_x onboarding/x/streets_with_no_imagery.csv' in cmd
@@ -312,72 +672,323 @@ def test_run_imagery_scan_handles_no_hidden_streets_and_a_terminal(monkeypatch, 
 # The one-shot evolutions boot
 # --------------------------------------------------------------------------------------------------------------------
 
-def _boot_env(monkeypatch, responses, urlopen_results):
-    """Fakes everything apply_evolutions touches: docker (subprocess), the app's HTTP port, and the clock."""
-    calls = _fake_run(monkeypatch, responses)
+# The docker questions the boot asks, keyed by a substring only that command has: is this boot's JVM up, does the
+# app answer on the boot port, what does play_evolutions say (one query: applied|problem), and — the probe — is the
+# port free, is a stale boot up, and what is building where.
+_JVM, _CURL, _EVO, _PROBE = 'sbt-launch', 'curl', 'max(id)', 'dev/tcp'
+_CLEAR = {_JVM: (0, ''), _CURL: (0, ''), _PROBE: (0, 'port free\nboot none\n')}
+
+
+def _boot_env(monkeypatch, responses):
+    """Fakes everything apply_evolutions touches: docker (subprocess) and the clock. The way is clear unless
+    ``responses`` says otherwise."""
+    calls = _fake_run(monkeypatch, {**_CLEAR, **responses})
     monkeypatch.setattr(snc, 'highest_evolution', lambda: 375)
-    results = list(urlopen_results)
-
-    def urlopen(url, timeout=None):
-        result = results.pop(0)
-        if isinstance(result, Exception):
-            raise result
-        return SimpleNamespace(close=lambda: None)
-
-    monkeypatch.setattr(snc.urllib.request, 'urlopen', urlopen)
     monkeypatch.setattr(snc.time, 'sleep', lambda seconds: None)
     return calls
 
 
 def test_apply_evolutions_skips_the_boot_for_a_current_schema_unless_verifying(monkeypatch, capsys):
-    calls = _boot_env(monkeypatch, {'max(id)': (0, '375\n'), 'pgrep': (1, ''), 'last_problem': (0, '')}, [None])
+    calls = _boot_env(monkeypatch, {_EVO: (0, '375|\n')})
     snc.apply_evolutions('sidewalk_x', 'x')
     assert 'no app boot needed' in capsys.readouterr().out
-    assert not any('bash' in cmd for cmd in calls)
+    assert not any(snc.BOOT_CMD in cmd for cmd in calls)
     # Right after a clone the boot runs anyway: Play is the check that the donor's evolutions are this checkout's.
     snc.apply_evolutions('sidewalk_x', 'x', verify=True)
     out = capsys.readouterr().out
     assert 'booting the app as x once anyway' in out and 'applied and verified (at 375)' in out
-    boot = next(cmd for cmd in calls if 'bash' in cmd)
-    assert boot[boot.index('-e') + 1] == 'DATABASE_USER=sidewalk_x' and snc.BOOT_CMD in boot
-    assert any('pkill' in cmd and snc.BOOT_MARKER in cmd for cmd in calls)
-    # The stop can only hit this boot's processes, never another tail -f /dev/null in the container.
-    assert snc.BOOT_MARKER in snc.BOOT_CMD and 'exec -a' in snc.BOOT_CMD
+    boot = next(cmd for cmd in calls if snc.BOOT_CMD in cmd)
+    assert boot[boot.index('-e') + 1] == 'DATABASE_USER=sidewalk_x' and boot[-1] == snc.BOOT_CMD
+    assert any(cmd[-4:] == ['pkill', '-f', '--', snc.BOOT_PATTERN] for cmd in calls)
+
+
+def test_boot_pattern_matches_the_boot_and_not_the_log_tail():
+    """
+    Every process of the boot carries the marker, and so does the boot log's path, which the tool's own messages
+    tell the operator to tail. The bare word would count that tail as a stale boot — a hard conflict no flag
+    overrides — and kill it at the stop; the two exact forms the boot uses match only the boot (#5297).
+    """
+    boot = [f'bash -c {snc.BOOT_CMD}', f'{snc.BOOT_MARKER}-stdin -f /dev/null',
+            f'bash /usr/bin/sbt -D{snc.BOOT_MARKER}=1 -Dconfig.resource=application.ci.conf run',
+            f'java -Xmx1536m -D{snc.BOOT_MARKER}=1 -jar /usr/share/sbt/bin/sbt-launch.jar run']
+    operator = [f'tail -f {snc.BOOT_LOG}', f'less {snc.BOOT_LOG}', f'docker exec projectsidewalk-web tail -50 '
+                f'{snc.BOOT_LOG}', 'tail -f /dev/null']
+    assert all(re.search(snc.BOOT_PATTERN, cmdline) for cmdline in boot)
+    assert not any(re.search(snc.BOOT_PATTERN, cmdline) for cmdline in operator)
+    assert snc.BOOT_MARKER in snc.BOOT_LOG, 'the collision this pattern exists for'
+    assert re.search(snc.BOOT_PATTERN, snc.PROBE_CMD) is None, 'the probe carries the pattern and must not match it'
+    assert re.search(snc._PROBE_BOOT_PATTERN, boot[3]) and re.search(snc._PROBE_BOOT_PATTERN, snc.PROBE_CMD) is None
+
+
+def test_boot_cmd_uses_the_ci_conf_its_own_port_and_forcestart():
+    """
+    Three things the boot's command line has to keep (#5297). application.ci.conf is the config the boot needs —
+    the dev profile with the nightly actors off, so a boot that straddles an actor's minute cannot write job rows
+    into a schema nothing has used — and it already exists for CI. The port is one compose does not publish, so
+    `npm start` can stay up. And sbt.server.forcestart: with a build running in the same checkout, sbt 1.12.13's
+    getSocketOrExit exits 2 without a console unless it is set, so --allow-running-apps could never boot.
+    """
+    ci_conf = (Path(snc.REPO_ROOT) / 'conf' / 'application.ci.conf').read_text()
+    assert '-Dconfig.resource=application.ci.conf' in snc.BOOT_CMD and '-Dconfig.file' not in snc.BOOT_CMD
+    assert 'include "application.local.conf"' in ci_conf
+    assert 'play.modules.disabled += "modules.ActorModule"' in ci_conf and '-Dplay.modules' not in snc.BOOT_CMD
+    assert f'-Dhttp.port={snc.BOOT_PORT}' in snc.BOOT_CMD and snc.BOOT_PORT != 9000
+    assert f'"{snc.BOOT_PORT}:' not in (Path(snc.REPO_ROOT) / 'docker-compose.yml').read_text()
+    assert '-Dsbt.server.forcestart=true' in snc.BOOT_CMD
+    assert f'-D{snc.BOOT_MARKER}=1' in snc.BOOT_CMD and f'exec -a {snc.BOOT_MARKER}-stdin' in snc.BOOT_CMD
 
 
 def test_apply_evolutions_waits_for_the_app_then_for_the_evolutions(monkeypatch, capsys):
-    calls = _boot_env(monkeypatch, {'max(id)': [(0, '370\n'), (0, '374\n'), (0, '375\n')],
-                                    'pgrep': [(0, ''), (1, '')], 'last_problem': (0, '')},
-                      [urllib.error.URLError('refused'), urllib.error.HTTPError('u', 500, 'x', {}, None), None])
+    calls = _boot_env(monkeypatch, {_EVO: [(0, '370|\n'), (0, '374|\n'), (0, '375|\n')],
+                                    _CURL: [(7, ''), (0, ''), (0, '')],
+                                    _PROBE: [(0, 'port free\nboot none\npid 4242 /home\n'),
+                                             (0, 'port free\nboot none\n')]})
     prompts = []
+    monkeypatch.setattr(snc.sys, 'stdin', SimpleNamespace(isatty=lambda: True))
     monkeypatch.setattr('builtins.input', lambda text: prompts.append(text) or '')
     snc.apply_evolutions('sidewalk_x', 'x')
     out = capsys.readouterr().out
     assert '...at 374 of 375' in out and 'applied and verified (at 375)' in out
-    assert len(prompts) == 1 and 'already running' in prompts[0]
+    assert len(prompts) == 1 and 'pid 4242 is building in /home' in prompts[0]
+    assert 'Clear it' in prompts[0]
     assert sum(1 for cmd in calls if 'pkill' in cmd) == 1
 
 
+def test_evolution_state_reads_both_answers_from_one_query(monkeypatch):
+    """The wait loop asks every ten seconds, so the applied number and the failure come back together."""
+    _fake_run(monkeypatch, {"sidewalk_x.play_evolutions": (0, '375|381: relation x | y does not exist\n'),
+                            "sidewalk_e.play_evolutions": (0, '|\n'), "sidewalk_z.play_evolutions": (1, '')})
+    assert snc.evolution_state('sidewalk_x') == ('375', '381: relation x | y does not exist')
+    assert snc.evolution_state('sidewalk_e') == (None, None)   # an empty table: nothing applied, nothing failed
+    assert snc.evolution_state('sidewalk_z') == (None, None)   # unreadable
+
+
 def test_apply_evolutions_stops_on_a_failed_evolution_and_on_timeout(monkeypatch):
-    _boot_env(monkeypatch, {'max(id)': (0, '370\n'), 'pgrep': (1, ''), 'last_problem': (0, '375: relation x\n')},
-              [None])
+    _boot_env(monkeypatch, {_EVO: (0, '370|375: relation x\n')})
     with pytest.raises(SystemExit, match='could not apply evolution 375: relation x'):
         snc.apply_evolutions('sidewalk_x', 'x')
-    _boot_env(monkeypatch, {'max(id)': (0, '370\n'), 'pgrep': (1, ''), 'last_problem': (0, '')}, [None] * 5)
+    _boot_env(monkeypatch, {_EVO: (0, '370|\n')})
     clock = iter([0, 1, 10_000])
     monkeypatch.setattr(snc.time, 'monotonic', lambda: next(clock))
     with pytest.raises(SystemExit, match='never reached 375'):
         snc.apply_evolutions('sidewalk_x', 'x')
 
 
+def test_apply_evolutions_notices_a_boot_that_died(monkeypatch):
+    """
+    A boot that failed to bind, or fell over compiling, leaves nothing listening; without this the wait runs the
+    full half hour before pointing at the log. The `tail` and the pipeline's shell outlive the JVM, so the check is
+    the JVM's own command line — the marker property and the launcher jar together (#5297).
+    """
+    _boot_env(monkeypatch, {_EVO: (0, '370|\n'), _JVM: [(0, '4242\n'), (1, '')], _CURL: (7, '')})
+    with pytest.raises(SystemExit, match='exited before the app answered'):
+        snc.apply_evolutions('sidewalk_x', 'x')
+    # The pattern starts with -D, which pgrep reads as an option (exit 2, the same as "no match") unless it is
+    # told the options are over; without `--` a fresh boot reads as dead ten seconds in (measured).
+    calls = _fake_run(monkeypatch, {_JVM: (0, '4242\n')})
+    assert snc.boot_jvm_alive() is True
+    [jvm] = [cmd for cmd in calls if _JVM in ' '.join(cmd)]
+    assert jvm[-2:] == ['--', f'-D{snc.BOOT_MARKER}=1 .*sbt-launch'] and jvm[-3] == '-f'
+
+
+def test_boot_answered_asks_curl_inside_the_container(monkeypatch):
+    """
+    Compose publishes no boot port, so the poll runs where the port is. Any response means the app booted; a
+    refused connection, a timeout (Play holds the request while it compiles), or a listener that is not speaking
+    HTTP all leave curl non-zero, which is "not yet" — never a traceback (#5297).
+    """
+    for exit_code, answered in ((0, True), (7, False), (28, False), (1, False), (52, False)):
+        calls = _fake_run(monkeypatch, {_CURL: (exit_code, '')})
+        assert snc.boot_answered() is answered
+        [poll] = calls
+        assert poll[:3] == ['docker', 'exec', snc.WEB_CONTAINER] and poll[-1] == snc.BOOT_URL
+        assert '--max-time' in poll and poll[poll.index('--max-time') + 1] == '240'
+
+
+def test_probe_asks_inside_the_container_and_cannot_match_itself():
+    """
+    Two things the probe's text has to keep (#5297).
+
+    The port is asked from inside the container: Docker's published-port forwarder on the host accepts a connect
+    for the container's whole lifetime, listener or not, so a host-side probe reads a published port as taken
+    whatever is running. And `docker exec` starts the probe shell with every pattern on its own command line, so a
+    plain `sbt-launch` reports a fresh phantom pid on every call; bracketing fixes that only until someone widens
+    the pattern (`[s]bt-launch|sbtn` matches the shell again), so `$$` is skipped as well.
+    """
+    assert f'/dev/tcp/127.0.0.1/{snc.BOOT_PORT}' in snc.PROBE_CMD
+    assert '[s]bt-launch' in snc.PROBE_CMD, 'the pattern must not match this shell\'s own command line'
+    assert '"$pid" = "$$"' in snc.PROBE_CMD and 'continue' in snc.PROBE_CMD, 'skip own pid whatever the pattern'
+    assert 'command -v pgrep' in snc.PROBE_CMD, 'a missing pgrep must fail the probe, not report no builds'
+    assert 'echo "boot stale"' in snc.PROBE_CMD and snc.BOOT_PATTERN not in snc.PROBE_CMD
+
+
+def test_inspect_container_reads_the_probe_or_says_why_not(monkeypatch):
+    """
+    Anything but a well-formed answer is "could not inspect": a for-loop over an empty word list exits 0, so a
+    probe whose pgrep call failed would otherwise report a clear way, and a pid whose directory could not be read
+    would be dropped. Not knowing is not the same as being clear (#5297).
+    """
+    calls = _fake_run(monkeypatch, {_PROBE: (0, 'port taken\nboot none\npid 10 /home\npid 11 ?\n')})
+    assert snc.inspect_container() == snc.Inspection(True, ((10, '/home'), (11, '?')), False)
+    probe = next(cmd for cmd in calls if _PROBE in ' '.join(cmd))
+    assert probe[:5] == ['docker', 'exec', snc.WEB_CONTAINER, 'bash', '-c'] and probe[5] == snc.PROBE_CMD
+    _fake_run(monkeypatch, {_PROBE: (0, 'port free\nboot stale\n')})
+    assert snc.inspect_container() == snc.Inspection(False, (), True)
+    _fake_run(monkeypatch, {_PROBE: (1, '', 'Error: No such container\n')})
+    assert snc.inspect_container().problem == 'could not inspect projectsidewalk-web for running builds ' \
+                                              '(Error: No such container)'
+    _fake_run(monkeypatch, {_PROBE: (3, '', '')})
+    assert snc.inspect_container().problem.endswith('(exit 3)')
+    for partial in ('boot none\npid 10 /home\n', 'port free\npid 10 /home\n'):   # a fact missing
+        _fake_run(monkeypatch, {_PROBE: (0, partial)})
+        assert snc.inspect_container().problem == f'could not tell whether :{snc.BOOT_PORT} is free in ' \
+                                                  'projectsidewalk-web'
+    _fake_run(monkeypatch, {_PROBE: (0, 'port free\nboot none\nbash: pgrep: command not found\n')})
+    assert snc.inspect_container().problem.startswith("could not read projectsidewalk-web's answer")
+
+
+def test_boot_conflicts_names_a_boot_this_script_left_behind(monkeypatch):
+    """A run killed outright never reaches the stop, and the advice to stop a build cannot apply (#5297)."""
+    _fake_run(monkeypatch, {_PROBE: (0, 'port taken\nboot stale\npid 4242 /home\n')})
+    hard, soft = snc.boot_conflicts()
+    assert any('left behind' in line and f'pkill -f -- "{snc.BOOT_PATTERN}"' in line for line in hard)
+    # Compiling in /home with no port held yet, it would file as overridable — and then the stale JVM would answer
+    # boot_jvm_alive() for the new boot's whole wait. Never overridable: nothing legitimate carries the marker.
+    _fake_run(monkeypatch, {_PROBE: (0, 'port free\nboot stale\npid 4242 /home\n')})
+    hard, soft = snc.boot_conflicts()
+    assert [line for line in hard if 'left behind' in line] and soft == ["pid 4242 is building in /home (shares "
+                                                                          "the boot's target/)"]
+    # Something else on the port is not this script's to reap, so it gets no such advice.
+    _fake_run(monkeypatch, {_PROBE: (0, 'port taken\nboot none\n')})
+    assert not any('left behind' in line for line in sum(snc.boot_conflicts(), []))
+
+
+def test_boot_conflicts_counts_only_builds_in_the_boots_own_checkout(monkeypatch):
+    """
+    `target/` is the only thing a checkout has to itself: the caches every worktree shares under /home/.sbt and
+    /home/.coursier are built for concurrent use, and the Laurens rebuild ran with five worktree JVMs up. A pid
+    whose directory could not be read is counted, because it may be in the boot's checkout (#5297).
+    """
+    _fake_run(monkeypatch, {_PROBE: (0, 'port free\nboot none\npid 10 /home\n'
+                                        'pid 11 /home/.claude/worktrees/some-branch\n'
+                                        'pid 12 /home/.claude/worktrees/other\npid 13 ?\n')})
+    hard, soft = snc.boot_conflicts()
+    assert hard == []
+    assert soft == ["pid 10 is building in /home (shares the boot's target/)",
+                    'pid 13 is an sbt whose working directory could not be read, so it may be building in /home']
+    _fake_run(monkeypatch, {_PROBE: (0, 'port free\nboot none\n')})
+    assert snc.boot_conflicts() == ([], [])
+
+
+def test_boot_conflicts_treats_a_taken_boot_port_as_hard(monkeypatch):
+    """The boot's port is its own, so whatever holds it is in the way and no flag overrides that (#5297)."""
+    _fake_run(monkeypatch, {_PROBE: (0, 'port taken\nboot none\npid 11 /home/.claude/worktrees/some-branch\n')})
+    assert snc.boot_conflicts() == ([f':{snc.BOOT_PORT} is already taken (the boot needs it)'], [])
+
+
+def test_boot_conflicts_reports_a_container_it_cannot_inspect(monkeypatch):
+    """Not knowing is not the same as being clear."""
+    _fake_run(monkeypatch, {_PROBE: (1, '', 'Error: No such container\n')})
+    assert snc.boot_conflicts() == (['could not inspect projectsidewalk-web for running builds '
+                                     '(Error: No such container)'], [])
+
+
+def test_boot_url_matches_no_route_and_is_not_logged(monkeypatch):
+    """
+    The poll must reach no controller: every route that does logs a webpage_activity row. Measured against a schema
+    at 382 with the repo at 384: polling an unrouted path alone took it to 384 and left webpage_activity untouched.
+    And it must sit under the one prefix the error handler keeps out of the log, or the 30-minute wait writes ~360
+    lines of probe noise into the log the timeout message points at (#5297).
+    """
+    routes = (Path(snc.REPO_ROOT) / 'conf' / 'routes').read_text()
+    handler = (Path(snc.REPO_ROOT) / 'app' / 'modules' / 'CustomErrorHandler.scala').read_text()
+    path = snc.BOOT_URL.split(str(snc.BOOT_PORT), 1)[1]
+    assert path.startswith('/.well-known/')
+    assert path not in routes
+    assert 'request.path.startsWith("/.well-known/")' in handler
+
+
+def test_apply_evolutions_will_not_block_on_a_prompt_nothing_can_answer(monkeypatch, capsys):
+    """Unattended, with no terminal to answer a prompt, the gate names what is in the way and stops (#5297)."""
+    _boot_env(monkeypatch, {_EVO: (0, '370|\n'), _PROBE: (0, 'port free\nboot none\npid 4242 /home\n')})
+    monkeypatch.setattr(snc.sys, 'stdin', SimpleNamespace(isatty=lambda: False))
+    with pytest.raises(SystemExit, match='(?s)4242.*pass --allow-running-apps'):
+        snc.apply_evolutions('sidewalk_x', 'x')
+    # --allow-running-apps boots anyway, whether or not there is a terminal to ask.
+    calls = _boot_env(monkeypatch, {_EVO: [(0, '370|\n'), (0, '375|\n')],
+                                    _PROBE: (0, 'port free\nboot none\npid 4242 /home\n')})
+    snc.apply_evolutions('sidewalk_x', 'x', allow_running_apps=True)
+    assert '--allow-running-apps: booting anyway, with pid 4242' in capsys.readouterr().out
+    assert any(snc.BOOT_CMD in cmd for cmd in calls)
+
+
+def test_apply_evolutions_never_overrides_a_taken_port_or_an_unknown(monkeypatch, capsys):
+    """
+    With the port taken the boot cannot bind, and every poll is answered by whatever holds it: after a clone that
+    app's play_evolutions already reads current, so the verification this boot exists for would be skipped and
+    reported done. And "could not inspect" is not a conflict to wave through — booting into it was a
+    CalledProcessError traceback. Neither is the flag's to override (#5297).
+    """
+    for probe in ((0, 'port taken\nboot none\n'), (1, '', 'Error: No such container\n')):
+        calls = _boot_env(monkeypatch, {_EVO: (0, '370|\n'), _PROBE: probe})
+        monkeypatch.setattr(snc.sys, 'stdin', SimpleNamespace(isatty=lambda: False))
+        with pytest.raises(SystemExit) as stopped:
+            snc.apply_evolutions('sidewalk_x', 'x', allow_running_apps=True)
+        assert 'cannot start' in str(stopped.value) and '--allow-running-apps' not in str(stopped.value)
+        assert not any(snc.BOOT_CMD in cmd for cmd in calls)
+    assert '--allow-running-apps' not in capsys.readouterr().out
+
+
+def test_apply_evolutions_stops_when_the_terminal_runs_out_of_answers(monkeypatch):
+    """Ctrl-D at a real terminal is the one way this wait can still raise, and it must not be a traceback (#5297)."""
+    _boot_env(monkeypatch, {_EVO: (0, '370|\n'), _PROBE: (0, 'port taken\nboot none\n')})
+    monkeypatch.setattr(snc.sys, 'stdin', SimpleNamespace(isatty=lambda: True))
+    monkeypatch.setattr('builtins.input', _no_stdin)
+    with pytest.raises(SystemExit, match='nothing left on stdin'):
+        snc.apply_evolutions('sidewalk_x', 'x')
+
+
+def test_apply_evolutions_blames_the_override_when_it_then_times_out(monkeypatch):
+    """After --allow-running-apps, a timeout is far more likely the conflict than the evolutions themselves."""
+    _boot_env(monkeypatch, {_EVO: (0, '370|\n'), _PROBE: (0, 'port free\nboot none\npid 4242 /home\n')})
+    clock = iter([0, 1, 10_000])
+    monkeypatch.setattr(snc.time, 'monotonic', lambda: next(clock))
+    with pytest.raises(SystemExit) as timed_out:
+        snc.apply_evolutions('sidewalk_x', 'x', allow_running_apps=True)
+    assert '--allow-running-apps was passed over' in str(timed_out.value) and '4242' in str(timed_out.value)
+
+
+def test_apply_evolutions_blames_what_it_booted_over_after_a_clear(monkeypatch, capsys):
+    """
+    The conflicts are re-read after every clear, so what the boot is then passed over is what gets announced and,
+    on a timeout, blamed — not the state before the operator pressed Enter (#5297).
+    """
+    _boot_env(monkeypatch, {_EVO: (0, '370|\n'),
+                            _PROBE: [(0, 'port taken\nboot none\npid 4242 /home\n'),
+                                     (0, 'port free\nboot none\npid 4242 /home\n')]})
+    monkeypatch.setattr(snc.sys, 'stdin', SimpleNamespace(isatty=lambda: True))
+    monkeypatch.setattr('builtins.input', lambda text: '')
+    clock = iter([0, 1, 10_000])
+    monkeypatch.setattr(snc.time, 'monotonic', lambda: next(clock))
+    with pytest.raises(SystemExit) as timed_out:
+        snc.apply_evolutions('sidewalk_x', 'x', allow_running_apps=True)
+    assert '--allow-running-apps: booting anyway, with pid 4242' in capsys.readouterr().out
+    assert '--allow-running-apps was passed over: pid 4242' in str(timed_out.value)
+
+
 # --------------------------------------------------------------------------------------------------------------------
 # main, end to end, with the prompts scripted and the docker steps faked
 # --------------------------------------------------------------------------------------------------------------------
 
+_QGIS_SQL = 'BEGIN; COMMIT;\n'
+_QGIS_MD5 = hashlib.md5(_QGIS_SQL.encode()).hexdigest()
+_FILL_MD5 = hashlib.md5((REPO_ROOT / 'db' / 'scripts' / 'fill-new-schema.sh').read_bytes()).hexdigest()
+
+
 def _city_artifacts(repo_copy, city_id='testville-wa', preflight=True):
     city_dir = repo_copy / 'db' / 'onboarding' / city_id
     city_dir.mkdir(parents=True)
-    (city_dir / 'qgis_tables.sql').write_text('BEGIN; COMMIT;\n')
+    (city_dir / 'qgis_tables.sql').write_text(_QGIS_SQL)
     (city_dir / 'report.md').write_text('# City onboarding report\n\n- Generated: now\n- Streets: **3**\n\n'
                                         '| region_id | name | streets | street km | flag |\n|---|---|---|---|---|\n'
                                         '| 1 | West | 2 | 1.0 |  |\n| 2 | East | 1 | 0.5 |  |\n')
@@ -397,7 +1008,8 @@ def _stub_steps(monkeypatch, repo_copy):
     """Replaces the long-running steps with recorders and points the GA step at the copied files."""
     record = {'evolutions': []}
     monkeypatch.setattr(snc, 'apply_evolutions',
-                        lambda schema, city_id, verify=False: record['evolutions'].append((schema, verify)))
+                        lambda schema, city_id, verify=False, allow_running_apps=False:
+                        record['evolutions'].append((schema, verify)))
     monkeypatch.setattr(snc, 'run_imagery_scan',
                         lambda schema, city_id, pano_type: record.__setitem__('scan', pano_type))
     monkeypatch.setattr(snc, 'dump_schema', lambda schema: record.__setitem__('dump', schema))
@@ -409,9 +1021,11 @@ def _stub_steps(monkeypatch, repo_copy):
     return record
 
 
-# The docker answers for a first, clean run: containers up, no schema yet, the dev city is the donor, a fresh clone
-# holds only the tutorial street, and no scan has been imported.
+# The docker answers for a first, clean run: containers up and mounting this checkout, no schema yet, the dev city
+# is the donor, a fresh clone holds only the tutorial street, and no scan has been imported.
 _FRESH_DB = {'true': (0, ''), 'pg_namespace': (0, ''), 'printenv DATABASE_USER': (0, 'sidewalk_richmond\n'),
+             'md5sum /opt/onboarding': (0, f'{_QGIS_MD5}  qgis_tables.sql\n'),
+             'md5sum /opt/scripts': (0, f'{_FILL_MD5}  fill-new-schema.sh\n'),
              'street_edge': (0, '1\n'), 'street_imagery': (0, '0\n')}
 
 
@@ -425,7 +1039,8 @@ def test_main_dry_run_registers_nothing_and_stops_before_docker(repo_copy, monke
     out = capsys.readouterr().out
     assert 'No imagery preflight yet' in out
     assert 'would add 17 entries' in out and '[dry-run] stopping' in out
-    assert snc.CITYPARAMS.read_text() == before and calls == []
+    assert snc.CITYPARAMS.read_text() == before
+    assert not any('docker' in cmd for cmd in calls)
 
 
 def test_main_stops_when_the_data_is_refused(repo_copy, monkeypatch):
@@ -471,20 +1086,153 @@ def test_main_first_run_walks_every_step(repo_copy, monkeypatch, capsys):
 def test_main_rerun_skips_what_already_happened(repo_copy, monkeypatch, capsys):
     _city_artifacts(repo_copy)
     record = _stub_steps(monkeypatch, repo_copy)
-    _fake_run(monkeypatch, {'true': (0, ''), 'pg_namespace': (0, '1\n'), 'street_edge': (0, '170\n'),
-                            'street_imagery': (0, '167\n')})
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{'pg_namespace': (0, '1\n'), 'street_edge': (0, '170\n'),
+                                              'street_imagery': (0, '167\n')}))
     snc.add_cityparams_entries('testville-wa', [(['db-schema'], '"sidewalk_testville_wa"')], dry_run=False)
+    for name in ('messages', *snc.TRANSLATED_MESSAGE_FILES):
+        path = snc.MESSAGES_DIR / name
+        path.write_text(path.read_text() + 'city.name.testville-wa = Testville\nstate.name.washington = Washington\n')
     (repo_copy / 'ga-service-account.json').write_text('{}')
     monkeypatch.setattr(ga, 'ids_are_placeholders', lambda city_id: False)
     _answers(monkeypatch, 'y', '', '', '', 'gsv', '', '', '', 'n')
     snc.main(['testville-wa'])
     out = capsys.readouterr().out
     assert 'already knows testville-wa' in out and 'Left unset' not in out
+    # Every file carries both names: the one state that reads as done.
+    assert 'every locale file already carries' in out and 'Translations still owed' not in out
     assert 'GA measurement ids are already filled in' in out
     assert 'Keeping the existing schema' in out
     assert record['evolutions'] == [('sidewalk_testville_wa', False)]
     assert 'Steps 5-6/8 — skipped: sidewalk_testville_wa already holds 170 streets' in out
     assert 'A scan was already imported' in out and 'scan' not in record
+
+
+def test_main_refuses_a_checkout_the_containers_do_not_mount(repo_copy, monkeypatch):
+    """
+    The containers mount the checkout they were started from, and every db step reads that copy: from a worktree,
+    or from a second clone, the script would check its own artifacts while the steps used the other checkout's.
+    Git cannot tell a second clone from the first, so the check is on the file the steps are about to use (#5297).
+    """
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    calls = _fake_run(monkeypatch, dict(_FRESH_DB, **{'md5sum /opt/onboarding': (0, f'{"0" * 32}  other\n')}))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '')
+    with pytest.raises(SystemExit, match='(?s)qgis_tables.sql is not this checkout.*not another clone'):
+        snc.main(['testville-wa'])
+    assert not any('create-new-schema' in cmd for cmd in _joined(calls))
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{'md5sum /opt/onboarding': (1, '', 'No such file\n')}))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '')
+    with pytest.raises(SystemExit, match='qgis_tables.sql is not in the db container'):
+        snc.main(['testville-wa'])
+    # --dry-run only previews edits to this checkout's own conf/ files and drives no container, so it is allowed.
+    calls = _fake_run(monkeypatch, {'md5sum': (1, '')})
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '')
+    snc.main(['testville-wa', '--dry-run'])
+    assert not any('md5sum' in cmd for cmd in _joined(calls))
+
+
+def test_main_quotes_the_reason_a_load_or_fill_failed(repo_copy, monkeypatch):
+    """Both steps fail for data reasons, and psql's own message is the useful part of the failure (#5297)."""
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{
+        '-f /opt/onboarding': (1, '', 'psql:qgis_tables.sql:5: ERROR:  relation "qgis_road" does not exist\n')}))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '')
+    with pytest.raises(SystemExit) as failed:
+        snc.main(['testville-wa'])
+    assert 'loading qgis_tables.sql into sidewalk_testville_wa failed (exit 1)' in str(failed.value)
+    assert 'relation "qgis_road" does not exist' in str(failed.value)
+    assert 'Fix the file' in str(failed.value)
+
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{
+        'fill-new-schema.sh sidewalk': (1, '', 'ERROR:  duplicate key value violates unique constraint\n')}))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '', '1', 'all')
+    with pytest.raises(SystemExit) as failed:
+        snc.main(['testville-wa'])
+    assert 'fill-new-schema.sh failed on sidewalk_testville_wa (exit 1)' in str(failed.value)
+    assert 'duplicate key value' in str(failed.value)
+    # The fill is one transaction, so the schema is still the clone: no "drop and recreate" for a wrong answer.
+    assert 'nothing was committed' in str(failed.value) and 'drop' not in str(failed.value)
+    # A script that said nothing on stderr must not leave a blank where its reason should be.
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{'fill-new-schema.sh sidewalk': (1, 'Error: on stdout only\n', '')}))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '', '1', 'all')
+    with pytest.raises(SystemExit, match='gave no reason of its own; look at its output above'):
+        snc.main(['testville-wa'])
+
+
+def test_the_long_db_steps_still_show_their_progress(repo_copy, monkeypatch, capsys):
+    """
+    fill-new-schema.sh prints its configuration summary up front and then runs one long psql heredoc — the longest
+    step in the run — so its stdout must stream. create-new-schema.sh wraps its slow structure copy in
+    run_with_progress, whose heartbeat lines all go to stderr, so stderr must stream *too*: held back and printed at
+    the end, the clone runs silent for minutes and then dumps a burst of stale heartbeats. So stderr is a pipe that
+    is read as it fills, and every line reaches the terminal whether or not the step then fails (#5297).
+    """
+    seen = []
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{
+        'create-new-schema.sh': (0, '', '⏳ Copying sidewalk_richmond\'s schema structure...\n'
+                                        '  ...still working (0m10s elapsed)\n✓ done in 0m12s\n')}), kwargs_seen=seen)
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '', '1', 'all')
+    snc.main(['testville-wa', '--skip-scan'])
+    for step in ('create-new-schema.sh', '-f /opt/onboarding', 'fill-new-schema.sh sidewalk'):
+        cmd, kwargs = next((cmd, kw) for cmd, kw in seen if step in ' '.join(map(str, cmd)))
+        assert kwargs.get('stderr') is snc.subprocess.PIPE, f'{step} must read stderr to quote a failure'
+        assert not kwargs.get('capture_output') and 'stdout' not in kwargs, f'{step} must stream its progress'
+    err = capsys.readouterr().err
+    assert '...still working (0m10s elapsed)' in err and '✓ done in 0m12s' in err
+
+
+def test_main_passes_the_override_flag_through_to_the_boot(repo_copy, monkeypatch):
+    """Without this the flag parses and is silently dropped, which no other test would notice."""
+    seen = {}
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    monkeypatch.setattr(snc, 'apply_evolutions',
+                        lambda schema, city_id, verify=False, allow_running_apps=False:
+                        seen.__setitem__('allow', allow_running_apps))
+    _fake_run(monkeypatch, dict(_FRESH_DB))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '', '1', 'all')
+    snc.main(['testville-wa', '--skip-scan', '--allow-running-apps'])
+    assert seen['allow'] is True
+
+
+def test_main_tells_a_refused_donor_from_a_clone_that_broke_part_way(repo_copy, monkeypatch):
+    """
+    The clone script's reason has to reach the operator, not just a CalledProcessError traceback — and the advice
+    has to fit: a refused donor wants another donor, a copy that broke after the checks wants --recreate (#5297).
+    """
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    refusal = "Error: donor 'sidewalk_teaneck' is at evolution 383, beyond this checkout's highest (382).\n"
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{'create-new-schema.sh': (1, '', refusal)}))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '')
+    with pytest.raises(SystemExit) as refused:
+        snc.main(['testville-wa'])
+    message = str(refused.value)
+    assert 'would not clone sidewalk_richmond into sidewalk_testville_wa (exit 1)' in message
+    assert 'beyond this checkout' in message and '--donor' in message and '--recreate' not in message
+    broke = '⏳ Copying sidewalk_richmond\'s schema structure...\nERROR:  permission denied for schema x\n'
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{'create-new-schema.sh': (1, '', broke)}))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '')
+    with pytest.raises(SystemExit) as broken:
+        snc.main(['testville-wa'])
+    message = str(broken.value)
+    assert 'permission denied' in message and 'half-created' in message and '--recreate' in message
+    assert '--donor' not in message
+
+
+def test_main_verifies_a_schema_kept_from_a_run_that_never_filled_it(repo_copy, monkeypatch, capsys):
+    """A clone an earlier run left unfilled has never had its donor's hashes checked, so it boots too (#5297)."""
+    _city_artifacts(repo_copy)
+    record = _stub_steps(monkeypatch, repo_copy)
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{'pg_namespace': (0, '1\n')}))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '', 'n', '1', 'all')
+    snc.main(['testville-wa'])
+    out = capsys.readouterr().out
+    assert 'Keeping the existing schema' in out and 'never been verified' in out
+    assert record['evolutions'] == [('sidewalk_testville_wa', True)]
 
 
 def test_main_recreates_a_schema_on_request_and_can_defer_the_scan(repo_copy, monkeypatch, capsys):
@@ -500,6 +1248,16 @@ def test_main_recreates_a_schema_on_request_and_can_defer_the_scan(repo_copy, mo
     assert any(cmd[-4:] == ['sidewalk_testville_wa', 'sidewalk_seattle', '375', 'hash375'] for cmd in calls)
     assert record['evolutions'] == [('sidewalk_testville_wa', True)]
     assert 'Skipped (--skip-scan)' in out and 'scan' not in record
+    # --recreate is that "y" for a run with nobody to type it: the question is not asked at all.
+    record = _stub_steps(monkeypatch, repo_copy)
+    calls = _fake_run(monkeypatch, dict(_FRESH_DB, **{'pg_namespace': (0, '1\n')}))
+    monkeypatch.setattr('builtins.input', _no_stdin)
+    snc.main(['testville-wa', '--yes', '--recreate', '--skip-scan'])
+    assert 'Drop and recreate' not in capsys.readouterr().out
+    assert any('create-new-schema.sh' in cmd for cmd in _joined(calls))
+    assert record['evolutions'] == [('sidewalk_testville_wa', True)]
+    with pytest.raises(SystemExit, match='2'):
+        snc.main(['testville-wa', '--recreate', '--dump-only'])
 
 
 def test_main_registers_a_new_country_and_a_new_state(repo_copy, monkeypatch, capsys):
@@ -512,15 +1270,211 @@ def test_main_registers_a_new_country_and_a_new_state(repo_copy, monkeypatch, ca
     out = capsys.readouterr().out
     assert 'would add "country.name.atlantis = Atlantis"' in out
     assert 'country.name.atlantis' in out and 'state.name' not in out
+    assert 'city.name.atlantis-city' in out
     _city_artifacts(repo_copy, 'testville-wy')
     _answers(monkeypatch, 'y', '', '', '', '', '', '', '')
     snc.main(['testville-wy', '--dry-run'])
     out = capsys.readouterr().out
     assert 'would add "state.name.wyoming = Wyoming" to messages' in out
     assert 'would add "state.name.wyoming = WY" to messages.en' in out
-    assert 'city.name.testville-wy, state.name.wyoming' in out
+    assert '  city.name.testville-wy: ' in out and '  state.name.wyoming: ' in out
     # A state id outside the map gets no message lines.
     _city_artifacts(repo_copy, 'somewhere-xx')
     _answers(monkeypatch, 'y', '', 'usa', 'guam', '', '', '', '')
     snc.main(['somewhere-xx', '--dry-run'])
     assert 'state.name' not in capsys.readouterr().out
+
+
+def test_main_writes_the_state_abbreviation_even_when_the_base_line_already_exists(repo_copy, monkeypatch, capsys):
+    """
+    A run that added the base state.name line and then died at a db step never wrote messages.en's abbreviation,
+    and a rerun that keyed on the base line skipped both. Each file is asked for itself. (The tree carries that
+    drift: `state.name.dc` is in the base file and not in messages.en, #5297.)
+    """
+    _city_artifacts(repo_copy, 'testville-wy')
+    _append_key('messages', 'state.name.wyoming', 'Wyoming')
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '')
+    snc.main(['testville-wy', '--dry-run'])
+    out = capsys.readouterr().out
+    assert 'state.name.wyoming = Wyoming' not in out
+    assert 'would add "state.name.wyoming = WY" to messages.en' in out
+
+
+def test_main_runs_unattended_only_with_yes(repo_copy, monkeypatch, capsys):
+    """
+    One piped `y` would clear the build-report gate and then let every later question fall to its default, down to
+    the fill nobody can undo; and the container-free --dry-run preview could not run with stdin closed at all. --yes
+    is the explicit opt-in; without it the first question that is a choice stops the run and says so (#5297).
+    """
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    _fake_run(monkeypatch, {})
+    one_y = iter(['y'])
+
+    def piped_y(text):
+        try:
+            return next(one_y)
+        except StopIteration:
+            raise EOFError
+
+    monkeypatch.setattr('builtins.input', piped_y)
+    with pytest.raises(SystemExit, match='"City display name" needs an answer.*--yes'):
+        snc.main(['testville-wa', '--dry-run'])
+    monkeypatch.setattr('builtins.input', _no_stdin)
+    snc.main(['testville-wa', '--dry-run', '--yes'])
+    out = capsys.readouterr().out
+    assert 'Continue with this data? (y/n): y  (--yes)' in out and 'City display name [Testville]: Testville' in out
+    assert '[dry-run] stopping' in out
+    assert snc.ASSUME_DEFAULTS is True
+    with pytest.raises(SystemExit, match='has no default'):   # the flag is per run, never remembered
+        snc.main(['testville-wa', '--dry-run'])
+    assert snc.ASSUME_DEFAULTS is False
+
+
+def test_main_takes_the_fill_answers_from_flags_and_checks_them_against_each_other(repo_copy, monkeypatch):
+    """
+    The tutorial region has to be open at launch. fill-new-schema.sh refuses otherwise, on stdout, with the
+    whole run then failing on a blank reason — so the pair is checked before the fill runs and the answer can be
+    corrected in place (#5297).
+    """
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    calls = _fake_run(monkeypatch, dict(_FRESH_DB))
+    prompts = []
+    answers = iter(['y', '', '', '', '', '', '', '', 'include:1 2', 'include:1 2 4'])
+
+    def answer(text):
+        prompts.append(text)
+        return next(answers)
+
+    monkeypatch.setattr('builtins.input', answer)
+    snc.main(['testville-wa', '--skip-scan', '--tutorial-region', '4'])
+    [again] = [text for text in prompts if 'closes the tutorial region 4' in text]
+    assert again.startswith('"include:1 2" closes') and again.endswith('Regions to open: ')
+    assert '[' not in again, 'the re-ask must offer no default'
+    assert any(cmd[-3:] == ['sidewalk_testville_wa', '4', 'include:1 2 4'] for cmd in calls)
+    assert snc.region_opens_at_launch('4', 'all') and snc.region_opens_at_launch('4', 'exclude:1 2')
+    assert not snc.region_opens_at_launch('4', 'exclude:4 5') and not snc.region_opens_at_launch('4', 'include:1')
+    assert snc.regions_problem(None, 'include:1 2') is None    # the tutorial region is not known yet
+    with pytest.raises(SystemExit, match='2'):
+        snc.main(['testville-wa', '--regions', 'some:1'])
+    with pytest.raises(SystemExit, match='2'):
+        snc.main(['testville-wa', '--tutorial-region', '0'])
+    # Two flags that contradict each other are refused before anything runs: under --yes the re-ask would
+    # otherwise have nobody to answer it, and it must never turn a phased launch into "all".
+    with pytest.raises(SystemExit, match='2'):
+        snc.main(['testville-wa', '--yes', '--tutorial-region', '4', '--regions', 'include:1 2'])
+    with pytest.raises(SystemExit, match='2'):
+        snc.main(['testville-wa', '--dry-run', '--dump-only'])
+    # A typed tutorial region that is not a number, or is 0, is asked again; the flag is typed by argparse already.
+    _stub_steps(monkeypatch, repo_copy)
+    calls = _fake_run(monkeypatch, dict(_FRESH_DB))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '', 'west', '0', '2', 'all')
+    snc.main(['testville-wa', '--skip-scan'])
+    assert any(cmd[-3:] == ['sidewalk_testville_wa', '2', 'all'] for cmd in calls)
+
+
+def _dump_only_db(**overrides):
+    """The docker answers for a --dump-only run of a filled, mounted city; the most specific needles first."""
+    answers = {'priority <> 1': (0, '0\n'), 'pg_namespace': (0, '1\n'),
+               'md5sum /opt/scripts': (0, f'{_FILL_MD5}  fill-new-schema.sh\n'), 'street_edge': (0, '170\n'),
+               'relkind': (0, 'table|label\n'), 'count(*)': (0, 'label|0\n'),
+               'pg_restore --list': (0, '1; 0 0 TABLE x\n'), 'stat -c %s': (0, '1000000\n')}
+    answers.update(overrides)
+    return answers
+
+
+def test_main_dump_only_reruns_the_dump_step_alone(repo_copy, monkeypatch, capsys):
+    """
+    --dump-only skips step 0 through 7, and with them the "drop and recreate?" question — the most destructive
+    prompt in the run, which no city QA'd after its first dump should have to pass again (#5297).
+    """
+    _city_artifacts(repo_copy)
+    snc.add_cityparams_entries('testville-wa', [(['landing-page-url', 'prod'], '"https://p"'),
+                                                (['landing-page-url', 'test'], '"https://t"')], dry_run=False)
+    # The real dump step, not the stub the other main() tests use: this is the one path where main() has to wire
+    # it up on its own, with the handoff's URLs read back from cityparams.conf.
+    _fake_run(monkeypatch, _dump_only_db())
+    _answers(monkeypatch)
+    snc.main(['testville-wa', '--dump-only'])
+    out = capsys.readouterr().out
+    assert 'Step 8/8' in out and 'Wrote db/sidewalk_testville_wa-dump' in out
+    assert 'https://t and https://p' in out and 'Step 0/8' not in out
+    assert snc.cityparams_landing_urls('nowhere-xx') == ('<prod URL: not in cityparams.conf>',
+                                                         '<test URL: not in cityparams.conf>')
+    # No schema yet: nothing to dump. No database: say so, rather than "no schema".
+    _fake_run(monkeypatch, _dump_only_db(pg_namespace=(0, '')))
+    with pytest.raises(SystemExit, match='no schema sidewalk_testville_wa to dump'):
+        snc.main(['testville-wa', '--dump-only'])
+    _fake_run(monkeypatch, _dump_only_db(pg_namespace=(1, '')))
+    with pytest.raises(SystemExit, match='could not be asked; is it running'):
+        snc.main(['testville-wa', '--dump-only'])
+    # The containers mount another checkout: its db/ is where the dump would land.
+    _fake_run(monkeypatch, _dump_only_db(**{'md5sum /opt/scripts': (0, f'{"0" * 32}  other\n')}))
+    with pytest.raises(SystemExit, match='fill-new-schema.sh is not this checkout'):
+        snc.main(['testville-wa', '--dump-only'])
+
+
+def test_main_dump_only_refuses_an_unfilled_schema(repo_copy, monkeypatch):
+    """
+    A fill that rolled back leaves the clone with its one tutorial street and the qgis_* staging tables; without
+    this check --dump-only would write a one-street dump and print the handoff as if the city were done (#5297).
+    """
+    _city_artifacts(repo_copy)
+    calls = _fake_run(monkeypatch, _dump_only_db(street_edge=(0, '1\n')))
+    with pytest.raises(SystemExit, match='still an unfilled clone \\(1 street\\(s\\)\\).*without --dump-only'):
+        snc.main(['testville-wa', '--dump-only'])
+    assert not any('pg_dump' in cmd for cmd in _joined(calls))
+    _fake_run(monkeypatch, _dump_only_db(street_edge=(1, '')))
+    with pytest.raises(SystemExit, match='could not count sidewalk_testville_wa.street_edge'):
+        snc.main(['testville-wa', '--dump-only'])
+
+
+def test_main_keeps_an_existing_schema_when_nobody_can_answer(repo_copy, monkeypatch, capsys):
+    """Keeping the schema is the answer that does nothing, so it is the one an unattended rerun may take (#5297)."""
+    _city_artifacts(repo_copy)
+    record = _stub_steps(monkeypatch, repo_copy)
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{'pg_namespace': (0, '1\n'), 'street_edge': (0, '170\n'),
+                                              'street_imagery': (0, '167\n')}))
+    answers = iter(['y', '', '', '', '', '', '', ''])
+
+    def then_eof(text):
+        try:
+            return next(answers)
+        except StopIteration:
+            raise EOFError
+
+    monkeypatch.setattr('builtins.input', then_eof)
+    snc.main(['testville-wa'])
+    out = capsys.readouterr().out
+    assert 'taking the default: n' in out and 'Keeping the existing schema' in out
+    assert record['evolutions'] == [('sidewalk_testville_wa', False)]
+
+
+def test_main_stops_on_a_kept_schema_whose_streets_cannot_be_counted(repo_copy, monkeypatch):
+    """
+    A clone interrupted mid-restore leaves the schema with a prefix of its tables. "Couldn't count" must not read
+    as "unfilled" — the same rule the dump step applies to "couldn't tell" — and the way out has to be one an
+    unattended rerun can take, which "answer y" is not: --recreate is (#5297).
+    """
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{'pg_namespace': (0, '1\n'), 'street_edge': (1, '')}))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '', 'n')
+    with pytest.raises(SystemExit, match='could not count sidewalk_testville_wa.street_edge.*--recreate'):
+        snc.main(['testville-wa'])
+
+
+def test_main_yes_needs_country_and_pano_type_flags_for_a_non_us_city(repo_copy, monkeypatch, capsys):
+    """A non-US city has no default country, and a non-GSV one would silently take gsv; both are flags (#5297)."""
+    _city_artifacts(repo_copy, 'atlantis-city')
+    _stub_steps(monkeypatch, repo_copy)
+    monkeypatch.setattr('builtins.input', _no_stdin)
+    with pytest.raises(SystemExit, match='"Country id.*has no default'):
+        snc.main(['atlantis-city', '--dry-run', '--yes'])
+    snc.main(['atlantis-city', '--dry-run', '--yes', '--country', 'france', '--pano-type', 'panoramax'])
+    out = capsys.readouterr().out
+    assert 'atlantis-city = "panoramax"' not in out   # dry-run writes nothing
+    assert 'would add 17 entries' in out and 'Country id' not in out and 'Pano viewer type' not in out
+    with pytest.raises(SystemExit, match='2'):
+        snc.main(['atlantis-city', '--pano-type', 'hologram'])

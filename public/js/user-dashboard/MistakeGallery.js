@@ -9,15 +9,15 @@
  */
 class MistakeGallery {
   /**
-     * @param {HTMLElement} rootEl - Container to fill with cards.
-     * @param {object} opts
-     * @param {string} opts.userId - The signed-in user's id (the endpoint is self-or-admin only).
-     * @param {number} [opts.limit=6] - Max cards to show.
-     * @param {HTMLElement} [opts.seeAllEl] - Optional "see all" link, shown only when there are mistakes.
-     * @param {object} [opts.labelPopup] - Optional shared LabelPopup instance; when present, clicking a card image
-     *      opens the interactive pano + detail view and the vote/note controls are mirrored inside it.
-     * @param {boolean} [opts.readOnly=false] - Render the vote/note controls disabled (used for admin view).
-     */
+   * @param {HTMLElement} rootEl - Container to fill with cards.
+   * @param {object} opts
+   * @param {string} opts.userId - The signed-in user's id (the endpoint is self-or-admin only).
+   * @param {number} [opts.limit=6] - Max cards to show.
+   * @param {HTMLElement} [opts.seeAllEl] - Optional "see all" link, shown only when there are mistakes.
+   * @param {object} [opts.labelPopup] - Optional shared LabelPopup instance; when present, clicking a card image
+   *      opens the interactive pano + detail view and the vote/note controls are mirrored inside it.
+   * @param {boolean} [opts.readOnly=false] - Render the vote/note controls disabled (used for admin view).
+   */
   constructor(rootEl, opts) {
     this.root = rootEl;
     this.userId = opts.userId;
@@ -37,10 +37,10 @@ class MistakeGallery {
   }
 
   /**
-     * Re-renders every vote/note section currently in the DOM for a label (its card + the popup panel), so a change in
-     * one place is reflected in the other.
-     * @param {object} m - The label record.
-     */
+   * Re-renders every vote/note section currently in the DOM for a label (its card + the popup panel), so a change in
+   * one place is reflected in the other.
+   * @param {object} m - The label record.
+   */
   #sync(m) {
     document.querySelectorAll(`[data-ud-vote="${m.label_id}"]`)
       .forEach((el) => el.replaceWith(this.#voteSection(m)));
@@ -86,10 +86,10 @@ class MistakeGallery {
   }
 
   /**
-     * Builds one mistake card.
-     * @param {object} m - A label record from the endpoint.
-     * @returns {HTMLElement}
-     */
+   * Builds one mistake card.
+   * @param {object} m - A label record from the endpoint.
+   * @returns {HTMLElement}
+   */
   #renderCard(m) {
     const type = m.label_type;
     const iconPath = util.misc.getIconImagePaths(type)?.iconImagePath;
@@ -186,9 +186,9 @@ class MistakeGallery {
   }
 
   /**
-     * Opens the interactive label popup for a card and mirrors the vote/note controls inside it.
-     * @param {object} m - The label record.
-     */
+   * Opens the interactive label popup for a card and mirrors the vote/note controls inside it.
+   * @param {object} m - The label record.
+   */
   async #openPopup(m) {
     try {
       await this.labelPopup.showLabel(m.label_id, 'UserDashboard');
@@ -205,9 +205,9 @@ class MistakeGallery {
   }
 
   /**
-     * Injects (or replaces) the vote/note panel inside the popup dialog for the given label.
-     * @param {object} m - The label record.
-     */
+   * Injects (or replaces) the vote/note panel inside the popup dialog for the given label.
+   * @param {object} m - The label record.
+   */
   #mountPopupPanel(m) {
     const dialog = document.getElementById('label-modal');
     if (!dialog) return;
@@ -223,11 +223,11 @@ class MistakeGallery {
   }
 
   /**
-     * The agree/contest vote control, driven by shared per-label state. Unvoted shows the two buttons; voted shows the
-     * choice + a "Change response" button. Instant (no separate submit). Tagged with data-ud-vote for #sync.
-     * @param {object} m - The label record.
-     * @returns {HTMLElement} The vote-section element.
-     */
+   * The agree/contest vote control, driven by shared per-label state. Unvoted shows the two buttons; voted shows the
+   * choice + a "Change response" button. Instant (no separate submit). Tagged with data-ud-vote for #sync.
+   * @param {object} m - The label record.
+   * @returns {HTMLElement} The vote-section element.
+   */
   #voteSection(m) {
     const agrees = this.#stateFor(m.label_id).agrees;
     const sec = document.createElement('div');
@@ -270,11 +270,11 @@ class MistakeGallery {
   }
 
   /**
-     * Records a vote and, on success, updates shared state and re-renders every vote section for this label.
-     * @param {object} m - The label record.
-     * @param {HTMLElement} sec - The vote section (buttons disabled during the request).
-     * @param {boolean} agrees - True = agree it was a mistake; false = contest.
-     */
+   * Records a vote and, on success, updates shared state and re-renders every vote section for this label.
+   * @param {object} m - The label record.
+   * @param {HTMLElement} sec - The vote section (buttons disabled during the request).
+   * @param {boolean} agrees - True = agree it was a mistake; false = contest.
+   */
   async #vote(m, sec, agrees) {
     sec.querySelectorAll('button').forEach((b) => b.setAttribute('disabled', 'disabled'));
     try {
@@ -293,12 +293,12 @@ class MistakeGallery {
   }
 
   /**
-     * The optional note control, independent of the vote. Shows the saved note (if any) plus an "Add/Edit note" link
-     * that reveals a textarea + "Save note". A note can be left with or without a vote.
-     *
-     * @param {object} m - The label record.
-     * @returns {HTMLElement} The note-section element (tagged data-ud-note for #sync).
-     */
+   * The optional note control, independent of the vote. Shows the saved note (if any) plus an "Add/Edit note" link
+   * that reveals a textarea + "Save note". A note can be left with or without a vote.
+   *
+   * @param {object} m - The label record.
+   * @returns {HTMLElement} The note-section element (tagged data-ud-note for #sync).
+   */
   #noteSection(m) {
     const note = this.#stateFor(m.label_id).note;
     const sec = document.createElement('div');
@@ -353,11 +353,11 @@ class MistakeGallery {
   }
 
   /**
-     * Saves a note and, on success, updates shared state and re-renders every note section for this label.
-     * @param {object} m - The label record.
-     * @param {HTMLElement} sec - The note section (disabled during the request).
-     * @param {string} comment - The note text.
-     */
+   * Saves a note and, on success, updates shared state and re-renders every note section for this label.
+   * @param {object} m - The label record.
+   * @param {HTMLElement} sec - The note section (disabled during the request).
+   * @param {string} comment - The note text.
+   */
   async #saveNote(m, sec, comment) {
     const trimmed = (comment || '').trim();
     sec.querySelectorAll('button, textarea, a').forEach((el) => el.setAttribute('disabled', 'disabled'));
@@ -377,12 +377,12 @@ class MistakeGallery {
   }
 
   /**
-     * Places the label-type icon over whichever image the card ended up showing.
-     *
-     * @param {HTMLImageElement} marker - The marker element.
-     * @param {object} m - The label record.
-     * @param {?string} source - Which source is showing: 'crop', 'api', or null for the bare gradient.
-     */
+   * Places the label-type icon over whichever image the card ended up showing.
+   *
+   * @param {HTMLImageElement} marker - The marker element.
+   * @param {object} m - The label record.
+   * @param {?string} source - Which source is showing: 'crop', 'api', or null for the bare gradient.
+   */
   static #positionMarker(marker, m, source) {
     const { x, y } = util.misc.labelMarkerFraction(source, m.crop_marker, m.canvas_x, m.canvas_y);
     marker.style.left = `${100 * x}%`;
@@ -390,15 +390,15 @@ class MistakeGallery {
   }
 
   /**
-     * The card's image, preferring the label's saved crop (#4478): it's what the labeler saw, and it comes off our own
-     * disk, where the Static API image is billed per request. A crop's URL expires, so a failure retries the API image,
-     * and a second failure removes the photo. Alt is empty: the card's title names the type below it.
-     *
-     * @param {object} m - The label record.
-     * @param {function(?string): void} onSourceChange - Called with the source now on screen ('api', or null once
-     *     every source has failed), since the marker's position depends on which image is showing.
-     * @returns {?HTMLImageElement} The image, or null when the label has no source at all.
-     */
+   * The card's image, preferring the label's saved crop (#4478): it's what the labeler saw, and it comes off our own
+   * disk, where the Static API image is billed per request. A crop's URL expires, so a failure retries the API image,
+   * and a second failure removes the photo. Alt is empty: the card's title names the type below it.
+   *
+   * @param {object} m - The label record.
+   * @param {(source: ?string) => void} onSourceChange - Called with the source now on screen ('api', or null once
+   *     every source has failed), since the marker's position depends on which image is showing.
+   * @returns {?HTMLImageElement} The image, or null when the label has no source at all.
+   */
   static #photo(m, onSourceChange) {
     if (!m.crop_url && !m.image_url) return null;
     const photo = document.createElement('img');
@@ -422,11 +422,11 @@ class MistakeGallery {
   }
 
   /**
-     * @param {string} cls - Extra class.
-     * @param {string} label - Button text.
-     * @param {string} title - Tooltip.
-     * @returns {HTMLButtonElement}
-     */
+   * @param {string} cls - Extra class.
+   * @param {string} label - Button text.
+   * @param {string} title - Tooltip.
+   * @returns {HTMLButtonElement}
+   */
   static #chip(cls, label, title) {
     const b = document.createElement('button');
     b.type = 'button';
@@ -437,11 +437,11 @@ class MistakeGallery {
   }
 
   /**
-     * The localized display name for a label type, via the shared common-namespace keys ("NoCurbRamp" ->
-     * t('common:no-curb-ramp')).
-     * @param {string} type - LabelTypeEnum name.
-     * @returns {string}
-     */
+   * The localized display name for a label type, via the shared common-namespace keys ("NoCurbRamp" ->
+   * t('common:no-curb-ramp')).
+   * @param {string} type - LabelTypeEnum name.
+   * @returns {string}
+   */
   static #typeName(type) {
     const key = String(type).replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
     return i18next.t(`common:${key}`);

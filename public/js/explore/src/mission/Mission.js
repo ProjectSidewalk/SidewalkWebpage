@@ -104,7 +104,7 @@ class Mission {
 
   /**
    * Returns a property
-   * @param {string} key The property being requested
+   * @param {string} key - The property being requested
    * @returns {*|null} The value of the property, or null if no property found with that ID
    */
   getProperty = (key) => {
@@ -121,8 +121,8 @@ class Mission {
 
   /**
    * Sets a property
-   * @param {string} key The property being set
-   * @param {*} value The value to set that property to
+   * @param {string} key - The property being set
+   * @param {*} value - The value to set that property to
    * @returns {void}
    */
   setProperty = (key, value) => {
@@ -150,7 +150,7 @@ class Mission {
 
   /**
    * Total line distance in this mission.
-   * @param {string} [unit='meters'] One of 'meters', 'miles', 'feet', 'kilometers', or 'meters'
+   * @param {string} [unit='meters'] - One of 'meters', 'miles', 'feet', 'kilometers', or 'meters'
    */
   getDistance = (unit = 'meters') => {
     if (unit === 'miles') {

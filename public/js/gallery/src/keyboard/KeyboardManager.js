@@ -9,7 +9,7 @@ class KeyboardManager {
   #expandedView;
 
   /**
-   * @param {ExpandedView} expandedView The object for the expanded view in the gallery.
+   * @param {ExpandedView} expandedView - The object for the expanded view in the gallery.
    */
   constructor(expandedView) {
     this.#expandedView = expandedView;

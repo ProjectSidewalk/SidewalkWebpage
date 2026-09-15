@@ -921,7 +921,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         + "labelCount:Integer,"
         + "auditCount:Integer,"
         + "firstNsLbl:String," // first_no_sidewalk_label_date
-        + "lastNsLbl:String"   // last_no_sidewalk_label_date
+        + "lastNsLbl:String,"  // last_no_sidewalk_label_date
+        + "nsValid:Integer,"   // validated_no_sidewalk_count; last two appended so v11.12.0 readers keep their indexes
+        + "nsReject:Integer"   // rejected_no_sidewalk_count
     )
 
     def buildFeature(face: SidewalkPresenceForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
@@ -941,6 +943,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(face.auditCount)
       featureBuilder.add(face.firstNoSidewalkLabelDate.map(_.toString).orNull)
       featureBuilder.add(face.lastNoSidewalkLabelDate.map(_.toString).orNull)
+      featureBuilder.add(face.validatedNoSidewalkCount)
+      featureBuilder.add(face.rejectedNoSidewalkCount)
       featureBuilder.buildFeature(null)
     }
 

@@ -91,7 +91,8 @@ class HealthPage {
       tone = 'bad';
       problems.push(`${blocking} blocking session${blocking === 1 ? '' : 's'}`);
     }
-    const badIdle = (data.idle_in_transaction || []).filter((s) => (s.idle_seconds || 0) >= t.idle_txn_bad_seconds).length;
+    const badIdle = (data.idle_in_transaction || [])
+      .filter((s) => (s.idle_seconds || 0) >= t.idle_txn_bad_seconds).length;
     if (badIdle > 0) {
       tone = tone === 'bad' ? 'bad' : 'warn';
       problems.push(`${badIdle} long idle transaction${badIdle === 1 ? '' : 's'}`);
@@ -248,6 +249,7 @@ class HealthPage {
     const body = rows.map((r) => {
       const tone = this.#bloatTone(r);
       const ratioPct = AdminShell.nil(r.dead_ratio) ? '—' : `${(r.dead_ratio * 100).toFixed(1)}%`;
+      const vacuumed = AdminShell.nil(r.vacuum_age_seconds) ? 'never' : `${AdminShell.dur(r.vacuum_age_seconds)} ago`;
       return `
         <tr${tone !== 'good' ? ' class="ac-row--flagged"' : ''}>
           <td>${AdminShell.esc(r.schema_name)}</td>
@@ -255,7 +257,7 @@ class HealthPage {
           <td class="ac-num">${HealthPage.#compact(r.live_tuples)}</td>
           <td class="ac-num">${HealthPage.#compact(r.dead_tuples)}</td>
           <td class="ac-num"><span class="ac-badge ac-badge--${tone === 'good' ? 'good' : tone}">${ratioPct}</span></td>
-          <td class="ac-num">${AdminShell.nil(r.vacuum_age_seconds) ? 'never' : `${AdminShell.dur(r.vacuum_age_seconds)} ago`}</td>
+          <td class="ac-num">${vacuumed}</td>
         </tr>`;
     }).join('');
     this.#table('health-bloat',

@@ -9,7 +9,7 @@ class ModalNoNewMission {
   #showing = false;
 
   /**
-   * @param {object} uiModalMission Mission modal UI elements.
+   * @param {object} uiModalMission - Mission modal UI elements.
    */
   constructor(uiModalMission) {
     this.#uiModalMission = uiModalMission;
@@ -23,7 +23,7 @@ class ModalNoNewMission {
 
   /**
    * Wraps a message in the modal's illustrated body markup.
-   * @param {string} message The translated sentence explaining the dead end.
+   * @param {string} message - The translated sentence explaining the dead end.
    * @returns {string} The body's HTML.
    */
   static #buildBody(message) {
@@ -57,7 +57,7 @@ class ModalNoNewMission {
 
   /**
    * @param {object} [opts]
-   * @param {boolean} [opts.imageryUnavailable=false] True when Validate stopped because it couldn't load the imagery
+   * @param {boolean} [opts.imageryUnavailable=false] - True when Validate stopped because it couldn't load the imagery
    *      for the labels it had, rather than because there are none left (#4810).
    */
   show({ imageryUnavailable = false } = {}) {

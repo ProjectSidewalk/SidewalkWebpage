@@ -89,8 +89,8 @@ class MissionController {
 
   /**
    * Marks the given mission as complete: logs it, updates the model, and bumps the session's completed-mission count.
-   * @param mission The mission being completed.
-   * @param region The region the mission was in.
+   * @param {Mission} mission - The mission being completed.
+   * @param {Region} region - The region the mission was in.
    */
   #completeTheCurrentMission(mission, region) {
     this.#tracker.push(
@@ -109,8 +109,8 @@ class MissionController {
 
   /**
    * Completes the mission and shows the mission-complete modal if the mission is finished.
-   * @param mission The current mission.
-   * @param region The current region.
+   * @param {Mission} mission - The current mission.
+   * @param {Region} region - The current region.
    */
   #checkMissionComplete(mission, region) {
     // On a route the mission IS the route walk (one route-scoped mission, sized to the route server-side), so its
@@ -138,8 +138,8 @@ class MissionController {
   /**
    * Updates the audited distance and mission completion rate in the right sidebar, checks for mission completion, and
    * occasionally prompts the user with the survey.
-   * @param currentMission The current mission.
-   * @param currentRegion The current region.
+   * @param {Mission} currentMission - The current mission.
+   * @param {Region} currentRegion - The current region.
    */
   update(currentMission, currentRegion) {
     if (svl.isOnboarding()) return;

@@ -23,7 +23,7 @@ const aiHoverSelectors = [
 
 /**
  * Creates the reusable AI indicator icon with optional tooltip behavior.
- * @param {Array<string>} extraClasses Additional CSS classes to apply.
+ * @param {Array<string>} extraClasses - Additional CSS classes to apply.
  * @returns {HTMLElement} Configured AI indicator element.
  */
 function aiLabelIndicator(extraClasses = []) {
@@ -50,7 +50,7 @@ function aiLabelIndicator(extraClasses = []) {
 /**
  * Ensures the provided icon has a tooltip initialized with shared options.
  * @param {HTMLElement} icon
- * @returns {JQuery} tooltip-enabled icon
+ * @returns {JQuery} The tooltip-enabled icon.
  */
 function ensureAiTooltip(icon) {
   const $icon = $(icon);

@@ -236,8 +236,8 @@ class TeamActions {
   }
 
   /**
-     * @param {string} msg - Error text to show in the dialog.
-     */
+   * @param {string} msg - Error text to show in the dialog.
+   */
   static #showError(msg) {
     const err = document.getElementById('ud-team-error');
     err.textContent = msg;

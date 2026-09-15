@@ -6,9 +6,9 @@ class ModalMissionComplete {
   #language;
 
   /**
-   * @param {object} uiModalMissionComplete Mission-complete modal UI elements.
-   * @param {object} user Current user.
-   * @param {string} [language] Language code passed on to the mission start tutorial.
+   * @param {object} uiModalMissionComplete - Mission-complete modal UI elements.
+   * @param {object} user - Current user.
+   * @param {string} [language] - Language code passed on to the mission start tutorial.
    */
   constructor(uiModalMissionComplete, user, language = 'en') {
     this.#uiModalMissionComplete = uiModalMissionComplete;
@@ -58,7 +58,7 @@ class ModalMissionComplete {
    * The badge and its wording are mobile's; the desktop screen has neither element, so those calls land on empty
    * jQuery sets and it keeps the bare number its table column expects.
    *
-   * @param {number} total The validator's all-time validation count.
+   * @param {number} total - The validator's all-time validation count.
    */
   #showStanding(total) {
     const ui = this.#uiModalMissionComplete;
@@ -98,7 +98,7 @@ class ModalMissionComplete {
 
   /**
    * Displays the mission complete screen.
-   * @param {Mission} mission Object for the mission that was just completed.
+   * @param {Mission} mission - Object for the mission that was just completed.
    */
   show(mission) {
     // Disable keyboard on mobile.

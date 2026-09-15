@@ -7,7 +7,7 @@ class KeyboardManager {
   #addingComment = false;
 
   /**
-   * @param {object} validationMenuUi Validation menu UI elements.
+   * @param {object} validationMenuUi - Validation menu UI elements.
    */
   constructor(validationMenuUi) {
     this.#validationMenuUi = validationMenuUi;
@@ -55,10 +55,10 @@ class KeyboardManager {
   /**
    * Handles the logic for the number key shortcuts.
    *
-   * @param {number} n The keyboard shortcut number that was hit. 1-3 map to a severity, disagree reason, or unsure
+   * @param {number} n - The keyboard shortcut number that was hit. 1-3 map to a severity, disagree reason, or unsure
    *                   reason; 4 maps to a fourth disagree reason where one is offered. Any n with no matching option
    *                   focuses the comment box, which is what makes 5 reach it on a four-reason label type.
-   * @param {Event} e The keypress event.
+   * @param {Event} e - The keypress event.
    */
   #handleNumberKeyShortcut(n, e) {
     const validationMenuUi = this.#validationMenuUi;
@@ -88,7 +88,7 @@ class KeyboardManager {
   /**
    * Sets focus to the appropriate comment box, depending on which validation option has been selected.
    *
-   * @param {Event} e The keypress event.
+   * @param {Event} e - The keypress event.
    */
   #handleCommentBoxShortcut(e) {
     const validationMenuUi = this.#validationMenuUi;

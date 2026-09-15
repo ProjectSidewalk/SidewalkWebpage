@@ -9,11 +9,11 @@ class RegionProgressBar {
   #rateEl;
 
   /**
-   * @param {object} [elementIds] Overrides for the element ids, letting the same bar be reused elsewhere.
-   * @param {string} [elementIds.fill] Id of the rounded fill pill.
-   * @param {string} [elementIds.you] Id of the current-user segment.
-   * @param {string} [elementIds.community] Id of the community segment.
-   * @param {string} [elementIds.rate] Id of the percentage label.
+   * @param {object} [elementIds] - Overrides for the element ids, letting the same bar be reused elsewhere.
+   * @param {string} [elementIds.fill] - Id of the rounded fill pill.
+   * @param {string} [elementIds.you] - Id of the current-user segment.
+   * @param {string} [elementIds.community] - Id of the community segment.
+   * @param {string} [elementIds.rate] - Id of the percentage label.
    */
   constructor(elementIds = {}) {
     const ids = {

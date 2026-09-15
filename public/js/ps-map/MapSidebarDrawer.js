@@ -40,10 +40,10 @@ class MapSidebarDrawer {
   #appliedPaddingLeft = null;
 
   /**
-   * @param {mapboxgl.Map} map The Mapbox map the drawer shares the viewport with.
-   * @param {HTMLElement} sidebar The `.filter-sidebar` element.
+   * @param {mapboxgl.Map} map - The Mapbox map the drawer shares the viewport with.
+   * @param {HTMLElement} sidebar - The `.filter-sidebar` element.
    * @param {object} [options]
-   * @param {boolean} [options.startCollapsed=false] Open the page with the drawer closed even on a wide viewport.
+   * @param {boolean} [options.startCollapsed=false] - Open the page with the drawer closed even on a wide viewport.
    */
   constructor(map, sidebar, { startCollapsed = false } = {}) {
     this.#map = map;
@@ -76,7 +76,7 @@ class MapSidebarDrawer {
 
   /**
    * @param {object} [options]
-   * @param {boolean} [options.log=true] Whether to record the interaction; false for programmatic state changes.
+   * @param {boolean} [options.log=true] - Whether to record the interaction; false for programmatic state changes.
    */
   open({ log = true } = {}) {
     this.#setOpen(true, { log });
@@ -84,7 +84,7 @@ class MapSidebarDrawer {
 
   /**
    * @param {object} [options]
-   * @param {boolean} [options.log=true] Whether to record the interaction; false for programmatic state changes.
+   * @param {boolean} [options.log=true] - Whether to record the interaction; false for programmatic state changes.
    */
   close({ log = true } = {}) {
     this.#setOpen(false, { log });
@@ -93,12 +93,12 @@ class MapSidebarDrawer {
   /**
    * Applies an open/closed state to the drawer, its chrome, and the map's padding.
    *
-   * @param {boolean} open The state to apply.
+   * @param {boolean} open - The state to apply.
    * @param {object} [options]
-   * @param {boolean} [options.animate=true] Ease the camera rather than jumping it.
-   * @param {boolean} [options.moveFocus=true] Send focus to whichever control is now the way back out. Suppressed
+   * @param {boolean} [options.animate=true] - Ease the camera rather than jumping it.
+   * @param {boolean} [options.moveFocus=true] - Send focus to whichever control is now the way back out. Suppressed
    *     for state the page applies on load, which would otherwise steal focus from the document.
-   * @param {boolean} [options.log=true] Whether to record the interaction.
+   * @param {boolean} [options.log=true] - Whether to record the interaction.
    */
   #setOpen(open, { animate = true, moveFocus = true, log = true } = {}) {
     this.#open = open;
@@ -128,7 +128,7 @@ class MapSidebarDrawer {
    * Pushes the map's center clear of the drawer, or restores it.
    *
    * @param {object} [options]
-   * @param {boolean} [options.animate=true] Ease rather than jump.
+   * @param {boolean} [options.animate=true] - Ease rather than jump.
    */
   #applyPadding({ animate = true } = {}) {
     // A covering drawer gets no padding: nearly-viewport-wide padding projects the center off the canvas.

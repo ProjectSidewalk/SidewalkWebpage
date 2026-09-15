@@ -18,9 +18,9 @@ class UnsavedChangesGuard {
   /**
    * Arms the guard for the life of the page.
    * @param {object} opts
-   * @param {function(): boolean} opts.isDirty - Whether there are unsaved edits right now.
-   * @param {function(): Promise<boolean>} opts.save - Saves the edits, resolving true if the save succeeded.
-   * @param {function(string): void} [opts.onChoice] - Called with the button the user picked ('save', 'discard',
+   * @param {() => boolean} opts.isDirty - Whether there are unsaved edits right now.
+   * @param {() => Promise<boolean>} opts.save - Saves the edits, resolving true if the save succeeded.
+   * @param {(choice: string) => void} [opts.onChoice] - Called with the button the user picked ('save', 'discard',
    *     or 'stay'), to log it in the page's own activity naming.
    */
   constructor({ isDirty, save, onChoice = null }) {
