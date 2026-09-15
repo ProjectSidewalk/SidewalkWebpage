@@ -18,8 +18,32 @@ import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
+/**
+ * What [[AiService.ensureSeedRows]] had to insert: whether the AI's user_stat row was missing, and the label types
+ * whose `aiValidation` mission was. Both empty means the schema already carried every row.
+ */
+case class AiSeedRows(statRowInserted: Boolean, missionsInserted: Seq[LabelTypeEnum.Base]) {
+  def nothingInserted: Boolean = !statRowInserted && missionsInserted.isEmpty
+}
+
 @ImplementedBy(classOf[AiServiceImpl])
 trait AiService {
+
+  /**
+   * Inserts whichever of the SidewalkAI account's per-schema rows this schema lacks (#5349).
+   *
+   * 281.sql seeded the AI's user_stat row and its nine `aiValidation` missions once per schema. A schema created by
+   * cloning a donor city, or restored from an onboarding dump, has 281 marked applied and none of those rows, and
+   * nothing at runtime creates them: user_stat rows come from sign-in, missions from a person's own progress. Without
+   * the stat row the AI's labels land but fail the user_stat join most label queries carry; without the missions
+   * the first AI validation throws. Idempotent, so it is safe to run at every boot.
+   *
+   * @return What was inserted.
+   */
+  def ensureSeedRows(): Future[AiSeedRows]
+
+  /** The DBIO behind [[ensureSeedRows]], so a spec can run it inside a rolled-back transaction. */
+  def ensureSeedRowsDbio: DBIO[AiSeedRows]
 
   /**
    * Validates labels using AI by fetching label metadata, calling the AI API, and saving results.
@@ -47,6 +71,7 @@ class AiServiceImpl @Inject() (
     labelAiAssessmentTable: models.label.LabelAiAssessmentTable,
     labelAiFailureTable: models.label.LabelAiFailureTable,
     missionTable: models.mission.MissionTable,
+    userStatTable: models.user.UserStatTable,
     panoDataService: PanoDataService
 )(implicit val ec: ExecutionContext)
     extends AiService
@@ -81,6 +106,13 @@ class AiServiceImpl @Inject() (
       Future.successful(Seq.empty[Option[LabelAiAssessment]])
     }
   }
+
+  def ensureSeedRows(): Future[AiSeedRows] = db.run(ensureSeedRowsDbio)
+
+  def ensureSeedRowsDbio: DBIO[AiSeedRows] = (for {
+    statRows: Int                     <- userStatTable.insertAiUserStatIfMissing()
+    missions: Seq[LabelTypeEnum.Base] <- missionTable.insertMissingAiValidationMissions()
+  } yield AiSeedRows(statRows == 1, missions)).transactionally
 
   def validateLabelsWithAiDaily(n: Int): Future[Seq[Option[LabelAiAssessment]]] = {
     if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON)) {
