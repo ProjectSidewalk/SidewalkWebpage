@@ -181,7 +181,11 @@
       "legend-next-step": "Hellblau: nächster Schritt (Leertaste)",
       "route-stop-title": "Haltepunkt {{rank}} auf deiner Route",
       "breadcrumb-title": "Besucht: klicken, um hierher zurückzukehren",
-      "label-marker-title": "{{labelType}}-Markierung: klicken zum Überprüfen"
+      "label-marker-title": "{{labelType}}-Markierung: klicken zum Überprüfen",
+      "route-start-flag": "Routenstart",
+      "route-finish-flag": "Routenziel",
+      "street-start-flag": "Anfang dieser Straße",
+      "street-finish-flag": "Ende dieser Straße"
     },
     "stats": {
       "leaderboard-cta": "Bestenliste der Gemeinschaft ansehen"

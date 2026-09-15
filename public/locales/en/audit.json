@@ -181,7 +181,11 @@
       "legend-next-step": "Light blue: next step (spacebar)",
       "route-stop-title": "Stop {{rank}} on your route",
       "breadcrumb-title": "Visited: click to go back here",
-      "label-marker-title": "{{labelType}} label: click to review it"
+      "label-marker-title": "{{labelType}} label: click to review it",
+      "route-start-flag": "Route start",
+      "route-finish-flag": "Route finish",
+      "street-start-flag": "Start of this street",
+      "street-finish-flag": "End of this street"
     },
     "stats": {
       "leaderboard-cta": "See the community leaderboard"

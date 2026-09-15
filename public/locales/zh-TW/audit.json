@@ -181,7 +181,11 @@
       "legend-next-step": "淺藍：下一步（空白鍵）",
       "route-stop-title": "路線上的第 {{rank}} 站",
       "breadcrumb-title": "已造訪：點擊返回此處",
-      "label-marker-title": "{{labelType}} 標記：點擊查看"
+      "label-marker-title": "{{labelType}} 標記：點擊查看",
+      "route-start-flag": "路線起點",
+      "route-finish-flag": "路線終點",
+      "street-start-flag": "此街道起點",
+      "street-finish-flag": "此街道終點"
     },
     "stats": {
       "leaderboard-cta": "查看社群排行榜"

@@ -181,7 +181,11 @@
       "legend-next-step": "Azul claro: siguiente paso (barra espaciadora)",
       "route-stop-title": "Parada {{rank}} de tu ruta",
       "breadcrumb-title": "Visitado: clic para volver aquí",
-      "label-marker-title": "Etiqueta {{labelType}}: clic para revisarla"
+      "label-marker-title": "Etiqueta {{labelType}}: clic para revisarla",
+      "route-start-flag": "Inicio de la ruta",
+      "route-finish-flag": "Final de la ruta",
+      "street-start-flag": "Inicio de esta calle",
+      "street-finish-flag": "Final de esta calle"
     },
     "stats": {
       "leaderboard-cta": "Ver la clasificación de la comunidad"

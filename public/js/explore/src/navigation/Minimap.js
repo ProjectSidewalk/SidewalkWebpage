@@ -19,6 +19,9 @@ class Minimap {
   static #START_FLAG_SRC = util.assetPath('images/icons/routebuilder/flag-start.svg');
   static #FINISH_FLAG_SRC = util.assetPath('images/icons/routebuilder/flag-end.svg');
 
+  /** @type {?{start: google.maps.marker.AdvancedMarkerElement, finish: google.maps.marker.AdvancedMarkerElement}} */
+  #streetFlags = null; // The current street's flags on a neighborhood mission; see showStreetEndpointsFor().
+
   /** @type {google.maps.Map} */
   #map;
 
@@ -291,27 +294,61 @@ class Minimap {
 
   /**
    * Draws the route's start and finish flags on the minimap (routes only), reusing the same flag icons the user
-   * placed while building the route so building and walking read as one experience. Each flag is planted with its
-   * pole base on the point (AdvancedMarkerElement's default bottom-center anchor matches RouteBuilder's icon-anchor).
-   * The flags are decorative reinforcement of route status already conveyed textually (progress bar, finish toast,
-   * compass message), so their images are marked decorative (empty alt) for screen readers.
+   * placed while building the route so building and walking read as one experience. The flags reinforce route
+   * status already conveyed textually (progress bar, finish toast, compass message); their tooltip names them for
+   * anyone hovering.
    * @param {{lat: number, lng: number}} start - Route start (first street's walking-start coordinate).
    * @param {{lat: number, lng: number}} finish - Route finish (last street's walking-end coordinate).
    */
   showRouteEndpoints(start, finish) {
-    const plantFlag = (latLng, src) => {
-      const content = document.createElement('img');
-      content.src = src;
-      content.alt = '';
-      content.style.width = `${Minimap.#ROUTE_FLAG_SIZE_PX}px`;
-      return new google.maps.marker.AdvancedMarkerElement({
-        position: new google.maps.LatLng(latLng.lat, latLng.lng),
-        map: this.#map,
-        content,
-      });
-    };
-    plantFlag(start, Minimap.#START_FLAG_SRC);
-    plantFlag(finish, Minimap.#FINISH_FLAG_SRC);
+    this.#plantFlag(start, Minimap.#START_FLAG_SRC, i18next.t('audit:right-ui.minimap.route-start-flag'));
+    this.#plantFlag(finish, Minimap.#FINISH_FLAG_SRC, i18next.t('audit:right-ui.minimap.route-finish-flag'));
+  }
+
+  /**
+   * Plants start and finish flags on the current street of a neighborhood mission, so a street reads the way a
+   * RouteBuilder route does: here is where it begins, there is where it ends. The two flags persist and move with
+   * each street switch. Routes keep their whole-route flags instead; the tutorial and free exploration have no
+   * street to frame.
+   * @param {Task} task - The task just made current, with its geometry already in walking direction.
+   */
+  showStreetEndpointsFor(task) {
+    const noStreetToFrame = (svl.regionModel && svl.regionModel.isRoute)
+      || (svl.isOnboarding && svl.isOnboarding()) || (svl.isExploreAddressMode && svl.isExploreAddressMode());
+    if (noStreetToFrame) return;
+    const start = task.getStartCoordinate();
+    const finish = task.getEndCoordinate();
+    if (!this.#streetFlags) {
+      const t = (key) => i18next.t(`audit:right-ui.minimap.${key}`);
+      this.#streetFlags = {
+        start: this.#plantFlag(start, Minimap.#START_FLAG_SRC, t('street-start-flag')),
+        finish: this.#plantFlag(finish, Minimap.#FINISH_FLAG_SRC, t('street-finish-flag')),
+      };
+      return;
+    }
+    this.#streetFlags.start.position = new google.maps.LatLng(start.lat, start.lng);
+    this.#streetFlags.finish.position = new google.maps.LatLng(finish.lat, finish.lng);
+  }
+
+  /**
+   * One flag marker, planted with its pole base on the point (AdvancedMarkerElement's default bottom-center anchor
+   * matches RouteBuilder's icon-anchor).
+   * @param {{lat: number, lng: number}} latLng - Where to plant it.
+   * @param {string} src - The flag image.
+   * @param {string} title - Hover tooltip and accessible name.
+   * @returns {google.maps.marker.AdvancedMarkerElement}
+   */
+  #plantFlag(latLng, src, title) {
+    const content = document.createElement('img');
+    content.src = src;
+    content.alt = title;
+    content.style.width = `${Minimap.#ROUTE_FLAG_SIZE_PX}px`;
+    return new google.maps.marker.AdvancedMarkerElement({
+      position: new google.maps.LatLng(latLng.lat, latLng.lng),
+      map: this.#map,
+      content,
+      title,
+    });
   }
 
   /**
