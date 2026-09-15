@@ -137,10 +137,10 @@ front — the move is to object storage (S3/MinIO), never the local filesystem.
 DI is Guice. The app bootstraps via `app/CustomApplicationLoader.scala`; modules are registered in
 `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`,
 `SilhouetteModule`, and `StartupChecksModule` — the home for boot-time checks that surface deployment-level
-misconfiguration, like `PersistentMediaDirCheck`, and for `AiSeedRowsCheck`, which inserts the SidewalkAI user's
-per-schema rows wherever a schema was created without running 281.sql — a cloned or dump-restored city, #5349).
-Custom execution contexts live in `app/executors/`; background
-actors in `app/actor/`; HTTP filters in `app/filters/`, registered through `play.filters.enabled` in
+misconfiguration, like `PersistentMediaDirCheck`, and for boot-time repairs like `AiSeedRowsRepair`, which inserts
+the SidewalkAI user's per-schema rows wherever a schema was created without running 281.sql — a cloned or
+dump-restored city, #5349). Custom execution contexts live in `app/executors/`; background actors in `app/actor/`;
+HTTP filters in `app/filters/`, registered through `play.filters.enabled` in
 `conf/application.conf`.
 
 **Views** are Twirl templates (`app/views/*.scala.html`).

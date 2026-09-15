@@ -1324,7 +1324,8 @@ class UserStatTable @Inject() (
    * 281.sql created this row once per schema and 286.sql set `high_quality_manual`, but a schema created by cloning
    * a donor (or restored from an onboarding dump) carries 281 as applied without the row, and nothing else inserts
    * one for a user who never signs in. The AI's labels then fail the user_stat join most label queries carry.
-   * `high_quality_manual = TRUE` is 286's value: the AI must never be filtered out as low quality.
+   * `high_quality_manual = TRUE` is 286's value: the AI must never be filtered out as low quality, which is also why
+   * this isn't a call to `insertIfNew` above — that only takes the two privacy flags.
    *
    * @return The number of rows inserted: 1 when the row was missing, 0 when it already existed.
    */

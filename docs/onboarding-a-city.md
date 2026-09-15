@@ -137,7 +137,7 @@ its default either way.
    version history, `config` with its tutorial street, tags, survey questions), creates the role, bumps the
    sequences, grants `readonly_user`. The SidewalkAI user's per-schema rows are not among the seeds: the clone
    marks 281.sql (which seeded them) applied, so the app inserts them itself at boot — the step 4 boot here, and
-   the server's first boot after the dump is restored (`AiSeedRowsCheck`, #5349). The donor defaults to the dev
+   the server's first boot after the dump is restored (`AiSeedRowsRepair`, #5349). The donor defaults to the dev
    container's `DATABASE_USER`; pass `--donor` to choose. A donor is refused below evolution 373 (its `label_type`
    is still a table that `tag` references, so the seed copy fails half-way; such a schema is usually stranded below
    372 too, which no boot can fix — see `docs/dev-environment.md`) and when it has applied an evolution beyond this

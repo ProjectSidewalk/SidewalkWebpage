@@ -8,7 +8,7 @@
 # street, the tag catalogue, and the survey questions — creates the owning role, and wires up search_path + read-only
 # grants. After this, you'd load the city's streets/regions with fill-new-schema.sh. The SidewalkAI user's per-schema
 # rows are deliberately not among the seeds: copying the donor's play_evolutions marks 281.sql (which seeded them)
-# applied, so the app inserts them itself at boot (AiSeedRowsCheck, #5349), the same way for a clone, a dump, or a
+# applied, so the app inserts them itself at boot (AiSeedRowsRepair, #5349), the same way for a clone, a dump, or a
 # restore.
 #
 # It clones a donor rather than restoring the committed `sidewalk_init` template: the template is frozen at evolution
