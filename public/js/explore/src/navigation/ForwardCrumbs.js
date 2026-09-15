@@ -108,7 +108,7 @@ class ForwardCrumbs {
     const task = this.#taskToSample();
     const [links, stops] = await Promise.all([
       this.#positionedLinks(),
-      task ? this.#routeStopsAhead(task) : Promise.resolve([]),
+      task ? this.#routeStopsAhead(task) : Promise.resolve({ ahead: [], walkNextPanoId: null }),
     ]);
     if (generation !== this.#generation) return; // A newer refresh owns the markers now.
 

@@ -463,7 +463,8 @@ class MapillaryViewer extends PanoViewer {
    * The SDK's graph node for an image id, if it holds one. The graph sits behind a hot replayed observable, so a
    * subscribe delivers the current graph synchronously; there is no public accessor for it.
    * @param {string} panoId - The Mapillary image id.
-   * @returns {?object} The mapillary-js Image, or null when the graph doesn't hold it (or the internals moved).
+   * @returns {?{lngLat: ?{lat: number, lng: number}}} The mapillary-js Image, or null when the graph doesn't hold
+   *     it (or the internals moved).
    */
   #graphNode = (panoId) => {
     try {

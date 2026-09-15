@@ -627,7 +627,7 @@ class PanoramaxViewer extends PanoViewer {
    * a bare id: answered from the items the searches cached, null once a street change has dropped them.
    */
   lookupPanoPosition = (panoId) => {
-    const item = this.#items.get(panoId);
+    const item = /** @type {?{geometry: {coordinates: number[]}}} */ (this.#items.get(panoId) ?? null);
     return Promise.resolve(item ? { lat: item.geometry.coordinates[1], lng: item.geometry.coordinates[0] } : null);
   };
 
