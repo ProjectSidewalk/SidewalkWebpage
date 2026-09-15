@@ -119,12 +119,17 @@ describe('ForwardCrumbs.mergeSources', () => {
         ]);
     });
 
-    test('a route stop wins over a link to the same pano, and the current and visited panos are left out', () => {
+    test('a route stop wins over a link to the same pano, and the current pano is left out', () => {
         const crumbs = ForwardCrumbs.mergeSources(
             [stop('A', 30), stop('here', 40)],
-            [link('A', 45), link('seen', 225), link('here', 0), link('side', 90)], opts,
+            [link('A', 45), link('here', 0), link('side', 90)], opts,
         );
         expect(crumbs.map((c) => [c.panoId, c.kind])).toEqual([['A', 'route'], ['side', 'link']]);
+    });
+
+    test('a visited pano stays a crumb, flagged, so the way forward can still be marked after a backtrack', () => {
+        const crumbs = ForwardCrumbs.mergeSources([stop('seen', 30), stop('B', 60)], [link('seen', 45)], opts);
+        expect(crumbs.map((c) => [c.panoId, c.kind, c.visited])).toEqual([['seen', 'route', true], ['B', 'route', false]]);
     });
 });
 

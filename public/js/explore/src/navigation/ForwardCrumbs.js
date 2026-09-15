@@ -27,8 +27,10 @@
  */
 
 /**
- * One crumb to draw: a route stop or an arrow destination, and whether clicking it steps there.
- * @typedef {{panoId: string, lat: number, lng: number, kind: ('route'|'link'), clickable: boolean, rank: number}} Crumb
+ * One crumb to draw: a route stop or an arrow destination, whether clicking it steps there, and whether the user has
+ * already stood on it (it then wears the breadcrumb trail's pine so the two marks read as one).
+ * @typedef {{panoId: string, lat: number, lng: number, kind: ('route'|'link'), clickable: boolean, rank: number,
+ *     visited: boolean}} Crumb
  */
 
 class ForwardCrumbs {
@@ -55,7 +57,7 @@ class ForwardCrumbs {
 
   #navigationService;
   #tracker;
-  #markers = new Map(); // panoId -> { marker: AdvancedMarkerElement, kind, clickable }.
+  #markers = new Map(); // panoId -> { marker: AdvancedMarkerElement, kind, clickable, visited }.
   #links = []; // The current pano's positioned links, kept for setFacing().
   #routeStops = []; // Route stops ahead, nearest first, kept for setFacing().
   #facedPanoId = null;
@@ -253,8 +255,9 @@ class ForwardCrumbs {
 
   /**
    * Combines the two crumb sources into one list keyed by pano. A route stop wins over a link to the same pano (the
-   * link's arrow is the route's forward arrow, so it should read as a route stop). The current pano and visited
-   * panos are left out: the peg and the breadcrumb trail already mark them.
+   * link's arrow is the route's forward arrow, so it should read as a route stop). The current pano is left out (the
+   * peg marks it); a visited pano stays in, flagged, so that after a backtrack the way forward can still be tinted
+   * and filled: the breadcrumb ring alone can't show where the next step goes.
    * @param {MeasuredCrumb[]} stops - Route stops ahead, nearest first.
    * @param {Array<{panoId: string, heading: number, lat: number, lng: number}>} links - Positioned arrow destinations.
    * @param {object} options
@@ -264,15 +267,18 @@ class ForwardCrumbs {
    * @returns {Crumb[]}
    */
   static mergeSources(stops, links, { currentPanoId, isVisited, reachableCount }) {
-    const skip = (panoId) => panoId === currentPanoId || isVisited(panoId);
-    const crumbs = /** @type {Crumb[]} */ (stops.filter((stop) => !skip(stop.panoId)).map((stop, i) => ({
+    const crumbs = /** @type {Crumb[]} */ (stops.filter((stop) => stop.panoId !== currentPanoId).map((stop, i) => ({
       panoId: stop.panoId, lat: stop.lat, lng: stop.lng, kind: 'route', clickable: i < reachableCount, rank: i + 1,
+      visited: isVisited(stop.panoId),
     })));
     const taken = new Set(crumbs.map((crumb) => crumb.panoId));
     for (const link of links) {
-      if (skip(link.panoId) || taken.has(link.panoId)) continue;
+      if (link.panoId === currentPanoId || taken.has(link.panoId)) continue;
       taken.add(link.panoId);
-      crumbs.push({ panoId: link.panoId, lat: link.lat, lng: link.lng, kind: 'link', clickable: true, rank: 0 });
+      crumbs.push({
+        panoId: link.panoId, lat: link.lat, lng: link.lng, kind: 'link', clickable: true, rank: 0,
+        visited: isVisited(link.panoId),
+      });
     }
     return crumbs;
   }
@@ -477,7 +483,7 @@ class ForwardCrumbs {
     const wanted = new Map(crumbs.map((crumb) => [crumb.panoId, crumb]));
     for (const [panoId, entry] of this.#markers) {
       const want = wanted.get(panoId);
-      if (!want || want.kind !== entry.kind || want.clickable !== entry.clickable) {
+      if (!want || want.kind !== entry.kind || want.clickable !== entry.clickable || want.visited !== entry.visited) {
         entry.marker.map = null;
         this.#markers.delete(panoId);
         if (this.#facedPanoId === panoId) this.#facedPanoId = null;
@@ -487,7 +493,9 @@ class ForwardCrumbs {
     }
     for (const [panoId, crumb] of wanted) {
       if (!this.#markers.has(panoId)) {
-        this.#markers.set(panoId, { marker: this.#createMarker(crumb), kind: crumb.kind, clickable: crumb.clickable });
+        this.#markers.set(panoId, {
+          marker: this.#createMarker(crumb), kind: crumb.kind, clickable: crumb.clickable, visited: crumb.visited,
+        });
       }
     }
   }
@@ -505,6 +513,7 @@ class ForwardCrumbs {
       `minimap-crumb-${crumb.kind}`,
       crumb.clickable ? '' : 'minimap-crumb-far',
       crumb.kind === 'route' && crumb.rank > 1 ? 'minimap-crumb-small' : '',
+      crumb.visited ? 'minimap-crumb-visited' : '',
     ].join(' ').trim();
     const title = crumb.kind === 'route'
       ? i18next.t('audit:right-ui.minimap.forward-crumb-title', { rank: crumb.rank })

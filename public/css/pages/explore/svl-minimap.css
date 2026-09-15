@@ -454,6 +454,19 @@
   opacity: 0.7;
 }
 
+/* A crumb at a pano the user has already stood on sits exactly over its breadcrumb ring and wears the same pine at the
+   same size, so the two read as one mark; the next-step tint and the faced fill below still apply to it, which is
+   what makes the way forward legible after a backtrack. */
+.minimap-crumb-visited {
+  --crumb-color: var(--color-pine-700);
+}
+
+.minimap-crumb-visited::before {
+  width: calc(7px * var(--ui-scale, 1));
+  height: calc(7px * var(--ui-scale, 1));
+  border-width: calc(1.4px * var(--ui-scale, 1));
+}
+
 /* The spacebar's next step along the route: tinted the route line's blue whichever way the user looks, so the route's
    next crumb reads at a glance. The faced fill below still wins when the user turns to it. */
 .minimap-crumb-next::before {
