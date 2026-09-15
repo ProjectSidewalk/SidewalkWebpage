@@ -13,8 +13,9 @@ BEGIN
                  WHERE conrelid = 'sidewalk_login.sidewalk_user'::regclass
                    AND conname = 'sidewalk_user_username_no_at_check') THEN
 
-    -- Blocks sign-ups and renames from other cities while this runs, so none can grab a name picked below.
-    LOCK TABLE sidewalk_login.sidewalk_user IN EXCLUSIVE MODE;;
+    -- Blocks sign-ups and renames from other cities while this runs, so none can grab a name picked below. This mode
+    -- still lets foreign-key checks through, so writes to tables that point at sidewalk_user don't wait.
+    LOCK TABLE sidewalk_login.sidewalk_user IN SHARE ROW EXCLUSIVE MODE;;
 
     -- Checked again: another city may have done all of this while this one waited for the lock.
     IF NOT EXISTS (SELECT 1 FROM pg_constraint
@@ -22,11 +23,13 @@ BEGIN
                      AND conname = 'sidewalk_user_username_no_at_check') THEN
 
       -- A non-email like "Roland@SciStarter" meant the @ as part of the name, so it keeps the rest. The comma
-      -- catches a mistyped email (one account has "gmail,com").
+      -- catches a mistyped email (one account has "gmail,com"). Spaces are trimmed because Settings trims the name
+      -- before saving and would otherwise see a rename on every save.
+      -- This and the next statement scan the whole 6M-row table without an index, which is fine: a few seconds, once.
       CREATE TEMP TABLE username_5301_renames AS
       SELECT user_id,
-             CASE WHEN username ~ '^[^@]+@[^@]+[.,][^@]+$' THEN split_part(username, '@', 1)
-                  ELSE replace(username, '@', '_') END AS base
+             btrim(CASE WHEN username ~ '^[^@]+@[^@]+[.,][^@]+$' THEN split_part(username, '@', 1)
+                        ELSE replace(username, '@', '_') END) AS base
       FROM sidewalk_login.sidewalk_user
       WHERE username LIKE '%@%';;
 
