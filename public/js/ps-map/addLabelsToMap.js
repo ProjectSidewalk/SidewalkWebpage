@@ -1,14 +1,14 @@
 /**
  * Adds labels to the map, creating one Mapbox layer per label type. Resolves once all layers have loaded.
  *
- * @param {object} map - The Mapbox map object.
- * @param {object} labelData - GeoJSON FeatureCollection of labels to draw on the map.
+ * @param {mapboxgl.Map} map - The Mapbox map object.
+ * @param {GeoJSON.FeatureCollection} labelData - GeoJSON FeatureCollection of labels to draw on the map.
  * @param {object} params - Properties that can change the process of choropleth creation.
- * @param {string} [params.highQualityFilter] - If true, only show labels from users marked as high quality.
+ * @param {boolean} [params.highQualityFilter] - If true, only show labels from users marked as high quality.
  * @param {boolean} [params.logClicks=true] - Whether clicks should be logged.
  * @param {string} [params.uiSource] - Used to record the UI used when submitting a validation through the popup.
- * @param {object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
- * @returns {Promise} Promise that resolves with the mapData object.
+ * @param {{showLabel: Function}} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
+ * @returns {Promise<MapLayerTracker>} Promise that resolves with the mapData object.
  */
 function addLabelsToMap(map, labelData, params) {
   const colorMapping = util.misc.getLabelColors();
@@ -110,9 +110,9 @@ function addLabelsToMap(map, labelData, params) {
  * Layer-level state (setFilter expressions, visibility, paint) survives setData; hover feature-state doesn't,
  * which is fine — the next mousemove restores it, and setFeatureState on an absent id is a silent no-op.
  *
- * @param {object} map - The Mapbox map object.
- * @param {object} mapData - The layer tracker from CreateMapLayerTracker.
- * @param {object} labelData - GeoJSON FeatureCollection of labels to draw.
+ * @param {mapboxgl.Map} map - The Mapbox map object.
+ * @param {MapLayerTracker} mapData - The layer tracker from CreateMapLayerTracker.
+ * @param {GeoJSON.FeatureCollection} labelData - GeoJSON FeatureCollection of labels to draw.
  */
 function setLabelData(map, mapData, labelData) {
   for (const features of Object.values(mapData.sortedLabels)) features.length = 0;

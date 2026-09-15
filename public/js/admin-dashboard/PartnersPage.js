@@ -1,4 +1,17 @@
 /**
+ * An add-partner form, with the fields it submits reachable by name.
+ * @typedef {HTMLFormElement & {elements: HTMLFormControlsCollection & PartnerFormFields}} PartnerForm
+ */
+
+/**
+ * @typedef {object} PartnerFormFields
+ * @property {HTMLInputElement} name
+ * @property {HTMLInputElement} url
+ * @property {HTMLInputElement} alt_text
+ * @property {HTMLInputElement} logo - The logo file picker.
+ */
+
+/**
  * PartnersPage — the /admin/partners manager for the landing page's community-partner logos (#4516).
  *
  * Renders two independently ordered lists from /adminapi/partners — this city's partners and the global list shown
@@ -12,9 +25,9 @@ class PartnersPage {
 
   #isOwner;
   #statusEl;
-  /** @type {{city: Array<object>, global: Array<object>}} The current metadata rows, in display order. */
+  /** @type {{city: Array<Record<string, any>>, global: Array<Record<string, any>>}} Current rows, in display order. */
   #partners = { city: [], global: [] };
-  /** @type {?{scope: string, partner: object}} The row a form is currently editing, or null when adding. */
+  /** @type {?{scope: string, partner: Record<string, any>}} The row a form is editing, or null when adding. */
   #editing = null;
   /** @type {{city: boolean, global: boolean}} Whether a reorder PUT is in flight, per scope. */
   #reorderBusy = { city: false, global: false };
@@ -29,7 +42,7 @@ class PartnersPage {
   }
 
   init() {
-    for (const form of document.querySelectorAll('.partners-add-form')) {
+    for (const form of /** @type {NodeListOf<PartnerForm>} */ (document.querySelectorAll('.partners-add-form'))) {
       form.addEventListener('submit', (e) => {
         e.preventDefault();
         this.#submitForm(form);
@@ -71,7 +84,7 @@ class PartnersPage {
 
   /**
    * @param {string} scope - 'city' or 'global'.
-   * @param {object} partner - A partner metadata payload.
+   * @param {Record<string, any>} partner - A partner metadata payload.
    * @param {number} index - The row's position within its scope.
    * @returns {HTMLElement}
    */
@@ -200,7 +213,7 @@ class PartnersPage {
    * other scope's form may be mid-edit, and nulling its state would turn that form's next save into a duplicate
    * create instead of an update.
    *
-   * @param {HTMLFormElement} form
+   * @param {PartnerForm} form
    */
   #cancelEdit(form) {
     if (this.#editing && this.#editing.scope === form.dataset.scope) this.#editing = null;
@@ -311,7 +324,7 @@ class PartnersPage {
    * An SVG root's own pixel dimensions, from its width/height when those are absolute, else from its viewBox.
    * Percentage sizes describe the box the SVG is placed in rather than the art, so they tell us nothing.
    *
-   * @param {SVGElement} svg - The parsed <svg> root.
+   * @param {Element} svg - The parsed <svg> root.
    * @returns {[number, number]} Width and height, or [0, 0] when the file declares neither.
    */
   #svgSourceSize(svg) {
@@ -348,10 +361,10 @@ class PartnersPage {
 
   /**
    * @param {string} scope - 'city' or 'global'.
-   * @returns {HTMLFormElement} That scope's add-partner form.
+   * @returns {PartnerForm} That scope's add-partner form.
    */
   #formFor(scope) {
-    return document.querySelector(`.partners-add-form[data-scope="${scope}"]`);
+    return /** @type {PartnerForm} */ (document.querySelector(`.partners-add-form[data-scope="${scope}"]`));
   }
 
   /**
@@ -359,7 +372,7 @@ class PartnersPage {
    * copy are read off the form itself — the maxlength and data-max-*-bytes attributes the Twirl view stamps from
    * the backend's own constants — so they can't drift from what the server actually enforces.
    *
-   * @param {HTMLFormElement} form - The form whose backend-stamped limits parameterize the copy.
+   * @param {PartnerForm} form - The form whose backend-stamped limits parameterize the copy.
    * @param {string} code - The rejection code from the server (or the client-side 'logo_required').
    * @returns {string}
    */

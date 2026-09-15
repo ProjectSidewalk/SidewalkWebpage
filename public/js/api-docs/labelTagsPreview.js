@@ -131,7 +131,7 @@
 
     /**
      * Render the label tags preview.
-     * @param {object} data - Label tags data from the API
+     * @param {Record<string, any>} data - Label tags data from the API
      * @param {HTMLElement} container - Container element
      */
     renderLabelTags(data, container) {
@@ -252,7 +252,7 @@
 
     /**
      * Render a summary table of label tags by label type.
-     * @param {object} data - Label tags data from the API
+     * @param {Record<string, any>} data - Label tags data from the API
      * @param {HTMLElement} container - Container element
      */
     renderLabelTagsSummary(data, container) {

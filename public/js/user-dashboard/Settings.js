@@ -34,17 +34,21 @@ class Settings {
     });
   }
 
-  /** @returns {object} The form's current values, in the shape the save endpoint takes. */
+  /**
+   * @returns {{username: string, onLeaderboard: boolean, publicProfile: boolean, communityService: boolean,
+   *     measurementSystem: string, teamId: ?number}} The form's current values, in the shape the save endpoint takes.
+   */
   #payload() {
-    const teamEl = document.getElementById('set-team');
+    const input = (id) => /** @type {?HTMLInputElement} */ (document.getElementById(id));
+    const teamEl = /** @type {?HTMLSelectElement} */ (document.getElementById('set-team'));
     const teamVal = teamEl?.value ?? '';
     return {
-      username: (document.getElementById('set-username')?.value || '').trim(),
-      onLeaderboard: document.getElementById('set-on-leaderboard')?.checked ?? true,
-      publicProfile: document.getElementById('set-public-profile')?.checked ?? true,
-      communityService: document.getElementById('set-community-service')?.checked ?? false,
+      username: (input('set-username')?.value || '').trim(),
+      onLeaderboard: input('set-on-leaderboard')?.checked ?? true,
+      publicProfile: input('set-public-profile')?.checked ?? true,
+      communityService: input('set-community-service')?.checked ?? false,
       // 'auto' = follow the site language, which the server saves as no choice.
-      measurementSystem: document.getElementById('set-units')?.value ?? 'auto',
+      measurementSystem: /** @type {?HTMLSelectElement} */ (document.getElementById('set-units'))?.value ?? 'auto',
       // null tells the server not to touch team membership: the "Choose a team…" placeholder, or the team they're
       // already on. Leaving is the Leave button (TeamActions.js), never a save (#5147).
       teamId: teamVal === '' || teamVal === teamEl.dataset.currentTeam ? null : parseInt(teamVal, 10),

@@ -20,7 +20,7 @@ class HumanVsAiPage {
   #meta = new Map();   // labelType name -> { display, color, icon }
 
   /** @param {{statsUrl: string, labelTypesUrl: string}} opts */
-  constructor(opts = {}) {
+  constructor(opts) {
     this.#statsUrl = opts.statsUrl;
     this.#labelTypesUrl = opts.labelTypesUrl;
   }
@@ -281,7 +281,8 @@ class HumanVsAiPage {
    * rates, each bar is a percentage of a fixed max (100). A datum may carry a `note` (shown after the value) and a
    * `muted` flag (rendered faded, for too-small samples).
    *
-   * @param {Array<{label: string, human: object, ai: object}>} rows - Each side is {value, note?, muted?}.
+   * @param {Array<{label: string, human: Record<string, any>, ai: Record<string, any>}>} rows - Each side is
+   *   {value, note?, muted?}.
    * @param {{format: ('count'|'rate'), max?: number}} opts - Render options.
    * @returns {string} Grouped-bar HTML.
    */

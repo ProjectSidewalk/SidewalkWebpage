@@ -71,7 +71,7 @@ class StreetStatusMap {
    * @param {{mapboxToken: string, onRegionClick?: (id: number) => void, onRegionHover?: (id: number) => void,
    *          onRegionHoverEnd?: () => void}} [opts]
    */
-  constructor(containerId, opts = {}) {
+  constructor(containerId, opts) {
     this.containerId = containerId;
     this.#mapboxToken = opts.mapboxToken;
     this.#onRegionClick = opts.onRegionClick || (() => {});
@@ -81,7 +81,7 @@ class StreetStatusMap {
 
   /**
    * Initializes the map and draws the street segments.
-   * @param {object} geojson - A GeoJSON FeatureCollection of streets with status + region_id in properties.
+   * @param {GeoJSON.FeatureCollection} geojson - Streets, with status and region_id in their properties.
    * @returns {Promise<void>} Resolves once the map's first render is ready.
    */
   init(geojson) {
@@ -199,7 +199,7 @@ class StreetStatusMap {
   }
 
   /**
-   * @param {object} feature - One GeoJSON feature.
+   * @param {GeoJSON.Feature} feature - One GeoJSON feature.
    * @returns {number[][]} Its [[minLng, minLat], [maxLng, maxLat]] bounds box, for focusSegment.
    */
   static boundsOfFeature(feature) {

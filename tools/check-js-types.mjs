@@ -10,8 +10,8 @@
 // Each run sees more than any one page loads (all of common/, and every other page script in the last run), so a
 // name a page never loads still resolves. This catches wrong types, not missing <script> tags.
 //
-// Most of the tree doesn't pass yet, so only the folders in CHECKED can fail the build. To add one, run with --all to
-// see its errors, fix them, and list it here. Exits non-zero if a checked folder has an error or isn't type-checked.
+// Every file in public/js/ must type-check cleanly, except those under UNCHECKED. Run with --all to see their errors
+// too. Exits non-zero if a checked file has an error or no tsconfig reads it.
 //
 // Usage: node tools/check-js-types.mjs [--all]
 
@@ -24,16 +24,9 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const TS_MAJOR = 7;
 
-// Folders under public/js/ (each with everything inside it) or single files that must type-check cleanly. Grow this
-// list; never shrink it.
-const CHECKED = [
-  'public/js/common',
-  'public/js/community',
-  'public/js/explore',
-  'public/js/gallery',
-  'public/js/shared-label',
-  'public/js/validate',
-];
+// Folders under public/js/ (each with everything inside it) or single files whose errors don't fail the check yet.
+// Shrink this list; never grow it. AccessScore is in beta and changing fast, so it's cleaned up once it settles.
+const UNCHECKED = ['public/js/access-score'];
 
 // common/ is in every run, and each run can find different errors there (a common/ typedef can clash with one app's
 // class), so every run's errors count; the same error from several runs is printed once.
@@ -94,7 +87,7 @@ function runTsc(tsc, config) {
 }
 
 /**
- * Lists the JS files under a CHECKED entry, skipping build/ bundles.
+ * Lists the JS files under a folder, skipping build/ bundles.
  * @param {string} entry - A folder or file path relative to the repo root.
  * @returns {string[]} Paths relative to the repo root; empty if the entry doesn't exist.
  */
@@ -113,14 +106,12 @@ function jsFilesUnder(entry) {
 }
 
 /**
- * Tells whether errors in a file fail the check. Anything outside public/js/ (a config or globals.d.ts) affects every
- * folder, so it always does.
+ * Finds the UNCHECKED entry a file falls under.
  * @param {string} file - Path relative to the repo root, or empty for an error tied to no file.
- * @returns {boolean} True if the error fails the check.
+ * @returns {string|undefined} The entry, or undefined if the file is checked.
  */
-function isFatal(file) {
-  if (!file.startsWith('public/js/')) return true;
-  return CHECKED.some((entry) => file === entry || file.startsWith(`${entry}/`));
+function uncheckedEntry(file) {
+  return UNCHECKED.find((entry) => file === entry || file.startsWith(`${entry}/`));
 }
 
 const showAll = process.argv.includes('--all');
@@ -138,35 +129,41 @@ for (const config of RUNS) {
   run.files.forEach((f) => readFiles.add(f));
 }
 
-// A checked folder only counts if tsc actually read its files; a typo'd include would otherwise pass silently.
-const coverageProblems = CHECKED.flatMap((entry) => {
-  const files = jsFilesUnder(entry);
-  if (files.length === 0) return [`CHECKED lists ${entry}, which has no JS files.`];
-  return files.filter((f) => !readFiles.has(f)).map((f) => `${f} is in CHECKED, but no tsconfig reads it.`);
-});
-const failing = errors.filter((e) => isFatal(e.file));
+// A file only counts as checked if tsc actually read it; a new bundle no tsconfig includes would otherwise pass silently.
+const coverageProblems = [
+  ...UNCHECKED.filter((entry) => jsFilesUnder(entry).length === 0).map((e) => `UNCHECKED lists ${e}, which has no JS.`),
+  ...jsFilesUnder('public/js')
+    .filter((f) => !uncheckedEntry(f) && !readFiles.has(f))
+    .map((f) => `${f} isn't read by any tsconfig in tools/js-types/.`),
+];
+// Anything outside public/js/ (a config or globals.d.ts) affects every folder, so its errors always count.
+const failing = errors.filter((e) => !uncheckedEntry(e.file));
 
 if (showAll) {
-  const unchecked = errors.filter((e) => !isFatal(e.file));
+  const unchecked = errors.filter((e) => uncheckedEntry(e.file));
   for (const e of unchecked) console.log(e.text);
 
-  // A count per folder, to help pick the next one to add to CHECKED.
+  // A count per folder, to show how much cleanup is left.
   const perFolder = new Map();
   for (const e of unchecked) {
     const folder = dirname(e.file);
     perFolder.set(folder, (perFolder.get(folder) || 0) + 1);
   }
-  console.log('\nErrors in folders not yet checked:');
+  console.log('\nErrors in unchecked folders:');
   for (const [folder, count] of [...perFolder].sort((a, b) => a[1] - b[1])) {
     console.log(`${String(count).padStart(6)}  ${folder}`);
+  }
+  // Only a note, not a failure, so a folder that happens to be clean mid-rewrite doesn't break its author's build.
+  for (const entry of UNCHECKED.filter((en) => !unchecked.some((e) => uncheckedEntry(e.file) === en))) {
+    console.log(`\n${entry} has no type errors now; remove it from UNCHECKED.`);
   }
   console.log('');
 }
 
 if (failing.length || coverageProblems.length) {
   console.error([...failing.map((e) => e.text), ...coverageProblems].join('\n'));
-  if (failing.length) console.error(`\n✗ ${failing.length} type error(s) in checked folders or shared config.`);
-  if (coverageProblems.length) console.error(`\n✗ ${coverageProblems.length} CHECKED file(s) aren't type-checked.`);
+  if (failing.length) console.error(`\n✗ ${failing.length} type error(s) in checked files or shared config.`);
+  if (coverageProblems.length) console.error(`\n✗ ${coverageProblems.length} coverage problem(s).`);
   process.exit(1);
 }
-console.log(`✓ No type errors in the ${CHECKED.length} checked folder(s).`);
+console.log(`✓ No type errors in public/js/ outside ${UNCHECKED.join(', ')}.`);

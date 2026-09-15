@@ -229,7 +229,7 @@ class ManagementPage {
     const container = document.getElementById('mgmt-users');
     // Sort header clicks (delegated; survives table re-render). Sorting resets to the first page.
     container.addEventListener('click', (e) => {
-      const btn = e.target.closest('.mgmt-sort');
+      const btn = /** @type {Element} */ (e.target).closest('.mgmt-sort');
       if (!btn) return;
       const key = btn.getAttribute('data-key');
       if (this.#sort.key === key) {
@@ -242,7 +242,7 @@ class ManagementPage {
     });
     // Role / team changes.
     container.addEventListener('change', (e) => {
-      const sel = e.target.closest('.mgmt-select');
+      const sel = /** @type {HTMLSelectElement} */ (/** @type {Element} */ (e.target).closest('.mgmt-select'));
       if (!sel || sel.disabled) return;
       const userId = sel.getAttribute('data-user-id');
       if (sel.getAttribute('data-kind') === 'role') this.#changeRole(userId, sel);
@@ -253,12 +253,12 @@ class ManagementPage {
       const bar = document.getElementById(id);
       if (!bar) continue;
       bar.addEventListener('click', (e) => {
-        const btn = e.target.closest('.mgmt-page-btn');
+        const btn = /** @type {HTMLButtonElement} */ (/** @type {Element} */ (e.target).closest('.mgmt-page-btn'));
         if (!btn || btn.disabled) return;
         this.#gotoPage(btn.getAttribute('data-page'));
       });
       bar.addEventListener('change', (e) => {
-        const sel = e.target.closest('.mgmt-page-size');
+        const sel = /** @type {HTMLSelectElement} */ (/** @type {Element} */ (e.target).closest('.mgmt-page-size'));
         if (!sel) return;
         this.#pageSize = parseInt(sel.value, 10) || ManagementPage.#PAGE_SIZES[0];
         this.#page = 1;
@@ -337,7 +337,7 @@ class ManagementPage {
 
   #wireTeams() {
     document.getElementById('mgmt-teams').addEventListener('click', (e) => {
-      const btn = e.target.closest('.mgmt-toggle');
+      const btn = /** @type {Element} */ (e.target).closest('.mgmt-toggle');
       if (!btn) return;
       const teamId = parseInt(btn.getAttribute('data-team-id'), 10);
       const kind = btn.getAttribute('data-kind');
@@ -364,7 +364,7 @@ class ManagementPage {
   #wireMaintenance() {
     // `done` is what the button reports on success: a trigger that answers before its job finishes can't say "Done".
     const run = (id, url, method, label, done = `Done: ${label}.`) => {
-      const btn = document.getElementById(id);
+      const btn = /** @type {HTMLButtonElement} */ (document.getElementById(id));
       if (!btn) return;
       btn.addEventListener('click', async () => {
         const confirmed = await ConfirmDialog.confirm({
@@ -399,7 +399,7 @@ class ManagementPage {
   // --- Search -----------------------------------------------------------------------------------------------------
 
   #wireSearch() {
-    const input = document.getElementById('mgmt-user-search');
+    const input = /** @type {HTMLInputElement} */ (document.getElementById('mgmt-user-search'));
     if (!input) return;
     input.addEventListener('input', () => {
       this.#filter = input.value;

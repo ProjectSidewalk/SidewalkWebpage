@@ -17,7 +17,7 @@ class HealthPage {
    * @param {string} opts.healthUrl - URL of the JSON health endpoint.
    * @param {number} [opts.pollSeconds=20] - Refresh interval in seconds.
    */
-  constructor(opts = {}) {
+  constructor(opts) {
     this.#healthUrl = opts.healthUrl;
     this.#pollMs = (opts.pollSeconds || 20) * 1000;
   }
@@ -38,7 +38,7 @@ class HealthPage {
 
   /**
    * @param {string} url
-   * @returns {Promise<object>} Parsed JSON body.
+   * @returns {Promise<Record<string, any>>} Parsed JSON body.
    */
   async #fetchJson(url) {
     const resp = await fetch(url, { headers: { Accept: 'application/json' } });
@@ -348,7 +348,7 @@ class HealthPage {
    * Ordered worst-first rather than by schedule: on a healthy night every row says the same thing, and the whole point
    * of the panel is the one row that doesn't.
    *
-   * @param {Array<object>} jobs - `nightly_jobs` entries from the health payload.
+   * @param {Array<Record<string, any>>} jobs - `nightly_jobs` entries from the health payload.
    */
   #renderNightlyJobs(jobs) {
     // The roster is a compile-time constant, so the server always returns a row per job unless the read of
@@ -379,6 +379,7 @@ class HealthPage {
           ? `<span class="ac-badge ac-badge--warn">${job.failures_in_window}/${job.runs_in_window}</span>`
           : `${AdminShell.num(job.failures_in_window)}/${AdminShell.num(job.runs_in_window)}`}</td>
       </tr>`).join('');
+    /** @type {Array<string|[string, boolean]>} */
     const headers = ['Job', 'Scheduled', 'Last run', 'When', ['Duration', true], 'Result',
       [`Failures (${t.job_window_days}d)`, true]];
     this.#table('health-jobs', headers, body);

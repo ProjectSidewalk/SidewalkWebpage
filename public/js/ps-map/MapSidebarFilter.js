@@ -1,4 +1,14 @@
 /**
+ * FilterSidebar.getState()'s shape, with the sections and tags spelled out.
+ * @typedef {object} SidebarFilterState
+ * @property {number[]} severities - Enabled severities.
+ * @property {number[]} allSeverities - Every rendered severity.
+ * @property {Record<string, string[]>} sections - Each section's selected values.
+ * @property {Record<string, string[]>} tags - Each label type's active tags.
+ * @property {string[]} allLabelTypes - Every rendered label type.
+ */
+
+/**
  * Applies the shared filter sidebar's state to a Mapbox map.
  *
  * The sidebar itself is FilterSidebar (`common/filter-sidebar/`), which owns the controls and their interaction
@@ -11,7 +21,7 @@
 class MapSidebarFilter {
   /** @type {mapboxgl.Map} */
   #map;
-  /** @type {object} */
+  /** @type {MapLayerTracker} */
   #mapData;
   /** @type {boolean} */
   #highQualityFilter;
@@ -23,7 +33,7 @@ class MapSidebarFilter {
   #showsCounts;
   /** @type {boolean} */
   #viewportCounts;
-  /** @type {object} Last-applied per-type layer visibility, so unchanged layers aren't re-set on every click. */
+  /** @type {Record<string, boolean>} Last-applied per-type layer visibility, so unchanged layers aren't re-set. */
   #layerVisibility = {};
   /** @type {Map<string, ?HTMLInputElement>} Each label type's checkbox (null when the sidebar omits it). */
   #typeCheckboxes = new Map();
@@ -33,7 +43,7 @@ class MapSidebarFilter {
   /**
    * Initializes the sidebar filter, binding all event handlers and enabling controls.
    * @param {mapboxgl.Map} map - The Mapbox map instance.
-   * @param {object} mapData - The layer tracker from CreateMapLayerTracker.
+   * @param {MapLayerTracker} mapData - The layer tracker from CreateMapLayerTracker.
    * @param {object} [options] - Configuration options.
    * @param {boolean} [options.highQualityFilter=true] - Whether to apply the high-quality user filter.
    * @param {boolean} [options.viewportCounts=false] - Count only labels inside the current viewport. For pages
@@ -133,10 +143,10 @@ class MapSidebarFilter {
 
   /**
    * Returns the sidebar's current filter state.
-   * @returns {{severities: number[], sections: object, tags: object}} FilterSidebar.getState()'s shape.
+   * @returns {SidebarFilterState} FilterSidebar.getState()'s shape.
    */
   getState() {
-    return this.#filters.getState();
+    return /** @type {SidebarFilterState} */ (this.#filters.getState());
   }
 
   /**
@@ -169,7 +179,7 @@ class MapSidebarFilter {
    * only among labels the user can see (#5124).
    *
    * @param {string} labelType - The label's type key (e.g. 'CurbRamp').
-   * @param {object} feature   - The label's GeoJSON feature.
+   * @param {GeoJSON.Feature} feature   - The label's GeoJSON feature.
    * @returns {boolean} Whether the label matches the active filters.
    */
   matchesFilters(labelType, feature) {
@@ -239,7 +249,7 @@ class MapSidebarFilter {
 
   /** Applies the sidebar's label filters to the map layers and refreshes the counts. */
   #applyFilters() {
-    const state = this.#filters.getState();
+    const state = this.getState();
     this.#syncMapData(state);
     this.#syncLayerVisibility(state);
     filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
@@ -248,7 +258,7 @@ class MapSidebarFilter {
 
   /**
    * Mirrors the sidebar's state into the mapData tracker that the Mapbox filter expressions are built from.
-   * @param {object} state - The state from FilterSidebar.getState().
+   * @param {SidebarFilterState} state - The state from FilterSidebar.getState().
    */
   #syncMapData(state) {
     // Each section is mirrored only when the page actually renders it. A section the sidebar omits has no state to
@@ -282,7 +292,7 @@ class MapSidebarFilter {
   /**
    * Shows or hides each label type's layer. Diffed against what's already applied because setting the layout
    * property is a style change, and a batch action like "Only" would otherwise touch all nine layers every click.
-   * @param {object} state - The state from FilterSidebar.getState().
+   * @param {SidebarFilterState} state - The state from FilterSidebar.getState().
    */
   #syncLayerVisibility(state) {
     const shown = new Set(state.sections['label-type'] ?? []);
@@ -360,7 +370,7 @@ class MapSidebarFilter {
    * tags, and validation status. The faceted counts can't use this whole (they ignore one axis at a time), so it
    * serves the all-axes consumers: the visible-label count and the popup navigator.
    * @param {string} labelType - The label's type key.
-   * @param {object} props     - The label's GeoJSON properties.
+   * @param {Record<string, any>} props     - The label's GeoJSON properties.
    * @returns {boolean} Whether the label survives all four axes.
    */
   #passesLabelFilters(labelType, props) {
@@ -370,7 +380,7 @@ class MapSidebarFilter {
 
   /**
    * Returns true when the label passes the selected severity toggles (toggle 0 covers labels with no severity).
-   * @param {object} props - The label's GeoJSON properties.
+   * @param {Record<string, any>} props - The label's GeoJSON properties.
    * @returns {boolean} Whether the label's severity is currently enabled.
    */
   #passesSeverity(props) {
@@ -381,7 +391,7 @@ class MapSidebarFilter {
 
   /**
    * Returns which validation checkbox a label falls under. Mirrors the Mapbox expressions in filterLabelLayers.
-   * @param {object} props - The label's GeoJSON properties.
+   * @param {Record<string, any>} props - The label's GeoJSON properties.
    * @returns {string} One of 'correct', 'incorrect', 'unsure', 'unvalidated'.
    */
   #validationCategory(props) {
@@ -392,7 +402,7 @@ class MapSidebarFilter {
 
   /**
    * Returns true when the label passes the page-level quality filters (high-quality users, admin validation).
-   * @param {object} props - The label's GeoJSON properties.
+   * @param {Record<string, any>} props - The label's GeoJSON properties.
    * @returns {boolean} Whether the label survives the quality/admin base filters.
    */
   #passesQualityFilters(props) {
@@ -404,7 +414,7 @@ class MapSidebarFilter {
   /**
    * Returns true when the label matches the active tag filters for its label type (no tags selected = pass).
    * @param {string} labelType - The label type key.
-   * @param {object} props - The label's GeoJSON properties.
+   * @param {Record<string, any>} props - The label's GeoJSON properties.
    * @returns {boolean} Whether the label carries at least one of the selected tags.
    */
   #passesTags(labelType, props) {

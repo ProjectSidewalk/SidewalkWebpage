@@ -81,7 +81,7 @@
 
     /**
      * Render the label types table.
-     * @param {object} data - Label types data from the API
+     * @param {Record<string, any>} data - Label types data from the API
      * @param {HTMLElement} container - Container element
      * @returns {HTMLElement} The rendered table
      */

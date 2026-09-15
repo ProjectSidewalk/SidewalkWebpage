@@ -43,7 +43,7 @@ class StoriesSection {
     }
     // A save can change any rendered field (text, photo, byline) — and can come from the label popup's own
     // composer, not just this list's — so any story change on the page re-fetches rather than patching rows.
-    document.addEventListener('ps:story:changed', (e) => this.#onStoryChanged(e));
+    document.addEventListener('ps:story:changed', (e) => this.#onStoryChanged(/** @type {CustomEvent} */ (e)));
   }
 
   /**
@@ -72,7 +72,7 @@ class StoriesSection {
   }
 
   /**
-   * @param {Array<object>} stories - StoryForOwner payloads, newest first.
+   * @param {Array<Record<string, any>>} stories - StoryForOwner payloads, newest first.
    */
   #renderStories(stories) {
     this.#container.replaceChildren();
@@ -89,7 +89,7 @@ class StoriesSection {
   }
 
   /**
-   * @param {object} story - A StoryForOwner payload.
+   * @param {Record<string, any>} story - A StoryForOwner payload.
    * @returns {HTMLElement}
    */
   #buildRow(story) {
@@ -183,7 +183,7 @@ class StoriesSection {
 
   /**
    * The retraction path (#4054): a confirmed, permanent delete — the server removes the row and any photo bytes.
-   * @param {object} story
+   * @param {Record<string, any>} story
    * @param {HTMLElement} row
    */
   async #deleteStory(story, row) {

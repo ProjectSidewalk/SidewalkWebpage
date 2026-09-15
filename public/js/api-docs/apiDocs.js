@@ -21,8 +21,8 @@
 
 // Chart.js paints its labels onto a canvas, so they can't inherit the page font. The pages that chart load Chart.js
 // ahead of this script, and build their charts once their data arrives.
-if (window.Chart) {
-  window.Chart.defaults.font.family = getComputedStyle(document.documentElement).getPropertyValue('--font-primary');
+if (typeof Chart !== 'undefined') {
+  Chart.defaults.font.family = getComputedStyle(document.documentElement).getPropertyValue('--font-primary');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -224,14 +224,15 @@ function setupAccordionListener() {
 
   navContainer.addEventListener('click', (event) => {
     // Find the closest ancestor that is an accordion trigger.
-    const accordionTrigger = event.target.closest('.page-nav-accordion');
+    const target = /** @type {Element} */ (event.target);
+    const accordionTrigger = target.closest('.page-nav-accordion');
 
     if (accordionTrigger) {
       // Prevent default link behavior only if it's an actual link being used as trigger.
       if (accordionTrigger.tagName === 'A' && accordionTrigger.getAttribute('href')) {
         // Check if the click was directly on the trigger or its arrow, not on a link *inside* a submenu that might
         // bubble up.
-        if (event.target === accordionTrigger || event.target.classList.contains('accordion-arrow')) {
+        if (target === accordionTrigger || target.classList.contains('accordion-arrow')) {
           event.preventDefault();
         } else {
           return; // Allow clicks on nested links within trigger text (if any)
@@ -248,7 +249,7 @@ function setupAccordionListener() {
 
       // Get current state and toggle ARIA attribute.
       const isExpanded = accordionTrigger.getAttribute('aria-expanded') === 'true';
-      accordionTrigger.setAttribute('aria-expanded', !isExpanded);
+      accordionTrigger.setAttribute('aria-expanded', String(!isExpanded));
 
       // Optional: Toggle an 'expanded' class for CSS hooks if needed.
       // accordionTrigger.classList.toggle('expanded', !isExpanded);
@@ -390,7 +391,7 @@ function setupSmoothScrolling() {
 
   scrollContainers.forEach((container) => {
     container.addEventListener('click', (event) => {
-      const link = event.target.closest('a');
+      const link = /** @type {Element} */ (event.target).closest('a');
 
       // Check if it's an internal hash link.
       if (link && link.getAttribute('href') && link.getAttribute('href').startsWith('#')) {
@@ -431,7 +432,7 @@ function setupPermalinkCopying() {
   if (!contentArea) return;
 
   contentArea.addEventListener('click', (event) => {
-    const permalink = event.target.closest('a.permalink');
+    const permalink = /** @type {HTMLAnchorElement} */ (/** @type {Element} */ (event.target).closest('a.permalink'));
     if (permalink) {
       event.preventDefault();
       const urlToCopy = permalink.href; // The browser resolves the full URL in href.
@@ -461,10 +462,10 @@ function setupPermalinkCopying() {
     tooltip.style.top = `${rect.top + window.scrollY - tooltip.offsetHeight - 5}px`; // Position above
 
     // Fade out and remove.
-    tooltip.style.opacity = 1; // Ensure visible
+    tooltip.style.opacity = '1'; // Ensure visible
     setTimeout(() => {
       tooltip.style.transition = 'opacity 0.5s ease-out';
-      tooltip.style.opacity = 0;
+      tooltip.style.opacity = '0';
       setTimeout(() => tooltip.remove(), 500); // Remove after fade
     }, 1500); // Tooltip visible duration
   }
@@ -479,7 +480,9 @@ function setupDownloadButtons() {
   const downloadButtonsContainer = document.querySelector('.download-buttons');
   if (!downloadButtonsContainer) return;
 
-  const downloadButtons = downloadButtonsContainer.querySelectorAll('.download-btn');
+  const downloadButtons = /** @type {NodeListOf<HTMLButtonElement>} */ (
+    downloadButtonsContainer.querySelectorAll('.download-btn')
+  );
   const downloadStatus = document.getElementById('download-status');
   if (!downloadStatus) return;
 

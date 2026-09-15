@@ -75,7 +75,7 @@
 
     /**
      * Render the result-types table.
-     * @param {object} data - Validation result types data from the API
+     * @param {Record<string, any>} data - Validation result types data from the API
      * @param {HTMLElement} container - Container element
      * @returns {HTMLElement} The rendered table
      */

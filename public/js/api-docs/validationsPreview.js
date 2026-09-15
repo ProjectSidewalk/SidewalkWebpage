@@ -304,7 +304,7 @@
     /**
      * Create a single chart for one label type.
      * @param {HTMLElement} container - Parent container for the chart
-     * @param {object} typeData - Data for this label type
+     * @param {Record<string, any>} typeData - Data for this label type
      */
     createSingleValidationChart(container, typeData) {
       // Create chart container.

@@ -26,7 +26,7 @@ class StreetStatusPage {
    *   token, the v3 streets endpoint URL, the trend endpoint URL, and the trend's default window, all injected from
    *   the Twirl template so the JS has no server-config coupling.
    */
-  constructor(opts = {}) {
+  constructor(opts) {
     this.#mapboxToken = opts.mapboxToken;
     this.#streetsUrl = opts.streetsUrl;
     this.#trendUrl = opts.trendUrl;

@@ -1,7 +1,7 @@
 /**
  * Central function that handles the creation of choropleths and maps.
  *
- * @param {object} $ - Allows the use of jQuery.
+ * @param {JQueryStatic} $ - Allows the use of jQuery.
  * @param {object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
  * @param {string} params.mapStyle - URL of a Mapbox style.
@@ -37,7 +37,7 @@
  * @param {boolean} [params.sidebarStartsCollapsed=false] - Open the page with the filter drawer closed. Narrow
  *     viewports collapse it regardless, since there it covers the map.
  * @param {string} [params.uiSource] - Records the UI used when submitting a validation through the popup.
- * @param {object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
+ * @param {{showLabel: Function}} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
  * @param {Function} [params.onMapReady] - Called with the map as soon as it has loaded, BEFORE the
  *     (potentially large) regions/streets/labels layers render. Use this to mount map-bound UI
  *     early (e.g. the LabelMap search box) instead of waiting on the returned all-loaded promise.
@@ -119,8 +119,8 @@ function createPSMap($, params) {
     labelDataBounds = labelDataBounds ? labelDataBounds.extend(bounds) : bounds;
   };
   if (params.regionsURL && params.completionRatesURL) {
-    const loadRegions = $.getJSON(params.regionsURL);
-    const loadCompletionRates = $.getJSON(params.completionRatesURL);
+    const loadRegions = $.getJSON(String(params.regionsURL));
+    const loadCompletionRates = $.getJSON(String(params.completionRatesURL));
     renderRegions = Promise.all([mapLoaded, loadRegions, loadCompletionRates]).then((data) => {
       addRegionsToMap(map, data[1], data[2], params);
       extendLabelDataBounds(data[1]);
@@ -139,7 +139,7 @@ function createPSMap($, params) {
   // Render the streets on the map if applicable.
   let renderStreets;
   if (params.streetsURL) {
-    const loadStreets = $.getJSON(params.streetsURL);
+    const loadStreets = $.getJSON(String(params.streetsURL));
     renderStreets = Promise.all([mapLoaded, renderRegions, loadStreets]).then((data) => {
       extendLabelDataBounds(data[2]);
       return addStreetsToMap(map, data[2], params);
@@ -196,7 +196,7 @@ function createPSMap($, params) {
 
   /**
    * Create the Mapbox map object and attach a custom logging function to it.
-   * @param {object} mapParamData - Map configuration parameters from the /cityMapParams endpoint.
+   * @param {Record<string, any>} mapParamData - Map configuration parameters from the /cityMapParams endpoint.
    * @returns {Promise} - Promise that resolves with the Mapbox map once it has loaded.
    */
   function createMap(mapParamData) {

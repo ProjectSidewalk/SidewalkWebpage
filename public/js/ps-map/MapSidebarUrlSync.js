@@ -211,7 +211,9 @@ class MapSidebarUrlSync {
    * @returns {string[]} The checkbox element ids.
    */
   #checkboxIds(filterType) {
-    return Array.from(this.#sidebar.querySelectorAll(`input[data-filter-type="${filterType}"]`)).map((cb) => cb.id);
+    const inputs = /** @type {NodeListOf<HTMLInputElement>} */ (
+      this.#sidebar.querySelectorAll(`input[data-filter-type="${filterType}"]`));
+    return Array.from(inputs).map((cb) => cb.id);
   }
 
   /**
@@ -223,7 +225,9 @@ class MapSidebarUrlSync {
    * @returns {string[]} The default-checked values.
    */
   #defaultCheckedValues(filterType) {
-    return Array.from(this.#sidebar.querySelectorAll(`input[data-filter-type="${filterType}"]`))
+    const inputs = /** @type {NodeListOf<HTMLInputElement>} */ (
+      this.#sidebar.querySelectorAll(`input[data-filter-type="${filterType}"]`));
+    return Array.from(inputs)
       .filter((cb) => cb.defaultChecked)
       .map((cb) => (filterType === 'label-type' ? cb.id.replace('-checkbox', '') : cb.id));
   }

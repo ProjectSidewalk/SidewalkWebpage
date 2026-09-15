@@ -19,7 +19,7 @@ class MapDownloadControl {
   #panel;
   /** @type {HTMLElement} */
   #status;
-  /** @type {() => object} */
+  /** @type {() => SidebarFilterState} */
   #getFilterState;
   /** @type {() => number} */
   #getVisibleLabelCount;
@@ -72,7 +72,7 @@ class MapDownloadControl {
 
   /**
    * @param {object} options
-   * @param {() => object} options.getFilterState - Returns FilterSidebar.getState()'s shape.
+   * @param {() => SidebarFilterState} options.getFilterState - Returns FilterSidebar.getState()'s shape.
    * @param {() => number} options.getVisibleLabelCount - Returns the number of labels the filters leave visible.
    * @param {?(() => string)} [options.getBbox] - Returns the current viewport as "minLng,minLat,maxLng,maxLat" to
    *      scope downloads to the visible map area (GIS "export what you see", #5002). When provided, regionId is
@@ -98,8 +98,7 @@ class MapDownloadControl {
    * with nothing selected is also omitted: it means the map shows nothing, and callers disable the download actions
    * in that case (the endpoint cannot express an empty selection).
    *
-   * @param {{severities: number[], allSeverities: number[], sections: object, tags: object,
-   *      allLabelTypes: string[]}} state - FilterSidebar.getState()'s shape.
+   * @param {SidebarFilterState} state - FilterSidebar.getState()'s shape.
    * @param {object} options
    * @param {string} options.format - One of 'geojson', 'csv', 'shapefile', 'geopackage'.
    * @param {?number} [options.regionId] - Single region id to scope the download to, or null.
@@ -230,7 +229,7 @@ class MapDownloadControl {
     const count = this.#getVisibleLabelCount();
     this.#renderCount(count);
     for (const item of this.#panel.querySelectorAll('.map-download-control__item')) {
-      item.disabled = count === 0;
+      /** @type {HTMLButtonElement} */ (item).disabled = count === 0;
     }
 
     this.#panel.hidden = false;
@@ -359,7 +358,7 @@ class MapDownloadControl {
     }
 
     const items = this.#focusableItems();
-    const index = items.indexOf(document.activeElement);
+    const index = items.indexOf(/** @type {HTMLElement} */ (document.activeElement));
     if (e.key === 'Escape') {
       e.preventDefault();
       this.#closePanel();
@@ -388,7 +387,7 @@ class MapDownloadControl {
    * @param {MouseEvent} e - The document-level click event.
    */
   #onOutsideClick(e) {
-    if (!this.#container.contains(e.target)) this.#closePanel(false);
+    if (!this.#container.contains(/** @type {Node} */ (e.target))) this.#closePanel(false);
   }
 
   /**

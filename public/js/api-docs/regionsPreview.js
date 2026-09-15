@@ -90,7 +90,7 @@
     /**
      * Build the map, draw the region polygons, and wire up the metric toggle and legend.
      * @param {HTMLElement} container - Container element for the map
-     * @param {object} regions - GeoJSON FeatureCollection of regions
+     * @param {GeoJSON.FeatureCollection} regions - GeoJSON FeatureCollection of regions
      * @returns {Promise} A promise that resolves once the map has loaded
      */
     async renderMap(container, regions) {
@@ -149,10 +149,10 @@
       this.updateLegend();
 
       // Wired only now that there is a layer to recolor and a legend to rewrite.
-      const select = document.getElementById('region-metric-select');
+      const select = /** @type {HTMLSelectElement} */ (document.getElementById('region-metric-select'));
       select.value = this._metric;
-      select.addEventListener('change', (event) => {
-        this._metric = event.target.value;
+      select.addEventListener('change', () => {
+        this._metric = select.value;
         map.setPaintProperty(FILL_LAYER, 'fill-color', this.colorExpression());
         this.updateLegend();
       });
@@ -191,7 +191,7 @@
 
     /**
      * Wire up the click popup for the region layer.
-     * @param {object} map - The Mapbox map object
+     * @param {mapboxgl.Map} map - The Mapbox map object
      */
     addRegionPopups(map) {
       map.on('click', FILL_LAYER, (e) => {
@@ -233,7 +233,7 @@
 
     /**
      * Show a message when there are no regions to display.
-     * @param {object} map - The Mapbox map object
+     * @param {mapboxgl.Map} map - The Mapbox map object
      */
     addNoRegionsMessage(map) {
       const div = document.createElement('div');

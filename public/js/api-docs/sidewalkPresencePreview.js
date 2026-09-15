@@ -45,8 +45,8 @@
    * Gives every feature an id of its own. Hover styling keys on the feature id, and the two faces of a street share
    * its `street_edge_id`, so that alone can't tell them apart.
    *
-   * @param {object} faces - The GeoJSON FeatureCollection from the API.
-   * @returns {object} The same collection with `face_id` on every feature.
+   * @param {GeoJSON.FeatureCollection} faces - The GeoJSON FeatureCollection from the API.
+   * @returns {GeoJSON.FeatureCollection} The same collection with `face_id` on every feature.
    */
   function withFaceIds(faces) {
     return {
@@ -64,9 +64,9 @@
   /**
    * Rolls up the figures the summary panel draws on.
    *
-   * @param {Array<object>} features - The face features.
-   * @returns {object} Face counts by verdict, streets with a face called absent, absent faces by label tier, and
-   *   absent faces a validator has confirmed.
+   * @param {Array<Record<string, any>>} features - The face features.
+   * @returns {Record<string, any>} Face counts by verdict, streets with a face called absent, absent faces by label
+   *   tier, and absent faces a validator has confirmed.
    */
   function summarize(features) {
     const stats = {
@@ -97,7 +97,7 @@
   /**
    * The evidence behind a face's verdict, in words. The four cases are the backend's sidewalk_presence_basis enum.
    *
-   * @param {object} props - A face feature's properties.
+   * @param {Record<string, any>} props - A face feature's properties.
    * @returns {string} A summary, e.g. '3 NoSidewalk labels from 2 users, 1 validator-confirmed'.
    */
   function describeBasis(props) {
@@ -183,9 +183,9 @@
      * Build the map, tearing it back down if anything fails to draw.
      *
      * @param {HTMLElement} container - Container element for the map
-     * @param {object} regionData - GeoJSON Feature for the region the preview is scoped to
-     * @param {object} faces - GeoJSON FeatureCollection of block faces, after withFaceIds()
-     * @param {object} stats - The rollup from summarize()
+     * @param {GeoJSON.Feature} regionData - GeoJSON Feature for the region the preview is scoped to
+     * @param {GeoJSON.FeatureCollection} faces - GeoJSON FeatureCollection of block faces, after withFaceIds()
+     * @param {Record<string, any>} stats - The rollup from summarize()
      * @returns {Promise} Resolves once the map has loaded and drawn
      */
     async renderMap(container, regionData, faces, stats) {
@@ -207,10 +207,10 @@
     /**
      * Draw the region outline, the faces, the legend, and the summary onto a loaded map.
      *
-     * @param {object} map - The loaded Mapbox map
-     * @param {object} regionData - GeoJSON Feature for the region the preview is scoped to
-     * @param {object} faces - GeoJSON FeatureCollection of block faces, after withFaceIds()
-     * @param {object} stats - The rollup from summarize()
+     * @param {mapboxgl.Map} map - The loaded Mapbox map
+     * @param {GeoJSON.Feature} regionData - GeoJSON Feature for the region the preview is scoped to
+     * @param {GeoJSON.FeatureCollection} faces - GeoJSON FeatureCollection of block faces, after withFaceIds()
+     * @param {Record<string, any>} stats - The rollup from summarize()
      */
     drawMap(map, regionData, faces, stats) {
       map.addSource(REGION_SOURCE, { type: 'geojson', data: regionData });
@@ -282,8 +282,8 @@
     /**
      * Wire up the click popup for the face layer, showing the clicked face beside the other side of its street.
      *
-     * @param {object} map - The Mapbox map object
-     * @param {object} faces - GeoJSON FeatureCollection of block faces, for the other side's lookup
+     * @param {mapboxgl.Map} map - The Mapbox map object
+     * @param {GeoJSON.FeatureCollection} faces - GeoJSON FeatureCollection of block faces, for the other side's lookup
      */
     addFacePopups(map, faces) {
       // Both faces of a street arrive as separate features, so the popup finds the opposite one by id.

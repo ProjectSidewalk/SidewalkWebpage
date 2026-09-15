@@ -18,7 +18,7 @@ class MiniLineChart {
    *   other data that came from a user before putting it in one.
    * @param {{yMax?: number, tickFormat?: (value: number) => string, valueFormat?: (value: number) => string,
    *          ariaLabel?: string, dotRadius?: number, kind?: string, maxXLabels?: number, barValues?: boolean,
-   *          emphasisIndex?: number, minMarginL?: number, minMarginR?: number,
+   *          emphasisIndex?: number, minMarginL?: number, minMarginR?: number, width?: number,
    *          refLine?: {value: number, label?: string, key?: string}}} [opts] - yMax defaults to a nice
    *   rounded max above the data; tickFormat labels the y-axis (abbreviated by default, e.g. "1.6M") while
    *   valueFormat formats values in the default tooltip and in bar value labels, so hovering still gives the exact
@@ -28,7 +28,7 @@ class MiniLineChart {
    *   grouped bars would collide); emphasisIndex marks that index's bar and labels with `--emphasis` classes (e.g. an
    *   in-progress "today" bar); minMarginL/minMarginR raise the axis margins, which renderInto uses to redraw at
    *   measured label widths; refLine draws a labeled horizontal target the bars are read against, and is included in
-   *   the y scale.
+   *   the y scale; width is the SVG's pixel width (default 760).
    * @returns {string} SVG markup plus an optional HTML legend.
    */
   static svg(categories, series, opts = {}) {
@@ -175,10 +175,12 @@ class MiniLineChart {
    * keeps the chart full-width and responsive while font sizes, line widths, and dot radii stay a constant on-screen
    * size — a fixed-viewBox SVG stretched to 100% width would scale all of those up together on wide screens.
    *
-   * @param {HTMLElement} container - The element to render into (its innerHTML is replaced).
+   * @param {HTMLElement & {_miniDraw?: () => void, _miniResizeObserver?: ResizeObserver}} container - The element
+   *   to render into (its innerHTML is replaced).
    * @param {string[]} categories - X-axis labels (see svg()).
-   * @param {Array<object>} series - Data series (see svg()).
-   * @param {object} [opts] - Same options as svg(); `width` is supplied automatically from the container.
+   * @param {Parameters<typeof MiniLineChart.svg>[1]} series - Data series (see svg()).
+   * @param {Parameters<typeof MiniLineChart.svg>[2]} [opts] - Same options as svg(); `width` is supplied
+   *   automatically from the container.
    */
   static renderInto(container, categories, series, opts = {}) {
     if (!container) return;
@@ -271,7 +273,9 @@ class MiniLineChart {
    */
   static #compact(v) {
     const abs = Math.abs(v);
-    const unit = [[1e9, 'B'], [1e6, 'M'], [1e3, 'k']].find(([min]) => abs >= min);
+    /** @type {Array<[number, string]>} */
+    const units = [[1e9, 'B'], [1e6, 'M'], [1e3, 'k']];
+    const unit = units.find(([min]) => abs >= min);
     if (!unit) return Math.round(v).toLocaleString();
     return `${(v / unit[0]).toFixed(1).replace(/\.0$/, '')}${unit[1]}`;
   }
