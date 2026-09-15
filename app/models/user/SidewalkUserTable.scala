@@ -34,7 +34,7 @@ class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, "sidewalk_
   def email: Rep[String]    = column[String]("email")
   def *                     = (userId, username, email) <> (SidewalkUser.tupled, SidewalkUser.unapply)
 
-  // CHECK (email = lower(email)) in the DB.
+  // CHECK (email = lower(email)) and CHECK (username NOT LIKE '%@%') in the DB.
   def usernameUnique = index("sidewalk_user_username_key", username, unique = true)
   def emailUnique    = index("sidewalk_user_email_key", email, unique = true)
 }
