@@ -421,6 +421,8 @@ class MapillaryViewer extends PanoViewer {
     }
   };
 
+  supportsLocationSearch = () => true;
+
   /**
    * See PanoViewer.findPanoNear(). The same search + scoring as setLocation(), stopping short of the move. Answers
    * from the prefetched searches when one covers the point, so a street that prefetchAlongStreet() primed is sampled

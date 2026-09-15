@@ -426,7 +426,7 @@ class Canvas {
 
   /** Writes the share target for a label. */
   #setShareTarget(label, url) {
-    const labelTypeName = i18next.t(`common:${util.camelToKebab(label.getLabelType())}`).replace('&shy;', '');
+    const labelTypeName = i18next.t(`common:${util.camelToKebab(label.getLabelType())}`).replaceAll('&shy;', '');
     const text = i18next.t('common:share.text', { labelType: labelTypeName });
     this.#shareWidget.setTarget({ url, title: text, text });
   }

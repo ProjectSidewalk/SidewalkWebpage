@@ -176,6 +176,8 @@ class Infra3dViewer extends PanoViewer {
     return Promise.resolve({ lat, lng: lon });
   };
 
+  supportsLocationSearch = () => true;
+
   /**
    * See PanoViewer.findPanoNear(). Uses the SDK's nearest-frame query (`imagesByKNN$`, the same HTTP request its
    * own movePosition$ starts from) rather than movePosition(), which setLocation() relies on and which moves the

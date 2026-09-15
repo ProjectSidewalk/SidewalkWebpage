@@ -311,7 +311,7 @@
 }
 
 .minimap-legend-sample-remaining {
-  stroke: color-mix(in srgb, var(--color-link-100) 55%, var(--color-neutral-white));
+  stroke: var(--color-route-ahead);
   stroke-width: 6;
   stroke-linecap: round;
   fill: none;
@@ -336,7 +336,7 @@
 }
 
 .minimap-legend-sample-next-step {
-  fill: color-mix(in srgb, var(--color-link-100) 55%, var(--color-neutral-white));
+  fill: var(--color-route-ahead);
   stroke: var(--color-link-200);
   stroke-width: 1.8;
 }
@@ -358,7 +358,7 @@
 
 .minimap-legend-sample-chevron {
   fill: var(--color-neutral-white);
-  stroke: color-mix(in srgb, var(--color-link-100) 55%, var(--color-neutral-white));
+  stroke: var(--color-link-200);
   stroke-width: 1;
 }
 
@@ -458,6 +458,11 @@
   opacity: 0.7;
 }
 
+/* A far crumb over a visited pano acts as that pano's breadcrumb (click peeks back there), so it keeps the pointer. */
+.minimap-crumb-far.minimap-crumb-visited {
+  cursor: pointer;
+}
+
 /* A crumb at a pano the user has already stood on sits exactly over its breadcrumb ring and wears the same pine at the
    same size, so the two read as one mark; the next-step tint and the faced fill below still apply to it, which is
    what makes the way forward legible after a backtrack. */
@@ -483,7 +488,7 @@
   width: calc(9px * var(--ui-scale, 1));
   height: calc(9px * var(--ui-scale, 1));
   border-width: calc(1.8px * var(--ui-scale, 1));
-  background: color-mix(in srgb, var(--color-link-100) 55%, var(--color-neutral-white));
+  background: var(--color-route-ahead);
 }
 
 /* Halos (the faced fill's and the hover outline's) are the crumb's stroke color at 45%: a soft field around the mark

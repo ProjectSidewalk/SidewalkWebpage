@@ -259,6 +259,16 @@ class PanoViewer {
   async preloadPanoNear(_latLng, _excludedPanos = new Set()) {}
 
   /**
+   * Whether this provider can search for a pano by location, and so answer findPanoNear() with more than null.
+   * Callers that would otherwise sample a whole street for nothing (Pannellum) check this first. False by default;
+   * a provider that implements findPanoNear() overrides it.
+   * @returns {boolean}
+   */
+  supportsLocationSearch() {
+    return false;
+  }
+
+  /**
    * Finds the pano that setLocation() would move to near a location, without moving. A metadata-only lookup for
    * callers that want to know where imagery is before the user goes there: Explore's forward crumbs on the minimap
    * (#4669), which mark the panos ahead on the street being audited even where the provider's link graph dead-ends.

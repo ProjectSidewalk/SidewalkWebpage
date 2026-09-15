@@ -149,28 +149,70 @@ describe('ForwardCrumbs.closestLinkIndex', () => {
     });
 });
 
+describe('ForwardCrumbs.stepLinkIndex', () => {
+    const links = [{ panoId: 'n', heading: 0 }, { panoId: 'e', heading: 90 }];
+
+    test("picks the link a step takes, by moveToLinkedPano's cosine rule (within 60°)", () => {
+        expect(ForwardCrumbs.stepLinkIndex(links, 30)).toBe(0);
+        expect(ForwardCrumbs.stepLinkIndex(links, 50)).toBe(1);
+        expect(ForwardCrumbs.stepLinkIndex(links, 149)).toBe(1);
+        expect(ForwardCrumbs.stepLinkIndex(links, 151)).toBe(-1);
+        expect(ForwardCrumbs.stepLinkIndex([], 0)).toBe(-1);
+    });
+});
+
 describe('ForwardCrumbs.facedPanoId', () => {
     const links = [{ panoId: 'e', heading: 90 }, { panoId: 'w', heading: 270 }];
+    const route = (deg) => () => deg;
 
-    test('the link the user faces is where forward goes', () => {
-        expect(ForwardCrumbs.facedPanoId(links, 100, 'next', 45)).toBe('e');
-        expect(ForwardCrumbs.facedPanoId(links, 260, 'next', 45)).toBe('w');
+    test('the link a step toward the facing takes is where forward goes, by the up key\'s 60° rule', () => {
+        expect(ForwardCrumbs.facedPanoId(links, 100, 'next', route(45))).toBe('e');
+        expect(ForwardCrumbs.facedPanoId(links, 140, 'next', route(45))).toBe('e');
+        expect(ForwardCrumbs.facedPanoId(links, 260, 'next', route(45))).toBe('w');
     });
 
     test('at a link-graph dead-end, facing the route fills its next stop (the synthesized forward arrow)', () => {
-        expect(ForwardCrumbs.facedPanoId(links, 10, 'next', 0)).toBe('next');
-        expect(ForwardCrumbs.facedPanoId(links, 180, 'next', 0)).toBeNull();
+        expect(ForwardCrumbs.facedPanoId(links, 10, 'next', route(0))).toBe('next');
+        expect(ForwardCrumbs.facedPanoId(links, 180, 'next', route(0))).toBeNull();
     });
 
     test('when a link already serves the route, facing the route without facing that link fills nothing', () => {
         // The route heads 60°: the east link (90°) is its arrow, so no synthesized arrow exists at 20°.
-        expect(ForwardCrumbs.facedPanoId(links, 20, 'next', 60)).toBeNull();
+        expect(ForwardCrumbs.facedPanoId(links, 20, 'next', route(60))).toBeNull();
+    });
+
+    test('the route heading is only computed when no link is faced', () => {
+        const routeHeading = jest.fn(() => 0);
+        expect(ForwardCrumbs.facedPanoId(links, 100, 'next', routeHeading)).toBe('e');
+        expect(routeHeading).not.toHaveBeenCalled();
+        expect(ForwardCrumbs.facedPanoId(links, 10, 'next', routeHeading)).toBe('next');
+        expect(routeHeading).toHaveBeenCalledTimes(1);
     });
 
     test('nothing to fill off route or with no route', () => {
-        expect(ForwardCrumbs.facedPanoId(links, 0, null, 0)).toBeNull();
-        expect(ForwardCrumbs.facedPanoId(links, 0, 'next', null)).toBeNull();
-        expect(ForwardCrumbs.facedPanoId([], 0, null, null)).toBeNull();
+        expect(ForwardCrumbs.facedPanoId(links, 0, null, route(0))).toBeNull();
+        expect(ForwardCrumbs.facedPanoId(links, 0, 'next', route(null))).toBeNull();
+        expect(ForwardCrumbs.facedPanoId([], 0, null, route(null))).toBeNull();
+    });
+});
+
+describe('ForwardCrumbs.walkLandingStop', () => {
+    const measured = [hit('a', 80), hit('b', 110), hit('c', 130), hit('alley', 110, 30)]
+        .map((h) => ForwardCrumbs.measureAgainstStreet(STREET, h));
+    const opts = { minAheadM: 5, maxOffsetM: 15, searchRadiusM: 25 };
+
+    test('near the furthest point, the walk lands on the first stop ahead of it', () => {
+        expect(ForwardCrumbs.walkLandingStop(measured, 0.1, 10, opts).panoId).toBe('b');
+    });
+
+    test('off the street, the walk searches at the furthest point, so the stop nearest it', () => {
+        expect(ForwardCrumbs.walkLandingStop(measured, 0.1, 40, opts).panoId).toBe('b');
+        expect(ForwardCrumbs.walkLandingStop(measured, 0.085, 40, opts).panoId).toBe('a');
+    });
+
+    test('a pano off the street line never counts, and an empty street yields null', () => {
+        expect(ForwardCrumbs.walkLandingStop(measured, 0.11, 40, opts).panoId).not.toBe('alley');
+        expect(ForwardCrumbs.walkLandingStop([], 0.1, 10, opts)).toBeNull();
     });
 });
 

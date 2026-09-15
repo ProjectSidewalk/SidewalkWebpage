@@ -28,6 +28,24 @@ class GsvViewer extends PanoViewer {
   }
 
   /**
+   * Entries either memo may hold before the oldest are dropped. Caches only empty on a jump to a disconnected
+   * street, so a long contiguous walk would otherwise keep every reply it ever fetched, each a whole
+   * StreetViewPanoramaData; a few hundred covers the streets in play and bounds the rest.
+   */
+  static #MEMO_CAP = 300;
+
+  /**
+   * Stores a reply promise in a memo, evicting the oldest entries past the cap (a Map iterates in insertion order).
+   * @param {Map<string, Promise<google.maps.StreetViewResponse>>} memo - locationSearches or panoLookups.
+   * @param {string} key - The memo key.
+   * @param {Promise<google.maps.StreetViewResponse>} promise - The reply to remember.
+   */
+  static #remember(memo, key, promise) {
+    memo.set(key, promise);
+    while (memo.size > GsvViewer.#MEMO_CAP) memo.delete(memo.keys().next().value);
+  }
+
+  /**
    * Pulls in the Maps JS core + Street View modules without building a panorama. Google bills the
    * StreetViewPanorama constructor, not the library download, so this is free to run for visitors who never
    * open a pano — it just takes the ~400 KB script chain off the click path when they do (#5128).
@@ -278,7 +296,7 @@ class GsvViewer extends PanoViewer {
     promise.catch((err) => {
       if (err?.code !== 'ZERO_RESULTS') this.locationSearches.delete(key);
     });
-    this.locationSearches.set(key, promise);
+    GsvViewer.#remember(this.locationSearches, key, promise);
     return promise;
   };
 
@@ -297,7 +315,7 @@ class GsvViewer extends PanoViewer {
     promise.catch((err) => {
       if (err?.code !== 'ZERO_RESULTS') this.panoLookups.delete(panoId);
     });
-    this.panoLookups.set(panoId, promise);
+    GsvViewer.#remember(this.panoLookups, panoId, promise);
     return promise;
   };
 
@@ -320,6 +338,8 @@ class GsvViewer extends PanoViewer {
     }
     return { lat: data.location.latLng.lat(), lng: data.location.latLng.lng() };
   };
+
+  supportsLocationSearch = () => true;
 
   /**
    * See PanoViewer.findPanoNear(). Same nearest-outdoor-pano query as setLocation(), read straight off the metadata

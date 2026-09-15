@@ -560,5 +560,16 @@ describe('PannellumViewer.findPanoNear', () => {
     test('cannot search by location, so it has no crumbs to offer', async () => {
         const viewer = new (loadViewer('PannellumViewer').Viewer)();
         await expect(viewer.findPanoNear(HERE)).resolves.toBeNull();
+        expect(viewer.supportsLocationSearch()).toBe(false);
+    });
+});
+
+describe('PanoViewer.supportsLocationSearch', () => {
+    test('is a real capability flag: true for every provider with a location search, false otherwise', () => {
+        for (const name of ['GsvViewer', 'MapillaryViewer', 'PanoramaxViewer', 'Infra3dViewer']) {
+            expect(new (loadViewer(name).Viewer)().supportsLocationSearch()).toBe(true);
+        }
+        const { PanoViewer } = loadViewer('PannellumViewer');
+        expect(new (class Probe extends PanoViewer {})().supportsLocationSearch()).toBe(false);
     });
 });

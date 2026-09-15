@@ -36,25 +36,18 @@ class MinimapStyle {
 
   /**
    * Color of the not-yet-audited part of the current route: the forward arrow's blue lightened toward white, so the
-   * line reads as the arrow's path without matching the peg. The legend swatch draws the same mix in CSS
-   * (`color-mix(in srgb, var(--color-link-100) 55%, var(--color-neutral-white))`); Google Maps needs it resolved.
+   * line reads as the arrow's path without matching the peg. Deliberately light: its separation from the pine
+   * audited half comes from texture (5 on / 7 off dashes and chevrons), not from contrast, and the legend swatches
+   * read the same token.
    * @returns {string}
    */
   static remainingColor() {
-    return MinimapStyle.mix(MinimapStyle.pegColor(), MinimapStyle.token('--color-neutral-white', '#FFFFFF'), 0.55);
+    return MinimapStyle.token('--color-route-ahead', '#95BFEA');
   }
 
-  /**
-   * Mixes two 6-digit hex colors in sRGB, like CSS `color-mix(in srgb, a <weight>, b)`.
-   * @param {string} hexA - First color.
-   * @param {string} hexB - Second color.
-   * @param {number} weightA - Share of the first color, 0..1.
-   * @returns {string} A 6-digit hex color.
-   */
-  static mix(hexA, hexB, weightA) {
-    const channels = (hex) => hex.replace('#', '').match(/../g).map((pair) => parseInt(pair, 16));
-    const [a, b] = [channels(hexA), channels(hexB)];
-    return `#${a.map((v, i) => Math.round(v * weightA + b[i] * (1 - weightA)).toString(16).padStart(2, '0')).join('')}`;
+  /** @returns {string} Outline of the route-ahead chevrons: deep blue, so they read on the white casing too. */
+  static chevronOutlineColor() {
+    return MinimapStyle.token('--color-link-200', '#0A58CA');
   }
 
   /** @returns {string} Stroke color of the 360°-observed progress ring while in progress (matches the progress bar). */
@@ -136,9 +129,10 @@ class MinimapStyle {
   }
 
   /**
-   * The remaining (walk this way) half of the current street: a dark dashed line with direction chevrons. Dashes are
-   * drawn via repeated symbols (the standard Google Maps dashed-polyline technique, since strokes can't dash). The
-   * chevrons are white with a dark outline so they read on both the dark dashes and the white casing between them.
+   * The remaining (walk this way) half of the current street: a light-blue dashed line with direction chevrons.
+   * Dashes are drawn via repeated symbols (the standard Google Maps dashed-polyline technique, since strokes can't
+   * dash). The chevrons are white with a deep-blue outline so they read on both the dashes and the white casing
+   * between them.
    * @param {google.maps.LatLng[]} path - The polyline path.
    * @returns {google.maps.PolylineOptions}
    */
@@ -166,7 +160,7 @@ class MinimapStyle {
             path: 'M -2.2,2 L 0,-1.8 L 2.2,2 Z',
             fillColor: '#ffffff',
             fillOpacity: 1.0,
-            strokeColor: color,
+            strokeColor: MinimapStyle.chevronOutlineColor(),
             strokeOpacity: 1.0,
             strokeWeight: 1.4,
             scale: 2.4,

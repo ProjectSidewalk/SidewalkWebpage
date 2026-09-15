@@ -129,6 +129,10 @@
   --color-link-100: #3E8BD9;
   --color-link-200: #0A58CA;
 
+  /* Explore minimap's route-ahead line: link-100 mixed 55% with white, so the way forward reads as the forward
+     arrow's blue without matching the peg. A flat value because Google Maps polylines can't take color-mix(). */
+  --color-route-ahead: #95BFEA;
+
   /* Project Sidewalk label-type color palette. The canonical color for each accessibility label type. */
   --color-label-curb-ramp: var(--color-lime-500);
   --color-label-no-curb-ramp: var(--color-pink-500);

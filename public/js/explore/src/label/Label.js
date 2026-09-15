@@ -593,7 +593,7 @@ class Label {
     // AdvancedMarkerElement anchors content by its bottom-center; shift it down half its height to center it.
     content.style.transform = 'translateY(50%)';
     // Hover tooltip and accessible name, named the way the rest of the tool names the label type.
-    const labelTypeName = i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', '');
+    const labelTypeName = i18next.t(`common:${util.camelToKebab(labelType)}`).replaceAll('&shy;', '');
     const title = i18next.t('audit:right-ui.minimap.label-marker-title', { labelType: labelTypeName });
     content.alt = title;
     return new google.maps.marker.AdvancedMarkerElement({
