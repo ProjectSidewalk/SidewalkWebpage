@@ -579,15 +579,14 @@ class UserServiceImpl @Inject() (
 
   def setUserExcluded(userId: String, excluded: Boolean): Future[Option[Boolean]] = {
     db.run((for {
-      // The quality writes skip excluded users, so they have to happen before the flag is set.
+      _             <- userStatTable.updateExcluded(userId, excluded)
+      labelsChanged <- labelTable.recalculateValidationCounts(Some(userId))
+      // With no label's counts changed, no labeler's accuracy or quality can have either.
       _ <-
-        if (excluded)
-          userStatTable.updateHighQualityManual(userId, Some(false)) >> userStatTable.updateHighQuality(userId, false)
-        else DBIO.successful(0)
-      _         <- userStatTable.updateExcluded(userId, excluded)
-      _         <- labelTable.recalculateValidationCounts(Some(userId))
-      _         <- userStatTable.updateAccuracyForLabelersValidatedBy(userId)
-      _         <- userStatTable.updateUserQualityForLabelersValidatedBy(userId)
+        if (labelsChanged == 0) DBIO.successful(0)
+        else
+          userStatTable.updateAccuracyForLabelersValidatedBy(userId) >>
+            userStatTable.updateUserQualityForLabelersValidatedBy(userId)
       _         <- if (excluded) DBIO.successful(0) else userStatTable.updateUserQuality(userId)
       userStats <- userStatTable.getStatsFromUserId(userId)
     } yield userStats.map(_.highQuality)).transactionally)

@@ -228,11 +228,11 @@ class AdminController @Inject() (
                 val serviceChanged              = s.communityService != user.communityService
                 val privacyChanged              =
                   stats.exists(st => st.onLeaderboard != s.onLeaderboard || st.publicProfile != s.publicProfile)
-                val newQualityManual: Option[Boolean] = if (s.excluded) Some(false) else s.highQualityManual
-                val qualityChanged                    = stats.exists(_.highQualityManual != newQualityManual)
-                val excludedChanged                   = stats.exists(_.excluded != s.excluded)
-                val infra3dChanged                    = s.infra3dAccess.exists(_ != user.infra3dAccess)
-                val anyChanged = usernameChanged || roleChanged || teamChanged || serviceChanged ||
+                // An excluded user's quality is set by the exclusion, so the quality field is ignored for them.
+                val qualityChanged  = !s.excluded && stats.exists(_.highQualityManual != s.highQualityManual)
+                val excludedChanged = stats.exists(_.excluded != s.excluded)
+                val infra3dChanged  = s.infra3dAccess.exists(_ != user.infra3dAccess)
+                val anyChanged      = usernameChanged || roleChanged || teamChanged || serviceChanged ||
                   privacyChanged || qualityChanged || excludedChanged || infra3dChanged
 
                 // Ordered from the broadest refusal to the narrowest.
@@ -282,7 +282,7 @@ class AdminController @Inject() (
                         if (excludedChanged) userService.setUserExcluded(userId, s.excluded)
                         else Future.successful(stats.map(_.highQuality))
                       newQuality <-
-                        if (qualityChanged && !s.excluded) userService.setManualUserQuality(userId, newQualityManual)
+                        if (qualityChanged) userService.setManualUserQuality(userId, s.highQualityManual)
                         else Future.successful(excludedQuality)
                       _ <-
                         if (usernameChanged) userService.changeUsername(userId, s.username)
@@ -304,7 +304,7 @@ class AdminController @Inject() (
                         cc.loggingService.insert(
                           admin.userId,
                           request.ipAddress,
-                          s"UpdateUserManualQuality_User=${userId}_Manual=${newQualityManual}_New=$newQuality"
+                          s"UpdateUserManualQuality_User=${userId}_Manual=${s.highQualityManual}_New=$newQuality"
                         )
                       }
                       if (excludedChanged) {
@@ -1018,22 +1018,18 @@ class AdminController @Inject() (
    */
   def recalculateStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    jobRunService
-      .record(RecalculateStreetPriorityActor.Name, JobRunTrigger.Manual)(streetService.recalculateStreetPriority)(_ =>
-        RecalculateStreetPriorityActor.runDetails(None)
-      )
-      .map(_ => Ok("Successfully recalculated street priorities"))
+    runStreetPriorityRecalc().map(_ => Ok("Successfully recalculated street priorities"))
   }
 
+  /** Recalculates street priority for all streets, recorded as a manual run of the nightly job. */
+  private def runStreetPriorityRecalc(): Future[Seq[Int]] =
+    jobRunService.record(RecalculateStreetPriorityActor.Name, JobRunTrigger.Manual)(
+      streetService.recalculateStreetPriority
+    )(_ => RecalculateStreetPriorityActor.runDetails(None))
+
   /** Recalculates street priority without making the caller wait, since it rewrites every street. */
-  private def recalculateStreetPriorityInBackground(): Unit = {
-    jobRunService
-      .record(RecalculateStreetPriorityActor.Name, JobRunTrigger.Manual)(streetService.recalculateStreetPriority)(_ =>
-        RecalculateStreetPriorityActor.runDetails(None)
-      )
-      .failed
-      .foreach(e => logger.error("Background street priority recalculation failed.", e))
-  }
+  private def recalculateStreetPriorityInBackground(): Unit =
+    runStreetPriorityRecalc().failed.foreach(e => logger.error("Background street priority recalculation failed.", e))
 
   /** Recounts every label's validation counts; users' accuracy catches up on the next user stats run. */
   def recalculateValidationCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>

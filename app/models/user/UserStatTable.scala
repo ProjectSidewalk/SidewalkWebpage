@@ -285,9 +285,14 @@ class UserStatTable @Inject() (
     userStats.filter(u => u.userId === userId && !u.excluded).map(_.highQuality).update(newHighQuality)
   }
 
-  /** @return Number of rows updated; 0 if no user is found. */
+  /**
+   * Sets the excluded column; excluding also marks the user manually low quality in the same write.
+   * @return Number of rows updated; 0 if no user is found.
+   */
   def updateExcluded(userId: String, newExcluded: Boolean): DBIO[Int] = {
-    userStats.filter(_.userId === userId).map(_.excluded).update(newExcluded)
+    val user = userStats.filter(_.userId === userId)
+    if (newExcluded) user.map(u => (u.excluded, u.highQualityManual, u.highQuality)).update((true, Some(false), false))
+    else user.map(_.excluded).update(false)
   }
 
   /**
@@ -485,8 +490,8 @@ class UserStatTable @Inject() (
       .map(_._2.userId)
     val toUpdate = userStats.filter(u => u.userId.in(labelers) && !u.excluded)
     for {
-      numHigh <- toUpdate.filter(computedHighQuality).map(_.highQuality).update(true)
-      numLow  <- toUpdate.filterNot(computedHighQuality).map(_.highQuality).update(false)
+      numHigh <- toUpdate.filter(u => computedHighQuality(u) && !u.highQuality).map(_.highQuality).update(true)
+      numLow  <- toUpdate.filter(u => !computedHighQuality(u) && u.highQuality).map(_.highQuality).update(false)
     } yield numHigh + numLow
   }.transactionally
 
@@ -495,9 +500,8 @@ class UserStatTable @Inject() (
     !x.excluded &&                              // false if excluded=true
     x.highQualityManual.getOrElse(true) && (    // false if high_quality_manual=false
       x.highQualityManual.getOrElse(false) || ( // true if high_quality_manual set to true
-        // 0.6d, not 0.6f: widening the float would compare against 0.60000002, so this path and the bulk
-        // `updateHighQuality` below would disagree for an accuracy in that sliver. Evolution 347 and
-        // GeodesicDistanceSpec both assume the two agree exactly.
+        // 0.6d, not 0.6f: widening the float would compare against 0.60000002. Evolution 347 and
+        // GeodesicDistanceSpec assume this matches its SQL copy exactly.
         (x.metersAudited === 0d || x.labelsPerMeter.getOrElse(5d) > LABEL_PER_METER_THRESHOLD)
           && (x.accuracy.getOrElse(1.0d) > 0.6d.asColumnOf[Double] ||
             x.ownLabelsValidated < UserStatTable.OwnLabelsValidatedToJudge.asColumnOf[Int])
@@ -529,16 +533,7 @@ class UserStatTable @Inject() (
     val userQualQuery: DBIO[Seq[(String, Boolean)]] = {
       userStats
         .filter(x => x.highQualityManual.isEmpty || x.highQualityManual)
-        .map { x =>
-          (
-            x.userId,
-            x.highQualityManual.getOrElse(false) || (
-              (x.metersAudited === 0d || x.labelsPerMeter.getOrElse(5d) > LABEL_PER_METER_THRESHOLD)
-                && (x.accuracy.getOrElse(1.0d) > 0.6d
-                  .asColumnOf[Double] || x.ownLabelsValidated < UserStatTable.OwnLabelsValidatedToJudge.asColumnOf[Int])
-            )
-          )
-        }
+        .map(x => (x.userId, computedHighQuality(x))) // Excluded users are forced low below, via lowQualUsers.
         .result
     }.transactionally
 

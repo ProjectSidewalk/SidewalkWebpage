@@ -39,7 +39,8 @@ class AdminUser {
     this.#saveBtn?.addEventListener('click', () => this.#save());
 
     const excludedBox = document.getElementById('au-excluded');
-    this.#excluded = excludedBox?.checked ?? false;
+    // defaultChecked is the saved state; a browser restoring a checked box after reload must not skip the prompt.
+    this.#excluded = excludedBox?.defaultChecked ?? false;
     excludedBox?.addEventListener('change', () => this.#syncQualityToExcluded(excludedBox.checked));
 
     document.querySelectorAll('.ud-admin-flag').forEach((block) => {

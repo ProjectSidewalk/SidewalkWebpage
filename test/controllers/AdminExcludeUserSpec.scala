@@ -124,7 +124,10 @@ class AdminExcludeUserSpec
   override def afterAll(): Unit = {
     try {
       touchedUserIds.foreach { userId =>
-        val _ = run(sqlu"UPDATE user_stat SET excluded = FALSE, high_quality_manual = NULL WHERE user_id = $userId")
+        val _ = run(
+          sqlu"""UPDATE user_stat SET excluded = DEFAULT, high_quality_manual = DEFAULT, high_quality = DEFAULT
+                 WHERE user_id = $userId"""
+        )
       }
       val suiteRuns = jobRunTable.backgroundJobRuns
         .filter(r => r.jobName === RecalculateStreetPriorityActor.Name && r.backgroundJobRunId > runIdFloor)
@@ -167,6 +170,16 @@ class AdminExcludeUserSpec
       status(save(adminCookies, settingsBody(autoUser, highQualityManual = None, excluded = false))) mustBe OK
       val (excluded, manual, _) = qualityState(autoUser)
       (excluded, manual) mustBe ((false, None))
+    }
+
+    "leave alone a user excluded before this page existed, whose manual quality was never set" in {
+      val userId = targetUser(Role.Administrator)
+      val _      = run(sqlu"UPDATE user_stat SET excluded = TRUE, high_quality_manual = NULL WHERE user_id = $userId")
+
+      // A non-Owner admin may save an excluded admin's page as long as the save changes neither quality nor exclusion.
+      status(save(adminCookies, settingsBody(userId, highQualityManual = None, excluded = true))) mustBe OK
+      val (excluded, manual, _) = qualityState(userId)
+      (excluded, manual) mustBe ((true, None))
     }
 
     "refuse an Administrator excluding another Administrator, but let an Owner do it" in {
