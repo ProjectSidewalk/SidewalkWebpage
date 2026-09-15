@@ -28,7 +28,7 @@ class LabelCard {
 
     // Built once and re-pointed at each label in render(), the way LabelDetail does it. Every label Validate serves
     // came from the back end, so its id is always real and the button is never in a state where it can't work.
-    const trigger = document.getElementById('label-card-share');
+    const trigger = /** @type {HTMLButtonElement} */ (document.getElementById('label-card-share'));
     if (trigger && typeof ShareWidget !== 'undefined') {
       this.#shareWidget = new ShareWidget(trigger, {
         // The card is anchored to the label's marker, which can sit anywhere in the pano.

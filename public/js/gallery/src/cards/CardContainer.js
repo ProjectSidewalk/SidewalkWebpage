@@ -43,7 +43,7 @@ class CardContainer {
 
   /**
    * @param {*} uiCardContainer - UI element tied with this CardContainer.
-   * @param {object} initialFilters - Object containing initial set of filters in sidebar.
+   * @param {Record<string, any>} initialFilters - Object containing initial set of filters in sidebar.
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
    * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
    * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
@@ -62,7 +62,7 @@ class CardContainer {
   /**
    * Creates a CardContainer, fetches the first batch of labels, and builds the ExpandedView.
    * @param {*} uiCardContainer - UI element tied with this CardContainer.
-   * @param {object} initialFilters - Object containing initial set of filters in sidebar.
+   * @param {Record<string, any>} initialFilters - Object containing initial set of filters in sidebar.
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
    * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
    * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
@@ -304,7 +304,7 @@ class CardContainer {
   /**
    * The filters the sidebar is currently reporting, in the shape the label query takes.
    * @returns {{types: string[], valOptions: string[], severities: (string[]|undefined),
-   *      tagsByType: object}} The current filter state.
+   *      tagsByType: Record<string, string[]>}} The current filter state.
    */
   #currentFilters() {
     const types = sg.cardFilter.getStatus().currentLabelTypes;
@@ -326,7 +326,8 @@ class CardContainer {
    * fetched. Tags are per type — a curb ramp's "narrow" says nothing about an obstacle — so each type is filtered
    * against its own.
    *
-   * @param {object} filters - The filters from #currentFilters().
+   * @param {{types: string[], valOptions: string[], severities: (string[]|undefined),
+   *      tagsByType: Record<string, string[]>}} filters - The filters from #currentFilters().
    * @returns {CardBucket} The cards to page through.
    */
   #collectCurrentCards({ types, valOptions, severities, tagsByType }) {

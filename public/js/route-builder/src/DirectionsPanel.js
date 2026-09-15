@@ -23,7 +23,7 @@ class DirectionsPanel {
 
   /**
    * @param {object} opts
-   * @param {object} opts.map - The Mapbox map.
+   * @param {mapboxgl.Map} opts.map - The Mapbox map.
    * @param {string} opts.mapboxApiKey
    * @param {[[number, number], [number, number]]} opts.bbox - Search bounds: [[west, south], [east, north]].
    * @param {Function} opts.onSetStart - Called with {lng, lat} when a Start address is chosen.
@@ -96,7 +96,7 @@ class DirectionsPanel {
    * replay it as ArrowDown + Enter, the library's own keyboard protocol for "take the first suggestion". An
    * Enter that lands before the suggestions arrive is remembered and honored when they do.
    *
-   * @param {object} box - The mounted MapboxSearchBox element.
+   * @param {HTMLElement} box - The mounted MapboxSearchBox element.
    * @param {string} which - 'start' or 'end'.
    */
   #wireEnterToFirstSuggestion(box, which) {
@@ -131,7 +131,7 @@ class DirectionsPanel {
       pendingEnter = false;
     });
     slot.addEventListener('focusout', (event) => {
-      if (!slot.contains(event.relatedTarget)) pendingEnter = false;
+      if (!slot.contains(/** @type {Node} */ (event.relatedTarget))) pendingEnter = false;
     });
   }
 
@@ -189,7 +189,7 @@ class DirectionsPanel {
    * Extracts the bare street name from a Mapbox geocoding/search feature's properties: the street context of an
    * address result, or the feature's own name for a street result.
    *
-   * @param {object} [props] - The feature's properties.
+   * @param {Record<string, any>} [props] - The feature's properties.
    * @returns {string|null}
    */
   static #streetNameFromProps(props) {
@@ -204,7 +204,7 @@ class DirectionsPanel {
    * lookup or the user is typing in / recently typed that field.
    *
    * @param {string} which - 'start' or 'end'.
-   * @param {object} lngLat - {lng, lat}.
+   * @param {{lng: number, lat: number}} lngLat
    */
   #reverseGeocodeInto(which, lngLat) {
     const coord = [lngLat.lng, lngLat.lat];
@@ -225,8 +225,8 @@ class DirectionsPanel {
     this.#endpointStreets[which] = null;
 
     const params = new URLSearchParams({
-      longitude: lngLat.lng,
-      latitude: lngLat.lat,
+      longitude: String(lngLat.lng),
+      latitude: String(lngLat.lat),
       types: 'address,street',
       language: i18next.t('common:mapbox-language-code'),
       access_token: this.#mapboxApiKey,

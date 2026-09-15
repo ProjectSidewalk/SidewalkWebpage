@@ -26,7 +26,6 @@ class PanoData {
    *     them in).
    * @param {Array<{panoId: string, captureDate: moment.Moment}>} params.history - Past panos at this location
    * @param {boolean} [params.submitted=false] - Whether we've sent this data to the server; false unless in tutorial
-   * @returns {PanoData}
    */
   constructor(params) {
     // Validate required parameters. Three guards keep unrenderable backup panos away from PannellumViewer by

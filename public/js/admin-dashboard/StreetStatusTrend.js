@@ -23,7 +23,7 @@ class StreetStatusTrend {
    * @param {(streetId: number) => boolean} [opts.onShowStreet] - Asks the page to point its status map at one street,
    *   returning false if it can't yet. Omitted renders the reopen queue's street ids as plain text.
    */
-  constructor(opts = {}) {
+  constructor(opts) {
     this.#trendUrl = opts.trendUrl;
     this.#weeks = Number(opts.weeks) || null;
     this.#onShowStreet = opts.onShowStreet || null;
@@ -31,7 +31,7 @@ class StreetStatusTrend {
 
   /** Loads the initial window and wires the range selector. */
   async init() {
-    const range = document.getElementById('trend-range');
+    const range = /** @type {HTMLSelectElement} */ (document.getElementById('trend-range'));
     if (range) {
       // The server's default has to be one of the offered windows for the select to show it; if it ever isn't, the
       // assignment is a no-op and the select keeps its first option, so take the select's value as authoritative
@@ -85,7 +85,7 @@ class StreetStatusTrend {
   }
 
   /**
-   * @param {object} data - The `/adminapi/streetStatusTrend` payload.
+   * @param {Record<string, any>} data - The `/adminapi/streetStatusTrend` payload.
    */
   #render(data) {
     const weekStarts = StreetStatusTrend.#weekStarts(data.since, data.weeks);
@@ -138,10 +138,12 @@ class StreetStatusTrend {
       [['Street', true], 'Region', ['Panos found', true], 'Newest capture', 'Last detected', 'Actions'], body);
     // Focusable so an action that re-renders the table can put focus back here instead of dropping it to the body.
     container.tabIndex = -1;
-    for (const button of container.querySelectorAll('button[data-action="locate"]')) {
+    const locateButtons = container.querySelectorAll('button[data-action="locate"]');
+    for (const button of /** @type {NodeListOf<HTMLButtonElement>} */ (locateButtons)) {
       button.addEventListener('click', () => this.#showCandidateOnMap(button));
     }
-    for (const button of container.querySelectorAll('button[data-action="reopen"], button[data-action="dismiss"]')) {
+    const actionButtons = container.querySelectorAll('button[data-action="reopen"], button[data-action="dismiss"]');
+    for (const button of /** @type {NodeListOf<HTMLButtonElement>} */ (actionButtons)) {
       button.addEventListener('click', () => this.#actOnReopenCandidate(button));
     }
   }

@@ -122,7 +122,7 @@ class RouteBuilder {
 
   /**
    * @param {string} mapboxApiKey
-   * @param {object} mapParams - City center/boundaries/zoom for initializing the map.
+   * @param {Record<string, any>} mapParams - City center/boundaries/zoom for initializing the map.
    * @param {boolean} isSignedIn - Whether the user is signed in (vs anonymous), from the server.
    * @param {number} minutesPer100m - The city's labeling pace (minutes per 100 m), for the exploration-time
    *   estimate; server-provided (ConfigService.getCityLabelingSpeed).
@@ -197,14 +197,15 @@ class RouteBuilder {
     });
     this.#savedRoutes.refresh();
 
-    this.#undoStack = new UndoStack(document.getElementById('undo-button'));
+    this.#undoStack = new UndoStack(/** @type {HTMLButtonElement} */ (document.getElementById('undo-button')));
     document.getElementById('undo-button').addEventListener('click', () => {
       window.logWebpageActivity('RouteBuilder_Click=Undo');
       this.#undo();
     });
     document.addEventListener('keydown', (e) => {
       // Ctrl/Cmd+Z undoes the last route edit, except while typing in a form field.
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !/^(input|textarea|select)$/i.test(e.target.tagName)) {
+      const { tagName } = /** @type {Element} */ (e.target);
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !/^(input|textarea|select)$/i.test(tagName)) {
         e.preventDefault();
         window.logWebpageActivity('RouteBuilder_KeyboardShortcut=Undo');
         this.#undo();
@@ -279,8 +280,9 @@ class RouteBuilder {
     });
 
     document.getElementById('poi-toggle-checkbox')?.addEventListener('change', (e) => {
-      window.logWebpageActivity(`RouteBuilder_Click=TogglePois_Visible=${e.target.checked}`);
-      this.#setPoiVisibility(e.target.checked);
+      const { checked } = /** @type {HTMLInputElement} */ (e.target);
+      window.logWebpageActivity(`RouteBuilder_Click=TogglePois_Visible=${checked}`);
+      this.#setPoiVisibility(checked);
     });
 
     // The draft is written on route edits, but the camera moves without edits — rewrite it as the page unloads
@@ -535,7 +537,7 @@ class RouteBuilder {
   }
 
   /**
-   * @param {object} regionDataIn - GeoJSON of the city's regions.
+   * @param {GeoJSON.FeatureCollection} regionDataIn - GeoJSON of the city's regions.
    */
   renderRegions(regionDataIn) {
     this.#regionData = regionDataIn;
@@ -723,7 +725,7 @@ class RouteBuilder {
   /**
    * Returns the region id of the region polygon under a screen point, or null if there is none.
    *
-   * @param {object} point - Screen {x, y} of a map event.
+   * @param {{x: number, y: number}} point - Screen position of a map event.
    * @returns {number|null}
    */
   #regionIdAtPoint(point) {
@@ -739,7 +741,7 @@ class RouteBuilder {
    * current viewport too — a geocoded address in another region is exactly the case that must not read as
    * "no region" and slip past the one-region rule.
    *
-   * @param {object} lngLat - {lng, lat}.
+   * @param {{lng: number, lat: number}} lngLat
    * @returns {number|null}
    */
   #regionIdContaining(lngLat) {
@@ -756,7 +758,7 @@ class RouteBuilder {
    * across (or run along) its region's boundary, so the polygon under the pointer alone would misclassify
    * points on the region's own streets.
    *
-   * @param {object} lngLat - {lng, lat}.
+   * @param {{lng: number, lat: number}} lngLat
    * @returns {boolean}
    */
   #onCurrentRegionStreet(lngLat) {
@@ -769,7 +771,7 @@ class RouteBuilder {
    * frame): keeps the ghost flag (where the next click lands) and the cursor guide (what the next click does) in
    * sync with the mouse.
    *
-   * @param {object} lngLat - The mouse position {lng, lat}.
+   * @param {{lng: number, lat: number}} lngLat - The mouse position.
    */
   #onMapPointerMove(lngLat) {
     this.#ghostLngLat = lngLat;
@@ -819,7 +821,7 @@ class RouteBuilder {
    * learned (2+ points) and stays out of the way of the drawn route's own menu.
    *
    * @param {number|null} hoverRegionId - Region under the pointer, if any.
-   * @param {object} point - Screen {x, y} of the pointer.
+   * @param {{x: number, y: number}} point - Screen position of the pointer.
    */
   #updateCursorGuide(hoverRegionId, point) {
     let text = null;
@@ -871,7 +873,7 @@ class RouteBuilder {
   }
 
   /**
-   * @param {object} streetDataIn - GeoJSON of the city's streets.
+   * @param {GeoJSON.FeatureCollection} streetDataIn - GeoJSON of the city's streets.
    */
   renderStreets(streetDataIn) {
     this.#streetData = streetDataIn;
@@ -895,7 +897,7 @@ class RouteBuilder {
    * The first waypoint locks the route to its region (kept lightly — a click in another region is refused with a
    * toast). A non-first waypoint must be reachable from the previous one along the street network.
    *
-   * @param {object} lngLat - {lng, lat} of the click or geocoded address.
+   * @param {{lng: number, lat: number}} lngLat - The click or geocoded address.
    * @param {string} source - Where the point came from, for activity logging ('MapClick'/'AddressStart'/...).
    */
   #addWaypoint(lngLat, source) {
@@ -1009,7 +1011,7 @@ class RouteBuilder {
    * start" — feeding the typed point through would extend the route to it and flag it as the finish, the exact
    * opposite of what the field says it does. Rather than silently reinterpret it, say the route has to be cleared.
    *
-   * @param {object} lngLat - {lng, lat} of the geocoded address.
+   * @param {{lng: number, lat: number}} lngLat - The geocoded address.
    */
   #setStartFromAddress(lngLat) {
     if (this.#waypoints.length > 0) {
@@ -1618,7 +1620,7 @@ class RouteBuilder {
    * Restores a camera pose captured by #cameraSnapshot, so a reload puts the user back at the exact view they
    * left rather than a recomputed one.
    *
-   * @param {object} [camera] - A stashed #cameraSnapshot (possibly absent or corrupt — stashes cross reloads).
+   * @param {Record<string, any>} [camera] - A stashed #cameraSnapshot, possibly absent or corrupt.
    * @returns {boolean} False when the pose was unusable, so the caller can fall back (e.g. to a fitBounds).
    */
   #applyCamera(camera) {
@@ -1670,7 +1672,7 @@ class RouteBuilder {
    * @returns {boolean}
    */
   static #isPageReload() {
-    const nav = performance.getEntriesByType('navigation')[0];
+    const nav = /** @type {PerformanceNavigationTiming} */ (performance.getEntriesByType('navigation')[0]);
     return nav ? nav.type === 'reload' : false;
   }
 
@@ -1814,7 +1816,7 @@ class RouteBuilder {
    * map as an editing session — like saving a document, further edits update the same route via "Update route".
    * The new card is highlighted in "Your saved routes" and a toast confirms.
    *
-   * @param {object} saved - The POST /saveRoute response: route_id, name, slug, distance_meters, thumbnail_url.
+   * @param {Record<string, any>} saved - /saveRoute's response: route_id, name, slug, distance_meters, thumbnail_url.
    */
   #handleRouteSaved(saved) {
     const routeId = saved.route_id;
@@ -1836,7 +1838,7 @@ class RouteBuilder {
    * guest card always describes what was actually stored — and an update refreshes it rather than leaving the
    * first save's numbers on the card forever.
    *
-   * @param {object} saved - A /saveRoute or route-update response.
+   * @param {Record<string, any>} saved - A /saveRoute or route-update response.
    */
   #recordGuestRoute(saved) {
     this.#savedRoutes.recordGuestRoute({

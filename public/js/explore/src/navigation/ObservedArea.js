@@ -39,14 +39,14 @@ class ObservedArea {
   #progressCircleCtx;
 
   /**
-   * @param {object} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
+   * @param {Record<string, JQuery>} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
    */
   constructor(uiMinimap) {
     this.#uiMinimap = uiMinimap;
     this.#baseSize = parseFloat(getComputedStyle(uiMinimap.holder[0]).getPropertyValue('--minimap-base-size'));
-    this.#fogOfWarCtx = uiMinimap.fogOfWar[0].getContext('2d');
-    this.#fovCtx = uiMinimap.fov[0].getContext('2d');
-    this.#progressCircleCtx = uiMinimap.progressCircle[0].getContext('2d');
+    this.#fogOfWarCtx = /** @type {HTMLCanvasElement} */ (uiMinimap.fogOfWar[0]).getContext('2d');
+    this.#fovCtx = /** @type {HTMLCanvasElement} */ (uiMinimap.fov[0]).getContext('2d');
+    this.#progressCircleCtx = /** @type {HTMLCanvasElement} */ (uiMinimap.progressCircle[0]).getContext('2d');
     this.#syncCanvasSize();
     uiMinimap.coachDismiss.on('click', () => this.#dismissCoach('Click_MinimapCoach_GotIt'));
   }

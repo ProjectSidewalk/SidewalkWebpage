@@ -157,7 +157,7 @@ The remaining `*Preview.js` modules pull in heavier globals. To bring them under
 - **Mapbox GL** (every map preview): stub `window.mapboxgl` with no-op `Map` (whose instances need `on`, `addSource`,
   `addLayer`, `addControl`, `setPaintProperty`, `getCanvas`), `NavigationControl`, `AttributionControl`,
   `LngLatBounds`, and `Popup`, plus `window.MapboxLanguage`. The previews reach all of it through
-  `js/api-docs/apiDocsMap.js`, which `loadGlobalScript` has to load first.
+  `js/api-docs/apiDocsMap.js` and `js/common/geoBounds.js`, which `loadGlobalScript` has to load first.
 - **i18next / `i18next.t`**: stub `window.i18next = { t: (k) => k }` so translation lookups return the key.
 - **`util.*` globals** (e.g. `util.math`, formatting helpers in `common/`): either `loadGlobalScript` the real
   `common/` file first, or stub the specific `util.foo` functions used.

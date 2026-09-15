@@ -223,7 +223,7 @@ class NavbarController {
       }
       return;
     }
-    const idx = items.indexOf(e.target);
+    const idx = items.indexOf(/** @type {HTMLElement} */ (e.target));
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       if (items[idx + 1]) items[idx + 1].focus();
@@ -396,7 +396,7 @@ class NavbarController {
    */
   #closeOpenDropdown(li) {
     if (!li.classList.contains('is-open')) return;
-    const btn = li.querySelector('[data-nav-dropdown]');
+    const btn = /** @type {HTMLButtonElement} */ (li.querySelector('[data-nav-dropdown]'));
     if (btn) this.#close(li, btn);
   }
 
@@ -442,7 +442,7 @@ class NavbarController {
 
   /** Wires live client-side filtering of the city switcher, hiding empty country groups. */
   #wireCitySearch() {
-    const input = document.getElementById('nav-city-search');
+    const input = /** @type {HTMLInputElement} */ (document.getElementById('nav-city-search'));
     const menu = document.getElementById('nav-city-menu');
     if (!input || !menu) return;
     const empty = menu.querySelector('.nav-city-empty');
@@ -463,8 +463,9 @@ class NavbarController {
 
   /** Closes the open dropdown on an outside click or when focus leaves it (e.g. Tab-out). */
   #wireGlobalHandlers() {
+    /** @param {EventTarget} target - Where the click or focus landed. */
     const closeIfOutside = (target) => {
-      if (this.#current && !this.#current.li.contains(target)) {
+      if (this.#current && !this.#current.li.contains(/** @type {Node} */ (target))) {
         this.#close(this.#current.li, this.#current.btn);
       }
     };
@@ -476,7 +477,8 @@ class NavbarController {
     // is excluded — its own handler has already toggled, and closing here would undo an open just asked for.
     document.addEventListener('pointerdown', (e) => {
       if (!this.#menu?.classList.contains('is-open')) return;
-      if (this.#menu.contains(e.target) || this.#hamburger?.contains(e.target)) return;
+      const target = /** @type {Node} */ (e.target);
+      if (this.#menu.contains(target) || this.#hamburger?.contains(target)) return;
       this.#setMenuOpen(false);
     });
 
@@ -484,7 +486,7 @@ class NavbarController {
     // is left alone: that control's own click/keydown handler closes the others via #open, and closing here would
     // reflow the bar mid-gesture, on the mousedown before the click that opens the next one lands.
     document.addEventListener('focusin', (e) => {
-      if (!this.#nav.contains(e.target)) closeIfOutside(e.target);
+      if (!this.#nav.contains(/** @type {Node} */ (e.target))) closeIfOutside(e.target);
     });
 
     // Escape closes the panel, innermost disclosure first: a dropdown inside it consumes the key (its handlers call

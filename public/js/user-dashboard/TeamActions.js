@@ -12,7 +12,7 @@
 class TeamActions {
   /** Wires the open buttons and the form. Safe to call when the dialog isn't present (no-op). */
   static init() {
-    const dialog = document.getElementById('ud-create-team-dialog');
+    const dialog = /** @type {HTMLDialogElement} */ (document.getElementById('ud-create-team-dialog'));
     const form = document.getElementById('ud-create-team-form');
     if (!dialog || !form) return;
 
@@ -37,8 +37,8 @@ class TeamActions {
    * The dropdown opens on the team the user is already on, so Join stays inert until they pick a different one.
    */
   static initJoin() {
-    const select = document.getElementById('ud-team-select');
-    document.querySelectorAll('.ud-join-team-btn').forEach((btn) => {
+    const select = /** @type {HTMLSelectElement} */ (document.getElementById('ud-team-select'));
+    document.querySelectorAll('.ud-join-team-btn').forEach((/** @type {HTMLButtonElement} */ btn) => {
       btn.addEventListener('click', () => TeamActions.#join(btn));
       if (!select) return;
       const sync = () => {
@@ -54,14 +54,15 @@ class TeamActions {
   /** Wires the "Leave team" button. Delegated, so a button added after a team is created in place is live too. */
   static initLeave() {
     document.addEventListener('click', (e) => {
-      const btn = e.target.closest('.ud-leave-team-btn');
+      const target = /** @type {Element} */ (e.target);
+      const btn = /** @type {?HTMLButtonElement} */ (target.closest('.ud-leave-team-btn'));
       if (btn) TeamActions.#leave(btn);
     });
   }
 
   /** Switches the user to the selected open team, then reloads. */
   static async #join(btn) {
-    const select = document.getElementById('ud-team-select');
+    const select = /** @type {HTMLSelectElement} */ (document.getElementById('ud-team-select'));
     const teamId = parseInt(select && select.value, 10);
     // The placeholder, or the team they're already on: either way there's nothing to write.
     if (!teamId || teamId <= 0 || select.value === select.dataset.currentTeam) return;
@@ -129,7 +130,7 @@ class TeamActions {
    * @param {number} teamId - The team the save just put the user on.
    */
   static settingsTeamSaved(teamId) {
-    const select = document.getElementById('set-team');
+    const select = /** @type {HTMLSelectElement} */ (document.getElementById('set-team'));
     const option = [...select.options].find((o) => o.value === String(teamId));
     if (!option) return;
     select.dataset.currentTeam = option.value;
@@ -146,7 +147,7 @@ class TeamActions {
    * @returns {boolean} true if the page was updated in place; false if the caller should reload instead.
    */
   static #syncSettingsForm(team) {
-    const select = document.getElementById('set-team');
+    const select = /** @type {HTMLSelectElement} */ (document.getElementById('set-team'));
     if (!select) return false;
 
     // The team being left is the one data-current-team names, not whatever is selected — those differ whenever the
@@ -196,13 +197,13 @@ class TeamActions {
     const err = document.getElementById('ud-team-error');
     err.hidden = true;
     err.textContent = '';
-    document.getElementById('ud-create-team-form').reset();
+    /** @type {HTMLFormElement} */ (document.getElementById('ud-create-team-form')).reset();
   }
 
   /** Posts the new team and reloads on success, or shows the server's error inline. */
   static async #submit() {
-    const name = document.getElementById('ud-team-name').value.trim();
-    const description = document.getElementById('ud-team-desc').value.trim();
+    const name = /** @type {HTMLInputElement} */ (document.getElementById('ud-team-name')).value.trim();
+    const description = /** @type {HTMLTextAreaElement} */ (document.getElementById('ud-team-desc')).value.trim();
     const submitBtn = document.getElementById('ud-team-submit');
 
     if (name.length < 2) {
@@ -219,7 +220,7 @@ class TeamActions {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {
-        document.getElementById('ud-create-team-dialog').close();
+        /** @type {HTMLDialogElement} */ (document.getElementById('ud-create-team-dialog')).close();
         // A new team takes members until an admin closes it.
         const team = { id: data.team_id, name, open: true };
         if (!TeamActions.#syncSettingsForm(team)) window.location.reload();

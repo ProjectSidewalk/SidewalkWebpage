@@ -50,7 +50,7 @@ class StreetPriorityTiers {
   /**
    * Classifies one street into a tier from the audit counts the priority formula uses.
    *
-   * @param {{fresh_good_count: number, outdated_good_count: number}} street - A row from /adminapi/streetPriority.
+   * @param {Record<string, any>} street - A row from /adminapi/streetPriority; only its audit counts are read.
    * @returns {string} The tier key.
    */
   static tierFor(street) {
@@ -120,9 +120,9 @@ class StreetPriorityMap {
   /**
    * @param {string} containerId - ID of the map container element.
    * @param {{mapboxToken: string, onRegionClick?: (id: number) => void, onRegionHover?: (id: number) => void,
-   *          onRegionHoverEnd?: () => void}} [opts]
+   *          onRegionHoverEnd?: () => void}} opts
    */
-  constructor(containerId, opts = {}) {
+  constructor(containerId, opts) {
     this.containerId = containerId;
     this.#mapboxToken = opts.mapboxToken;
     this.#onRegionClick = opts.onRegionClick || (() => {});
@@ -133,7 +133,7 @@ class StreetPriorityMap {
   /**
    * Initializes the map and draws the street segments.
    *
-   * @param {object} geojson - FeatureCollection of routable streets, each carrying priority_tier, priority, the audit
+   * @param {GeoJSON.FeatureCollection} geojson - Routable streets, each carrying priority_tier, priority, the audit
    *   counts, and region_id in its properties.
    * @returns {Promise<void>} Resolves once the map's first render is ready.
    */

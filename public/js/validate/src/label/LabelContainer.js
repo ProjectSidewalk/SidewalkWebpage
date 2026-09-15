@@ -363,7 +363,7 @@ class LabelContainer {
   /**
    * Pushes label metadata to the list of labels that need to be submitted to the backend.
    * @param {number} labelId - Integer label ID.
-   * @param {object} labelMetadata - Label metadata (validationProperties object).
+   * @param {Record<string, any>} labelMetadata - Label metadata (validationProperties object).
    * @param {object} commentData - Comment data (commentProperties object).
    */
   pushToLabelsToSubmit(labelId, labelMetadata, commentData) {
@@ -403,7 +403,7 @@ class LabelContainer {
 
   /**
    * Pushes a label object directly (for undo purposes) to the list of current labels.
-   * @param {object} validation - The completed label validation object ready to be pushed to the list of labels.
+   * @param {Record<string, any>} validation - The completed label validation, ready to be pushed to the list of labels.
    */
   pushUndoValidation(validation) {
     validation.undone = true;

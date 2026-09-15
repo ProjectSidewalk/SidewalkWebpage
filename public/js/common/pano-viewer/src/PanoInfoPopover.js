@@ -21,7 +21,7 @@ class PanoInfoPopover {
   #streetEdgeId;
   /** @type {() => number} */
   #regionId;
-  /** @type {() => object} Moment object */
+  /** @type {() => moment.Moment} */
   #panoDate;
   /** @type {() => string|null} */
   #panoAddress;
@@ -37,27 +37,27 @@ class PanoInfoPopover {
   #viewPanoLogging;
   /** @type {() => number|undefined} Optional — returns the Label ID. */
   #labelId;
-  /** @type {() => object|undefined} Optional — returns the label's timestamp as a moment object. */
+  /** @type {(() => moment.Moment)|undefined} Optional — returns the label's timestamp. */
   #labelDate;
   /** @type {Set<PanoViewer>} Viewers already subscribed to by #watchViewer(). */
   #watchedViewers = new Set();
 
   /**
    * @param {HTMLElement} container - Element where the info button will be appended
-   * @param {Function} panoViewer - Function that returns the currently active PanoViewer
-   * @param {Function} coords - Function that returns { lat, lng } for the current position
-   * @param {Function} panoId - Function that returns the current panorama/image ID
-   * @param {Function} streetEdgeId - Function that returns the current Street Edge ID
-   * @param {Function} regionId - Function that returns the current Region ID
-   * @param {Function} panoDate - Function that returns the current pano's capture date as a moment object
-   * @param {Function} panoAddress - Function that returns the current pano's address string, or null
-   * @param {Function} pov - Function that returns the current { heading, pitch }
+   * @param {() => PanoViewer} panoViewer - Returns the currently active PanoViewer
+   * @param {() => {lat: number, lng: number}} coords - Returns the current position
+   * @param {() => string} panoId - Returns the current panorama/image ID
+   * @param {() => number} streetEdgeId - Returns the current Street Edge ID
+   * @param {() => number} regionId - Returns the current Region ID
+   * @param {() => moment.Moment} panoDate - Returns the current pano's capture date
+   * @param {() => string|null} panoAddress - Returns the current pano's address string, or null
+   * @param {() => {heading: number, pitch: number}} pov - Returns the current heading and pitch
    * @param {boolean} whiteIcon - True for the white icon variant, false for blue
-   * @param {Function} infoLogging - Called when the info button is clicked
-   * @param {Function} clipboardLogging - Called when the clipboard button is clicked
-   * @param {Function} viewPanoLogging - Called when the view-in-pano link is clicked
-   * @param {Function} [labelId] - Optional — returns the Label ID
-   * @param {Function} [labelDate] - Optional — returns the label's timestamp as a moment object
+   * @param {() => void} infoLogging - Called when the info button is clicked
+   * @param {() => void} clipboardLogging - Called when the clipboard button is clicked
+   * @param {() => void} viewPanoLogging - Called when the view-in-pano link is clicked
+   * @param {() => number|undefined} [labelId] - Optional — returns the Label ID
+   * @param {() => moment.Moment} [labelDate] - Optional — returns the label's timestamp
    */
   constructor(container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, whiteIcon,
     infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate) {
@@ -121,7 +121,7 @@ class PanoInfoPopover {
     // Light-dismiss: close when clicking outside the popover (but not the trigger button).
     document.addEventListener('click', (e) => {
       if (this.#popoverEl.matches(':popover-open')
-        && !this.#popoverEl.contains(e.target)
+        && !this.#popoverEl.contains(/** @type {Node} */ (e.target))
         && e.target !== this.#infoButton) {
         this.#popoverEl.hidePopover();
       }
@@ -194,7 +194,7 @@ class PanoInfoPopover {
     /**
      * Sets the text content of a value span identified by [data-field].
      * @param {string} field - The data-field attribute value
-     * @param {string|number|null} val - The value to display
+     * @param {string|number|boolean|null} val - The value to display
      */
     const setVal = (field, val) => {
       const span = this.#popoverEl.querySelector(`[data-field="${field}"]`);
@@ -202,9 +202,9 @@ class PanoInfoPopover {
       if (val === null || val === undefined || val === false) {
         span.textContent = 'No Info';
       } else if (field === 'latitude' || field === 'longitude') {
-        span.textContent = `${val.toFixed(8)}°`;
+        span.textContent = `${Number(val).toFixed(8)}°`;
       } else {
-        span.textContent = val;
+        span.textContent = String(val);
       }
     };
 
@@ -223,12 +223,12 @@ class PanoInfoPopover {
     // the pano this popover is describing: on the Pannellum and static-crop fallbacks we're showing our own copy
     // of imagery the provider has dropped, while panoViewer still points at the provider's viewer sitting on
     // whichever pano it loaded last — so a link built from it would open the wrong label's pano, or a dead one.
-    const viewLink = this.#popoverEl.querySelector('.pano-info-popover__view-link');
+    const viewLink = /** @type {HTMLAnchorElement} */ (this.#popoverEl.querySelector('.pano-info-popover__view-link'));
     const showingThisPano = !!viewer && !!viewer.currPanoData && viewer.currPanoData.getPanoId() === currPanoId;
     const link = showingThisPano && viewer.publicViewerLink(currPanoId, {
       heading: currPov.heading,
       pitch: currPov.pitch,
-      center: viewer.currCenter,
+      center: /** @type {MapillaryViewer} */ (viewer).currCenter, // Only Mapillary tracks one; undefined elsewhere.
     });
     if (viewLink) {
       // Inline style, not the hidden attribute: .pano-info-popover__view-link sets display: block, which outranks

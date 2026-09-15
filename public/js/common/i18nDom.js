@@ -30,8 +30,9 @@ window.localizeSubtree = function (root) {
 
   // querySelectorAll doesn't include `root` itself; check it explicitly so callers can pass an element that itself
   // carries a data-i18n attribute.
-  if (root.nodeType === Node.ELEMENT_NODE && root.matches && root.matches(selector)) {
-    localizeElement(root);
+  const rootEl = /** @type {Element} */ (root);
+  if (root.nodeType === Node.ELEMENT_NODE && rootEl.matches && rootEl.matches(selector)) {
+    localizeElement(rootEl);
   }
   if (typeof root.querySelectorAll === 'function') {
     for (const el of root.querySelectorAll(selector)) {

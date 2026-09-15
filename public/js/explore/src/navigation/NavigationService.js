@@ -5,7 +5,7 @@ class NavigationService {
   static #END_OF_STREET_THRESHOLD = 25; // Distance from the street endpoint when we consider it complete (meters).
   // How close to the endpoint imagery has to run out before we treat the street as walked rather than as having
   // an imagery gap. More generous than #END_OF_STREET_THRESHOLD: the imagery simply ends, so there is nothing
-  // further to walk either way, and Task.isAtEnd caps it on short streets.
+  // further to walk either way. Task.isAtEnd scales both down on short streets.
   static #NEAR_END_NO_IMAGERY_THRESHOLD = 50;
   static #MOVE_DELAY = 800; // Move delay prevents users from spamming through a mission.
   // Distance between points on a street when searching it for imagery (km). Public so that PanoManager can sample
@@ -129,7 +129,7 @@ class NavigationService {
    *     street: true when every sampled point along it got a clean "nothing usable here" from the provider, false
    *     when any of them failed to get an answer at all (a provider error, a blocked or unreachable API). Only the
    *     true case may report the street as imagery-less, or move the labeler off it — see the bail-out below.
-   * @returns {Promise<null>}
+   * @returns {Promise<string|null|void>} What moveForward() resolves with if the labeler is moved on, otherwise null.
    */
   async #handleImageryNotFound(streetLooksEmpty) {
     const currentTask = svl.taskContainer.getCurrentTask();
@@ -152,7 +152,14 @@ class NavigationService {
     // on anything the provider said: they covered the street, so a lookup that failed at the far end is no reason to
     // withhold credit for work that was really done. It is also unreachable by the runaway loop #4918 is about,
     // which never moves off a street's start point.
-    if (currentTask.isAtEnd(svl.panoViewer.getPosition(), NavigationService.#NEAR_END_NO_IMAGERY_THRESHOLD)) {
+    //
+    // Judged at the furthest point reached as well as where the labeler stands: the sweep's exclusions can land a
+    // move back near the start of a street already walked to its end, and the exhaustion that follows must not turn
+    // that street into a no-imagery report (#5350).
+    const furthest = currentTask.getFurthestPointReached().geometry.coordinates;
+    const nearEnd = currentTask.isAtEnd(svl.panoViewer.getPosition(), NavigationService.#NEAR_END_NO_IMAGERY_THRESHOLD)
+      || currentTask.isAtEnd({ lat: furthest[1], lng: furthest[0] }, NavigationService.#NEAR_END_NO_IMAGERY_THRESHOLD);
+    if (nearEnd) {
       this.#endTheCurrentTask(currentTask, currentMission);
       this.#updateUiAfterMove();
       return Promise.resolve(null);

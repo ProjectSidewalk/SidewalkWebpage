@@ -98,12 +98,17 @@ fi
 cd "$WT_DIR"
 echo "==> worktree: $WT_DIR"
 
-# 1. node_modules is gitignored (absent in worktrees) -> reuse the main repo's. `-d` follows the symlink, so this also
-#    replaces a broken/stale link (rm -f is a no-op when the path doesn't exist).
-if [ ! -d node_modules ]; then
-  rm -f node_modules
+# 1. node_modules is gitignored (absent in worktrees) -> reuse the main repo's. Test for grunt rather than the folder,
+#    so a broken link or a partial install (e.g. only typescript, added by hand) is replaced too.
+if [ ! -x node_modules/.bin/grunt ]; then
+  [ -L node_modules ] || [ ! -e node_modules ] || echo "==> replacing node_modules, which has no grunt"
+  rm -rf node_modules
   ln -s /home/node_modules node_modules
   echo "==> linked node_modules -> /home/node_modules"
+fi
+# The linked copy is installed from the main checkout's lockfile, so warn when this branch's differs.
+if [ -L node_modules ] && ! cmp -s package-lock.json /home/package-lock.json; then
+  echo "==> warning: package-lock.json differs from the main checkout's; node_modules may not match this branch"
 fi
 
 # 2. build/ bundles are gitignored (absent) -> build this branch's JS/CSS once up front.

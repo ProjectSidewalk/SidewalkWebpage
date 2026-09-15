@@ -287,8 +287,8 @@ Rules:
 ### JavaScript (JSDoc)
 
 Use `/** ... */` for all JSDoc. Every `class` and every non-trivial method gets one, including `#private` methods.
-The types are checked: `make lint-js-types` runs TypeScript over the folders listed in
-[`tools/check-js-types.mjs`](../tools/check-js-types.mjs), so a type that doesn't match the code fails the build there.
+The types are checked: `make lint-js-types` runs TypeScript over `public/js/`
+([`tools/check-js-types.mjs`](../tools/check-js-types.mjs)), so a type that doesn't match the code fails the build.
 
 **Method / function:**
 
@@ -336,9 +336,9 @@ Rules:
   params from a view, log notes) is `Record<string, any>`.
 - When you know more than TypeScript can see, cast in place: `/** @type {HTMLInputElement} */ (el)`. Selector lookups
   (`querySelector`, `closest`) already return `HTMLElement`; `event.target` and `getElementById` often need a cast.
-- To add a folder to the type check, run `make lint-js-types args=--all`, fix that folder's errors, and add it to
-  `CHECKED`. Globals that no file in `public/js/` declares (vendor libraries, values a view sets on `window`) go in
-  [`tools/js-types/globals.d.ts`](../tools/js-types/globals.d.ts).
+- Every file in `public/js/` is type-checked except the folders in `UNCHECKED` (only AccessScore, for now);
+  `make lint-js-types args=--all` shows their errors too. Globals that no file in `public/js/` declares (vendor
+  libraries, values a view sets on `window`) go in [`tools/js-types/globals.d.ts`](../tools/js-types/globals.d.ts).
 - Use `{Type} [paramName]` (square brackets) for optional parameters, and `{Type} [paramName=default]` when a
   default exists and is non-obvious.
 - Trivial one-line helpers may omit the header.

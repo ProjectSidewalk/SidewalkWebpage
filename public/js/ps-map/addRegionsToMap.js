@@ -1,17 +1,17 @@
 /**
  * Adds regions to the map and returns a promise.
  *
- * @param {object} map - The Mapbox map object.
- * @param {object} regionGeoJSON - GeoJSON object containing region polygons to draw on the map.
- * @param {object} completionRates - Completion rates for each region.
+ * @param {mapboxgl.Map} map - The Mapbox map object.
+ * @param {GeoJSON.FeatureCollection} regionGeoJSON - GeoJSON object containing region polygons to draw on the map.
+ * @param {Array<Record<string, any>>} completionRates - Completion rates for each region.
  * @param {object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
- * @param {string} params.regionFillMode - One of 'singleColor' or 'completionRate'.
+ * @param {string} [params.regionFillMode] - One of 'singleColor' or 'completionRate'.
  * @param {string} [params.regionTooltip='none'] - One of 'none' or 'completionRate'.
  * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
  * @param {string} [params.regionFillColor] - Fill color to use if regionFillMode='singleColor'.
  * @param {number} [params.regionFillOpacity] - Fill opacity to use if regionFillMode='singleColor'
- * @returns {Promise} Promise that resolves when the regions have been added to the map.
+ * @returns {Promise<void>} Promise that resolves when the regions have been added to the map.
  */
 function addRegionsToMap(map, regionGeoJSON, completionRates, params) {
   const REGION_LAYER_NAME = 'region-polygons';

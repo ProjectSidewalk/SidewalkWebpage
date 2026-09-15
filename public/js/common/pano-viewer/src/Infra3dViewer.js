@@ -14,6 +14,12 @@ class Infra3dViewer extends PanoViewer {
     this.currPanoData = undefined; // This holds onto the data for the prior pano while we are loading the next one.
   }
 
+  /**
+   * See PanoViewer.initialize().
+   * @param {HTMLElement} canvasElem
+   * @param {Record<string, any>} [panoOptions]
+   * @returns {Promise<void>}
+   */
   async initialize(canvasElem, panoOptions = {}) {
     const manager = await infra3dapi.init(canvasElem.id, panoOptions.accessToken);
 
@@ -214,7 +220,7 @@ class Infra3dViewer extends PanoViewer {
    * Only a rejection backed by a real cameraType is a NoImageryError, since that is what lets a sweep conclude the
    * street is out of imagery rather than report a provider failure (#4918). The guessed case stays an ordinary Error:
    * this runs on the page's seed image, where a wrong guess would condemn a street with good imagery and reload.
-   * @param {object} node - Infra3d's internal node object for the image we just moved to
+   * @param {Record<string, any>} node - Infra3d's internal node object for the image we just moved to
    * @returns {Promise<void>} Rejects if the image isn't panoramic; resolves otherwise
    */
   #filterNonPanoramicImages = async (node) => {
@@ -260,7 +266,7 @@ class Infra3dViewer extends PanoViewer {
   /**
    * Ensures that all image metadata has been saved before letting setPano or setLocation resolve.
    *
-   * @param {object} node - Infra3d's internal node object.
+   * @param {Record<string, any>} node - Infra3d's internal node object.
    * @returns {Promise<PanoData>}
    */
   #finishRecordingMetadata = async (node) => {
@@ -269,18 +275,29 @@ class Infra3dViewer extends PanoViewer {
     await new Promise((resolve) => {
       // Links should be initialized always, except for the first pano. So we can just use them.
       if (node.spatialEdges.cached) {
-        resolve();
+        resolve(undefined);
       } else {
         // Listen for the event that fires when the links are updated. Only needed when loading first image.
         // NOTE the subscribe architecture is coming from RxJS.
         const linksListener = node.spatialEdges$.subscribe((spatialEdges) => {
           if (spatialEdges.cached) {
             linksListener.unsubscribe(); // One-shot listener: only needed until the links are cached.
-            resolve();
+            resolve(undefined);
           }
         });
       }
     });
+
+    const linkedPanos = node.spatialEdges.edges
+      .filter((link) => link.data.direction === 9) // Filters out link to camera on back of car for now.
+      .map((link) => {
+        // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the
+        // X-axis in a spherical coordinate system", so we need to adjust it to be like a compass heading.
+        return {
+          panoId: link.to,
+          heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI)),
+        };
+      });
 
     // Now that all the data is available, we can fill the currPanoData object and say that the pano has loaded.
     const panoDataParams = {
@@ -298,18 +315,8 @@ class Infra3dViewer extends PanoViewer {
       // TODO can we find a camera roll?
       copyright: 'City of Zurich and iNovitas AG',
       history: [], // No history to pull from for Infra3D right now.
+      linkedPanos,
     };
-
-    panoDataParams.linkedPanos = node.spatialEdges.edges
-      .filter((link) => link.data.direction === 9) // Filters out link to camera on back of car for now.
-      .map((link) => {
-        // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the
-        // X-axis in a spherical coordinate system", so we need to adjust it to be like a compass heading.
-        return {
-          panoId: link.to,
-          heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI)),
-        };
-      });
 
     this.currPanoData = new PanoData(panoDataParams);
     return this.currPanoData;

@@ -53,7 +53,7 @@ class PanoManager {
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize
    * @param {string} viewerAccessToken - An access token used to request images for the pano viewer
    * @param {string} startPanoId - The ID of the panorama to load first
-   * @param {?object} startBackupImage - Self-hosted backup for the first pano, or null.
+   * @param {?BackupImage} startBackupImage - Self-hosted backup for the first pano, or null.
    * @returns {Promise<void>} A Promise that resolves once the first pano has loaded
    */
   async #init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage) {
@@ -109,7 +109,7 @@ class PanoManager {
 
     if (panoViewerType === GsvViewer && !util.isMobile()) {
       this.#makeGsvAttributionClickable();
-      this.#linksListener = this.#primaryViewer.gsvPano
+      this.#linksListener = /** @type {GsvViewer} */ (this.#primaryViewer).gsvPano
         .addListener('links_changed', this.#makeGsvAttributionClickable.bind(this));
     } else if (panoViewerType === MapillaryViewer && !util.isMobile()) {
       this.#makeMapillaryAttributionClickable();
@@ -262,8 +262,9 @@ class PanoManager {
       // pulse fires animationcancel, not animationend, so a per-render `{ once: true }` listener would never fire
       // and would accumulate one dead listener per label. Under prefers-reduced-motion no animation ever runs or
       // ends, so the class lingers — harmless, since the same media query is what makes it inert.
-      this.labelMarker.marker_.addEventListener('animationend', (e) => {
-        if (e.animationName === 'label-marker-pulse') e.currentTarget.classList.remove('label-marker-pulse');
+      const markerEl = this.labelMarker.marker_;
+      markerEl.addEventListener('animationend', (e) => {
+        if (e.animationName === 'label-marker-pulse') markerEl.classList.remove('label-marker-pulse');
       });
     } else {
       this.labelMarker.setPosition({ heading: labelPov.heading, pitch: labelPov.pitch });
@@ -574,7 +575,7 @@ class PanoManager {
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize
    * @param {string} viewerAccessToken - An access token used to request images for the pano viewer
    * @param {string} startPanoId - The ID of the panorama to load first
-   * @param {?object} startBackupImage - Self-hosted backup for the first pano, or null.
+   * @param {?BackupImage} startBackupImage - Self-hosted backup for the first pano, or null.
    * @returns {Promise<PanoManager>} The panoManager instance, with the first pano already loaded.
    */
   static async create(panoViewerType, viewerAccessToken, startPanoId, startBackupImage = null) {

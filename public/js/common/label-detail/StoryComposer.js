@@ -139,7 +139,7 @@ class StoryComposer {
    * here, and prefilled content isn't a draft).
    * Accepts either author-visible payload shape: the card's StoryForView (byline resolved into `display_name`) or the
    * dashboard's StoryForOwner (the raw `display_name_mode`).
-   * @param {object} story - The story being edited (must be the viewer's own).
+   * @param {Record<string, any>} story - The story being edited (must be the viewer's own).
    * @param {?number} maxTextLength - Character cap from the story payload (backend source of truth).
    */
   openForEdit(story, maxTextLength) {
@@ -484,7 +484,7 @@ class StoryComposer {
     });
   }
 
-  /** @param {object} draft - The stashed draft, keyed by its `labelId`. */
+  /** @param {Record<string, any>} draft - The stashed draft, keyed by its `labelId`. */
   async #putDraft(draft) {
     const db = await this.#openDraftDb();
     try {

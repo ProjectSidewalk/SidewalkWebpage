@@ -14,7 +14,7 @@ class HandAnimation {
   #$handGestureHolder;
 
   /**
-   * @param {object} uiOnboarding - Onboarding UI elements.
+   * @param {Record<string, JQuery>} uiOnboarding - Onboarding UI elements.
    */
   constructor(uiOnboarding) {
     this.#uiOnboarding = uiOnboarding;

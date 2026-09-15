@@ -5,7 +5,7 @@ class CardBucket {
   #bucket;
 
   /**
-   * @param {Array} inputCards - List of Cards in order received from database.
+   * @param {Card[]} [inputCards] - List of Cards in order received from database.
    */
   constructor(inputCards) {
     this.#bucket = inputCards || [];

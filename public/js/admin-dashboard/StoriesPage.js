@@ -47,7 +47,7 @@ class StoriesPage {
   }
 
   /**
-   * @param {Array<object>} stories - StoryForAdmin payloads, newest first.
+   * @param {Array<Record<string, any>>} stories - StoryForAdmin payloads, newest first.
    */
   #render(stories) {
     const hiddenCount = stories.filter((s) => s.hidden).length;
@@ -63,7 +63,7 @@ class StoriesPage {
   }
 
   /**
-   * @param {object} story - A StoryForAdmin payload.
+   * @param {Record<string, any>} story - A StoryForAdmin payload.
    * @returns {HTMLElement}
    */
   #buildRow(story) {

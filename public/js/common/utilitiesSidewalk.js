@@ -512,9 +512,9 @@ function UtilitiesMisc(JSON) {
   /**
    * Picks the annotations that should stay on screen after the given state, i.e. those tagged to outlive it.
    *
-   * @param {Array<object>} annotations - The state's merged annotation list.
+   * @param {Array<{keepUntil?: string}>} annotations - The state's merged annotation list.
    * @param {string} stateId - Id of the state being drawn; an annotation kept "until" it expires here.
-   * @returns {Array<object>} The subset to carry into the next state.
+   * @returns {Array<{keepUntil?: string}>} The subset to carry into the next state.
    */
   function carryOverOnboardingAnnotations(annotations, stateId) {
     return annotations.filter((a) => a.keepUntil && a.keepUntil !== stateId);
@@ -588,7 +588,8 @@ function UtilitiesMisc(JSON) {
     const scale = isPositiveLabelType(labelType) ? 'positive' : 'negative';
     const level = SEVERITY_LEVEL_COLORS[scale][severity];
     if (!level) return null;
-    return Object.fromEntries(Object.entries(level).map(([role, token]) => [role, `var(--color-${token})`]));
+    const colors = Object.fromEntries(Object.entries(level).map(([role, token]) => [role, `var(--color-${token})`]));
+    return /** @type {{face: string, edge: string, wash: string}} */ (colors);
   }
 
   /**
@@ -597,7 +598,7 @@ function UtilitiesMisc(JSON) {
    * TODO it makes way more sense to have this in Form.js, but Form has a dependency on PanoViewer, and we want to
    *      call this function if PanoViewer fails to load...
    *
-   * @param {Task} task - The audit task for the street edge that is missing imagery.
+   * @param {Record<string, any>} task - Explore's Task for the street edge that is missing imagery.
    * @param {number} missionId - ID of the mission the user was working on when imagery was found to be missing.
    * @returns {Promise<Response>} The fetch promise for the POST request, so callers can await completion.
    */
@@ -643,8 +644,8 @@ function UtilitiesMisc(JSON) {
     if (!mapboxApiKey) return null;
     try {
       const params = new URLSearchParams({
-        longitude: latLng.lng,
-        latitude: latLng.lat,
+        longitude: String(latLng.lng),
+        latitude: String(latLng.lat),
         types: 'address,street',
         language: i18next.t('common:mapbox-language-code'),
         access_token: mapboxApiKey,
@@ -757,18 +758,38 @@ function backupImageDataIsComplete(data) {
 }
 
 /**
- * Builds the {url, metadata} object needed by Pannellum from a label metadata object sent by the server.
+ * A self-hosted backup pano, in the shape PannellumViewer takes.
+ * @typedef {object} BackupImage
+ * @property {string} panoId
+ * @property {string} imageUrl
+ * @property {number} width
+ * @property {number} height
+ * @property {number} tileWidth
+ * @property {number} tileHeight
+ * @property {number} lat
+ * @property {number} lng
+ * @property {number} cameraHeading
+ * @property {number} cameraPitch
+ * @property {number} cameraRoll
+ * @property {string} captureDate
+ * @property {string} copyright
+ * @property {object} attribution
+ * @property {string} address
+ */
+
+/**
+ * Builds the backup pano data Pannellum needs from a label metadata object sent by the server.
  *
  * Returns null if backup_image_url is absent or null, if pano_data is missing, or if pano_data is too incomplete to
  * render (see backupImageDataIsComplete).
  * @param {object} meta - Label metadata object from the server.
- * @param {string|null} meta.backup_image_url - URL for the self-hosted backup image, or null.
- * @param {object|null} meta.pano_data - Nested pano viewer metadata, or null.
- * @param {string} meta.pano_id - The panorama ID.
- * @param {number} meta.camera_lat - Latitude of the camera.
- * @param {number} meta.camera_lng - Longitude of the camera.
- * @param {string} meta.image_capture_date - Date the panorama was captured.
- * @returns {{metadata: object}|null}
+ * @param {string|null} [meta.backup_image_url] - URL for the self-hosted backup image, or null.
+ * @param {Record<string, any>|null} [meta.pano_data] - Nested pano viewer metadata, or null.
+ * @param {string} [meta.pano_id] - The panorama ID.
+ * @param {number} [meta.camera_lat] - Latitude of the camera.
+ * @param {number} [meta.camera_lng] - Longitude of the camera.
+ * @param {string} [meta.image_capture_date] - Date the panorama was captured.
+ * @returns {?BackupImage}
  */
 function buildBackupImageData(meta) {
   if (!meta.backup_image_url || !meta.pano_data) return null;

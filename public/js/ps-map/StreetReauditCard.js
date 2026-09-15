@@ -34,12 +34,12 @@ class StreetReauditCard {
   #cache = new Map();
 
   /**
-   * @param {object} map - The Mapbox map the card attaches to.
+   * @param {mapboxgl.Map} map - The Mapbox map the card attaches to.
    * @param {object} options - Card options.
    * @param {string} options.mapName - HTML id of the map container, used in logged event names.
    * @param {boolean} [options.logClicks=true] - Whether to log clicks on the card's Explore link.
    */
-  constructor(map, { mapName, logClicks = true } = {}) {
+  constructor(map, { mapName, logClicks = true }) {
     this.#map = map;
     this.#mapName = mapName;
     this.#logClicks = logClicks;
@@ -65,7 +65,7 @@ class StreetReauditCard {
    * no-op, so sliding along one street doesn't restart its timer or refetch it.
    *
    * @param {number} streetEdgeId - The street being hovered.
-   * @param {object} lngLat - Mapbox LngLat the card should point at.
+   * @param {mapboxgl.LngLatLike} lngLat - Mapbox LngLat the card should point at.
    */
   scheduleFor(streetEdgeId, lngLat) {
     if (this.#shownStreetId === streetEdgeId || this.#pendingStreetId === streetEdgeId) {
@@ -125,7 +125,7 @@ class StreetReauditCard {
   /**
    * Fetches the street's summary if needed, then opens the card — unless the pointer moved on while it was in flight.
    * @param {number} streetEdgeId - The street to describe.
-   * @param {object} lngLat - Where to anchor the card.
+   * @param {mapboxgl.LngLatLike} lngLat - Where to anchor the card.
    */
   async #open(streetEdgeId, lngLat) {
     let summary = this.#cache.get(streetEdgeId);
@@ -164,7 +164,7 @@ class StreetReauditCard {
 
   /**
    * Builds the card's DOM.
-   * @param {object} summary - The street's re-audit summary, as the endpoint returns it.
+   * @param {Record<string, any>} summary - The street's re-audit summary, as the endpoint returns it.
    * @returns {HTMLElement} The card's content element.
    */
   #buildContent(summary) {

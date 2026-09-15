@@ -46,7 +46,7 @@ const deviceMaxPanoWidth = () => {
  * The URL to hand Pannellum for a panorama, asking the server for a smaller copy only when this device can't texture
  * the stored one (#5256). Every device that can render it as stored gets it untouched.
  *
- * @param {object} metadata - Pano metadata; uses `imageUrl` and `width`.
+ * @param {Record<string, any>} metadata - Pano metadata; uses `imageUrl` and `width`.
  * @returns {string} The image URL, with `maxWidth` appended when a copy is needed.
  */
 const panoramaUrlFor = (metadata) => {
@@ -78,7 +78,7 @@ const PANO_MIN_FALLBACK_WIDTH = 2048;
  * and the server answers those with the native file — so the "retry" re-fetches, re-decodes and re-uploads the
  * image that just failed, making the next allocation likelier to fail rather than less.
  *
- * @param {object} metadata - Pano metadata; uses `imageUrl` and `width`.
+ * @param {Record<string, any>} metadata - Pano metadata; uses `imageUrl` and `width`.
  * @returns {string[]} Candidate URLs, in the order they should be tried.
  */
 const panoramaUrlCandidates = (metadata) => {
@@ -99,7 +99,7 @@ class PannellumViewer extends PanoViewer {
   /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
   static SOURCE = 'pannellum';
 
-  /** @type {object} The underlying pannellum viewer instance. */
+  /** @type {pannellum.Viewer} The underlying pannellum viewer instance. */
   #viewer = undefined;
 
   /** @type {number} Cached cameraHeading for the current pano (degrees, wrt true north). */
@@ -126,10 +126,11 @@ class PannellumViewer extends PanoViewer {
   }
 
   /**
-   * @param {Element} canvasElem - Container element to mount the viewer into.
-   * @param {object} panoOptions
+   * @param {HTMLElement} canvasElem - Container element to mount the viewer into.
+   * @param {object} [panoOptions]
    * @param {string} [panoOptions.startPanoId] - The pano ID to load. Falls back to panoMetadata.panoId.
-   * @param {object} panoOptions.panoMetadata - Required. Metadata for the pano (see PanoData fields).
+   * @param {Record<string, any>} [panoOptions.panoMetadata] - Metadata for the pano (see PanoData fields). Required:
+   *     initialize() throws without it.
    * @param {number} [panoOptions.startHeading] - Initial heading wrt true north; defaults to cameraHeading.
    * @param {number} [panoOptions.startPitch=0] - Initial pitch in degrees.
    * @param {number} [panoOptions.startZoom=1] - Initial zoom level (1, 2, or 3).
@@ -192,7 +193,7 @@ class PannellumViewer extends PanoViewer {
           const onLoad = () => {
             this.#viewer.off('load', onLoad);
             this.#viewer.off('error', onError);
-            resolve();
+            resolve(undefined);
           };
           const onError = (err) => {
             this.#viewer.off('load', onLoad);
@@ -239,7 +240,7 @@ class PannellumViewer extends PanoViewer {
    * Loads a new panorama into the existing viewer, reusing the WebGL context rather than  recreating the viewer.
    *
    * @param {string} panoId
-   * @param {object} metadata - Metadata for the new pano (same shape as panoOptions.panoMetadata in initialize()).
+   * @param {Record<string, any>} metadata - Metadata for the new pano, shaped like panoOptions.panoMetadata.
    * @param {{heading: number, pitch: number, zoom: number}} pov - Initial POV for the new pano.
    * @returns {Promise<PanoData>}
    */
@@ -281,7 +282,7 @@ class PannellumViewer extends PanoViewer {
             const onLoad = () => {
               this.#viewer.off('load', onLoad);
               this.#viewer.off('error', onError);
-              resolve();
+              resolve(undefined);
             };
             const onError = (err) => {
               this.#viewer.off('load', onLoad);
@@ -325,7 +326,7 @@ class PannellumViewer extends PanoViewer {
   /**
    * Builds a PanoData object from a metadata blob supplied by the caller.
    * @param {string} panoId
-   * @param {object} metadata - Fields matching PanoData's constructor params.
+   * @param {Record<string, any>} metadata - Fields matching PanoData's constructor params.
    * @returns {PanoData}
    */
   #buildPanoData(panoId, metadata) {

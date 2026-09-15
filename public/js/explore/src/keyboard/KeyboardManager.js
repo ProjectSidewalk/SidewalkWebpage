@@ -106,7 +106,7 @@ class KeyboardManager {
 
   /**
    * This is a callback for a key down event
-   * @param {object} e - An event object
+   * @param {KeyboardEvent} e
    */
   #documentKeyDown = (e) => {
     if (!this.#status.disableKeyboard && !this.#status.focusOnTextField) {
@@ -138,7 +138,7 @@ class KeyboardManager {
 
   /**
    * This is a callback for a key up event when focus is not on ContextMenu's textbox.
-   * @param {object} e - An event object
+   * @param {KeyboardEvent} e
    */
   #documentKeyUp = (e) => {
     const svl = this.#svl;
