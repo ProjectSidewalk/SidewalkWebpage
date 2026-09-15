@@ -1,4 +1,21 @@
 /**
+ * @typedef {object} ConfirmDialogButton
+ * @property {string} id - Resolved when this button is picked.
+ * @property {string} text - The button's label.
+ * @property {'secondary'|'primary'|'danger'} [style] - Defaults to 'secondary'.
+ * @property {string|null} [iconSrc] - URL of a decorative icon before the text.
+ */
+
+/**
+ * @typedef {object} ConfirmDialogParts
+ * @property {HTMLElement} header - Wraps the warning icon and title; hidden without a title.
+ * @property {HTMLElement} icon - The warning icon.
+ * @property {HTMLElement} title - The heading.
+ * @property {HTMLElement} message - The question.
+ * @property {HTMLElement} actions - The container the buttons are rebuilt into.
+ */
+
+/**
  * ConfirmDialog — a promise-based, app-styled replacement for window.confirm().
  *
  * window.confirm() renders browser chrome ("localhost:9000 says…") that can't be styled or translated, so in-app
@@ -15,9 +32,13 @@ class ConfirmDialog {
     danger: 'button-ps button--medium button--primary ps-confirm__btn--danger',
   };
 
+  /** @type {HTMLDialogElement|null} */
   static #dialog = null;
+  /** @type {ConfirmDialogParts|null} */
   static #els = null;
+  /** @type {((choice: any) => void)|null} */
   static #resolve = null;
+  /** @type {any} */
   static #dismissValue = null;
   // Set while #settle closes the dialog, so the queued `close` event knows the close was ours and doesn't
   // re-settle a prompt that was reopened in the same tick.
@@ -55,8 +76,7 @@ class ConfirmDialog {
    *
    * @param {object} opts
    * @param {string} opts.message - The question being asked.
-   * @param {object[]} opts.buttons - The choices left to right, each `{ id, text, style, iconSrc }` with `style`
-   *     'secondary' (the default), 'primary', or 'danger'.
+   * @param {ConfirmDialogButton[]} opts.buttons - The choices, left to right.
    * @param {*} [opts.dismissValue=null] - Resolved on Esc or a backdrop click.
    * @param {string} [opts.focusId] - Button to focus. Defaults to the first that changes nothing.
    * @param {string} [opts.title] - A heading above the message.
@@ -87,11 +107,14 @@ class ConfirmDialog {
       ConfirmDialog.#resolve = resolve;
       ConfirmDialog.#dismissValue = dismissValue;
       ConfirmDialog.#dialog.showModal();
-      els.actions.children[focusIdx]?.focus();
+      /** @type {HTMLElement|undefined} */ (els.actions.children[focusIdx])?.focus();
     });
   }
 
-  /** @returns {HTMLButtonElement} A `buttons` entry as a button, wired to settle the pending promise with its id. */
+  /**
+   * @param {ConfirmDialogButton} button - The choice to render.
+   * @returns {HTMLButtonElement} The button, wired to settle the pending promise with its id.
+   */
   static #buildButton({ id, text, style = 'secondary', iconSrc = null }) {
     const el = document.createElement('button');
     el.type = 'button';
@@ -110,7 +133,7 @@ class ConfirmDialog {
 
   /**
    * Builds the shared dialog on first use.
-   * @returns {object} The heading parts, the message element, and the container the buttons are rebuilt into.
+   * @returns {ConfirmDialogParts} The dialog's parts.
    */
   static #ensureDialog() {
     if (ConfirmDialog.#els) return ConfirmDialog.#els;

@@ -135,12 +135,12 @@ class AiServiceImpl @Inject() (
                 LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, startTime, aiResults.timestamp,
                 UiSource.SidewalkAI, ViewerType.Default
               )
-              // The AI only votes; resubmitting the label's own severity and tags records no edit.
+              // The AI only votes, so it never edits the label.
               valId: Option[Int] <- validationService
                 .submitValidationsDbio(
                   Seq(
                     ValidationSubmission(validation, label.severity, label.tags, comment = None, undone = false,
-                      redone = false)
+                      redone = false, canEdit = false)
                   )
                 )
                 .map(_.headOption)

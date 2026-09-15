@@ -6,15 +6,25 @@
  * whose message is shown inline without applying anything.
  */
 class AdminUser {
+  /** @type {string} */
   #userId;
+  /** @type {string} */
   #username;
+  /** @type {string} */
   #saveUrl;
+  /** @type {string} */
   #flagsUrl;
+  /** @type {string} */
   #hoursUrl;
+  /** @type {(username: string) => string} */
   #pageUrlFor;
+  /** @type {HTMLElement|null} */
   #saveBtn;
+  /** @type {HTMLElement|null} */
   #saveStatus;
+  /** @type {boolean} */
   #excluded;
+  /** @type {string|null} */
   #qualityBeforeExcluded = null;
 
   /**
@@ -38,7 +48,7 @@ class AdminUser {
     this.#saveStatus = document.getElementById('au-save-status');
     this.#saveBtn?.addEventListener('click', () => this.#save());
 
-    const excludedBox = document.getElementById('au-excluded');
+    const excludedBox = /** @type {HTMLInputElement|null} */ (document.getElementById('au-excluded'));
     // defaultChecked is the saved state; a browser restoring a checked box after reload must not skip the prompt.
     this.#excluded = excludedBox?.defaultChecked ?? false;
     excludedBox?.addEventListener('change', () => this.#syncQualityToExcluded(excludedBox.checked));
@@ -104,7 +114,8 @@ class AdminUser {
 
   /**
    * Builds the per-city hours table and reveals it.
-   * @param {Array<object>} cities - Per-city rows from the endpoint, most hours first.
+   * @param {Array<{city_name: string, hours: number, is_current_city: boolean}>} cities - Per-city rows from the
+   *     endpoint, most hours first.
    */
   static #renderHoursCities(cities) {
     const holder = document.getElementById('au-hours-cities-table');
@@ -149,7 +160,7 @@ class AdminUser {
    * @param {boolean} excluded - Whether the Excluded box is now checked.
    */
   #syncQualityToExcluded(excluded) {
-    const quality = document.getElementById('au-quality');
+    const quality = /** @type {HTMLSelectElement|null} */ (document.getElementById('au-quality'));
     if (!quality) return;
     if (excluded) {
       this.#qualityBeforeExcluded = quality.value;
@@ -178,21 +189,27 @@ class AdminUser {
 
   /** Reads the form, PUTs it, and reflects the outcome (and any new computed quality) on the page. */
   async #save() {
-    const quality = document.getElementById('au-quality').value;
-    const excluded = document.getElementById('au-excluded').checked;
-    const infra3d = document.getElementById('au-infra3d-access');
+    /**
+     * @param {string} id - An input or select on the form.
+     * @returns {HTMLInputElement} The element, typed so its value and checked state can be read.
+     */
+    const field = (id) => /** @type {HTMLInputElement} */ (document.getElementById(id));
+    const quality = field('au-quality').value;
+    const excluded = field('au-excluded').checked;
+    const infra3d = /** @type {HTMLInputElement|null} */ (document.getElementById('au-infra3d-access'));
     if (excluded && !this.#excluded && !(await this.#confirmExclude())) return;
+    /** @type {Record<string, any>} */
     const payload = {
       userId: this.#userId,
-      username: document.getElementById('au-username').value.trim(),
-      role: document.getElementById('au-role').value,
-      teamId: parseInt(document.getElementById('au-team').value, 10) || null,
+      username: field('au-username').value.trim(),
+      role: field('au-role').value,
+      teamId: parseInt(field('au-team').value, 10) || null,
       // 'auto' clears the manual flag so the server recomputes quality from the user's stats.
       highQualityManual: quality === 'auto' ? null : quality === 'true',
       excluded,
-      communityService: document.getElementById('au-community-service').checked,
-      onLeaderboard: document.getElementById('au-on-leaderboard').checked,
-      publicProfile: document.getElementById('au-public-profile').checked,
+      communityService: field('au-community-service').checked,
+      onLeaderboard: field('au-on-leaderboard').checked,
+      publicProfile: field('au-public-profile').checked,
     };
     // Absent on non-infra3D deployments and inert when the admin can't grant it; either way it's left alone.
     if (infra3d && !infra3d.disabled) payload.infra3dAccess = infra3d.checked;
@@ -236,7 +253,7 @@ class AdminUser {
    */
   async #setFlags(block, state) {
     const status = block.querySelector('.ud-admin-flag-status');
-    const dateInput = block.querySelector('.ud-admin-flag-date');
+    const dateInput = /** @type {HTMLInputElement} */ (block.querySelector('.ud-admin-flag-date'));
     if (!dateInput.value) {
       AdminUser.#setStatus(status, 'Choose a date first.', false);
       return;
