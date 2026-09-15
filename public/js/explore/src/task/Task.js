@@ -56,7 +56,9 @@ class Task {
   initialize(geojson, currentLatLng) {
     this.#geojson = geojson;
     const currMissionId = this.#geojson.properties.current_mission_id;
-    const currMissionStart = this.#geojson.properties.currentMissionStart;
+    // Where the current mission began on this street, as ExploreFormats.pointWrites serializes it: {lat, lng}.
+    // Read back so a resumed mission keeps its start (the minimap's start flag, the mission-complete map).
+    const currMissionStart = this.#geojson.properties.current_mission_start;
 
     this.setProperty('streetEdgeId', this.#geojson.properties.street_edge_id);
     this.setProperty('completedByAnyUser', this.#geojson.properties.completed_by_any_user);
@@ -78,7 +80,7 @@ class Task {
       this.reverseStreetDirection();
     }
     if (currMissionId && currMissionStart) {
-      this.setMissionStart(currMissionId, { lat: currMissionStart[0], lng: currMissionStart[1] });
+      this.setMissionStart(currMissionId, { lat: currMissionStart.lat, lng: currMissionStart.lng });
     }
     if (currentLatLng) {
       this.#furthestPoint = turf.point([currentLatLng.lng, currentLatLng.lat]);
