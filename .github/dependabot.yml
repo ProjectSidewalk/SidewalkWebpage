@@ -50,11 +50,8 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "stylelint-plugin-use-baseline"
         update-types: ["version-update:semver-major"]
-      # A TypeScript major changes what `make lint-js-types` reports. @types/jquery stays on 3.x: 4.x describes
-      # jQuery 4, which dropped APIs the jQuery 1.12 we load still has.
+      # A TypeScript major changes what `make lint-js-types` reports.
       - dependency-name: "typescript"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@types/jquery"
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
