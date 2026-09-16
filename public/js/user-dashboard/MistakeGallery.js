@@ -103,12 +103,11 @@ class MistakeGallery {
     const marker = iconPath ? document.createElement('img') : null;
     // Filled in further down, once the image is on the card. The photo's error handler runs on a later event, so the
     // overlays are always built by the time it fires.
-    let credit = null;
-    // The crop's recorded position describes the crop only, so losing it has to re-place the marker.
+    let creditImage = null;
+    // The crop's recorded position describes the crop only, so losing it has to re-place the marker and the credit.
     const photo = MistakeGallery.#photo(m, (source) => {
       if (marker) MistakeGallery.#positionMarker(marker, m, source);
-      // The backup image is the same panorama, so it needs the same credit. Only losing every image takes it down.
-      if (!source) credit?.hide();
+      creditImage?.(source);
     });
     if (photo) img.appendChild(photo);
     if (marker) {
@@ -140,20 +139,22 @@ class MistakeGallery {
       img.appendChild(openButton);
     }
 
-    // We show our own copy of the image, so we have to credit whoever it came from (#5254). Added last so that the
-    // marker, the badges and the open button can't paint over it, and so the licence link lands outside that button.
-    // Nothing to credit when no image loaded: the card is then just a plain gradient.
+    // A crop is our own copy of the image, so we have to credit whoever it came from (#5254); the still brands itself
+    // (see PanoViewerLogo). Added last so that the marker, the badges and the open button can't paint over it, and so
+    // the licence link lands outside that button. Nothing to credit when no image loaded: the card is a plain gradient.
     if (photo) {
       const logo = createPanoViewerLogo(img, m.pano_source);
       const attribution = createPanoAttribution(img, { compact: true });
-      logo.showSourceLogo();
-      attribution.show(m.attribution);
-      credit = {
-        hide: () => {
+      creditImage = (source) => {
+        if (source === 'crop') {
+          logo.showSourceLogo();
+          attribution.show(m.attribution);
+        } else {
           logo.hide();
           attribution.hide();
-        },
+        }
       };
+      creditImage(photo.dataset.udSource);
     }
     card.appendChild(img);
 
