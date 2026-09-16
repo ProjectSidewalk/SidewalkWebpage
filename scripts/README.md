@@ -212,8 +212,9 @@ preflight below runs before any database exists), and `report.md` with the tiny-
 averages 18% of streets under 20 m; Bayonne rebuilt at 4%), per-region km with `SPARSE`/`OVERSIZED`/`EMPTY` flags,
 and boundary coverage. The QA loop: rerun with tweaked flags — `--merge-regions
 "Census Tract 513:Census Tract 523.01"` folds regions by *name* and re-splits the streets against the merged
-boundaries — or hand-edit the GeoPackage in QGIS and regenerate the SQL with `make build-city-data id=<city-id>
-args="--from-gpkg"`, which validates the layers first (a hand-built layer with a single `osm_id` column is accepted).
+boundaries, and `--rename-regions` applies `db/onboarding/<city-id>/region_renames.csv` — or hand-edit the
+GeoPackage in QGIS and regenerate the SQL with `make build-city-data id=<city-id> args="--from-gpkg"`, which
+validates the layers first (a hand-built layer with a single `osm_id` column is accepted).
 
 ## Testing
 

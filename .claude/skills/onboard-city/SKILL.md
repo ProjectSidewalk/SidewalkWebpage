@@ -33,7 +33,8 @@ checkout** (`db/` is the bind mount), so run these from the main checkout, not a
      (TIGERweb), then the whole city as one region (small towns; split later in QGIS if it grows).
 - **A one-region city** takes the city's name (from `--place`), not the source's — otherwise a small town is the
   neighbourhood "Census Tract 7801" in every mission message and API response. Use `--single-region-name` with a
-  `--boundary-file`, or to override. Names you chose (`--regions-file`, a `--merge-regions` target) are left alone.
+  `--boundary-file`, or to override. Names you chose (`--regions-file`, `--rename-regions`, a `--merge-regions`
+  target) are left alone.
 - **City boundary.** `--place "<City, State, Country>"` geocodes the OSM admin boundary; check the report's
   "Boundary:" line names the right place. A partner file goes in with `--boundary-file`.
 - **Scope.** Whole city, or a phased launch opening some regions first (`onboard-city` asks; the imagery scan
@@ -56,14 +57,24 @@ Read `db/onboarding/<city-id>/report.md` before anything else and put the number
   with `--merge-regions "A:B"` (names, not ids) and rerun. Seattle's regions carry 20–36 km each.
 - **Coverage:** regions should cover ≥ 95% of the boundary; streets outside every region are trimmed.
 
+The human QA gate: open `<city-id>_qa.gpkg` in QGIS (`qgis_road`, `qgis_region`, `city_boundary`,
+`dropped_segments`, `rider_merges`) over a basemap. Fixes come back two ways: parameter changes rerun the build;
+hand edits (delete a street, move a boundary) are re-exported with
+`make build-city-data id=<city-id> args="--from-gpkg"`, which validates the layers and rewrites the SQL. Never
+load a stale SQL over hand edits.
+
 ### Region names
 
 Nothing else checks them: the build keeps the source's names and the fill stores them exactly as staged, and they
-show up in the region picker, mission messages, and the API. Review them for every city, after the last
-parameter rerun (a rerun without `--from-gpkg` rebuilds the GeoPackage from the source and drops renames).
+show up in the region picker, mission messages, and the API. Review them for every city once the region set is
+settled (merges and boundary edits done), so the list you review is the one that ships.
 
-1. **List them:** `ogrinfo -ro -q -sql "SELECT region_id, name FROM qgis_region ORDER BY region_id"
-   db/onboarding/<city-id>/<city-id>_qa.gpkg`.
+1. **List them** with `repr`, which shows stray, doubled and non-breaking spaces a plain listing hides:
+   ```
+   docker exec projectsidewalk-web sh -c "cd /home && python3.13 -c \"import geopandas as gpd; \
+   gpkg = 'db/onboarding/<city-id>/<city-id>_qa.gpkg'; \
+   [print(r.region_id, repr(r.name)) for r in gpd.read_file(gpkg, layer='qgis_region').itertuples()]\""
+   ```
 2. **Look for** shape problems (ALL CAPS, all lowercase, leading/trailing/double spaces, non-breaking spaces or
    control characters, empty names); repeats, which the build numbers `"X (2)"`: find what actually tells them
    apart (#5252 found 1437 shared names across 12 prod cities); and damage from the source — CDMX's file had
@@ -78,18 +89,16 @@ parameter rerun (a rerun without `--from-gpkg` rebuilds the GeoPackage from the 
      or spelling you can't source: leave it and say so.
 4. **Show the maintainer** a table of only the names that change (`region_id | current | proposed | why`), with the
    uncertain ones marked, and apply only what they approve.
-5. **Apply** with GDAL, one `UPDATE` per call (an `@file` runs only its first statement; plain `sqlite3` fails with
-   `no such function: ST_IsEmpty`, since the GeoPackage's index triggers need GDAL). Double any `'` in a name:
-   ```
-   ogrinfo -q -sql "UPDATE qgis_region SET name = 'Ciudad del Sol' WHERE region_id = 12" <city-id>_qa.gpkg
-   ```
-   Then `make build-city-data id=<city-id> args="--from-gpkg"` and list the names again to confirm.
+5. **Apply** by writing the approved rows to `db/onboarding/<city-id>/region_renames.csv` (`current_name,new_name`;
+   write it with Python's `csv` module so commas, quotes and padding survive — `current_name` must match exactly,
+   spaces included). Then rerun the last build command with `--rename-regions` added, so the GeoPackage, the SQL
+   and the full report all carry the new names; list them again to confirm. If the GeoPackage holds hand edits a
+   fetch rerun would lose, use `make build-city-data id=<city-id> args="--from-gpkg --rename-regions"` instead:
+   only the SQL and report change (the GeoPackage keeps the old names, and the report loses its fetch-only lines),
+   so confirm from the `Renamed N region(s)` log line.
 
-Then the human QA gate: open `<city-id>_qa.gpkg` in QGIS (`qgis_road`, `qgis_region`, `city_boundary`,
-`dropped_segments`, `rider_merges`) over a basemap. Fixes come back two ways: parameter changes rerun the build;
-hand edits (delete a street, move a boundary, rename a region) are re-exported with
-`make build-city-data id=<city-id> args="--from-gpkg"`, which validates the layers and rewrites the SQL. Never
-load a stale SQL over hand edits.
+   From then on pass `--rename-regions` on **every** build of this city: rows already applied are skipped, and
+   renames run before `--merge-regions`, so a merge added later uses the new names.
 
 ## 3. Imagery preflight — before any database work
 

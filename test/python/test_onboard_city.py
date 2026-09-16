@@ -296,7 +296,7 @@ def test_oriented_piece_reverses_backwards_pieces():
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# parse_merge_spec / merge_regions / validate_staging
+# parse_merge_spec / merge_regions / read_rename_file / rename_regions / validate_staging
 # --------------------------------------------------------------------------------------------------------------------
 
 def test_parse_merge_spec_parses_name_pairs():
@@ -337,6 +337,52 @@ def test_merge_regions_folds_geometry_and_renumbers_densely():
 def test_merge_regions_rejects_unknown_names():
     with pytest.raises(SystemExit):
         oc.merge_regions(_region_set(), {'nowhere': 'left'})
+
+
+def _renames_csv(tmp_path, text):
+    path = tmp_path / 'region_renames.csv'
+    path.write_text(text, encoding='utf-8')
+    return path
+
+
+def test_read_rename_file_matches_padding_exactly_and_trims_the_new_name(tmp_path):
+    path = _renames_csv(tmp_path, 'current_name,new_name\n"CIUDAD DEL SOL ", Ciudad del Sol \n"O\'Hare, $HOME","O\'Hare"\n')
+    assert oc.read_rename_file(path) == {'CIUDAD DEL SOL ': 'Ciudad del Sol', "O'Hare, $HOME": "O'Hare"}
+
+
+def test_read_rename_file_rejects_bad_files(tmp_path):
+    with pytest.raises(SystemExit, match='does not exist'):
+        oc.read_rename_file(tmp_path / 'missing.csv')
+    with pytest.raises(SystemExit, match='columns'):
+        oc.read_rename_file(_renames_csv(tmp_path, 'old,new\nA,B\n'))
+    with pytest.raises(SystemExit, match='columns'):
+        oc.read_rename_file(_renames_csv(tmp_path, ''))
+    with pytest.raises(SystemExit, match='blank new name'):
+        oc.read_rename_file(_renames_csv(tmp_path, 'current_name,new_name\nA,  \n'))
+    with pytest.raises(SystemExit, match='blank new name'):
+        oc.read_rename_file(_renames_csv(tmp_path, 'current_name,new_name\nA\n'))
+    with pytest.raises(SystemExit, match='twice'):
+        oc.read_rename_file(_renames_csv(tmp_path, 'current_name,new_name\nA,B\nA,C\n'))
+
+
+def test_rename_regions_swaps_names_and_keeps_ids():
+    renamed = oc.rename_regions(_region_set(), {'left': 'right', 'right': 'left'})
+    assert list(renamed['name']) == ['right', 'left']
+    assert list(renamed['region_id']) == [1, 2]
+
+
+def test_rename_regions_skips_a_rename_that_was_already_applied(caplog):
+    with caplog.at_level(logging.INFO):
+        renamed = oc.rename_regions(_region_set(), {'LEFT': 'left', 'right': 'Right'})
+    assert list(renamed['name']) == ['left', 'Right']
+    assert 'Renamed 1 region(s) (1 already carried their new name).' in caplog.text
+
+
+def test_rename_regions_rejects_unknown_names_and_clashes():
+    with pytest.raises(SystemExit, match='do not exist'):
+        oc.rename_regions(_region_set(), {'nowhere': 'Somewhere'})
+    with pytest.raises(SystemExit, match="more than one region the name\\(s\\) \\['right'\\]"):
+        oc.rename_regions(_region_set(), {'left': 'right'})
 
 
 def test_validate_staging_passes_good_data():
@@ -1036,6 +1082,31 @@ def test_main_applies_region_merges_before_assignment(tmp_path, monkeypatch):
     report = (tmp_path / 'report.md').read_text()
     assert 'Regions: **1**' in report
     assert '| 1 | east |' in report
+
+
+def test_main_applies_renames_before_merges_and_keeps_a_renamed_lone_region(tmp_path, monkeypatch, caplog):
+    _patch_pipeline(monkeypatch, _two_hoods())
+    renames = _renames_csv(tmp_path, 'current_name,new_name\neast,East Side\n')
+    with caplog.at_level(logging.INFO):
+        oc.main(['--city-id', 'testville', '--place', 'Testville, USA', '--out-dir', str(tmp_path),
+                 '--rename-regions', str(renames), '--merge-regions', 'west:East Side'])
+    assert '| 1 | East Side |' in (tmp_path / 'report.md').read_text()
+    assert 'naming it "Testville"' not in caplog.text
+
+
+def test_run_from_gpkg_applies_renames_to_the_sql(tmp_path):
+    path = _staging_gpkg(tmp_path)
+    renames = _renames_csv(tmp_path, 'current_name,new_name\nwest,West End\n')
+    oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path),
+                                    '--rename-regions', str(renames)]))
+    sql = (tmp_path / 'qgis_tables.sql').read_text()
+    assert '\tWest End\t' in sql and '\twest\t' not in sql
+
+
+def test_parse_args_bare_rename_regions_reads_the_citys_renames_file():
+    args = oc.parse_args(['--city-id', 'newport-ky', '--from-gpkg', '--rename-regions'])
+    assert args.rename_regions.endswith('db/onboarding/newport-ky/region_renames.csv')
+    assert oc.parse_args(['--city-id', 'newport-ky', '--from-gpkg']).rename_regions is None
 
 
 def test_main_dispatches_from_gpkg_runs(monkeypatch):
