@@ -224,11 +224,10 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
 - **i18next-http-backend: 3.0.6** — loads translation files (`i18nextHttpBackend-3.0.6.min.js`).
   [Project + downloads](https://github.com/i18next/i18next-http-backend) ·
   [Changelog](https://github.com/i18next/i18next-http-backend/blob/master/CHANGELOG.md)
-- **infra3dapi: 1.12.1** — Infra3d imagery provider. **Note:** `Infra3dViewer.js` leans on the SDK's private surface,
-  not just its documented one — everything it calls through `_sdk_viewer` (`moveToKey`, `movePosition`, `setFilter`,
-  `resize`, the component toggles, the `nodechanged` event, the navigator's `imagesByKNN$`) plus each node's
-  `spatialEdges$` stream. None of it is covered by the changelog, so after a bump grep the new file for each name.
-  Test by panning in a circle — watch for jumpiness.
+- **infra3dapi: 1.12.1** — Infra3d imagery provider. **Note:** `Infra3dViewer.js` reaches past the documented API into
+  `_sdk_viewer` (`moveToKey`, `movePosition`, `setFilter`, `resize`, the component toggles, the `nodechanged` event, the
+  navigator's `imagesByKNN$`) and each node's `spatialEdges$` stream, none of which the changelog covers, so after a
+  bump grep the new file for each name.
   [Download](https://cdn.jsdelivr.net/npm/@inovitas/infra3dapi@1.12.1/infra3dapi.js) ·
   [Changelog](https://developers.infra3d.com/javascript-api/reference/index.html#md:changelog)
 - **kinetic: 4.4.3** — **note:** only used for the hand animation in the Explore tutorial;
