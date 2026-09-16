@@ -10,6 +10,13 @@ class GsvViewer extends PanoViewer {
   // long so the in-flight move can recover instead of hanging the UI forever. Generous, so it won't abort slow loads.
   static #PANO_LOAD_TIMEOUT_MS = 10000;
 
+  // How far repaint() moves the camera. Invisible at any zoom (the pano is ~360° across a few hundred px), but big
+  // enough that GSV won't round it away; it is the value the 2021 fix for #2468 was verified with.
+  static #REPAINT_NUDGE_DEGREES = 0.01;
+
+  // Direction of the next repaint() nudge, flipped on each call so that a pair of them nets out to no movement.
+  #repaintSign = 1;
+
   constructor() {
     super();
     this.streetViewService = undefined;
@@ -473,6 +480,27 @@ class GsvViewer extends PanoViewer {
 
   resize = () => {
     google.maps.event.trigger(this.gsvPano, 'resize');
+  };
+
+  /**
+   * See PanoViewer.repaint(). GSV's renderer can stop painting after its container changes size — a window drag, a
+   * Ctrl +/- browser zoom — and stay black until something moves the camera, which is why the glitch clears as soon
+   * as the user drags the image (#2468). Moving the camera by a fraction of a degree forces that frame without
+   * moving anything the user can see.
+   *
+   * The sign alternates so that consecutive nudges cancel: a long session of window drags would otherwise walk the
+   * heading away from the one the label was recorded at. The POV is deliberately *not* restored by a second setPov
+   * in the same tick — two sets can coalesce into no repaint at all, which is the one outcome this must not have.
+   * @returns {void}
+   */
+  repaint = () => {
+    const pov = this.getPov();
+    if (!pov) return; // No pano has painted yet, so there is no frame to force.
+    this.#repaintSign = -this.#repaintSign;
+    const delta = GsvViewer.#REPAINT_NUDGE_DEGREES * this.#repaintSign;
+    pov.heading += delta;
+    pov.pitch += delta;
+    this.gsvPano.setPov(pov);
   };
 
   /**
