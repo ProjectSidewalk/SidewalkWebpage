@@ -498,7 +498,7 @@ reset.pw.email.signature = Het Project Sidewalk-team
 
 reset.pw.submit.new.pw = Typ je nieuwe wachtwoord.
 reset.pw.message = Wachtwoord opnieuw instellen
-reset.pw.successful = Wachtwoord opnieuw ingesteld!
+reset.pw.successful = Wachtwoord opnieuw ingesteld! Je bent afgemeld op je andere apparaten.
 reset.pw.invalid.reset.link = Ongeldige resetlink
 
 dashboard.current.team.greeting = Team: {0}
@@ -775,10 +775,14 @@ dashboard.settings.password.new = Nieuw wachtwoord
 dashboard.settings.password.new.confirm = Bevestig nieuw wachtwoord
 dashboard.settings.password.forgot = Huidig wachtwoord vergeten? <a href="{0}">Stel het opnieuw in via e-mail</a>.
 dashboard.settings.password.submit = Wachtwoord wijzigen
-dashboard.settings.password.changed = Je wachtwoord is gewijzigd.
+dashboard.settings.password.changed = Je wachtwoord is gewijzigd en je bent afgemeld op je andere apparaten.
 dashboard.settings.password.error.current = Dat is niet je huidige wachtwoord.
 dashboard.settings.password.error.same = Je nieuwe wachtwoord moet anders zijn dan je huidige.
 dashboard.settings.password.error.throttled = Te veel pogingen. Wacht maximaal {0} minuten en probeer het dan opnieuw.
+dashboard.settings.devices = Aangemelde apparaten
+dashboard.settings.devices.help = Aangemeld op een plek die je niet meer gebruikt, zoals een gedeelde computer? Meld je overal af behalve in deze browser.
+dashboard.settings.devices.submit = Afmelden op andere apparaten
+dashboard.settings.devices.signed.out = Je bent afgemeld op je andere apparaten.
 dashboard.settings.service.hours = Vrijwilligersuren
 dashboard.settings.service.hours.toggle = Aanmelden voor maatschappelijke serviceuren
 dashboard.settings.service.hours.help = Meldt je aan voor officiële erkenning — je begeleider kan je uren verifiëren — en voegt "Serviceuren" en "Tijdcontrole" toe aan je accountmenu.

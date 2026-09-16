@@ -501,7 +501,7 @@ reset.pw.email.signature = Das Project Sidewalk-Team
 
 reset.pw.submit.new.pw = Neues Passwort eingeben.
 reset.pw.message = Passwort zurücksetzen
-reset.pw.successful = Passwort zurückgesetzt!
+reset.pw.successful = Passwort zurückgesetzt! Sie wurden auf Ihren anderen Geräten abgemeldet.
 reset.pw.invalid.reset.link = Ungültiger Link
 
 dashboard.current.team.greeting = Team: {0}
@@ -779,10 +779,14 @@ dashboard.settings.password.new = Neues Passwort
 dashboard.settings.password.new.confirm = Neues Passwort wiederholen
 dashboard.settings.password.forgot = Aktuelles Passwort vergessen? <a href="{0}">Setzen Sie es per E-Mail zurück</a>.
 dashboard.settings.password.submit = Passwort ändern
-dashboard.settings.password.changed = Ihr Passwort wurde geändert.
+dashboard.settings.password.changed = Ihr Passwort wurde geändert, und Sie wurden auf Ihren anderen Geräten abgemeldet.
 dashboard.settings.password.error.current = Das ist nicht Ihr aktuelles Passwort.
 dashboard.settings.password.error.same = Ihr neues Passwort muss sich von Ihrem aktuellen unterscheiden.
 dashboard.settings.password.error.throttled = Zu viele Versuche. Bitte warten Sie bis zu {0} Minuten und versuchen Sie es dann erneut.
+dashboard.settings.devices = Angemeldete Geräte
+dashboard.settings.devices.help = Irgendwo angemeldet, wo Sie es nicht mehr nutzen, etwa an einem gemeinsam genutzten Computer? Melden Sie sich überall außer in diesem Browser ab.
+dashboard.settings.devices.submit = Auf anderen Geräten abmelden
+dashboard.settings.devices.signed.out = Sie wurden auf Ihren anderen Geräten abgemeldet.
 dashboard.settings.service.hours = Ehrenamtliche Servicestunden
 dashboard.settings.service.hours.toggle = Für gemeinnützige Servicestunden anmelden
 dashboard.settings.service.hours.help = Meldet dich für die offizielle Anerkennung an – deine Betreuungsperson kann deine Stunden bestätigen – und fügt „Servicestunden“ und „Zeitkontrolle“ zu deinem Kontomenü hinzu.
