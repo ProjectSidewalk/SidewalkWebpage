@@ -74,7 +74,7 @@ describe('AccessScoreDock', () => {
             clustersByRegion: {
                 1: [
                     {label_cluster_id: 1, label_type: 'Obstacle', street_edge_id: 1, intersection_id: null, region_id: 1,
-                        region_name: 'Fixture', median_severity: 3, cluster_size: 2, label_ids: [101, 102],
+                        region_name: 'Fixture', median_severity: 3, cluster_size: 2, label_ids: [100, 101],
                         coordinates: [0.5, 0.5]},
                     {label_cluster_id: 2, label_type: 'CurbRamp', street_edge_id: 2, intersection_id: null, region_id: 1,
                         region_name: 'Fixture', median_severity: 1, cluster_size: 1, label_ids: [103],
@@ -324,7 +324,8 @@ describe('AccessScoreDock', () => {
         await settle();
         expect(document.querySelector('.acs-photos__caption').textContent).toBe('photos-from scope=Fixture');
         const items = document.querySelectorAll('.acs-photos__item');
-        // Severity 3 ahead of 1; a label with a crop shows it, one without shows the type placeholder.
+        // Severity 3 ahead of 1, each cluster shown by its newest label (101 over 100); a label with a crop shows
+        // it, one without shows the type placeholder.
         expect(Array.from(items).map((el) => el.dataset.labelId)).toEqual(['101', '103']);
         expect(items[0].querySelector('.lmc__image').getAttribute('src')).toBe('https://example.test/101.jpg');
         expect(items[1].querySelector('.lmc__placeholder')).not.toBeNull();

@@ -7,10 +7,10 @@
  * because a street is a filter over its region's clusters and a city has too many clusters to fetch for a
  * dozen pictures; the area in view pools the few nearest regions' feeds and keeps the clusters inside the
  * map's bounds. The brush never narrows the strip: a brush is a set of street ids across the city and the strip
- * draws from region feeds. One label per cluster, capped at `MAX_PHOTOS`, ranked worst first (#5386) and numbered:
- * the clusters' medians and vote totals choose which get a picture, then the pictures take the order of their own
- * label's rating and votes, the ones a reader sees on the card. Each is a `LabelMiniCard`, so a picture can be
- * agreed or disagreed with where it is seen.
+ * draws from region feeds. One label per cluster (its newest), capped at `MAX_PHOTOS`, ranked worst first (#5386)
+ * and numbered: the clusters' medians and vote totals choose which get a picture, then the pictures take the order
+ * of their own label's rating and votes, the ones a reader sees on the card. Each is a `LabelMiniCard`, so a
+ * picture can be agreed or disagreed with where it is seen.
  */
 class AccessScorePhotoStrip {
   /** Enough to fill the ribbon with a scroll's worth; more is a wall of fetches for pictures nobody reaches. */
@@ -131,13 +131,15 @@ class AccessScorePhotoStrip {
       this.#els.status.textContent = i18next.t('accessscore:photos-empty');
       return;
     }
-    const wanted = picked.map((p) => p.label_ids[0]);
+    // A cluster's newest label stands for it: label ids are a serial, so the highest is the latest placed.
+    const newest = (p) => Math.max(...p.label_ids);
+    const wanted = picked.map(newest);
     if (keepWhileLoading && wanted.length === this.#wanted.length && wanted.every((id, k) => id === this.#wanted[k])) {
       this.#els.status.textContent = '';
       return;
     }
     if (keepWhileLoading) this.#els.status.textContent = i18next.t('accessscore:photos-loading');
-    const labels = await Promise.all(picked.map((p) => this.#label(p.label_ids[0]).then(
+    const labels = await Promise.all(picked.map((p) => this.#label(newest(p)).then(
       (label) => ({ label, cluster: p }),
       () => null,
     )));
