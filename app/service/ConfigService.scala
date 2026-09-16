@@ -70,6 +70,15 @@ case class CityInfo(
    */
   def isPublic: Boolean = visibility == "public"
 }
+
+/**
+ * The credential a page hands its pano viewer.
+ * @param source    The city's imagery provider.
+ * @param token     Bearer token or API key; empty for a keyless provider.
+ * @param expiresAt Set only for per-session tokens (Infra3d), which the viewer must renew; None for static keys.
+ */
+case class ImageryAccessToken(source: PanoSource, token: String, expiresAt: Option[OffsetDateTime])
+
 case class CommonPageData(
     cityId: String,
     environmentType: String,
@@ -1091,6 +1100,7 @@ trait ConfigService {
   def getPanoSource: PanoSource
   def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Double): Future[Int]
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T]
+  def getImageryAccessToken: Future[ImageryAccessToken]
   def getCommonPageData(lang: Lang): Future[CommonPageData]
 }
 
@@ -2100,6 +2110,23 @@ class ConfigServiceImpl @Inject() (
   private val appStartTime: OffsetDateTime =
     OffsetDateTime.ofInstant(Instant.ofEpochMilli(ManagementFactory.getRuntimeMXBean.getStartTime), ZoneOffset.UTC)
 
+  def getImageryAccessToken: Future[ImageryAccessToken] = {
+    val source: PanoSource = getPanoSource
+    source match {
+      case PanoSource.Gsv =>
+        Future.successful(ImageryAccessToken(source, config.get[String]("google-maps-api-key"), None))
+      case PanoSource.Infra3d =>
+        panoDataService.getInfra3dTokenWithExpiry(getCityId).map { token =>
+          ImageryAccessToken(source, token.accessToken, Some(token.expiresAt))
+        }
+      case PanoSource.Mapillary =>
+        Future.successful(ImageryAccessToken(source, config.get[String]("mapillary-access-token"), None))
+      // Panoramax's API is public and keyless (#5185); the viewer ignores the token.
+      case PanoSource.Panoramax => Future.successful(ImageryAccessToken(source, "", None))
+      case other                => Future.failed(new Exception(s"No valid imagery source specified: $other"))
+    }
+  }
+
   def getCommonPageData(lang: Lang): Future[CommonPageData] = {
     for {
       version: Version <- cacheApi.getOrElseUpdate[Version]("currentVersion")(versionTable.currentVersion())
@@ -2107,24 +2134,16 @@ class ConfigServiceImpl @Inject() (
       envType: String           = config.get[String]("environment-type")
       googleAnalyticsId: String = config.get[String](s"city-params.google-analytics-4-id.$envType.$cityId")
       prodUrl: String           = config.get[String](s"city-params.landing-page-url.prod.$cityId")
-      gMapsApiKey: String       = config.get[String]("google-maps-api-key")
-      imagerySource: PanoSource = PanoSource.withName(config.get[String](s"city-params.pano-viewer-type.$cityId"))
-      imageryAccessToken: String <-
-        if (imagerySource == PanoSource.Gsv) Future.successful(gMapsApiKey)
-        else if (imagerySource == PanoSource.Infra3d) panoDataService.getInfra3dToken(cityId)
-        else if (imagerySource == PanoSource.Mapillary) Future.successful(config.get[String]("mapillary-access-token"))
-        // Panoramax's API is public and keyless (#5185); the viewer ignores the token.
-        else if (imagerySource == PanoSource.Panoramax) Future.successful("")
-        else Future.failed(new Exception("No valid imagery source specified"))
+      imageryAccess: ImageryAccessToken <- getImageryAccessToken
       gMapsApiKey: String         = config.get[String]("google-maps-api-key")
       mapboxApiKey: String        = config.get[String]("mapbox-api-key")
       allCityInfo: Seq[CityInfo]  = getAllCityInfo(lang)
       volunteerEmail: String      = config.get[String]("volunteer-email-address")
       volunteerSupervisor: String = config.get[String]("volunteer-supervisor-name")
     } yield {
-      CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imagerySource, imageryAccessToken, gMapsApiKey,
-        mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime, BuildInfo.gitSha,
-        BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, volunteerEmail, volunteerSupervisor,
+      CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imageryAccess.source, imageryAccess.token,
+        gMapsApiKey, mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime,
+        BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, volunteerEmail, volunteerSupervisor,
         assetManifestService.assetDigestsJson)
     }
   }

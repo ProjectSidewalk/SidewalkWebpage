@@ -1,9 +1,12 @@
 package controllers
 
 import controllers.base._
+import models.auth.DefaultEnv
 import models.utils.MapParams
 import play.api.Logger
 import play.api.libs.json.Json
+import play.api.mvc.AnyContent
+import play.silhouette.api.actions.UserAwareRequest
 
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
@@ -32,5 +35,24 @@ class ConfigController @Inject() (
         )
       )
     }
+  }
+
+  /**
+   * The imagery provider's access token, with its expiry when the provider issues short-lived ones. Exists for
+   * Infra3d, whose hour-long token the SDK cannot renew: Infra3dViewer re-fetches it here before expiry. It is the
+   * same token every page load already carries, so it needs no more protection than a page does.
+   */
+  def getImageryAccessToken() = cc.securityService.UserAwareAction {
+    implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+      logger.debug(request.toString) // Keeps the implicit from reading as unused.
+      configService.getImageryAccessToken.map { access =>
+        Ok(
+          Json.obj(
+            "source"     -> access.source.toString,
+            "token"      -> access.token,
+            "expires_at" -> access.expiresAt.map(_.toString)
+          )
+        )
+      }
   }
 }

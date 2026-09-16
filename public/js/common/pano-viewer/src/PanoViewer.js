@@ -39,6 +39,12 @@ class PanoViewer {
   povChangedListeners = [];
 
   /**
+   * Subscribers to _fireDiagnostic.
+   * @type {Array<(name: string, details: Record<string, string>) => void>}
+   */
+  diagnosticListeners = [];
+
+  /**
    * Which initial seed successfully placed the viewer: 'pano' when startPanoId loaded, 'latLng' when a
    * startLatLng/backupLatLngs candidate did. Undefined until _moveToInitialLocation() succeeds.
    * @type {('pano'|'latLng'|undefined)}
@@ -107,8 +113,34 @@ class PanoViewer {
     canvasElem.style.textAlign = 'left';
     const newViewer = new this();
     newViewer.canvasElem = canvasElem;
+    // A lost WebGL context (GPU reset, memory pressure) leaves the pano black with no error from any provider, so it
+    // is recorded from the mount for all of them. Capture phase: it fires on the provider's canvas and doesn't bubble.
+    canvasElem.addEventListener('webglcontextlost', () => newViewer._fireDiagnostic('WebGLContextLost'), true);
     await newViewer.initialize(canvasElem, panoOptions);
     return newViewer;
+  }
+
+  /**
+   * Records a failure or recovery inside the viewer that no return value carries (a token renewed or lost, a WebGL
+   * context lost, an SDK that never came up). A page with a tracker subscribes via addListener('diagnostic'); one
+   * without still gets the event into webpage_activity, so a black viewer anywhere leaves a trace. Users can't be
+   * asked to open DevTools, so this is the record a bug report gets checked against.
+   * @param {string} name - CamelCase event name; trackers log it as `PanoViewer_<name>`.
+   * @param {Record<string, string|number|boolean|null|undefined>} [details] - Short values kept with the event,
+   *     flattened to the `k:v,k:v` alphabet both trackers join notes with.
+   * @protected
+   */
+  _fireDiagnostic(name, details = {}) {
+    const safeDetails = Object.fromEntries(Object.entries(details)
+      .filter(([, value]) => value !== undefined && value !== null)
+      .map(([key, value]) => [key, String(value).replace(/[,:]/g, ';').slice(0, 80)]));
+    console.warn(`PanoViewer_${name}`, safeDetails);
+    if (this.diagnosticListeners.length > 0) {
+      for (const listener of this.diagnosticListeners) listener(name, safeDetails);
+      return;
+    }
+    const suffix = Object.entries(safeDetails).map(([key, value]) => `_${key}=${value}`).join('');
+    window.logWebpageActivity?.(`PanoViewer_${name}${suffix}`, true);
   }
 
   /**
@@ -436,8 +468,8 @@ class PanoViewer {
 
   /**
    * Adds an event listener for the specified event type.
-   * @param {string} event - One of ['pano_changed', 'pov_changed']
-   * @param {Function} handler - The function to call when the event occurs.
+   * @param {string} event - One of ['pano_changed', 'pov_changed', 'diagnostic']
+   * @param {Function} handler - The function to call when the event occurs; a 'diagnostic' one gets `(name, details)`.
    * @returns {void}
    */
   addListener(event, handler) {
@@ -445,12 +477,14 @@ class PanoViewer {
       this.panoChangedListeners.push(handler);
     } else if (event === 'pov_changed') {
       this.povChangedListeners.push(handler);
+    } else if (event === 'diagnostic') {
+      this.diagnosticListeners.push(handler);
     }
   }
 
   /**
    * Removes an event listener for the specified event type.
-   * @param {string} event - One of ['pano_changed', 'pov_changed']
+   * @param {string} event - One of ['pano_changed', 'pov_changed', 'diagnostic']
    * @param {Function} handler - The function to call when the event occurs.
    * @returns {void}
    */
@@ -459,6 +493,8 @@ class PanoViewer {
       this.panoChangedListeners = this.panoChangedListeners.filter((func) => func !== handler);
     } else if (event === 'pov_changed') {
       this.povChangedListeners = this.povChangedListeners.filter((func) => func !== handler);
+    } else if (event === 'diagnostic') {
+      this.diagnosticListeners = this.diagnosticListeners.filter((func) => func !== handler);
     }
   }
 }

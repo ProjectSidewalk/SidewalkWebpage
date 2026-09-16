@@ -348,7 +348,8 @@
     "free-explore-no-imagery": "這個方向沒有更多街景影像了。請試著環顧四周或往另一個方向前進。",
     "stuck-suggestion": "若您無法透過箭頭移動，請嘗試點選右下角的導航方向，或嘗試點選左側的「卡住」鍵。",
     "imagery-skip-limit": "連續多條街道都沒有影像，因此我們已停止自動移動您。請嘗試地圖的其他區域，或重新載入頁面重新開始。",
-    "imagery-load-failed": "目前無法載入街景影像，請幾分鐘後再試一次。"
+    "imagery-load-failed": "目前無法載入街景影像，請幾分鐘後再試一次。",
+    "imagery-session-expired": "您的街景影像工作階段已過期且無法更新。請重新載入頁面以繼續，您目前的工作已儲存。"
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "探索任務",
