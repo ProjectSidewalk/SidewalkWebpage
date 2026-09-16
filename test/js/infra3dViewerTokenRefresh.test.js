@@ -98,6 +98,7 @@ function fakeSdk({ initViewerResolves = true } = {}) {
 /** A fetch that answers /imageryAccessToken with a token expiring at the given time. */
 const tokenResponse = (expiryMs) => Promise.resolve({
     ok: true,
+    headers: new Headers({ 'content-type': 'application/json' }),
     json: async () => ({ source: 'infra3d', token: jwtExpiringAt(expiryMs), expires_at: new Date(expiryMs).toISOString() }),
 });
 
@@ -235,6 +236,49 @@ describe('Infra3dViewer access-token renewal', () => {
         await jest.advanceTimersByTimeAsync(60 * MINUTE_MS);
 
         expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('does not spin when an on-demand refresh of an unreadable token fails', async () => {
+        fakeSdk();
+        const viewer = await Infra3dViewer.create(mount, { accessToken: 'not-a-jwt', startPanoId: 'SEED' });
+        viewer.addListener('diagnostic', diagnostics);
+        fetch.mockImplementation(() => Promise.resolve({ ok: false, status: 503 }));
+
+        await viewer.refreshAccessTokenNow();
+        await jest.advanceTimersByTimeAsync(10 * MINUTE_MS);
+
+        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(diagnostics).toHaveBeenLastCalledWith('TokenExpired', { attempts: '1' });
+    });
+
+    it('treats a token without a readable expiry as a failed renewal rather than handing the SDK NaN', async () => {
+        const { manager } = await createViewer(T0 + 60 * MINUTE_MS);
+        fetch.mockImplementation(() => Promise.resolve({
+            ok: true,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ source: 'gsv', token: 'static-key', expires_at: null }),
+        }));
+
+        await jest.advanceTimersByTimeAsync(55 * MINUTE_MS);
+
+        expect(manager.setTokens).not.toHaveBeenCalled();
+        expect(diagnostics).toHaveBeenCalledWith('TokenRefreshFailed',
+            expect.objectContaining({ reason: 'token without a readable expiry' }));
+    });
+
+    it('treats a 200 that is not JSON (a sign-in page) as a failed renewal with a readable reason', async () => {
+        const { manager } = await createViewer(T0 + 60 * MINUTE_MS);
+        fetch.mockImplementation(() => Promise.resolve({
+            ok: true,
+            headers: new Headers({ 'content-type': 'text/html' }),
+            json: async () => { throw new SyntaxError('Unexpected token <'); },
+        }));
+
+        await jest.advanceTimersByTimeAsync(55 * MINUTE_MS);
+
+        expect(manager.setTokens).not.toHaveBeenCalled();
+        expect(diagnostics).toHaveBeenCalledWith('TokenRefreshFailed',
+            expect.objectContaining({ reason: 'non-JSON response' }));
     });
 
     it('says so, once, when the token is not a JWT it can read', async () => {

@@ -22,6 +22,7 @@ import javax.inject._
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
+import scala.util.Try
 
 /**
  * Which cities the by-name global leaderboard may read, split by what it may read them for (#3719).
@@ -2110,8 +2111,7 @@ class ConfigServiceImpl @Inject() (
   private val appStartTime: OffsetDateTime =
     OffsetDateTime.ofInstant(Instant.ofEpochMilli(ManagementFactory.getRuntimeMXBean.getStartTime), ZoneOffset.UTC)
 
-  def getImageryAccessToken: Future[ImageryAccessToken] = {
-    val source: PanoSource = getPanoSource
+  def getImageryAccessToken: Future[ImageryAccessToken] = Future.fromTry(Try(getPanoSource)).flatMap { source =>
     source match {
       case PanoSource.Gsv =>
         Future.successful(ImageryAccessToken(source, config.get[String]("google-maps-api-key"), None))

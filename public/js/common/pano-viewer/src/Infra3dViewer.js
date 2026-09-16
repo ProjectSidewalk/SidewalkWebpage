@@ -72,17 +72,24 @@ class Infra3dViewer extends PanoViewer {
     // reason init fails), but a second timeout in the same tab means it didn't help, so that one is surfaced as an
     // ordinary failure and PanoManager shows its retry message instead of reloading forever.
     let initError;
+    let initTimer;
     this.viewer = await Promise.race([
       this.manager.initViewer(panoOpts),
-      new Promise((_, reject) => setTimeout(
-        () => reject(new Error(`Infra3d initViewer did not finish within ${Infra3dViewer.INIT_TIMEOUT_MS} ms`)),
-        Infra3dViewer.INIT_TIMEOUT_MS,
-      )),
+      new Promise((_, reject) => {
+        initTimer = setTimeout(
+          () => reject(new Error(`Infra3d initViewer did not finish within ${Infra3dViewer.INIT_TIMEOUT_MS} ms`)),
+          Infra3dViewer.INIT_TIMEOUT_MS,
+        );
+      }),
     ]).catch((err) => {
       initError = err;
-    });
+    }).finally(() => clearTimeout(initTimer));
     if (!this.viewer) await Infra3dViewer.#recoverFromInitFailure(initError);
     Infra3dViewer.#setInitReloadFlag(false);
+
+    // Scheduled before the initial move rather than after: a viewer that took long to find its first pano still has
+    // to outlive its token.
+    this.#scheduleTokenRefresh(panoOptions.accessToken);
 
     // Handle a few other configs that need to be handled after initialization.
     if (panoOpts.defaultNavigation === false) {
@@ -120,8 +127,6 @@ class Infra3dViewer extends PanoViewer {
     };
     this.viewer._sdk_viewer.on('nodechanged', panoChangeListener);
     this.viewer.on('panorotationchanged', povChangeListener);
-
-    this.#scheduleTokenRefresh(panoOptions.accessToken);
 
     // If defaultNavigation is enabled, we need a pano_changed listener to record the pano metadata after moving.
     if (panoOpts.defaultNavigation) {
@@ -205,9 +210,12 @@ class Infra3dViewer extends PanoViewer {
     if (!this.canvasElem?.isConnected) return; // A closed popup's viewer has nothing to keep alive.
     try {
       const response = await fetch('/imageryAccessToken', { headers: { Accept: 'application/json' } });
+      // A lapsed login answers with a 200 HTML sign-in page, which would otherwise surface as a JSON parse error.
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.headers.get('content-type')?.includes('json')) throw new Error('non-JSON response');
       const { token, expires_at: expiresAt } = await response.json();
       const expiryMs = util.pano.jwtExpiryMs(token) ?? Date.parse(expiresAt);
+      if (!Number.isFinite(expiryMs)) throw new Error('token without a readable expiry');
       const expiresInSec = Math.max(1, Math.round((expiryMs - Date.now()) / 1000));
       this.manager.setTokens({
         access_token: token, expires_in: expiresInSec, id_token: '', refresh_token: '', token_type: 'Bearer',
@@ -217,7 +225,9 @@ class Infra3dViewer extends PanoViewer {
     } catch (err) {
       this.#refreshAttempts += 1;
       this._fireDiagnostic('TokenRefreshFailed', { attempt: this.#refreshAttempts, reason: err?.message ?? err });
-      if (Date.now() >= this.#tokenExpiryMs) {
+      // No known expiry means no bound for the retry ladder, so a failed on-demand refresh of an unreadable token
+      // must stop here rather than spin.
+      if (this.#tokenExpiryMs === null || Date.now() >= this.#tokenExpiryMs) {
         this._fireDiagnostic('TokenExpired', { attempts: this.#refreshAttempts });
         return;
       }

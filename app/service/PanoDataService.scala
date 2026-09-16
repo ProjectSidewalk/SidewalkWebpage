@@ -522,7 +522,7 @@ class PanoDataServiceImpl @Inject() (
   def getInfra3dToken(cityId: String): Future[String] = getInfra3dTokenWithExpiry(cityId).map(_.accessToken)
 
   def getInfra3dTokenWithExpiry(cityId: String): Future[Infra3dToken] = {
-    val cacheKey = "getInfra3dToken"
+    val cacheKey = s"getInfra3dToken:$cityId" // Zurich and Winterthur have separate credentials, so separate tokens.
     val now      = OffsetDateTime.now
     cacheApi.get[Infra3dToken](cacheKey).flatMap {
       case Some(cached) if !infra3dTokenNeedsRemint(Some(cached), now) => Future.successful(cached)
