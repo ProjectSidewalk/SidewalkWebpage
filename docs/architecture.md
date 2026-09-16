@@ -88,7 +88,8 @@ the app dir, #4925):
 
 `cropped.image.directory` additionally holds the **label crops** (#4865), cut from the self-hosted panorama store
 (`pano.images.directory`, which the nightly panorama-tools scraper fills) by the nightly `CropGenerationActor` via
-`CropService`, under `<city-id>/<LabelType>/`. They are disposable — delete the store and the next run rebuilds it —
+`CropService`, under `<city-id>/<LabelType>/` (a label whose type is edited has its crop moved to the new type's
+directory by `LabelEditService`). They are disposable — delete the store and the next run rebuilds it —
 which is why they live beside the app's other derived media rather than in the panorama store, which the app only
 reads.
 

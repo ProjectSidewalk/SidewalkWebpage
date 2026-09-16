@@ -139,6 +139,17 @@ object LabelTypeEnum {
   // Types whose labels carry a 1-3 rating. The denominator for any "% rated" stat, in SQL as well as on the page.
   lazy val ratedTypeNames: Seq[String] = ordered.filter(_.ratingScale != RatingScale.Unrated).map(_.name)
 
+  // Types whose labels never carry a severity; the *_unrated_no_severity_check constraints (390.sql) list these names.
+  lazy val unratedTypeNames: Seq[String] = ordered.filter(_.ratingScale == RatingScale.Unrated).map(_.name)
+
+  /**
+   * The severity a label keeps when its type changes: the one it had if both types read their 1-3 rating the same way
+   * (Obstacle to SurfaceProblem are both Severity), else none, since a Quality rating says nothing about a Severity
+   * one and an unrated type carries no severity at all.
+   */
+  def severityAfterTypeChange(from: Base, to: Base, severity: Option[Int]): Option[Int] =
+    if (to.ratingScale != RatingScale.Unrated && from.ratingScale == to.ratingScale) severity else None
+
   // Maps label type names to their associated colors. Used for retrieving colors by label type name.
   lazy val labelTypeToColor: Map[String, String] = values.map(lt => lt.name -> lt.color).toMap
 

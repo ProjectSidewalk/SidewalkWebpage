@@ -9,6 +9,7 @@ import formats.json.MissionFormats._
 import formats.json.ValidateFormats.{
   EnvironmentSubmission,
   LabelMapValidationSubmission,
+  LabelValidationSubmission,
   MoreLabelsRequest,
   ValidationTaskSubmission
 }
@@ -331,14 +332,25 @@ class ValidateController @Inject() (
   ): Future[Result] = {
     val currTime: OffsetDateTime = data.timestamp
 
+    // The type each vote was cast on: what the tool showed, or the mission's type for a client that doesn't say.
+    def labelTypeSeen(newVal: LabelValidationSubmission): LabelTypeEnum.Base =
+      newVal.labelType.orElse(data.missionProgress.map(_.labelType)).get
+    if (data.validations.exists(_.labelType.isEmpty) && data.missionProgress.isEmpty) {
+      return Future.successful(
+        BadRequest(Json.obj("status" -> "Error", "message" -> "validations need a label_type or a mission_progress"))
+      )
+    }
+
     // First do all the important stuff that needs to be done synchronously.
     val response: Future[Result] = for {
       // Insert validations and comments (if there are any).
       _ <- validationService.submitValidations(data.validations.map { newVal =>
         ValidationSubmission(
-          LabelValidation(0, newVal.labelId, newVal.validationResult, user.userId, newVal.missionId, newVal.canvasX,
-            newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth,
-            newVal.startTimestamp, newVal.endTimestamp, newVal.source, newVal.viewerType),
+          LabelValidation(0, newVal.labelId, labelTypeSeen(newVal), newVal.validationResult, user.userId,
+            newVal.missionId, newVal.canvasX, newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom,
+            newVal.canvasHeight, newVal.canvasWidth, newVal.startTimestamp, newVal.endTimestamp, newVal.source,
+            newVal.viewerType),
+          newVal.newLabelType,
           newVal.severity,
           newVal.tags,
           newVal.comment.map(c =>
@@ -515,29 +527,37 @@ class ValidateController @Inject() (
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       newVal => {
-        for {
-          mission <- missionService.resumeOrCreateNewValidateMission(
-            userId,
-            MissionType.LabelmapValidation,
-            newVal.labelType
-          )
-          newValIds <- validationService.submitValidations(
-            Seq(
-              ValidationSubmission(
-                LabelValidation(0, newVal.labelId, newVal.validationResult, userId, mission.get.missionId,
-                  newVal.canvasX, newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight,
-                  newVal.canvasWidth, newVal.startTimestamp, newVal.endTimestamp, newVal.source, newVal.viewerType),
-                newVal.severity,
-                newVal.tags,
-                comment = None,
-                newVal.undone,
-                newVal.redone,
-                canEdit = isAdmin(request.identity)
+        labelService.findLabel(newVal.labelId).flatMap {
+          case None        => Future.successful(NotFound(Json.obj("status" -> "Error", "message" -> "No such label")))
+          case Some(label) =>
+            for {
+              // The mission is the label's real type, not the popup's: a stale popup would otherwise file the vote
+              // under a mission for a type the label no longer has.
+              mission <- missionService.resumeOrCreateNewValidateMission(
+                userId,
+                MissionType.LabelmapValidation,
+                label.labelType
               )
-            )
-          )
-        } yield {
-          Ok(Json.obj("status" -> "Success"))
+              newValIds <- validationService.submitValidations(
+                Seq(
+                  ValidationSubmission(
+                    LabelValidation(0, newVal.labelId, newVal.labelType, newVal.validationResult, userId,
+                      mission.get.missionId, newVal.canvasX, newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom,
+                      newVal.canvasHeight, newVal.canvasWidth, newVal.startTimestamp, newVal.endTimestamp,
+                      newVal.source, newVal.viewerType),
+                    newVal.newLabelType,
+                    newVal.severity,
+                    newVal.tags,
+                    comment = None,
+                    newVal.undone,
+                    newVal.redone,
+                    canEdit = isAdmin(request.identity)
+                  )
+                )
+              )
+            } yield {
+              Ok(Json.obj("status" -> "Success"))
+            }
         }
       }
     )

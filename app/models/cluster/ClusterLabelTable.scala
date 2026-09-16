@@ -28,6 +28,7 @@ class ClusterLabelTableDef(tag: Tag) extends Table[ClusterLabel](tag, "cluster_l
 @ImplementedBy(classOf[ClusterLabelTable]) trait ClusterLabelTableRepository {
   def countClusterLabels: DBIO[Int]
   def insertMultiple(clusterLabels: Seq[ClusterLabel]): DBIO[Seq[Int]]
+  def deleteForLabel(labelId: Int): DBIO[Int]
 }
 
 @Singleton
@@ -43,4 +44,10 @@ class ClusterLabelTable @Inject() (protected val dbConfigProvider: DatabaseConfi
   def insertMultiple(newClusterLabels: Seq[ClusterLabel]): DBIO[Seq[Int]] = {
     (clusterLabels returning clusterLabels.map(_.clusterLabelId)) ++= newClusterLabels
   }
+
+  /**
+   * Takes a label out of its cluster, for when its type changes (#3671): clusters are per type, and the clustering job
+   * only revisits a region whose membership differs from the API's, so this is also what gets the region re-clustered.
+   */
+  def deleteForLabel(labelId: Int): DBIO[Int] = clusterLabels.filter(_.labelId === labelId).delete
 }

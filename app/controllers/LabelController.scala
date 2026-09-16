@@ -91,10 +91,28 @@ class LabelController @Inject() (
             Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "severity must be 1-3 or null")))
           } else {
             labelEditService
-              .editLabel(submission.labelId, request.identity, submission.severity, submission.tags, submission.source)
+              .editLabel(submission.labelId, request.identity, submission.labelType, submission.newLabelType,
+                submission.severity, submission.tags, submission.source)
               .map {
                 case LabelEditOutcome.Applied(label) =>
-                  Ok(Json.obj("status" -> "Success", "severity" -> label.severity, "tags" -> label.tags))
+                  Ok(
+                    Json.obj(
+                      "status"     -> "Success",
+                      "label_type" -> label.labelType.name,
+                      "severity"   -> label.severity,
+                      "tags"       -> label.tags
+                    )
+                  )
+                // The label's type changed under the editor; the current state comes back so the card can redraw.
+                case LabelEditOutcome.Conflict(label) =>
+                  Conflict(
+                    Json.obj(
+                      "status"     -> "Conflict",
+                      "label_type" -> label.labelType.name,
+                      "severity"   -> label.severity,
+                      "tags"       -> label.tags
+                    )
+                  )
                 case LabelEditOutcome.Forbidden =>
                   Forbidden(Json.obj("status" -> "Error", "message" -> "Only the labeler or an admin can edit a label"))
                 case LabelEditOutcome.NotFound =>

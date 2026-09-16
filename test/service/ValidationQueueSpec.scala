@@ -244,10 +244,11 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
    * Records an AI vote on a label: the validation row the counts already reflect, and the assessment that links the
    * label to it. Only the triage predicate reads this.
    *
-   * @param labelId The label the AI assessed.
-   * @param result  'Agree' or 'Disagree'.
+   * @param labelId   The label the AI assessed.
+   * @param result    'Agree' or 'Disagree'.
+   * @param labelType The type the AI judged, when it isn't the label's current one (a vote from before a type change).
    */
-  private def insertAiVote(labelId: Int, result: String): DBIO[Unit] = {
+  private def insertAiVote(labelId: Int, result: String, labelType: Option[String] = None): DBIO[Unit] = {
     for {
       aiUserId <- sql"SELECT user_id FROM sidewalk_login.user_role WHERE role = 'AI' LIMIT 1".as[String].headOption
       userId = aiUserId.getOrElse(cancel("no user holds the AI role in this database"))
@@ -256,10 +257,11 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
                          VALUES ('validation', $userId, now(), now(), TRUE, 0, FALSE, FALSE)
                          RETURNING mission_id""".as[Int].head
       validationId <- sql"""INSERT INTO label_validation
-                                (label_id, validation_result, user_id, mission_id, heading, pitch, zoom, canvas_height,
-                                 canvas_width, start_timestamp, end_timestamp, source, viewer_type)
-                            VALUES ($labelId, $result::validation_option, $userId, $missionId, 0, 0, 1, 1, 1, now(),
-                                    now(), 'SidewalkAI', 'StaticApi')
+                                (label_id, label_type, validation_result, user_id, mission_id, heading, pitch, zoom,
+                                 canvas_height, canvas_width, start_timestamp, end_timestamp, source, viewer_type)
+                            SELECT $labelId, COALESCE($labelType::label_type, label_type), $result::validation_option,
+                                   $userId, $missionId, 0, 0, 1, 1, 1, now(), now(), 'SidewalkAI', 'StaticApi'
+                            FROM label WHERE label_id = $labelId
                             RETURNING label_validation_id""".as[Int].head
       _ <- sqlu"""INSERT INTO label_ai_assessment
                       (label_id, validation_result, validation_accuracy, validation_confidence, api_version,
@@ -379,6 +381,56 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
       } yield (served, ids))
 
       served mustBe Set("G", "H", "I", "K", "L").map(ids)
+    }
+  }
+
+  /** A human vote on a label, cast on `labelType` (the label's current type when None), under a mission of its own. */
+  private def insertVote(labelId: Int, userId: String, result: String, labelType: Option[String] = None): DBIO[Int] =
+    for {
+      missionId <- sql"""INSERT INTO mission
+                             (mission_type, user_id, mission_start, mission_end, completed, pay, paid, skipped)
+                         VALUES ('validation', $userId, now(), now(), TRUE, 0, FALSE, FALSE)
+                         RETURNING mission_id""".as[Int].head
+      inserted <- sqlu"""INSERT INTO label_validation
+                             (label_id, label_type, validation_result, user_id, mission_id, heading, pitch, zoom,
+                              canvas_height, canvas_width, start_timestamp, end_timestamp, source, viewer_type)
+                         SELECT $labelId, COALESCE($labelType::label_type, label_type), $result::validation_option,
+                                $userId, $missionId, 0, 0, 1, 1, 1, now(), now(), 'Validate', 'Default'
+                         FROM label WHERE label_id = $labelId"""
+    } yield inserted
+
+  "A vote cast before the label's type changed" should {
+    "not stop the validator being served the label again" in {
+      val (servedBefore, servedAfter, labelId) = runRolledBack(for {
+        labeler   <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
+        validator <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
+        labelId   <- insertLabel(labeler, 0, 0, 0, None)
+        served = labelTable
+          .retrieveLabelListForValidationQuery(validator, viewer, LabelTypeEnum.CurbRamp, ValidationQueue.Any,
+            userIds = Some(Set(labeler)))
+          .map(_._1)
+          .result
+          .map(_.toSet)
+        _            <- insertVote(labelId, validator, "Agree", Some("NoCurbRamp"))
+        servedBefore <- served
+        _            <- insertVote(labelId, validator, "Agree")
+        servedAfter  <- served
+      } yield (servedBefore, servedAfter, labelId))
+
+      servedBefore must contain(labelId)
+      servedAfter must not contain labelId
+    }
+
+    "not make the label AI-contested" in {
+      val (triage, labelId) = runRolledBack(for {
+        labeler <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
+        // The same shape as fixture label L, except the AI judged an earlier type.
+        labelId <- insertLabel(labeler, 0, 1, 0, Some(false))
+        _       <- insertAiVote(labelId, "Agree", Some("NoCurbRamp"))
+        triage  <- queueIds(ValidationQueue.Triage, Set(labeler))
+      } yield (triage, labelId))
+
+      triage must not contain labelId
     }
   }
 

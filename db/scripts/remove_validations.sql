@@ -183,7 +183,8 @@ WHERE latest.label_id = label.label_id
 
 -- ---------------------------------------------------------------------
 -- 8. Refresh agree_count / disagree_count / unsure_count / correct across ALL labels.
---    Exclude self-validations and validations from excluded users.
+--    Exclude self-validations, validations from excluded users, and validations cast when the label had a different
+--    type (#3671), the same three LabelTable.recalculateValidationCounts skips.
 -- ---------------------------------------------------------------------
 UPDATE label
 SET (agree_count, disagree_count, unsure_count, correct) = (n_agree, n_disagree, n_unsure, is_correct)
@@ -202,6 +203,7 @@ FROM (
     FROM label
     LEFT JOIN mission ON mission.mission_id = label.mission_id
     LEFT JOIN label_validation ON label.label_id = label_validation.label_id
+        AND label_validation.label_type = label.label_type
         AND mission.user_id <> label_validation.user_id
     LEFT JOIN user_stat ON label_validation.user_id = user_stat.user_id
         AND user_stat.excluded = FALSE

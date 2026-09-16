@@ -1,8 +1,9 @@
 package service
 
 import com.google.inject.ImplementedBy
+import models.cluster.ClusterLabelTable
 import models.label._
-import models.user.{Role, SidewalkUserWithRole}
+import models.user.{Role, SidewalkUserWithRole, UserStatTable}
 import models.utils.CommonUtils.UiSource
 import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.MyPostgresProfile
@@ -19,6 +20,9 @@ object LabelEditOutcome {
   case object NotFound             extends LabelEditOutcome
   case object Forbidden            extends LabelEditOutcome
   case class Applied(label: Label) extends LabelEditOutcome
+
+  /** The label's type changed under the editor, so the edit they built on the old type was not applied. */
+  case class Conflict(label: Label) extends LabelEditOutcome
 }
 
 @ImplementedBy(classOf[LabelEditServiceImpl])
@@ -26,6 +30,7 @@ trait LabelEditService {
   def applyEdit(
       labelId: Int,
       userId: String,
+      labelType: Option[LabelTypeEnum.Base],
       severity: Option[Int],
       tags: Seq[String],
       source: UiSource,
@@ -34,6 +39,8 @@ trait LabelEditService {
   def editLabel(
       labelId: Int,
       editor: SidewalkUserWithRole,
+      labelTypeSeen: Option[LabelTypeEnum.Base],
+      labelType: Option[LabelTypeEnum.Base],
       severity: Option[Int],
       tags: Seq[String],
       source: UiSource
@@ -49,11 +56,14 @@ trait LabelEditService {
 }
 
 /**
- * Records changes to a label's severity and tags (#2575).
+ * Records changes to a label's type, severity and tags (#2575, #3671).
  *
  * Every change after a label's creation is a `label_edit` row with a matching `label_history` row recording the
  * resulting state; the label row itself is updated alongside. An edit submitted with a validation is linked to it and
  * is unwound when the vote is; a standalone edit from the label popup stands on its own.
+ *
+ * A type change also puts a different set of the label's votes in play (only votes cast on the current type count),
+ * takes the label out of its per-type cluster, and moves its crop to the new type's directory.
  */
 @Singleton
 class LabelEditServiceImpl @Inject() (
@@ -62,6 +72,10 @@ class LabelEditServiceImpl @Inject() (
     labelEditTable: LabelEditTable,
     labelHistoryTable: LabelHistoryTable,
     labelService: LabelService,
+    userStatTable: UserStatTable,
+    clusterLabelTable: ClusterLabelTable,
+    panoDataService: PanoDataService,
+    shareImageCache: ShareImageCache,
     implicit val ec: ExecutionContext
 ) extends LabelEditService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -75,17 +89,24 @@ class LabelEditServiceImpl @Inject() (
 
   private val labelsUnfiltered = TableQuery[LabelTableDef]
 
-  /** Whether a label's severity and tags would change; tags compare as sets because their stored order is arbitrary. */
-  private def changes(label: Label, severity: Option[Int], tags: Seq[String]): Boolean =
-    label.severity != severity || label.tags.toSet != tags.toSet
+  /** The type, severity and tags a label has, or would have; tags compare as sets because their stored order is arbitrary. */
+  private case class State(labelType: LabelTypeEnum.Base, severity: Option[Int], tags: List[String]) {
+    def sameAs(other: State): Boolean =
+      labelType == other.labelType && severity == other.severity && tags.toSet == other.tags.toSet
+  }
+
+  private def stateOf(label: Label): State = State(label.labelType, label.severity, label.tags)
 
   /**
-   * Records a change to a label's severity and tags, and applies it to the label.
+   * Records a change to a label's type, severity and/or tags, and applies it to the label.
    *
-   * Tags are cleaned against the label's type first, and nothing is written if the result leaves the label as it is.
+   * The submitted values are the state the editor wants. Tags are cleaned against the (new) type. When the type
+   * changes, the severity carries over only if both types read their rating the same way, and any type never rated
+   * gets none; otherwise the submitted severity stands. Nothing is written if the result leaves the label as it is.
    * A standalone edit by the same user from the same surface as the label's latest edit, within EDIT_FOLD_WINDOW of
    * it, folds into that row; a fold that nets out to the row's starting state deletes the row instead.
    *
+   * @param labelType         The type the label should have; None keeps its current one.
    * @param labelValidationId The vote the edit is submitted with, for edits made in a validation tool. Such an edit
    *                          is unwound with the vote and never folds.
    * @return The label as it now stands, or None if there is no such label.
@@ -93,6 +114,7 @@ class LabelEditServiceImpl @Inject() (
   def applyEdit(
       labelId: Int,
       userId: String,
+      labelType: Option[LabelTypeEnum.Base],
       severity: Option[Int],
       tags: Seq[String],
       source: UiSource,
@@ -102,35 +124,43 @@ class LabelEditServiceImpl @Inject() (
     labelQuery.result.headOption.flatMap {
       case None        => DBIO.successful(None)
       case Some(label) =>
-        labelService.cleanTagList(tags, label.labelType).flatMap { cleaned =>
-          val cleanedTags: List[String] = cleaned.toList
-          if (!changes(label, severity, cleanedTags)) DBIO.successful(Some(label))
+        val newType: LabelTypeEnum.Base = labelType.getOrElse(label.labelType)
+        val newSeverity: Option[Int]    =
+          if (newType == label.labelType) labelService.severityFor(newType, severity)
+          else LabelTypeEnum.severityAfterTypeChange(label.labelType, newType, severity)
+        labelService.cleanTagList(tags, newType).flatMap { cleaned =>
+          val target = State(newType, newSeverity, cleaned.toList)
+          if (target.sameAs(stateOf(label))) DBIO.successful(Some(label))
           else {
             val now = OffsetDateTime.now
             for {
               latest <- labelEditTable.latestForLabel(labelId)
               _      <- latest match {
                 case Some(prev) if labelValidationId.isEmpty && foldsInto(prev, userId, source, now) =>
-                  if (prev.oldSeverity == severity && prev.oldTags.toSet == cleanedTags.toSet) {
+                  if (target.sameAs(State(prev.oldLabelType, prev.oldSeverity, prev.oldTags))) {
                     labelHistoryTable.deleteForEdit(prev.labelEditId).andThen(labelEditTable.delete(prev.labelEditId))
                   } else {
                     labelEditTable
-                      .updateNewState(prev.labelEditId, severity, cleanedTags, now)
-                      .andThen(labelHistoryTable.updateStateForEdit(prev.labelEditId, severity, cleanedTags, now))
+                      .updateNewState(prev.labelEditId, target.labelType, target.severity, target.tags, now)
+                      .andThen(
+                        labelHistoryTable
+                          .updateStateForEdit(prev.labelEditId, target.labelType, target.severity, target.tags, now)
+                      )
                   }
                 case _ =>
                   for {
                     editId <- labelEditTable.insert(
-                      LabelEdit(0, labelId, userId, label.severity, severity, label.tags, cleanedTags, source, now,
-                        labelValidationId)
+                      LabelEdit(0, labelId, userId, label.labelType, target.labelType, label.severity, target.severity,
+                        label.tags, target.tags, source, now, labelValidationId)
                     )
                     _ <- labelHistoryTable.insert(
-                      LabelHistory(0, labelId, severity, cleanedTags, userId, now, source, Some(editId))
+                      LabelHistory(0, labelId, target.labelType, target.severity, target.tags, userId, now, source,
+                        Some(editId))
                     )
                   } yield ()
               }
-              _ <- labelQuery.map(l => (l.severity, l.tags)).update((severity, cleanedTags))
-            } yield Some(label.copy(severity = severity, tags = cleanedTags))
+              _ <- writeState(label, target)
+            } yield Some(label.copy(labelType = target.labelType, severity = target.severity, tags = target.tags))
           }
         }
     }.transactionally
@@ -140,10 +170,45 @@ class LabelEditServiceImpl @Inject() (
     prev.userId == userId && prev.source == source && prev.labelValidationId.isEmpty &&
       prev.editTime.isAfter(now.minus(EDIT_FOLD_WINDOW))
 
-  /** An edit from the label popup, allowed to the labeler and to admins. */
+  private def writeState(label: Label, target: State): DBIO[Unit] = {
+    val update = labelsUnfiltered
+      .filter(_.labelId === label.labelId)
+      .map(l => (l.labelType, l.severity, l.tags))
+      .update((target.labelType, target.severity, target.tags))
+    if (target.labelType == label.labelType) update.map(_ => ())
+    else update.andThen(afterTypeChange(label, target.labelType))
+  }
+
+  /**
+   * What follows a label changing type from `label.labelType` to `newType`:
+   *  - only votes cast on the current type count, so the label's counts and its labeler's accuracy are recomputed;
+   *  - clusters are per type, so the label leaves its cluster (which also gets the region re-clustered);
+   *  - crops are filed by type, so the crop moves, and the cached share image built on the old type is dropped.
+   * The file moves happen inside the transaction; a rollback after them leaves nothing broken, since a crop is
+   * looked up by the label's type and is re-cut by CropService when missing.
+   */
+  private def afterTypeChange(label: Label, newType: LabelTypeEnum.Base): DBIO[Unit] = {
+    for {
+      _ <- labelTable.recalculateValidationCountsForLabel(label.labelId)
+      _ <- userStatTable.updateAccuracy(Seq(label.userId))
+      _ <- clusterLabelTable.deleteForLabel(label.labelId)
+    } yield {
+      panoDataService.moveCrop(label.labelId, label.labelType, newType)
+      shareImageCache.invalidate(label.labelId)
+    }
+  }
+
+  /**
+   * An edit from the label popup, allowed to the labeler and to admins.
+   *
+   * @param labelTypeSeen The type the popup showed the editor, when it sends one. An edit built on a type the label no
+   *                      longer has is refused as a Conflict rather than applied to the wrong type.
+   */
   def editLabel(
       labelId: Int,
       editor: SidewalkUserWithRole,
+      labelTypeSeen: Option[LabelTypeEnum.Base],
+      labelType: Option[LabelTypeEnum.Base],
       severity: Option[Int],
       tags: Seq[String],
       source: UiSource
@@ -153,11 +218,13 @@ class LabelEditServiceImpl @Inject() (
       labelTable
         .find(labelId)
         .flatMap {
-          case None                                                     => DBIO.successful(LabelEditOutcome.NotFound)
-          case Some(label) if label.deleted                             => DBIO.successful(LabelEditOutcome.NotFound)
-          case Some(label) if label.userId != editor.userId && !isAdmin => DBIO.successful(LabelEditOutcome.Forbidden)
-          case Some(_)                                                  =>
-            applyEdit(labelId, editor.userId, severity, tags, source, None).map {
+          case None                                                      => DBIO.successful(LabelEditOutcome.NotFound)
+          case Some(label) if label.deleted                              => DBIO.successful(LabelEditOutcome.NotFound)
+          case Some(label) if label.userId != editor.userId && !isAdmin  => DBIO.successful(LabelEditOutcome.Forbidden)
+          case Some(label) if labelTypeSeen.exists(_ != label.labelType) =>
+            DBIO.successful(LabelEditOutcome.Conflict(label))
+          case Some(_) =>
+            applyEdit(labelId, editor.userId, labelType, severity, tags, source, None).map {
               case Some(updated) => LabelEditOutcome.Applied(updated)
               case None          => LabelEditOutcome.NotFound
             }
@@ -186,20 +253,18 @@ class LabelEditServiceImpl @Inject() (
    * changes nothing (its new state equals that old state).
    */
   private def revertEdit(edit: LabelEdit): DBIO[Unit] = {
+    val oldState = State(edit.oldLabelType, edit.oldSeverity, edit.oldTags)
     for {
-      next <- labelEditTable.nextAfter(edit)
-      _    <- labelHistoryTable.deleteForEdit(edit.labelEditId)
-      _    <- labelEditTable.delete(edit.labelEditId)
-      _    <- next match {
-        case None =>
-          labelsUnfiltered
-            .filter(_.labelId === edit.labelId)
-            .map(l => (l.severity, l.tags))
-            .update((edit.oldSeverity, edit.oldTags))
-        case Some(n) if n.newSeverity == edit.oldSeverity && n.newTags.toSet == edit.oldTags.toSet =>
+      next  <- labelEditTable.nextAfter(edit)
+      label <- labelsUnfiltered.filter(_.labelId === edit.labelId).result.head
+      _     <- labelHistoryTable.deleteForEdit(edit.labelEditId)
+      _     <- labelEditTable.delete(edit.labelEditId)
+      _     <- next match {
+        case None                                                                        => writeState(label, oldState)
+        case Some(n) if oldState.sameAs(State(n.newLabelType, n.newSeverity, n.newTags)) =>
           labelHistoryTable.deleteForEdit(n.labelEditId).andThen(labelEditTable.delete(n.labelEditId))
         case Some(n) =>
-          labelEditTable.updateOldState(n.labelEditId, edit.oldSeverity, edit.oldTags)
+          labelEditTable.updateOldState(n.labelEditId, edit.oldLabelType, edit.oldSeverity, edit.oldTags)
       }
     } yield ()
   }
@@ -220,17 +285,17 @@ class LabelEditServiceImpl @Inject() (
       label: Label      <- labelQuery.result.head
       historyCount: Int <- labelHistoryTable.countForLabel(labelId)
       _                 <-
-        if (historyCount > 1) applyEdit(labelId, label.userId, severity, tags, UiSource.Explore, None)
+        if (historyCount > 1) applyEdit(labelId, label.userId, None, severity, tags, UiSource.Explore, None)
         else {
           labelService.cleanTagList(tags, label.labelType).flatMap { cleaned =>
-            val cleanedTags: List[String] = cleaned.toList
-            if (changes(label, severity, cleanedTags)) {
+            val target = State(label.labelType, labelService.severityFor(label.labelType, severity), cleaned.toList)
+            if (!target.sameAs(stateOf(label))) {
               for {
                 _ <- labelHistoryTable.labelHistory
                   .filter(_.labelId === labelId)
                   .map(h => (h.severity, h.tags))
-                  .update((severity, cleanedTags))
-                _ <- labelQuery.map(l => (l.severity, l.tags)).update((severity, cleanedTags))
+                  .update((target.severity, target.tags))
+                _ <- labelQuery.map(l => (l.severity, l.tags)).update((target.severity, target.tags))
               } yield ()
             } else DBIO.successful(())
           }

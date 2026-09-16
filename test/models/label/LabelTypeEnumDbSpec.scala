@@ -22,4 +22,22 @@ class LabelTypeEnumDbSpec extends PlaySpec with GuiceOneAppPerSuite with RolledB
       run(sql"SELECT unnest(enum_range(NULL::label_type))::text".as[String]) mustBe LabelTypeEnum.orderedNames
     }
   }
+
+  // The constraints spell the unrated types out by name (390.sql), so the enum's RatingScale is what they must match.
+  "the unrated-type severity CHECKs" should {
+    "name exactly the types LabelTypeEnum rates as Unrated" in {
+      val checks = run(
+        sql"""SELECT conrelid::regclass::text, pg_get_constraintdef(oid)
+              FROM pg_constraint
+              WHERE conname LIKE '%_unrated_no_severity_check'""".as[(String, String)]
+      )
+      checks.map(_._1).toSet mustBe Set("label", "label_history", "label_edit")
+      checks.foreach { case (table, definition) =>
+        withClue(s"$table: ") {
+          "'([A-Za-z]+)'::label_type".r.findAllMatchIn(definition).map(_.group(1)).toSet mustBe
+            LabelTypeEnum.unratedTypeNames.toSet
+        }
+      }
+    }
+  }
 }

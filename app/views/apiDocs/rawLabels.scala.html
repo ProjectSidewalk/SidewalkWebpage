@@ -449,7 +449,7 @@
           <tr>
             <td><code>properties.validations</code></td>
             <td><code>array</code></td>
-            <td>Array of individual validation objects. Each object contains: <code>user_id</code> (anonymized identifier of the validating user), <code>validation</code> (<code>Agree</code>, <code>Disagree</code>, or <code>Unsure</code>), and <code>validator_type</code> (<code>Human</code> or <code>AI</code>). Matches the three counts above.</td>
+            <td>Array of individual validation objects. Each object contains: <code>user_id</code> (anonymized identifier of the validating user), <code>validation</code> (<code>Agree</code>, <code>Disagree</code>, or <code>Unsure</code>), and <code>validator_type</code> (<code>Human</code> or <code>AI</code>). Matches the three counts above: validations cast before the label's type was changed are left out, as they are from the counts (the <a href="@routes.ApiDocsController.validations">Validations API</a> still lists them).</td>
           </tr>
 
             <!-- Task Information -->

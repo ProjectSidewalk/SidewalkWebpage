@@ -27,6 +27,11 @@ streets are excluded, and only the primary label types are served.
 
 where `totalVotes = agree_count + disagree_count + unsure_count` and `margin = |agree_count − disagree_count|`.
 
+A vote is in those counts only while it was cast on the type the label has now (`label_validation.label_type`, #3671).
+Editing a label's type therefore puts it back at the front of `NeedsVotes` with only the changer's own Agree, and a
+validator whose vote predates the change is served the label again (their old vote stays as history). The same rule
+applies to the AI's vote in the AI-contested predicate below, and to the AI tag suggestions the tool shows.
+
 - **capped out** — `totalVotes >= MaxCrowdVotes`. The crowd has had its five swings and is still undecided.
 - **unsure-heavy** — `unsure_count >= UnsureHeavyMinVotes` and `unsure_count >= agree_count + disagree_count`. The
   validators who looked mostly said "I can't tell".

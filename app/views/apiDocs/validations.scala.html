@@ -146,6 +146,7 @@
     "label_validation_id": 12345,
     "label_id": 67890,
     "label_type": "NoCurbRamp",
+    "validated_label_type": "NoCurbRamp",
     "validation_result": "Agree",
     "user_id": "user_abc123",
     "validator_type": "Human",
@@ -165,6 +166,7 @@
     "label_validation_id": 12346,
     "label_id": 67891,
     "label_type": "CurbRamp",
+    "validated_label_type": "CurbRamp",
     "validation_result": "Disagree",
     "user_id": "user_def456",
     "validator_type": "AI",
@@ -195,7 +197,8 @@
         <tbody>
           <tr><td><code>label_validation_id</code></td><td><code>integer</code></td><td>Unique identifier for the validation record.</td></tr>
           <tr><td><code>label_id</code></td><td><code>integer</code></td><td>ID of the label that was validated.</td></tr>
-          <tr><td><code>label_type</code></td><td><code>string</code></td><td>Name of the label type (e.g., "CurbRamp", "Obstacle").</td></tr>
+          <tr><td><code>label_type</code></td><td><code>string</code></td><td>Name of the label's current type (e.g., "CurbRamp", "Obstacle").</td></tr>
+          <tr><td><code>validated_label_type</code></td><td><code>string</code></td><td>The label's type when this validation was made. Differs from <code>label_type</code> once the label's type has been changed since (see the <a href="@routes.ApiDocsController.labelEdits">Label Edits API</a>); such a validation is kept as history but no longer counts toward the label's agree/disagree/unsure totals.</td></tr>
           <tr><td><code>validation_result</code></td><td><code>string</code></td><td>Validation judgment: Agree, Disagree, Unsure.</td></tr>
           <tr><td><code>user_id</code></td><td><code>string</code></td><td>ID of the user who performed the validation.</td></tr>
           <tr><td><code>validator_type</code></td><td><code>string</code></td><td>One of: Human, AI.</td></tr>
@@ -216,9 +219,9 @@
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code> is specified, the response will be CSV data with the same field structure:</p>
-    <pre><code class="language-csv">label_validation_id,label_id,label_type,...
-12345,67890,NoCurbRamp,...
-12346,67891,CurbRamp,...</code></pre>
+    <pre><code class="language-csv">label_validation_id,label_id,label_type,validated_label_type,...
+12345,67890,NoCurbRamp,NoCurbRamp,...
+12346,67891,CurbRamp,CurbRamp,...</code></pre>
 
     <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
     <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>

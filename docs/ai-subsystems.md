@@ -31,7 +31,8 @@ for CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
 **Flow:**
 1. `GetAiValidationsActor` (`app/actor/GetAiValidationsActor.scala`) runs nightly at the time
    `app/actor/ScheduledJobs.scala` gives it (staggered per city), selecting up to 800 labels/day via
-   `LabelTable.getLabelsToValidateWithAi` (unassessed, GSV-only, prioritized).
+   `LabelTable.getLabelsToValidateWithAi` (not assessed as its current type, GSV-only, prioritized; a label whose type
+   was edited after an assessment is assessed again, #3671).
 2. `AiService.callAiApi` (`app/service/AiService.scala`) POSTs
    `{label_type, panorama_id, x, y, city}` to
    `https://sidewalk-ai-api.cs.washington.edu/process` (code:

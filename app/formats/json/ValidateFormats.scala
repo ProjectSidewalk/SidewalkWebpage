@@ -44,12 +44,15 @@ object ValidateFormats {
   )
 
   /**
-   * A vote from the Validate tool. `severity` and `tags` are what the validator wants the label to have; the server
-   * compares them to the label's current values and records a change only for an Agree (#2575).
+   * A vote from the Validate tool. `newLabelType`, `severity` and `tags` are what the validator wants the label to
+   * have, applied only for an Agree (#2575, #3671). `labelType` is the type the tool showed; an older client omits it
+   * and the mission's type stands in.
    */
   case class LabelValidationSubmission(
       labelId: Int,
       missionId: Int,
+      labelType: Option[LabelTypeEnum.Base],
+      newLabelType: Option[LabelTypeEnum.Base],
       validationResult: ValidationOption.Value,
       severity: Option[Int],
       tags: List[String],
@@ -103,10 +106,14 @@ object ValidateFormats {
       timestamp: OffsetDateTime
   )
 
-  /** A vote from the label popup (LabelMap, Gallery, share page); severity/tags as in LabelValidationSubmission. */
+  /**
+   * A vote from the label popup (LabelMap, Gallery, share page); `labelType` is the type the popup showed, and
+   * newLabelType/severity/tags are as in LabelValidationSubmission.
+   */
   case class LabelMapValidationSubmission(
       labelId: Int,
       labelType: LabelTypeEnum.Base,
+      newLabelType: Option[LabelTypeEnum.Base],
       validationResult: ValidationOption.Value,
       severity: Option[Int],
       tags: List[String],
@@ -125,8 +132,19 @@ object ValidateFormats {
       viewerType: ViewerType
   )
 
-  /** An edit to a label from the label popup: the severity and tags the label should now have (#2575). */
-  case class LabelEditSubmission(labelId: Int, severity: Option[Int], tags: List[String], source: UiSource)
+  /**
+   * An edit to a label from the label popup: the type, severity and tags the label should now have (#2575, #3671).
+   * @param labelType    The type the popup showed; an edit built on a type the label no longer has is refused.
+   * @param newLabelType The type the label should become, when the edit changes it.
+   */
+  case class LabelEditSubmission(
+      labelId: Int,
+      labelType: Option[LabelTypeEnum.Base],
+      newLabelType: Option[LabelTypeEnum.Base],
+      severity: Option[Int],
+      tags: List[String],
+      source: UiSource
+  )
 
   implicit val uiSourceReads: Reads[UiSource.Value] = Reads { json =>
     json.validate[String].flatMap { uiSource =>
@@ -192,6 +210,8 @@ object ValidateFormats {
   implicit val labelValidationSubmissionReads: Reads[LabelValidationSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "mission_id").read[Int] and
+      (JsPath \ "label_type").readNullable[LabelTypeEnum.Base] and
+      (JsPath \ "new_label_type").readNullable[LabelTypeEnum.Base] and
       (JsPath \ "validation_result").read[ValidationOption.Value] and
       (JsPath \ "severity").readNullable[Int] and
       (JsPath \ "tags").read[List[String]] and
@@ -250,6 +270,7 @@ object ValidateFormats {
   implicit val labelMapValidationSubmissionReads: Reads[LabelMapValidationSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[LabelTypeEnum.Base] and
+      (JsPath \ "new_label_type").readNullable[LabelTypeEnum.Base] and
       (JsPath \ "validation_result").read[ValidationOption.Value] and
       (JsPath \ "severity").readNullable[Int] and
       (JsPath \ "tags").read[List[String]] and
@@ -270,6 +291,8 @@ object ValidateFormats {
 
   implicit val labelEditSubmissionReads: Reads[LabelEditSubmission] = (
     (JsPath \ "label_id").read[Int] and
+      (JsPath \ "label_type").readNullable[LabelTypeEnum.Base] and
+      (JsPath \ "new_label_type").readNullable[LabelTypeEnum.Base] and
       (JsPath \ "severity").readNullable[Int] and
       (JsPath \ "tags").read[List[String]] and
       (JsPath \ "source").read[UiSource.Value]

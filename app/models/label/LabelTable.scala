@@ -776,6 +776,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val aiData        = labelAiAssessments.joinLeft(labelValidations).on(_.labelValidationId === _.labelValidationId)
   val aiValidations = aiData.map(_._2)
 
+  /**
+   * Whether an AI assessment still speaks to the label: its vote was cast on the type the label has now (#3671). An
+   * assessment saved without a vote (AI voting switched off) has no type on record and is taken at face value.
+   */
+  private def aiVoteIsCurrent(l: LabelTableDef, aiVote: Rep[Option[LabelValidationTableDef]]): Rep[Boolean] =
+    aiVote.map(_.isCurrent(l)).getOrElse(true)
+
   val usersWithoutExcluded = usersUnfiltered
     .join(userStats)
     .on(_.userId === _.userId)
@@ -1359,7 +1366,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * sensibly, and the same query then hashes one pass of the aggregate in 0.1 s.
    */
   private def validatedByUser(l: LabelTableDef, userId: String): Rep[Boolean] =
-    labelValidations.filter(v => v.userId === userId && v.labelId === l.labelId).exists
+    labelValidations.filter(v => v.userId === userId && v.labelId === l.labelId && v.isCurrent(l)).exists
 
   /**
    * Whether the AI placed the label, as an `EXISTS` rather than a join on `user_role`, so it reads as the predicate it
@@ -1613,10 +1620,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if !validatedByUser(_lb, userId) // See the predicate for why this is not a left join.
     } yield (_lb, _lp, _pd, _us, _at, _lb.labelTypeName, _ser.regionId, isAiLabeler(_lb))
 
-    // Get any AI suggested tags and validation.
+    // Get any AI suggested tags and validation. An assessment is about one label type, so one whose vote predates a
+    // type change is left out along with the vote (#3671).
     val _labelInfoWithAiData = _labelInfo
       .joinLeft(aiData)
-      .on(_._1.labelId === _._1.labelId)
+      .on { case ((l, _, _, _, _, _, _, _), (laa, aiv)) => laa.labelId === l.labelId && aiVoteIsCurrent(l, aiv) }
       .map { case ((_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser), _ai) =>
         (_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser, _ai.map(_._1), _ai.map(_._2).flatten)
       }
@@ -2396,7 +2404,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       INNER JOIN user_stat ON label.user_id = user_stat.user_id
       LEFT JOIN (
           -- EXISTS, not a join, so it can never repeat a vote and the parser below reads it as t/f. Skips the same votes
-          -- the counts skip (self-votes, excluded users), so the list adds up to agree/disagree/unsure_count.
+          -- the counts skip (self-votes, excluded users, votes cast on an earlier label type), so the list adds up to
+          -- agree/disagree/unsure_count.
           SELECT label.label_id,
                  array_to_string(array_agg(CONCAT(
                    label_validation.user_id, ':', label_validation.validation_result, ':',
@@ -2408,7 +2417,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                  )), ',') AS validations
           FROM label
           INNER JOIN label_validation ON label.label_id = label_validation.label_id
-          WHERE label_validation.user_id <> label.user_id
+          WHERE label_validation.label_type = label.label_type
+            AND label_validation.user_id <> label.user_id
             AND label_validation.user_id NOT IN (SELECT user_stat.user_id FROM user_stat WHERE user_stat.excluded)
           GROUP BY label.label_id
       ) AS "vals" ON label.label_id = vals.label_id
@@ -2790,9 +2800,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .join(userRoles)
       .on(_.userId === _.userId)
       .filter { case (l, ur) => ur.role =!= Role.Ai } // No labels created by AI
-      .joinLeft(labelAiAssessments)
-      .on(_._1.labelId === _.labelId)
-      .filter { case ((l, ur), laa) => laa.map(_.labelId).isEmpty } // No labels that AI's already validated
+      // No labels the AI has already assessed as their current type; an assessment from before a type change is about
+      // a different label (#3671).
+      .joinLeft(aiData)
+      .on { case ((l, _), (laa, aiv)) => laa.labelId === l.labelId && aiVoteIsCurrent(l, aiv) }
+      .filter { case ((l, ur), ai) => ai.isEmpty }
       .joinLeft(labelAiFailures)
       .on(_._1._1.labelId === _.labelId)
       .filter { case (((l, ur), laa), laf) => laf.map(_.labelId).isEmpty } // No labels with a permanent failure
@@ -2978,17 +2990,24 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Recounts agree/disagree/unsure counts and `correct` on labels from their validations.
    *
-   * Must match the live counting in `ValidationService`: votes on your own label and votes from excluded users don't
-   * count, and a tie leaves `correct` empty. Only changed rows are written.
+   * Must match the live counting in `ValidationService`: votes on your own label, votes from excluded users, and votes
+   * cast when the label had a different type (#3671) don't count, and a tie leaves `correct` empty. Only changed rows
+   * are written.
    *
    * @param validatorId Only recount the labels this user validated; recount every label if None.
    * @return The number of labels whose counts changed.
    */
-  def recalculateValidationCounts(validatorId: Option[String]): DBIO[Int] = {
-    val scope: SQLActionBuilder = validatorId match {
+  def recalculateValidationCounts(validatorId: Option[String]): DBIO[Int] =
+    recalculateValidationCountsWhere(validatorId match {
       case Some(id) => sql"WHERE label.label_id IN (SELECT label_id FROM label_validation WHERE user_id = $id)"
       case None     => sql""
-    }
+    })
+
+  /** Recounts one label, after a type change put a different set of its votes in play. */
+  def recalculateValidationCountsForLabel(labelId: Int): DBIO[Int] =
+    recalculateValidationCountsWhere(sql"WHERE label.label_id = $labelId")
+
+  private def recalculateValidationCountsWhere(scope: SQLActionBuilder): DBIO[Int] = {
     sql"""
       UPDATE label
       SET (agree_count, disagree_count, unsure_count, correct) = (
@@ -3004,6 +3023,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                      COUNT(*) FILTER (WHERE label_validation.validation_result = 'Unsure') AS n_unsure
               FROM label
               LEFT JOIN label_validation ON label.label_id = label_validation.label_id
+                  AND label_validation.label_type = label.label_type
                   AND label_validation.user_id <> label.user_id
                   AND NOT EXISTS (
                       SELECT 1 FROM user_stat
