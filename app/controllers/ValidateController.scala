@@ -49,6 +49,7 @@ class ValidateController @Inject() (
     validationService: service.ValidationService,
     authenticationService: service.AuthenticationService,
     regionService: service.RegionService,
+    userService: service.UserService,
     panoDataService: service.PanoDataService,
     osmWayService: service.OsmWayService,
     missionService: service.MissionService
@@ -75,7 +76,8 @@ class ValidateController @Inject() (
           None,
           regionsParam(regions, neighborhoods),
           unvalidatedOnly,
-          triage = None
+          triage = None,
+          teams = None
         ).flatMap { case (validateParams, response) =>
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
@@ -104,6 +106,7 @@ class ValidateController @Inject() (
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    * @param triage          Serve the triage queue first (the default); false gives the same stream /validate gets.
    * @param neighborhoods   Old name for `regions`, still read so existing links keep working.
+   * @param teams           Comma-separated list of team names or team IDs whose members' labels to validate.
    */
   def expertValidate(
       labelType: Option[String],
@@ -111,7 +114,8 @@ class ValidateController @Inject() (
       regions: Option[String],
       unvalidatedOnly: Option[Boolean],
       triage: Option[Boolean],
-      neighborhoods: Option[String]
+      neighborhoods: Option[String],
+      teams: Option[String]
   ) =
     cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
       if (isMobile(request)) {
@@ -124,7 +128,8 @@ class ValidateController @Inject() (
           users,
           regionsParam(regions, neighborhoods),
           unvalidatedOnly,
-          triage
+          triage,
+          teams
         ).flatMap { case (validateParams, response) =>
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
@@ -159,7 +164,8 @@ class ValidateController @Inject() (
         None,
         regionsParam(regions, neighborhoods),
         unvalidatedOnly,
-        triage = None
+        triage = None,
+        teams = None
       ).flatMap { case (validateParams, response) =>
         if (response.header.status == 200) {
           val user: SidewalkUserWithRole = request.identity
@@ -192,6 +198,7 @@ class ValidateController @Inject() (
    * @param regions         Comma-separated list of region names or region IDs to validate (could be mixed).
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    * @param triage          Serve the triage queue first; only the admin pages offer it, where it defaults to on.
+   * @param teams           Comma-separated list of team names or team IDs to validate (could be mixed).
    */
   def checkParams(
       adminVersion: Boolean,
@@ -199,7 +206,8 @@ class ValidateController @Inject() (
       users: Option[String],
       regions: Option[String],
       unvalidatedOnly: Option[Boolean],
-      triage: Option[Boolean]
+      triage: Option[Boolean],
+      teams: Option[String]
   ): Future[(ValidateParams, Result)] = {
     // Users and regions may be given by id or by name, so each is resolved both ways before deciding it is invalid.
     val parsedLabelType: Option[Option[LabelTypeEnum.Base]] = labelType.map(LabelTypeEnum.byName.get)
@@ -234,6 +242,10 @@ class ValidateController @Inject() (
         }
         .toSeq
     )
+    val teamIdList: Option[Seq[Future[Option[Int]]]] =
+      teams.map(
+        _.split(',').map(_.trim).toSeq.map(teamStr => userService.findTeamByIdOrName(teamStr).map(_.map(_.teamId)))
+      )
     for {
       userIds: Option[Seq[Option[String]]] <- userIdsList match {
         case Some(userIds) => Future.sequence(userIds).map(Some(_))
@@ -242,6 +254,10 @@ class ValidateController @Inject() (
       regionIds: Option[Seq[Option[Int]]] <- regionIdList match {
         case Some(regionIds) => Future.sequence(regionIds).map(Some(_))
         case None            => Future.successful(None)
+      }
+      teamIds: Option[Seq[Option[Int]]] <- teamIdList match {
+        case Some(teamIds) => Future.sequence(teamIds).map(Some(_))
+        case None          => Future.successful(None)
       }
     } yield {
       // Return a BadRequest if anything is wrong, or the ValidateParams if everything looks good.
@@ -260,6 +276,11 @@ class ValidateController @Inject() (
           ValidateParams(adminVersion),
           BadRequest(s"One or more of the regions provided were not found; please double check your list of regions! You can use either their names or IDs. You provided: ${regions.get}")
         )
+      } else if (teamIds.isDefined && teamIds.get.length != teamIds.get.flatten.length) {
+        (
+          ValidateParams(adminVersion),
+          BadRequest(s"One or more of the teams provided were not found; please double check your list of teams! You can use either their names or IDs. You provided: ${teams.get}")
+        )
       } else {
         (
           ValidateParams(
@@ -268,7 +289,8 @@ class ValidateController @Inject() (
             userIds.map(_.flatten),
             regionIds.map(_.flatten),
             unvalidatedOnly.getOrElse(false),
-            triage = adminVersion && triage.getOrElse(true)
+            triage = adminVersion && triage.getOrElse(true),
+            teamIds = teamIds.map(_.flatten)
           ),
           Ok("")
         )

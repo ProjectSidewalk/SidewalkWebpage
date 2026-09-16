@@ -11,6 +11,7 @@ import models.label.LabelTypeEnum
 import models.user.Role
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.ProfanityGuard
+import org.postgresql.util.{PSQLException, PSQLState}
 import models.utils.MyPostgresProfile.api._
 import play.api.i18n.Messages
 import play.api.libs.json.{JsObject, Json}
@@ -284,14 +285,18 @@ class UserProfileController @Inject() (
 
     def bad(msgKey: String) = Future.successful(BadRequest(Json.obj("success" -> false, "error" -> Messages(msgKey))))
 
-    // Validate before inserting: signed-in only, sane lengths, and no abusive language in the public-facing name or
-    // description (moderation; consolidate with the sign-up guard in #4375).
+    // Signed-in, sane lengths, no abusive language (moderation; consolidate with #4375's sign-up guard); no comma
+    // or all-digit name, since those would be ambiguous in Expert Validate's ?teams= filter.
     if (user.role == Role.Anonymous)
       Future.successful(
         Forbidden(Json.obj("success" -> false, "error" -> Messages("dashboard.team.error.signin")))
       )
     else if (name.length < 2 || name.length > 50)
       bad("dashboard.team.error.name.length")
+    else if (name.contains(","))
+      bad("dashboard.team.error.name.comma")
+    else if (name.matches("[0-9]+"))
+      bad("dashboard.team.error.name.numeric")
     else if (description.length > 300)
       bad("dashboard.team.error.desc.length")
     else if (!ProfanityGuard.isClean(name))
@@ -300,11 +305,18 @@ class UserProfileController @Inject() (
       bad("dashboard.team.error.desc.allowed")
     else {
       // Create the team and immediately join it, so creating a team is one seamless step.
-      userService.createTeam(name, description).flatMap { teamId =>
-        userService.setUserTeam(user.userId, teamId).map { _ =>
-          cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=CreateTeam")
-          Ok(Json.obj("success" -> true, "team_id" -> teamId))
-        }
+      (for {
+        teamId <- userService.createTeam(name, description)
+        _      <- userService.setUserTeam(user.userId, teamId)
+      } yield {
+        cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=CreateTeam")
+        Ok(Json.obj("success" -> true, "team_id" -> teamId))
+      }).recoverWith {
+        // Matched by constraint name so a user_team violation from the join step isn't reported as a taken name.
+        case e: PSQLException
+            if e.getSQLState == PSQLState.UNIQUE_VIOLATION.getState &&
+              e.getServerErrorMessage.getConstraint == "team_name_key" =>
+          bad("dashboard.team.error.name.taken")
       }
     }
   }

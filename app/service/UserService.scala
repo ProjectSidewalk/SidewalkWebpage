@@ -454,6 +454,7 @@ trait UserService {
   def leaveTeam(userId: String): Future[Int]
   def getAllTeams: Future[Seq[Team]]
   def getAllOpenTeams: Future[Seq[Team]]
+  def findTeamByIdOrName(idOrName: String): Future[Option[Team]]
   def createTeam(name: String, description: String): Future[Int]
   def getLeaderboardStats(
       n: Int,
@@ -740,6 +741,8 @@ class UserServiceImpl @Inject() (
   def getAllTeams: Future[Seq[Team]] = db.run(teamTable.getAllTeams)
 
   def getAllOpenTeams: Future[Seq[Team]] = db.run(teamTable.getAllOpenTeams)
+
+  def findTeamByIdOrName(idOrName: String): Future[Option[Team]] = db.run(teamTable.findByIdOrName(idOrName))
 
   def createTeam(name: String, description: String): Future[Int] = db.run(teamTable.insert(name, description))
 
