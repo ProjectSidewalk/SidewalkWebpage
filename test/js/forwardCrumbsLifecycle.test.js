@@ -20,7 +20,7 @@ const path = require('path');
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/explore/src/navigation/ForwardCrumbs.js'), 'utf8');
 
-window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.3.4.min.js'));
+window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
 const { turf } = window;
 
 /** Stands in for google.maps.marker.AdvancedMarkerElement: records its options, its listeners, and its map. */
