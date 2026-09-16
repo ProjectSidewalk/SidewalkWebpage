@@ -109,8 +109,8 @@ describe('Task resumed from an earlier session', () => {
     });
 
     it('hands over its pre-walked distance exactly once', () => {
-        // setCurrentTask is not the only caller of the paths that lead here — nextTask is also called speculatively,
-        // just to ask whether a next street exists — so a second claim has to be worth nothing.
+        // setCurrentTask can run twice for the same street (a re-render, a jump that resolves to the street already
+        // current), and a second claim would subtract those metres from the mission offset all over again.
         const task = makeTask(openTaskFeature());
 
         expect(task.claimSavedProgress()).toBeCloseTo(WALKED_M / 1000, 4);
@@ -147,7 +147,7 @@ describe('TaskContainer handing out a part-walked street', () => {
     let tracker;
 
     /** A candidate street for the non-route next-task pick, in whichever state a case needs. */
-    const makeTask = ({ resumed = false, auditTaskId = null, prewalkedKm = 0 } = {}) => ({
+    const makeTask = ({ resumed = false, auditTaskId = null, prewalkedKm = 0, fromTaskList = true } = {}) => ({
         getWalkOrder: () => null,
         getStreetEdgeId: () => 101,
         getStreetPriority: () => 1,
@@ -162,6 +162,7 @@ describe('TaskContainer handing out a part-walked street', () => {
         isConnectedTo: () => false,
         wasGivenUpOnImagery: () => false,
         isResumed: () => resumed,
+        cameFromTaskList: () => fromTaskList,
         claimSavedProgress: jest.fn()
             .mockImplementationOnce(() => prewalkedKm)
             .mockImplementation(() => 0),
@@ -252,7 +253,19 @@ describe('TaskContainer handing out a part-walked street', () => {
             withMissionContainer().setCurrentTask(makeTask({ resumed: true, auditTaskId: 9385 }));
 
             expect(tracker.setAuditTaskID).toHaveBeenCalledWith(9385);
-            expect(tracker.push).toHaveBeenCalledWith('TaskStart', { resumed: true, auditTaskId: 9385 });
+            expect(tracker.push).toHaveBeenCalledWith(
+                'TaskStart', { resumed: true, auditTaskId: 9385, source: 'switch' },
+            );
+        });
+
+        it('marks the page payload\'s own task as a page load, not a resume of an abandoned street', () => {
+            // An ordinary reload of the street in progress, and every free-exploration drop-in, carry an open row
+            // too — so counting `resumed` alone would count them as pick-ups of abandoned streets.
+            withMissionContainer().setCurrentTask(makeTask({ resumed: true, auditTaskId: 9385, fromTaskList: false }));
+
+            expect(tracker.push).toHaveBeenCalledWith(
+                'TaskStart', { resumed: true, auditTaskId: 9385, source: 'pageLoad' },
+            );
         });
 
         it('logs a fresh street with no note, as before', () => {
@@ -304,6 +317,8 @@ describe('TaskContainer.fetchTasks', () => {
 
         const [open, fresh] = container.getTasks();
         expect(open.isResumed()).toBe(true);
+        // What separates a real pick-up from a reload in the logs; the page payload's task never comes through here.
+        expect(open.cameFromTaskList()).toBe(true);
         expect(open.getFurthestPointReached().geometry.coordinates).toEqual(stopped);
         expect(open.getAuditedDistance({ units: 'meters' })).toBeCloseTo(WALKED_M, 1);
 

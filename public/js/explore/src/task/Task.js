@@ -29,6 +29,10 @@ class Task {
     // that would restart the street — flipping its direction, restamping task_start, drawing it as untouched — has to
     // leave such a task alone, or the labeler re-walks and re-labels what they already did.
     resumed: false,
+    // Whether this task came from the mid-session /tasks list rather than the page payload. What tells a genuine
+    // pick-up of an abandoned street from an ordinary reload of the street in progress, which look identical on the
+    // task itself — both carry an open audit_task row (#5370).
+    fromTaskList: false,
     // Whether the distance walked before this session has been handed to the mission bar yet; see claimSavedProgress.
     progressClaimed: false,
   };
@@ -397,6 +401,10 @@ class Task {
   /**
    * Whether this street came back as the labeler's own unfinished work rather than as a fresh street (#5370).
    *
+   * True of any task backed by an open audit_task row, which includes the street already in progress on an ordinary
+   * page load and a free-exploration drop-in (#4451) — those carry an id too. That breadth is right for the guards
+   * (none of them should restart such a street) but wrong for counting resumes; see `cameFromTaskList`.
+   *
    * @returns {boolean} True when an incomplete audit_task row backs this task.
    */
   isResumed() {
@@ -404,12 +412,34 @@ class Task {
   }
 
   /**
+   * Records that this task came from the mid-session `/tasks` list rather than from the page payload.
+   *
+   * @returns {void}
+   */
+  markFromTaskList() {
+    this.#status.fromTaskList = true;
+  }
+
+  /**
+   * Whether this task came from the mid-session `/tasks` list.
+   *
+   * With `isResumed()`, this is what identifies the case #5370 is about: the chooser landing on a street the labeler
+   * abandoned earlier. The page payload's task never reaches here, so a reload of the street in progress and a
+   * drop-in session are both excluded.
+   *
+   * @returns {boolean}
+   */
+  cameFromTaskList() {
+    return this.#status.fromTaskList;
+  }
+
+  /**
    * The distance already walked on this street before this session, handed over exactly once.
    *
    * The mission bar counts the current street's audited distance, so switching onto a street with metres already on
-   * it would jump the bar by that much — the server's mission progress already includes them. Claiming is
-   * single-shot because nextTask() is also called speculatively, just to ask whether a next street exists
-   * (NavigationService), so no single caller can be treated as the real switch.
+   * it would jump the bar by that much — the server's mission progress already includes them. Single-shot as a
+   * defence against `setCurrentTask` being called twice for the same task (a re-render, a jump that resolves to the
+   * street already current), which would otherwise subtract those metres from the offset a second time.
    *
    * @returns {number} Kilometres walked before this session, or 0 if they have already been claimed.
    */
@@ -509,11 +539,15 @@ class Task {
         // Part-walked and not the street being walked right now: show the split, so the labeler can see at a glance
         // which of the streets they left behind still have something on them (#5370). Once it becomes the current
         // street the getGooglePolylines() branch below draws the same split with the route styling.
+        // Each half is drawn only if it is really a line: turf can slice a half down to a single point when the
+        // furthest point sits on an endpoint, and a one-point Polyline renders as nothing (same guard as
+        // getGooglePolylines).
         const toLatLngs = (coords) => coords.map((coord) => new google.maps.LatLng(coord[1], coord[0]));
-        this.#paths = [
-          new google.maps.Polyline(MinimapStyle.completedTask(toLatLngs(this.#getPointsOnAuditedSegments()))),
-          new google.maps.Polyline(MinimapStyle.otherTask(toLatLngs(this.#getPointsOnUnauditedSegments()))),
-        ];
+        const walked = toLatLngs(this.#getPointsOnAuditedSegments());
+        const remaining = toLatLngs(this.#getPointsOnUnauditedSegments());
+        this.#paths = [];
+        if (walked.length > 1) this.#paths.push(new google.maps.Polyline(MinimapStyle.completedTask(walked)));
+        if (remaining.length > 1) this.#paths.push(new google.maps.Polyline(MinimapStyle.otherTask(remaining)));
       } else if (svl.regionModel.isRoute) {
         // On a designated route every street ahead is part of the planned path, so paint it as the route-to-walk: a
         // dashed line with direction chevrons over a white casing — the same encoding as the current street's

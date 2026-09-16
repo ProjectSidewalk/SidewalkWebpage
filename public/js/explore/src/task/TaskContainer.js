@@ -97,6 +97,7 @@ class TaskContainer {
               ? { lat: props.current_lat, lng: props.current_lng }
               : undefined;
             task = new Task(result.features[i], false, resumeAt);
+            task.markFromTaskList();
             if ((result.features[i].properties.completed)) task.complete();
             this._tasks.push(task);
 
@@ -435,8 +436,9 @@ class TaskContainer {
         }
       }
     }
-    // A resumed task keeps its original task_start: the column is only written on insert, and the no-imagery
-    // report window (#4922) is measured from it, so restamping would re-open a street the labeler already gave up on.
+    // A resumed task keeps its original task_start so the client's copy still matches its row. Nothing server-side
+    // depends on it — the column is written on insert only, and a resumed task always takes the update path — so this
+    // is about not holding a value that contradicts the database, not about protecting a submission.
     if (!newTask.isResumed()) newTask.setProperty('taskStart', new Date());
     newTask.render();
     return newTask;
@@ -462,10 +464,14 @@ class TaskContainer {
       }
     }
     // Interactions are stamped with the tracker's audit task id, which otherwise only moves on a submission result —
-    // so without this, everything logged between the switch and the first submission is filed under the old street.
+    // so without this, what is logged between the switch and the first submission is filed under the old street. A
+    // fresh street has no id yet, so it still has to wait for its first submission.
     if (task.getAuditTaskId()) this.#tracker.setAuditTaskID(task.getAuditTaskId());
+    // `source` is the part worth counting: `switch` is a street picked back up mid-session, which is what #5370
+    // added. `pageLoad` covers the street already in progress and a drop-in session, both of which carry an open row
+    // too and neither of which is news.
     this.#tracker.push('TaskStart', task.isResumed()
-      ? { resumed: true, auditTaskId: task.getAuditTaskId() }
+      ? { resumed: true, auditTaskId: task.getAuditTaskId(), source: task.cameFromTaskList() ? 'switch' : 'pageLoad' }
       : undefined);
 
     if ('compass' in svl) {
