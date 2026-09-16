@@ -137,10 +137,11 @@ class StoryListPage {
   }
 
   /**
-   * Drops a card photo that fails to load, leaving a text-only card (#5327). A story's label preview is a Street View
-   * still requested with `return_error_code`, so a label whose pano has expired answers 404 — and the photo is a
-   * 180px cover image across the top of the card, where a broken-image icon reads as a page fault rather than as a
-   * story without a picture. Same outcome the dashboard's story rows pick for a preview they cannot show.
+   * Drops a card photo that fails to load, leaving a text-only card (#5327). The photo is either the storyteller's
+   * own upload or the label's preview, a Street View still requested with `return_error_code`, so a label whose pano
+   * has expired answers 404 — and the photo is a 180px cover image across the top of the card, where a broken-image
+   * icon reads as a page fault rather than as a story without a picture. The dashboard's story rows swap in a
+   * neutral placeholder thumb instead; here a story without a picture is a shape the card already has.
    *
    * Both branches are needed: this page's script tag is at the bottom of the document, so some photos have already
    * settled by the time it runs and will never fire `error` for a listener to catch.
