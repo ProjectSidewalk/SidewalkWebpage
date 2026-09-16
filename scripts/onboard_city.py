@@ -38,8 +38,10 @@ Workflow:
          "Census Tract 513:Census Tract 523.01"`` (region *names*) to fold flagged sparse regions into neighbors
          without touching polygons by hand. Structural region changes always go through a full rerun so streets
          re-split and re-heal against the final boundaries and region ids come out dense.
+       * **Renames**: list approved region renames in a CSV (``current_name,new_name``) and pass
+         ``--rename-regions`` on every run; bare, it reads ``db/onboarding/<city-id>/region_renames.csv``.
        * **Hand edits**: edit the ``qgis_road``/``qgis_region`` layers directly in QGIS (delete streets, reassign a
-         street's ``region_id``, tweak/rename regions), then regenerate the SQL from the edited file with
+         street's ``region_id``, tweak regions), then regenerate the SQL from the edited file with
          ``make build-city-data id=<city-id> args="--from-gpkg"`` — it validates the layers (unique ids, region
          references, geometry types) and rewrites ``qgis_tables.sql`` so the load matches exactly what was QA'd.
          Never load a stale SQL file over hand edits.
@@ -94,6 +96,7 @@ pay its startup cost.
 """
 
 import argparse
+import csv
 import logging
 import re
 import sys
@@ -311,38 +314,6 @@ def merge_tiny_same_way(streets, max_m):
     kept = [edge for edge, keep in zip(edges, alive) if keep]
     merged = gpd.GeoDataFrame(kept, geometry='geometry', crs=streets.crs)
     return merged[['u', 'v', 'osm_ids', 'highway', 'geometry']], n_merged
-
-
-def check_region_names(names):
-    """
-    Flags region names that look poorly formatted (#4620), for the report and the log.
-
-    Args:
-        names: The region names, in region-id order.
-
-    Returns:
-        Human-readable warnings: empty names, stray whitespace, ALL CAPS (5+ chars), all lowercase, control
-        characters, duplicates (each duplicate reported once). Empty when every name looks fine.
-    """
-    warnings = []
-    seen = Counter(names)
-    for name in names:
-        if not name or not name.strip():
-            warnings.append('empty region name')
-            continue
-        if name != name.strip() or '  ' in name:
-            warnings.append(f'stray whitespace in {name!r}')
-        letters = [c for c in name if c.isalpha()]
-        if letters and all(c.isupper() for c in letters) and len(name) >= 5:
-            warnings.append(f'ALL CAPS: {name!r}')
-        if letters and all(c.islower() for c in letters):
-            warnings.append(f'all lowercase: {name!r}')
-        if re.search(r'[\x00-\x1f\x7f]', name):
-            warnings.append(f'control character in {name!r}')
-        if seen[name] > 1:
-            warnings.append(f'duplicate name: {name!r}')
-            seen[name] = 0
-    return warnings
 
 
 # Per-run tiny-segment figures (#4717): counts under 5/10/20 m, the sub-20 m share, the median street length, and
@@ -757,6 +728,74 @@ def merge_regions(regions, mapping):
     return regions[['region_id', 'name', 'geometry']]
 
 
+def read_rename_file(path):
+    """
+    Reads approved region renames from a CSV with ``current_name`` and ``new_name`` columns.
+
+    A file rather than command-line pairs, so a city with hundreds of renames needs no shell quoting. The current
+    name is matched exactly, padding included, since stray spaces are one of the things a rename fixes; the new name
+    is trimmed.
+
+    Args:
+        path: The CSV file.
+
+    Returns:
+        A ``{current_name: new_name}`` dict.
+
+    Raises:
+        SystemExit: On a missing file or column, a blank new name, or a current name listed twice.
+    """
+    path = Path(path)
+    if not path.exists():
+        sys.exit(f'error: --rename-regions file {path} does not exist.')
+    with path.open(newline='', encoding='utf-8-sig') as renames_file:
+        reader = csv.DictReader(renames_file)
+        if not {'current_name', 'new_name'} <= set(reader.fieldnames or ()):
+            sys.exit(f'error: {path} needs current_name and new_name columns; found {reader.fieldnames}.')
+        mapping = {}
+        for row in reader:
+            current, new = row['current_name'], (row['new_name'] or '').strip()
+            if not new:
+                sys.exit(f'error: {path} gives {current!r} a blank new name.')
+            if current in mapping:
+                sys.exit(f'error: {path} renames {current!r} twice.')
+            mapping[current] = new
+    return mapping
+
+
+def rename_regions(regions, mapping):
+    """
+    Applies approved renames, all at once so two regions can swap names.
+
+    A row whose current name is gone but whose new name is present counts as already applied, so one file can be
+    passed to every run: a rerun over the QA GeoPackage (``--from-gpkg``, or ``--regions-file``) already carries
+    the new names.
+
+    Args:
+        regions: GeoDataFrame with a ``name`` column.
+        mapping: ``{current_name: new_name}`` from :func:`read_rename_file`.
+
+    Returns:
+        A copy of ``regions`` with the names replaced.
+
+    Raises:
+        SystemExit: When a row matches no region, or the renames leave two regions with the same name.
+    """
+    names = set(regions['name'])
+    unknown = sorted(current for current, new in mapping.items() if current not in names and new not in names)
+    if unknown:
+        sys.exit(f'error: --rename-regions names region(s) {unknown} that do not exist; known: {sorted(names)}.')
+    renamed = regions.copy()
+    renamed['name'] = renamed['name'].map(lambda name: mapping.get(name, name))
+    new_names = set(mapping.values())
+    clashes = sorted({name for name in renamed.loc[renamed['name'].duplicated(), 'name'] if name in new_names})
+    if clashes:
+        sys.exit(f'error: --rename-regions would give more than one region the name(s) {clashes}.')
+    applied = sum(current in names for current in mapping)
+    logger.info('Renamed %d region(s) (%d already carried their new name).', applied, len(mapping) - applied)
+    return renamed
+
+
 def validate_staging(roads, regions):
     """
     Checks hand-edited (or generated) staging data against what fill-new-schema.sh and the DB schema require.
@@ -1153,9 +1192,9 @@ def name_single_region(regions, city_name, deliberate_names):
     Args:
         regions:          The prepared regions, one row per region.
         city_name:        The name to give the lone region, or None when there is none to give.
-        deliberate_names: True when the region names were chosen by hand — a ``--regions-file`` dataset, or the
-                          target of a ``--merge-regions`` fold. Then silence is right: nothing was guessed, so
-                          there is nothing to warn about.
+        deliberate_names: True when the region names were chosen by hand — a ``--regions-file`` dataset, a
+                          ``--rename-regions`` file, or the target of a ``--merge-regions`` fold. Then silence is
+                          right: nothing was guessed, so there is nothing to warn about.
 
     Returns:
         ``regions``, with the lone region renamed when there was one and a name to give it.
@@ -1479,10 +1518,10 @@ def write_sql(path, roads, regions):
 
 
 def write_report(path, args, region_source, roads, regions, dropped, stats, coverage, heal_stats,
-                 name_warnings=(), n_tier1_merged=None):
+                 n_tier1_merged=None):
     """
-    Writes a Markdown run report: sources, counts, tiny-segment figures, per-region stats with flags, region-name
-    warnings, and the next manual steps.
+    Writes a Markdown run report: sources, counts, tiny-segment figures, per-region stats with flags, and the next
+    manual steps.
 
     Args:
         path:          Output ``.md`` path.
@@ -1496,7 +1535,6 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
                        ``--from-gpkg`` re-export without a ``city_boundary`` layer).
         heal_stats:    :data:`HealStats` from :func:`assign_regions`, or None on a ``--from-gpkg`` re-export
                        (healing already happened on the original run).
-        name_warnings:  Region-name findings from :func:`check_region_names`.
         n_tier1_merged: Pieces absorbed by :func:`merge_tiny_same_way`, or None on a re-export.
     """
     way_type_counts = roads['highway'].value_counts()
@@ -1554,10 +1592,6 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
     ]
     lines += [f'| {s.region_id} | {s.name} | {s.n_streets} | {s.street_km:.1f} | {s.flag} |'
               for s in stats.itertuples()]
-    if name_warnings:
-        lines += ['', f'## Region name warnings ({len(name_warnings)}, #4620)', '']
-        lines += [f'- {warning}' for warning in name_warnings]
-        lines += ['', 'Rename in QGIS (then `--from-gpkg`), or fix the source dataset and rerun.']
     lines += [
         '',
         '## Imagery preflight',
@@ -1610,6 +1644,10 @@ def parse_args(argv=None):
                                                 'only: merging happens before street assignment, so streets '
                                                 're-split and re-heal against the merged boundaries and region ids '
                                                 'come out dense.')
+    parser.add_argument('--rename-regions', nargs='?', const='',
+                        help='Rename regions from a CSV with current_name,new_name columns. Pass it on every run: a '
+                             'row already applied is skipped. Renames happen before --merge-regions, so merges use '
+                             'the new names. With no path, reads db/onboarding/<city-id>/region_renames.csv.')
     parser.add_argument('--regions-file', help='Neighborhood boundary dataset to use instead of OSM/census sources '
                                                '(must carry a "name" column; a QA GeoPackage works — its qgis_region '
                                                'layer is used). Requires --regions-source.')
@@ -1648,6 +1686,8 @@ def parse_args(argv=None):
     args = parser.parse_args(argv)
     if args.from_gpkg == '':  # Bare --from-gpkg: the fetch run's own output path.
         args.from_gpkg = str(REPO_ROOT / 'db' / 'onboarding' / args.city_id / f'{args.city_id}_qa.gpkg')
+    if args.rename_regions == '':  # Bare --rename-regions: the city's own renames file.
+        args.rename_regions = str(REPO_ROOT / 'db' / 'onboarding' / args.city_id / 'region_renames.csv')
     if bool(args.from_gpkg) == bool(args.place or args.boundary_file):
         parser.error('provide either --place/--boundary-file (fetch run) or --from-gpkg (re-export run).')
     if args.from_gpkg and args.single_region_name:
@@ -1674,11 +1714,12 @@ def run_from_gpkg(args):
     Re-export mode: rebuilds the SQL load file and report from a hand-edited QA GeoPackage.
 
     The GeoPackage's ``qgis_road``/``qgis_region`` layers are the staging data, so after hand edits in QGIS
-    (deleting streets, reassigning a street's ``region_id``, tweaking polygons, renaming regions) this validates the
-    result and regenerates ``qgis_tables.sql`` so the load matches what was QA'd. Street lengths are recomputed from
-    the (possibly edited) geometry, and the topology checks rerun — invalid region geometry fails validation, region
-    overlaps and boundary-coverage gaps warn — since hand edits are where those get introduced. Structural changes
-    to the region set belong on a fetch rerun (``--merge-regions``), not here — see :func:`merge_regions`.
+    (deleting streets, reassigning a street's ``region_id``, tweaking polygons) this applies any
+    ``--rename-regions``, validates the result and regenerates ``qgis_tables.sql`` so the load matches what was
+    QA'd. Street lengths are recomputed from the (possibly edited) geometry, and the topology checks rerun — invalid
+    region geometry fails validation, region overlaps and boundary-coverage gaps warn — since hand edits are where
+    those get introduced. Structural changes to the region set belong on a fetch rerun (``--merge-regions``), not
+    here — see :func:`merge_regions`.
 
     Args:
         args: The parsed CLI args.
@@ -1693,6 +1734,8 @@ def run_from_gpkg(args):
     logger.info('Read %d streets and %d regions from %s', len(roads), len(regions), gpkg_path)
     # QGIS edits can demote a region to a plain Polygon; promote before validating.
     regions['geometry'] = regions.geometry.map(to_multipolygon)
+    if args.rename_regions:
+        regions = rename_regions(regions, read_rename_file(args.rename_regions))
     if 'data_source' not in regions.columns:  # A hand-built GeoPackage may not carry the provenance column.
         regions['data_source'] = f'edited GeoPackage ({gpkg_path.name})'
     if 'osm_ids' in roads.columns:
@@ -1709,9 +1752,6 @@ def run_from_gpkg(args):
     stats = region_street_stats(roads, regions, args.max_region_street_km)
     for stat in stats[stats['flag'] != ''].itertuples():
         logger.warning('Region %d (%s): %s', stat.region_id, stat.name, stat.flag)
-    name_warnings = check_region_names(list(regions['name']))
-    for warning in name_warnings:
-        logger.warning('Region name: %s', warning)
     # Hand edits are the likeliest source of topology problems, so the fetch path's warnings run here too.
     warn_if_overlapping(regions)
     if 'city_boundary' in layers:
@@ -1728,7 +1768,7 @@ def run_from_gpkg(args):
     write_sql(sql_path, roads, regions)
     write_endpoints_csv(endpoints_path, roads)
     write_report(report_path, args, f'edited GeoPackage ({gpkg_path.name})', roads, regions, roads.iloc[0:0],
-                 stats, coverage, None, name_warnings)
+                 stats, coverage, None)
     logger.info('\nWrote:\n  %s\n  %s\n  %s\nThe SQL now matches the edited GeoPackage.', sql_path, endpoints_path,
                 report_path)
 
@@ -1747,6 +1787,7 @@ def main(argv=None):
         run_from_gpkg(args)
         return
     merge_mapping = parse_merge_spec(args.merge_regions) if args.merge_regions else {}
+    rename_mapping = read_rename_file(args.rename_regions) if args.rename_regions else {}
     out_dir = Path(args.out_dir) if args.out_dir else REPO_ROOT / 'db' / 'onboarding' / args.city_id
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1780,6 +1821,8 @@ def main(argv=None):
 
     regions = prepare_regions(raw_regions, boundary, args.min_region_part_m2)
     logger.info('Regions after clipping/cleanup: %d', len(regions))
+    if rename_mapping:
+        regions = rename_regions(regions, rename_mapping)
     if merge_mapping:
         # Merging before street assignment means streets land in the merged regions directly, and the healing
         # passes see the final boundaries.
@@ -1789,16 +1832,13 @@ def main(argv=None):
         logger.warning('Ignoring --single-region-name "%s": it names the lone region of a city small enough to be '
                        'one region, and this city has %d.', args.single_region_name, len(regions))
     # Precedence: --single-region-name first, then the city name derived from --place -- but the derived one only
-    # when nothing else picked the names. A --regions-file dataset and a --merge-regions target were named on
-    # purpose, so a name we worked out ourselves must not displace them; a name typed on this command line may.
-    deliberate_names = bool(args.regions_file or merge_mapping)
+    # when nothing else picked the names. A --regions-file dataset, a rename, and a --merge-regions target were named
+    # on purpose, so a name we worked out ourselves must not displace them; a name typed on this command line may.
+    deliberate_names = bool(args.regions_file or merge_mapping or rename_mapping)
     city_name = args.single_region_name or (None if deliberate_names else place_city_name(args.place))
     regions = name_single_region(regions, city_name, deliberate_names)
     # Provenance rides in the staging data itself, so fill-new-schema.sh needs no data-source input.
     regions['data_source'] = region_source
-    name_warnings = check_region_names(list(regions['name']))
-    for warning in name_warnings:
-        logger.warning('Region name: %s', warning)
 
     streets = fetch_streets(boundary_poly, args.include_alleys, args.fetch_buffer_m)
     logger.info('OSM street edges fetched: %d', len(streets))
@@ -1838,7 +1878,7 @@ def main(argv=None):
     write_sql(sql_path, roads, regions)
     write_endpoints_csv(endpoints_path, roads)
     write_report(report_path, args, region_source, roads, regions, dropped, stats, coverage, heal_stats,
-                 name_warnings, n_tier1_merged)
+                 n_tier1_merged)
     logger.info('\nWrote:\n  %s\n  %s\n  %s\n  %s\nQA the GeoPackage in QGIS before loading the SQL (see the report).',
                 gpkg_path, sql_path, endpoints_path, report_path)
 

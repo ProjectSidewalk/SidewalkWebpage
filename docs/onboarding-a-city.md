@@ -35,7 +35,8 @@ Run the three from the **main checkout**: `db/` is the bind mount the db contain
   — Laurens, IA would otherwise be the neighbourhood "Census Tract 7801" everywhere a region name shows (missions,
   the dashboard, LabelMap's filters, the API's `region_name`). The name comes from `--place`; pass
   `--single-region-name` when the boundary came from a file, or to choose a different one. A name you picked
-  yourself — a `--regions-file` dataset, or a `--merge-regions` target — is never second-guessed.
+  yourself — a `--regions-file` dataset, a `--rename-regions` file, or a `--merge-regions` target — is never
+  second-guessed.
 - **Imagery provider** — `gsv`, `mapillary`, `panoramax`, or `infra3d`. The preflight in step 2 tells you which
   actually covers the city. The web container needs the provider's credentials for the scan (Panoramax needs none).
 - **The web image** must carry the geo stack (`osmnx`, `geopandas` — in `requirements-offline-tools.txt`). It is
@@ -62,7 +63,7 @@ It never touches the database. It writes, under `db/onboarding/<city-id>/`:
 
 | File | What for |
 |---|---|
-| `report.md` | Read this first: street count, km, the **tiny-segment share** (production averages 18% under 20 m; Bayonne rebuilt at 4%), loop roads (start = end — kept as OSM maps them), regions flagged `OVERSIZED` (> 60 km of streets — split it), `SPARSE`/`EMPTY` (fold it), region-name warnings (#4620; a repeated source name is kept as separate regions, `"X (2)"`), boundary coverage. |
+| `report.md` | Read this first: street count, km, the **tiny-segment share** (production averages 18% under 20 m; Bayonne rebuilt at 4%), loop roads (start = end — kept as OSM maps them), regions flagged `OVERSIZED` (> 60 km of streets — split it), `SPARSE`/`EMPTY` (fold it), boundary coverage. |
 | `<city-id>_qa.gpkg` | The QA GeoPackage for QGIS: `qgis_road`, `qgis_region`, `city_boundary`, plus `dropped_segments` and `rider_merges` so you can see what the rules did. |
 | `qgis_tables.sql` | The staging tables `fill-new-schema.sh` consumes (`qgis_road`: `road_id`, `osm_ids bigint[]`, `highway`, `region_id`, `geom`; `qgis_region`: `region_id`, `name`, `data_source`, `geom`). |
 | `street_edge_endpoints.csv` | The imagery scan's input, so step 2 can run before any database exists. |
@@ -73,8 +74,10 @@ flagged region. Two ways back:
 - *Parameters:* rerun with different flags. `--merge-regions "Census Tract 513:Census Tract 523.01"` folds a sparse
   region into its neighbour by **name** and reruns the whole assignment, so streets re-split against the merged
   boundary and ids stay dense. Thresholds: `--merge-tiny-m`, `--heal-segment-m`, `--boundary-merge-tol-m`,
-  `--min-segment-m`, `--max-region-street-km`.
-- *Hand edits:* delete a street, reassign its `region_id`, move a boundary, rename a region — in the GeoPackage — then
+  `--min-segment-m`, `--max-region-street-km`. `--rename-regions` renames regions from
+  `db/onboarding/<city-id>/region_renames.csv` (`current_name,new_name`); pass it on every build, since rows already
+  applied are skipped. A repeated source name is kept as separate regions, `"X (2)"` (logged, not in the report).
+- *Hand edits:* delete a street, reassign its `region_id`, move a boundary — in the GeoPackage — then
   `make build-city-data id=<city-id> args="--from-gpkg"`, which validates the layers (unique ids, region references,
   geometry types, non-empty names, at least one OSM way id per street) and rewrites the SQL, report, and endpoints
   CSV so the load matches what you QA'd. Region edits big enough that streets should re-split go back in as the
