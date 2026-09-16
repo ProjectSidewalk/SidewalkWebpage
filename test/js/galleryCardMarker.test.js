@@ -42,11 +42,12 @@ describe('a Gallery card\'s label marker', () => {
      * Renders a card into the document.
      * @param {?string} cropUrl The crop image URL, or null for a card with no crop.
      * @param {?{x: number, y: number}} cropMarker Where the label is in the crop, or null.
+     * @param {?string} gsvImageUrl The Street View still's URL, or null for non-GSV imagery.
      * @returns {Card} The card under test.
      */
-    function renderCard(cropUrl, cropMarker) {
+    function renderCard(cropUrl, cropMarker, gsvImageUrl = 'https://maps.example/still.jpg') {
         document.body.innerHTML = '<div id="cards"></div>';
-        const card = new window.Card(label(), cropUrl, 'https://maps.example/still.jpg', cropMarker);
+        const card = new window.Card(label(), cropUrl, gsvImageUrl, cropMarker);
         card.render(document.getElementById('cards'));
         return card;
     }
@@ -106,6 +107,45 @@ describe('a Gallery card\'s label marker', () => {
 
         expect(card.getStatus().imageSource).toBe('api');
         expect(markerPercents()).toEqual({ left: 25, top: 75 });
+    });
+
+    // With `return_error_code` on the still (#5327) an expired pano 404s instead of answering with a grey "no
+    // imagery" card, so a card that has lost its crop as well has nothing to show and no place to point.
+    it('hides the image and the marker when neither the crop nor the still loads', async () => {
+        const card = renderCard('/cropImage/CurbRamp/1', { x: 0.5, y: 0.62 });
+
+        const loaded = card.loadImage();
+        const img = document.querySelector('.static-gallery-image');
+        img.onerror(); // The crop 404s; the card retries with the still.
+        img.onerror(); // The still 404s too.
+        await expect(loaded).resolves.toBe(false);
+
+        expect(img.classList.contains('static-gallery-image--missing')).toBe(true);
+        expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(true);
+    });
+
+    it('hides them on the first failure for non-GSV imagery, whose crop is the only source', async () => {
+        const card = renderCard('/cropImage/CurbRamp/1', { x: 0.5, y: 0.62 }, null);
+
+        const loaded = card.loadImage();
+        const img = document.querySelector('.static-gallery-image');
+        img.onerror();
+        await expect(loaded).resolves.toBe(false);
+
+        expect(img.classList.contains('static-gallery-image--missing')).toBe(true);
+        expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(true);
+    });
+
+    it('leaves the image and marker visible once a source loads', async () => {
+        const card = renderCard('/cropImage/CurbRamp/1', { x: 0.5, y: 0.62 });
+
+        const loaded = card.loadImage();
+        const img = document.querySelector('.static-gallery-image');
+        img.onload();
+        await expect(loaded).resolves.toBe(true);
+
+        expect(img.classList.contains('static-gallery-image--missing')).toBe(false);
+        expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(false);
     });
 
     it('hands the crop marker on to whoever opens the label', () => {

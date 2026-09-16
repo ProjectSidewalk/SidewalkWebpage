@@ -317,9 +317,13 @@ class Card {
             // Primary failed; try the other source, and place the marker for it.
             this.#status.imageSource = this.#cropUrl ? 'api' : 'crop';
             this.#positionMarker();
-            img.onerror = () => resolve(false); // Prevent infinite loop.
+            img.onerror = () => { // Prevent infinite loop.
+              this.#hideMissingImage();
+              resolve(false);
+            };
             img.src = fallbackUrl;
           } else {
+            this.#hideMissingImage();
             resolve(false);
           }
         };
@@ -328,6 +332,17 @@ class Card {
         resolve(true);
       }
     });
+  }
+
+  /**
+   * Hides the image and its marker once no source has loaded (#5327). The still is requested with
+   * `return_error_code`, so a label whose pano has expired answers 404 rather than with a grey "no imagery" card.
+   * The rest of the card — type, severity, tags, votes, validation — is still worth showing; a broken-image icon and
+   * a marker pointing into an empty frame are not.
+   */
+  #hideMissingImage() {
+    this.#panoImage.classList.add('static-gallery-image--missing');
+    this.#markerWrapper.classList.add('gallery-marker-wrapper--missing');
   }
 
   /**

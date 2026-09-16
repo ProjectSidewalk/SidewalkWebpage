@@ -57,6 +57,13 @@ with respect to the image holder. This allows the validation menu to be placed o
   border-top-right-radius: 20px;
 }
 
+/* Neither the crop nor the Street View still loaded (#5327). The card keeps its shape and its data, without a
+   broken-image icon or a marker pointing into an empty frame. */
+.static-gallery-image--missing,
+.gallery-marker-wrapper--missing {
+  visibility: hidden;
+}
+
 /* Imagery credit on the card's own still (#4865, #5202; look in css/components/pano-attribution.css). It shares the
    bottom edge with the vote row, so it steps aside when that row comes up rather than being occluded by it. 4.6px
    puts the pill's center on the logo's art center, both 12.6px above the image's bottom edge. */
