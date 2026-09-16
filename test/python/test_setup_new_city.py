@@ -518,27 +518,45 @@ def test_evolutions_seed_no_table_the_dump_would_leave_out():
     A donor behind the checkout gets the missing evolutions at the boot, and an evolution that seeds a table with
     literal rows — the way label_type and mission_type were seeded before they became enums — would put rows the
     launched city needs into a table whose data the dump leaves out. Nothing distinguishes that from a QA walk, so
-    the guard is here: every table an evolution seeds in place (INSERT ... VALUES, not dropped afterwards) is
-    either kept in the dump or in this pinned set, each of which is safe today: role and user_role now live in
-    sidewalk_login, outside a city's catalog; the mission, gsv_data and pano_data rows were one-off migrations of
-    data a clone does not carry. A new seeding evolution fails here and has to choose (#5297).
+    the guard is here: every table an evolution seeds with literal rows (INSERT ... VALUES, or INSERT ... SELECT of
+    constants — 281.sql's `SELECT '<id>', 0.0, ... WHERE NOT EXISTS` shape, which the VALUES-only first version of
+    this test never saw, and which is how #5349 got past it — not dropped afterwards) is either kept in the dump or
+    in this pinned set, each of which is safe today: role and user_role now live in sidewalk_login, outside a city's
+    catalog; the gsv_data and pano_data rows were one-off migrations of data a clone does not carry; the mission,
+    user_stat and user_current_region rows are 281.sql's SidewalkAI seeds, which the app re-creates at boot wherever
+    they are missing (AiSeedRowsRepair; 337.sql deletes the user_current_region one on purpose). A new seeding
+    evolution fails here and has to choose (#5297).
     """
     statement = re.compile(r'(?is)\b(INSERT\s+INTO|DROP\s+TABLE)\s+(?:IF\s+EXISTS\s+)?"?(?:([a-z_]+)\.)?"?'
-                           r'([a-z_]+)"?\s*(?:\([^)]*\))?\s*(VALUES)?')
+                           r'([a-z_]+)"?\s*(?:\([^)]*\))?\s*([^;]*)')
     seeded = {}
     evolutions = sorted((Path(snc.REPO_ROOT) / 'conf' / 'evolutions' / 'default').glob('*.sql'),
                         key=lambda path: int(path.stem))
     for path in evolutions:
         ups = path.read_text().split('!Downs')[0]
-        for kind, schema, table, values in statement.findall(ups):
+        for kind, schema, table, body in statement.findall(ups):
             if schema and schema != 'public':
                 continue
-            if kind.upper().startswith('INSERT') and values:
+            if kind.upper().startswith('INSERT') and seeds_literal_rows(body):
                 seeded[table] = True
             elif kind.upper().startswith('DROP'):
                 seeded[table] = False
     live = {table for table, alive in seeded.items() if alive} - snc.KEPT_IN_DUMP
-    assert live == {'role', 'user_role', 'mission', 'gsv_data', 'pano_data'}
+    assert live == {'role', 'user_role', 'mission', 'gsv_data', 'pano_data', 'user_stat', 'user_current_region'}
+
+
+def seeds_literal_rows(body):
+    """
+    Whether an INSERT's body (everything after the column list) writes rows the evolution made up, rather than rows
+    derived from a table: VALUES, or a SELECT with no FROM before its WHERE — a FROM there means a migration of
+    existing data, which a fresh clone has none of.
+    """
+    body = body.lstrip()
+    if re.match(r'(?i)VALUES\b', body):
+        return True
+    if not re.match(r'(?i)SELECT\b', body):
+        return False
+    return not re.search(r'(?i)\bFROM\b', re.split(r'(?i)\bWHERE\b', body, maxsplit=1)[0])
 
 
 def test_dump_schema_leaves_qa_data_out_instead_of_clearing_it(monkeypatch, capsys):

@@ -6,7 +6,10 @@
 # with the full, *current* Project Sidewalk table structure. This copies a donor city's schema (structure only), the
 # handful of seed rows every city carries — the applied evolutions, the version history, `config` with its tutorial
 # street, the tag catalogue, and the survey questions — creates the owning role, and wires up search_path + read-only
-# grants. After this, you'd load the city's streets/regions with fill-new-schema.sh.
+# grants. After this, you'd load the city's streets/regions with fill-new-schema.sh. The SidewalkAI user's per-schema
+# rows are deliberately not among the seeds: copying the donor's play_evolutions marks 281.sql (which seeded them)
+# applied, so the app inserts them itself at boot (AiSeedRowsRepair, #5349), the same way for a clone, a dump, or a
+# restore.
 #
 # It clones a donor rather than restoring the committed `sidewalk_init` template: the template is frozen at evolution
 # 252, and evolutions 270/295/355 read `sidewalk_login.role`, which 372 dropped, so replaying it forward wedges on the
@@ -26,12 +29,19 @@
 #                     difference alone proves nothing), the donor's top evolution must hash the same as in every
 #                     other city schema that has applied it.
 #
+# A donor is also refused below evolution 373: until then `label_type` was a table that `tag` referenced, and the
+# seed copy below (which doesn't carry label_type) fails half-way on it. Such a donor is usually stranded below 372
+# too, which no boot can fix; docs/dev-environment.md → "Recovering a schema stranded below evolution 372".
+#
 # GOTCHA: the names are interpolated into DDL, so they must be safe bare SQL identifiers (validated below). Re-running
 # for an existing name drops and recreates that schema — destructive, as intended for a fresh setup.
 # =====================================================================================================================
 set -euo pipefail
 
 source /opt/scripts/helpers.sh
+
+# 373.sql replaced the label_type table with an enum; earlier donors still carry the table and tag's FK to it.
+MIN_DONOR_EVOLUTION=373
 
 NAME=${1:-}
 DONOR=${2:-}
@@ -78,6 +88,12 @@ if [[ -n "$MAX_EVOLUTION" && "$donor_evolution" -gt "$MAX_EVOLUTION" ]]; then
     echo "Error: donor '$DONOR' is at evolution $donor_evolution, beyond this checkout's highest ($MAX_EVOLUTION)." >&2
     echo "       It has applied an evolution from another branch; pick a donor that hasn't" >&2
     echo "       (see docs/onboarding-a-city.md)." >&2
+    exit 1
+fi
+if [[ "$donor_evolution" -lt "$MIN_DONOR_EVOLUTION" ]]; then
+    echo "Error: donor '$DONOR' is at evolution $donor_evolution; this script needs a donor at $MIN_DONOR_EVOLUTION" >&2
+    echo "       or later. Pick a current city, or bring this one forward first: a schema below 372 cannot be" >&2
+    echo "       booted forward, see docs/dev-environment.md → Recovering a schema stranded below evolution 372." >&2
     exit 1
 fi
 
