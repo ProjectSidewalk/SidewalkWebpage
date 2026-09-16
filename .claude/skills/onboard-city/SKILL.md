@@ -168,7 +168,8 @@ Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, ce
 ## 6. Hand it off
 
 Follow the checklist the orchestrator prints: dump to the server (`scp` to `<netid>@makelab1.cs.washington.edu`,
-renamed to `<schema>-empty-dump` at the destination), the IT tooling's `setup-new.pl`, Maps-key referrers, DNS, then
+renamed to `<schema>-empty-dump` at the destination), the IT tooling's `setup-new.pl`, Maps-key referrers (step 2 adds
+them when gcloud can reach the key; otherwise `python3 tools/maps_key_referrers.py <city-id>`), DNS, then
 the PR (configs + messages + docs). Point the maintainer at the QA items only a person can do: open the landing page
 as the new city (map centered, neighborhood names right), walk one street in Explore on the chosen imagery, check the
 Explore tag lists against `excluded_tags`. That walk leaves an `audit_task`, thousands of interaction rows and a

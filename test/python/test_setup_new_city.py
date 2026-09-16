@@ -17,6 +17,7 @@ from types import SimpleNamespace
 import pytest
 
 import create_ga_properties as ga
+import maps_key_referrers as mkr
 import setup_new_city as snc
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -198,7 +199,7 @@ def test_translation_todo_stops_asking_once_every_file_has_the_name(repo_copy):
 def test_handoff_checklist_names_the_dump_both_urls_and_what_the_nightly_jobs_owe():
     text = snc.handoff_checklist('laurens-ia', 'sidewalk_laurens_ia', 'https://p', 'https://t')
     assert 'scp db/sidewalk_laurens_ia-dump' in text
-    assert 'https://t and https://p' in text
+    assert 'https://t and https://p' in text and 'maps_key_referrers.py laurens-ia' in text
     # The dump ships with these empty; saying so is the whole fix for #5297.
     assert all(table in text for table in ('intersection', 'cluster', 'osm_way', 'sidewalk_presence'))
     # The jobs run at different minutes (ScheduledJobs.scala), so the handoff names the schedule, not a time.
@@ -1023,7 +1024,8 @@ def _answers(monkeypatch, *answers):
 
 
 def _stub_steps(monkeypatch, repo_copy):
-    """Replaces the long-running steps with recorders and points the GA step at the copied files."""
+    """Replaces the long-running steps with recorders, points the GA step at the copied files, and keeps the Maps
+    key step off the real gcloud (it skips unless a test hands it a key)."""
     record = {'evolutions': []}
     monkeypatch.setattr(snc, 'apply_evolutions',
                         lambda schema, city_id, verify=False, allow_running_apps=False:
@@ -1036,6 +1038,8 @@ def _stub_steps(monkeypatch, repo_copy):
     monkeypatch.setattr(ga, 'CITYPARAMS', snc.CITYPARAMS)
     monkeypatch.setattr(ga, 'KEY_FILE', repo_copy / 'ga-service-account.json')
     monkeypatch.setattr(ga, 'create_for_city', lambda city_id, dry_run=False: record.__setitem__('ga', city_id))
+    monkeypatch.setattr(mkr, 'find_key', lambda: 'gcloud is not installed')
+    monkeypatch.setattr(mkr, 'add_for_city', lambda city_id, key: record.__setitem__('referrers', (city_id, key)))
     return record
 
 
@@ -1091,6 +1095,7 @@ def test_main_first_run_walks_every_step(repo_copy, monkeypatch, capsys):
     text = snc.CITYPARAMS.read_text()
     assert 'testville-wa = "mapillary"' in text and 'testville-wa = "sidewalk_testville_wa"' in text
     assert 'Left unset' in out and 'No ga-service-account.json' in out
+    assert 'Maps key referrers: skipping, since gcloud is not installed' in out and 'referrers' not in record
     assert any(cmd[-5:] == ['/opt/scripts/create-new-schema.sh', 'sidewalk_testville_wa', 'sidewalk_richmond', '375',
                             'hash375'] for cmd in calls)
     assert record['evolutions'] == [('sidewalk_testville_wa', True)]
@@ -1259,10 +1264,12 @@ def test_main_recreates_a_schema_on_request_and_can_defer_the_scan(repo_copy, mo
     calls = _fake_run(monkeypatch, dict(_FRESH_DB, **{'pg_namespace': (0, '1\n')}))
     (repo_copy / 'ga-service-account.json').write_text('{}')
     monkeypatch.setattr(ga, 'ids_are_placeholders', lambda city_id: True)
+    monkeypatch.setattr(mkr, 'find_key', lambda: ('proj', 'keys/k'))
     _answers(monkeypatch, 'y', '', '', '', '', '', '', '', 'y', '1', 'all')
     snc.main(['testville-wa', '--donor', 'sidewalk_seattle', '--skip-scan'])
     out = capsys.readouterr().out
     assert record['ga'] == 'testville-wa'
+    assert record['referrers'] == ('testville-wa', ('proj', 'keys/k'))
     assert any(cmd[-4:] == ['sidewalk_testville_wa', 'sidewalk_seattle', '375', 'hash375'] for cmd in calls)
     assert record['evolutions'] == [('sidewalk_testville_wa', True)]
     assert 'Skipped (--skip-scan)' in out and 'scan' not in record
