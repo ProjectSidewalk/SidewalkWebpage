@@ -35,11 +35,13 @@
     <span id="@{idPrefix}-type" class="label-hover-card__type"></span>
     @components.shareTrigger(id = s"$idPrefix-share", extraClass = "label-hover-card__share")
   </div>
-  @* Decorative alt: the sentence beside the icon already says the label is AI generated. *@
+  @* The same circled glyph as the AI badge on the marker, so the strip reads as that badge's explanation. Decorative
+     alt: the sentence beside the icon already says the label is AI generated. *@
   <div class="label-hover-card__ai">
-    <img class="label-hover-card__ai-icon" src='@assets.path("images/icons/ai-icon-small.png")' alt="">
+    <img class="label-hover-card__ai-icon" alt=""
+         src='@assets.path("images/icons/ai-icon-black-filled-white-circle.png")'>
     <span data-i18n="common:ai-generated-label-tooltip">
-      This label was AI generated. AI can make mistakes, so please make your own assessment.
+      This label was AI generated. AI can make mistakes, so please make your own judgment about correctness.
     </span>
   </div>
   <div class="label-hover-card__body">

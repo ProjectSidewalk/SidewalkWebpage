@@ -78,10 +78,13 @@
   color: var(--color-neutral-800);
 }
 
+/* 16px rather than 14px: the glyph sits inside a ring, so at 14px it drops to ~9px and the "AI" stops being readable.
+   Nudged up 1px so the ring centres on the first line of text rather than hanging below it. */
 .label-hover-card__ai-icon {
   flex: none;
-  width: calc(14px * var(--ui-scale));
-  height: calc(14px * var(--ui-scale));
+  width: calc(16px * var(--ui-scale));
+  height: calc(16px * var(--ui-scale));
+  margin-top: calc(-1px * var(--ui-scale));
 }
 
 .label-hover-card__body {
