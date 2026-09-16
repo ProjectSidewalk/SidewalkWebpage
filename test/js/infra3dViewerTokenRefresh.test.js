@@ -212,6 +212,22 @@ describe('Infra3dViewer access-token renewal', () => {
         expect(manager.setTokens).toHaveBeenCalledTimes(1);
     });
 
+    it('renews on demand through refreshAccessTokenNow(), replacing the scheduled renewal', async () => {
+        const { viewer, manager } = await createViewer(T0 + 60 * MINUTE_MS);
+        const renewedExpiry = T0 + 60 * MINUTE_MS;
+        fetch.mockImplementation(() => tokenResponse(renewedExpiry));
+
+        await viewer.refreshAccessTokenNow();
+
+        expect(manager.setTokens).toHaveBeenCalledTimes(1);
+        expect(diagnostics).toHaveBeenCalledWith('TokenRefreshed', expect.objectContaining({ attempt: '1' }));
+        // The old schedule is gone; the next renewal is five minutes before the renewed token's expiry.
+        await jest.advanceTimersByTimeAsync(55 * MINUTE_MS - 1);
+        expect(fetch).toHaveBeenCalledTimes(1);
+        await jest.advanceTimersByTimeAsync(1);
+        expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
     it('lets a viewer whose mount has left the page lapse instead of renewing for nobody', async () => {
         await createViewer(T0 + 60 * MINUTE_MS);
         mount.remove();

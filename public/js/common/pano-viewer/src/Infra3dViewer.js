@@ -185,6 +185,16 @@ class Infra3dViewer extends PanoViewer {
   }
 
   /**
+   * Renews the access token right now instead of at the scheduled time. A QA hook: the scheduled renewal is an hour
+   * away on a fresh page, and this is what lets a console session prove the in-place swap works against real Infra3d.
+   * @returns {Promise<void>} Resolves once the attempt has been logged, whether it succeeded or not.
+   */
+  refreshAccessTokenNow() {
+    clearTimeout(this.#refreshTimer);
+    return this.#refreshToken();
+  }
+
+  /**
    * Fetches a fresh access token and hands it to the SDK in place, retrying on failure until the old one expires.
    * manager.setTokens() is the SDK's own path: its wrapper pushes the token into the navigator's data provider and
    * the scene's image provider. The shape is the one the SDK builds in init(); the empty refresh_token is why it
