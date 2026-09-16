@@ -8,6 +8,8 @@ class Card {
   #gsvImageUrl;
 
   #markerWrapper;
+  #sourceLogo;
+  #attribution;
 
   // UI card element.
   #card = null;
@@ -217,10 +219,9 @@ class Card {
     imageHolder.appendChild(markerWrapper);
     imageHolder.appendChild(panoImage);
 
-    // The credit owed on a still we serve ourselves (#4865, #5202). Only licensed imagery carries a licence, so
-    // createPanoAttribution hides itself for a source with none, leaving the logo alone.
-    createPanoViewerLogo(imageHolder, properties.pano_source).showSourceLogo();
-    createPanoAttribution(imageHolder, { compact: true }).show(properties.pano_data?.attribution);
+    this.#sourceLogo = createPanoViewerLogo(imageHolder, properties.pano_source);
+    this.#attribution = createPanoAttribution(imageHolder, { compact: true });
+    this.#creditImage(this.#status.imageSource);
 
     this.#card.appendChild(cardInfo);
     this.validationMenu = new ValidationMenu(this, $(imageHolder));
@@ -314,9 +315,10 @@ class Card {
         };
         img.onerror = () => {
           if (fallbackUrl) {
-            // Primary failed; try the other source, and place the marker for it.
+            // Primary failed; try the other source, and place the marker and the credit for it.
             this.#status.imageSource = this.#cropUrl ? 'api' : 'crop';
             this.#positionMarker();
+            this.#creditImage(this.#status.imageSource);
             img.onerror = () => { // Prevent infinite loop.
               this.#hideMissingImage();
               resolve(false);
@@ -335,14 +337,30 @@ class Card {
   }
 
   /**
-   * Hides the image and its marker once no source has loaded (#5327). The still is requested with
-   * `return_error_code`, so a label whose pano has expired answers 404 rather than with a grey "no imagery" card.
-   * The rest of the card — type, severity, tags, votes, validation — is still worth showing; a broken-image icon and
-   * a marker pointing into an empty frame are not.
+   * Shows the imagery credit over a crop, our cut of someone else's panorama, and takes it down for anything else
+   * (#4865, #5202): the still brands itself (see PanoViewerLogo). Only licensed imagery carries a licence, so
+   * createPanoAttribution hides itself for a source with none, leaving the logo alone.
+   * @param {?string} source - What the card is showing: 'crop', 'api', or null once every source has failed.
+   */
+  #creditImage(source) {
+    if (source === 'crop') {
+      this.#sourceLogo.showSourceLogo();
+      this.#attribution.show(this.#properties.pano_data?.attribution);
+    } else {
+      this.#sourceLogo.hide();
+      this.#attribution.hide();
+    }
+  }
+
+  /**
+   * Hides the image and its marker once no source has loaded (#5327): with `return_error_code` on the still, an
+   * expired pano answers 404 rather than a grey "no imagery" card. Type, severity, tags and votes are still worth
+   * showing; a broken-image icon and a marker pointing into an empty frame are not.
    */
   #hideMissingImage() {
     this.#panoImage.classList.add('static-gallery-image--missing');
     this.#markerWrapper.classList.add('gallery-marker-wrapper--missing');
+    this.#creditImage(null);
   }
 
   /**

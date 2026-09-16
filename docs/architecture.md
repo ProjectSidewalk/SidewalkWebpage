@@ -127,7 +127,8 @@ Imagery Project Sidewalk shows a copy of — a self-hosted pano or a crop — ca
 `ImageryAttribution` composes (Mapillary contributors are CC BY-SA 4.0), rendered by `PanoAttribution.js` alongside
 the source logo `PanoViewerLogo.js` draws: in the label-detail pano box, in Validate's Pannellum fallback, and on
 every card that shows a crop — the Gallery card, the landing validation grid, and the dashboard's mistake cards
-(`css/components/pano-attribution.css` is the shared look; each host positions the pill).
+(`css/components/pano-attribution.css` is the shared look; each host positions the pill). A card that falls back to
+the Street View Static API still drops the overlay: Google bakes its own logo and copyright into that image.
 
 If either category outgrows its lane — thousands of files, multi-MB originals, a CDN or on-the-fly transforms in
 front — the move is to object storage (S3/MinIO), never the local filesystem.

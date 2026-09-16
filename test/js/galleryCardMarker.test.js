@@ -20,6 +20,9 @@ const CARD_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/gallery/src/cards/Card.js'), 'utf8'
 );
 
+/** What the source-logo and licence-line stubs were last told: the card owes a credit on a crop and nothing else. */
+const credit = { logo: null, attribution: null };
+
 /** One label payload, shaped like an entry from POST /label/labels; the click sits at 1/4, 3/4 of the canvas. */
 function label(overrides = {}) {
     return {
@@ -67,14 +70,22 @@ describe('a Gallery card\'s label marker', () => {
         window.ValidationInfoDisplay = class {};
         window.ValidationMenu = class {};
         window.TagDisplay = class {};
-        window.createPanoViewerLogo = () => ({ showSourceLogo: () => {} });
-        window.createPanoAttribution = () => ({ show: () => {} });
+        window.createPanoViewerLogo = () => ({
+            showSourceLogo: () => { credit.logo = 'shown'; },
+            hide: () => { credit.logo = 'hidden'; },
+        });
+        window.createPanoAttribution = () => ({
+            show: () => { credit.attribution = 'shown'; },
+            hide: () => { credit.attribution = 'hidden'; },
+        });
         window.$ = () => ({ tooltip: () => ({ tooltip: () => {} }) });
         window.eval(`${CARD_SRC}\nwindow.Card = Card;`);
     });
 
     beforeEach(() => {
         window.sg = { regionNames: {}, tracker: { push: jest.fn() } };
+        credit.logo = null;
+        credit.attribution = null;
     });
 
     it('draws the marker where the crop says its label is', () => {
@@ -95,6 +106,15 @@ describe('a Gallery card\'s label marker', () => {
         expect(markerPercents()).toEqual({ left: 25, top: 75 });
     });
 
+    // A crop is our own cut of the panorama, so it owes a credit; the still arrives with Google's logo and © baked in.
+    it('credits a crop but leaves the still to Google', () => {
+        renderCard('/cropImage/CurbRamp/1', { x: 0.5, y: 0.62 });
+        expect(credit).toEqual({ logo: 'shown', attribution: 'shown' });
+
+        renderCard(null, null);
+        expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' });
+    });
+
     it('moves the marker to the canvas fraction when the crop fails and the still takes its place', async () => {
         const card = renderCard('/cropImage/CurbRamp/1', { x: 0.5, y: 0.62 });
         expect(markerPercents()).toEqual({ left: 50, top: 62 });
@@ -107,6 +127,7 @@ describe('a Gallery card\'s label marker', () => {
 
         expect(card.getStatus().imageSource).toBe('api');
         expect(markerPercents()).toEqual({ left: 25, top: 75 });
+        expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' }); // The still brands itself.
     });
 
     // With `return_error_code` on the still (#5327) an expired pano 404s instead of answering with a grey "no
@@ -122,6 +143,7 @@ describe('a Gallery card\'s label marker', () => {
 
         expect(img.classList.contains('static-gallery-image--missing')).toBe(true);
         expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(true);
+        expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' }); // Nothing is owed on no image.
     });
 
     it('hides them on the first failure for non-GSV imagery, whose crop is the only source', async () => {
@@ -134,6 +156,7 @@ describe('a Gallery card\'s label marker', () => {
 
         expect(img.classList.contains('static-gallery-image--missing')).toBe(true);
         expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(true);
+        expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' });
     });
 
     it('leaves the image and marker visible once a source loads', async () => {
@@ -146,6 +169,7 @@ describe('a Gallery card\'s label marker', () => {
 
         expect(img.classList.contains('static-gallery-image--missing')).toBe(false);
         expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(false);
+        expect(credit).toEqual({ logo: 'shown', attribution: 'shown' });
     });
 
     it('hands the crop marker on to whoever opens the label', () => {

@@ -57,8 +57,8 @@ describe('a Gallery card\'s location line', () => {
         window.ValidationInfoDisplay = class {};
         window.ValidationMenu = class {};
         window.TagDisplay = class {};
-        window.createPanoViewerLogo = () => ({ showSourceLogo: () => {} });
-        window.createPanoAttribution = () => ({ show: () => {} });
+        window.createPanoViewerLogo = () => ({ showSourceLogo: () => {}, hide: () => {} });
+        window.createPanoAttribution = () => ({ show: () => {}, hide: () => {} });
         window.$ = () => ({ tooltip: () => ({ tooltip: () => {} }) });
         window.eval(`${CARD_SRC}\nwindow.Card = Card;`);
     });

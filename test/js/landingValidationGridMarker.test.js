@@ -19,6 +19,9 @@ const GRID_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/LandingValidationGrid.js'), 'utf8'
 );
 
+/** What the source-logo and licence-line stubs were last told: the card owes a credit on a crop and nothing else. */
+const credit = { logo: null, attribution: null };
+
 /** One /label/labels entry; the click sits at 1/4, 3/4 of the 720x480 Explore canvas. */
 function entry(overrides = {}) {
     return {
@@ -46,6 +49,8 @@ describe('the landing validation grid\'s label marker', () => {
      * @param {Object} gridEntry - The /label/labels entry to render.
      */
     async function renderGrid(gridEntry) {
+        credit.logo = null;
+        credit.attribution = null;
         document.body.innerHTML = `
             <section id="landing-validation-container" hidden>
               <div id="landing-validation-grid"></div>
@@ -79,8 +84,14 @@ describe('the landing validation grid\'s label marker', () => {
         window.logWebpageActivity = jest.fn();
         // jsdom has no layout, so it has no matchMedia; the grid asks it how many slots this width shows.
         window.matchMedia = () => ({ matches: false });
-        window.createPanoViewerLogo = () => ({ showSourceLogo: () => {} });
-        window.createPanoAttribution = () => ({ show: () => {} });
+        window.createPanoViewerLogo = () => ({
+            showSourceLogo: () => { credit.logo = 'shown'; },
+            hide: () => { credit.logo = 'hidden'; },
+        });
+        window.createPanoAttribution = () => ({
+            show: () => { credit.attribution = 'shown'; },
+            hide: () => { credit.attribution = 'hidden'; },
+        });
         window.eval(`${GRID_SRC}\nwindow.LandingValidationGrid = LandingValidationGrid;`);
     });
 
@@ -88,6 +99,7 @@ describe('the landing validation grid\'s label marker', () => {
         await renderGrid(entry());
 
         expect(markerPercents()).toEqual({ left: 50, top: 62 });
+        expect(credit).toEqual({ logo: 'shown', attribution: 'shown' }); // Our own cut of the panorama owes a credit.
     });
 
     it('falls back to the canvas fraction for a crop nothing has recorded yet', async () => {
@@ -100,6 +112,8 @@ describe('the landing validation grid\'s label marker', () => {
         await renderGrid(entry({ cropUrl: null, cropMarker: null }));
 
         expect(markerPercents()).toEqual({ left: 25, top: 75 });
+        // Google bakes its logo and copyright into the still; a second logo on top printed the name twice.
+        expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' });
     });
 
     it('moves the marker to the canvas fraction when the crop fails and the still takes its place', async () => {
@@ -111,6 +125,7 @@ describe('the landing validation grid\'s label marker', () => {
 
         expect(document.querySelector('.lvg-card').dataset.imageSource).toBe('api');
         expect(markerPercents()).toEqual({ left: 25, top: 75 });
+        expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' }); // The still brands itself.
     });
 
     it('reports the position it drew, not the canvas fraction, with the validation', async () => {
