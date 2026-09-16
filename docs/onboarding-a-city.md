@@ -135,7 +135,10 @@ its default either way.
 2. **Google Analytics** — with `ga-service-account.json` in the repo root (one-time setup in
    `tools/create_ga_properties.py`), creates the prod and test properties inside the existing GA accounts and fills
    both the `G-…` measurement ids and the numeric property ids. Skipped with a pointer otherwise; run the script
-   standalone later.
+   standalone later. Then it asks to add both URLs' hostnames to the production Maps key's referrers
+   (`tools/maps_key_referrers.py`, which only ever appends); without them the city's map and panos don't load. It
+   needs `gcloud` signed in as an identity that can edit the key, and when gcloud can't read or edit it, the step is
+   skipped with a pointer.
 3. **Schema** — `db/scripts/create-new-schema.sh` clones a **donor** city's structure and seed rows (evolutions,
    version history, `config` with its tutorial street, tags, survey questions), creates the role, bumps the
    sequences, grants `readonly_user`. The SidewalkAI user's per-schema rows are not among the seeds: the clone
@@ -220,10 +223,10 @@ its default either way.
   QA'd the city locally, dump it again first**: `make onboard-city id=<city-id> args="--dump-only"` reruns only the
   dump step. The QA data stays in your local schema and out of the dump; the one thing the step changes is the
   street priorities a walk moved, which it resets to the fill's 1 on a `y`. Then the IT tooling
-  (`uwcseit-sidewalk-tools`: `bin/setup-new.pl`, test stage first), the Maps-key referrers for both URLs
-  (`docs/google-cloud.md`), DNS, and the PR with the config, message, and docs changes. Where the tooling can't be
-  used, the fallback is an email to CS support asking for the test and prod servers, with both URLs, any redirect
-  from an older name, `SIDEWALK_CITY_ID`, and `DATABASE_USER`.
+  (`uwcseit-sidewalk-tools`: `bin/setup-new.pl`, test stage first), the Maps-key referrers for both URLs if step 2
+  skipped them (`python3 tools/maps_key_referrers.py <city-id>`), DNS, and the PR with the config, message, and docs
+  changes. Where the tooling can't be used, the fallback is an email to CS support asking for the test and prod
+  servers, with both URLs, any redirect from an older name, `SIDEWALK_CITY_ID`, and `DATABASE_USER`.
 
 ## Optional follow-ups
 
