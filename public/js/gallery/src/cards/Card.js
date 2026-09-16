@@ -309,16 +309,18 @@ class Card {
         const img = this.#panoImage;
         const primaryUrl = this.#cropUrl || this.#gsvImageUrl;
         const fallbackUrl = this.#cropUrl ? this.#gsvImageUrl : null;
+        // The container asks again on every page and filter render, so a card whose last attempt fell back to the
+        // still, or failed outright, starts over from the crop rather than keeping that attempt's marker and credit.
+        this.#useSource(this.#cropUrl ? 'crop' : 'api');
         img.onload = () => {
           this.#status.imageFetched = true;
+          this.#showImage();
           resolve(true);
         };
         img.onerror = () => {
           if (fallbackUrl) {
-            // Primary failed; try the other source, and place the marker and the credit for it.
-            this.#status.imageSource = this.#cropUrl ? 'api' : 'crop';
-            this.#positionMarker();
-            this.#creditImage(this.#status.imageSource);
+            // The crop failed; try the still, and place the marker and the credit for it.
+            this.#useSource('api');
             img.onerror = () => { // Prevent infinite loop.
               this.#hideMissingImage();
               resolve(false);
@@ -334,6 +336,17 @@ class Card {
         resolve(true);
       }
     });
+  }
+
+  /**
+   * Records which source is being shown and places the marker and the credit for it: the crop's recorded position
+   * describes the crop only, and only the crop owes a credit.
+   * @param {string} source - 'crop' or 'api'.
+   */
+  #useSource(source) {
+    this.#status.imageSource = source;
+    this.#positionMarker();
+    this.#creditImage(source);
   }
 
   /**
@@ -359,8 +372,18 @@ class Card {
    */
   #hideMissingImage() {
     this.#panoImage.classList.add('static-gallery-image--missing');
+    // The image stays in the tree, transparent, as the click target that opens the card; its alt would describe a
+    // picture that isn't there.
+    this.#panoImage.setAttribute('aria-hidden', 'true');
     this.#markerWrapper.classList.add('gallery-marker-wrapper--missing');
     this.#creditImage(null);
+  }
+
+  /** Undoes #hideMissingImage once a source has loaded, so a retry after a transient failure shows the image. */
+  #showImage() {
+    this.#panoImage.classList.remove('static-gallery-image--missing');
+    this.#panoImage.removeAttribute('aria-hidden');
+    this.#markerWrapper.classList.remove('gallery-marker-wrapper--missing');
   }
 
   /**

@@ -142,8 +142,33 @@ describe('a Gallery card\'s label marker', () => {
         await expect(loaded).resolves.toBe(false);
 
         expect(img.classList.contains('static-gallery-image--missing')).toBe(true);
+        expect(img.getAttribute('aria-hidden')).toBe('true'); // Its alt would describe a picture that isn't there.
         expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(true);
         expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' }); // Nothing is owed on no image.
+    });
+
+    // The container loads every card again on each page and filter render, so a transient failure (a crop 502 during
+    // a deploy, a Static API 5xx) must not blank the card for the rest of the visit.
+    it('shows the image again when a retry after a total failure loads the crop', async () => {
+        const card = renderCard('/cropImage/CurbRamp/1', { x: 0.5, y: 0.62 });
+        const img = document.querySelector('.static-gallery-image');
+        const failed = card.loadImage();
+        img.onerror();
+        img.onerror();
+        await expect(failed).resolves.toBe(false);
+        expect(card.getStatus().imageSource).toBe('api');
+
+        const retried = card.loadImage();
+        img.onload();
+        await expect(retried).resolves.toBe(true);
+
+        expect(img.classList.contains('static-gallery-image--missing')).toBe(false);
+        expect(img.hasAttribute('aria-hidden')).toBe(false);
+        expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(false);
+        // The retry starts over from the crop, so the marker and the credit are the crop's again.
+        expect(card.getStatus().imageSource).toBe('crop');
+        expect(markerPercents()).toEqual({ left: 50, top: 62 });
+        expect(credit).toEqual({ logo: 'shown', attribution: 'shown' });
     });
 
     it('hides them on the first failure for non-GSV imagery, whose crop is the only source', async () => {
