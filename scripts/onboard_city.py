@@ -313,38 +313,6 @@ def merge_tiny_same_way(streets, max_m):
     return merged[['u', 'v', 'osm_ids', 'highway', 'geometry']], n_merged
 
 
-def check_region_names(names):
-    """
-    Flags region names that look poorly formatted (#4620), for the report and the log.
-
-    Args:
-        names: The region names, in region-id order.
-
-    Returns:
-        Human-readable warnings: empty names, stray whitespace, ALL CAPS (5+ chars), all lowercase, control
-        characters, duplicates (each duplicate reported once). Empty when every name looks fine.
-    """
-    warnings = []
-    seen = Counter(names)
-    for name in names:
-        if not name or not name.strip():
-            warnings.append('empty region name')
-            continue
-        if name != name.strip() or '  ' in name:
-            warnings.append(f'stray whitespace in {name!r}')
-        letters = [c for c in name if c.isalpha()]
-        if letters and all(c.isupper() for c in letters) and len(name) >= 5:
-            warnings.append(f'ALL CAPS: {name!r}')
-        if letters and all(c.islower() for c in letters):
-            warnings.append(f'all lowercase: {name!r}')
-        if re.search(r'[\x00-\x1f\x7f]', name):
-            warnings.append(f'control character in {name!r}')
-        if seen[name] > 1:
-            warnings.append(f'duplicate name: {name!r}')
-            seen[name] = 0
-    return warnings
-
-
 # Per-run tiny-segment figures (#4717): counts under 5/10/20 m, the sub-20 m share, the median street length, and
 # the loop roads (start == end) — kept as OSM maps them, as shipped cities carry a few, but worth a glance in QGIS.
 StreetStats = namedtuple('StreetStats', 'n_lt5 n_lt10 n_lt20 pct_lt20 median_m n_loops')
@@ -1479,10 +1447,10 @@ def write_sql(path, roads, regions):
 
 
 def write_report(path, args, region_source, roads, regions, dropped, stats, coverage, heal_stats,
-                 name_warnings=(), n_tier1_merged=None):
+                 n_tier1_merged=None):
     """
-    Writes a Markdown run report: sources, counts, tiny-segment figures, per-region stats with flags, region-name
-    warnings, and the next manual steps.
+    Writes a Markdown run report: sources, counts, tiny-segment figures, per-region stats with flags, and the next
+    manual steps.
 
     Args:
         path:          Output ``.md`` path.
@@ -1496,7 +1464,6 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
                        ``--from-gpkg`` re-export without a ``city_boundary`` layer).
         heal_stats:    :data:`HealStats` from :func:`assign_regions`, or None on a ``--from-gpkg`` re-export
                        (healing already happened on the original run).
-        name_warnings:  Region-name findings from :func:`check_region_names`.
         n_tier1_merged: Pieces absorbed by :func:`merge_tiny_same_way`, or None on a re-export.
     """
     way_type_counts = roads['highway'].value_counts()
@@ -1554,10 +1521,6 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
     ]
     lines += [f'| {s.region_id} | {s.name} | {s.n_streets} | {s.street_km:.1f} | {s.flag} |'
               for s in stats.itertuples()]
-    if name_warnings:
-        lines += ['', f'## Region name warnings ({len(name_warnings)}, #4620)', '']
-        lines += [f'- {warning}' for warning in name_warnings]
-        lines += ['', 'Rename in QGIS (then `--from-gpkg`), or fix the source dataset and rerun.']
     lines += [
         '',
         '## Imagery preflight',
@@ -1709,9 +1672,6 @@ def run_from_gpkg(args):
     stats = region_street_stats(roads, regions, args.max_region_street_km)
     for stat in stats[stats['flag'] != ''].itertuples():
         logger.warning('Region %d (%s): %s', stat.region_id, stat.name, stat.flag)
-    name_warnings = check_region_names(list(regions['name']))
-    for warning in name_warnings:
-        logger.warning('Region name: %s', warning)
     # Hand edits are the likeliest source of topology problems, so the fetch path's warnings run here too.
     warn_if_overlapping(regions)
     if 'city_boundary' in layers:
@@ -1728,7 +1688,7 @@ def run_from_gpkg(args):
     write_sql(sql_path, roads, regions)
     write_endpoints_csv(endpoints_path, roads)
     write_report(report_path, args, f'edited GeoPackage ({gpkg_path.name})', roads, regions, roads.iloc[0:0],
-                 stats, coverage, None, name_warnings)
+                 stats, coverage, None)
     logger.info('\nWrote:\n  %s\n  %s\n  %s\nThe SQL now matches the edited GeoPackage.', sql_path, endpoints_path,
                 report_path)
 
@@ -1796,9 +1756,6 @@ def main(argv=None):
     regions = name_single_region(regions, city_name, deliberate_names)
     # Provenance rides in the staging data itself, so fill-new-schema.sh needs no data-source input.
     regions['data_source'] = region_source
-    name_warnings = check_region_names(list(regions['name']))
-    for warning in name_warnings:
-        logger.warning('Region name: %s', warning)
 
     streets = fetch_streets(boundary_poly, args.include_alleys, args.fetch_buffer_m)
     logger.info('OSM street edges fetched: %d', len(streets))
@@ -1838,7 +1795,7 @@ def main(argv=None):
     write_sql(sql_path, roads, regions)
     write_endpoints_csv(endpoints_path, roads)
     write_report(report_path, args, region_source, roads, regions, dropped, stats, coverage, heal_stats,
-                 name_warnings, n_tier1_merged)
+                 n_tier1_merged)
     logger.info('\nWrote:\n  %s\n  %s\n  %s\n  %s\nQA the GeoPackage in QGIS before loading the SQL (see the report).',
                 gpkg_path, sql_path, endpoints_path, report_path)
 

@@ -147,24 +147,10 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
     INSERT INTO osm_way_street_edge (osm_way_id, street_edge_id)
         SELECT osm_ids[1], road_id FROM qgis_road;
 
-    -- Fill in the region table using the qgis_region table. Names imported from QGIS/OSM are sometimes ALL CAPS
-    -- (issue #4596), so title-case any name that is entirely uppercase and does not look like an acronym. Guards keep
-    -- abbreviations intact: single tokens of 4 chars or fewer ("VCU"/"NASA"), names containing an "&" ("PSE&G"), and
-    -- dotted initialisms ("P.I.C.O.") are left as-is; multi-word names and longer single words ("SUNNYSIDE") are
-    -- title-cased. COLLATE "default" makes initcap use the DB's UTF-8 collation so accented names title-case correctly;
-    -- a name that already carries a lowercase letter is left as provided. Evolution 341 back-fills Houston, the one
-    -- existing site imported before this was added.
+    -- Fill in the region table using the qgis_region table. Names go in exactly as staged: fixing them needs judgment
+    -- about the local language (#4619), so it happens during onboarding review, not here.
     INSERT INTO region (region_id, data_source, name, geom, deleted)
-        SELECT region_id, data_source,
-               CASE WHEN name = upper(name)
-                         AND name ~ '[[:alpha:]]'
-                         AND name NOT LIKE '%&%'
-                         AND (char_length(name) - char_length(replace(name, '.', ''))) < 2
-                         AND (name LIKE '% %' OR char_length(name) >= 5)
-                    THEN initcap(name COLLATE "default")
-                    ELSE name
-               END,
-               geom, $REGION_DELETED_Q
+        SELECT region_id, data_source, name, geom, $REGION_DELETED_Q
         FROM qgis_region;
 
     -- Fill in the street_edge_region table. First streets for the city, then the tutorial street.

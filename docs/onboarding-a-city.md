@@ -62,7 +62,7 @@ It never touches the database. It writes, under `db/onboarding/<city-id>/`:
 
 | File | What for |
 |---|---|
-| `report.md` | Read this first: street count, km, the **tiny-segment share** (production averages 18% under 20 m; Bayonne rebuilt at 4%), loop roads (start = end — kept as OSM maps them), regions flagged `OVERSIZED` (> 60 km of streets — split it), `SPARSE`/`EMPTY` (fold it), region-name warnings (#4620; a repeated source name is kept as separate regions, `"X (2)"`), boundary coverage. |
+| `report.md` | Read this first: street count, km, the **tiny-segment share** (production averages 18% under 20 m; Bayonne rebuilt at 4%), loop roads (start = end — kept as OSM maps them), regions flagged `OVERSIZED` (> 60 km of streets — split it), `SPARSE`/`EMPTY` (fold it), boundary coverage. A repeated source name is kept as separate regions, `"X (2)"`. |
 | `<city-id>_qa.gpkg` | The QA GeoPackage for QGIS: `qgis_road`, `qgis_region`, `city_boundary`, plus `dropped_segments` and `rider_merges` so you can see what the rules did. |
 | `qgis_tables.sql` | The staging tables `fill-new-schema.sh` consumes (`qgis_road`: `road_id`, `osm_ids bigint[]`, `highway`, `region_id`, `geom`; `qgis_region`: `region_id`, `name`, `data_source`, `geom`). |
 | `street_edge_endpoints.csv` | The imagery scan's input, so step 2 can run before any database exists. |

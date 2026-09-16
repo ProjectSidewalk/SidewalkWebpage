@@ -761,7 +761,7 @@ def test_write_report_summarizes_a_fetch_run(tmp_path):
     stats = oc.region_street_stats(roads, regions, 60)
     heal = oc.HealStats(3, 2, 45.0, 1)
     oc.write_report(tmp_path / 'report.md', args, 'US Census tracts (TIGERweb)', roads, regions, roads.iloc[0:1],
-                    stats, 0.98, heal, name_warnings=['ALL CAPS: \'DOWNTOWN\''], n_tier1_merged=7)
+                    stats, 0.98, heal, n_tier1_merged=7)
     report = (tmp_path / 'report.md').read_text()
     assert '98.0%' in report
     assert 'dropped_segments' in report
@@ -769,7 +769,6 @@ def test_write_report_summarizes_a_fetch_run(tmp_path):
     assert '| residential | 1 |' in report
     assert 'Tiny segments (#4717): < 5 m: **0**, < 10 m: **0**, < 20 m: **0** (**0%**' in report
     assert '(#4717 tier 1): **7**' in report
-    assert 'Region name warnings (1, #4620)' in report and "ALL CAPS: 'DOWNTOWN'" in report
     assert 'make check-imagery id=testville-wa args="--sample 150 --gsv"' in report
     assert 'Loop roads (start = end): **0**' in report
 
@@ -784,7 +783,6 @@ def test_write_report_re_export_variant_omits_healing_and_coverage(tmp_path):
     assert 'Healed' not in report
     assert 'covering' not in report
     assert 'tier 1' not in report
-    assert 'Region name warnings' not in report
 
 
 def _staging_gpkg(tmp_path, with_boundary=True):
@@ -1060,7 +1058,7 @@ def test_main_aborts_when_generated_data_fails_validation(tmp_path, monkeypatch)
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# merge_tiny_same_way (#4717 tier 1) / check_region_names (#4620) / street_length_stats / write_endpoints_csv
+# merge_tiny_same_way (#4717 tier 1) / street_length_stats / write_endpoints_csv
 # --------------------------------------------------------------------------------------------------------------------
 
 def _edges(rows):
@@ -1137,20 +1135,6 @@ def test_tier1_merge_is_off_at_zero_and_on_empty_input():
     streets = _edges([(1, 2, [100], [(0, 0), (0.0001, 0)]), (2, 3, [100], [(0.0001, 0), (0.0002, 0)])])
     assert oc.merge_tiny_same_way(streets, 0)[1] == 0
     assert oc.merge_tiny_same_way(streets.iloc[0:0], 20)[1] == 0
-
-
-def test_check_region_names_flags_each_defect_once():
-    warnings = oc.check_region_names(['DOWNTOWN', ' Eastside', 'westside', 'bad\x07name', 'Dup', 'Dup', ''])
-    assert "ALL CAPS: 'DOWNTOWN'" in warnings
-    assert "stray whitespace in ' Eastside'" in warnings
-    assert "all lowercase: 'westside'" in warnings
-    assert any(w.startswith('control character in') for w in warnings)
-    assert warnings.count("duplicate name: 'Dup'") == 1
-    assert 'empty region name' in warnings
-
-
-def test_check_region_names_leaves_a_short_acronym_alone():
-    assert oc.check_region_names(['SoDo', 'VCU', 'Census Tract 501']) == []
 
 
 def test_gpkg_frame_passes_frames_without_way_ids_through():

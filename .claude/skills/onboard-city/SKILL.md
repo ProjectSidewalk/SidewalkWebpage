@@ -54,8 +54,36 @@ Read `db/onboarding/<city-id>/report.md` before anything else and put the number
   split oddly.
 - **Regions:** `OVERSIZED` (> 60 km of streets) means split in QGIS; `SPARSE`/`EMPTY` means fold into a neighbour
   with `--merge-regions "A:B"` (names, not ids) and rerun. Seattle's regions carry 20–36 km each.
-- **Region name warnings (#4620):** ALL CAPS, stray whitespace, duplicates. Fix in the source or in QGIS.
 - **Coverage:** regions should cover ≥ 95% of the boundary; streets outside every region are trimmed.
+
+### Region names
+
+Nothing else checks them: the build keeps the source's names and the fill stores them exactly as staged, and they
+show up in the region picker, mission messages, and the API. Review them for every city, after the last
+parameter rerun (a rerun without `--from-gpkg` rebuilds the GeoPackage from the source and drops renames).
+
+1. **List them:** `ogrinfo -ro -q -sql "SELECT region_id, name FROM qgis_region ORDER BY region_id"
+   db/onboarding/<city-id>/<city-id>_qa.gpkg`.
+2. **Look for** shape problems (ALL CAPS, all lowercase, leading/trailing/double spaces, non-breaking spaces or
+   control characters, empty names); repeats, which the build numbers `"X (2)"`: find what actually tells them
+   apart (#5252 found 1437 shared names across 12 prod cities); and damage from the source — CDMX's file had
+   accents stripped or letters deleted (`SECCIN` for *Sección*, `CAADA` for *Cañada*) and plain typos.
+3. **Propose fixes by the city's own conventions, not a rule.** What #4619 learned fixing 1806 prod names:
+   - Spanish: `de`/`del` lowercase inside a name but capitalized opening one (`Del Valle`); `en`, `para`, `y`
+     lowercase; articles lowercase only after `de`/`en` (`Santa Cruz de las Salinas`, but `Barrio Los Reyes`);
+     ordinals lowercase (`1a Sección`, `2do Reacomodo`), but a block letter keeps its capital (`Picos Iztacalco 1B`).
+   - Codes and acronyms stay as written: Rancagua's `UV 2` (Unidad Vecinal), `PSE&G`, `P.I.C.O.`, `LA-32`.
+     Pronounceable ones follow local usage (`Infonavit`, `Pemex`).
+   - Check spellings against an official list (the city's catalogue, the postal registry). Don't guess an accent
+     or spelling you can't source: leave it and say so.
+4. **Show the maintainer** a table of only the names that change (`region_id | current | proposed | why`), with the
+   uncertain ones marked, and apply only what they approve.
+5. **Apply** with GDAL, one `UPDATE` per call (an `@file` runs only its first statement; plain `sqlite3` fails with
+   `no such function: ST_IsEmpty`, since the GeoPackage's index triggers need GDAL). Double any `'` in a name:
+   ```
+   ogrinfo -q -sql "UPDATE qgis_region SET name = 'Ciudad del Sol' WHERE region_id = 12" <city-id>_qa.gpkg
+   ```
+   Then `make build-city-data id=<city-id> args="--from-gpkg"` and list the names again to confirm.
 
 Then the human QA gate: open `<city-id>_qa.gpkg` in QGIS (`qgis_road`, `qgis_region`, `city_boundary`,
 `dropped_segments`, `rider_merges`) over a basemap. Fixes come back two ways: parameter changes rerun the build;
