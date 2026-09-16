@@ -243,7 +243,9 @@ class Minimap {
 
   /**
    * Resets the mission-progress bar to 0% for a freshly started mission, mirroring the sidebar bar's reset when the
-   * mission-complete modal closes. Shows "0 / <target>" so the new mission's length is visible right away.
+   * mission-complete modal closes. Shows "0 / <target>" so the new mission's length is visible right away, and
+   * re-plants the flags for the new mission: its start is where the last one finished, so the red finish flag the
+   * user just reached becomes the green start flag without waiting for their next step (#5378).
    * @param {Mission} [mission] - The newly started mission; if absent, the distance label is cleared.
    */
   resetMissionProgress(mission) {
@@ -251,6 +253,7 @@ class Minimap {
     svl.ui.minimap.missionProgressPercent.text('0%');
     svl.ui.minimap.missionProgress.attr('aria-valuenow', 0);
     if (mission) {
+      this.updateMissionFlags(mission);
       const totalMeters = mission.getDistance('meters');
       svl.ui.minimap.missionProgressDistance.text(
         i18next.t('common:distance-progress', { done: 0, total: totalMeters }),
