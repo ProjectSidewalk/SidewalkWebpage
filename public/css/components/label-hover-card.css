@@ -60,6 +60,30 @@
   height: calc(14px * var(--ui-scale));
 }
 
+/* Provenance strip for AI-generated labels (#5359), between the header and the facts. A tooltip on the marker's AI
+   badge is the obvious home for this sentence, but on Validate the hover that would open it is the hover that opens
+   this card beside the marker, so the two would stack. Its own strip rather than a body chip because it says where the
+   label came from, not what it claims, so the body's empty-state logic doesn't count it (LabelCardView). The wash sets
+   it off as a notice; neutral-800 on it holds 8:1, where the description's neutral-700 would sit at 4.7:1 for 10px
+   text. Shown per label by LabelCardView. */
+.label-hover-card__ai {
+  display: none;
+  align-items: flex-start;
+  gap: calc(6px * var(--ui-scale));
+  padding: calc(6px * var(--ui-scale)) calc(10px * var(--ui-scale));
+  border-top: 1px solid var(--color-neutral-200);
+  background: var(--color-neutral-100);
+  font: var(--text-tiny-regular);
+  line-height: 1.45;
+  color: var(--color-neutral-800);
+}
+
+.label-hover-card__ai-icon {
+  flex: none;
+  width: calc(14px * var(--ui-scale));
+  height: calc(14px * var(--ui-scale));
+}
+
 .label-hover-card__body {
   display: flex;
   flex-direction: column;

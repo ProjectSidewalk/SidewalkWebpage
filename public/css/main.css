@@ -2176,6 +2176,14 @@ kbd {
   z-index: 3;
 }
 
+/* Validate's badge is display-only (#5359): it sits on the marker whose hover opens the label card, and that card
+   carries the AI disclaimer, so the badge must not intercept the pointer — its own tooltip and cursor would fire on top
+   of the card. With no pointer events it can't be the target of the delegated .ai-icon-marker hover handlers either
+   (aiLabelIndicator.js). */
+.ai-icon-marker-validate {
+  pointer-events: none;
+}
+
 /* LabelMap / LabelView section */
 #ai-validation-header {
   position: relative;
