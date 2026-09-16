@@ -58,13 +58,17 @@ class PanoCopyrightIngestSpec extends PlaySpec with BeforeAndAfterAll with Guice
 
   private def storedCopyright(panoId: String): Option[String] = run(panoDataTable.getPano(panoId)).value.copyright
 
+  private def deleteSeeded(): Unit = {
+    val _ = run(panoDataTable.panoDataRecords.filter(_.panoId inSet panoIds).delete)
+  }
+
   override def beforeAll(): Unit = {
     super.beforeAll()
-    val _ = run(sqlu"DELETE FROM pano_data WHERE pano_id IN (#${panoIds.map(id => s"'$id'").mkString(",")})")
+    deleteSeeded()
   }
 
   override def afterAll(): Unit = {
-    val _ = run(sqlu"DELETE FROM pano_data WHERE pano_id IN (#${panoIds.map(id => s"'$id'").mkString(",")})")
+    deleteSeeded()
     super.afterAll()
   }
 

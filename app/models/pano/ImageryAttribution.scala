@@ -130,10 +130,10 @@ object ImageryAttribution {
    */
   def normalizeCopyright(source: PanoSource, copyright: Option[String]): Option[String] = {
     val recorded = copyright.map(_.trim).filter(_.nonEmpty)
-    source match {
-      case PanoSource.Mapillary => recorded.flatMap(unwrap(_, "Mapillary"))
-      case PanoSource.Panoramax => recorded.flatMap(unwrap(_, "Panoramax"))
-      case _                    => recorded
+    ProviderSuffix.get(source) match {
+      case Some(suffix) =>
+        recorded.map(r => suffix.replaceFirstIn(CopyrightSign.replaceFirstIn(r, ""), "").trim).filter(_.nonEmpty)
+      case None => recorded
     }
   }
 
@@ -141,13 +141,12 @@ object ImageryAttribution {
   private val CopyrightSign: Regex = """^\s*©\s*""".r
 
   /**
-   * Strips the sign and a trailing ` / Provider (licence)` from a recorded copyright, leaving the contributor's name.
-   * The provider has to stand on its own, at the start or after a slash or a space, so a name that merely ends in
-   * it is left alone.
+   * A trailing ` / Provider (licence)`, per provider whose copyright names a contributor. The provider has to stand
+   * on its own, at the start or after a slash or a space, so a name that merely ends in it is left alone. Compiled
+   * once: [[line]] runs per label in every Gallery, Validate and popup payload.
    */
-  private def unwrap(recorded: String, provider: String): Option[String] = {
-    val providerSuffix = raw"""(^|\s*/\s*|\s+)${Regex.quote(provider)}(\s*\([^)]*\))?\s*$$""".r
-    val name           = providerSuffix.replaceFirstIn(CopyrightSign.replaceFirstIn(recorded, ""), "").trim
-    Option(name).filter(_.nonEmpty)
-  }
+  private val ProviderSuffix: Map[PanoSource, Regex] =
+    Seq("Mapillary" -> PanoSource.Mapillary, "Panoramax" -> PanoSource.Panoramax).map { case (name, source) =>
+      source -> raw"""(^|\s*/\s*|\s+)${Regex.quote(name)}(\s*\([^)]*\))?\s*$$""".r
+    }.toMap
 }
