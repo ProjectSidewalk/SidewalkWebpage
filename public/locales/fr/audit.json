@@ -349,7 +349,8 @@
     "free-explore-no-imagery": "Il n'y a plus d'images de rue dans cette direction. Essayez de regarder autour de vous ou de partir dans l'autre sens.",
     "stuck-suggestion": "Si vous ne pouvez pas vous déplacer avec les flèches, essayez de cliquer sur les indications de navigation en bas à droite. Ou cliquez sur le bouton Bloqué à gauche.",
     "imagery-skip-limit": "Plusieurs rues d'affilée n'avaient aucune image, nous avons donc arrêté de vous déplacer automatiquement. Essayez une autre partie de la carte, ou rechargez la page pour recommencer.",
-    "imagery-load-failed": "Nous n'avons pas pu charger les images de rue pour le moment. Veuillez réessayer dans quelques minutes."
+    "imagery-load-failed": "Nous n'avons pas pu charger les images de rue pour le moment. Veuillez réessayer dans quelques minutes.",
+    "imagery-session-expired": "Votre session d'images de rue a expiré et n'a pas pu être renouvelée. Veuillez recharger la page pour continuer ; votre travail est enregistré."
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "MISSION D'EXPLORATION",

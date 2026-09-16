@@ -512,7 +512,7 @@ reset.pw.email.signature = El equipo de Project Sidewalk
 
 reset.pw.submit.new.pw = Escribe tu nueva contraseña
 reset.pw.message = Restablecer la contraseña
-reset.pw.successful = ¡Contraseña restablecida!
+reset.pw.successful = ¡Contraseña restablecida! Se cerró tu sesión en tus otros dispositivos.
 reset.pw.invalid.reset.link = Enlace de reinicio inválido
 
 dashboard.current.team.greeting = Equipo: {0}
@@ -761,6 +761,9 @@ dashboard.team.error.signin = Inicia sesión para crear un equipo.
 dashboard.team.error.name.length = El nombre del equipo debe tener entre 2 y 50 caracteres.
 dashboard.team.error.desc.length = La descripción es demasiado larga (máx. 300 caracteres).
 dashboard.team.error.name.allowed = Ese nombre no está permitido; elige otro.
+dashboard.team.error.name.comma = El nombre del equipo no puede contener una coma.
+dashboard.team.error.name.numeric = El nombre del equipo no puede ser solo números.
+dashboard.team.error.name.taken = Ese nombre ya lo tiene otro equipo.
 dashboard.team.error.desc.allowed = Esa descripción no está permitida; elige otra.
 dashboard.nav.aria = Secciones del panel
 dashboard.nav.you = Tú
@@ -790,10 +793,14 @@ dashboard.settings.password.new = Nueva contraseña
 dashboard.settings.password.new.confirm = Confirmar nueva contraseña
 dashboard.settings.password.forgot = ¿Olvidaste tu contraseña actual? <a href="{0}">Restablécela por correo electrónico</a>.
 dashboard.settings.password.submit = Cambiar contraseña
-dashboard.settings.password.changed = Tu contraseña se cambió correctamente.
+dashboard.settings.password.changed = Tu contraseña se cambió correctamente y se cerró tu sesión en tus otros dispositivos.
 dashboard.settings.password.error.current = Esa no es tu contraseña actual.
 dashboard.settings.password.error.same = La nueva contraseña debe ser distinta de la actual.
 dashboard.settings.password.error.throttled = Demasiados intentos. Espera hasta {0} minutos y vuelve a intentarlo.
+dashboard.settings.devices = Dispositivos con sesión iniciada
+dashboard.settings.devices.help = ¿Iniciaste sesión en algún lugar que ya no usas, como una computadora compartida? Cierra la sesión en todas partes excepto en este navegador.
+dashboard.settings.devices.submit = Cerrar sesión en otros dispositivos
+dashboard.settings.devices.signed.out = Se cerró tu sesión en tus otros dispositivos.
 dashboard.settings.service.hours = Horas de servicio voluntario
 dashboard.settings.service.hours.toggle = Inscribirme en horas de servicio comunitario
 dashboard.settings.service.hours.help = Te inscribe para el reconocimiento oficial —tu supervisor puede verificar tus horas— y añade "Horas de servicio" y "Control de tiempo" al menú de tu cuenta.

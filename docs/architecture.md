@@ -59,8 +59,9 @@ The backend follows a consistent layering: **routes → Controller → Service �
 - **Per-city schemas** — each city is its own schema (`sidewalk_<city>`); they're essentially identical.
   Authentication lives in the shared `sidewalk_login` schema, along with anything that belongs to the account rather
   than to one city: `user_settings` holds choices the user makes (units, service-hours tracking) and
-  `user_account_state` holds what the site records about them (having finished the Explore tutorial). Both only get a
-  row once there's something to store (#3720). Per-city stats and privacy flags stay in each city's `user_stat`.
+  `user_account_state` holds what the site records about them (having finished the Explore tutorial, and when a
+  password change or Settings' "Sign out of other devices" last signed them out everywhere, #5305). Both only get a row once there's something to store
+  (#3720). Per-city stats and privacy flags stay in each city's `user_stat`.
   The schema holds auth to one account per email, one login row per account, and one password per login row
   (#5317), and sign-in, reset, and change-password all reach the password through the account.
 - **Evolutions** — schema changes are Play evolutions: numbered SQL files in `conf/evolutions/default/`, each with
@@ -300,6 +301,11 @@ corresponding Twirl view:
   constructed, hidden or not, and most visits to a hosting page never open a label (#5128). Only the free library
   download is scheduled early (`PanoViewer.preloadLibrary`). Deferring the build moves that cost to the first open,
   where the user is watching, so the card covers the wait with `.label-detail__pano-loading` until imagery paints.
+  Infra3d's access token is minted server-side (`PanoDataService.getInfra3dToken`: an hour-long Cognito token, cached
+  until it nears expiry), stamped into the page once, and renewed in place by `Infra3dViewer` through
+  `GET /imageryAccessToken` five minutes before it expires, since the SDK has no refresh flow of its own. Failures
+  inside a viewer that no return value carries reach the logs through `PanoViewer._fireDiagnostic`
+  (`docs/logged-events.md`).
 
 There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
 libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`

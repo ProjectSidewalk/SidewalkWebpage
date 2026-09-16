@@ -288,6 +288,8 @@ class ExploreServiceImpl @Inject() (
           // so resuming it would hand back the street whose imagery would not load, on this load and every reload
           // after it. The street keeps its place in the pool for the offline checker to settle (#4918); this only
           // declines to serve it to the labeler who just bounced off it.
+          // AuditTaskTable.resumableTasksForUser holds a second copy of this same no-imagery test, for the next-street
+          // pick (#5370). Nothing links them, so a change to what counts as a give-up has to be made in both places.
           auditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get).flatMap {
             case Some(currTask) =>
               streetEdgeIssueTable.reportedNoImagerySince(currTask.edgeId, userId, currTask.taskStart).flatMap {
@@ -781,11 +783,14 @@ class ExploreServiceImpl @Inject() (
    * PanoDataTable.upsert. Every statement is idempotent, so the action is safe to repeat.
    */
   private def savePanoAction(pano: PanoSubmission, timestamp: OffsetDateTime): DBIO[Unit] = {
+    // Stored as ImageryAttribution expects it, a licensed contributor's bare name, whatever the client sent: the AI
+    // labeler sends the whole attribution (#5360).
+    val copyright = ImageryAttribution.normalizeCopyright(pano.source, pano.copyright)
     for {
       _ <- panoDataTable.upsert(
-        PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
-          pano.copyright, pano.license, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll,
-          expired = false, timestamp, Some(timestamp), timestamp, pano.source, hasBackup = None, address = pano.address,
+        PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate, copyright,
+          pano.license, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll, expired = false,
+          timestamp, Some(timestamp), timestamp, pano.source, hasBackup = None, address = pano.address,
           sourceMetadata = pano.sourceMetadata)
       )
 

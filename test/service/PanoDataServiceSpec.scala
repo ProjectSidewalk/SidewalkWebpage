@@ -5,8 +5,10 @@ import models.utils.CommonUtils
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import play.api.libs.json.Json
+import service.PanoDataService.Infra3dToken
 
 import java.nio.file.{Files, Path}
+import java.time.OffsetDateTime
 
 /**
  * Pure (no DB, no app boot) unit tests for the label lat/lng estimator (#4765/#4766): the saturating-cotangent
@@ -209,5 +211,22 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
     val zoom3Gap = measured(3) - PanoDataService.getFov(3.0)
     zoom3Gap should be > 0.25
     zoom3Gap should be < 0.45
+  }
+
+  test("Infra3d token: re-minted when absent or inside the minimum-remaining window, reused otherwise") {
+    val now = OffsetDateTime.parse("2026-09-16T12:00:00Z")
+    PanoDataService.infra3dTokenNeedsRemint(None, now) shouldBe true
+    PanoDataService.infra3dTokenNeedsRemint(Some(Infra3dToken("t", now.plusMinutes(14))), now) shouldBe true
+    PanoDataService.infra3dTokenNeedsRemint(Some(Infra3dToken("t", now.plusMinutes(16))), now) shouldBe false
+    // An already-expired token is the case that produced black viewers; it must never be reused.
+    PanoDataService.infra3dTokenNeedsRemint(Some(Infra3dToken("t", now.minusMinutes(1))), now) shouldBe true
+  }
+
+  test("Infra3d token response: expiry dated from the request, defaulting to Cognito's hour") {
+    val now = OffsetDateTime.parse("2026-09-16T12:00:00Z")
+    PanoDataService.parseInfra3dTokenResponse(Json.obj("access_token" -> "abc", "expires_in" -> 1800), now) shouldBe
+      Infra3dToken("abc", now.plusMinutes(30))
+    PanoDataService.parseInfra3dTokenResponse(Json.obj("access_token" -> "abc"), now) shouldBe
+      Infra3dToken("abc", now.plusHours(1))
   }
 }

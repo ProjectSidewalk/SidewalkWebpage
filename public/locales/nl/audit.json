@@ -349,7 +349,8 @@
     "free-explore-no-imagery": "Er zijn geen straatbeelden meer in deze richting. Kijk rond of ga de andere kant op.",
     "stuck-suggestion": "Als je niet met de pijlen kunt bewegen, probeer dan op de navigatie-aanwijzingen rechtsonder te klikken. Of probeer te klikken op de vastgelopen knop aan de linkerkant.",
     "imagery-skip-limit": "Meerdere straten achter elkaar hadden geen beelden, dus verplaatsen we je niet meer automatisch. Probeer een ander deel van de kaart of herlaad de pagina om opnieuw te beginnen.",
-    "imagery-load-failed": "We konden de straatbeelden nu niet laden. Probeer het over een paar minuten opnieuw."
+    "imagery-load-failed": "We konden de straatbeelden nu niet laden. Probeer het over een paar minuten opnieuw.",
+    "imagery-session-expired": "Je sessie voor straatbeelden is verlopen en kon niet worden vernieuwd. Herlaad de pagina om verder te gaan; je werk tot nu toe is opgeslagen."
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "ONTDEK MISSIE",

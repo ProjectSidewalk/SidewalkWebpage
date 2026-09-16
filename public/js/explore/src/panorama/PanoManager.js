@@ -193,6 +193,15 @@ class PanoManager {
     // Reaching a pano ends any run of failures, restoring the session's full flag allowance (#4918).
     NoImageryFlagGuard.reset();
 
+    // Viewer-internal failures land in the interaction log so a "the image went black" report can be read from the
+    // database. A lost token is the one case the viewer can't heal on its own, so it's the one the labeler hears about.
+    svl.panoViewer.addListener('diagnostic', (name, details) => {
+      svl.tracker.push(`PanoViewer_${name}`, details);
+      if (name === 'TokenExpired') {
+        svl.alertController?.showAlert(i18next.t('popup.imagery-session-expired'), 'imagerySessionExpired', false);
+      }
+    });
+
     // If we started from a lat/lng and used a backup point closer to the end of the street, reverse the street
     // direction. An explicitly requested pano that loaded isn't a "couldn't start at the start" signal, so it
     // doesn't reverse anything.
@@ -269,13 +278,6 @@ class PanoManager {
     }
 
     this.resetNavArrows();
-
-    // Issue: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2468
-    // This line of code is here to fix the bug when zooming with ctr +/-, the screen turns black.
-    // We are updating the pano POV slightly to simulate an update the gets rid of the black pano.
-    $(window).on('resize', () => {
-      this.updatePov(0.0025, 0.0025);
-    });
   }
 
   /**

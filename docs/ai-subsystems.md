@@ -44,7 +44,9 @@ for CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
    `label_validation` is submitted as the `SidewalkAI` user; below the threshold it
    downgrades to Unsure. HTTP 502 → `label_ai_failure` (permanently excluded).
 4. Surfaced in the *Humans vs AI* admin dashboard (`/admin/humans-vs-ai`) and the AI icon
-   (`AiLabelIndicator.js`) across Gallery/Validate/LabelMap.
+   (`public/js/common/aiLabelIndicator.js`) across Gallery/Validate/LabelMap. The icon carries the
+   "AI can make mistakes" tooltip everywhere except Validate's marker, where the label card the
+   same hover opens shows the sentence instead (`LabelCardView`, #5359).
 
 **Models:**
 - *Validator* (from [`sidewalk-validator-ai`](https://github.com/ProjectSidewalk/sidewalk-validator-ai)):
@@ -83,7 +85,10 @@ validation.
    (`AiController.submitAiLabel`).
 2. `ExploreService.submitAiLabelData` computes lat/lng + POV, creates an AI mission/audit
    task, inserts real `label` rows under the AI user, and records provenance in
-   `label_ai_info`.
+   `label_ai_info`. The pano's `copyright` is reduced to the contributor's bare name on the
+   way in (`ImageryAttribution.normalizeCopyright`): the labeler sends a whole attribution,
+   `© name / Mapillary (CC BY-SA 4.0)`, and the server composes the sign, provider and licence
+   around the stored name itself, so storing the whole thing credited everything twice (#5360).
 3. Labels then enter the normal human-validation pipeline — which is also the feedback signal
    for improving the model (continual-improvement roadmap:
    `sidewalk-auto-labeler/docs/design-review-2026-07.md`). A lone AI vote leaves a label one

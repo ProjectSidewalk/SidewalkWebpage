@@ -516,7 +516,7 @@ reset.pw.email.signature = L''équipe Project Sidewalk
 
 reset.pw.submit.new.pw = Saisissez votre nouveau mot de passe.
 reset.pw.message = Réinitialiser le mot de passe
-reset.pw.successful = Mot de passe réinitialisé !
+reset.pw.successful = Mot de passe réinitialisé ! Vous avez été déconnecté de vos autres appareils.
 reset.pw.invalid.reset.link = Lien de réinitialisation invalide
 
 dashboard.current.team.greeting = Équipe : {0}
@@ -765,6 +765,9 @@ dashboard.team.error.signin = Veuillez vous connecter pour créer une équipe.
 dashboard.team.error.name.length = Le nom de l''équipe doit comporter de 2 à 50 caractères.
 dashboard.team.error.desc.length = La description est trop longue (300 caractères maximum).
 dashboard.team.error.name.allowed = Ce nom n''est pas autorisé — veuillez en choisir un autre.
+dashboard.team.error.name.comma = Le nom de l''équipe ne peut pas contenir de virgule.
+dashboard.team.error.name.numeric = Le nom de l''équipe ne peut pas être composé uniquement de chiffres.
+dashboard.team.error.name.taken = Ce nom est déjà pris par une autre équipe.
 dashboard.team.error.desc.allowed = Cette description n''est pas autorisée — veuillez en choisir une autre.
 dashboard.nav.aria = Sections du tableau de bord
 dashboard.nav.you = Vous
@@ -794,10 +797,14 @@ dashboard.settings.password.new = Nouveau mot de passe
 dashboard.settings.password.new.confirm = Confirmer le nouveau mot de passe
 dashboard.settings.password.forgot = Mot de passe actuel oublié ? <a href="{0}">Réinitialisez-le par e-mail</a>.
 dashboard.settings.password.submit = Changer le mot de passe
-dashboard.settings.password.changed = Votre mot de passe a été modifié.
+dashboard.settings.password.changed = Votre mot de passe a été modifié et vous avez été déconnecté de vos autres appareils.
 dashboard.settings.password.error.current = Ce n''est pas votre mot de passe actuel.
 dashboard.settings.password.error.same = Votre nouveau mot de passe doit être différent de l''actuel.
 dashboard.settings.password.error.throttled = Trop de tentatives. Veuillez patienter jusqu''à {0} minutes, puis réessayez.
+dashboard.settings.devices = Appareils connectés
+dashboard.settings.devices.help = Connecté quelque part que vous n’utilisez plus, comme un ordinateur partagé ? Déconnectez-vous partout sauf dans ce navigateur.
+dashboard.settings.devices.submit = Se déconnecter des autres appareils
+dashboard.settings.devices.signed.out = Vous avez été déconnecté de vos autres appareils.
 dashboard.settings.service.hours = Heures de bénévolat
 dashboard.settings.service.hours.toggle = M''inscrire aux heures de service communautaire
 dashboard.settings.service.hours.help = Vous inscrit à la reconnaissance officielle — votre responsable peut vérifier vos heures — et ajoute « Heures de bénévolat » et « Suivi du temps » au menu de votre compte.

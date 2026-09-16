@@ -79,6 +79,9 @@ class PanoManager {
 
     this.#primaryViewer = await panoViewerType.create(this.#panoCanvas, panoOptions);
     svv.panoViewer = this.#primaryViewer;
+    // Viewer-internal failures are logged so a black-viewer report can be diagnosed from the database. Validate has
+    // no alert banner; its per-label Pannellum fallback is what the labeler sees when the primary viewer stops.
+    this.#primaryViewer.addListener('diagnostic', (name, details) => svv.tracker.push(`PanoViewer_${name}`, details));
 
     // Set up the imagery source logo. #showPannellumPano will override it if Pannellum takes over below.
     this.#logo = createPanoViewerLogo(this.#panoCanvas.parentElement, panoViewerType.SOURCE);
@@ -487,26 +490,20 @@ class PanoManager {
 
   /**
    * Adds or removes the AI badge on the validation marker.
+   *
+   * Display-only: the badge carries no tooltip here (#5359). Hovering the marker opens the label card, and that card
+   * holds the AI disclaimer, so a tooltip on the badge could only open on top of it. main.css keeps the badge
+   * pointer-inert for the same reason.
+   *
    * @param {boolean} showIndicator - True to show the AI badge, false to remove it.
    */
   #updateMarkerAiIndicator(showIndicator) {
     const markerEl = this.labelMarker.marker_;
-    let existingIndicator = markerEl.querySelector('.ai-icon-marker-validate');
+    const existingIndicator = markerEl.querySelector('.ai-icon-marker-validate');
 
-    if (showIndicator) {
-      if (!existingIndicator) {
-        existingIndicator = aiLabelIndicator(['ai-icon-marker-validate']);
-        markerEl.appendChild(existingIndicator);
-        const $indicator = ensureAiTooltip(existingIndicator);
-        // Namespace and clear first: markerEl is reused across labels, so without removing the previous
-        // indicator's handlers they'd accumulate (each closing over a now-detached indicator) and leak (#2745).
-        $(markerEl).off('mouseenter.aiIndicator mouseleave.aiIndicator')
-          .on('mouseenter.aiIndicator', () => $indicator.tooltip('show'))
-          .on('mouseleave.aiIndicator', () => $indicator.tooltip('hide'));
-      }
-    } else if (existingIndicator) {
-      $(markerEl).off('mouseenter.aiIndicator mouseleave.aiIndicator');
-      $(existingIndicator).tooltip('destroy');
+    if (showIndicator && !existingIndicator) {
+      markerEl.appendChild(aiLabelIndicator(['ai-icon-marker-validate'], { tooltip: false }));
+    } else if (!showIndicator && existingIndicator) {
       existingIndicator.remove();
     }
   }

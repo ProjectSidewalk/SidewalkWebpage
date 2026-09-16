@@ -23,6 +23,25 @@ util.pano.TUTORIAL_PANO_IDS = new Set(['tutorial', 'afterWalkTutorial']);
 util.pano.MS_PER_JULIAN_YEAR = 365.25 * 24 * 3600 * 1000;
 
 /**
+ * A JWT's `exp` claim as epoch milliseconds. Per-session tokens (Infra3d's, via Cognito) carry their expiry, so a
+ * viewer can plan renewal from the token alone.
+ * @param {string} token - The bearer token.
+ * @returns {?number} The expiry, or null when the token isn't a JWT with a numeric `exp`.
+ */
+util.pano.jwtExpiryMs = (token) => {
+  const payload = typeof token === 'string' ? token.split('.')[1] : undefined;
+  if (!payload) return null;
+  try {
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    const claims = JSON.parse(atob(padded));
+    return Number.isFinite(claims.exp) ? claims.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
  * Ranking weights and decay scales for a provider that picks its own pano from a box of candidates.
  *
  * The numbers come from conf/pano-scoring.json by way of the data-pano-scoring stamp main.scala.html puts on every

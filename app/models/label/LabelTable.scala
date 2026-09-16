@@ -28,6 +28,7 @@ import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTableDef, LatLngBBox, MyPostgresProfile}
 import models.validation.{
   LabelValidationTableDef,
+  ValidationLabelFilter,
   ValidationOption,
   ValidationQueuePolicy,
   ValidationTaskCommentTableDef
@@ -766,6 +767,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val usersUnfiltered        = TableQuery[SidewalkUserTableDef]
   val userStats              = TableQuery[UserStatTableDef]
   val userRoles              = TableQuery[UserRoleTableDef]
+  val userTeams              = TableQuery[UserTeamTableDef]
   val configTable            = TableQuery[ConfigTableDef]
   val streetEdgeRegions      = TableQuery[StreetEdgeRegionTableDef]
   val routeStreets           = TableQuery[RouteStreetTableDef]
@@ -1346,15 +1348,33 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   private def servableLabels(
       userId: String,
       viewer: PanoSource,
-      unvalidatedOnly: Boolean
+      unvalidatedOnly: Boolean,
+      filter: ValidationLabelFilter
   ): Query[LabelTableDef, Label, Seq] = {
     for {
       _lb <- labels
       _pd <- panoData if _pd.panoId === _lb.panoId
       if imageryViewable(_pd) && _pd.source === viewer && _lb.userId =!= userId
       if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty
+      if matchesFilter(_lb, filter)
       if !validatedByUser(_lb, userId)
     } yield _lb
+  }
+
+  /**
+   * Whether the label passes Expert Validate's user, region, and team filters.
+   *
+   * Region and team are `EXISTS`, not joins, so a label is never counted twice.
+   */
+  private def matchesFilter(l: LabelTableDef, filter: ValidationLabelFilter): Rep[Boolean] = {
+    val always: Rep[Boolean] = true
+    filter.userIds.fold(always)(ids => l.userId inSetBind ids) &&
+    filter.regionIds.fold(always)(ids =>
+      streetEdgeRegions.filter(ser => ser.streetEdgeId === l.streetEdgeId && (ser.regionId inSetBind ids)).exists
+    ) &&
+    filter.teamIds.fold(always)(ids =>
+      userTeams.filter(ut => ut.userId === l.userId && (ut.teamId inSetBind ids)).exists
+    )
   }
 
   /**
@@ -1393,15 +1413,17 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param queues            The cascade the counts are for; decides which of the per-queue counts are worth taking.
    * @param requiredLabelType A type the mission is pinned to, if any; the face count is skipped unless NoSidewalk
    *                          could be served.
+   * @param filter            Expert Validate's filters, so a type is only picked if it has labels matching them.
    */
   def getAvailableValidationsLabelsByType(
       userId: String,
       viewer: PanoSource,
       unvalidatedOnly: Boolean,
       queues: Seq[ValidationQueuePolicy.ValidationQueue],
-      requiredLabelType: Option[LabelTypeEnum.Base]
+      requiredLabelType: Option[LabelTypeEnum.Base],
+      filter: ValidationLabelFilter
   ): DBIO[Seq[LabelTypeValidationsLeft]] = {
-    val servable = servableLabels(userId, viewer, unvalidatedOnly)
+    val servable = servableLabels(userId, viewer, unvalidatedOnly, filter)
 
     val countsByType = servable
       .groupBy(_.labelType)
@@ -1432,7 +1454,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         requiredLabelType.forall(_ == LabelTypeEnum.NoSidewalk)
     val facesNeedingVotes: DBIO[Option[Int]] =
       if (canServeNoSidewalkFromNeedsVotes)
-        countNoSidewalkFacesNeedingVotes(userId, viewer, unvalidatedOnly).map(Some(_))
+        countNoSidewalkFacesNeedingVotes(userId, viewer, unvalidatedOnly, filter).map(Some(_))
       else DBIO.successful(None)
 
     for {
@@ -1519,10 +1541,16 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param userId          User ID for the current user.
    * @param viewer          The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param unvalidatedOnly Count only labels with no decision recorded, the same filter the label query applies.
+   * @param filter          Expert Validate's filters, the same ones the label query applies.
    */
-  def countNoSidewalkFacesNeedingVotes(userId: String, viewer: PanoSource, unvalidatedOnly: Boolean): DBIO[Int] = {
+  def countNoSidewalkFacesNeedingVotes(
+      userId: String,
+      viewer: PanoSource,
+      unvalidatedOnly: Boolean,
+      filter: ValidationLabelFilter
+  ): DBIO[Int] = {
     val sidedServable = for {
-      _lb <- servableLabels(userId, viewer, unvalidatedOnly)
+      _lb <- servableLabels(userId, viewer, unvalidatedOnly, filter)
       if _lb.labelType === (LabelTypeEnum.NoSidewalk: LabelTypeEnum.Base) && ValidationQueuePolicy.needsVotes(_lb)
       _lp <- labelPoints if _lb.labelId === _lp.labelId && _lp.streetSide.isDefined
     } yield (_lb.streetEdgeId, _lp.streetSide)
@@ -1573,8 +1601,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param userId           User ID for the current user.
    * @param labelType        Label type of labels requested.
    * @param queue            Which subset of labels to draw from.
-   * @param userIds          Optional list of user IDs to filter by.
-   * @param regionIds        Optional list of region IDs to filter by.
+   * @param filter           Expert Validate's user, region, and team filters.
    * @param excludedLabelIds Labels the caller already holds and must not be handed again (#4810).
    * @param excludedFaces    Block faces, as (street edge, side), whose labels must not be handed out (#5285): a
    *                         NoSidewalk mission holds one label per face, and a face's other labels are dropped here
@@ -1588,8 +1615,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       labelType: LabelTypeEnum.Base,
       queue: ValidationQueuePolicy.ValidationQueue,
       includeAiTags: Boolean = true,
-      userIds: Option[Set[String]] = None,
-      regionIds: Option[Set[Int]] = None,
+      filter: ValidationLabelFilter,
       unvalidatedOnly: Boolean = false,
       excludedLabelIds: Set[Int] = Set.empty,
       excludedFaces: Set[(Int, StreetSide.Value)] = Set.empty
@@ -1615,8 +1641,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       // Filter out labels the caller already holds; the empty-set constant is for the same `IN ()` reason as above.
       if (if (excludedLabelIds.isEmpty) true: Rep[Boolean] else !(_lb.labelId inSetBind excludedLabelIds))
       if !onExcludedFaces(_lb, _lp, StreetSide.Left) && !onExcludedFaces(_lb, _lp, StreetSide.Right)
-      if regionIds.map(ids => _ser.regionId inSetBind ids).getOrElse(true: Rep[Boolean]) // Filter by region IDs.
-      if userIds.map(ids => _lb.userId inSetBind ids).getOrElse(true: Rep[Boolean])      // Filter by user IDs.
+      if matchesFilter(_lb, filter)
       if !validatedByUser(_lb, userId) // See the predicate for why this is not a left join.
     } yield (_lb, _lp, _pd, _us, _at, _lb.labelTypeName, _ser.regionId, isAiLabeler(_lb))
 

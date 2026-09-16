@@ -52,6 +52,7 @@ POST    /cspReport                                      controllers.SecurityPoli
 
 # City config params.
 GET     /cityMapParams                                  controllers.ConfigController.getCityMapParams()
+GET     /imageryAccessToken                             controllers.ConfigController.getImageryAccessToken()
 
 # Admin
 # Admin dashboard (redesign #4272).
@@ -141,8 +142,8 @@ GET     /audit                                          controllers.ExploreContr
 
 # Label validation tasks
 GET     /validate                                       controllers.ValidateController.validate(regions: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None, neighborhoods: Option[String] ?= None)
-GET     /expertValidate                                 controllers.ValidateController.expertValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, regions: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None, triage: Option[Boolean] ?= None, neighborhoods: Option[String] ?= None)
-GET     /adminValidate                                  controllers.ValidateController.expertValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, regions: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None, triage: Option[Boolean] ?= None, neighborhoods: Option[String] ?= None)
+GET     /expertValidate                                 controllers.ValidateController.expertValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, regions: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None, triage: Option[Boolean] ?= None, neighborhoods: Option[String] ?= None, teams: Option[String] ?= None)
+GET     /adminValidate                                  controllers.ValidateController.expertValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, regions: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None, triage: Option[Boolean] ?= None, neighborhoods: Option[String] ?= None, teams: Option[String] ?= None)
 
 # Task API
 GET     /tasks                                          controllers.ExploreController.getTasksInARegion(regionId: Int)
@@ -188,6 +189,7 @@ GET     /dashboard                                      controllers.UserDashboar
 GET     /dashboard/settings                             controllers.UserDashboardController.settings
 POST    /dashboard/settings                             controllers.UserDashboardController.saveSettings
 POST    /dashboard/settings/password                    controllers.UserDashboardController.changePassword
+POST    /dashboard/settings/signOutOtherDevices         controllers.UserDashboardController.signOutOtherDevices
 GET     /profile/:username                              controllers.UserDashboardController.publicProfile(username: String)
 # Pre-cutover /preview URLs redirect permanently to the production ones.
 GET     /dashboard/preview                              controllers.UserDashboardController.dashboardPreviewRedirect

@@ -108,7 +108,7 @@
   "bad": "Bad",
   "yes": "Yes",
   "no": "No",
-  "ai-generated-label-tooltip": "This label was AI generated. AI can make mistakes, so please make your own assessment.",
+  "ai-generated-label-tooltip": "This label was AI generated. AI can make mistakes, so please make your own judgment about correctness.",
   "tag": {
     "narrow": "narrow",
     "points into traffic": "points into cross traffic",
