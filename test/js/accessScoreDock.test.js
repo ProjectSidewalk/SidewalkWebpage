@@ -84,6 +84,10 @@ describe('AccessScoreDock', () => {
                     {label_cluster_id: 3, label_type: 'SurfaceProblem', street_edge_id: model.streetCount,
                         intersection_id: null, region_id: 2, region_name: 'Other', median_severity: 2, cluster_size: 1,
                         label_ids: [201], coordinates: [0.2, 0.2]},
+                    // A cluster whose label the stub does not serve: it never gets a picture.
+                    {label_cluster_id: 4, label_type: 'CurbRamp', street_edge_id: model.streetCount,
+                        intersection_id: null, region_id: 2, region_name: 'Other', median_severity: 1, cluster_size: 1,
+                        label_ids: [301], coordinates: [0.1, 0.1]},
                 ],
             },
             labels: {
@@ -477,6 +481,23 @@ describe('AccessScoreDock', () => {
         await settle();
         expect(shownIds()).toEqual(['101']);
         expect(fetchMock.mock.calls.filter(([u]) => String(u).includes('/v3/api/labelClusters'))).toHaveLength(2);
+
+        // A pan onto a cluster whose label never loads leaves the empty state up, and the next pan over the same
+        // cluster retries the label rather than keeping an empty ribbon with no text.
+        const labelFetches = () => fetchMock.mock.calls.filter(([u]) => String(u).includes('/label/id/')).length;
+        map.getBounds = () => ({getWest: () => 0, getSouth: () => 0, getEast: () => 0.15, getNorth: () => 0.15});
+        moveend({originalEvent: {}});
+        jest.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        await settle();
+        expect(shownIds()).toEqual([]);
+        expect(document.querySelector('.acs-photos__status').textContent).toBe('photos-empty');
+        const before = labelFetches();
+        map.getBounds = () => ({getWest: () => -0.0004, getSouth: () => 0, getEast: () => 0.15, getNorth: () => 0.15});
+        moveend({originalEvent: {}});
+        jest.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        await settle();
+        expect(labelFetches()).toBe(before + 1);
+        expect(document.querySelector('.acs-photos__status').textContent).toBe('photos-empty');
 
         // A selection outranks the viewport.
         dock.setSelection({unit: 'streets', id: 2});

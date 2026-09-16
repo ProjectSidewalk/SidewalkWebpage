@@ -56,11 +56,12 @@ class AccessScorePhotoStrip {
     this.#types = types;
     this.#onOpenLabel = onOpenLabel;
     this.#log = log;
-    // An <ol>: the ribbon is a ranking, and the CSS numbers it.
+    // An <ol>: the ribbon is a ranking, and the CSS numbers it. The explicit role keeps it a list in Safari, which
+    // drops list semantics under `list-style: none`.
     container.innerHTML = `
       <p class="acs-photos__caption"></p>
       <p class="acs-photos__status" role="status"></p>
-      <ol class="acs-photos__ribbon"></ol>`;
+      <ol class="acs-photos__ribbon" role="list"></ol>`;
     this.#els = {
       caption: container.querySelector('.acs-photos__caption'),
       status: container.querySelector('.acs-photos__status'),
@@ -134,7 +135,9 @@ class AccessScorePhotoStrip {
     // A cluster's newest label stands for it: label ids are a serial, so the highest is the latest placed.
     const newest = (p) => Math.max(...p.label_ids);
     const wanted = picked.map(newest);
-    if (keepWhileLoading && wanted.length === this.#wanted.length && wanted.every((id, k) => id === this.#wanted[k])) {
+    // Only a ribbon with pictures on it is worth keeping: a draw whose every label failed to load retries instead.
+    const unchanged = wanted.length === this.#wanted.length && wanted.every((id, k) => id === this.#wanted[k]);
+    if (keepWhileLoading && unchanged && this.#ids.length > 0) {
       this.#els.status.textContent = '';
       return;
     }

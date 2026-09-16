@@ -68,9 +68,10 @@ async function stubFeeds(context) {
   await context.route('**/v3/api/labelClusters*', (route) => route.fulfill({json: clustersFixture()}));
   await context.route('**/label/id/*', (route) => {
     const id = Number(route.request().url().split('/').pop());
-    // Label 11 carries a (stubbed) crop so its chips are live; the rest have no picture to judge by.
-    return route.fulfill({json: {label_id: id, label_type: id === 12 ? 'Obstacle' : 'CurbRamp',
-      severity: id === 12 ? 3 : 1, crop_url: id === 11 ? '/assets/images/icons/label_type_icons/CurbRamp_small.svg' : null,
+    // Label 11 carries a (stubbed) crop so its chips are live; the rest have no picture to judge by. 12 and 13 are
+    // the obstacle cluster's labels; the strip shows a cluster by its newest, 13.
+    return route.fulfill({json: {label_id: id, label_type: id >= 12 ? 'Obstacle' : 'CurbRamp',
+      severity: id >= 12 ? 3 : 1, crop_url: id === 11 ? '/assets/images/icons/label_type_icons/CurbRamp_small.svg' : null,
       backup_image_url: null, tags: [], num_agree: 2, num_disagree: 0, num_unsure: 0, user_validation: null,
       from_current_user: false, heading: 10, pitch: -5, zoom: 1, canvas_x: 300, canvas_y: 200}});
   });
@@ -385,8 +386,9 @@ test.describe('/accessScore', () => {
     await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from Fixture (lowest scoring)');
     const items = page.locator('.acs-photos__item');
     await expect(items).toHaveCount(2);
-    // Worst first: the severity-3 obstacle cluster ahead of the good curb ramps; no crops locally → placeholders.
-    await expect(items.nth(0)).toHaveAttribute('data-label-id', '12');
+    // Worst first: the severity-3 obstacle cluster, shown by its newest label, ahead of the good curb ramps; no
+    // crops locally → placeholders.
+    await expect(items.nth(0)).toHaveAttribute('data-label-id', '13');
     await expect(items.nth(0).locator('.lmc__placeholder')).toBeVisible();
     await expect(items.nth(0).locator('.lmc__open')).toHaveAttribute('data-ps-tooltip', /Obstacle in Path, High/);
     // With no picture there is nothing to judge, so its chips are locked.
@@ -457,7 +459,7 @@ test.describe('/accessScore', () => {
     // Both fixture clusters sit inside this view; worst first, as everywhere.
     const items = page.locator('.acs-photos__item');
     await expect(items).toHaveCount(2);
-    await expect(items.nth(0)).toHaveAttribute('data-label-id', '12');
+    await expect(items.nth(0)).toHaveAttribute('data-label-id', '13');
     // A selection outranks the view.
     await page.evaluate(() => window.accessScore.dock.setSelection({unit: 'streets', id: 2}));
     await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from Teaneck Road · Street 2');
