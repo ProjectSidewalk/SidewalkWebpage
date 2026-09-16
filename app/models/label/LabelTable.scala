@@ -1357,20 +1357,17 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Whether the label passes Expert Validate's user, region, and team filters.
    *
-   * Region/team are `EXISTS`, not joins, so a label is never double-counted; an empty id set matches nothing, since
-   * `inSetBind` would otherwise render the `IN ()` Postgres rejects.
+   * Region and team are `EXISTS`, not joins, so a label is never counted twice.
    */
   private def matchesFilter(l: LabelTableDef, filter: ValidationLabelFilter): Rep[Boolean] = {
-    def unless[A](ids: Option[Set[A]])(test: Set[A] => Rep[Boolean]): Rep[Boolean] = ids match {
-      case None                     => true: Rep[Boolean]
-      case Some(set) if set.isEmpty => false: Rep[Boolean]
-      case Some(set)                => test(set)
-    }
-    unless(filter.userIds)(ids => l.userId inSetBind ids) &&
-    unless(filter.regionIds)(ids =>
+    val always: Rep[Boolean] = true
+    filter.userIds.fold(always)(ids => l.userId inSetBind ids) &&
+    filter.regionIds.fold(always)(ids =>
       streetEdgeRegions.filter(ser => ser.streetEdgeId === l.streetEdgeId && (ser.regionId inSetBind ids)).exists
     ) &&
-    unless(filter.teamIds)(ids => userTeams.filter(ut => ut.userId === l.userId && (ut.teamId inSetBind ids)).exists)
+    filter.teamIds.fold(always)(ids =>
+      userTeams.filter(ut => ut.userId === l.userId && (ut.teamId inSetBind ids)).exists
+    )
   }
 
   /**
@@ -1417,7 +1414,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       unvalidatedOnly: Boolean,
       queues: Seq[ValidationQueuePolicy.ValidationQueue],
       requiredLabelType: Option[LabelTypeEnum.Base],
-      filter: ValidationLabelFilter = ValidationLabelFilter()
+      filter: ValidationLabelFilter
   ): DBIO[Seq[LabelTypeValidationsLeft]] = {
     val servable = servableLabels(userId, viewer, unvalidatedOnly, filter)
 
@@ -1543,7 +1540,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       userId: String,
       viewer: PanoSource,
       unvalidatedOnly: Boolean,
-      filter: ValidationLabelFilter = ValidationLabelFilter()
+      filter: ValidationLabelFilter
   ): DBIO[Int] = {
     val sidedServable = for {
       _lb <- servableLabels(userId, viewer, unvalidatedOnly, filter)
@@ -1611,7 +1608,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       labelType: LabelTypeEnum.Base,
       queue: ValidationQueuePolicy.ValidationQueue,
       includeAiTags: Boolean = true,
-      filter: ValidationLabelFilter = ValidationLabelFilter(),
+      filter: ValidationLabelFilter,
       unvalidatedOnly: Boolean = false,
       excludedLabelIds: Set[Int] = Set.empty,
       excludedFaces: Set[(Int, StreetSide.Value)] = Set.empty

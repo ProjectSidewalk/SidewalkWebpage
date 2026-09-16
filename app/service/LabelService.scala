@@ -70,7 +70,7 @@ trait LabelService {
       viewer: PanoSource,
       labelType: LabelTypeEnum.Base,
       queues: Seq[ValidationQueue],
-      filter: ValidationLabelFilter = ValidationLabelFilter(),
+      filter: ValidationLabelFilter,
       unvalidatedOnly: Boolean = false,
       excludedLabelIds: Set[Int] = Set.empty
   ): Future[Seq[LabelValidationMetadata]]
@@ -111,20 +111,26 @@ object LabelServiceImpl {
    * The cascade is walked in order and the first queue with at least one such type wins, so Expert Validate falls
    * back from triage to the crowd's queue and finally to everything rather than stalling when a queue empties out.
    *
-   * @param candidates    Per-type counts, already narrowed to the types this mission may use.
-   * @param queues        The cascade, in order.
-   * @param missionLength How many labels a mission needs.
-   * @return              The winning queue and its types; `(Any, empty)` when no queue can fill a mission, which
-   *                      leaves the caller with no label type to serve.
+   * @param candidates        Per-type counts, already narrowed to the types this mission may use.
+   * @param queues            The cascade, in order.
+   * @param missionLength     How many labels a mission needs.
+   * @param allowShortMission If no queue can fill a whole mission, take one with any labels (a filtered page's pool).
+   * @return                  The winning queue and its types; `(Any, empty)` when no queue qualifies, which leaves
+   *                          the caller with no label type to serve.
    */
   private[service] def chooseQueueAndTypes(
       candidates: Seq[LabelTypeValidationsLeft],
       queues: Seq[ValidationQueue],
-      missionLength: Int
+      missionLength: Int,
+      allowShortMission: Boolean
   ): (ValidationQueue, Seq[LabelTypeValidationsLeft]) = {
-    queues
-      .map(queue => (queue, candidates.filter(_.canFill(queue, missionLength))))
-      .find { case (_, types) => types.nonEmpty }
+    def firstQueueHolding(minLabels: Int): Option[(ValidationQueue, Seq[LabelTypeValidationsLeft])] =
+      queues
+        .map(queue => (queue, candidates.filter(_.canFill(queue, minLabels))))
+        .find { case (_, types) => types.nonEmpty }
+
+    firstQueueHolding(missionLength)
+      .orElse(if (allowShortMission) firstQueueHolding(1) else None)
       .getOrElse((ValidationQueue.Any, Seq.empty[LabelTypeValidationsLeft]))
   }
 
@@ -393,7 +399,7 @@ class LabelServiceImpl @Inject() (
       viewer: PanoSource,
       labelType: LabelTypeEnum.Base,
       queues: Seq[ValidationQueue],
-      filter: ValidationLabelFilter = ValidationLabelFilter(),
+      filter: ValidationLabelFilter,
       unvalidatedOnly: Boolean = false,
       excludedLabelIds: Set[Int] = Set.empty
   ): Future[Seq[LabelValidationMetadata]] = {
@@ -609,7 +615,7 @@ class LabelServiceImpl @Inject() (
       requiredLabelType: Option[LabelTypeEnum.Base],
       queues: Seq[ValidationQueue],
       unvalidatedOnly: Boolean,
-      filter: ValidationLabelFilter = ValidationLabelFilter()
+      filter: ValidationLabelFilter
   ): Future[Option[LabelTypeEnum.Base]] = {
     val counts = labelTable.getAvailableValidationsLabelsByType(userId, viewerType, unvalidatedOnly, queues,
       requiredLabelType, filter)
@@ -617,11 +623,11 @@ class LabelServiceImpl @Inject() (
       // NoSidewalk competes like any other type; its weight in the lottery is its count of block faces still needing
       // votes rather than its label count (LabelTypeValidationsLeft.weightFor, #5285).
       val candidates: Seq[LabelTypeValidationsLeft] = availValidations
-        .filter(_.validationsAvailable >= missionLength)
         .filter(x => requiredLabelType.isEmpty || requiredLabelType.contains(x.labelType))
         .filter(x => LabelTypeEnum.primaryValidateLabelTypes.contains(x.labelType))
 
-      val (queue, typesFiltered) = LabelServiceImpl.chooseQueueAndTypes(candidates, queues, missionLength)
+      val (queue, typesFiltered) =
+        LabelServiceImpl.chooseQueueAndTypes(candidates, queues, missionLength, allowShortMission = !filter.isEmpty)
 
       if (typesFiltered.length < 2) {
         typesFiltered.map(_.labelType).headOption

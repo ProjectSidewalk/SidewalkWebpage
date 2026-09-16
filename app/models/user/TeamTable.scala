@@ -47,6 +47,22 @@ class TeamTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvide
   }
 
   /**
+   * Finds a team by id when given only ASCII digits, otherwise by name.
+   *
+   * Names are compared in SQL, matching the `team_name_key` index; Java's case folding differs for some letters.
+   *
+   * @param idOrName A team id or name, as typed in a URL.
+   */
+  def findByIdOrName(idOrName: String): DBIO[Option[Team]] = {
+    val byId: Option[Int] = if (idOrName.matches("[0-9]+")) idOrName.toIntOption else None
+    byId match {
+      case Some(id) => teams.filter(_.teamId === id).result.headOption
+      case None     =>
+        teams.filter(_.name.trim.toLowerCase === idOrName.bind.trim.toLowerCase).result.headOption
+    }
+  }
+
+  /**
    * Updates the visibility of a team.
    * @param teamId The ID of the team to update.
    * @param visible The new visibility status.

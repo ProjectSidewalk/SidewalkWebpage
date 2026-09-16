@@ -312,9 +312,10 @@ class UserProfileController @Inject() (
         cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=CreateTeam")
         Ok(Json.obj("success" -> true, "team_id" -> teamId))
       }).recoverWith {
-        // Racing creates, or two names differing only by case/spacing, pass the checks above; the DB's
-        // case/space-insensitive unique index is the real guard (#5342).
-        case e: PSQLException if e.getSQLState == PSQLState.UNIQUE_VIOLATION.getState =>
+        // Matched by constraint name so a user_team violation from the join step isn't reported as a taken name.
+        case e: PSQLException
+            if e.getSQLState == PSQLState.UNIQUE_VIOLATION.getState &&
+              e.getServerErrorMessage.getConstraint == "team_name_key" =>
           bad("dashboard.team.error.name.taken")
       }
     }

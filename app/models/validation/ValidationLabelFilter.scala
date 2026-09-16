@@ -9,4 +9,6 @@ case class ValidationLabelFilter(
     userIds: Option[Set[String]] = None,
     regionIds: Option[Set[Int]] = None,
     teamIds: Option[Set[Int]] = None
-)
+) {
+  def isEmpty: Boolean = userIds.isEmpty && regionIds.isEmpty && teamIds.isEmpty
+}

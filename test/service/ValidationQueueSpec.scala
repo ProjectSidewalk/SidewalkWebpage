@@ -44,6 +44,8 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
 
   private val viewer: PanoSource = configService.getPanoSource
 
+  private val NoFilter = ValidationLabelFilter()
+
   /** Nobody: the caller the queries run as, so no fixture label is ever "placed by the requester". */
   private val requester: String = UUID.randomUUID().toString
 
@@ -413,10 +415,13 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
       val (memberLabels, byTeam, byTeamAndUser, countByTeam, byNoTeam, countByNoTeam) = runRolledBack(for {
         member   <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
         outsider <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
-        teamId   <- sql"INSERT INTO team (name, description) VALUES ('spec-5342', '') RETURNING team_id".as[Int].head
-        _        <- sqlu"INSERT INTO user_team (user_id, team_id) VALUES ($member, $teamId)"
-        mine     <- DBIO.sequence((1 to 3).map(_ => insertLabel(member, 0, 0, 0, None)))
-        _        <- DBIO.sequence((1 to 2).map(_ => insertLabel(outsider, 0, 0, 0, None)))
+        teamId   <-
+          sql"INSERT INTO team (name, description) VALUES (${s"spec-5342-${System.nanoTime()}"}, '') RETURNING team_id"
+            .as[Int]
+            .head
+        _    <- sqlu"INSERT INTO user_team (user_id, team_id) VALUES ($member, $teamId)"
+        mine <- DBIO.sequence((1 to 3).map(_ => insertLabel(member, 0, 0, 0, None)))
+        _    <- DBIO.sequence((1 to 2).map(_ => insertLabel(outsider, 0, 0, 0, None)))
         teamOnly = ValidationLabelFilter(teamIds = Some(Set(teamId)))
         byTeam    <- served(teamOnly)
         both      <- served(teamOnly.copy(userIds = Some(Set(member, outsider))))
@@ -438,7 +443,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
     "count each queue with the same predicates the label query filters on" in {
       def curbRampCounts(queues: Seq[ValidationQueue]): DBIO[LabelTypeValidationsLeft] =
         labelTable
-          .getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false, queues, None)
+          .getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false, queues, None, NoFilter)
           .map(
             _.find(_.labelType == LabelTypeEnum.CurbRamp)
               .getOrElse(LabelTypeValidationsLeft(LabelTypeEnum.CurbRamp, 0, 0, 0))
@@ -465,7 +470,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
           required: Option[LabelTypeEnum.Base]
       ): DBIO[Option[LabelTypeValidationsLeft]] =
         labelTable
-          .getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false, queues, required)
+          .getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false, queues, required, NoFilter)
           .map(_.find(_.labelType == LabelTypeEnum.NoSidewalk))
 
       val (crowd, pinnedElsewhere, triageOnly, pinnedHere) = runRolledBack(for {
@@ -527,7 +532,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
       // see a rolled-back fixture's rows.
       val counts = run(
         labelTable.getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false,
-          ValidationQueue.expertCascade, None)
+          ValidationQueue.expertCascade, None, NoFilter)
       )
       val needed    = 3
       val shortType = counts.find(t => t.triage < needed && t.needsVotes >= needed)
@@ -535,7 +540,8 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
       val labelType = shortType.get.labelType
 
       val triageOnly = await(
-        labelService.retrieveLabelListForValidation(requester, needed, viewer, labelType, Seq(ValidationQueue.Triage))
+        labelService.retrieveLabelListForValidation(requester, needed, viewer, labelType, Seq(ValidationQueue.Triage),
+          NoFilter)
       )
       val cascaded = await(
         labelService.retrieveLabelListForValidation(
@@ -543,7 +549,8 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
           needed,
           viewer,
           labelType,
-          Seq(ValidationQueue.Triage, ValidationQueue.NeedsVotes, ValidationQueue.Any)
+          Seq(ValidationQueue.Triage, ValidationQueue.NeedsVotes, ValidationQueue.Any),
+          NoFilter
         )
       )
 
@@ -556,14 +563,14 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
     "serve only labels that still need votes when NeedsVotes is the whole cascade" in {
       val counts = run(
         labelTable.getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false,
-          ValidationQueue.expertCascade, None)
+          ValidationQueue.expertCascade, None, NoFilter)
       )
       val fullType = counts.find(_.needsVotes >= 5)
       assume(fullType.isDefined, "no label type in this schema has enough labels needing votes")
 
       val served = await(
         labelService.retrieveLabelListForValidation(requester, 5, viewer, fullType.get.labelType,
-          Seq(ValidationQueue.NeedsVotes))
+          Seq(ValidationQueue.NeedsVotes), NoFilter)
       )
       assume(served.nonEmpty, "no imagery available for this schema's labels, so nothing could be served")
 
@@ -636,7 +643,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
   "countNoSidewalkFacesNeedingVotes" should {
     "count the requester's servable sided faces short of the settled support, and honour unvalidatedOnly" in {
       def faces(me: String, unvalidatedOnly: Boolean): DBIO[Int] =
-        labelTable.countNoSidewalkFacesNeedingVotes(me, viewer, unvalidatedOnly)
+        labelTable.countNoSidewalkFacesNeedingVotes(me, viewer, unvalidatedOnly, NoFilter)
 
       val (before, after, beforeUnvalidated, afterUnvalidated) = runRolledBack(for {
         // The requester is a real user here, so they can own a label of their own.
@@ -825,7 +832,12 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
 
       // 12 labels pass the 10-label gate even though only 3 faces need votes; the lottery then weighs the 3.
       val (queue, types) =
-        LabelServiceImpl.chooseQueueAndTypes(Seq(noSidewalk, curbRamp), ValidationQueue.crowdCascade, missionLength)
+        LabelServiceImpl.chooseQueueAndTypes(
+          Seq(noSidewalk, curbRamp),
+          ValidationQueue.crowdCascade,
+          missionLength,
+          allowShortMission = false
+        )
       queue mustBe ValidationQueue.NeedsVotes
       types must contain(noSidewalk)
       noSidewalk.weightFor(ValidationQueue.NeedsVotes) mustBe 3
@@ -834,13 +846,20 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
 
       // A small city with 8 faces across 40 labels still gets NoSidewalk missions: the gate is on labels.
       val smallCity = noSidewalk.copy(needsVotes = 40, facesNeedingVotes = Some(8))
-      LabelServiceImpl.chooseQueueAndTypes(Seq(smallCity), ValidationQueue.crowdCascade, missionLength)._2 mustBe
+      LabelServiceImpl
+        .chooseQueueAndTypes(Seq(smallCity), ValidationQueue.crowdCascade, missionLength, allowShortMission = false)
+        ._2 mustBe
         Seq(smallCity)
       // Labels enough but every face settled: NoSidewalk cannot be the crowd's queue's winner, or every mission would
       // land on faces the crowd has finished, so the cascade falls through to Any.
       val settledFaces = noSidewalk.copy(facesNeedingVotes = Some(0))
       settledFaces.canFill(ValidationQueue.NeedsVotes, missionLength) mustBe false
-      LabelServiceImpl.chooseQueueAndTypes(Seq(settledFaces), ValidationQueue.crowdCascade, missionLength) mustBe
+      LabelServiceImpl.chooseQueueAndTypes(
+        Seq(settledFaces),
+        ValidationQueue.crowdCascade,
+        missionLength,
+        allowShortMission = false
+      ) mustBe
         ((ValidationQueue.Any, Seq(settledFaces)))
       // The face count only ever weighs NoSidewalk; any other type weighs by its labels whatever it carries.
       curbRamp.weightFor(ValidationQueue.NeedsVotes) mustBe 50
@@ -857,29 +876,76 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
 
       // The crowd's cascade stops at NeedsVotes as soon as one type can fill a mission from it.
       val (crowdQueue, crowdTypes) =
-        LabelServiceImpl.chooseQueueAndTypes(Seq(plenty, thin), ValidationQueue.crowdCascade, missionLength)
+        LabelServiceImpl.chooseQueueAndTypes(
+          Seq(plenty, thin),
+          ValidationQueue.crowdCascade,
+          missionLength,
+          allowShortMission = false
+        )
       crowdQueue mustBe ValidationQueue.NeedsVotes
       crowdTypes mustBe Seq(plenty)
 
       // With nothing left to settle anywhere, it falls through to Any so the game does not end (#2929).
       val (fallbackQueue, fallbackTypes) =
-        LabelServiceImpl.chooseQueueAndTypes(Seq(thin), ValidationQueue.crowdCascade, missionLength)
+        LabelServiceImpl.chooseQueueAndTypes(
+          Seq(thin),
+          ValidationQueue.crowdCascade,
+          missionLength,
+          allowShortMission = false
+        )
       fallbackQueue mustBe ValidationQueue.Any
       fallbackTypes mustBe Seq(thin)
       thin.weightFor(ValidationQueue.Any) mustBe 1
 
       // An expert's cascade skips a triage queue too thin to fill a mission and lands on the crowd's queue.
       val (expertQueue, expertTypes) =
-        LabelServiceImpl.chooseQueueAndTypes(Seq(plenty), ValidationQueue.expertCascade, missionLength)
+        LabelServiceImpl.chooseQueueAndTypes(
+          Seq(plenty),
+          ValidationQueue.expertCascade,
+          missionLength,
+          allowShortMission = false
+        )
       expertQueue mustBe ValidationQueue.NeedsVotes
       expertTypes mustBe Seq(plenty)
       plenty.weightFor(ValidationQueue.NeedsVotes) mustBe 50
 
       // And no queue at all leaves the caller with no type to serve.
       val (emptyQueue, emptyTypes) =
-        LabelServiceImpl.chooseQueueAndTypes(Seq.empty, ValidationQueue.expertCascade, missionLength)
+        LabelServiceImpl.chooseQueueAndTypes(
+          Seq.empty,
+          ValidationQueue.expertCascade,
+          missionLength,
+          allowShortMission = false
+        )
       emptyQueue mustBe ValidationQueue.Any
       emptyTypes mustBe Seq.empty
+    }
+
+    "settle for a queue short of a whole mission only when short missions are allowed, and still prefer a full one" in {
+      val missionLength = 10
+      val few           = LabelTypeValidationsLeft(LabelTypeEnum.CurbRamp, 7, 7, 0)
+      val some          = LabelTypeValidationsLeft(LabelTypeEnum.Obstacle, 4, 0, 0)
+      val full          = LabelTypeValidationsLeft(LabelTypeEnum.Crosswalk, 12, 0, 0)
+
+      LabelServiceImpl.chooseQueueAndTypes(
+        Seq(few, some),
+        ValidationQueue.crowdCascade,
+        missionLength,
+        allowShortMission = false
+      ) mustBe ((ValidationQueue.Any, Seq.empty))
+      // The cascade keeps its order: NeedsVotes holds CurbRamp's 7, so it wins over Any's 11 across both types.
+      LabelServiceImpl.chooseQueueAndTypes(
+        Seq(few, some),
+        ValidationQueue.crowdCascade,
+        missionLength,
+        allowShortMission = true
+      ) mustBe ((ValidationQueue.NeedsVotes, Seq(few)))
+      LabelServiceImpl.chooseQueueAndTypes(
+        Seq(few, full),
+        ValidationQueue.crowdCascade,
+        missionLength,
+        allowShortMission = true
+      ) mustBe ((ValidationQueue.Any, Seq(full)))
     }
   }
 }

@@ -151,7 +151,8 @@ only when the cascade has `NeedsVotes` and the mission is not pinned to another 
    The counts apply `unvalidatedOnly` and Expert Validate's `?users=`, `?regions=`, and `?teams=` filters
    (`ValidationLabelFilter`) when the page does, so they describe the same pool the label query draws from.
    Every primary type qualifies, `NoSidewalk` included (#5285); the gate is on labels for every type, so a small city
-   with eight faces across forty labels still gets `NoSidewalk` missions.
+   with eight faces across forty labels still gets `NoSidewalk` missions. On a filtered page, when no type has a full
+   mission's worth, a type with any matching labels qualifies: the mission ends early rather than never starting.
 2. Walk the cascade and take the **first queue in which some type can fill a whole mission**. That queue decides both
    which types are in play and what they are weighted by. For `Any` the weights are uniform — it is the fallback, and
    its counts carry no priority signal.

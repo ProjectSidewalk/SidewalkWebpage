@@ -1,16 +1,22 @@
 package controllers
 
 import models.user.Role
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
+import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import util.{AnonSession, RoleSession}
+
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 /**
  * Functional tests for `POST /userapi/createTeam`'s name rules (#5342): no comma or all-digit name, and no duplicate
@@ -28,6 +34,20 @@ class CreateTeamValidationSpec extends PlaySpec with RoleSession with GuiceOneAp
 
   implicit lazy val mat: Materializer = app.materializer
 
+  private val NamePrefix = "spec-5342-"
+
+  override def afterAll(): Unit = {
+    val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
+    Await.result(
+      dbConfig.db.run(
+        sqlu"""DELETE FROM user_team WHERE team_id IN (SELECT team_id FROM team WHERE name LIKE ${NamePrefix + "%"})"""
+          .andThen(sqlu"DELETE FROM team WHERE name LIKE ${NamePrefix + "%"}")
+      ),
+      30.seconds
+    )
+    super.afterAll()
+  }
+
   private def createTeam(name: String) = {
     val cookies = sessionAs(Role.Registered)
     route(
@@ -41,7 +61,7 @@ class CreateTeamValidationSpec extends PlaySpec with RoleSession with GuiceOneAp
 
   "POST /userapi/createTeam" should {
     "reject a name with a comma" in {
-      val resp = createTeam(s"spec-5342-a,${System.nanoTime()}")
+      val resp = createTeam(s"${NamePrefix}a,${System.nanoTime()}")
       status(resp) mustBe BAD_REQUEST
       (contentAsJson(resp) \ "success").as[Boolean] mustBe false
     }
@@ -53,7 +73,7 @@ class CreateTeamValidationSpec extends PlaySpec with RoleSession with GuiceOneAp
     }
 
     "reject a name already taken, ignoring case and outer spaces" in {
-      val name  = s"spec-5342-b-${System.nanoTime()}"
+      val name  = s"${NamePrefix}b-${System.nanoTime()}"
       val first = createTeam(name)
       status(first) mustBe OK
       (contentAsJson(first) \ "success").as[Boolean] mustBe true
@@ -64,7 +84,7 @@ class CreateTeamValidationSpec extends PlaySpec with RoleSession with GuiceOneAp
     }
 
     "accept a plain, unique name" in {
-      val resp = createTeam(s"spec-5342-c-${System.nanoTime()}")
+      val resp = createTeam(s"${NamePrefix}c-${System.nanoTime()}")
       status(resp) mustBe OK
       (contentAsJson(resp) \ "success").as[Boolean] mustBe true
     }

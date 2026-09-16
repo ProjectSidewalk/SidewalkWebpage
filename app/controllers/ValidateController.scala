@@ -242,6 +242,10 @@ class ValidateController @Inject() (
         }
         .toSeq
     )
+    val teamIdList: Option[Seq[Future[Option[Int]]]] =
+      teams.map(
+        _.split(',').map(_.trim).toSeq.map(teamStr => userService.findTeamByIdOrName(teamStr).map(_.map(_.teamId)))
+      )
     for {
       userIds: Option[Seq[Option[String]]] <- userIdsList match {
         case Some(userIds) => Future.sequence(userIds).map(Some(_))
@@ -251,16 +255,9 @@ class ValidateController @Inject() (
         case Some(regionIds) => Future.sequence(regionIds).map(Some(_))
         case None            => Future.successful(None)
       }
-      // Team names are unique ignoring case and outer spaces (#5342), so a name resolves to at most one team.
-      teamIds: Option[Seq[Option[Int]]] <- teams match {
-        case Some(teamList) =>
-          userService.getAllTeams.map { allTeams =>
-            Some(teamList.split(',').map(_.trim).toSeq.map { teamStr =>
-              val byId: Option[Team] = Try(teamStr.toInt).toOption.flatMap(id => allTeams.find(_.teamId == id))
-              byId.orElse(allTeams.find(_.name.trim.equalsIgnoreCase(teamStr))).map(_.teamId)
-            })
-          }
-        case None => Future.successful(None)
+      teamIds: Option[Seq[Option[Int]]] <- teamIdList match {
+        case Some(teamIds) => Future.sequence(teamIds).map(Some(_))
+        case None          => Future.successful(None)
       }
     } yield {
       // Return a BadRequest if anything is wrong, or the ValidateParams if everything looks good.
