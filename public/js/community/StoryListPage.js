@@ -146,7 +146,7 @@ class StoryListPage {
    * settled by the time it runs and will never fire `error` for a listener to catch.
    */
   static #dropBrokenPhotos() {
-    document.querySelectorAll('.story-card__photo').forEach((photo) => {
+    document.querySelectorAll('.story-card__photo').forEach((/** @type {HTMLImageElement} */ photo) => {
       if (photo.complete && photo.naturalWidth === 0) photo.remove();
       else photo.addEventListener('error', () => photo.remove(), { once: true });
     });
