@@ -128,6 +128,34 @@ describe('the landing validation grid\'s label marker', () => {
         expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' }); // The still brands itself.
     });
 
+    // With `return_error_code` on the still (#5327) an expired pano 404s instead of answering with a grey "no
+    // imagery" card, so a card that has lost its crop as well is dead weight, and the grid swaps in the next label.
+    it('swaps the card for a fresh label when the still fails after the crop', async () => {
+        await renderGrid(entry());
+        const card = document.querySelector('.lvg-card');
+        const img = card.querySelector('.lvg-card-photo');
+        // The pool is empty after the first render, so the swap refills it; the refill returns the next label.
+        window.fetch = jest.fn(() => Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ labelsOfType: [entry({
+                label: { ...entry().label, label_id: 2 }, cropUrl: '/cropImage/CurbRamp/2',
+            })] }),
+        }));
+
+        img.dispatchEvent(new window.Event('error')); // The crop 404s; the card retries with the still.
+        img.dispatchEvent(new window.Event('error')); // The still 404s too.
+        await new Promise((resolve) => setTimeout(resolve, 0)); // The refill's fetch and json both settle.
+
+        expect(document.contains(card)).toBe(false);
+        const cards = document.querySelectorAll('.lvg-card');
+        expect(cards).toHaveLength(1);
+        expect(cards[0].querySelector('.lvg-card-photo').src).toContain('/cropImage/CurbRamp/2');
+        expect(cards[0].dataset.imageSource).toBe('crop');
+        // The refill asks for labels the page has not shown, so the same expired one cannot come straight back.
+        expect(JSON.parse(window.fetch.mock.calls[0][1].body).loaded_labels).toEqual([1]);
+        expect(document.getElementById('landing-validation-container').hidden).toBe(false);
+    });
+
     it('reports the position it drew, not the canvas fraction, with the validation', async () => {
         await renderGrid(entry());
         const img = document.querySelector('.lvg-card-photo');
