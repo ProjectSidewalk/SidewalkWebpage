@@ -279,11 +279,13 @@ class PanoManager {
 
     this.resetNavArrows();
 
-    // Issue: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2468
-    // This line of code is here to fix the bug when zooming with ctr +/-, the screen turns black.
-    // We are updating the pano POV slightly to simulate an update the gets rid of the black pano.
+    // A container that changes size (a window drag, a Ctrl +/- browser zoom) can leave GSV showing a black image
+    // until the camera moves (#2468). Re-measure, then ask the viewer to force a frame. The workaround sits in the
+    // viewer (PanoViewer.repaint()) so that it runs only for the provider that needs it and nets out to no movement
+    // over a drag, leaving the labeler's heading where they put it.
     $(window).on('resize', () => {
-      this.updatePov(0.0025, 0.0025);
+      svl.panoViewer.resize();
+      svl.panoViewer.repaint();
     });
   }
 

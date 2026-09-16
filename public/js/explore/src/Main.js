@@ -547,6 +547,8 @@ class Main {
       }
       window.dispatchEvent(new Event('resize'));
 
+      // Attached below the synthetic resize above, so page load never logs one: nothing was resized there, and the
+      // rescale and re-raster that event stands in for have just been run inline.
       let resizeRasterTimer;
       window.addEventListener('resize', () => {
         applyExploreScale();
@@ -555,6 +557,12 @@ class Main {
           if (svl.canvas) svl.canvas.resize();
           if (svl.onboarding) svl.onboarding.resize();
           if (svl.observedArea) svl.observedArea.update();
+          // Logged on the settled size rather than per event, so a window drag is one line (#5367). It is also what
+          // dates the POV_Changed that the pano viewer's repaint leaves behind, which no labeler performed.
+          svl.tracker.push('Window_Resized', {
+            width: document.documentElement.clientWidth,
+            height: document.documentElement.clientHeight,
+          });
         }, 150);
       });
     }
