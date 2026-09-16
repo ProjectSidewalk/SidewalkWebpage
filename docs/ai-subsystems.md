@@ -43,7 +43,9 @@ for CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
    `label_validation` is submitted as the `SidewalkAI` user; below the threshold it
    downgrades to Unsure. HTTP 502 → `label_ai_failure` (permanently excluded).
 4. Surfaced in the *Humans vs AI* admin dashboard (`/admin/humans-vs-ai`) and the AI icon
-   (`AiLabelIndicator.js`) across Gallery/Validate/LabelMap.
+   (`public/js/common/aiLabelIndicator.js`) across Gallery/Validate/LabelMap. The icon carries the
+   "AI can make mistakes" tooltip everywhere except Validate's marker, where the label card the
+   same hover opens shows the sentence instead (`LabelCardView`, #5359).
 
 **Models:**
 - *Validator* (from [`sidewalk-validator-ai`](https://github.com/ProjectSidewalk/sidewalk-validator-ai)):

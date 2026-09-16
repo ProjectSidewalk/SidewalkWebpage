@@ -108,7 +108,7 @@
   "bad": "Má",
   "yes": "Sim",
   "no": "Não",
-  "ai-generated-label-tooltip": "Este rótulo foi gerado por IA. A IA pode cometer erros, então por favor faça sua própria avaliação.",
+  "ai-generated-label-tooltip": "Este rótulo foi gerado por IA. A IA pode cometer erros, então julgue você mesmo se ele está correto.",
   "tag": {
     "narrow": "estreito",
     "points into traffic": "aponta para o cruzamento",

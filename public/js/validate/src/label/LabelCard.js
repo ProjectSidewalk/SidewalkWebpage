@@ -10,6 +10,10 @@
  * Explicitly read-only: a validator judges a label, they don't change it, so there is no Delete or Edit here and the
  * card is not itself a click target the way Explore's is. LabelVisibilityControl owns showing, hiding, and anchoring
  * it, and hosts the one action it does carry — the Hide-label toggle.
+ *
+ * For an AI-generated label the card also carries the "AI can make mistakes" disclaimer (#5359). It is here rather
+ * than in a tooltip on the marker's AI badge because hovering the marker is what opens this card, and a badge tooltip
+ * would open on top of it.
  */
 class LabelCard {
   #card;
@@ -77,6 +81,7 @@ class LabelCard {
       severity: label.getAuditProperty('severity'),
       tagNames: tags.map((tag) => i18next.t(`common:tag.${tag.replace(/:/g, '-')}`)),
       description: label.getAuditProperty('description'),
+      aiGenerated: Boolean(label.getAuditProperty('aiGenerated')),
     });
 
     // Point the share control at this label's public permalink (#456). /label/:id renders the spotlight page and
