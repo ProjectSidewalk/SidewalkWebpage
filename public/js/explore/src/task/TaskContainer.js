@@ -89,7 +89,14 @@ class TaskContainer {
         for (let i = 0; i < result.features.length; i++) {
           // Skip the task that we were given to start with so that we don't add a duplicate.
           if (result.features[i].properties.street_edge_id !== currStreetId) {
-            task = new Task(result.features[i], false);
+            // current_lat/lng comes back for every street, but on a fresh one it is just the street's start point;
+            // only an open audit_task's position means "where the labeler stopped" and should seed the walked
+            // stretch (#5370).
+            const props = result.features[i].properties;
+            const resumeAt = props.audit_task_id && !props.completed
+              ? { lat: props.current_lat, lng: props.current_lng }
+              : undefined;
+            task = new Task(result.features[i], false, resumeAt);
             if ((result.features[i].properties.completed)) task.complete();
             this._tasks.push(task);
 
@@ -412,7 +419,10 @@ class TaskContainer {
       // (street not connected, user will need to jump), if the default endpoint of the new task is not connected
       // to any streets, try reversing its direction to encourage contiguous routes.
       // TODO take into account street priority when checking for connected tasks here.
-      if (newTask && finishedTask) {
+      // A part-walked street is exempt: its direction is fixed by its audit_task row (the server never rewrites
+      // start_point_reversed) and its walked metres are measured from that end, so flipping it here would put the
+      // walked segment on the wrong half of the street (#5370).
+      if (newTask && finishedTask && !newTask.isResumed()) {
         let startPoint;
         const line = newTask.getGeoJSON();
         const endPoint = turf.point([finishedTask.getEndCoordinate().lng, finishedTask.getEndCoordinate().lat]);
@@ -425,7 +435,9 @@ class TaskContainer {
         }
       }
     }
-    newTask.setProperty('taskStart', new Date());
+    // A resumed task keeps its original task_start: the column is only written on insert, and the no-imagery
+    // report window (#4922) is measured from it, so restamping would re-open a street the labeler already gave up on.
+    if (!newTask.isResumed()) newTask.setProperty('taskStart', new Date());
     newTask.render();
     return newTask;
   }
@@ -440,8 +452,21 @@ class TaskContainer {
     if ('missionContainer' in svl) {
       const currMissionId = svl.missionContainer.getCurrentMission().getProperty('missionId');
       this.#currentTask.setProperty('currentMissionId', currMissionId);
+
+      // Metres walked on this street in an earlier session are already in the server's mission progress, which the
+      // page load folded into the offset. The mission bar counts the current street's audited distance, so switching
+      // onto a part-walked street mid-session would add them a second time and jump the bar (#5370).
+      if (task.isResumed() && svl.missionContainer.getTasksMissionsOffset() !== null) {
+        const prewalkedM = util.math.kmsToMeters(task.claimSavedProgress());
+        svl.missionContainer.setTasksMissionsOffset(svl.missionContainer.getTasksMissionsOffset() - prewalkedM);
+      }
     }
-    this.#tracker.push('TaskStart');
+    // Interactions are stamped with the tracker's audit task id, which otherwise only moves on a submission result —
+    // so without this, everything logged between the switch and the first submission is filed under the old street.
+    if (task.getAuditTaskId()) this.#tracker.setAuditTaskID(task.getAuditTaskId());
+    this.#tracker.push('TaskStart', task.isResumed()
+      ? { resumed: true, auditTaskId: task.getAuditTaskId() }
+      : undefined);
 
     if ('compass' in svl) {
       svl.compass.showMessage();

@@ -25,6 +25,12 @@ class Task {
     // walk of the route (the server reports the latter as reported_no_imagery). Deliberately not isComplete: that
     // flag is submitted as audit_task.completed (Form.js), and a no-imagery verdict may not claim an audit (#4922).
     givenUpOnImagery: false,
+    // Set when the server hands this street back as unfinished work rather than as a fresh street (#5370). Anything
+    // that would restart the street — flipping its direction, restamping task_start, drawing it as untouched — has to
+    // leave such a task alone, or the labeler re-walks and re-labels what they already did.
+    resumed: false,
+    // Whether the distance walked before this session has been handed to the mission bar yet; see claimSavedProgress.
+    progressClaimed: false,
   };
 
   #properties = {
@@ -80,12 +86,18 @@ class Task {
     if (this.#geojson.properties.reported_no_imagery) {
       this.#status.givenUpOnImagery = true;
     }
+    // An audit_task row that isn't complete is work in progress: this street was left part-walked (#5370).
+    if (this.#geojson.properties.audit_task_id && !this.#geojson.properties.completed) {
+      this.#status.resumed = true;
+    }
     if (this.#geojson.properties.start_point_reversed) {
       this.reverseStreetDirection();
     }
     if (currMissionId && currMissionStart) {
       this.setMissionStart(currMissionId, { lat: currMissionStart.lat, lng: currMissionStart.lng });
     }
+    // After the direction, never before it: reversing re-seeds the furthest point from the new first coordinate, so a
+    // saved position applied first would be thrown away and the walked stretch measured from the wrong end.
     if (currentLatLng) {
       this.#furthestPoint = turf.point([currentLatLng.lng, currentLatLng.lat]);
     } else {
@@ -383,7 +395,37 @@ class Task {
   }
 
   /**
+   * Whether this street came back as the labeler's own unfinished work rather than as a fresh street (#5370).
+   *
+   * @returns {boolean} True when an incomplete audit_task row backs this task.
+   */
+  isResumed() {
+    return this.#status.resumed;
+  }
+
+  /**
+   * The distance already walked on this street before this session, handed over exactly once.
+   *
+   * The mission bar counts the current street's audited distance, so switching onto a street with metres already on
+   * it would jump the bar by that much — the server's mission progress already includes them. Claiming is
+   * single-shot because nextTask() is also called speculatively, just to ask whether a next street exists
+   * (NavigationService), so no single caller can be treated as the real switch.
+   *
+   * @returns {number} Kilometres walked before this session, or 0 if they have already been claimed.
+   */
+  claimSavedProgress() {
+    if (this.#status.progressClaimed) return 0;
+    this.#status.progressClaimed = true;
+    return this.getAuditedDistance();
+  }
+
+  /**
    * Checks if the current task is connected to the given task.
+   *
+   * A part-walked target is measured from where the labeler will actually land on it — its furthest point reached —
+   * not from its endpoints. Connectivity is what decides whether the switch shows the label-before-jump prompt, so a
+   * street that starts at this junction but was already walked 70 m in would otherwise teleport the labeler into the
+   * middle of it with no warning (#5370).
    *
    * @param {Task} task - The task to check if this task is close to
    * @param {number} threshold - Distance threshold in km, unless specified in unit parameter
@@ -394,13 +436,14 @@ class Task {
     if (!units) units = { units: 'kilometers' };
 
     const lastCoordinate = this.getEndCoordinate();
-    const targetCoordinate1 = task.getStartCoordinate();
-    const targetCoordinate2 = task.getEndCoordinate();
     const p = turf.point([lastCoordinate.lng, lastCoordinate.lat]);
-    const p1 = turf.point([targetCoordinate1.lng, targetCoordinate1.lat]);
-    const p2 = turf.point([targetCoordinate2.lng, targetCoordinate2.lat]);
+    const targetStart = task.getStartCoordinate();
+    const targetEnd = task.getEndCoordinate();
+    const targets = task.isResumed()
+      ? [task.getFurthestPointReached()]
+      : [turf.point([targetStart.lng, targetStart.lat]), turf.point([targetEnd.lng, targetEnd.lat])];
 
-    return turf.distance(p, p1, units) < threshold || turf.distance(p, p2, units) < threshold;
+    return targets.some((target) => turf.distance(p, target, units) < threshold);
   }
 
   /**
@@ -462,6 +505,15 @@ class Task {
         .map((coord) => new google.maps.LatLng(coord[1], coord[0]));
       if (drawAsWalked) {
         this.#paths = [new google.maps.Polyline(MinimapStyle.completedTask(gCoordinates))];
+      } else if (this.isResumed() && this.getAuditedDistance() > 0) {
+        // Part-walked and not the street being walked right now: show the split, so the labeler can see at a glance
+        // which of the streets they left behind still have something on them (#5370). Once it becomes the current
+        // street the getGooglePolylines() branch below draws the same split with the route styling.
+        const toLatLngs = (coords) => coords.map((coord) => new google.maps.LatLng(coord[1], coord[0]));
+        this.#paths = [
+          new google.maps.Polyline(MinimapStyle.completedTask(toLatLngs(this.#getPointsOnAuditedSegments()))),
+          new google.maps.Polyline(MinimapStyle.otherTask(toLatLngs(this.#getPointsOnUnauditedSegments()))),
+        ];
       } else if (svl.regionModel.isRoute) {
         // On a designated route every street ahead is part of the planned path, so paint it as the route-to-walk: a
         // dashed line with direction chevrons over a white casing — the same encoding as the current street's
