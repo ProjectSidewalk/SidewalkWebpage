@@ -236,6 +236,7 @@
         labelType: @Html(validateParams.labelType.map(lt => s"'${lt.name}'").getOrElse("null")),
         userIds: @Html(validateParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null")),
         regionIds: @Html(validateParams.regionIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
+        teamIds: @Html(validateParams.teamIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
         unvalidatedOnly: @validateParams.unvalidatedOnly,
         triage: @validateParams.triage
       };

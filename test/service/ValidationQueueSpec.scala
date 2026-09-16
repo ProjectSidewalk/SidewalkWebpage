@@ -3,6 +3,7 @@ package service
 import models.label.{LabelTable, LabelTypeEnum, LabelTypeValidationsLeft, LabelValidationMetadata, StreetSide}
 import models.pano.PanoSource.PanoSource
 import models.utils.MyPostgresProfile.api._
+import models.validation.ValidationLabelFilter
 import models.validation.ValidationQueuePolicy.ValidationQueue
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -277,8 +278,8 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
       labelType: LabelTypeEnum.Base = LabelTypeEnum.CurbRamp
   ): DBIO[Set[Int]] = {
     labelTable
-      .retrieveLabelListForValidationQuery(requester, viewer, labelType, queue, userIds = Some(labelerIds),
-        unvalidatedOnly = unvalidatedOnly)
+      .retrieveLabelListForValidationQuery(requester, viewer, labelType, queue,
+        filter = ValidationLabelFilter(userIds = Some(labelerIds)), unvalidatedOnly = unvalidatedOnly)
       .map(_._1)
       .result
       .map(_.toSet)
@@ -393,6 +394,46 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
     }
   }
 
+  "The team filter" should {
+    "serve and count only labels from the team's members, and nothing for an empty team list" in {
+      def curbRampAvailable(filter: ValidationLabelFilter): DBIO[Int] =
+        labelTable
+          .getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false, ValidationQueue.crowdCascade,
+            None, filter)
+          .map(_.find(_.labelType == LabelTypeEnum.CurbRamp).map(_.validationsAvailable).getOrElse(0))
+
+      def served(filter: ValidationLabelFilter): DBIO[Set[Int]] =
+        labelTable
+          .retrieveLabelListForValidationQuery(requester, viewer, LabelTypeEnum.CurbRamp, ValidationQueue.Any,
+            filter = filter)
+          .map(_._1)
+          .result
+          .map(_.toSet)
+
+      val (memberLabels, byTeam, byTeamAndUser, countByTeam, byNoTeam, countByNoTeam) = runRolledBack(for {
+        member   <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
+        outsider <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
+        teamId   <- sql"INSERT INTO team (name, description) VALUES ('spec-5342', '') RETURNING team_id".as[Int].head
+        _        <- sqlu"INSERT INTO user_team (user_id, team_id) VALUES ($member, $teamId)"
+        mine     <- DBIO.sequence((1 to 3).map(_ => insertLabel(member, 0, 0, 0, None)))
+        _        <- DBIO.sequence((1 to 2).map(_ => insertLabel(outsider, 0, 0, 0, None)))
+        teamOnly = ValidationLabelFilter(teamIds = Some(Set(teamId)))
+        byTeam    <- served(teamOnly)
+        both      <- served(teamOnly.copy(userIds = Some(Set(member, outsider))))
+        count     <- curbRampAvailable(teamOnly)
+        noTeam    <- served(ValidationLabelFilter(teamIds = Some(Set.empty)))
+        noTeamCnt <- curbRampAvailable(ValidationLabelFilter(teamIds = Some(Set.empty)))
+      } yield (mine.toSet, byTeam, both, count, noTeam, noTeamCnt))
+
+      byTeam mustBe memberLabels
+      // The filters stack: naming the outsider as a user does not let their labels past the team filter.
+      byTeamAndUser mustBe memberLabels
+      countByTeam mustBe memberLabels.size
+      byNoTeam mustBe empty
+      countByNoTeam mustBe 0
+    }
+  }
+
   "getAvailableValidationsLabelsByType" should {
     "count each queue with the same predicates the label query filters on" in {
       def curbRampCounts(queues: Seq[ValidationQueue]): DBIO[LabelTypeValidationsLeft] =
@@ -462,7 +503,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
               viewer,
               LabelTypeEnum.CurbRamp,
               ValidationQueue.NeedsVotes,
-              userIds = Some(Set(newLabeler, oldLabeler))
+              filter = ValidationLabelFilter(userIds = Some(Set(newLabeler, oldLabeler)))
             )
             .map(_._1)
             .take(1)
@@ -580,7 +621,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
             viewer,
             LabelTypeEnum.NoSidewalk,
             ValidationQueue.Any,
-            userIds = Some(Set(labeler)),
+            filter = ValidationLabelFilter(userIds = Some(Set(labeler))),
             excludedFaces = Set((streetA, StreetSide.Left))
           )
           .map(_._1)
@@ -655,7 +696,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
         drawn <- DBIO.sequence((1 to Draws).map { _ =>
           labelTable
             .retrieveLabelListForValidationQuery(requester, viewer, LabelTypeEnum.NoSidewalk,
-              ValidationQueue.NeedsVotes, userIds = labelers)
+              ValidationQueue.NeedsVotes, filter = ValidationLabelFilter(userIds = labelers))
             .map(_._1)
             .take(1)
             .result
@@ -692,7 +733,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
       } { case (labeler, streetA, streetB, stuck) =>
         val served = await(
           labelService.retrieveLabelListForValidation(requester, 2, viewer, LabelTypeEnum.NoSidewalk,
-            ValidationQueue.expertCascade, userIds = Some(Set(labeler)))
+            ValidationQueue.expertCascade, filter = ValidationLabelFilter(userIds = Some(Set(labeler))))
         )
         served.map(_.labelId) must contain(stuck)
         served.map(l => (l.streetEdgeId, l.streetSide)).toSet mustBe
@@ -721,7 +762,8 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
         (1 to 5).foreach { _ =>
           val served = await(
             labelService.retrieveLabelListForValidation(requester, 1, viewer, LabelTypeEnum.NoSidewalk,
-              ValidationQueue.crowdCascade, userIds = Some(Set(labeler)), excludedLabelIds = Set(held))
+              ValidationQueue.crowdCascade, filter = ValidationLabelFilter(userIds = Some(Set(labeler))),
+              excludedLabelIds = Set(held))
           )
           served.map(_.labelId) mustBe Seq(onB)
         }

@@ -9,6 +9,7 @@ import javax.inject.{Inject, Singleton}
 
 case class Team(teamId: Int, name: String, description: String, open: Boolean, visible: Boolean)
 
+// `name` also carries DB-only UNIQUE/CHECK constraints Slick has no DSL for; see evolution 393 (#5342).
 class TeamTableDef(tag: slick.lifted.Tag) extends Table[Team](tag, "team") {
   def teamId: Rep[Int]         = column[Int]("team_id", O.PrimaryKey, O.AutoInc)
   def name: Rep[String]        = column[String]("name")

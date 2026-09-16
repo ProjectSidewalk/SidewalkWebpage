@@ -229,11 +229,14 @@ object ValidateFormats {
       (JsPath \ "region_ids").readNullable[Seq[Int]] and
       (JsPath \ "unvalidated_only").read[Boolean] and
       // An older tab can post without this field; defaulting it to false keeps that request on the crowd queue.
-      (JsPath \ "triage").readWithDefault[Boolean](false)
-  ).tupled.collect(JsonValidationError("label_type, user_ids and triage can only be set if admin_version is true")) {
-    case (adminVersion, labelType, userIds, regionIds, unvalidatedOnly, triage)
-        if adminVersion || (labelType.isEmpty && userIds.isEmpty && !triage) =>
-      ValidateParams(adminVersion, labelType, userIds, regionIds, unvalidatedOnly, triage)
+      (JsPath \ "triage").readWithDefault[Boolean](false) and
+      (JsPath \ "team_ids").readNullable[Seq[Int]]
+  ).tupled.collect(
+    JsonValidationError("label_type, user_ids, triage and team_ids can only be set if admin_version is true")
+  ) {
+    case (adminVersion, labelType, userIds, regionIds, unvalidatedOnly, triage, teamIds)
+        if adminVersion || (labelType.isEmpty && userIds.isEmpty && !triage && teamIds.isEmpty) =>
+      ValidateParams(adminVersion, labelType, userIds, regionIds, unvalidatedOnly, triage, teamIds)
   }
 
   implicit val validationTaskSubmissionReads: Reads[ValidationTaskSubmission] = (

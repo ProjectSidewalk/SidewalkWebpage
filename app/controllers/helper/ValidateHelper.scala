@@ -1,6 +1,7 @@
 package controllers.helper
 
 import models.label.LabelTypeEnum
+import models.validation.ValidationLabelFilter
 import models.validation.ValidationQueuePolicy.ValidationQueue
 
 object ValidateHelper {
@@ -10,11 +11,13 @@ object ValidateHelper {
       userIds: Option[Seq[String]] = None,
       regionIds: Option[Seq[Int]] = None,
       unvalidatedOnly: Boolean = false,
-      triage: Boolean = false
+      triage: Boolean = false,
+      teamIds: Option[Seq[Int]] = None
   ) {
     require(labelType.isEmpty || adminVersion, "labelType can only be set if adminVersion is true")
     require(userIds.isEmpty || adminVersion, "userIds can only be set if adminVersion is true")
     require(!triage || adminVersion, "triage can only be set if adminVersion is true")
+    require(teamIds.isEmpty || adminVersion, "teamIds can only be set if adminVersion is true")
 
     /**
      * Queues this page draws labels from, in order (#4715).
@@ -24,5 +27,8 @@ object ValidateHelper {
      */
     def queueCascade: Seq[ValidationQueue] =
       if (triage) ValidationQueue.expertCascade else ValidationQueue.crowdCascade
+
+    def labelFilter: ValidationLabelFilter =
+      ValidationLabelFilter(userIds.map(_.toSet), regionIds.map(_.toSet), teamIds.map(_.toSet))
   }
 }

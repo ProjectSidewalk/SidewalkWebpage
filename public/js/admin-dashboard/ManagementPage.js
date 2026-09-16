@@ -319,7 +319,7 @@ class ManagementPage {
     }
     const head = `<tr>
       <th scope="col">Team</th><th scope="col">Description</th>
-      <th scope="col">Status</th><th scope="col">Visibility</th>
+      <th scope="col">Status</th><th scope="col">Visibility</th><th scope="col">Labels</th>
     </tr>`;
     const body = this.#teams.map((t) => `
       <tr data-team-id="${t.teamId}">
@@ -327,6 +327,8 @@ class ManagementPage {
         <td>${ManagementPage.#esc(t.description || '')}</td>
         <td>${ManagementPage.#toggle('status', t.teamId, t.open, 'Open', 'Closed')}</td>
         <td>${ManagementPage.#toggle('visibility', t.teamId, t.visible, 'Visible', 'Hidden')}</td>
+        <td><a class="dq-validate-btn" href="/expertValidate?teams=${t.teamId}"
+          aria-label="Validate labels from ${ManagementPage.#esc(t.name)}">Validate</a></td>
       </tr>`).join('');
     el.innerHTML = `
       <table class="ps-table ps-table--compact contrib-table mgmt-table">

@@ -55,6 +55,7 @@ class Form {
       label_type: svv.validateParams.labelType,
       user_ids: svv.validateParams.userIds,
       region_ids: svv.validateParams.regionIds,
+      team_ids: svv.validateParams.teamIds,
       unvalidated_only: svv.validateParams.unvalidatedOnly,
       triage: svv.validateParams.triage,
     };

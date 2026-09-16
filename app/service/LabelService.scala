@@ -12,7 +12,7 @@ import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ExcludedTag, LatLngBBox, MyPostgresProfile}
-import models.validation.LabelValidationTable
+import models.validation.{LabelValidationTable, ValidationLabelFilter}
 import models.validation.ValidationQueuePolicy.ValidationQueue
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.Logger
@@ -70,8 +70,7 @@ trait LabelService {
       viewer: PanoSource,
       labelType: LabelTypeEnum.Base,
       queues: Seq[ValidationQueue],
-      userIds: Option[Set[String]] = None,
-      regionIds: Option[Set[Int]] = None,
+      filter: ValidationLabelFilter = ValidationLabelFilter(),
       unvalidatedOnly: Boolean = false,
       excludedLabelIds: Set[Int] = Set.empty
   ): Future[Seq[LabelValidationMetadata]]
@@ -384,8 +383,7 @@ class LabelServiceImpl @Inject() (
    * @param queues           Queues to draw from, in order; each later queue only tops up what the earlier ones could
    *                         not fill, so a mission is still handed a full set of labels once the queue that should
    *                         serve it runs dry (#2929).
-   * @param userIds          Optional list of user IDs to filter by.
-   * @param regionIds        Optional list of region IDs to filter by.
+   * @param filter           Expert Validate's user, region, and team filters.
    * @param excludedLabelIds Labels the caller already holds and must not be handed again (#4810).
    * @return                 Seq[LabelValidationMetadata]
    */
@@ -395,8 +393,7 @@ class LabelServiceImpl @Inject() (
       viewer: PanoSource,
       labelType: LabelTypeEnum.Base,
       queues: Seq[ValidationQueue],
-      userIds: Option[Set[String]] = None,
-      regionIds: Option[Set[Int]] = None,
+      filter: ValidationLabelFilter = ValidationLabelFilter(),
       unvalidatedOnly: Boolean = false,
       excludedLabelIds: Set[Int] = Set.empty
   ): Future[Seq[LabelValidationMetadata]] = {
@@ -408,8 +405,7 @@ class LabelServiceImpl @Inject() (
         labelType,
         queue,
         configService.getAiTagSuggestionsEnabled,
-        userIds,
-        regionIds,
+        filter,
         unvalidatedOnly,
         excluded,
         // An unsided label is a face of its own, and it is already excluded by id.
@@ -604,6 +600,7 @@ class LabelServiceImpl @Inject() (
    * @param requiredLabelType labelType of the current mission.
    * @param queues            Queues to consider, in order; see `ValidateParams.queueCascade`.
    * @param unvalidatedOnly   Whether the mission is restricted to labels with no decision recorded.
+   * @param filter            Expert Validate's filters; only types with labels matching them can be picked.
    */
   def getLabelTypeToValidate(
       userId: String,
@@ -611,10 +608,11 @@ class LabelServiceImpl @Inject() (
       viewerType: PanoSource,
       requiredLabelType: Option[LabelTypeEnum.Base],
       queues: Seq[ValidationQueue],
-      unvalidatedOnly: Boolean
+      unvalidatedOnly: Boolean,
+      filter: ValidationLabelFilter = ValidationLabelFilter()
   ): Future[Option[LabelTypeEnum.Base]] = {
-    val counts =
-      labelTable.getAvailableValidationsLabelsByType(userId, viewerType, unvalidatedOnly, queues, requiredLabelType)
+    val counts = labelTable.getAvailableValidationsLabelsByType(userId, viewerType, unvalidatedOnly, queues,
+      requiredLabelType, filter)
     db.run(counts.map { availValidations =>
       // NoSidewalk competes like any other type; its weight in the lottery is its count of block faces still needing
       // votes rather than its label count (LabelTypeValidationsLeft.weightFor, #5285).
@@ -658,7 +656,7 @@ class LabelServiceImpl @Inject() (
     // TODO can this be merged with `getDataForValidatePostRequest`?
     val viewerType: PanoSource = configService.getPanoSource
     getLabelTypeToValidate(user.userId, labelCount, viewerType, validateParams.labelType, validateParams.queueCascade,
-      validateParams.unvalidatedOnly)
+      validateParams.unvalidatedOnly, validateParams.labelFilter)
       .flatMap {
         case Some(labelType) =>
           for {
@@ -672,8 +670,7 @@ class LabelServiceImpl @Inject() (
             labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
             labelsToRetrieve: Int = labelsToValidate - labelsProgress
             labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, viewerType, labelType,
-              validateParams.queueCascade, validateParams.userIds.map(_.toSet), validateParams.regionIds.map(_.toSet),
-              validateParams.unvalidatedOnly)
+              validateParams.queueCascade, validateParams.labelFilter, validateParams.unvalidatedOnly)
             adminData <- {
               if (validateParams.adminVersion) getExtraAdminValidateData(labelMetadata.map(_.labelId))
               else Future.successful(Seq.empty[AdminValidationData])
@@ -715,8 +712,7 @@ class LabelServiceImpl @Inject() (
     } else {
       for {
         labelList <- retrieveLabelListForValidation(user.userId, nToRetrieve, viewerType, labelType,
-          validateParams.queueCascade, validateParams.userIds.map(_.toSet), validateParams.regionIds.map(_.toSet),
-          validateParams.unvalidatedOnly, excludedLabelIds)
+          validateParams.queueCascade, validateParams.labelFilter, validateParams.unvalidatedOnly, excludedLabelIds)
         adminData <- {
           if (validateParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
           else Future.successful(Seq.empty[AdminValidationData])
@@ -741,7 +737,7 @@ class LabelServiceImpl @Inject() (
       nextMissionLabelType <- {
         if (missionProgress.exists(_.completed))
           getLabelTypeToValidate(user.userId, labelsToRetrieve, viewerType, validateParams.labelType,
-            validateParams.queueCascade, validateParams.unvalidatedOnly)
+            validateParams.queueCascade, validateParams.unvalidatedOnly, validateParams.labelFilter)
         else Future.successful(Option.empty[LabelTypeEnum.Base])
       }
     } yield {
@@ -754,8 +750,8 @@ class LabelServiceImpl @Inject() (
               Some(nextMissionLabelType)
             )
             labelList: Seq[LabelValidationMetadata] <- retrieveLabelListForValidation(user.userId, labelsToRetrieve,
-              viewerType, nextMissionLabelType, validateParams.queueCascade, validateParams.userIds.map(_.toSet),
-              validateParams.regionIds.map(_.toSet), validateParams.unvalidatedOnly)
+              viewerType, nextMissionLabelType, validateParams.queueCascade, validateParams.labelFilter,
+              validateParams.unvalidatedOnly)
             adminData <- {
               if (validateParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
               else Future.successful(Seq.empty[AdminValidationData])
