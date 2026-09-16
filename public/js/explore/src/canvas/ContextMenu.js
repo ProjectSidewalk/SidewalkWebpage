@@ -402,6 +402,8 @@ class ContextMenu {
    * @returns {boolean}
    */
   isRatingSeverityDisabled() {
+    // The 1/2/3 shortcuts rely on this alone, and the tutorial check below passes for every type outside the tutorial.
+    if (!util.misc.labelTypeHasSeverity(this.#status.targetLabel.getLabelType())) return true;
     return this.#status.ratingSeverityEnabledForTutorialLabel
       !== this.#status.targetLabel.getProperty('tutorialLabelNumber');
   }
