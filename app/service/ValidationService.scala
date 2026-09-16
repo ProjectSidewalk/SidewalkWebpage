@@ -6,7 +6,7 @@ import models.user.UserStatTable
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.validation._
-import org.postgresql.util.PSQLException
+import org.postgresql.util.{PSQLException, PSQLState}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject._
@@ -16,13 +16,18 @@ import scala.concurrent.{ExecutionContext, Future}
  * One validation as submitted, with the severity and tags the validator wants the label to have. Those are applied as
  * an edit linked to the vote only for an Agree that changes them (#2575).
  */
+/**
+ * One vote to record, with the severity and tags submitted alongside it.
+ * @param canEdit Whether an Agree may apply the submitted severity and tags; only admins edit through a vote.
+ */
 case class ValidationSubmission(
     validation: LabelValidation,
     severity: Option[Int],
     tags: List[String],
     comment: Option[ValidationTaskComment],
     undone: Boolean,
-    redone: Boolean
+    redone: Boolean,
+    canEdit: Boolean
 )
 
 @ImplementedBy(classOf[ValidationServiceImpl])
@@ -56,7 +61,7 @@ class ValidationServiceImpl @Inject() (
   val labelsUnfiltered = TableQuery[LabelTableDef]
 
   /** SQLState for a Postgres unique-constraint violation. */
-  private val UniqueViolation: String = "23505"
+  private val UniqueViolation: String = PSQLState.UNIQUE_VIOLATION.getState
 
   /**
    * Runs a write that replaces a user's earlier row, re-running it once if a concurrent writer got there first.
@@ -249,7 +254,7 @@ class ValidationServiceImpl @Inject() (
             newValId: Int <- insert(validation)
             // Only an Agree applies the submitted severity and tags; the edit is linked to the vote so an undo unwinds it.
             _ <- {
-              if (validation.validationResult == ValidationOption.Agree) {
+              if (validation.validationResult == ValidationOption.Agree && valSubmission.canEdit) {
                 labelEditService.applyEdit(validation.labelId, validation.userId, valSubmission.severity,
                   valSubmission.tags, validation.source, Some(newValId))
               } else DBIO.successful(None)

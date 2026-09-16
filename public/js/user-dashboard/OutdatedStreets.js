@@ -14,8 +14,8 @@ class OutdatedStreets {
 
   /**
    * @param {HTMLElement} listEl - The <ul> of street rows.
-   * @param {Object} [opts] - Options.
-   * @param {Promise<Object|null>} [opts.mapReady] - Resolves with the contribution map, or null if it failed to load.
+   * @param {object} [opts] - Options.
+   * @param {Promise<object|null>} [opts.mapReady] - Resolves with the contribution map, or null if it failed to load.
    */
   constructor(listEl, opts = {}) {
     this.#list = listEl;
@@ -73,7 +73,7 @@ class OutdatedStreets {
 
       const remaining = stillHidden.length - revealed.length;
       if (remaining > 0) {
-        button.querySelector('.ud-reaudit-more-count').textContent = Math.min(pageSize, remaining);
+        button.querySelector('.ud-reaudit-more-count').textContent = String(Math.min(pageSize, remaining));
       } else {
         button.hidden = true;
         // Keyboard focus would otherwise be stranded on a button that just disappeared, so hand it to the first

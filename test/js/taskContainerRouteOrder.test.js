@@ -36,8 +36,8 @@ describe('TaskContainer.nextTask on a route', () => {
 
     beforeEach(() => {
         window.eval(`${SRC}; window.TaskContainer = TaskContainer;`);
-        const neighborhoodModel = { isRoute: true };
-        container = new window.TaskContainer(neighborhoodModel, { neighborhoodModel }, { push: jest.fn() });
+        const regionModel = { isRoute: true };
+        container = new window.TaskContainer(regionModel, { regionModel }, { push: jest.fn() });
     });
 
     it('walks the route in its saved order', () => {
@@ -84,8 +84,8 @@ describe('TaskContainer distance credit', () => {
         window.turf = { length: (feature) => feature.properties.km };
         window.util = { turfDistanceUnits: () => 'kilometers', array: { sum: (a) => a.reduce((x, y) => x + y, 0) } };
         window.eval(`${SRC}; window.TaskContainer = TaskContainer;`);
-        const neighborhoodModel = { isRoute: true };
-        container = new window.TaskContainer(neighborhoodModel, { neighborhoodModel }, { push: jest.fn() });
+        const regionModel = { isRoute: true };
+        container = new window.TaskContainer(regionModel, { regionModel }, { push: jest.fn() });
     });
 
     it('counts a given-up street as walked, so the route can reach 100%', () => {
@@ -97,7 +97,7 @@ describe('TaskContainer distance credit', () => {
 
         const walked = container.getCompletedTaskDistance({ units: 'kilometers' });
 
-        expect(walked).toBe(container.totalLineDistanceInNeighborhood({ units: 'kilometers' }));
+        expect(walked).toBe(container.getTotalTaskDistance({ units: 'kilometers' }));
     });
 
     it('keeps give-ups out of the completions the community share is reconciled against', () => {

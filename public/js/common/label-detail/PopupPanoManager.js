@@ -242,7 +242,7 @@ class PopupPanoManager {
    * the billable step, so it must not run for a visitor who merely loaded the page. Never rejects — setPano() makes
    * the real attempt and owns the fallback.
    *
-   * @param {number} [maxWaitMs] Resolve after this long even if the build hasn't settled. For a host holding its
+   * @param {number} [maxWaitMs] - Resolve after this long even if the build hasn't settled. For a host holding its
    *     own init on the build: a provider whose bootstrap never loads leaves the build pending forever, and the host
    *     must not hang with it.
    * @returns {Promise<void>} Settles once the build has succeeded or failed (or the wait has elapsed), for a host
@@ -268,7 +268,7 @@ class PopupPanoManager {
   /**
    * Fetches backup image metadata from the backend for Pannellum fallback.
    * @param {string} panoId
-   * @returns {Promise<Object|null>} The metadata, or null if none exists.
+   * @returns {Promise<object|null>} The metadata, or null if none exists.
    */
   async #fetchBackupImageMetadata(panoId) {
     try {
@@ -293,9 +293,9 @@ class PopupPanoManager {
    * @param {{heading: number, pitch: number, zoom: number}} pov
    * @param {?string} cropUrl - URL for the screenshot fallback image, if available.
    * @param {boolean} [expired=false] - When true, skips the live attempt (imagery known to be expired).
-   * @param {?Object} [backupImage=null] - Self-hosted pano metadata; fetched lazily from the backend if null.
-   * @param {?Object} [attribution=null] - The pano's structured imagery attribution (`pano_data.attribution` in the
-   *     label payload); falls back to the lazily fetched backup metadata's, when there is one.
+   * @param {?Record<string, any>} [backupImage=null] - Self-hosted pano metadata; fetched from the backend if null.
+   * @param {?Record<string, any>} [attribution=null] - The pano's structured imagery attribution
+   *     (`pano_data.attribution` in the label payload). Falls back to the backup metadata's, when there is one.
    * @returns {Promise<boolean>} Whether a viewable image of the label was shown — live/Pannellum imagery or the
    *                             static crop (step 1–3). Only `false` for step 4, the "imagery not available" panel.
    */
@@ -357,11 +357,11 @@ class PopupPanoManager {
    * has taken over or the host closed over this one. The overlay belongs here rather than at each call site so a
    * superseded load can't credit its own imagery over the label that replaced it.
    *
-   * @param {number} load The token this load was issued.
-   * @param {Object} [options]
-   * @param {boolean} [options.showAttribution=false] Whether the image on screen is Project Sidewalk's own copy,
+   * @param {number} load - The token this load was issued.
+   * @param {object} [options]
+   * @param {boolean} [options.showAttribution=false] - Whether the image on screen is Project Sidewalk's own copy,
    *     which carries the credit the provider's live viewer would otherwise draw itself (#4865).
-   * @param {?Object} [options.attribution=null] The structured attribution to show, when there is one.
+   * @param {?Record<string, any>} [options.attribution=null] - The structured attribution to show, when there is one.
    */
   #finishLoad(load, { showAttribution = false, attribution = null } = {}) {
     if (load !== this.#loadToken) return;
@@ -384,7 +384,7 @@ class PopupPanoManager {
   /**
    * Shows the Pannellum viewer for the given pano. Creates the viewer on the first call, then reused on later calls.
    *
-   * @param {Object} backupImage
+   * @param {Record<string, any>} backupImage
    * @param {{heading: number, pitch: number, zoom: number}} pov
    */
   async #showPannellumPano(backupImage, pov) {
@@ -488,7 +488,7 @@ class PopupPanoManager {
   }
 
   /**
-   * @param {Object} label - Plain-object label shape (see renderLabel).
+   * @param {Record<string, any>} label - Plain-object label shape (see renderLabel).
    */
   setLabel(label) {
     this.label = label;
@@ -525,7 +525,7 @@ class PopupPanoManager {
 
   /**
    * Renders a PanoMarker (label) onto a Streetview Panorama.
-   * @param {Object} label - Plain-object label shape produced by LabelPopup.
+   * @param {Record<string, any>} label - Plain-object label shape produced by LabelPopup.
    *   Expected fields: labelId, label_type, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight, pov,
    *   streetEdgeId, aiGenerated, and cropMarker ({x, y} fractions of the crop image, or null).
    */

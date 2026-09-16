@@ -69,7 +69,7 @@
 
     /**
      * Render the headline stat cards and per-label-type table.
-     * @param {object} data - Aggregate stats data from the API
+     * @param {Record<string, any>} data - Aggregate stats data from the API
      * @param {HTMLElement} container - Container element
      */
     render(data, container) {

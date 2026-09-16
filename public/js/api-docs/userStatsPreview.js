@@ -121,7 +121,7 @@
      */
     fetchUserStats() {
       const params = new URLSearchParams({
-        minLabels: config.minLabels,
+        minLabels: String(config.minLabels),
       });
 
       return fetch(`${config.apiBaseUrl}${config.userStatsEndpoint}?${params}&utm_source=apiDocs`)
@@ -136,7 +136,7 @@
     /**
      * Filter and prepare the data for visualization.
      * @param {Array} userStatsData - The raw user statistics data
-     * @returns {object} Processed data ready for visualization
+     * @returns {Record<string, any>} Processed data ready for visualization
      */
     filterData(userStatsData) {
       // Filter out users with empty stats or 0 labels.
@@ -176,7 +176,7 @@
     /**
      * Create all visualizations in the container.
      * @param {HTMLElement} container - Container element for the visualizations
-     * @param {object} data - Processed data for visualizations
+     * @param {Record<string, any>} data - Processed data for visualizations
      */
     createVisualizations(container, data) {
       // Create top contributors chart section.

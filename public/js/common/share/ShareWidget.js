@@ -150,7 +150,6 @@ class ShareWidget {
   /**
    * Handles a trigger activation: log the click, then use the native share sheet on touch-primary devices that
    * support it, otherwise toggle the custom popover.
-   * @private
    */
   async #onTriggerClick() {
     // A click while the popover is up is a dismissal, not a share. Taken before anything else so it neither logs a
@@ -206,7 +205,6 @@ class ShareWidget {
    * Only runs for hosts that ask for it (opts.fitToViewport). Room is measured against the viewport, which is the
    * right box for a panel floating over the pano and the wrong one for a trigger inside a scrolling or clipping
    * container — the label-detail popup's footer and the landing grid's cards both sit in one.
-   * @private
    */
   #fitPopover() {
     const wrapper = this.#popover.parentElement;
@@ -242,7 +240,6 @@ class ShareWidget {
    * Shows or hides one platform's menu item.
    * @param {string} platform - A key from #SHED_ORDER.
    * @param {boolean} hidden
-   * @private
    */
   #setPlatformHidden(platform, hidden) {
     const item = this.#popover.querySelector(`[data-share-platform="${platform}"]`);
@@ -251,7 +248,6 @@ class ShareWidget {
 
   /**
    * Builds (once) and opens the popover, moves focus into it, and starts the outside-click / ESC listeners.
-   * @private
    */
   #openPopover() {
     if (!this.#popover) this.#buildPopover();
@@ -276,7 +272,6 @@ class ShareWidget {
    * @param {boolean} [returnFocus=true] - Whether to move focus back to the trigger (skip on outside-click).
    * @param {boolean} [notifyHost=true] - Whether to run the host's onDismiss hook. False when the host is the one
    *      closing us (close(), setTarget()), which it does not need telling about.
-   * @private
    */
   #closePopover(returnFocus = true, notifyHost = true) {
     if (this.#popover) this.#popover.hidden = true;
@@ -291,7 +286,6 @@ class ShareWidget {
   /**
    * Constructs the popover DOM (heading + one action button per platform) and appends it to the host. Called lazily
    * the first time a non-native share is opened.
-   * @private
    */
   #buildPopover() {
     const t = (key) => (typeof i18next !== 'undefined' ? i18next.t(`common:${key}`) : key);
@@ -350,8 +344,8 @@ class ShareWidget {
    * @param {string} iconSvg - Inline SVG markup for the leading icon (static, trusted).
    * @param {string} label - Visible button label.
    * @param {() => void} onClick - Click handler.
+   * @param {string} [platform] - Share platform the item opens, so #setPlatformHidden can find it.
    * @returns {HTMLButtonElement}
-   * @private
    */
   #makeItem(iconSvg, label, onClick, platform) {
     const btn = document.createElement('button');
@@ -376,7 +370,6 @@ class ShareWidget {
 
   /**
    * Copies the current URL to the clipboard and flips the Copy Link button into a transient "Copied!" state.
-   * @private
    */
   #copyLink() {
     navigator.clipboard.writeText(this.#target.url).then(() => {
@@ -389,7 +382,7 @@ class ShareWidget {
     }).catch((err) => console.error('Share: clipboard write failed', err));
   }
 
-  /** Resets the Copy Link button back to its default label. @private */
+  /** Resets the Copy Link button back to its default label. */
   #resetCopyState() {
     clearTimeout(this.#copyResetTimer);
     if (!this.#copyButton) return;
@@ -402,7 +395,6 @@ class ShareWidget {
    * Opens a social share intent URL in a new tab and logs the platform.
    * @param {string} platform - Platform name for logging (Bluesky / Twitter / Facebook / LinkedIn).
    * @param {(url: string, text: string) => string} buildUrl - Builds the intent URL from the target.
-   * @private
    */
   #shareTo(platform, buildUrl) {
     this.#log(`Share_Platform=${platform}`);
@@ -412,7 +404,6 @@ class ShareWidget {
 
   /**
    * Opens the user's mail client with a prefilled subject/body.
-   * @private
    */
   #shareEmail() {
     this.#log('Share_Platform=Email');
@@ -427,10 +418,10 @@ class ShareWidget {
   /**
    * Closes the popover when a click lands outside it and the trigger.
    * @param {MouseEvent} e
-   * @private
    */
   #onOutsideClick(e) {
-    if (this.#popover.contains(e.target) || this.#trigger.contains(e.target)) return;
+    const target = /** @type {Node} */ (e.target);
+    if (this.#popover.contains(target) || this.#trigger.contains(target)) return;
     this.#closePopover(false);
   }
 
@@ -438,7 +429,6 @@ class ShareWidget {
    * Keyboard handling while the popover is open: ESC closes it (stopping propagation so a host <dialog> doesn't
    * also close), and ArrowUp/ArrowDown/Home/End move focus between the menu items per the ARIA menu pattern.
    * @param {KeyboardEvent} e
-   * @private
    */
   #onKeydown(e) {
     if (e.key === 'Escape') {
@@ -452,7 +442,7 @@ class ShareWidget {
     e.preventDefault();
 
     // When focus sits outside the menu (e.g. the user clicked elsewhere without closing), arrows re-enter at an end.
-    const idx = items.indexOf(document.activeElement);
+    const idx = items.findIndex((item) => item === document.activeElement);
     let next;
     if (e.key === 'Home' || (e.key === 'ArrowDown' && idx === -1)) next = items[0];
     else if (e.key === 'End' || (e.key === 'ArrowUp' && idx === -1)) next = items[items.length - 1];
@@ -464,7 +454,6 @@ class ShareWidget {
   /**
    * Records an activity via the global logger, if present.
    * @param {string} activity - Event name (e.g. 'Share_CopyLink').
-   * @private
    */
   #log(activity) {
     if (typeof window.logWebpageActivity === 'function') window.logWebpageActivity(activity);

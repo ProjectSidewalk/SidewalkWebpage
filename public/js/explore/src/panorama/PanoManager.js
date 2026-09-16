@@ -25,18 +25,17 @@ class PanoManager {
   /**
    * Factory function that creates a PanoManager and svl.panoViewer.
    *
-   * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
-   * @param {string} viewerAccessToken An access token used to request images for the pano viewer
-   * @param {object} params Parameters that affect the initialization of the panorama viewer
-   * @param {string} [params.startPanoId] Optional starting pano, tried before the lat/lng
-   * @param {number} [params.startLat] Optional starting latitude; the fallback if startPanoId fails to load
-   * @param {number} [params.startLng] Optional starting longitude; the fallback if startPanoId fails to load
-   * @param {{heading: number, pitch: number, zoom: number}} [params.startPov] Optional POV to face after loading
-   * @param {object} errorParams Params necessary in case loading the initial location fails
-   * @param {Task} errorParams.task The assigned Task; used if no imagery is found to record the street
-   * @param {number} errorParams.missionId The current mission ID; used if no imagery is found
+   * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize
+   * @param {string} viewerAccessToken - An access token used to request images for the pano viewer
+   * @param {object} params - Parameters that affect the initialization of the panorama viewer
+   * @param {string} [params.startPanoId] - Optional starting pano, tried before the lat/lng
+   * @param {number} [params.startLat] - Optional starting latitude; the fallback if startPanoId fails to load
+   * @param {number} [params.startLng] - Optional starting longitude; the fallback if startPanoId fails to load
+   * @param {{heading: number, pitch: number, zoom: number}} [params.startPov] - Optional POV to face after loading
+   * @param {object} errorParams - Params necessary in case loading the initial location fails
+   * @param {Task} errorParams.task - The assigned Task; used if no imagery is found to record the street
+   * @param {number} errorParams.missionId - The current mission ID; used if no imagery is found
    * @returns {Promise<PanoManager>} The PanoManager instance
-   * @constructor
    */
   static async create(panoViewerType, viewerAccessToken, params = {}, errorParams) {
     const newPanoManager = new this();
@@ -48,7 +47,7 @@ class PanoManager {
    * Samples backup starting points along the street, used when the street's start has no usable imagery. Points are
    * spaced at the same increment as moveForward()'s imagery search, ending with the street's endpoint, so the whole
    * street is checked before we give up and report the street as having no imagery.
-   * @param {Task} task The assigned Task, used for the street geometry
+   * @param {Task} task - The assigned Task, used for the street geometry
    * @returns {Array<{lat: number, lng: number}>} Points along the street, ordered from start to end
    */
   static #backupPointsAlongStreet(task) {
@@ -164,7 +163,6 @@ class PanoManager {
   /**
    * Initializes panoViewer on the Explore page, sets it to the starting location, and sets up listeners.
    * @returns {Promise<void>}
-   * @private
    */
   async #init(panoViewerType, viewerAccessToken, params = {}, errorParams) {
     const panoOptions = {
@@ -194,6 +192,15 @@ class PanoManager {
     }
     // Reaching a pano ends any run of failures, restoring the session's full flag allowance (#4918).
     NoImageryFlagGuard.reset();
+
+    // Viewer-internal failures land in the interaction log so a "the image went black" report can be read from the
+    // database. A lost token is the one case the viewer can't heal on its own, so it's the one the labeler hears about.
+    svl.panoViewer.addListener('diagnostic', (name, details) => {
+      svl.tracker.push(`PanoViewer_${name}`, details);
+      if (name === 'TokenExpired') {
+        svl.alertController?.showAlert(i18next.t('popup.imagery-session-expired'), 'imagerySessionExpired', false);
+      }
+    });
 
     // If we started from a lat/lng and used a backup point closer to the end of the street, reverse the street
     // direction. An explicitly requested pano that loaded isn't a "couldn't start at the start" signal, so it
@@ -247,6 +254,19 @@ class PanoManager {
       }
     });
 
+    // Hovering an arrow outlines the minimap crumb it leads to, so "this arrow" and "that dot" read as one thing
+    // (#4682). The synthesized route-forward arrow has no pano id; it leads to the route walk's next stop. mouseover
+    // and mouseout bubble, so one delegated pair covers the arrows resetNavArrows recreates on every move.
+    svl.ui.streetview.navArrows.on('mouseover', (event) => {
+      if (!svl.forwardCrumbs) return;
+      const targetPanoId = event.target.getAttribute('pano-id');
+      if (targetPanoId) svl.forwardCrumbs.highlight(targetPanoId);
+      else if (event.target.classList.contains('route-forward-arrow')) svl.forwardCrumbs.highlightNextStop();
+    });
+    svl.ui.streetview.navArrows.on('mouseout', () => {
+      if (svl.forwardCrumbs) svl.forwardCrumbs.clearHighlight();
+    });
+
     const panoViewerLogo = createPanoViewerLogo(this.panoCanvas.parentElement, panoViewerType.SOURCE);
     panoViewerLogo.showPrimaryLogo();
 
@@ -269,9 +289,8 @@ class PanoManager {
 
   /**
    * Refreshes all views for the new pano and saves historic pano metadata.
-   * @param {PanoData} panoData The PanoData extracted from the PanoViewer when loading the pano
+   * @param {PanoData} panoData - The PanoData extracted from the PanoViewer when loading the pano
    * @returns {Promise<PanoData>}
-   * @private
    */
   #panoSuccessCallback = (panoData) => {
     const panoId = panoData.getPanoId();
@@ -316,7 +335,6 @@ class PanoManager {
    * @param {Error} error
    * @param {string} panoId
    * @returns {Promise<void>}
-   * @private
    */
   #setPanoFailureCallback = (error, panoId) => {
     svl.tracker.push('PanoId_NotFound', { TargetPanoId: panoId });
@@ -330,7 +348,6 @@ class PanoManager {
    * Google injects the .gm-style-cc links asynchronously after each map/pano renders, so the pano's and minimap's
    * links can become available at different times. The two are handled independently (and guarded separately) so
    * the pano links get processed on the first call even if the minimap hasn't rendered its links yet.
-   * @private
    */
   #makeGsvAttributionClickable = () => {
     this.#makePanoLinksClickable();
@@ -344,7 +361,6 @@ class PanoManager {
 
   /**
    * Moves the GSV pano's bottom links to the top layer so they are clickable.
-   * @private
    */
   #makePanoLinksClickable = () => {
     const panoLinks = $('.gm-style-cc', this.panoCanvas);
@@ -367,7 +383,6 @@ class PanoManager {
    * Mapillary renders these inside the pano canvas itself, where the click-handling view-control-layer covers
    * them. We move the container up into that layer instead, the same trick used for the GSV links. Mapillary may
    * re-render its own container back into the pano (e.g. after an image change), so we keep watching for that.
-   * @private
    */
   #makeMapillaryAttributionClickable = () => {
     const tryMove = () => {
@@ -389,8 +404,7 @@ class PanoManager {
    *
    * Publishes the links bar's height as the --bottom-left-links-clearance CSS variable, which those overlays add
    * to their bottom offset. Default position is kept for viewers without a bottom-left links bar.
-   * @param {HTMLElement} linksBar The links container now anchored at the bottom-left of the pano.
-   * @private
+   * @param {HTMLElement} linksBar - The links container now anchored at the bottom-left of the pano.
    */
   #liftBottomLeftAboveLinks = (linksBar) => {
     const root = document.querySelector('.tool-ui');
@@ -410,7 +424,6 @@ class PanoManager {
 
   /**
    * Moves the minimap's links to the top layer so they are clickable, removing the ones that duplicate the GSV links.
-   * @private
    */
   #makeMinimapLinksClickable = () => {
     const minimapLinks = $('.gm-style-cc', '#minimap');
@@ -462,7 +475,7 @@ class PanoManager {
     // along — or back to — the route one pano at a time.
     const links = svl.panoViewer.getLinkedPanos();
     const targetHeading = this.#routeForwardHeading();
-    const forwardIndex = targetHeading === null ? -1 : this.#closestForwardLinkIndex(links, targetHeading);
+    const forwardIndex = targetHeading === null ? -1 : ForwardCrumbs.closestLinkIndex(links, targetHeading);
 
     // Create an arrow for each link, rotated to its direction; the forward one is drawn in the highlight color.
     links.forEach((link, i) => {
@@ -492,7 +505,6 @@ class PanoManager {
    * from the current position. Null only when there is no route at all: free exploration, the scripted tutorial, no
    * current task, or before the task's geometry is ready. Drives which on-pano arrow is highlighted forward. (#4671)
    * @returns {?number}
-   * @private
    */
   #routeForwardHeading() {
     if (!svl.compass || svl.isExploreAddressMode() || svl.isOnboarding()) return null;
@@ -505,31 +517,31 @@ class PanoManager {
   }
 
   /**
-   * Index of the link whose heading is closest to the route direction, if one is within FORWARD_LINK_THRESHOLD
-   * degrees of it; -1 otherwise (a link-graph dead-end, where the caller synthesizes a forward arrow instead). (#4671)
-   * @param {Array<{panoId: string, heading: number}>} links - The current pano's linked panos.
-   * @param {number} targetHeading - The route's forward heading in degrees.
-   * @returns {number}
-   * @private
+   * Lights up the on-pano arrow that leads to a pano, as hovering the arrow itself would: the other half of the
+   * "this arrow ↔ that crumb" tie (#4682), for when the user hovers the crumb on the minimap. A pano no link leads
+   * to lights the synthesized route-forward arrow when it is the route walk's next stop; otherwise nothing.
+   * @param {string} panoId - The pano the hovered crumb marks.
    */
-  #closestForwardLinkIndex(links, targetHeading) {
-    const FORWARD_LINK_THRESHOLD = 45;
-    let bestDelta = FORWARD_LINK_THRESHOLD;
-    let bestIndex = -1;
-    links.forEach((link, i) => {
-      const delta = Math.abs(((((link.heading - targetHeading) % 360) + 540) % 360) - 180);
-      if (delta < bestDelta) {
-        bestDelta = delta;
-        bestIndex = i;
-      }
-    });
-    return bestIndex;
+  highlightArrowTo(panoId) {
+    this.clearArrowHighlight();
+    const arrowGroup = svl.ui.streetview.navArrows[0];
+    let arrow = arrowGroup.querySelector(`image[pano-id="${CSS.escape(panoId)}"]`);
+    if (!arrow && svl.forwardCrumbs && svl.forwardCrumbs.isWalkNextStop(panoId)) {
+      arrow = arrowGroup.querySelector('.route-forward-arrow');
+    }
+    if (arrow) arrow.classList.add('arrow-hover');
+  }
+
+  /** Clears any arrow highlight set by {@link highlightArrowTo}. */
+  clearArrowHighlight() {
+    for (const arrow of svl.ui.streetview.navArrows[0].querySelectorAll('.arrow-hover')) {
+      arrow.classList.remove('arrow-hover');
+    }
   }
 
   /**
    * Create svg navigation arrow, setting its width.
    * @returns {SVGImageElement}
-   * @private
    */
   #createArrow() {
     const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
@@ -548,7 +560,6 @@ class PanoManager {
    * the caller either keeps its pano-id (a highlighted real link) or adds route-forward-arrow (a synthesized
    * moveForward arrow at a dead-end). (#4671)
    * @returns {SVGImageElement}
-   * @private
    */
   #createForwardArrow() {
     const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
@@ -573,7 +584,6 @@ class PanoManager {
 
   /**
    * Updates various views when the POV has changed.
-   * @private
    */
   #handlePovChange = () => {
     const heading = svl.panoViewer.getPov().heading;
@@ -590,13 +600,15 @@ class PanoManager {
 
     const arrowGroup = svl.ui.streetview.navArrows[0];
     arrowGroup.setAttribute('transform', `rotate(${-heading})`);
+    // The minimap fills in the crumb the user now faces: the one the forward arrow / up key would take them to.
+    if (svl.forwardCrumbs) svl.forwardCrumbs.setFacing(heading);
 
     svl.tracker.push('POV_Changed');
   };
 
   /**
    * Sets the panorama ID. Adds a callback function that will record pano metadata and update the date text field.
-   * @param {string} panoId String representation of the Panorama ID
+   * @param {string} panoId - String representation of the Panorama ID
    * @returns {Promise<PanoData>}
    */
   setPanorama(panoId) {
@@ -606,8 +618,8 @@ class PanoManager {
 
   /**
    * Sets the panorama ID. Adds a callback function that will record pano metadata and update the date text field.
-   * @param {{lat: number, lng: number}} latLng The desired location to move to.
-   * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to.
+   * @param {{lat: number, lng: number}} latLng - The desired location to move to.
+   * @param {Set<PanoData>} [excludedPanos=new Set()] - Set of PanoData objects that are not valid images to move to.
    * @returns {Promise<PanoData>}
    */
   setLocation(latLng, excludedPanos = new Set()) {
@@ -616,7 +628,7 @@ class PanoManager {
 
   /**
    * Sets the zoom level for this panorama.
-   * @param {number} zoom Desired zoom level for this panorama. In general, values in {1.1, 2.1, 3.1}
+   * @param {number} zoom - Desired zoom level for this panorama. In general, values in {1.1, 2.1, 3.1}
    * @returns {void}
    */
   setZoom(zoom) {
@@ -627,9 +639,8 @@ class PanoManager {
 
   /**
    * Prevents users from looking at the sky or straight to the ground. Restrict heading angle if specified in props.
-   * @param {{heading: number, pitch: number, zoom: number}} pov Target pov
+   * @param {{heading: number, pitch: number, zoom: number}} pov - Target pov
    * @returns {{heading: number, pitch: number, zoom: number}} The input pov restricted within min/max pitch/heading
-   * @private
    */
   #restrictViewport(pov) {
     if (pov.pitch > this.properties.maxPitch) {
@@ -674,9 +685,9 @@ class PanoManager {
 
   /**
    * Changes the image pov. If a transition duration is given, smoothly updates the pov over that time.
-   * @param {{heading: number, pitch: number, zoom: number}} pov Target pov
-   * @param {number} [durationMs] Transition duration in milliseconds, happens immediately if undefined
-   * @param {function} [callback] Optional callback function executed after updating pov.
+   * @param {{heading: number, pitch: number, zoom: number}} pov - Target pov
+   * @param {number} [durationMs] - Transition duration in milliseconds, happens immediately if undefined
+   * @param {Function} [callback] - Optional callback function executed after updating pov.
    * @returns {void}
    */
   setPov(pov, durationMs, callback) {
@@ -735,7 +746,7 @@ class PanoManager {
 
   /**
    * Set the minimum and maximum heading angle that users can adjust the Street View camera.
-   * @param {{min: number, max: number}} range The acceptable heading range
+   * @param {{min: number, max: number}} range - The acceptable heading range
    * @returns {void}
    */
   setHeadingRange(range) {
@@ -814,7 +825,7 @@ class PanoManager {
 
   /**
    * Gets the value from the status object.
-   * @param {string} key The key for the desired status
+   * @param {string} key - The key for the desired status
    * @returns {*} The value of the given status
    */
   getStatus(key) {

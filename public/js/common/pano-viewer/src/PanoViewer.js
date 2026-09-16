@@ -3,6 +3,18 @@
  */
 class PanoViewer {
   /**
+   * The imagery source a subclass shows, like 'gsv'. Each subclass sets its own.
+   * @type {string}
+   */
+  static SOURCE;
+
+  /**
+   * The pano on screen, or the previous one while the next is loading. Undefined until the first pano loads.
+   * @type {PanoData|undefined}
+   */
+  currPanoData;
+
+  /**
    * The type of panorama viewer.
    * @type {string}
    */
@@ -25,6 +37,12 @@ class PanoViewer {
    * @type {Function[]}
    */
   povChangedListeners = [];
+
+  /**
+   * Subscribers to _fireDiagnostic.
+   * @type {Array<(name: string, details: Record<string, string>) => void>}
+   */
+  diagnosticListeners = [];
 
   /**
    * Which initial seed successfully placed the viewer: 'pano' when startPanoId loaded, 'latLng' when a
@@ -64,13 +82,14 @@ class PanoViewer {
 
   /**
    * Initializes the panorama viewer with the given canvas element and options.
-   * @param {Element} canvasElem
-   * @param {object} panoOptions Object containing initialization options
-   * @param {string} [panoOptions.startPanoId] Pano to start at; either this or startLatLng is required
-   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Starting loc; either this or startLatLng is required
-   * @param {boolean} [panoOptions.preloadNeighbors=false] Pre-download panos linked to the current one, so that
+   * @param {Element} _canvasElem
+   * @param {object} _panoOptions - Object containing initialization options
+   * @param {string} [_panoOptions.startPanoId] - Pano to start at; either this or startLatLng is required
+   * @param {{lat: number, lng: number}} [_panoOptions.startLatLng] - Start loc; either this or startPanoId is required
+   * @param {boolean} [_panoOptions.preloadNeighbors=false] - Pre-download panos linked to the current one, so that
    *     moving to them is fast. Only supported by Mapillary; other viewers ignore it.
    * @returns {Promise<void>}
+   * @abstract
    */
   initialize(_canvasElem, _panoOptions = {}) {
     return Promise.reject(new Error('Subclasses must implement initialize()'));
@@ -78,11 +97,11 @@ class PanoViewer {
 
   /**
    * Factory method to create and initialize instances. Ex: `const viewer = await GsvViewer.create(canvasElem);`.
-   * @param {Element} canvasElem
-   * @param {object} panoOptions Object containing initialization options
-   * @param {string} [panoOptions.startPanoId] Pano to start at; either this or startLatLng is required
-   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Starting loc; either this or startLatLng is required
-   * @returns {Promise<PanoViewer>}
+   * @template {PanoViewer} T
+   * @this {new () => T}
+   * @param {HTMLElement} canvasElem
+   * @param {Record<string, any>} [panoOptions] - Passed to the subclass's initialize(), which lists what it takes.
+   * @returns {Promise<T>} The viewer, typed as the subclass it was called on.
    * @static
    */
   static async create(canvasElem, panoOptions = {}) {
@@ -94,8 +113,34 @@ class PanoViewer {
     canvasElem.style.textAlign = 'left';
     const newViewer = new this();
     newViewer.canvasElem = canvasElem;
+    // A lost WebGL context (GPU reset, memory pressure) leaves the pano black with no error from any provider, so it
+    // is recorded from the mount for all of them. Capture phase: it fires on the provider's canvas and doesn't bubble.
+    canvasElem.addEventListener('webglcontextlost', () => newViewer._fireDiagnostic('WebGLContextLost'), true);
     await newViewer.initialize(canvasElem, panoOptions);
     return newViewer;
+  }
+
+  /**
+   * Records a failure or recovery inside the viewer that no return value carries (a token renewed or lost, a WebGL
+   * context lost, an SDK that never came up). A page with a tracker subscribes via addListener('diagnostic'); one
+   * without still gets the event into webpage_activity, so a black viewer anywhere leaves a trace. Users can't be
+   * asked to open DevTools, so this is the record a bug report gets checked against.
+   * @param {string} name - CamelCase event name; trackers log it as `PanoViewer_<name>`.
+   * @param {Record<string, string|number|boolean|null|undefined>} [details] - Short values kept with the event,
+   *     flattened to the `k:v,k:v` alphabet both trackers join notes with.
+   * @protected
+   */
+  _fireDiagnostic(name, details = {}) {
+    const safeDetails = Object.fromEntries(Object.entries(details)
+      .filter(([, value]) => value !== undefined && value !== null)
+      .map(([key, value]) => [key, String(value).replace(/[,:]/g, ';').slice(0, 80)]));
+    console.warn(`PanoViewer_${name}`, safeDetails);
+    if (this.diagnosticListeners.length > 0) {
+      for (const listener of this.diagnosticListeners) listener(name, safeDetails);
+      return;
+    }
+    const suffix = Object.entries(safeDetails).map(([key, value]) => `_${key}=${value}`).join('');
+    window.logWebpageActivity?.(`PanoViewer_${name}${suffix}`, true);
   }
 
   /**
@@ -120,10 +165,8 @@ class PanoViewer {
   /**
    * Moves to the first initial location with usable imagery: startPanoId if given, falling back to startLatLng
    * followed by each point in backupLatLngs. Called from subclasses' initialize() implementations.
-   * @param {object} panoOptions Object containing initialization options
-   * @param {string} [panoOptions.startPanoId] Pano to start at; tried before the lat/lngs
-   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Preferred starting location
-   * @param {Array<{lat: number, lng: number}>} [panoOptions.backupLatLngs=[]] Fallback locations, tried in order
+   * @param {Record<string, any>} panoOptions - Initialization options. Reads `startPanoId` (tried first),
+   *     `startLatLng` (the preferred location), and `backupLatLngs` (fallback locations, tried in order).
    * @returns {Promise<void>} Rejects only when every given seed fails. The rejection is a NoImageryError only when
    *     every candidate location answered "nothing here"; if any failed for another reason, that error is rethrown
    *     as-is so callers can tell "this street is empty" from "we couldn't ask" (#4918)
@@ -176,15 +219,15 @@ class PanoViewer {
   /**
    * The provider's public-site link for viewing a pano — the one URL shape every surface that links out to the
    * provider shares (PanoInfoPopover's view-in-pano link, the label card's address link).
-   * @param {string} panoId - The pano/image ID to link to.
-   * @param {Object} [opts]
-   * @param {number} [opts.heading] - Camera heading to open the viewer at (GSV).
-   * @param {number} [opts.pitch] - Camera pitch to open the viewer at (GSV).
-   * @param {Array<number>} [opts.center] - Normalized [x, y] view center to open the viewer at (Mapillary).
+   * @param {string} _panoId - The pano/image ID to link to.
+   * @param {object} [_opts]
+   * @param {number} [_opts.heading] - Camera heading to open the viewer at (GSV).
+   * @param {number} [_opts.pitch] - Camera pitch to open the viewer at (GSV).
+   * @param {Array<number>} [_opts.center] - Normalized [x, y] view center to open the viewer at (Mapillary).
    * @returns {?{url: string, i18nKey: string}} The URL plus the i18n key naming the destination, or null for
    *     providers without a public viewer (e.g. Infra3d).
    */
-  publicViewerLink() {
+  publicViewerLink(_panoId, _opts) {
     return null;
   }
 
@@ -199,6 +242,7 @@ class PanoViewer {
   /**
    * Gets the unique identifier of the current panorama.
    * @returns {string} The current panorama ID.
+   * @abstract
    */
   getPanoId() {
     throw new Error('getPanoId() must be implemented by subclass');
@@ -207,16 +251,18 @@ class PanoViewer {
   /**
    * Gets the lat/lng location of the current panorama.
    * @returns {{lat: number, lng: number}} The current location with lat and lng properties.
+   * @abstract
    */
   getPosition() {
-    throw new Error('getPov() must be implemented by subclass');
+    throw new Error('getPosition() must be implemented by subclass');
   }
 
   /**
    * Sets the panorama to the location closest to the specified lat/lng.
-   * @param {{lat: number, lng: number}} latLng The desired location to move to.
-   * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to.
+   * @param {{lat: number, lng: number}} _latLng - The desired location to move to.
+   * @param {Set<PanoData>} [_excludedPanos=new Set()] - Set of PanoData objects that are not valid images to move to.
    * @returns {Promise<PanoData>} The panorama data object. Rejects if closest image is in excludedPanos or none found.
+   * @abstract
    */
   setLocation(_latLng, _excludedPanos = new Set()) {
     return Promise.reject(new Error('setLocation(latLng, excludedPanos) must be implemented by subclass'));
@@ -225,7 +271,7 @@ class PanoViewer {
   /**
    * Prefetches images near a location to reduce latency on a subsequent setLocation() call.
    * No-op by default; override in subclasses that support prefetching.
-   * @param {{lat: number, lng: number}} latLng
+   * @param {{lat: number, lng: number}} _latLng
    */
   prefetchLocation(_latLng) {}
 
@@ -238,11 +284,71 @@ class PanoViewer {
   /**
    * Pre-downloads the pano that setLocation() would pick near the given location, so a subsequent move there
    * doesn't wait on the network. No-op by default; override in subclasses that support preloading.
-   * @param {{lat: number, lng: number}} latLng The location the next move is expected to target.
-   * @param {Set<PanoData>} [excludedPanos] Panos the next move is expected to exclude.
+   * @param {{lat: number, lng: number}} _latLng - The location the next move is expected to target.
+   * @param {Set<PanoData>} [_excludedPanos] - Panos the next move is expected to exclude.
    * @returns {Promise<void>}
    */
   async preloadPanoNear(_latLng, _excludedPanos = new Set()) {}
+
+  /**
+   * Whether this provider can search for a pano by location, and so answer findPanoNear() with more than null.
+   * Callers that would otherwise sample a whole street for nothing (Pannellum) check this first. False by default;
+   * a provider that implements findPanoNear() overrides it.
+   * @returns {boolean}
+   */
+  supportsLocationSearch() {
+    return false;
+  }
+
+  /**
+   * Finds the pano that setLocation() would move to near a location, without moving. A metadata-only lookup for
+   * callers that want to know where imagery is before the user goes there: Explore's forward crumbs on the minimap
+   * (#4669), which mark the panos ahead on the street being audited even where the provider's link graph dead-ends.
+   *
+   * Runs the same provider search + scoring as setLocation() and honours the same exclusions, so the answer is the
+   * pano a move to `latLng` would land on. Must not change what the viewer shows or any current/previous pano state,
+   * and must not fire pano_changed. Providers that prefetch searches (prefetchLocation) answer from that cache when
+   * one covers the point, so sampling a street that prefetchAlongStreet() already primed costs no network.
+   *
+   * @param {{lat: number, lng: number}} _latLng - The location to look near; the radius is setLocation()'s.
+   * @param {Set<PanoData>} [_excludedPanos] - Panos that don't count (already visited, stuck), as in setLocation().
+   * @returns {Promise<?{panoId: string, lat: number, lng: number}>} The pano's id and camera position, or null when
+   *     the search completed and found nothing usable, the cases setLocation() rejects with NoImageryError. Rejects
+   *     only when the provider couldn't be asked (network, SDK, timeout), so a caller can tell "empty" from
+   *     "unknown" (#4918). The default resolves null: a provider with no location search (Pannellum) simply has no
+   *     crumbs to offer.
+   */
+  findPanoNear(_latLng, _excludedPanos = new Set()) {
+    return Promise.resolve(null);
+  }
+
+  /**
+   * Budget for one findPanoNear() lookup, in ms. Generous, since a slow answer is still an answer; the point is that
+   * a lookup which never settles can't hold up the sampler that issued it alongside dozens of others.
+   * @type {number}
+   */
+  static FIND_PANO_TIMEOUT_MS = 10000;
+
+  /**
+   * Races a provider promise against a timeout so a lookup that never settles can't wedge a sampler. The underlying
+   * request is left running (it may be a shared prefetch promise another caller is waiting on); only this caller
+   * gives up. Underscore-prefixed rather than #private so subclasses can use it.
+   * @template T
+   * @param {Promise<T>} promise - The provider call.
+   * @param {number} ms - How long to wait before giving up.
+   * @param {string} what - Names the operation in the rejection message.
+   * @returns {Promise<T>} Resolves/rejects with the promise, or rejects with a "Timed out" Error after `ms`.
+   * @protected
+   */
+  static _withTimeout(promise, ms, what) {
+    let timer;
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`Timed out: ${what}`)), ms);
+      }),
+    ]).finally(() => clearTimeout(timer));
+  }
 
   /**
    * Downloads the provider's viewer code ahead of create(), so a viewer built later on a user action doesn't wait on
@@ -254,24 +360,67 @@ class PanoViewer {
 
   /**
    * Moves the current panorama to the specified panorama ID.
-   * @param panoId The panorama ID to set.
+   * @param {string} _panoId - The panorama ID to set.
    * @returns {Promise<PanoData>} The panorama data object.
+   * @abstract
    */
   setPano(_panoId) {
     return Promise.reject(new Error('setPano(panoId) must be implemented by subclass'));
   }
 
   /**
-   * Gets the panos that are linked to the current one, to be used with navigation arrows.
-   * @returns {Promise<Array<{panoId: string, heading: number}>>}
+   * Gets the panos that are linked to the current one, to be used with navigation arrows. Synchronous: every
+   * provider records the links while the pano loads. Entries carry `lat`/`lng` only when the provider had the
+   * destination's position in hand; getLinkedPanoPositions() fills in the rest.
+   * @returns {Array<{panoId: string, heading: number, description?: string, lat?: number, lng?: number}>}
+   * @abstract
    */
   getLinkedPanos() {
     throw new Error('getLinkedPanos() must be implemented by subclass');
   }
 
   /**
+   * Position of a pano the provider can identify by id, without moving to it. Explore's minimap uses it to place a
+   * crumb at the destination of each on-pano arrow (#4669). Same contract as findPanoNear(): null when the provider
+   * answered that it has no such pano, a rejection when it couldn't answer. The default resolves null; a provider
+   * whose links already carry positions (Panoramax) needs no override.
+   * @param {string} _panoId - The provider's id for the pano.
+   * @returns {Promise<?{lat: number, lng: number}>}
+   */
+  lookupPanoPosition(_panoId) {
+    return Promise.resolve(null);
+  }
+
+  /**
+   * The current pano's links, each with its destination's position: what the minimap needs to draw a crumb per
+   * on-pano arrow. Links the provider positioned itself pass through; the rest are resolved with
+   * lookupPanoPosition() in parallel (a pano has a handful of links). A link whose position can't be found is left
+   * out rather than failing the lot: a missing crumb is the safe failure, and its arrow still works.
+   * @returns {Promise<Array<{panoId: string, heading: number, lat: number, lng: number}>>}
+   */
+  async getLinkedPanoPositions() {
+    const links = this.getLinkedPanos() || [];
+    const positioned = await Promise.all(links.map(async (link) => {
+      if (Number.isFinite(link.lat) && Number.isFinite(link.lng)) return link;
+      try {
+        const position = await PanoViewer._withTimeout(
+          this.lookupPanoPosition(link.panoId), PanoViewer.FIND_PANO_TIMEOUT_MS, `position of pano ${link.panoId}`,
+        );
+        return position ? { ...link, lat: position.lat, lng: position.lng } : null;
+      } catch (err) {
+        console.warn(`Could not position linked pano ${link.panoId}:`, err);
+        return null;
+      }
+    }));
+    return /** @type {Array<{panoId: string, heading: number, lat: number, lng: number}>} */ (
+      positioned.filter(Boolean)
+    );
+  }
+
+  /**
    * Gets the current point of view (POV) of the panorama.
    * @returns {{heading: number, pitch: number, zoom: number}} The current POV.
+   * @abstract
    */
   getPov() {
     throw new Error('getPov() must be implemented by subclass');
@@ -280,11 +429,12 @@ class PanoViewer {
   /**
    * Sets the camera view to the specified heading, pitch, and zoom.
    *
-   * @param {object} pov - Object containing the desired heading, pitch, and zoom
-   * @param {number} pov.heading - Desired heading in degrees (0-360, where 0 is true north)
-   * @param {number} pov.pitch - Desired pitch in degrees (-90 to 90, where 0 is horizontal)
-   * @param {number} pov.zoom - Desired zoom (1, 2, or 3)
+   * @param {object} _pov - Object containing the desired heading, pitch, and zoom
+   * @param {number} _pov.heading - Desired heading in degrees (0-360, where 0 is true north)
+   * @param {number} _pov.pitch - Desired pitch in degrees (-90 to 90, where 0 is horizontal)
+   * @param {number} _pov.zoom - Desired zoom (1, 2, or 3)
    * @returns {void}
+   * @abstract
    */
   setPov(_pov) {
     throw new Error('setPov() must be implemented by subclass');
@@ -293,6 +443,7 @@ class PanoViewer {
   /**
    * Hides the navigation arrows in the panorama viewer.
    * @returns {void}
+   * @abstract
    */
   hideNavigationArrows() {
     throw new Error('hideNavigationArrows() must be implemented by subclass');
@@ -301,6 +452,7 @@ class PanoViewer {
   /**
    * Shows the navigation arrows in the panorama viewer.
    * @returns {void}
+   * @abstract
    */
   showNavigationArrows() {
     throw new Error('showNavigationArrows() must be implemented by subclass');
@@ -316,8 +468,8 @@ class PanoViewer {
 
   /**
    * Adds an event listener for the specified event type.
-   * @param event One of ['pano_changed', 'pov_changed']
-   * @param handler The function to call when the event occurs.
+   * @param {string} event - One of ['pano_changed', 'pov_changed', 'diagnostic']
+   * @param {Function} handler - The function to call when the event occurs; a 'diagnostic' one gets `(name, details)`.
    * @returns {void}
    */
   addListener(event, handler) {
@@ -325,13 +477,17 @@ class PanoViewer {
       this.panoChangedListeners.push(handler);
     } else if (event === 'pov_changed') {
       this.povChangedListeners.push(handler);
+    } else if (event === 'diagnostic') {
+      this.diagnosticListeners.push(
+        /** @type {(name: string, details: Record<string, string>) => void} */ (handler),
+      );
     }
   }
 
   /**
    * Removes an event listener for the specified event type.
-   * @param {string} event One of ['pano_changed', 'pov_changed']
-   * @param {function} handler The function to call when the event occurs.
+   * @param {string} event - One of ['pano_changed', 'pov_changed', 'diagnostic']
+   * @param {Function} handler - The function to call when the event occurs.
    * @returns {void}
    */
   removeListener(event, handler) {
@@ -339,6 +495,8 @@ class PanoViewer {
       this.panoChangedListeners = this.panoChangedListeners.filter((func) => func !== handler);
     } else if (event === 'pov_changed') {
       this.povChangedListeners = this.povChangedListeners.filter((func) => func !== handler);
+    } else if (event === 'diagnostic') {
+      this.diagnosticListeners = this.diagnosticListeners.filter((func) => func !== handler);
     }
   }
 }

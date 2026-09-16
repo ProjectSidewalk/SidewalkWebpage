@@ -27,10 +27,6 @@ object AccessScoreApiModels {
   /** The scored label types in canonical order, so output columns stay stable. */
   val orderedTypes: Seq[String] = AccessScoreCalculator.orderedScoredTypes
 
-  /** Converts a CamelCase label-type name to snake_case for GeoPackage column names ("NoCurbRamp" → "no_curb_ramp"). */
-  def snakeType(labelType: String): String =
-    labelType.replaceAll("([a-z0-9])([A-Z])", "$1_$2").toLowerCase
-
   /**
    * Short code for a label type's shapefile columns, since DBF cuts column names off at 10 characters. Covers every
    * type, not just the scored ones, so the compiler flags a newly added type that has no code.
@@ -52,15 +48,6 @@ object AccessScoreApiModels {
 
   /** The rating buckets a cluster can fall into, in column order. */
   val severityBuckets: Seq[String] = AccessScoreCalculator.severityBuckets
-
-  /**
-   * The GeoPackage column suffix for a rating bucket: `sev1`..`sev3`, or `sev_null` for unrated clusters.
-   *
-   * @param bucket One of [[severityBuckets]].
-   * @return       The suffix.
-   */
-  def bucketSuffix(bucket: String): String =
-    if (bucket == AccessScoreCalculator.nullSeverityBucket) "sev_null" else s"sev$bucket"
 
   /**
    * The shapefile column prefix for a rating bucket's cluster count: `n1`..`n3`, or `n0` for unrated clusters, so the
@@ -120,7 +107,8 @@ object AccessScoreApiModels {
  *
  * @param streetEdgeId           Project Sidewalk street segment identifier.
  * @param osmWayId               OpenStreetMap way identifier.
- * @param regionId               Region (neighborhood) the street belongs to.
+ * @param streetName             The street's name from its OpenStreetMap way's `name` tag, if it has one.
+ * @param regionId               Region the street belongs to.
  * @param score                  Headline access score in (0, 1): the mean of `segmentScore` and the end intersections'
  *                               scores, over those that exist. None if the street has not been audited and neither
  *                               end is scored.
@@ -146,6 +134,7 @@ object AccessScoreApiModels {
 case class StreetAccessScoreForApi(
     streetEdgeId: Int,
     osmWayId: Long,
+    streetName: Option[String],
     regionId: Int,
     score: Option[Double],
     segmentScore: Option[Double],
@@ -181,6 +170,7 @@ object StreetAccessScoreForApi extends ApiFields[StreetAccessScoreForApi] {
   override val fields: Seq[ApiField[StreetAccessScoreForApi]] = Seq[ApiField[StreetAccessScoreForApi]](
     field("street_edge_id")(_.streetEdgeId),
     field("osm_way_id")(_.osmWayId),
+    field("street_name")(_.streetName),
     field("region_id")(_.regionId),
     field("score")(_.score),
     field("segment_score")(_.segmentScore),
@@ -210,7 +200,7 @@ object StreetAccessScoreForApi extends ApiFields[StreetAccessScoreForApi] {
  * street meeting there.
  *
  * @param intersectionId Project Sidewalk intersection identifier.
- * @param regionId       Region (neighborhood) most of the intersection's streets are in, or None.
+ * @param regionId       Region most of the intersection's streets are in, or None.
  * @param degree         How many streets meet here.
  * @param gradeSeparated Whether this is a bridge or tunnel crossing rather than a place to cross: such a node is never
  *                       scored and holds no clusters.
@@ -277,7 +267,7 @@ object IntersectionAccessScoreForApi extends ApiFields[IntersectionAccessScoreFo
 }
 
 /**
- * AccessScore for a region (neighborhood), for the v3 API.
+ * AccessScore for a region, for the v3 API.
  *
  * @param regionId            Project Sidewalk region identifier.
  * @param name                Region name.

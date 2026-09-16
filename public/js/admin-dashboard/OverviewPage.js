@@ -22,7 +22,7 @@ class OverviewPage {
   #displayByType = new Map();   // labelType name -> localized short name from /v3/api/labelTypes
 
   /** @param {{summaryUrl: string, activityByDayUrl: string, recentActivityUrl: string, labelTypesUrl: string}} opts */
-  constructor(opts = {}) {
+  constructor(opts) {
     this.#summaryUrl = opts.summaryUrl;
     this.#activityByDayUrl = opts.activityByDayUrl;
     this.#recentActivityUrl = opts.recentActivityUrl;
@@ -132,7 +132,7 @@ class OverviewPage {
    * Renders the week-over-week trend and sparkline on the four cards that have a meaningful weekly flow, from the
    * daily activity series. Each spec maps a card to the per-day metric that drives its trend.
    *
-   * @param {Array<object>} series - Daily records from /adminapi/activityByDay (date + per-metric counts).
+   * @param {Array<Record<string, any>>} series - Daily records from /adminapi/activityByDay (date + per-metric counts).
    */
   #renderTrends(series) {
     if (!series.length) return;
@@ -157,7 +157,7 @@ class OverviewPage {
    *
    * @param {Map<string, object>} byDate - Day (YYYY-MM-DD) → record.
    * @param {Date} today - Local start-of-today, the right edge of the most recent bucket.
-   * @param {function(object): number} get - Extracts the metric from a record.
+   * @param {(record: object) => number} get - Extracts the metric from a record.
    * @returns {{values: number[], thisWeek: number, priorWeek: number}} Weekly sums oldest→newest plus the last two.
    */
   #weeklyBuckets(byDate, today, get) {
@@ -230,7 +230,7 @@ class OverviewPage {
    * Builds the "needs attention" panel: a short list of deep-linked action items computed from the summary. Shows an
    * "all clear" note when nothing is flagged.
    *
-   * @param {object} s - The overview summary payload.
+   * @param {Record<string, any>} s - The overview summary payload.
    */
   #renderAttention(s) {
     const el = document.getElementById('ov-attention');
@@ -286,7 +286,7 @@ class OverviewPage {
   /**
    * Renders the live recent-activity strip: the newest contributions with their preview thumbnails.
    *
-   * @param {Array<object>} items - Recent-activity items (newest first) from /adminapi/recentActivity.
+   * @param {Array<Record<string, any>>} items - Recent-activity items (newest first) from /adminapi/recentActivity.
    */
   #renderRecent(items) {
     const el = document.getElementById('ov-recent');
@@ -332,7 +332,7 @@ class OverviewPage {
   /**
    * Renders the "latest activity" pulse line at the top of the page from the single most-recent contribution.
    *
-   * @param {?object} item - A recent-activity item or null.
+   * @param {?Record<string, any>} item - A recent-activity item or null.
    */
   #renderPulse(item) {
     const el = document.getElementById('ov-pulse');

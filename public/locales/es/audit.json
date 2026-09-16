@@ -108,9 +108,9 @@
   },
   "mission-complete": {
     "title-generic": "¡Misión cumplida!",
-    "title-neighborhood-complete": "¡Bravo! ¡Completaste el vecindario {{neighborhoodName}}!",
+    "title-region-complete": "¡Bravo! ¡Completaste el vecindario {{regionName}}!",
     "title-route-complete": "¡Bravo! ¡Completaste tu ruta!",
-    "subtitle": "Explora {{distance}} de {{neighborhoodName}}",
+    "subtitle": "Explora {{distance}} de {{regionName}}",
     "badge-alt": "Tu insignia de misiones",
     "legend-title": "Progreso de la misión",
     "legend-this-mission": "Esta misión",
@@ -146,14 +146,14 @@
       "message-route": "Explora {{routeName}}",
       "exit-route": "Salir de la ruta personalizada",
       "header-free-explore": "Exploración libre",
-      "message": "Explora __PLACEHOLDER__ de {{neighborhoodName}}"
+      "message": "Explora __PLACEHOLDER__ de {{regionName}}"
     },
     "route-resume": {
       "message": "Reanudando tu ruta personalizada “{{routeName}}” donde la dejaste.",
       "exit": "Salir de la ruta personalizada"
     },
     "mission-resume": {
-      "message": "Reanudando tu misión en {{neighborhoodName}}; te quedan {{distanceLeft, distance(style: small)}}."
+      "message": "Reanudando tu misión en {{regionName}}; te quedan {{distanceLeft, distance(style: small)}}."
     },
     "route-unavailable": {
       "message": "Esa ruta no está disponible. Es posible que se haya eliminado."
@@ -172,7 +172,20 @@
       "legend-ahead": "Ruta pendiente",
       "legend-you": "Usted + dirección de vista",
       "legend-visited": "Ubicación visitada",
-      "legend-unseen": "Aún sin ver"
+      "legend-unseen": "Aún sin ver",
+      "legend-next-stops": "Paradas en su ruta",
+      "forward-crumb-title": "Avanzar a la parada {{rank}}",
+      "legend-other-links": "Otras direcciones",
+      "legend-faced": "Relleno: adonde le lleva avanzar",
+      "link-crumb-title": "Ir a esta panorámica",
+      "legend-next-step": "Azul claro: siguiente paso (barra espaciadora)",
+      "route-stop-title": "Parada {{rank}} de su ruta",
+      "breadcrumb-title": "Visitado: clic para volver aquí",
+      "label-marker-title": "Etiqueta {{labelType}}: clic para revisarla",
+      "route-start-flag": "Inicio de la ruta",
+      "route-finish-flag": "Final de la ruta",
+      "mission-start-flag": "Donde empezó esta misión",
+      "mission-finish-flag": "Donde termina esta misión"
     },
     "stats": {
       "leaderboard-cta": "Ver la clasificación de la comunidad"
@@ -187,7 +200,7 @@
       "next-distance": "Explora {{distance}} para conseguir la siguiente.",
       "earned-all": "¡Has alcanzado el nivel máximo de esta insignia, excelente trabajo!"
     },
-    "neighborhood-progress": {
+    "region-progress": {
       "title": "Progreso del barrio",
       "you-tooltip": "Tus contribuciones",
       "community-tooltip": "Contribuciones de la comunidad"
@@ -299,14 +312,14 @@
       "u-turn": "Da la vuelta",
       "end-route": "¡Estás al final de tu ruta! Mira a tu alrededor por completo para terminar, o <b>haz clic aquí para completar ahora.</b>",
       "route-finish-look-around": "¡Última parada! Mira a tu alrededor por completo para terminar tu ruta.",
-      "end-neighborhood": "¡Has explorado todo este vecindario! Termine de etiquetar esta intersección, luego <b>haga clic aquí para completar el vecindario.</b>",
+      "end-region": "¡Has explorado todo este vecindario! Termine de etiquetar esta intersección, luego <b>haga clic aquí para completar el vecindario.</b>",
       "end-street": "Necesitamos trasladarte a una nueva ubicación. Termine de etiquetar esta intersección, luego <b>haga clic aquí para moverse a una nueva ubicación.</b>",
       "far-away": "Oh-oh, estás bastante lejos de la ruta. <b>Haz clic aquí para volver atrás.</b>"
     }
   },
   "popup": {
     "start-title": "¡Empecemos!",
-    "start-body": "¡Te hemos trasladado a una calle en {{neighborhood}}, {{city}}! Actualmente estás parado en la intersección. Por favor, busca y etiqueta todas las rampas y los problemas de accesibilidad de esta intersección.",
+    "start-body": "¡Te hemos trasladado a una calle en {{region}}, {{city}}! Actualmente estás parado en la intersección. Por favor, busca y etiqueta todas las rampas y los problemas de accesibilidad de esta intersección.",
     "step-title": "¡Vamos derecho!",
     "step-body": "Parece que has mirado alrededor de toda esta intersección, por lo que es hora de explorar otras áreas. Moverse en la dirección de la línea roja resaltada en el mapa.",
     "both-sides-title": "Por favor revisa ambos lados de la calle",
@@ -336,11 +349,12 @@
     "free-explore-no-imagery": "No hay más imágenes de la calle en esta dirección. Intenta mirar alrededor o ir hacia el otro lado.",
     "stuck-suggestion": "Si no puede moverse con las flechas, intente hacer clic en las direcciones de navegación en la parte inferior derecha. O intente hacer clic en el botón Atascado a la izquierda.",
     "imagery-skip-limit": "Varias calles seguidas no tenían imágenes, así que hemos dejado de moverte automáticamente. Prueba con otra zona del mapa o recarga la página para empezar de nuevo.",
-    "imagery-load-failed": "No pudimos cargar las imágenes de la calle en este momento. Vuelve a intentarlo en unos minutos."
+    "imagery-load-failed": "No pudimos cargar las imágenes de la calle en este momento. Vuelve a intentarlo en unos minutos.",
+    "imagery-session-expired": "Tu sesión de imágenes de la calle ha caducado y no se pudo renovar. Recarga la página para continuar; tu trabajo hasta ahora está guardado."
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "EXPLORAR MISIÓN",
-    "mst-instruction-2": "Etiquete estas funciones de accesibilidad en {{neighborhood}}",
+    "mst-instruction-2": "Etiquete estas funciones de accesibilidad en {{region}}",
     "example-type-label-incorrect": "ERROR COMÚN",
     "label-on-image-title-incorrect": "Error común",
     "label-on-image-description-correct": "Coloque una etiqueta",

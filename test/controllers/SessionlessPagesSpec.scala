@@ -69,11 +69,18 @@ class SessionlessPagesSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(resp) mustBe OK
       cookies(resp).get(authCookieName) mustBe None
     }
+
+    "redirect a mobile visitor from /accessScore to /mobileLanding, as the desktop-only Route Builder does" in {
+      val resp = route(app, FakeRequest(GET, "/accessScore").withHeaders(UserAgents.mobile)).get
+      status(resp) mustBe SEE_OTHER
+      redirectLocation(resp).value mustBe "/mobileLanding"
+      status(route(app, FakeRequest(GET, "/accessScore")).get) mustBe OK
+    }
   }
 
   "Data endpoints the public pages call on load" should {
-    "serve /neighborhoods to a cookie-less request without setting the authenticator cookie" in {
-      val resp = route(app, FakeRequest(GET, "/neighborhoods")).get
+    "serve /regions to a cookie-less request without setting the authenticator cookie" in {
+      val resp = route(app, FakeRequest(GET, "/regions")).get
       status(resp) mustBe OK
       contentType(resp) mustBe Some("application/json")
       (contentAsJson(resp) \ "type").as[String] mustBe "FeatureCollection"

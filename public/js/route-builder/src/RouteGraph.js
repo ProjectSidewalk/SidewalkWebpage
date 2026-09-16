@@ -1,11 +1,21 @@
 /**
+ * The street nearest a point, as RouteGraph.snapToStreet finds it.
+ * @typedef {object} StreetSnap
+ * @property {number} streetId
+ * @property {number} regionId
+ * @property {string} nodeKey - Key of the street's endpoint node nearer the point.
+ * @property {number[]} nodeLngLat - [lng, lat] of that endpoint, where a route starts or joins.
+ * @property {number} distanceM - Distance from the point to the street's nearest vertex.
+ */
+
+/**
  * Client-side street-network graph for auto-routing (#4579): builds an adjacency graph from the city's street
  * GeoJSON (endpoints within ~10 m are merged into one node, the same connectivity tolerance the builder's
  * contiguous-section logic uses) and answers shortest-walking-path queries with A*.
  *
  * All geometry math is self-contained (haversine / equirectangular approximations) so the class stays fast and
  * unit-testable without the map or turf. Routing is restricted to a single region, matching the current
- * one-neighborhood-per-route constraint (#3488 tracks lifting it).
+ * one-region-per-route constraint (#3488 tracks lifting it).
  */
 class RouteGraph {
   // Endpoints within this distance are considered the same intersection (mirrors #computeContiguousRoutes).
@@ -17,7 +27,7 @@ class RouteGraph {
   #featureLengths = new Map(); // streetId -> geometry length in meters (for the snap prefilter)
 
   /**
-   * @param {Array<Object>} streetFeatures - GeoJSON LineString features with street_edge_id + region_id properties.
+   * @param {GeoJSON.Feature[]} streetFeatures - GeoJSON LineString features with street_edge_id + region_id properties.
    */
   constructor(streetFeatures) {
     streetFeatures.forEach((feature) => {
@@ -45,7 +55,7 @@ class RouteGraph {
    * The source GeoJSON feature for a street id, so callers don't rescan the city's street array to find one.
    *
    * @param {number} streetId
-   * @returns {?Object} The feature, or undefined if the id isn't in the loaded street data.
+   * @returns {object|undefined} The feature, or undefined if the id isn't in the loaded street data.
    */
   getFeature(streetId) {
     return this.#features.get(streetId);
@@ -114,14 +124,12 @@ class RouteGraph {
   /**
    * Finds the street nearest to a point, and which of its endpoint nodes is closer.
    *
-   * @param {Object} point - {lng, lat}.
-   * @param {number} [regionId] - When given, only streets in this region are considered (e.g. so the start-point
+   * @param {{lng: number, lat: number}} point
+   * @param {?number} [regionId] - When given, only streets in this region are considered (e.g. so the start-point
    *   preview near a boundary can't snap into a neighboring region).
    * @param {number} [maxDistanceM] - When given, a point further than this from every candidate snaps to none.
    *   Without it a far-away point still snaps to *something*, however distant.
-   * @returns {Object|null} {streetId, regionId, nodeKey, nodeLngLat, distanceM} or null when there are no streets
-   *                        (or none within maxDistanceM). nodeLngLat is the [lng, lat] of the snapped endpoint
-   *                        node (where a route starts/joins).
+   * @returns {?StreetSnap} Null when there are no streets, or none within maxDistanceM.
    */
   snapToStreet(point, regionId = null, maxDistanceM = Infinity) {
     const p = [point.lng, point.lat];
@@ -188,7 +196,7 @@ class RouteGraph {
    * half the street's length — this measures true distance to the street's segments, so it reliably answers
    * "is this point ON a street".
    *
-   * @param {Object} point - {lng, lat}.
+   * @param {{lng: number, lat: number}} point
    * @param {?number} regionId - When given, only streets in this region are considered.
    * @param {number} maxDistanceM
    * @returns {boolean}
@@ -216,16 +224,16 @@ class RouteGraph {
   /**
    * Computes the shortest walking path between two points along the street network.
    *
-   * @param {Object} start - {lng, lat}.
-   * @param {Object} end - {lng, lat}.
+   * @param {{lng: number, lat: number}} start
+   * @param {{lng: number, lat: number}} end
    * @param {?number} [snapRegionId=null] - When set, both endpoints snap only to streets in this region. A route is
-   *   locked to one neighborhood, so passing its region keeps the snap deterministic at a boundary node where streets
-   *   from two neighborhoods share the exact same endpoint (0 m). Without it, the unfiltered nearest-street tie can
-   *   resolve to the other neighborhood, making an already-placed start read as a different region than every end.
-   * @returns {Object} One of:
+   *   locked to one region, so passing its region keeps the snap deterministic at a boundary node where streets
+   *   from two regions share the exact same endpoint (0 m). Without it, the unfiltered nearest-street tie can
+   *   resolve to the other region, making an already-placed start read as a different region than every end.
+   * @returns {{streets?: {streetId: number, flip: boolean}[], error?: string}} One of:
    *   {streets: [{streetId, flip}]} — the ordered streets; flip means "traverse against the feature's current
    *     coordinate order" so the caller can orient each street for the route;
-   *   {error: 'different-region'} — the pins snap to streets in different neighborhoods;
+   *   {error: 'different-region'} — the pins snap to streets in different regions;
    *   {error: 'no-path'} — no connected path exists (or a pin found no street).
    */
   route(start, end, snapRegionId = null) {

@@ -129,6 +129,10 @@
   --color-link-100: #3E8BD9;
   --color-link-200: #0A58CA;
 
+  /* Explore minimap's route-ahead line: link-100 mixed 55% with white, so the way forward reads as the forward
+     arrow's blue without matching the peg. A flat value because Google Maps polylines can't take color-mix(). */
+  --color-route-ahead: #95BFEA;
+
   /* Project Sidewalk label-type color palette. The canonical color for each accessibility label type. */
   --color-label-curb-ramp: var(--color-lime-500);
   --color-label-no-curb-ramp: var(--color-pink-500);
@@ -137,6 +141,28 @@
   --color-label-no-sidewalk: var(--color-purple-500);
   --color-label-crosswalk: var(--color-yellow-500);
   --color-label-signal: var(--color-mint-500);
+
+  /* AccessScore ramp, read low → high: red-orange for the worst scores, yellow at 50, green for the best. A hue
+     at the midpoint rather than a grey because the grey vanished against the basemap's grey land. Validated with
+     the dataviz palette checks: every adjacent pair clears the CVD floor (worst ΔE 14.5, protan) and the
+     normal-vision floor (16.2); yellow-500 is only 1.4:1 against the basemap, so anything colored by this ramp also
+     carries its value as text (tooltip, legend, table). Read through public/js/common/scoreRamp.js — a chart or map
+     layer never lists these hexes itself. */
+  --color-score-ramp-1: var(--color-orange-600);
+  --color-score-ramp-2: var(--color-orange-500);
+  --color-score-ramp-3: var(--color-yellow-500);
+  --color-score-ramp-4: var(--color-jade-600);
+  --color-score-ramp-5: var(--color-jade-800);
+
+  /* The same ramp re-stepped for the AccessScore tool's dark basemap (Mapbox dark-v11, land #292929): every step
+     is >= 3:1 on that surface, which rules out the light ramp's dark poles. Forcing every step light compresses the
+     warm arm — steps 1 and 2 sit in the 7 ΔE band — but the ramp is interpolated and its poles are far apart, so the
+     arm reads as one hue gradient rather than two levels. Same CVD story as the light ramp: values travel as text. */
+  --color-score-ramp-dark-1: var(--color-orange-500);
+  --color-score-ramp-dark-2: var(--color-pumpkin-400);
+  --color-score-ramp-dark-3: var(--color-yellow-500);
+  --color-score-ramp-dark-4: var(--color-jade-500);
+  --color-score-ramp-dark-5: var(--color-jade-300);
 
   /* Street audit-state colors. The map layer and the legend swatch both read these, so a swatch can't drift from
      the line it stands for. Unaudited is warm rather than grey: the greys it used to sit in are already spoken for
@@ -1622,7 +1648,7 @@ kbd {
 }
 
 /* Overlay box - start */
-#area-completion-overlay-wrapper, #already-completed-neighborhood-overlay {
+#area-completion-overlay-wrapper, #already-completed-region-overlay {
   display:none;
 }
 
@@ -1636,7 +1662,7 @@ kbd {
   z-index: 5;
 }
 
-#area-completion-overlay, #already-completed-neighborhood-text {
+#area-completion-overlay, #already-completed-region-text {
   color: var(--color-neutral-white);
   text-align: center;
   width: 70%;
@@ -1647,7 +1673,7 @@ kbd {
   top: 28%;
 }
 
-#area-completion-overlay p, #already-completed-neighborhood-text p {
+#area-completion-overlay p, #already-completed-region-text p {
   border-radius: 5px;
   padding: 7px;
 }
@@ -2152,6 +2178,14 @@ kbd {
   pointer-events: auto;
   cursor: pointer;
   z-index: 3;
+}
+
+/* Validate's badge is display-only (#5359): it sits on the marker whose hover opens the label card, and that card
+   carries the AI disclaimer, so the badge must not intercept the pointer — its own tooltip and cursor would fire on top
+   of the card. With no pointer events it can't be the target of the delegated .ai-icon-marker hover handlers either
+   (aiLabelIndicator.js). */
+.ai-icon-marker-validate {
+  pointer-events: none;
 }
 
 /* LabelMap / LabelView section */

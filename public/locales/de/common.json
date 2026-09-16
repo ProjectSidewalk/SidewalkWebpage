@@ -108,7 +108,7 @@
   "bad": "Schlecht",
   "yes": "Ja",
   "no": "Nein",
-  "ai-generated-label-tooltip": "Dieses Label wurde von der KI erstellt. KI kann Fehler machen, prüfen Sie es daher selbst.",
+  "ai-generated-label-tooltip": "Dieses Label wurde von der KI erstellt. KI kann Fehler machen, beurteilen Sie daher selbst, ob es korrekt ist.",
   "tag": {
     "narrow": "schmal",
     "points into traffic": "auf Querverkehr ausgerichtet",
@@ -347,5 +347,13 @@
     "on-facebook": "Auf Facebook teilen",
     "on-linkedin": "Auf LinkedIn teilen",
     "via-email": "Per E-Mail teilen"
-  }
+  },
+  "mini-card": {
+    "no-image": "Kein Bild",
+    "open": "Dieses Label öffnen: {{label}}",
+    "votes": "Dieses Label validieren",
+    "no-image-to-judge": "Kein Bild, um dieses Label zu beurteilen",
+    "vote-failed": "Deine Stimme wurde nicht gespeichert. Bitte versuche es erneut."
+  },
+  "download-already-preparing": "Diese Datei wird bereits für eine andere Anfrage vorbereitet. Bitte versuchen Sie es gleich noch einmal."
 }

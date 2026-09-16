@@ -38,6 +38,7 @@ class AdminShell {
     document.querySelectorAll('.deploy-strip time[datetime]').forEach((el) => {
       const date = new Date(el.getAttribute('datetime'));
       if (Number.isNaN(date.getTime())) return;
+      /** @type {Intl.DateTimeFormatOptions} */
       const dateOpts = { year: 'numeric', month: 'short', day: 'numeric' };
       el.textContent = el.dataset.format === 'date'
         ? date.toLocaleDateString(undefined, { ...dateOpts, timeZone: 'UTC' })
@@ -46,10 +47,10 @@ class AdminShell {
   }
 
   /**
-     * Builds the TOC from the section headings (h2/h3.page-heading with ids) inside the main content area. Scoped to
-     * .page-heading so headings inside closed <dialog>s (e.g. the dashboard's create-team dialog) stay out — a hidden
-     * heading has offsetTop 0, which would also wedge the scroll-spy on its TOC entry forever.
-     */
+   * Builds the TOC from the section headings (h2/h3.page-heading with ids) inside the main content area. Scoped to
+   * .page-heading so headings inside closed <dialog>s (e.g. the dashboard's create-team dialog) stay out — a hidden
+   * heading has offsetTop 0, which would also wedge the scroll-spy on its TOC entry forever.
+   */
   #buildTableOfContents() {
     if (!this.#tocList) return;
     this.#tocList.replaceChildren();
@@ -126,7 +127,7 @@ class AdminShell {
    */
   #setupSmoothScrolling() {
     document.querySelectorAll('.page-content a.permalink[href^="#"]')
-      .forEach((anchor) => this.#bindSmoothScroll(anchor));
+      .forEach((anchor) => this.#bindSmoothScroll(/** @type {HTMLAnchorElement} */ (anchor)));
   }
 
   /** @param {HTMLAnchorElement} anchor - An in-page anchor whose href is a fragment. */
@@ -196,14 +197,14 @@ class AdminShell {
    * How long ago a timestamp was, falling back to a plain date once "N days ago" stops being the useful reading.
    *
    * @param {string|number|Date} ts - Anything the Date constructor accepts.
-   * @param {Object} [opts]
+   * @param {object} [opts]
    * @param {string} [opts.invalid] - What to return for an unparseable timestamp; defaults to echoing the input.
    * @param {boolean} [opts.withYear=true] - Include the year in the date fallback.
    * @returns {string} A relative time ("just now", "12m ago", "3h ago", "5d ago") or a formatted date.
    */
   static relativeTime(ts, opts = {}) {
     const date = new Date(ts);
-    if (isNaN(date)) return AdminShell.nil(opts.invalid) ? String(ts) : opts.invalid;
+    if (isNaN(date.getTime())) return AdminShell.nil(opts.invalid) ? String(ts) : opts.invalid;
     const secs = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
     if (secs < 60) return 'just now';
     const mins = Math.floor(secs / 60);
@@ -212,6 +213,7 @@ class AdminShell {
     if (hrs < 24) return `${hrs}h ago`;
     const days = Math.floor(hrs / 24);
     if (days < 7) return `${days}d ago`;
+    /** @type {Intl.DateTimeFormatOptions} */
     const dateOpts = { month: 'short', day: 'numeric' };
     if (opts.withYear !== false) dateOpts.year = 'numeric';
     return date.toLocaleDateString(undefined, dateOpts);
@@ -250,7 +252,7 @@ class AdminShell {
   /**
    * A job's last-run state as a toned badge, with overdue outranking whatever that last run reported.
    *
-   * @param {Object} job - One `nightly_jobs` entry.
+   * @param {Record<string, any>} job - One `nightly_jobs` entry.
    * @returns {string} The badge's HTML.
    */
   static jobStatusBadge(job) {
@@ -274,7 +276,7 @@ class AdminShell {
    * code works, not that anything is still firing it, so it is reported beside the schedule's record instead of in
    * place of it.
    *
-   * @param {Object} job - One `nightly_jobs` entry.
+   * @param {Record<string, any>} job - One `nightly_jobs` entry.
    * @returns {string} HTML: the scheduled run's age, with a muted manual-run note appended when one exists.
    */
   static jobLastRun(job) {
@@ -288,7 +290,7 @@ class AdminShell {
    * A run's own counts, flattened to `key: value` pairs. Every job reports a different shape, so this renders whatever
    * it stored rather than naming fields a panel would have to be taught one by one.
    *
-   * @param {Object} job - One `nightly_jobs` entry.
+   * @param {Record<string, any>} job - One `nightly_jobs` entry.
    * @returns {string} Plain text (the caller escapes it): the error when the run failed, else its counts.
    */
   static jobDetails(job) {

@@ -242,7 +242,7 @@ class ExploreServiceImpl @Inject() (
             regionTable.getRegion(r).flatMap {
               case Some(region) => userCurrentRegionTable.insertOrUpdate(userId, region.regionId).map(_ => Some(region))
               case None         =>
-                logger.error(s"Tried to explore region $r, but there is no neighborhood with that id.")
+                logger.error(s"Tried to explore region $r, but there is no region with that id.")
                 DBIO.successful(None)
             }
           // If user is on a route, assign them to the region associated with the route.
@@ -283,7 +283,7 @@ class ExploreServiceImpl @Inject() (
         } else if (routeOption.isDefined) {
           userRouteTable.getRouteTask(userRoute.get, mission.missionId)
         } else if (mission.currentAuditTaskId.isDefined) {
-          // If we find no task with the given ID, try to get any new task in the neighborhood. A task the labeler has
+          // If we find no task with the given ID, try to get any new task in the region. A task the labeler has
           // just reported for missing imagery is passed over the same way: the report leaves it incomplete (#4922),
           // so resuming it would hand back the street whose imagery would not load, on this load and every reload
           // after it. The street keeps its place in the pool for the offline checker to settle (#4918); this only
@@ -781,11 +781,14 @@ class ExploreServiceImpl @Inject() (
    * PanoDataTable.upsert. Every statement is idempotent, so the action is safe to repeat.
    */
   private def savePanoAction(pano: PanoSubmission, timestamp: OffsetDateTime): DBIO[Unit] = {
+    // Stored as ImageryAttribution expects it, a licensed contributor's bare name, whatever the client sent: the AI
+    // labeler sends the whole attribution (#5360).
+    val copyright = ImageryAttribution.normalizeCopyright(pano.source, pano.copyright)
     for {
       _ <- panoDataTable.upsert(
-        PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
-          pano.copyright, pano.license, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll,
-          expired = false, timestamp, Some(timestamp), timestamp, pano.source, hasBackup = None, address = pano.address,
+        PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate, copyright,
+          pano.license, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll, expired = false,
+          timestamp, Some(timestamp), timestamp, pano.source, hasBackup = None, address = pano.address,
           sourceMetadata = pano.sourceMetadata)
       )
 
@@ -1009,7 +1012,7 @@ class ExploreServiceImpl @Inject() (
               }
             }
 
-          // Check for streets in the user's neighborhood that have been audited by other users while they were auditing.
+          // Check for streets in the user's region that have been audited by other users while they were auditing.
           val updatedStreetsAction: DBIO[Option[UpdatedStreets]] =
             if (data.auditTask.requestUpdatedStreetPriority) {
               // Get streetEdgeIds and priority values for streets that have been updated since lastPriorityUpdateTime.

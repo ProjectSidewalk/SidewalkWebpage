@@ -23,7 +23,7 @@ class SharedLabelPage {
   #MAX_NEARBY = 250;
 
   /**
-   * @param {object} data - The server-rendered config (window.sharedLabelData). See sharedLabel.scala.html.
+   * @param {Record<string, any>} data - window.sharedLabelData, the config sharedLabel.scala.html renders.
    */
   constructor(data) {
     this.#data = data;
@@ -208,8 +208,8 @@ class SharedLabelPage {
    * Adapts a rawLabels FeatureCollection to what addLabelsToMap + its default filter expect: excludes the focal label
    * (drawn separately), keeps the nearest #MAX_NEARBY, and derives `has_validations` — the one property the filter
    * reads that rawLabels doesn't emit (it sends per-vote counts instead).
-   * @param {object} geojson
-   * @param {object} d - Config (for the focal label id + center).
+   * @param {GeoJSON.FeatureCollection} geojson
+   * @param {Record<string, any>} d - Config (for the focal label id + center).
    * @returns {object} An adapted FeatureCollection.
    */
   #adaptRawLabels(geojson, d) {
@@ -229,8 +229,8 @@ class SharedLabelPage {
   /**
    * Squared planar distance from a feature's point to the center. Only used for relative ordering, so no need for a
    * true geodesic distance.
-   * @param {object} feature
-   * @param {object} d - Config with center lat/lng.
+   * @param {GeoJSON.Feature} feature
+   * @param {Record<string, any>} d - Config with center lat/lng.
    * @returns {number}
    */
   #dist2(feature, d) {
@@ -243,8 +243,8 @@ class SharedLabelPage {
   /**
    * Adds a distinct, non-interactive highlight marker for the focal label at the map center so viewers can tell which
    * of the nearby dots is the one they came to see.
-   * @param {object} map
-   * @param {object} d
+   * @param {mapboxgl.Map} map
+   * @param {Record<string, any>} d
    */
   #addFocalHighlight(map, d) {
     const color = util.misc.getLabelColors()[d.labelType].fillStyle;
@@ -261,8 +261,8 @@ class SharedLabelPage {
   /**
    * Gives the nearby markers a lightweight native popup (label type + a link to that label's spotlight page) plus a
    * pointer cursor on hover. Kept intentionally minimal — no validation UI, no PII.
-   * @param {object} map
-   * @param {object} mapData - The layer tracker returned by addLabelsToMap.
+   * @param {mapboxgl.Map} map
+   * @param {{layerNames: Record<string, string>}} mapData - The layer tracker returned by addLabelsToMap.
    */
   #wireNearbyPopups(map, mapData) {
     const layerNames = Object.values(mapData.layerNames).filter((name) => name && map.getLayer(name));
@@ -287,7 +287,7 @@ class SharedLabelPage {
 
   /**
    * Builds the DOM for a nearby-marker popup. Uses DOM APIs (not innerHTML) so nothing needs escaping.
-   * @param {object} props - The clicked feature's GeoJSON properties.
+   * @param {Record<string, any>} props - The clicked feature's GeoJSON properties.
    * @returns {HTMLElement}
    */
   #buildNearbyPopup(props) {

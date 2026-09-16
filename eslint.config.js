@@ -9,6 +9,7 @@ const js = require('@eslint/js');
 const globals = require('globals');
 const stylistic = require('@stylistic/eslint-plugin');
 const json = require('@eslint/json').default;
+const jsdoc = require('eslint-plugin-jsdoc');
 
 module.exports = [
   // ESLint core "recommended" -- ~45 correctness rules. Listed first so the explicit block below overrides it.
@@ -137,6 +138,60 @@ module.exports = [
         {blankLine: 'always', prev: 'function', next: '*'},
         {blankLine: 'always', prev: '*', next: 'function'},
       ],
+    },
+  },
+
+  // --- JSDoc (#5278) ---
+  // A short list rather than `recommended`, grown as the tree is cleaned up. `require-jsdoc` stays off: which methods
+  // are "non-trivial" enough to need a header is a judgment call.
+  {
+    files: ['public/js/**/*.js'],
+    plugins: {jsdoc},
+    settings: {
+      jsdoc: {
+        // Our types are TypeScript-style (`() => void`, `typeof PanoViewer`), which `make lint-js-types` reads.
+        mode: 'typescript',
+        // We use @requires as a free-text list of what a file needs loaded first, not a single module name.
+        structuredTags: {requires: {name: 'text'}},
+      },
+    },
+    rules: {
+      // Skips destructured keys: we often document a destructured param as the one object it is.
+      'jsdoc/check-param-names': ['error', {checkDestructured: false}],
+      'jsdoc/check-tag-names': 'error',
+      // Also catches two tags on one line (`/** @private @type {X} */`), which hides the second from every other rule.
+      'jsdoc/empty-tags': 'error',
+      'jsdoc/check-types': 'error',
+      'jsdoc/valid-types': 'error',
+      'jsdoc/require-returns-check': 'error',
+      'jsdoc/check-alignment': 'error',
+      'jsdoc/require-param-type': 'error',
+      'jsdoc/require-returns-type': 'error',
+      'jsdoc/require-hyphen-before-param-description': 'error',
+      // Two things this plugin accepts but TypeScript 7 can't read, so they'd break `make lint-js-types` in any folder
+      // it checks. Caught here too because most folders aren't checked by it yet.
+      'jsdoc/no-restricted-syntax': ['error', {
+        contexts: [
+          {
+            comment: 'JsdocBlock:has(JsdocTypeFunction[arrow=false])',
+            context: 'any',
+            message: 'Write a callback type as an arrow signature like `(id: number) => void`, not `function(number)`.',
+          },
+          {
+            comment: 'JsdocBlock:has(JsdocTag[tag=/^(private|protected|public)$/])',
+            context: ':matches(MethodDefinition, PropertyDefinition):has(> PrivateIdentifier.key)',
+            message: 'Drop `@private`/`@protected`/`@public` on a `#private` member; the `#` already sets its access.',
+          },
+        ],
+      }],
+      // A second tag written on the same line (`/** @param {X} x - @returns {Y} */`) is read as description text.
+      'jsdoc/match-description': ['error', {
+        mainDescription: false,
+        tags: Object.fromEntries(['param', 'returns', 'type'].map((tag) => [tag, {
+          match: '^(?![\\s\\S]*(?:^|\\s)@[a-z]+\\b)',
+          message: 'Put each JSDoc tag on its own line.',
+        }])),
+      }],
     },
   },
 

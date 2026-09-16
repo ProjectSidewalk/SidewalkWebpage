@@ -66,6 +66,30 @@ class ApiFieldsSpec extends AnyFunSuite with Matchers {
       "requirement failed: field is both a value and an object: List(score)"
   }
 
+  test("a field's GeoPackage column is typed from its Scala type and holds the field's JSON value") {
+    case class Mixed(n: Int, x: Option[Double], flag: Boolean, osmWayId: Long, ids: Seq[Int], name: String)
+    val fields = Seq[ApiField[Mixed]](
+      field("n")(_.n),
+      field("x")(_.x),
+      field("flag")(_.flag),
+      field("osm_way_id")(_.osmWayId),
+      field("ids")(_.ids),
+      field("name")(_.name)
+    )
+
+    fields.map(_.column) shouldBe
+      Seq(
+        GeoColumn.IntegerColumn, GeoColumn.RealColumn, GeoColumn.BooleanColumn, GeoColumn.TextColumn,
+        GeoColumn.TextColumn, GeoColumn.TextColumn
+      )
+    fields.map(_.geoPackageValue(Mixed(3, None, flag = true, 11584845L, Seq(1, 2), "Teaneck"))) shouldBe
+      Seq(Integer.valueOf(3), null, java.lang.Boolean.TRUE, "11584845", "[1,2]", "Teaneck")
+  }
+
+  test("a dotted name becomes an underscored GeoPackage column, since ArcGIS rejects dots") {
+    field[Sample, Int]("severity_counts.CurbRamp.null")(_.a).geoPackageName shouldBe "severity_counts_CurbRamp_null"
+  }
+
   test("a duplicated field name is rejected") {
     object Duplicated extends ApiFields[Sample] {
       override val fields: Seq[ApiField[Sample]] = Seq(field("a")(_.a), field("a")(_.b))

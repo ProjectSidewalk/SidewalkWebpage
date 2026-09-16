@@ -24,11 +24,12 @@ class StreetPriorityTable {
   #wired = false;
 
   /**
-   * @param {string} tableId - id of the <table> element.
-   * @param {{columns: Array<{key: string, label: string, numeric?: boolean, format?: function(object): string,
-   *          sortValue?: function(object): (number|string)}>, rowKey: string, searchId?: string,
-   *          searchFields?: string[], sortKey?: string, sortDir?: number, onRowClick?: function(number): void,
-   *          onRowHover?: function(number): void, onRowHoverEnd?: function(): void}} opts - Column definitions, the
+   * @param {string} tableId - ID of the <table> element.
+   * @param {{columns: Array<{key: string, label: string, numeric?: boolean,
+   *          format?: (row: Record<string, any>) => string,
+   *          sortValue?: (row: Record<string, any>) => (number|string)}>, rowKey: string, searchId?: string,
+   *          searchFields?: string[], sortKey?: string, sortDir?: number, onRowClick?: (id: number) => void,
+   *          onRowHover?: (id: number) => void, onRowHoverEnd?: () => void}} opts - Column definitions, the
    *   row property used as the brushing id, and the optional search input + interaction hooks.
    */
   constructor(tableId, opts) {
@@ -47,7 +48,7 @@ class StreetPriorityTable {
   /**
    * Renders the table, wiring search, sort, and row interactions on the first call.
    *
-   * @param {Array<object>} rows - Row objects; each must carry the configured rowKey property.
+   * @param {Array<Record<string, any>>} rows - Row objects; each must carry the configured rowKey property.
    */
   render(rows) {
     this.#rows = rows;
@@ -123,7 +124,7 @@ class StreetPriorityTable {
     table.addEventListener('click', sortHandler);
     table.addEventListener('keydown', sortHandler);
 
-    const search = this.#searchId ? document.getElementById(this.#searchId) : null;
+    const search = this.#searchId ? /** @type {HTMLInputElement} */ (document.getElementById(this.#searchId)) : null;
     if (search) {
       search.addEventListener('input', () => {
         this.#filter = search.value;

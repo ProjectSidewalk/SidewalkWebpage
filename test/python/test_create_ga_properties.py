@@ -50,7 +50,7 @@ def _lines():
 
 def test_property_display_name_follows_the_convention(repo_copy):
     assert ga.property_display_name(_lines(), 'testville-wa') == 'Testville, WA'
-    assert ga.property_display_name(_lines(), 'bayonne') == 'Bayonne, France'
+    assert ga.property_display_name(_lines(), 'bayonne-fr') == 'Bayonne, France'
 
 
 def test_config_lookups_fail_loudly_for_an_unregistered_city(repo_copy):

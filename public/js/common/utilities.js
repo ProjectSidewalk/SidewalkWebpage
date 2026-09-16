@@ -163,7 +163,7 @@ util.sizeCanvasToDisplay = function (el, ctx) {
  * already positioned in on-screen pixels divides by the same `scale` before calling. Both tools' panos are 720x480
  * at --ui-scale = 1, so the default `frameHeight` suits either.
  *
- * @param {jQuery} panel - The panel to position. Must be .label-anchored-panel and a child of `opts.originEl`.
+ * @param {JQuery} panel - The panel to position. Must be .label-anchored-panel and a child of `opts.originEl`.
  * @param {{x: number, y: number}} labelCanvasXY - The label icon's center in the logical canvas frame.
  * @param {number} iconRadius - The label icon's radius, in that same logical frame.
  * @param {object} [opts] - Frame overrides. Omit them entirely for Explore, whose frame is the default.
@@ -221,8 +221,8 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {})
  * Sets the --ui-scale CSS variable on .tool-ui; every tool dimension is expressed as base-size * var(--ui-scale),
  * so the pano, menus, and text all grow/shrink together in proportion. The tool's reference footprint at
  * --ui-scale = 1 is the sum of the given base-size CSS variables, which each tool defines on its .tool-ui element.
- * @param {string[]} widthVarNames Base-size CSS variables that sum to the tool's reference width.
- * @param {string[]} heightVarNames Base-size CSS variables that sum to the tool's reference height.
+ * @param {string[]} widthVarNames - Base-size CSS variables that sum to the tool's reference width.
+ * @param {string[]} heightVarNames - Base-size CSS variables that sum to the tool's reference height.
  * @returns {number} The applied scale factor.
  */
 util.applyToolScale = function (widthVarNames, heightVarNames) {
@@ -339,7 +339,7 @@ util.assetPath = function (logicalPath) {
  * A translated string names its unit by writing {{unitAbbr}} and friends — i18next fills them in with no argument at
  * the call site. This accessor is for the few places building a display string outside i18next.
  *
- * @returns {Object} The four unit words for this page.
+ * @returns {object} The four unit words for this page.
  */
 util.unitWords = () => i18next.options.interpolation.defaultVariables;
 
@@ -370,7 +370,7 @@ util.longDistanceToString = (km, precision = 0) =>
 function mousePosition(e, dom) {
   const mx = e.pageX - $(dom).offset().left;
   const my = e.pageY - $(dom).offset().top;
-  return { x: parseInt(mx, 10), y: parseInt(my, 10) };
+  return { x: Math.trunc(mx), y: Math.trunc(my) };
 }
 
 util.mousePosition = mousePosition;
@@ -398,7 +398,7 @@ function convertBlobToBase64(blob) {
     const reader = new FileReader();
     reader.onerror = reject;
     reader.onload = () => {
-      resolve(reader.result);
+      resolve(/** @type {string} */ (reader.result));
     };
     reader.readAsDataURL(blob);
   });
@@ -513,7 +513,7 @@ util.hasSession = hasSession;
  * When the work also costs the server something, prefer util.onFirstInteractionOrIdle, which adds an engagement gate
  * on top of this.
  *
- * @param {Function} fn - The work to run. Called once.
+ * @param {() => void} fn - The work to run. Called once.
  */
 function afterLoadIdle(fn) {
   const schedule = () => {
@@ -537,7 +537,8 @@ const INTERACTION_EVENTS = ['pointermove', 'pointerdown', 'scroll', 'keydown', '
 // callers here register at very different times (parse time vs. inside an appManager.ready callback, i.e. after
 // i18next's fetches resolve), and a single early mouse twitch has to satisfy all of them.
 const firstInteraction = new Promise((resolve) => {
-  for (const type of INTERACTION_EVENTS) window.addEventListener(type, () => resolve(), { once: true, passive: true });
+  const onInteraction = () => resolve(undefined);
+  for (const type of INTERACTION_EVENTS) window.addEventListener(type, onInteraction, { once: true, passive: true });
 });
 
 /**
@@ -555,7 +556,7 @@ const firstInteraction = new Promise((resolve) => {
  * fold, so actually looking at it requires a scroll, which trips the interaction path first. It exists only so a
  * visitor who somehow generates no input events still ends up with a working page.
  *
- * @param {Function} fn - The work to run. Called once, whichever path gets there first.
+ * @param {() => void} fn - The work to run. Called once, whichever path gets there first.
  * @param {number} [fallbackMs=5000] - How long after load-idle to give up waiting for an interaction.
  */
 function onFirstInteractionOrIdle(fn, fallbackMs = 5000) {

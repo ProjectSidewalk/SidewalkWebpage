@@ -32,11 +32,19 @@ function safePlay(video) {
   video.play().catch(() => {});
 }
 
+/**
+ * @param {string} id - The ID of one of the how-it-works videos.
+ * @returns {HTMLVideoElement}
+ */
+function getVideo(id) {
+  return /** @type {HTMLVideoElement} */ (document.getElementById(id));
+}
+
 function switchToVideo(vidnum) {
   if (vidnum === 1) {
-    document.getElementById('vid1').classList.remove('ps-hidden');
-    document.getElementById('vid2').classList.add('ps-hidden');
-    document.getElementById('vid3').classList.add('ps-hidden');
+    getVideo('vid1').classList.remove('ps-hidden');
+    getVideo('vid2').classList.add('ps-hidden');
+    getVideo('vid3').classList.add('ps-hidden');
 
     $('#word1').addClass('tab-word activetab');
     $('#word2').addClass('tab-word').removeClass('activetab');
@@ -50,15 +58,15 @@ function switchToVideo(vidnum) {
     $('#number2').addClass('tab-word').removeClass('activetab');
     $('#number3').addClass('tab-word').removeClass('activetab');
 
-    document.getElementById('vid1').currentTime = 0;
-    safePlay(document.getElementById('vid1'));
+    getVideo('vid1').currentTime = 0;
+    safePlay(getVideo('vid1'));
 
-    document.getElementById('vid2').pause();
-    document.getElementById('vid3').pause();
+    getVideo('vid2').pause();
+    getVideo('vid3').pause();
   } else if (vidnum === 2) {
-    document.getElementById('vid1').classList.add('ps-hidden');
-    document.getElementById('vid2').classList.remove('ps-hidden');
-    document.getElementById('vid3').classList.add('ps-hidden');
+    getVideo('vid1').classList.add('ps-hidden');
+    getVideo('vid2').classList.remove('ps-hidden');
+    getVideo('vid3').classList.add('ps-hidden');
 
     $('#word1').addClass('tab-word').removeClass('activetab');
     $('#word2').addClass('tab-word activetab');
@@ -72,15 +80,15 @@ function switchToVideo(vidnum) {
     $('#number2').addClass('tab-word activetab');
     $('#number3').addClass('tab-word').removeClass('activetab');
 
-    document.getElementById('vid2').currentTime = 0;
-    safePlay(document.getElementById('vid2'));
+    getVideo('vid2').currentTime = 0;
+    safePlay(getVideo('vid2'));
 
-    document.getElementById('vid1').pause();
-    document.getElementById('vid3').pause();
+    getVideo('vid1').pause();
+    getVideo('vid3').pause();
   } else if (vidnum === 3) {
-    document.getElementById('vid1').classList.add('ps-hidden');
-    document.getElementById('vid2').classList.add('ps-hidden');
-    document.getElementById('vid3').classList.remove('ps-hidden');
+    getVideo('vid1').classList.add('ps-hidden');
+    getVideo('vid2').classList.add('ps-hidden');
+    getVideo('vid3').classList.remove('ps-hidden');
 
     $('#word1').addClass('tab-word').removeClass('activetab');
     $('#word2').addClass('tab-word').removeClass('activetab');
@@ -94,11 +102,11 @@ function switchToVideo(vidnum) {
     $('#number2').addClass('tab-word').removeClass('activetab');
     $('#number3').addClass('tab-word activetab');
 
-    document.getElementById('vid3').currentTime = 0;
-    safePlay(document.getElementById('vid3'));
+    getVideo('vid3').currentTime = 0;
+    safePlay(getVideo('vid3'));
 
-    document.getElementById('vid2').pause();
-    document.getElementById('vid1').pause();
+    getVideo('vid2').pause();
+    getVideo('vid1').pause();
   }
 
   // Reset auto-advance counter.
@@ -225,7 +233,7 @@ window.appManager.ready(() => {
 function warmHiddenInstructionVideos() {
   if (util.saveDataEnabled()) return;
   util.afterLoadIdle(() => {
-    for (const video of [document.getElementById('vid2'), document.getElementById('vid3')]) {
+    for (const video of [getVideo('vid2'), getVideo('vid3')]) {
       // Only warm a video nothing has touched. load() aborts playback and resets currentTime, and by the time this
       // runs either of these may be playing: lazyPlay starts every video in the section on scroll, hidden ones
       // included, and auto-advance switches to vid2 about 9s in. Restarting isn't automatic either — lazyPlay still
@@ -242,8 +250,8 @@ const pausedVideos = {};
 
 /**
  * Returns a function that invokes fn at most once per `wait` ms, firing on the leading edge.
- * @param fn {Function} Function to throttle.
- * @param wait {number} Minimum ms between invocations.
+ * @param {Function} fn - Function to throttle.
+ * @param {number} wait - Minimum ms between invocations.
  */
 function throttle(fn, wait) {
   let lastCall = 0;
@@ -258,8 +266,8 @@ function throttle(fn, wait) {
 
 /**
  * Returns a function that delays invoking fn until `wait` ms have passed since the last call.
- * @param fn {Function} Function to debounce.
- * @param wait {number} Ms of inactivity required before fn fires.
+ * @param {Function} fn - Function to debounce.
+ * @param {number} wait - Ms of inactivity required before fn fires.
  */
 function debounce(fn, wait) {
   let timer;

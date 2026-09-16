@@ -108,9 +108,9 @@
   },
   "mission-complete": {
     "title-generic": "任務完成了！",
-    "title-neighborhood-complete": "好極了！您完成了{{neighborhoodName}}社區！",
+    "title-region-complete": "好極了！您完成了{{regionName}}社區！",
     "title-route-complete": "太棒了！您完成了您的路線！",
-    "subtitle": "探索 {{neighborhoodName}} 的 {{distance}}",
+    "subtitle": "探索 {{regionName}} 的 {{distance}}",
     "badge-alt": "您的任務徽章",
     "legend-title": "任務進度",
     "legend-this-mission": "本次任務",
@@ -146,14 +146,14 @@
       "message-route": "探索{{routeName}}",
       "exit-route": "離開自訂路線",
       "header-free-explore": "自由探索",
-      "message": "探索{{neighborhoodName}}的__PLACEHOLDER__"
+      "message": "探索{{regionName}}的__PLACEHOLDER__"
     },
     "route-resume": {
       "message": "正在從你上次離開的地方繼續自訂路線「{{routeName}}」。",
       "exit": "離開自訂路線"
     },
     "mission-resume": {
-      "message": "正在繼續你在{{neighborhoodName}}的任務 — 還剩 {{distanceLeft, distance(style: small)}}。"
+      "message": "正在繼續你在{{regionName}}的任務 — 還剩 {{distanceLeft, distance(style: small)}}。"
     },
     "route-unavailable": {
       "message": "找不到這條路線，可能已被刪除。"
@@ -172,7 +172,20 @@
       "legend-ahead": "剩餘路線",
       "legend-you": "你的位置與視角方向",
       "legend-visited": "已造訪的位置",
-      "legend-unseen": "尚未查看"
+      "legend-unseen": "尚未查看",
+      "legend-next-stops": "路線上的站點",
+      "forward-crumb-title": "前往第 {{rank}} 站",
+      "legend-other-links": "其他方向",
+      "legend-faced": "實心：向前會到達的位置",
+      "link-crumb-title": "前往此全景",
+      "legend-next-step": "淺藍：下一步（空白鍵）",
+      "route-stop-title": "路線上的第 {{rank}} 站",
+      "breadcrumb-title": "已造訪：點擊返回此處",
+      "label-marker-title": "{{labelType}} 標記：點擊查看",
+      "route-start-flag": "路線起點",
+      "route-finish-flag": "路線終點",
+      "mission-start-flag": "本次任務的起點",
+      "mission-finish-flag": "本次任務的終點"
     },
     "stats": {
       "leaderboard-cta": "查看社群排行榜"
@@ -186,7 +199,7 @@
       "next-distance": "探索 {{distance}} 即可獲得下一個徽章。",
       "earned-all": "您已達到此徽章的最高等級 — 做得太棒了！"
     },
-    "neighborhood-progress": {
+    "region-progress": {
       "title": "鄰里進度",
       "you-tooltip": "您的貢獻",
       "community-tooltip": "社群的貢獻"
@@ -298,14 +311,14 @@
       "u-turn": "迴轉",
       "end-route": "您已到達路線的盡頭！環顧四周一圈即可完成，或 <b>點選這裡立即完成。</b>",
       "route-finish-look-around": "最後一站！環顧四周一圈以完成您的路線。",
-      "end-neighborhood": "您已探索了整個鄰里！ 完成標記此路口，然後<b>點選這裡完成此鄰里。</b>",
+      "end-region": "您已探索了整個鄰里！ 完成標記此路口，然後<b>點選這裡完成此鄰里。</b>",
       "end-street": "我們需要將您轉移到新的位置。 完成標記此路口，然後<b>點選這裡來移動到新的位置。</b>",
       "far-away": "不妙了！ 您已經離開路線很遠了。<b>點選這裡以回到路線。</b>"
     }
   },
   "popup": {
     "start-title": "讓我們開始吧！",
-    "start-body": "您已經抵達位於{{city}}{{neighborhood}}的街道上了！您現在正站立於路口中。請探索並標記所有的路緣斜坡及可及性問題。",
+    "start-body": "您已經抵達位於{{city}}{{region}}的街道上了！您現在正站立於路口中。請探索並標記所有的路緣斜坡及可及性問題。",
     "step-title": "讓我們往前走吧！",
     "step-body": "看起來您已完成這整個路口了，所以請接著探索其他區域吧。 請沿著地圖中的紅色路線移動。",
     "both-sides-title": "請檢查街道的兩側。",
@@ -335,11 +348,12 @@
     "free-explore-no-imagery": "這個方向沒有更多街景影像了。請試著環顧四周或往另一個方向前進。",
     "stuck-suggestion": "若您無法透過箭頭移動，請嘗試點選右下角的導航方向，或嘗試點選左側的「卡住」鍵。",
     "imagery-skip-limit": "連續多條街道都沒有影像，因此我們已停止自動移動您。請嘗試地圖的其他區域，或重新載入頁面重新開始。",
-    "imagery-load-failed": "目前無法載入街景影像，請幾分鐘後再試一次。"
+    "imagery-load-failed": "目前無法載入街景影像，請幾分鐘後再試一次。",
+    "imagery-session-expired": "您的街景影像工作階段已過期且無法更新。請重新載入頁面以繼續，您目前的工作已儲存。"
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "探索任務",
-    "mst-instruction-2": "在 {{neighborhood}} 中標記這些可及性特徵",
+    "mst-instruction-2": "在 {{region}} 中標記這些可及性特徵",
     "example-type-label-incorrect": "常見的錯誤",
     "label-on-image-title-incorrect": "$t(audit:mission-start-tutorial.example-type-label-incorrect)",
     "label-on-image-description-correct": "應設置標籤",

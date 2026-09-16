@@ -26,7 +26,7 @@ const auIcon = () => {
  */
 function wireEyeToggle(btn) {
   btn.addEventListener('click', () => {
-    const input = document.getElementById(btn.dataset.eye);
+    const input = /** @type {HTMLInputElement} */ (document.getElementById(btn.dataset.eye));
     if (!input) return;
     const show = input.type === 'password';
     input.type = show ? 'text' : 'password';
@@ -103,8 +103,8 @@ async function isBreachedPassword(password, rangeUrl) {
  * @param {HTMLElement} group - An .au-pw-group rendered by common/authPasswordFields.scala.html.
  */
 function wirePasswordGroup(group) {
-  const pw = group.querySelector('.au-pw');
-  const pw2 = group.querySelector('.au-pw-confirm');
+  const pw = /** @type {HTMLInputElement} */ (group.querySelector('.au-pw'));
+  const pw2 = /** @type {HTMLInputElement} */ (group.querySelector('.au-pw-confirm'));
   if (!pw) return;
 
   const rules = [...group.querySelectorAll('.au-checklist li[data-rule-regex]')]
@@ -201,7 +201,7 @@ function wirePasswordGroup(group) {
 function wireLiveValidation() {
   document.querySelectorAll('.au-pw-group').forEach(wirePasswordGroup);
 
-  const username = document.getElementById('sign-up-username');
+  const username = /** @type {HTMLInputElement} */ (document.getElementById('sign-up-username'));
   if (username?.dataset.ruleRegex) {
     const usernameRegex = new RegExp(username.dataset.ruleRegex);
     const rule = document.getElementById('sign-up-username-rule');
@@ -233,7 +233,7 @@ function clearAuthErrors(form) {
  * the `_summary` banner clears on the next edit to any field (#4532), so a stale error can't linger after it's fixed.
  *
  * @param {HTMLFormElement} form - The form the errors belong to.
- * @param {Object<string, string>} errors - Field name (or `_summary`) to localized message.
+ * @param {Record<string, string>} errors - Field name (or `_summary`) to localized message.
  */
 function renderAuthErrors(form, errors) {
   Object.entries(errors).forEach(([field, message]) => {
@@ -271,30 +271,36 @@ function renderAuthErrors(form, errors) {
  * Intercepts a form submit and posts it via fetch, rendering JSON errors inline instead of navigating away. Browsers
  * without JS (or if this listener never binds) fall back to the regular full-page POST, so the flow always works.
  *
- * @param {HTMLFormElement} [form] - The sign-in or sign-up form; a no-op if absent.
+ * @param {HTMLFormElement} [form] - The auth form to enhance; a no-op if absent.
+ * @param {object} [opts]
+ * @param {(reply: object) => void} [opts.onSuccess] - Handles a successful reply in place of following its `redirect`.
  */
-function wireAsyncSubmit(form) {
+function wireAsyncSubmit(form, { onSuccess } = {}) {
   if (!form) return;
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearAuthErrors(form);
-    const submitBtn = form.querySelector('.au-submit');
+    const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn?.setAttribute('disabled', 'disabled');
     submitBtn?.classList.add('is-loading');
     try {
       const res = await fetch(form.action, {
         method: 'POST',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        body: new URLSearchParams(new FormData(form)),
+        // Browsers take FormData here, though TypeScript's DOM types don't list it.
+        body: new URLSearchParams(/** @type {any} */ (new FormData(form))),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok && data.redirect) {
+      if (res.ok && onSuccess) {
+        onSuccess(data);
+      } else if (res.ok && data.redirect) {
         window.location.assign(data.redirect);
         return; // Keep the button disabled while the browser navigates.
+      } else {
+        renderAuthErrors(form, data.errors || { _summary: form.dataset.errorGeneric });
       }
-      renderAuthErrors(form, data.errors || { _summary: form.dataset.errorGeneric });
       if (res.status === 401) {
-        const pwField = form.querySelector('input[type="password"]');
+        const pwField = /** @type {HTMLInputElement} */ (form.querySelector('input[type="password"]'));
         if (pwField) pwField.value = '';
         form.querySelector('.au-input')?.focus();
       }
@@ -312,19 +318,17 @@ function wireAsyncSubmit(form) {
  * Document-wide rather than scoped to the dialog, because a page can carry auth fields of its own *and* the navbar
  * dialog — reset-password does. Pages rendering the full-page sign-in/sign-up forms suppress the dialog via
  * navbar's renderAuthDialog, so the shared ids still resolve to one element each.
- *
- * @param {ParentNode} root - The subtree to enhance; the whole document in production.
  */
 function enhanceAuthForms() {
   document.querySelectorAll('.au-eye').forEach(wireEyeToggle);
   wireLiveValidation();
-  wireAsyncSubmit(document.getElementById('sign-in-form'));
-  wireAsyncSubmit(document.getElementById('sign-up-form'));
+  wireAsyncSubmit(/** @type {HTMLFormElement} */ (document.getElementById('sign-in-form')));
+  wireAsyncSubmit(/** @type {HTMLFormElement} */ (document.getElementById('sign-up-form')));
 }
 
 /**
  * Controller for the navbar sign-in / sign-up <dialog>: open/close, sign-in↔sign-up panel switching, and trigger
- * buttons only. The forms inside it are enhanced by `enhanceAuthForms(document)`, like every other auth form.
+ * buttons only. The forms inside it are enhanced by `enhanceAuthForms()`, like every other auth form.
  */
 class AuthModal {
   #modal;

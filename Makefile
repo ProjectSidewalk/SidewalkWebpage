@@ -3,8 +3,8 @@
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
         hide-streets-without-imagery \
-        import-street-imagery reveal-or-hide-neighborhoods \
-        lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-vendor-versions \
+        import-street-imagery reveal-or-hide-regions \
+        lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-vendor-versions lint-js-types \
         scalafmt scalafmt-fix compile test-scala \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
         lint-eslint lint-htmlhint lint-stylelint lint-fix-eslint lint-fix-stylelint
@@ -140,7 +140,7 @@ lint:
 	@printf "$(BOLD)Linting %s$(RESET)\n" "$(container-dir)"
 	@fail=0; \
 	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-asset-paths \
-			lint-vendor-versions lint-evolutions; do \
+			lint-vendor-versions lint-js-types lint-evolutions; do \
 		if $(MAKE) --no-print-directory $$t; then \
 			printf "$(GREEN)✓ %s passed$(RESET)\n" "$$t"; \
 		else \
@@ -228,9 +228,10 @@ create-new-schema:
 fill-new-schema:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/fill-new-schema.sh"
 
-# Host-side (edits conf/ and pauses for you to start the app), so no docker exec wrapper.
+# Host-side (edits conf/ and drives both containers), so no docker exec wrapper. Flags go through args=, e.g.
+# `make onboard-city id=laurens-ia args="--skip-scan"`, `args="--dump-only"`, `args="--allow-running-apps"`.
 onboard-city:
-	@python3 tools/setup_new_city.py $(id)
+	@python3 tools/setup_new_city.py $(id) $(args)
 
 # Build a city's street/region staging data + QA GeoPackage (scripts/onboard_city.py, in the web container), passing
 # the script's flags via args=. The same target re-exports the SQL after hand edits: a bare --from-gpkg targets the
@@ -333,8 +334,8 @@ test-e2e-host:
 	  || { echo "error: @playwright/test isn't installed on the host — run 'npm ci && npx playwright install chromium'"; exit 2; }
 	@npx playwright test $(args)
 
-reveal-or-hide-neighborhoods:
-	@docker exec -it $(db-container) sh -c "/opt/scripts/reveal-or-hide-neighborhoods.sh"
+reveal-or-hide-regions:
+	@docker exec -it $(db-container) sh -c "/opt/scripts/reveal-or-hide-regions.sh"
 
 # Static checks on conf/evolutions/default/*.sql. Host-side bash, no container needed. Also a blocking CI job.
 lint-evolutions:
@@ -371,6 +372,13 @@ lint-vendor-versions:
 	@echo "Checking vendor versions...";
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/check-vendor-versions.mjs"
 	@echo "Finished checking vendor versions";
+
+# Type-checks public/js/ from its JSDoc with TypeScript (#5278). Every file can fail except those under UNCHECKED in
+# tools/check-js-types.mjs; `args=--all` also prints their errors, with a count per folder. Also a blocking CI step.
+lint-js-types:
+	@echo "Checking JS types...";
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/check-js-types.mjs $(args)"
+	@echo "Finished checking JS types";
 
 # Scala formatting (.scalafmt.conf). The sbt thin client (`--jvm-client`) shares the running `sbt ~ run`'s server
 # instead of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats

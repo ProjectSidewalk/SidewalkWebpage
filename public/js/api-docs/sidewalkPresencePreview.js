@@ -45,8 +45,8 @@
    * Gives every feature an id of its own. Hover styling keys on the feature id, and the two faces of a street share
    * its `street_edge_id`, so that alone can't tell them apart.
    *
-   * @param {object} faces - The GeoJSON FeatureCollection from the API.
-   * @returns {object} The same collection with `face_id` on every feature.
+   * @param {GeoJSON.FeatureCollection} faces - The GeoJSON FeatureCollection from the API.
+   * @returns {GeoJSON.FeatureCollection} The same collection with `face_id` on every feature.
    */
   function withFaceIds(faces) {
     return {
@@ -64,12 +64,13 @@
   /**
    * Rolls up the figures the summary panel draws on.
    *
-   * @param {Array<object>} features - The face features.
-   * @returns {object} Face counts by verdict, streets with a face called absent, and absent faces by label tier.
+   * @param {Array<Record<string, any>>} features - The face features.
+   * @returns {Record<string, any>} Face counts by verdict, streets with a face called absent, absent faces by label
+   *   tier, and absent faces a validator has confirmed.
    */
   function summarize(features) {
     const stats = {
-      faces: features.length, byPresence: {}, streetsAbsent: new Set(), tier1: 0, tier2: 0, tier3: 0,
+      faces: features.length, byPresence: {}, streetsAbsent: new Set(), tier1: 0, tier2: 0, tier3: 0, validated: 0,
     };
     features.forEach(({ properties }) => {
       stats.byPresence[properties.presence] = (stats.byPresence[properties.presence] || 0) + 1;
@@ -79,6 +80,7 @@
         if (n >= 3) stats.tier3++;
         else if (n === 2) stats.tier2++;
         else if (n === 1) stats.tier1++;
+        if ((properties.validated_no_sidewalk_count || 0) >= 1) stats.validated++;
       }
     });
     return stats;
@@ -95,14 +97,17 @@
   /**
    * The evidence behind a face's verdict, in words. The four cases are the backend's sidewalk_presence_basis enum.
    *
-   * @param {object} props - A face feature's properties.
-   * @returns {string} e.g. '3 NoSidewalk labels from 2 users'.
+   * @param {Record<string, any>} props - A face feature's properties.
+   * @returns {string} A summary, e.g. '3 NoSidewalk labels from 2 users, 1 validator-confirmed'.
    */
   function describeBasis(props) {
     switch (props.presence_basis) {
-      case 'no_sidewalk_labels':
+      case 'no_sidewalk_labels': {
+        const validated = props.validated_no_sidewalk_count || 0;
+        const confirmed = validated ? `, ${validated} validator-confirmed` : '';
         return `${plural(props.no_sidewalk_label_count, 'NoSidewalk label')} from `
-          + `${plural(props.no_sidewalk_user_count, 'user')}`;
+          + `${plural(props.no_sidewalk_user_count, 'user')}${confirmed}`;
+      }
       case 'other_side_tag':
         return 'the other side is tagged "street has no sidewalks"';
       case 'audited_no_labels':
@@ -178,9 +183,9 @@
      * Build the map, tearing it back down if anything fails to draw.
      *
      * @param {HTMLElement} container - Container element for the map
-     * @param {object} regionData - GeoJSON Feature for the region the preview is scoped to
-     * @param {object} faces - GeoJSON FeatureCollection of block faces, after withFaceIds()
-     * @param {object} stats - The rollup from summarize()
+     * @param {GeoJSON.Feature} regionData - GeoJSON Feature for the region the preview is scoped to
+     * @param {GeoJSON.FeatureCollection} faces - GeoJSON FeatureCollection of block faces, after withFaceIds()
+     * @param {Record<string, any>} stats - The rollup from summarize()
      * @returns {Promise} Resolves once the map has loaded and drawn
      */
     async renderMap(container, regionData, faces, stats) {
@@ -188,7 +193,7 @@
       const map = await ApiDocsMap.create({
         container,
         mapboxApiKey: config.mapboxApiKey,
-        bounds: ApiDocsMap.geometryBounds(regionData.geometry),
+        bounds: geometryBounds(regionData.geometry),
       });
       try {
         this.drawMap(map, regionData, faces, stats);
@@ -202,10 +207,10 @@
     /**
      * Draw the region outline, the faces, the legend, and the summary onto a loaded map.
      *
-     * @param {object} map - The loaded Mapbox map
-     * @param {object} regionData - GeoJSON Feature for the region the preview is scoped to
-     * @param {object} faces - GeoJSON FeatureCollection of block faces, after withFaceIds()
-     * @param {object} stats - The rollup from summarize()
+     * @param {mapboxgl.Map} map - The loaded Mapbox map
+     * @param {GeoJSON.Feature} regionData - GeoJSON Feature for the region the preview is scoped to
+     * @param {GeoJSON.FeatureCollection} faces - GeoJSON FeatureCollection of block faces, after withFaceIds()
+     * @param {Record<string, any>} stats - The rollup from summarize()
      */
     drawMap(map, regionData, faces, stats) {
       map.addSource(REGION_SOURCE, { type: 'geojson', data: regionData });
@@ -270,14 +275,15 @@
         <div><strong>Unknown:</strong> ${percent(stats.byPresence.unknown, stats.faces)}%</div>
         <div><strong>Streets missing a side:</strong> ${stats.streetsAbsent.size}</div>
         <div><strong>By label count (1 / 2 / 3+):</strong> ${stats.tier1} / ${stats.tier2} / ${stats.tier3}</div>
+        <div><strong>Validator-confirmed:</strong> ${stats.validated}</div>
       `;
     },
 
     /**
      * Wire up the click popup for the face layer, showing the clicked face beside the other side of its street.
      *
-     * @param {object} map - The Mapbox map object
-     * @param {object} faces - GeoJSON FeatureCollection of block faces, for the other side's lookup
+     * @param {mapboxgl.Map} map - The Mapbox map object
+     * @param {GeoJSON.FeatureCollection} faces - GeoJSON FeatureCollection of block faces, for the other side's lookup
      */
     addFacePopups(map, faces) {
       // Both faces of a street arrive as separate features, so the popup finds the opposite one by id.
@@ -303,6 +309,9 @@
           <p><strong>Verdict:</strong> ${presenceLabel(props.presence)}</p>
           <p><strong>Basis:</strong> ${describeBasis(props)}</p>
           ${firstLabel ? `<p><strong>NoSidewalk labels placed:</strong> ${firstLabel} to ${lastLabel}</p>` : ''}
+          ${props.rejected_no_sidewalk_count
+    ? `<p><strong>Rejected by validators:</strong> ${plural(props.rejected_no_sidewalk_count, 'NoSidewalk label')}</p>`
+    : ''}
           <p><strong>Labels on this side:</strong> ${props.label_count || 0}</p>
           <p><strong>Other side:</strong> ${other ? presenceLabel(other.presence) : 'N/A'}</p>
           <p><strong>Type:</strong> ${props.way_type || 'Unknown'}</p>

@@ -7,7 +7,7 @@ class MobileValidationMenu {
   #unsureReasonButtons;
 
   /**
-   * @param {object} menuUI Validation menu UI elements.
+   * @param {Record<string, JQuery>} menuUI - Validation menu UI elements.
    */
   constructor(menuUI) {
     this.#menuUI = menuUI;
@@ -115,10 +115,10 @@ class MobileValidationMenu {
 
     // Add onclick for the submit buttons in the no and unsure menus.
     $('#no-menu-submit-button').click((e) => {
-      this.#validateLabel('Disagree', e.isTrigger);
+      this.#validateLabel('Disagree', Boolean(e.isTrigger));
     });
     $('#unsure-menu-submit-button').click((e) => {
-      this.#validateLabel('Unsure', e.isTrigger);
+      this.#validateLabel('Unsure', Boolean(e.isTrigger));
     });
 
     // Add onclick for the skip-reason buttons, which submit the validation without an associated reason.
@@ -130,13 +130,13 @@ class MobileValidationMenu {
       if (svv.labelContainer.dropInputWhileLoading('DisagreeReason_Skip')) return;
       svv.tracker.push('Click=DisagreeReason_Skip');
       svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
-      this.#validateLabel('Disagree', e.isTrigger);
+      this.#validateLabel('Disagree', Boolean(e.isTrigger));
     });
     $('#unsure-menu-skip-reason-button').click((e) => {
       if (svv.labelContainer.dropInputWhileLoading('UnsureReason_Skip')) return;
       svv.tracker.push('Click=UnsureReason_Skip');
       svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
-      this.#validateLabel('Unsure', e.isTrigger);
+      this.#validateLabel('Unsure', Boolean(e.isTrigger));
     });
   }
 
@@ -198,7 +198,7 @@ class MobileValidationMenu {
    * The buttons are one shared set of elements, so a type that offers a given reason gets it shown and marked
    * `defaultOption`, while a type that doesn't offer it gets it hidden.
    *
-   * @param {object} label The label whose type the buttons should describe.
+   * @param {Label} label - The label whose type the buttons should describe.
    */
   #renderReasonButtons(label) {
     const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
@@ -263,9 +263,9 @@ class MobileValidationMenu {
 
   /**
    * Adds a jquery tooltip to the given element with the given text and image (if given).
-   * @param {jQuery} $elem Element to add the tooltip to, as jquery wrapped object.
-   * @param {string} tooltipText Text to display in the tooltip.
-   * @param {string} [img] Optional image to display in the tooltip.
+   * @param {JQuery} $elem - Element to add the tooltip to, as jquery wrapped object.
+   * @param {string} tooltipText - Text to display in the tooltip.
+   * @param {string} [img] - Optional image to display in the tooltip.
    */
   #addTooltip($elem, tooltipText, img) {
     // Add the tooltip only on non-touch devices.
@@ -291,7 +291,7 @@ class MobileValidationMenu {
    * properties, so the reason would ride along invisibly and be submitted as the canned comment for a reason nobody
    * picked for the label it lands on.
    *
-   * @param {string} id Id of the chosen reason button, or 'other' for the free-text box.
+   * @param {string} id - Id of the chosen reason button, or 'other' for the free-text box.
    */
   #setDisagreeReason(id) {
     if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
@@ -318,7 +318,7 @@ class MobileValidationMenu {
    * properties, so the reason would ride along invisibly and be submitted as the canned comment for a reason nobody
    * picked for the label it lands on.
    *
-   * @param {string} id Id of the chosen reason button, or 'other' for the free-text box.
+   * @param {string} id - Id of the chosen reason button, or 'other' for the free-text box.
    */
   #setUnsureReason(id) {
     if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
@@ -344,8 +344,8 @@ class MobileValidationMenu {
 
   /**
    * Validates a single label from a button click.
-   * @param {string} action Validation action - must be one of Agree, Disagree, or Unsure.
-   * @param {boolean} keyboardShortcut Whether or not the validation was triggered by a keyboard shortcut.
+   * @param {string} action - Validation action - must be one of Agree, Disagree, or Unsure.
+   * @param {boolean} keyboardShortcut - Whether or not the validation was triggered by a keyboard shortcut.
    */
   #validateLabel(action, keyboardShortcut) {
     // Everything below writes to whatever getCurrentLabel() returns, which mid-load is already the next label (#5211).
@@ -389,7 +389,7 @@ class MobileValidationMenu {
     currLabel.setProperty('comment', comment);
 
     // If enough time has passed between validations, log the new validation.
-    if (timestamp - svv.labelContainer.getProperty('validationTimestamp') > 800) {
+    if (timestamp.getTime() - svv.labelContainer.getProperty('validationTimestamp') > 800) {
       MobileValidationMenu.#floatVerdict(action);
       svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
     }
@@ -401,7 +401,7 @@ class MobileValidationMenu {
    * the animation ends. Nothing happens for a visitor who asked for less motion — the button's chosen state, which
    * they keep, already says what was picked.
    *
-   * @param {string} action The verdict cast: 'Agree', 'Disagree', or 'Unsure'.
+   * @param {string} action - The verdict cast: 'Agree', 'Disagree', or 'Unsure'.
    */
   static #floatVerdict(action) {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -415,7 +415,7 @@ class MobileValidationMenu {
     // One at a time: a quick second verdict should replace the last one's thumb, not race it up the screen.
     document.querySelectorAll('.validate-verdict-float').forEach((stale) => stale.remove());
 
-    const floater = icon.cloneNode();
+    const floater = /** @type {HTMLElement} */ (icon.cloneNode());
     floater.className = 'validate-verdict-float';
     const box = button.getBoundingClientRect();
     floater.style.left = `${box.left + box.width / 2}px`;

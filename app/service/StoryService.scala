@@ -9,7 +9,7 @@ import models.label.{LabelTypeEnum, LatLng}
 import models.story._
 import models.utils.MyPostgresProfile.api._
 import models.utils.{CommonUtils, ImageUtils, MyPostgresProfile, ProfanityGuard}
-import org.postgresql.util.PSQLException
+import org.postgresql.util.{PSQLException, PSQLState}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.{Configuration, Environment, Logger}
 
@@ -560,7 +560,8 @@ class StoryServiceImpl @Inject() (
       }
       .recover {
         // The UNIQUE(label_id, user_id) constraint backs the pre-check against a concurrent double-submit.
-        case e: PSQLException if e.getSQLState == "23505" => Left(StoryRejection.AlreadyExists)
+        case e: PSQLException if e.getSQLState == PSQLState.UNIQUE_VIOLATION.getState =>
+          Left(StoryRejection.AlreadyExists)
       }
   }
 

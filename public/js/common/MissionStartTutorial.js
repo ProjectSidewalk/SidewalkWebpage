@@ -1,4 +1,15 @@
 /**
+ * One example slide in a label type's lesson, translated and ready to render.
+ * @typedef {object} TutorialSlide
+ * @property {boolean} isExampleCorrect - Whether the photo shows the label type (only the first slide does).
+ * @property {string} slideTitle - Translated title.
+ * @property {string} slideSubtitle - Translated subtitle; empty for the correct example.
+ * @property {string} slideDescription - Translated description.
+ * @property {string} imageURL - URL of the example photo.
+ * @property {{position: {left: string, top: string}}} labelOnImage - Where the callout sits, in EXAMPLE_PHOTO's frame.
+ */
+
+/**
  * A full-screen carousel for the mission start tutorial.
  */
 class MissionStartTutorial {
@@ -109,10 +120,9 @@ class MissionStartTutorial {
   /**
    * The example slides that teach one label type, translated and ready to render.
    *
-   * @param {string} missionType Mission type ('validate' or 'audit').
-   * @param {string} labelType One of the seven label types.
-   * @returns {Object[]} One entry per slide: `isExampleCorrect`, `slideTitle`, `slideSubtitle`, `slideDescription`,
-   *      `imageURL`, and `labelOnImage.position`.
+   * @param {string} missionType - Mission type ('validate' or 'audit').
+   * @param {string} labelType - One of the seven label types.
+   * @returns {TutorialSlide[]} One entry per slide.
    */
   static slidesFor(missionType, labelType) {
     const lesson = MissionStartTutorial.#LABEL_TYPE_LESSONS[labelType];
@@ -151,12 +161,12 @@ class MissionStartTutorial {
   #messagesPrefix;
 
   /**
-   * @param {string} missionType Mission type ('validate' or 'audit').
-   * @param {string} labelType One of the seven label types for which the tutorial is initialized.
-   * @param {object} data Mission data: `nLabels` (VALIDATE) or `neighborhood` (EXPLORE), plus optional `resuming`
+   * @param {string} missionType - Mission type ('validate' or 'audit').
+   * @param {string} labelType - One of the seven label types for which the tutorial is initialized.
+   * @param {object} data - Mission data: `nLabels` (VALIDATE) or `region` (EXPLORE), plus optional `resuming`
    *                      (the mission already has progress, so the done button reads "Resume mission").
-   * @param {object} svvOrsvl SVValidate or SVLabel object that logs interactions and acts on tutorial close.
-   * @param {string} [language] Language code that tweaks spacing for verbose translations.
+   * @param {object} svvOrsvl - SVValidate or SVLabel object that logs interactions and acts on tutorial close.
+   * @param {string} [language] - Language code that tweaks spacing for verbose translations.
    */
   constructor(missionType, labelType, data, svvOrsvl, language = 'en') {
     this.#missionType = missionType;
@@ -188,19 +198,19 @@ class MissionStartTutorial {
    *     - labelOnImage: object, containing the following:
    *         - position: object, containing 'top' and 'left' attributes (wrt image elem) for the on-image label.
    *
-   * @param {string} missionType Mission type ('validate' or 'audit').
+   * @param {string} missionType - Mission type ('validate' or 'audit').
    */
   #initModule(missionType) {
     const isValidate = missionType === MissionStartTutorial.#MISSION_TYPES.VALIDATE;
     const lesson = MissionStartTutorial.#LABEL_TYPE_LESSONS[this.#labelType];
 
-    // Validate counts out the labels of one type this mission holds; Explore names the neighborhood it covers.
+    // Validate counts out the labels of one type this mission holds; Explore names the region it covers.
     this.#labelTypeModule = {
       missionInstruction1: i18next.t(`${missionType}:mission-start-tutorial.mst-instruction-1`),
       missionInstruction2: isValidate
         ? i18next.t('validate:mission-start-tutorial.mst-instruction-2',
             { nLabels: this.#data.nLabels, labelType: i18next.t(lesson.nameKey) })
-        : i18next.t('audit:mission-start-tutorial.mst-instruction-2', { neighborhood: this.#data.neighborhood }),
+        : i18next.t('audit:mission-start-tutorial.mst-instruction-2', { region: this.#data.region }),
       slides: MissionStartTutorial.slidesFor(missionType, this.#labelType),
     };
     this.#nSlides = this.#labelTypeModule.slides.length;
@@ -265,7 +275,7 @@ class MissionStartTutorial {
    * Renders the slide for the given idx. Includes setting title, subtitle, description, image, and on-image label.
    * - Updates the current slide indicator.
    * - Disables/enables the next/previous buttons based on the idx of the rendered slide.
-   * @param {number} idx Index of the slide to be rendered.
+   * @param {number} idx - Index of the slide to be rendered.
    */
   #renderSlide(idx) {
     const $mstSlide = $('.mst-slide');
@@ -277,9 +287,9 @@ class MissionStartTutorial {
 
     /**
      * Renders the 'on-image label' and positions it.
-     * @param {object} position Position of the on-image label as top and left attributes in px.
-     * @param {string} labelOnImageTitle Title to be shown on the label.
-     * @param {string} labelOnImageDescription Description to be shown on the label.
+     * @param {{left: string, top: string}} position - Position of the on-image label as top and left attributes in px.
+     * @param {string} labelOnImageTitle - Title to be shown on the label.
+     * @param {string} labelOnImageDescription - Description to be shown on the label.
      */
     const renderLabelOnImage = (position, labelOnImageTitle, labelOnImageDescription) => {
       $labelOnImage.css({

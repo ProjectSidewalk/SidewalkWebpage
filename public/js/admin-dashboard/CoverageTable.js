@@ -27,10 +27,10 @@ class CoverageTable {
   #hoverId = null;
 
   /**
-   * @param {string} tableId - id of the <table> element.
-   * @param {string} searchId - id of the search <input> element.
-   * @param {{onRowClick?: function(number): void, onRowHover?: function(number): void,
-   *          onRowHoverEnd?: function(): void}} [opts]
+   * @param {string} tableId - ID of the <table> element.
+   * @param {string} searchId - ID of the search <input> element.
+   * @param {{onRowClick?: (id: number) => void, onRowHover?: (id: number) => void,
+   *          onRowHoverEnd?: () => void}} [opts]
    */
   constructor(tableId, searchId, opts = {}) {
     this.#tableId = tableId;
@@ -42,7 +42,7 @@ class CoverageTable {
 
   /**
    * Renders the table and wires search, sort, and row interactions (once).
-   * @param {Array<object>} rows - Region rows (region_id, name, completion_rate, distances, counts).
+   * @param {Array<Record<string, any>>} rows - Region rows (region_id, name, completion_rate, distances, counts).
    */
   render(rows) {
     this.#rows = rows;
@@ -98,7 +98,7 @@ class CoverageTable {
       }
     });
 
-    const search = document.getElementById(this.#searchId);
+    const search = /** @type {HTMLInputElement} */ (document.getElementById(this.#searchId));
     if (search) {
       search.addEventListener('input', () => {
         this.#filter = search.value;

@@ -1,9 +1,14 @@
 package service
 
-import models.label.POV
+import models.label.{LabelPointTable, POV}
 import models.utils.CommonUtils
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import play.api.libs.json.Json
+import service.PanoDataService.Infra3dToken
+
+import java.nio.file.{Files, Path}
+import java.time.OffsetDateTime
 
 /**
  * Pure (no DB, no app boot) unit tests for the label lat/lng estimator (#4765/#4766): the saturating-cotangent
@@ -18,6 +23,9 @@ import org.scalatest.matchers.should.Matchers
  *
  * A refit that changes the constants must re-pin these from the new summary in the same change — and the jsdom
  * suite's fixture with them (test/js/exploreLabelLatLngEstimate.test.js).
+ *
+ * Also here, pure for the same reason: the two Street View Static API requests (#3095) and the fov curve they and the
+ * canvas projection share, held to `util.pano.zoomToFov` and to the measured fixture behind gsvFovContract.test.js.
  */
 class PanoDataServiceSpec extends AnyFunSuite with Matchers {
 
@@ -147,5 +155,78 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
     val roundTripped = PanoDataService.calculatePovFromPanoXY(px, py, 16384, 8192, 47.5)
     roundTripped.heading shouldBe (pov.heading +- 0.05)
     roundTripped.pitch shouldBe (pov.pitch +- 0.05)
+  }
+
+  test("the Static API still is requested at Google's 640-px cap, in the Explore canvas's own aspect (#3095)") {
+    // A 720x480 request came back 640x480 (each edge clamped on its own), with extra sky and ground around a scaled
+    // Explore frame. Every marker is drawn at a fraction of that frame, so the still has to be the frame, not more.
+    PanoDataService.StaticStillWidth shouldBe 640
+    PanoDataService.StaticStillHeight shouldBe 427
+    PanoDataService.StaticStillWidth.toDouble / PanoDataService.StaticStillHeight shouldBe
+      (LabelPointTable.canvasWidth.toDouble / LabelPointTable.canvasHeight +- 0.002)
+  }
+
+  test("the still's URL asks for 640x427 at the labeling POV and an error code, not a placeholder (#5327)") {
+    // return_error_code is load-bearing for every consumer's fallback: drop it and missing imagery arrives as a 200
+    // grey card that renders like a photo.
+    val url = PanoDataService.staticStillUrl("vlX_YTSWIfEkGRYydxIPuA", 183.9990625, -6.5, 1.0, "KEY")
+    url shouldBe "https://maps.googleapis.com/maps/api/streetview?pano=vlX_YTSWIfEkGRYydxIPuA" +
+      "&size=640x427&heading=183.9990625&pitch=-6.5&fov=" + PanoDataService.getFov(1.0) + "&return_error_code=true" +
+      "&key=KEY"
+  }
+
+  test("the street-endpoint URL is the request the endpoint images have always made") {
+    // Same builder and the same error-code ask as the still; the params, not the plumbing, are what may differ.
+    PanoDataService.staticLocationUrl(47.6062, -122.3321, 271.5, "KEY") shouldBe
+      "https://maps.googleapis.com/maps/api/streetview?location=47.6062,-122.3321&radius=40&source=outdoor" +
+      "&size=640x640&heading=271.5&pitch=-10&fov=90&return_error_code=true&key=KEY"
+  }
+
+  test("getFov is util.pano.zoomToFov, constant for constant") {
+    // The still is only the Explore frame if both sides render the same fov for a zoom, and nothing but this holds
+    // the Scala copy to the JS one: read the curve's constants out of the JS source, the way gsvFovContract.test.js
+    // reads the analyzer's copy. A refit that changes the curve's shape fails the match, which is the point.
+    val js    = Files.readString(Path.of("public/js/common/pano-viewer/src/panoUtilities.js"))
+    val curve = """(?s)util\.pano\.zoomToFov = \(zoom\) => \{\s*return zoom <= 2\s*""" +
+      """\?\s*([\d.]+) - zoom \* ([\d.]+)\s*(?://[^\n]*)?\s*""" +
+      """:\s*([\d.]+) / Math\.pow\(([\d.]+), zoom\)"""
+    val m = curve.r
+      .findFirstMatchIn(js)
+      .getOrElse(fail("util.pano.zoomToFov is not the two-piece curve this spec parses"))
+    val (a, b, c, d) = (m.group(1).toDouble, m.group(2).toDouble, m.group(3).toDouble, m.group(4).toDouble)
+    for (zoom <- Seq(1.0, 1.5, 2.0, 2.5, 3.0)) {
+      val jsFov = if (zoom <= 2) a - zoom * b else c / math.pow(d, zoom)
+      PanoDataService.getFov(zoom) shouldBe (jsFov +- 1e-9)
+    }
+  }
+
+  test("getFov matches the measured GSV curve at zoom 1 and 2, and carries the known zoom-3 gap (#5083)") {
+    // The same fixture and tolerance as gsvFovContract.test.js, so the two suites can't drift apart on what "the
+    // Explore frame" is. Zoom 3 is pinned as a bounded error in both directions: the fitted constant reads 0.35° low,
+    // and when the tracked correction lands this fails, which is the reminder to re-pin both suites together.
+    val fixture  = Json.parse(Files.readString(Path.of("test/js/fixtures/gsvFovMeasurements.json")))
+    val measured = (zoom: Int) => (fixture \ "controlHFovDeg" \ zoom.toString).as[Double]
+    PanoDataService.getFov(1.0) shouldBe (measured(1) +- 0.35)
+    PanoDataService.getFov(2.0) shouldBe (measured(2) +- 0.35)
+    val zoom3Gap = measured(3) - PanoDataService.getFov(3.0)
+    zoom3Gap should be > 0.25
+    zoom3Gap should be < 0.45
+  }
+
+  test("Infra3d token: re-minted when absent or inside the minimum-remaining window, reused otherwise") {
+    val now = OffsetDateTime.parse("2026-09-16T12:00:00Z")
+    PanoDataService.infra3dTokenNeedsRemint(None, now) shouldBe true
+    PanoDataService.infra3dTokenNeedsRemint(Some(Infra3dToken("t", now.plusMinutes(14))), now) shouldBe true
+    PanoDataService.infra3dTokenNeedsRemint(Some(Infra3dToken("t", now.plusMinutes(16))), now) shouldBe false
+    // An already-expired token is the case that produced black viewers; it must never be reused.
+    PanoDataService.infra3dTokenNeedsRemint(Some(Infra3dToken("t", now.minusMinutes(1))), now) shouldBe true
+  }
+
+  test("Infra3d token response: expiry dated from the request, defaulting to Cognito's hour") {
+    val now = OffsetDateTime.parse("2026-09-16T12:00:00Z")
+    PanoDataService.parseInfra3dTokenResponse(Json.obj("access_token" -> "abc", "expires_in" -> 1800), now) shouldBe
+      Infra3dToken("abc", now.plusMinutes(30))
+    PanoDataService.parseInfra3dTokenResponse(Json.obj("access_token" -> "abc"), now) shouldBe
+      Infra3dToken("abc", now.plusHours(1))
   }
 }

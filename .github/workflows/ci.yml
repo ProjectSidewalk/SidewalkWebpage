@@ -2,8 +2,8 @@ name: CI
 
 #   - backend:         `sbt compile` + `scalafmtCheckAll` (both BLOCKING)
 #   - frontend:        asset build (grunt) + `eslint` (JS/JSON) + `stylelint` (CSS) + `htmlhint` (HTML) + locale
-#                      checks + CSS layout + asset paths + the jsdom `jest` suite in test/js/ (all BLOCKING). Jest
-#                      reports JS coverage but has no floor — the number can't support one yet, see #5112.
+#                      checks + CSS layout + asset paths + JS types + the jsdom `jest` suite in test/js/ (all BLOCKING).
+#                      Jest reports JS coverage but has no floor — the number can't support one yet, see #5112.
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
 #   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one (BLOCKING — no DB).
 #   - backend-tests:   the whole of test/ against a real Postgres+PostGIS (BLOCKING). Boots the app, which
@@ -142,6 +142,13 @@ jobs:
       - name: Vendor versions (blocking)
         if: always()
         run: node tools/check-vendor-versions.mjs
+
+      # Blocking: TypeScript checks public/js/ against its JSDoc types (#5278), except the folders listed as UNCHECKED
+      # in tools/check-js-types.mjs. `if: always()` so it reports even when an earlier frontend step failed. Run
+      # locally with `make lint-js-types`.
+      - name: JS types (blocking)
+        if: always()
+        run: node tools/check-js-types.mjs
 
       # Blocking: the jsdom unit suite (test/js/). Thin *coverage* is why there's no `coverageThreshold`
       # (jest.config.js says why); it is not a reason to let a suite that does exist go red.

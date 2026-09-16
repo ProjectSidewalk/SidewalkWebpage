@@ -18,8 +18,8 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
 
   private val logger = Logger(this.getClass)
 
-  // Batch size (JDBC fetchSize) for cursor-based streaming of large query results from the db.
-  protected val DEFAULT_BATCH_SIZE: Int = 50000
+  // Batch size (JDBC fetchSize) for cursor-based streaming from the db; each batch sits in memory, so keep it modest.
+  protected val DEFAULT_BATCH_SIZE: Int = 25000
 
   // Standard components
   override protected def controllerComponents: ControllerComponents = cc
@@ -52,25 +52,47 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    * 200 with an empty/truncated body and no server-side trace. This logs the failure so it is at least diagnosable;
    * it does not (and cannot) change the status already sent to the client.
    *
-   * @param source The streaming body to monitor.
-   * @param label  A short identifier (e.g. the download filename) included in the log line to locate the failure.
-   * @return       The same source, with termination-failure logging attached (success behavior is unchanged).
+   * Wrap the bare rows, before any header or separators are added, so a cut-off is reported in rows.
+   *
+   * @param source       The streaming body to monitor.
+   * @param label        A short identifier (e.g. the download filename) for the log line.
+   * @param warnOnCutOff False logs a cut-off at INFO instead: for in-app feeds like the Label Map, where a user
+   *                     leaving the page mid-load is routine.
+   * @return             The same source, with logging attached.
    */
-  protected def logStreamFailures(source: Source[String, _], label: String)(implicit
+  protected def logStreamFailures(source: Source[String, _], label: String, warnOnCutOff: Boolean = true)(implicit
       ec: ExecutionContext
-  ): Source[String, _] =
-    source.watchTermination() { (mat, done) =>
-      done.onComplete {
-        case Failure(e) =>
-          logger.error(
-            s"API streaming response failed mid-flight for '$label'; the client received a truncated/empty body " +
-              s"after a 200 status was already sent (see #4161).",
-            e
-          )
-        case Success(_: Done) => // Stream completed normally; nothing to log.
+  ): Source[String, _] = {
+    val startedAt  = System.nanoTime()
+    var chunks     = 0L
+    var chars      = 0L
+    var reachedEnd = false
+    // Plain vars are safe here: they are written on the stream's thread and only read after the stream has ended.
+    source
+      .map { chunk => chunks += 1; chars += chunk.length; chunk }
+      // Pekko reports a client closing early the same as finishing, so this marker, which runs only after the last
+      // row, is how the two are told apart. Plain `concat` would run it at the start.
+      .concatLazy(Source.lazySource(() => { reachedEnd = true; Source.empty[String] }))
+      .watchTermination() { (mat, done) =>
+        done.onComplete {
+          case Failure(e) =>
+            logger.error(
+              s"API streaming response failed mid-flight for '$label'; the client received a truncated/empty body " +
+                s"after a 200 status was already sent (see #4161).",
+              e
+            )
+          case Success(_: Done) if !reachedEnd =>
+            val seconds = (System.nanoTime() - startedAt) / 1e9
+            val message =
+              f"Streamed response '$label' was cut off after $seconds%.0fs and $chunks rows ($chars chars): the " +
+                "client gave up or a proxy/idle timeout closed the connection, so it got a 200 with a partial body " +
+                "(see #4161)."
+            if (warnOnCutOff) logger.warn(message) else logger.info(message)
+          case Success(_: Done) => // Stream completed normally; nothing to log.
+        }
+        mat
       }
-      mat
-    }
+  }
 
   /**
    * Wraps a stream of serialized GeoJSON Features in the surrounding FeatureCollection document.
@@ -96,8 +118,9 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    * @param label    A short identifier (e.g. the endpoint path) included in the log line if the stream fails.
    */
   protected def streamGeoJson(features: Source[JsObject, _], label: String)(implicit ec: ExecutionContext): Result = {
-    val jsonSource: Source[String, _] = geoJsonFeatureCollection(features.map(_.toString))
-    Ok.chunked(logStreamFailures(jsonSource, label)).as(ContentTypes.JSON)
+    val jsonSource: Source[String, _] =
+      geoJsonFeatureCollection(logStreamFailures(features.map(_.toString), label, warnOnCutOff = false))
+    Ok.chunked(jsonSource).as(ContentTypes.JSON)
   }
 
   // Could add other common controller utilities here. Not sure if they should be here or in ControllerUtils.scala.

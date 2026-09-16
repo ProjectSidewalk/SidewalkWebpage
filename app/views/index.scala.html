@@ -136,8 +136,8 @@
 
     <div id="landing-choropleth-container" class="container choropleth-container">
       <div class="section-title-and-subtitle">
-        <h2 class="row section-title" id="choose-neighborhood-title">@Messages("landing.choropleth.title")</h2>
-        <div class="row section-subtitle" id="choose-neighborhood-subtitle">
+        <h2 class="row section-title" id="choose-region-title">@Messages("landing.choropleth.title")</h2>
+        <div class="row section-subtitle" id="choose-region-subtitle">
           <div id="exploredesc">@Html(Messages("landing.choropleth.content"))</div>
         </div>
       </div>
@@ -274,13 +274,13 @@
       util.onFirstInteractionOrIdle(function () {
         const mapboxCss = document.createElement('link');
         mapboxCss.rel = 'stylesheet';
-        mapboxCss.href = '@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")';
+        mapboxCss.href = '@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")';
         document.head.appendChild(mapboxCss);
 
         util.loadScriptsInOrder([
-          '@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")',
+          '@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")',
           '@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")',
-          '@assets.path("vendor/turf/turf-7.3.4.min.js")',
+          '@assets.path("vendor/turf/turf-7.4.0.min.js")',
           '@assets.path("js/ps-map/build/ps-map.js")'
         ]).then(function () {
           // createPSMap reads translated strings, so it still waits on the app's i18next setup.
@@ -292,10 +292,10 @@
               mapboxApiKey: '@commonData.mapboxApiKey',
               mapboxLogoLocation: 'bottom-right',
               scrollWheelZoom: false,
-              neighborhoodsURL: '/neighborhoods',
-              completionRatesURL: '/neighborhoods/completionRate',
-              neighborhoodFillMode: 'completionRate',
-              neighborhoodTooltip: 'completionRate'
+              regionsURL: '/regions',
+              completionRatesURL: '/regions/completionRates',
+              regionFillMode: 'completionRate',
+              regionTooltip: 'completionRate'
             };
             createPSMap($, choroplethParams).then(m => {
               window.choropleth = m[0];

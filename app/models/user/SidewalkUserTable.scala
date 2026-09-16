@@ -10,13 +10,22 @@ import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
 case class SidewalkUser(userId: String, username: String, email: String)
+
+/**
+ * The user behind a request, loaded on every request. Account-wide settings ride along so pages needn't query again.
+ *
+ * @param communityService  Whether they're tracking their time for community service hours.
+ * @param infra3dAccess     Whether they may view this city's infra3D imagery (always false in non-infra3D cities).
+ * @param measurementSystem The units they chose on the Settings page, or None to follow the site language.
+ */
 case class SidewalkUserWithRole(
     userId: String,
     username: String,
     email: String,
     role: Role.Value,
     communityService: Boolean,
-    infra3dAccess: Boolean
+    infra3dAccess: Boolean,
+    measurementSystem: Option[MeasurementSystem.Value]
 ) extends Identity
 
 class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, "sidewalk_user") {
@@ -24,6 +33,10 @@ class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, "sidewalk_
   def username: Rep[String] = column[String]("username")
   def email: Rep[String]    = column[String]("email")
   def *                     = (userId, username, email) <> (SidewalkUser.tupled, SidewalkUser.unapply)
+
+  // CHECK (email = lower(email)) and CHECK (username NOT LIKE '%@%') in the DB.
+  def usernameUnique = index("sidewalk_user_username_key", username, unique = true)
+  def emailUnique    = index("sidewalk_user_email_key", email, unique = true)
 }
 
 /**
@@ -47,11 +60,22 @@ class SidewalkUserTable @Inject() (
 
   val sidewalkUser           = TableQuery[SidewalkUserTableDef]
   val userRole               = TableQuery[UserRoleTableDef]
+  val userSettings           = TableQuery[UserSettingsTableDef]
   val sidewalkUserToRoleJoin = sidewalkUser.join(userRole).on(_.userId === _.userId)
-  val sidewalkUserWithRole   = sidewalkUserToRoleJoin
-    .map { case (user, userRole) =>
-      (user.userId, user.username, user.email, userRole.role, userRole.communityService,
-        userRoleTable.infra3dAccessForCurrentCity(userRole))
+  // A left join, because a user with no user_settings row has every setting at its default.
+  val sidewalkUserWithRole = sidewalkUserToRoleJoin
+    .joinLeft(userSettings)
+    .on(_._1.userId === _.userId)
+    .map { case ((user, userRole), settings) =>
+      (
+        user.userId,
+        user.username,
+        user.email,
+        userRole.role,
+        settings.map(_.communityService).getOrElse(false),
+        userRoleTable.infra3dAccessForCurrentCity(userRole),
+        settings.flatMap(_.measurementSystem)
+      )
     }
   val aiUsers    = sidewalkUserToRoleJoin.filter(_._2.role === Role.Ai).map(_._1)
   val humanUsers = sidewalkUserToRoleJoin.filter(_._2.role =!= Role.Ai).map(_._1)
@@ -77,8 +101,10 @@ class SidewalkUserTable @Inject() (
     db.run(sidewalkUserWithRole.filter(_._2 === username).result.headOption).map(_.map(SidewalkUserWithRole.tupled))
   }
 
+  // Emails are stored lower-cased (the schema checks it), so lookups and writes lower-case here, not in every caller.
   def findByEmail(email: String): Future[Option[SidewalkUserWithRole]] = {
-    db.run(sidewalkUserWithRole.filter(_._3 === email).result.headOption).map(_.map(SidewalkUserWithRole.tupled))
+    db.run(sidewalkUserWithRole.filter(_._3 === email.toLowerCase).result.headOption)
+      .map(_.map(SidewalkUserWithRole.tupled))
   }
 
   /**
@@ -98,10 +124,10 @@ class SidewalkUserTable @Inject() (
    * @return A DBIO action that returns the number of rows updated
    */
   def updateEmail(userId: String, newEmail: String): DBIO[Int] = {
-    sidewalkUser.filter(_.userId === userId).map(_.email).update(newEmail)
+    sidewalkUser.filter(_.userId === userId).map(_.email).update(newEmail.toLowerCase)
   }
 
   def insert(newUser: SidewalkUser): DBIO[String] = {
-    (sidewalkUser returning sidewalkUser.map(_.userId)) += newUser
+    (sidewalkUser returning sidewalkUser.map(_.userId)) += newUser.copy(email = newUser.email.toLowerCase)
   }
 }

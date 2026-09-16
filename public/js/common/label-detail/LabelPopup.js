@@ -7,30 +7,32 @@
  *
  * Used by LabelMap, the User Dashboard, and the admin Label Map.
  *
- * @param {boolean} admin If true, this is an admin UI, so additional info can be shown.
- * @param {typeof PanoViewer} viewerType The type of pano viewer to initialize.
- * @param {string} viewerAccessToken An access token used to request images for the pano viewer.
- * @param {string} [currUsername] Username of the current viewer; identifies this user's own comments.
- * @param {Object} [opts]
- * @param {string} [opts.syncUrlSource] When set, the open label is mirrored into the page URL as ?labelId=<id>
+ * @param {boolean} admin - If true, this is an admin UI, so additional info can be shown.
+ * @param {typeof PanoViewer} viewerType - The type of pano viewer to initialize.
+ * @param {string} viewerAccessToken - An access token used to request images for the pano viewer.
+ * @param {string} [currUsername] - Username of the current viewer; identifies this user's own comments.
+ * @param {object} [opts]
+ * @param {string} [opts.syncUrlSource] - When set, the open label is mirrored into the page URL as ?labelId=<id>
  *     (cleared on close) so the view is shareable and survives a refresh; a labelId already in the URL is opened
  *     after init, using this string as the validation source (e.g. 'LabelMap').
- * @param {function(number): void} [opts.onShow] Called with the label's ID every time one is shown (map click,
+ * @param {(labelId: number) => void} [opts.onShow] - Called with the label's ID every time one is shown (map click,
  *     deep link, prev/next arrows); LabelMap uses it to keep the shown label spotlighted on the map.
- * @param {function(number, Object): void} [opts.onMetadata] Called with the label's ID and its fetched metadata
- *     payload once the shown label's data has loaded (skipped if another label was opened in the meantime);
+ * @param {(labelId: number, metadata: object) => void} [opts.onMetadata] - Called with the label's ID and its fetched
+ *     metadata payload once the shown label's data has loaded (skipped if another label was opened in the meantime);
  *     LabelMap uses the payload's camera coords to position the map for labels its own layer data can't locate.
- * @param {function(number): void} [opts.onClose] Called with the last-shown label's ID whenever the dialog
+ * @param {(labelId: number) => void} [opts.onClose] - Called with the last-shown label's ID whenever the dialog
  *     closes (X, ESC, or backdrop); LabelMap uses it to pulse that label's spot on the map.
- * @param {boolean} [opts.showLabelMapLink] Show the popup's "View on Label Map" footer link (for hosts that
+ * @param {boolean} [opts.showLabelMapLink] - Show the popup's "View on Label Map" footer link (for hosts that
  *     aren't the label map themselves — e.g. the user dashboard).
- * @param {boolean} [opts.showExploreHereLink] Show the popup's "Explore here" footer link, which opens Explore at
+ * @param {(vote: ?string, metadata: object) => void} [opts.onVote] - Called with the vote cast (or null for a cleared
+ *   one) and the label's metadata after a validation lands, so a host showing the label elsewhere can refresh it.
+ * @param {boolean} [opts.showExploreHereLink] - Show the popup's "Explore here" footer link, which opens Explore at
  *     the shown label's pano and point of view (#4637).
  * @returns {Promise<object>} Resolves once the dialog is wired; the pano viewer itself is built on the first
  *     showLabel().
  */
 async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, opts = {}) {
-  const dialog = document.getElementById('label-modal');
+  const dialog = /** @type {HTMLDialogElement} */ (document.getElementById('label-modal'));
   if (!dialog) {
     throw new Error('LabelPopup: #label-modal not found. Did you include common.labelPopup() on the page?');
   }
@@ -47,6 +49,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
     currUsername,
     showLabelMapLink: opts.showLabelMapLink,
     showExploreHereLink: opts.showExploreHereLink,
+    onVote: opts.onVote,
   });
 
   // Close button + backdrop click. ESC is handled natively by <dialog>.
@@ -66,8 +69,8 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
 
   // Prev/next arrows (rendered when the host's labelPopup include sets withPaging): hidden until a navigator
   // arrives via setNearbyNavigator() — the map's label data loads after the popup is built.
-  const prevBtn = dialog.querySelector('.label-detail__paging--prev');
-  const nextBtn = dialog.querySelector('.label-detail__paging--next');
+  const prevBtn = /** @type {HTMLButtonElement} */ (dialog.querySelector('.label-detail__paging--prev'));
+  const nextBtn = /** @type {HTMLButtonElement} */ (dialog.querySelector('.label-detail__paging--next'));
   let nearbyNav = null;
   let currentLabelId = null;
   let lastSource = null;
@@ -105,8 +108,8 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
 
   /**
    * Opens the dialog and shows the requested label.
-   * @param {number} labelId The ID of the label to show.
-   * @param {string} source  The UI that created the popup (recorded with validations).
+   * @param {number} labelId - The ID of the label to show.
+   * @param {string} source  - The UI that created the popup (recorded with validations).
    */
   async function showLabel(labelId, source) {
     if (!dialog.open) dialog.showModal();
@@ -152,13 +155,13 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
 
   /**
    * Enables the prev/next arrows, stepping through labels via the given navigator (see nearbyLabelNavigator.js).
-   * @param {{next: function, prev: function, hasPrev: function, hasNext: function,
-   *     onRefresh: function}} nav Navigator over the host's label set. Its onRefresh is what keeps the arrows
+   * @param {{next: Function, prev: Function, hasPrev: Function, hasNext: Function,
+   *     onRefresh: Function}} nav - Navigator over the host's label set. Its onRefresh is what keeps the arrows
    *     honest on a host whose reachable set changes under them: LabelMap loads labels by viewport (#5002), so a
    *     deep-linked popup opens over an empty set and has nowhere to page until the set fills (#5068), and its
    *     sidebar filters narrow where "next" may land (#5124).
    */
-  labelDetail.setNearbyNavigator = (nav) => {
+  const setNearbyNavigator = (nav) => {
     // Subscribe only for a navigator we haven't seen, so a repeat call can't stack duplicate recomputes.
     if (nav !== nearbyNav) nav.onRefresh(updatePagingState);
     nearbyNav = nav;
@@ -170,6 +173,5 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
 
   // Expose the LabelDetail instance's properties for backwards compatibility with callsites that reach
   // into the popup (e.g. for `panoManager`).
-  labelDetail.showLabel = showLabel;
-  return labelDetail;
+  return Object.assign(labelDetail, { setNearbyNavigator, showLabel });
 }

@@ -40,10 +40,10 @@ class MapSidebarDrawer {
   #appliedPaddingLeft = null;
 
   /**
-   * @param {mapboxgl.Map} map The Mapbox map the drawer shares the viewport with.
-   * @param {HTMLElement} sidebar The `.filter-sidebar` element.
+   * @param {mapboxgl.Map} map - The Mapbox map the drawer shares the viewport with.
+   * @param {HTMLElement} sidebar - The `.filter-sidebar` element.
    * @param {object} [options]
-   * @param {boolean} [options.startCollapsed=false] Open the page with the drawer closed even on a wide viewport.
+   * @param {boolean} [options.startCollapsed=false] - Open the page with the drawer closed even on a wide viewport.
    */
   constructor(map, sidebar, { startCollapsed = false } = {}) {
     this.#map = map;
@@ -76,7 +76,7 @@ class MapSidebarDrawer {
 
   /**
    * @param {object} [options]
-   * @param {boolean} [options.log=true] Whether to record the interaction; false for programmatic state changes.
+   * @param {boolean} [options.log=true] - Whether to record the interaction; false for programmatic state changes.
    */
   open({ log = true } = {}) {
     this.#setOpen(true, { log });
@@ -84,7 +84,7 @@ class MapSidebarDrawer {
 
   /**
    * @param {object} [options]
-   * @param {boolean} [options.log=true] Whether to record the interaction; false for programmatic state changes.
+   * @param {boolean} [options.log=true] - Whether to record the interaction; false for programmatic state changes.
    */
   close({ log = true } = {}) {
     this.#setOpen(false, { log });
@@ -93,12 +93,12 @@ class MapSidebarDrawer {
   /**
    * Applies an open/closed state to the drawer, its chrome, and the map's padding.
    *
-   * @param {boolean} open The state to apply.
+   * @param {boolean} open - The state to apply.
    * @param {object} [options]
-   * @param {boolean} [options.animate=true] Ease the camera rather than jumping it.
-   * @param {boolean} [options.moveFocus=true] Send focus to whichever control is now the way back out. Suppressed
+   * @param {boolean} [options.animate=true] - Ease the camera rather than jumping it.
+   * @param {boolean} [options.moveFocus=true] - Send focus to whichever control is now the way back out. Suppressed
    *     for state the page applies on load, which would otherwise steal focus from the document.
-   * @param {boolean} [options.log=true] Whether to record the interaction.
+   * @param {boolean} [options.log=true] - Whether to record the interaction.
    */
   #setOpen(open, { animate = true, moveFocus = true, log = true } = {}) {
     this.#open = open;
@@ -128,16 +128,33 @@ class MapSidebarDrawer {
    * Pushes the map's center clear of the drawer, or restores it.
    *
    * @param {object} [options]
-   * @param {boolean} [options.animate=true] Ease rather than jump.
+   * @param {boolean} [options.animate=true] - Ease rather than jump.
    */
   #applyPadding({ animate = true } = {}) {
     // A covering drawer gets no padding: nearly-viewport-wide padding projects the center off the canvas.
     const left = this.#open && !this.#narrowMq.matches ? this.#sidebar.offsetWidth : 0;
     if (left === this.#appliedPaddingLeft) return;
     this.#appliedPaddingLeft = left;
-    const padding = { left, top: 0, right: 0, bottom: 0 };
+    // Only the left edge is the drawer's to set; another overlay (the AccessScore dock, along the bottom) owns its
+    // own edge, and a fresh `{top: 0, right: 0, bottom: 0}` here would silently undo it.
+    const padding = { ...this.#map.getPadding(), left };
     if (animate) this.#map.easeTo({ padding });
     else this.#map.setPadding(padding);
+    this.#publishWidth();
+  }
+
+  /**
+   * Publishes the drawer's live width on its parent as `--filter-sidebar-width`, so an overlay positioned beside
+   * the drawer (the AccessScore insights band) can follow a drag — a resize writes an inline width, so a
+   * stylesheet that hardcodes the 350px default detaches from the drawer's edge mid-drag — and how much of the
+   * map's left edge the drawer covers as `--map-inset-left` (zero when closed or covering the map), so something
+   * centered over the map (the status pill) centers on the part the reader can see.
+   */
+  #publishWidth() {
+    const style = this.#sidebar.parentElement?.style;
+    if (!style) return;
+    style.setProperty('--filter-sidebar-width', `${this.#sidebar.offsetWidth}px`);
+    style.setProperty('--map-inset-left', `${this.#appliedPaddingLeft ?? 0}px`);
   }
 
   /** Re-derives the drawer and the camera from the new breakpoint. */
@@ -154,6 +171,7 @@ class MapSidebarDrawer {
       if (this.#draggedWidth) this.#sidebar.style.width = this.#draggedWidth;
       if (this.#handle) this.#handle.style.left = `${this.#sidebar.offsetWidth}px`;
       this.#setOpen(this.#open, { animate: false, moveFocus: false, log: false });
+      this.#publishWidth();
     }
   }
 
@@ -175,7 +193,8 @@ class MapSidebarDrawer {
       this.#draggedWidth = `${newWidth}px`;
       handle.style.left = `${newWidth}px`;
       this.#appliedPaddingLeft = newWidth;
-      this.#map.setPadding({ left: newWidth, top: 0, right: 0, bottom: 0 });
+      this.#map.setPadding({ ...this.#map.getPadding(), left: newWidth });
+      this.#publishWidth();
     };
 
     const onPointerUp = (e) => {

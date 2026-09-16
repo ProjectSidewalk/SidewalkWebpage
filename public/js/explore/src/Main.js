@@ -17,7 +17,7 @@ class Main {
   #onboardingStates = null;
 
   /**
-   * @param {Object} params - Page params injected by explore.scala.html.
+   * @param {Record<string, any>} params - Page params injected by explore.scala.html.
    */
   constructor(params) {
     this.#params = params;
@@ -66,8 +66,8 @@ class Main {
     svl.user = new User(params.user);
 
     // Models
-    svl.neighborhoodModel = new NeighborhoodModel();
-    svl.neighborhoodModel.setAsRouteOrNeighborhood(svl.userRouteId ? 'route' : 'neighborhood');
+    svl.regionModel = new RegionModel();
+    svl.regionModel.setAsRouteOrRegion(svl.userRouteId ? 'route' : 'region');
     svl.missionModel = new MissionModel();
 
     svl.alertController = new AlertController();
@@ -116,9 +116,9 @@ class Main {
     // Warm the label-icon cache up front so canvas renders draw icons in the right order. See Label.preloadIcons.
     svl.iconsPreloaded = Label.preloadIcons();
 
-    svl.navigationService = new NavigationService(svl.neighborhoodModel, svl.ui.streetview);
+    svl.navigationService = new NavigationService(svl.regionModel, svl.ui.streetview);
 
-    svl.taskContainer = new TaskContainer(svl.neighborhoodModel, svl, svl.tracker);
+    svl.taskContainer = new TaskContainer(svl.regionModel, svl, svl.tracker);
     svl.taskContainer._tasks.push(newTask);
     svl.taskContainer.setCurrentTask(newTask);
     svl.labelContainer = new LabelContainer($, params.nextTemporaryLabelId);
@@ -136,7 +136,7 @@ class Main {
       'status-current-mission-completion-bar-filler', 'status-current-mission-completion-rate',
     );
     svl.missionProgressBar.update(0);
-    svl.neighborhoodProgressBar = new NeighborhoodProgressBar();
+    svl.regionProgressBar = new RegionProgressBar();
     svl.missionPanel = new MissionPanel();
 
     svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
@@ -144,18 +144,19 @@ class Main {
     // Game effects
     svl.audioEffect = new AudioEffect(svl.storage);
 
-    const neighborhood = new Neighborhood({
+    const region = new Region({
       regionId: params.regionId, geoJSON: params.regionGeoJSON, name: params.regionName,
     });
-    svl.neighborhoodModel.setCurrentNeighborhood(neighborhood);
+    svl.regionModel.setCurrentRegion(region);
 
     svl.observedArea = new ObservedArea(svl.ui.minimap);
     svl.minimapLegend = new MinimapLegend(svl.ui.minimap, svl.tracker);
     svl.routeOverview = new RouteOverview(svl.ui.minimap, svl.tracker);
+    svl.forwardCrumbs = new ForwardCrumbs(svl.navigationService, svl.tracker);
 
     // Mission
     svl.missionContainer = new MissionContainer(svl.missionPanel, svl.missionModel);
-    svl.missionController = new MissionController(svl.missionModel, svl.neighborhoodModel,
+    svl.missionController = new MissionController(svl.missionModel, svl.regionModel,
       svl.missionContainer, svl.tracker);
     svl.missionModel.createAMission(params.mission); // create current mission and set as current
     svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.panoStore,
@@ -195,7 +196,7 @@ class Main {
     svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, () => svl.panoViewer,
       () => svl.panoViewer.getPosition(), () => svl.panoViewer.getPanoId(),
       () => svl.taskContainer.getCurrentTaskStreetEdgeId(),
-      () => svl.neighborhoodModel.currentNeighborhood().getRegionId(),
+      () => svl.regionModel.currentRegion().getRegionId(),
       () => svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('captureDate'),
       () => svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('address'),
       () => svl.panoViewer.getPov(), true,
@@ -221,7 +222,7 @@ class Main {
     svl.keyboard = new KeyboardManager(
       svl, svl.canvas, svl.contextMenu, svl.navigationService, svl.ribbon, svl.zoomControl,
     );
-    this.#loadData(svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu);
+    this.#loadData(svl.taskContainer, svl.missionModel, svl.regionModel, svl.contextMenu);
 
     $('#navbar-retake-tutorial-btn').on('click', () => {
       window.location.replace('/explore?retakeTutorial=true');
@@ -249,8 +250,8 @@ class Main {
     this.#updateURL();
   }
 
-  #loadData(taskContainer, missionModel, neighborhoodModel, contextMenu) {
-    // If in the tutorial, we already have the tutorial task. If not, get the rest of the tasks in the neighborhood.
+  #loadData(taskContainer, missionModel, regionModel, contextMenu) {
+    // If in the tutorial, we already have the tutorial task. If not, get the rest of the tasks in the region.
     if (svl.isOnboarding()) {
       this.#loadingTasksCompleted = true;
       this.#handleDataLoadComplete();
@@ -259,7 +260,7 @@ class Main {
         this.#loadingTasksCompleted = true;
         this.#handleDataLoadComplete();
         // Plant start/finish flags on the minimap so a route walk shows where it begins and ends.
-        if (svl.neighborhoodModel.isRoute) {
+        if (svl.regionModel.isRoute) {
           const endpoints = taskContainer.getRouteEndpoints();
           if (endpoints) svl.minimap.showRouteEndpoints(endpoints.start, endpoints.finish);
         }
@@ -267,7 +268,7 @@ class Main {
     }
 
     // Fetch the user's completed missions.
-    missionModel.fetchCompletedMissionsInNeighborhood(() => {
+    missionModel.fetchCompletedMissionsInRegion(() => {
       this.#loadingMissionsCompleted = true;
       this.#handleDataLoadComplete();
     });
@@ -361,27 +362,27 @@ class Main {
     svl.onboarding.start();
   }
 
-  #startTheMission(mission, neighborhood) {
+  #startTheMission(mission, region) {
     svl.ui.minimap.holder.css('backgroundColor', '#e5e3df');
 
     // Popup the message explaining the goal of the current mission.
     if (svl.missionContainer.isTheFirstMission()) {
-      neighborhood = svl.neighborhoodModel.currentNeighborhood();
+      region = svl.regionModel.currentRegion();
       svl.initialMissionInstruction = new InitialMissionInstruction(
         svl.compass, svl.navigationService, svl.popUpMessage,
         svl.taskContainer, svl.labelContainer, svl.aiGuidance, svl.tracker,
       );
-      svl.initialMissionInstruction.start(neighborhood);
+      svl.initialMissionInstruction.start(region);
     } else {
       // Show AI guidance message for the first street. Handled by InitialMissionInstruction if 1st mission.
       svl.aiGuidance.showAiGuidanceMessage();
     }
 
-    svl.missionModel.updateMissionProgress(mission, neighborhood);
+    svl.missionModel.updateMissionProgress(mission, region);
     svl.missionPanel.setMessage(mission);
     svl.minimap.updateMissionProgress(mission);
 
-    svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getRegionId(), () => {
+    svl.labelContainer.fetchLabelsToResumeMission(region.getRegionId(), () => {
       svl.canvas.setOnlyLabelsOnPanoAsVisible(svl.panoViewer.getPanoId());
       // Wait for the icon cache before this first paint (resolves immediately if already warm).
       svl.iconsPreloaded.then(() => {
@@ -391,7 +392,7 @@ class Main {
 
     svl.taskContainer.renderAllTasks();
     const distance = svl.taskContainer.getCompletedTaskDistance();
-    svl.overallStats.setNeighborhoodAuditedDistance(distance);
+    svl.overallStats.setRegionAuditedDistance(distance);
 
     // Prefetch Mapillary data on images along the street to improve load times for images along the street.
     svl.navigationService.prefetchAlongStreet(svl.taskContainer.getCurrentTask().getFeature());
@@ -400,9 +401,9 @@ class Main {
   // This is a callback function that is executed after every loading process is done.
   #handleDataLoadComplete() {
     if (this.#loadingTasksCompleted && this.#loadingMissionsCompleted && this.#loadLabelTags) {
-      // Mark neighborhood as complete if there are no streets left with max priority (= 1).
+      // Mark region as complete if there are no streets left with max priority (= 1).
       if (!svl.taskContainer.hasMaxPriorityTask()) {
-        svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
+        svl.regionModel.setRegionCompleteAcrossAllUsers();
       }
 
       // Set up a few initial views now that everything has loaded. A seeded POV (the labeler's stored view from the
@@ -419,6 +420,8 @@ class Main {
       svl.observedArea.update();
       svl.compass.update();
       svl.compass.enableCompassClick();
+      // The first task was set before the crumbs existed, so draw the ones ahead now (#4669).
+      svl.forwardCrumbs.refresh();
       // Re-render the nav arrows now that the compass and task exist, so the route-forward arrow is highlighted on
       // the very first pano too — PanoManager's own initial resetNavArrows ran before those were wired up. (#4671)
       svl.panoManager.resetNavArrows();
@@ -435,7 +438,7 @@ class Main {
       } else {
         this.#calculateAndSetTasksMissionsOffset();
 
-        const currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
+        const currentRegion = svl.regionModel.currentRegion();
         if (svl.isExploreAddressMode()) {
           // Free exploration (#4451): hide the mission progress UI, and skip the mission-start modal (its copy
           // interpolates a mission distance, which this mission type doesn't have).
@@ -463,7 +466,7 @@ class Main {
             && (missionProgressM > 0 || Boolean(this.#params.task.properties.audit_task_id));
           new MissionStartTutorial('audit', labelType, {
             nLength: currentMission.getDistance('miles'),
-            neighborhood: currentNeighborhood.getProperty('name'),
+            region: currentRegion.getProperty('name'),
             resuming,
           }, svl, this.#params.language);
 
@@ -503,7 +506,7 @@ class Main {
               svl.tracker.push('MissionResumeToast_Shown');
               Toast.show({
                 message: i18next.t('right-ui.mission-resume.message', {
-                  neighborhoodName: currentNeighborhood.getProperty('name'),
+                  regionName: currentRegion.getProperty('name'),
                   distanceLeft: Math.max(currentMission.getDistance('meters') - missionProgressM, 0),
                 }),
                 reference: document.getElementById('pano'),
@@ -514,7 +517,7 @@ class Main {
           }
         }
 
-        this.#startTheMission(mission, currentNeighborhood);
+        this.#startTheMission(mission, currentRegion);
       }
 
       // Update the observed area now that everything has loaded.

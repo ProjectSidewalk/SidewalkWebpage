@@ -108,7 +108,7 @@
   "bad": "Mauvaise",
   "yes": "Oui",
   "no": "Non",
-  "ai-generated-label-tooltip": "Cette étiquette a été générée par une IA. L'IA peut se tromper : faites votre propre évaluation.",
+  "ai-generated-label-tooltip": "Cette étiquette a été générée par une IA. L'IA peut se tromper : jugez par vous-même si elle est correcte.",
   "tag": {
     "narrow": "étroit",
     "points into traffic": "orienté vers la circulation",
@@ -347,5 +347,13 @@
     "on-facebook": "Partager sur Facebook",
     "on-linkedin": "Partager sur LinkedIn",
     "via-email": "Partager par e-mail"
-  }
+  },
+  "mini-card": {
+    "no-image": "Pas d'image",
+    "open": "Ouvrir cette étiquette : {{label}}",
+    "votes": "Valider cette étiquette",
+    "no-image-to-judge": "Aucune image pour juger cette étiquette",
+    "vote-failed": "Votre vote n'a pas été enregistré. Veuillez réessayer."
+  },
+  "download-already-preparing": "Ce fichier est déjà en cours de préparation pour une autre demande. Veuillez réessayer dans un instant."
 }

@@ -40,6 +40,12 @@ class MapillaryViewer extends PanoViewer {
     this.prefetchedSearches = [];
   }
 
+  /**
+   * See PanoViewer.initialize().
+   * @param {HTMLElement} canvasElem
+   * @param {Record<string, any>} [panoOptions]
+   * @returns {Promise<void>}
+   */
   async initialize(canvasElem, panoOptions = {}) {
     // TODO Need to define a set of options and then find a nice way to map them onto viewer-specific configs.
     const disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
@@ -170,6 +176,17 @@ class MapillaryViewer extends PanoViewer {
 
     const pitchAndRoll = this.extractPitchRoll(this.currImage.rotation);
 
+    const linkedPanos = edges
+      .filter((link) => link.data.direction === 9) // Filter for only panoramas.
+      .map((link) => {
+        // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the
+        // X-axis in a spherical coordinate system", so we need to adjust it to be like a compass heading.
+        return {
+          panoId: link.target,
+          heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI)),
+        };
+      });
+
     // To get various info about the pano -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Image/
     // TODO merged, might want to record whether it's been merged thru sfm
     // TODO qualityScore is interesting: A number between zero and one determining the quality of the image.
@@ -188,18 +205,8 @@ class MapillaryViewer extends PanoViewer {
       cameraRoll: pitchAndRoll.roll,
       copyright: this.currImage.creatorUsername,
       history: [], // TODO could use /images endpoint to fill this. But can also see history in the UI https://www.mapillary.com/app/user/uwrapid?lat=47.66374856411&lng=-122.28224790652&z=17&x=0.5871305676894112&y=0.5159912788583514&zoom=0&panos=true&focus=photo&pKey=134748085384999&my_coverage=false&user_coverage=false
+      linkedPanos,
     };
-
-    panoDataParams.linkedPanos = edges
-      .filter((link) => link.data.direction === 9) // Filter for only panoramas.
-      .map((link) => {
-        // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the
-        // X-axis in a spherical coordinate system", so we need to adjust it to be like a compass heading.
-        return {
-          panoId: link.target,
-          heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI)),
-        };
-      });
 
     // Make sure that we keep the same pov in the new pano.
     if (oldPov) this.setPov(oldPov);
@@ -213,8 +220,8 @@ class MapillaryViewer extends PanoViewer {
   /**
    * Creates a bounding box around the given point with given radius, and creates a URL to fetch images in the box.
    *
-   * @param {turf.Point} centerPoint The center of the output bounding box
-   * @param {number} radius A distance (in km) to extend from the center point in each direction
+   * @param {turf.Point} centerPoint - The center of the output bounding box
+   * @param {number} radius - A distance (in km) to extend from the center point in each direction
    * @returns {string} A URL that can be called to fetch Mapillary images within the bounding box
    */
   #createPanoFetchUrl = (centerPoint, radius) => {
@@ -231,7 +238,7 @@ class MapillaryViewer extends PanoViewer {
       access_token: this.viewer._navigator._api._data._accessToken,
       fields: 'id,geometry,computed_geometry,captured_at,sequence,width,camera_type,computed_rotation',
       is_pano: 'true',
-      bbox: boundingBox,
+      bbox: boundingBox.join(','),
     });
 
     return `https://graph.mapillary.com/images?${params.toString()}`;
@@ -240,9 +247,9 @@ class MapillaryViewer extends PanoViewer {
   /**
    * Scores a candidate Mapillary image for selection, balancing multiple factors.
    *
-   * @param {Object} pano Raw pano object from the Mapillary API response.
-   * @param {turf.Point} centerPoint The target location we're trying to move to.
-   * @param {string|null} currentSequenceId The sequence ID of the current image (null on initial load).
+   * @param {Record<string, any>} pano - Raw pano object from the Mapillary API response.
+   * @param {turf.Point} centerPoint - The target location we're trying to move to.
+   * @param {string|null} currentSequenceId - The sequence ID of the current image (null on initial load).
    * @returns {number} A score between 0 and 1 where higher is better.
    */
   #scorePano = (pano, centerPoint, currentSequenceId) => {
@@ -320,7 +327,7 @@ class MapillaryViewer extends PanoViewer {
    * Builds sets of excluded pano IDs and captured_at timestamps. Mapillary has an issue where duplicate images
    * can exist with different IDs but the same captured_at, so searches filter on both.
    *
-   * @param {Set<PanoData>} excludedPanos Panos to exclude from a search.
+   * @param {Set<PanoData>} excludedPanos - Panos to exclude from a search.
    * @returns {{ excludedPanoIds: Set<string>, excludedTimestamps: Set<number> }}
    */
   #buildExclusionSets = (excludedPanos) => {
@@ -336,10 +343,10 @@ class MapillaryViewer extends PanoViewer {
    * viable candidate (e.g. all excluded), falls back to a fresh API call centered exactly on the target, storing
    * those results in case they're useful later as well.
    *
-   * @param {turf.Point} center The target location.
-   * @param {number} radius Search radius in kilometers.
-   * @param {Set<PanoData>} excludedPanos Panos that are not viable candidates.
-   * @returns {Promise<Object|null>} The best candidate pano from the Mapillary API, or null if none are viable.
+   * @param {turf.Point} center - The target location.
+   * @param {number} radius - Search radius in kilometers.
+   * @param {Set<PanoData>} excludedPanos - Panos that are not viable candidates.
+   * @returns {Promise<?Record<string, any>>} The best viable candidate pano from the Mapillary API, or null.
    */
   #searchAndSelectPano = async (center, radius, excludedPanos) => {
     const currSequenceId = this.currImage ? this.currImage.sequenceId : null;
@@ -384,7 +391,7 @@ class MapillaryViewer extends PanoViewer {
    * Safe to call multiple times — skips the fetch if a nearby prefetch already exists.
    * Call clearPrefetchCache() when moving to a new street.
    *
-   * @param {{lat: number, lng: number}} latLng The location to prefetch images for.
+   * @param {{lat: number, lng: number}} latLng - The location to prefetch images for.
    */
   prefetchLocation = (latLng) => {
     const centerPoint = turf.point([latLng.lng, latLng.lat]);
@@ -399,8 +406,8 @@ class MapillaryViewer extends PanoViewer {
    * the same search + scoring as setLocation() (reusing prefetched search results when available) and warms
    * mapillary-js's cache with the winner.
    *
-   * @param {{lat: number, lng: number}} latLng The location the next move is expected to target.
-   * @param {Set<PanoData>} [excludedPanos] Panos the next move is expected to exclude.
+   * @param {{lat: number, lng: number}} latLng - The location the next move is expected to target.
+   * @param {Set<PanoData>} [excludedPanos] - Panos the next move is expected to exclude.
    * @returns {Promise<void>}
    */
   preloadPanoNear = async (latLng, excludedPanos = new Set()) => {
@@ -414,12 +421,72 @@ class MapillaryViewer extends PanoViewer {
     }
   };
 
+  supportsLocationSearch = () => true;
+
+  /**
+   * See PanoViewer.findPanoNear(). The same search + scoring as setLocation(), stopping short of the move. Answers
+   * from the prefetched searches when one covers the point, so a street that prefetchAlongStreet() primed is sampled
+   * without any further API calls.
+   */
+  findPanoNear = async (latLng, excludedPanos = new Set()) => {
+    const center = turf.point([latLng.lng, latLng.lat]);
+    const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
+    const bestPano = await PanoViewer._withTimeout(
+      this.#searchAndSelectPano(center, radius, excludedPanos), PanoViewer.FIND_PANO_TIMEOUT_MS,
+      `Mapillary search near ${latLng.lat},${latLng.lng}`,
+    );
+    if (!bestPano) return null;
+    // Prefer the SfM-refined position, as #scorePano does, so the crumb sits where the move would put the peg.
+    const [lng, lat] = (bestPano.computed_geometry || bestPano.geometry).coordinates;
+    return { panoId: bestPano.id, lat, lng };
+  };
+
+  /**
+   * See PanoViewer.lookupPanoPosition(). Answers from mapillary-js's own graph first: spatial edges are computed
+   * from images the SDK already loaded, so every arrow's destination is normally a node there, position included,
+   * at no network cost. A node the graph has since evicted falls back to one Graph API read of the image.
+   */
+  lookupPanoPosition = async (panoId) => {
+    const node = this.#graphNode(panoId);
+    if (node && node.lngLat) return { lat: node.lngLat.lat, lng: node.lngLat.lng };
+
+    const token = this.viewer._navigator._api._data._accessToken;
+    const url = `https://graph.mapillary.com/${encodeURIComponent(panoId)}`
+      + `?fields=geometry,computed_geometry&access_token=${token}`;
+    const image = await (await fetch(url)).json();
+    if (image.error) throw new Error(image.error.message);
+    // Prefer the SfM-refined position, as #scorePano does; GeoJSON coordinates are [lng, lat].
+    const geometry = image.computed_geometry || image.geometry;
+    if (!geometry || !geometry.coordinates) return null;
+    return { lat: geometry.coordinates[1], lng: geometry.coordinates[0] };
+  };
+
+  /**
+   * The SDK's graph node for an image id, if it holds one. The graph sits behind a hot replayed observable, so a
+   * subscribe delivers the current graph synchronously; there is no public accessor for it.
+   * @param {string} panoId - The Mapillary image id.
+   * @returns {?{lngLat: ?{lat: number, lng: number}}} The mapillary-js Image, or null when the graph doesn't hold
+   *     it (or the internals moved).
+   */
+  #graphNode = (panoId) => {
+    try {
+      let graph = null;
+      const subscription = this.viewer._navigator.graphService._graph$.subscribe((g) => {
+        graph = g;
+      });
+      subscription.unsubscribe();
+      return graph && graph.hasNode(panoId) ? graph.getNode(panoId) : null;
+    } catch {
+      return null;
+    }
+  };
+
   /**
    * Warms mapillary-js's cache for the given image: downloads its metadata, texture, and mesh so that a later moveTo()
    * doesn't hit the network. Uses the same internal graphService call that mapillary-js's own cache component uses for
    * neighbor prefetching — there is no public API for caching an arbitrary image.
    *
-   * @param {string} panoId The Mapillary image ID to cache.
+   * @param {string} panoId - The Mapillary image ID to cache.
    */
   #cachePanoAssets = (panoId) => {
     this.viewer._navigator.graphService.cacheImage$(panoId).subscribe({ error: () => {} });
@@ -429,7 +496,7 @@ class MapillaryViewer extends PanoViewer {
    * Creates a prefetch entry for the given location, stores it, and returns it.
    *
    * @param {turf.Point} centerPoint
-   * @param {number} radius Search radius in kilometers.
+   * @param {number} radius - Search radius in kilometers.
    * @returns {{ centerPoint: turf.Point, promise: Promise<Array> }}
    */
   #storePrefetch = (centerPoint, radius) => {
@@ -448,7 +515,7 @@ class MapillaryViewer extends PanoViewer {
   /**
    * Finds the nearest prefetched search result to the given point, if one is close enough to be useful.
    *
-   * @param {turf.Point} centerPoint The target location.
+   * @param {turf.Point} centerPoint - The target location.
    * @returns {{ centerPoint: turf.Point, promise: Promise<Array> }|null}
    */
   #findNearestPrefetch = (centerPoint) => {
@@ -468,8 +535,8 @@ class MapillaryViewer extends PanoViewer {
   /**
    * Fetches Mapillary images near the given point, retrying with smaller radii if the API returns too many results.
    *
-   * @param {turf.Point} centerPoint The center of the search area.
-   * @param {number} radius The search radius in kilometers.
+   * @param {turf.Point} centerPoint - The center of the search area.
+   * @param {number} radius - The search radius in kilometers.
    * @returns {Promise<Array>} Raw pano objects from the Mapillary API.
    */
   #fetchImages = async (centerPoint, radius) => {
@@ -500,12 +567,12 @@ class MapillaryViewer extends PanoViewer {
   /**
    * Filters and scores a list of candidate panos, returning the best one (or null if none are viable).
    *
-   * @param {Array} panos Raw pano objects from the Mapillary API.
-   * @param {Set<string>} excludedPanoIds Pano IDs to exclude.
-   * @param {Set<number>} excludedTimestamps Capture timestamps to exclude (handles duplicate Mapillary images).
-   * @param {turf.Point} centerPoint The target location.
-   * @param {string|null} currentSequenceId The sequence ID of the current image (null on initial load).
-   * @returns {Object|null} The best candidate pano, or null if none are viable.
+   * @param {Array} panos - Raw pano objects from the Mapillary API.
+   * @param {Set<string>} excludedPanoIds - Pano IDs to exclude.
+   * @param {Set<number>} excludedTimestamps - Capture timestamps to exclude (handles duplicate Mapillary images).
+   * @param {turf.Point} centerPoint - The target location.
+   * @param {string|null} currentSequenceId - The sequence ID of the current image (null on initial load).
+   * @returns {?Record<string, any>} The best candidate pano, or null if none are viable.
    */
   #selectBestPano = (panos, excludedPanoIds, excludedTimestamps, centerPoint, currentSequenceId) => {
     const candidates = panos.filter(
@@ -597,7 +664,12 @@ class MapillaryViewer extends PanoViewer {
     this.viewer.resize();
   };
 
-  /** See PanoViewer.publicViewerLink(). */
+  /**
+   * See PanoViewer.publicViewerLink().
+   * @param {string} panoId
+   * @param {{center?: number[]}} [opts]
+   * @returns {{url: string, i18nKey: string}}
+   */
   publicViewerLink(panoId, { center } = {}) {
     // TODO: include zoom parameter once we can retrieve it synchronously from the viewer.
     const centerStr = center ? `&x=${center[0]}&y=${center[1]}` : '';

@@ -108,7 +108,7 @@
   "bad": "Má",
   "yes": "Sim",
   "no": "Não",
-  "ai-generated-label-tooltip": "Este rótulo foi gerado por IA. A IA pode cometer erros, então por favor faça sua própria avaliação.",
+  "ai-generated-label-tooltip": "Este rótulo foi gerado por IA. A IA pode cometer erros, então julgue você mesmo se ele está correto.",
   "tag": {
     "narrow": "estreito",
     "points into traffic": "aponta para o cruzamento",
@@ -347,5 +347,13 @@
     "on-facebook": "Compartilhar no Facebook",
     "on-linkedin": "Compartilhar no LinkedIn",
     "via-email": "Compartilhar por e-mail"
-  }
+  },
+  "mini-card": {
+    "no-image": "Sem imagem",
+    "open": "Abrir este rótulo: {{label}}",
+    "votes": "Validar este rótulo",
+    "no-image-to-judge": "Sem imagem para avaliar este rótulo",
+    "vote-failed": "Seu voto não foi salvo. Tente novamente."
+  },
+  "download-already-preparing": "Este arquivo já está sendo preparado para outra solicitação. Tente novamente em instantes."
 }

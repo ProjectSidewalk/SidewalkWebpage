@@ -8,6 +8,8 @@ class Card {
   #gsvImageUrl;
 
   #markerWrapper;
+  #sourceLogo;
+  #attribution;
 
   // UI card element.
   #card = null;
@@ -55,10 +57,10 @@ class Card {
   #panoImage;
 
   /**
-   * @param {*} params Properties of the associated label.
-   * @param {string} cropUrl Locally-saved crop image url, or null if no crop exists.
-   * @param {string} gsvImageUrl Google Street View static image url, or null if non-GSV imagery.
-   * @param {?{x: number, y: number}} [cropMarker=null] Where the label is in the crop, as fractions of its width and
+   * @param {*} params - Properties of the associated label.
+   * @param {string} cropUrl - Locally-saved crop image url, or null if no crop exists.
+   * @param {string} gsvImageUrl - Google Street View static image url, or null if non-GSV imagery.
+   * @param {?{x: number, y: number}} [cropMarker=null] - Where the label is in the crop, as fractions of its width and
    *     height; null when no crop exists or nothing has recorded it yet.
    */
   constructor(params, cropUrl, gsvImageUrl, cropMarker = null) {
@@ -82,7 +84,7 @@ class Card {
   /**
    * Initialize Card.
    *
-   * @param {*} param Label properties.
+   * @param {*} param - Label properties.
    */
   #init(param) {
     const properties = this.#properties;
@@ -134,7 +136,7 @@ class Card {
     const cardInfo = document.createElement('div');
     cardInfo.className = 'card-info';
 
-    // Create the div to store the label type, and the neighborhood the label sits in when we know its name.
+    // Create the div to store the label type, and the region the label sits in when we know its name.
     const cardHeader = document.createElement('div');
     cardHeader.className = 'card-header';
     cardHeader.innerHTML = `<div class="card-header__type">${labelTypeName}</div>`;
@@ -147,7 +149,7 @@ class Card {
       location.className = 'card-location';
       location.href = `/labelMap?labelId=${properties.label_id}`;
       location.title = i18next.t('labelmap:open-label-on-labelmap');
-      // The visible text is the neighborhood, so the accessible name leads with it (WCAG 2.5.3) and the promise
+      // The visible text is the region, so the accessible name leads with it (WCAG 2.5.3) and the promise
       // the sighted user gets on hover follows.
       location.setAttribute('aria-label', `${regionName}: ${i18next.t('labelmap:open-label-on-labelmap')}`);
       location.addEventListener('click', () => {
@@ -162,7 +164,7 @@ class Card {
       pin.alt = '';
       const name = document.createElement('span');
       name.className = 'card-location__name';
-      name.textContent = regionName; // Set as text, not markup: neighborhood names are city data, not ours.
+      name.textContent = regionName; // Set as text, not markup: region names are city data, not ours.
       location.append(pin, name);
       cardHeader.appendChild(location);
     }
@@ -217,10 +219,9 @@ class Card {
     imageHolder.appendChild(markerWrapper);
     imageHolder.appendChild(panoImage);
 
-    // The credit owed on a still we serve ourselves (#4865, #5202). Only licensed imagery carries a licence, so
-    // createPanoAttribution hides itself for a source with none, leaving the logo alone.
-    createPanoViewerLogo(imageHolder, properties.pano_source).showSourceLogo();
-    createPanoAttribution(imageHolder, { compact: true }).show(properties.pano_data?.attribution);
+    this.#sourceLogo = createPanoViewerLogo(imageHolder, properties.pano_source);
+    this.#attribution = createPanoAttribution(imageHolder, { compact: true });
+    this.#creditImage(this.#status.imageSource);
 
     this.#card.appendChild(cardInfo);
     this.validationMenu = new ValidationMenu(this, $(imageHolder));
@@ -256,7 +257,7 @@ class Card {
   /**
    * Get a property.
    *
-   * @param propName Property name.
+   * @param {string} propName - Property name.
    * @returns {*} Property value if property name is valid. Otherwise false.
    */
   getProperty(propName) {
@@ -308,18 +309,25 @@ class Card {
         const img = this.#panoImage;
         const primaryUrl = this.#cropUrl || this.#gsvImageUrl;
         const fallbackUrl = this.#cropUrl ? this.#gsvImageUrl : null;
+        // The container asks again on every page and filter render, so a card whose last attempt fell back to the
+        // still, or failed outright, starts over from the crop rather than keeping that attempt's marker and credit.
+        this.#useSource(this.#cropUrl ? 'crop' : 'api');
         img.onload = () => {
           this.#status.imageFetched = true;
+          this.#showImage();
           resolve(true);
         };
         img.onerror = () => {
           if (fallbackUrl) {
-            // Primary failed; try the other source, and place the marker for it.
-            this.#status.imageSource = this.#cropUrl ? 'api' : 'crop';
-            this.#positionMarker();
-            img.onerror = () => resolve(false); // Prevent infinite loop.
+            // The crop failed; try the still, and place the marker and the credit for it.
+            this.#useSource('api');
+            img.onerror = () => { // Prevent infinite loop.
+              this.#hideMissingImage();
+              resolve(false);
+            };
             img.src = fallbackUrl;
           } else {
+            this.#hideMissingImage();
             resolve(false);
           }
         };
@@ -331,10 +339,58 @@ class Card {
   }
 
   /**
+   * Records which source is being shown and places the marker and the credit for it: the crop's recorded position
+   * describes the crop only, and only the crop owes a credit.
+   * @param {string} source - 'crop' or 'api'.
+   */
+  #useSource(source) {
+    this.#status.imageSource = source;
+    this.#positionMarker();
+    this.#creditImage(source);
+  }
+
+  /**
+   * Shows the imagery credit over a crop, our cut of someone else's panorama, and takes it down for anything else
+   * (#4865, #5202): the still brands itself (see PanoViewerLogo). Only licensed imagery carries a licence, so
+   * createPanoAttribution hides itself for a source with none, leaving the logo alone.
+   * @param {?string} source - What the card is showing: 'crop', 'api', or null once every source has failed.
+   */
+  #creditImage(source) {
+    if (source === 'crop') {
+      this.#sourceLogo.showSourceLogo();
+      this.#attribution.show(this.#properties.pano_data?.attribution);
+    } else {
+      this.#sourceLogo.hide();
+      this.#attribution.hide();
+    }
+  }
+
+  /**
+   * Hides the image and its marker once no source has loaded (#5327): with `return_error_code` on the still, an
+   * expired pano answers 404 rather than a grey "no imagery" card. Type, severity, tags and votes are still worth
+   * showing; a broken-image icon and a marker pointing into an empty frame are not.
+   */
+  #hideMissingImage() {
+    this.#panoImage.classList.add('static-gallery-image--missing');
+    // The image stays in the tree, transparent, as the click target that opens the card; its alt would describe a
+    // picture that isn't there.
+    this.#panoImage.setAttribute('aria-hidden', 'true');
+    this.#markerWrapper.classList.add('gallery-marker-wrapper--missing');
+    this.#creditImage(null);
+  }
+
+  /** Undoes #hideMissingImage once a source has loaded, so a retry after a transient failure shows the image. */
+  #showImage() {
+    this.#panoImage.classList.remove('static-gallery-image--missing');
+    this.#panoImage.removeAttribute('aria-hidden');
+    this.#markerWrapper.classList.remove('gallery-marker-wrapper--missing');
+  }
+
+  /**
    * Renders the card.
    * TODO: should there be a safety check here to make sure pano is loaded?
    *
-   * @param cardContainer UI element to render card in.
+   * @param {JQuery} cardContainer - UI element to render card in.
    */
   render(cardContainer) {
     // If the card had transparent background from the expanded view opening earlier, remove transparency on rerender.
@@ -363,8 +419,8 @@ class Card {
   /**
    * Sets a property.
    *
-   * @param key Property name.
-   * @param value Property value.
+   * @param {string} key - Property name.
+   * @param {*} value - Property value.
    * @returns {Card}
    */
   setProperty(key, value) {
@@ -393,8 +449,8 @@ class Card {
   /**
    * Set aspect of status.
    *
-   * @param {string} key Status name.
-   * @param {*} value Status value.
+   * @param {string} key - Status name.
+   * @param {*} value - Status value.
    */
   setStatus(key, value) {
     if (key in this.#status) {
@@ -431,7 +487,7 @@ class Card {
 
   /**
    * Returns the current ImageID being displayed in the image.
-   * @returns the image ID of the card that is being displayed.
+   * @returns {string} The image ID of the card that is being displayed.
    */
   getImageId() {
     return this.#imageId;

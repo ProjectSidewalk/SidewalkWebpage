@@ -11,7 +11,7 @@
 
 @currentCity = @{commonData.currentCity}
 @* Pages that render the map full-window (no footer, #wrap becomes a fixed-height flex column). *@
-@fullWindow = @{url == "/labelMap" || url == "/routeBuilder"}
+@fullWindow = @{url == "/labelMap" || url == "/routeBuilder" || url == "/accessScore"}
 @* Tool pages fill or fix the viewport like the full-window pages do, so none of them render the footer. *@
 @noFooter = @{fullWindow || Seq("/explore", "/validate", "/expertValidate", "/mobile", "/mobileLanding").contains(url)}
 @* The landing page draws its hero under the fixed navbar and pads itself (homepage.css), so it opts out of the
@@ -65,7 +65,7 @@
     @* Deferred: i18next is only touched from AppManager's $(document).ready callback, which runs after deferred
        scripts execute, so these don't need to block HTML parsing. *@
     <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")' defer></script>
-    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")' defer></script>
+    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.6.min.js")' defer></script>
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
     <link href='@assets.path("vendor/bootstrap/css/bootstrap-3.3.5.min.css")' rel='stylesheet'>
     <link href='@assets.path("vendor/bootstrap-accessibility/bootstrap-accessibility.css")' rel='stylesheet'>
@@ -73,8 +73,6 @@
     <script src='@assets.path("vendor/jquery/jquery-1.12.2.min.js")'></script>
     <script src='@assets.path("vendor/bootstrap/js/bootstrap-3.1.1.min.js")'></script>
     <script src='@assets.path("vendor/bootstrap-accessibility/bootstrap-accessibility.min.js")'></script>
-
-    <script src='@assets.path("vendor/js-cookie/js-cookie-3.0.5-min.js")'></script>
 
     <script>
       (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
@@ -120,7 +118,7 @@
     <script src='@assets.path("js/common/utilitiesMath.js")'></script>
     <script src='@assets.path("js/common/i18nDom.js")'></script>
     <script src='@assets.path("js/common/psTooltip.js")'></script>
-    <script src='@assets.path("/js/common/AppManager.js")'></script>
+    <script src='@assets.path("js/common/AppManager.js")'></script>
   </head>
   <body class="@bodyClass">
     <script>
@@ -278,7 +276,7 @@
 
     @* 37KB gz of parser-blocking script, and nothing reads `moment` at parse time — updateTimestamps defers its work
        to $(document).ready. timestampLocalization.js stays blocking so the call below still resolves (#4486). *@
-    <script src='@assets.path("vendor/moment/moment-2.30.1.js")' defer></script>
+    <script src='@assets.path("vendor/moment/moment-2.31.0.js")' defer></script>
     @momentLocaleFile.map { localeFile =>
       <script src='@assets.path(localeFile)' defer></script>
     }

@@ -23,7 +23,7 @@ class SaveModal {
   #submitting = false; // A save is in flight; blocks a second submission creating a duplicate route.
 
   /**
-   * @param {Object} opts
+   * @param {object} opts
    * @param {boolean} opts.isSignedIn - Whether the user is signed in (vs anonymous), from the server.
    * @param {Function} opts.getRegionId - Returns the current route's region id.
    * @param {Function} opts.getStreetsPayload - Returns the ordered street list in the /saveRoute wire format.
@@ -66,8 +66,7 @@ class SaveModal {
 
   /**
    * Reads and clears the route stashed before a sign-in reload.
-   * @returns {Object|null} {regionId, name, description, streets, camera} or null if there is nothing (valid)
-   *                        to restore.
+   * @returns {?Record<string, any>} {regionId, name, description, streets, camera}; null if none is stashed.
    */
   static consumePendingRoute() {
     try {

@@ -5,7 +5,7 @@ class CardBucket {
   #bucket;
 
   /**
-   * @param {Array} inputCards List of Cards in order received from database.
+   * @param {Card[]} [inputCards] - List of Cards in order received from database.
    */
   constructor(inputCards) {
     this.#bucket = inputCards || [];
@@ -14,7 +14,7 @@ class CardBucket {
   /**
    * Add a Card to bucket.
    *
-   * @param {Card} card Card to add.
+   * @param {Card} card - Card to add.
    */
   push(card) {
     this.#bucket.push(card);
@@ -23,7 +23,7 @@ class CardBucket {
   /**
    * Filters cards upon a non-empty array of tags.
    *
-   * @param {*} tags Tags to filter upon.
+   * @param {*} tags - Tags to filter upon.
    */
   filterOnTags(tags) {
     if (tags !== undefined && tags.length > 0) {
@@ -35,7 +35,7 @@ class CardBucket {
   /**
    * Filters cards upon a non-empty array of severities.
    *
-   * @param {*} severities Severities to filter upon.
+   * @param {*} severities - Severities to filter upon.
    */
   filterOnSeverities(severities) {
     if (severities !== undefined && severities.length > 0) {
@@ -50,7 +50,7 @@ class CardBucket {
   /**
    * Filters cards upon an array of validation options.
    *
-   * @param {*} validationOptions Validation Options to filter upon.
+   * @param {*} validationOptions - Validation Options to filter upon.
    */
   filterOnValidationOptions(validationOptions) {
     const validationOptionsSet = new Set(validationOptions);

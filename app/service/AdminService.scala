@@ -294,6 +294,9 @@ trait AdminService {
   def getUserStatsForAdminPage: Future[Seq[UserStatsForAdminPage]]
   def updateUserStatTable(cutoffTime: OffsetDateTime): Future[Int]
 
+  /** @return The number of labels whose validation counts were out of date and got recounted. */
+  def recalculateValidationCounts(): Future[Int]
+
   /**
    * Recomputes this deployment's engagement funnels (#288) for all three windows and replaces the local `funnel_stat`.
    *
@@ -859,6 +862,8 @@ class AdminServiceImpl @Inject() (
       } yield rowsUpdated
     )
   }
+
+  def recalculateValidationCounts(): Future[Int] = db.run(labelTable.recalculateValidationCounts(None))
 
   // The three funnel windows the page offers, as (stored key, trailing days); None days = all-time. Kept here next to
   // the recompute so the precomputed set and the read path (ConfigService.getCityFunnels) agree on the window keys.

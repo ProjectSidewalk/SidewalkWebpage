@@ -38,6 +38,14 @@ Project Sidewalk has two separate translation systems; which one you use depends
 > automated parity check for the backend message files the way there is for the frontend JSON (see below), so this is on
 > you to keep complete.
 
+> **Place names (`city.name.*`, `state.name.*`, `country.name.*`) get a line in every `messages.<lang>` file, even
+> where the name reads as it does in English.** The English proper noun lives in the base `messages`; `zh-TW` carries
+> a transliteration and the Latin-script files the exonym where one exists (`Nueva York`, `États-Unis`). Where a
+> language spells the name as English does, the line still goes in with that spelling: nothing else records that
+> someone looked, so a missing line would be indistinguishable from "same as English" and `make onboard-city` could
+> never say what is still owed. Cities onboarded before this rule are not backfilled; a name added from here on
+> follows it.
+
 > **Escape a literal apostrophe as `''` (two single quotes).** Play renders every message through
 > `java.text.MessageFormat`, which treats a single `'` as a quoting character and silently drops it — **even in messages
 > with no `{0}` placeholders.** So `We're` renders as `Were`, and quotation marks like `'Unsure'` render as `Unsure`
@@ -61,10 +69,10 @@ Project Sidewalk has two separate translation systems; which one you use depends
 Units are **not** a property of the language: readers choose metric or imperial on the Settings page (#4404), so every
 language has to be able to render either.
 
-**One verdict, server-side.** `ControllerUtils.measurementSystem` returns `"metric"` or `"imperial"` — the reader's
-override cookie if set, else the language's default from the `measurement.system` message. That message is a sentinel
-the code compares against, so it holds the literal string `metric`, never a translation of the word. Never re-derive
-units from the language.
+**One verdict, server-side.** `ControllerUtils.measurementSystem` returns `MeasurementSystem.Metric` or `.Imperial` —
+the units the reader saved on the Settings page (shared by every city, #3720) if any, else the language's default from
+the `measurement.system` message. That message is a sentinel the code compares against, so it holds the literal string
+`metric`, never a translation of the word. Never re-derive units from the language.
 
 **The unit words live in `conf/messages` only**, as
 `unit.distance.{abbr,abbr.small,name,name.singular}.{metric,imperial}`. `ControllerUtils.distanceUnitWords` resolves

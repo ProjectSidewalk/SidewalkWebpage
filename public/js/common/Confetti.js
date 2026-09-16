@@ -30,9 +30,9 @@ class Confetti {
    * pixels, twice the budget. What is given up buys almost nothing on a canvas of soft-edged paper — and the
    * ~130MB of RGBA it would have allocated is cleared every frame.
    *
-   * @param {number} width Canvas width in CSS px.
-   * @param {number} height Canvas height in CSS px.
-   * @param {number} [deviceRatio=1] The display's device pixel ratio.
+   * @param {number} width - Canvas width in CSS px.
+   * @param {number} height - Canvas height in CSS px.
+   * @param {number} [deviceRatio=1] - The display's device pixel ratio.
    * @returns {number} The ratio to size the backing store by — never above `deviceRatio`, and below it whenever
    *      the full device ratio would exceed the area budget. Falls back to `deviceRatio` for a zero-area canvas.
    */
@@ -45,10 +45,10 @@ class Confetti {
   /**
    * Fires a burst from the top of the viewport.
    *
-   * @param {Object} [options]
-   * @param {number} [options.count=90] How many pieces to throw.
-   * @param {number} [options.duration=2600] How long, in ms, before the canvas is torn down.
-   * @param {number} [options.zIndex=1000] Stacking order for the canvas, above whatever is being celebrated.
+   * @param {object} [options]
+   * @param {number} [options.count=90] - How many pieces to throw.
+   * @param {number} [options.duration=2600] - How long, in ms, before the canvas is torn down.
+   * @param {number} [options.zIndex=1000] - Stacking order for the canvas, above whatever is being celebrated.
    */
   static burst({ count = 90, duration = 2600, zIndex = 1000 } = {}) {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;

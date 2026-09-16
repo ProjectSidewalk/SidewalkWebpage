@@ -38,21 +38,21 @@ class LabelMapPage {
       console.error('Label Map: label popup failed to initialize; clicks/search will navigate instead.', err);
     }
 
-    // Same params as the legacy admin "Map" tab: neighborhoods in a flat grey, interactive streets, all labels as
+    // Same params as the legacy admin "Map" tab: regions in a flat grey, interactive streets, all labels as
     // points, and the popup wired in. mapData (index 4 of the resolved array) is what MapSidebarFilter filters on.
     const params = {
       mapName: 'admin-labelmap-choropleth',
       mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
       mapboxApiKey: this.#opts.mapboxToken,
       mapboxLogoLocation: 'bottom-right',
-      neighborhoodsURL: '/neighborhoods',
-      completionRatesURL: '/neighborhoods/completionRate',
+      regionsURL: '/regions',
+      completionRatesURL: '/regions/completionRates',
       streetsURL: '/contribution/streets/all?filterLowQuality=true',
       labelsURL: '/adminapi/labels/all',
-      neighborhoodFillMode: 'singleColor',
-      neighborhoodFillColor: '#808080',
-      neighborhoodFillOpacity: 0.1,
-      neighborhoodTooltip: 'none',
+      regionFillMode: 'singleColor',
+      regionFillColor: '#808080',
+      regionFillOpacity: 0.1,
+      regionTooltip: 'none',
       differentiateUnauditedStreets: true,
       interactiveStreets: true,
       navigationControlPosition: 'top-right',
@@ -79,7 +79,7 @@ class LabelMapPage {
 
   #wireSearch() {
     const form = document.getElementById('label-map-search');
-    const input = document.getElementById('label-map-search-input');
+    const input = /** @type {HTMLInputElement} */ (document.getElementById('label-map-search-input'));
     if (!form || !input) return;
 
     form.addEventListener('submit', (e) => {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Asset-URL check for public/js/ (#4893) and public/css/ (#5094).
+// Asset-URL check for public/js/ (#4893), public/css/ (#5094), and the `assets.path("…")` literals in app/views/.
 //
 // == public/js/ ==
 // Frontend JS names a public asset by its logical path and resolves it with
@@ -47,6 +47,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const JS_DIR = join(ROOT, 'public', 'js');
+const VIEWS_DIR = join(ROOT, 'app', 'views');
 const PUBLIC_DIR = join(ROOT, 'public');
 const ASSETS_PREFIX = '/assets/';
 
@@ -96,6 +97,15 @@ function walkJs(dir) {
 }
 
 /** @returns {string[]} Every .css file under `dir` outside a build/ output directory, as repo-relative paths. */
+/** @returns {string[]} Every Twirl template under `dir`, recursively, as repo-relative paths. */
+function walkViews(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) return walkViews(full);
+    return entry.name.endsWith('.scala.html') ? [relative(ROOT, full)] : [];
+  });
+}
+
 function walkCss(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     if (entry.name === 'build' || entry.name === 'node_modules') return [];
@@ -420,10 +430,35 @@ for (const file of cssFiles) {
   });
 }
 
+// --- 7. Every literal assets.path("…") in a view names a real file -------------------------------------------------
+// The Twirl side of rule 2: `AssetsFinder.path` hands back the plain path for a file it can't find rather than
+// throwing, so a mistyped vendor filename (the usual slip when a library is bumped and renamed) ships a 404 <script>
+// and a page whose map or viewer silently never starts. No manifest-family rule here: a view resolves against
+// sbt-digest's full manifest, so any file under public/ fingerprints; the prefix list only scopes what JS can see.
+
+const VIEW_CALL = /assets\.path\(\s*"([^"]*)"\s*\)/g;
+const viewFiles = walkViews(VIEWS_DIR);
+let viewCalls = 0;
+
+for (const file of viewFiles) {
+  readFileSync(join(ROOT, file), 'utf8').split('\n').forEach((line, i) => {
+    for (const [, logicalPath] of line.matchAll(VIEW_CALL)) {
+      viewCalls++;
+      if (logicalPath.startsWith('/') || logicalPath.startsWith('assets/')) {
+        problems.push(`${file}:${i + 1}: assets.path("${logicalPath}") — write the logical path with no leading slash `
+          + 'or assets/ prefix, or the digest manifest never matches it');
+      } else if (!existsSync(join(PUBLIC_DIR, logicalPath))) {
+        problems.push(`${file}:${i + 1}: assets.path("${logicalPath}") names no file under public/`);
+      }
+    }
+  });
+}
+
 if (problems.length === 0) {
   console.log(`Asset paths OK -- ${files.length} JS files, ${staticCalls} literal and ${dynamicCalls} interpolated `
     + `util.assetPath() calls, ${PREFIXES.length} manifest prefixes, ${ALLOWED.length} allowed hardcoded URL(s); `
-    + `${cssFiles.length} CSS files, ${cssUrls} file-naming url() reference(s).`);
+    + `${cssFiles.length} CSS files, ${cssUrls} file-naming url() reference(s); ${viewFiles.length} views, `
+    + `${viewCalls} literal assets.path() calls.`);
   process.exit(0);
 }
 

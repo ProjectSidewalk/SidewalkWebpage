@@ -14,9 +14,9 @@ class CoverageHistogram {
   #hoverIndex = null;
 
   /**
-   * @param {string} containerId - id of the chart container element.
-   * @param {{onBinClick?: function(number): void, onBinHover?: function(number): void,
-   *          onBinHoverEnd?: function(): void}} [opts]
+   * @param {string} containerId - ID of the chart container element.
+   * @param {{onBinClick?: (binIndex: number) => void, onBinHover?: (binIndex: number) => void,
+   *          onBinHoverEnd?: () => void}} [opts]
    */
   constructor(containerId, opts = {}) {
     this.#containerId = containerId;

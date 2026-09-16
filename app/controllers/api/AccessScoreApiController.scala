@@ -19,7 +19,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * AccessScoreController handles API endpoints related to access scores for streets, intersections, and neighborhoods.
+ * AccessScoreController handles API endpoints related to access scores for streets, intersections, and regions.
  * It provides functionality to compute and return access scores in various formats such as CSV, shapefile, or GeoJSON.
  *
  * @constructor Creates an instance of AccessScoreController with necessary dependencies.
@@ -154,7 +154,7 @@ class AccessScoreApiController @Inject() (
   }
 
   /**
-   * AccessScore for regions/neighborhoods (v3, #3855).
+   * AccessScore for regions (v3, #3855).
    *
    * Returns each region's street-length-weighted AccessScore plus audit coverage. Supports the standard v3 geo-filters
    * (bbox / regionId / regionName) and output formats (geojson, csv, shapefile, geopackage).

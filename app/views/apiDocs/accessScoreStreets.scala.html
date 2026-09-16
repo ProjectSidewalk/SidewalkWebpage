@@ -46,12 +46,13 @@
     <p class="download-note"><strong>One method, not the method.</strong> There is no single correct way to measure street-level accessibility—researchers and practitioners use many different approaches. AccessScore implements just one such algorithm, and it is experimental: the weighting is deliberately simple and subject to change. Treat these scores as one lens rather than a definitive measure, and compute your own index from the <a href="@routes.ApiDocsController.labelClusters">Label Clusters API</a> if a different method suits your needs better.</p>
     <div id="access-score-streets-preview" class="map-container"></div>
 
-    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")'>
+    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'>
     <link rel="stylesheet" href='@assets.path("css/pages/api-docs/access-score.css")'>
     @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
        set: the language plugin and the preview both read the mapboxgl global as they parse. *@
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")' defer></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
+    <script src='@assets.path("js/common/geoBounds.js")' defer></script>
     <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
     <script src='@assets.path("js/api-docs/accessScoreStreetsPreview.js")' defer></script>
     <script>
@@ -77,7 +78,7 @@
 
   <div class="page-section" id="scoring-model-section">
     <h2 class="page-heading" id="scoring-model">How the score is computed<a href="#scoring-model" class="permalink">#</a></h2>
-    <p>Project Sidewalk clusters proximal labels of the same type, and scores two kinds of unit from them: a street's <strong>segment</strong> and an <strong>intersection</strong>. Four of the seven scored label types are corner features — @intersectionTypeList — so each of their clusters is attributed to the nearest intersection within @radius&nbsp;m (on whichever street it sits) and scores that intersection, pooled with the corner features of every other street meeting there. The rest of the street's clusters score its segment: the along-length types (Obstacle, SurfaceProblem, NoSidewalk), plus any corner-type cluster too far from an intersection to belong to one (a mid-block crosswalk, a driveway ramp), which counts as an ordinary point feature.</p>
+    <p>Project Sidewalk clusters proximal labels of the same type, and scores two kinds of unit from them: a street's <strong>segment</strong> and an <strong>intersection</strong>. Four of the seven scored label types are corner features — @intersectionTypeList — so each of their clusters is attributed to the nearest intersection within @radius&nbsp;m (on whichever street it sits) and scores that intersection, pooled with the corner features of every other street meeting there. The rest of the street's clusters score its segment: the along-length types (Obstacle, SurfaceProblem, NoSidewalk), plus any corner-type cluster too far from an intersection to belong to one (a mid-block crosswalk and the curb ramps serving it), which counts as an ordinary point feature.</p>
     <p>A street's headline <code>score</code> is the plain mean of its <code>segment_score</code> and the scores of its start and end intersections, over whichever of the three exist — a trip along a street includes getting on and off it. An end with no intersection (a dead end, a street split at a region boundary) or a grade-separated one contributes nothing, and an unaudited street between two scored crossings still gets a headline from them. All three components are reported, so you can recombine them your own way.</p>
     <p><strong>Scoring a segment.</strong> Each scored label type contributes a signed term; the segment's score is the logistic (sigmoid) of the sum of those terms, mapped to <code>(0,&nbsp;1)</code>. An audited street with nothing on it scores the neutral <code>0.5</code>.</p>
     <p>Most types are scored <strong>per cluster</strong>. Each cluster contributes <code>base(type) × ratingMultiplier + Σ tagAdjustments</code>, and the type's term is the sum over its clusters on the street:</p>
@@ -279,6 +280,7 @@
           <tr><td><code>geometry.coordinates</code></td><td><code>array[number]</code></td><td>Coordinate pairs forming the street's path, in <code>[longitude, latitude]</code> (WGS84 / EPSG:4326).</td></tr>
           <tr><td><code>properties.street_edge_id</code></td><td><code>integer</code></td><td>Project Sidewalk's unique identifier for this street segment.</td></tr>
           <tr><td><code>properties.osm_way_id</code></td><td><code>integer</code></td><td><a href="https://wiki.openstreetmap.org/wiki/Way">OpenStreetMap Way ID</a> for the street, if available.</td></tr>
+          <tr><td><code>properties.street_name</code></td><td><code>string</code></td><td>The street's name, from its OpenStreetMap way's <code>name</code> tag; <code>null</code> for an unnamed way.</td></tr>
           <tr><td><code>properties.region_id</code></td><td><code>integer</code></td><td>Identifier for the region the street belongs to.</td></tr>
           <tr><td><code>properties.score</code></td><td><code>number</code></td><td>Headline AccessScore in <code>(0,&nbsp;1)</code>; higher is more accessible. The mean of <code>segment_score</code>, <code>start_intersection_score</code>, and <code>end_intersection_score</code> over those that are not <code>null</code>; <code>null</code> when all three are.</td></tr>
           <tr><td><code>properties.segment_score</code></td><td><code>number</code></td><td>The street's own segment score in <code>(0,&nbsp;1)</code>, from the clusters in <code>cluster_counts</code>. <code>null</code> when the street has not been audited.</td></tr>
@@ -305,14 +307,15 @@
     <p>The full header, in order: the twelve leading columns, then <code>cluster_counts.&lt;type&gt;</code> for each of the @AccessScoreCalculator.orderedScoredTypes.size scored types, <code>sub_scores.&lt;type&gt;</code> for each, the four <code>severity_counts.&lt;type&gt;.*</code> buckets for each, <code>tag_adjustments.&lt;type&gt;</code> for each, then <code>start_point</code> and <code>end_point</code>. Types are always in the order <code>@AccessScoreCalculator.orderedScoredTypes.mkString(", ")</code>.</p>
 
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
-    <p>If <code>filetype=shapefile</code>, the response is a ZIP archive of Shapefile components (.shp, .shx, .dbf, .prj). Because the DBF format truncates column names at 10 characters, the columns use short codes: <code>segScore</code>, <code>sIntId</code> / <code>eIntId</code>, and <code>sIntScore</code> / <code>eIntScore</code> for the headline's components, and per type cluster count <code>nCRamp</code>, sub-score <code>sCRamp</code>, cluster count per rating bucket <code>n1CRamp</code>, <code>n2CRamp</code>, <code>n3CRamp</code> and <code>n0CRamp</code> (unrated), and tag adjustment <code>tCRamp</code>; the GeoJSON, CSV, and GeoPackage formats keep the full names.</p>
+    <p>If <code>filetype=shapefile</code>, the response is a ZIP archive of Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated. Because the DBF format truncates column names at 10 characters, the columns use short codes: <code>segScore</code>, <code>sIntId</code> / <code>eIntId</code>, and <code>sIntScore</code> / <code>eIntScore</code> for the headline's components, and per type cluster count <code>nCRamp</code>, sub-score <code>sCRamp</code>, cluster count per rating bucket <code>n1CRamp</code>, <code>n2CRamp</code>, <code>n3CRamp</code> and <code>n0CRamp</code> (unrated), and tag adjustment <code>tCRamp</code>; the GeoJSON, CSV, and GeoPackage formats keep the full names.</p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
-    <p>If <code>filetype=geopackage</code>, the response is a GeoPackage (.gpkg) file with full geometry and attributes (full snake_case column names).</p>
+    <p>If <code>filetype=geopackage</code>, the response is a GeoPackage (.gpkg) file with full geometry and the same fields, in the same order, as the GeoJSON properties. The per-type columns are named as in the CSV but with each dot turned into an underscore, since ArcGIS doesn't allow dots in column names: <code>cluster_counts_CurbRamp</code>, <code>sub_scores_CurbRamp</code>, <code>severity_counts_CurbRamp_1</code> through <code>_3</code> plus <code>_null</code>, and <code>tag_adjustments_CurbRamp</code>.</p>
 
     <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
     <ul>
       <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values (e.g., malformed bounding box, non-positive or unknown region id).</li>
+      <li><strong><code>429 Too Many Requests</code>:</strong> The same file is already being built for an earlier request; wait <code>Retry-After</code> seconds and try again. A <code>HEAD</code> request gets the same answer without building anything.</li>
       <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
     </ul>
     @apiDocs.errorResponseBody()

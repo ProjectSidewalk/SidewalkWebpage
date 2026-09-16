@@ -6,16 +6,43 @@ class Infra3dViewer extends PanoViewer {
   /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
   static SOURCE = 'infra3d';
 
+  /** How long initViewer gets; the SDK reports its failures by never resolving. */
+  static INIT_TIMEOUT_MS = 10000;
+
+  /** Lead time for the token renewal: wide enough to fit every TOKEN_REFRESH_RETRY_MS retry before expiry. */
+  static TOKEN_REFRESH_LEAD_MS = 5 * 60 * 1000;
+
+  /** Waits between failed renewal attempts; the last one repeats until the token expires. */
+  static TOKEN_REFRESH_RETRY_MS = [30 * 1000, 60 * 1000, 120 * 1000];
+
+  /** sessionStorage flag: this tab already used its one reload for an initViewer timeout. */
+  static #INIT_RELOADED_KEY = 'infra3dViewerInitReloaded';
+
+  #refreshTimer;
+
+  /** Consecutive failed renewal attempts. */
+  #refreshAttempts = 0;
+
+  /** Expiry of the token the SDK holds, in epoch ms; null when unreadable. */
+  #tokenExpiryMs = null;
+
   constructor() {
     super();
+    this.manager = undefined; // Kept for setTokens() when the access token is renewed.
     this.viewer = undefined;
     this.prevNode = null;
     this.currNode = null; // This becomes null while waiting to load subsequent panos.
     this.currPanoData = undefined; // This holds onto the data for the prior pano while we are loading the next one.
   }
 
+  /**
+   * See PanoViewer.initialize().
+   * @param {HTMLElement} canvasElem
+   * @param {Record<string, any>} [panoOptions]
+   * @returns {Promise<void>}
+   */
   async initialize(canvasElem, panoOptions = {}) {
-    const manager = await infra3dapi.init(canvasElem.id, panoOptions.accessToken);
+    this.manager = await infra3dapi.init(canvasElem.id, panoOptions.accessToken);
 
     // Each city has their own project_UID. Faster to hard code it rather than fetching projects in real time. A
     // project is one commissioned drive (a single campaign), so a city getting new imagery means a new project whose
@@ -41,14 +68,28 @@ class Infra3dViewer extends PanoViewer {
     };
     panoOpts = { ...panoOpts, ...panoOptions };
 
-    // Initialize the viewer.
-    // Sometimes initViewer fails and idk how to catch the error. Refresh page if not done after 10 seconds.
+    // initViewer reports failure by never settling. A reload is the recovery (it also brings a fresh token, one
+    // reason init fails), but a second timeout in the same tab means it didn't help, so that one is surfaced as an
+    // ordinary failure and PanoManager shows its retry message instead of reloading forever.
+    let initError;
+    let initTimer;
     this.viewer = await Promise.race([
-      manager.initViewer(panoOpts),
-      new Promise((_, reject) => setTimeout(() => reject('timeout'), 10000)),
-    ]).catch(() => {
-      window.location.reload();
-    });
+      this.manager.initViewer(panoOpts),
+      new Promise((_, reject) => {
+        initTimer = setTimeout(
+          () => reject(new Error(`Infra3d initViewer did not finish within ${Infra3dViewer.INIT_TIMEOUT_MS} ms`)),
+          Infra3dViewer.INIT_TIMEOUT_MS,
+        );
+      }),
+    ]).catch((err) => {
+      initError = err;
+    }).finally(() => clearTimeout(initTimer));
+    if (!this.viewer) await Infra3dViewer.#recoverFromInitFailure(initError);
+    Infra3dViewer.#setInitReloadFlag(false);
+
+    // Scheduled before the initial move rather than after: a viewer that took long to find its first pano still has
+    // to outlive its token.
+    this.#scheduleTokenRefresh(panoOptions.accessToken);
 
     // Handle a few other configs that need to be handled after initialization.
     if (panoOpts.defaultNavigation === false) {
@@ -94,6 +135,108 @@ class Infra3dViewer extends PanoViewer {
       });
     }
   };
+
+  /**
+   * Reloads the page once for an initViewer that never came up, or throws if this tab already tried that. Logged via
+   * webpage_activity because no viewer exists yet for a tracker; its synchronous default matters, a reload follows.
+   * @param {*} err - What the init race rejected with.
+   * @returns {Promise<void>} Throws on the give-up path; on the reload path it never settles, since reload() doesn't
+   *     halt the script and nothing below the call can run without a viewer.
+   */
+  static async #recoverFromInitFailure(err) {
+    const alreadyReloaded = Infra3dViewer.#readInitReloadFlag();
+    window.logWebpageActivity?.(`PanoViewer_InitTimeout_source=infra3d_reloading=${!alreadyReloaded}`);
+    if (alreadyReloaded) {
+      Infra3dViewer.#setInitReloadFlag(false);
+      throw err instanceof Error ? err : new Error(String(err));
+    }
+    Infra3dViewer.#setInitReloadFlag(true);
+    window.location.reload();
+    await new Promise(() => {});
+  }
+
+  static #readInitReloadFlag() {
+    try {
+      return window.sessionStorage.getItem(Infra3dViewer.#INIT_RELOADED_KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  static #setInitReloadFlag(reloaded) {
+    try {
+      if (reloaded) window.sessionStorage.setItem(Infra3dViewer.#INIT_RELOADED_KEY, '1');
+      else window.sessionStorage.removeItem(Infra3dViewer.#INIT_RELOADED_KEY);
+    } catch {
+      // Storage can be unavailable (private mode, blocked site data); then every timeout reloads.
+    }
+  }
+
+  /**
+   * Schedules the background renewal of the SDK's access token. Cognito issues them for an hour and the SDK has no
+   * refresh flow, so a session longer than that went black with nothing logged. The expiry is read from the token
+   * itself; renewal runs TOKEN_REFRESH_LEAD_MS before it, or right away when the page arrived inside that window.
+   * @param {string} token - The token the SDK currently holds.
+   */
+  #scheduleTokenRefresh(token) {
+    clearTimeout(this.#refreshTimer);
+    this.#refreshAttempts = 0;
+    this.#tokenExpiryMs = util.pano.jwtExpiryMs(token);
+    if (this.#tokenExpiryMs === null) {
+      this._fireDiagnostic('TokenUnreadable');
+      return;
+    }
+    const delay = Math.max(0, this.#tokenExpiryMs - Infra3dViewer.TOKEN_REFRESH_LEAD_MS - Date.now());
+    this.#refreshTimer = setTimeout(() => this.#refreshToken(), delay);
+  }
+
+  /**
+   * Renews the access token right now instead of at the scheduled time. A QA hook: the scheduled renewal is an hour
+   * away on a fresh page, and this is what lets a console session prove the in-place swap works against real Infra3d.
+   * @returns {Promise<void>} Resolves once the attempt has been logged, whether it succeeded or not.
+   */
+  refreshAccessTokenNow() {
+    clearTimeout(this.#refreshTimer);
+    return this.#refreshToken();
+  }
+
+  /**
+   * Fetches a fresh access token and hands it to the SDK in place, retrying on failure until the old one expires.
+   * manager.setTokens() is the SDK's own path: its wrapper pushes the token into the navigator's data provider and
+   * the scene's image provider. The shape is the one the SDK builds in init(); the empty refresh_token is why it
+   * can't renew alone. Past expiry the failure is final (TokenExpired) and Explore tells the user to reload.
+   * @returns {Promise<void>}
+   */
+  async #refreshToken() {
+    if (!this.canvasElem?.isConnected) return; // A closed popup's viewer has nothing to keep alive.
+    try {
+      const response = await fetch('/imageryAccessToken', { headers: { Accept: 'application/json' } });
+      // A lapsed login answers with a 200 HTML sign-in page, which would otherwise surface as a JSON parse error.
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.headers.get('content-type')?.includes('json')) throw new Error('non-JSON response');
+      const { token, expires_at: expiresAt } = await response.json();
+      const expiryMs = util.pano.jwtExpiryMs(token) ?? Date.parse(expiresAt);
+      if (!Number.isFinite(expiryMs)) throw new Error('token without a readable expiry');
+      const expiresInSec = Math.max(1, Math.round((expiryMs - Date.now()) / 1000));
+      this.manager.setTokens({
+        access_token: token, expires_in: expiresInSec, id_token: '', refresh_token: '', token_type: 'Bearer',
+      });
+      this._fireDiagnostic('TokenRefreshed', { remainingSec: expiresInSec, attempt: this.#refreshAttempts + 1 });
+      this.#scheduleTokenRefresh(token);
+    } catch (err) {
+      this.#refreshAttempts += 1;
+      this._fireDiagnostic('TokenRefreshFailed', { attempt: this.#refreshAttempts, reason: err?.message ?? err });
+      // No known expiry means no bound for the retry ladder, so a failed on-demand refresh of an unreadable token
+      // must stop here rather than spin.
+      if (this.#tokenExpiryMs === null || Date.now() >= this.#tokenExpiryMs) {
+        this._fireDiagnostic('TokenExpired', { attempts: this.#refreshAttempts });
+        return;
+      }
+      const retries = Infra3dViewer.TOKEN_REFRESH_RETRY_MS;
+      const wait = retries[Math.min(this.#refreshAttempts, retries.length) - 1];
+      this.#refreshTimer = setTimeout(() => this.#refreshToken(), Math.min(wait, this.#tokenExpiryMs - Date.now()));
+    }
+  }
 
   getPanoId = () => {
     return this.currPanoData.getPanoId();
@@ -151,6 +294,61 @@ class Infra3dViewer extends PanoViewer {
   };
 
   /**
+   * See PanoViewer.lookupPanoPosition(). The SDK is a mapillary-js fork, so as there, every spatial-edge target is
+   * already a node in its graph, position included. A key the graph doesn't hold answers null (a missing crumb; each
+   * Infra3d city is one commissioned drive, so there is no cheap by-key fallback worth adding).
+   */
+  lookupPanoPosition = (panoId) => {
+    let graph = null;
+    try {
+      const subscription = this.viewer._sdk_viewer._navigator.graphService._graph$.subscribe((g) => {
+        graph = g;
+      });
+      subscription.unsubscribe();
+    } catch {
+      return Promise.resolve(null);
+    }
+    if (!graph || !graph.hasNode(panoId)) return Promise.resolve(null);
+    const { lat, lon } = graph.getNode(panoId).latLon;
+    return Promise.resolve({ lat, lng: lon });
+  };
+
+  supportsLocationSearch = () => true;
+
+  /**
+   * See PanoViewer.findPanoNear(). Uses the SDK's nearest-frame query (`imagesByKNN$`, the same HTTP request its
+   * own movePosition$ starts from) rather than movePosition(), which setLocation() relies on and which moves the
+   * viewer. The frame comes back with its position and camera type, so nothing is loaded.
+   *
+   * Two gaps against setLocation(), both in the safe direction (a missing crumb, never a wrong one): KNN returns the
+   * single nearest frame of any camera type, so a flat mono/stereo photo nearest the point hides a pano frame a
+   * metre behind it, and the query has no radius, so this applies the setLocation() radius the SDK never does.
+   */
+  findPanoNear = async (latLng, excludedPanos = new Set()) => {
+    const nearest = await PanoViewer._withTimeout(
+      new Promise((resolve, reject) => {
+        this.viewer._sdk_viewer._navigator._api.imagesByKNN$(latLng.lng, latLng.lat, 4326)
+          .subscribe({ next: resolve, error: reject });
+      }),
+      PanoViewer.FIND_PANO_TIMEOUT_MS, `Infra3d nearest frame to ${latLng.lat},${latLng.lng}`,
+    ).catch((err) => {
+      // The SDK rejects an empty neighbourhood with a bare string, not an Error; that one is an answer.
+      if (err === 'No frame found') return null;
+      throw err instanceof Error ? err : new Error(String(err));
+    });
+    if (!nearest) return null;
+    // Mirror #filterNonPanoramicImages: only 360° frames are places Explore can stand.
+    if (!['calotte', 'cubemap'].includes(nearest.camera_projection_type)) return null;
+    const { lat, lon: lng } = nearest.l;
+    const metersAway = turf.distance(
+      turf.point([latLng.lng, latLng.lat]), turf.point([lng, lat]), { units: 'meters' },
+    );
+    if (metersAway > svl.STREETVIEW_MAX_DISTANCE) return null;
+    if ([...excludedPanos].some((pano) => pano.getPanoId() === nearest.key)) return null;
+    return { panoId: nearest.key, lat, lng };
+  };
+
+  /**
    * If the image we arrived at isn't a 360° pano, move back to the previous pano and throw an error.
    *
    * Infra3D datasets mix panoramic imagery ('calotte'/'cubemap' stream types) with flat perspective photos
@@ -161,7 +359,7 @@ class Infra3dViewer extends PanoViewer {
    * Only a rejection backed by a real cameraType is a NoImageryError, since that is what lets a sweep conclude the
    * street is out of imagery rather than report a provider failure (#4918). The guessed case stays an ordinary Error:
    * this runs on the page's seed image, where a wrong guess would condemn a street with good imagery and reload.
-   * @param {object} node Infra3d's internal node object for the image we just moved to
+   * @param {Record<string, any>} node - Infra3d's internal node object for the image we just moved to
    * @returns {Promise<void>} Rejects if the image isn't panoramic; resolves otherwise
    */
   #filterNonPanoramicImages = async (node) => {
@@ -188,8 +386,8 @@ class Infra3dViewer extends PanoViewer {
    *
    * NoImageryError, matching GsvViewer: the search succeeded and there is nothing here the caller can use, so a
    * dead end whose last panos the user already stood on stays recognizable as one (#4918).
-   * @param {PanoData} newPanoData The pano data for the new panorama
-   * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to
+   * @param {PanoData} newPanoData - The pano data for the new panorama
+   * @param {Set<PanoData>} [excludedPanos=new Set()] - Set of PanoData objects that are not valid images to move to
    * @returns {Promise<PanoData>} The pano data, or a rejection with NoImageryError if the pano is excluded.
    */
   #filterExcludedPanos = (newPanoData, excludedPanos) => {
@@ -207,9 +405,8 @@ class Infra3dViewer extends PanoViewer {
   /**
    * Ensures that all image metadata has been saved before letting setPano or setLocation resolve.
    *
-   * @param node {object} Infra3d's internal node object; moveToKey sends it but moteToPosition does not
+   * @param {Record<string, any>} node - Infra3d's internal node object.
    * @returns {Promise<PanoData>}
-   * @private
    */
   #finishRecordingMetadata = async (node) => {
     this.currNode = node;
@@ -217,18 +414,29 @@ class Infra3dViewer extends PanoViewer {
     await new Promise((resolve) => {
       // Links should be initialized always, except for the first pano. So we can just use them.
       if (node.spatialEdges.cached) {
-        resolve();
+        resolve(undefined);
       } else {
         // Listen for the event that fires when the links are updated. Only needed when loading first image.
         // NOTE the subscribe architecture is coming from RxJS.
         const linksListener = node.spatialEdges$.subscribe((spatialEdges) => {
           if (spatialEdges.cached) {
             linksListener.unsubscribe(); // One-shot listener: only needed until the links are cached.
-            resolve();
+            resolve(undefined);
           }
         });
       }
     });
+
+    const linkedPanos = node.spatialEdges.edges
+      .filter((link) => link.data.direction === 9) // Filters out link to camera on back of car for now.
+      .map((link) => {
+        // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the
+        // X-axis in a spherical coordinate system", so we need to adjust it to be like a compass heading.
+        return {
+          panoId: link.to,
+          heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI)),
+        };
+      });
 
     // Now that all the data is available, we can fill the currPanoData object and say that the pano has loaded.
     const panoDataParams = {
@@ -246,18 +454,8 @@ class Infra3dViewer extends PanoViewer {
       // TODO can we find a camera roll?
       copyright: 'City of Zurich and iNovitas AG',
       history: [], // No history to pull from for Infra3D right now.
+      linkedPanos,
     };
-
-    panoDataParams.linkedPanos = node.spatialEdges.edges
-      .filter((link) => link.data.direction === 9) // Filters out link to camera on back of car for now.
-      .map((link) => {
-        // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the
-        // X-axis in a spherical coordinate system", so we need to adjust it to be like a compass heading.
-        return {
-          panoId: link.to,
-          heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI)),
-        };
-      });
 
     this.currPanoData = new PanoData(panoDataParams);
     return this.currPanoData;

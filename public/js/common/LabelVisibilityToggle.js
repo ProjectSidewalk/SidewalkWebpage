@@ -26,11 +26,11 @@ class LabelVisibilityToggle {
   #visible = true;
 
   /**
-   * @param {Object} opts
+   * @param {object} opts
    * @param {HTMLElement[]} opts.buttons - Every button that runs the toggle; they always read the same.
    * @param {{hide: string, show: string, hideTooltip: string, showTooltip: string}} opts.text - Translated wording.
-   * @param {function(boolean, {viaClick: boolean}): void} opts.onChange - Handed each applied visibility, for the
-   *     host to move its markers and log the interaction.
+   * @param {(visible: boolean, info: {viaClick: boolean}) => void} opts.onChange - Handed each applied visibility, for
+   *     the host to move its markers and log the interaction.
    */
   constructor({ buttons, text, onChange }) {
     this.#buttons = buttons.filter(Boolean);
@@ -55,7 +55,7 @@ class LabelVisibilityToggle {
    * that call is how a host re-asserts the state onto a marker it rebuilt for the next label.
    *
    * @param {boolean} visible - Whether the label should be showing.
-   * @param {Object} [detail]
+   * @param {object} [detail]
    * @param {boolean} [detail.viaClick] - Came from clicking one of these buttons rather than a keyboard shortcut
    *     or a host re-assert. Hosts log the two differently.
    */

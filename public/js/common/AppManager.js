@@ -26,9 +26,9 @@ class AppManager {
 
   /**
    * Initialize all registered tasks and built-in page setup.
-   * @param {string} csrfToken The CSRF token to attach to outgoing AJAX/fetch requests.
-   * @param {object} i18nextParams Parameters for i18next initialization (see _setupI18next).
-   * @param {object} [globals] Map of variable names to values to attach to `window` for global access.
+   * @param {string} csrfToken - The CSRF token to attach to outgoing AJAX/fetch requests.
+   * @param {Parameters<AppManager['_setupI18next']>[0]} i18nextParams - Parameters for i18next initialization.
+   * @param {object} [globals] - Map of variable names to values to attach to `window` for global access.
    * @returns {Promise} Promise that resolves when all initialization is complete.
    */
   init(csrfToken, i18nextParams, globals = {}) {
@@ -89,7 +89,7 @@ class AppManager {
 
   /**
    * Attach the given key/value pairs to the `window` object so they're accessible from any script on the page.
-   * @param {object} globals Map of global variable names to their values.
+   * @param {object} globals - Map of global variable names to their values.
    * @private
    */
   _setupGlobals(globals) {
@@ -155,10 +155,10 @@ class AppManager {
    *
    * @param {object} params - Properties that determine which translations should be loaded.
    * @param {string} params.language - The language to use for translations, e.g., "en", "en-US", "es", etc.
-   * @param {string} params.defaultNS The default namespace to use if no specific ns is provided, e.g., "common"
-   * @param {Array<string>} params.namespaces An array of namespaces to load, e.g., ["common", "explore"]
-   * @param {string} params.countryId The server's country ID to determine if we load country-specific overrides
-   * @param {object} params.unitWords The request's distance words (unitAbbr, unitAbbrSmall, unitName,
+   * @param {string} params.defaultNS - The default namespace to use if no specific ns is provided, e.g., "common"
+   * @param {Array<string>} params.namespaces - An array of namespaces to load, e.g., ["common", "explore"]
+   * @param {string} params.countryId - The server's country ID to determine if we load country-specific overrides
+   * @param {object} params.unitWords - The request's distance words (unitAbbr, unitAbbrSmall, unitName,
    *   unitNameSingular), resolved server-side for its language and measurement system.
    * @returns {Promise} Promise that resolves when i18next is ready.
    * @private

@@ -48,7 +48,7 @@ describe('Label lat/lng estimation parity with the server and the SQL backfill (
         };
         Label.createMinimapMarker = () => ({ addListener: () => {} });
         // The real vendored turf (UMD), not a stub: the destination step is part of what is being pinned.
-        window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.3.4.min.js'));
+        window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
     });
 
     test('the fixture was generated for the constants this test injects', () => {

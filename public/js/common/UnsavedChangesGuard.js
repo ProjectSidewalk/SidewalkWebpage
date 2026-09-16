@@ -17,10 +17,10 @@ class UnsavedChangesGuard {
 
   /**
    * Arms the guard for the life of the page.
-   * @param {Object} opts
-   * @param {function(): boolean} opts.isDirty - Whether there are unsaved edits right now.
-   * @param {function(): Promise<boolean>} opts.save - Saves the edits, resolving true if the save succeeded.
-   * @param {function(string): void} [opts.onChoice] - Called with the button the user picked ('save', 'discard',
+   * @param {object} opts
+   * @param {() => boolean} opts.isDirty - Whether there are unsaved edits right now.
+   * @param {() => Promise<boolean>} opts.save - Saves the edits, resolving true if the save succeeded.
+   * @param {(choice: string) => void} [opts.onChoice] - Called with the button the user picked ('save', 'discard',
    *     or 'stay'), to log it in the page's own activity naming.
    */
   constructor({ isDirty, save, onChoice = null }) {
@@ -79,7 +79,7 @@ class UnsavedChangesGuard {
    */
   #navigationTarget(e) {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return null;
-    const link = e.target?.closest?.('a[href]');
+    const link = /** @type {HTMLAnchorElement} */ (/** @type {Element} */ (e.target)?.closest?.('a[href]'));
     if (!link || link.hasAttribute('download')) return null;
     if (link.target && link.target !== '_self') return null;
     let url;

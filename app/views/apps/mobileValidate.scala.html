@@ -13,8 +13,8 @@
 
 @common.main(commonData, title, defaultI18nNamespace = "validate", i18Namespaces = Seq("validate", "common"), "/mobile") {
   @if(commonData.imagerySource == PanoSource.Infra3d) {
-    <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
-    <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
+    <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
+    <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
   } else if (commonData.imagerySource == PanoSource.Mapillary) {
   <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
   <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
@@ -235,8 +235,9 @@
         adminVersion: @validateParams.adminVersion,
         labelType: @Html(validateParams.labelType.map(lt => s"'${lt.name}'").getOrElse("null")),
         userIds: @Html(validateParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null")),
-        regionIds: @Html(validateParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
-        unvalidatedOnly: @validateParams.unvalidatedOnly
+        regionIds: @Html(validateParams.regionIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
+        unvalidatedOnly: @validateParams.unvalidatedOnly,
+        triage: @validateParams.triage
       };
       param.tagList = @jsonForScript(JsArray(validatePageData.tagList.map(t => Json.toJson(t))));
 

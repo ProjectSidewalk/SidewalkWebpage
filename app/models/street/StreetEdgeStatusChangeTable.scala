@@ -15,16 +15,16 @@ import javax.inject.{Inject, Singleton}
  * Most values name one of the hand-run scripts in `db/scripts` that write `street_edge.status`; `admin_reopen` is
  * the one in-app writer, the Reopen button on /admin/street-status (#4929). Since script runs are otherwise
  * untraced, this is what tells a later reader whether a batch of streets went dark because the imagery checker found
- * nothing there or because someone closed the whole neighborhood.
+ * nothing there or because someone closed the whole region.
  *
  * NOTE: if changing these values, update the `street_edge_status_change_source` Postgres enum type as well (see
- * 358.sql and 368.sql) and the script or service that emits it.
+ * 358.sql, 368.sql, and 386.sql) and the script or service that emits it.
  */
 object StreetEdgeStatusChangeSource extends Enumeration {
   type StreetEdgeStatusChangeSource = Value
   val HideStreetsWithoutImagery: Value = Value("hide_streets_without_imagery")
-  val RevealNeighborhoods: Value       = Value("reveal_neighborhoods")
-  val HideNeighborhoods: Value         = Value("hide_neighborhoods")
+  val RevealRegions: Value             = Value("reveal_regions")
+  val HideRegions: Value               = Value("hide_regions")
   val RemoveStreets: Value             = Value("remove_streets")
   val AdminReopen: Value               = Value("admin_reopen")
 

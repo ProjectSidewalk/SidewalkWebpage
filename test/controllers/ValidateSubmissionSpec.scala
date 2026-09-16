@@ -193,7 +193,7 @@ class ValidateSubmissionSpec
         "admin_version"    -> false,
         "label_type"       -> JsNull,
         "user_ids"         -> JsNull,
-        "neighborhood_ids" -> JsNull,
+        "region_ids"       -> JsNull,
         "unvalidated_only" -> false
       ),
       "pano_histories" -> Json.arr(),
@@ -373,9 +373,26 @@ class ValidateSubmissionSpec
     }
   }
 
+  /** Accounts promoted to Administrator, demoted in `afterAll` so no standing admin is left in the shared DB. */
+  private var promotedUserIds: Set[String] = Set.empty
+
+  /** Roles are resolved per request, so an existing session gains admin access at once. */
+  private def grantAdmin(userId: String): Unit = {
+    promotedUserIds += userId
+    val _ = run(
+      sqlu"""UPDATE sidewalk_login.user_role SET role = 'Administrator'::sidewalk_login.role WHERE user_id = $userId"""
+    )
+  }
+
   override def afterAll(): Unit = {
-    try deleteSubmittedData()
-    finally super.afterAll()
+    try {
+      promotedUserIds.foreach { userId =>
+        val _ = run(
+          sqlu"""UPDATE sidewalk_login.user_role SET role = 'Anonymous'::sidewalk_login.role WHERE user_id = $userId"""
+        )
+      }
+      deleteSubmittedData()
+    } finally super.afterAll()
   }
 
   "POST /validationTask" should {
@@ -458,9 +475,33 @@ class ValidateSubmissionSpec
       missionProgress(b.missionId) mustBe 0
     }
 
-    "record a severity change submitted with an Agree as an edit linked to the vote, and unwind it on undo (#2575)" in {
+    "ignore a severity change submitted with a non-admin's Agree, since only admins edit through a vote" in {
       val session = freshAnonSession()
       val b       = fetchValidateBootstrap(session)
+      val label   = b.labels
+        .find(l => (l \ "severity").asOpt[Int].isDefined)
+        .getOrElse(cancel("No label in the batch carries a severity to change."))
+      val labelId     = (label \ "label_id").as[Int]
+      val before      = backupLabel(labelId)
+      val newSeverity = if (before.severity.contains(1)) 2 else 1
+
+      val posted = postValidationTask(
+        session,
+        taskSubmission(
+          b,
+          Seq(validationJson(label, b.missionId, "Agree", severity = Some(Some(newSeverity)))),
+          Some(missionProgressJson(b, 1))
+        )
+      )
+      status(posted) mustBe OK
+      labelState(labelId).severity mustBe before.severity
+      editForValidation(labelId, b.userId) mustBe None
+    }
+
+    "record a severity change on an admin's Agree as an edit linked to the vote, and unwind it on undo (#2575)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      grantAdmin(b.userId)
       // Needs a label whose type carries a severity; Occlusion/Signal labels don't, and their severity stays null.
       val label = b.labels
         .find(l => (l \ "severity").asOpt[Int].isDefined)

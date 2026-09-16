@@ -10,13 +10,13 @@ import models.user._
 import models.userdashboard.{Trophy, TrophyTable}
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import models.utils.ProfanityGuard
 import models.validation.LabelValidationTable
 import play.api.Logger
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, Messages}
-import slick.dbio.DBIO
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneId}
@@ -422,9 +422,23 @@ trait UserService {
    * @return The user's new value in the high_quality column; None if user marked excluded or no user found
    */
   def setManualUserQuality(userId: String, highQualityManual: Option[Boolean]): Future[Option[Boolean]]
+
+  /**
+   * Excludes or un-excludes a user, then recounts the labels they validated and updates those labelers' stats.
+   *
+   * Excluding also marks them manually low quality, which un-excluding leaves in place.
+   * @return The user's new high_quality value; None if no user_stat row was found
+   */
+  def setUserExcluded(userId: String, excluded: Boolean): Future[Option[Boolean]]
   def getUserStats(userId: String): Future[Option[UserStat]]
   def getPrivacySettings(userId: String): Future[Option[(Boolean, Boolean)]]
   def updatePrivacySettings(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): Future[Int]
+
+  /** Turns community service hour tracking on or off, for every city. */
+  def setCommunityService(userId: String, enabled: Boolean): Future[Int]
+
+  /** Saves the user's units for every city; None follows the site language. */
+  def setMeasurementSystem(userId: String, system: Option[MeasurementSystem.Value]): Future[Int]
   def getPublicProfile(
       username: String,
       isOwner: Boolean,
@@ -516,6 +530,7 @@ class UserServiceImpl @Inject() (
     userTeamTable: UserTeamTable,
     teamTable: TeamTable,
     userUtmTable: UserUtmTable,
+    userSettingsTable: UserSettingsTable,
     configService: ConfigService,
     cacheApi: AsyncCacheApi,
     implicit val ec: ExecutionContext
@@ -562,6 +577,21 @@ class UserServiceImpl @Inject() (
     } yield currUserStats.map(_.highQuality))
   }
 
+  def setUserExcluded(userId: String, excluded: Boolean): Future[Option[Boolean]] = {
+    db.run((for {
+      _             <- userStatTable.updateExcluded(userId, excluded)
+      labelsChanged <- labelTable.recalculateValidationCounts(Some(userId))
+      // With no label's counts changed, no labeler's accuracy or quality can have either.
+      _ <-
+        if (labelsChanged == 0) DBIO.successful(0)
+        else
+          userStatTable.updateAccuracyForLabelersValidatedBy(userId) >>
+            userStatTable.updateUserQualityForLabelersValidatedBy(userId)
+      _         <- if (excluded) DBIO.successful(0) else userStatTable.updateUserQuality(userId)
+      userStats <- userStatTable.getStatsFromUserId(userId)
+    } yield userStats.map(_.highQuality)).transactionally)
+  }
+
   def getUserStats(userId: String): Future[Option[UserStat]] = db.run(userStatTable.getStatsFromUserId(userId))
 
   /**
@@ -594,6 +624,12 @@ class UserServiceImpl @Inject() (
 
   def updatePrivacySettings(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): Future[Int] =
     db.run(userStatTable.updatePrivacySettings(userId, onLeaderboard, publicProfile))
+
+  def setCommunityService(userId: String, enabled: Boolean): Future[Int] =
+    db.run(userSettingsTable.setCommunityService(userId, enabled))
+
+  def setMeasurementSystem(userId: String, system: Option[MeasurementSystem.Value]): Future[Int] =
+    db.run(userSettingsTable.setMeasurementSystem(userId, system))
 
   def getPublicProfile(
       username: String,
@@ -859,7 +895,7 @@ class UserServiceImpl @Inject() (
     db.run(userStatTable.getLabelTypeAccuracy(userId)).map(UserService.computeAccuracyByType)
   }
 
-  /** Explore-this-neighborhood link for a region trophy — opens the audit tool scoped to that region. */
+  /** Explore-this-region link for a region trophy — opens the audit tool scoped to that region. */
   private def exploreRegionLink(regionId: Int): String = s"/explore?regionId=$regionId"
 
   /**

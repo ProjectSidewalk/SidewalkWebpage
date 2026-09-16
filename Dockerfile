@@ -46,7 +46,7 @@ RUN python3 -m pip install --no-cache-dir --upgrade setuptools
 # (`docker exec -u ...`, or a future USER line). Dropping EXTERNALLY-MANAGED makes plain `pip install` work as it
 # would on a system interpreter; `-f` because that marker is a python-build-standalone detail, not a contract.
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python
-RUN curl -LsSf https://astral.sh/uv/0.12.5/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh && \
+RUN curl -LsSf https://astral.sh/uv/0.12.15/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh && \
   uv python install 3.13.15 && \
   ln -s "$(uv python find 3.13.15)" /usr/local/bin/python3.13 && \
   rm -f "$(python3.13 -c 'import sysconfig; print(sysconfig.get_path("stdlib"))')/EXTERNALLY-MANAGED" && \

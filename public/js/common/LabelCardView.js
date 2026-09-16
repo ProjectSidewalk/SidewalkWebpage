@@ -13,6 +13,7 @@
 class LabelCardView {
   #icon;
   #type;
+  #ai;
   #body;
   #severity;
   #severityIcon;
@@ -25,15 +26,16 @@ class LabelCardView {
   #descriptionMaxLength;
 
   /**
-   * @param {HTMLElement} card The card container rendered by views/components/labelCard.scala.html.
-   * @param {Object} [options]
-   * @param {?number} [options.descriptionMaxLength] Cut the description to this many characters, ellipsis included.
+   * @param {HTMLElement} card - The card container rendered by views/components/labelCard.scala.html.
+   * @param {object} [options]
+   * @param {?number} [options.descriptionMaxLength] - Cut the description to this many characters, ellipsis included.
    *     Explore truncates because clicking the label reopens the full text in an editable field; Validate leaves
    *     this unset and shows the description whole, because there the card is the only place it appears.
    */
   constructor(card, { descriptionMaxLength = null } = {}) {
     this.#icon = card.querySelector('.label-hover-card__icon');
     this.#type = card.querySelector('.label-hover-card__type');
+    this.#ai = card.querySelector('.label-hover-card__ai');
     this.#body = card.querySelector('.label-hover-card__body');
     this.#severity = card.querySelector('.label-hover-card__severity');
     this.#severityIcon = card.querySelector('.label-hover-card__severity-icon');
@@ -50,17 +52,23 @@ class LabelCardView {
   /**
    * Renders a label into the card, overwriting whatever label was shown before.
    *
-   * @param {Object} data Display-ready facts about the label.
-   * @param {string} data.labelType The label type, in CamelCase (e.g. 'CurbRamp').
-   * @param {?number} [data.severity] The label's 1-3 rating, or null when unrated.
-   * @param {Array<string>} [data.tagNames] Localized, plain-text tag names.
-   * @param {?string} [data.description] The labeler's free-text description.
+   * @param {object} data - Display-ready facts about the label.
+   * @param {string} data.labelType - The label type, in CamelCase (e.g. 'CurbRamp').
+   * @param {?number} [data.severity] - The label's 1-3 rating, or null when unrated.
+   * @param {Array<string>} [data.tagNames] - Localized, plain-text tag names.
+   * @param {?string} [data.description] - The labeler's free-text description.
+   * @param {boolean} [data.aiGenerated] - Whether the label was placed by the AI user, which shows the provenance
+   *     strip with its "AI can make mistakes" disclaimer (#5359). Explore never passes it: its labels are the user's.
    * @returns {string} The localized type name shown in the header, for callers that reuse it (share text).
    */
-  render({ labelType, severity = null, tagNames = [], description = null }) {
+  render({ labelType, severity = null, tagNames = [], description = null, aiGenerated = false }) {
     const typeName = i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', '');
     this.#icon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
     this.#type.textContent = typeName;
+
+    // Provenance, not a fact about the label, so it sits in its own strip above the body and stays out of the
+    // empty-state test below: a label with nothing but this to say still reads "no available information".
+    this.#ai.style.display = aiGenerated ? 'flex' : 'none';
 
     // The rating chip names its dimension because the words don't stand alone: "Quality: Good" against
     // "Severity: High" also says which way each scale runs. getRatingLevelKeys has no entry for a missing rating

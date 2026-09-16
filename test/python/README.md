@@ -29,6 +29,11 @@ functions — no network, no live Google/Mapillary/OSM or app calls.
 - `test_create_ga_properties.py` — the GA4 property/stream creation in [`tools/`](../../tools): the naming
   convention and cityparams lookups, the paged property search, idempotent reruns, the placeholder rewrite, and the
   dry run, with `urllib` faked. Stdlib-only, both halves.
+- `test_analyze_validation_queue.py` — the Validate queue evidence tool in [`tools/`](../../tools) (#4715, #5285):
+  the retirement rule and triage predicates, the scores and sort keys, the mission and type selection, the historical
+  replay, the forward simulations, NoSidewalk's block-face evidence and spread, CSV loading and the report; plus a
+  pin of the tool's mirrored policy constants against `ValidationQueuePolicy.scala` and `pool.sql`. numpy only, so
+  it runs in both halves.
 
 ### Resilience coverage
 

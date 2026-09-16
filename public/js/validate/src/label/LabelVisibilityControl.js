@@ -72,8 +72,8 @@ class LabelVisibilityControl {
   /**
    * Shows the label card beside the label's marker.
    *
-   * @param {Object} [options]
-   * @param {boolean} [options.viaKeyboard] The card was opened from the keyboard (Tab onto the marker, or Enter/
+   * @param {object} [options]
+   * @param {boolean} [options.viaKeyboard] - The card was opened from the keyboard (Tab onto the marker, or Enter/
    *     Space on it) rather than by pointer. Logged under its own event name, the way the H key's hide is —
    *     see docs/logged-events.md.
    */
@@ -133,7 +133,7 @@ class LabelVisibilityControl {
    * Toggles the card. The mobile pano has no hover, so activating the marker — a tap, an assistive technology's
    * press, or Enter/Space — opens and closes it; on desktop this is Enter/Space on the focused marker.
    *
-   * @param {Object} [options] Forwarded to showLabelCard — see its viaKeyboard note.
+   * @param {object} [options] - Forwarded to showLabelCard — see its viaKeyboard note.
    */
   toggleLabelCard(options) {
     if (this.#cardVisible) this.hideLabelCard();

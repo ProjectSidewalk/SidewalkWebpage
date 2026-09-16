@@ -15,15 +15,18 @@
     cityName: 'this city',
   };
 
-  /** @param {string} msg */
+  /**
+   * @param {HTMLElement} container
+   * @param {string} msg
+   */
   function showError(container, msg) {
     container.innerHTML = `<div class="message message-error" role="alert">${msg}</div>`;
   }
 
   /**
    * Builds a lookup: date → { labelType → record } from the flat data array.
-   * @param {Array<object>} data
-   * @returns {Map<string, Map<string, object>>}
+   * @param {Array<Record<string, any>>} data
+   * @returns {Map<string, Map<string, Record<string, any>>>}
    */
   function buildDailyMap(data) {
     const map = new Map();
@@ -37,7 +40,7 @@
   /**
    * Aggregates daily totals (summed across all label types) for a field.
    * @param {string[]} dates - Sorted date strings
-   * @param {Map<string, Map<string, object>>} byDay
+   * @param {Map<string, Map<string, Record<string, any>>>} byDay
    * @param {string} field
    * @returns {number[]}
    */
@@ -53,9 +56,9 @@
 
   /**
    * Keeps only rows from the most recent `maxDays` unique dates in the data.
-   * @param {Array<object>} data
+   * @param {Array<Record<string, any>>} data
    * @param {number} maxDays
-   * @returns {Array<object>}
+   * @returns {Array<Record<string, any>>}
    */
   function trimToRecentDays(data, maxDays) {
     const dates = Array.from(new Set(data.map((r) => r.date))).sort();
@@ -66,7 +69,7 @@
   /**
    * Renders the summary stats bar and two charts.
    * @param {HTMLElement} container
-   * @param {Array<object>} data
+   * @param {Array<Record<string, any>>} data
    */
   function render(container, data) {
     if (!data.length) {

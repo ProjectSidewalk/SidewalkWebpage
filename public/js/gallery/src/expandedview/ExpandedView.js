@@ -17,10 +17,10 @@ class ExpandedView {
   #currUsername;
 
   /**
-   * @param {jQuery} uiModal The `.gallery-expanded-view` container element.
-   * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
-   * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
-   * @param {?string} currUsername The viewer's username when signed in to a real account, else null.
+   * @param {JQuery} uiModal - The `.gallery-expanded-view` container element.
+   * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
+   * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
+   * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
    */
   constructor(uiModal, panoViewerType, viewerAccessToken, currUsername) {
     this.#uiModal = uiModal;
@@ -32,10 +32,10 @@ class ExpandedView {
 
   /**
    * Creates an ExpandedView and initializes its LabelDetail controller.
-   * @param {jQuery} uiModal The `.gallery-expanded-view` container element.
-   * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
-   * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
-   * @param {?string} currUsername The viewer's username when signed in to a real account, else null.
+   * @param {JQuery} uiModal - The `.gallery-expanded-view` container element.
+   * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
+   * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
+   * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
    * @returns {Promise<ExpandedView>}
    */
   static async create(uiModal, panoViewerType, viewerAccessToken, currUsername) {
@@ -172,7 +172,7 @@ class ExpandedView {
 
   /**
    * Called by LabelDetail after a successful edit (#2575). Syncs the new severity and tags onto the small card.
-   * @param {Object} meta - The label's metadata with its new severity and tags.
+   * @param {{severity: ?number, tags: string[]}} meta - The label's metadata with its new severity and tags.
    */
   #handleEdit = (meta) => {
     if (this.refCard) {
@@ -252,7 +252,7 @@ class ExpandedView {
 
   /**
    * Tries to update the current card to the given input index.
-   * @param {number} index The index of the card to update to.
+   * @param {number} index - The index of the card to update to.
    */
   #updateExpandedViewCardByIndex(index) {
     if (this.leftArrow) this.leftArrow.disabled = false;
@@ -280,7 +280,7 @@ class ExpandedView {
 
   /**
    * Updates the index of the current label being displayed in the expanded view.
-   * @param {number} newIndex The new index of the card being displayed.
+   * @param {number} newIndex - The new index of the card being displayed.
    */
   updateCardIndex(newIndex) {
     this.#updateExpandedViewCardByIndex(newIndex);
@@ -288,7 +288,7 @@ class ExpandedView {
 
   /**
    * Moves to the next label.
-   * @param {boolean} keyboardShortcut Whether the action came from a keyboard shortcut.
+   * @param {boolean} keyboardShortcut - Whether the action came from a keyboard shortcut.
    */
   nextLabel(keyboardShortcut) {
     sg.tracker.push(`NextLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
@@ -304,7 +304,7 @@ class ExpandedView {
 
   /**
    * Moves to the previous label.
-   * @param {boolean} keyboardShortcut Whether the action came from a keyboard shortcut.
+   * @param {boolean} keyboardShortcut - Whether the action came from a keyboard shortcut.
    */
   previousLabel(keyboardShortcut) {
     sg.tracker.push(`PrevLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);

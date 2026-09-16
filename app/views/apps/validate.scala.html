@@ -15,12 +15,12 @@
   pageMeta = service.PageMeta(description = Some(Messages("seo.description.validate", currentCity.cityNameShort)))) {
   @common.navbar(commonData, Some(user))
 
-  <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
+  <script src='@assets.path("vendor/turf/turf-7.4.0.min.js")'></script>
   <script src='@assets.path("vendor/selectize/selectize-0.15.2.min.js")'></script>
   <link rel="stylesheet" href='@assets.path("vendor/selectize/selectize-0.15.2.min.css")'>
   @if(commonData.imagerySource == PanoSource.Infra3d) {
-    <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
-    <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
+    <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
+    <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
   } else if (commonData.imagerySource == PanoSource.Mapillary) {
   <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
   <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
@@ -65,7 +65,7 @@
           You can choose to validate a specific label type, user, or neighborhood by editing the URL and pressing enter. For example:
           <br><code>?labelType=CurbRamp</code>
           <br><code>?users=User1</code>
-          <br><code>?neighborhoods=Neighborhood1</code>
+          <br><code>?regions=Neighborhood1</code>
           <br>You can also combine the filters by using the & symbol. For example:
           <br><code>?labelType=CurbRamp&users=User1</code>
           <br>You can also filter for multiple users or neighborhoods by separating them with commas.
@@ -274,8 +274,9 @@
         adminVersion: @validateParams.adminVersion,
         labelType: @Html(validateParams.labelType.map(lt => s"'${lt.name}'").getOrElse("null")),
         userIds: @Html(validateParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null")),
-        regionIds: @Html(validateParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
-        unvalidatedOnly: @validateParams.unvalidatedOnly
+        regionIds: @Html(validateParams.regionIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
+        unvalidatedOnly: @validateParams.unvalidatedOnly,
+        triage: @validateParams.triage
       }
       param.tagList = @jsonForScript(JsArray(validatePageData.tagList.map(t => Json.toJson(t))));
 

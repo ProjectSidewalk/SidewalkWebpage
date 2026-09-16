@@ -58,7 +58,7 @@ class Label {
   };
 
   /**
-   * @param {Object} params - Initial label property values (only keys present in #properties are copied).
+   * @param {object} params - Initial label property values (only keys present in #properties are copied).
    */
   constructor(params) {
     for (const attrName in params) {
@@ -130,7 +130,7 @@ class Label {
 
   /**
    * Returns a deep copy of the properties object, so callers can't mutate the label's internal state directly.
-   * @returns {Object}
+   * @returns {object}
    */
   getProperties() {
     return structuredClone(this.#properties);
@@ -225,7 +225,7 @@ class Label {
   /**
    * Renders this label on a canvas.
    * @param {CanvasRenderingContext2D} ctx
-   * @param {Object} pov
+   * @param {object} pov
    * @returns {Label} this.
    */
   render(ctx, pov) {
@@ -454,7 +454,6 @@ class Label {
    * Uploads the crop, retrying once if the canvas hasn't produced it yet.
    * @param {number} labelId
    * @returns {Promise<void>}
-   * @private
    */
   async #uploadCrop(labelId) {
     if (!this.getProperty('crop')) {
@@ -492,7 +491,7 @@ class Label {
    */
   static preloadIcons() {
     const iconPaths = util.misc.getIconImagePaths();
-    const loads = Object.keys(iconPaths).map((labelType) => {
+    const loads = Object.keys(iconPaths).map(/** @returns {Promise<void>} */ (labelType) => {
       const iconPath = iconPaths[labelType].iconImagePath;
       if (!iconPath || window.labelIconCache[iconPath]) return Promise.resolve();
       return new Promise((resolve) => {
@@ -593,12 +592,17 @@ class Label {
     content.className = 'minimap-label-icon';
     // AdvancedMarkerElement anchors content by its bottom-center; shift it down half its height to center it.
     content.style.transform = 'translateY(50%)';
+    // Hover tooltip and accessible name, named the way the rest of the tool names the label type.
+    const labelTypeName = i18next.t(`common:${util.camelToKebab(labelType)}`).replaceAll('&shy;', '');
+    const title = i18next.t('audit:right-ui.minimap.label-marker-title', { labelType: labelTypeName });
+    content.alt = title;
     return new google.maps.marker.AdvancedMarkerElement({
       position: new google.maps.LatLng(latLng.lat, latLng.lng),
       map: svl.minimap.getMap(),
       content,
       // Interactive so it emits gmp-click; the click handler is wired in the Label constructor (#2561).
       gmpClickable: true,
+      title,
     });
   }
 }

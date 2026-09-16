@@ -16,11 +16,11 @@ class MissionPanel {
 
   /**
    * Sets the header and description text for the given mission.
-   * @param mission The current Mission object.
+   * @param {Mission} mission - The current Mission object.
    */
   setMessage(mission) {
     const missionType = mission.getProperty('missionType');
-    const isRoute = svl.neighborhoodModel.isRoute;
+    const isRoute = svl.regionModel.isRoute;
 
     if (missionType === 'exploreAddress') {
       this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header-free-explore');
@@ -30,7 +30,7 @@ class MissionPanel {
       this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header');
     }
 
-    // Free exploration shows the header alone, so the description stays empty — the neighborhood message it would
+    // Free exploration shows the header alone, so the description stays empty — the region message it would
     // otherwise fall through to carries a distance __PLACEHOLDER__ that this mission type never substitutes.
     let missionMessage;
     if (missionType === 'auditOnboarding') {
@@ -38,13 +38,13 @@ class MissionPanel {
     } else if (missionType === 'exploreAddress') {
       missionMessage = '';
     } else if (isRoute) {
-      // On a user-defined route the mission is the route itself, so name it rather than the neighborhood.
+      // On a user-defined route the mission is the route itself, so name it rather than the region.
       missionMessage = i18next.t('right-ui.current-mission.message-route', { routeName: svl.routeName });
     } else {
-      // The regular mission message names the neighborhood being explored.
-      const neighborhood = svl.neighborhoodModel.currentNeighborhood();
-      const neighborhoodName = neighborhood ? neighborhood.getProperty('name') : '';
-      missionMessage = i18next.t('right-ui.current-mission.message', { neighborhoodName });
+      // The regular mission message names the region being explored.
+      const region = svl.regionModel.currentRegion();
+      const regionName = region ? region.getProperty('name') : '';
+      missionMessage = i18next.t('right-ui.current-mission.message', { regionName });
     }
 
     if (missionType === 'audit' && !isRoute) {
@@ -57,7 +57,7 @@ class MissionPanel {
     // The exit link only makes sense on a custom-route walk.
     this.#exitRouteEl.hidden = !isRoute;
 
-    // The mission line is clamped to one line via CSS; when a long neighborhood name is clipped, keep the full text
+    // The mission line is clamped to one line via CSS; when a long region name is clipped, keep the full text
     // available on hover (and leave no redundant tooltip when it already fits).
     const clipped = this.#descriptionEl.scrollWidth > this.#descriptionEl.clientWidth;
     this.#descriptionEl.title = clipped ? this.#descriptionEl.textContent : '';

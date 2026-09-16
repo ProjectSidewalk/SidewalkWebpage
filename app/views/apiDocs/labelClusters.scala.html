@@ -31,12 +31,13 @@
 
     <div id="label-clusters-preview" class="map-container">Loading label clusters data...</div>
 
-    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")'>
+    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'>
     <link rel="stylesheet" href='@assets.path("css/pages/api-docs/label-clusters.css")'>
     @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
        set: the language plugin and the preview both read the mapboxgl global as they parse. *@
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")' defer></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
+    <script src='@assets.path("js/common/geoBounds.js")' defer></script>
     <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
     <script src='@assets.path("js/api-docs/labelClustersPreview.js")' defer></script>
     <script>
@@ -419,16 +420,17 @@
     </ul>
 
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
-    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj). The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326). When <code>includeRawLabels=true</code> is specified, the ZIP will contain a second set of Shapefile components with a <code>_labels</code> suffix, representing the individual raw labels as a separate layer.</p>
+    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated. The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326). When <code>includeRawLabels=true</code> is specified, the ZIP will contain a second set of Shapefile components with a <code>_labels</code> suffix, representing the individual raw labels as a separate layer.</p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
-    <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage file (<code>.gpkg</code>). This is an open standard format based on SQLite that contains both geometry and attributes in a single file, generally without the field name limitations of Shapefiles. CRS is typically WGS84 (EPSG:4326). When <code>includeRawLabels=true</code> is specified, the GeoPackage will contain a second layer named <code>raw_labels</code> in addition to the <code>label_clusters</code> layer.</p>
+    <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage file (<code>.gpkg</code>). This is an open standard format based on SQLite that contains both geometry and attributes in a single file, with the same field names as the GeoJSON properties. Array and object fields (<code>label_ids</code>, <code>users</code>, <code>tag_counts</code>) are written out as JSON text. CRS is typically WGS84 (EPSG:4326). When <code>includeRawLabels=true</code> is specified, the GeoPackage will contain a second layer named <code>raw_labels</code> in addition to the <code>label_clusters</code> layer, with the same columns as the <code>*_labels.csv</code> file described above.</p>
 
     <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
     <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
     <ul>
       <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values (e.g., malformed bounding box, invalid date format).</li>
       <li><strong><code>404 Not Found</code>:</strong> The requested resource does not exist (e.g., incorrect base URL path).</li>
+      <li><strong><code>429 Too Many Requests</code>:</strong> The same file is already being built for an earlier request; wait <code>Retry-After</code> seconds and try again. A <code>HEAD</code> request gets the same answer without building anything.</li>
       <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
     </ul>
 

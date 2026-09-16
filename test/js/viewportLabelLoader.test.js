@@ -158,7 +158,7 @@ describe('ViewportLabelLoader', () => {
         expect(fetches).toHaveLength(2);
     });
 
-    // Labels sit slightly outside their neighborhood polygons, so the extent is covered only with slack.
+    // Labels sit slightly outside their region polygons, so the extent is covered only with slack.
     test('the data extent must be covered with its margin before fetching stops', async () => {
         const map = stubMap({ view: bounds(-0.1, -0.1, 0.1, 0.1) });
         build(map, { dataBounds: bounds(-0.195, -0.195, 0.195, 0.195) }); // Inside the bbox, but by < 0.01.

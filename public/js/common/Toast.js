@@ -27,17 +27,18 @@ class Toast {
   #focused = false;
 
   /**
-   * @param {Object} opts
-   * @param {string} [opts.title] Bold heading line.
-   * @param {string} [opts.message] Secondary message line.
-   * @param {string} [opts.icon] Image URL shown to the left of the text.
-   * @param {string} [opts.iconAlt] Alt text for the icon image (defaults to '').
-   * @param {Object} [opts.button] Optional action button: { label, href } or { label, onClick }.
-   * @param {HTMLElement} [opts.reference] Element the toast floats over (defaults to the viewport).
-   * @param {number} [opts.duration] Milliseconds before auto-dismiss (defaults to 5000).
-   * @param {boolean} [opts.dark] Dark surface instead of white — for toasts that float over photography, where a
+   * @param {object} opts
+   * @param {string} [opts.title] - Bold heading line.
+   * @param {string} [opts.message] - Secondary message line.
+   * @param {string} [opts.icon] - Image URL shown to the left of the text.
+   * @param {string} [opts.iconAlt] - Alt text for the icon image (defaults to '').
+   * @param {{label: string, href?: string, newTab?: boolean, onClick?: (e: MouseEvent) => void}} [opts.button] - An
+   *     optional action button: a link with `href`, or a callback with `onClick`.
+   * @param {HTMLElement} [opts.reference] - Element the toast floats over (defaults to the viewport).
+   * @param {number} [opts.duration] - Milliseconds before auto-dismiss (defaults to 5000).
+   * @param {boolean} [opts.dark] - Dark surface instead of white — for toasts that float over photography, where a
    *      white card glares against the imagery and reads as part of the UI chrome rather than a passing note.
-   * @param {boolean} [opts.compact] Tighter padding and smaller type, for a one-line aside rather than an
+   * @param {boolean} [opts.compact] - Tighter padding and smaller type, for a one-line aside rather than an
    *      announcement with a title and an action.
    */
   constructor(opts = {}) {
@@ -52,7 +53,7 @@ class Toast {
 
   /**
    * Convenience factory: builds a toast, shows it, and returns the instance.
-   * @param {Object} opts See the constructor.
+   * @param {object} opts - See the constructor.
    * @returns {Toast}
    */
   static show(opts = {}) {
@@ -133,23 +134,26 @@ class Toast {
 
   /**
    * Builds the action button using the shared design-system button classes.
-   * @param {Object} button { label, href, newTab } for a link-style action or { label, onClick } for a callback.
+   * @param {{label: string, href?: string, newTab?: boolean, onClick?: (e: MouseEvent) => void}} button - A
+   *     link-style action with `href`, or a callback with `onClick`.
    * @returns {HTMLElement}
    */
   #buildButton(button) {
-    const el = button.href ? document.createElement('a') : document.createElement('button');
-    el.className = 'ps-toast__button button-ps button--primary button--small';
-    el.textContent = button.label;
+    let el;
     if (button.href) {
+      el = document.createElement('a');
       el.href = button.href;
       if (button.newTab) {
         el.target = '_blank';
         el.rel = 'noopener noreferrer';
       }
     } else {
+      el = document.createElement('button');
       el.type = 'button';
       if (button.onClick) el.addEventListener('click', button.onClick);
     }
+    el.className = 'ps-toast__button button-ps button--primary button--small';
+    el.textContent = button.label;
     return el;
   }
 
