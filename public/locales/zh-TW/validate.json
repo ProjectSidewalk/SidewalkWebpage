@@ -90,6 +90,9 @@
         "unsure-button-3": "不確定這裡是否該建造人行道。",
         "unsure-button-3-tooltip": "有時需要更多背景信息，僅憑一張圖片很難判斷人行道是否必要。"
       }
+    },
+    "wrong-type": {
+      "header": "這個標籤應該是什麼類型？"
     }
   },
   "center-ui": {

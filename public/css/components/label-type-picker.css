@@ -1,0 +1,64 @@
+/* Label-type picker (LabelTypePicker.js). --label-color comes from the JS, off the backend's label-type table, so no
+   palette is repeated here. */
+.label-type-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(6px * var(--ui-scale, 1));
+}
+
+.label-type-picker__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale, 1));
+  padding: calc(4px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1)) calc(4px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1));
+  border: none;
+  border-radius: 200px;
+  outline: 1px solid var(--color-neutral-900);
+  background: var(--color-neutral-white);
+  font: var(--text-tiny-semibold);
+  color: var(--color-neutral-black);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.label-type-picker__chip[hidden] {
+  display: none; /* The chip's display rule above would otherwise beat the hidden attribute. */
+}
+
+.label-type-picker__icon {
+  width: calc(18px * var(--ui-scale, 1));
+  height: calc(18px * var(--ui-scale, 1));
+}
+
+@media (hover: hover) {
+  .label-type-picker__chip:not([aria-disabled="true"]):hover {
+    background: rgb(from var(--label-color) r g b / 18%);
+  }
+}
+
+.label-type-picker__chip--selected {
+  outline: 2px solid var(--label-color);
+  background: rgb(from var(--label-color) r g b / 25%);
+}
+
+/* The label's current type: shown for orientation, not pickable. */
+.label-type-picker__chip--current {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.label-type-picker__chip:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 1px;
+}
+
+/* Shown only on the lone chip of a collapsed group, which reopens the group on click. */
+.label-type-picker__change {
+  display: none;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.label-type-picker--collapsed .label-type-picker__change {
+  display: inline;
+}

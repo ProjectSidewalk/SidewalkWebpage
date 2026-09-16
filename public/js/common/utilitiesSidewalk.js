@@ -473,6 +473,15 @@ function UtilitiesMisc(JSON) {
   }
 
   /**
+   * A label type's rating scale name ('severity', 'quality', 'unrated'); unknown types read as unrated.
+   * @param {string} labelType
+   * @returns {string}
+   */
+  function getRatingScale(labelType) {
+    return byName.get(labelType)?.ratingScale ?? 'unrated';
+  }
+
+  /**
    * Re-expresses a pano x-coordinate on whichever side of the image seam the camera is currently facing.
    *
    * An equirectangular pano wraps, so a point near one edge is also a point just past the other. Picking the wrong
@@ -719,6 +728,7 @@ function UtilitiesMisc(JSON) {
   self.getLabelDescriptions = getLabelDescriptions;
   self.isPositiveLabelType = isPositiveLabelType;
   self.labelTypeHasSeverity = labelTypeHasSeverity;
+  self.getRatingScale = getRatingScale;
   self.getSmileyIconPath = getSmileyIconPath;
   self.getSeverityLevelColors = getSeverityLevelColors;
   self.getRatingLevelKeys = getRatingLevelKeys;

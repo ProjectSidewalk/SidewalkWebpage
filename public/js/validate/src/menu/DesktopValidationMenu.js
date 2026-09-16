@@ -7,6 +7,8 @@ class DesktopValidationMenu {
   #unsureReasonButtons;
   #tagSelect;
   #tagsAddedByUser = [];
+  /** @type {LabelTypePicker|null} Expert Validate only (#3671). */
+  #labelTypePicker = null;
 
   /**
    * @param {Record<string, JQuery>} menuUI - Validation menu UI elements.
@@ -46,9 +48,26 @@ class DesktopValidationMenu {
       this.#setUnsureView();
       svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Unsure');
     });
+    // Stored as an Agree on the picked type, the only vote that can carry an edit.
+    menuUI.wrongTypeButton.click((e) => {
+      if (svv.labelContainer.dropInputWhileLoading('WrongType')) return;
+      const action = e.isTrigger ? 'ValidationKeyboardShortcut_WrongType' : 'ValidationButtonClick_WrongType';
+      svv.tracker.push(action);
+      this.#setWrongTypeView();
+      svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Agree');
+    });
 
     // Tag and severity sections only available with Expert Validate.
     if (svv.adminVersion) {
+      this.#labelTypePicker = new LabelTypePicker(menuUI.labelTypePicker[0], {
+        onPick: (labelType) => this.#setNewLabelType(labelType),
+        // The full set of chips plus the editors would overflow the menu column, so only one shows at a time.
+        onToggle: (expanded) => {
+          if (expanded) this.#showVerdict(menuUI.wrongTypeButton, ['labelTypeMenu']);
+          else this.#setWrongTypeView();
+        },
+      });
+
       // Add onclick for each severity button.
       const $severityButtons = menuUI.severityMenu.find('.severity-button');
       $severityButtons.click((e) => {
@@ -61,7 +80,7 @@ class DesktopValidationMenu {
         const currLabel = svv.labelContainer.getCurrentLabel();
         const oldSeverity = currLabel.getProperty('newSeverity');
         const newSeverity = $(e.target).closest('.severity-button').data('severity');
-        const labelType = currLabel.getAuditProperty('labelType');
+        const labelType = currLabel.getProperty('newLabelType');
         if (oldSeverity !== newSeverity && util.misc.labelTypeHasSeverity(labelType)) {
           svv.tracker.push(`Click=Severity_Old=${oldSeverity}_New=${newSeverity}`);
           currLabel.setProperty('newSeverity', newSeverity);
@@ -192,6 +211,8 @@ class DesktopValidationMenu {
       menuUI.yesButton.removeClass('chosen');
       menuUI.noButton.removeClass('chosen');
       menuUI.unsureButton.removeClass('chosen');
+      menuUI.wrongTypeButton.removeClass('chosen');
+      menuUI.labelTypeMenu.css('display', 'none');
       menuUI.tagsMenu.css('display', 'none');
       menuUI.severityMenu.css('display', 'none');
       menuUI.optionalCommentSection.css('display', 'none');
@@ -231,7 +252,9 @@ class DesktopValidationMenu {
         menuUI.unsureReasonOptions.find(`#${unsureOption}`).addClass('chosen');
       }
 
-      if (prevValResult === 'Agree') this.#setYesView();
+      // An Agree carrying a new type is the "Wrong type" verdict.
+      if (prevValResult === 'Agree' && this.#typeChanged(label)) this.#setWrongTypeView();
+      else if (prevValResult === 'Agree') this.#setYesView();
       else if (prevValResult === 'Disagree') this.#setNoView();
       else if (prevValResult === 'Unsure') this.#setUnsureView();
     }
@@ -272,55 +295,82 @@ class DesktopValidationMenu {
     }
   }
 
-  #setYesView() {
+  /** @returns {boolean} */
+  #typeChanged(label) {
+    return label.getProperty('newLabelType') !== label.getProperty('oldLabelType');
+  }
+
+  /**
+   * Every view routes through here so a section can't be left showing from the previous verdict.
+   * @param {JQuery} chosenButton
+   * @param {string[]} sections - Names of the `menuUI` sections to show; the rest are hidden.
+   */
+  #showVerdict(chosenButton, sections) {
     const menuUI = this.#menuUI;
-    menuUI.yesButton.addClass('chosen');
-    menuUI.noButton.removeClass('chosen');
-    menuUI.unsureButton.removeClass('chosen');
-
-    // Only show the tags and severity sections on Expert Validate.
-    if (svv.adminVersion) {
-      this.#renderTags();
-      menuUI.tagsMenu.css('display', 'block');
-
-      // Some label types (Pedestrian Signal, No Sidewalk) don't have severity ratings.
-      const currLabelType = svv.labelContainer.getCurrentLabel().getAuditProperty('labelType');
-      if (util.misc.labelTypeHasSeverity(currLabelType)) {
-        this.#renderSeverity();
-        menuUI.severityMenu.css('display', 'block');
-      }
+    for (const button of [menuUI.yesButton, menuUI.noButton, menuUI.unsureButton, menuUI.wrongTypeButton]) {
+      button.toggleClass('chosen', button === chosenButton);
     }
+    const all = ['labelTypeMenu', 'tagsMenu', 'severityMenu', 'optionalCommentSection', 'noMenu', 'unsureMenu'];
+    for (const name of all) menuUI[name].css('display', sections.includes(name) ? 'block' : 'none');
+  }
 
-    menuUI.optionalCommentSection.css('display', 'block');
-    menuUI.noMenu.css('display', 'none');
-    menuUI.unsureMenu.css('display', 'none');
-    menuUI.submitButton.prop('disabled', false);
+  /**
+   * Renders the tag and severity editors for the type being validated as (Expert Validate only).
+   * @returns {string[]} The sections to show; severity is left out for unrated types.
+   */
+  #editSections() {
+    if (!svv.adminVersion) return [];
+    this.#renderTags();
+    const labelType = svv.labelContainer.getCurrentLabel().getProperty('newLabelType');
+    if (!util.misc.labelTypeHasSeverity(labelType)) return ['tagsMenu'];
+    this.#renderSeverity();
+    return ['tagsMenu', 'severityMenu'];
+  }
+
+  #setYesView() {
+    const currLabel = svv.labelContainer.getCurrentLabel();
+    // A plain Agree is on the label's real type, so a type picked under "Wrong type" is dropped.
+    if (this.#typeChanged(currLabel)) this.#setNewLabelType(currLabel.getProperty('oldLabelType'), false);
+    this.#showVerdict(this.#menuUI.yesButton, [...this.#editSections(), 'optionalCommentSection']);
+    this.#menuUI.submitButton.prop('disabled', false);
   }
 
   #setNoView() {
-    const menuUI = this.#menuUI;
-    menuUI.yesButton.removeClass('chosen');
-    menuUI.noButton.addClass('chosen');
-    menuUI.unsureButton.removeClass('chosen');
-    menuUI.tagsMenu.css('display', 'none');
-    menuUI.severityMenu.css('display', 'none');
-    menuUI.optionalCommentSection.css('display', 'none');
-    menuUI.noMenu.css('display', 'block');
-    menuUI.unsureMenu.css('display', 'none');
-    menuUI.submitButton.prop('disabled', false);
+    this.#showVerdict(this.#menuUI.noButton, ['noMenu']);
+    this.#menuUI.submitButton.prop('disabled', false);
   }
 
   #setUnsureView() {
-    const menuUI = this.#menuUI;
-    menuUI.yesButton.removeClass('chosen');
-    menuUI.noButton.removeClass('chosen');
-    menuUI.unsureButton.addClass('chosen');
-    menuUI.tagsMenu.css('display', 'none');
-    menuUI.severityMenu.css('display', 'none');
-    menuUI.optionalCommentSection.css('display', 'none');
-    menuUI.noMenu.css('display', 'none');
-    menuUI.unsureMenu.css('display', 'block');
-    menuUI.submitButton.prop('disabled', false);
+    this.#showVerdict(this.#menuUI.unsureButton, ['unsureMenu']);
+    this.#menuUI.submitButton.prop('disabled', false);
+  }
+
+  /** The "Wrong type" verdict (#3671). Submit stays off until a type is picked; without one there is nothing to say. */
+  #setWrongTypeView() {
+    const currLabel = svv.labelContainer.getCurrentLabel();
+    const picked = this.#typeChanged(currLabel) ? currLabel.getProperty('newLabelType') : null;
+    this.#labelTypePicker.render({ current: currLabel.getProperty('oldLabelType'), selected: picked });
+    this.#labelTypePicker.collapse(); // Keeps the editors below within the menu column; a no-op before a pick.
+    const sections = picked ? [...this.#editSections(), 'optionalCommentSection'] : [];
+    this.#showVerdict(this.#menuUI.wrongTypeButton, ['labelTypeMenu', ...sections]);
+    this.#menuUI.submitButton.prop('disabled', picked === null);
+  }
+
+  /**
+   * Records the picked type and redraws what's keyed on it, including the pano marker so the change shows on the label.
+   * @param {string} labelType
+   * @param {boolean} [redraw] - False when the caller is about to draw a different verdict's view anyway.
+   */
+  #setNewLabelType(labelType, redraw = true) {
+    if (svv.labelContainer.dropInputWhileLoading('LabelType')) return;
+    const currLabel = svv.labelContainer.getCurrentLabel();
+    const oldType = currLabel.getProperty('newLabelType');
+    if (labelType === oldType) return;
+    svv.tracker.push(`Click=NewLabelType_Old=${oldType}_New=${labelType}`);
+    currLabel.setNewLabelType(labelType);
+    this.#tagsAddedByUser = [];
+    svv.panoManager.styleMarkerForLabel(currLabel);
+    if (redraw) this.#setWrongTypeView();
   }
 
   /**
@@ -348,7 +398,7 @@ class DesktopValidationMenu {
     const currLabel = svv.labelContainer.getCurrentLabel();
 
     // If the tag is mutually exclusive with another tag that's been added, remove the other tag.
-    const allTags = svv.tagsByLabelType[currLabel.getAuditProperty('labelType')] ?? [];
+    const allTags = svv.tagsByLabelType[currLabel.getProperty('newLabelType')] ?? [];
     const mutuallyExclusiveWith = allTags.find((t) => t.tag_name === tagName).mutually_exclusive_with;
     const currTags = currLabel.getProperty('newTags');
     if (currTags.some((t) => t === mutuallyExclusiveWith)) {
@@ -373,7 +423,7 @@ class DesktopValidationMenu {
   }
 
   #removeTagListener(e, label) {
-    const allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')] ?? []);
+    const allTagOptions = structuredClone(svv.tagsByLabelType[label.getProperty('newLabelType')] ?? []);
     const tagElem = $(e.target).parents('.current-tag');
     tagElem.tooltip('destroy');
     const tagIdToRemove = tagElem.data('tag-id');
@@ -384,7 +434,7 @@ class DesktopValidationMenu {
   #renderTags() {
     const menuUI = this.#menuUI;
     const label = svv.labelContainer.getCurrentLabel();
-    let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')] ?? []);
+    let allTagOptions = structuredClone(svv.tagsByLabelType[label.getProperty('newLabelType')] ?? []);
     const allTagOptionsPermanent = structuredClone(allTagOptions);
 
     menuUI.currentTags.empty();
@@ -431,14 +481,16 @@ class DesktopValidationMenu {
     // Remove all AI suggested tags from the previous label.
     $('.sidewalk-ai-suggested-tag:not(.template)').remove();
 
-    // Decide which tags AI is suggesting to add or remove. If null, AI suggestion disabled on this server.
+    // Decide which tags AI is suggesting to add or remove. If null, AI suggestion disabled on this server. The AI
+    // judged the original type, so its suggestions say nothing about a type the expert just picked.
     let aiAddTagOptions = [];
     let aiRemoveTagOptions = [];
-    if (label.getAuditProperty('aiTags') !== null) {
+    const aiApplies = !this.#typeChanged(label);
+    if (aiApplies && label.getAuditProperty('aiTags') !== null) {
       const aiTags = label.getAuditProperty('aiTags');
       aiAddTagOptions = allTagOptions.filter((t) => aiTags.includes(t.tag_name));
     }
-    if (label.getAuditProperty('aiTagsNotPresent') !== null) {
+    if (aiApplies && label.getAuditProperty('aiTagsNotPresent') !== null) {
       const aiTagsNotPresent = label.getAuditProperty('aiTagsNotPresent');
       // Only suggest removing tags that are currently on the label and were not added by the user this session.
       aiRemoveTagOptions = currTags
@@ -501,7 +553,7 @@ class DesktopValidationMenu {
     const menuUI = this.#menuUI;
     const label = svv.labelContainer.getCurrentLabel();
     const severity = label.getProperty('newSeverity');
-    const labelType = svv.labelContainer.getCurrentLabel().getAuditProperty('labelType');
+    const labelType = label.getProperty('newLabelType');
     const positive = util.misc.isPositiveLabelType(labelType);
     const tooltipKey = positive ? 'quality-example-tooltip' : 'severity-example-tooltip';
     const headerKey = positive ? 'update-quality-level' : 'update-severity-level';
@@ -558,6 +610,17 @@ class DesktopValidationMenu {
   #setDisagreeReason(id) {
     if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
     const menuUI = this.#menuUI;
+    const currLabel = svv.labelContainer.getCurrentLabel();
+    const reasonInfo = svv.reasonButtonInfo[util.camelToKebab(currLabel.getAuditProperty('labelType'))]?.[id];
+    // Where the type can actually be changed, a canned "should be a X label" reason is the same wish as the "Wrong
+    // type" verdict, so it jumps there instead of becoming a comment nobody acts on (#3671).
+    if (svv.adminVersion && reasonInfo && 'newLabelType' in reasonInfo) {
+      svv.tracker.push(`DisagreeReason_ToWrongType_Option=${id}`);
+      this.#setWrongTypeView();
+      currLabel.setProperty('validationResult', 'Agree');
+      if (reasonInfo.newLabelType) this.#setNewLabelType(reasonInfo.newLabelType);
+      return;
+    }
     this.#disagreeReasonButtons.removeClass('chosen');
     if (id === 'other') {
       menuUI.disagreeReasonTextBox.addClass('chosen');
@@ -617,13 +680,15 @@ class DesktopValidationMenu {
     const menuUI = this.#menuUI;
     const actionStr = keyboardShortcut ? 'ValidationKeyboardShortcut_Submit_Validation=' : 'Click=Submit_Validation=';
     const timestamp = new Date();
-    svv.tracker.push(actionStr + action);
     const currLabel = svv.labelContainer.getCurrentLabel();
+    const typeNote = this.#typeChanged(currLabel) ? `_NewLabelType=${currLabel.getProperty('newLabelType')}` : '';
+    svv.tracker.push(actionStr + action + typeNote);
 
     // Resets CSS elements for all buttons to their default states.
     menuUI.yesButton.removeClass('validate');
     menuUI.noButton.removeClass('validate');
     menuUI.unsureButton.removeClass('validate');
+    menuUI.wrongTypeButton.removeClass('validate');
 
     // Save anything they typed in either text box so that it's there again if they undo their validation.
     this.saveValidationState();

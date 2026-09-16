@@ -81,6 +81,10 @@ class Main {
     svv.ui.validationMenu.yesButton = $('#validate-yes-button');
     svv.ui.validationMenu.noButton = $('#validate-no-button');
     svv.ui.validationMenu.unsureButton = $('#validate-unsure-button');
+    svv.ui.validationMenu.wrongTypeButton = $('#validate-wrong-type-button'); // Expert Validate only (#3671).
+    svv.ui.validationMenu.labelTypeMenu = $('#validate-label-type-section');
+    svv.ui.validationMenu.labelTypeHeader = $('#validate-label-type-header');
+    svv.ui.validationMenu.labelTypePicker = $('#label-type-picker');
 
     svv.ui.validationMenu.tagsMenu = $('#validate-tags-section');
     svv.ui.validationMenu.severityMenu = $('#validate-severity-section');

@@ -343,8 +343,13 @@ class LabelEditSpec
       typeEditsBy(target.labelId, userId).map(e => (e._1, e._2, e._4)) mustBe
         Seq((target.labelType, other, target.severity))
 
+      // A rating given with a change to a type on the other scale is a rating for the new type, so it stands.
+      val fresh = if (target.severity.contains(3)) 1 else 3
+      status(postEdit(session, typeEditBody(target.labelId, other, "CurbRamp", Some(fresh), Nil))) mustBe OK
+      fullState(target.labelId)._2 mustBe Some(fresh)
+
       // An unrated type carries no severity, whatever the client sent.
-      status(postEdit(session, typeEditBody(target.labelId, other, "Signal", Some(2), Nil))) mustBe OK
+      status(postEdit(session, typeEditBody(target.labelId, "CurbRamp", "Signal", Some(2), Nil))) mustBe OK
       val asSignal = fullState(target.labelId)
       (asSignal._1, asSignal._2) mustBe (("Signal", None))
 
@@ -354,13 +359,11 @@ class LabelEditSpec
       (contentAsJson(stale) \ "label_type").as[String] mustBe "Signal"
       fullState(target.labelId)._1 mustBe "Signal"
 
-      // Back to where it started. Coming from an unrated type drops the severity, so that takes a second edit; both
-      // fold into the row the first change opened, which nets out, and the old votes count again.
+      // Back to where it started: the edit folds into the row the first change opened, which nets out, and the old
+      // votes count again.
       status(
         postEdit(session, typeEditBody(target.labelId, "Signal", target.labelType, target.severity, target.tags))
       ) mustBe OK
-      fullState(target.labelId)._2 mustBe None
-      status(postEdit(session, editBody(target.labelId, target.severity, target.tags))) mustBe OK
       fullState(target.labelId) mustBe before
       typeEditsBy(target.labelId, userId) mustBe empty
     }

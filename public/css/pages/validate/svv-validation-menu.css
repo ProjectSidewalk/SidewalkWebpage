@@ -53,6 +53,14 @@
   outline: none; /* Removes focus outline that shows up when I press shift after clicking on a button. */
 }
 
+/* Four verdicts on one row need narrower buttons and a smaller face. */
+.four-verdicts .validate-page-button {
+  width: 24%;
+  padding-left: calc(4px * var(--ui-scale));
+  padding-right: calc(4px * var(--ui-scale));
+  font: var(--text-tiny-semibold);
+}
+
 .validate-button:hover {
   border: none;
 }
@@ -71,6 +79,11 @@
 
 #validate-unsure-button.chosen {
   background: var(--color-neutral-900);
+  color: var(--color-neutral-white);
+}
+
+#validate-wrong-type-button.chosen {
+  background: var(--color-asphalt-500);
   color: var(--color-neutral-white);
 }
 
@@ -99,6 +112,15 @@
 
   #validate-unsure-button.chosen:hover {
     background: var(--color-neutral-900);
+  }
+
+  #validate-wrong-type-button:hover {
+    background: var(--color-asphalt-300);
+    color: var(--color-neutral-white);
+  }
+
+  #validate-wrong-type-button.chosen:hover {
+    background: var(--color-asphalt-500);
   }
 }
 

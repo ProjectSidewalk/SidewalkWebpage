@@ -90,6 +90,9 @@
         "unsure-button-3": "Não tenho certeza se deveria haver uma calçada aqui",
         "unsure-button-3-tooltip": "Às vezes é necessário mais contexto e pode ser difícil determinar isso a partir de apenas uma imagem"
       }
+    },
+    "wrong-type": {
+      "header": "Qual deveria ser o tipo deste rótulo?"
     }
   },
   "center-ui": {

@@ -64,6 +64,11 @@ class KeyboardManager {
     const validationMenuUi = this.#validationMenuUi;
     if (validationMenuUi.yesButton.hasClass('chosen')) {
       if (svv.adminVersion) $(`#severity-button-${n}`).click();
+    } else if (validationMenuUi.wrongTypeButton.hasClass('chosen')) {
+      // Severity only once its section is showing, or a rating typed before a type is picked rides along unseen.
+      if (document.getElementById('validate-severity-section')?.style.display === 'block') {
+        $(`#severity-button-${n}`).click();
+      }
     } else if (validationMenuUi.noButton.hasClass('chosen')) {
       const buttonId = `#no-button-${n}`;
       // If there's no default disagree option for this key, focus on the comment box, otherwise click the button.
@@ -93,7 +98,7 @@ class KeyboardManager {
   #handleCommentBoxShortcut(e) {
     const validationMenuUi = this.#validationMenuUi;
     e.preventDefault();
-    if (validationMenuUi.yesButton.hasClass('chosen')) {
+    if (validationMenuUi.yesButton.hasClass('chosen') || validationMenuUi.wrongTypeButton.hasClass('chosen')) {
       validationMenuUi.optionalCommentTextBox.click();
     } else if (validationMenuUi.noButton.hasClass('chosen')) {
       validationMenuUi.disagreeReasonTextBox.click();
@@ -159,6 +164,10 @@ class KeyboardManager {
           // Validate unsure.
         case 'KeyU':
           validationMenuUi.unsureButton.click();
+          break;
+          // Wrong label type; an empty jQuery set on regular Validate, so a no-op there.
+        case 'KeyT':
+          validationMenuUi.wrongTypeButton.click();
           break;
           // Hide/Unhide the label.
         case 'KeyH':

@@ -270,20 +270,31 @@ class PanoManager {
       this.labelMarker.setPosition({ heading: labelPov.heading, pitch: labelPov.pitch });
     }
 
+    const marker = this.labelMarker.marker_;
+    this.styleMarkerForLabel(currentLabel);
+    this.#restartMarkerPulse(marker);
+    this.#updateMarkerAiIndicator(currentLabel.getAuditProperty('aiGenerated'));
+  }
+
+  /**
+   * Draws the marker as the label's type. Also called alone when an expert picks a new type (#3671), so the marker
+   * shows the type the label is about to become.
+   * @param {Label} label
+   */
+  styleMarkerForLabel(label) {
+    if (!this.labelMarker) return;
     // The icon is handed to CSS rather than set as the marker's own background, so that hiding the label can
     // crossfade it out (main.css's .label-marker) while the ring around it stays put to mark the spot. The colour
     // rides along for the dashed ring that ring becomes while hidden.
     const marker = this.labelMarker.marker_;
-    marker.style.setProperty('--label-icon', `url(${currentLabel.getIconUrl()})`);
-    marker.style.setProperty('--label-color', currentLabel.getIconColor());
+    marker.style.setProperty('--label-icon', `url(${label.getIconUrl()})`);
+    marker.style.setProperty('--label-color', label.getIconColor());
     // The marker is a focusable control (#4729, PanoMarker), so name it as the label it opens the card for,
     // localized the same way the card's header is.
     marker.setAttribute(
       'aria-label',
-      i18next.t(`common:${util.camelToKebab(currentLabel.getAuditProperty('labelType'))}`).replace('&shy;', ''),
+      i18next.t(`common:${util.camelToKebab(label.getProperty('newLabelType'))}`).replace('&shy;', ''),
     );
-    this.#restartMarkerPulse(marker);
-    this.#updateMarkerAiIndicator(currentLabel.getAuditProperty('aiGenerated'));
   }
 
   /**

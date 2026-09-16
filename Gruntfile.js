@@ -41,6 +41,7 @@ module.exports = function (grunt) {
           'public/js/common/PanoMarker.js',
           'public/js/common/LabelVisibilityToggle.js',
           'public/js/common/LabelCardView.js',
+          'public/js/common/LabelTypePicker.js',
           'public/js/common/utilitiesSidewalk.js',
           'public/js/common/SpeedLimit.js',
           'public/js/common/MissionStartTutorial.js',

@@ -101,8 +101,9 @@ class LabelEditServiceImpl @Inject() (
    * Records a change to a label's type, severity and/or tags, and applies it to the label.
    *
    * The submitted values are the state the editor wants. Tags are cleaned against the (new) type. When the type
-   * changes, the severity carries over only if both types read their rating the same way, and any type never rated
-   * gets none; otherwise the submitted severity stands. Nothing is written if the result leaves the label as it is.
+   * changes, a submitted severity equal to the label's current one is taken as carried over, and survives only if
+   * both types read their rating the same way; a different one is a rating given for the new type and stands. Any
+   * type never rated gets none. Nothing is written if the result leaves the label as it is.
    * A standalone edit by the same user from the same surface as the label's latest edit, within EDIT_FOLD_WINDOW of
    * it, folds into that row; a fold that nets out to the row's starting state deletes the row instead.
    *
@@ -126,7 +127,7 @@ class LabelEditServiceImpl @Inject() (
       case Some(label) =>
         val newType: LabelTypeEnum.Base = labelType.getOrElse(label.labelType)
         val newSeverity: Option[Int]    =
-          if (newType == label.labelType) labelService.severityFor(newType, severity)
+          if (newType == label.labelType || severity != label.severity) labelService.severityFor(newType, severity)
           else LabelTypeEnum.severityAfterTypeChange(label.labelType, newType, severity)
         labelService.cleanTagList(tags, newType).flatMap { cleaned =>
           val target = State(newType, newSeverity, cleaned.toList)
