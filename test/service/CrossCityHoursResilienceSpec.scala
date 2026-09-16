@@ -75,6 +75,7 @@ class CrossCityHoursResilienceSpec extends PlaySpec with GuiceOneAppPerSuite {
     app.injector.instanceOf[models.user.UserUtmTable],
     new ScopedConfigService(scope),
     app.injector.instanceOf[AsyncCacheApi],
+    app.injector.instanceOf[SwrCache],
     global
   )
 

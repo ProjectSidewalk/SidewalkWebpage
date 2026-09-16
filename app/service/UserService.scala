@@ -518,6 +518,7 @@ class UserServiceImpl @Inject() (
     userUtmTable: UserUtmTable,
     configService: ConfigService,
     cacheApi: AsyncCacheApi,
+    swrCache: SwrCache,
     implicit val ec: ExecutionContext
 ) extends UserService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -725,14 +726,13 @@ class UserServiceImpl @Inject() (
   }
 
   def getGlobalLeaderboardStats(n: Int): Future[Option[Seq[GlobalLeaderboardEntry]]] = {
-    // Cached because every city's deployment renders the same global board, so an uncached read would recompute a
-    // ~50-schema union on each of their page loads. 10 minutes matches the other cross-city reads; the board is
-    // all-time, so it barely moves between refreshes. The recover sits outside the cache so a transient DB failure
-    // isn't stored as a successful "no board" for the next 10 minutes.
-    cacheApi
-      .getOrElseUpdate[Option[Seq[GlobalLeaderboardEntry]]](
-        s"getGlobalLeaderboardStats_$n",
-        Duration(10, "minutes")
+    // SWR, not expiry: an expired entry makes the next request pay for the ~50-schema union before the page renders,
+    // on a connection Explore and Validate share (#4600/#4931). The key encodes the value shape because `T` erases.
+    swrCache
+      .staleWhileRevalidate[Option[Seq[GlobalLeaderboardEntry]]](
+        s"getGlobalLeaderboardStats_$n:v2-swr",
+        ConfigService.CrossCityFreshFor,
+        ConfigService.CrossCityMaxAge
       ) {
         configService.getGlobalLeaderboardScope.flatMap { scope =>
           if (scope.cities.isEmpty) {
@@ -756,7 +756,7 @@ class UserServiceImpl @Inject() (
         }
       }
       .recover { case e: Exception =>
-        // The section is supplementary, so a failure here drops it rather than taking down the whole leaderboard page.
+        // Outside the cache so a transient failure isn't cached as a real "no board"; the section drops, not the page.
         logger.warn(s"Failed to compute the global leaderboard, omitting the section: ${e.getMessage}", e)
         None
       }
