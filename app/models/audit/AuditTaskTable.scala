@@ -732,14 +732,14 @@ class AuditTaskTable @Inject() (
       ucs.map(_._2).ifNull(urs.map(_._2)).getOrElse(OffsetDateTime.now),
       scau._2, // completedByAnyUser
       sep.priority,
-      ucs.isDefined,                                      // completed is true if the user has audited this street.
-      ucs.map(_._3).ifNull(urs.map(_._3)),                // the completed audit's id, else the open task's.
+      ucs.isDefined,                                       // completed is true if the user has audited this street.
+      ucs.map(_._3).ifNull(urs.map(_._3)),                 // the completed audit's id, else the open task's.
       ucs.map(_._4).flatten.ifNull(urs.map(_._4).flatten), // fill currentMissionId if either task has one.
       ucs.map(_._5).flatten.ifNull(urs.map(_._5).flatten), // fill currentMissionStart if either task has one.
-      None: Option[Int],                                  // routeStreetId
-      None: Option[Int],                                  // routeStreetPosition
-      sms._2,                                             // maxSpeed
-      false                                               // reportedNoImagery is route-scoped; see NewTask.
+      None: Option[Int],                                   // routeStreetId
+      None: Option[Int],                                   // routeStreetPosition
+      sms._2,                                              // maxSpeed
+      false                                                // reportedNoImagery is route-scoped; see NewTask.
     )
 
     tasks.result.map(_.map(NewTask.tupled(_)))

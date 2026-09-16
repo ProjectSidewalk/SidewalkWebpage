@@ -75,16 +75,28 @@ trait StreetFixtures { this: GuiceOneAppPerSuite with RolledBackDb =>
   /**
    * A street of known geodesic length, optionally placed in a region.
    *
+   * The `street_edge_priority` row is part of what makes a street auditable, not an extra: task assignment inner-joins
+   * on it (see StreetLifecycleService, which re-inserts it when a street is reopened), so a street seeded without one
+   * is invisible to every query that hands out work.
+   *
    * @param regionId The region to hang it in. `None` leaves it out of every region, which is all a spec needs when
    *                 the query under test doesn't join one.
    * @param status   What makes a street auditable at all: only `open` streets are handed out.
+   * @param priority Where the street sits in the assignment order; the default is a never-audited street's.
    */
-  protected def insertStreet(regionId: Option[Int] = None, status: String = "open"): DBIO[Int] = for {
+  protected def insertStreet(
+      regionId: Option[Int] = None,
+      status: String = "open",
+      priority: Double = 1.0
+  ): DBIO[Int] = for {
     streetEdgeId <- sql"""INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
                           VALUES ((SELECT COALESCE(MAX(street_edge_id), 0) + 1 FROM street_edge),
                                   ST_SetSRID(ST_MakeLine(ST_MakePoint(0, 0), ST_MakePoint(1, 0)), 4326),
                                   0, 0, 1, 0, 'residential', CAST($status AS street_edge_status))
                           RETURNING street_edge_id""".as[Int].head
+    _ <- sqlu"""INSERT INTO street_edge_priority (street_edge_priority_id, street_edge_id, priority)
+                VALUES ((SELECT COALESCE(MAX(street_edge_priority_id), 0) + 1 FROM street_edge_priority),
+                        $streetEdgeId, $priority)"""
     _ <- regionId.map(putInRegion(streetEdgeId, _)).getOrElse(DBIO.successful(0))
   } yield streetEdgeId
 
@@ -115,6 +127,47 @@ trait StreetFixtures { this: GuiceOneAppPerSuite with RolledBackDb =>
     )
     _ <- setOutdatedFlag(auditTaskId, outdated)
   } yield auditTaskId
+
+  /**
+   * An audit the mapper walked partway and left open, of the shape the next-street chooser may pick up again (#5370).
+   *
+   * Separate from [[audit]] because what distinguishes an abandoned walk is exactly the state [[audit]] leaves at its
+   * defaults: an open row carrying where the mapper stopped, which end they started from, and how far they got.
+   *
+   * @param currentLat         Where the mapper stopped; [[insertStreet]]'s streets run along the equator.
+   * @param currentLng         Likewise -- the fraction of a degree here is the fraction of the street walked.
+   * @param reversed           Whether they walked the street from (x2, y2), which fixes the direction for the resume.
+   * @param auditedDistanceM   Metres recorded on the row. Only the client reads it; the queries key on the position.
+   * @param startOffsetM       Set only for a free-exploration drop-in (#4451), which is never resumed as a region task.
+   * @param taskStart          When the walk began, which bounds the no-imagery reports that disqualify it (#4922).
+   * @return                   The new audit_task_id.
+   */
+  protected def abandonedAudit(
+      streetEdgeId: Int,
+      userId: String,
+      currentLat: Double = 0.0,
+      currentLng: Double = 0.0,
+      reversed: Boolean = false,
+      auditedDistanceM: Option[Double] = None,
+      startOffsetM: Option[Double] = None,
+      taskStart: OffsetDateTime = now.minusHours(1)
+  ): DBIO[Int] =
+    auditTaskTableForFixtures.insert(
+      AuditTask(0, None, userId, streetEdgeId, taskStart, taskStart, completed = false, currentLat, currentLng,
+        startPointReversed = reversed, None, None, lowQuality = false, incomplete = false, stale = false,
+        auditedDistanceM = auditedDistanceM, startOffsetM = startOffsetM)
+    )
+
+  /**
+   * A mapper's report that a street had no imagery, which is what leaves their task incomplete for good (#4922).
+   *
+   * @param timestamp When it was filed. Only a report at or after the task's own start disqualifies that task.
+   * @return          The number of rows written.
+   */
+  protected def reportNoImagery(streetEdgeId: Int, userId: String, timestamp: OffsetDateTime = now): DBIO[Int] =
+    sqlu"""INSERT INTO street_edge_issue (street_edge_issue_id, street_edge_id, issue, user_id, ip_address, timestamp)
+           VALUES ((SELECT COALESCE(MAX(street_edge_issue_id), 0) + 1 FROM street_edge_issue),
+                   $streetEdgeId, CAST('PanoNotAvailable' AS street_edge_issue_type), $userId, '0.0.0.0', $timestamp)"""
 
   /** Flips one audit's imagery-freshness flag, the way the nightly sync does. */
   protected def setOutdatedFlag(auditTaskId: Int, outdated: Boolean): DBIO[Int] =
