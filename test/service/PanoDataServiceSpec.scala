@@ -5,8 +5,10 @@ import models.utils.CommonUtils
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import play.api.libs.json.Json
+import service.PanoDataService.Infra3dToken
 
 import java.nio.file.{Files, Path}
+import java.time.OffsetDateTime
 
 /**
  * Pure (no DB, no app boot) unit tests for the label lat/lng estimator (#4765/#4766): the saturating-cotangent
@@ -164,14 +166,17 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
       (LabelPointTable.canvasWidth.toDouble / LabelPointTable.canvasHeight +- 0.002)
   }
 
-  test("the still's URL asks for 640x427 at the labeling POV, with the canvas projection's fov for that zoom") {
+  test("the still's URL asks for 640x427 at the labeling POV and an error code, not a placeholder (#5327)") {
+    // return_error_code is load-bearing for every consumer's fallback: drop it and missing imagery arrives as a 200
+    // grey card that renders like a photo.
     val url = PanoDataService.staticStillUrl("vlX_YTSWIfEkGRYydxIPuA", 183.9990625, -6.5, 1.0, "KEY")
     url shouldBe "https://maps.googleapis.com/maps/api/streetview?pano=vlX_YTSWIfEkGRYydxIPuA" +
-      "&size=640x427&heading=183.9990625&pitch=-6.5&fov=" + PanoDataService.getFov(1.0) + "&key=KEY"
+      "&size=640x427&heading=183.9990625&pitch=-6.5&fov=" + PanoDataService.getFov(1.0) + "&return_error_code=true" +
+      "&key=KEY"
   }
 
   test("the street-endpoint URL is the request the endpoint images have always made") {
-    // Same builder as the still now; the params, not the plumbing, are what may differ between the two.
+    // Same builder and the same error-code ask as the still; the params, not the plumbing, are what may differ.
     PanoDataService.staticLocationUrl(47.6062, -122.3321, 271.5, "KEY") shouldBe
       "https://maps.googleapis.com/maps/api/streetview?location=47.6062,-122.3321&radius=40&source=outdoor" +
       "&size=640x640&heading=271.5&pitch=-10&fov=90&return_error_code=true&key=KEY"
@@ -206,5 +211,22 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
     val zoom3Gap = measured(3) - PanoDataService.getFov(3.0)
     zoom3Gap should be > 0.25
     zoom3Gap should be < 0.45
+  }
+
+  test("Infra3d token: re-minted when absent or inside the minimum-remaining window, reused otherwise") {
+    val now = OffsetDateTime.parse("2026-09-16T12:00:00Z")
+    PanoDataService.infra3dTokenNeedsRemint(None, now) shouldBe true
+    PanoDataService.infra3dTokenNeedsRemint(Some(Infra3dToken("t", now.plusMinutes(14))), now) shouldBe true
+    PanoDataService.infra3dTokenNeedsRemint(Some(Infra3dToken("t", now.plusMinutes(16))), now) shouldBe false
+    // An already-expired token is the case that produced black viewers; it must never be reused.
+    PanoDataService.infra3dTokenNeedsRemint(Some(Infra3dToken("t", now.minusMinutes(1))), now) shouldBe true
+  }
+
+  test("Infra3d token response: expiry dated from the request, defaulting to Cognito's hour") {
+    val now = OffsetDateTime.parse("2026-09-16T12:00:00Z")
+    PanoDataService.parseInfra3dTokenResponse(Json.obj("access_token" -> "abc", "expires_in" -> 1800), now) shouldBe
+      Infra3dToken("abc", now.plusMinutes(30))
+    PanoDataService.parseInfra3dTokenResponse(Json.obj("access_token" -> "abc"), now) shouldBe
+      Infra3dToken("abc", now.plusHours(1))
   }
 }

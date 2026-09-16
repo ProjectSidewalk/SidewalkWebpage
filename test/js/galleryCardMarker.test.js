@@ -20,6 +20,9 @@ const CARD_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/gallery/src/cards/Card.js'), 'utf8'
 );
 
+/** What the source-logo and licence-line stubs were last told: the card owes a credit on a crop and nothing else. */
+const credit = { logo: null, attribution: null };
+
 /** One label payload, shaped like an entry from POST /label/labels; the click sits at 1/4, 3/4 of the canvas. */
 function label(overrides = {}) {
     return {
@@ -42,11 +45,12 @@ describe('a Gallery card\'s label marker', () => {
      * Renders a card into the document.
      * @param {?string} cropUrl The crop image URL, or null for a card with no crop.
      * @param {?{x: number, y: number}} cropMarker Where the label is in the crop, or null.
+     * @param {?string} gsvImageUrl The Street View still's URL, or null for non-GSV imagery.
      * @returns {Card} The card under test.
      */
-    function renderCard(cropUrl, cropMarker) {
+    function renderCard(cropUrl, cropMarker, gsvImageUrl = 'https://maps.example/still.jpg') {
         document.body.innerHTML = '<div id="cards"></div>';
-        const card = new window.Card(label(), cropUrl, 'https://maps.example/still.jpg', cropMarker);
+        const card = new window.Card(label(), cropUrl, gsvImageUrl, cropMarker);
         card.render(document.getElementById('cards'));
         return card;
     }
@@ -66,14 +70,22 @@ describe('a Gallery card\'s label marker', () => {
         window.ValidationInfoDisplay = class {};
         window.ValidationMenu = class {};
         window.TagDisplay = class {};
-        window.createPanoViewerLogo = () => ({ showSourceLogo: () => {} });
-        window.createPanoAttribution = () => ({ show: () => {} });
+        window.createPanoViewerLogo = () => ({
+            showSourceLogo: () => { credit.logo = 'shown'; },
+            hide: () => { credit.logo = 'hidden'; },
+        });
+        window.createPanoAttribution = () => ({
+            show: () => { credit.attribution = 'shown'; },
+            hide: () => { credit.attribution = 'hidden'; },
+        });
         window.$ = () => ({ tooltip: () => ({ tooltip: () => {} }) });
         window.eval(`${CARD_SRC}\nwindow.Card = Card;`);
     });
 
     beforeEach(() => {
         window.sg = { regionNames: {}, tracker: { push: jest.fn() } };
+        credit.logo = null;
+        credit.attribution = null;
     });
 
     it('draws the marker where the crop says its label is', () => {
@@ -94,6 +106,15 @@ describe('a Gallery card\'s label marker', () => {
         expect(markerPercents()).toEqual({ left: 25, top: 75 });
     });
 
+    // A crop is our own cut of the panorama, so it owes a credit; the still arrives with Google's logo and © baked in.
+    it('credits a crop but leaves the still to Google', () => {
+        renderCard('/cropImage/CurbRamp/1', { x: 0.5, y: 0.62 });
+        expect(credit).toEqual({ logo: 'shown', attribution: 'shown' });
+
+        renderCard(null, null);
+        expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' });
+    });
+
     it('moves the marker to the canvas fraction when the crop fails and the still takes its place', async () => {
         const card = renderCard('/cropImage/CurbRamp/1', { x: 0.5, y: 0.62 });
         expect(markerPercents()).toEqual({ left: 50, top: 62 });
@@ -106,6 +127,74 @@ describe('a Gallery card\'s label marker', () => {
 
         expect(card.getStatus().imageSource).toBe('api');
         expect(markerPercents()).toEqual({ left: 25, top: 75 });
+        expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' }); // The still brands itself.
+    });
+
+    // With `return_error_code` on the still (#5327) an expired pano 404s instead of answering with a grey "no
+    // imagery" card, so a card that has lost its crop as well has nothing to show and no place to point.
+    it('hides the image and the marker when neither the crop nor the still loads', async () => {
+        const card = renderCard('/cropImage/CurbRamp/1', { x: 0.5, y: 0.62 });
+
+        const loaded = card.loadImage();
+        const img = document.querySelector('.static-gallery-image');
+        img.onerror(); // The crop 404s; the card retries with the still.
+        img.onerror(); // The still 404s too.
+        await expect(loaded).resolves.toBe(false);
+
+        expect(img.classList.contains('static-gallery-image--missing')).toBe(true);
+        expect(img.getAttribute('aria-hidden')).toBe('true'); // Its alt would describe a picture that isn't there.
+        expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(true);
+        expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' }); // Nothing is owed on no image.
+    });
+
+    // The container loads every card again on each page and filter render, so a transient failure (a crop 502 during
+    // a deploy, a Static API 5xx) must not blank the card for the rest of the visit.
+    it('shows the image again when a retry after a total failure loads the crop', async () => {
+        const card = renderCard('/cropImage/CurbRamp/1', { x: 0.5, y: 0.62 });
+        const img = document.querySelector('.static-gallery-image');
+        const failed = card.loadImage();
+        img.onerror();
+        img.onerror();
+        await expect(failed).resolves.toBe(false);
+        expect(card.getStatus().imageSource).toBe('api');
+
+        const retried = card.loadImage();
+        img.onload();
+        await expect(retried).resolves.toBe(true);
+
+        expect(img.classList.contains('static-gallery-image--missing')).toBe(false);
+        expect(img.hasAttribute('aria-hidden')).toBe(false);
+        expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(false);
+        // The retry starts over from the crop, so the marker and the credit are the crop's again.
+        expect(card.getStatus().imageSource).toBe('crop');
+        expect(markerPercents()).toEqual({ left: 50, top: 62 });
+        expect(credit).toEqual({ logo: 'shown', attribution: 'shown' });
+    });
+
+    it('hides them on the first failure for non-GSV imagery, whose crop is the only source', async () => {
+        const card = renderCard('/cropImage/CurbRamp/1', { x: 0.5, y: 0.62 }, null);
+
+        const loaded = card.loadImage();
+        const img = document.querySelector('.static-gallery-image');
+        img.onerror();
+        await expect(loaded).resolves.toBe(false);
+
+        expect(img.classList.contains('static-gallery-image--missing')).toBe(true);
+        expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(true);
+        expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' });
+    });
+
+    it('leaves the image and marker visible once a source loads', async () => {
+        const card = renderCard('/cropImage/CurbRamp/1', { x: 0.5, y: 0.62 });
+
+        const loaded = card.loadImage();
+        const img = document.querySelector('.static-gallery-image');
+        img.onload();
+        await expect(loaded).resolves.toBe(true);
+
+        expect(img.classList.contains('static-gallery-image--missing')).toBe(false);
+        expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(false);
+        expect(credit).toEqual({ logo: 'shown', attribution: 'shown' });
     });
 
     it('hands the crop marker on to whoever opens the label', () => {

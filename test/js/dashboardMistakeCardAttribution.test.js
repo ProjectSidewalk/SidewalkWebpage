@@ -107,17 +107,30 @@ describe('the dashboard mistake card\'s imagery credit', () => {
   });
 
   // Only a Street View label has a still to fall back to -- the server sends no image_url for any other source -- and
-  // that still is the same panorama as the crop, so the credit already showing is still the right one.
-  it('keeps the credit up when an expired crop falls back to the still', async () => {
+  // Google bakes its own logo and copyright into that still, so ours on top printed the name twice.
+  it('takes our credit down when an expired crop falls back to the still, which Google brands itself', async () => {
     mistakes = [mistake({
       pano_source: 'gsv', image_url: GSV_URL, attribution: { holder: '© 2025 Google', provider: null, license: null },
     })];
     await renderGallery();
+    expect(logo().style.display).toBe('flex');
 
     photo().dispatchEvent(new window.Event('error'));
 
     expect(photo().src).toContain(GSV_URL);
-    expect(logo().style.display).toBe('flex');
+    expect(logo().style.display).toBe('none');
+  });
+
+  it('shows no credit of ours on a card that starts on the still', async () => {
+    mistakes = [mistake({
+      pano_source: 'gsv', crop_url: null, image_url: GSV_URL,
+      attribution: { holder: '© 2025 Google', provider: null, license: null },
+    })];
+    await renderGallery();
+
+    expect(photo().src).toContain(GSV_URL);
+    expect(logo().style.display).toBe('none');
+    expect(attribution().hidden).toBe(true);
   });
 
   // A Mapillary crop has no still behind it, so an expired one leaves the card with no image and no credit.

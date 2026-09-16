@@ -19,6 +19,9 @@ const GRID_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/LandingValidationGrid.js'), 'utf8'
 );
 
+/** What the source-logo and licence-line stubs were last told: the card owes a credit on a crop and nothing else. */
+const credit = { logo: null, attribution: null };
+
 /** One /label/labels entry; the click sits at 1/4, 3/4 of the 720x480 Explore canvas. */
 function entry(overrides = {}) {
     return {
@@ -46,6 +49,8 @@ describe('the landing validation grid\'s label marker', () => {
      * @param {Object} gridEntry - The /label/labels entry to render.
      */
     async function renderGrid(gridEntry) {
+        credit.logo = null;
+        credit.attribution = null;
         document.body.innerHTML = `
             <section id="landing-validation-container" hidden>
               <div id="landing-validation-grid"></div>
@@ -79,8 +84,14 @@ describe('the landing validation grid\'s label marker', () => {
         window.logWebpageActivity = jest.fn();
         // jsdom has no layout, so it has no matchMedia; the grid asks it how many slots this width shows.
         window.matchMedia = () => ({ matches: false });
-        window.createPanoViewerLogo = () => ({ showSourceLogo: () => {} });
-        window.createPanoAttribution = () => ({ show: () => {} });
+        window.createPanoViewerLogo = () => ({
+            showSourceLogo: () => { credit.logo = 'shown'; },
+            hide: () => { credit.logo = 'hidden'; },
+        });
+        window.createPanoAttribution = () => ({
+            show: () => { credit.attribution = 'shown'; },
+            hide: () => { credit.attribution = 'hidden'; },
+        });
         window.eval(`${GRID_SRC}\nwindow.LandingValidationGrid = LandingValidationGrid;`);
     });
 
@@ -88,6 +99,7 @@ describe('the landing validation grid\'s label marker', () => {
         await renderGrid(entry());
 
         expect(markerPercents()).toEqual({ left: 50, top: 62 });
+        expect(credit).toEqual({ logo: 'shown', attribution: 'shown' }); // Our own cut of the panorama owes a credit.
     });
 
     it('falls back to the canvas fraction for a crop nothing has recorded yet', async () => {
@@ -100,6 +112,8 @@ describe('the landing validation grid\'s label marker', () => {
         await renderGrid(entry({ cropUrl: null, cropMarker: null }));
 
         expect(markerPercents()).toEqual({ left: 25, top: 75 });
+        // Google bakes its logo and copyright into the still; a second logo on top printed the name twice.
+        expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' });
     });
 
     it('moves the marker to the canvas fraction when the crop fails and the still takes its place', async () => {
@@ -111,6 +125,35 @@ describe('the landing validation grid\'s label marker', () => {
 
         expect(document.querySelector('.lvg-card').dataset.imageSource).toBe('api');
         expect(markerPercents()).toEqual({ left: 25, top: 75 });
+        expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' }); // The still brands itself.
+    });
+
+    // With `return_error_code` on the still (#5327) an expired pano 404s instead of answering with a grey "no
+    // imagery" card, so a card that has lost its crop as well is dead weight, and the grid swaps in the next label.
+    it('swaps the card for a fresh label when the still fails after the crop', async () => {
+        await renderGrid(entry());
+        const card = document.querySelector('.lvg-card');
+        const img = card.querySelector('.lvg-card-photo');
+        // The pool is empty after the first render, so the swap refills it; the refill returns the next label.
+        window.fetch = jest.fn(() => Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ labelsOfType: [entry({
+                label: { ...entry().label, label_id: 2 }, cropUrl: '/cropImage/CurbRamp/2',
+            })] }),
+        }));
+
+        img.dispatchEvent(new window.Event('error')); // The crop 404s; the card retries with the still.
+        img.dispatchEvent(new window.Event('error')); // The still 404s too.
+        await new Promise((resolve) => setTimeout(resolve, 0)); // The refill's fetch and json both settle.
+
+        expect(document.contains(card)).toBe(false);
+        const cards = document.querySelectorAll('.lvg-card');
+        expect(cards).toHaveLength(1);
+        expect(cards[0].querySelector('.lvg-card-photo').src).toContain('/cropImage/CurbRamp/2');
+        expect(cards[0].dataset.imageSource).toBe('crop');
+        // The refill asks for labels the page has not shown, so the same expired one cannot come straight back.
+        expect(JSON.parse(window.fetch.mock.calls[0][1].body).loaded_labels).toEqual([1]);
+        expect(document.getElementById('landing-validation-container').hidden).toBe(false);
     });
 
     it('reports the position it drew, not the canvas fraction, with the validation', async () => {

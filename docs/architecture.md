@@ -127,7 +127,8 @@ Imagery Project Sidewalk shows a copy of — a self-hosted pano or a crop — ca
 `ImageryAttribution` composes (Mapillary contributors are CC BY-SA 4.0), rendered by `PanoAttribution.js` alongside
 the source logo `PanoViewerLogo.js` draws: in the label-detail pano box, in Validate's Pannellum fallback, and on
 every card that shows a crop — the Gallery card, the landing validation grid, and the dashboard's mistake cards
-(`css/components/pano-attribution.css` is the shared look; each host positions the pill).
+(`css/components/pano-attribution.css` is the shared look; each host positions the pill). A card that falls back to
+the Street View Static API still drops the overlay: Google bakes its own logo and copyright into that image.
 
 If either category outgrows its lane — thousands of files, multi-MB originals, a CDN or on-the-fly transforms in
 front — the move is to object storage (S3/MinIO), never the local filesystem.
@@ -298,6 +299,11 @@ corresponding Twirl view:
   constructed, hidden or not, and most visits to a hosting page never open a label (#5128). Only the free library
   download is scheduled early (`PanoViewer.preloadLibrary`). Deferring the build moves that cost to the first open,
   where the user is watching, so the card covers the wait with `.label-detail__pano-loading` until imagery paints.
+  Infra3d's access token is minted server-side (`PanoDataService.getInfra3dToken`: an hour-long Cognito token, cached
+  until it nears expiry), stamped into the page once, and renewed in place by `Infra3dViewer` through
+  `GET /imageryAccessToken` five minutes before it expires, since the SDK has no refresh flow of its own. Failures
+  inside a viewer that no return value carries reach the logs through `PanoViewer._fireDiagnostic`
+  (`docs/logged-events.md`).
 
 There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
 libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`

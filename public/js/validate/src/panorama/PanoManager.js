@@ -79,6 +79,9 @@ class PanoManager {
 
     this.#primaryViewer = await panoViewerType.create(this.#panoCanvas, panoOptions);
     svv.panoViewer = this.#primaryViewer;
+    // Viewer-internal failures are logged so a black-viewer report can be diagnosed from the database. Validate has
+    // no alert banner; its per-label Pannellum fallback is what the labeler sees when the primary viewer stops.
+    this.#primaryViewer.addListener('diagnostic', (name, details) => svv.tracker.push(`PanoViewer_${name}`, details));
 
     // Set up the imagery source logo. #showPannellumPano will override it if Pannellum takes over below.
     this.#logo = createPanoViewerLogo(this.#panoCanvas.parentElement, panoViewerType.SOURCE);
