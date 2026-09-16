@@ -140,7 +140,8 @@ class Infra3dViewer extends PanoViewer {
    * Reloads the page once for an initViewer that never came up, or throws if this tab already tried that. Logged via
    * webpage_activity because no viewer exists yet for a tracker; its synchronous default matters, a reload follows.
    * @param {*} err - What the init race rejected with.
-   * @returns {Promise<never>} Either reloads the page or throws.
+   * @returns {Promise<void>} Throws on the give-up path; on the reload path it never settles, since reload() doesn't
+   *     halt the script and nothing below the call can run without a viewer.
    */
   static async #recoverFromInitFailure(err) {
     const alreadyReloaded = Infra3dViewer.#readInitReloadFlag();
@@ -151,7 +152,7 @@ class Infra3dViewer extends PanoViewer {
     }
     Infra3dViewer.#setInitReloadFlag(true);
     window.location.reload();
-    await new Promise(() => {}); // reload() doesn't halt the script, and nothing below can run without a viewer.
+    await new Promise(() => {});
   }
 
   static #readInitReloadFlag() {

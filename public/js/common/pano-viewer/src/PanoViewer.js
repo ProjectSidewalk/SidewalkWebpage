@@ -478,7 +478,9 @@ class PanoViewer {
     } else if (event === 'pov_changed') {
       this.povChangedListeners.push(handler);
     } else if (event === 'diagnostic') {
-      this.diagnosticListeners.push(handler);
+      this.diagnosticListeners.push(
+        /** @type {(name: string, details: Record<string, string>) => void} */ (handler),
+      );
     }
   }
 
