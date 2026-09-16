@@ -120,7 +120,8 @@ make onboard-city id=<city-id>
 
 It shows the report and preflight, asks for the display name, country/state, provider, status (default private),
 launch date (the Friday of next week), and URLs; registers the city in `conf/cityparams.conf`, `conf/messages`, and
-the docs City IDs table; creates GA properties when `ga-service-account.json` is present; clones a donor schema
+the docs City IDs table; creates GA properties when `ga-service-account.json` is present; asks to add both hostnames to the **live production
+Maps key** (skipped with a pointer when gcloud can't edit it); clones a donor schema
 (the dev container's city by default — refused, with the schemas that disagree named, if its top evolution is another
 branch's under the same number, i.e. its hash is neither the file's nor the other schemas'; pass `--donor` then);
 boots the app once to apply any missing evolutions — and, right after a clone, to let Play verify every applied
@@ -168,9 +169,9 @@ Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, ce
 ## 6. Hand it off
 
 Follow the checklist the orchestrator prints: dump to the server (`scp` to `<netid>@makelab1.cs.washington.edu`,
-renamed to `<schema>-empty-dump` at the destination), the IT tooling's `setup-new.pl`, Maps-key referrers (step 2 adds
-them when gcloud can reach the key; otherwise `python3 tools/maps_key_referrers.py <city-id>`), DNS, then
-the PR (configs + messages + docs). Point the maintainer at the QA items only a person can do: open the landing page
+renamed to `<schema>-empty-dump` at the destination), the IT tooling's `setup-new.pl`, Maps-key referrers (step 2
+asks before adding them to the live production key; if gcloud can't edit it, `python3 tools/maps_key_referrers.py
+<city-id>`), DNS, then the PR (configs + messages + docs). Point the maintainer at the QA items only a person can do: open the landing page
 as the new city (map centered, neighborhood names right), walk one street in Explore on the chosen imagery, check the
 Explore tag lists against `excluded_tags`. That walk leaves an `audit_task`, thousands of interaction rows and a
 moved `audited_distance` in the schema, so **after local QA, dump again**: `make onboard-city id=<city-id>

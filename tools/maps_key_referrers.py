@@ -3,23 +3,23 @@ Adds a city's test and prod hostnames to the production Google Maps key's allowe
 in cityparams.conf is already on it (#5339).
 
 The key only answers pages whose hostname is on its referrer list, so a city left off it loads with a broken map and
-no panos. `make onboard-city` runs this as part of step 2 when gcloud is signed in to an account that can see the
-key; standalone:
+no panos. `make onboard-city` offers to run this in step 2; standalone:
 
     python3 tools/maps_key_referrers.py newport-ky            # add the city's two hostnames
     python3 tools/maps_key_referrers.py newport-ky --dry-run  # show what would be added, change nothing
     python3 tools/maps_key_referrers.py --check               # list every city missing from the key
 
-One-time setup: install the gcloud CLI and `gcloud auth login` as the Google identity that owns the production GCP
-project (docs/google-cloud.md). The project and key are found by their console names, so no ids live in this repo.
-Adding is the only write, and it appends: existing referrers and the key's API restrictions are never touched. It
-needs a gcloud recent enough to have `api-keys update --append` (`gcloud components update`).
+Exit status: 0 on success (for --check, nothing missing), 1 when --check finds hostnames missing, 2 on an error.
+
+One-time setup: install the gcloud CLI and `gcloud auth login` as a Google identity that can edit API keys in the
+production GCP project (docs/google-cloud.md). The project and key are found by their console names, so no ids live in
+this repo. Adding is the only write, and it appends: existing referrers and the key's API restrictions are never
+touched. It needs a gcloud recent enough to have `api-keys update --append` (`gcloud components update`).
 """
 
 import argparse
 import json
 import re
-import shutil
 import subprocess
 import sys
 from urllib.parse import urlparse
@@ -28,24 +28,35 @@ import setup_new_city
 
 PROJECT_NAME = 'Project Sidewalk'
 KEY_NAME = 'main API key'
+GCLOUD_TIMEOUT_SECONDS = 120
 
 CITYPARAMS = setup_new_city.CITYPARAMS
 
 
-def gcloud(*args, required=False):
-    """
-    Runs a gcloud command.
+class MapsKeyError(Exception):
+    """The key could not be read or edited; the message says why."""
 
-    Args:
-        required: Stop the run, showing gcloud's error, when the command fails.
+
+def gcloud(*args):
+    """
+    Runs a gcloud command without letting it ask anything, since its output is captured and a question would hang.
 
     Returns:
-        Its trimmed stdout, or None when the command fails.
+        Its trimmed stdout.
+
+    Raises:
+        MapsKeyError: gcloud is missing, failed (with its own error text), or ran past the timeout.
     """
-    result = subprocess.run(['gcloud', *args], capture_output=True, text=True)
-    if result.returncode != 0 and required:
-        sys.exit(f'error: `gcloud {" ".join(args[:3])} ...` failed:\n{result.stderr.strip()}')
-    return result.stdout.strip() if result.returncode == 0 else None
+    try:
+        result = subprocess.run(['gcloud', *args, '--quiet'], capture_output=True, text=True,
+                                stdin=subprocess.DEVNULL, timeout=GCLOUD_TIMEOUT_SECONDS)
+    except FileNotFoundError:
+        raise MapsKeyError('gcloud is not installed')
+    except subprocess.TimeoutExpired:
+        raise MapsKeyError(f'`gcloud {" ".join(args[:3])}` took over {GCLOUD_TIMEOUT_SECONDS} seconds')
+    if result.returncode != 0:
+        raise MapsKeyError(f'`gcloud {" ".join(args[:3])}` failed: {result.stderr.strip()}')
+    return result.stdout.strip()
 
 
 def find_key():
@@ -53,38 +64,24 @@ def find_key():
     Finds the production Maps key by the console names of its project and key.
 
     Returns:
-        ``(project_id, key_resource_name)``, or a string saying why the key could not be reached.
+        ``(project_id, key)``, where ``key`` is the API Keys resource as gcloud lists it.
     """
-    if shutil.which('gcloud') is None:
-        return 'gcloud is not installed'
-    projects = gcloud('projects', 'list', f'--filter=name="{PROJECT_NAME}"', '--format=value(projectId)')
-    if not projects:
-        return f'the signed-in gcloud account cannot see a GCP project named "{PROJECT_NAME}" (gcloud auth login)'
-    if len(projects.split()) > 1:
-        return f'more than one GCP project is named "{PROJECT_NAME}"'
-    keys = gcloud('services', 'api-keys', 'list', f'--project={projects}', f'--filter=displayName="{KEY_NAME}"',
-                  '--format=value(name)')
-    if not keys or len(keys.split()) > 1:
-        return f'expected exactly one key named "{KEY_NAME}" in {PROJECT_NAME}, found {len((keys or "").split())}'
-    return projects, keys
+    projects = gcloud('projects', 'list', f'--filter=name="{PROJECT_NAME}"', '--format=value(projectId)').split()
+    if len(projects) != 1:
+        raise MapsKeyError(f'expected one GCP project named "{PROJECT_NAME}" visible to the signed-in gcloud account '
+                           f'(gcloud auth login), found {len(projects)}')
+    keys = json.loads(gcloud('services', 'api-keys', 'list', f'--project={projects[0]}',
+                             f'--filter=displayName="{KEY_NAME}"', '--format=json') or '[]')
+    if len(keys) != 1:
+        raise MapsKeyError(f'expected one key named "{KEY_NAME}" in {PROJECT_NAME}, found {len(keys)}')
+    return projects[0], keys[0]
 
 
-def reachable_key():
-    """``find_key()``'s result for a caller that cannot go on without the key."""
-    key = find_key()
-    if isinstance(key, str):
-        sys.exit(f'error: {key}.')
-    return key
-
-
-def current_referrers(key):
-    """The key's allowed referrers; stops the run when the key has none, since that means it is unrestricted."""
-    project_id, key_name = key
-    described = json.loads(gcloud('services', 'api-keys', 'describe', key_name, f'--project={project_id}',
-                                  '--format=json', required=True))
-    referrers = described.get('restrictions', {}).get('browserKeyRestrictions', {}).get('allowedReferrers', [])
+def referrers_of(key):
+    """The key's allowed referrers; an empty list would mean an unrestricted key, which is not the one we expect."""
+    referrers = key.get('restrictions', {}).get('browserKeyRestrictions', {}).get('allowedReferrers', [])
     if not referrers:
-        sys.exit(f'error: "{KEY_NAME}" has no referrer restrictions; refusing to use it.')
+        raise MapsKeyError(f'"{KEY_NAME}" has no referrer restrictions; refusing to use it')
     return referrers
 
 
@@ -92,9 +89,10 @@ def covered_hosts(referrers):
     """
     The hostnames a referrer list lets load every page of.
 
-    The list mixes `https://host`, `host` and `host/*`; all three cover a whole site because browsers send only the
-    origin to Google. An entry pinned to a deeper path covers just that path, so it doesn't count. A `*.` wildcard
-    stays in the set as written, and ``is_covered`` matches it.
+    The list mixes `https://host`, `host` and `host/*`. All three cover a whole site because our pages send only their
+    origin to Google (Play's Referrer-Policy is origin-when-cross-origin), and cities listed the first two ways load
+    fine. An entry pinned to a deeper path covers just that path, so it doesn't count. A `*.` wildcard stays in the
+    set as written, and ``is_covered`` matches it.
     """
     hosts = set()
     for referrer in referrers:
@@ -109,57 +107,60 @@ def is_covered(host, hosts):
 
 
 def missing_referrers(referrers, urls):
-    """The `host/*` entries to add so that every URL's hostname is covered, in the order given, without repeats."""
+    """
+    The `host/*` entries to add so that every URL's hostname is covered, in the order given, without repeats.
+
+    Raises:
+        MapsKeyError: a URL has no hostname, which would otherwise pass as covered.
+    """
     hosts = covered_hosts(referrers)
     missing = []
     for url in urls:
         host = urlparse(url).hostname
+        if not host:
+            raise MapsKeyError(f'"{url}" is not a URL with a hostname')
         entry = f'{host}/*'
-        if host and not is_covered(host, hosts) and entry not in missing:
+        if not is_covered(host, hosts) and entry not in missing:
             missing.append(entry)
     return missing
 
 
-def city_urls(city_id):
-    """The city's prod and test landing-page URLs; stops the run when cityparams.conf has no entry for either."""
-    lines = CITYPARAMS.read_text().split('\n')
-    return [setup_new_city.cityparams_value(lines, ['landing-page-url', stage], city_id) for stage in ('prod', 'test')]
-
-
 def all_city_urls():
-    """Every city's landing-page URLs, as ``[(city_id, url), ...]``."""
+    """Every city's landing-page URLs in cityparams.conf, as ``[(city_id, url), ...]``."""
     lines = CITYPARAMS.read_text().split('\n')
     pairs = []
     for stage in ('prod', 'test'):
         start, close = setup_new_city.find_block(lines, 'landing-page-url')
         start, close = setup_new_city.find_block(lines, stage, start)
-        pairs += re.findall(r'^\s*([a-z0-9-]+)\s*=\s*"(https?://[^"]+)"', '\n'.join(lines[start + 1:close]), re.M)
+        text = '\n'.join(lines[start + 1:close])
+        pairs += [(city_id, value.strip('"')) for city_id, value in re.findall(r'^\s*([a-z0-9-]+)\s*=\s*(.+?)\s*$',
+                                                                               text, re.M)]
     return pairs
 
 
-def add_for_city(city_id, dry_run=False, key=None):
-    """
-    Adds the city's missing hostnames to the key.
+def missing_for_city(city_id, key):
+    """The entries the city still needs on ``key``; a URL missing from cityparams.conf raises."""
+    return missing_referrers(referrers_of(key), setup_new_city.cityparams_landing_urls(city_id))
 
-    Args:
-        city_id: A city already registered in cityparams.conf.
-        dry_run: Print what would be added and change nothing.
-        key:     ``find_key()``'s result, when the caller already looked it up.
-    """
-    urls = city_urls(city_id)
-    key = key or reachable_key()
-    to_add = missing_referrers(current_referrers(key), urls)
+
+def append_referrers(project_id, key, entries):
+    """Adds ``entries`` to the key."""
+    # Without --append, gcloud replaces the whole list, dropping every other city.
+    gcloud('services', 'api-keys', 'update', key['name'], f'--project={project_id}', '--append',
+           f'--allowed-referrers={",".join(entries)}')
+    print(f'  Added to the Maps key: {", ".join(entries)} (Google can take a few minutes to apply it).')
+
+
+def add_for_city(city_id, dry_run=False):
+    """Adds the city's missing hostnames to the key, or with ``dry_run`` only prints them."""
+    project_id, key = find_key()
+    to_add = missing_for_city(city_id, key)
     if not to_add:
         print(f'  Both of {city_id}\'s hostnames are already on the Maps key.')
-        return
-    if dry_run:
+    elif dry_run:
         print(f'  [dry-run] would add to the Maps key: {", ".join(to_add)}')
-        return
-    # Without --append, gcloud replaces the whole list, dropping every other city.
-    project_id, key_name = key
-    gcloud('services', 'api-keys', 'update', key_name, f'--project={project_id}', '--append',
-           f'--allowed-referrers={",".join(to_add)}', required=True)
-    print(f'  Added to the Maps key: {", ".join(to_add)} (Google can take a few minutes to apply it).')
+    else:
+        append_referrers(project_id, key, to_add)
 
 
 def check_all():
@@ -167,11 +168,14 @@ def check_all():
     Prints every city hostname missing from the key.
 
     Returns:
-        The number of missing hostnames.
+        The number of distinct missing hostnames.
     """
-    referrers = current_referrers(reachable_key())
-    missing = [(city_id, entry) for city_id, url in all_city_urls() for entry in missing_referrers(referrers, [url])]
-    for city_id, entry in missing:
+    referrers = referrers_of(find_key()[1])
+    missing = {}
+    for city_id, url in all_city_urls():
+        for entry in missing_referrers(referrers, [url]):
+            missing.setdefault(entry, city_id)
+    for entry, city_id in missing.items():
         print(f'  {city_id}: {entry}')
     if not missing:
         print('  Every landing-page URL in cityparams.conf is on the Maps key.')
@@ -186,10 +190,16 @@ def main(argv=None):
                         help='List every city hostname missing from the key, changing nothing; exits 1 if any.')
     args = parser.parse_args(argv)
     if args.check == bool(args.city_id):
-        parser.error('pass a city id or --check, not both')
-    if args.check:
-        sys.exit(1 if check_all() else 0)
-    add_for_city(args.city_id, args.dry_run)
+        parser.error('pass either a city id or --check')
+    if args.check and args.dry_run:
+        parser.error('--check never changes anything; drop --dry-run')
+    try:
+        if args.check:
+            sys.exit(1 if check_all() else 0)
+        add_for_city(args.city_id, args.dry_run)
+    except MapsKeyError as err:
+        print(f'error: {err}.', file=sys.stderr)
+        sys.exit(2)
 
 
 if __name__ == '__main__':

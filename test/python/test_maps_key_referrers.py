@@ -7,6 +7,7 @@ Stdlib-only, so it runs in both interpreter halves.
 
 import json
 import shutil
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -19,30 +20,30 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 REFERRERS = ['https://sidewalk-a.cs.washington.edu', 'sidewalk-a-test.cs.washington.edu/*',
              'sidewalk-b.cs.washington.edu', 'sidewalk-c.cs.washington.edu/admin']
+KEY = {'name': 'projects/1/locations/global/keys/k',
+       'restrictions': {'browserKeyRestrictions': {'allowedReferrers': REFERRERS},
+                        'apiTargets': [{'service': 'maps-backend.googleapis.com'}]}}
+
+
+def _fake_run(monkeypatch, answers):
+    """Answers gcloud by its first argument (``projects`` or ``services``) and records every call."""
+    calls = []
+
+    def run(argv, **kwargs):
+        calls.append(argv)
+        answer = answers.get(argv[3] if argv[1] == 'services' else argv[1], '')
+        if isinstance(answer, BaseException):
+            raise answer
+        code, out = answer if isinstance(answer, tuple) else (0, answer)
+        return SimpleNamespace(returncode=code, stdout=out, stderr='boom' if code else '')
+
+    monkeypatch.setattr(mkr.subprocess, 'run', run)
+    return calls
 
 
 @pytest.fixture
 def fake_gcloud(monkeypatch):
-    """Answers gcloud with one project, one key carrying ``REFERRERS``, and records every call."""
-    calls = []
-
-    def run(argv, capture_output, text):
-        calls.append(argv)
-        args = argv[1:]
-        if args[:2] == ['projects', 'list']:
-            out = 'proj-1'
-        elif args[:3] == ['services', 'api-keys', 'list']:
-            out = 'projects/1/locations/global/keys/k'
-        elif args[:3] == ['services', 'api-keys', 'describe']:
-            out = json.dumps({'restrictions': {'browserKeyRestrictions': {'allowedReferrers': REFERRERS},
-                                               'apiTargets': [{'service': 'maps-backend.googleapis.com'}]}})
-        else:
-            out = ''
-        return SimpleNamespace(returncode=0, stdout=out, stderr='')
-
-    monkeypatch.setattr(mkr.shutil, 'which', lambda name: '/usr/bin/gcloud')
-    monkeypatch.setattr(mkr.subprocess, 'run', run)
-    return calls
+    return _fake_run(monkeypatch, {'projects': 'proj-1', 'list': json.dumps([KEY])})
 
 
 @pytest.fixture
@@ -63,41 +64,48 @@ def test_every_referrer_form_that_covers_a_whole_site_counts():
                                             'sidewalk-b.cs.washington.edu'}
 
 
-def test_missing_referrers_skips_covered_hosts_and_repeats():
+def test_missing_referrers_skips_covered_hosts_and_repeats_and_refuses_a_non_url():
     urls = ['https://sidewalk-a.cs.washington.edu', 'https://sidewalk-b.cs.washington.edu/',
             'https://sidewalk-c.cs.washington.edu', 'https://sidewalk-c.cs.washington.edu']
     assert mkr.missing_referrers(REFERRERS, urls) == ['sidewalk-c.cs.washington.edu/*']
     assert mkr.missing_referrers(['*.cs.washington.edu/*'], urls) == []
+    with pytest.raises(mkr.MapsKeyError, match='not a URL'):
+        mkr.missing_referrers(REFERRERS, ['sidewalk-d.cs.washington.edu'])
 
 
-def test_all_city_urls_reads_both_stages_and_skips_the_local_alias():
+def test_all_city_urls_reads_both_stages():
     pairs = mkr.all_city_urls()
     assert ('laurens-ia', 'https://sidewalk-laurens.cs.washington.edu') in pairs
     assert ('laurens-ia', 'https://sidewalk-laurens-test.cs.washington.edu') in pairs
-    assert all(url.startswith('https://') for _, url in pairs)
 
 
-def test_find_key_explains_what_it_could_not_reach(monkeypatch):
-    monkeypatch.setattr(mkr.shutil, 'which', lambda name: None)
-    assert mkr.find_key() == 'gcloud is not installed'
-    monkeypatch.setattr(mkr.shutil, 'which', lambda name: '/usr/bin/gcloud')
-    monkeypatch.setattr(mkr.subprocess, 'run', lambda *a, **k: SimpleNamespace(returncode=1, stdout='', stderr='no'))
-    assert 'cannot see a GCP project' in mkr.find_key()
-    answers = {'projects': 'proj-1\nproj-2'}
-    monkeypatch.setattr(mkr.subprocess, 'run', lambda argv, **k: SimpleNamespace(
-        returncode=0, stdout=answers.get(argv[1], ''), stderr=''))
-    assert 'more than one' in mkr.find_key()
-    answers['projects'] = 'proj-1'
-    assert 'found 0' in mkr.find_key()
-    with pytest.raises(SystemExit, match='found 0'):
-        mkr.reachable_key()
+def test_gcloud_never_prompts_and_reports_why_it_failed(monkeypatch):
+    calls = _fake_run(monkeypatch, {'projects': (1, '')})
+    with pytest.raises(mkr.MapsKeyError, match='failed: boom'):
+        mkr.gcloud('projects', 'list')
+    assert calls[-1][-1] == '--quiet'
+    _fake_run(monkeypatch, {'projects': FileNotFoundError()})
+    with pytest.raises(mkr.MapsKeyError, match='not installed'):
+        mkr.gcloud('projects', 'list')
+    _fake_run(monkeypatch, {'projects': subprocess.TimeoutExpired('gcloud', 1)})
+    with pytest.raises(mkr.MapsKeyError, match='took over'):
+        mkr.gcloud('projects', 'list')
 
 
-def test_a_failed_required_command_stops_with_gclouds_error(monkeypatch):
-    monkeypatch.setattr(mkr.subprocess, 'run', lambda *a, **k: SimpleNamespace(returncode=1, stdout='', stderr='boom'))
-    assert mkr.gcloud('projects', 'list') is None
-    with pytest.raises(SystemExit, match='boom'):
-        mkr.gcloud('services', 'api-keys', 'update', required=True)
+def test_find_key_wants_exactly_one_project_and_key(monkeypatch):
+    _fake_run(monkeypatch, {'projects': 'proj-1\nproj-2'})
+    with pytest.raises(mkr.MapsKeyError, match='found 2'):
+        mkr.find_key()
+    _fake_run(monkeypatch, {'projects': 'proj-1', 'list': ''})
+    with pytest.raises(mkr.MapsKeyError, match='key named "main API key" in Project Sidewalk, found 0'):
+        mkr.find_key()
+    _fake_run(monkeypatch, {'projects': 'proj-1', 'list': json.dumps([KEY])})
+    assert mkr.find_key() == ('proj-1', KEY)
+
+
+def test_an_unrestricted_key_is_refused():
+    with pytest.raises(mkr.MapsKeyError, match='no referrer restrictions'):
+        mkr.referrers_of({'name': 'k'})
 
 
 def test_add_for_city_appends_only_the_missing_hostnames(fake_gcloud, cityparams_copy, capsys):
@@ -113,28 +121,30 @@ def test_add_for_city_appends_only_the_missing_hostnames(fake_gcloud, cityparams
 def test_add_for_city_dry_run_and_covered_city_change_nothing(fake_gcloud, cityparams_copy, capsys, monkeypatch):
     mkr.add_for_city('testville-wa', dry_run=True)
     assert 'would add' in capsys.readouterr().out
-    monkeypatch.setattr(mkr, 'city_urls', lambda city_id: ['https://sidewalk-a.cs.washington.edu'])
+    monkeypatch.setattr(snc, 'cityparams_landing_urls', lambda city_id: ['https://sidewalk-a.cs.washington.edu'])
     mkr.add_for_city('a')
     assert 'already on the Maps key' in capsys.readouterr().out
     assert not any('update' in call for call in fake_gcloud)
 
 
-def test_an_unrestricted_key_is_refused(fake_gcloud, cityparams_copy, monkeypatch):
-    monkeypatch.setattr(mkr.subprocess, 'run', lambda argv, **k: SimpleNamespace(returncode=0, stdout='{}', stderr=''))
-    with pytest.raises(SystemExit, match='no referrer restrictions'):
-        mkr.current_referrers(('proj-1', 'keys/k'))
+def test_a_city_missing_from_cityparams_is_an_error(fake_gcloud, cityparams_copy):
+    with pytest.raises(mkr.MapsKeyError, match='not in cityparams.conf'):
+        mkr.add_for_city('nowhere')
 
 
-def test_check_all_counts_every_uncovered_city(fake_gcloud, cityparams_copy, capsys, monkeypatch):
+def test_check_all_counts_each_missing_hostname_once(fake_gcloud, cityparams_copy, capsys, monkeypatch):
     assert mkr.check_all() > 2
     assert 'testville-wa: sidewalk-testville.cs.washington.edu/*' in capsys.readouterr().out
+    shared = 'https://sidewalk-staging.cs.washington.edu'
+    monkeypatch.setattr(mkr, 'all_city_urls', lambda: [('staging', shared), ('staging', shared)])
+    assert mkr.check_all() == 1
     monkeypatch.setattr(mkr, 'all_city_urls', lambda: [('a', 'https://sidewalk-a.cs.washington.edu')])
     assert mkr.check_all() == 0
     assert 'Every landing-page URL' in capsys.readouterr().out
 
 
-def test_main_takes_a_city_or_check_but_not_both(fake_gcloud, cityparams_copy, monkeypatch):
-    for argv in ([], ['testville-wa', '--check']):
+def test_main_arguments_and_exit_codes(fake_gcloud, cityparams_copy, monkeypatch, capsys):
+    for argv in ([], ['testville-wa', '--check'], ['--check', '--dry-run']):
         with pytest.raises(SystemExit, match='2'):
             mkr.main(argv)
     with pytest.raises(SystemExit, match='1'):
@@ -144,3 +154,6 @@ def test_main_takes_a_city_or_check_but_not_both(fake_gcloud, cityparams_copy, m
         mkr.main(['--check'])
     mkr.main(['testville-wa', '--dry-run'])
     assert not any('update' in call for call in fake_gcloud)
+    with pytest.raises(SystemExit, match='2'):
+        mkr.main(['nowhere'])
+    assert 'error: ' in capsys.readouterr().err

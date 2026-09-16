@@ -13,8 +13,8 @@ It chains every remaining setup step, pausing only where a human is required:
      docs/dev-environment.md — then lists the translation keys a human still owes.
   2. Creates the city's GA4 properties and fills the measurement + property ids (tools/create_ga_properties.py) —
      when the repo-root ga-service-account.json key exists and the ids are still empty; skipped with a pointer
-     otherwise. Then adds the city's hostnames to the production Maps key's referrers (tools/maps_key_referrers.py)
-     when gcloud is signed in to an account that can see the key; skipped with a pointer otherwise.
+     otherwise. Then offers to add the city's hostnames to the production Maps key's referrers
+     (tools/maps_key_referrers.py); when gcloud can't read or edit the key, skipped with a pointer.
   3. Creates the empty city schema by cloning a donor city's structure + seed rows (db/scripts/create-new-schema.sh;
      the donor defaults to the active dev city and is refused if it sits ahead of this checkout's evolutions, or if
      its top evolution is another branch's under the same number — the script gets the file's Play hash to tell).
@@ -374,7 +374,7 @@ Server handoff for {city_id}:
   2. On the server, register the city with the IT tooling (uwcseit-sidewalk-tools: bin/setup-new.pl), which creates the
      DB role, restores the dump into sidewalk_test / sidewalk_prod, and writes the vhost — test stage first.
   3. DNS, and confirm {test_url} and {prod_url} are on the Maps API key's referrers, or the city's map and panos
-     won't load: step 2 adds them when gcloud can reach the key, and `python3 tools/maps_key_referrers.py {city_id}`
+     won't load: step 2 offers to add them, and `python3 tools/maps_key_referrers.py {city_id}`
      adds them otherwise (docs/google-cloud.md).
   4. Open the PR with the config, message, and docs changes; the auto-deploy picks the city up once it lands on
      develop (test) and in a release (prod).
@@ -1040,6 +1040,24 @@ def cityparams_landing_urls(city_id):
                                   missing=f'<{stage} URL: not in cityparams.conf>') for stage in ('prod', 'test'))
 
 
+def offer_maps_key_referrers(city_id):
+    """Asks to add the city's hostnames to the production Maps key, and points at the standalone tool when it can't."""
+    import maps_key_referrers
+    try:
+        project_id, key = maps_key_referrers.find_key()
+        to_add = maps_key_referrers.missing_for_city(city_id, key)
+        if not to_add:
+            print('  Both hostnames are already on the Maps key.')
+        elif prompt(f'  Add {", ".join(to_add)} to the production Maps key? (y/n)', 'y') == 'y':
+            maps_key_referrers.append_referrers(project_id, key, to_add)
+        else:
+            print(f'  Not added; run `python3 tools/maps_key_referrers.py {city_id}` before launch.')
+    except maps_key_referrers.MapsKeyError as err:
+        # Stopping here would strand every rerun at step 2, so a failure only prints the way to finish it later.
+        print(f'  Maps key referrers: skipping, since {err}. Run `python3 tools/maps_key_referrers.py {city_id}` once '
+              'that is fixed, or the city\'s map and panos won\'t load.')
+
+
 def main(argv=None):
     global ASSUME_DEFAULTS
     parser = argparse.ArgumentParser(description='Guided end-to-end new-city setup from onboarding artifacts.')
@@ -1200,13 +1218,7 @@ def main(argv=None):
         print('  GA measurement ids are already filled in; skipping.')
     else:
         create_ga_properties.create_for_city(city_id)
-    import maps_key_referrers
-    key = maps_key_referrers.find_key()
-    if isinstance(key, str):
-        print(f'  Maps key referrers: skipping, since {key}; run `python3 tools/maps_key_referrers.py {city_id}` once '
-              'it can reach the key, or the city\'s map and panos won\'t load.')
-    else:
-        maps_key_referrers.add_for_city(city_id, key=key)
+    offer_maps_key_referrers(city_id)
 
     for container in (DB_CONTAINER, WEB_CONTAINER):
         if not container_up(container):
