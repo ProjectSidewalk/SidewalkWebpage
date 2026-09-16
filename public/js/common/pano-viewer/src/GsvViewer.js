@@ -491,6 +491,9 @@ class GsvViewer extends PanoViewer {
    * The sign alternates so that consecutive nudges cancel: a long session of window drags would otherwise walk the
    * heading away from the one the label was recorded at. The POV is deliberately *not* restored by a second setPov
    * in the same tick — two sets can coalesce into no repaint at all, which is the one outcome this must not have.
+   *
+   * GSV gets a new object rather than the one its getPov() handed back: if that is its live state, editing it in
+   * place would make the set look like a no-op and skip the very frame this exists to force.
    * @returns {void}
    */
   repaint = () => {
@@ -498,9 +501,10 @@ class GsvViewer extends PanoViewer {
     if (!pov) return; // No pano has painted yet, so there is no frame to force.
     this.#repaintSign = -this.#repaintSign;
     const delta = GsvViewer.#REPAINT_NUDGE_DEGREES * this.#repaintSign;
-    pov.heading += delta;
-    pov.pitch += delta;
-    this.gsvPano.setPov(pov);
+    // Cast for the same reason getPov() does: the pov carries zoom, and Google's StreetViewPov type leaves it out.
+    this.gsvPano.setPov(/** @type {google.maps.StreetViewPov} */ ({
+      heading: pov.heading + delta, pitch: pov.pitch + delta, zoom: pov.zoom,
+    }));
   };
 
   /**

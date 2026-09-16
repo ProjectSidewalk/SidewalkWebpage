@@ -27,7 +27,7 @@ class Main {
 
   // Re-sizing the pano is a layout and a viewer redraw, and a rotation fires resize several times as the device
   // settles. Coalescing at about a frame's worth keeps the pano tracking the screen without doing it every event.
-  // Desktop, which rescales on every event, reuses the window for its Window_Resized logging instead.
+  // Desktop, which rescales on every event, uses the same span as the quiet period before it logs Window_Resized.
   static #RESIZE_THROTTLE_MS = 150;
 
   #param;
@@ -349,7 +349,9 @@ class Main {
    *
    * The viewer is told twice over: `resize()` is the documented "your container moved" call, and `repaint()` covers
    * the case where GSV re-measures but never draws, leaving the validator a black image until they drag it (#2468,
-   * #5367). Neither is known to be sufficient on its own, and both are cheap.
+   * #5367). Neither is known to be sufficient on its own, and both are cheap. The startup call repaints too: the
+   * first label's marker set the POV while the tool was still at scale 1, so the rescale here is the first change
+   * to the pano's box after it painted — the very trigger — and a black first label is what gets reported.
    * @returns {void}
    */
   static applyValidateScale() {
@@ -366,20 +368,22 @@ class Main {
    * Builds the desktop `resize` listener: re-scale the tool, and record that the viewport changed shape.
    *
    * The logging lives here rather than in applyValidateScale() because that also runs at startup, where nothing was
-   * resized — a `Window_Resized` then would read as a user action that never happened. Throttled like mobile's, so
-   * dragging a window edge for a few seconds logs once or twice instead of per event.
+   * resized — a `Window_Resized` then would read as a user action that never happened. Logged on the settled size,
+   * once the events have stopped for a window, rather than throttled like mobile's: a throttle keeps emitting for as
+   * long as a drag lasts, and a drag is one act, so it gets one line carrying the size that stuck.
    * @returns {() => void} The listener to attach to the window's `resize` event.
    */
   static createDesktopResizeHandler() {
-    const logResize = util.throttle(() => {
-      svv.tracker.push('Window_Resized', {
-        width: document.documentElement.clientWidth,
-        height: document.documentElement.clientHeight,
-      });
-    }, Main.#RESIZE_THROTTLE_MS);
+    let logTimer;
     return () => {
       Main.applyValidateScale();
-      logResize();
+      clearTimeout(logTimer);
+      logTimer = setTimeout(() => {
+        svv.tracker.push('Window_Resized', {
+          width: document.documentElement.clientWidth,
+          height: document.documentElement.clientHeight,
+        });
+      }, Main.#RESIZE_THROTTLE_MS);
     };
   }
 

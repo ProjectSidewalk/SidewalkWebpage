@@ -278,15 +278,6 @@ class PanoManager {
     }
 
     this.resetNavArrows();
-
-    // A container that changes size (a window drag, a Ctrl +/- browser zoom) can leave GSV showing a black image
-    // until the camera moves (#2468). Re-measure, then ask the viewer to force a frame. The workaround sits in the
-    // viewer (PanoViewer.repaint()) so that it runs only for the provider that needs it and nets out to no movement
-    // over a drag, leaving the labeler's heading where they put it.
-    $(window).on('resize', () => {
-      svl.panoViewer.resize();
-      svl.panoViewer.repaint();
-    });
   }
 
   /**

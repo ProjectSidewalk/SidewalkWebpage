@@ -6,8 +6,8 @@
  * black-pano report followed a resize, and what accounts for the `POV_Changed` the repaint provokes.
  *
  * Two things have to hold for that record to mean anything, and they are what these tests pin: page load runs the
- * same rescale but must log nothing (nothing was resized), and a drag must log once or twice rather than per event.
- * They drive the real static handlers with the real `util.throttle` over a fake viewer and tracker.
+ * same rescale but must log nothing (nothing was resized), and a drag must log once, on the settled size, however
+ * long it lasts. They drive the real static handlers over a fake viewer and tracker.
  *
  * `Main` is a bare `class` declaration that the Grunt bundle concatenates into page scope, so the source is eval'd
  * inside an IIFE that returns the class, following validatePanoPovThrottle.test.js.
@@ -17,7 +17,6 @@ const fs = require('fs');
 const path = require('path');
 
 const MAIN_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/Main.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/util/throttle.js');
 
 /**
  * Loads the `Main` class out of the production file.
@@ -31,20 +30,16 @@ function loadMainClass() {
 describe('desktop Validate resize handling (#5367)', () => {
     let Main;
     let viewer;
+    let handler; // The listener a test attached, so the next test's dispatches don't reach it too.
 
     beforeEach(() => {
         jest.useFakeTimers();
-        // Anchor the fake clock at a non-zero time so the throttle's first elapsed check reliably exceeds the window.
-        jest.setSystemTime(1_000_000);
 
         // jsdom does no layout, so the viewport the note reports has to be stated outright.
         Object.defineProperty(document.documentElement, 'clientWidth', { value: 1280, configurable: true });
         Object.defineProperty(document.documentElement, 'clientHeight', { value: 720, configurable: true });
 
-        // Real throttle implementation — the coalescing under test is the wiring of it, not the throttle itself.
-        global.util = {};
-        (0, eval)(fs.readFileSync(THROTTLE_PATH, 'utf8'));
-        util.applyToolScale = jest.fn(() => 1.5);
+        global.util = { applyToolScale: jest.fn(() => 1.5) };
 
         viewer = { resize: jest.fn(), repaint: jest.fn() };
         global.svv = {
@@ -57,6 +52,8 @@ describe('desktop Validate resize handling (#5367)', () => {
     });
 
     afterEach(() => {
+        if (handler) window.removeEventListener('resize', handler);
+        handler = undefined;
         jest.useRealTimers();
         delete global.util;
         delete global.svv;
@@ -76,22 +73,41 @@ describe('desktop Validate resize handling (#5367)', () => {
         expect(windowResizedNotes()).toEqual([]); // Nothing was resized: the page had only just loaded.
     });
 
-    test('a drag rescales on every event but logs one line, with the viewport size', () => {
-        window.addEventListener('resize', Main.createDesktopResizeHandler());
+    test('a drag rescales on every event but logs one line, on the size that stuck', () => {
+        handler = Main.createDesktopResizeHandler();
+        window.addEventListener('resize', handler);
 
-        window.dispatchEvent(new Event('resize'));
-        jest.advanceTimersByTime(20);
-        window.dispatchEvent(new Event('resize'));
+        // A drag that outlasts the quiet window many times over: the burst shape a throttle would log repeatedly.
+        for (let i = 0; i < 6; i++) {
+            window.dispatchEvent(new Event('resize'));
+            jest.advanceTimersByTime(100);
+        }
 
-        // Every event rescales — a frame drawn at the old scale is visibly wrong — while the log is coalesced.
-        expect(viewer.resize).toHaveBeenCalledTimes(2);
-        expect(viewer.repaint).toHaveBeenCalledTimes(2);
+        // Every event rescales — a frame drawn at the old scale is visibly wrong — while nothing has been logged:
+        // the drag is still going as far as the tool can tell.
+        expect(viewer.resize).toHaveBeenCalledTimes(6);
+        expect(viewer.repaint).toHaveBeenCalledTimes(6);
+        expect(windowResizedNotes()).toEqual([]);
+
+        // 100 ms of the 150 ms quiet window have already passed since the last event.
+        jest.advanceTimersByTime(50);
         expect(windowResizedNotes()).toEqual([{ width: 1280, height: 720 }]);
-
-        // One trailing line at the end of the burst records the size that stuck, and that is the last of them.
-        jest.advanceTimersByTime(150);
-        expect(windowResizedNotes()).toHaveLength(2);
         jest.advanceTimersByTime(5000);
-        expect(windowResizedNotes()).toHaveLength(2);
+        expect(windowResizedNotes()).toHaveLength(1);
+    });
+
+    test('the handler talks to whichever viewer is current, not the one that was up when it was attached', () => {
+        handler = Main.createDesktopResizeHandler();
+        window.addEventListener('resize', handler);
+        window.dispatchEvent(new Event('resize'));
+
+        // A label whose imagery expired swaps svv.panoViewer for the Pannellum fallback mid-mission (#4828).
+        const fallback = { resize: jest.fn(), repaint: jest.fn() };
+        svv.panoViewer = fallback;
+        window.dispatchEvent(new Event('resize'));
+
+        expect(viewer.repaint).toHaveBeenCalledTimes(1);
+        expect(fallback.resize).toHaveBeenCalledTimes(1);
+        expect(fallback.repaint).toHaveBeenCalledTimes(1);
     });
 });

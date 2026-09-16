@@ -49,11 +49,12 @@ function viewerShowingPov(GsvViewer, pov) {
     const shown = { ...pov };
     const viewer = new GsvViewer();
     viewer.gsvPano = {
-        // A copy per call, like GSV's own: the viewer normalizes the heading on the object it gets back.
-        getPov: () => ({ ...shown }),
+        // The live object itself, the least forgiving thing GSV could hand back: a nudge that edited it in place
+        // before calling setPov would make the set look like no change at all.
+        getPov: () => shown,
         setPov: jest.fn((next) => { Object.assign(shown, next); }),
     };
-    return { viewer, shownPov: () => ({ ...shown }) };
+    return { viewer, shownPov: () => ({ ...shown }), live: shown };
 }
 
 describe('PanoViewer.repaint', () => {
@@ -83,12 +84,21 @@ describe('GsvViewer.repaint', () => {
     });
 
     test('moves the camera by a fraction of a degree, leaving the zoom alone', () => {
-        const { viewer } = viewerShowingPov(GsvViewer, { heading: 120, pitch: -5, zoom: 2 });
+        const { viewer, live } = viewerShowingPov(GsvViewer, { heading: 120, pitch: -5, zoom: 2 });
+        // What the pano was showing at the moment it was asked to move: a nudge applied to GSV's own object first
+        // would already have moved it, and GSV would then have nothing to redraw.
+        const headingWhenSet = [];
+        viewer.gsvPano.setPov.mockImplementation((next) => {
+            headingWhenSet.push(live.heading);
+            Object.assign(live, next);
+        });
 
         viewer.repaint();
 
         expect(viewer.gsvPano.setPov).toHaveBeenCalledTimes(1);
         const nudged = viewer.gsvPano.setPov.mock.calls[0][0];
+        expect(nudged).not.toBe(live);
+        expect(headingWhenSet).toEqual([120]);
         expect(Math.abs(nudged.heading - 120)).toBeCloseTo(0.01, 10);
         expect(Math.abs(nudged.pitch - -5)).toBeCloseTo(0.01, 10);
         expect(nudged.zoom).toBe(2); // A changed zoom would be visible, and would desync the marker projection.
