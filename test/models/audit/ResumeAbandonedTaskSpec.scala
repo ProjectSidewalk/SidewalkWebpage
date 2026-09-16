@@ -1,6 +1,5 @@
 package models.audit
 
-import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -39,23 +38,60 @@ class ResumeAbandonedTaskSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
   private def taskFor(tasks: Seq[NewTask], streetEdgeId: Int): NewTask =
     tasks.find(_.edgeId == streetEdgeId).getOrElse(fail(s"street $streetEdgeId missing from the region's task list"))
 
-  "resumableTasksForUser" should {
-    "test its exclusions with correlated EXISTS rather than a set-membership scan" in {
-      // Not style: the set-membership form ("street_edge_id NOT IN (SELECT ...)") reads the same but builds its hash
-      // over every audit in the city before the outer query narrows anything. Same reasoning as hasUpToDateAudit.
-      val sql = auditTaskTable.resumableTasksForUser("some-user").result.statements.head.toLowerCase
-
-      sql must include("exists")
-      sql.contains("not in (") mustBe false
-    }
-  }
-
   "selectTasksInARegion" should {
+    "return exactly one row per street in the region" in {
+      // The resumable rows arrive by a second left join, so a street with several open rows -- or one matching both
+      // joins -- would fan the street out into duplicates, and the client would draw and offer it twice.
+      val (streets, returned) = runRolledBack(for {
+        userId   <- insertUser()
+        regionId <- insertRegion()
+        streets  <- insertStreets(regionId, 3, withPriority = true)
+        _        <- abandonedAudit(streets.head, userId, StoppedLat, StoppedLng)
+        _        <- abandonedAudit(streets.head, userId, currentLng = 0.5)
+        _        <- audit(streets(1), userId)
+        _        <- abandonedAudit(streets(1), userId, currentLng = 0.5)
+        tasks    <- auditTaskTable.selectTasksInARegion(regionId, userId)
+      } yield (streets, tasks))
+
+      returned.map(_.edgeId).sorted mustBe streets.sorted
+      returned.size mustBe 3
+    }
+
+    "not offer a resumable street whose region has been deleted" in {
+      val tasks = runRolledBack(for {
+        userId       <- insertUser()
+        regionId     <- insertRegion(deleted = true)
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
+        _            <- abandonedAudit(streetEdgeId, userId, StoppedLat, StoppedLng)
+        tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
+      } yield tasks)
+
+      tasks mustBe empty
+    }
+
+    "carry the open task's mission back with it" in {
+      // The minimap's mission-start flag and the mission-complete map are drawn from these, so a resumed street that
+      // dropped them would restart its mission's ribbon at the street's start.
+      val (task, missionId) = runRolledBack(for {
+        userId       <- insertUser()
+        regionId     <- insertRegion()
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
+        missionId    <- insertAuditMission(userId, regionId)
+        auditTaskId  <- abandonedAudit(streetEdgeId, userId, StoppedLat, StoppedLng, currentMissionId = Some(missionId))
+        _            <- setTaskMissionStart(auditTaskId, 0.0, 0.2)
+        tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
+      } yield (taskFor(tasks, streetEdgeId), missionId))
+
+      task.currentMissionId mustBe Some(missionId)
+      task.currentMissionStart mustBe defined
+      task.currentMissionStart.get.getX mustBe 0.2 +- 1e-9
+    }
+
     "hand back an unfinished street with its saved position, direction, and task id" in {
       val (resumable, fresh) = runRolledBack(for {
         userId   <- insertUser()
         regionId <- insertRegion()
-        streets  <- insertStreets(regionId, 2)
+        streets  <- insertStreets(regionId, 2, withPriority = true)
         (streetA, streetB) = (streets.head, streets(1))
         auditTaskId <- abandonedAudit(streetA, userId, StoppedLat, StoppedLng, reversed = true,
           auditedDistanceM = Some(71d))
@@ -81,7 +117,7 @@ class ResumeAbandonedTaskSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
       val (task, newerId) = runRolledBack(for {
         userId       <- insertUser()
         regionId     <- insertRegion()
-        streetEdgeId <- insertStreet(Some(regionId))
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
         _            <- abandonedAudit(streetEdgeId, userId, currentLng = 0.1)
         newerId      <- abandonedAudit(streetEdgeId, userId, currentLng = 0.6)
         tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
@@ -97,7 +133,7 @@ class ResumeAbandonedTaskSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
       val (task, completedId) = runRolledBack(for {
         userId       <- insertUser()
         regionId     <- insertRegion()
-        streetEdgeId <- insertStreet(Some(regionId))
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
         completedId  <- audit(streetEdgeId, userId)
         _            <- abandonedAudit(streetEdgeId, userId, StoppedLat, StoppedLng)
         tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
@@ -114,7 +150,7 @@ class ResumeAbandonedTaskSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
       val (task, openId) = runRolledBack(for {
         userId       <- insertUser()
         regionId     <- insertRegion()
-        streetEdgeId <- insertStreet(Some(regionId))
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
         _            <- audit(streetEdgeId, userId, outdated = true)
         openId       <- abandonedAudit(streetEdgeId, userId, StoppedLat, StoppedLng)
         tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
@@ -129,7 +165,7 @@ class ResumeAbandonedTaskSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
       val task = runRolledBack(for {
         userId       <- insertUser()
         regionId     <- insertRegion()
-        streetEdgeId <- insertStreet(Some(regionId))
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
         _            <- abandonedAudit(streetEdgeId, userId, StoppedLat, StoppedLng)
         _            <- reportNoImagery(streetEdgeId, userId)
         tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
@@ -139,12 +175,32 @@ class ResumeAbandonedTaskSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
       task.currentLng mustBe 0d
     }
 
+    "leave the street fresh when the newest open row is a give-up, rather than falling back to an older one" in {
+      // The rule the exclusion order encodes: newest row first, exclusions second. Falling back would put the labeler
+      // on a street whose latest verdict was "no imagery". Isolating it needs the newest row (by id) to be the
+      // disqualified one while an older row stays clean, so the two rows' task_starts run opposite to their ids --
+      // a report at or after a task's start disqualifies it, so in time order the older row would be caught too.
+      val (task, olderId) = runRolledBack(for {
+        userId       <- insertUser()
+        regionId     <- insertRegion()
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
+        olderId      <- abandonedAudit(streetEdgeId, userId, currentLng = 0.2, taskStart = now.minusHours(1))
+        _            <- abandonedAudit(streetEdgeId, userId, currentLng = 0.8, taskStart = now.minusHours(3))
+        _            <- reportNoImagery(streetEdgeId, userId, now.minusHours(2))
+        tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
+      } yield (taskFor(tasks, streetEdgeId), olderId))
+
+      task.auditTaskId mustBe None
+      task.auditTaskId must not be Some(olderId)
+      task.currentLng mustBe 0d
+    }
+
     "still resume when the no-imagery report is someone else's or predates the task" in {
       val (otherUsersReport, staleReport) = runRolledBack(for {
         userId    <- insertUser()
         otherUser <- insertUser()
         regionId  <- insertRegion()
-        streets   <- insertStreets(regionId, 2)
+        streets   <- insertStreets(regionId, 2, withPriority = true)
         (streetA, streetB) = (streets.head, streets(1))
         _     <- abandonedAudit(streetA, userId, StoppedLat, StoppedLng)
         _     <- reportNoImagery(streetA, otherUser)
@@ -163,7 +219,7 @@ class ResumeAbandonedTaskSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
       val task = runRolledBack(for {
         userId       <- insertUser()
         regionId     <- insertRegion()
-        streetEdgeId <- insertStreet(Some(regionId))
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
         _            <- abandonedAudit(streetEdgeId, userId, StoppedLat, StoppedLng, startOffsetM = Some(12.3))
         tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
       } yield taskFor(tasks, streetEdgeId))
@@ -177,7 +233,7 @@ class ResumeAbandonedTaskSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
         userId       <- insertUser()
         otherUser    <- insertUser()
         regionId     <- insertRegion()
-        streetEdgeId <- insertStreet(Some(regionId))
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
         _            <- abandonedAudit(streetEdgeId, otherUser, StoppedLat, StoppedLng)
         mine         <- auditTaskTable.selectTasksInARegion(regionId, userId)
         theirs       <- auditTaskTable.selectTasksInARegion(regionId, otherUser)
@@ -195,7 +251,7 @@ class ResumeAbandonedTaskSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
       val (task, openId) = runRolledBack(for {
         userId       <- insertUser()
         regionId     <- insertRegion()
-        streetEdgeId <- insertStreet(Some(regionId))
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
         openId       <- abandonedAudit(streetEdgeId, userId, StoppedLat, StoppedLng, reversed = true)
         task         <- auditTaskTable.selectANewTaskInARegion(regionId, userId, SomeMissionId)
       } yield (task, openId))
@@ -212,7 +268,7 @@ class ResumeAbandonedTaskSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
       val task = runRolledBack(for {
         userId   <- insertUser()
         regionId <- insertRegion()
-        _        <- insertStreet(Some(regionId))
+        _        <- insertStreet(Some(regionId), withPriority = true)
         task     <- auditTaskTable.selectANewTaskInARegion(regionId, userId, SomeMissionId)
       } yield task)
 
