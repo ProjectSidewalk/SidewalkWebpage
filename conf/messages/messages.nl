@@ -498,7 +498,7 @@ reset.pw.email.signature = Het Project Sidewalk-team
 
 reset.pw.submit.new.pw = Typ je nieuwe wachtwoord.
 reset.pw.message = Wachtwoord opnieuw instellen
-reset.pw.successful = Wachtwoord opnieuw ingesteld!
+reset.pw.successful = Wachtwoord opnieuw ingesteld! Je bent afgemeld op je andere apparaten.
 reset.pw.invalid.reset.link = Ongeldige resetlink
 
 dashboard.current.team.greeting = Team: {0}

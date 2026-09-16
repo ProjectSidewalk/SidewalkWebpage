@@ -501,7 +501,7 @@ reset.pw.email.signature = Das Project Sidewalk-Team
 
 reset.pw.submit.new.pw = Neues Passwort eingeben.
 reset.pw.message = Passwort zurücksetzen
-reset.pw.successful = Passwort zurückgesetzt!
+reset.pw.successful = Passwort zurückgesetzt! Sie wurden auf Ihren anderen Geräten abgemeldet.
 reset.pw.invalid.reset.link = Ungültiger Link
 
 dashboard.current.team.greeting = Team: {0}

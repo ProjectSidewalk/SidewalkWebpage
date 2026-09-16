@@ -509,7 +509,7 @@ reset.pw.email.signature = The Project Sidewalk team
 
 reset.pw.submit.new.pw = Type in your new password.
 reset.pw.message = Reset password
-reset.pw.successful = Password reset!
+reset.pw.successful = Password reset! You''ve been signed out on your other devices.
 reset.pw.invalid.reset.link = Invalid Reset Link
 
 dashboard.current.team.greeting = Team: {0}

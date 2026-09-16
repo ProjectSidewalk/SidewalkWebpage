@@ -13,7 +13,8 @@
 * team membership, and the two privacy toggles from #4323 — "Show me on the leaderboard" (on_leaderboard) and
 * "Make my dashboard public" (public_profile). The whole form saves in one POST to /dashboard/settings via
 * Settings.js, which also warns before the page is left with unsaved edits (#5226). The password change (#2285) is
-* the exception, with its own form and ChangePasswordForm.js. Shown on the shared shell as its own nav item (#2545).
+* the exception, with its own form and AccountForm.js, as is "Sign out of other devices" (#5305). Shown on the shared
+* shell as its own nav item (#2545).
 *
 * @param unitsChoice The user's own units selection: "auto" (follow the site language), "metric", or "imperial".
 *@
@@ -73,17 +74,20 @@
         }
       </div>
     </form>
-    <h3 class="page-subhead ud-settings-subhead" id="signed-in-devices">@Messages("dashboard.settings.devices")</h3>
-    <form class="ud-form" id="set-devices-form" method="post"
-        action="@routes.UserDashboardController.signOutOtherDevices"
-        data-error-generic="@Messages("authenticate.error.generic")">
-      @CSRF.formField
-      <span class="ud-field-help">@Messages("dashboard.settings.devices.help")</span>
-      <div>
-        <button type="submit" class="ud-btn-secondary">@Messages("dashboard.settings.devices.submit")</button>
-        <span class="ud-save-status" role="status" aria-live="polite"></span>
-      </div>
-    </form>
+    @* Its own wrapper, since an error banner goes beside a form and each submit clears the banners beside it. *@
+    <div>
+      <h3 class="page-subhead ud-settings-subhead" id="signed-in-devices">@Messages("dashboard.settings.devices")</h3>
+      <form class="ud-form" id="set-devices-form" method="post"
+          action="@routes.UserDashboardController.signOutOtherDevices"
+          data-error-generic="@Messages("authenticate.error.generic")">
+        @CSRF.formField
+        <span class="ud-field-help">@Messages("dashboard.settings.devices.help")</span>
+        <div>
+          <button type="submit" class="ud-btn-secondary">@Messages("dashboard.settings.devices.submit")</button>
+          <span class="ud-save-status" role="status" aria-live="polite"></span>
+        </div>
+      </form>
+    </div>
   </div>
 
   <div class="page-section" id="settings-preferences-section">
@@ -179,7 +183,7 @@
   <script src="@assets.path("js/user-dashboard/TeamActions.js")"></script>
   <script src="@assets.path("js/common/saveUserSettings.js")"></script>
   <script src="@assets.path("js/user-dashboard/Settings.js")"></script>
-  <script src="@assets.path("js/user-dashboard/ChangePasswordForm.js")"></script>
+  <script src="@assets.path("js/user-dashboard/AccountForm.js")"></script>
   <script>
     // appManager.ready (not DOMContentLoaded) so i18next is initialized before Settings can show a status string.
     window.appManager.ready(function () {
@@ -192,15 +196,8 @@
     // Not appManager.ready, which waits on i18next: until this runs, a submit shows raw JSON. Not sooner either, since
     // AuthModal.js (which it uses) is a deferred script.
     document.addEventListener('DOMContentLoaded', function () {
-      new ChangePasswordForm(document.getElementById('set-password-form'));
-      const devicesForm = document.getElementById('set-devices-form');
-      const devicesStatus = devicesForm.querySelector('[role="status"]');
-      wireAsyncSubmit(devicesForm, {
-        onSuccess: (data) => {
-          devicesStatus.textContent = data.message;
-          devicesStatus.classList.add('ud-save-ok');
-        },
-      });
+      new AccountForm(document.getElementById('set-password-form'));
+      new AccountForm(document.getElementById('set-devices-form'));
     });
   </script>
 }

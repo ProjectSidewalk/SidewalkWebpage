@@ -88,13 +88,13 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
   }
 
   /** @return The cookies of a new sign-in, as if from a second device. */
-  private def signIn(email: String, password: String): Seq[Cookie] =
+  private def signIn(email: String, password: String, rememberMe: Boolean = true): Seq[Cookie] =
     cookies(
       route(
         app,
         FakeRequest(POST, "/authenticate/credentials")
           .withHeaders(XHR)
-          .withFormUrlEncodedBody("email" -> email, "password" -> password, "rememberMe" -> "true")
+          .withFormUrlEncodedBody("email" -> email, "password" -> password, "rememberMe" -> rememberMe.toString)
           .withCSRFToken
       ).get
     ).toSeq
@@ -108,6 +108,15 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
     val set = cookies(result).toSeq
     session.filterNot(cookie => set.exists(_.name == cookie.name)) ++ set
   }
+
+  private def signOutOtherDevices(session: Seq[Cookie]): Future[Result] =
+    route(
+      app,
+      FakeRequest(POST, "/dashboard/settings/signOutOtherDevices")
+        .withCookies(session: _*)
+        .withHeaders(XHR)
+        .withCSRFToken
+    ).get
 
   private def errors(result: Future[Result]): JsValue = (contentAsJson(result) \ "errors").get
 
@@ -192,17 +201,36 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
     "sign out every other device and keep this browser signed in (#5305)" in {
       val (_, email, session) = signUpFreshUser()
       val otherDevice         = signIn(email, signUpPassword)
-      val result              = route(
-        app,
-        FakeRequest(POST, "/dashboard/settings/signOutOtherDevices")
-          .withCookies(session: _*)
-          .withHeaders(XHR)
-          .withCSRFToken
-      ).get
+      val result              = signOutOtherDevices(session)
       status(result) mustBe OK
       isSignedIn(afterResponse(session, result)) mustBe true
       isSignedIn(otherDevice) mustBe false
       isSignedIn(signIn(email, signUpPassword)) mustBe true
+    }
+
+    "cover a sign-in without \"remember me\", and let that device sign in again afterward" in {
+      val (_, email, session) = signUpFreshUser()
+      val otherDevice         = signIn(email, signUpPassword, rememberMe = false)
+      status(signOutOtherDevices(session)) mustBe OK
+      isSignedIn(otherDevice) mustBe false
+      isSignedIn(signIn(email, signUpPassword, rememberMe = false)) mustBe true
+    }
+
+    "leave the cookie alone on an ordinary request, so one already on its way can't overwrite a renewed cookie" in {
+      val (_, email, _) = signUpFreshUser()
+      val session       = signIn(email, signUpPassword)
+      val result        = route(app, FakeRequest(GET, "/dashboard/settings").withCookies(session: _*)).get
+      status(result) mustBe OK
+      cookies(result).filter(cookie => session.exists(_.name == cookie.name)) mustBe empty
+    }
+
+    "delete the signed-out device's cookie instead of leaving it in the browser" in {
+      val (_, email, session) = signUpFreshUser()
+      val otherDevice         = signIn(email, signUpPassword)
+      status(signOutOtherDevices(session)) mustBe OK
+      val result  = route(app, FakeRequest(GET, "/dashboard/settings").withCookies(otherDevice: _*)).get
+      val cleared = cookies(result).find(cookie => otherDevice.exists(_.name == cookie.name))
+      cleared.map(_.value) mustBe Some("")
     }
   }
 

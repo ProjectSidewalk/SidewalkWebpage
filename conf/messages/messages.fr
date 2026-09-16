@@ -515,7 +515,7 @@ reset.pw.email.signature = L''équipe Project Sidewalk
 
 reset.pw.submit.new.pw = Saisissez votre nouveau mot de passe.
 reset.pw.message = Réinitialiser le mot de passe
-reset.pw.successful = Mot de passe réinitialisé !
+reset.pw.successful = Mot de passe réinitialisé ! Vous avez été déconnecté de vos autres appareils.
 reset.pw.invalid.reset.link = Lien de réinitialisation invalide
 
 dashboard.current.team.greeting = Équipe : {0}

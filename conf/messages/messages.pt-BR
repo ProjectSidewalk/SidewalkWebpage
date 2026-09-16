@@ -506,7 +506,7 @@ reset.pw.email.signature = Equipe do Project Sidewalk
 
 reset.pw.submit.new.pw = Digite sua nova senha.
 reset.pw.message = Redefinir senha
-reset.pw.successful = Senha redefinida!
+reset.pw.successful = Senha redefinida! Você foi desconectado dos seus outros dispositivos.
 reset.pw.invalid.reset.link = Link de redefinição inválido
 
 dashboard.current.team.greeting = Equipe: {0}

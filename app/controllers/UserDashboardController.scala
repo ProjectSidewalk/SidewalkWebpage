@@ -5,15 +5,14 @@ import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.{fieldErrorJson, formErrorsJson}
 import formats.json.UserFormats.{settingsSubmissionReads, SettingsSubmission}
 import forms.ChangePasswordForm
-import models.auth.{DefaultEnv, RevocableCookieAuthenticatorService, WithAdmin, WithSignedIn}
+import models.auth.{DefaultEnv, WithAdmin, WithSignedIn}
 import models.user.{MeasurementSystem, Role, SidewalkUserWithRole}
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.mvc.{AnyContent, Result}
 import play.silhouette.api.actions.SecuredRequest
-import play.silhouette.api.services.AuthenticatorService
-import play.silhouette.impl.authenticators.CookieAuthenticator
+import play.silhouette.api.Silhouette
 import service.{AdminService, ConfigService, GlobalLeaderboardEntry, UserService}
 
 import javax.inject._
@@ -39,7 +38,7 @@ class UserDashboardController @Inject() (
     routeService: service.RouteService,
     authenticationService: service.AuthenticationService,
     rateLimiter: service.RateLimiter,
-    authenticatorService: AuthenticatorService[CookieAuthenticator]
+    silhouette: Silhouette[DefaultEnv]
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -307,7 +306,7 @@ class UserDashboardController @Inject() (
                 cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=ChangePassword")
                 val ok = Ok(Json.obj("success" -> true, "message" -> Messages("dashboard.settings.password.changed")))
                 // The change revoked this browser's cookie too.
-                RevocableCookieAuthenticatorService.reissue(authenticatorService, request.authenticator, ok)
+                silhouette.env.authenticatorService.renew(request.authenticator, ok)
               case false =>
                 cc.loggingService
                   .insert(user.userId, request.ipAddress, "ChangePasswordFailed_Reason=WrongCurrentPassword")
@@ -325,7 +324,7 @@ class UserDashboardController @Inject() (
     authenticationService.signOutEverywhere(user.userId).flatMap { _ =>
       cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=SignOutOtherDevices")
       val ok = Ok(Json.obj("success" -> true, "message" -> Messages("dashboard.settings.devices.signed.out")))
-      RevocableCookieAuthenticatorService.reissue(authenticatorService, request.authenticator, ok)
+      silhouette.env.authenticatorService.renew(request.authenticator, ok)
     }
   }
 

@@ -575,7 +575,7 @@ reset.pw.email.signature = Project Sidewalk團隊
 
 reset.pw.submit.new.pw = 請輸入新密碼
 reset.pw.message = 重設密碼
-reset.pw.successful = 密碼已重設！
+reset.pw.successful = 密碼已重設！您已從其他裝置登出。
 reset.pw.invalid.reset.link = 無效的重設連結
 
 dashboard.current.team.greeting = 團隊: {0}

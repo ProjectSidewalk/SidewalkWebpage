@@ -4,7 +4,7 @@ import controllers.base._
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.{fieldErrorJson, formErrorsJson, parseURL, safeLocalPath}
 import forms._
-import models.auth.{DefaultEnv, RevocableCookieAuthenticatorService}
+import models.auth.DefaultEnv
 import models.user.{Role, SidewalkUserWithRole, UserUtm}
 import models.utils.ProfanityGuard
 import net.ceedubs.ficus.Ficus._
@@ -710,12 +710,7 @@ class UserController @Inject() (
                     (request.identity, request.authenticator) match {
                       case (Some(identity), Some(authenticator)) if identity.userId == user.userId =>
                         val settings = routes.UserDashboardController.settings.withFragment("change-password")
-                        RevocableCookieAuthenticatorService
-                          .reissue(
-                            silhouette.env.authenticatorService,
-                            authenticator,
-                            Redirect(settings).flashing(flash)
-                          )
+                        silhouette.env.authenticatorService.renew(authenticator, Redirect(settings).flashing(flash))
                       case _ =>
                         Future.successful(Redirect(routes.UserController.signIn()).flashing(flash))
                     }

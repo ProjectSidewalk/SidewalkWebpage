@@ -32,6 +32,7 @@ import play.silhouette.persistence.repositories.DelegableAuthInfoRepository
 import service.{AuthenticationService, AuthenticationServiceImpl}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.FiniteDuration
 
 /**
  * The Guice module which wires all Silhouette dependencies. Based off of this example:
@@ -134,7 +135,14 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
       clock: Clock,
       authenticationService: AuthenticationService
   ): AuthenticatorService[CookieAuthenticator] = {
-    val config  = configuration.underlying.as[CookieAuthenticatorSettings]("silhouette.authenticator")
+    val config = configuration.underlying.as[CookieAuthenticatorSettings]("silhouette.authenticator")
+    // RevocableCookieAuthenticatorService works out when a cookie was issued from this one lifetime.
+    val rememberMeExpiry =
+      configuration.underlying.as[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorExpiry")
+    require(
+      rememberMeExpiry == config.authenticatorExpiry,
+      "silhouette.authenticator.authenticatorExpiry and rememberMe.authenticatorExpiry must be equal"
+    )
     val encoder = new CrypterAuthenticatorEncoder(crypter)
     new RevocableCookieAuthenticatorService(config, signer, cookieHeaderEncoding, encoder, fingerprintGenerator,
       idGenerator, clock, authenticationService)

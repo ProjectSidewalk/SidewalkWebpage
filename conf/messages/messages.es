@@ -511,7 +511,7 @@ reset.pw.email.signature = El equipo de Project Sidewalk
 
 reset.pw.submit.new.pw = Escribe tu nueva contraseña
 reset.pw.message = Restablecer la contraseña
-reset.pw.successful = ¡Contraseña restablecida!
+reset.pw.successful = ¡Contraseña restablecida! Se cerró tu sesión en tus otros dispositivos.
 reset.pw.invalid.reset.link = Enlace de reinicio inválido
 
 dashboard.current.team.greeting = Equipo: {0}

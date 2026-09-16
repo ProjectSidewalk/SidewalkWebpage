@@ -83,11 +83,16 @@ class UserAccountStateTable @Inject() (protected val dbConfigProvider: DatabaseC
       .map(_.flatten)
   }
 
-  /** Rejects the user's sign-in cookies issued before `at`, which the caller picks so a cookie it issues next is newer. */
+  /**
+   * Rejects the user's sign-in cookies issued before `at`, which the caller picks so a cookie it issues next is newer.
+   * Capped at the database's clock, so an app server whose clock runs fast can't lock the account out until then.
+   *
+   * @return The number of rows written.
+   */
   def revokeSessions(userId: String, at: OffsetDateTime): DBIO[Int] = {
     sqlu"""
       INSERT INTO sidewalk_login.user_account_state (user_id, sessions_revoked_at)
-      VALUES ($userId, $at)
+      VALUES ($userId, LEAST($at, now()))
       ON CONFLICT (user_id) DO UPDATE SET sessions_revoked_at = EXCLUDED.sessions_revoked_at
     """
   }
