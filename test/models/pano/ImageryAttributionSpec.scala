@@ -68,6 +68,21 @@ class ImageryAttributionSpec extends PlaySpec {
         ImageryAttribution.Line("Panoramax", None, None, None)
     }
 
+    // The AI labeler recorded the whole attribution as the copyright, so the sign, the provider and the licence each
+    // appeared twice on a crop of its imagery (#5360).
+    "credit a contributor once when the recorded copyright is already a whole attribution (#5360)" in {
+      val wrapped = Some("© GIS_ISG / Mapillary (CC BY-SA 4.0)")
+      ImageryAttribution.line(PanoSource.Mapillary, wrapped, None).value.text mustBe
+        "© GIS_ISG · Mapillary · CC BY-SA 4.0"
+      ImageryAttribution
+        .line(PanoSource.Panoramax, Some("© Arretche / Panoramax (CC-BY-SA-4.0)"), Some("CC-BY-SA-4.0"))
+        .value
+        .text mustBe "© Arretche · Panoramax · CC BY-SA 4.0"
+      // A wrapper naming only the provider recorded no contributor at all.
+      ImageryAttribution.line(PanoSource.Mapillary, Some("© Mapillary (CC BY-SA 4.0)"), None).value.text mustBe
+        "Mapillary · CC BY-SA 4.0"
+    }
+
     "ignore a licence recorded against a source whose licence follows from the source itself" in {
       ImageryAttribution.line(PanoSource.Mapillary, Some("jacobwhall"), Some("CC-BY-4.0")).value.license mustBe
         Some(ImageryAttribution.MapillaryLicense)
@@ -93,6 +108,47 @@ class ImageryAttributionSpec extends PlaySpec {
         "license"     -> JsNull,
         "license_url" -> JsNull
       )
+    }
+  }
+
+  "ImageryAttribution.normalizeCopyright" should {
+    "reduce a Mapillary or Panoramax copyright to the contributor's bare name, however it was wrapped" in {
+      val mapillary = Seq(
+        "jacobwhall", "© jacobwhall", "©jacobwhall", "jacobwhall / Mapillary",
+        "© jacobwhall / Mapillary (CC BY-SA 4.0)", "  © jacobwhall / Mapillary (CC BY-SA 4.0)  "
+      )
+      mapillary.foreach { recorded =>
+        withClue(recorded) {
+          ImageryAttribution.normalizeCopyright(PanoSource.Mapillary, Some(recorded)) mustBe Some("jacobwhall")
+        }
+      }
+      ImageryAttribution.normalizeCopyright(PanoSource.Panoramax, Some("© Arretche / Panoramax (CC-BY-SA-4.0)")) mustBe
+        Some("Arretche")
+    }
+
+    "read a wrapper that names only the provider, or nothing, as no contributor recorded" in {
+      Seq("© Mapillary (CC BY-SA 4.0)", "Mapillary", "©", "   ").foreach { recorded =>
+        withClue(recorded) {
+          ImageryAttribution.normalizeCopyright(PanoSource.Mapillary, Some(recorded)) mustBe None
+        }
+      }
+      ImageryAttribution.normalizeCopyright(PanoSource.Panoramax, Some("© Panoramax (etalab-2.0)")) mustBe None
+      ImageryAttribution.normalizeCopyright(PanoSource.Mapillary, None) mustBe None
+    }
+
+    "leave a name that merely contains the provider's, or another provider's wrapper, alone" in {
+      ImageryAttribution.normalizeCopyright(PanoSource.Mapillary, Some("NotMapillary")) mustBe Some("NotMapillary")
+      ImageryAttribution.normalizeCopyright(PanoSource.Mapillary, Some("Ville de Paris / DSIN")) mustBe
+        Some("Ville de Paris / DSIN")
+      ImageryAttribution.normalizeCopyright(PanoSource.Panoramax, Some("© x / Mapillary (CC BY-SA 4.0)")) mustBe
+        Some("x / Mapillary (CC BY-SA 4.0)")
+    }
+
+    "pass a provider's own copyright string through, trimmed, since the sign is part of it" in {
+      ImageryAttribution.normalizeCopyright(PanoSource.Gsv, Some(" © 2025 Google ")) mustBe Some("© 2025 Google")
+      ImageryAttribution.normalizeCopyright(PanoSource.Infra3d, Some("City of Zurich and iNovitas AG")) mustBe
+        Some("City of Zurich and iNovitas AG")
+      ImageryAttribution.normalizeCopyright(PanoSource.Gsv, Some("  ")) mustBe None
     }
   }
 

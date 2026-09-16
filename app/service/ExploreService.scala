@@ -781,11 +781,14 @@ class ExploreServiceImpl @Inject() (
    * PanoDataTable.upsert. Every statement is idempotent, so the action is safe to repeat.
    */
   private def savePanoAction(pano: PanoSubmission, timestamp: OffsetDateTime): DBIO[Unit] = {
+    // Stored as ImageryAttribution expects it, a licensed contributor's bare name, whatever the client sent: the AI
+    // labeler sends the whole attribution (#5360).
+    val copyright = ImageryAttribution.normalizeCopyright(pano.source, pano.copyright)
     for {
       _ <- panoDataTable.upsert(
-        PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
-          pano.copyright, pano.license, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll,
-          expired = false, timestamp, Some(timestamp), timestamp, pano.source, hasBackup = None, address = pano.address,
+        PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate, copyright,
+          pano.license, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll, expired = false,
+          timestamp, Some(timestamp), timestamp, pano.source, hasBackup = None, address = pano.address,
           sourceMetadata = pano.sourceMetadata)
       )
 
