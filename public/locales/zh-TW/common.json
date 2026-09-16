@@ -106,7 +106,7 @@
   "bad": "不良",
   "yes": "是",
   "no": "否",
-  "ai-generated-label-tooltip": "此標籤由 AI 產生。AI 可能會犯錯，請自行判斷。",
+  "ai-generated-label-tooltip": "此標籤由 AI 產生。AI 可能會犯錯，請自行判斷其是否正確。",
   "tag": {
     "narrow": "狹窄",
     "points into traffic": "指向橫向交通",

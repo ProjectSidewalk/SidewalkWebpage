@@ -108,7 +108,7 @@
   "bad": "Slecht",
   "yes": "Ja",
   "no": "Nee",
-  "ai-generated-label-tooltip": "Dit label is door AI gemaakt. AI kan fouten maken, dus maak uw eigen beoordeling.",
+  "ai-generated-label-tooltip": "Dit label is door AI gemaakt. AI kan fouten maken, dus beoordeel zelf of het klopt.",
   "tag": {
     "narrow": "smal",
     "points into traffic": "punten in het kruisende verkeer",

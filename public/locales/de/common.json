@@ -108,7 +108,7 @@
   "bad": "Schlecht",
   "yes": "Ja",
   "no": "Nein",
-  "ai-generated-label-tooltip": "Dieses Label wurde von der KI erstellt. KI kann Fehler machen, prüfen Sie es daher selbst.",
+  "ai-generated-label-tooltip": "Dieses Label wurde von der KI erstellt. KI kann Fehler machen, beurteilen Sie daher selbst, ob es korrekt ist.",
   "tag": {
     "narrow": "schmal",
     "points into traffic": "auf Querverkehr ausgerichtet",

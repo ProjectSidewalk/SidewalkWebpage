@@ -90,6 +90,14 @@ Two gotchas: tables and types share a namespace, so when an enum replaces a look
 `DROP TABLE` must precede `CREATE TYPE`; and enum values are compared as enum literals in SQL, so a raw-SQL filter
 built from user input must validate values first (an invalid literal is a Postgres error, not an empty result).
 
+**A label added with `ADD VALUE` can't be used as an enum literal by a later evolution.** Play applies every
+pending evolution in one transaction, and Postgres refuses a new enum label until the transaction that added it has
+committed (`SQLSTATE 55P04`, "unsafe use of new value"). Prod is usually past the `ADD VALUE` by the time the later
+evolution ships, so it passes there and fails everywhere that applies both in one batch: the CI seed dump, which sits
+at whatever number it was last regenerated at, and any dev schema that is behind. 390.sql hit this against 375's
+`'panoramax'`. Compare through text instead, `WHERE source::text = 'panoramax'`, which never converts the literal
+to the enum.
+
 **An enum in the shared `sidewalk_login` schema needs a plpgsql guard.** Evolutions run once per city schema, so
 anything touching `sidewalk_login` has to be a no-op on runs 2..N. `IF NOT EXISTS` covers tables, columns and
 indexes, but `CREATE TYPE` has no such form, so that half of the evolution goes in a `DO $$ ... $$` block guarded on

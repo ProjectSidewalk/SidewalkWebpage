@@ -108,7 +108,7 @@
   "bad": "Mauvaise",
   "yes": "Oui",
   "no": "Non",
-  "ai-generated-label-tooltip": "Cette étiquette a été générée par une IA. L'IA peut se tromper : faites votre propre évaluation.",
+  "ai-generated-label-tooltip": "Cette étiquette a été générée par une IA. L'IA peut se tromper : jugez par vous-même si elle est correcte.",
   "tag": {
     "narrow": "étroit",
     "points into traffic": "orienté vers la circulation",

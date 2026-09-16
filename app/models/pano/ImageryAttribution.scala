@@ -3,6 +3,8 @@ package models.pano
 import models.pano.PanoSource.PanoSource
 import play.api.libs.json.{JsObject, Json}
 
+import scala.util.matching.Regex
+
 /**
  * The attribution owed for a panorama's imagery when Project Sidewalk itself displays it — a self-hosted copy in the
  * pano viewer, or a crop cut from one (#4865). The live providers' own viewers draw their own.
@@ -12,6 +14,9 @@ import play.api.libs.json.{JsObject, Json}
  * imagery is open too, but under a licence its contributor picks per picture, so the licence comes from
  * `pano_data.license` rather than from the source (#5202). Google's and infra3d's imagery carries the copyright
  * string the provider supplied, which is the whole of what they ask shown.
+ *
+ * The bare name is a contract with every client that submits a pano, and [[normalizeCopyright]] is what holds it: a
+ * client that records the whole attribution as the copyright would otherwise have it composed around again (#5360).
  */
 object ImageryAttribution {
 
@@ -78,7 +83,7 @@ object ImageryAttribution {
    *                  credited to Panoramax whether or not its producer was recorded.
    */
   def line(source: PanoSource, copyright: Option[String], license: Option[String]): Option[Line] = {
-    val recorded = copyright.map(_.trim).filter(_.nonEmpty)
+    val recorded = normalizeCopyright(source, copyright)
     source match {
       case PanoSource.Mapillary =>
         Some(
@@ -105,4 +110,43 @@ object ImageryAttribution {
       case _ => recorded.map(Line(_, None, None, None))
     }
   }
+
+  /**
+   * A pano's copyright as `pano_data.copyright` should hold it: a provider's own copyright string as recorded, or
+   * for Mapillary and Panoramax the contributor's bare name, which is what the live viewers record and what [[line]]
+   * composes the `©`, the provider and the licence around.
+   *
+   * The AI labeler records a whole attribution instead, `© jacobwhall / Mapillary (CC BY-SA 4.0)` or
+   * `© Arretche / Panoramax (CC-BY-SA-4.0)`, so composing around it doubled the sign and named the provider and the
+   * licence twice (#5360). This unwraps that, and any other `©`-prefixed or provider-suffixed variant of it, back to
+   * the name; a wrapper naming only the provider means no contributor was recorded. Every submission passes through
+   * it (`ExploreService.savePanoAction`) so the column holds the bare name whichever client wrote it, and [[line]]
+   * applies it too so a row written before that guard renders the same. Evolution 390 rewrote the rows recorded
+   * before either, with the same two expressions.
+   *
+   * @param source    Where the imagery came from.
+   * @param copyright The copyright string as recorded or submitted.
+   * @return          The value to store or render, or None when it is blank or names nothing but the provider.
+   */
+  def normalizeCopyright(source: PanoSource, copyright: Option[String]): Option[String] = {
+    val recorded = copyright.map(_.trim).filter(_.nonEmpty)
+    ProviderSuffix.get(source) match {
+      case Some(suffix) =>
+        recorded.map(r => suffix.replaceFirstIn(CopyrightSign.replaceFirstIn(r, ""), "").trim).filter(_.nonEmpty)
+      case None => recorded
+    }
+  }
+
+  /** A leading copyright sign, which [[line]] adds itself. */
+  private val CopyrightSign: Regex = """^\s*©\s*""".r
+
+  /**
+   * A trailing ` / Provider (licence)`, per provider whose copyright names a contributor. The provider has to stand
+   * on its own, at the start or after a slash or a space, so a name that merely ends in it is left alone. Compiled
+   * once: [[line]] runs per label in every Gallery, Validate and popup payload.
+   */
+  private val ProviderSuffix: Map[PanoSource, Regex] =
+    Seq("Mapillary" -> PanoSource.Mapillary, "Panoramax" -> PanoSource.Panoramax).map { case (name, source) =>
+      source -> raw"""(^|\s*/\s*|\s+)${Regex.quote(name)}(\s*\([^)]*\))?\s*$$""".r
+    }.toMap
 }
