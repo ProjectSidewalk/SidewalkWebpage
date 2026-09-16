@@ -592,12 +592,17 @@ class Label {
     content.className = 'minimap-label-icon';
     // AdvancedMarkerElement anchors content by its bottom-center; shift it down half its height to center it.
     content.style.transform = 'translateY(50%)';
+    // Hover tooltip and accessible name, named the way the rest of the tool names the label type.
+    const labelTypeName = i18next.t(`common:${util.camelToKebab(labelType)}`).replaceAll('&shy;', '');
+    const title = i18next.t('audit:right-ui.minimap.label-marker-title', { labelType: labelTypeName });
+    content.alt = title;
     return new google.maps.marker.AdvancedMarkerElement({
       position: new google.maps.LatLng(latLng.lat, latLng.lng),
       map: svl.minimap.getMap(),
       content,
       // Interactive so it emits gmp-click; the click handler is wired in the Label constructor (#2561).
       gmpClickable: true,
+      title,
     });
   }
 }

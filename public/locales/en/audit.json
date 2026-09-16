@@ -172,7 +172,20 @@
       "legend-ahead": "Route ahead",
       "legend-you": "You + view direction",
       "legend-visited": "Visited location",
-      "legend-unseen": "Not yet viewed"
+      "legend-unseen": "Not yet viewed",
+      "legend-next-stops": "Stops on your route",
+      "forward-crumb-title": "Move ahead to stop {{rank}}",
+      "legend-other-links": "Other directions",
+      "legend-faced": "Filled: where forward takes you",
+      "link-crumb-title": "Move to this pano",
+      "legend-next-step": "Light blue: next step (spacebar)",
+      "route-stop-title": "Stop {{rank}} on your route",
+      "breadcrumb-title": "Visited: click to go back here",
+      "label-marker-title": "{{labelType}} label: click to review it",
+      "route-start-flag": "Route start",
+      "route-finish-flag": "Route finish",
+      "mission-start-flag": "Where this mission started",
+      "mission-finish-flag": "Where this mission ends"
     },
     "stats": {
       "leaderboard-cta": "See the community leaderboard"

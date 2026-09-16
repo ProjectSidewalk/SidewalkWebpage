@@ -69,6 +69,18 @@ Also covered, beyond the api-docs previews:
   and its per-zoom binding aspects, and the analyzer's copy of `zoomToFov`, against the recorded fixture
   `fixtures/gsvFovMeasurements.json`. It pins *code* against frozen measurements — a renderer change on Google's
   side is invisible to it and needs a fresh probe run (that tool's README says when).
+- `common/pano-viewer/src/*Viewer.js` → `panoViewerFindPanoNear.test.js` — the metadata-only
+  `findPanoNear()` lookup behind the minimap's forward crumbs (#4669), per provider: the answer is the pano
+  `setLocation()` would land on (same search, scoring and exclusions, run through the real pano utilities and
+  turf), the viewer's current pano is untouched, "nothing here" resolves null while an unanswered search rejects
+  (#4918), prefetched searches are reused, and a hung lookup is given up on.
+- `explore/src/navigation/ForwardCrumbs.js` → `forwardCrumbsLifecycle.test.js` — the stateful half, driven through
+  `refresh()`/`clear()`/click with a stubbed `AdvancedMarkerElement` and a scripted provider: a stop that renumbers gets
+  a marker with the new rank in its tooltip, `clear()` disowns a refresh still waiting on lookups, lookups queued for a
+  street the user has left are skipped, and a far crumb over a visited pano peeks back on click.
+- `explore/src/navigation/ForwardCrumbs.js` → `forwardCrumbsWindowing.test.js` — the geometry behind the
+  forward crumbs (#4669): where along a street the sampler looks, which found panos count as "ahead" and on this
+  street, and how they split into the nearest clickable few and the faint rest (#2561). Real turf.
 - `tools/gsv-fov-probe/estimator.cjs` → `gsvFovProbeEstimator.test.js` — the probe's focal-length fitter against
   synthetic pinhole ground truth (#5083), gate 1 of that experiment's protocol: no live measurement is trusted until
   the estimator recovers a known focal length to better than 0.2%. This is the slowest suite in the tree (~40 s,

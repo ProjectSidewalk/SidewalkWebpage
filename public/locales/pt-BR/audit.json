@@ -172,7 +172,20 @@
       "legend-ahead": "Rota restante",
       "legend-you": "Você + direção da vista",
       "legend-visited": "Local visitado",
-      "legend-unseen": "Ainda não visto"
+      "legend-unseen": "Ainda não visto",
+      "legend-next-stops": "Paradas na sua rota",
+      "forward-crumb-title": "Avançar para a parada {{rank}}",
+      "legend-other-links": "Outras direções",
+      "legend-faced": "Preenchido: para onde avançar leva",
+      "link-crumb-title": "Ir para este panorama",
+      "legend-next-step": "Azul claro: próximo passo (barra de espaço)",
+      "route-stop-title": "Parada {{rank}} da sua rota",
+      "breadcrumb-title": "Visitado: clique para voltar aqui",
+      "label-marker-title": "Rótulo {{labelType}}: clique para revisar",
+      "route-start-flag": "Início da rota",
+      "route-finish-flag": "Fim da rota",
+      "mission-start-flag": "Onde esta missão começou",
+      "mission-finish-flag": "Onde esta missão termina"
     },
     "stats": {
       "leaderboard-cta": "Ver a classificação da comunidade"

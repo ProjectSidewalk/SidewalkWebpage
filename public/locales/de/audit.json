@@ -172,7 +172,20 @@
       "legend-ahead": "Verbleibende Route",
       "legend-you": "Sie + Blickrichtung",
       "legend-visited": "Besuchter Ort",
-      "legend-unseen": "Noch nicht gesehen"
+      "legend-unseen": "Noch nicht gesehen",
+      "legend-next-stops": "Haltepunkte auf Ihrer Route",
+      "forward-crumb-title": "Zu Haltepunkt {{rank}} gehen",
+      "legend-other-links": "Andere Richtungen",
+      "legend-faced": "Gefüllt: wohin Vorwärts führt",
+      "link-crumb-title": "Zu diesem Panorama gehen",
+      "legend-next-step": "Hellblau: nächster Schritt (Leertaste)",
+      "route-stop-title": "Haltepunkt {{rank}} auf Ihrer Route",
+      "breadcrumb-title": "Besucht: klicken, um hierher zurückzukehren",
+      "label-marker-title": "{{labelType}}-Markierung: klicken zum Überprüfen",
+      "route-start-flag": "Routenstart",
+      "route-finish-flag": "Routenziel",
+      "mission-start-flag": "Wo diese Mission begann",
+      "mission-finish-flag": "Wo diese Mission endet"
     },
     "stats": {
       "leaderboard-cta": "Bestenliste der Gemeinschaft ansehen"

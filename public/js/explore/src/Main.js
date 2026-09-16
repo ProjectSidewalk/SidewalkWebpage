@@ -152,6 +152,7 @@ class Main {
     svl.observedArea = new ObservedArea(svl.ui.minimap);
     svl.minimapLegend = new MinimapLegend(svl.ui.minimap, svl.tracker);
     svl.routeOverview = new RouteOverview(svl.ui.minimap, svl.tracker);
+    svl.forwardCrumbs = new ForwardCrumbs(svl.navigationService, svl.tracker);
 
     // Mission
     svl.missionContainer = new MissionContainer(svl.missionPanel, svl.missionModel);
@@ -419,6 +420,8 @@ class Main {
       svl.observedArea.update();
       svl.compass.update();
       svl.compass.enableCompassClick();
+      // The first task was set before the crumbs existed, so draw the ones ahead now (#4669).
+      svl.forwardCrumbs.refresh();
       // Re-render the nav arrows now that the compass and task exist, so the route-forward arrow is highlighted on
       // the very first pano too — PanoManager's own initial resetNavArrows ran before those were wired up. (#4671)
       svl.panoManager.resetNavArrows();

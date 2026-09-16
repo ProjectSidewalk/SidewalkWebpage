@@ -172,7 +172,20 @@
       "legend-ahead": "Resterende route",
       "legend-you": "U + kijkrichting",
       "legend-visited": "Bezochte locatie",
-      "legend-unseen": "Nog niet bekeken"
+      "legend-unseen": "Nog niet bekeken",
+      "legend-next-stops": "Stops op uw route",
+      "forward-crumb-title": "Ga vooruit naar stop {{rank}}",
+      "legend-other-links": "Andere richtingen",
+      "legend-faced": "Gevuld: waar vooruit u heen brengt",
+      "link-crumb-title": "Ga naar dit panorama",
+      "legend-next-step": "Lichtblauw: volgende stap (spatiebalk)",
+      "route-stop-title": "Stop {{rank}} op uw route",
+      "breadcrumb-title": "Bezocht: klik om hierheen terug te gaan",
+      "label-marker-title": "{{labelType}}-label: klik om te bekijken",
+      "route-start-flag": "Start van de route",
+      "route-finish-flag": "Einde van de route",
+      "mission-start-flag": "Waar deze missie begon",
+      "mission-finish-flag": "Waar deze missie eindigt"
     },
     "stats": {
       "leaderboard-cta": "Bekijk het scorebord van de gemeenschap"

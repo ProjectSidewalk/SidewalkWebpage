@@ -441,6 +441,7 @@ class NavigationService {
 
     // Update position-dependent views now; heading-dependent ones wait for the pov to settle.
     svl.minimap.setMinimapLocation(newLatLng);
+    if (svl.forwardCrumbs) svl.forwardCrumbs.refresh();
     svl.compass.enableCompassClick();
     this.#refreshHeadingViewsAfterPovSettles();
 
@@ -548,6 +549,18 @@ class NavigationService {
   }
 
   /**
+   * The unwalked part of a task's street: from the furthest point the user has reached to the street's end. Shared
+   * by the forward walk, the compass, and the minimap's forward crumbs so they agree on what "ahead" means.
+   * @param {Task} task - The task being walked.
+   * @returns {turf.Feature<turf.LineString>}
+   */
+  static remainderOfStreet(task) {
+    const from = turf.point(task.getFurthestPointReached().geometry.coordinates);
+    const end = turf.point([task.getEndCoordinate().lng, task.getEndCoordinate().lat]);
+    return turf.cleanCoords(turf.lineSlice(from, end, task.getFeature()));
+  }
+
+  /**
    * Computes the location that moveForward() will search first, along with the unwalked remainder of the street.
    *
    * The target is the start of the remainder (the user's furthest point reached), bumped one DIST_INCREMENT
@@ -559,12 +572,10 @@ class NavigationService {
    * @returns {{currLoc: {lat: number, lng: number}, remainder: turf.Feature<turf.LineString>}}
    */
   #computeMoveTarget(currentTask) {
-    const streetEdge = currentTask.getFeature();
     const startLatLng = turf.point(currentTask.getFurthestPointReached().geometry.coordinates);
     const streetEndpoint = turf.point([currentTask.getEndCoordinate().lng, currentTask.getEndCoordinate().lat]);
 
-    // Remove the part of the street geometry that you've already passed using lineSlice.
-    let remainder = turf.cleanCoords(turf.lineSlice(startLatLng, streetEndpoint, streetEdge));
+    let remainder = NavigationService.remainderOfStreet(currentTask);
     let currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
 
     const currPosition = svl.panoViewer.getPosition();
@@ -760,6 +771,38 @@ class NavigationService {
     NoImageryFlagGuard.reset();
     this.#updateUiAfterMove();
 
+    return true;
+  }
+
+  /**
+   * Moves to whatever pano the provider serves nearest a location, as a real move (the task advances, walking is
+   * timed out, the views update). The minimap's forward crumbs use it when a crumb's pano id no longer loads: the
+   * crumb still marks where imagery was, so the coordinate search moveForward() relies on is the right retry.
+   *
+   * The current pano is excluded from the search because a location a few metres ahead is usually still nearest to
+   * the pano being stood on, and "moving" there would go nowhere.
+   *
+   * @param {{lat: number, lng: number}} latLng - Where to look for a pano.
+   * @param {{alertOnFailure?: boolean}} [options] - As for moveToPano.
+   * @returns {Promise<boolean>} Whether the move succeeded (false if walking is disabled or nothing loads there).
+   */
+  async moveToLocation(latLng, { alertOnFailure = true } = {}) {
+    if (this.#status.disableWalking) return false;
+
+    this.#updateUiBeforeMove();
+    try {
+      const currentPano = svl.panoStore.getPanoData(svl.panoViewer.getPanoId());
+      await svl.panoManager.setLocation(latLng, new Set(currentPano ? [currentPano] : []));
+    } catch (err) {
+      this.#restoreUiAfterFailedMove();
+      console.error(err);
+      if (alertOnFailure) {
+        svl.alertController.showAlert(i18next.t('popup.imagery-load-failed'), 'imageryLoadFailed', false);
+      }
+      return false;
+    }
+    NoImageryFlagGuard.reset();
+    this.#updateUiAfterMove();
     return true;
   }
 

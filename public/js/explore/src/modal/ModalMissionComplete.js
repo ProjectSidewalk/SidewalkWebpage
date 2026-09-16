@@ -313,6 +313,8 @@ class ModalMissionComplete {
 
     svl.navigationService.disableWalking();
     svl.navigationService.lockDisableWalking();
+    // Walking is locked while the modal is up, so nothing on the minimap should look steppable.
+    if (svl.forwardCrumbs) svl.forwardCrumbs.clear();
 
     this.#els.holder.style.visibility = 'visible';
     this.#els.foreground.style.visibility = 'visible';
@@ -391,6 +393,7 @@ class ModalMissionComplete {
       svl.missionPanel.setMessage(this.#missionContainer.getCurrentMission());
       svl.navigationService.unlockDisableWalking();
       svl.navigationService.enableWalking();
+      if (svl.forwardCrumbs) svl.forwardCrumbs.refresh();
       this.hide();
     }
   }

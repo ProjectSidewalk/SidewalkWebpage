@@ -5,9 +5,10 @@
  *
  * Docs: https://pannellum.org/documentation/api/
  *
- * Unlike GsvViewer/MapillaryViewer, this viewer cannot search by lat/lng or follow pano links. Callers that need to
- * switch panos must call loadPano() with the new pano's metadata, since this viewer has no external API to fetch it
- * from. Callers supply full pano metadata via panoOptions.panoMetadata on initialize().
+ * Unlike GsvViewer/MapillaryViewer, this viewer cannot search by lat/lng or follow pano links, so findPanoNear()
+ * keeps the base class's null answer and Explore draws no forward crumbs on it. Callers that need to switch panos
+ * must call loadPano() with the new pano's metadata, since this viewer has no external API to fetch it from. Callers
+ * supply full pano metadata via panoOptions.panoMetadata on initialize().
  *
  * Internally, the viewer is initialized in Pannellum's tour mode (default + scenes config) so that loadPano() can
  * swap panos via addScene()/loadScene() without destroying and recreating the WebGL context.
