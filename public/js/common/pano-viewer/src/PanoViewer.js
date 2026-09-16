@@ -467,6 +467,16 @@ class PanoViewer {
   resize() {}
 
   /**
+   * Forces the viewer to redraw the frame it is already showing. Call it alongside resize() after a layout change:
+   * re-measuring tells a viewer what size to draw at, this tells it to draw.
+   *
+   * No-op by default, because only a provider with a repaint bug needs one — GSV does (#2468), and the workaround
+   * belongs with the provider rather than in every page that resizes a pano.
+   * @returns {void}
+   */
+  repaint() {}
+
+  /**
    * Adds an event listener for the specified event type.
    * @param {string} event - One of ['pano_changed', 'pov_changed', 'diagnostic']
    * @param {Function} handler - The function to call when the event occurs; a 'diagnostic' one gets `(name, details)`.

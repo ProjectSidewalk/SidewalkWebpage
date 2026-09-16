@@ -27,6 +27,7 @@ class Main {
 
   // Re-sizing the pano is a layout and a viewer redraw, and a rotation fires resize several times as the device
   // settles. Coalescing at about a frame's worth keeps the pano tracking the screen without doing it every event.
+  // Desktop, which rescales on every event, uses the same span as the quiet period before it logs Window_Resized.
   static #RESIZE_THROTTLE_MS = 150;
 
   #param;
@@ -223,16 +224,8 @@ class Main {
     // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale). Mobile
     // instead fills the screen via PanoManager's own sizing.
     if (!util.isMobile()) {
-      const applyValidateScale = () => {
-        const scale = util.applyToolScale(
-          ['--pano-base-width', '--menu-base-gap', '--menu-base-width'],
-          ['--header-base-height', '--pano-base-height'],
-        );
-        svv.panoManager.setMarkerScale(scale);
-        svv.panoViewer.resize();
-      };
-      applyValidateScale();
-      window.addEventListener('resize', applyValidateScale);
+      Main.applyValidateScale();
+      window.addEventListener('resize', Main.createDesktopResizeHandler());
     } else {
       // The pano is sized to the viewport, so a rotation (or an on-screen keyboard opening) leaves it the wrong
       // shape. Re-size it in place: a reload would be the only alternative, and it would cost the validator their
@@ -252,6 +245,7 @@ class Main {
 
         svv.panoManager.sizePano();
         svv.panoViewer.resize();
+        svv.panoViewer.repaint();
         svv.tracker.push('Window_Resized', {
           width, height, orientation: width > height ? 'landscape' : 'portrait', rotated,
         });
@@ -347,6 +341,50 @@ class Main {
         container: 'body',
       });
     }
+  }
+
+  /**
+   * Scales the whole desktop tool to fit the viewport (like browser zoom, via var(--ui-scale)) and hands the pano
+   * viewer its new container size. Runs once at startup and again on every window resize.
+   *
+   * The viewer is told twice over: `resize()` is the documented "your container moved" call, and `repaint()` covers
+   * the case where GSV re-measures but never draws, leaving the validator a black image until they drag it (#2468,
+   * #5367). Neither is known to be sufficient on its own, and both are cheap. The startup call repaints too: the
+   * first label's marker set the POV while the tool was still at scale 1, so the rescale here is the first change
+   * to the pano's box after it painted — the very trigger — and a black first label is what gets reported.
+   * @returns {void}
+   */
+  static applyValidateScale() {
+    const scale = util.applyToolScale(
+      ['--pano-base-width', '--menu-base-gap', '--menu-base-width'],
+      ['--header-base-height', '--pano-base-height'],
+    );
+    svv.panoManager.setMarkerScale(scale);
+    svv.panoViewer.resize();
+    svv.panoViewer.repaint();
+  }
+
+  /**
+   * Builds the desktop `resize` listener: re-scale the tool, and record that the viewport changed shape.
+   *
+   * The logging lives here rather than in applyValidateScale() because that also runs at startup, where nothing was
+   * resized — a `Window_Resized` then would read as a user action that never happened. Logged on the settled size,
+   * once the events have stopped for a window, rather than throttled like mobile's: a throttle keeps emitting for as
+   * long as a drag lasts, and a drag is one act, so it gets one line carrying the size that stuck.
+   * @returns {() => void} The listener to attach to the window's `resize` event.
+   */
+  static createDesktopResizeHandler() {
+    let logTimer;
+    return () => {
+      Main.applyValidateScale();
+      clearTimeout(logTimer);
+      logTimer = setTimeout(() => {
+        svv.tracker.push('Window_Resized', {
+          width: document.documentElement.clientWidth,
+          height: document.documentElement.clientHeight,
+        });
+      }, Main.#RESIZE_THROTTLE_MS);
+    };
   }
 
   /**

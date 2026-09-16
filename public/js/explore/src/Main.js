@@ -537,6 +537,11 @@ class Main {
         svl.LABEL_HIT_MARGIN = util.labelHitMargin(scale);
       };
       applyExploreScale();
+      // The pano was painted at scale 1 and its box has just changed size, which is exactly what can leave GSV
+      // black until the camera moves (#2468): tell the viewer its box moved, then have it force a frame. The
+      // workaround lives in the viewer (PanoViewer.repaint()) so only the provider that needs it does anything.
+      svl.panoViewer.resize();
+      svl.panoViewer.repaint();
       // The canvas was rasterized at scale 1 during init; re-raster it at the chosen scale.
       if (svl.canvas) svl.canvas.resize();
       if (svl.onboarding) svl.onboarding.resize();
@@ -547,14 +552,28 @@ class Main {
       }
       window.dispatchEvent(new Event('resize'));
 
+      // Attached below the synthetic resize above, so page load never logs one: nothing was resized there, and the
+      // rescale, re-raster and repaint that event stands in for have just been run inline.
       let resizeRasterTimer;
       window.addEventListener('resize', () => {
         applyExploreScale();
         clearTimeout(resizeRasterTimer);
         resizeRasterTimer = setTimeout(() => {
+          // The viewer hears about the settled size, after the rescale above has changed its box — telling it per
+          // event would describe the box it already had, and the last event of a drag would go unanswered. It also
+          // keeps the providers whose resize() is a full re-measure (Mapillary, Infra3d, Panoramax) off the event
+          // firehose. The repaint is GSV's #2468 workaround; PanoViewer.repaint() is a no-op elsewhere.
+          svl.panoViewer.resize();
+          svl.panoViewer.repaint();
           if (svl.canvas) svl.canvas.resize();
           if (svl.onboarding) svl.onboarding.resize();
           if (svl.observedArea) svl.observedArea.update();
+          // Logged on the settled size rather than per event, so a window drag is one line (#5367). The repaint
+          // above bypasses the POV path that logs POV_Changed, so none follows this one.
+          svl.tracker.push('Window_Resized', {
+            width: document.documentElement.clientWidth,
+            height: document.documentElement.clientHeight,
+          });
         }, 150);
       });
     }
