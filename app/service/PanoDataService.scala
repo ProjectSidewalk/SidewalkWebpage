@@ -17,10 +17,13 @@ import play.api.libs.json.{JsNull, JsNumber, JsObject, JsValue, Json}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Environment, Logger}
 import service.PanoDataService.{
+  infra3dTokenNeedsRemint,
+  parseInfra3dTokenResponse,
   staticLocationUrl,
   staticStillUrl,
   ImageryCheckConcurrency,
   ImageryCheckResult,
+  Infra3dToken,
   LiveImageryTtlDays,
   MaxUnexpiredPanosPerSweep
 }
@@ -33,7 +36,7 @@ import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import javax.inject._
-import scala.concurrent.duration.{Duration, DurationInt}
+import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -51,6 +54,38 @@ object PanoDataService {
    * label was placed.
    */
   val LiveImageryTtlDays: Long = 7
+
+  /**
+   * An Infra3d access token and when Cognito said it stops working. The expiry travels with the token because the
+   * SDK has no refresh path of its own: a token that dies mid-session turns the viewer black with no error.
+   * @param accessToken The bearer token the SDK is initialized with.
+   * @param expiresAt   From the token endpoint's `expires_in`.
+   */
+  case class Infra3dToken(accessToken: String, expiresAt: OffsetDateTime)
+
+  /**
+   * Minimum life left on an Infra3d token for it to be handed out rather than re-minted. Infra3dViewer renews five
+   * minutes before expiry with retries, so this only has to cover a page load plus that window; fifteen minutes does
+   * against a 60-minute token while keeping the cache hit rate high.
+   */
+  val Infra3dTokenMinRemaining: FiniteDuration = 15.minutes
+
+  /** Assumed when Cognito's response omits `expires_in`; its client-credentials tokens are issued for an hour. */
+  val Infra3dTokenDefaultLifetimeSeconds: Long = 3600L
+
+  /** Whether a cached token is absent or has less than [[Infra3dTokenMinRemaining]] left. */
+  def infra3dTokenNeedsRemint(cached: Option[Infra3dToken], now: OffsetDateTime): Boolean =
+    cached.forall(_.expiresAt.isBefore(now.plusSeconds(Infra3dTokenMinRemaining.toSeconds)))
+
+  /**
+   * Reads a Cognito `oauth2/token` response.
+   * @param mintedAt When the request was sent, so the expiry errs early rather than late.
+   * @return         The token and its expiry.
+   */
+  def parseInfra3dTokenResponse(json: JsValue, mintedAt: OffsetDateTime): Infra3dToken = {
+    val expiresIn: Long = (json \ "expires_in").asOpt[Long].getOrElse(Infra3dTokenDefaultLifetimeSeconds)
+    Infra3dToken((json \ "access_token").as[String], mintedAt.plusSeconds(expiresIn))
+  }
 
   /**
    * How many panos the nightly expiry sweep may have in flight at once (#4559).
@@ -423,11 +458,18 @@ object PanoDataService {
 trait PanoDataService {
 
   /**
-   * Requests the infra3D token using the client ID and secret stored in environment variables.
-   * @param cityId One of "zurich-infra3d" or "winterthur-infra3d", as they have separate authentication tokens.
-   * @return
+   * The Infra3d access token for a city, reused until it nears expiry ([[PanoDataService.Infra3dTokenMinRemaining]]).
+   * @param cityId One of "zurich-infra3d" or "winterthur-infra3d", as they have separate credentials.
+   * @return       The bearer token.
    */
   def getInfra3dToken(cityId: String): Future[String]
+
+  /**
+   * Same as [[getInfra3dToken]], with the expiry the token endpoint reported.
+   * @param cityId One of "zurich-infra3d" or "winterthur-infra3d".
+   * @return       The token and when it stops working.
+   */
+  def getInfra3dTokenWithExpiry(cityId: String): Future[Infra3dToken]
   def panoExists(panoId: String, panoSource: PanoSource): Future[Option[Boolean]]
   def signUrl(urlString: String): String
   def getReusableImageryStatus(panoIds: Set[String]): Future[Map[String, Boolean]]
@@ -480,31 +522,51 @@ class PanoDataServiceImpl @Inject() (
   private val cropsDir: File     = MediaDirs.cityDir(config, environment, "cropped.image.directory")
   private val panosBaseDir: File = MediaDirs.cityDir(config, environment, "pano.images.directory")
 
-  def getInfra3dToken(cityId: String): Future[String] = {
-    // Token expires after 60 minutes, so we don't need to get a new token every time.
-    cacheApi.getOrElseUpdate[String]("getInfra3dToken", Duration(30, "minutes")) {
-      val cityName: String     = if (cityId == "winterthur-infra3d") "winterthur" else "zurich"
-      val clientId: String     = config.get[String](s"infra3d-client-id-$cityName")
-      val clientSecret: String = config.get[String](s"infra3d-client-secret-$cityName")
-      val body                 = Map(
-        "client_id"     -> clientId,
-        "client_secret" -> clientSecret,
-        "grant_type"    -> "client_credentials"
-      )
-      ws.url("https://uzh.auth.eu-west-1.amazoncognito.com/oauth2/token")
-        .addHttpHeaders(
-          "Content-Type" -> ContentTypes.FORM,
-          "Accept"       -> "application/json"
-        )
-        .post(body)
-        .map { response =>
-          if (response.status == 200) {
-            (response.json \ "access_token").as[String]
-          } else {
-            throw new RuntimeException(s"Token request failed with status ${response.status}: ${response.body}")
-          }
+  def getInfra3dToken(cityId: String): Future[String] = getInfra3dTokenWithExpiry(cityId).map(_.accessToken)
+
+  def getInfra3dTokenWithExpiry(cityId: String): Future[Infra3dToken] = {
+    val cacheKey = s"getInfra3dToken:$cityId" // Zurich and Winterthur have separate credentials, so separate tokens.
+    val now      = OffsetDateTime.now
+    cacheApi.get[Infra3dToken](cacheKey).flatMap {
+      case Some(cached) if !infra3dTokenNeedsRemint(Some(cached), now) => Future.successful(cached)
+      case _                                                           =>
+        mintInfra3dToken(cityId, now).flatMap { token =>
+          // Cached for its whole remaining life; the minimum-remaining check above retires it early.
+          val ttlSeconds: Long = math.max(1L, java.time.Duration.between(now, token.expiresAt).getSeconds)
+          cacheApi.set(cacheKey, token, Duration(ttlSeconds, "seconds")).map(_ => token)
         }
     }
+  }
+
+  /**
+   * Requests a fresh token from Cognito with the city's client credentials.
+   * @return The new token, or a failed Future when the token endpoint refuses.
+   */
+  private def mintInfra3dToken(cityId: String, mintedAt: OffsetDateTime): Future[Infra3dToken] = {
+    val cityName: String     = if (cityId == "winterthur-infra3d") "winterthur" else "zurich"
+    val clientId: String     = config.get[String](s"infra3d-client-id-$cityName")
+    val clientSecret: String = config.get[String](s"infra3d-client-secret-$cityName")
+    val body                 = Map(
+      "client_id"     -> clientId,
+      "client_secret" -> clientSecret,
+      "grant_type"    -> "client_credentials"
+    )
+    ws.url("https://uzh.auth.eu-west-1.amazoncognito.com/oauth2/token")
+      .addHttpHeaders(
+        "Content-Type" -> ContentTypes.FORM,
+        "Accept"       -> "application/json"
+      )
+      .post(body)
+      .map { response =>
+        if (response.status == 200) {
+          val token = parseInfra3dTokenResponse(response.json, mintedAt)
+          // The expiry, never the token: lets a client-side TokenExpired event be lined up against the mints.
+          logger.info(s"Minted Infra3d token for $cityName; expires ${token.expiresAt}.")
+          token
+        } else {
+          throw new RuntimeException(s"Token request failed with status ${response.status}: ${response.body}")
+        }
+      }
   }
 
   /**

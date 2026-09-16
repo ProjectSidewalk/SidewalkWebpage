@@ -349,7 +349,8 @@
     "free-explore-no-imagery": "Não há mais imagens da rua nesta direção. Tente olhar ao redor ou seguir para o outro lado.",
     "stuck-suggestion": "Se você não conseguir se mover com as setas, tente clicar nas direções de navegação no canto inferior direito. Ou tente clicar no botão Preso à esquerda.",
     "imagery-skip-limit": "Várias ruas seguidas não tinham imagens, então paramos de mover você automaticamente. Tente outra parte do mapa ou recarregue a página para começar de novo.",
-    "imagery-load-failed": "Não conseguimos carregar as imagens da rua agora. Tente novamente em alguns minutos."
+    "imagery-load-failed": "Não conseguimos carregar as imagens da rua agora. Tente novamente em alguns minutos.",
+    "imagery-session-expired": "Sua sessão de imagens da rua expirou e não pôde ser renovada. Recarregue a página para continuar; seu trabalho até agora está salvo."
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "EXPLORAR MISSÃO",
