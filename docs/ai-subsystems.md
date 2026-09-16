@@ -82,7 +82,10 @@ validation.
    (`AiController.submitAiLabel`).
 2. `ExploreService.submitAiLabelData` computes lat/lng + POV, creates an AI mission/audit
    task, inserts real `label` rows under the AI user, and records provenance in
-   `label_ai_info`.
+   `label_ai_info`. The pano's `copyright` is reduced to the contributor's bare name on the
+   way in (`ImageryAttribution.normalizeCopyright`): the labeler sends a whole attribution,
+   `© name / Mapillary (CC BY-SA 4.0)`, and the server composes the sign, provider and licence
+   around the stored name itself, so storing the whole thing credited everything twice (#5360).
 3. Labels then enter the normal human-validation pipeline — which is also the feedback signal
    for improving the model (continual-improvement roadmap:
    `sidewalk-auto-labeler/docs/design-review-2026-07.md`). A lone AI vote leaves a label one
