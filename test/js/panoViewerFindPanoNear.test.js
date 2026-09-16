@@ -40,7 +40,7 @@ document.documentElement.dataset.panoScoring = JSON.stringify(
     Object.fromEntries(Object.entries(scoringConfig).filter(([key]) => !key.startsWith('_'))),
 );
 loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
-window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.3.4.min.js'));
+window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
 window.svl = { STREETVIEW_MAX_DISTANCE: 25 };
 
 const { turf } = window;
