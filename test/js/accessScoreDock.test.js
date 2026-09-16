@@ -369,6 +369,73 @@ describe('AccessScoreDock', () => {
         expect(Array.from(document.querySelectorAll('.acs-photos__item')).map((el) => el.dataset.labelId))
             .toEqual(expectedIds);
     });
+    test('the strip ranks worst first, the confirmed ahead of the unchecked and the disputed last (#5386)', async () => {
+        const rank = window.AccessScorePhotoStrip.compareWorstFirst;
+        const entries = [
+            {id: 'sev2-confirmed', severity: 2, agree: 3, disagree: 0},
+            {id: 'sev3-disputed', severity: 3, agree: 1, disagree: 2},
+            {id: 'unrated', severity: null, agree: 5, disagree: 0},
+            {id: 'sev3-unchecked-big', severity: 3, agree: 0, disagree: 0, size: 4},
+            {id: 'sev3-confirmed-1', severity: 3, agree: 1, disagree: 0},
+            {id: 'sev3-confirmed-4', severity: 3, agree: 4, disagree: 1},
+            {id: 'sev3-unchecked-small', severity: 3, agree: 0, disagree: 0, size: 1},
+        ];
+        expect(entries.slice().sort(rank).map((e) => e.id)).toEqual([
+            'sev3-confirmed-4', 'sev3-confirmed-1', 'sev3-unchecked-big', 'sev3-unchecked-small', 'sev3-disputed',
+            'sev2-confirmed', 'unrated',
+        ]);
+
+        // Cluster 5 has the worse median but its label is disputed, so cluster 4's confirmed label leads: the ribbon
+        // takes the labels' own order. The region the city scope already fetched answers from the strip's cache, so
+        // the feed below is served for the other one.
+        const ranked = model.rankedRegions();
+        const region = ranked[ranked.length - 1].regionId === 1 ? 2 : 1;
+        const previous = fetchMock.getMockImplementation();
+        const clusterOf = (id, labelId, extra) => ({type: 'Feature', properties: {label_cluster_id: id,
+            label_type: 'Obstacle', street_edge_id: 1, intersection_id: null, region_id: region, region_name: 'R',
+            label_ids: [labelId], cluster_size: 1, ...extra}});
+        const labelOf = (id, extra) => ({label_id: id, label_type: 'Obstacle', crop_url: null,
+            backup_image_url: null, ...extra});
+        fetchMock.mockImplementation((input) => {
+            const url = new URL(String(input), 'http://localhost');
+            if (url.pathname === '/v3/api/labelClusters') {
+                return Promise.resolve({ok: true, status: 200, json: () => Promise.resolve({
+                    type: 'FeatureCollection',
+                    features: [
+                        clusterOf(4, 401, {median_severity: 2, agree_count: 2, disagree_count: 0}),
+                        clusterOf(5, 501, {median_severity: 3, agree_count: 0, disagree_count: 0}),
+                        clusterOf(6, 601, {median_severity: 1, agree_count: 0, disagree_count: 3}),
+                    ],
+                })});
+            }
+            if (url.pathname === '/label/id/401') {
+                return Promise.resolve({ok: true, status: 200,
+                    json: () => Promise.resolve(labelOf(401, {severity: 3, num_agree: 2, num_disagree: 0}))});
+            }
+            if (url.pathname === '/label/id/501') {
+                return Promise.resolve({ok: true, status: 200,
+                    json: () => Promise.resolve(labelOf(501, {severity: 3, num_agree: 0, num_disagree: 1}))});
+            }
+            if (url.pathname === '/label/id/601') {
+                return Promise.resolve({ok: true, status: 200,
+                    json: () => Promise.resolve(labelOf(601, {severity: 1, num_agree: 0, num_disagree: 3}))});
+            }
+            return previous(input);
+        });
+        model.setState({unit: 'regions'});
+        dock.applyChange({kind: 'Unit', final: true});
+        dock.setSelection({unit: 'regions', id: region});
+        flush();
+        await settle();
+        const ribbon = document.querySelector('.acs-photos__ribbon');
+        expect(ribbon.tagName).toBe('OL'); // a ranking, numbered by the CSS
+        expect(Array.from(ribbon.querySelectorAll('.acs-photos__item')).map((el) => el.dataset.labelId))
+            .toEqual(['401', '501', '601']);
+        // The label card pages through the strip in ribbon order.
+        ribbon.querySelector('.acs-photos__item .lmc__open').click();
+        expect(callbacks.onOpenLabel).toHaveBeenCalledWith(401, [401, 501, 601]);
+    });
+
     test('zoomed in with nothing selected, the strip follows the area in view and a settled pan refreshes it', async () => {
         const moveend = map.on.mock.calls.find(([name]) => name === 'moveend')[1];
         const captionEl = () => document.querySelector('.acs-photos__caption').textContent;

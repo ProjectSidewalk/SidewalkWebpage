@@ -1127,11 +1127,31 @@
   overflow-x: auto;
   list-style: none;
   scroll-snap-type: x proximity;
+  counter-reset: acs-photo;
 }
 
 .acs-photos__item {
   flex: none;
   scroll-snap-align: start;
+}
+
+/* Each picture wears its rank (#5386); the z-index lifts it over the positioned, later button that would cover it. */
+.acs-photos__item::before {
+  content: counter(acs-photo);
+  counter-increment: acs-photo;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  z-index: 1;
+  min-width: calc(16px * var(--ui-scale, 1));
+  padding: 0 calc(4px * var(--ui-scale, 1));
+  border-radius: calc(8px * var(--ui-scale, 1));
+  background: rgb(0 0 0 / 65%);
+  font: var(--text-tiny-semibold);
+  line-height: calc(16px * var(--ui-scale, 1));
+  text-align: center;
+  color: var(--color-neutral-white);
+  pointer-events: none;
 }
 
 /* ---- Regions ranked ---- */
@@ -1287,7 +1307,7 @@
 }
 
 /* Cards shrink to fit: as many across as the width allows, a small cluster spreading out and a large one packing
-   in, every card the same 4:3 picture over a short caption. */
+   in, every card the same 3:2 picture over a short caption. */
 .acs-sheet__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));

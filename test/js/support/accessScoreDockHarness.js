@@ -45,6 +45,7 @@ function stubUtilMisc() {
             getIconImagePaths: (type) => ({iconImagePath: `/assets/images/icons/label_type_icons/${type}_small.svg`}),
             getLabelColors: () => ({}),
             labelTypeHasSeverity: (type) => !['Signal', 'NoSidewalk'].includes(type),
+            labelMarkerFraction: (source, cropMarker) => cropMarker ?? {x: 0.5, y: 0.5},
         },
         assetPath: (p) => `/assets/${p}`,
         // The two site-wide string helpers from utilities.js the views lean on, verbatim.
