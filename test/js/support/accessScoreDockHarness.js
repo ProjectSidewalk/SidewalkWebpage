@@ -1,13 +1,14 @@
 /**
  * Shared setup for the AccessScore insights-dock suites (#5217): loads the model, the ramp, the chart base and
- * views, and the dock into jsdom with the stubs they read — an i18next that echoes keys and their arguments, the
- * label-type helpers from util.misc, the mini-card's toast and badge hooks, and the ramp tokens — so each suite can
- * assert on structure and numbers
- * rather than on translated prose.
+ * views, and the dock into jsdom with what they read — an i18next that echoes keys and their arguments, the real
+ * `util.misc` (label-type helpers and the marker helper the cards share), the mini-card's toast and badge hooks, and
+ * the ramp tokens — so each suite can assert on structure and numbers rather than on translated prose.
  */
 
 const fs = require('fs');
 const path = require('path');
+
+const { installUtilitiesMisc } = require('../loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
@@ -29,30 +30,21 @@ function stubI18next() {
     };
 }
 
-/** The util.misc surface the cluster view reads: the two rating palettes, their words, and the icon paths. */
-function stubUtilMisc() {
-    const positive = ['CurbRamp', 'Crosswalk'];
+/**
+ * `window.util` as the views see it: the real `util.misc` (public/js/common/utilitiesSidewalk.js, over the stamped
+ * label types) so the rating palettes, their words, the icon paths and the shared marker helper are the shipped ones,
+ * plus the handful of utilities.js helpers the views lean on, verbatim.
+ */
+function installUtil() {
     window.util = {
-        misc: {
-            isPositiveLabelType: (type) => ['CurbRamp', 'Crosswalk', 'Signal'].includes(type),
-            getSeverityLevelColors: (severity, type) => ({
-                face: `var(--color-${positive.includes(type) ? 'positive' : 'negative'}-${severity})`,
-                wash: `var(--color-${positive.includes(type) ? 'positive' : 'negative'}-${severity}-wash)`,
-            }),
-            getRatingLevelKeys: (type) => (positive.includes(type)
-                ? {1: 'good', 2: 'okay', 3: 'bad'}
-                : {1: 'low', 2: 'medium', 3: 'high'}),
-            getIconImagePaths: (type) => ({iconImagePath: `/assets/images/icons/label_type_icons/${type}_small.svg`}),
-            getLabelColors: () => ({}),
-            labelTypeHasSeverity: (type) => !['Signal', 'NoSidewalk'].includes(type),
-            labelMarkerFraction: (source, cropMarker) => cropMarker ?? {x: 0.5, y: 0.5},
-        },
         assetPath: (p) => `/assets/${p}`,
-        // The two site-wide string helpers from utilities.js the views lean on, verbatim.
         escapeHTML: (str) => str.replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[c])),
         camelToKebab: (str) => str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
         lazyIdentityFetch: (...args) => window.fetch(...args),
+        EXPLORE_CANVAS_WIDTH: 720,
+        EXPLORE_CANVAS_HEIGHT: 480,
     };
+    installUtilitiesMisc();
     // The mini-card's side channels: a toast on a refused vote, a badge tick on a first one.
     window.Toast = {show: jest.fn()};
     window.BadgeAchievements = {recordValidation: jest.fn()};
@@ -144,4 +136,4 @@ function rgb(hex) {
     return `rgb(${r}, ${g}, ${b})`;
 }
 
-module.exports = {FIXTURE, RAMP, stubI18next, stubUtilMisc, stubFetch, loadSources, feature, DOCK_HTML, rgb};
+module.exports = {FIXTURE, RAMP, stubI18next, installUtil, stubFetch, loadSources, feature, DOCK_HTML, rgb};

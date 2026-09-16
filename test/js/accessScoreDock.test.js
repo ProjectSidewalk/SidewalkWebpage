@@ -6,7 +6,7 @@
  * a weight slider mid-drag redraws the views but leaves the map's dim state alone.
  */
 
-const {FIXTURE, stubI18next, stubUtilMisc, stubFetch, loadSources, feature, DOCK_HTML} =
+const {FIXTURE, stubI18next, installUtil, stubFetch, loadSources, feature, DOCK_HTML} =
     require('./support/accessScoreDockHarness');
 
 /** A flushed microtask queue, for the strip's fetch chain under fake timers. */
@@ -40,7 +40,7 @@ describe('AccessScoreDock', () => {
 
     beforeAll(() => {
         stubI18next();
-        stubUtilMisc();
+        installUtil();
         loadSources();
     });
 
@@ -147,7 +147,7 @@ describe('AccessScoreDock', () => {
         expect(shownSegments.map((el) => el.dataset.bucket))
             .toEqual(Object.entries(ramps.buckets).filter(([, n]) => n > 0).map(([b]) => b));
         expect(row.querySelector('.acs-whats-here__segment[data-bucket="1"]').style.getPropertyValue('--acs-segment'))
-            .toBe('var(--color-positive-1)');
+            .toBe('var(--color-jade-400)');
         const max = Math.max(...counted.types.map((t) => t.total));
         const widest = counted.types.find((t) => t.total === max);
         expect(document.querySelector(`.acs-whats-here__row[data-type="${widest.type}"] .acs-whats-here__bar`)

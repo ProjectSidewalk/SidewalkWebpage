@@ -98,7 +98,7 @@
   "scope-street-named": "{{name}}上",
   "scope-brush": "分數 {{from}}–{{to}}",
   "chart-photos": "照片",
-  "chart-photos-help": "分數背後標記的影像：優先顯示所選街區或街道中評級最差的群集；未選取時則顯示分數最低的街區。點選照片即可開啟。",
+  "chart-photos-help": "分數背後標記的影像，來自所選街區或街道；未選取時則來自分數最低的街區。依最差到最好排序：評級最差的標記在前，其中又以社群已確認的優先。點選照片即可開啟。",
   "photos-from": "來自{{scope}}的照片",
   "photos-lowest": "{{name}}（分數最低）",
   "photos-scope-viewport": "目前檢視範圍",

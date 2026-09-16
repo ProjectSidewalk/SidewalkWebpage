@@ -8,6 +8,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
+
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 
@@ -45,23 +47,16 @@ describe('LabelMiniCard', () => {
             },
         };
         window.util = {
-            misc: {
-                isPositiveLabelType: (type) => ['CurbRamp', 'Crosswalk', 'Signal'].includes(type),
-                getSeverityLevelColors: (severity) => ({wash: `var(--wash-${severity})`}),
-                getRatingLevelKeys: () => ({1: 'good', 2: 'okay', 3: 'bad'}),
-                getIconImagePaths: (type) => ({iconImagePath: `/assets/icons/${type}.svg`}),
-                labelTypeHasSeverity: (type) => type !== 'Signal',
-                // The real helper's rule (#2660): the crop's recorded position, else the canvas fraction.
-                labelMarkerFraction: (source, cropMarker, x, y) => (source === 'crop' && cropMarker)
-                    ? cropMarker
-                    : {x: x / 720, y: y / 480},
-            },
-            assetPath: (p) => `/assets/${p}`,
-        // The two site-wide string helpers from utilities.js the views lean on, verbatim.
-        escapeHTML: (str) => str.replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[c])),
-        camelToKebab: (str) => str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
+            assetPath: assetPathStub,
+            // The two site-wide string helpers from utilities.js the card leans on, verbatim.
+            escapeHTML: (str) => str.replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[c])),
+            camelToKebab: (str) => str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
             lazyIdentityFetch: (...args) => window.fetch(...args),
+            EXPLORE_CANVAS_WIDTH: 720,
+            EXPLORE_CANVAS_HEIGHT: 480,
         };
+        // The real util.misc, so the marker helper under test is the shipped one and the palettes are the card's.
+        installUtilitiesMisc();
         window.Toast = {show: jest.fn()};
         window.BadgeAchievements = {recordValidation: jest.fn()};
         window.eval(`${read('public/js/common/LabelMiniCard.js')}\nwindow.LabelMiniCard = LabelMiniCard;`);
@@ -95,12 +90,12 @@ describe('LabelMiniCard', () => {
         expect(el.querySelector('.lmc__image').getAttribute('src')).toBe('https://example.test/42.jpg');
         // Inside the figure, so the icon scales with the picture (#5386); never a corner badge.
         const marker = el.querySelector('.lmc__figure .lmc__marker');
-        expect(marker.getAttribute('src')).toBe('/assets/icons/CurbRamp.svg');
+        expect(marker.getAttribute('src')).toBe('/assets/images/icons/label_type_icons/CurbRamp_small.svg');
         expect(marker.style.getPropertyValue('--lmc-marker-x')).toBe('0.25');
         expect(marker.style.getPropertyValue('--lmc-marker-y')).toBe('0.75');
         expect(el.querySelector('.lmc__badge')).toBeNull();
         expect(el.querySelector('.lmc__rating').textContent).toBe('quality: okay');
-        expect(el.querySelector('.lmc__rating').style.getPropertyValue('--lmc-wash')).toBe('var(--wash-2)');
+        expect(el.querySelector('.lmc__rating').style.getPropertyValue('--lmc-wash')).toBe('var(--color-banana-200)');
         expect(el.querySelector('.lmc__tag').textContent).toBe('tag.narrow defaultValue=narrow');
         expect(el.querySelector('.lmc__date')).not.toBeNull();
         expect(count(card, 'Agree')).toBe('2');
