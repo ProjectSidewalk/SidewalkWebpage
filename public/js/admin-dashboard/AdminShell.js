@@ -38,6 +38,7 @@ class AdminShell {
     document.querySelectorAll('.deploy-strip time[datetime]').forEach((el) => {
       const date = new Date(el.getAttribute('datetime'));
       if (Number.isNaN(date.getTime())) return;
+      /** @type {Intl.DateTimeFormatOptions} */
       const dateOpts = { year: 'numeric', month: 'short', day: 'numeric' };
       el.textContent = el.dataset.format === 'date'
         ? date.toLocaleDateString(undefined, { ...dateOpts, timeZone: 'UTC' })
@@ -126,7 +127,7 @@ class AdminShell {
    */
   #setupSmoothScrolling() {
     document.querySelectorAll('.page-content a.permalink[href^="#"]')
-      .forEach((anchor) => this.#bindSmoothScroll(anchor));
+      .forEach((anchor) => this.#bindSmoothScroll(/** @type {HTMLAnchorElement} */ (anchor)));
   }
 
   /** @param {HTMLAnchorElement} anchor - An in-page anchor whose href is a fragment. */
@@ -203,7 +204,7 @@ class AdminShell {
    */
   static relativeTime(ts, opts = {}) {
     const date = new Date(ts);
-    if (isNaN(date)) return AdminShell.nil(opts.invalid) ? String(ts) : opts.invalid;
+    if (isNaN(date.getTime())) return AdminShell.nil(opts.invalid) ? String(ts) : opts.invalid;
     const secs = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
     if (secs < 60) return 'just now';
     const mins = Math.floor(secs / 60);
@@ -212,6 +213,7 @@ class AdminShell {
     if (hrs < 24) return `${hrs}h ago`;
     const days = Math.floor(hrs / 24);
     if (days < 7) return `${days}d ago`;
+    /** @type {Intl.DateTimeFormatOptions} */
     const dateOpts = { month: 'short', day: 'numeric' };
     if (opts.withYear !== false) dateOpts.year = 'numeric';
     return date.toLocaleDateString(undefined, dateOpts);
@@ -250,7 +252,7 @@ class AdminShell {
   /**
    * A job's last-run state as a toned badge, with overdue outranking whatever that last run reported.
    *
-   * @param {object} job - One `nightly_jobs` entry.
+   * @param {Record<string, any>} job - One `nightly_jobs` entry.
    * @returns {string} The badge's HTML.
    */
   static jobStatusBadge(job) {
@@ -274,7 +276,7 @@ class AdminShell {
    * code works, not that anything is still firing it, so it is reported beside the schedule's record instead of in
    * place of it.
    *
-   * @param {object} job - One `nightly_jobs` entry.
+   * @param {Record<string, any>} job - One `nightly_jobs` entry.
    * @returns {string} HTML: the scheduled run's age, with a muted manual-run note appended when one exists.
    */
   static jobLastRun(job) {
@@ -288,7 +290,7 @@ class AdminShell {
    * A run's own counts, flattened to `key: value` pairs. Every job reports a different shape, so this renders whatever
    * it stored rather than naming fields a panel would have to be taught one by one.
    *
-   * @param {object} job - One `nightly_jobs` entry.
+   * @param {Record<string, any>} job - One `nightly_jobs` entry.
    * @returns {string} Plain text (the caller escapes it): the error when the run failed, else its counts.
    */
   static jobDetails(job) {

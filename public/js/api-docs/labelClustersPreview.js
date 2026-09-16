@@ -108,14 +108,14 @@
     /**
      * Create the map, framed on the region the preview is scoped to and with that region outlined.
      * @param {HTMLElement} container - Container element for the map
-     * @param {object} regionData - GeoJSON Feature for the region to display
-     * @returns {Promise<object>} A promise that resolves with the loaded Mapbox map
+     * @param {GeoJSON.Feature} regionData - GeoJSON Feature for the region to display
+     * @returns {Promise<mapboxgl.Map>} A promise that resolves with the loaded Mapbox map
      */
     async createMap(container, regionData) {
       const map = await ApiDocsMap.create({
         container,
         mapboxApiKey: config.mapboxApiKey,
-        bounds: ApiDocsMap.geometryBounds(regionData.geometry),
+        bounds: geometryBounds(regionData.geometry),
       });
 
       // Outline the region so it's clear which slice of the city the clusters below are drawn from.
@@ -141,8 +141,8 @@
 
     /**
      * Display clusters on the map.
-     * @param {object} map - The Mapbox map object
-     * @param {object} clusters - GeoJSON data containing the label clusters
+     * @param {mapboxgl.Map} map - The Mapbox map object
+     * @param {GeoJSON.FeatureCollection} clusters - GeoJSON data containing the label clusters
      */
     displayClustersOnMap(map, clusters) {
       if (!clusters.features || clusters.features.length === 0) {
@@ -183,7 +183,7 @@
 
     /**
      * Wire up the click popup and hover cursor for the cluster layer.
-     * @param {object} map - The Mapbox map object
+     * @param {mapboxgl.Map} map - The Mapbox map object
      */
     addClusterPopups(map) {
       map.on('click', CLUSTERS_LAYER, (e) => {

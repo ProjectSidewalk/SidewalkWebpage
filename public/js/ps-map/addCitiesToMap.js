@@ -1,12 +1,13 @@
 /**
  * Adds cities to the map as circles and returns a promise.
  *
- * @param {object} map - The Mapbox map object.
- * @param {object} citiesData - GeoJSON object containing cities to draw on the map.
+ * @param {mapboxgl.Map} map - The Mapbox map object.
+ * @param {GeoJSON.FeatureCollection} citiesData - GeoJSON object containing cities to draw on the map.
  * @param {object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
- * @param {boolean} params.logClicks - Whether to log click activity.
- * @returns {Promise} Promise that resolves when the streets have been added to the map.
+ * @param {boolean} [params.logClicks] - Whether to log click activity.
+ * @param {boolean} [params.animateCityFit=true] - Whether the fit to all deployment cities is animated.
+ * @returns {Promise<void>} Promise that resolves when the cities have been added to the map.
  */
 function addCitiesToMap(map, citiesData, params) {
   const CITIES_LAYER_NAME = 'cities';
@@ -148,12 +149,12 @@ function addCitiesToMap(map, citiesData, params) {
       const loadingMessage = i18next.t('common:cities-map.loading-stats');
       cityPopup.setLngLat(coordinates).setHTML(`<div class="popup-loading">${loadingMessage}</div>`).addTo(map);
 
-      const template = document.getElementById('city-popup-template');
-      const popupContent = template.content.cloneNode(true);
+      const template = /** @type {HTMLTemplateElement} */ (document.getElementById('city-popup-template'));
+      const popupContent = /** @type {DocumentFragment} */ (template.content.cloneNode(true));
 
       // Populate the parts of the template that do not depend on the stats API.
       popupContent.querySelector('.popup-title').textContent = properties.city_name_formatted;
-      const exploreLink = popupContent.querySelector('.popup-link');
+      const exploreLink = /** @type {HTMLAnchorElement} */ (popupContent.querySelector('.popup-link'));
       if (!isPublicDeployment) {
         const privateMessage = document.createElement('div');
         privateMessage.className = 'popup-private-message';

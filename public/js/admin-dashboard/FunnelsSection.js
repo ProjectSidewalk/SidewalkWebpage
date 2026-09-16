@@ -63,7 +63,7 @@ class FunnelsSection {
   /**
    * @param {{funnelsUrl: string, hostId: string, statusId: string, windowToggleId: string, dimToggleId: string}} opts
    */
-  constructor(opts = {}) {
+  constructor(opts) {
     this.#funnelsUrl = opts.funnelsUrl;
     this.#hostId = opts.hostId;
     this.#statusId = opts.statusId;
@@ -213,7 +213,8 @@ class FunnelsSection {
   /** ISO timestamp → a short local date string; falls back to the raw value if unparseable. */
   #formatDate(iso) {
     const d = new Date(iso);
-    return isNaN(d) ? iso : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
   static #esc(s) {

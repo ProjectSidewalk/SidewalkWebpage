@@ -39,7 +39,7 @@ class ActivityPage {
   ];
 
   /** @param {{seriesUrl: string, recentUrl: string, contributionTimeUrl: string}} opts */
-  constructor(opts = {}) {
+  constructor(opts) {
     this.#seriesUrl = opts.seriesUrl;
     this.#recentUrl = opts.recentUrl;
     this.#contributionTimeUrl = opts.contributionTimeUrl;
@@ -385,7 +385,7 @@ class ActivityPage {
    * The main line of a feed item: for a label/validation, a phrase about the action; for a comment, the comment text
    * (quoted). The label-type name is bolded so the type is scannable down the feed.
    *
-   * @param {object} it - A recent-activity item.
+   * @param {Record<string, any>} it - A recent-activity item.
    * @returns {string} Trusted HTML (all interpolated values escaped here).
    */
   static #feedText(it) {
@@ -405,7 +405,7 @@ class ActivityPage {
    * A quiet one-line summary of how much the contributor has done overall (their lifetime labels and validations),
    * so each row says a bit about who the person is, not just the single action shown. Empty when we have no totals.
    *
-   * @param {object} it - A recent-activity item (carrying user_labels / user_validations when available).
+   * @param {Record<string, any>} it - A recent-activity item (carrying user_labels / user_validations when available).
    * @returns {string} Trusted HTML, or '' when there's nothing to show.
    */
   static #contributionSummary(it) {
@@ -439,7 +439,7 @@ class ActivityPage {
     const feed = document.getElementById('activity-feed');
     if (!feed) return;
     feed.addEventListener('click', (e) => {
-      const link = e.target.closest('.activity-label-link');
+      const link = /** @type {Element} */ (e.target).closest('.activity-label-link');
       if (!link || !this.#labelPopup) return; // no popup yet → let the href navigate
       e.preventDefault();
       const labelId = parseInt(link.dataset.labelId, 10);
@@ -537,13 +537,13 @@ class ActivityPage {
   static #daysAgo(iso) {
     const then = ActivityPage.#parseIso(iso);
     const today = ActivityPage.#startOfToday();
-    return Math.max(0, Math.round((today - then) / 86400000));
+    return Math.max(0, Math.round((today.getTime() - then.getTime()) / 86400000));
   }
 
   /** Localized full date-time for a timestamp string (hover title on feed items). */
   static #fmtDateTime(ts) {
     const d = new Date(ts);
-    return isNaN(d)
+    return isNaN(d.getTime())
       ? String(ts)
       : d.toLocaleString(undefined,
           { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });

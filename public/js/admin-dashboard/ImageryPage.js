@@ -49,7 +49,7 @@ class ImageryPage {
    *          pipelineDays: number}} opts - Mapbox token and the three endpoints, injected from the Twirl template so
    *   the JS has no server-config coupling.
    */
-  constructor(opts = {}) {
+  constructor(opts) {
     this.#mapboxToken = opts.mapboxToken;
     this.#streetsUrl = opts.streetsUrl;
     this.#priorityUrl = opts.priorityUrl;
@@ -128,9 +128,9 @@ class ImageryPage {
    * carries every street including retired and closed ones — so the intersection is the map's subject, and dropping
    * the rest is what keeps a retired street from rendering as "never audited, highest priority".
    *
-   * @param {object} geojson - FeatureCollection from /v3/api/streets.
-   * @param {Array<object>} streets - Rows from /adminapi/streetPriority.
-   * @returns {object} A FeatureCollection of the joined streets.
+   * @param {GeoJSON.FeatureCollection} geojson - FeatureCollection from /v3/api/streets.
+   * @param {Array<Record<string, any>>} streets - Rows from /adminapi/streetPriority.
+   * @returns {GeoJSON.FeatureCollection} A FeatureCollection of the joined streets.
    */
   #join(geojson, streets) {
     // Tier is computed once, onto the rows, and the features then carry a copy — so the map colors a street exactly

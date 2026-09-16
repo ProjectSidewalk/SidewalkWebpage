@@ -79,7 +79,7 @@ class LabelMapPage {
 
   #wireSearch() {
     const form = document.getElementById('label-map-search');
-    const input = document.getElementById('label-map-search-input');
+    const input = /** @type {HTMLInputElement} */ (document.getElementById('label-map-search-input'));
     if (!form || !input) return;
 
     form.addEventListener('submit', (e) => {

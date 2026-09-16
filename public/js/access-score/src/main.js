@@ -75,6 +75,8 @@ window.AccessScoreApp = (function () {
     document.getElementById('acs-map-holder')?.classList.toggle('acs-map-holder--dark', dark);
 
     let initialCamera = null;
+    // The address-search handle, kept so the app object can hand out its `clear()` (#5321).
+    let placeSearch = null;
     const mapPromise = createPSMap($, {
       mapName: 'acs-map',
       mapStyle: dark ? MAP_STYLES.dark : MAP_STYLES.light,
@@ -86,7 +88,7 @@ window.AccessScoreApp = (function () {
         // The page's own opening view, before a shared link's viewport lands on it: what "Reset everything" returns to.
         initialCamera = { center: readyMap.getCenter(), zoom: readyMap.getZoom() };
         MapSidebarUrlSync.applyUrlViewport(map);
-        initLabelMapLocationSearch(map, mapboxApiKey);
+        placeSearch = initLabelMapLocationSearch(map, mapboxApiKey);
         overlay.show();
       },
     }).then((loaded) => loaded[0]);
@@ -239,11 +241,13 @@ window.AccessScoreApp = (function () {
     }
     urlSync.setDark(dark);
 
-    // Everything back to the page as first opened: the weighting, what is drawn, the selection, the brush, the
-    // band, the basemap and the camera. Each piece goes through its own path so nothing is reset twice or half.
+    // Everything back to the page as first opened: the weighting, what is drawn, the selection, the searched
+    // place, the brush, the band, the basemap and the camera. Each piece goes through its own path so nothing is
+    // reset twice or half.
     document.getElementById('acs-reset-all')?.addEventListener('click', () => {
       log('ResetAll');
       select(null);
+      placeSearch?.clear();
       model.setState({ ...AccessScoreModel.DEFAULT_STATE, weights: { ...config.presets.default } });
       const state = model.state;
       mapView.setUnit(state.unit);
@@ -285,7 +289,7 @@ window.AccessScoreApp = (function () {
 
     const app = {
       map, model, mapView, sidebar, dock, config, streets, regions, clusterLoader: evidence.loader,
-      clusterLayer: evidence.layer,
+      clusterLayer: evidence.layer, placeSearch,
     };
     window.accessScore = app;
     document.dispatchEvent(new CustomEvent('accessscore:ready', { detail: app }));

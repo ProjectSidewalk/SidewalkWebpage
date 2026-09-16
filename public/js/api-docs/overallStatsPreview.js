@@ -143,7 +143,7 @@
     /**
      * Create all visualizations in the container.
      * @param {HTMLElement} container - Container element for the visualizations
-     * @param {object} data - Overall stats data for visualizations
+     * @param {Record<string, any>} data - Overall stats data for visualizations
      */
     createVisualizations(container, data) {
       // Add additional info section.
@@ -212,7 +212,7 @@
     /**
      * Create a bar chart showing label counts by type.
      * @param {HTMLElement} container - Container element for the chart
-     * @param {object} data - Overall stats data
+     * @param {Record<string, any>} data - Overall stats data
      */
     createLabelCountsChart(container, data) {
       // Create canvas for the chart.
@@ -291,7 +291,7 @@
     /**
      * Create a bar chart showing mean severity by label type.
      * @param {HTMLElement} container - Container element for the chart
-     * @param {object} data - Overall stats data
+     * @param {Record<string, any>} data - Overall stats data
      */
     createMeanSeverityChart(container, data) {
       // Create canvas for the chart.
@@ -379,7 +379,7 @@
     /**
      * Create a bar chart showing accuracy by label type.
      * @param {HTMLElement} container - Container element for the chart
-     * @param {object} data - Overall stats data
+     * @param {Record<string, any>} data - Overall stats data
      */
     createAccuracyChart(container, data) {
       // Create canvas for the chart.
@@ -467,7 +467,7 @@
     /**
      * Create an information section with overall stats summary.
      * @param {HTMLElement} container - Container element for the info section
-     * @param {object} data - Overall stats data
+     * @param {Record<string, any>} data - Overall stats data
      */
     createInfoSection(container, data) {
       // Create info section container.

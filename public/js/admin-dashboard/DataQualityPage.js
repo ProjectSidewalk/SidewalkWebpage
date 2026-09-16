@@ -23,7 +23,7 @@ class DataQualityPage {
    * @param {{statsUrl: string, tagsUrl: string, labelTypesUrl: string, byDayUrl: string,
    *          tagSeverityUrl: string}} opts
    */
-  constructor(opts = {}) {
+  constructor(opts) {
     this.#statsUrl = opts.statsUrl;
     this.#tagsUrl = opts.tagsUrl;
     this.#labelTypesUrl = opts.labelTypesUrl;

@@ -78,7 +78,7 @@ class SavedRoutesPanel {
   /**
    * Prepends a guest-saved route to the device-local list (capped, newest first).
    *
-   * @param {object} route - {routeId, name, regionName, url, distanceMeters}.
+   * @param {Record<string, any>} route - {routeId, name, regionName, url, distanceMeters}.
    */
   recordGuestRoute(route) {
     const routes = this.#readGuestRoutes().filter((r) => r.routeId !== route.routeId);
@@ -94,7 +94,7 @@ class SavedRoutesPanel {
 
   /**
    * Reads the guest routes list from localStorage.
-   * @returns {Array<object>} Saved route records, newest first; empty if none or storage is unavailable.
+   * @returns {Array<Record<string, any>>} Saved route records, newest first; empty if none or storage is unavailable.
    */
   #readGuestRoutes() {
     try {
@@ -109,13 +109,13 @@ class SavedRoutesPanel {
   /**
    * Renders the newest few routes as cards (the section hides itself when there are none).
    *
-   * @param {Array<object>} routes - {routeId, name, regionName, distanceMeters, savedAt, [url]}.
+   * @param {Array<Record<string, any>>} routes - {routeId, name, regionName, distanceMeters, savedAt, [url]}.
    * @param {number|null} highlightRouteId
    */
   #render(routes, highlightRouteId) {
     const sorted = routes
       .slice()
-      .sort((a, b) => new Date(b.savedAt ?? 0) - new Date(a.savedAt ?? 0))
+      .sort((a, b) => new Date(b.savedAt ?? 0).getTime() - new Date(a.savedAt ?? 0).getTime())
       .slice(0, SavedRoutesPanel.MAX_SHOWN);
     this.#panel.hidden = sorted.length === 0;
     if (sorted.length === 0) return;

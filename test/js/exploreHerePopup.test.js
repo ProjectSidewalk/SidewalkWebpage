@@ -9,7 +9,7 @@
  *
  * The file's functions are top-level declarations written for the Grunt-concatenation world, so (like
  * share-widget.test.js) the source is eval'd into the jsdom global scope with an epilogue exposing what the tests
- * need. The pin/marker/Escape wiring needs real mapboxgl + MapboxSearchBox objects and stays manual-QA territory.
+ * need. The pin/marker/Escape wiring around the popup is covered separately, in labelMapSearchClear.test.js.
  */
 
 const fs = require('fs');

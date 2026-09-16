@@ -73,7 +73,7 @@ class OutdatedStreets {
 
       const remaining = stillHidden.length - revealed.length;
       if (remaining > 0) {
-        button.querySelector('.ud-reaudit-more-count').textContent = Math.min(pageSize, remaining);
+        button.querySelector('.ud-reaudit-more-count').textContent = String(Math.min(pageSize, remaining));
       } else {
         button.hidden = true;
         // Keyboard focus would otherwise be stranded on a button that just disappeared, so hand it to the first

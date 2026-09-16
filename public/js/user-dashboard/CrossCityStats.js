@@ -90,8 +90,8 @@ class CrossCityStats {
   /**
    * Fills the shared community band with the mapper's own cross-city totals.
    *
-   * @param {Array<object>} cities - Per-city rows from the endpoint.
-   * @param {object} data - The endpoint payload; its integer totals are exactly the row sums.
+   * @param {Array<Record<string, any>>} cities - Per-city rows from the endpoint.
+   * @param {Record<string, any>} data - The endpoint payload; its integer totals are exactly the row sums.
    */
   #renderBand(cities, data) {
     this.#setText('ud-cities-total-cities', CrossCityStats.#num(cities.length));
@@ -114,7 +114,7 @@ class CrossCityStats {
    * Renders the per-city table. Built as a table rather than cards because every row carries the same five numbers
    * and the point is comparing them down a column.
    *
-   * @param {Array<object>} cities - Per-city rows from the endpoint, most labels first.
+   * @param {Array<Record<string, any>>} cities - Per-city rows from the endpoint, most labels first.
    * @param {string} unit - Distance abbreviation for this viewer ("km" / "mi").
    */
   #renderTable(cities, unit) {
@@ -218,7 +218,7 @@ class CrossCityStats {
    * Coordinates come from /v3/api/cities rather than being shipped with the stats, so city geography has one source.
    * Skipped silently when Mapbox or the coordinates are unavailable — the table above already carries the numbers.
    *
-   * @param {Array<object>} cities - Per-city rows from the endpoint.
+   * @param {Array<Record<string, any>>} cities - Per-city rows from the endpoint.
    */
   async #renderMap(cities) {
     const host = this.#section.querySelector('#ud-cities-map');
@@ -327,7 +327,7 @@ class CrossCityStats {
    * Names the deployment being viewed, preferring the marked row over the config-derived name handed in — the two can
    * disagree on a misconfigured box, and the table is what the reader sees.
    *
-   * @param {Array<object>} cities - Per-city rows from the endpoint.
+   * @param {Array<Record<string, any>>} cities - Per-city rows from the endpoint.
    * @returns {string} The current city's display name.
    */
   #cityHereName(cities) {
@@ -453,11 +453,15 @@ class CrossCityStats {
     return `${CrossCityStats.#shortNum(floored)} ${unit || ''}`.trim();
   }
 
-  /** Localized month-and-year for a last-labeled timestamp, or a dash when the mapper only validated there. */
+  /**
+   * Localized month-and-year for a last-labeled timestamp, or a dash when the mapper only validated there.
+   * @param {?string} iso - The timestamp, or null.
+   * @returns {string}
+   */
   static #lastActive(iso) {
     if (!iso) return '—';
     const d = new Date(iso);
-    if (isNaN(d)) return '—';
+    if (isNaN(d.getTime())) return '—';
     return d.toLocaleDateString(i18next.language, { year: 'numeric', month: 'short' });
   }
 

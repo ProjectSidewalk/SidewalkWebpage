@@ -36,7 +36,7 @@ class StreetStatusTable {
 
   /**
    * Renders the table and wires search, sort, and row interactions (once).
-   * @param {Array<object>} rows - Per-region rows (region_id, name, open, no_imagery, closed, disabled, total).
+   * @param {Array<Record<string, any>>} rows - Per-region rows: region_id, name, and each status's street count.
    */
   render(rows) {
     this.#rows = rows;
@@ -112,7 +112,7 @@ class StreetStatusTable {
       }
     });
 
-    const search = document.getElementById(this.#searchId);
+    const search = /** @type {HTMLInputElement} */ (document.getElementById(this.#searchId));
     if (search) {
       search.addEventListener('input', () => {
         this.#filter = search.value;
