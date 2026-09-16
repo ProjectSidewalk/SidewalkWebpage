@@ -641,23 +641,23 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
   private val clusterShapefileFeatureType: SimpleFeatureType = DataUtilities.createType(
     "Location",
     "the_geom:Point:srid=4326," // the geometry attribute: Point type
-    + "clusterId:Integer,"      // Cluster ID
-    + "labelType:String,"       // Label type
-    + "streetId:Integer,"       // Street edge ID
-    + "intersecId:Integer,"     // Intersection ID (null if none)
-    + "osmWayId:String,"        // OSM way ID
-    + "regionId:Integer,"       // Region ID
-    + "regionName:String,"      // Region name
-    + "avgImgDate:String,"      // Average image capture date
-    + "avgLblDate:String,"      // Average label date
-    + "severity:Integer,"       // Severity
-    + "nAgree:Integer,"         // Agree count
-    + "nDisagree:Integer,"      // Disagree count
-    + "nUnsure:Integer,"        // Unsure count
-    + "clusterSze:Integer,"     // Cluster size
-    + "labelIds:String,"        // Label IDs as comma-separated list
-    + "userIds:String,"         // User IDs
-    + "tagCounts:String"        // Tag counts as JSON
+      + "clusterId:Integer,"    // Cluster ID
+      + "labelType:String,"     // Label type
+      + "streetId:Integer,"     // Street edge ID
+      + "intersecId:Integer,"   // Intersection ID (null if none)
+      + "osmWayId:String,"      // OSM way ID
+      + "regionId:Integer,"     // Region ID
+      + "regionName:String,"    // Region name
+      + "avgImgDate:String,"    // Average image capture date
+      + "avgLblDate:String,"    // Average label date
+      + "severity:Integer,"     // Severity
+      + "nAgree:Integer,"       // Agree count
+      + "nDisagree:Integer,"    // Disagree count
+      + "nUnsure:Integer,"      // Unsure count
+      + "clusterSze:Integer,"   // Cluster size
+      + "labelIds:String,"      // Label IDs as comma-separated list
+      + "userIds:String,"       // User IDs
+      + "tagCounts:String"      // Tag counts as JSON
   )
 
   // Shared builder used by both createLabelClusterShapefile and createLabelClusterShapefileWithLabels.
@@ -727,15 +727,15 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     val labelFeatureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
       "the_geom:Point:srid=4326," // the geometry attribute: Point type
-      + "labelId:Integer,"        // Label ID
-      + "clusterId:Integer,"      // Parent cluster ID
-      + "userId:String,"          // User ID
-      + "panoId:String,"          // Panorama ID
-      + "panoSource:String,"      // Imagery provider (gsv, mapillary, infra3d)
-      + "severity:Integer,"       // Severity
-      + "timeCreate:String,"      // Creation timestamp
-      + "correct:String,"         // Validation correctness
-      + "imageDate:String"        // Image capture date
+        + "labelId:Integer,"      // Label ID
+        + "clusterId:Integer,"    // Parent cluster ID
+        + "userId:String,"        // User ID
+        + "panoId:String,"        // Panorama ID
+        + "panoSource:String,"    // Imagery provider (gsv, mapillary, infra3d)
+        + "severity:Integer,"     // Severity
+        + "timeCreate:String,"    // Creation timestamp
+        + "correct:String,"       // Validation correctness
+        + "imageDate:String"      // Image capture date
     )
 
     val clusterShapefilePath: Path = new File(outputFile + ".shp").toPath
@@ -847,20 +847,20 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Street",
       "the_geom:LineString:srid=4326," // the geometry attribute: LineString type
-      + "streetId:Integer,"            // Street edge ID
-      + "osmWayId:String,"             // OSM street ID as String (shapefiles don't handle Long well)
-      + "regionId:Integer,"            // Region ID
-      + "regionName:String,"           // Region name
-      + "wayType:String,"              // Type of street/way
-      + "maxSpeed:String,"             // Raw OSM maxspeed tag (e.g. "25 mph"); empty when unknown
-      + "status:String,"               // Street availability: open, no_imagery, closed, or disabled
-      + "labelCount:Integer,"          // Number of labels on this street
-      + "auditCount:Integer,"          // Number of times audited
-      + "outdated:Boolean,"            // Audited before, but all audits predate newer imagery (needs re-audit)
-      + "userCount:Integer,"           // Number of unique users
-      + "userIds:String,"              // List of user IDs as a string
-      + "firstLabel:String,"           // First label date
-      + "lastLabel:String"             // Last label date
+        + "streetId:Integer,"          // Street edge ID
+        + "osmWayId:String,"           // OSM street ID as String (shapefiles don't handle Long well)
+        + "regionId:Integer,"          // Region ID
+        + "regionName:String,"         // Region name
+        + "wayType:String,"            // Type of street/way
+        + "maxSpeed:String,"           // Raw OSM maxspeed tag (e.g. "25 mph"); empty when unknown
+        + "status:String,"             // Street availability: open, no_imagery, closed, or disabled
+        + "labelCount:Integer,"        // Number of labels on this street
+        + "auditCount:Integer,"        // Number of times audited
+        + "outdated:Boolean,"          // Audited before, but all audits predate newer imagery (needs re-audit)
+        + "userCount:Integer,"         // Number of unique users
+        + "userIds:String,"            // List of user IDs as a string
+        + "firstLabel:String,"         // First label date
+        + "lastLabel:String"           // Last label date
     )
 
     def buildFeature(street: StreetDataForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
@@ -907,7 +907,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "SidewalkPresence",
       "the_geom:LineString:srid=4326," // The street's geometry, shared by its two faces
-      + "streetId:Integer,"
+        + "streetId:Integer,"
         + "side:String,"
         + "osmWayId:String," // OSM way ID as String (shapefiles don't handle Long well)
         + "regionId:Integer,"
@@ -971,18 +971,18 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Region",
       "the_geom:MultiPolygon:srid=4326," // the geometry attribute: MultiPolygon type
-      + "regionId:Integer,"              // Region ID
-      + "name:String,"                   // Region name
-      + "labelCount:Integer,"            // Number of labels in this region
-      + "streetCnt:Integer,"             // Number of streets in this region
-      + "userCount:Integer,"             // Number of unique users who labeled in this region
-      + "auditCount:Integer,"            // Number of completed audits in this region
-      + "totalDistM:Double,"             // Total street distance in this region, meters
-      + "audDistM:Double,"               // Distance audited with current imagery in this region, meters
-      + "outdDistM:Double,"              // Distance needing re-audit (all audits predate newer imagery), meters
-      + "complRate:Double,"              // Fraction of street distance audited with current imagery (0.0–1.0)
-      + "firstLabel:String,"             // First label date
-      + "lastLabel:String"               // Last label date
+        + "regionId:Integer,"            // Region ID
+        + "name:String,"                 // Region name
+        + "labelCount:Integer,"          // Number of labels in this region
+        + "streetCnt:Integer,"           // Number of streets in this region
+        + "userCount:Integer,"           // Number of unique users who labeled in this region
+        + "auditCount:Integer,"          // Number of completed audits in this region
+        + "totalDistM:Double,"           // Total street distance in this region, meters
+        + "audDistM:Double,"             // Distance audited with current imagery in this region, meters
+        + "outdDistM:Double,"            // Distance needing re-audit (all audits predate newer imagery), meters
+        + "complRate:Double,"            // Fraction of street distance audited with current imagery (0.0–1.0)
+        + "firstLabel:String,"           // First label date
+        + "lastLabel:String"             // Last label date
     )
 
     def buildFeature(region: RegionDataForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
@@ -1033,22 +1033,22 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "AccessScoreStreet",
       "the_geom:LineString:srid=4326," // LineString geometry
-      + "streetId:Integer,"            // Street edge ID
-      + "osmWayId:String,"             // OSM way ID as String (shapefiles don't handle Long well)
-      + "streetName:String,"           // The OSM way's name tag (null if unnamed); 10 chars, the DBF ceiling
-      + "regionId:Integer,"            // Region ID
-      + "score:Double,"                // Headline score: mean of the segment and its end intersections (null if none)
-      + "segScore:Double,"             // The segment's own score (null if unaudited)
-      + "sIntId:Integer,"              // Start intersection ID (null if none)
-      + "eIntId:Integer,"              // End intersection ID (null if none)
-      + "sIntScore:Double,"            // Start intersection's score (null if unscored)
-      + "eIntScore:Double,"            // End intersection's score (null if unscored)
-      + "auditCount:Integer,"          // Number of completed audits
-      + "lengthM:Double,"              // Street length in meters
-      + "labelCount:Integer,"          // Number of labels contributing to the score
-      + perTypeSpec + ","              // Per-type cluster count (n<code>) and sub-score (s<code>)
-      + perBucketSpec + ","            // Per-type cluster count per rating bucket (n1..n3<code>, n0<code> unrated)
-      + perTagSpec                     // Per-type summed tag adjustment (t<code>)
+        + "streetId:Integer,"          // Street edge ID
+        + "osmWayId:String,"           // OSM way ID as String (shapefiles don't handle Long well)
+        + "streetName:String,"         // The OSM way's name tag (null if unnamed); 10 chars, the DBF ceiling
+        + "regionId:Integer,"          // Region ID
+        + "score:Double,"              // Headline score: mean of the segment and its end intersections (null if none)
+        + "segScore:Double,"           // The segment's own score (null if unaudited)
+        + "sIntId:Integer,"            // Start intersection ID (null if none)
+        + "eIntId:Integer,"            // End intersection ID (null if none)
+        + "sIntScore:Double,"          // Start intersection's score (null if unscored)
+        + "eIntScore:Double,"          // End intersection's score (null if unscored)
+        + "auditCount:Integer,"        // Number of completed audits
+        + "lengthM:Double,"            // Street length in meters
+        + "labelCount:Integer,"        // Number of labels contributing to the score
+        + perTypeSpec + ","            // Per-type cluster count (n<code>) and sub-score (s<code>)
+        + perBucketSpec + ","          // Per-type cluster count per rating bucket (n1..n3<code>, n0<code> unrated)
+        + perTagSpec                   // Per-type summed tag adjustment (t<code>)
     )
 
     def buildFeature(s: StreetAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
@@ -1092,16 +1092,16 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "AccessScoreRegion",
       "the_geom:MultiPolygon:srid=4326," // MultiPolygon geometry
-      + "regionId:Integer,"              // Region ID
-      + "name:String,"                   // Region name
-      + "score:Double,"                  // Length-weighted region score (null if no audited streets)
-      + "coverage:Double,"               // Fraction of streets audited
-      + "audited:Integer,"               // Audited street count
-      + "total:Integer,"                 // Total street count
-      + "intScore:Double,"               // Mean score of the region's scored intersections (null if none)
-      + "intCount:Integer,"              // Intersections in the region (grade-separated crossings excluded)
-      + "scIntCount:Integer,"            // How many of them are scored
-      + perTypeSpec                      // Per-type mean cluster count (a<code>)
+        + "regionId:Integer,"            // Region ID
+        + "name:String,"                 // Region name
+        + "score:Double,"                // Length-weighted region score (null if no audited streets)
+        + "coverage:Double,"             // Fraction of streets audited
+        + "audited:Integer,"             // Audited street count
+        + "total:Integer,"               // Total street count
+        + "intScore:Double,"             // Mean score of the region's scored intersections (null if none)
+        + "intCount:Integer,"            // Intersections in the region (grade-separated crossings excluded)
+        + "scIntCount:Integer,"          // How many of them are scored
+        + perTypeSpec                    // Per-type mean cluster count (a<code>)
     )
 
     def buildFeature(r: RegionAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
@@ -1146,17 +1146,17 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "AccessScoreIntersection",
       "the_geom:Point:srid=4326," // Point geometry
-      + "intersecId:Integer,"     // Intersection ID
-      + "regionId:Integer,"       // Region ID (null if none)
-      + "degree:Integer,"         // Streets meeting here
-      + "gradeSep:String,"        // "true" for a bridge/tunnel crossing, never scored
-      + "streetIds:String,"       // Comma-separated street edge IDs
-      + "auditCount:Integer,"     // Completed audits summed over those streets
-      + "score:Double,"           // Access score (null if unscored)
-      + "labelCount:Integer,"     // Number of labels contributing to the score
-      + perTypeSpec + ","         // Per-type cluster count (n<code>) and sub-score (s<code>)
-      + perBucketSpec + ","       // Per-type cluster count per rating bucket
-      + perTagSpec                // Per-type summed tag adjustment (t<code>)
+        + "intersecId:Integer,"   // Intersection ID
+        + "regionId:Integer,"     // Region ID (null if none)
+        + "degree:Integer,"       // Streets meeting here
+        + "gradeSep:String,"      // "true" for a bridge/tunnel crossing, never scored
+        + "streetIds:String,"     // Comma-separated street edge IDs
+        + "auditCount:Integer,"   // Completed audits summed over those streets
+        + "score:Double,"         // Access score (null if unscored)
+        + "labelCount:Integer,"   // Number of labels contributing to the score
+        + perTypeSpec + ","       // Per-type cluster count (n<code>) and sub-score (s<code>)
+        + perBucketSpec + ","     // Per-type cluster count per rating bucket
+        + perTagSpec              // Per-type summed tag adjustment (t<code>)
     )
 
     def buildFeature(i: IntersectionAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {

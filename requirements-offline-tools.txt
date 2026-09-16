@@ -18,4 +18,4 @@ osmnx==2.1.1
 geopandas==1.1.4
 pyogrio==0.13.0
 # osmnx imports scipy unconditionally; pinned so pip can't resolve to a build mismatched with the numpy it picks.
-scipy==1.15.3
+scipy==1.17.1

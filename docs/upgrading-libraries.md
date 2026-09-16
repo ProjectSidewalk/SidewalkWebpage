@@ -82,7 +82,7 @@ download and the build re-resolves (a running sbt, which `make compile` reuses, 
   [#3936](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3936) (unclear if all our libraries support it
   yet). Edit `scalaVersion` in `build.sbt`.
   [Releases](https://www.scala-lang.org/download/all.html) · [Changelog](https://github.com/scala/scala/releases)
-- **sbt: 1.12.13** — set in `project/build.properties`; downloaded automatically on the next `npm start`. The
+- **sbt: 1.13.0** — set in `project/build.properties`; downloaded automatically on the next `npm start`. The
   `Dockerfile` pins the apt `sbt` launcher to that same version, so also `docker compose build web` after a bump
   (Compose won't rebuild on its own). sbt **2.x** is gated on Play: its `sbt-plugin` has no sbt 2 build outside the
   3.1.0 milestones, and sbt 2 build definitions are Scala 3, so it's a tracked migration rather than a bump. You may
@@ -117,7 +117,7 @@ download and the build re-resolves (a running sbt, which `make compile` reuses, 
 These are the JVM libraries we talk to the database *through*; the database server's own versions are under
 [Database server](#database-server) above.
 
-- **postgresql (JDBC driver): 42.7.12** — the `org.postgresql` driver in `build.sbt`.
+- **postgresql (JDBC driver): 42.7.13** — the `org.postgresql` driver in `build.sbt`.
   [Releases](https://mvnrepository.com/artifact/org.postgresql/postgresql) · [Changelog](https://jdbc.postgresql.org/)
 - **play-slick / play-slick-evolutions: 6.2.0**.
   [Releases](https://mvnrepository.com/artifact/org.playframework/play-slick) ·
@@ -148,7 +148,7 @@ These are the JVM libraries we talk to the database *through*; the database serv
 
 ### Other Scala
 
-- **metadata-extractor: 2.19.0** — reads EXIF (photos) and QuickTime/MP4 atoms (videos) from user-uploaded story
+- **metadata-extractor: 2.21.0** — reads EXIF (photos) and QuickTime/MP4 atoms (videos) from user-uploaded story
   media (#4054). Pure Java with one small transitive dep (`xmpcore`); used transiently on ingest — the derived
   recency/proximity buckets are stored, the precise values discarded.
   [Releases](https://mvnrepository.com/artifact/com.drewnoakes/metadata-extractor) ·
@@ -162,7 +162,7 @@ These are the JVM libraries we talk to the database *through*; the database serv
 ### Build plugins & test (`project/plugins.sbt`, `.scalafmt.conf`, test deps)
 
 - **sbt-plugin (Play): 3.0.11** — tracks the Play version above (`project/plugins.sbt`).
-- **scalafmt: 3.9.10** — pinned in [`.scalafmt.conf`](../.scalafmt.conf); the **sbt-scalafmt** plugin (**2.5.6**,
+- **scalafmt: 3.11.5** — pinned in [`.scalafmt.conf`](../.scalafmt.conf); the **sbt-scalafmt** plugin (**2.6.2**,
   `project/plugins.sbt`) fetches it. `scalafmtCheckAll` is a blocking CI gate.
   [Releases](https://github.com/scalameta/scalafmt/releases)
 - **sbt-scoverage: 2.4.4** — coverage, for a later CI phase with a ratcheting threshold.
@@ -182,7 +182,7 @@ images together, upstream layout preserved so relative `url()` refs keep working
 edited or linted.**
 
 **To upgrade a self-hosted library:** download the new version, drop it in `public/vendor/<lib>/`, **rename it to
-include the version number** (e.g. `turf-7.3.4.min.js`) for clarity, update every reference to the old filename across
+include the version number** (e.g. `turf-7.4.0.min.js`) for clarity, update every reference to the old filename across
 the code, and delete the old file. The version baked into each filename under `vendor/` is the real source of truth for
 the frontend — it names in the URL what a reader would otherwise have to diff for, and lets two versions sit side by
 side mid-upgrade — keep this list matching it. `make lint-vendor-versions` (part of `make lint`, and a
@@ -212,38 +212,43 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Download](https://unpkg.com/chart.js) · [Changelog](https://github.com/chartjs/Chart.js/releases)
 - **countUp.js: 1.9.3** — animates the counting-up of stats on the landing page; lightly used. (Several libraries
   share this name — be careful which you grab.)
-- **floating-ui: 1.7.6 (`@floating-ui/dom`), 1.7.5 (`@floating-ui/core`)** — **note:** start from the newest `dom`
+- **floating-ui: 1.8.0 (`@floating-ui/dom`), 1.8.0 (`@floating-ui/core`)** — **note:** start from the newest `dom`
   version, then pick a `core` version that satisfies its dependency.
   [Changelog](https://github.com/floating-ui/floating-ui/releases) ·
-  [Download dom](https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.6) ·
-  [Download core](https://cdn.jsdelivr.net/npm/@floating-ui/core@1.7.5)
+  [Download dom](https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.8.0) ·
+  [Download core](https://cdn.jsdelivr.net/npm/@floating-ui/core@1.8.0)
 - **i18next: 23.16.8** — **note:** v24+ has breaking changes we haven't worked through (the changelog links a
   migration guide); take minor bumps meanwhile.
   [Download](https://unpkg.com/i18next/dist/umd/i18next.min.js) ·
   [Changelog](https://github.com/i18next/i18next/blob/master/CHANGELOG.md)
-- **i18next-http-backend: 3.0.4** — loads translation files (`i18nextHttpBackend-3.0.4.min.js`).
+- **i18next-http-backend: 3.0.6** — loads translation files (`i18nextHttpBackend-3.0.6.min.js`).
   [Project + downloads](https://github.com/i18next/i18next-http-backend) ·
   [Changelog](https://github.com/i18next/i18next-http-backend/blob/master/CHANGELOG.md)
-- **infra3dapi: 1.8.0** — Infra3d imagery provider. **Note:** we currently ship a locally-patched build with fixes we
-  needed; expect those to land upstream soon. Test by panning in a circle — watch for jumpiness.
-  [Download](https://cdn.jsdelivr.net/npm/@inovitas/infra3dapi@1.8.0/infra3dapi.js) ·
+- **infra3dapi: 1.12.1** — Infra3d imagery provider. **Note:** `Infra3dViewer.js` reaches past the documented API into
+  `_sdk_viewer` (`moveToKey`, `movePosition`, `setFilter`, `resize`, the component toggles, the `nodechanged` event, the
+  navigator's `imagesByKNN$`) and each node's `spatialEdges$` stream, none of which the changelog covers, so after a
+  bump grep the new file for each name.
+  [Download](https://cdn.jsdelivr.net/npm/@inovitas/infra3dapi@1.12.1/infra3dapi.js) ·
   [Changelog](https://developers.infra3d.com/javascript-api/reference/index.html#md:changelog)
-- **js-cookie: 3.0.5** — [Download](https://unpkg.com/js-cookie) ·
-  [Changelog](https://github.com/js-cookie/js-cookie/releases)
 - **kinetic: 4.4.3** — **note:** only used for the hand animation in the Explore tutorial;
   [no longer maintained](https://github.com/ericdrowell/KineticJS). Could bump to 5.1.0 and leave it.
-- **mapbox-gl (js & css): 3.21.0** — check with `mapboxgl.version`.
+- **mapbox-gl (js & css): 3.24.1** — check with `mapboxgl.version`. **Note:** held below 3.25 on purpose. From 3.25.0 a
+  symbol layer that shares a source with feature-state paint (Route Builder's region labels, AccessScore's) crashes
+  the map with `Cannot read properties of undefined (reading 'paint')` once that state changes
+  ([mapbox-gl-js#13714](https://github.com/mapbox/mapbox-gl-js/issues/13714)); take 3.25+ once the fix
+  ([#13721](https://github.com/mapbox/mapbox-gl-js/pull/13721)) ships, or give every such symbol layer a
+  feature-state paint expression first.
   [Install/download](https://docs.mapbox.com/mapbox-gl-js/guides/install/) ·
   [Changelog](https://github.com/mapbox/mapbox-gl-js/blob/main/CHANGELOG.md)
 - **mapbox-gl-language: 1.0.1** — [Download](https://unpkg.com/@mapbox/mapbox-gl-language) ·
   [Changelog](https://github.com/mapbox/mapbox-gl-language/releases)
-- **mapbox-search-js: 1.5.0** — ships in `public/vendor/mapbox-gl/` with the rest of the Mapbox stack.
+- **mapbox-search-js: 1.6.0** — ships in `public/vendor/mapbox-gl/` with the rest of the Mapbox stack.
   [Install/download](https://docs.mapbox.com/mapbox-search-js/guides/install/) ·
   [Changelog](https://docs.mapbox.com/mapbox-search-js/guides/changelog/)
 - **mapillary: 4.1.2** — Mapillary imagery provider.
   [Downloads](https://mapillary.github.io/mapillary-js/docs/intro/try/#using-a-cdn) ·
   [Changelog](https://github.com/mapillary/mapillary-js/releases)
-- **moment.js: 2.30.1** — vendored alongside one locale file per supported language. Only `en` and `en-US` need none,
+- **moment.js: 2.31.0** — vendored alongside one locale file per supported language. Only `en` and `en-US` need none,
   since moment has US English built in; other English variants do have their own file (`en-NZ` formats dates
   differently). **Adding a language means adding its locale file too**, or its dates silently render in English;
   `common/main.scala.html` picks the file by lowercased language code. [Download](https://momentjs.com/) ·
@@ -267,7 +272,7 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   a different dist layout). So 1.x is the stable line to track, and `1.30.0 → 2.x` will be a migration rather than a
   file swap. [Download (pick components)](https://prismjs.com/download.html) ·
   [Changelog](https://github.com/PrismJS/prism/releases)
-- **proj4js: 2.19.10** — [Download](https://cdnjs.com/libraries/proj4js) ·
+- **proj4js: 2.22.0** — [Download](https://cdnjs.com/libraries/proj4js) ·
   [Changelog](https://github.com/proj4js/proj4js/releases)
 - **selectize.js: 0.15.2** — **note:** unmaintained (last release 2022). The suggested successor is
   [tom-select](https://github.com/orchidjs/tom-select), a maintained fork that drops jQuery — a good fit as we move
@@ -277,9 +282,9 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   (bundler-only), so upgrading isn't worth it soon.
   [Download](https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js) ·
   [Changelog](https://github.com/mrdoob/three.js/releases)
-- **turf.js: 7.3.4** — [Download (set version in URL)](https://unpkg.com/@turf/turf@7.3.4/turf.min.js) ·
+- **turf.js: 7.4.0** — [Download (set version in URL)](https://unpkg.com/@turf/turf@7.4.0/turf.min.js) ·
   [Changelog](https://github.com/Turfjs/turf/releases)
-- **vega: 5.30.0, vega-lite: 5.21.0, vega-embed: 6.29.0** — the coverage charts on the admin dashboard. We
+- **vega: 5.33.1, vega-lite: 5.23.0, vega-embed: 6.29.0** — the coverage charts on the admin dashboard. We
   write Vega-Lite specs and hand them to `vegaEmbed`, which pulls in Vega itself as the renderer, so all three move
   together. **Note:** each has a major out (6 / 6 / 7) that we haven't looked at.
   [Download](https://github.com/vega/vega-embed?tab=readme-ov-file#directly-in-the-browser) ·
@@ -307,7 +312,7 @@ The web image carries two, and **which one a package targets decides which file 
   ([#4385](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4385)) — until then, don't add libraries to
   `requirements.txt`, because current releases have all dropped 3.8.
 - **Python 3.13** (`python3.13`) — a [python-build-standalone](https://github.com/astral-sh/python-build-standalone)
-  CPython fetched by **uv 0.12.5** at image build time, since no PPA carries 3.13 for focal. Where offline tooling
+  CPython fetched by **uv 0.12.15** at image build time, since no PPA carries 3.13 for focal. Where offline tooling
   runs. Both interpreters are pinned to exact patch versions in the `Dockerfile` (the installer URL and the
   `uv python install` argument); those patches are in the [runtimes table](#runtimes-and-base-images), so bump the
   `Dockerfile` and that table together. [Python releases](https://www.python.org/downloads/) ·
@@ -322,7 +327,7 @@ The web image carries two, and **which one a package targets decides which file 
   [haversine](https://github.com/mapado/haversine/releases) · [requests](https://github.com/psf/requests/releases)
 - **`requirements-offline-tools.txt`** (3.13, `check_streets_for_imagery.py` + `onboard_city.py`) — **pandas 3.0.5**,
   **requests 2.34.2**, **shapely 2.1.2**, **geopy 2.5.0**, **tenacity 9.1.4**, **tqdm 4.70.1**, plus the onboarding
-  geo stack: **osmnx 2.1.1**, **geopandas 1.1.4**, **pyogrio 0.13.0**, **scipy 1.15.3**. Self-contained rather
+  geo stack: **osmnx 2.1.1**, **geopandas 1.1.4**, **pyogrio 0.13.0**, **scipy 1.17.1**. Self-contained rather
   than layered on `requirements.txt`, since the two files target different interpreters and so can't share a pin.
   **Note:** requires **Python ≥ 3.11**, and pandas is what sets that floor — re-check it when bumping pandas, and
   update the docs that quote it. [shapely](https://github.com/shapely/shapely/releases) ·
