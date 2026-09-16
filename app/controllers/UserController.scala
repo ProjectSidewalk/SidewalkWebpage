@@ -4,7 +4,7 @@ import controllers.base._
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.{fieldErrorJson, formErrorsJson, parseURL, safeLocalPath}
 import forms._
-import models.auth.DefaultEnv
+import models.auth.{DefaultEnv, RevocableCookieAuthenticatorService}
 import models.user.{Role, SidewalkUserWithRole, UserUtm}
 import models.utils.ProfanityGuard
 import net.ceedubs.ficus.Ficus._
@@ -701,15 +701,24 @@ class UserController @Inject() (
               authenticationService.findByUserId(authToken.userID).flatMap {
                 case Some(user) =>
                   val passwordInfo = passwordHasher.hash(passwordData.password)
-                  authenticationService.updatePassword(user.userId, passwordInfo).map { _ =>
+                  authenticationService.updatePassword(user.userId, passwordInfo).flatMap { _ =>
                     authenticationService.removeToken(token)
                     cc.loggingService.insert(user.userId, request.ipAddress, "PasswordReset")
-                    // /signIn bounces a signed-in user to the homepage, losing the message, so they go to Settings.
-                    val backTo =
-                      if (request.identity.exists(_.userId == user.userId))
-                        routes.UserDashboardController.settings.withFragment("change-password")
-                      else routes.UserController.signIn()
-                    Redirect(backTo).flashing("success" -> Messages("reset.pw.successful"))
+                    val flash = "success" -> Messages("reset.pw.successful")
+                    // A browser signed in to this account keeps a new cookie and goes to Settings, because /signIn
+                    // bounces a signed-in user to the homepage, losing the message.
+                    (request.identity, request.authenticator) match {
+                      case (Some(identity), Some(authenticator)) if identity.userId == user.userId =>
+                        val settings = routes.UserDashboardController.settings.withFragment("change-password")
+                        RevocableCookieAuthenticatorService
+                          .reissue(
+                            silhouette.env.authenticatorService,
+                            authenticator,
+                            Redirect(settings).flashing(flash)
+                          )
+                      case _ =>
+                        Future.successful(Redirect(routes.UserController.signIn()).flashing(flash))
+                    }
                   }
                 case _ =>
                   Future.successful(

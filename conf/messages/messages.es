@@ -789,10 +789,14 @@ dashboard.settings.password.new = Nueva contraseña
 dashboard.settings.password.new.confirm = Confirmar nueva contraseña
 dashboard.settings.password.forgot = ¿Olvidaste tu contraseña actual? <a href="{0}">Restablécela por correo electrónico</a>.
 dashboard.settings.password.submit = Cambiar contraseña
-dashboard.settings.password.changed = Tu contraseña se cambió correctamente.
+dashboard.settings.password.changed = Tu contraseña se cambió correctamente y se cerró tu sesión en tus otros dispositivos.
 dashboard.settings.password.error.current = Esa no es tu contraseña actual.
 dashboard.settings.password.error.same = La nueva contraseña debe ser distinta de la actual.
 dashboard.settings.password.error.throttled = Demasiados intentos. Espera hasta {0} minutos y vuelve a intentarlo.
+dashboard.settings.devices = Dispositivos con sesión iniciada
+dashboard.settings.devices.help = ¿Iniciaste sesión en algún lugar que ya no usas, como una computadora compartida? Cierra la sesión en todas partes excepto en este navegador.
+dashboard.settings.devices.submit = Cerrar sesión en otros dispositivos
+dashboard.settings.devices.signed.out = Se cerró tu sesión en tus otros dispositivos.
 dashboard.settings.service.hours = Horas de servicio voluntario
 dashboard.settings.service.hours.toggle = Inscribirme en horas de servicio comunitario
 dashboard.settings.service.hours.help = Te inscribe para el reconocimiento oficial —tu supervisor puede verificar tus horas— y añade "Horas de servicio" y "Control de tiempo" al menú de tu cuenta.

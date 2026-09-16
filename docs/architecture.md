@@ -59,8 +59,9 @@ The backend follows a consistent layering: **routes → Controller → Service �
 - **Per-city schemas** — each city is its own schema (`sidewalk_<city>`); they're essentially identical.
   Authentication lives in the shared `sidewalk_login` schema, along with anything that belongs to the account rather
   than to one city: `user_settings` holds choices the user makes (units, service-hours tracking) and
-  `user_account_state` holds what the site records about them (having finished the Explore tutorial). Both only get a
-  row once there's something to store (#3720). Per-city stats and privacy flags stay in each city's `user_stat`.
+  `user_account_state` holds what the site records about them (having finished the Explore tutorial, and when a
+  password change last signed them out everywhere, #5305). Both only get a row once there's something to store
+  (#3720). Per-city stats and privacy flags stay in each city's `user_stat`.
   The schema holds auth to one account per email, one login row per account, and one password per login row
   (#5317), and sign-in, reset, and change-password all reach the password through the account.
 - **Evolutions** — schema changes are Play evolutions: numbered SQL files in `conf/evolutions/default/`, each with

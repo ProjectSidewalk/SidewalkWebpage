@@ -12,6 +12,7 @@ import play.silhouette.impl.exceptions.{IdentityNotFoundException, InvalidPasswo
 import play.silhouette.impl.providers.CredentialsProvider.ID
 import java.security.MessageDigest
 import java.time.OffsetDateTime
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.DurationInt
@@ -39,6 +40,8 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   def generateUniqueAnonUser(): Future[SidewalkUserWithRole]
   def addUserStatEntryIfNew(userId: String): Future[Int]
   def updatePassword(userId: String, pwInfo: PasswordInfo): Future[Int]
+  def sessionsRevokedAt(email: String): Future[Option[OffsetDateTime]]
+  def signOutEverywhere(userId: String): Future[Int]
   def changePassword(userId: String, currentPassword: String, newPassword: String): Future[Boolean]
   def authenticate(email: String, pw: String): Future[LoginInfo]
   def createToken(userID: String, expiryMinutes: Int = 60): Future[String]
@@ -61,6 +64,7 @@ class AuthenticationServiceImpl @Inject() (
     userPasswordInfoTable: UserPasswordInfoTable,
     userRoleTable: UserRoleTable,
     userStatTable: UserStatTable,
+    userAccountStateTable: UserAccountStateTable,
     authTokenTable: AuthTokenTable,
     configService: ConfigService
 ) extends AuthenticationService
@@ -276,9 +280,25 @@ class AuthenticationServiceImpl @Inject() (
     }
   }
 
+  /** Replaces a user's password and signs them out everywhere (#5305); the caller signs the current browser back in. */
   def updatePassword(userId: String, pwInfo: PasswordInfo): Future[Int] = {
-    db.run(updatePasswordDBIO(userId, pwInfo))
+    db.run(
+      updatePasswordDBIO(userId, pwInfo).flatMap { rowsUpdated =>
+        revokeSessionsDBIO(userId).map(_ => rowsUpdated)
+      }.transactionally
+    )
   }
+
+  /** Signs the user out everywhere (#5305); the caller signs the current browser back in. */
+  def signOutEverywhere(userId: String): Future[Int] = db.run(revokeSessionsDBIO(userId))
+
+  private def revokeSessionsDBIO(userId: String): DBIO[Int] = {
+    // Cut to microseconds, all Postgres stores, so the saved time is never later than a cookie issued right after.
+    userAccountStateTable.revokeSessions(userId, OffsetDateTime.now.truncatedTo(ChronoUnit.MICROS))
+  }
+
+  def sessionsRevokedAt(email: String): Future[Option[OffsetDateTime]] =
+    db.run(userAccountStateTable.sessionsRevokedAt(email))
 
   /** Every account has a login row with a password (387.sql), so a missing one is an error, not a case to handle. */
   private def updatePasswordDBIO(userId: String, pwInfo: PasswordInfo): DBIO[Int] = {

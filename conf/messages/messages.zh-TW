@@ -853,10 +853,14 @@ dashboard.settings.password.new = 新密碼
 dashboard.settings.password.new.confirm = 確認新密碼
 dashboard.settings.password.forgot = 忘記目前的密碼了嗎？<a href="{0}">改用電子郵件重設</a>。
 dashboard.settings.password.submit = 變更密碼
-dashboard.settings.password.changed = 您的密碼已變更。
+dashboard.settings.password.changed = 您的密碼已變更，其他裝置上的登入也已登出。
 dashboard.settings.password.error.current = 這不是您目前的密碼。
 dashboard.settings.password.error.same = 新密碼必須與目前的密碼不同。
 dashboard.settings.password.error.throttled = 嘗試次數過多。請等待最多 {0} 分鐘後再試一次。
+dashboard.settings.devices = 已登入的裝置
+dashboard.settings.devices.help = 曾在不再使用的地方登入，例如共用電腦？登出除了此瀏覽器以外的所有裝置。
+dashboard.settings.devices.submit = 登出其他裝置
+dashboard.settings.devices.signed.out = 您已從其他裝置登出。
 dashboard.settings.service.hours = 志工服務時數
 dashboard.settings.service.hours.toggle = 報名社區服務時數
 dashboard.settings.service.hours.help = 為您報名正式認可（您的督導可以核實您的時數），並在您的帳戶選單中加入「服務時數」和「時間檢查」。

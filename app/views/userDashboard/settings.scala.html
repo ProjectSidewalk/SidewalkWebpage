@@ -73,6 +73,17 @@
         }
       </div>
     </form>
+    <h3 class="page-subhead ud-settings-subhead" id="signed-in-devices">@Messages("dashboard.settings.devices")</h3>
+    <form class="ud-form" id="set-devices-form" method="post"
+        action="@routes.UserDashboardController.signOutOtherDevices"
+        data-error-generic="@Messages("authenticate.error.generic")">
+      @CSRF.formField
+      <span class="ud-field-help">@Messages("dashboard.settings.devices.help")</span>
+      <div>
+        <button type="submit" class="ud-btn-secondary">@Messages("dashboard.settings.devices.submit")</button>
+        <span class="ud-save-status" role="status" aria-live="polite"></span>
+      </div>
+    </form>
   </div>
 
   <div class="page-section" id="settings-preferences-section">
@@ -182,6 +193,14 @@
     // AuthModal.js (which it uses) is a deferred script.
     document.addEventListener('DOMContentLoaded', function () {
       new ChangePasswordForm(document.getElementById('set-password-form'));
+      const devicesForm = document.getElementById('set-devices-form');
+      const devicesStatus = devicesForm.querySelector('[role="status"]');
+      wireAsyncSubmit(devicesForm, {
+        onSuccess: (data) => {
+          devicesStatus.textContent = data.message;
+          devicesStatus.classList.add('ud-save-ok');
+        },
+      });
     });
   </script>
 }

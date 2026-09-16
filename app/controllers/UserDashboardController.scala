@@ -5,13 +5,15 @@ import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.{fieldErrorJson, formErrorsJson}
 import formats.json.UserFormats.{settingsSubmissionReads, SettingsSubmission}
 import forms.ChangePasswordForm
-import models.auth.{DefaultEnv, WithAdmin, WithSignedIn}
+import models.auth.{DefaultEnv, RevocableCookieAuthenticatorService, WithAdmin, WithSignedIn}
 import models.user.{MeasurementSystem, Role, SidewalkUserWithRole}
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.mvc.{AnyContent, Result}
 import play.silhouette.api.actions.SecuredRequest
+import play.silhouette.api.services.AuthenticatorService
+import play.silhouette.impl.authenticators.CookieAuthenticator
 import service.{AdminService, ConfigService, GlobalLeaderboardEntry, UserService}
 
 import javax.inject._
@@ -36,7 +38,8 @@ class UserDashboardController @Inject() (
     labelService: service.LabelService,
     routeService: service.RouteService,
     authenticationService: service.AuthenticationService,
-    rateLimiter: service.RateLimiter
+    rateLimiter: service.RateLimiter,
+    authenticatorService: AuthenticatorService[CookieAuthenticator]
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -299,16 +302,30 @@ class UserDashboardController @Inject() (
             Future.successful(BadRequest(formErrorsJson(formWithErrors)))
           },
           data =>
-            authenticationService.changePassword(user.userId, data.currentPassword, data.newPassword).map {
+            authenticationService.changePassword(user.userId, data.currentPassword, data.newPassword).flatMap {
               case true =>
                 cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=ChangePassword")
-                Ok(Json.obj("success" -> true, "message" -> Messages("dashboard.settings.password.changed")))
+                val ok = Ok(Json.obj("success" -> true, "message" -> Messages("dashboard.settings.password.changed")))
+                // The change revoked this browser's cookie too.
+                RevocableCookieAuthenticatorService.reissue(authenticatorService, request.authenticator, ok)
               case false =>
                 cc.loggingService
                   .insert(user.userId, request.ipAddress, "ChangePasswordFailed_Reason=WrongCurrentPassword")
-                Unauthorized(fieldErrorJson("currentPassword", Messages("dashboard.settings.password.error.current")))
+                Future.successful(
+                  Unauthorized(fieldErrorJson("currentPassword", Messages("dashboard.settings.password.error.current")))
+                )
             }
         )
+    }
+  }
+
+  /** Signs the user out on every other device (#5305), keeping this browser signed in with a new cookie. */
+  def signOutOtherDevices = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
+    val user = request.identity
+    authenticationService.signOutEverywhere(user.userId).flatMap { _ =>
+      cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=SignOutOtherDevices")
+      val ok = Ok(Json.obj("success" -> true, "message" -> Messages("dashboard.settings.devices.signed.out")))
+      RevocableCookieAuthenticatorService.reissue(authenticatorService, request.authenticator, ok)
     }
   }
 

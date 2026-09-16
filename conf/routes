@@ -189,6 +189,7 @@ GET     /dashboard                                      controllers.UserDashboar
 GET     /dashboard/settings                             controllers.UserDashboardController.settings
 POST    /dashboard/settings                             controllers.UserDashboardController.saveSettings
 POST    /dashboard/settings/password                    controllers.UserDashboardController.changePassword
+POST    /dashboard/settings/signOutOtherDevices         controllers.UserDashboardController.signOutOtherDevices
 GET     /profile/:username                              controllers.UserDashboardController.publicProfile(username: String)
 # Pre-cutover /preview URLs redirect permanently to the production ones.
 GET     /dashboard/preview                              controllers.UserDashboardController.dashboardPreviewRedirect
