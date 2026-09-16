@@ -147,7 +147,7 @@ function buildExploreHereContent(map, lat, lng, placeName, address, exploreHref)
  *
  * @param {mapboxgl.Map} map - The Mapbox GL map created by createPSMap.
  * @param {string} mapboxApiKey - Mapbox access token (the same token that initialized the map).
- * @returns {{clear: function(): boolean}|null} Handle whose `clear()` takes the searched place back off the
+ * @returns {{clear: () => boolean}|null} Handle whose `clear()` takes the searched place back off the
  *          map (true if there was one), or null if the sidebar container or the Search SDK is unavailable.
  */
 function initLabelMapLocationSearch(map, mapboxApiKey) {
