@@ -596,6 +596,12 @@ class AuditTaskTable @Inject() (
 
   /**
    * Get a task that is in a given region. Used if a user has already been assigned a region, or if regionId is passed.
+   *
+   * When the pick lands on a street the labeler left part-walked, their open task is handed back instead of a fresh
+   * one, carrying its saved position, direction and mission (#5370). Which street is picked is deliberately
+   * unchanged: the ask is to resume an abandoned street when the chooser reaches it, not to steer the chooser
+   * towards abandoned streets.
+   *
    * TODO this isn't a simple CRUD operation, so it should probably go in a Service file.
    */
   def selectANewTaskInARegion(regionId: Int, userId: String, missionId: Int): DBIO[Option[NewTask]] = {
@@ -630,7 +636,17 @@ class AuditTaskTable @Inject() (
     possibleTasks.map(_._9).max.result.flatMap {
       case Some(maxPriority) =>
         // Choose one of the highest priority tasks at random.
-        possibleTasks.filter(_._9 === maxPriority).sortBy(_ => random).result.map(_.headOption.map(NewTask.tupled))
+        possibleTasks.filter(_._9 === maxPriority).sortBy(_ => random).result.map(_.headOption).flatMap {
+          case Some(freshTask) =>
+            resumableTaskIdOnStreet(userId, freshTask._1).flatMap {
+              // selectTaskFromTaskId hands back the row's own mission id rather than the one passed in. That is the
+              // page-load resume path's behaviour too: the caller moves mission.current_audit_task_id onto the
+              // resumed task, and the next submission's updateTaskProgress rewrites the task's mission.
+              case Some(taskId) => selectTaskFromTaskId(taskId)
+              case None         => DBIO.successful(Some(NewTask.tupled(freshTask)))
+            }
+          case None => DBIO.successful(None)
+        }
       case None =>
         DBIO.successful(None)
     }
@@ -669,12 +685,16 @@ class AuditTaskTable @Inject() (
 
   /**
    * Get tasks in the region. Called when a user begins auditing. Includes completed tasks, despite return type!
+   *
+   * Three kinds of row come back, and the client tells them apart by `completed` and `auditTaskId`: a street the user
+   * finished (completed, with the audit's id), a street they left part-walked (not completed, with the open task's id,
+   * and positioned where they stopped rather than at the street's start), and a street they have never touched (not
+   * completed, no id). Only audits with up-to-date imagery count as finished: a street re-imaged since the user's
+   * audit comes back as an available task, so the Explore mini-map and next-task logic re-offer it (#4384).
    */
   def selectTasksInARegion(regionId: Int, userId: String): DBIO[Seq[NewTask]] = {
     // Get street_edge_id, task_start, audit_task_id, current_mission_id, and current_mission_start for streets the user
     // has audited. If there are multiple for the same street, choose most recent (one w/ the highest audit_task_id).
-    // Only audits with up-to-date imagery count: a street re-imaged since the user's audit comes back as an available
-    // task (completed=false, no audit_task_id), so the Explore mini-map and next-task logic re-offer it (#4384).
     val userCompletedStreets = upToDateCompletedTasks
       .filter(_.userId === userId)
       .groupBy(_.streetEdgeId)
@@ -683,31 +703,43 @@ class AuditTaskTable @Inject() (
       .on(_ === _.auditTaskId)
       .map(t => (t._2.streetEdgeId, t._2.taskStart, t._2.auditTaskId, t._2.currentMissionId, t._2.currentMissionStart))
 
+    // The same streets' unfinished work, carrying the saved position and direction so the labeler picks the street up
+    // where they stopped (#5370). Disjoint from userCompletedStreets by construction: resumableTasksForUser drops any
+    // street this user already has an up-to-date completed audit of, so the COALESCEs below never have to choose.
+    val userResumableStreets = resumableTasksForUser(userId, Some(regionId)).map(task =>
+      (task.streetEdgeId, task.taskStart, task.auditTaskId, task.currentMissionId, task.currentMissionStart,
+        task.currentLng, task.currentLat, task.startPointReversed)
+    )
+
     val edgesInRegion = nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
     val tasks         = for {
-      (ser, ucs) <- edgesInRegion.joinLeft(userCompletedStreets).on(_.streetEdgeId === _._1)
-      se         <- streetEdgeTable.streets if ser.streetEdgeId === se.streetEdgeId
-      sep        <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
-      scau       <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
-      sms        <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === sms._1
+      ((ser, ucs), urs) <- edgesInRegion
+        .joinLeft(userCompletedStreets)
+        .on(_.streetEdgeId === _._1)
+        .joinLeft(userResumableStreets)
+        .on(_._1.streetEdgeId === _._1)
+      se   <- streetEdgeTable.streets if ser.streetEdgeId === se.streetEdgeId
+      sep  <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
+      scau <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
+      sms  <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === sms._1
     } yield (
       se.streetEdgeId,
       se.geom,
-      se.x1,
-      se.y1,
+      urs.map(_._6).ifNull(se.x1), // resume where the labeler stopped; an untouched street starts at its own start.
+      urs.map(_._7).ifNull(se.y1),
       se.wayType,
-      false, // startPointReversed is false by default.
-      ucs.map(_._2).getOrElse(OffsetDateTime.now),
+      urs.map(_._8).getOrElse(false), // the direction the open task was walked in; false for a fresh street.
+      ucs.map(_._2).ifNull(urs.map(_._2)).getOrElse(OffsetDateTime.now),
       scau._2, // completedByAnyUser
       sep.priority,
-      ucs.isDefined,         // completed is true if the user has audited this street before.
-      ucs.map(_._3),         // fill auditTaskId using the existing audit_task for this street if the user has one.
-      ucs.map(_._4).flatten, // fill currentMissionId if the user has an existing mission for this street.
-      ucs.map(_._5).flatten, // fill currentMissionStart if the user has an existing mission for this street.
-      None: Option[Int],     // routeStreetId
-      None: Option[Int],     // routeStreetPosition
-      sms._2,                // maxSpeed
-      false                  // reportedNoImagery is route-scoped; see NewTask.
+      ucs.isDefined,                                       // completed is true if the user has audited this street.
+      ucs.map(_._3).ifNull(urs.map(_._3)),                 // the completed audit's id, else the open task's.
+      ucs.map(_._4).flatten.ifNull(urs.map(_._4).flatten), // fill currentMissionId if either task has one.
+      ucs.map(_._5).flatten.ifNull(urs.map(_._5).flatten), // fill currentMissionStart if either task has one.
+      None: Option[Int],                                   // routeStreetId
+      None: Option[Int],                                   // routeStreetPosition
+      sms._2,                                              // maxSpeed
+      false                                                // reportedNoImagery is route-scoped; see NewTask.
     )
 
     tasks.result.map(_.map(NewTask.tupled(_)))
@@ -760,6 +792,107 @@ class AuditTaskTable @Inject() (
       .map { case ((link, _), routeStreet) => (link.auditTaskId, routeStreet.routeStreetId, routeStreet.position) }
       .result
       .headOption
+  }
+
+  /**
+   * The user's open tasks that they may be handed back to finish, at most one per street (#5370).
+   *
+   * An abandoned street is the labeler's own half-finished work: their labels hang off that audit_task_id and their
+   * walked metres are recorded on it, so handing the street back from its start makes them re-walk and re-label what
+   * they already did. The region-audit counterpart of [[resumableRouteTask]].
+   *
+   * The no-imagery exclusion below is a **second copy** of the predicate ExploreService's page-load resume applies to
+   * the mission's current task, via StreetEdgeIssueTable.reportedNoImagerySince. They are not shared because that path
+   * tests one already-loaded task while this one is a query predicate over many, and the other two exclusions here
+   * would change that path's behaviour if it adopted them wholesale. So they can drift: a change to what counts as a
+   * no-imagery give-up has to be made in both places, and there is no compiler or test that will say so.
+   *
+   * Three exclusions, each for a reason the street is not really resumable:
+   *   - Drop-in tasks (`start_offset_m` set) cover only the stretch from where free exploration began (#4451).
+   *     Resuming one as a region task would draw the un-walked stretch before the drop-in as audited and let the
+   *     labeler complete a street they never covered.
+   *   - A street with an up-to-date completed audit by this user is done, whatever open row came after it -- an admin
+   *     `?streetEdgeId=` visit can leave one.
+   *   - A street the labeler bounced off for missing imagery during this task (#4922). The report is what leaves the
+   *     task incomplete, so without this the street comes back on every pick with imagery that still will not load.
+   *
+   * Newest open row per street, and only then the exclusions: if the newest row is a give-up, the street is fresh
+   * rather than falling back to an older row, which would put the labeler back on a street whose latest verdict was
+   * "no imagery".
+   *
+   * @param userId   The labeler whose own unfinished work this is; nobody resumes anyone else's task.
+   * @param regionId Narrows the per-street grouping to one region's streets. Worth passing whenever the caller only
+   *                 cares about a region: ungrouped, the aggregate covers every open task the user has anywhere, which
+   *                 for a heavy mapper on the dev copy of Seattle is 10,375 rows collapsing to 3,951 groups.
+   * @return A query of whole audit_task rows, for use as a join or an `in` subquery.
+   */
+  def resumableTasksForUser(userId: String, regionId: Option[Int] = None): Query[AuditTaskTableDef, AuditTask, Seq] = {
+    val openTasks = activeTasks.filter(task => task.userId === userId && task.startOffsetM.isEmpty)
+    val inScope   = regionId match {
+      case Some(region) =>
+        openTasks.filter(
+          _.streetEdgeId in nonDeletedStreetEdgeRegions.filter(_.regionId === region).map(_.streetEdgeId)
+        )
+      case None => openTasks
+    }
+
+    // Kept to a single column so the grouped query is only ever used as an `in` subquery -- carrying the group key
+    // through a join makes Slick emit SQL that references the grouped subquery from outside its own FROM clause,
+    // which Postgres rejects at runtime (see selectTasksInRoute).
+    val newestOpenTaskIds = inScope.groupBy(_.streetEdgeId).map { case (_, group) => group.map(_.auditTaskId).max }
+
+    stillResumable(auditTasks.filter(_.auditTaskId.? in newestOpenTaskIds), userId)
+  }
+
+  /**
+   * Drops the tasks whose street has since been settled some other way, leaving only ones worth handing back.
+   *
+   * Written as `NOT EXISTS` because that states the condition directly, but the plan is the planner's to choose:
+   * measured on the dev database, Postgres converts both into anti-joins (a hash anti-join over a sequential scan of
+   * street_edge_issue when the outer side is a whole region's streets, a nested-loop anti-join when it is one street).
+   * That is fine at today's sizes and is the reason this is worth revisiting rather than asserting about: the
+   * street_edge_issue lookup is by (user_id, street_edge_id) and the only index on that table is on street_edge_id
+   * alone, so the user half is always a filter. A composite index is the follow-up if this ever shows up in a profile.
+   */
+  private def stillResumable(
+      tasks: Query[AuditTaskTableDef, AuditTask, Seq],
+      userId: String
+  ): Query[AuditTaskTableDef, AuditTask, Seq] = {
+    tasks
+      .filterNot(task =>
+        upToDateCompletedTasks
+          .filter(completed => completed.userId === userId && completed.streetEdgeId === task.streetEdgeId)
+          .exists
+      )
+      .filterNot(task =>
+        streetEdgeIssues
+          .filter(issue =>
+            issue.streetEdgeId === task.streetEdgeId && issue.userId === userId &&
+              issue.issue === StreetEdgeIssueType.PanoNotAvailable && issue.timestamp >= task.taskStart
+          )
+          .exists
+      )
+  }
+
+  /**
+   * The open task to pick up if the labeler is sent down this street again, by [[resumableTasksForUser]]'s rules.
+   *
+   * Scoped to the street before the newest-row pick rather than after, so this is an index lookup on a handful of
+   * rows. Filtering [[resumableTasksForUser]] on the street instead would leave its per-street aggregate covering the
+   * user's whole history to answer a one-street question -- measured on the dev copy of Seattle, 9.1 ms and 562
+   * buffers against 0.17 ms and 12, on a query that runs once per next-street pick.
+   *
+   * @param userId       The labeler being handed the street.
+   * @param streetEdgeId The street the next-task chooser landed on.
+   * @return The audit_task_id to resume, or None when the street should start fresh.
+   */
+  def resumableTaskIdOnStreet(userId: String, streetEdgeId: Int): DBIO[Option[Int]] = {
+    val newestOpenTask = activeTasks
+      .filter(task => task.userId === userId && task.streetEdgeId === streetEdgeId && task.startOffsetM.isEmpty)
+      .sortBy(_.auditTaskId.desc)
+      .take(1)
+
+    stillResumable(newestOpenTask, userId).map(_.auditTaskId).result.headOption
   }
 
   /**

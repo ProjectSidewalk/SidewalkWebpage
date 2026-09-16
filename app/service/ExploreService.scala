@@ -288,6 +288,8 @@ class ExploreServiceImpl @Inject() (
           // so resuming it would hand back the street whose imagery would not load, on this load and every reload
           // after it. The street keeps its place in the pool for the offline checker to settle (#4918); this only
           // declines to serve it to the labeler who just bounced off it.
+          // AuditTaskTable.resumableTasksForUser holds a second copy of this same no-imagery test, for the next-street
+          // pick (#5370). Nothing links them, so a change to what counts as a give-up has to be made in both places.
           auditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get).flatMap {
             case Some(currTask) =>
               streetEdgeIssueTable.reportedNoImagerySince(currTask.edgeId, userId, currTask.taskStart).flatMap {

@@ -235,7 +235,13 @@ class Form {
       })
       .then((result) => {
         task.setProperty('auditTaskId', result.audit_task_id);
-        svl.tracker.setAuditTaskID(result.audit_task_id);
+        // Only if this submission's street is still the one being walked. endTask() submits without awaiting and the
+        // caller switches streets immediately, so a response landing after the switch would file every following
+        // interaction under the street the labeler just left (#5370).
+        const currentTask = this.#taskContainer.getCurrentTask();
+        if (!currentTask || currentTask.getStreetEdgeId() === task.getStreetEdgeId()) {
+          svl.tracker.setAuditTaskID(result.audit_task_id);
+        }
 
         // If the back-end says that something is messed up and that we should refresh page, do that now.
         if (result.refresh_page) window.location.reload();

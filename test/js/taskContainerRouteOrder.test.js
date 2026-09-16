@@ -22,8 +22,11 @@ const makeTask = (walkOrder, { complete = false, givenUp = false, km = 1 } = {})
     walkOrder,
     getWalkOrder: () => walkOrder,
     getStreetEdgeId: () => 100 + walkOrder,
+    getAuditTaskId: () => null,
     isComplete: () => complete,
     wasGivenUpOnImagery: () => givenUp,
+    // Route tasks are never handed back part-walked (#5370 covers region audits only); taskResume.test.js has that.
+    isResumed: () => false,
     getGeoJSON: () => ({ properties: { km } }),
     lineDistance: () => km,
     getAuditedDistance: () => 0,
