@@ -52,6 +52,7 @@ POST    /cspReport                                      controllers.SecurityPoli
 
 # City config params.
 GET     /cityMapParams                                  controllers.ConfigController.getCityMapParams()
+GET     /imageryAccessToken                             controllers.ConfigController.getImageryAccessToken()
 
 # Admin
 # Admin dashboard (redesign #4272).

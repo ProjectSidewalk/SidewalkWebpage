@@ -349,7 +349,8 @@
     "free-explore-no-imagery": "There's no more street imagery in this direction. Try looking around or heading the other way.",
     "stuck-suggestion": "If you can't move with the arrows, trying clicking on the navigation directions in the bottom right. Or try clicking on the Stuck button on the left.",
     "imagery-skip-limit": "Several streets in a row had no imagery, so we've stopped moving you automatically. Try a different part of the map, or reload the page to start again.",
-    "imagery-load-failed": "We couldn't load the street imagery just now. Please try again in a few minutes."
+    "imagery-load-failed": "We couldn't load the street imagery just now. Please try again in a few minutes.",
+    "imagery-session-expired": "Your street imagery session has expired and couldn't be renewed. Please reload the page to keep going; your work so far is saved."
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "EXPLORE MISSION",
