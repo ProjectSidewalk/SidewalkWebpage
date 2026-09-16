@@ -85,17 +85,20 @@ object PanoDataService {
    * the fov the canvas projection uses for that zoom. Pure so the request can be pinned without an app; `getImageUrl`
    * signs it.
    *
-   * No `return_error_code`: an expired pano comes back 200 with Google's placeholder, which the `<img>` consumers
-   * (Gallery, landing grid, dashboard) render as-is and `ShareController` detects by pixel sampling instead.
+   * `return_error_code` is what makes missing imagery legible downstream: without it Google answers 200 with a flat
+   * "no imagery" placeholder that nothing can tell from a photo, while a 404 lands in the `error` handler every
+   * `<img>` consumer already has (a replacement card, a hidden thumb, a text-only card) and in the non-200 branch
+   * `ShareController` serves its branded fallback from.
    */
   def staticStillUrl(panoId: String, heading: Double, pitch: Double, zoom: Double, apiKey: String): String =
     staticApiUrl(
       Seq(
-        "pano"    -> panoId,
-        "size"    -> s"${StaticStillWidth}x$StaticStillHeight",
-        "heading" -> heading,
-        "pitch"   -> pitch,
-        "fov"     -> getFov(zoom)
+        "pano"              -> panoId,
+        "size"              -> s"${StaticStillWidth}x$StaticStillHeight",
+        "heading"           -> heading,
+        "pitch"             -> pitch,
+        "fov"               -> getFov(zoom),
+        "return_error_code" -> true // An expired or removed pano is a 404, not a placeholder image.
       ),
       apiKey
     )

@@ -4,8 +4,9 @@
  * The container must establish a CSS positioning context (position: relative, absolute, or fixed) so that
  * the absolutely-positioned logo is scoped to the pano area. Returns an object with three methods:
  *   - showPrimaryLogo() — use when the primary viewer (GSV/Mapillary/Infra3D) is active.
- *   - showSourceLogo()  — use when Pannellum is active as a backup, and on a still we render ourselves (a crop on
- *     a Gallery, landing or dashboard card), where no live viewer brands the imagery at all.
+ *   - showSourceLogo()  — use when Pannellum is active as a backup, and on a crop we render ourselves (on a Gallery,
+ *     landing or dashboard card), where no live viewer brands the imagery at all. Never on the Street View Static
+ *     API still: Google bakes its logo and copyright into that image, so ours would print the name twice.
  *   - hide()            — use when the image is gone, e.g. a card where every image source failed to load.
  *
  * The overlay also publishes where the logo's pixels end, as the --pano-logo-width CSS variable on the container,

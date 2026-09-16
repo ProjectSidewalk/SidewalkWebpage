@@ -175,6 +175,8 @@ class LandingValidationGrid {
     const freeToWarm = entry.cropUrl && !util.saveDataEnabled();
     img.loading = freeToWarm && index < LandingValidationGrid.#visibleCardCount() ? 'eager' : 'lazy';
     img.alt = i18next.t(`common:${typeKebab}`);
+    // Set once the overlays are on the card, below; the error handler fires on a later event, so it exists by then.
+    let creditImage = null;
     img.addEventListener('error', () => {
       // The saved crop can 404 (signed URLs expire after a while); fall back to the GSV Static API image. A card
       // whose every source fails is dead weight — swap it for a fresh label.
@@ -182,6 +184,7 @@ class LandingValidationGrid {
         card.dataset.imageSource = 'api';
         // The crop's recorded position describes the crop only; the still is the Explore frame again.
         LandingValidationGrid.#positionMarker(imgWrap.querySelector('.lvg-card-marker'), entry, 'api');
+        creditImage?.('api');
         img.src = entry.gsvImageUrl;
       } else {
         this.#replaceCard(card);
@@ -199,10 +202,20 @@ class LandingValidationGrid {
       LandingValidationGrid.#positionMarker(marker, entry, card.dataset.imageSource);
       imgWrap.appendChild(marker);
     }
-    // The credit owed on a still we serve ourselves (#4865, #5202). Only licensed imagery carries a licence, so
-    // createPanoAttribution hides itself for a source with none, leaving the logo alone.
-    createPanoViewerLogo(imgWrap, label.pano_source).showSourceLogo();
-    createPanoAttribution(imgWrap, { compact: true }).show(label.pano_data?.attribution);
+    // The credit owed on a crop, our cut of someone else's panorama (#4865, #5202); the still brands itself (see
+    // PanoViewerLogo). Only licensed imagery carries a licence, so createPanoAttribution hides itself without one.
+    const logo = createPanoViewerLogo(imgWrap, label.pano_source);
+    const attribution = createPanoAttribution(imgWrap, { compact: true });
+    creditImage = (source) => {
+      if (source === 'crop') {
+        logo.showSourceLogo();
+        attribution.show(label.pano_data?.attribution);
+      } else {
+        logo.hide();
+        attribution.hide();
+      }
+    };
+    creditImage(card.dataset.imageSource);
     card.appendChild(imgWrap);
 
     const body = document.createElement('figcaption');

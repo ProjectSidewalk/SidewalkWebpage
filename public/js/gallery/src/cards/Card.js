@@ -8,6 +8,8 @@ class Card {
   #gsvImageUrl;
 
   #markerWrapper;
+  #sourceLogo;
+  #attribution;
 
   // UI card element.
   #card = null;
@@ -217,10 +219,9 @@ class Card {
     imageHolder.appendChild(markerWrapper);
     imageHolder.appendChild(panoImage);
 
-    // The credit owed on a still we serve ourselves (#4865, #5202). Only licensed imagery carries a licence, so
-    // createPanoAttribution hides itself for a source with none, leaving the logo alone.
-    createPanoViewerLogo(imageHolder, properties.pano_source).showSourceLogo();
-    createPanoAttribution(imageHolder, { compact: true }).show(properties.pano_data?.attribution);
+    this.#sourceLogo = createPanoViewerLogo(imageHolder, properties.pano_source);
+    this.#attribution = createPanoAttribution(imageHolder, { compact: true });
+    this.#creditImage(this.#status.imageSource);
 
     this.#card.appendChild(cardInfo);
     this.validationMenu = new ValidationMenu(this, $(imageHolder));
@@ -308,18 +309,25 @@ class Card {
         const img = this.#panoImage;
         const primaryUrl = this.#cropUrl || this.#gsvImageUrl;
         const fallbackUrl = this.#cropUrl ? this.#gsvImageUrl : null;
+        // The container asks again on every page and filter render, so a card whose last attempt fell back to the
+        // still, or failed outright, starts over from the crop rather than keeping that attempt's marker and credit.
+        this.#useSource(this.#cropUrl ? 'crop' : 'api');
         img.onload = () => {
           this.#status.imageFetched = true;
+          this.#showImage();
           resolve(true);
         };
         img.onerror = () => {
           if (fallbackUrl) {
-            // Primary failed; try the other source, and place the marker for it.
-            this.#status.imageSource = this.#cropUrl ? 'api' : 'crop';
-            this.#positionMarker();
-            img.onerror = () => resolve(false); // Prevent infinite loop.
+            // The crop failed; try the still, and place the marker and the credit for it.
+            this.#useSource('api');
+            img.onerror = () => { // Prevent infinite loop.
+              this.#hideMissingImage();
+              resolve(false);
+            };
             img.src = fallbackUrl;
           } else {
+            this.#hideMissingImage();
             resolve(false);
           }
         };
@@ -328,6 +336,54 @@ class Card {
         resolve(true);
       }
     });
+  }
+
+  /**
+   * Records which source is being shown and places the marker and the credit for it: the crop's recorded position
+   * describes the crop only, and only the crop owes a credit.
+   * @param {string} source - 'crop' or 'api'.
+   */
+  #useSource(source) {
+    this.#status.imageSource = source;
+    this.#positionMarker();
+    this.#creditImage(source);
+  }
+
+  /**
+   * Shows the imagery credit over a crop, our cut of someone else's panorama, and takes it down for anything else
+   * (#4865, #5202): the still brands itself (see PanoViewerLogo). Only licensed imagery carries a licence, so
+   * createPanoAttribution hides itself for a source with none, leaving the logo alone.
+   * @param {?string} source - What the card is showing: 'crop', 'api', or null once every source has failed.
+   */
+  #creditImage(source) {
+    if (source === 'crop') {
+      this.#sourceLogo.showSourceLogo();
+      this.#attribution.show(this.#properties.pano_data?.attribution);
+    } else {
+      this.#sourceLogo.hide();
+      this.#attribution.hide();
+    }
+  }
+
+  /**
+   * Hides the image and its marker once no source has loaded (#5327): with `return_error_code` on the still, an
+   * expired pano answers 404 rather than a grey "no imagery" card. Type, severity, tags and votes are still worth
+   * showing; a broken-image icon and a marker pointing into an empty frame are not.
+   */
+  #hideMissingImage() {
+    this.#panoImage.classList.add('static-gallery-image--missing');
+    // The image stays in the tree, transparent, as the click target that opens the card; its alt would describe a
+    // picture that isn't there.
+    this.#panoImage.setAttribute('aria-hidden', 'true');
+    this.#markerWrapper.classList.add('gallery-marker-wrapper--missing');
+    this.#creditImage(null);
+  }
+
+  /** Undoes #hideMissingImage once a source has loaded, so a retry after a transient failure shows the image. */
+  #showImage() {
+    this.#panoImage.classList.remove('static-gallery-image--missing');
+    this.#panoImage.removeAttribute('aria-hidden');
+    this.#markerWrapper.classList.remove('gallery-marker-wrapper--missing');
   }
 
   /**

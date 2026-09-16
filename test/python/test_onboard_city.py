@@ -296,7 +296,7 @@ def test_oriented_piece_reverses_backwards_pieces():
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# parse_merge_spec / merge_regions / validate_staging
+# parse_merge_spec / merge_regions / read_rename_file / rename_regions / validate_staging
 # --------------------------------------------------------------------------------------------------------------------
 
 def test_parse_merge_spec_parses_name_pairs():
@@ -337,6 +337,52 @@ def test_merge_regions_folds_geometry_and_renumbers_densely():
 def test_merge_regions_rejects_unknown_names():
     with pytest.raises(SystemExit):
         oc.merge_regions(_region_set(), {'nowhere': 'left'})
+
+
+def _renames_csv(tmp_path, text):
+    path = tmp_path / 'region_renames.csv'
+    path.write_text(text, encoding='utf-8')
+    return path
+
+
+def test_read_rename_file_matches_padding_exactly_and_trims_the_new_name(tmp_path):
+    path = _renames_csv(tmp_path, 'current_name,new_name\n"CIUDAD DEL SOL ", Ciudad del Sol \n"O\'Hare, $HOME","O\'Hare"\n')
+    assert oc.read_rename_file(path) == {'CIUDAD DEL SOL ': 'Ciudad del Sol', "O'Hare, $HOME": "O'Hare"}
+
+
+def test_read_rename_file_rejects_bad_files(tmp_path):
+    with pytest.raises(SystemExit, match='does not exist'):
+        oc.read_rename_file(tmp_path / 'missing.csv')
+    with pytest.raises(SystemExit, match='columns'):
+        oc.read_rename_file(_renames_csv(tmp_path, 'old,new\nA,B\n'))
+    with pytest.raises(SystemExit, match='columns'):
+        oc.read_rename_file(_renames_csv(tmp_path, ''))
+    with pytest.raises(SystemExit, match='blank new name'):
+        oc.read_rename_file(_renames_csv(tmp_path, 'current_name,new_name\nA,  \n'))
+    with pytest.raises(SystemExit, match='blank new name'):
+        oc.read_rename_file(_renames_csv(tmp_path, 'current_name,new_name\nA\n'))
+    with pytest.raises(SystemExit, match='twice'):
+        oc.read_rename_file(_renames_csv(tmp_path, 'current_name,new_name\nA,B\nA,C\n'))
+
+
+def test_rename_regions_swaps_names_and_keeps_ids():
+    renamed = oc.rename_regions(_region_set(), {'left': 'right', 'right': 'left'})
+    assert list(renamed['name']) == ['right', 'left']
+    assert list(renamed['region_id']) == [1, 2]
+
+
+def test_rename_regions_skips_a_rename_that_was_already_applied(caplog):
+    with caplog.at_level(logging.INFO):
+        renamed = oc.rename_regions(_region_set(), {'LEFT': 'left', 'right': 'Right'})
+    assert list(renamed['name']) == ['left', 'Right']
+    assert 'Renamed 1 region(s) (1 already carried their new name).' in caplog.text
+
+
+def test_rename_regions_rejects_unknown_names_and_clashes():
+    with pytest.raises(SystemExit, match='do not exist'):
+        oc.rename_regions(_region_set(), {'nowhere': 'Somewhere'})
+    with pytest.raises(SystemExit, match="more than one region the name\\(s\\) \\['right'\\]"):
+        oc.rename_regions(_region_set(), {'left': 'right'})
 
 
 def test_validate_staging_passes_good_data():
@@ -761,7 +807,7 @@ def test_write_report_summarizes_a_fetch_run(tmp_path):
     stats = oc.region_street_stats(roads, regions, 60)
     heal = oc.HealStats(3, 2, 45.0, 1)
     oc.write_report(tmp_path / 'report.md', args, 'US Census tracts (TIGERweb)', roads, regions, roads.iloc[0:1],
-                    stats, 0.98, heal, name_warnings=['ALL CAPS: \'DOWNTOWN\''], n_tier1_merged=7)
+                    stats, 0.98, heal, n_tier1_merged=7)
     report = (tmp_path / 'report.md').read_text()
     assert '98.0%' in report
     assert 'dropped_segments' in report
@@ -769,7 +815,6 @@ def test_write_report_summarizes_a_fetch_run(tmp_path):
     assert '| residential | 1 |' in report
     assert 'Tiny segments (#4717): < 5 m: **0**, < 10 m: **0**, < 20 m: **0** (**0%**' in report
     assert '(#4717 tier 1): **7**' in report
-    assert 'Region name warnings (1, #4620)' in report and "ALL CAPS: 'DOWNTOWN'" in report
     assert 'make check-imagery id=testville-wa args="--sample 150 --gsv"' in report
     assert 'Loop roads (start = end): **0**' in report
 
@@ -784,7 +829,6 @@ def test_write_report_re_export_variant_omits_healing_and_coverage(tmp_path):
     assert 'Healed' not in report
     assert 'covering' not in report
     assert 'tier 1' not in report
-    assert 'Region name warnings' not in report
 
 
 def _staging_gpkg(tmp_path, with_boundary=True):
@@ -1040,6 +1084,31 @@ def test_main_applies_region_merges_before_assignment(tmp_path, monkeypatch):
     assert '| 1 | east |' in report
 
 
+def test_main_applies_renames_before_merges_and_keeps_a_renamed_lone_region(tmp_path, monkeypatch, caplog):
+    _patch_pipeline(monkeypatch, _two_hoods())
+    renames = _renames_csv(tmp_path, 'current_name,new_name\neast,East Side\n')
+    with caplog.at_level(logging.INFO):
+        oc.main(['--city-id', 'testville', '--place', 'Testville, USA', '--out-dir', str(tmp_path),
+                 '--rename-regions', str(renames), '--merge-regions', 'west:East Side'])
+    assert '| 1 | East Side |' in (tmp_path / 'report.md').read_text()
+    assert 'naming it "Testville"' not in caplog.text
+
+
+def test_run_from_gpkg_applies_renames_to_the_sql(tmp_path):
+    path = _staging_gpkg(tmp_path)
+    renames = _renames_csv(tmp_path, 'current_name,new_name\nwest,West End\n')
+    oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path),
+                                    '--rename-regions', str(renames)]))
+    sql = (tmp_path / 'qgis_tables.sql').read_text()
+    assert '\tWest End\t' in sql and '\twest\t' not in sql
+
+
+def test_parse_args_bare_rename_regions_reads_the_citys_renames_file():
+    args = oc.parse_args(['--city-id', 'newport-ky', '--from-gpkg', '--rename-regions'])
+    assert args.rename_regions.endswith('db/onboarding/newport-ky/region_renames.csv')
+    assert oc.parse_args(['--city-id', 'newport-ky', '--from-gpkg']).rename_regions is None
+
+
 def test_main_dispatches_from_gpkg_runs(monkeypatch):
     calls = {}
     monkeypatch.setattr(oc, 'run_from_gpkg', lambda args: calls.setdefault('gpkg', args.from_gpkg))
@@ -1060,7 +1129,7 @@ def test_main_aborts_when_generated_data_fails_validation(tmp_path, monkeypatch)
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# merge_tiny_same_way (#4717 tier 1) / check_region_names (#4620) / street_length_stats / write_endpoints_csv
+# merge_tiny_same_way (#4717 tier 1) / street_length_stats / write_endpoints_csv
 # --------------------------------------------------------------------------------------------------------------------
 
 def _edges(rows):
@@ -1137,20 +1206,6 @@ def test_tier1_merge_is_off_at_zero_and_on_empty_input():
     streets = _edges([(1, 2, [100], [(0, 0), (0.0001, 0)]), (2, 3, [100], [(0.0001, 0), (0.0002, 0)])])
     assert oc.merge_tiny_same_way(streets, 0)[1] == 0
     assert oc.merge_tiny_same_way(streets.iloc[0:0], 20)[1] == 0
-
-
-def test_check_region_names_flags_each_defect_once():
-    warnings = oc.check_region_names(['DOWNTOWN', ' Eastside', 'westside', 'bad\x07name', 'Dup', 'Dup', ''])
-    assert "ALL CAPS: 'DOWNTOWN'" in warnings
-    assert "stray whitespace in ' Eastside'" in warnings
-    assert "all lowercase: 'westside'" in warnings
-    assert any(w.startswith('control character in') for w in warnings)
-    assert warnings.count("duplicate name: 'Dup'") == 1
-    assert 'empty region name' in warnings
-
-
-def test_check_region_names_leaves_a_short_acronym_alone():
-    assert oc.check_region_names(['SoDo', 'VCU', 'Census Tract 501']) == []
 
 
 def test_gpkg_frame_passes_frames_without_way_ids_through():

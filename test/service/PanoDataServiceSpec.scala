@@ -164,14 +164,17 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
       (LabelPointTable.canvasWidth.toDouble / LabelPointTable.canvasHeight +- 0.002)
   }
 
-  test("the still's URL asks for 640x427 at the labeling POV, with the canvas projection's fov for that zoom") {
+  test("the still's URL asks for 640x427 at the labeling POV and an error code, not a placeholder (#5327)") {
+    // return_error_code is load-bearing for every consumer's fallback: drop it and missing imagery arrives as a 200
+    // grey card that renders like a photo.
     val url = PanoDataService.staticStillUrl("vlX_YTSWIfEkGRYydxIPuA", 183.9990625, -6.5, 1.0, "KEY")
     url shouldBe "https://maps.googleapis.com/maps/api/streetview?pano=vlX_YTSWIfEkGRYydxIPuA" +
-      "&size=640x427&heading=183.9990625&pitch=-6.5&fov=" + PanoDataService.getFov(1.0) + "&key=KEY"
+      "&size=640x427&heading=183.9990625&pitch=-6.5&fov=" + PanoDataService.getFov(1.0) + "&return_error_code=true" +
+      "&key=KEY"
   }
 
   test("the street-endpoint URL is the request the endpoint images have always made") {
-    // Same builder as the still now; the params, not the plumbing, are what may differ between the two.
+    // Same builder and the same error-code ask as the still; the params, not the plumbing, are what may differ.
     PanoDataService.staticLocationUrl(47.6062, -122.3321, 271.5, "KEY") shouldBe
       "https://maps.googleapis.com/maps/api/streetview?location=47.6062,-122.3321&radius=40&source=outdoor" +
       "&size=640x640&heading=271.5&pitch=-10&fov=90&return_error_code=true&key=KEY"

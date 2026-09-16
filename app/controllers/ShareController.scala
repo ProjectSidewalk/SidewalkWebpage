@@ -349,13 +349,10 @@ class ShareController @Inject() (
           ws.url(url)
             .get()
             .map { r =>
+              // The still is requested with `return_error_code`, so missing imagery arrives as a 404 rather than as a
+              // placeholder photo: any non-200 means there is no base image and the caller serves the branded fallback.
               if (r.status != 200) None
-              else {
-                // GSV answers an expired/removed pano with HTTP 200 and a flat "Sorry, we have no imagery here"
-                // placeholder; reject near-uniform images so we serve the branded fallback instead of sharing it.
-                Option(ImageIO.read(new ByteArrayInputStream(r.bodyAsBytes.toArray)))
-                  .filterNot(looksLikeBlankImagery)
-              }
+              else Option(ImageIO.read(new ByteArrayInputStream(r.bodyAsBytes.toArray)))
             }
             .recover { case e =>
               logger.warn(s"Failed to fetch GSV still for label ${meta.labelId}: ${e.getMessage}"); None
@@ -363,31 +360,6 @@ class ShareController @Inject() (
         case None => Future.successful(None)
       }
     }
-  }
-
-  /**
-   * Detects provider "no imagery" placeholders: a dense sample grid where nearly every pixel sits within a small
-   * distance of the mean color. Real street photos are nowhere near this uniform, while the placeholder's text
-   * occupies only a tiny fraction of pixels, so a 95% threshold separates them cleanly.
-   */
-  private[controllers] def looksLikeBlankImagery(img: BufferedImage): Boolean = {
-    val grid = 64
-    val xs   = (0 until grid).map(i => i * (img.getWidth - 1) / (grid - 1))
-    val ys   = (0 until grid).map(i => i * (img.getHeight - 1) / (grid - 1))
-
-    val samples = for {
-      y <- ys
-      x <- xs
-    } yield {
-      val rgb = img.getRGB(x, y)
-      ((rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff)
-    }
-    val n             = samples.size
-    val (mr, mg, mb)  = (samples.map(_._1).sum / n, samples.map(_._2).sum / n, samples.map(_._3).sum / n)
-    val nearMeanCount = samples.count { case (r, g, b) =>
-      math.abs(r - mr) <= 12 && math.abs(g - mg) <= 12 && math.abs(b - mb) <= 12
-    }
-    nearMeanCount.toDouble / n >= 0.95
   }
 
   /**
