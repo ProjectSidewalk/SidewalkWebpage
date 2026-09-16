@@ -139,9 +139,10 @@ worth knowing about are the **families assembled at runtime**, which you won't f
 - **`ModeSwitch_<LabelType>`**, **`Click_ModeSwitch_<LabelType>`**, **`KeyboardShortcut_ModeSwitch_<LabelType>`** —
   labeling-mode changes; suffix is the label type (`CurbRamp`, `NoSidewalk`, …) or `Walk`. The prefix encodes *how*
   the switch happened: programmatic vs. a mouse click (emitted in `explore/src/menu/RibbonMenu.js`) vs. a keyboard
-  shortcut (`explore/src/keyboard/Keyboard.js`).
+  shortcut (`explore/src/keyboard/KeyboardManager.js`).
 - **`Click_Subcategory_<Subcategory>`**, **`KeyboardShortcut_Severity_<n>`** — suffix is the chosen subcategory /
-  severity value (also `RibbonMenu.js` / `Keyboard.js`); the severity one never fires for unrated label types.
+  severity value (also `RibbonMenu.js` / `KeyboardManager.js`); the severity one never fires for unrated label
+  types.
 
 Conventions for new events: `PascalCase_WithUnderscores`, prefixed by UI area or mechanism (`ContextMenu_…`,
 `KeyboardShortcut_…`, `PopUpShow_…`, `Modal…_…`). Keep `Click_…` for mouse and `KeyboardShortcut_…` for the keyboard
@@ -282,8 +283,8 @@ grep -rhoE "push\(\s*['\"][A-Za-z0-9_]+" public/js/explore/src --include=*.js | 
 ```
 
 Then read each tool's `Tracker.js` for the generated families (start with `trackWindowEvents()` in
-`explore/src/data/Tracker.js`), and `explore/src/menu/RibbonMenu.js` + `explore/src/keyboard/Keyboard.js` for the
-`ModeSwitch_`/`Severity_`/`Subcategory_` suffixes. The backend table models (table above) define the columns each
+`explore/src/data/Tracker.js`), and `explore/src/menu/RibbonMenu.js` + `explore/src/keyboard/KeyboardManager.js` for
+the `ModeSwitch_`/`Severity_`/`Subcategory_` suffixes. The backend table models (table above) define the columns each
 event is stored in.
 
 ## Keeping this up to date
