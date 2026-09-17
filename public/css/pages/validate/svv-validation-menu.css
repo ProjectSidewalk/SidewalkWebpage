@@ -77,11 +77,12 @@
   background: var(--color-orange-400);
 }
 
+/* Unsure is the pale asphalt it is in Gallery, the label card, and mobile Validate. */
 #validate-unsure-button.chosen {
-  background: var(--color-neutral-900);
-  color: var(--color-neutral-white);
+  background: var(--color-asphalt-200);
 }
 
+/* Not a verdict on the label but an edit to it, so it takes a color none of the three verdicts use. */
 #validate-wrong-type-button.chosen {
   background: var(--color-asphalt-500);
   color: var(--color-neutral-white);
@@ -106,12 +107,11 @@
   }
 
   #validate-unsure-button:hover {
-    background: var(--color-neutral-700);
-    color: var(--color-neutral-white);
+    background: var(--color-asphalt-100);
   }
 
   #validate-unsure-button.chosen:hover {
-    background: var(--color-neutral-900);
+    background: var(--color-asphalt-200);
   }
 
   #validate-wrong-type-button:hover {
@@ -311,13 +311,12 @@
 }
 
 #unsure-reason-options .validation-reason-button.chosen {
-  background: var(--color-neutral-900);
+  background: var(--color-asphalt-200);
   border: none;
-  color: var(--color-neutral-white);
 }
 
 #add-unsure-comment.chosen {
-  border-color: var(--color-orange-900) !important;
+  border-color: var(--color-asphalt-300) !important;
 }
 
 /* Only show hover states on non-touch devices. Same CSS as for chosen state. */
@@ -341,21 +340,20 @@
   }
 
   #unsure-reason-options .validation-reason-button:hover {
-    background: var(--color-neutral-700);
+    background: var(--color-asphalt-100);
     border: none;
-    color: var(--color-neutral-white);
   }
 
   #unsure-reason-options .validation-reason-button.chosen:hover {
-    background: var(--color-neutral-900);
+    background: var(--color-asphalt-200);
   }
 
   #add-unsure-comment:hover {
-    border-color: var(--color-neutral-700) !important;
+    border-color: var(--color-asphalt-200) !important;
   }
 
   #add-unsure-comment.chosen:hover {
-    border-color: var(--color-neutral-900) !important;
+    border-color: var(--color-asphalt-300) !important;
   }
 }
 

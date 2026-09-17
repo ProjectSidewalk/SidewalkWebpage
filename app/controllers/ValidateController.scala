@@ -550,11 +550,12 @@ class ValidateController @Inject() (
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       newVal => {
         labelService.findLabel(newVal.labelId).flatMap {
-          case None        => Future.successful(NotFound(Json.obj("status" -> "Error", "message" -> "No such label")))
+          case None => Future.successful(NotFound(Json.obj("status" -> "Error", "message" -> "No such label")))
+          // The popup judged a type the label no longer has (#3671); it reloads and the user votes again.
+          case Some(label) if label.labelType != newVal.labelType =>
+            Future.successful(Conflict(Json.obj("status" -> "Conflict", "label_type" -> label.labelType.name)))
           case Some(label) =>
             for {
-              // The mission is the label's real type, not the popup's: a stale popup would otherwise file the vote
-              // under a mission for a type the label no longer has.
               mission <- missionService.resumeOrCreateNewValidateMission(
                 userId,
                 MissionType.LabelmapValidation,

@@ -429,6 +429,33 @@ class Card {
   }
 
   /**
+   * Applies a type change made in the expanded view (#3671). The card stays even if the new type no longer matches
+   * the Gallery's filter; the next load sorts that out.
+   * @param {string} labelType
+   */
+  updateLabelType(labelType) {
+    if (labelType === this.getLabelType()) return;
+    this.#properties.label_type = labelType;
+    const labelTypeName = i18next.t(util.camelToKebab(labelType));
+    const icon = /** @type {HTMLImageElement} */ (this.#card.querySelector('.label-icon'));
+    if (icon) icon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
+    const header = this.#card.querySelector('.card-header__type');
+    if (header) header.textContent = labelTypeName;
+    const image = /** @type {HTMLImageElement} */ (this.#card.querySelector('.static-gallery-image'));
+    if (image) image.alt = i18next.t('gallery:card-image-alt', { labelType: labelTypeName });
+    // The severity block exists only for rated types; updateSeverityAndTags fills it if present.
+    const cardData = this.#card.querySelector('.card-data');
+    let cardSeverity = this.#card.querySelector('.card-severity');
+    if (util.misc.labelTypeHasSeverity(labelType) && !cardSeverity && cardData) {
+      cardSeverity = document.createElement('div');
+      cardSeverity.className = 'card-severity';
+      cardData.prepend(cardSeverity);
+    } else if (!util.misc.labelTypeHasSeverity(labelType) && cardSeverity) {
+      cardSeverity.remove();
+    }
+  }
+
+  /**
    * Applies an edit made in the expanded view (#2575) to the small card, redrawing its severity and tag displays.
    * @param {?number} severity
    * @param {string[]} tags

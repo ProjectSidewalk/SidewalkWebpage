@@ -410,7 +410,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
         labelId   <- insertLabel(labeler, 0, 0, 0, None)
         served = labelTable
           .retrieveLabelListForValidationQuery(validator, viewer, LabelTypeEnum.CurbRamp, ValidationQueue.Any,
-            userIds = Some(Set(labeler)))
+            filter = ValidationLabelFilter(userIds = Some(Set(labeler))))
           .map(_._1)
           .result
           .map(_.toSet)

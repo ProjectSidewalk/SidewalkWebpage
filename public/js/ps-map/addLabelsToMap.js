@@ -97,9 +97,37 @@ function addLabelsToMap(map, labelData, params) {
     return layerName;
   }
 
+  mapData.updateLabelType = (labelId, labelType) => updateLabelType(map, mapData, labelId, labelType);
+
   // addSource/addLayer are synchronous, so every layer already exists here. 'sourcedataloading' can't be the
   // readiness signal: it refires on every setData, for the life of a viewport-refreshed map.
   return Promise.resolve(mapData);
+}
+
+/**
+ * Moves a label to its new type's layer after an edit from the card (#3671), so the dot recolors and follows that
+ * type's filter at once. A label the map hasn't loaded is left to the next fetch.
+ * @param {mapboxgl.Map} map - The Mapbox map object.
+ * @param {MapLayerTracker} mapData - The layer tracker from CreateMapLayerTracker.
+ * @param {number} labelId
+ * @param {string} labelType - The label's new type.
+ */
+function updateLabelType(map, mapData, labelId, labelType) {
+  for (const [oldType, features] of Object.entries(mapData.sortedLabels)) {
+    const i = features.findIndex((f) => f.properties.label_id === labelId);
+    if (i === -1) continue;
+    if (oldType === labelType) return;
+    const [feature] = features.splice(i, 1);
+    feature.properties.label_type = labelType;
+    mapData.sortedLabels[labelType]?.push(feature);
+    for (const type of [oldType, labelType]) {
+      const layerName = mapData.layerNames[type];
+      if (layerName) {
+        map.getSource(layerName)?.setData({ type: 'FeatureCollection', features: mapData.sortedLabels[type] });
+      }
+    }
+    return;
+  }
 }
 
 /**

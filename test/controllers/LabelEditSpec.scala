@@ -388,6 +388,16 @@ class LabelEditSpec
       edits.map(_._5.isDefined) mustBe Seq(true)
       typeEditsBy(target.labelId, userId).map(e => (e._1, e._2)) mustBe Seq((target.labelType, other))
 
+      // A popup still showing the old type is told to reload rather than filing a vote on a type the label lost.
+      val staleVote = postPopupVote(
+        session,
+        popupVoteBody(target, "Agree", target.severity, undone = false)
+          + ("label_type" -> Json.toJson(target.labelType))
+      )
+      status(staleVote) mustBe CONFLICT
+      (contentAsJson(staleVote) \ "label_type").as[String] mustBe other
+      votesBy(target.labelId, userId) mustBe Seq((other, "Agree"))
+
       // Undoing the vote unwinds the type change with it.
       status(
         postPopupVote(session, popupVoteBody(target, "Agree", target.severity, undone = true, Some(other)))

@@ -9,16 +9,32 @@
 
 <header class="label-detail__header">
   <div class="label-detail__title-wrap">
-    <h2 class="label-detail__title"><!-- populated by JS --></h2>
+    @* The title is the type: a button opening the type picker for those who may edit (#3671), a span otherwise. *@
+    <h2 class="label-detail__title">
+      <span class="label-detail__type label-detail__type--static">
+        <img class="label-detail__type-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" aria-hidden="true">
+        <span class="label-detail__type-name"><!-- populated by JS --></span>
+      </span>
+      <button type="button" class="label-detail__type label-detail__type-button" hidden aria-expanded="false">
+        <img class="label-detail__type-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" aria-hidden="true">
+        <span class="label-detail__type-name"></span>
+        <img class="label-detail__type-chevron" src="@assets.path("images/icons/chevron-down-feather.svg")" alt="" aria-hidden="true">
+      </button>
+    </h2>
     @* Own-label chip (#2575); LabelDetail sets its aria-label and tooltip. *@
     <span class="label-detail__own-badge" role="img" hidden>
       <img src="@assets.path("images/icons/user-feather.svg")" alt="" aria-hidden="true">
     </span>
+    <span class="label-detail__edit-status label-detail__edit-status--type" role="status" aria-live="polite"></span>
   </div>
   <button type="button" class="label-detail__close" aria-label="Close" data-action="close-label-detail">
     <img src="@assets.path("images/icons/cross.svg")" alt="Close">
   </button>
 </header>
+<div class="label-detail__type-picker" popover hidden>
+  <p class="label-detail__type-hint" data-i18n="labelmap:change-type-hint">Tags that don't fit the new type are removed. A rating carries over only between types rated the same way.</p>
+  <div class="label-detail__type-picker-chips"></div>
+</div>
 
 <div class="label-detail__pano-wrap">
   @if(withPaging) {

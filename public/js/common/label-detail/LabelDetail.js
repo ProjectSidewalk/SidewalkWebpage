@@ -97,6 +97,8 @@ class LabelDetail {
   #readonly = false;        // Set per-label in #handleData() based on meta.from_current_user.
   #canEdit = false;         // Set per-label in #handleData() from meta.can_edit (#2575).
   #tagEditor;
+  /** @type {?LabelTypePicker} Null on a host whose markup has no picker. */
+  #typePicker = null;
   /** @type {number[]} The hold and fade timers for the edit-status line; both are cleared when it is re-shown. */
   #editStatusTimers = [];
 
@@ -109,6 +111,8 @@ class LabelDetail {
    */
   static #EDIT_STATUS_HOLD_MS = 1000;
   static #EDIT_STATUS_HOLD_ERROR_MS = 5000;
+  // A type change's status carries the Undo, which needs time to be read and hit.
+  static #EDIT_STATUS_HOLD_UNDO_MS = 8000;
 
   /**
    * Fade-out duration in ms; must match the transition on .label-detail__edit-status.
@@ -147,7 +151,8 @@ class LabelDetail {
    *      successfully submitted, with null when the user cleared their vote (#4653). Hosts use this to sync upstream
    *      UI (e.g. recolor a Gallery card).
    * @param {(meta: object) => void} [opts.onEdit] - Fired with the updated metadata after an edit to the label's
-   *      severity or tags is saved (#2575), so hosts that cache label data (Gallery's cards) can stay in sync.
+   *      type, severity or tags is saved (#2575, #3671), so hosts that cache label data (Gallery's cards, the
+   *      LabelMap's layers) can stay in sync.
    * @param {string} [opts.panoOverlaySource] - Source recorded when voting via the pano overlay buttons.
    * @param {string} [opts.voteColumnSource] - Source recorded when voting via the column vote buttons.
    * @param {boolean} [opts.showLabelMapLink] - Show a footer link to this label on /labelMap (for hosts that
@@ -209,6 +214,14 @@ class LabelDetail {
   async #init() {
     this.#cacheElements();
     this.#tagEditor = new TagEditor(this.#els.tags);
+    if (this.#els.typePickerChips && typeof LabelTypePicker !== 'undefined') {
+      this.#typePicker = new LabelTypePicker(this.#els.typePickerChips, {
+        onPick: (labelType) => {
+          this.#setTypePickerOpen(false);
+          this.#submitEdit({ labelType });
+        },
+      });
+    }
     this.#wireHandlers();
     this.#wireKeyboard();
 
@@ -358,6 +371,12 @@ class LabelDetail {
     els.panoWrap = this.#q('.label-detail__pano-wrap');
     els.panoOverlay = this.#q('.label-detail__pano-overlay');
     els.title = this.#q('.label-detail__title');
+    els.typeNames = this.#root.querySelectorAll('.label-detail__type-name');
+    els.typeIcons = this.#root.querySelectorAll('.label-detail__type-icon');
+    els.typeStatic = this.#q('.label-detail__type--static');
+    els.typeButton = this.#q('.label-detail__type-button');
+    els.typePicker = this.#q('.label-detail__type-picker');
+    els.typePickerChips = this.#q('.label-detail__type-picker-chips');
     els.ownBadge = this.#q('.label-detail__own-badge');
     els.metaRow = this.#q('.label-detail__meta-row');
     els.timestamp = this.#q('.label-detail__timestamp');
@@ -375,6 +394,7 @@ class LabelDetail {
     // One status span per editable column, so a save's outcome is announced beside the control that produced it
     // rather than in a single shared slot the reader has to go looking for.
     els.editStatus = {
+      type: this.#q('.label-detail__edit-status--type'),
       severity: this.#q('.label-detail__col--severity .label-detail__edit-status'),
       tags: this.#q('.label-detail__col--tags .label-detail__edit-status'),
     };
@@ -500,6 +520,25 @@ class LabelDetail {
         else this.#startTagEditing();
       });
     }
+    if (els.typeButton && this.#typePicker) {
+      if (LabelDetail.#popoverSupported) {
+        // Native toggling, so a click on the open button closes it instead of racing its own light dismiss.
+        // `hidden` is for the inline fallback only.
+        els.typePicker.hidden = false;
+        els.typeButton.popoverTargetElement = els.typePicker;
+        els.typePicker.addEventListener('beforetoggle', (e) => {
+          const opening = /** @type {ToggleEvent} */ (e).newState === 'open';
+          if (opening && !this.#prepareTypePicker()) e.preventDefault();
+        });
+        els.typePicker.addEventListener('toggle', (e) => {
+          const open = /** @type {ToggleEvent} */ (e).newState === 'open';
+          els.typeButton.setAttribute('aria-expanded', String(open));
+          if (open) this.#placeTypePicker();
+        });
+      } else {
+        els.typeButton.addEventListener('click', () => this.#setTypePickerOpen(!this.#typePickerOpen));
+      }
+    }
 
     els.commentInput.addEventListener('input', () => {
       els.commentButton.classList.toggle('is-active', els.commentInput.value.trim().length > 0);
@@ -590,6 +629,10 @@ class LabelDetail {
    * @param {KeyboardEvent} e
    */
   #handleShortcut(e) {
+    if (LabelDetail.#isUndoChord(e)) {
+      this.#pressTypeUndo(e);
+      return;
+    }
     if (!this.#ownsKeyboard(e)) return;
 
     const vote = LabelDetail.#VOTE_KEYS[e.code];
@@ -605,6 +648,24 @@ class LabelDetail {
     // Enter or Space — so the handlers behind these buttons can still log the keyboard apart from the mouse (the
     // idiom Navbar.js uses).
     button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window, detail: 0 }));
+  }
+
+  /** @returns {boolean} Ctrl+Z or Cmd+Z, the undo chord on every platform. */
+  static #isUndoChord(e) {
+    return (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === 'KeyZ';
+  }
+
+  /**
+   * Presses the status line's Undo while it is up (#3671). Otherwise the chord is the page's, and a text field's.
+   * @param {KeyboardEvent} e
+   */
+  #pressTypeUndo(e) {
+    const undo = this.#els.editStatus?.type?.querySelector('.label-detail__edit-status-action');
+    const target = e.target instanceof Element ? e.target : null;
+    if (!undo || !this.#isShowing || target?.closest('input, textarea, [contenteditable]')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    undo.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window, detail: 0 }));
   }
 
   /**
@@ -623,6 +684,7 @@ class LabelDetail {
     const target = e.target instanceof Element ? e.target : null;
     // A typed "a" has to stay an "a", and the arrows have to move the caret: the comment box is inside the card.
     if (target?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return false;
+    if (target?.closest('.label-detail__type-picker')) return false; // Its chips are buttons; A/D/U must not vote.
 
     const hostDialog = this.#root.tagName === 'DIALOG' ? this.#root : null;
     const active = document.activeElement;
@@ -802,9 +864,9 @@ class LabelDetail {
       this.#renderFlagButtons();
     }
 
-    // Title is just the label-type name (e.g. "Curb Ramp") — the popup is self-evidently about a label.
+    this.#setTypePickerOpen(false);
+    this.#renderTitle(meta.label_type);
     const labelTypeName = i18next.t(`common:${camelToKebab(meta.label_type)}`);
-    els.title.textContent = labelTypeName;
 
     // Cross-surface hop to the LabelMap, which opens this label's popup and pulses its map location.
     if (this.#showLabelMapLink && els.labelMapLink) {
@@ -1105,7 +1167,15 @@ class LabelDetail {
     // still landed server-side; reopening this label shows it.
     const votedLabelMeta = this.#currentLabelMeta;
 
-    this.#postJson('/labelmap/validate', data).then((res) => {
+    this.#postJson('/labelmap/validate', data).then(async (res) => {
+      if (res.status === 409) {
+        // The type changed under this card, so the vote judged a type the label lost (#3671): reload and say so.
+        if (this.#currentLabelMeta !== votedLabelMeta) return;
+        this.#setVoteButtonsDisabled(false);
+        await this.showLabel(votedLabelMeta.label_id, source);
+        this.#showTypeConflictToast();
+        return;
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       if (this.#currentLabelMeta !== votedLabelMeta) return;
       const newAction = undone ? null : action;
@@ -1522,6 +1592,13 @@ class LabelDetail {
       LabelDetail.#setTooltip(els.tagsEdit, tip);
       this.#setTagsEditLabel(this.#tagEditor.isOpen);
     }
+    if (els.typeButton && this.#typePicker) {
+      els.typeButton.hidden = !this.#canEdit;
+      if (els.typeStatic) els.typeStatic.hidden = this.#canEdit;
+      els.typeButton.setAttribute('aria-disabled', String(this.#canEdit && !allowed));
+      LabelDetail.#setTooltip(els.typeButton, tip);
+      if (!allowed) this.#setTypePickerOpen(false);
+    }
     if (meta) this.#renderSeverity(meta.severity, meta.label_type);
   }
 
@@ -1744,6 +1821,65 @@ class LabelDetail {
   }
 
   /**
+   * Draws the type into both the title span and the picker button; #applyEditLock() decides which shows (#3671).
+   * @param {string} labelType
+   */
+  #renderTitle(labelType) {
+    const els = this.#els;
+    const name = i18next.t(`common:${camelToKebab(labelType)}`);
+    if (els.title && !els.typeNames?.length) els.title.textContent = name; // A host with the older, plain markup.
+    for (const el of els.typeNames ?? []) el.textContent = name;
+    for (const el of els.typeIcons ?? []) el.src = util.misc.getIconImagePaths(labelType).iconImagePath;
+    // The visible name leads the accessible name (WCAG 2.5.3), then what pressing does.
+    els.typeButton?.setAttribute('aria-label', `${name.replace('&shy;', '')}: ${i18next.t('labelmap:change-type')}`);
+  }
+
+  static #popoverSupported = typeof HTMLElement !== 'undefined' && 'popover' in HTMLElement.prototype;
+
+  /** @returns {boolean} */
+  get #typePickerOpen() {
+    const picker = this.#els.typePicker;
+    if (!picker) return false;
+    return LabelDetail.#popoverSupported ? picker.matches(':popover-open') : !picker.hidden;
+  }
+
+  /** @returns {boolean} Whether the picker may open; if so it has been logged and drawn for the current type. */
+  #prepareTypePicker() {
+    const meta = this.#currentLabelMeta;
+    if (!this.#editingEnabled || !meta || !this.#typePicker) return false;
+    this.#logAction('EditLabelTypeOpen');
+    this.#typePicker.render({ current: meta.label_type });
+    return true;
+  }
+
+  /**
+   * A native popover where there is one (top layer, so it clears the card's <dialog>), else an inline block.
+   * @param {boolean} open
+   */
+  #setTypePickerOpen(open) {
+    const els = this.#els;
+    if (!els.typePicker || !this.#typePicker || open === this.#typePickerOpen) return;
+    if (LabelDetail.#popoverSupported) {
+      if (open) els.typePicker.showPopover(); // beforetoggle prepares it, and may refuse.
+      else els.typePicker.hidePopover();
+      return;
+    }
+    if (open && !this.#prepareTypePicker()) return;
+    els.typePicker.hidden = !open;
+    els.typeButton?.setAttribute('aria-expanded', String(open));
+  }
+
+  /** A popover is viewport-centered by default; this parks it under the title button. */
+  #placeTypePicker() {
+    const { typeButton, typePicker } = this.#els;
+    if (!typeButton || !typePicker) return;
+    const anchor = typeButton.getBoundingClientRect();
+    const left = Math.max(8, Math.min(anchor.left, window.innerWidth - typePicker.offsetWidth - 8));
+    typePicker.style.left = `${left}px`;
+    typePicker.style.top = `${anchor.bottom + 6}px`;
+  }
+
+  /**
    * Highlights one of the three severity faces based on the label's numeric severity.
    * @param {?number} severity - The label's 1–3 severity, or null for unrated.
    * @param {string} labelType - The label type (drives positive/negative icon set).
@@ -1841,6 +1977,16 @@ class LabelDetail {
     btn.setAttribute('aria-expanded', String(editing));
   }
 
+  /** A toast, not the small status by the title: the whole card was just redrawn, so it has to be noticed (#3671). */
+  #showTypeConflictToast() {
+    this.#showEditStatus('');
+    Toast.show({
+      title: i18next.t('labelmap:edit-conflict-short'),
+      message: i18next.t('labelmap:edit-conflict'),
+      reference: this.#root,
+    });
+  }
+
   /**
    * Shows a short status beside an editable column's heading, clearing it after a few seconds.
    *
@@ -1856,11 +2002,13 @@ class LabelDetail {
    *
    * @param {string} text - The visible word. Empty to clear every column's status.
    * @param {object} [opts]
-   * @param {string[]} [opts.columns] - Which columns to show it on ('severity' and/or 'tags'); all when omitted.
+   * @param {string[]} [opts.columns] - Which columns to show it on ('type', 'severity', 'tags'); all when omitted.
    * @param {boolean} [opts.error=false] - Style it as a failure rather than a confirmation.
    * @param {string} [opts.detail=''] - The full sentence, when the visible word is only a summary of it.
+   * @param {{label: string, onClick: (e: MouseEvent) => void}} [opts.action] - A button after the text (Undo); the
+   *   status is held longer so there is time to reach it.
    */
-  #showEditStatus(text, { columns, error = false, detail = '' } = {}) {
+  #showEditStatus(text, { columns, error = false, detail = '', action = null } = {}) {
     const spans = this.#els.editStatus;
     if (!spans) return;
     for (const timer of this.#editStatusTimers) clearTimeout(timer);
@@ -1869,13 +2017,14 @@ class LabelDetail {
     for (const [name, el] of Object.entries(spans)) {
       if (!el) continue;
       const on = shown.includes(name);
-      LabelDetail.#fillEditStatus(el, on ? text : '', on ? detail : '');
+      LabelDetail.#fillEditStatus(el, on ? text : '', on ? detail : '', on ? action : null);
       el.classList.toggle('label-detail__edit-status--error', on && error);
       el.classList.remove('label-detail__edit-status--fading');
     }
     if (!text) return;
 
-    const hold = error ? LabelDetail.#EDIT_STATUS_HOLD_ERROR_MS : LabelDetail.#EDIT_STATUS_HOLD_MS;
+    let hold = error ? LabelDetail.#EDIT_STATUS_HOLD_ERROR_MS : LabelDetail.#EDIT_STATUS_HOLD_MS;
+    if (action) hold = LabelDetail.#EDIT_STATUS_HOLD_UNDO_MS;
     this.#editStatusTimers.push(setTimeout(() => {
       for (const el of Object.values(spans)) {
         if (el) el.classList.add('label-detail__edit-status--fading');
@@ -1902,11 +2051,21 @@ class LabelDetail {
    * @param {HTMLElement} el - The column's status span.
    * @param {string} text - The visible word, or '' to clear.
    * @param {string} detail - The full sentence, or '' when the visible word is the whole message.
+   * @param {?{label: string, onClick: (e: MouseEvent) => void}} action - A button to offer after the text, if any.
    */
-  static #fillEditStatus(el, text, detail) {
+  static #fillEditStatus(el, text, detail, action = null) {
     el.replaceChildren();
     LabelDetail.#setTooltip(el, detail);
     if (!text) return;
+    if (action) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'label-detail__edit-status-action';
+      button.textContent = action.label;
+      button.addEventListener('click', action.onClick);
+      el.append(document.createTextNode(text), button);
+      return;
+    }
     if (!detail) {
       el.textContent = text;
       return;
@@ -1955,7 +2114,9 @@ class LabelDetail {
 
   /**
    * Queues a change for saving; serializing keeps two quick clicks from racing each other's responses.
-   * @param {{severity?: ?number, tags?: string[]}} change - The fields to change; an omitted one keeps its value.
+   * @param {{labelType?: string, severity?: ?number, tags?: string[], undo?: boolean, viaKeyboard?: boolean}} change
+   *   - The fields to change; an omitted one keeps its value. `undo` is the re-post of a type change's previous
+   *   state, `viaKeyboard` that Ctrl+Z asked for it.
    * @returns {Promise<void>}
    */
   #submitEdit(change) {
@@ -1972,66 +2133,136 @@ class LabelDetail {
    * Saves a change through /label/edit, rendering it optimistically and rolling back on failure. The server's
    * response is what's rendered in the end, since it may drop tags invalid for the label type.
    *
+   * A type change is not drawn ahead of the response, since the server decides the rating and tags under the new
+   * type (#3671). Its status carries an Undo that re-posts the previous state, which the server folds with the
+   * change so an undone slip leaves no edit behind.
+   *
    * The save goes through even if the user has paged on — the edit was made and is theirs to keep — but nothing it
    * would draw reaches a card showing some other label; see the guard in `render`.
    *
-   * @param {{severity?: ?number, tags?: string[]}} change
+   * @param {{labelType?: string, severity?: ?number, tags?: string[], undo?: boolean, viaKeyboard?: boolean}} change
    * @param {Record<string, any>} meta - The metadata of the label the change was made on.
    */
   async #saveEdit(change, meta) {
     if (!meta || !meta.can_edit) return;
+    const labelType = change.labelType ?? meta.label_type;
     const severity = Object.hasOwn(change, 'severity') ? change.severity : meta.severity;
     const tags = change.tags ?? meta.tags ?? [];
-    const prev = { severity: meta.severity ?? null, tags: meta.tags ?? [] };
+    const prev = { labelType: meta.label_type, severity: meta.severity ?? null, tags: meta.tags ?? [] };
+    const typeChange = labelType !== prev.labelType;
     const sameTags = tags.length === prev.tags.length && tags.every((t) => prev.tags.includes(t));
     // The tag editor's pills are the tag display while it's open; redrawing would wipe the picks.
     const render = () => {
       if (this.#currentLabelMeta !== meta) return; // Paged on; this label's card isn't the one on screen.
+      this.#renderTitle(meta.label_type);
+      this.panoManager.setLabelType?.(meta.label_type);
       this.#renderSeverity(meta.severity, meta.label_type);
       if (!this.#tagEditor.isOpen) this.#renderTags(meta.tags);
       // The control reads "Add" or "Edit" by whether the label has tags, so the first tag saved (or a rollback to
       // none) flips it.
       this.#setTagsEditLabel(this.#tagEditor.isOpen);
     };
-    if (severity === prev.severity && sameTags) {
+    if (!typeChange && severity === prev.severity && sameTags) {
       render(); // The tag editor may have just closed over an unchanged pick.
       return;
     }
 
     // Which columns this save speaks for, so its outcome is announced beside the control the user actually
-    // touched. Derived rather than passed in, so a change carrying both fields would name both.
+    // touched. Derived rather than passed in, so a change carrying several fields would name each.
     const columns = [];
+    if (typeChange) columns.push('type');
     if (severity !== prev.severity) columns.push('severity');
     if (!sameTags) columns.push('tags');
 
-    meta.severity = severity;
-    meta.tags = tags;
-    render();
+    if (typeChange) {
+      // A tag pick in progress was for the old type; it is abandoned rather than saved under the new one.
+      if (this.#tagEditor.isOpen) this.#tagEditor.close();
+    } else {
+      meta.severity = severity;
+      meta.tags = tags;
+      render();
+    }
 
     try {
       const res = await this.#postJson('/label/edit', {
-        label_id: meta.label_id, severity, tags, source: this.#source,
+        label_id: meta.label_id,
+        label_type: prev.labelType, // What the card showed; a card behind a change made elsewhere is told so (409).
+        new_label_type: typeChange ? labelType : null,
+        severity,
+        tags,
+        source: this.#source,
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const conflict = res.status === 409;
+      if (!res.ok && !conflict) throw new Error(`HTTP ${res.status}`);
       const body = await res.json();
       // Paging isn't blocked while the save is in flight; a newer label's card must not be rewritten with this one.
       if (this.#currentLabelMeta !== meta) return;
+      meta.label_type = body.label_type ?? meta.label_type;
       meta.severity = body.severity ?? null;
       meta.tags = body.tags ?? [];
       render();
-      this.#showEditStatus(i18next.t('labelmap:edit-saved'), { columns });
+      if (conflict) {
+        this.#showTypeConflictToast();
+        return;
+      }
+      if (typeChange && !change.undo) {
+        const name = i18next.t(`common:${camelToKebab(meta.label_type)}`).replace('&shy;', '');
+        this.#showEditStatus(i18next.t('labelmap:edit-type-changed', { labelType: name }), {
+          columns: ['type'],
+          action: {
+            label: i18next.t('labelmap:edit-undo'),
+            // `detail` 0 is the Ctrl+Z path, logged apart from the button.
+            onClick: (e) => this.#submitEdit({ ...prev, undo: true, viaKeyboard: e.detail === 0 }),
+          },
+        });
+      } else {
+        this.#showEditStatus(i18next.t('labelmap:edit-saved'), { columns });
+      }
+      if (meta.label_type !== prev.labelType) {
+        const undoNote = change.undo ? '_undo=true' : '';
+        this.#logAction(`EditLabelType_old=${prev.labelType}_new=${meta.label_type}${undoNote}`, !!change.viaKeyboard);
+      }
       if (meta.severity !== prev.severity) {
         this.#logAction(`EditSeverity_old=${prev.severity}_new=${meta.severity}`);
       }
       if (!sameTags) this.#logAction(`EditTags_old=${prev.tags.join('|')}_new=${meta.tags.join('|')}`);
       if (typeof this.#onEdit === 'function') this.#onEdit(meta);
+      if (typeChange) this.#refreshVotes(meta);
     } catch (err) {
       console.error(err);
       if (this.#currentLabelMeta !== meta) return;
+      meta.label_type = prev.labelType;
       meta.severity = prev.severity;
       meta.tags = prev.tags;
       render();
       this.#showEditFailure(columns);
+    }
+  }
+
+  /**
+   * Re-reads the vote counts after a type change: votes on the old type stop counting, which only the server knows.
+   * A failure leaves the counts as they were.
+   * @param {Record<string, any>} meta - The metadata of the label that changed.
+   */
+  async #refreshVotes(meta) {
+    const url = this.#admin ? `/adminapi/label/id/${meta.label_id}` : `/label/id/${meta.label_id}`;
+    try {
+      const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+      if (!response.ok) return;
+      const fresh = await response.json();
+      if (this.#currentLabelMeta !== meta) return;
+      for (const key of ['num_agree', 'num_disagree', 'num_unsure', 'user_validation', 'ai_validation']) {
+        meta[key] = fresh[key];
+      }
+      this.#validationCounts.Agree = meta.num_agree;
+      this.#validationCounts.Disagree = meta.num_disagree;
+      this.#validationCounts.Unsure = meta.num_unsure;
+      this.#prevAction = meta.user_validation;
+      this.#aiValidation = meta.ai_validation;
+      this.#renderVoteCounts();
+      this.#renderVoteIcons();
+    } catch (err) {
+      console.error('Could not refresh the vote counts after the type change:', err);
     }
   }
 

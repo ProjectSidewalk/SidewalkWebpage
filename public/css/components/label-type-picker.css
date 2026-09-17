@@ -10,12 +10,13 @@
   display: inline-flex;
   align-items: center;
   gap: calc(6px * var(--ui-scale, 1));
-  padding: calc(4px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1)) calc(4px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1));
+  padding: calc(4px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+  padding-left: calc(6px * var(--ui-scale, 1));
   border: none;
   border-radius: 200px;
   outline: 1px solid var(--color-neutral-900);
   background: var(--color-neutral-white);
-  font: var(--text-tiny-semibold);
+  font: var(--text-caption-medium);
   color: var(--color-neutral-black);
   cursor: pointer;
   white-space: nowrap;
@@ -55,7 +56,7 @@
 /* Shown only on the lone chip of a collapsed group, which reopens the group on click. */
 .label-type-picker__change {
   display: none;
-  font: var(--text-tiny-regular);
+  font: var(--text-caption-regular);
   color: var(--color-neutral-700);
 }
 
