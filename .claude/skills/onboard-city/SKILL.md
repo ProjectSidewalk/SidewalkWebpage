@@ -171,7 +171,8 @@ Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, ce
 Follow the checklist the orchestrator prints: dump to the server (`scp` to `<netid>@makelab1.cs.washington.edu`,
 renamed to `<schema>-empty-dump` at the destination), the IT tooling's `setup-new.pl`, Maps-key referrers (step 2
 asks before adding them to the live production key; if gcloud can't edit it, `python3 tools/maps_key_referrers.py
-<city-id>`), DNS, then the PR (configs + messages + docs). Point the maintainer at the QA items only a person can do: open the landing page
+<city-id>`), DNS, the row in the pano scraper's manifest (`/etc/sidewalk/cities.csv` on the scraper host — without it
+every AI label's Gallery card is blank, #5390), then the PR (configs + messages + docs). Point the maintainer at the QA items only a person can do: open the landing page
 as the new city (map centered, neighborhood names right), walk one street in Explore on the chosen imagery, check the
 Explore tag lists against `excluded_tags`. That walk leaves an `audit_task`, thousands of interaction rows and a
 moved `audited_distance` in the schema, so **after local QA, dump again**: `make onboard-city id=<city-id>
