@@ -105,7 +105,7 @@
   "scope-street-named": "op {{name}}",
   "scope-brush": "scores {{from}}–{{to}}",
   "chart-photos": "Foto's",
-  "chart-photos-help": "Beelden van de labels achter de scores: eerst de slechtst beoordeelde clusters van de geselecteerde buurt of straat, of van de laagst scorende buurt als er niets is geselecteerd. Klik op een foto om die te openen.",
+  "chart-photos-help": "Beelden van de labels achter de scores, uit de geselecteerde buurt of straat, of uit de laagst scorende buurt als er niets is geselecteerd. Gerangschikt van slechtst naar best: de slechtst beoordeelde labels eerst, en daarbinnen de labels die de gemeenschap heeft bevestigd. Klik op een foto om die te openen.",
   "photos-from": "Foto's uit {{scope}}",
   "photos-lowest": "{{name}} (laagste score)",
   "photos-scope-viewport": "het gebied in beeld",

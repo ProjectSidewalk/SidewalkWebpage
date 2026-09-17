@@ -108,16 +108,17 @@ different places — the snapshot at its canvas fraction, the job's window where
 says (the centre, unless the window shifted off a pole) — and the files look alike, so **every crop's provenance is a
 `label_crop` row** (#2660): which writer, and the label's position as fractions of the image. Each writer records its
 row as it writes, the job's reconcile pass classifies any crop found without one (by size, then by the file's age
-against the label's, and never on a signal that disagrees with the others), and the five surfaces that draw a marker
+against the label's, and never on a signal that disagrees with the others), and the six surfaces that draw a marker
 on a crop — the Gallery card, the landing validation grid, the dashboard's mistake cards, the popup's crop fallback,
-the share preview — take it from the row (`crop_marker` in the label payloads), falling back to the canvas fraction
-only while a crop is unrecorded or the image on screen is the Street View still. A new crop writer must write that row,
-and a new surface that marks a crop must read it. A pano too wide for the viewer's GPU is shown from a downscaled copy,
-and `/backupImage/:panoId` serves that in place of the native file without the viewer being able to tell, because it
-places markers by angle. **The viewer decides when one is needed**, because only it knows the GPU: Pannellum uploads
-an equirect as two halves, so its limit is `2 x MAX_TEXTURE_SIZE` and a device advertising 8192 renders a 16384-wide
-pano — the widest GSV produces — untouched. When a device can't, it appends `?maxWidth=` and `PanoDisplayCopyService`
-cuts a copy at that width on demand, caching it under the crop store (#5256).
+the share preview, the label mini-card (`LabelMiniCard.js`, the AccessScore sheet and photo strip) — take it from the
+row (`crop_marker` in the label payloads), falling back to the canvas fraction only while a crop is unrecorded or the
+image on screen is the Street View still. A new crop writer must write that row, and a new surface that marks a crop
+must read it. A pano too wide for the viewer's GPU is shown from a downscaled copy, and `/backupImage/:panoId` serves
+that in place of the native file without the viewer being able to tell, because it places markers by angle. **The
+viewer decides when one is needed**, because only it knows the GPU: Pannellum uploads an equirect as two halves, so
+its limit is `2 x MAX_TEXTURE_SIZE` and a device advertising 8192 renders a 16384-wide pano — the widest GSV
+produces — untouched. When a device can't, it appends `?maxWidth=` and `PanoDisplayCopyService` cuts a copy at that
+width on demand, caching it under the crop store (#5256).
 
 The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
 downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,
@@ -286,7 +287,8 @@ corresponding Twirl view:
   coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
   drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and
   intersections (`AccessScoreWhatsHere.js`); the ranked neighborhoods; and a photo strip of label crops from the
-  scope's neighborhood feed (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
+  scope's neighborhood feed, ranked worst first with confirmed labels ahead of unchecked ones
+  (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
   the whole city is the population, a brush emphasizes in the overview views, narrows what's here and dims the
   map, and a selection marks the overview views, scopes what's here and the photos, and fades the rest of the
   map). An optional dark basemap (`?dark=1`, or the sidebar toggle, which is a live `map.setStyle` followed by a

@@ -1,11 +1,14 @@
 /**
- * Tests for LabelMiniCard (public/js/common/LabelMiniCard.js, #5217): what a card shows for a label, and that its
- * vote chips post the validation payload every static-image surface sends, clear on a second click, roll back on a
- * refusal, and lock where there is nothing to judge or the label is the reader's own.
+ * Tests for LabelMiniCard (public/js/common/LabelMiniCard.js, #5217): what a card shows for a label, where its type
+ * icon lands on the crop (#5386), and that its vote chips post the validation payload every static-image surface
+ * sends, clear on a second click, roll back on a refusal, and lock where there is nothing to judge or the label is
+ * the reader's own.
  */
 
 const fs = require('fs');
 const path = require('path');
+
+const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
@@ -14,6 +17,7 @@ const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 function label(overrides = {}) {
     return {
         label_id: 42, label_type: 'CurbRamp', severity: 2, tags: ['narrow'], crop_url: 'https://example.test/42.jpg',
+        crop_marker: {x: 0.25, y: 0.75},
         backup_image_url: null, num_agree: 2, num_disagree: 1, num_unsure: 0, user_validation: null,
         from_current_user: false, heading: 12.5, pitch: -3, zoom: 1, canvas_x: 310, canvas_y: 220,
         timestamp: '2026-09-01T12:00:00Z', ...overrides,
@@ -43,19 +47,16 @@ describe('LabelMiniCard', () => {
             },
         };
         window.util = {
-            misc: {
-                isPositiveLabelType: (type) => ['CurbRamp', 'Crosswalk', 'Signal'].includes(type),
-                getSeverityLevelColors: (severity) => ({wash: `var(--wash-${severity})`}),
-                getRatingLevelKeys: () => ({1: 'good', 2: 'okay', 3: 'bad'}),
-                getIconImagePaths: (type) => ({iconImagePath: `/assets/icons/${type}.svg`}),
-                labelTypeHasSeverity: (type) => type !== 'Signal',
-            },
-            assetPath: (p) => `/assets/${p}`,
-        // The two site-wide string helpers from utilities.js the views lean on, verbatim.
-        escapeHTML: (str) => str.replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[c])),
-        camelToKebab: (str) => str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
+            assetPath: assetPathStub,
+            // The two site-wide string helpers from utilities.js the card leans on, verbatim.
+            escapeHTML: (str) => str.replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[c])),
+            camelToKebab: (str) => str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
             lazyIdentityFetch: (...args) => window.fetch(...args),
+            EXPLORE_CANVAS_WIDTH: 720,
+            EXPLORE_CANVAS_HEIGHT: 480,
         };
+        // The real util.misc, so the marker helper under test is the shipped one and the palettes are the card's.
+        installUtilitiesMisc();
         window.Toast = {show: jest.fn()};
         window.BadgeAchievements = {recordValidation: jest.fn()};
         window.eval(`${read('public/js/common/LabelMiniCard.js')}\nwindow.LabelMiniCard = LabelMiniCard;`);
@@ -81,15 +82,20 @@ describe('LabelMiniCard', () => {
     const chip = (card, action) => card.element.querySelector(`[data-action="${action}"]`);
     const count = (card, action) => chip(card, action).querySelector('.lmc__vote-count').textContent;
 
-    test('renders the crop, the badge, the rating word, the tags, the date, and the counts', () => {
+    test('renders the crop, the marker on the feature, the rating word, the tags, the date, and the counts', () => {
         const card = mount(label());
         const el = card.element;
         expect(el.dataset.labelId).toBe('42');
         expect(el.classList.contains('lmc--sheet')).toBe(true);
         expect(el.querySelector('.lmc__image').getAttribute('src')).toBe('https://example.test/42.jpg');
-        expect(el.querySelector('.lmc__badge').getAttribute('src')).toBe('/assets/icons/CurbRamp.svg');
+        // Inside the figure, so the icon scales with the picture (#5386); never a corner badge.
+        const marker = el.querySelector('.lmc__figure .lmc__marker');
+        expect(marker.getAttribute('src')).toBe('/assets/images/icons/label_type_icons/CurbRamp_small.svg');
+        expect(marker.style.getPropertyValue('--lmc-marker-x')).toBe('0.25');
+        expect(marker.style.getPropertyValue('--lmc-marker-y')).toBe('0.75');
+        expect(el.querySelector('.lmc__badge')).toBeNull();
         expect(el.querySelector('.lmc__rating').textContent).toBe('quality: okay');
-        expect(el.querySelector('.lmc__rating').style.getPropertyValue('--lmc-wash')).toBe('var(--wash-2)');
+        expect(el.querySelector('.lmc__rating').style.getPropertyValue('--lmc-wash')).toBe('var(--color-banana-200)');
         expect(el.querySelector('.lmc__tag').textContent).toBe('tag.narrow defaultValue=narrow');
         expect(el.querySelector('.lmc__date')).not.toBeNull();
         expect(count(card, 'Agree')).toBe('2');
@@ -101,6 +107,16 @@ describe('LabelMiniCard', () => {
         expect(el.querySelector('.lmc__open').getAttribute('aria-label')).toBe('mini-card.open label=curb-ramp, okay');
     });
 
+    test('a crop without a recorded position marks the canvas fraction; a crop that fails to load loses its marker', () => {
+        const card = mount(label({crop_marker: null}));
+        const marker = card.element.querySelector('.lmc__marker');
+        expect(marker.style.getPropertyValue('--lmc-marker-x')).toBe(String(310 / 720));
+        expect(marker.style.getPropertyValue('--lmc-marker-y')).toBe(String(220 / 480));
+        card.element.querySelector('.lmc__image').dispatchEvent(new window.Event('error'));
+        expect(card.element.querySelector('.lmc__placeholder')).not.toBeNull();
+        expect(card.element.querySelector('.lmc__marker')).toBeNull();
+    });
+
     test('a label with no picture shows the type placeholder and locks the chips; the strip size drops the caption', () => {
         const card = mount(label({crop_url: null}), {size: 'strip', className: 'host-item'});
         const el = card.element;
@@ -108,6 +124,7 @@ describe('LabelMiniCard', () => {
         expect(el.classList.contains('host-item')).toBe(true);
         expect(el.querySelector('.lmc__placeholder')).not.toBeNull();
         expect(el.querySelector('.lmc__image')).toBeNull();
+        expect(el.querySelector('.lmc__marker')).toBeNull(); // the placeholder already carries the icon
         expect(el.querySelector('.lmc__body')).toBeNull();
         for (const action of ['Agree', 'Disagree', 'Unsure']) {
             expect(chip(card, action).disabled).toBe(true);
@@ -118,6 +135,8 @@ describe('LabelMiniCard', () => {
     test('the backup image stands in for a missing crop, and the reader\'s own label is locked with the reason', () => {
         const card = mount(label({crop_url: null, backup_image_url: 'https://example.test/pano.jpg', from_current_user: true}));
         expect(card.element.querySelector('.lmc__image').getAttribute('src')).toBe('https://example.test/pano.jpg');
+        // The backup image is the whole panorama: nothing says where the label is in it, so nothing is marked.
+        expect(card.element.querySelector('.lmc__marker')).toBeNull();
         expect(chip(card, 'Agree').disabled).toBe(true);
         expect(chip(card, 'Agree').getAttribute('data-ps-tooltip')).toBe('own-label-disabled');
     });

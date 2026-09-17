@@ -105,7 +105,7 @@
   "scope-street-named": "en {{name}}",
   "scope-brush": "puntuaciones {{from}}–{{to}}",
   "chart-photos": "Fotos",
-  "chart-photos-help": "Imágenes de las etiquetas detrás de las puntuaciones: primero los grupos peor valorados del barrio o la calle seleccionados, o del barrio con menor puntuación si no hay nada seleccionado. Haga clic en una para abrirla.",
+  "chart-photos-help": "Imágenes de las etiquetas detrás de las puntuaciones, del barrio o la calle seleccionados, o del barrio con menor puntuación si no hay nada seleccionado. Ordenadas de peor a mejor: primero las etiquetas peor valoradas y, entre ellas, las que la comunidad ha confirmado. Haga clic en una para abrirla.",
   "photos-from": "Fotos de {{scope}}",
   "photos-lowest": "{{name}} (menor puntuación)",
   "photos-scope-viewport": "la zona visible",

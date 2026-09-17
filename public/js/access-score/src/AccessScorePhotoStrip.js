@@ -7,12 +7,29 @@
  * because a street is a filter over its region's clusters and a city has too many clusters to fetch for a
  * dozen pictures; the area in view pools the few nearest regions' feeds and keeps the clusters inside the
  * map's bounds. The brush never narrows the strip: a brush is a set of street ids across the city and the strip
- * draws from region feeds. One label per cluster, worst-rated and largest clusters first, capped at
- * `MAX_PHOTOS`; each is a `LabelMiniCard`, so a picture can be agreed or disagreed with where it is seen.
+ * draws from region feeds. One label per cluster (its newest), capped at `MAX_PHOTOS`, ranked worst first (#5386)
+ * and numbered: the clusters' medians and vote totals choose which get a picture, then the pictures take the order
+ * of their own label's rating and votes, the ones a reader sees on the card. Each is a `LabelMiniCard`, so a
+ * picture can be agreed or disagreed with where it is seen.
  */
 class AccessScorePhotoStrip {
   /** Enough to fill the ribbon with a scroll's worth; more is a wall of fetches for pictures nobody reaches. */
   static MAX_PHOTOS = 12;
+
+  /**
+   * Worst first: 3 is the bad end of both rating scales (unrated trails), then confirmed over unchecked over
+   * disputed, then the more agreed, then `size` (a cluster's label count).
+   * @param {{severity: ?number, agree: number, disagree: number, size?: number}} a - One entry's rating and votes.
+   * @param {{severity: ?number, agree: number, disagree: number, size?: number}} b - The other's.
+   * @returns {number} Negative when `a` ranks ahead of `b`.
+   */
+  static compareWorstFirst(a, b) {
+    const verdict = (e) => Math.sign(e.agree - e.disagree);
+    return (b.severity ?? 0) - (a.severity ?? 0)
+      || verdict(b) - verdict(a)
+      || b.agree - a.agree
+      || (b.size ?? 0) - (a.size ?? 0);
+  }
 
   #types;
   #onOpenLabel;
@@ -22,7 +39,10 @@ class AccessScorePhotoStrip {
   #labelsById = new Map();
   /** The cards on show, by label id, so a vote cast in the full label card can be reflected here. */
   #cards = new Map();
+  /** The label ids on show, in ribbon order: the full label card pages through them in this order. */
   #ids = [];
+  /** The label ids the last draw asked for, in cluster order, so a pan that picks the same ones skips the redraw. */
+  #wanted = [];
   #token = 0;
 
   /**
@@ -36,10 +56,12 @@ class AccessScorePhotoStrip {
     this.#types = types;
     this.#onOpenLabel = onOpenLabel;
     this.#log = log;
+    // An <ol>: the ribbon is a ranking, and the CSS numbers it. The explicit role keeps it a list in Safari, which
+    // drops list semantics under `list-style: none`.
     container.innerHTML = `
       <p class="acs-photos__caption"></p>
       <p class="acs-photos__status" role="status"></p>
-      <ul class="acs-photos__ribbon"></ul>`;
+      <ol class="acs-photos__ribbon" role="list"></ol>`;
     this.#els = {
       caption: container.querySelector('.acs-photos__caption'),
       status: container.querySelector('.acs-photos__status'),
@@ -69,10 +91,12 @@ class AccessScorePhotoStrip {
     if (!keepWhileLoading) {
       this.#els.ribbon.innerHTML = '';
       this.#ids = [];
+      this.#wanted = [];
     }
     if (ids.length === 0) {
       this.#els.ribbon.innerHTML = '';
       this.#ids = [];
+      this.#wanted = [];
       this.#els.status.textContent = i18next.t('accessscore:photos-empty');
       return;
     }
@@ -94,29 +118,42 @@ class AccessScorePhotoStrip {
         && p.coordinates[0] >= west && p.coordinates[0] <= east
         && p.coordinates[1] >= south && p.coordinates[1] <= north);
     }
-    // Worst first: 3 is the bad end of both rating scales; unrated clusters trail, larger ones ahead of smaller.
+    const standing = (p) => ({
+      severity: p.median_severity, agree: p.agree_count || 0, disagree: p.disagree_count || 0, size: p.cluster_size,
+    });
     const picked = clusters
       .filter((p) => Array.isArray(p.label_ids) && p.label_ids.length > 0)
-      .sort((a, b) => (b.median_severity ?? 0) - (a.median_severity ?? 0) || (b.cluster_size - a.cluster_size))
+      .sort((a, b) => AccessScorePhotoStrip.compareWorstFirst(standing(a), standing(b)))
       .slice(0, AccessScorePhotoStrip.MAX_PHOTOS);
     if (picked.length === 0) {
       this.#els.ribbon.innerHTML = '';
       this.#ids = [];
+      this.#wanted = [];
       this.#els.status.textContent = i18next.t('accessscore:photos-empty');
       return;
     }
-    const wanted = picked.map((p) => p.label_ids[0]);
-    if (keepWhileLoading && wanted.length === this.#ids.length && wanted.every((id, k) => id === this.#ids[k])) {
+    // A cluster's newest label stands for it: label ids are a serial, so the highest is the latest placed.
+    const newest = (p) => Math.max(...p.label_ids);
+    const wanted = picked.map(newest);
+    // Only a ribbon with pictures on it is worth keeping: a draw whose every label failed to load retries instead.
+    const unchanged = wanted.length === this.#wanted.length && wanted.every((id, k) => id === this.#wanted[k]);
+    if (keepWhileLoading && unchanged && this.#ids.length > 0) {
       this.#els.status.textContent = '';
       return;
     }
     if (keepWhileLoading) this.#els.status.textContent = i18next.t('accessscore:photos-loading');
-    const labels = await Promise.all(picked.map((p) => this.#label(p.label_ids[0]).then(
+    const labels = await Promise.all(picked.map((p) => this.#label(newest(p)).then(
       (label) => ({ label, cluster: p }),
       () => null,
     )));
     if (token !== this.#token) return;
-    const loaded = labels.filter(Boolean);
+    // Ordered by each label's own rating and votes (what the card shows), not its cluster's medians; the stable sort
+    // keeps the cluster rank as the tiebreak.
+    const own = ({ label }) => ({
+      severity: label.severity, agree: label.num_agree || 0, disagree: label.num_disagree || 0,
+    });
+    const loaded = labels.filter(Boolean).sort((a, b) => AccessScorePhotoStrip.compareWorstFirst(own(a), own(b)));
+    this.#wanted = wanted;
     this.#ids = loaded.map(({ label }) => label.label_id);
     this.#els.status.textContent = loaded.length === 0 ? i18next.t('accessscore:photos-empty') : '';
     this.#els.ribbon.innerHTML = '';

@@ -105,7 +105,7 @@
   "scope-street-named": "on {{name}}",
   "scope-brush": "scores {{from}}–{{to}}",
   "chart-photos": "Photos",
-  "chart-photos-help": "Pictures of the labels behind the scores: the worst-rated clusters of the selected neighborhood or street first, or of the lowest-scoring neighborhood when nothing is selected. Click one to open it.",
+  "chart-photos-help": "Pictures of the labels behind the scores, from the selected neighborhood or street, or from the lowest-scoring neighborhood when nothing is selected. Ranked worst first: the worst-rated labels lead, and among those, the ones the community has confirmed. Click one to open it.",
   "photos-from": "Photos from {{scope}}",
   "photos-lowest": "{{name}} (lowest scoring)",
   "photos-scope-viewport": "the area in view",
