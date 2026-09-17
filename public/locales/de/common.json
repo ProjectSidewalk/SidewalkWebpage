@@ -358,7 +358,7 @@
   "download-already-preparing": "Diese Datei wird bereits für eine andere Anfrage vorbereitet. Bitte versuchen Sie es gleich noch einmal.",
   "access-score-spotlight": {
     "subtitle-regions": "Die Gehwege jedes Quartiers werden von unserem <a href=\"{{href}}\">AccessScore</a>-Algorithmus mit 0 bis 100 bewertet (100 ist am besten).",
-    "subtitle-streets": "Jede erkundete Straße wird von unserem <a href=\"{{href}}\">AccessScore</a>-Algorithmus anhand des Gehwegzustands mit 0 bis 100 bewertet (100 ist am besten).",
+    "subtitle-streets": "Die Gehwege jeder Straße werden von unserem <a href=\"{{href}}\">AccessScore</a>-Algorithmus mit 0 bis 100 bewertet (100 ist am besten).",
     "subtitle-one-region": "Diese Stadt ist als ein einziges Quartier kartiert, es gibt also nur eine Bewertung. Wechseln Sie zu Straßen für einen genaueren Blick.",
     "units-label": "Quartiere oder Straßen einordnen",
     "unit-regions": "Quartiere",

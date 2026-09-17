@@ -356,7 +356,7 @@
   "download-already-preparing": "此檔案已在為另一個請求準備中，請稍後再試。",
   "access-score-spotlight": {
     "subtitle-regions": "每個鄰里的人行道都由我們的 <a href=\"{{href}}\">AccessScore</a> 演算法評為 0 到 100 分（100 分最佳）。",
-    "subtitle-streets": "每條已探索的街道都由我們的 <a href=\"{{href}}\">AccessScore</a> 演算法依人行道狀況評為 0 到 100 分（100 分最佳）。",
+    "subtitle-streets": "每條街道的人行道都由我們的 <a href=\"{{href}}\">AccessScore</a> 演算法評為 0 到 100 分（100 分最佳）。",
     "subtitle-one-region": "這個城市被劃為單一鄰里，因此只有一個分數。切換到「街道」可看得更仔細。",
     "units-label": "依鄰里或街道排名",
     "unit-regions": "鄰里",
