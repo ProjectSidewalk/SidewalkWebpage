@@ -26,7 +26,7 @@
  *     aren't the label map themselves — e.g. the user dashboard).
  * @param {(vote: ?string, metadata: object) => void} [opts.onVote] - Called with the vote cast (or null for a cleared
  *   one) and the label's metadata after a validation lands, so a host showing the label elsewhere can refresh it.
- * @param {(metadata: object) => void} [opts.onEdit] - Called with the label's metadata after an edit from the card
+ * @param {(metadata: Record<string, any>) => void} [opts.onEdit] - Called with the label's metadata after an edit from the card
  *   (#2575, #3671), for a host that draws the label itself (the LabelMap's layers).
  * @param {boolean} [opts.showExploreHereLink] - Show the popup's "Explore here" footer link, which opens Explore at
  *     the shown label's pano and point of view (#4637).

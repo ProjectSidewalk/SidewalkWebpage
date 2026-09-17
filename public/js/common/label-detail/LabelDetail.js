@@ -150,7 +150,7 @@ class LabelDetail {
    * @param {(action: ?('Agree'|'Disagree'|'Unsure'), meta: object) => void} [opts.onVote] - Fired after a vote is
    *      successfully submitted, with null when the user cleared their vote (#4653). Hosts use this to sync upstream
    *      UI (e.g. recolor a Gallery card).
-   * @param {(meta: object) => void} [opts.onEdit] - Fired with the updated metadata after an edit to the label's
+   * @param {(meta: Record<string, any>) => void} [opts.onEdit] - Fired with the updated metadata after an edit to the label's
    *      type, severity or tags is saved (#2575, #3671), so hosts that cache label data (Gallery's cards, the
    *      LabelMap's layers) can stay in sync.
    * @param {string} [opts.panoOverlaySource] - Source recorded when voting via the pano overlay buttons.
