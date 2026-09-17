@@ -80,7 +80,9 @@
       "name": "Capitol Hill",
       "score": 0.842,
       "completion_rate": 0.97,
-      "audited_distance_m": 128411.2
+      "audited_distance_m": 128411.2,
+      "total_distance_m": 132382.7,
+      "cluster_count": 6120
     }
   ],
   "bottom": [
@@ -89,7 +91,9 @@
       "name": "South Park",
       "score": 0.313,
       "completion_rate": 0.88,
-      "audited_distance_m": 41220.7
+      "audited_distance_m": 41220.7,
+      "total_distance_m": 46841.7,
+      "cluster_count": 1493
     }
   ],
   "nearest": []
@@ -126,6 +130,8 @@
           <tr><td><code>score</code></td><td><code>number</code></td><td>Its AccessScore in <code>[0,&nbsp;1]</code>; <code>null</code> when none of its streets has been explored (only ever seen in <code>nearest</code>).</td></tr>
           <tr><td><code>completion_rate</code></td><td><code>number</code></td><td>The share of its street length explored, in <code>[0,&nbsp;1]</code>.</td></tr>
           <tr><td><code>audited_distance_m</code></td><td><code>number</code></td><td>How much of that street length has been explored, in meters.</td></tr>
+          <tr><td><code>total_distance_m</code></td><td><code>number</code></td><td>Its whole street length in meters &mdash; the neighborhood's size, which the module prints under the name so a score can be weighed against it.</td></tr>
+          <tr><td><code>cluster_count</code></td><td><code>integer</code></td><td>How many label clusters the score is built from, on its streets and at its intersections: the evidence behind the number.</td></tr>
         </tbody>
       </table>
     </div>

@@ -2,6 +2,7 @@ package service
 
 import models.api.{
   AccessScoreSpotlightForApi,
+  IntersectionAccessScoreForApi,
   RegionAccessScoreForApi,
   RegionSpotlightRowForApi,
   SpotlightCityForApi,
@@ -103,14 +104,16 @@ object AccessScoreSpotlight {
    * The unscored ones are written too, because they are what the module counts as "of M neighborhoods" and lists as
    * "closest to being ranked" — the call to action that most deployments will actually show.
    *
-   * @param regionScores The region roll-up from `AccessScoreService`, one entry per region in the city.
-   * @param completions  `region_completion` rows, the distance-based explored share per region.
-   * @param computedAt   The run's timestamp, shared by every row it writes.
-   * @return             One row per region, ready to insert.
+   * @param regionScores     The region roll-up from `AccessScoreService`, one entry per region in the city.
+   * @param completions      `region_completion` rows, the distance-based explored share per region.
+   * @param clustersByRegion How many label clusters each region's score is built from, see [[clustersByRegion]].
+   * @param computedAt       The run's timestamp, shared by every row it writes.
+   * @return                 One row per region, ready to insert.
    */
   def buildRegionRows(
       regionScores: Seq[RegionAccessScoreForApi],
       completions: Seq[NamedRegionCompletion],
+      clustersByRegion: Map[Int, Int],
       computedAt: OffsetDateTime
   ): Seq[RegionAccessScore] = {
     val completionByRegion: Map[Int, NamedRegionCompletion] = completions.map(c => c.regionId -> c).toMap
@@ -129,9 +132,29 @@ object AccessScoreSpotlight {
         score = region.score,
         completionRate = rate,
         auditedDistanceM = completion.map(c => math.max(0.0, c.auditedDistance)).getOrElse(0.0),
+        totalDistanceM = completion.map(c => math.max(0.0, c.totalDistance)).getOrElse(0.0),
+        clusterCount = clustersByRegion.getOrElse(region.regionId, 0),
         computedAt = computedAt
       )
     }
+  }
+
+  /**
+   * Counts the label clusters behind each region's score: those on its street edges plus those at its
+   * intersections, which the region roll-up averages but never totals. An intersection outside every region (its
+   * `regionId` is None) belongs to no row and is skipped.
+   *
+   * @param streets       The city's street scores, each carrying its per-type cluster counts.
+   * @param intersections The city's intersection scores, likewise.
+   * @return              Region id -> cluster count, absent for a region with none.
+   */
+  def clustersByRegion(
+      streets: Seq[StreetAccessScoreForApi],
+      intersections: Seq[IntersectionAccessScoreForApi]
+  ): Map[Int, Int] = {
+    val onStreets: Seq[(Int, Int)] = streets.map(s => s.regionId -> s.clusterCounts.values.sum)
+    val atCorners: Seq[(Int, Int)] = intersections.flatMap(i => i.regionId.map(_ -> i.clusterCounts.values.sum))
+    (onStreets ++ atCorners).groupMapReduce(_._1)(_._2)(_ + _)
   }
 
   /**
@@ -276,7 +299,12 @@ class AccessScoreSpotlightService @Inject() (
       (regionScores, scores) <- accessScoreService.computeCityWideScores(AccessScoreSpotlightService.BatchSize)
       completions            <- db.run(regionCompletionTable.getRegionCompletions(Seq.empty))
       validationCounts       <- db.run(labelTable.validationCountsByStreet)
-      regionRows = AccessScoreSpotlight.buildRegionRows(regionScores, completions, computedAt)
+      regionRows = AccessScoreSpotlight.buildRegionRows(
+        regionScores,
+        completions,
+        AccessScoreSpotlight.clustersByRegion(scores.streets, scores.intersections),
+        computedAt
+      )
       streetRows = AccessScoreSpotlight.buildStreetRows(
         scores.streets,
         validationCounts,

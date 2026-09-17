@@ -1,6 +1,7 @@
 package service
 
 import models.api.{
+  IntersectionAccessScoreForApi,
   RegionAccessScoreForApi,
   RegionSpotlightRowForApi,
   SpotlightCityForApi,
@@ -9,7 +10,7 @@ import models.api.{
 }
 import models.region.NamedRegionCompletion
 import models.street.StreetAccessScore
-import org.locationtech.jts.geom.{GeometryFactory, LineString, MultiPolygon}
+import org.locationtech.jts.geom.{GeometryFactory, LineString, MultiPolygon, Point}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -34,6 +35,7 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
     Array(new org.locationtech.jts.geom.Coordinate(0, 0), new org.locationtech.jts.geom.Coordinate(0, 1))
   )
   private val polygon: MultiPolygon = gf.createMultiPolygon(Array.empty)
+  private val point: Point          = gf.createPoint(new org.locationtech.jts.geom.Coordinate(0, 0))
 
   /** One street as `AccessScoreService` scores it; only the fields the roll-up reads are interesting. */
   private def street(
@@ -66,6 +68,24 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
     geometry = line
   )
 
+  /** One intersection as `AccessScoreService` scores it; only its region and cluster counts are read here. */
+  private def intersection(intersectionId: Int, regionId: Option[Int], clusters: Int): IntersectionAccessScoreForApi =
+    IntersectionAccessScoreForApi(
+      intersectionId = intersectionId,
+      regionId = regionId,
+      degree = 4,
+      gradeSeparated = false,
+      streetEdgeIds = Seq.empty,
+      auditCount = 1,
+      score = Some(0.5),
+      labelCount = clusters,
+      clusterCounts = if (clusters > 0) Map("CurbRamp" -> clusters) else Map.empty,
+      subScores = Map.empty,
+      severityCounts = Map.empty,
+      tagAdjustments = Map.empty,
+      geometry = point
+    )
+
   /** One region as `AccessScoreService` rolls it up. */
   private def regionScore(regionId: Int, name: String, score: Option[Double]): RegionAccessScoreForApi =
     RegionAccessScoreForApi(
@@ -82,7 +102,10 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
       completionRate: Double,
       city: Option[SpotlightCityForApi] = None
   ): RegionSpotlightRowForApi =
-    RegionSpotlightRowForApi(regionId, name, score, completionRate, auditedDistanceM = 1000.0, city = city)
+    RegionSpotlightRowForApi(
+      regionId, name, score, completionRate, auditedDistanceM = 1000.0, totalDistanceM = 1200.0, clusterCount = 40,
+      city = city
+    )
 
   /** One street snapshot row, the shape the endpoint ranks. */
   private def streetRow(
@@ -143,21 +166,41 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
       NamedRegionCompletion(1, "Downtown", totalDistance = 1000.0, auditedDistance = 900.0),
       NamedRegionCompletion(2, "Riverside", totalDistance = 1000.0, auditedDistance = 670.0)
     )
-    val rows = AccessScoreSpotlight.buildRegionRows(scores, completions, run).sortBy(_.regionId)
+    val rows = AccessScoreSpotlight.buildRegionRows(scores, completions, Map(1 -> 57), run).sortBy(_.regionId)
 
     rows.map(_.regionId) shouldBe Seq(1, 2)
     rows.head.score shouldBe Some(0.7)
     rows.head.completionRate shouldBe (0.9 +- 1e-9)
     rows.head.auditedDistanceM shouldBe (900.0 +- 1e-9)
+    rows.head.totalDistanceM shouldBe (1000.0 +- 1e-9)
+    rows.head.clusterCount shouldBe 57
     rows(1).score shouldBe None
     rows(1).completionRate shouldBe (0.67 +- 1e-9)
+    // No clusters anywhere in it: the count is a zero, not a missing row.
+    rows(1).clusterCount shouldBe 0
     rows.foreach(_.computedAt shouldBe run)
+  }
+
+  test("a region's cluster count is its streets' clusters plus its corners', and an orphan corner counts nowhere") {
+    val streets = Seq(
+      street(11, osmWayId = 1L, regionId = 1, score = Some(0.5), lengthMeters = 100, clusters = 3),
+      street(12, osmWayId = 2L, regionId = 1, score = Some(0.5), lengthMeters = 100, clusters = 4),
+      street(13, osmWayId = 3L, regionId = 2, score = Some(0.5), lengthMeters = 100, clusters = 0)
+    )
+    val corners = Seq(
+      intersection(1, regionId = Some(1), clusters = 2),
+      intersection(2, regionId = Some(2), clusters = 5),
+      // Outside every region: the roll-up gives it no region either, so it has no row to be counted on.
+      intersection(3, regionId = None, clusters = 9)
+    )
+    AccessScoreSpotlight.clustersByRegion(streets, corners) shouldBe Map(1 -> 9, 2 -> 5)
   }
 
   test("a region with no streets reads as complete, which the unscored score keeps it from being ranked on") {
     val rows = AccessScoreSpotlight.buildRegionRows(
       Seq(regionScore(1, "Empty", None)),
       Seq(NamedRegionCompletion(1, "Empty", totalDistance = 0.0, auditedDistance = 0.0)),
+      Map.empty,
       run
     )
     rows.head.completionRate shouldBe 1.0
@@ -165,9 +208,10 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
   }
 
   test("a region missing a completion row counts as unexplored rather than failing the run") {
-    val rows = AccessScoreSpotlight.buildRegionRows(Seq(regionScore(9, "New", None)), Seq.empty, run)
+    val rows = AccessScoreSpotlight.buildRegionRows(Seq(regionScore(9, "New", None)), Seq.empty, Map.empty, run)
     rows.head.completionRate shouldBe 0.0
     rows.head.auditedDistanceM shouldBe 0.0
+    rows.head.totalDistanceM shouldBe 0.0
   }
 
   test("street edges roll up into one row per OSM way per region, length-weighted") {

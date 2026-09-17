@@ -16,6 +16,10 @@ CREATE TABLE region_access_score (
   score DOUBLE PRECISION CHECK (score >= 0 AND score <= 1),
   completion_rate DOUBLE PRECISION NOT NULL CHECK (completion_rate >= 0 AND completion_rate <= 1),
   audited_distance_m DOUBLE PRECISION NOT NULL CHECK (audited_distance_m >= 0),
+  -- The neighborhood's size and how much evidence sits behind its score, which the module prints under its name so
+  -- a reader can weigh a 74 in a 9 mi neighborhood against a 74 in a 0.5 mi one.
+  total_distance_m DOUBLE PRECISION NOT NULL CHECK (total_distance_m >= 0),
+  cluster_count INTEGER NOT NULL CHECK (cluster_count >= 0),
   computed_at TIMESTAMPTZ NOT NULL,
   UNIQUE (region_id, computed_at)
 );

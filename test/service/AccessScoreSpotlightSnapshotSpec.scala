@@ -61,7 +61,13 @@ class AccessScoreSpotlightSnapshotSpec extends PlaySpec with GuiceOneAppPerSuite
         row.name.trim must not be empty
         row.completionRate must (be >= 0.0 and be <= 1.0)
         row.auditedDistanceM must be >= 0.0
-        row.score.foreach(score => score must (be >= 0.0 and be <= 1.0))
+        // The explored length can't exceed the whole, and a scored region has evidence behind the score.
+        row.totalDistanceM must be >= row.auditedDistanceM
+        row.clusterCount must be >= 0
+        row.score.foreach { score =>
+          score must (be >= 0.0 and be <= 1.0)
+          row.clusterCount must be > 0
+        }
       }
 
       // The street table holds one run and only one, since each run replaces it.

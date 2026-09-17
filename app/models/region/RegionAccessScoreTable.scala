@@ -23,6 +23,9 @@ import scala.concurrent.ExecutionContext
  * @param completionRate      The share of its street length explored, `region_completion`'s distance-based number —
  *                            the one the landing choropleth colors, not the AccessScore API's street-count coverage.
  * @param auditedDistanceM    How many meters of its street length have been explored.
+ * @param totalDistanceM      Its whole street length in meters, the size a reader weighs the score against.
+ * @param clusterCount        How many label clusters, on its streets and at its intersections, the score is built
+ *                            from: the evidence behind the number.
  * @param computedAt          When the run that wrote this row produced it.
  */
 case class RegionAccessScore(
@@ -31,6 +34,8 @@ case class RegionAccessScore(
     score: Option[Double],
     completionRate: Double,
     auditedDistanceM: Double,
+    totalDistanceM: Double,
+    clusterCount: Int,
     computedAt: OffsetDateTime
 )
 
@@ -41,9 +46,13 @@ class RegionAccessScoreTableDef(tag: Tag) extends Table[RegionAccessScore](tag, 
   def score: Rep[Option[Double]]      = column[Option[Double]]("score")
   def completionRate: Rep[Double]     = column[Double]("completion_rate")
   def auditedDistanceM: Rep[Double]   = column[Double]("audited_distance_m")
+  def totalDistanceM: Rep[Double]     = column[Double]("total_distance_m")
+  def clusterCount: Rep[Int]          = column[Int]("cluster_count")
   def computedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("computed_at")
 
-  def * = (regionAccessScoreId, regionId, score, completionRate, auditedDistanceM, computedAt) <> (
+  def * = (
+    regionAccessScoreId, regionId, score, completionRate, auditedDistanceM, totalDistanceM, clusterCount, computedAt
+  ) <> (
     (RegionAccessScore.apply _).tupled,
     RegionAccessScore.unapply
   )
@@ -104,7 +113,7 @@ class RegionAccessScoreTable @Inject() (protected val dbConfigProvider: Database
   implicit private val rowResult: GetResult[RegionSpotlightRowForApi] = GetResult { r =>
     RegionSpotlightRowForApi(
       regionId = r.nextInt(), name = r.nextString(), score = r.nextDoubleOption(), completionRate = r.nextDouble(),
-      auditedDistanceM = r.nextDouble()
+      auditedDistanceM = r.nextDouble(), totalDistanceM = r.nextDouble(), clusterCount = r.nextInt()
     )
   }
 
@@ -120,7 +129,9 @@ class RegionAccessScoreTable @Inject() (protected val dbConfigProvider: Database
              region.name,
              region_access_score.score,
              region_access_score.completion_rate,
-             region_access_score.audited_distance_m
+             region_access_score.audited_distance_m,
+             region_access_score.total_distance_m,
+             region_access_score.cluster_count
       FROM #$scores AS region_access_score
       INNER JOIN #$regions AS region ON region_access_score.region_id = region.region_id
       WHERE region_access_score.computed_at = (SELECT MAX(computed_at) FROM #$scores)

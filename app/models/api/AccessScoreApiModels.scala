@@ -523,6 +523,8 @@ sealed trait SpotlightRowForApi {
  * @param completionRate   The share of its street length that has been explored, the number the landing choropleth
  *                         colors — not the AccessScore API's street-count `coverage`, which disagrees with it.
  * @param auditedDistanceM How much of that street length has been explored, in meters.
+ * @param totalDistanceM   Its whole street length in meters: the neighborhood's size.
+ * @param clusterCount     How many label clusters its score is built from, on its streets and at its intersections.
  * @param city             The deployment it came from, under `scope=cities` only.
  */
 case class RegionSpotlightRowForApi(
@@ -531,6 +533,8 @@ case class RegionSpotlightRowForApi(
     score: Option[Double],
     completionRate: Double,
     auditedDistanceM: Double,
+    totalDistanceM: Double,
+    clusterCount: Int,
     city: Option[SpotlightCityForApi] = None
 ) extends SpotlightRowForApi {
 
@@ -539,7 +543,9 @@ case class RegionSpotlightRowForApi(
     "name"               -> name,
     "score"              -> score,
     "completion_rate"    -> completionRate,
-    "audited_distance_m" -> auditedDistanceM
+    "audited_distance_m" -> auditedDistanceM,
+    "total_distance_m"   -> totalDistanceM,
+    "cluster_count"      -> clusterCount
   ) ++ city.map(_.toJson).getOrElse(Json.obj())
 }
 
