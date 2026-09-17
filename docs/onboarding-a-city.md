@@ -216,17 +216,9 @@ its default either way.
   site; a local run's rows stay local, since the dump leaves those tables' data out. The `osm_way` tags come from
   their own nightly refresh, and until they land every intersection is `grade_separated = FALSE`, which is why
   deriving them during onboarding would not help (#5297).
-- **The pano scraper.** Once prod is up, add the city to the nightly scraper's manifest, or the crops never come:
-  `CropGenerationActor` cuts the Gallery and Validate crops for every AI label from the panos the scraper downloads
-  (`docs/architecture.md` → "Media storage"), so a city the scraper doesn't know shows a blank card for each one, and
-  on a Mapillary or Panoramax city there is no static-still fallback to hide it (#5390 — Laurens and Bayonne launched
-  without the row). The manifest is one line per city, `city_id,fqdn`, at `/etc/sidewalk/cities.csv` on the scraper
-  host ([`sidewalk-panorama-tools`](https://github.com/ProjectSidewalk/sidewalk-panorama-tools), `docs/downloader.md`
-  → "Nightly deployment"); the fqdn goes in because it can't be derived from the id (`seattle-wa` is served by
-  `sidewalk-sea`). The runner creates the city's directory and its `log.csv` on the first run, and the nightly queue
-  picks the row up that evening; to land the panos the same day, run `scrape_queue.py --only <city-id>` by hand. A
-  Mapillary city needs nothing extra (the token is in the host's env file) and Panoramax needs no token, but a
-  Panoramax city does need the host's checkout to include the Panoramax downloader.
+- **The pano scraper.** Add `<city-id>,<prod fqdn>` to `/etc/sidewalk/cities.csv` on the scraper host
+  ([`sidewalk-panorama-tools`](https://github.com/ProjectSidewalk/sidewalk-panorama-tools)). The nightly queue picks
+  it up that evening; `scrape_queue.py --only <city-id>` pulls the panos now.
 - **Server.** `scp db/<schema>-dump <netid>@makelab1.cs.washington.edu:/www/sidewalk/new-city-dumps/<schema>-empty-dump`
   — the destination follows the convention every file in that directory uses, while the local name stays
   `<schema>-dump`, which is what `make import-dump` restores and what a populated prod pull is called too. (An ssh
