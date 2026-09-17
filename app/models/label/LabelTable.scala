@@ -666,10 +666,7 @@ object LabelTable {
       panoSource = PanoSource.withName(r.nextString()),
       labelType = r.nextString(),
       severity = r.nextIntOption(),
-      tags = {
-        val tagsStr = r.nextString()
-        if (tagsStr != null && tagsStr.nonEmpty) tagsStr.split(",").filter(_.nonEmpty).toList else List.empty
-      },
+      tags = r.nextArray[String]().toList,
       description = r.nextStringOption(),
       timeCreated = {
         val timestamp = r.nextTimestamp()
@@ -691,23 +688,16 @@ object LabelTable {
       agreeCount = r.nextInt(),
       disagreeCount = r.nextInt(),
       unsureCount = r.nextInt(),
-      validations = {
-        val validationsStr = r.nextStringOption().getOrElse("")
-        if (validationsStr.isEmpty) {
-          List.empty[LabelValidationSummaryForApi]
-        } else {
-          validationsStr
-            .split(",")
-            .map { v =>
-              v.split(":") match {
-                case Array(userId, result, isAi) =>
-                  LabelValidationSummaryForApi(userId, result, ValidatorType.fromIsAi(isAi == "t"))
-                case _ => LabelValidationSummaryForApi("unknown", "unknown", "unknown")
-              }
-            }
-            .toList
+      validations = r
+        .nextArray[String]()
+        .map { v =>
+          v.split(":") match {
+            case Array(userId, result, isAi) =>
+              LabelValidationSummaryForApi(userId, result, ValidatorType.fromIsAi(isAi == "t"))
+            case _ => LabelValidationSummaryForApi("unknown", "unknown", "unknown")
+          }
         }
-      },
+        .toList,
       auditTaskId = r.nextIntOption(),
       missionId = r.nextIntOption(),
       imageCaptureDate = r.nextStringOption(),
@@ -860,7 +850,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextStringOption().map(ValidationOption.withName), // userValidation
       r.nextStringOption().map(ValidationOption.withName), // aiValidation
       r.nextString().split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
-      r.nextString().split(",").filter(_.nonEmpty).toList,
+      r.nextArray[String]().toList,
       (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
       r.nextStringOption().map(LabelTable.parseCommentsJson).getOrElse(Seq.empty),
       (r.nextDoubleOption(), r.nextDoubleOption()) match {
@@ -1256,7 +1246,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              lb_big.validation_result, -- userValidation
              ai_val.validation_result, -- aiValidation
              val.val_counts,
-             array_to_string(lb_big.tags, ','),
+             lb_big.tags,
              at.low_quality,
              at.incomplete,
              at.stale,
@@ -2398,7 +2388,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              pano_data.source::text,
              label.label_type::text,
              label.severity,
-             array_to_string(label.tags, ','),
+             label.tags,
              label.description,
              label.time_created,
              user_stat.high_quality,
@@ -2442,14 +2432,14 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           -- EXISTS, not a join, so it can never repeat a vote and the parser below reads it as t/f. Skips the same votes
           -- the counts skip (self-votes, excluded users), so the list adds up to agree/disagree/unsure_count.
           SELECT label.label_id,
-                 array_to_string(array_agg(CONCAT(
+                 array_agg(CONCAT(
                    label_validation.user_id, ':', label_validation.validation_result, ':',
                    EXISTS (
                      SELECT 1
                      FROM sidewalk_login.user_role
                      WHERE user_role.user_id = label_validation.user_id AND user_role.role = 'AI'
                    )
-                 )), ',') AS validations
+                 )) AS validations
           FROM label
           INNER JOIN label_validation ON label.label_id = label_validation.label_id
           WHERE label_validation.user_id <> label.user_id

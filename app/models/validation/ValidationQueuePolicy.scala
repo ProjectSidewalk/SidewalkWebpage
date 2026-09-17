@@ -192,14 +192,11 @@ object ValidationQueuePolicy {
    */
   case class FaceEvidenceRep(labelerCount: Rep[Option[Int]], support: Rep[Option[Int]])
 
-  /** Seconds since the label was placed; `extract(epoch from …)` is the portable way to read an interval as a number. */
-  private val ageSeconds = SimpleExpression.unary[OffsetDateTime, Double] { (timeCreated, qb) =>
-    qb.sqlBuilder += "extract(epoch from (current_timestamp - "
-    qb.expr(timeCreated)
-    qb.sqlBuilder += "))"
-    ()
-  }
-  private val SecondsPerYear: Double = 365.25 * 24 * 3600
+  private val now: Rep[OffsetDateTime] = SimpleFunction.nullary[OffsetDateTime]("now")
+
+  /** Not Postgres's `age()`, which counts every month as 30 days and so shortchanges an older label by days. */
+  private def ageSeconds(timeCreated: Rep[OffsetDateTime]): Rep[Double] = (now - timeCreated).part("epoch")
+  private val SecondsPerYear: Double                                    = 365.25 * 24 * 3600
 
   /**
    * NoSidewalk's priority, `(priorityScore + face evidence need + age bonus) × 1 / (1 + face support)` (#5285).

@@ -32,11 +32,6 @@ trait MyPostgresProfile
     with PgPostGISExtensions
     with PgPlayJsonSupport
     with PgEnumSupport
-    with PgNetSupport
-    with PgLTreeSupport
-    with PgRangeSupport
-    with PgHStoreSupport
-    with PgSearchSupport
     with PgPostGISSupport {
 
   override val pgjson = "jsonb"
@@ -54,15 +49,10 @@ trait MyPostgresProfile
       with PostGISPlainImplicits
       with PostGISAssistants
       with ArrayImplicits
+      with SimpleArrayPlainImplicits      // Plain for raw queries
       with Date2DateTimePlainImplicits    // Plain for raw queries
       with Date2DateTimeImplicitsDuration // For compiled queries
-      with JsonImplicits
-      with NetImplicits
-      with LTreeImplicits
-      with RangeImplicits
-      with HStoreImplicits
-      with SearchImplicits
-      with SearchAssistants {
+      with JsonImplicits {
 
     /** Postgres's `random()`, a fresh draw in [0, 1) per row, so `sortBy(_ => random)` shuffles a query's rows. */
     val random: Rep[Double] = SimpleFunction.nullary[Double]("random")
