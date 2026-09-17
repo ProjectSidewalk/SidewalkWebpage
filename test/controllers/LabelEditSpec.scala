@@ -58,10 +58,17 @@ class LabelEditSpec
   /**
    * An Obstacle or SurfaceProblem (both rated on the Severity scale, so a change between them keeps the severity) that
    * belongs to no cluster, since a type change takes a label out of its cluster and the suite shouldn't move real ones.
+   *
+   * Every vote on it must also name its current type, which the cases below assume when they expect a change to leave
+   * the label with no counted votes. A vote stamped with some other type is a leftover from an interrupted run in a
+   * dev database, and picking that label would fail the count assertions rather than the behavior they check.
    */
   private def pickTypeChangeLabel(): Target = pickLabel(
     """AND label_type IN ('Obstacle', 'SurfaceProblem')
-       AND NOT EXISTS (SELECT 1 FROM cluster_label WHERE cluster_label.label_id = label.label_id)"""
+       AND NOT EXISTS (SELECT 1 FROM cluster_label WHERE cluster_label.label_id = label.label_id)
+       AND NOT EXISTS (SELECT 1 FROM label_validation
+                       WHERE label_validation.label_id = label.label_id
+                         AND label_validation.label_type <> label.label_type)"""
   )
 
   private def otherSeverityType(labelType: String): String =
