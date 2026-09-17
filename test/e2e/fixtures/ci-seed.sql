@@ -419,9 +419,9 @@ ON CONFLICT (mission_id) DO NOTHING;
 
 INSERT INTO sidewalk_teaneck.label_validation (label_validation_id, label_id, validation_result, user_id, mission_id,
                                                canvas_x, canvas_y, heading, pitch, zoom, canvas_height, canvas_width,
-                                               start_timestamp, end_timestamp, source, viewer_type)
+                                               start_timestamp, end_timestamp, source, viewer_type, label_type)
 VALUES (900001, 900002, 'Agree', '00000000-5115-4000-8000-000000000002', 900004, 300, 200, 120.0, -10.0, 1.0,
-        480, 720, now() - INTERVAL '5 days', now() - INTERVAL '5 days', 'Validate', 'Default')
+        480, 720, now() - INTERVAL '5 days', now() - INTERVAL '5 days', 'Validate', 'Default', 'CurbRamp')
 ON CONFLICT (label_validation_id) DO NOTHING;
 
 INSERT INTO sidewalk_teaneck.validation_task_comment (validation_task_comment_id, mission_id, label_id, user_id,
@@ -447,9 +447,9 @@ ON CONFLICT (mission_id) DO NOTHING;
 
 INSERT INTO sidewalk_teaneck.label_validation (label_validation_id, label_id, validation_result, user_id, mission_id,
                                                canvas_x, canvas_y, heading, pitch, zoom, canvas_height, canvas_width,
-                                               start_timestamp, end_timestamp, source, viewer_type)
+                                               start_timestamp, end_timestamp, source, viewer_type, label_type)
 VALUES (900002, 900002, 'Agree', '51b0b927-3c8a-45b2-93de-bd878d1e5cf4', 900005, 300, 200, 120.0, -10.0, 1.0,
-        480, 720, now() - INTERVAL '4 days', now() - INTERVAL '4 days', 'SidewalkAI', 'Default')
+        480, 720, now() - INTERVAL '4 days', now() - INTERVAL '4 days', 'SidewalkAI', 'Default', 'CurbRamp')
 ON CONFLICT (label_validation_id) DO NOTHING;
 
 -- What the two Agrees leave behind on the label itself.

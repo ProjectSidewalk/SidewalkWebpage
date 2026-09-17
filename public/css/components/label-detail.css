@@ -81,6 +81,7 @@ dialog.label-detail[open]::backdrop {
   flex: 1 0 0;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   min-width: 0;
 }
@@ -90,6 +91,83 @@ dialog.label-detail[open]::backdrop {
   margin: 0;
   font: var(--text-h3-bold);
   color: var(--color-neutral-black);
+}
+
+/* The type's icon and name, as a span or as the picker button (#3671); the button inherits the heading's font. */
+.label-detail__type {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.label-detail__type-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.label-detail__type-button {
+  margin: -2px -6px;
+  padding: 2px 6px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.label-detail__type-button[aria-disabled="true"] {
+  cursor: default;
+}
+
+.label-detail__type-button:not([aria-disabled="true"]):hover {
+  background: rgb(0 0 0 / 6%);
+}
+
+.label-detail__type-button:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+}
+
+.label-detail__type-chevron {
+  width: 16px;
+  height: 16px;
+  transition: transform 150ms ease;
+}
+
+.label-detail__type-button[aria-expanded="true"] .label-detail__type-chevron {
+  transform: rotate(180deg);
+}
+
+/* The type picker: a popover LabelDetail parks under the title, or an inline block where popovers don't exist. */
+.label-detail__type-picker {
+  margin: 0;
+  padding: 12px;
+  max-width: 400px;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-neutral-white);
+  box-shadow: var(--box-shadow-lg);
+}
+
+.label-detail__type-hint {
+  margin: 0 0 8px;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* The Undo inside the status line after a type change (#3671). */
+.label-detail__edit-status-action {
+  margin-left: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--color-link-200);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 /* "Your label" chip beside the title (#2575); same palette as the own-story chip further down. */

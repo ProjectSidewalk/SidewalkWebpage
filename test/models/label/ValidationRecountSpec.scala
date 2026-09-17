@@ -54,14 +54,16 @@ class ValidationRecountSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
     run(sql"SELECT label_validation_id FROM label_validation ORDER BY label_validation_id LIMIT 1".as[Int]).headOption
       .getOrElse(cancel("No validation in the connected schema to copy."))
 
-  private def vote(labelId: Int, userId: String, result: String): DBIO[Int] =
-    sqlu"""INSERT INTO label_validation (label_id, validation_result, user_id, mission_id, heading, pitch, zoom,
-                                         canvas_height, canvas_width, start_timestamp, end_timestamp, source,
+  /** A vote cast on the label's current type, unless `labelType` names the (earlier) type it was cast on. */
+  private def vote(labelId: Int, userId: String, result: String, labelType: Option[String] = None): DBIO[Int] =
+    sqlu"""INSERT INTO label_validation (label_id, label_type, validation_result, user_id, mission_id, heading, pitch,
+                                         zoom, canvas_height, canvas_width, start_timestamp, end_timestamp, source,
                                          viewer_type)
-           SELECT $labelId, $result::validation_option, $userId, mission_id, heading, pitch, zoom, canvas_height,
-                  canvas_width, start_timestamp, end_timestamp, source, viewer_type
-           FROM label_validation
-           WHERE label_validation_id = $templateValidationId"""
+           SELECT $labelId, COALESCE($labelType::label_type, label.label_type), $result::validation_option, $userId,
+                  label_validation.mission_id, heading, pitch, zoom, canvas_height, canvas_width, start_timestamp,
+                  end_timestamp, source, viewer_type
+           FROM label_validation, label
+           WHERE label_validation_id = $templateValidationId AND label.label_id = $labelId"""
 
   /** A label's (agree_count, disagree_count, unsure_count, correct). */
   private def countsOf(labelId: Int): DBIO[(Int, Int, Int, Option[Boolean])] =
@@ -90,6 +92,20 @@ class ValidationRecountSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
       } yield (changed, counts, again))
       // The second pass finds nothing out of date, so it writes nothing.
       result mustBe ((1, (1, 1, 1, None), 0))
+    }
+
+    "leave out a vote cast when the label had a different type" in {
+      val (labelId, _) = targets.head
+      val (v1, v2)     = (validators(0), validators(1))
+      val result       = runRolledBack(for {
+        currentType <- sql"SELECT label_type::text FROM label WHERE label_id = $labelId".as[String].head
+        earlierType = if (currentType == "CurbRamp") "NoCurbRamp" else "CurbRamp"
+        _      <- vote(labelId, v1, "Disagree", Some(earlierType))
+        _      <- vote(labelId, v2, "Agree")
+        _      <- labelTable.recalculateValidationCounts(Some(v1))
+        counts <- countsOf(labelId)
+      } yield counts)
+      result mustBe ((1, 0, 0, Some(true)))
     }
 
     "drop an excluded validator's votes, and only recount the labels that validator voted on" in {

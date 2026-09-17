@@ -60,11 +60,14 @@ object ValidatorType {
  * @param startTimestamp When the validation was started
  * @param endTimestamp When the validation was completed
  * @param source Source of the validation
+ * @param validatedLabelType The label's type when the vote was cast. Differs from labelType once the label's type has
+ *                           been changed since (#3671), and such a vote no longer counts toward the label's totals
  */
 case class ValidationDataForApi(
     labelValidationId: Int,
     labelId: Int,
     labelType: String,
+    validatedLabelType: String,
     validationResult: ValidationOption.Value,
     userId: String,
     validatorType: String,
@@ -98,6 +101,7 @@ object ValidationDataForApi extends ApiFields[ValidationDataForApi] {
     field("label_validation_id")(_.labelValidationId),
     field("label_id")(_.labelId),
     field("label_type")(_.labelType),
+    field("validated_label_type")(_.validatedLabelType),
     field("validation_result")(_.validationResult),
     field("user_id")(_.userId),
     field("validator_type")(_.validatorType),

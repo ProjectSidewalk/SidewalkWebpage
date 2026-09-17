@@ -119,6 +119,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
     return {
       getOriginalPov: () => ({heading: 10, pitch: 5, zoom: 1}),
       getAuditProperty: (key) => auditProps[key],
+      getProperty: (key) => (key === 'newLabelType' ? auditProps.labelType : undefined),
       getIconUrl: () => '/assets/fake-icon.svg',
       getIconColor: () => '#abcdef', // arbitrary test value, not a real label-type color
     };

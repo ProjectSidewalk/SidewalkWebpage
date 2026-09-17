@@ -90,6 +90,9 @@
         "unsure-button-3": "Ik weet niet zeker of hier een trottoir hoort te liggen.",
         "unsure-button-3-tooltip": "Soms is meer context nodig, en het is moeilijk om op basis van slechts één afbeelding te bepalen of een trottoir nodig is."
       }
+    },
+    "wrong-type": {
+      "header": "Welk type moet dit label zijn?"
     }
   },
   "center-ui": {

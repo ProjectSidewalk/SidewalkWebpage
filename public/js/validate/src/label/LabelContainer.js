@@ -387,7 +387,10 @@ class LabelContainer {
       pitch: labelMetadata.pitch,
       start_timestamp: labelMetadata.startTimestamp,
       validation_result: labelMetadata.validationResult,
+      // The type the validator saw, so the vote stays tied to it if the label's type changes later (#3671).
+      label_type: labelMetadata.oldLabelType,
       // What the validator wants the label to have; the server records an edit only if it differs from the label.
+      new_label_type: labelMetadata.newLabelType !== labelMetadata.oldLabelType ? labelMetadata.newLabelType : null,
       severity: labelMetadata.newSeverity,
       tags: labelMetadata.newTags,
       comment: commentData,

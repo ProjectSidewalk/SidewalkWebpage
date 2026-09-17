@@ -55,6 +55,7 @@ no.caps = Nein
 no.caps.shortcut = <u>N</u>ein
 unsure.caps = Unsicher
 unsure.caps.shortcut = <u>U</u>nsicher
+wrong.type.shortcut = Falscher <u>T</u>yp
 thanks = Danke!
 username = Benutzername
 loading = Laden...

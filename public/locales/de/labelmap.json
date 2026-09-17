@@ -174,5 +174,11 @@
       "photo-too-large": "Dieses Foto ist zu groß zum Hochladen.",
       "photo-invalid": "Wir konnten diese Datei nicht als Bild lesen (JPEG oder PNG)."
     }
-  }
+  },
+  "change-type": "Etikettentyp ändern",
+  "change-type-hint": "Tags, die nicht zum neuen Typ passen, werden entfernt. Eine Bewertung bleibt nur zwischen Typen erhalten, die gleich bewertet werden.",
+  "edit-type-changed": "Geändert zu {{labelType}}",
+  "edit-undo": "Rückgängig",
+  "edit-conflict-short": "Etikettentyp anderswo geändert",
+  "edit-conflict": "Der Typ dieses Etiketts wurde anderswo geändert, daher zeigt die Karte jetzt seinen aktuellen Stand."
 }

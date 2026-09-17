@@ -171,11 +171,12 @@ class ExpandedView {
   };
 
   /**
-   * Called by LabelDetail after a successful edit (#2575). Syncs the new severity and tags onto the small card.
-   * @param {{severity: ?number, tags: string[]}} meta - The label's metadata with its new severity and tags.
+   * Called by LabelDetail after a successful edit (#2575, #3671); syncs the small card.
+   * @param {{label_type: string, severity: ?number, tags: string[]}} meta - The label's metadata as it now stands.
    */
   #handleEdit = (meta) => {
     if (this.refCard) {
+      this.refCard.updateLabelType(meta.label_type);
       this.refCard.updateSeverityAndTags(meta.severity, meta.tags);
     }
   };

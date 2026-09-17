@@ -55,6 +55,7 @@ no.caps = Nee
 no.caps.shortcut = <u>N</u>ee
 unsure.caps = Onzeker
 unsure.caps.shortcut = Onzeker (<u>u</u>)
+wrong.type.shortcut = Verkeerd <u>t</u>ype
 thanks = Dank je wel!
 username = Gebruikersnaam
 loading = Laden...

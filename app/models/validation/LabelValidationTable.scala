@@ -19,9 +19,17 @@ import java.time.{LocalDate, OffsetDateTime}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
+/**
+ * One vote on a label.
+ *
+ * @param labelType The label's type when the vote was cast (#3671). The vote counts toward the label's agree/disagree/
+ *                  unsure counts only while this still equals `label.label_type`; after the type changes it stays as
+ *                  history and the label is validated afresh.
+ */
 case class LabelValidation(
     labelValidationId: Int,
     labelId: Int,
+    labelType: LabelTypeEnum.Base,
     validationResult: ValidationOption.Value,
     userId: String,
     missionId: Int,
@@ -58,6 +66,7 @@ case class ValidationCount(
 class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidation](tag, "label_validation") {
   def labelValidationId: Rep[Int]                   = column[Int]("label_validation_id", O.AutoInc)
   def labelId: Rep[Int]                             = column[Int]("label_id")
+  def labelType: Rep[LabelTypeEnum.Base]            = column[LabelTypeEnum.Base]("label_type")
   def validationResult: Rep[ValidationOption.Value] = column[ValidationOption.Value]("validation_result")
   def userId: Rep[String]                           = column[String]("user_id")
   def missionId: Rep[Int]                           = column[Int]("mission_id")
@@ -73,8 +82,8 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
   def source: Rep[UiSource]                         = column[UiSource]("source")
   def viewerType: Rep[ViewerType]                   = column[ViewerType]("viewer_type")
 
-  def * = (labelValidationId, labelId, validationResult, userId, missionId, canvasX, canvasY, heading, pitch, zoom,
-    canvasHeight, canvasWidth, startTimestamp, endTimestamp, source, viewerType) <> (
+  def * = (labelValidationId, labelId, labelType, validationResult, userId, missionId, canvasX, canvasY, heading, pitch,
+    zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, source, viewerType) <> (
     (LabelValidation.apply _).tupled,
     LabelValidation.unapply
   )
@@ -82,7 +91,12 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
   def label   = foreignKey("label_validation_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def user    = foreignKey("label_validation_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def mission = foreignKey("label_validation_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
-  def userLabelUnique = index("label_validation_user_id_label_id_unique", (userId, labelId), unique = true)
+  // One vote per user per label per type the label has had, so a re-vote after a type change adds rather than replaces.
+  def userLabelTypeUnique =
+    index("label_validation_user_id_label_id_label_type_key", (userId, labelId, labelType), unique = true)
+
+  /** Whether this vote still counts: it judged the type the label has now. */
+  def isCurrent(label: LabelTableDef): Rep[Boolean] = labelType === label.labelType
 
   // Serves the (label_id, user_id) vote lookup that label_comments_agg joins per comment (#5015). The DB index also
   // carries INCLUDE (validation_result) so that probe stays index-only -- Slick has no DSL for a covering column.
@@ -147,8 +161,12 @@ class LabelValidationTable @Inject() (
     labelsUnfiltered.filter(_.labelId inSetBind labelIds).map(_.userId).groupBy(x => x).map(_._1).result
   }
 
-  def getValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]] = {
-    validations.filter(x => x.labelId === labelId && x.userId === userId).result.headOption
+  /** The user's vote on the label as the given type, the one a new vote on that type replaces. */
+  def getValidation(labelId: Int, userId: String, labelType: LabelTypeEnum.Base): DBIO[Option[LabelValidation]] = {
+    validations
+      .filter(x => x.labelId === labelId && x.userId === userId && x.labelType === labelType)
+      .result
+      .headOption
   }
 
   /**
@@ -328,7 +346,7 @@ class LabelValidationTable @Inject() (
       .on(_.labelId === _.labelId)
       .join(sidewalkUserTable.sidewalkUserToRoleJoin)
       .on(_._1.userId === _._1.userId)
-      .groupBy { case ((v, l), (u, ur)) => (l.labelType, v.validationResult, ur.role === Role.Ai) }
+      .groupBy { case ((v, _), (_, ur)) => (v.labelType, v.validationResult, ur.role === Role.Ai) }
       .map { case ((labelType, valResult, isAi), group) =>
         (labelType.asColumnOf[String], valResult, isAi, group.length)
       }
@@ -464,6 +482,7 @@ class LabelValidationTable @Inject() (
       labelValidationId = validation.labelValidationId,
       labelId = validation.labelId,
       labelType = label.labelType.name,
+      validatedLabelType = validation.labelType.name,
       validationResult = validation.validationResult,
       userId = validation.userId,
       validatorType = ValidatorType.fromIsAi(role == Role.Ai),

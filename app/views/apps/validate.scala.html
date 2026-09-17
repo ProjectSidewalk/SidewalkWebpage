@@ -37,6 +37,7 @@
   <link rel="stylesheet" href='@assets.path("css/components/progress-bar.css")'>
   <link rel="stylesheet" href='@assets.path("css/components/pano-overlay-buttons.css")'>
   <link rel="stylesheet" href='@assets.path("css/components/tag-pills.css")'>
+  <link rel="stylesheet" href='@assets.path("css/components/label-type-picker.css")'>
 
   @common.missionStartTutorial()
   @common.panoInfoPopover()
@@ -169,12 +170,22 @@
       <div id="validation-menu-holder">
         <div id="main-validate-section" class="validation-menu-section button-section">
           <div id="main-validate-header" class="validation-menu-section-header">Is this a curb ramp?</div>
-          <div id="validation-button-holder">
+          <div id="validation-button-holder" class="@if(validateParams.adminVersion) {four-verdicts}">
             <button type="button" id="validate-yes-button"class="validate-page-button validate-button button-ps button--small">@Html(Messages("yes.caps.shortcut"))</button>
             <button type="button" id="validate-no-button"class="validate-page-button validate-button button-ps button--small">@Html(Messages("no.caps.shortcut"))</button>
             <button type="button" id="validate-unsure-button"class="validate-page-button validate-button button-ps button--small">@Html(Messages("unsure.caps.shortcut"))</button>
+            @* Experts' fourth verdict, stored as an Agree on the new type since only an admin's Agree carries an edit (#3671). *@
+            @if(validateParams.adminVersion) {
+              <button type="button" id="validate-wrong-type-button" class="validate-page-button validate-button button-ps button--small">@Html(Messages("wrong.type.shortcut"))</button>
+            }
           </div>
         </div>
+        @if(validateParams.adminVersion) {
+          <div id="validate-label-type-section" class="validation-menu-section">
+            <div id="validate-label-type-header" class="validation-menu-section-header" data-i18n="validate:validate-menu.wrong-type.header"></div>
+            <div id="label-type-picker" aria-labelledby="validate-label-type-header"></div>
+          </div>
+        }
         <div id="validate-tags-section" class="validation-menu-section">
           <div id="validate-tags-header" class="validation-menu-section-header">Add/remove tags</div>
           <div id="current-tags-list"></div>

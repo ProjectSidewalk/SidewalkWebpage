@@ -356,6 +356,10 @@
     "vote-failed": "Deine Stimme wurde nicht gespeichert. Bitte versuche es erneut."
   },
   "download-already-preparing": "Diese Datei wird bereits für eine andere Anfrage vorbereitet. Bitte versuchen Sie es gleich noch einmal.",
+  "label-type-picker": {
+    "current": "{{labelType}} (aktueller Typ)",
+    "change": "ändern"
+  },
   "access-score-spotlight": {
     "subtitle-regions": "Die Gehwege jedes Quartiers werden von unserem <a href=\"{{href}}\">AccessScore</a>-Algorithmus mit 0 bis 100 bewertet (100 ist am besten).",
     "subtitle-streets": "Die Gehwege jeder Straße werden von unserem <a href=\"{{href}}\">AccessScore</a>-Algorithmus mit 0 bis 100 bewertet (100 ist am besten).",

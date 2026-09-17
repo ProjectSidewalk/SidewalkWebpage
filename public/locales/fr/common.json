@@ -356,6 +356,10 @@
     "vote-failed": "Votre vote n'a pas été enregistré. Veuillez réessayer."
   },
   "download-already-preparing": "Ce fichier est déjà en cours de préparation pour une autre demande. Veuillez réessayer dans un instant.",
+  "label-type-picker": {
+    "current": "{{labelType}} (type actuel)",
+    "change": "modifier"
+  },
   "access-score-spotlight": {
     "subtitle-regions": "Les trottoirs de chaque quartier reçoivent une note de 0 à 100 avec notre algorithme <a href=\"{{href}}\">AccessScore</a> (100 est la meilleure).",
     "subtitle-streets": "Les trottoirs de chaque rue reçoivent une note de 0 à 100 avec notre algorithme <a href=\"{{href}}\">AccessScore</a> (100 est la meilleure).",
