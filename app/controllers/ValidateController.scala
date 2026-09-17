@@ -17,7 +17,13 @@ import models.auth.WithAdmin
 import models.label.{LabelTypeEnum, Tag}
 import models.mission.MissionType
 import models.user._
-import models.validation.{LabelValidation, ValidationTaskComment, ValidationTaskEnvironment, ValidationTaskInteraction}
+import models.validation.{
+  LabelValidation,
+  ValidationOption,
+  ValidationTaskComment,
+  ValidationTaskEnvironment,
+  ValidationTaskInteraction
+}
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json._
@@ -388,7 +394,11 @@ class ValidateController @Inject() (
         )
       })
       // Not waited on: the AI's old assessment was about the old type, and the nightly sweep can take days.
-      _ = data.validations.filter(_.newLabelType.isDefined).foreach(v => aiService.reassessAfterTypeChange(v.labelId))
+      _ = data.validations
+        .filter(v =>
+          v.newLabelType.isDefined && v.validationResult == ValidationOption.Agree && !v.undone && isAdmin(user)
+        )
+        .foreach(v => aiService.reassessAfterTypeChange(v.labelId))
 
       // Get data to return in POST response. Not much unless the mission is over and we need the next batch of labels.
       returnValue <- labelService.getDataForValidatePostRequest(user, data.missionProgress, data.validateParams)
@@ -582,7 +592,12 @@ class ValidateController @Inject() (
                 )
               )
             } yield {
-              if (newVal.newLabelType.isDefined) aiService.reassessAfterTypeChange(newVal.labelId)
+              if (
+                newVal.newLabelType.isDefined && newVal.validationResult == ValidationOption.Agree && !newVal.undone &&
+                isAdmin(request.identity)
+              ) {
+                aiService.reassessAfterTypeChange(newVal.labelId)
+              }
               Ok(Json.obj("status" -> "Success"))
             }
         }

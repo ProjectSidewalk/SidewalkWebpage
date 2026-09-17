@@ -117,6 +117,7 @@ function updateLabelType(map, mapData, labelId, labelType) {
     const i = features.findIndex((f) => f.properties.label_id === labelId);
     if (i === -1) continue;
     if (oldType === labelType) return;
+    if (!mapData.sortedLabels[labelType]) return; // A map built for a subset of types has nowhere to put it.
     const [feature] = features.splice(i, 1);
     feature.properties.label_type = labelType;
     mapData.sortedLabels[labelType]?.push(feature);

@@ -273,6 +273,7 @@ class LabelEditSpec
       val meta = route(app, FakeRequest(GET, s"/label/id/${target.labelId}").withCookies(session: _*)).get
       status(meta) mustBe OK
       (contentAsJson(meta) \ "can_edit").as[Boolean] mustBe false
+      (contentAsJson(meta) \ "can_change_type").as[Boolean] mustBe false
 
       val flipped = if (target.severity.contains(1)) 2 else 1
       status(postEdit(session, editBody(target.labelId, Some(flipped), target.tags))) mustBe FORBIDDEN
@@ -289,6 +290,7 @@ class LabelEditSpec
 
       val meta = route(app, FakeRequest(GET, s"/label/id/${target.labelId}").withCookies(session: _*)).get
       (contentAsJson(meta) \ "can_edit").as[Boolean] mustBe true
+      (contentAsJson(meta) \ "can_change_type").as[Boolean] mustBe true
 
       // First change: the severity. One standalone edit from the label's old state, with its history row.
       val flipped = if (target.severity.contains(1)) 2 else 1
@@ -322,6 +324,18 @@ class LabelEditSpec
   }
 
   "POST /label/edit with a new_label_type" should {
+    "403 a type change from a non-admin, whose own label it is or not" in {
+      val target               = pickTypeChangeLabel()
+      val other                = otherSeverityType(target.labelType)
+      val (userId, _, session) = signUpFreshUser()
+      val before               = fullState(target.labelId)
+
+      status(postEdit(session, typeEditBody(target.labelId, target.labelType, other, target.severity, target.tags)))
+        .mustBe(FORBIDDEN)
+      fullState(target.labelId) mustBe before
+      typeEditsBy(target.labelId, userId) mustBe empty
+    }
+
     "change the type, keep a same-scale severity, drop tags the new type lacks, recount votes, and refuse a stale client" in {
       val target               = pickTypeChangeLabel()
       val other                = otherSeverityType(target.labelType)

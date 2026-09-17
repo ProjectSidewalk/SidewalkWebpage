@@ -328,19 +328,25 @@ class DesktopValidationMenu {
   }
 
   #setYesView() {
-    const currLabel = svv.labelContainer.getCurrentLabel();
-    // A plain Agree is on the label's real type, so a type picked under "Wrong type" is dropped.
-    if (this.#typeChanged(currLabel)) this.#setNewLabelType(currLabel.getProperty('oldLabelType'), false);
+    this.#dropPickedType();
     this.#showVerdict(this.#menuUI.yesButton, [...this.#editSections(), 'optionalCommentSection']);
     this.#menuUI.submitButton.prop('disabled', false);
   }
 
+  /** Puts the label back on its own type, for a verdict that isn't "Wrong type" and so can't carry a new one. */
+  #dropPickedType() {
+    const currLabel = svv.labelContainer.getCurrentLabel();
+    if (this.#typeChanged(currLabel)) this.#setNewLabelType(currLabel.getProperty('oldLabelType'), false);
+  }
+
   #setNoView() {
+    this.#dropPickedType();
     this.#showVerdict(this.#menuUI.noButton, ['noMenu']);
     this.#menuUI.submitButton.prop('disabled', false);
   }
 
   #setUnsureView() {
+    this.#dropPickedType();
     this.#showVerdict(this.#menuUI.unsureButton, ['unsureMenu']);
     this.#menuUI.submitButton.prop('disabled', false);
   }
@@ -616,6 +622,9 @@ class DesktopValidationMenu {
     // type" verdict, so it jumps there instead of becoming a comment nobody acts on (#3671).
     if (svv.adminVersion && reasonInfo && 'newLabelType' in reasonInfo) {
       svv.tracker.push(`DisagreeReason_ToWrongType_Option=${id}`);
+      this.#disagreeReasonButtons.removeClass('chosen');
+      menuUI.disagreeReasonTextBox.removeClass('chosen');
+      currLabel.setProperty('disagreeOption', null);
       this.#setWrongTypeView();
       currLabel.setProperty('validationResult', 'Agree');
       if (reasonInfo.newLabelType) this.#setNewLabelType(reasonInfo.newLabelType);

@@ -96,6 +96,7 @@ class LabelDetail {
   #source = undefined;      // Set in showLabel().
   #readonly = false;        // Set per-label in #handleData() based on meta.from_current_user.
   #canEdit = false;         // Set per-label in #handleData() from meta.can_edit (#2575).
+  #canChangeType = false;   // Only admins may retype a label, which is narrower than #canEdit (#3671).
   #tagEditor;
   /** @type {?LabelTypePicker} Null on a host whose markup has no picker. */
   #typePicker = null;
@@ -150,9 +151,9 @@ class LabelDetail {
    * @param {(action: ?('Agree'|'Disagree'|'Unsure'), meta: object) => void} [opts.onVote] - Fired after a vote is
    *      successfully submitted, with null when the user cleared their vote (#4653). Hosts use this to sync upstream
    *      UI (e.g. recolor a Gallery card).
-   * @param {(meta: Record<string, any>) => void} [opts.onEdit] - Fired with the updated metadata after an edit to the label's
-   *      type, severity or tags is saved (#2575, #3671), so hosts that cache label data (Gallery's cards, the
-   *      LabelMap's layers) can stay in sync.
+   * @param {(meta: Record<string, any>) => void} [opts.onEdit] - Fired with the updated metadata after an edit to
+   *      the label's type, severity or tags is saved (#2575, #3671), so hosts that cache label data (Gallery's
+   *      cards, the LabelMap's layers) can stay in sync.
    * @param {string} [opts.panoOverlaySource] - Source recorded when voting via the pano overlay buttons.
    * @param {string} [opts.voteColumnSource] - Source recorded when voting via the column vote buttons.
    * @param {boolean} [opts.showLabelMapLink] - Show a footer link to this label on /labelMap (for hosts that
@@ -781,6 +782,7 @@ class LabelDetail {
     // The server decides who may edit (the labeler and admins, #2575); the card only mirrors its answer. Settled
     // before the lock is applied, since #applyEditLock() reads it.
     this.#canEdit = !!meta.can_edit;
+    this.#canChangeType = !!meta.can_change_type;
     if (this.#tagEditor.isOpen) this.#tagEditor.close(); // Paging away abandons an unfinished tag pick.
     this.#applyInteractionLock();
 
@@ -1593,9 +1595,9 @@ class LabelDetail {
       this.#setTagsEditLabel(this.#tagEditor.isOpen);
     }
     if (els.typeButton && this.#typePicker) {
-      els.typeButton.hidden = !this.#canEdit;
-      if (els.typeStatic) els.typeStatic.hidden = this.#canEdit;
-      els.typeButton.setAttribute('aria-disabled', String(this.#canEdit && !allowed));
+      els.typeButton.hidden = !this.#canChangeType;
+      if (els.typeStatic) els.typeStatic.hidden = this.#canChangeType;
+      els.typeButton.setAttribute('aria-disabled', String(this.#canChangeType && !allowed));
       LabelDetail.#setTooltip(els.typeButton, tip);
       if (!allowed) this.#setTypePickerOpen(false);
     }
@@ -2146,6 +2148,7 @@ class LabelDetail {
   async #saveEdit(change, meta) {
     if (!meta || !meta.can_edit) return;
     const labelType = change.labelType ?? meta.label_type;
+    if (labelType !== meta.label_type && !meta.can_change_type) return;
     const severity = Object.hasOwn(change, 'severity') ? change.severity : meta.severity;
     const tags = change.tags ?? meta.tags ?? [];
     const prev = { labelType: meta.label_type, severity: meta.severity ?? null, tags: meta.tags ?? [] };
@@ -2203,6 +2206,10 @@ class LabelDetail {
       render();
       if (conflict) {
         this.#showTypeConflictToast();
+        if (meta.label_type !== prev.labelType) {
+          if (typeof this.#onEdit === 'function') this.#onEdit(meta);
+          this.#refreshVotes(meta);
+        }
         return;
       }
       if (typeChange && !change.undo) {

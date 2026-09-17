@@ -97,7 +97,38 @@ ALTER TABLE label
   ADD CONSTRAINT label_unrated_no_severity_check
     CHECK (severity IS NULL OR label_type NOT IN ('Signal', 'NoSidewalk', 'Occlusion'));
 
+-- 5. The comment list pairs each comment with its writer's vote. A writer can now hold a vote per type (say they
+-- voted, an admin retyped the label, and they voted again), and 370's join would list their comment once per vote,
+-- so it takes the vote on the label's current type -- the only one that counts.
+CREATE OR REPLACE VIEW label_comments_agg AS
+SELECT validation_task_comment.label_id,
+       json_agg(json_build_object('username', sidewalk_user.username, 'comment', validation_task_comment.comment,
+                                  'time_created', validation_task_comment.timestamp,
+                                  'validation', label_validation.validation_result)
+                ORDER BY validation_task_comment.timestamp)::text AS comments
+FROM validation_task_comment
+INNER JOIN sidewalk_user ON validation_task_comment.user_id = sidewalk_user.user_id
+INNER JOIN label ON validation_task_comment.label_id = label.label_id
+LEFT JOIN label_validation ON validation_task_comment.label_id = label_validation.label_id
+    AND validation_task_comment.user_id = label_validation.user_id
+    AND label_validation.label_type = label.label_type
+GROUP BY validation_task_comment.label_id;
+
 # --- !Downs
+
+-- Back to 370's join, which is unique again once the votes above are gone.
+CREATE OR REPLACE VIEW label_comments_agg AS
+SELECT validation_task_comment.label_id,
+       json_agg(json_build_object('username', sidewalk_user.username, 'comment', validation_task_comment.comment,
+                                  'time_created', validation_task_comment.timestamp,
+                                  'validation', label_validation.validation_result)
+                ORDER BY validation_task_comment.timestamp)::text AS comments
+FROM validation_task_comment
+INNER JOIN sidewalk_user ON validation_task_comment.user_id = sidewalk_user.user_id
+LEFT JOIN label_validation ON validation_task_comment.label_id = label_validation.label_id
+    AND validation_task_comment.user_id = label_validation.user_id
+GROUP BY validation_task_comment.label_id;
+
 -- The severities nulled on unrated labels stay null.
 ALTER TABLE label DROP CONSTRAINT label_unrated_no_severity_check;
 
@@ -111,6 +142,10 @@ INNER JOIN label ON label.label_id = label_validation.label_id
 WHERE label_validation.label_type <> label.label_type;
 
 UPDATE label_ai_assessment
+SET label_validation_id = NULL
+WHERE label_validation_id IN (SELECT label_validation_id FROM stale_votes_395);
+
+UPDATE voided_label_history
 SET label_validation_id = NULL
 WHERE label_validation_id IN (SELECT label_validation_id FROM stale_votes_395);
 

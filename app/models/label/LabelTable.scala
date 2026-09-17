@@ -1228,9 +1228,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       escapedValidatorId
         .map { id =>
           s"""LEFT JOIN (
-             |    SELECT label_id, validation_result
+             |    SELECT label_id, validation_result, label_type
              |    FROM label_validation WHERE user_id = '$id'
-             |) AS user_validation ON lb.label_id = user_validation.label_id""".stripMargin
+             |) AS user_validation ON lb.label_id = user_validation.label_id
+             |    AND user_validation.label_type = lb.label_type""".stripMargin
         }
         .getOrElse("LEFT JOIN ( SELECT NULL AS validation_result ) AS user_validation ON lb.label_id = NULL")
 
@@ -1312,11 +1313,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           FROM label
       ) AS val ON lb1.label_id = val.label_id
       LEFT JOIN (
-          SELECT label_id, validation_result
+          SELECT label_validation.label_id, label_validation.validation_result, label_validation.label_type
           FROM label_validation
           INNER JOIN user_role ON label_validation.user_id = user_role.user_id
           WHERE user_role.role = 'AI'
-      ) AS ai_val ON lb1.label_id = ai_val.label_id
+      ) AS ai_val ON lb1.label_id = ai_val.label_id AND ai_val.label_type = lb1.label_type
       LEFT JOIN (
           SELECT validation_task_comment.label_id,
                  json_agg(json_build_object('username', sidewalk_user.username,
@@ -1326,8 +1327,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                           ORDER BY validation_task_comment.timestamp)::text AS comments
           FROM validation_task_comment
           INNER JOIN sidewalk_user ON validation_task_comment.user_id = sidewalk_user.user_id
+          LEFT JOIN label AS commented_label ON validation_task_comment.label_id = commented_label.label_id
           LEFT JOIN label_validation ON validation_task_comment.label_id = label_validation.label_id
               AND validation_task_comment.user_id = label_validation.user_id
+              AND label_validation.label_type = commented_label.label_type
           GROUP BY validation_task_comment.label_id
        ) AS comment ON lb1.label_id = comment.label_id
       WHERE #$labelFilter
@@ -1860,7 +1863,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       (((lb, lp, pd, labelType, regionId, isAiUser, aiv), uv), comments) <-
         _labelsFilteredByAiValidation
           .joinLeft(_userValidations)
-          .on(_._1.labelId === _.labelId)
+          // Only the vote cast on the type the label has now: votes on a type it lost don't count, and a validator
+          // who voted on both would otherwise list the label twice (#3671).
+          .on((l, v) => l._1.labelId === v.labelId && v.isCurrent(l._1))
           .joinLeft(commentsAggregated)
           .on(_._1._1.labelId === _.labelId)
     } yield (

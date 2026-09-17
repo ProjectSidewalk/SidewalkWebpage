@@ -121,7 +121,8 @@ function buildCard() {
 /** Label metadata in the shape `/label/id/:id` serves. */
 function meta(overrides = {}) {
   return {
-    label_id: 42, label_type: 'Obstacle', severity: 2, tags: ['pole'], can_edit: true, from_current_user: false,
+    label_id: 42, label_type: 'Obstacle', severity: 2, tags: ['pole'], can_edit: true, can_change_type: true,
+    from_current_user: false,
     description: '', pano_id: 'pano-1', lat: 47.61, lng: -122.33, camera_lat: 47.615, camera_lng: -122.335,
     heading: 250.5, pitch: -12, zoom: 2, canvas_x: 100, canvas_y: 200, street_edge_id: 7, region_id: 3,
     timestamp: '2026-08-01T12:00:00Z', image_capture_date: '2025-06-01', num_agree: 0, num_disagree: 0,
@@ -231,12 +232,17 @@ describe('changing a label\'s type from the card (#3671)', () => {
   });
 
   test('the title is a plain span for a viewer who may not edit, and a button for one who may', async () => {
-    await showLabel({ can_edit: false });
+    await showLabel({ can_edit: false, can_change_type: false });
     expect(typeButton().hidden).toBe(true);
     expect(q('.label-detail__type--static').hidden).toBe(false);
     expect(q('.label-detail__type--static .label-detail__type-name').textContent).toBe('common:obstacle');
 
-    await showLabel({ can_edit: true });
+    // A labeler may fix their own label's severity and tags, but retyping it is an admin's call (#3671).
+    await showLabel({ can_edit: true, can_change_type: false, from_current_user: true });
+    expect(typeButton().hidden).toBe(true);
+    expect(q('.label-detail__type--static').hidden).toBe(false);
+
+    await showLabel({ can_edit: true, can_change_type: true });
     expect(typeButton().hidden).toBe(false);
     expect(q('.label-detail__type--static').hidden).toBe(true);
     expect(typeButton().getAttribute('aria-label')).toBe('common:obstacle: labelmap:change-type');
@@ -347,7 +353,9 @@ describe('changing a label\'s type from the card (#3671)', () => {
       title: 'labelmap:edit-conflict-short', message: 'labelmap:edit-conflict',
     }));
     expect(typeStatus().textContent).toBe('');
-    expect(onEdit).not.toHaveBeenCalled();
+    // The label really is on a different type now, so the host and the vote counts have to hear about it.
+    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ label_id: 42, label_type: 'CurbRamp' }));
+    expect(window.fetch).toHaveBeenCalledWith('/label/id/42', expect.anything());
   });
 
   test('a rating edit also names the type shown, so the server can spot a card that fell behind', async () => {
