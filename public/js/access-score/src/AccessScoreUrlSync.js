@@ -15,7 +15,9 @@
 class AccessScoreUrlSync {
   static #WRITE_DELAY_MS = 300;
 
+  /** @type {AccessScoreModel} */
   #model;
+  /** @type {mapboxgl.Map} */
   #map;
   #writeTimer = null;
   #selection = null;

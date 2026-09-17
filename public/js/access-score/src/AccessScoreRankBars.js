@@ -19,6 +19,7 @@
  *
  * Callbacks: `onSelect(regionId)` on a click; `onHover(regionId)` and `onHoverEnd()` as the pointer or focus
  * rests on a row.
+ * @augments {AccessScoreChart<AccessScoreRankBarsData>}
  */
 class AccessScoreRankBars extends AccessScoreChart {
   #els = null;

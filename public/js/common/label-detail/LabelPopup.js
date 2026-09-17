@@ -30,9 +30,12 @@
  *   refresh it.
  * @param {boolean} [opts.showExploreHereLink] - Show the popup's "Explore here" footer link, which opens Explore at
  *     the shown label's pano and point of view (#4637).
- * @returns {Promise<LabelDetail & {setNearbyNavigator: (nav: {next: Function, prev: Function, hasPrev: Function,
- *     hasNext: Function, onRefresh: Function}) => void}>} Resolves with the LabelDetail, its showLabel() wrapped to
- *     open the dialog and page, once the dialog is wired; the pano viewer itself is built on the first showLabel().
+ * @returns {Promise<Omit<LabelDetail, 'showLabel'> & {showLabel: (labelId: number, source: string) => Promise<void>,
+ *     setNearbyNavigator: (nav: {next: (labelId: number) => ?number, prev: (labelId: number) => ?number,
+ *     hasPrev: (labelId: number) => boolean, hasNext: (labelId: number) => boolean,
+ *     onRefresh: (listener: () => void) => void}) => void}>} Resolves with the LabelDetail, its showLabel() replaced
+ *     by one that takes an id only and opens the dialog first, once the dialog is wired; the pano viewer itself is
+ *     built on the first showLabel().
  */
 async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, opts = {}) {
   const dialog = /** @type {HTMLDialogElement} */ (document.getElementById('label-modal'));
@@ -158,11 +161,12 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
 
   /**
    * Enables the prev/next arrows, stepping through labels via the given navigator (see nearbyLabelNavigator.js).
-   * @param {{next: Function, prev: Function, hasPrev: Function, hasNext: Function,
-   *     onRefresh: Function}} nav - Navigator over the host's label set. Its onRefresh is what keeps the arrows
-   *     honest on a host whose reachable set changes under them: LabelMap loads labels by viewport (#5002), so a
-   *     deep-linked popup opens over an empty set and has nowhere to page until the set fills (#5068), and its
-   *     sidebar filters narrow where "next" may land (#5124).
+   * @param {{next: (labelId: number) => ?number, prev: (labelId: number) => ?number,
+   *     hasPrev: (labelId: number) => boolean, hasNext: (labelId: number) => boolean,
+   *     onRefresh: (listener: () => void) => void}} nav - Navigator over the host's label set. Its onRefresh is what
+   *     keeps the arrows honest on a host whose reachable set changes under them: LabelMap loads labels by viewport
+   *     (#5002), so a deep-linked popup opens over an empty set and has nowhere to page until the set fills (#5068),
+   *     and its sidebar filters narrow where "next" may land (#5124).
    */
   const setNearbyNavigator = (nav) => {
     // Subscribe only for a navigator we haven't seen, so a repeat call can't stack duplicate recomputes.

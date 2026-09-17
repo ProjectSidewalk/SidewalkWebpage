@@ -18,6 +18,7 @@
  * The bar's segments wear the label card's own rating colors, so a "bad" segment reads the same here as on a
  * label, and the scale runs the right way per type (a 3 is a bad curb ramp and a severe obstacle). Bar lengths are
  * relative to the largest row in view. The rows only read: the map's dots are the map's business.
+ * @augments {AccessScoreChart<AccessScoreWhatsHereData>}
  */
 class AccessScoreWhatsHere extends AccessScoreChart {
   #els = null;

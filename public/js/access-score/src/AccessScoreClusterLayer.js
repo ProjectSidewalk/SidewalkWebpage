@@ -4,13 +4,15 @@
  * @typedef {object} AccessScoreClusterProps
  * @property {number} label_cluster_id
  * @property {string} label_type
- * @property {?number} street_edge_id - The street the cluster is attributed to, or null.
- * @property {?number} intersection_id - The crossing it is attributed to instead, or null.
+ * @property {number} street_edge_id - The street the cluster sits on.
+ * @property {?number} intersection_id - The crossing a corner-type cluster scores toward, or null when the cluster
+ *     scores the street's segment.
  * @property {?number} median_severity - The labels' median rating, 1–3, or null for an unrated type.
  * @property {number} agree_count
  * @property {number} disagree_count
  * @property {number} cluster_size - How many labels the cluster holds.
- * @property {number[]} label_ids - Those labels' ids.
+ * @property {number[]} [label_ids] - Those labels' ids. This and the two below are absent only when the layer
+ *     could not parse them back out of Mapbox's tiles (see `#props`).
  * @property {string[]} [users] - The ids of the users who placed them.
  * @property {Record<string, number>} [tag_counts] - Labels per tag.
  */
@@ -49,7 +51,7 @@ class AccessScoreClusterLayer {
   /**
    * @param {mapboxgl.Map} map - A loaded Mapbox map.
    * @param {object} options - Data and callbacks.
-   * @param {Array<string>} options.types - The scored label types, in the engine's order (bottom layer first).
+   * @param {string[]} options.types - The scored label types, in the engine's order (bottom layer first).
    * @param {(props: AccessScoreClusterProps) => ?string} options.tooltipHtml - Called with a cluster's
    *   `properties`; returns tooltip HTML or null.
    * @param {(props: AccessScoreClusterProps) => void} options.onSelect - Called with a cluster's `properties` on a

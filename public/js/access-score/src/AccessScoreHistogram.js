@@ -26,6 +26,7 @@
  *
  * Callbacks: `onBrush({from, to, final})` (bin indices, `to` exclusive; null to clear), `onHover(bin)` and
  * `onHoverEnd()` for the pointer or focus resting on a bin.
+ * @augments {AccessScoreChart<AccessScoreHistogramData>}
  */
 class AccessScoreHistogram extends AccessScoreChart {
   #els = null;

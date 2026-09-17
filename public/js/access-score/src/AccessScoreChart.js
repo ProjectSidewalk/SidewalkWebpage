@@ -8,6 +8,9 @@
  * Base for the views in the AccessScore insights dock (#5217): a container, the callbacks a view reports through,
  * and the render/update split that keeps a slider drag cheap.
  *
+ * Generic over the view's data, so a subclass declares `@augments {AccessScoreChart<ItsData>}` and the dock's
+ * `draw` calls are checked against that shape.
+ *
  * `draw(data)` compares `data.shapeKey` with the last one drawn and calls `render` — a full DOM rebuild, for a new
  * unit, scope, or roster — only when it changed; otherwise `update`, which subclasses keep to writes of
  * `style.width`, `style.backgroundColor`, class toggles, and `textContent` on nodes cached at render. The dock is
@@ -16,6 +19,7 @@
  * The views are hand-rolled HTML rather than a chart library: the page already carries Mapbox GL and a pano SDK,
  * and every datum here is a named, focusable element in its own right, which is also why there is no separate
  * table view — the chart *is* readable without color or a pointer.
+ * @template {AccessScoreChartData} [T=AccessScoreChartData]
  */
 class AccessScoreChart {
   #container;
@@ -39,8 +43,7 @@ class AccessScoreChart {
 
   /**
    * Draws the data, rebuilding the DOM only when its shape changed.
-   * @param {AccessScoreChartData} data - View data; `shapeKey` names the shape (unit, scope, roster) it was
-   *   computed for.
+   * @param {T} data - View data; `shapeKey` names the shape (unit, scope, roster) it was computed for.
    */
   draw(data) {
     if (data.shapeKey !== this.#shapeKey) {
@@ -53,7 +56,7 @@ class AccessScoreChart {
 
   /**
    * Full DOM rebuild. Subclasses cache the nodes `update` writes to here.
-   * @param {AccessScoreChartData} data - View data.
+   * @param {T} data - View data.
    */
   render(data) { // eslint-disable-line no-unused-vars
     throw new Error('render() is abstract');
@@ -61,7 +64,7 @@ class AccessScoreChart {
 
   /**
    * A cheap redraw over the DOM `render` built: values, widths, colors, states — never structure.
-   * @param {AccessScoreChartData} data - View data of the same shape as the last render.
+   * @param {T} data - View data of the same shape as the last render.
    */
   update(data) { // eslint-disable-line no-unused-vars
     throw new Error('update() is abstract');

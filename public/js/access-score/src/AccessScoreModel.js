@@ -11,8 +11,8 @@
  * @property {Record<string, number>} quality_multiplier - Per bucket, for a `positive_quality` type.
  * @property {Record<string, number>} severity_multiplier - Per bucket, for a `negative_severity` type.
  * @property {number} street_condition_saturation_count - Clusters at which a `street_condition` type's term is full.
- * @property {{per_meters: number, min_length_meters: number}} [length_normalization] - Absent from an engine before
- *     #5095, which then scales nothing by length.
+ * @property {{per_meters: number, min_length_meters: number}} [length_normalization] - Optional because the model
+ *     scores without it (nothing scaled by length), which the parity tests rely on.
  * @property {Record<string, Record<string, number>>} presets - Weight magnitude per type, by preset id; `default`
  *     is the engine's own.
  * @property {?string} clusters_updated_at - When the clusters were last rebuilt (ISO 8601), or null for never.
