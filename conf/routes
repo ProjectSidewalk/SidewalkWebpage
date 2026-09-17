@@ -84,7 +84,7 @@ DELETE  /adminapi/streets/:streetEdgeId/reopenCandidate controllers.AdminDashboa
 GET     /adminapi/imageryFreshness                      controllers.AdminDashboardController.getImageryFreshness(days: Int ?= service.ImageryFreshnessReportService.DefaultDays)
 GET     /adminapi/streetPriority                        controllers.AdminDashboardController.getStreetPriority
 GET     /adminapi/team/:teamId                          controllers.AdminDashboardController.getTeamOverview(teamId: Int)
-GET     /adminapi/userSearch                            controllers.AdminDashboardController.searchUsers(query: String, limit: Int ?= controllers.AdminDashboardController.MaxUserSearchResults)
+GET     /adminapi/userSearch                            controllers.AdminDashboardController.searchUsers(query: String ?= "", limit: Int ?= controllers.AdminDashboardController.MaxUserSearchResults)
 GET     /adminapi/auditedStreetTimes                    controllers.AdminController.getAuditedStreetsWithTimestamps
 GET     /adminapi/labels/all                            controllers.AdminController.getAllLabels
 GET     /adminapi/labelTags                             controllers.AdminController.getTagCounts

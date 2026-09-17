@@ -46,7 +46,7 @@ class ManagementPage {
 
   async init() {
     try {
-      const data = await this.#fetchJson(this.#urls.userStatsUrl);
+      const data = await AdminShell.fetchJson(this.#urls.userStatsUrl);
       this.#users = (data && data.user_stats) || [];
       this.#teams = (data && data.teams) || [];
       this.#teamsByName = new Map(this.#teams.map((t) => [t.name, t]));
@@ -83,10 +83,11 @@ class ManagementPage {
         help: 'Whether this contributor is flagged high-quality. "manual" means an admin set it by hand.' },
       { key: 'ownValidatedAgreedPct', label: 'Labeling accuracy', align: 'right',
         sort: (u) => u.ownValidatedAgreedPct || 0,
-        help: 'Share of this user’s own labels that other people agreed with when validating them.' },
-      { key: 'signUpTime', label: 'Signed up', align: 'right', sort: (u) => ManagementPage.#ts(u.signUpTime) },
+        help: 'Share of this user’s own labels that other people agreed with when validating them '
+          + '(with how many were validated).' },
+      { key: 'signUpTime', label: 'Signed up', align: 'right', sort: (u) => AdminShell.ts(u.signUpTime) },
       { key: 'lastSignInTime', label: 'Last sign-in', align: 'right',
-        sort: (u) => ManagementPage.#ts(u.lastSignInTime) },
+        sort: (u) => AdminShell.ts(u.lastSignInTime) },
       { key: 'signInCount', label: 'Sign-ins', align: 'right', sort: (u) => u.signInCount || 0 },
     ];
   }
@@ -280,7 +281,7 @@ class ManagementPage {
     const previous = user ? user.role : null;
     const newRole = sel.value;
     try {
-      const res = await this.#mutate(this.#urls.setRoleUrl, 'PUT', { user_id: userId, role_id: newRole });
+      const res = await AdminShell.mutate(this.#urls.setRoleUrl, 'PUT', { user_id: userId, role_id: newRole });
       if (user) user.role = res.role || newRole;
       this.#flash(`Set ${user ? user.username : userId} to ${newRole}.`);
     } catch (err) {
@@ -296,7 +297,7 @@ class ManagementPage {
     const teamId = parseInt(sel.value, 10);
     const team = this.#teams.find((t) => t.teamId === teamId);
     try {
-      await this.#mutate(`${this.#urls.setTeamUrl}?userId=${encodeURIComponent(userId)}&teamId=${teamId}`, 'PUT');
+      await AdminShell.mutate(`${this.#urls.setTeamUrl}?userId=${encodeURIComponent(userId)}&teamId=${teamId}`, 'PUT');
       if (user) user.team = team ? team.name : user.team;
       this.#flash(`Assigned ${user ? user.username : userId} to ${team ? team.name : `team ${teamId}`}.`);
     } catch (err) {
@@ -350,7 +351,7 @@ class ManagementPage {
 
   async #toggleTeam(btn, teamId, baseUrl, field, next, onLabel, offLabel) {
     try {
-      await this.#mutate(`${baseUrl}/${teamId}`, 'PUT', { [field]: next });
+      await AdminShell.mutate(`${baseUrl}/${teamId}`, 'PUT', { [field]: next });
       const team = this.#teams.find((t) => t.teamId === teamId);
       if (team) team[field === 'open' ? 'open' : 'visible'] = next;
       ManagementPage.#setToggle(btn, next, onLabel, offLabel);
@@ -377,7 +378,7 @@ class ManagementPage {
         btn.disabled = true;
         this.#maintResult(`Running: ${label}…`);
         try {
-          await this.#mutate(url, method);
+          await AdminShell.mutate(url, method);
           this.#maintResult(done);
         } catch (err) {
           this.#maintResult(`Failed: ${label} — ${err.message}`, true);
@@ -410,32 +411,6 @@ class ManagementPage {
   }
 
   // --- Networking + helpers ---------------------------------------------------------------------------------------
-
-  async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
-  }
-
-  /**
-   * Fires a mutation request and resolves to the parsed JSON (or {} for empty bodies). Throws an Error carrying the
-   * server's message on a non-2xx response so callers can revert the control and surface why.
-   */
-  async #mutate(url, method, body) {
-    const opts = { method, headers: { Accept: 'application/json' } };
-    if (body !== undefined) {
-      opts.headers['Content-Type'] = 'application/json; charset=utf-8';
-      opts.body = JSON.stringify(body);
-    }
-    const resp = await fetch(url, opts);
-    const text = await resp.text();
-    if (!resp.ok) throw new Error(text || `HTTP ${resp.status}`);
-    try {
-      return text ? JSON.parse(text) : {};
-    } catch {
-      return {};
-    }
-  }
 
   #flash(message, isError = false) {
     this.#setStatus(message, isError, false);
@@ -500,12 +475,6 @@ class ManagementPage {
   static #pctFactor(rows, field) {
     const maxVal = rows.reduce((m, u) => Math.max(m, u[field] || 0), 0);
     return maxVal <= 1 ? 100 : 1;
-  }
-
-  static #ts(iso) {
-    if (!iso) return 0;
-    const t = Date.parse(iso);
-    return isNaN(t) ? 0 : t;
   }
 
   static #date(iso) {

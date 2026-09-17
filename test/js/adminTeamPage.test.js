@@ -118,6 +118,13 @@ describe('the member table', () => {
     expect(rows().map((r) => r[0])).toEqual(['bo', 'ada']);
   });
 
+  test('does not make the Remove column sortable', async () => {
+    await load();
+    expect(document.querySelector('.mgmt-sort[data-key="actions"]')).toBeNull();
+    const headers = Array.from(document.querySelectorAll('#team-members thead th')).map((th) => th.textContent.trim());
+    expect(headers[headers.length - 1]).toBe('Remove');
+  });
+
   test('links each member to their admin profile', async () => {
     await load();
     expect(document.querySelector('#team-members a').getAttribute('href')).toBe('/admin/user/ada');
@@ -154,11 +161,40 @@ describe('the roster controls', () => {
     expect(calls.some((c) => c.url === '/userapi/setUserTeam?userId=u3&teamId=7' && c.method === 'PUT')).toBe(true);
   });
 
+  test('clearing the search box drops a response still in flight', async () => {
+    await load();
+    // Held open by hand, so the box is cleared while the request is genuinely outstanding.
+    let release;
+    global.fetch = jest.fn((url) => (url.startsWith('/adminapi/userSearch')
+      ? new Promise((resolve) => {
+        release = () => resolve({ ok: true, json: () => Promise.resolve([
+          { user_id: 'u3', username: 'cyd', email: 'cyd@example.org', role: 'Registered', team: null },
+        ]) });
+      })
+      : Promise.resolve({ ok: true, json: () => Promise.resolve(OVERVIEW) })));
+
+    await search('cyd');
+    expect(release).toBeInstanceOf(Function);
+    await search('');
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.getElementById('team-add-results').innerHTML).toBe('');
+  });
+
   test('a search result already on this team offers no Add button', async () => {
     await load();
     await search('a');
     expect(document.querySelector('.team-add[data-user-id="u1"]')).toBeNull();
     expect(document.querySelector('.team-add[data-user-id="u3"]')).not.toBeNull();
+  });
+
+  test('leaves the confirmation on the status line after the reload it triggers', async () => {
+    await load();
+    document.querySelector('.team-remove[data-user-id="u1"]').click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const status = document.getElementById('team-status');
+    expect(status.textContent).toBe('Removed ada from this team.');
+    expect(status.classList.contains('hidden')).toBe(false);
   });
 
   test('the status toggle flips the button and tells the server', async () => {

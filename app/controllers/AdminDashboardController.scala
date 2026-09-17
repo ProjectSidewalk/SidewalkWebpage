@@ -5,9 +5,7 @@ import formats.json.UserFormats._
 import models.auth.{WithAdmin, WithOwner}
 import play.api.Configuration
 import models.street.StreetPriorityForAdmin
-import play.api.i18n.Messages
 import play.api.libs.json.Json
-import play.api.mvc.Result
 import service.HealthService.dbHealthDataWrites
 import service.{
   ConfigService,
@@ -217,26 +215,14 @@ class AdminDashboardController @Inject() (
    * @param teamId The team to show; 404 if no team has that id.
    */
   def team(teamId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    userService.findTeamByIdOrName(teamId.toString).flatMap {
-      case None           => Future.successful(teamNotFound(request.path))
+    userService.findTeam(teamId).flatMap {
+      case None           => Future.successful(notFoundPage(request.path))
       case Some(teamData) =>
         configService.getCommonPageData(request2Messages.lang).map { commonData =>
           cc.loggingService.insert(request.identity.userId, request.ipAddress, s"Visit_Admin_Team_Team=$teamId")
           Ok(views.html.admin.dashboard.team(commonData, request.identity, teamData))
         }
     }
-  }
-
-  /** The same branded 404 the admin user pages render for a name that matches no account. */
-  private def teamNotFound(path: String)(implicit messages: Messages): Result = {
-    NotFound(
-      views.html.errors.errorPage(
-        NOT_FOUND,
-        Messages("error.404.heading"),
-        Messages("error.404.message"),
-        requestedPath = Some(path)
-      )
-    )
   }
 
   /**

@@ -507,6 +507,7 @@ trait UserService {
   def getAllTeams: Future[Seq[Team]]
   def getAllOpenTeams: Future[Seq[Team]]
   def findTeamByIdOrName(idOrName: String): Future[Option[Team]]
+  def findTeam(teamId: Int): Future[Option[Team]]
 
   /**
    * @param teamId The team to describe.
@@ -808,6 +809,8 @@ class UserServiceImpl @Inject() (
 
   def findTeamByIdOrName(idOrName: String): Future[Option[Team]] = db.run(teamTable.findByIdOrName(idOrName))
 
+  def findTeam(teamId: Int): Future[Option[Team]] = db.run(teamTable.find(teamId))
+
   def searchUsers(query: String, limit: Int): Future[Seq[UserSearchResult]] = {
     if (query.trim.isEmpty) Future.successful(Seq())
     else {
@@ -817,15 +820,16 @@ class UserServiceImpl @Inject() (
   }
 
   def getTeamOverview(teamId: Int): Future[Option[TeamOverview]] = {
-    db.run(teamTable.find(teamId)).flatMap {
-      case None       => Future.successful(None)
+    val overview: DBIO[Option[TeamOverview]] = teamTable.find(teamId).flatMap {
+      case None       => DBIO.successful(None): DBIO[Option[TeamOverview]]
       case Some(team) =>
-        db.run(userTeamTable.getMembers(teamId)).flatMap { members =>
+        userTeamTable.getMembers(teamId).flatMap { members =>
           val userIds: Seq[String] = members.map(_._1)
-          // An empty team has no ids to look anything up by, and `inSet Nil` is a query that can only return nothing.
-          if (userIds.isEmpty) Future.successful(Some(TeamOverview(team, Seq(), TeamTotals(0, 0, 0, 0d, 0, 0))))
-          else {
-            db.run(for {
+          // `inSet Nil` is a query that can only return nothing, so an empty team skips the five stat queries.
+          if (userIds.isEmpty) {
+            DBIO.successful(Some(TeamOverview(team, Seq(), TeamTotals(0, 0, 0, 0d, 0, 0)))): DBIO[Option[TeamOverview]]
+          } else {
+            for {
               labelCounts      <- labelTable.countLabelsAndLatestByUsers(userIds)
               validationCounts <- labelValidationTable.countValidationsAndLatestByUsers(userIds)
               distances        <- auditTaskTable.getDistanceAuditedByUsers(userIds)
@@ -844,9 +848,7 @@ class UserServiceImpl @Inject() (
                   val (validations, lastVal)    = validationsByUser.getOrElse(userId, (0, None))
                   val (labelsValidated, agreed) = judgedByUser.getOrElse(userId, (0, 0))
                   // No user_stat row means they've never visited this city; read that as the default good standing.
-                  val (highQuality, excluded)            = qualityByUser.getOrElse(userId, (true, false))
-                  val lastActive: Option[OffsetDateTime] =
-                    Seq(lastLabel, lastVal).flatten.sortWith(_.isAfter(_)).headOption
+                  val (highQuality, excluded) = qualityByUser.getOrElse(userId, (true, false))
                   TeamMemberStats(
                     userId,
                     username,
@@ -856,7 +858,7 @@ class UserServiceImpl @Inject() (
                     distanceByUser.getOrElse(userId, 0d),
                     labelsValidated,
                     agreed,
-                    lastActive,
+                    Seq(lastLabel, lastVal).flatten.reduceOption((a, b) => if (a.isAfter(b)) a else b),
                     highQuality,
                     excluded
                   )
@@ -872,10 +874,11 @@ class UserServiceImpl @Inject() (
                 labelsAgreed = rows.map(_.labelsAgreed).sum
               )
               Some(TeamOverview(team, rows, totals))
-            })
+            }
           }
         }
     }
+    db.run(overview)
   }
 
   def createTeam(name: String, description: String): Future[Int] = db.run(teamTable.insert(name, description))

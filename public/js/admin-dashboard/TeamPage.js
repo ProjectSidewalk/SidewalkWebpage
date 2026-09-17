@@ -28,19 +28,30 @@ class TeamPage {
   }
 
   async init() {
-    this.#wireMembers();
-    this.#wireHeaderToggles();
-    this.#wireSearch();
+    try {
+      this.#wireMembers();
+      this.#wireHeaderToggles();
+      this.#wireSearch();
+    } catch (err) {
+      console.error('Team page failed to wire up:', err);
+      this.#setStatus('This page did not load correctly. Please reload.', true);
+      return;
+    }
     await this.#load();
   }
 
-  async #load() {
+  /**
+   * @param {string} [message] - What to leave on the status line afterwards; hidden when absent. A roster change
+   *                             passes its confirmation here, since clearing the line would erase it a moment later.
+   */
+  async #load(message) {
     try {
-      const data = await TeamPage.#fetchJson(`${this.#urls.overviewUrl}/${this.#teamId}`);
+      const data = await AdminShell.fetchJson(`${this.#urls.overviewUrl}/${this.#teamId}`);
       this.#members = (data && data.members) || [];
       this.#renderStats((data && data.totals) || {});
       this.#renderMembers();
-      this.#setStatus('', false, true);
+      if (message) this.#setStatus(message, false);
+      else this.#setStatus('', false, true);
     } catch (err) {
       console.error('Team page failed to load:', err);
       this.#setStatus('Could not load this team. Please try again.', true);
@@ -64,9 +75,9 @@ class TeamPage {
   // --- Members ------------------------------------------------------------------------------------------------------
 
   /**
-   * `sort` extracts the value the column orders by; `help` becomes a header tooltip.
+   * A column with no `sort` isn't sortable; `help` becomes a header tooltip.
    *
-   * @returns {Array<{key: string, label: string, align: string, sort: Function, help?: string}>} The columns.
+   * @returns {Array<{key: string, label: string, align: string, sort?: Function, help?: string}>} The columns.
    */
   #columns() {
     return [
@@ -77,18 +88,20 @@ class TeamPage {
       { key: 'distance_meters', label: 'Distance explored', align: 'right', sort: (m) => m.distance_meters || 0 },
       { key: 'accuracy', label: 'Labeling accuracy', align: 'right',
         sort: (m) => (m.labels_validated ? m.labels_agreed / m.labels_validated : -1),
-        help: 'Share of this member’s own labels that other people agreed with when validating them.' },
-      { key: 'last_active', label: 'Last active', align: 'right', sort: (m) => TeamPage.#ts(m.last_active),
+        help: 'Share of this member’s own labels that other people agreed with when validating them '
+          + '(with how many were judged).' },
+      { key: 'last_active', label: 'Last active', align: 'right', sort: (m) => AdminShell.ts(m.last_active),
         help: 'The later of their last label and their last validation.' },
       { key: 'high_quality', label: 'Quality', align: 'left', sort: (m) => (m.high_quality ? 1 : 0),
         help: 'The user’s quality flag. An excluded user’s work is left out of this city’s stats.' },
-      { key: 'actions', label: 'Remove', align: 'left', sort: () => 0 },
+      // Unsortable: it holds buttons, and a header click would throw away the chosen order for no ordering.
+      { key: 'actions', label: 'Remove', align: 'left' },
     ];
   }
 
   #sortedMembers() {
     const cols = this.#columns();
-    const col = cols.find((c) => c.key === this.#sort.key) || cols[0];
+    const col = cols.find((c) => c.key === this.#sort.key && c.sort) || cols[0];
     const dir = this.#sort.dir === 'asc' ? 1 : -1;
     return this.#members.slice().sort((a, b) => {
       const av = col.sort(a);
@@ -107,10 +120,11 @@ class TeamPage {
     }
     const cols = this.#columns();
     const headCells = cols.map((c) => {
+      const title = c.help ? ` title="${AdminShell.esc(c.help)}"` : '';
+      if (!c.sort) return `<th scope="col"${title}>${AdminShell.esc(c.label)}</th>`;
       const isSorted = c.key === this.#sort.key;
       const ariaSort = isSorted ? (this.#sort.dir === 'asc' ? 'ascending' : 'descending') : 'none';
       const arrow = isSorted ? (this.#sort.dir === 'asc' ? ' ▲' : ' ▼') : '';
-      const title = c.help ? ` title="${AdminShell.esc(c.help)}"` : '';
       return `<th scope="col" class="mgmt-th${c.align === 'right' ? ' num' : ''}" aria-sort="${ariaSort}"${title}>`
         + `<button type="button" class="mgmt-sort" data-key="${c.key}">${AdminShell.esc(c.label)}`
         + `<span class="mgmt-arrow">${arrow}</span></button></th>`;
@@ -178,9 +192,8 @@ class TeamPage {
     });
     if (!confirmed) return;
     try {
-      await TeamPage.#mutate(`${this.#urls.leaveTeamUrl}?userId=${encodeURIComponent(userId)}`, 'PUT');
-      this.#setStatus(`Removed ${username} from this team.`, false);
-      await this.#load();
+      await AdminShell.mutate(`${this.#urls.leaveTeamUrl}?userId=${encodeURIComponent(userId)}`, 'PUT');
+      await this.#load(`Removed ${username} from this team.`);
     } catch (err) {
       this.#setStatus(`Could not remove ${username}: ${err.message}`, true);
     }
@@ -206,14 +219,15 @@ class TeamPage {
   /** @param {string} query - What the admin has typed; a blank box clears the results rather than listing everyone. */
   async #search(query) {
     const results = document.getElementById('team-add-results');
+    // Bumped even for a cleared box, so a response already in flight can't repaint results the admin just dismissed.
+    const seq = ++this.#searchSeq;
     if (!query.trim()) {
       results.innerHTML = '';
       return;
     }
-    const seq = ++this.#searchSeq;
     try {
       const url = `${this.#urls.userSearchUrl}?query=${encodeURIComponent(query)}`;
-      const matches = await TeamPage.#fetchJson(url);
+      const matches = await AdminShell.fetchJson(url);
       if (seq !== this.#searchSeq) return;
       this.#renderSearchResults(matches || []);
     } catch (err) {
@@ -280,9 +294,8 @@ class TeamPage {
     }
     try {
       const url = `${this.#urls.setTeamUrl}?userId=${encodeURIComponent(userId)}&teamId=${this.#teamId}`;
-      await TeamPage.#mutate(url, 'PUT');
-      this.#setStatus(`Added ${username} to this team.`, false);
-      await this.#load();
+      await AdminShell.mutate(url, 'PUT');
+      await this.#load(`Added ${username} to this team.`);
       // Re-run the search so the row the admin just acted on shows as a member instead of offering Add again.
       const input = /** @type {HTMLInputElement} */ (document.getElementById('team-add-search'));
       await this.#search(input.value);
@@ -305,7 +318,7 @@ class TeamPage {
       btn.addEventListener('click', async () => {
         const next = btn.getAttribute('data-on') !== 'true';
         try {
-          await TeamPage.#mutate(`${t.url}/${this.#teamId}`, 'PUT', { [t.field]: next });
+          await AdminShell.mutate(`${t.url}/${this.#teamId}`, 'PUT', { [t.field]: next });
           btn.setAttribute('data-on', String(next));
           btn.setAttribute('aria-pressed', String(next));
           btn.classList.toggle('is-on', next);
@@ -320,36 +333,6 @@ class TeamPage {
   }
 
   // --- Networking + helpers -----------------------------------------------------------------------------------------
-
-  static async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
-  }
-
-  /**
-   * Throws an Error carrying the server's message on a non-2xx response, so the caller can say why it didn't happen.
-   *
-   * @param {string} url - Endpoint to call.
-   * @param {string} method - HTTP method.
-   * @param {object} [body] - JSON body, when the endpoint takes one.
-   * @returns {Promise<any>} The parsed response body, or {} for an empty one.
-   */
-  static async #mutate(url, method, body) {
-    const opts = { method, headers: { Accept: 'application/json' } };
-    if (body !== undefined) {
-      opts.headers['Content-Type'] = 'application/json; charset=utf-8';
-      opts.body = JSON.stringify(body);
-    }
-    const resp = await fetch(url, opts);
-    const text = await resp.text();
-    if (!resp.ok) throw new Error(text || `HTTP ${resp.status}`);
-    try {
-      return text ? JSON.parse(text) : {};
-    } catch {
-      return {};
-    }
-  }
 
   /**
    * @param {string} message - What to show; empty clears the line.
@@ -409,15 +392,5 @@ class TeamPage {
     if (!member.excluded) return badge;
     return `${badge} <span class="mgmt-manual-tag" `
       + `title="This user's work is excluded from the city's stats">excluded</span>`;
-  }
-
-  /**
-   * @param {string} iso - An ISO timestamp, or null.
-   * @returns {number} Epoch millis for sorting; 0 for an absent or unparseable timestamp.
-   */
-  static #ts(iso) {
-    if (!iso) return 0;
-    const t = Date.parse(iso);
-    return isNaN(t) ? 0 : t;
   }
 }

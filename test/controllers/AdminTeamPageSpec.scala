@@ -157,9 +157,22 @@ class AdminTeamPageSpec extends PlaySpec with RoleSession with GuiceOneAppPerSui
       hit.map(row => (row \ "team").asOpt[String]).flatten mustBe defined
     }
 
-    "refuse a non-admin" in {
+    "treat a LIKE wildcard as literal text rather than matching everyone" in {
+      // A bare `%` is every account if the metacharacter reaches SQL unescaped; no username contains a literal one.
+      val resp = route(app, FakeRequest(GET, "/adminapi/userSearch?query=%25").withCookies(adminCookies: _*)).get
+      status(resp) mustBe OK
+      contentAsJson(resp).as[JsArray].value mustBe empty
+    }
+
+    "refuse a non-admin at the auth guard, not the parameter binder" in {
       val resp = route(app, FakeRequest(GET, "/adminapi/userSearch?query=a").withCookies(memberCookies: _*)).get
       status(resp) must not be OK
+      status(resp) must not be BAD_REQUEST
+    }
+
+    "refuse an anonymous request with no query param at all" in {
+      val resp = route(app, FakeRequest(GET, "/adminapi/userSearch")).get
+      status(resp) must not be BAD_REQUEST
     }
   }
 }
