@@ -61,6 +61,8 @@ class SidewalkUserTable @Inject() (
   val sidewalkUser           = TableQuery[SidewalkUserTableDef]
   val userRole               = TableQuery[UserRoleTableDef]
   val userSettings           = TableQuery[UserSettingsTableDef]
+  val userTeam               = TableQuery[UserTeamTableDef]
+  val team                   = TableQuery[TeamTableDef]
   val sidewalkUserToRoleJoin = sidewalkUser.join(userRole).on(_.userId === _.userId)
   // A left join, because a user with no user_settings row has every setting at its default.
   val sidewalkUserWithRole = sidewalkUserToRoleJoin
@@ -94,6 +96,33 @@ class SidewalkUserTable @Inject() (
     sidewalkUserToRoleJoin
       .filter(_._1.username inSet usernames)
       .map { case (user, userRole) => (user.username, user.userId, userRole.role) }
+      .result
+  }
+
+  /**
+   * Finds accounts an admin could add to a team (#5381). Anonymous accounts are left out: they can't belong to a team,
+   * and they would crowd out the registered accounts being looked for. Each match's current team comes back with it,
+   * so the admin sees that adding someone would move them before they do it.
+   *
+   * @param query A fragment to match, case-insensitively, against username or email.
+   * @param limit The most matches to return.
+   * @return Per match: (user id, username, email, role, the name of the team they're on).
+   */
+  def searchUsers(
+      query: String,
+      limit: Int
+  ): DBIO[Seq[(String, String, String, Role.Value, Option[String])]] = {
+    val pattern = s"%${query.trim.toLowerCase}%"
+    sidewalkUserToRoleJoin
+      .filter(_._2.role =!= Role.Anonymous)
+      .filter { case (user, _) => (user.username.toLowerCase like pattern) || (user.email.toLowerCase like pattern) }
+      .joinLeft(userTeam.join(team).on(_.teamId === _.teamId))
+      .on { case ((user, _), (_userTeam, _)) => user.userId === _userTeam.userId }
+      .map { case ((user, userRole), teamRow) =>
+        (user.userId, user.username, user.email, userRole.role, teamRow.map(_._2.name))
+      }
+      .sortBy(_._2.toLowerCase)
+      .take(limit)
       .result
   }
 

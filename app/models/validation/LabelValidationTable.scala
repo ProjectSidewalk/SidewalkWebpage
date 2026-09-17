@@ -170,14 +170,34 @@ class LabelValidationTable @Inject() (
   }
 
   /**
+   * [[getValidationCountsByUser]] scoped to a few labelers, so the admin team page doesn't group over every label in
+   * the city to show one team (#5381).
+   *
+   * @param userIds The labelers to count for.
+   * @return One entry per user with at least one judged label: (labeler id, (labels validated, agreed count)).
+   */
+  def getValidationCountsForUsers(userIds: Seq[String]): DBIO[Seq[(String, (Int, Int))]] = {
+    validationCountsByUserQuery(Some(userIds)).result
+  }
+
+  /**
    * Select validation counts per user.
    *
    * @return list of tuples (labeler_id, (labels_validated, agreed_count))
    */
   def getValidationCountsByUser: DBIO[Seq[(String, (Int, Int))]] = {
+    validationCountsByUserQuery(None).result
+  }
+
+  /** @param userIds The labelers to include, or None for everyone. */
+  private def validationCountsByUserQuery(userIds: Option[Seq[String]]) = {
+    val _labelers = userIds match {
+      case Some(ids) => users.filter(_.userId inSet ids)
+      case None      => users
+    }
     val _labels = for {
       _label <- labelTable.labelsWithExcludedUsers
-      _user  <- users if _user.userId === _label.userId // User who placed the label.
+      _user  <- _labelers if _user.userId === _label.userId // User who placed the label.
       if _label.correct.isDefined // Filter for labels marked as either correct or incorrect.
     } yield (_user.userId, _label.correct)
 
@@ -193,7 +213,6 @@ class LabelValidationTable @Inject() (
           )
         )
       }
-      .result
   }
 
   /**
@@ -253,6 +272,40 @@ class LabelValidationTable @Inject() (
       liveCount     <- validations.filter(_.userId === userId).length.result
       archivedCount <- voidedValidations.filter(_.userId === userId).length.result
     } yield liveCount + archivedCount
+  }
+
+  /**
+   * Counts work credit the way [[countValidations]] does, so the voided-vote archive counts too: the vote no longer
+   * stands, but the person did the work. The latest timestamp comes from the live table only -- an archived vote's
+   * says when a repair ran, not when they were last at the tool (#5381).
+   *
+   * @param userIds The validators to count for.
+   * @return One entry per user who has validated: (user id, validations given, time of their most recent one).
+   */
+  def countValidationsAndLatestByUsers(userIds: Seq[String]): DBIO[Seq[(String, Int, Option[OffsetDateTime])]] = {
+    val liveCounts = validations
+      .filter(_.userId inSet userIds)
+      .groupBy(_.userId)
+      .map { case (_userId, rows) => (_userId, rows.length, rows.map(_.endTimestamp).max) }
+      .result
+    val archivedCounts = voidedValidations
+      .filter(_.userId inSet userIds)
+      .groupBy(_.userId)
+      .map { case (_userId, rows) => (_userId, rows.length) }
+      .result
+
+    for {
+      live     <- liveCounts
+      archived <- archivedCounts
+    } yield {
+      val archivedByUser = archived.toMap
+      val liveByUser     = live.map(row => row._1 -> (row._2, row._3)).toMap
+      // A user with only archived votes has no live row to join onto, so the union of both key sets drives the result.
+      (liveByUser.keySet ++ archivedByUser.keySet).toSeq.map { userId =>
+        val (liveCount, latest) = liveByUser.getOrElse(userId, (0, None))
+        (userId, liveCount + archivedByUser.getOrElse(userId, 0), latest)
+      }
+    }
   }
 
   /**

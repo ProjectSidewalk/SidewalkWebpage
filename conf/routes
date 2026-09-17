@@ -72,6 +72,7 @@ GET     /admin/management                               controllers.AdminDashboa
 GET     /admin/partners                                 controllers.AdminDashboardController.partners
 GET     /admin/across-cities                            controllers.AdminDashboardController.acrossCities
 GET     /admin/health                                   controllers.AdminDashboardController.health
+GET     /admin/team/:teamId                             controllers.AdminDashboardController.team(teamId: Int)
 GET     /admin/user/:username                           controllers.UserDashboardController.adminDashboard(username: String)
 GET     /admin/user/:username/manage                    controllers.UserDashboardController.manageUser(username: String)
 GET     /admin/label/:labelId                           controllers.ShareController.adminLabel(labelId: Int)
@@ -82,6 +83,8 @@ PUT     /adminapi/streets/:streetEdgeId/reopen          controllers.AdminDashboa
 DELETE  /adminapi/streets/:streetEdgeId/reopenCandidate controllers.AdminDashboardController.dismissReopenCandidate(streetEdgeId: Int)
 GET     /adminapi/imageryFreshness                      controllers.AdminDashboardController.getImageryFreshness(days: Int ?= service.ImageryFreshnessReportService.DefaultDays)
 GET     /adminapi/streetPriority                        controllers.AdminDashboardController.getStreetPriority
+GET     /adminapi/team/:teamId                          controllers.AdminDashboardController.getTeamOverview(teamId: Int)
+GET     /adminapi/userSearch                            controllers.AdminDashboardController.searchUsers(query: String, limit: Int ?= controllers.AdminDashboardController.MaxUserSearchResults)
 GET     /adminapi/auditedStreetTimes                    controllers.AdminController.getAuditedStreetsWithTimestamps
 GET     /adminapi/labels/all                            controllers.AdminController.getAllLabels
 GET     /adminapi/labelTags                             controllers.AdminController.getTagCounts

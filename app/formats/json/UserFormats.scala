@@ -3,7 +3,7 @@ package formats.json
 import models.user._
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import service.{CityHours, CrossCityHours}
+import service.{CityHours, CrossCityHours, TeamMemberStats, TeamOverview, TeamTotals, UserSearchResult}
 
 import java.time.OffsetDateTime
 
@@ -91,6 +91,56 @@ object UserFormats {
       (JsPath \ "open").write[Boolean] and
       (JsPath \ "visible").write[Boolean]
   )(unlift(Team.unapply))
+
+  /**
+   * The admin team page's payload (`/adminapi/team/:teamId`, #5381), snake_case throughout. Accuracy travels as raw
+   * (validated, agreed) counts, not a percentage, so the team's rate can pool its members' judged labels rather than
+   * average rates that describe different amounts of work.
+   */
+  implicit val teamMemberStatsWrites: Writes[TeamMemberStats] = (
+    (__ \ "user_id").write[String] and
+      (__ \ "username").write[String] and
+      (__ \ "role").write[Role.Value] and
+      (__ \ "labels").write[Int] and
+      (__ \ "validations").write[Int] and
+      (__ \ "distance_meters").write[Double] and
+      (__ \ "labels_validated").write[Int] and
+      (__ \ "labels_agreed").write[Int] and
+      (__ \ "last_active").writeNullable[OffsetDateTime] and
+      (__ \ "high_quality").write[Boolean] and
+      (__ \ "excluded").write[Boolean]
+  )(unlift(TeamMemberStats.unapply))
+
+  implicit val teamTotalsWrites: Writes[TeamTotals] = (
+    (__ \ "members").write[Int] and
+      (__ \ "labels").write[Int] and
+      (__ \ "validations").write[Int] and
+      (__ \ "distance_meters").write[Double] and
+      (__ \ "labels_validated").write[Int] and
+      (__ \ "labels_agreed").write[Int]
+  )(unlift(TeamTotals.unapply))
+
+  implicit val teamOverviewWrites: Writes[TeamOverview] = Writes { overview =>
+    Json.obj(
+      "team" -> Json.obj(
+        "team_id"     -> overview.team.teamId,
+        "name"        -> overview.team.name,
+        "description" -> overview.team.description,
+        "open"        -> overview.team.open,
+        "visible"     -> overview.team.visible
+      ),
+      "members" -> Json.toJson(overview.members),
+      "totals"  -> Json.toJson(overview.totals)
+    )
+  }
+
+  implicit val userSearchResultWrites: Writes[UserSearchResult] = (
+    (__ \ "user_id").write[String] and
+      (__ \ "username").write[String] and
+      (__ \ "email").write[String] and
+      (__ \ "role").write[Role.Value] and
+      (__ \ "team").writeNullable[String]
+  )(unlift(UserSearchResult.unapply))
 
   implicit val cityHoursWrites: Writes[CityHours] = (
     (JsPath \ "city_id").write[String] and

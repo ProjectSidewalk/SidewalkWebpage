@@ -83,8 +83,7 @@ class ManagementPage {
         help: 'Whether this contributor is flagged high-quality. "manual" means an admin set it by hand.' },
       { key: 'ownValidatedAgreedPct', label: 'Labeling accuracy', align: 'right',
         sort: (u) => u.ownValidatedAgreedPct || 0,
-        help: 'Share of this user’s own labels that other people agreed with when validating them '
-          + '(with how many were validated).' },
+        help: 'Share of this user’s own labels that other people agreed with when validating them.' },
       { key: 'signUpTime', label: 'Signed up', align: 'right', sort: (u) => ManagementPage.#ts(u.signUpTime) },
       { key: 'lastSignInTime', label: 'Last sign-in', align: 'right',
         sort: (u) => ManagementPage.#ts(u.lastSignInTime) },
@@ -323,7 +322,7 @@ class ManagementPage {
     </tr>`;
     const body = this.#teams.map((t) => `
       <tr data-team-id="${t.teamId}">
-        <td>${ManagementPage.#esc(t.name)}</td>
+        <td><a href="/admin/team/${t.teamId}">${ManagementPage.#esc(t.name)}</a></td>
         <td>${ManagementPage.#esc(t.description || '')}</td>
         <td>${ManagementPage.#toggle('status', t.teamId, t.open, 'Open', 'Closed')}</td>
         <td>${ManagementPage.#toggle('visibility', t.teamId, t.visible, 'Visible', 'Hidden')}</td>
