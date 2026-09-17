@@ -312,6 +312,19 @@ class AccessScoreSpotlight {
     item.addEventListener('mouseleave', off);
     item.addEventListener('focusin', on);
     item.addEventListener('focusout', off);
+
+    // The whole row is the click target, not just the name. The name link (or a pending row's Explore button) stays
+    // the one control -- a keyboard reader tabs to it, and /cities keeps its second link to the city -- and a click
+    // anywhere else on the row is forwarded to it, modifiers included so a ctrl/cmd-click still opens a new tab.
+    const primary = kind === 'pending' ? '.spotlight-explore' : 'a.spotlight-name-link';
+    item.classList.add('spotlight-row--linked');
+    item.addEventListener('click', (e) => {
+      // A click on any link or button, the forwarded one included, is already where it should be.
+      if (e.target.closest('a, button')) return;
+      item.querySelector(primary)?.dispatchEvent(new MouseEvent('click', {
+        bubbles: true, cancelable: true, ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey,
+      }));
+    });
     return item;
   }
 

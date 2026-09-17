@@ -83,8 +83,9 @@ sparse city is distinguishable from a full one. Moving down the list logs
 `Hover_module=AccessScoreSpotlight_unit=<unit>_id=<regionId|streetEdgeId>` **once per row per page view**: a hover
 event per pointer pass would be one of the chattiest events on the site, and the question it answers ("was this row
 looked at") only needs the first. Keyboard focus counts as a hover, since it does the same thing. Clicking a row's
-name logs `Click_module=AccessScoreSpotlight_unit=<unit>_id=<id>`, with `_city=<cityId>` appended on `/cities`,
-where the click leaves for another deployment. The unit switch logs
+name, or anywhere else on the row (which forwards to that link), logs
+`Click_module=AccessScoreSpotlight_unit=<unit>_id=<id>`, with `_city=<cityId>` appended on `/cities`, where the
+click leaves for another deployment. The unit switch logs
 `Click_module=AccessScoreSpotlightUnit_unit=<unit>`, the section's "see every … in the AccessScore tool" button
 logs `Click_module=AccessScoreSpotlightTool_unit=<unit>`, and the **Explore** button on a "closest to being ranked"
 row logs `Click_module=AccessScoreSpotlightExplore_regionId=<id>` — the same mission a choropleth click starts, so

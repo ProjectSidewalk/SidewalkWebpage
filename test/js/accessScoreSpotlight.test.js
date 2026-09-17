@@ -341,6 +341,48 @@ describe('the AccessScore Spotlight', () => {
 
             expect(logged).toContain('Click_module=AccessScoreSpotlight_unit=regions_id=42_city=seattle-wa');
         });
+
+        it('follows the name link from a click anywhere on the row, keeping the modifier keys', async () => {
+            const city = { city_id: 'seattle-wa', city_name: 'Seattle', city_url: 'https://sidewalk-sea.example' };
+            await mount({
+                regions: feed('regions', {
+                    qualifying: 6, total: 9, top: [regionRow(42, 'Capitol Hill', 0.84, 0.97, city)],
+                }),
+                streets: feed('streets', { qualifying: 0, total: 0 }),
+            }, { crossCity: true });
+            const row = document.querySelector('.spotlight-row');
+            const link = row.querySelector('.spotlight-name-link');
+            const seen = [];
+            link.addEventListener('click', (e) => seen.push(e.metaKey ? 'meta' : 'plain'));
+
+            // The score cell is nowhere near the link; the click still lands on it, and the log sees one click.
+            row.querySelector('.spotlight-score').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+            row.querySelector('.spotlight-track').dispatchEvent(
+                new window.MouseEvent('click', { bubbles: true, metaKey: true }),
+            );
+            expect(seen).toEqual(['plain', 'meta']);
+            expect(logged.filter((entry) => entry.startsWith('Click_module=AccessScoreSpotlight_unit'))).toHaveLength(2);
+
+            // The city link is its own destination, so a click on it is not redirected to the tool.
+            row.querySelector('.spotlight-sub-link').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+            expect(seen).toHaveLength(2);
+            expect(row.classList.contains('spotlight-row--linked')).toBe(true);
+        });
+
+        it('sends a click anywhere on a pending row to its Explore button', async () => {
+            await mount({
+                regions: feed('regions', {
+                    qualifying: 1, total: 9, top: [regionRow(1, 'Ranked', 0.5)],
+                    nearest: [regionRow(3, 'Nearly', null, 0.67)],
+                }),
+                streets: feed('streets', { qualifying: 0, total: 0 }),
+            });
+
+            const pending = document.querySelector('.spotlight-row--pending');
+            pending.querySelector('.spotlight-name-link').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+
+            expect(logged).toContain('Click_module=AccessScoreSpotlightExplore_regionId=3');
+        });
     });
 
     describe('the map highlight', () => {
