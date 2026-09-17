@@ -6,6 +6,7 @@ import models.api.{DailyStatRecord, _}
 import models.cluster._
 import models.intersection.{IntersectionInfo, IntersectionStreetEnd, IntersectionTable}
 import models.label._
+import models.place.PlaceTable
 import models.region.{Region, RegionTable}
 import models.street.{OsmWayTable, SidewalkPresenceTable, StreetEdgeInfo, StreetEdgeTable}
 import models.user.UserStatTable
@@ -120,6 +121,9 @@ trait ApiService {
    */
   def getSidewalkPresence(filters: SidewalkPresenceFiltersForApi, batchSize: Int): Source[SidewalkPresenceForApi, _]
 
+  /** Streams the places (#5311) matching the filters. */
+  def getPlaces(filters: PlaceFiltersForApi, batchSize: Int): Source[PlaceForApi, _]
+
   /**
    * Retrieves regions based on the provided filters and returns them as a reactive stream source.
    *
@@ -232,6 +236,7 @@ class ApiServiceImpl @Inject() (
     streetEdgeTable: StreetEdgeTable,
     osmWayTable: OsmWayTable,
     sidewalkPresenceTable: SidewalkPresenceTable,
+    placeTable: PlaceTable,
     regionTable: RegionTable,
     labelTable: LabelTable,
     userStatTable: UserStatTable,
@@ -270,6 +275,10 @@ class ApiServiceImpl @Inject() (
       batchSize: Int
   ): Source[SidewalkPresenceForApi, _] = {
     setUpStreamFromDb(sidewalkPresenceTable.getSidewalkPresenceForApi(filters), batchSize)
+  }
+
+  def getPlaces(filters: PlaceFiltersForApi, batchSize: Int): Source[PlaceForApi, _] = {
+    setUpStreamFromDb(placeTable.getPlacesForApi(filters), batchSize)
   }
 
   def getRegions(filters: RegionFiltersForApi, batchSize: Int): Source[RegionDataForApi, _] = {

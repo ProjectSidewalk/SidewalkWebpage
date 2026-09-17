@@ -360,7 +360,7 @@ class OsmWayServiceImpl @Inject() (
  * Pure parsing/selection logic for OSM API and Overpass responses, kept free of I/O so it can be unit-tested directly.
  */
 object OsmWayService {
-  val OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+  val OVERPASS_URL: String = OutboundHttp.OverpassUrl
 
   /** How close (meters) a road must be to a queried point to count as "here"; also the DB point-lookup radius. */
   val SEARCH_RADIUS_M: Double = 15.0

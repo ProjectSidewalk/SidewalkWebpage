@@ -6,6 +6,7 @@ import actor.{
   CropGenerationActor,
   FunnelStatActor,
   OsmWayRefreshActor,
+  PlacesRefreshActor,
   RecalculateStreetPriorityActor,
   SidewalkPresenceActor,
   UserStatActor
@@ -35,6 +36,8 @@ import service.{
   OsmWayRefreshResult,
   OsmWayService,
   PanoDataService,
+  PlacesRefreshResult,
+  PlacesService,
   SidewalkPresenceRebuildResult,
   SidewalkPresenceService,
   StreetService
@@ -44,7 +47,7 @@ import util.{AnonSession, RoleSession, RolledBackDb, StubService}
 import scala.concurrent.Future
 
 /**
- * Functional tests for the eight admin routes that hand-trigger a nightly job (#4946).
+ * Functional tests for the nine admin routes that hand-trigger a nightly job (#4946).
  *
  * Each wraps its service call in `jobRunService.record(..., Manual)` so a hand-run leaves the same counts and error
  * trail the scheduler's run would (#4932). Nothing else asserts that a given controller method still *calls* it: drop
@@ -83,6 +86,11 @@ class AdminJobTriggerSpec
   private val PresenceResult =
     SidewalkPresenceRebuildResult(faces = 4631, inserted = 4632, updated = 4633, deleted = 4634)
 
+  private val PlacesResult = PlacesRefreshResult(
+    skipped = false, fetched = 4635, dropped = 4636, total = 4637, inserted = 4638, updated = 4639, deleted = 4640,
+    fetchedAt = None
+  )
+
   /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */
   @volatile private var osmWayAnswer: Future[OsmWayRefreshResult] = Future.successful(OsmWayRefreshResult.empty)
 
@@ -91,6 +99,9 @@ class AdminJobTriggerSpec
 
   /** As `cropRunning`, for the sidewalk-presence rebuild, whose trigger refuses the same way. */
   @volatile private var presenceRunning: Boolean = false
+
+  /** As `cropRunning`, for the places refresh, whose trigger refuses the same way. */
+  @volatile private var placesRunning: Boolean = false
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -135,6 +146,11 @@ class AdminJobTriggerSpec
               "rebuild"   -> (() => Future.successful(PresenceResult)),
               "isRunning" -> (() => presenceRunning)
             )
+          )
+        ),
+        bind[PlacesService].toInstance(
+          StubService.answeringWith[PlacesService](
+            Map("refresh" -> (() => Future.successful(PlacesResult)), "isRunning" -> (() => placesRunning))
           )
         )
       )
@@ -265,6 +281,37 @@ class AdminJobTriggerSpec
         contentAsString(response) must include("already in progress")
         runsSince(idFloor, SidewalkPresenceActor.Name) mustBe empty
       } finally presenceRunning = false
+    }
+  }
+
+  "POST /adminapi/refreshPlaces" should {
+    // Answers before the Overpass round trip finishes, as crop generation does, so the run row is read back later.
+    "answer at once and record the refresh as a manual run of the nightly job, with its counts" in {
+      val idFloor  = highestRunId
+      val response = asAdmin("/adminapi/refreshPlaces", POST)
+      status(response) mustBe ACCEPTED
+      contentAsString(response) must include("started")
+
+      val jobRun = eventually(timeout(Span(30, Seconds)), interval(Span(100, Millis))) {
+        val runs = runsSince(idFloor, PlacesRefreshActor.Name)
+        triggeredRunIds = (triggeredRunIds ++ runs.map(_.backgroundJobRunId)).distinct
+        runs.size mustBe 1
+        runs.head.status mustBe JobRunStatus.Succeeded
+        runs.head
+      }
+      jobRun.triggeredBy mustBe JobRunTrigger.Manual
+      jobRun.details.value mustBe PlacesResult.runDetails
+    }
+
+    "refuse with 409, and record nothing, while a refresh is already in flight" in {
+      placesRunning = true
+      try {
+        val idFloor  = highestRunId
+        val response = asAdmin("/adminapi/refreshPlaces", POST)
+        status(response) mustBe CONFLICT
+        contentAsString(response) must include("already in progress")
+        runsSince(idFloor, PlacesRefreshActor.Name) mustBe empty
+      } finally placesRunning = false
     }
   }
 
