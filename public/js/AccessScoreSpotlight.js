@@ -320,7 +320,7 @@ class AccessScoreSpotlight {
     item.classList.add('spotlight-row--linked');
     item.addEventListener('click', (e) => {
       // A click on any link or button, the forwarded one included, is already where it should be.
-      if (e.target.closest('a, button')) return;
+      if (!(e.target instanceof Element) || e.target.closest('a, button')) return;
       item.querySelector(primary)?.dispatchEvent(new MouseEvent('click', {
         bubbles: true, cancelable: true, ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey,
       }));
