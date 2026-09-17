@@ -205,6 +205,8 @@ def test_handoff_checklist_names_the_dump_both_urls_and_what_the_nightly_jobs_ow
     # The jobs run at different minutes (ScheduledJobs.scala), so the handoff names the schedule, not a time.
     assert '04:00' not in text and 'ScheduledJobs.scala' in text
     assert 'make import-dump db=sidewalk_laurens_ia' in text
+    # The pano scraper's manifest row (#5390).
+    assert 'cities.csv' in text and 'scrape_queue.py --only laurens-ia' in text
 
 
 # --------------------------------------------------------------------------------------------------------------------
