@@ -122,6 +122,16 @@ class ApiDocsController @Inject() (
   }
 
   /**
+   * Displays API documentation for the AccessScore Spotlight feed (#5215).
+   */
+  def accessScoreSpotlight = cc.securityService.UserAwareAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_AccessScoreSpotlight")
+      Ok(views.html.apiDocs.accessScoreSpotlight(commonData, request.identity))
+    }
+  }
+
+  /**
    * Displays API documentation for the street types.
    */
   def streetTypes = cc.securityService.UserAwareAction { implicit request =>
