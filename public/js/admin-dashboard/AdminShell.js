@@ -1,7 +1,8 @@
 /**
  * Shell behaviors for the redesigned admin dashboard (#4272): builds the right-hand "On this page" table of
  * contents from the page's headings, highlights the active section on scroll (scroll-spy), smooth-scrolls anchor
- * clicks past the fixed navbar, and adds the left nav's mobile disclosure (sidebarDisclosure.js).
+ * clicks past the fixed navbar, keeps a deep link's target in place while sections above it are still loading, and
+ * adds the left nav's mobile disclosure (sidebarDisclosure.js).
  *
  * This is a clean ES6 reimplementation of the equivalent api-docs.js logic, operating on the same .api-* markup so
  * the look and behavior match. It self-initializes on DOMContentLoaded.
@@ -15,6 +16,15 @@ class AdminShell {
   #headings = [];
   #tocLinks = [];
   #scrollSpyAttached = false;
+  /** The deep link's target while it is still being held in place; null once the reader has taken over. */
+  #deepLinkTarget = null;
+  /**
+   * Where the hold last put the page — scroll offset and page height — so a later scroll event can be told apart:
+   * the reader's (same height, new offset) from scroll anchoring making room for a section (new height).
+   *
+   * @type {{ scrollY: number, height: number } | null}
+   */
+  #held = null;
 
   init() {
     this.#content = document.querySelector('.page-content');
@@ -24,6 +34,7 @@ class AdminShell {
     this.#buildTableOfContents();
     this.#setupScrollSpy();
     this.#setupSmoothScrolling();
+    this.#keepDeepLinkTargetInView();
     initSidebarDisclosure();
     this.#localizeDeployTimes();
   }
@@ -137,12 +148,81 @@ class AdminShell {
       const target = document.getElementById(id);
       if (!target) return;
       e.preventDefault();
+      // The reader chose a destination. replaceState below fires no hashchange, and an activation without a pointer
+      // or key event (element.click(), voice control) reaches here with the deep-link hold still armed.
+      this.#deepLinkTarget = null;
       const top = target.offsetTop - AdminShell.#NAVBAR_OFFSET;
       // Jump instantly for users who prefer reduced motion (WCAG 2.3.3).
       const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       window.scrollTo({ top, behavior: reduceMotion ? 'auto' : 'smooth' });
       history.replaceState(null, '', `#${id}`);
     });
+  }
+
+  /**
+   * Holds a deep link's target where the browser put it while the sections above it are still landing (#5001).
+   *
+   * The browser scrolls to `location.hash` exactly once, at load, but on these pages whole sections render after
+   * that: the dashboard's cross-city breakdown flips from `hidden` when its fan-out answers, the mistake gallery and
+   * badges fill in from their fetches, and each one that lands above the target pushes it down the page. Browser
+   * scroll anchoring doesn't cover a section unhiding (and Safari has none), so this re-scrolls the target into
+   * position each time the content column changes height — until the reader scrolls, presses a key, or touches the
+   * page, the one signal that where they are is now deliberate. A hash change re-arms it, so a deep link into a
+   * section that hasn't rendered yet lands once it does.
+   *
+   * A scroll the hold didn't make also counts as the reader taking over: a scrollbar drag in Firefox, a screen
+   * reader's browse-mode navigation, and find-in-page all move the page without a pointer, key, or wheel event, and
+   * on a page that re-renders on a timer (Admin → Health) an undisarmed hold would keep pulling them back forever.
+   * Scroll anchoring also moves the page, though, and its scroll event lands before the observer's callback in the
+   * same frame, so a scroll is only the reader's when the page height didn't change with it.
+   */
+  #keepDeepLinkTargetInView() {
+    if (typeof ResizeObserver === 'undefined') return;
+    const arm = () => {
+      this.#deepLinkTarget = AdminShell.#fragmentTarget();
+      this.#held = null;
+    };
+    const disarm = () => {
+      this.#deepLinkTarget = null;
+    };
+    ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach((type) => {
+      window.addEventListener(type, disarm, { passive: true });
+    });
+    window.addEventListener('scroll', () => {
+      if (!this.#held || document.documentElement.scrollHeight !== this.#held.height) return;
+      if (Math.abs(window.scrollY - this.#held.scrollY) > 1) disarm();
+    }, { passive: true });
+    window.addEventListener('hashchange', arm);
+    // scrollIntoView honours the headings' scroll-margin-top, so this lands exactly where the browser's own fragment
+    // scroll did. A target inside a still-hidden section is a no-op until that section shows.
+    new ResizeObserver(() => {
+      if (!this.#deepLinkTarget) return;
+      this.#deepLinkTarget.scrollIntoView();
+      this.#held = { scrollY: window.scrollY, height: document.documentElement.scrollHeight };
+    }).observe(this.#content);
+    // A reload or history traversal restores the reader's last position instead of scrolling to the fragment, and
+    // the observer's first delivery would throw that position away. (bfcache returns keep this object's own state.)
+    const [navEntry] = /** @type {PerformanceNavigationTiming[]} */ (performance.getEntriesByType?.('navigation') ?? []);
+    const navType = navEntry?.type;
+    if (navType !== 'reload' && navType !== 'back_forward') arm();
+  }
+
+  /**
+   * The element the URL fragment names, looked up the way the browser does: percent-decoded first, then as written,
+   * so an id containing a literal `%` still matches.
+   *
+   * @returns {HTMLElement|null} The target, or null when the fragment is empty or names nothing.
+   */
+  static #fragmentTarget() {
+    const id = window.location.hash.slice(1);
+    if (!id) return null;
+    let decoded = id;
+    try {
+      decoded = decodeURIComponent(id);
+    } catch {
+      // A malformed percent-escape can still be an id as written.
+    }
+    return document.getElementById(decoded) ?? document.getElementById(id);
   }
 
   // ---- Shared formatting helpers ------------------------------------------------------------------------------
