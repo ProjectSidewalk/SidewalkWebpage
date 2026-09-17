@@ -357,6 +357,7 @@ class AccessScoreSpotlightService @Inject() (
           AccessScoreSpotlightForApi(
             unit = unit,
             minCompletion = AccessScoreSpotlight.MinRegionCompletion,
+            minStreetLengthM = AccessScoreSpotlight.MinStreetLengthMeters,
             qualifying = contributing.map(_._2).sum,
             total = contributing.map(_._3).sum,
             computedAt = contributing.flatMap(_._4).sortBy(_.toInstant).headOption,
@@ -379,6 +380,7 @@ class AccessScoreSpotlightService @Inject() (
       AccessScoreSpotlightForApi(
         unit = SpotlightUnit.Regions,
         minCompletion = AccessScoreSpotlight.MinRegionCompletion,
+        minStreetLengthM = AccessScoreSpotlight.MinStreetLengthMeters,
         qualifying = qualifying.size,
         total = snapshot.size,
         computedAt = computedAt,
@@ -418,8 +420,9 @@ class AccessScoreSpotlightService @Inject() (
         rows => city.fold[Seq[SpotlightRowForApi]](rows)(c => rows.map(_.copy(city = Some(c))))
       val response = AccessScoreSpotlightForApi(
         unit = SpotlightUnit.Streets, minCompletion = AccessScoreSpotlight.MinRegionCompletion,
-        qualifying = snapshot.qualifying, total = snapshot.total, computedAt = snapshot.computedAt,
-        top = stamp(snapshot.top), bottom = stamp(snapshot.bottom),
+        minStreetLengthM = AccessScoreSpotlight.MinStreetLengthMeters, qualifying = snapshot.qualifying,
+        total = snapshot.total, computedAt = snapshot.computedAt, top = stamp(snapshot.top),
+        bottom = stamp(snapshot.bottom),
         // A street has no "closest to being ranked" call to action: the ask is always "explore this neighborhood",
         // which is what the regions unit already offers.
         nearest = Seq.empty

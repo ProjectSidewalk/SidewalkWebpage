@@ -355,5 +355,31 @@
     "no-image-to-judge": "Geen afbeelding om dit label op te beoordelen",
     "vote-failed": "Je stem is niet opgeslagen. Probeer het opnieuw."
   },
-  "download-already-preparing": "Dit bestand wordt al voorbereid voor een andere aanvraag. Probeer het zo opnieuw."
+  "download-already-preparing": "Dit bestand wordt al voorbereid voor een andere aanvraag. Probeer het zo opnieuw.",
+  "access-score-spotlight": {
+    "subtitle-regions": "De stoepen van elke wijk krijgen met AccessScore een score van 0 tot 100, onze methode om door vrijwilligers gekarteerde kenmerken zoals ontbrekende verlaagde stoepranden en oppervlakteproblemen om te zetten in één getal. Het weerspiegelt wat vrijwilligers tot nu toe hebben gevonden, geen officiële beoordeling.",
+    "subtitle-streets": "Elke onderzochte straat krijgt met AccessScore een score van 0 tot 100. Alleen straten van minstens {{minLength}} met meerdere gekarteerde kenmerken worden gerangschikt.",
+    "subtitle-sparse": "De stoepen van elke wijk krijgen met AccessScore een score van 0 tot 100 zodra vrijwilligers minstens {{percent}}% van de straten hebben onderzocht. {{qualifying}} van {{total}} wijken zijn zover. Help de volgende over de streep.",
+    "subtitle-one-region": "Deze stad is gekarteerd als één wijk, dus er is één score te tonen. Schakel over naar Straten voor meer detail.",
+    "units-label": "Wijken of straten rangschikken",
+    "unit-regions": "Wijken",
+    "unit-streets": "Straten",
+    "highest": "Hoogste scores",
+    "lowest": "Laagste scores",
+    "ranked-so-far": "Tot nu toe gerangschikt",
+    "closest": "Bijna gerangschikt",
+    "count-regions": "{{qualifying}} van {{total}} wijken zijn minstens {{percent}}% onderzocht en gerangschikt.",
+    "count-streets": "{{qualifying}} van {{total}} straten zijn onderzocht en gerangschikt.",
+    "updated-nightly": "Elke nacht bijgewerkt",
+    "updated-info": "Scores worden elke nacht opnieuw berekend op basis van alle tot dan toe geplaatste labels. Een label dat je vandaag toevoegt telt morgen mee.",
+    "updated-last": "Laatst bijgewerkt op {{date}}.",
+    "cta-regions": "Bekijk alle wijken in de AccessScore-tool",
+    "cta-streets": "Bekijk alle straten in de AccessScore-tool",
+    "explore": "Verkennen",
+    "explore-region": "{{name}} verkennen",
+    "percent-explored": "{{percent}}% onderzocht",
+    "street-sub": "{{region}} · {{length}}",
+    "street-in-city": "{{region}}, {{city}}",
+    "unnamed": "Naamloze straat"
+  }
 }

@@ -37,7 +37,6 @@ class AccessScoreModel {
     showClusters: true,
   });
 
-
   /** Histogram resolution over the 0–1 score range. */
   static HISTOGRAM_BINS = 10;
 

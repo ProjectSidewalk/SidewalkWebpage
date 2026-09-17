@@ -353,5 +353,31 @@
     "no-image-to-judge": "沒有可用來判斷此標籤的圖片",
     "vote-failed": "您的投票未儲存，請再試一次。"
   },
-  "download-already-preparing": "此檔案已在為另一個請求準備中，請稍後再試。"
+  "download-already-preparing": "此檔案已在為另一個請求準備中，請稍後再試。",
+  "access-score-spotlight": {
+    "subtitle-regions": "每個鄰里的人行道都由 AccessScore 評為 0 到 100 分，這是我們把志工標記的項目（例如缺少的路緣坡道與路面問題）換算成單一分數的方法。分數反映志工目前所發現的情況，並非官方評估。",
+    "subtitle-streets": "每條已探索的街道都由 AccessScore 評為 0 到 100 分。只有長度至少 {{minLength}} 且已標記多項元素的街道才會列入排名。",
+    "subtitle-sparse": "當志工探索了某個鄰里至少 {{percent}}% 的街道後，該鄰里的人行道才會由 AccessScore 評為 0 到 100 分。目前 {{total}} 個鄰里中有 {{qualifying}} 個達標，請協助讓下一個也達標。",
+    "subtitle-one-region": "這個城市被劃為單一鄰里，因此只有一個分數。切換到「街道」可看得更仔細。",
+    "units-label": "依鄰里或街道排名",
+    "unit-regions": "鄰里",
+    "unit-streets": "街道",
+    "highest": "分數最高",
+    "lowest": "分數最低",
+    "ranked-so-far": "目前已排名",
+    "closest": "最接近可排名",
+    "count-regions": "{{total}} 個鄰里中有 {{qualifying}} 個已探索至少 {{percent}}% 並列入排名。",
+    "count-streets": "{{total}} 條街道中有 {{qualifying}} 條已探索並列入排名。",
+    "updated-nightly": "每晚更新",
+    "updated-info": "分數每晚會依據目前所有已放置的標記重新計算。您今天新增的標記，明天才會計入。",
+    "updated-last": "最後更新時間：{{date}}。",
+    "cta-regions": "在 AccessScore 工具中查看所有鄰里",
+    "cta-streets": "在 AccessScore 工具中查看所有街道",
+    "explore": "探索",
+    "explore-region": "探索 {{name}}",
+    "percent-explored": "已探索 {{percent}}%",
+    "street-sub": "{{region}} · {{length}}",
+    "street-in-city": "{{region}}，{{city}}",
+    "unnamed": "未命名街道"
+  }
 }

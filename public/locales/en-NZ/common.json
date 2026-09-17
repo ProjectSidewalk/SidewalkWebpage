@@ -101,5 +101,14 @@
     "on-facebook": "Share on Facebook",
     "on-linkedin": "Share on LinkedIn",
     "via-email": "Share via email"
+  },
+  "access-score-spotlight": {
+    "subtitle-regions": "Each neighbourhood's footpaths are rated 0 to 100 by AccessScore, our method for turning volunteer-mapped features like missing drop kerbs and surface problems into one number. It reflects what volunteers have found so far, not an official assessment.",
+    "subtitle-sparse": "Each neighbourhood's footpaths are rated 0 to 100 by AccessScore once volunteers have explored at least {{percent}}% of its streets. {{qualifying}} of {{total}} neighbourhoods are there. Help the next ones across the line.",
+    "subtitle-one-region": "This city is mapped as a single neighbourhood, so there is one score to show. Switch to Streets for a closer look.",
+    "units-label": "Rank neighbourhoods or streets",
+    "unit-regions": "Neighbourhoods",
+    "count-regions": "{{qualifying}} of {{total}} neighbourhoods are at least {{percent}}% explored and ranked.",
+    "cta-regions": "See every neighbourhood in the AccessScore tool"
   }
 }

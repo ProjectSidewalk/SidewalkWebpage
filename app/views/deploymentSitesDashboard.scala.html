@@ -9,6 +9,7 @@
 
   <!-- Deployment Sites Dashboard CSS -->
   <link href='@assets.path("css/components/deployment-map.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/access-score-spotlight.css")' rel="stylesheet">
 
   <div class="deployment-sites-container">
     <!-- Hero fills the first viewport (map + stats) so both are visible without scrolling; see .hero-section. -->
@@ -64,6 +65,16 @@
       </div>
     </div>
 
+    @* Between the hero and the "bring Project Sidewalk to your city" ask: a ranking is the evidence that the ask
+       is worth taking up. Hidden until the feed says at least one city has something ranked. *@
+    <div class="container" id="access-score-spotlight-container" hidden>
+      <div class="section-title-and-subtitle">
+        <h2 class="row section-title" id="access-score-spotlight-title">@Messages("cities.spotlight.title")</h2>
+        <div class="row section-subtitle spotlight-subtitle" id="access-score-spotlight-subtitle"></div>
+      </div>
+      <div class="spotlight"></div>
+    </div>
+
     <div class="cta-section">
       <div class="cta-content">
         <img src='@assets.path("images/logos/ProjectSidewalkLogo_WithCurvedText_3600x3600.png")' alt="@Messages("cities.dashboard.cta.logo.alt")" class="cta-logo">
@@ -82,12 +93,18 @@
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
   <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">
   <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
+  @* The AccessScore ramp the Spotlight's bars are painted from, read out of the main.css tokens. *@
+  <script src='@assets.path("js/common/scoreRamp.js")'></script>
+  <script src='@assets.path("js/AccessScoreSpotlight.js")'></script>
 
   <script>
     /**
      * Initialize the cities dashboard map.
      */
     window.appManager.ready(function () {
+      // Ranks every publicly launched deployment against the others, and lights the row's city on the map above.
+      new AccessScoreSpotlight(document.getElementById('access-score-spotlight-container'), { crossCity: true });
+
       // Create the cities map parameters.
       const citiesMapParams = {
         mapName: 'cities-map',

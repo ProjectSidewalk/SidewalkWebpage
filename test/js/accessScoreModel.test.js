@@ -321,7 +321,8 @@ describe('AccessScoreModel', () => {
     // An older deployment's config has no floor at all; hatching by a number this file invented would be worse than
     // hatching nothing, so the comparison simply never fires.
     test('a config without the floor hatches nothing rather than inventing a floor', () => {
-        const { min_region_completion: _dropped, ...older } = FIXTURE.config;
+        const older = { ...FIXTURE.config };
+        delete older.min_region_completion;
         const regions = [
             { region_id: 1, name: 'Barely started', rate: 0.02, total_distance_m: 1000, completed_distance_m: 20 },
         ];

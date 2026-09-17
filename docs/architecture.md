@@ -160,6 +160,13 @@ generation, OSM way refresh, AI validations, and auth-token cleanup. The schedul
 shifted per city by `ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and
 provider quotas.
 
+Label clustering closes with the **AccessScore Spotlight snapshot** (#5215), which writes `region_access_score`
+and `street_access_score` from the clusters that run just built: one row per region per night (kept, so the table is
+a score history) and one row per OSM way per region, replaced each run. The landing page and `/cities` read only
+those two tables, which is what makes a ranked AccessScore safe to put on a page nobody waits for. Like the
+intersection rebuild it records its own run and is recovered rather than propagated, so a clustering success never
+stands in for a snapshot nobody wrote.
+
 Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
 and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one
 that found nothing to do, since the absence of a log line is not something anyone notices. `/admin/health` renders
@@ -295,6 +302,14 @@ corresponding Twirl view:
   (`--color-score-ramp-dark-*`, passed per call as `{ mode: 'dark' }`) with a second chrome palette; the band and
   popups stay light and keep the light ramp. Grunt-bundled to `access-score/build/`; the shared score ramp is
   `common/scoreRamp.js`.
+- **`AccessScoreSpotlight.js`** — the AccessScore Spotlight (#5215), a standalone module (no Grunt bundle) that the
+  landing page and `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked
+  lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which
+  answers from the nightly snapshot tables; nothing is fetched until the visitor's first interaction, and the
+  section hides itself when the city has nothing ranked. Hovering or focusing a row lights that neighborhood on the
+  landing choropleth — or that city's circle on `/cities` — through the same `hover` feature-state the maps' own
+  pointer handlers use, and the map never moves. The completion floor below which a neighborhood is not ranked is
+  the backend's `min_region_completion`, the same number the AccessScore tool hatches by.
 - **`ps-map/`** — shared map component used across pages.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is

@@ -355,5 +355,31 @@
     "no-image-to-judge": "No image to judge this label by",
     "vote-failed": "Your vote didn't save. Please try again."
   },
-  "download-already-preparing": "This file is already being prepared for another request. Please try again shortly."
+  "download-already-preparing": "This file is already being prepared for another request. Please try again shortly.",
+  "access-score-spotlight": {
+    "subtitle-regions": "Each neighborhood's sidewalks are rated 0 to 100 by AccessScore, our method for turning volunteer-mapped features like missing curb ramps and surface problems into one number. It reflects what volunteers have found so far, not an official assessment.",
+    "subtitle-streets": "Each explored street is rated 0 to 100 by AccessScore. Only streets at least {{minLength}} long, with several mapped features, are ranked.",
+    "subtitle-sparse": "Each neighborhood's sidewalks are rated 0 to 100 by AccessScore once volunteers have explored at least {{percent}}% of its streets. {{qualifying}} of {{total}} neighborhoods are there. Help the next ones across the line.",
+    "subtitle-one-region": "This city is mapped as a single neighborhood, so there is one score to show. Switch to Streets for a closer look.",
+    "units-label": "Rank neighborhoods or streets",
+    "unit-regions": "Neighborhoods",
+    "unit-streets": "Streets",
+    "highest": "Highest scores",
+    "lowest": "Lowest scores",
+    "ranked-so-far": "Ranked so far",
+    "closest": "Closest to being ranked",
+    "count-regions": "{{qualifying}} of {{total}} neighborhoods are at least {{percent}}% explored and ranked.",
+    "count-streets": "{{qualifying}} of {{total}} streets are explored and ranked.",
+    "updated-nightly": "Updated nightly",
+    "updated-info": "Scores are recomputed every night from all labels placed so far. A label you add today counts tomorrow.",
+    "updated-last": "Last updated {{date}}.",
+    "cta-regions": "See every neighborhood in the AccessScore tool",
+    "cta-streets": "See every street in the AccessScore tool",
+    "explore": "Explore",
+    "explore-region": "Explore {{name}}",
+    "percent-explored": "{{percent}}% explored",
+    "street-sub": "{{region}} · {{length}}",
+    "street-in-city": "{{region}}, {{city}}",
+    "unnamed": "Unnamed street"
+  }
 }

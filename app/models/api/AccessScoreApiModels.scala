@@ -592,6 +592,8 @@ case class StreetSpotlightRowForApi(
  * @param unit          Which unit was ranked: "regions" or "streets".
  * @param minCompletion The completion floor a region must clear to be ranked, the same number
  *                      `/v3/api/accessScoreConfig` publishes as `min_region_completion`.
+ * @param minStreetLengthM The length floor a stretch of street must clear to be ranked, in meters. Published so the
+ *                      module can say what it is without re-declaring it.
  * @param qualifying    How many units cleared every bar and are therefore ranked.
  * @param total         How many units the city has in all, the "of M" the module prints.
  * @param computedAt    When the nightly run that produced these rows finished. None before the first run; under
@@ -606,6 +608,7 @@ case class StreetSpotlightRowForApi(
 case class AccessScoreSpotlightForApi(
     unit: String,
     minCompletion: Double,
+    minStreetLengthM: Double,
     qualifying: Int,
     total: Int,
     computedAt: Option[OffsetDateTime],
@@ -616,14 +619,15 @@ case class AccessScoreSpotlightForApi(
 
   /** Serializes the response with snake_case keys. */
   def toJson: JsObject = Json.obj(
-    "unit"           -> unit,
-    "min_completion" -> minCompletion,
-    "qualifying"     -> qualifying,
-    "total"          -> total,
-    "computed_at"    -> computedAt,
-    "top"            -> top.map(_.toJson),
-    "bottom"         -> bottom.map(_.toJson),
-    "nearest"        -> nearest.map(_.toJson)
+    "unit"                -> unit,
+    "min_completion"      -> minCompletion,
+    "min_street_length_m" -> minStreetLengthM,
+    "qualifying"          -> qualifying,
+    "total"               -> total,
+    "computed_at"         -> computedAt,
+    "top"                 -> top.map(_.toJson),
+    "bottom"              -> bottom.map(_.toJson),
+    "nearest"             -> nearest.map(_.toJson)
   )
 }
 
