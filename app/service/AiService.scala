@@ -60,6 +60,12 @@ trait AiService {
    * @return A Future containing a sequence of LabelAiAssessment objects with validation results and tags
    */
   def validateLabelsWithAiDaily(n: Int): Future[Seq[Option[LabelAiAssessment]]]
+
+  /**
+   * Has the AI look at a label again right after its type changed (#3671), since its old assessment was about the
+   * old type. Does nothing for a label the nightly sweep would also skip. Never fails; problems are only logged.
+   */
+  def reassessAfterTypeChange(labelId: Int): Future[Unit]
 }
 
 @Singleton
@@ -135,6 +141,15 @@ class AiServiceImpl @Inject() (
       logger.info("AI validations or tag suggestions are disabled for this city.")
       Future.successful(Seq.empty)
     }
+  }
+
+  def reassessAfterTypeChange(labelId: Int): Future[Unit] = {
+    if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON)) {
+      db.run(labelTable.getLabelsToValidateWithAi(1, Some(labelId)))
+        .flatMap(labelData => Future.traverse(labelData)(callAiApiAndSubmitData))
+        .map(_ => ())
+        .recover { case e => logger.error(s"AI re-assessment after a type change failed for label $labelId:", e) }
+    } else Future.successful(())
   }
 
   /**

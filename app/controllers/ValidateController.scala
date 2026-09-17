@@ -53,7 +53,8 @@ class ValidateController @Inject() (
     userService: service.UserService,
     panoDataService: service.PanoDataService,
     osmWayService: service.OsmWayService,
-    missionService: service.MissionService
+    missionService: service.MissionService,
+    aiService: service.AiService
 )(implicit assets: AssetsFinder)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -386,6 +387,8 @@ class ValidateController @Inject() (
           canEdit = isAdmin(user)
         )
       })
+      // Not waited on: the AI's old assessment was about the old type, and the nightly sweep can take days.
+      _ = data.validations.filter(_.newLabelType.isDefined).foreach(v => aiService.reassessAfterTypeChange(v.labelId))
 
       // Get data to return in POST response. Not much unless the mission is over and we need the next batch of labels.
       returnValue <- labelService.getDataForValidatePostRequest(user, data.missionProgress, data.validateParams)
@@ -579,6 +582,7 @@ class ValidateController @Inject() (
                 )
               )
             } yield {
+              if (newVal.newLabelType.isDefined) aiService.reassessAfterTypeChange(newVal.labelId)
               Ok(Json.obj("status" -> "Success"))
             }
         }

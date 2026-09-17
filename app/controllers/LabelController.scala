@@ -10,7 +10,7 @@ import models.utils.LatLngBBox
 import play.api.Logger
 import play.api.libs.json._
 import play.silhouette.api.Silhouette
-import service.{CropService, LabelEditOutcome, LabelEditService, LabelService, PanoDataService}
+import service.{AiService, CropService, LabelEditOutcome, LabelEditService, LabelService, PanoDataService}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -22,6 +22,7 @@ class LabelController @Inject() (
     implicit val ec: ExecutionContext,
     labelService: LabelService,
     labelEditService: LabelEditService,
+    aiService: AiService,
     panoDataService: PanoDataService,
     cropService: CropService
 ) extends CustomBaseController(cc) {
@@ -95,6 +96,8 @@ class LabelController @Inject() (
                 submission.severity, submission.tags, submission.source)
               .map {
                 case LabelEditOutcome.Applied(label) =>
+                  // Not waited on: the AI's old assessment was about the old type, and the nightly sweep can take days.
+                  if (submission.newLabelType.isDefined) aiService.reassessAfterTypeChange(label.labelId)
                   Ok(
                     Json.obj(
                       "status"     -> "Success",

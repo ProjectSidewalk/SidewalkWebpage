@@ -2817,10 +2817,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Get a list of labels for AI to validate, prioritizing unvalidated labels on older images.
    * @param n The number of labels to retrieve
+   * @param labelId Only consider this label, for re-assessing one label right after its type changed (#3671)
    * @return A sequence of LabelDataForAi objects to feed to the SidewalkAI API for validation
    */
-  def getLabelsToValidateWithAi(n: Int): DBIO[Seq[LabelDataForAi]] = {
+  def getLabelsToValidateWithAi(n: Int, labelId: Option[Int] = None): DBIO[Seq[LabelDataForAi]] = {
     val possibleLabels = labels
+      .filterOpt(labelId)(_.labelId === _)
       .filter(_.labelType inSet LabelTypeEnum.aiLabelTypes)
       .join(userRoles)
       .on(_.userId === _.userId)

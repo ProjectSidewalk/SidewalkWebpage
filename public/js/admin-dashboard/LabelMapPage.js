@@ -33,6 +33,8 @@ class LabelMapPage {
     try {
       this.#popup = await LabelPopup(true, this.#opts.viewerType, this.#opts.accessToken, this.#opts.username, {
         showExploreHereLink: true,
+        // A type edited from the card (#3671) recolors the dot at once; the map data is read late, as it loads after.
+        onEdit: (meta) => this.#mapData?.updateLabelType?.(meta.label_id, meta.label_type),
       });
     } catch (err) {
       console.error('Label Map: label popup failed to initialize; clicks/search will navigate instead.', err);
