@@ -105,7 +105,7 @@
   "scope-street-named": "sur {{name}}",
   "scope-brush": "scores {{from}}–{{to}}",
   "chart-photos": "Photos",
-  "chart-photos-help": "Les images des étiquettes derrière les scores : d'abord les groupes les moins bien évalués du quartier ou de la rue sélectionnés, ou du quartier le moins bien noté quand rien n'est sélectionné. Cliquez sur une image pour l'ouvrir.",
+  "chart-photos-help": "Les images des étiquettes derrière les scores, du quartier ou de la rue sélectionnés, ou du quartier le moins bien noté quand rien n'est sélectionné. Classées de la pire à la meilleure : d'abord les étiquettes les moins bien évaluées et, parmi elles, celles que la communauté a confirmées. Cliquez sur une image pour l'ouvrir.",
   "photos-from": "Photos de {{scope}}",
   "photos-lowest": "{{name}} (score le plus bas)",
   "photos-scope-viewport": "la zone affichée",

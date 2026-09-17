@@ -105,7 +105,7 @@
   "scope-street-named": "auf {{name}}",
   "scope-brush": "Bewertungen {{from}}–{{to}}",
   "chart-photos": "Fotos",
-  "chart-photos-help": "Bilder der Labels hinter den Bewertungen: zuerst die am schlechtesten eingestuften Cluster des ausgewählten Viertels oder der ausgewählten Straße, ohne Auswahl die des Viertels mit der niedrigsten Bewertung. Klicken Sie auf ein Bild, um es zu öffnen.",
+  "chart-photos-help": "Bilder der Labels hinter den Bewertungen, aus dem ausgewählten Viertel oder der ausgewählten Straße, ohne Auswahl aus dem Viertel mit der niedrigsten Bewertung. Sortiert vom schlechtesten zum besten: zuerst die am schlechtesten eingestuften Labels und darunter zuerst die von der Community bestätigten. Klicken Sie auf ein Bild, um es zu öffnen.",
   "photos-from": "Fotos aus {{scope}}",
   "photos-lowest": "{{name}} (niedrigste Bewertung)",
   "photos-scope-viewport": "dem sichtbaren Bereich",

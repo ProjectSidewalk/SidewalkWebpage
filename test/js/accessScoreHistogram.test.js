@@ -4,7 +4,7 @@
  * brush by keyboard (Arrow/Shift+Arrow/Enter/Escape) and by pointer (click to toggle, drag to sweep).
  */
 
-const {stubI18next, stubUtilMisc, loadSources, rgb} = require('./support/accessScoreDockHarness');
+const {stubI18next, installUtil, loadSources, rgb} = require('./support/accessScoreDockHarness');
 
 describe('AccessScoreHistogram', () => {
     let onBrush;
@@ -27,7 +27,7 @@ describe('AccessScoreHistogram', () => {
 
     beforeAll(() => {
         stubI18next();
-        stubUtilMisc();
+        installUtil();
         loadSources();
     });
 
