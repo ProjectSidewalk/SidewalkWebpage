@@ -173,7 +173,17 @@ describe('the design system ships the faces its font tokens name', () => {
         const families = fs.readdirSync(FONTS_ROOT, { withFileTypes: true })
             .filter((e) => e.isDirectory()).map((e) => e.name);
 
-        expect(families.length).toBeGreaterThanOrEqual(3); // Not passing vacuously on an empty read.
+        // The floor against an empty read is derived from what the stylesheets load rather than pinned to a count,
+        // which drifts whenever a family is added or retired (#5077): every directory an @font-face reaches into
+        // under public/fonts/ has to be one the listing found.
+        const loaded = new Set(STYLESHEETS
+            .flatMap((file) => Array.from(read(file).matchAll(/@font-face\s*\{([^}]*)\}/g)))
+            .flatMap(([, body]) => urlTargets(body))
+            .map((target) => /(?:^|\/)fonts\/([^/]+)\//.exec(target)?.[1])
+            .filter(Boolean));
+        expect(loaded.size).toBeGreaterThan(0);
+        const unlisted = [...loaded].filter((dir) => !families.includes(dir));
+        expect(unlisted).toEqual([]);
 
         const undocumented = [];
         for (const family of families) {
