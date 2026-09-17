@@ -786,6 +786,25 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
   val tutorialStreetId: Query[Rep[Int], Int, Seq] = configTable.map(_.tutorialStreetEdgeID)
 
+  /**
+   * Validations cast on each street's labels, for the AccessScore Spotlight's street tie-break (#5215).
+   *
+   * Sums the cached per-label vote counters rather than joining `label_validation`, so this stays one pass over
+   * `label` at city scale. A street with no labels, or none anybody has voted on, is simply absent from the map.
+   *
+   * @return `street_edge_id -> total agree + disagree + unsure votes` over the labels that count everywhere else
+   *         (not deleted, not the tutorial, not from an excluded contributor).
+   */
+  def validationCountsByStreet: DBIO[Map[Int, Int]] = {
+    labels
+      .groupBy(_.streetEdgeId)
+      .map { case (streetEdgeId, group) =>
+        (streetEdgeId, group.map(l => l.agreeCount + l.disagreeCount + l.unsureCount).sum)
+      }
+      .result
+      .map(_.map { case (streetEdgeId, votes) => streetEdgeId -> votes.getOrElse(0) }.toMap)
+  }
+
   // This subquery gets the most commonly accessed set of labels. It removes labels that have been deleted, labels from
   // the tutorial, and labels from users where `excluded=TRUE` in the `user_stat` table. The first version also includes
   // the joined tables, bc doing an additional join with the same table in the future can drastically slow queries.

@@ -253,6 +253,24 @@ class AccessScoreService @Inject() (
     } yield scoreRegions(regions, scores)
 
   /**
+   * The same city-wide street, intersection and region scores, computed fresh rather than served from the cache.
+   *
+   * For the nightly AccessScore Spotlight snapshot (#5215), which runs at the end of the clustering job: the cached
+   * copy is whatever the last page load left there, from before tonight's clusters existed, so the one caller that
+   * must see the new clusters asks for the computation directly. It goes through the same [[scoreRegions]] roll-up
+   * as [[getFullCityRegionScores]], so the tables can't disagree with `/v3/api/accessScoreRegions`.
+   *
+   * @param batchSize DB fetch size for the cluster stream.
+   * @return          The region roll-up and the street/intersection scores it was rolled up from.
+   */
+  def computeCityWideScores(batchSize: Int): Future[(Seq[RegionAccessScoreForApi], AccessScores)] =
+    for {
+      bbox    <- cityBbox
+      regions <- apiService.getRegionsFullyInsideBbox(bbox)
+      scores  <- computeAccessScoresV3(SpatialQueryType.Street, bbox, batchSize)
+    } yield (scoreRegions(regions, scores), scores)
+
+  /**
    * When the clusters the scores are computed from were last rebuilt: the nightly clustering run's last successful
    * finish. A label added since then is not in any cluster yet, so it cannot have moved a score — which is what a
    * contributor wondering why their labels changed nothing needs to be told. The intersection rebuild runs inside

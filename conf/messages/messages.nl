@@ -250,6 +250,7 @@ landing.how.you.help.find = ONTDEK PROBLEMEN
 landing.how.you.help.assess = BEOORDEEL DE ERNST
 landing.validate.title = Beoordeel wat anderen hebben gevonden
 landing.validate.content = Help binnen enkele seconden mee: bekijk recente labels die vrijwilligers in {0} hebben geplaatst en laat ons weten of ze kloppen.
+landing.spotlight.title = Waar de stoepen in {0} het hoogst en het laagst scoren
 landing.choropleth.title = Selecteer een wijk
 landing.choropleth.content = Kies hieronder een buurt die je wilt verkennen, of klik op de knop <a href="/explore">''Verkennen''</a> en er wordt automatisch een buurt aan je toegewezen!
 landing.choropleth.legend = Procent van de wijk compleet
@@ -617,6 +618,7 @@ footer.logo.create.alt = Centrum voor Onderzoek en Onderwijs over Toegankelijke 
 cities.dashboard.cities = Implementatiesteden
 cities.dashboard.distance = Verkende straten
 cities.dashboard.cities.icon.alt = Rolstoelgebruiker van Project Sidewalk-logo met een vlag
+cities.spotlight.title = Waar stoepen het hoogst en het laagst scoren in onze steden
 cities.dashboard.cta.title = Breng Project Sidewalk naar uw stad!
 cities.dashboard.cta.content = Wilt u de toegankelijkheid in uw omgeving in kaart brengen? <br/> We zijn altijd op zoek naar nieuwe partners die ons kunnen helpen de toekomst van stedelijke toegankelijkheid te transformeren.
 cities.dashboard.cta.button = Leer hoe u kunt implementeren

@@ -294,6 +294,7 @@ GET     /v3/api/accessScoreStreets                      controllers.api.AccessSc
 GET     /v3/api/accessScoreIntersections                controllers.api.AccessScoreApiController.getAccessScoreIntersections(bbox: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/accessScoreRegions                      controllers.api.AccessScoreApiController.getAccessScoreRegions(bbox: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/accessScoreConfig                       controllers.api.AccessScoreApiController.getAccessScoreConfig
+GET     /v3/api/accessScoreSpotlight                    controllers.api.AccessScoreApiController.getAccessScoreSpotlight(unit: Option[String], n: Option[Int], scope: Option[String])
 
 # API Documentation (v3) Routes.
 GET     /v3/api-docs                                    controllers.ApiDocsController.index
@@ -309,6 +310,7 @@ GET     /v3/api-docs/regions                            controllers.ApiDocsContr
 GET     /v3/api-docs/accessScoreStreets                 controllers.ApiDocsController.accessScoreStreets
 GET     /v3/api-docs/accessScoreIntersections           controllers.ApiDocsController.accessScoreIntersections
 GET     /v3/api-docs/accessScoreRegions                 controllers.ApiDocsController.accessScoreRegions
+GET     /v3/api-docs/accessScoreSpotlight               controllers.ApiDocsController.accessScoreSpotlight
 GET     /v3/api-docs/validations                        controllers.ApiDocsController.validations
 GET     /v3/api-docs/validation-result-types            controllers.ApiDocsController.validationResultTypes
 GET     /v3/api-docs/labelEdits                         controllers.ApiDocsController.labelEdits

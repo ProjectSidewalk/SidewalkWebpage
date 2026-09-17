@@ -355,5 +355,35 @@
     "no-image-to-judge": "Sem imagem para avaliar este rótulo",
     "vote-failed": "Seu voto não foi salvo. Tente novamente."
   },
-  "download-already-preparing": "Este arquivo já está sendo preparado para outra solicitação. Tente novamente em instantes."
+  "download-already-preparing": "Este arquivo já está sendo preparado para outra solicitação. Tente novamente em instantes.",
+  "access-score-spotlight": {
+    "subtitle-regions": "As calçadas de cada bairro recebem de 0 a 100 pontos pelo nosso algoritmo <a href=\"{{href}}\">AccessScore</a> (100 é o melhor).",
+    "subtitle-streets": "As calçadas de cada rua recebem de 0 a 100 pontos pelo nosso algoritmo <a href=\"{{href}}\">AccessScore</a> (100 é o melhor).",
+    "subtitle-one-region": "Esta cidade é mapeada como um único bairro, então há apenas uma pontuação para mostrar. Mude para Ruas para ver com mais detalhes.",
+    "units-label": "Classificar bairros ou ruas",
+    "unit-regions": "Bairros",
+    "unit-streets": "Ruas",
+    "highest": "Maiores pontuações ({{score}}+)",
+    "lowest": "Menores pontuações (abaixo de {{score}})",
+    "ranked-so-far": "Classificados até agora",
+    "closest": "Mais perto de entrar no ranking",
+    "empty-highest-regions": "Nenhum bairro alcança {{score}} ou mais ainda.",
+    "empty-highest-streets": "Nenhuma rua alcança {{score}} ou mais ainda.",
+    "empty-lowest-regions": "Nenhum bairro está abaixo de {{score}}.",
+    "empty-lowest-streets": "Nenhuma rua está abaixo de {{score}}.",
+    "count-regions": "Só entram no ranking os bairros com pelo menos {{percent}}% explorados — {{qualifying}} de {{total}} até agora.",
+    "count-streets": "Só entram no ranking as ruas com pelo menos {{minLength}} e vários elementos mapeados — {{qualifying}} de {{total}} até agora.",
+    "updated-nightly": "Atualizado toda noite",
+    "updated-info": "As pontuações são recalculadas todas as noites com base em todas as etiquetas colocadas até então. Uma etiqueta que você adicionar hoje conta amanhã.",
+    "updated-last": "Última atualização em {{date}}.",
+    "cta-regions": "Ver todos os bairros na ferramenta AccessScore",
+    "cta-streets": "Ver todas as ruas na ferramenta AccessScore",
+    "explore": "Explorar",
+    "explore-region": "Explorar {{name}}",
+    "street-sub": "{{region}} · {{length}}",
+    "region-sub": "{{length}} de ruas · {{clusters}} grupos",
+    "region-sub-pending": "{{length}} de ruas · {{percent}}% explorado",
+    "street-in-city": "{{region}}, {{city}}",
+    "unnamed": "Rua sem nome"
+  }
 }

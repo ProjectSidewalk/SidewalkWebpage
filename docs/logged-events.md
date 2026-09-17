@@ -76,6 +76,22 @@ this marks the grid actually being seen, not just the page view) and
 `Click_module=LandingValidationGridShare_labelId=<id>` (surface + label attribution) alongside ShareWidget's own
 generic `Share_*` events.
 
+The **AccessScore Spotlight** (`AccessScoreSpotlight.js`, #5215), which the landing page and `/cities` both mount,
+logs `View_module=AccessScoreSpotlight_unit=<regions|streets>_count=<n>` when its lists first render — once per page
+view, not again on a unit switch — where `count` is how many rows were actually drawn across both columns, so a
+sparse city is distinguishable from a full one. Moving down the list logs
+`Hover_module=AccessScoreSpotlight_unit=<unit>_id=<regionId|streetEdgeId>` (with `_city=<cityId>` appended on
+`/cities`, where ids repeat across cities) **once per row per page view**: a hover
+event per pointer pass would be one of the chattiest events on the site, and the question it answers ("was this row
+looked at") only needs the first. Keyboard focus counts as a hover, since it does the same thing. Clicking a row's
+name, or anywhere else on the row (which forwards to that link), logs
+`Click_module=AccessScoreSpotlight_unit=<unit>_id=<id>`, with `_city=<cityId>` appended on `/cities`, where the
+click leaves for another deployment. The unit switch logs
+`Click_module=AccessScoreSpotlightUnit_unit=<unit>`, the section's "see every … in the AccessScore tool" button
+logs `Click_module=AccessScoreSpotlightTool_unit=<unit>`, and the **Explore** button on a "closest to being ranked"
+row logs `Click_module=AccessScoreSpotlightExplore_regionId=<id>` — the same mission a choropleth click starts, so
+the two paths into a region's first audit can be compared.
+
 The shared map filter sidebar (`ps-map/MapSidebarFilter.js`, rendered on LabelMap, the admin maps, and the user
 dashboard/profile maps) logs its interactions here as the **`Click_module=MapSidebar_<Action>`** family. The `<Action>`
 vocabulary mirrors the Gallery filter events (`SeverityApply`, `TagApply`, `ValidationOptionApply`, … in

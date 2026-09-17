@@ -355,5 +355,35 @@
     "no-image-to-judge": "Aucune image pour juger cette étiquette",
     "vote-failed": "Votre vote n'a pas été enregistré. Veuillez réessayer."
   },
-  "download-already-preparing": "Ce fichier est déjà en cours de préparation pour une autre demande. Veuillez réessayer dans un instant."
+  "download-already-preparing": "Ce fichier est déjà en cours de préparation pour une autre demande. Veuillez réessayer dans un instant.",
+  "access-score-spotlight": {
+    "subtitle-regions": "Les trottoirs de chaque quartier reçoivent une note de 0 à 100 avec notre algorithme <a href=\"{{href}}\">AccessScore</a> (100 est la meilleure).",
+    "subtitle-streets": "Les trottoirs de chaque rue reçoivent une note de 0 à 100 avec notre algorithme <a href=\"{{href}}\">AccessScore</a> (100 est la meilleure).",
+    "subtitle-one-region": "Cette ville est cartographiée comme un seul quartier : il n'y a donc qu'une note à afficher. Passez à Rues pour un regard plus détaillé.",
+    "units-label": "Classer les quartiers ou les rues",
+    "unit-regions": "Quartiers",
+    "unit-streets": "Rues",
+    "highest": "Meilleures notes ({{score}} et plus)",
+    "lowest": "Notes les plus basses (moins de {{score}})",
+    "ranked-so-far": "Classés jusqu'ici",
+    "closest": "Bientôt classés",
+    "empty-highest-regions": "Aucun quartier n'atteint encore {{score}} ou plus.",
+    "empty-highest-streets": "Aucune rue n'atteint encore {{score}} ou plus.",
+    "empty-lowest-regions": "Aucun quartier n'est en dessous de {{score}}.",
+    "empty-lowest-streets": "Aucune rue n'est en dessous de {{score}}.",
+    "count-regions": "Seuls les quartiers explorés à au moins {{percent}}% sont classés — {{qualifying}} sur {{total}} jusqu'ici.",
+    "count-streets": "Seules les rues d'au moins {{minLength}} comportant plusieurs éléments cartographiés sont classées — {{qualifying}} sur {{total}} jusqu'ici.",
+    "updated-nightly": "Mis à jour chaque nuit",
+    "updated-info": "Les notes sont recalculées chaque nuit à partir de toutes les annotations posées jusque-là. Une annotation ajoutée aujourd'hui compte demain.",
+    "updated-last": "Dernière mise à jour : {{date}}.",
+    "cta-regions": "Voir tous les quartiers dans l'outil AccessScore",
+    "cta-streets": "Voir toutes les rues dans l'outil AccessScore",
+    "explore": "Explorer",
+    "explore-region": "Explorer {{name}}",
+    "street-sub": "{{region}} · {{length}}",
+    "region-sub": "{{length}} de rues · {{clusters}} groupes",
+    "region-sub-pending": "{{length}} de rues · {{percent}}% exploré",
+    "street-in-city": "{{region}}, {{city}}",
+    "unnamed": "Rue sans nom"
+  }
 }
