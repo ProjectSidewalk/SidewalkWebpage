@@ -129,6 +129,10 @@ class LabelEditTable @Inject() (
 
   def delete(labelEditId: Int): DBIO[Int] = labelEdits.filter(_.labelEditId === labelEditId).delete
 
+  /** Cuts an edit's tie to the vote it came with, leaving it on record as a standalone edit. */
+  def detachFromValidation(labelEditId: Int): DBIO[Int] =
+    labelEdits.filter(_.labelEditId === labelEditId).map(_.labelValidationId).update(None)
+
   /**
    * Edits for the v3 API, joined to their label.
    */

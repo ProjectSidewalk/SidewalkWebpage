@@ -181,6 +181,43 @@ describe('LabelTypePicker', () => {
     expect(picker.getSelected()).toBe('Obstacle');
   });
 
+  it('keeps focus through a host that redraws on every pick, so arrowing carries on', () => {
+    // What Expert Validate does: picking re-renders the whole group, which used to destroy the focused chip and drop
+    // focus to the body, leaving the next arrow key with nothing to move from.
+    const picker = new window.LabelTypePicker(root, {
+      onPick: (t) => {
+        picks.push(t);
+        picker.render({ current: 'NoCurbRamp', selected: t });
+      },
+    });
+    picker.render({ current: 'NoCurbRamp', selected: 'CurbRamp' });
+    const chip = (t) => root.querySelector(`[data-label-type="${t}"]`);
+    chip('CurbRamp').focus();
+
+    chip('CurbRamp').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    expect(document.activeElement).toBe(chip('Obstacle'));
+
+    document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    expect(document.activeElement).toBe(chip('SurfaceProblem'));
+    expect(picks).toEqual(['Obstacle', 'SurfaceProblem']);
+  });
+
+  it('an arrow key opens a folded group back up rather than moving between chips nobody can see', () => {
+    const toggles = [];
+    const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t), onToggle: (x) => toggles.push(x) });
+    picker.render({ current: 'NoCurbRamp' });
+    const chip = (t) => root.querySelector(`[data-label-type="${t}"]`);
+    chip('Obstacle').click();
+    picker.collapse();
+    chip('Obstacle').focus();
+
+    chip('Obstacle').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+
+    expect(root.classList.contains('label-type-picker--collapsed')).toBe(false);
+    expect(toggles).toEqual([true]);
+    expect(document.activeElement).toBe(chip('SurfaceProblem'));
+  });
+
   it('collapse leaves only the picked chip, and clicking it opens the group again', () => {
     const toggles = [];
     const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t), onToggle: (x) => toggles.push(x) });

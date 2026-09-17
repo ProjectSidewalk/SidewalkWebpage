@@ -413,6 +413,29 @@ class LabelEditSpec
       votesBy(target.labelId, userId) mustBe empty
       typeEditsBy(target.labelId, userId) mustBe empty
     }
+
+    "keep the type change when the changer later votes on the label again, rather than on an undo" in {
+      val target               = pickTypeChangeLabel()
+      val other                = otherSeverityType(target.labelType)
+      val (userId, _, session) = signUpFreshUser()
+      grantAdmin(userId)
+
+      status(postPopupVote(session, popupVoteBody(target, "Agree", target.severity, undone = false, Some(other))))
+        .mustBe(OK)
+      fullState(target.labelId)._1 mustBe other
+
+      // The re-typed label is served again, and this validator votes on it a second time. That replaces their verdict
+      // and nothing else: they are not taking back what they said the type was, and reverting it here would leave the
+      // vote they just cast naming a type the label no longer has.
+      val revote =
+        postPopupVote(session, popupVoteBody(target.copy(labelType = other), "Agree", target.severity, undone = false))
+      status(revote) mustBe OK
+      fullState(target.labelId)._1 mustBe other
+      votesBy(target.labelId, userId) mustBe Seq((other, "Agree"))
+      // The change stays on record, no longer tied to the vote that has been replaced.
+      typeEditsBy(target.labelId, userId).map(e => (e._1, e._2)) mustBe Seq((target.labelType, other))
+      editsBy(target.labelId, userId).map(_._5.isDefined) mustBe Seq(false)
+    }
   }
 
   "POST /labelmap/validate" should {

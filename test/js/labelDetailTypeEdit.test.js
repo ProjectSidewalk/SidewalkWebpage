@@ -26,6 +26,9 @@ const PICKER_SRC = readSrc('public/js/common/LabelTypePicker.js');
 
 const TYPES = ['CurbRamp', 'Obstacle', 'SurfaceProblem', 'Signal'];
 const RATED = { CurbRamp: true, Obstacle: true, SurfaceProblem: true, Signal: false };
+// A curb ramp is rated on how well it does its job, an obstacle on how much it gets in the way, so a rating means
+// something different either side of that line; Signal carries none at all.
+const SCALES = { CurbRamp: 'quality', Obstacle: 'severity', SurfaceProblem: 'severity', Signal: 'unrated' };
 
 /**
  * The card markup as views/common/labelDetail.scala.html renders it, reduced to what #cacheElements() looks up.
@@ -187,6 +190,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
         getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
         isPositiveLabelType: (type) => type === 'CurbRamp',
         labelTypeHasSeverity: (type) => RATED[type],
+        getRatingScale: (type) => SCALES[type] ?? 'unrated',
         getIconImagePaths: (type) => ({ iconImagePath: `/assets/${type}_small.svg` }),
         getLabelColors: (type) => `color-${type}`,
       },
@@ -263,7 +267,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
 
     expect(picker().hidden).toBe(true);
     expect(savedEdits()).toEqual([expect.objectContaining({
-      label_id: 42, label_type: 'Obstacle', new_label_type: 'Signal', severity: 2, tags: ['pole'],
+      label_id: 42, label_type: 'Obstacle', new_label_type: 'Signal', severity: null, tags: ['pole'],
     })]);
     // The reply is the truth: Signal is unrated, so the rating column goes away with it.
     expect(q('.label-detail__type-button .label-detail__type-name').textContent).toBe('common:signal');
@@ -350,6 +354,22 @@ describe('changing a label\'s type from the card (#3671)', () => {
     // The label really is on a different type now, so the host and the vote counts have to hear about it.
     expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ label_id: 42, label_type: 'CurbRamp' }));
     expect(window.fetch).toHaveBeenCalledWith('/label/id/42', expect.anything());
+  });
+
+  test('the rating goes with the type only when both read it the same way', async () => {
+    // Obstacle and Surface Problem both rate how much the thing gets in the way, so the 2 still means what it did.
+    await showLabel({ severity: 2, tags: [] });
+    typeButton().click();
+    chip('SurfaceProblem').click();
+    await flush();
+    expect(savedEdits().at(-1)).toEqual(expect.objectContaining({ new_label_type: 'SurfaceProblem', severity: 2 }));
+
+    // A curb ramp is rated on how well it does its job instead, so the old number would be a different claim.
+    await showLabel({ severity: 2, tags: [] });
+    typeButton().click();
+    chip('CurbRamp').click();
+    await flush();
+    expect(savedEdits().at(-1)).toEqual(expect.objectContaining({ new_label_type: 'CurbRamp', severity: null }));
   });
 
   test('a rating edit also names the type shown, so the server can spot a card that fell behind', async () => {

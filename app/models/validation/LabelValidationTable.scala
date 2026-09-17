@@ -293,7 +293,7 @@ class LabelValidationTable @Inject() (
       .on(_.labelId === _.labelId)
       .join(sidewalkUserTable.sidewalkUserToRoleJoin)
       .on(_._1.userId === _._1.userId)
-      .groupBy { case ((v, l), (u, ur)) => (l.labelType, v.validationResult, ur.role === Role.Ai) }
+      .groupBy { case ((v, _), (_, ur)) => (v.labelType, v.validationResult, ur.role === Role.Ai) }
       .map { case ((labelType, valResult, isAi), group) =>
         (labelType.asColumnOf[String], valResult, isAi, group.length)
       }

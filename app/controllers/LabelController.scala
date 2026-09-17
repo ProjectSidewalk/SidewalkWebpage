@@ -99,7 +99,8 @@ class LabelController @Inject() (
               .map {
                 case LabelEditOutcome.Applied(label) =>
                   // Not waited on: the AI's old assessment was about the old type, and the nightly sweep can take days.
-                  if (submission.newLabelType.isDefined) aiService.reassessAfterTypeChange(label.labelId)
+                  if (submission.labelType.exists(_ != label.labelType))
+                    aiService.reassessAfterTypeChange(label.labelId)
                   Ok(
                     Json.obj(
                       "status"     -> "Success",

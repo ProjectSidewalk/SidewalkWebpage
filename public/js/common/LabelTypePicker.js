@@ -36,6 +36,7 @@ class LabelTypePicker {
    *   pickable since picking it would mean no change; `selected` is the type picked so far.
    */
   render({ current = null, selected = null } = {}) {
+    const hadFocus = this.#root.contains(document.activeElement);
     this.#currentType = current;
     this.#selectedType = selected;
     this.#collapsed = false;
@@ -43,6 +44,8 @@ class LabelTypePicker {
     this.#chips = util.misc.VALID_LABEL_TYPES.map((labelType) => this.#buildChip(labelType));
     this.#root.append(...this.#chips);
     this.#syncState();
+    // Focus rides along to the rebuilt chip, so arrowing through the group survives a host redrawing on every pick.
+    if (hadFocus) this.#chips.find((c) => c.tabIndex === 0)?.focus();
   }
 
   /**
@@ -129,6 +132,13 @@ class LabelTypePicker {
   #handleKeydown = (e) => {
     const isNext = LabelTypePicker.#KEY_NEXT.has(e.key);
     if (!isNext && !LabelTypePicker.#KEY_PREV.has(e.key)) return;
+    // Folded down, only the picked chip is on screen, so there is nothing to move between yet: the press opens the
+    // group back up and then moves, the keyboard's version of clicking the picked chip.
+    if (this.#collapsed) {
+      this.#collapsed = false;
+      this.#syncState();
+      this.#onToggle(true);
+    }
     const pickable = this.#chips.filter((c) => c.getAttribute('aria-disabled') !== 'true');
     const from = pickable.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
     if (from === -1) return;

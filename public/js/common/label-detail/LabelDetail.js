@@ -218,7 +218,7 @@ class LabelDetail {
       this.#typePicker = new LabelTypePicker(this.#els.typePickerChips, {
         onPick: (labelType) => {
           this.#setTypePickerOpen(false);
-          this.#submitEdit({ labelType });
+          this.#submitEdit({ labelType, severity: this.#severityAfterTypeChange(labelType) });
         },
       });
     }
@@ -648,6 +648,20 @@ class LabelDetail {
     // Enter or Space — so the handlers behind these buttons can still log the keyboard apart from the mouse (the
     // idiom Navbar.js uses).
     button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window, detail: 0 }));
+  }
+
+  /**
+   * The rating a label keeps when it becomes `labelType`: the one on screen when both types read a 1-3 rating the same
+   * way, else none. A Quality rating says nothing about a Severity one, and an unrated type carries no rating at all.
+   * @param {string} labelType - The type the label is becoming.
+   * @returns {?number}
+   */
+  #severityAfterTypeChange(labelType) {
+    const meta = this.#currentLabelMeta;
+    const from = meta?.label_type;
+    const sameScale = util.misc.labelTypeHasSeverity(labelType)
+      && util.misc.getRatingScale(labelType) === util.misc.getRatingScale(from);
+    return sameScale ? meta?.severity ?? null : null;
   }
 
   /** @returns {boolean} Ctrl+Z or Cmd+Z, the undo chord on every platform. */
@@ -1826,12 +1840,14 @@ class LabelDetail {
    */
   #renderTitle(labelType) {
     const els = this.#els;
-    const name = i18next.t(`common:${camelToKebab(labelType)}`);
+    const name = i18next.t(`common:${camelToKebab(labelType)}`).replaceAll('&shy;', '\u00AD');
     if (els.title && !els.typeNames?.length) els.title.textContent = name; // A host with the older, plain markup.
     for (const el of els.typeNames ?? []) el.textContent = name;
     for (const el of els.typeIcons ?? []) el.src = util.misc.getIconImagePaths(labelType).iconImagePath;
-    // The visible name leads the accessible name (WCAG 2.5.3), then what pressing does.
-    els.typeButton?.setAttribute('aria-label', `${name.replace('&shy;', '')}: ${i18next.t('labelmap:change-type')}`);
+    // The visible name leads the accessible name (WCAG 2.5.3), then what pressing does. A screen reader is read the
+    // name without the hyphenation hint, which it would otherwise pronounce as a break.
+    const spoken = name.replaceAll('\u00AD', '');
+    els.typeButton?.setAttribute('aria-label', `${spoken}: ${i18next.t('labelmap:change-type')}`);
   }
 
   static #popoverSupported = typeof HTMLElement !== 'undefined' && 'popover' in HTMLElement.prototype;

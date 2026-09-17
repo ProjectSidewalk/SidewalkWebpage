@@ -45,7 +45,7 @@ trait LabelEditService {
       tags: Seq[String],
       source: UiSource
   ): Future[LabelEditOutcome]
-  def revertEditForValidation(labelValidationId: Int): DBIO[Boolean]
+  def revertEditForValidation(labelValidationId: Int, retracted: Boolean): DBIO[Boolean]
   def updateLabelFromExplore(
       labelId: Int,
       deleted: Boolean,
@@ -126,9 +126,7 @@ class LabelEditServiceImpl @Inject() (
       case None        => DBIO.successful(None)
       case Some(label) =>
         val newType: LabelTypeEnum.Base = labelType.getOrElse(label.labelType)
-        val newSeverity: Option[Int]    =
-          if (newType == label.labelType || severity != label.severity) labelService.severityFor(newType, severity)
-          else LabelTypeEnum.severityAfterTypeChange(label.labelType, newType, severity)
+        val newSeverity: Option[Int]    = labelService.severityFor(newType, severity)
         labelService.cleanTagList(tags, newType).flatMap { cleaned =>
           val target = State(newType, newSeverity, cleaned.toList)
           if (target.sameAs(stateOf(label))) DBIO.successful(Some(label))
@@ -236,13 +234,22 @@ class LabelEditServiceImpl @Inject() (
 
   /**
    * Unwinds the edit submitted with a validation, for when the vote is deleted or replaced.
+   *
+   * A type change is kept when the vote is merely being replaced (#3671): the validator is voting on the label again,
+   * not taking back what they said its type was, and reverting it would leave their new vote naming a type the label
+   * no longer has -- an instantly stale vote on a label whose type flipped back with nobody asking. The edit stays on
+   * record as a standalone one, so only a real undo (`retracted`) puts the old type back.
+   *
+   * @param retracted Whether the vote is being taken back rather than replaced.
    * @return Whether the validation had an edit to unwind.
    */
-  def revertEditForValidation(labelValidationId: Int): DBIO[Boolean] = {
+  def revertEditForValidation(labelValidationId: Int, retracted: Boolean): DBIO[Boolean] = {
     labelEditTable
       .findByLabelValidationId(labelValidationId)
       .flatMap {
-        case None       => DBIO.successful(false)
+        case None                                                               => DBIO.successful(false)
+        case Some(edit) if !retracted && edit.oldLabelType != edit.newLabelType =>
+          labelEditTable.detachFromValidation(edit.labelEditId).map(_ > 0)
         case Some(edit) => revertEdit(edit).map(_ => true)
       }
       .transactionally

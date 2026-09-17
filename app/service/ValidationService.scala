@@ -143,13 +143,15 @@ class ValidationServiceImpl @Inject() (
    * Deletes a validation in the label_validation table, unwinding the edit it was submitted with. Also updates
    * validation counts in the label table.
    * @param oldVal The validation to delete.
+   * @param retracted Whether the vote is being taken back, as opposed to replaced by a newer one from the same user.
+   *                  A replacement keeps any type change the vote carried; see revertEditForValidation.
    * @return Int count of rows deleted, either 0 or 1.
    */
-  private def deleteLabelValidation(oldVal: LabelValidation): DBIO[Int] = {
+  private def deleteLabelValidation(oldVal: LabelValidation, retracted: Boolean): DBIO[Int] = {
     (for {
       _ <- {
         if (oldVal.validationResult == ValidationOption.Agree)
-          labelEditService.revertEditForValidation(oldVal.labelValidationId)
+          labelEditService.revertEditForValidation(oldVal.labelValidationId, retracted)
         else DBIO.successful(false)
       }
       excludedUser <- userStatTable.isExcludedUser(oldVal.userId)
@@ -245,7 +247,7 @@ class ValidationServiceImpl @Inject() (
           // first makes those a clean replacement (latest verdict wins) instead of a unique-constraint violation, and
           // reuses the redo path so severity/tags, label_history, and validation counts unwind first (#4377).
           val oldValRemoved = existingVal match {
-            case Some(oldVal) => deleteLabelValidation(oldVal).map(_ > 0)
+            case Some(oldVal) => deleteLabelValidation(oldVal, retracted = valSubmission.undone).map(_ > 0)
             case None         => DBIO.successful(false)
           }
 
