@@ -1,4 +1,10 @@
 /**
+ * What a dock view draws: the key the render/update split is decided on, plus whatever the view reads besides
+ * (each view's `render` names its own shape).
+ * @typedef {{shapeKey: string} & Record<string, any>} AccessScoreChartData
+ */
+
+/**
  * Base for the views in the AccessScore insights dock (#5217): a container, the callbacks a view reports through,
  * and the render/update split that keeps a slider drag cheap.
  *
@@ -33,7 +39,8 @@ class AccessScoreChart {
 
   /**
    * Draws the data, rebuilding the DOM only when its shape changed.
-   * @param {object} data - View data; `data.shapeKey` names the shape (unit, scope, roster) it was computed for.
+   * @param {AccessScoreChartData} data - View data; `shapeKey` names the shape (unit, scope, roster) it was
+   *   computed for.
    */
   draw(data) {
     if (data.shapeKey !== this.#shapeKey) {
@@ -46,7 +53,7 @@ class AccessScoreChart {
 
   /**
    * Full DOM rebuild. Subclasses cache the nodes `update` writes to here.
-   * @param {object} data - View data.
+   * @param {AccessScoreChartData} data - View data.
    */
   render(data) { // eslint-disable-line no-unused-vars
     throw new Error('render() is abstract');
@@ -54,7 +61,7 @@ class AccessScoreChart {
 
   /**
    * A cheap redraw over the DOM `render` built: values, widths, colors, states — never structure.
-   * @param {object} data - View data of the same shape as the last render.
+   * @param {AccessScoreChartData} data - View data of the same shape as the last render.
    */
   update(data) { // eslint-disable-line no-unused-vars
     throw new Error('update() is abstract');
@@ -72,7 +79,7 @@ class AccessScoreChart {
   /**
    * A number in the reader's locale.
    * @param {number} value - The number.
-   * @param {object} [options] - `Intl.NumberFormat` options.
+   * @param {Intl.NumberFormatOptions} [options] - `Intl.NumberFormat` options.
    * @returns {string} The formatted number.
    */
   static number(value, options = {}) {
@@ -104,7 +111,7 @@ class AccessScoreChart {
    * caller — so a name with an apostrophe or ampersand is not entity-escaped on its way in: i18next escapes
    * interpolated values for HTML sinks by default.
    * @param {string} key - The i18next key.
-   * @param {object} [vars] - Interpolation values.
+   * @param {Record<string, any>} [vars] - Interpolation values.
    * @returns {string} The translation, values interpolated verbatim.
    */
   static text(key, vars = {}) {

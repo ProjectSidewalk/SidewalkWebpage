@@ -154,7 +154,8 @@ class AccessScoreDock {
 
   /**
    * Applies the state a URL carried.
-   * @param {object} state - Any of `open` (boolean), `brush` (`{from, to}` in bin indices) and `focus` (a region id).
+   * @param {{open?: boolean, brush?: ?{from: number, to: number}, focus?: ?number}} [state] - Whether the dock is
+   *   open, the brush in bin indices, and the focused region's id; each left out when the URL didn't say.
    */
   applyUrlState({ open, brush, focus } = {}) {
     if (open === false) this.setOpen(false, { log: false });
@@ -200,7 +201,7 @@ class AccessScoreDock {
   /**
    * Opens or collapses the dock. Collapsed, only the bar with the ramp strip and the KPIs stays.
    * @param {boolean} open - The state.
-   * @param {object} [options] - `log` false for a programmatic change.
+   * @param {{log?: boolean}} [options] - `log` false for a programmatic change.
    */
   setOpen(open, { log = true } = {}) {
     this.#open = open;
@@ -214,8 +215,9 @@ class AccessScoreDock {
   /**
    * Sets or clears the brush.
    * @param {?{from: number, to: number}} range - Bin indices, `to` exclusive, or null to clear.
-   * @param {object} [options] - `final` false mid-sweep (nothing is logged or announced until release);
-   *                             `announce` false to skip the live region.
+   * @param {{final?: boolean, log?: boolean, announce?: boolean}} [options] - `final` false mid-sweep (nothing is
+   *   logged or announced until release); `log` false for a programmatic change; `announce` false to skip the live
+   *   region.
    */
   setBrush(range, { final = true, log = true, announce = true } = {}) {
     this.#brush = range ? { from: range.from, to: range.to } : null;
@@ -306,7 +308,7 @@ class AccessScoreDock {
 
   /**
    * Re-renders the photo strip's card for a label from fresh JSON, after a vote cast in the full label card.
-   * @param {object} label - A `/label/id/:id` JSON.
+   * @param {Record<string, any>} label - A `/label/id/:id` JSON.
    */
   refreshLabel(label) {
     this.#photos.refreshLabel(label);

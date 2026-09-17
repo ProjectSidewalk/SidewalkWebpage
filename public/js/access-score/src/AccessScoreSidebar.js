@@ -1,4 +1,12 @@
 /**
+ * What the sidebar reports with a change, which the page applies, logs, and hands the dock.
+ * @typedef {object} AccessScoreChangeMeta
+ * @property {string} kind - `Unit`, `Weight`, `ShowUnaudited`, `ShowClusters` or `Reset`; the page adds `ResetAll`.
+ * @property {boolean} final - False for a slider mid-drag, true for a settled value (the one to log).
+ * @property {string|boolean} [value] - What the change set, for the log.
+ */
+
+/**
  * The AccessScore tool's sidebar: the unit switch, one weight slider per scored label type, and the options block
  * that gathers both view toggles in one place (#5217).
  *
@@ -18,13 +26,15 @@ class AccessScoreSidebar {
   static MAX_WEIGHT = 3;
 
   #root;
+  /** @type {AccessScoreConfig} */
   #config;
+  /** @type {Array<(partial: ?Partial<AccessScoreState>, meta: AccessScoreChangeMeta) => void>} */
   #listeners = [];
   #els = {};
 
   /**
    * @param {HTMLElement} root - The `#filter-sidebar` element carrying the tool's section markup.
-   * @param {object} config - The `/v3/api/accessScoreConfig` response.
+   * @param {AccessScoreConfig} config - The `/v3/api/accessScoreConfig` response.
    */
   constructor(root, config) {
     this.#root = root;
@@ -34,9 +44,9 @@ class AccessScoreSidebar {
   }
 
   /**
-   * Subscribes to changes. The callback receives `(partialState, {kind, final})`: `final` is false for a slider
-   * mid-drag and true for a settled value (the one to log).
-   * @param {Function} callback - The subscriber.
+   * Subscribes to changes. The callback receives the partial state the change sets (null for a reset, which the
+   * page resolves) and what the change was.
+   * @param {(partial: ?Partial<AccessScoreState>, meta: AccessScoreChangeMeta) => void} callback - The subscriber.
    */
   onChange(callback) {
     this.#listeners.push(callback);
@@ -44,7 +54,7 @@ class AccessScoreSidebar {
 
   /**
    * Syncs the controls to a model state without emitting a change (used on load and after a reset).
-   * @param {object} state - An `AccessScoreModel` state.
+   * @param {AccessScoreState} state - An `AccessScoreModel` state.
    */
   setState(state) {
     const e = this.#els;

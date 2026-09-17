@@ -176,7 +176,7 @@ class AccessScorePhotoStrip {
 
   /**
    * Re-renders one thumbnail after a vote cast in the full label card, keeping the fresh JSON for the next redraw.
-   * @param {object} label - A `/label/id/:id` JSON.
+   * @param {Record<string, any>} label - A `/label/id/:id` JSON.
    */
   refreshLabel(label) {
     this.#labelsById.set(label.label_id, Promise.resolve(label));
