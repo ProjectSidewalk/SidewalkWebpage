@@ -97,11 +97,9 @@ describe('our stylesheets are self-contained', () => {
 
 describe('the design system ships the faces its font tokens name', () => {
     /** Every font-family an @font-face in our CSS declares, lowercased — CSS matches family names case-insensitively. */
-    const declaredFamilies = new Set(
-        STYLESHEETS.flatMap((file) => Array.from(
-            read(file).matchAll(/@font-face\s*\{[^}]*?font-family:\s*(['"]?)([^;'"]+)\1\s*;/g),
-        ).map((m) => m[2].trim().toLowerCase())),
-    );
+    const declaredFamilies = new Set(fontFaceBlocks()
+        .map(({ body }) => /font-family:\s*(['"]?)([^;'"]+)\1\s*;/.exec(body)?.[2].trim().toLowerCase())
+        .filter(Boolean));
 
     /**
      * The first (i.e. preferred) family in each --font-* token that holds a family stack — the one a webfont has to
@@ -190,17 +188,18 @@ describe('the design system ships the faces its font tokens name', () => {
             .filter((e) => e.isDirectory()).map((e) => e.name);
 
         // The floor against an empty read is derived from what the stylesheets load rather than pinned to a count,
-        // which drifts whenever a family is added or retired (#5077): every directory an @font-face reaches into
-        // under public/fonts/ has to be one the listing found. It is keyed on the src URL's directory rather than
-        // the declared family, since "JetBrains Mono" and JetBrainsMono share no spelling rule — a family's files
-        // living in a directory of their own, beside the license, is the layout this whole test relies on.
+        // which drifts whenever a family is added or retired (#5077): every @font-face src has to resolve into a
+        // directory the listing found. It is keyed on the URL's directory rather than the declared family, since
+        // "JetBrains Mono" and JetBrainsMono share no spelling rule — a family's files living in a directory of
+        // their own under public/fonts/, beside the license, is the layout this whole test relies on, so a src
+        // that lands anywhere else (`..`) or loose in public/fonts/ is an offender rather than an exemption.
         const reached = fontFaceBlocks()
             .flatMap(({ file, body }) => urlTargets(body).map((target) => {
                 const resolved = resolveTarget(file, target);
                 const dir = resolved && path.relative(FONTS_ROOT, resolved).split(path.sep)[0];
                 return { file, target, dir };
             }))
-            .filter((r) => r.dir && r.dir !== '..');
+            .filter((r) => r.dir);
         expect(reached.length).toBeGreaterThan(0);
         const unlisted = reached.filter((r) => !families.includes(r.dir)).map((r) => `${r.file} -> ${r.target}`);
         expect(unlisted).toEqual([]);
