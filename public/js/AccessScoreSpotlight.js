@@ -252,7 +252,8 @@ class AccessScoreSpotlight {
    */
   #buildColumn(key, rampStop, rows, kind) {
     const column = document.createElement('div');
-    const heading = document.createElement('div');
+    // A real heading under the section's <h2>, so the two lists are navigable structure rather than styled text.
+    const heading = document.createElement('h3');
     heading.className = 'spotlight-col-heading';
     const dot = document.createElement('span');
     dot.className = 'spotlight-dot';
@@ -263,7 +264,6 @@ class AccessScoreSpotlight {
 
     const list = document.createElement('ol');
     list.className = 'spotlight-list';
-    list.setAttribute('aria-label', i18next.t(`common:access-score-spotlight.${key}`));
     rows.forEach((row, index) => list.appendChild(this.#buildRow(row, index + 1, kind)));
     column.appendChild(list);
     return column;
