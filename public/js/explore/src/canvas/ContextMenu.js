@@ -398,12 +398,13 @@ class ContextMenu {
   }
 
   /**
-   * Returns true if rating severity is currently disabled.
+   * Returns true if the open label can't be rated: its type has no rating, or the tutorial hasn't reached its rating.
    * @returns {boolean}
    */
   isRatingSeverityDisabled() {
-    return this.#status.ratingSeverityEnabledForTutorialLabel
-      !== this.#status.targetLabel.getProperty('tutorialLabelNumber');
+    const label = this.#status.targetLabel;
+    if (!label || !util.misc.labelTypeHasSeverity(label.getLabelType())) return true;
+    return this.#status.ratingSeverityEnabledForTutorialLabel !== label.getProperty('tutorialLabelNumber');
   }
 
   /**
