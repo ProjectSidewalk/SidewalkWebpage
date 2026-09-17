@@ -92,6 +92,14 @@ ALTER TABLE label_validation
   DROP CONSTRAINT label_validation_user_id_label_id_unique,
   ADD CONSTRAINT label_validation_user_id_label_id_label_type_key UNIQUE (user_id, label_id, label_type);
 
+--    370 added (label_id, user_id) INCLUDE (validation_result) so the comment view's vote lookup stays index-only,
+--    which is what holds a Gallery page's cost to the comment count rather than the validation count. That view reads
+--    label_type as well now (section 6), so the INCLUDE carries it or every comment pays a heap fetch. Built before
+--    the old one goes, so the lookup is never without an index.
+CREATE INDEX label_validation_label_id_user_id_type_idx
+    ON label_validation (label_id, user_id) INCLUDE (validation_result, label_type);
+DROP INDEX label_validation_label_id_user_id_idx;
+
 -- 4. AI assessments remember the type they were about. The AI is asked about one type ("is this Curb Ramp there?"),
 --    so an assessment of the old type says nothing once the label is retyped. The vote it submitted already carries
 --    the type, but a city running tag suggestions with AI validation off saves no vote, and that assessment would
@@ -130,6 +138,10 @@ LEFT JOIN label_validation ON validation_task_comment.label_id = label_validatio
 GROUP BY validation_task_comment.label_id;
 
 # --- !Downs
+
+CREATE INDEX label_validation_label_id_user_id_idx
+    ON label_validation (label_id, user_id) INCLUDE (validation_result);
+DROP INDEX label_validation_label_id_user_id_type_idx;
 
 -- Back to 370's join, which is unique again once the votes above are gone.
 CREATE OR REPLACE VIEW label_comments_agg AS
