@@ -125,6 +125,9 @@ interface Window {
   cityId: string;
   cityName: string;
   cityNameShort: string;
+  // The landing page's neighborhood choropleth, kept here so the AccessScore Spotlight can light a row's region on
+  // it. Optional: it is created on the visitor's first interaction, so it is absent for the first moments of a page.
+  choropleth?: mapboxgl.Map;
   // The deployment sites map, kept here so the resize handler can reach it.
   citiesMap?: mapboxgl.Map;
   // Set by the jQuery script; @types/jquery only declares the bare `$` and `jQuery` globals.

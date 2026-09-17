@@ -69,6 +69,7 @@ class ClusterServiceImpl @Inject() (
     apiService: ApiService,
     intersectionService: IntersectionService,
     jobRunService: JobRunService,
+    accessScoreSpotlightService: AccessScoreSpotlightService,
     cpuEc: CpuIntensiveExecutionContext
 )(implicit ec: ExecutionContext)
     extends ClusterService {
@@ -95,7 +96,20 @@ class ClusterServiceImpl @Inject() (
           "failed, see error above"
         }
       _ = logger.info(s"Intersection rebuild: $rebuildSummary")
-      _      <- runMultiUserClustering(statusRef, allRegions)
+      _ <- runMultiUserClustering(statusRef, allRegions)
+      // The AccessScore Spotlight's nightly tables close the run: the clusters they are computed from only exist
+      // now, and the landing page reads nothing else. Recorded and recovered like the rebuild above, so a snapshot
+      // failure leaves yesterday's rows on the page rather than reporting the whole clustering run as failed.
+      snapshotSummary <- jobRunService
+        .record(AccessScoreSpotlightService.JobName, trigger)(accessScoreSpotlightService.recordSnapshot())(result =>
+          Json.obj("region_rows" -> result.regions, "street_rows" -> result.streets)
+        )
+        .map(result => s"${result.regions} region rows, ${result.streets} street rows")
+        .recover { case e: Throwable =>
+          logger.error("AccessScore Spotlight snapshot failed; the pages keep the previous night's rows", e)
+          "failed, see error above"
+        }
+      _ = logger.info(s"AccessScore Spotlight snapshot: $snapshotSummary")
       counts <- apiService.getClusteringInfo // Gets the counts to show how many labels were clustered.
     } yield ClusteringResults(labelCount = counts._1, clusterCount = counts._2)
   }

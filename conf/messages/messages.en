@@ -260,6 +260,7 @@ landing.how.you.help.find = FIND PROBLEMS
 landing.how.you.help.assess = ASSESS SEVERITY
 landing.validate.title = Validate What Others Found
 landing.validate.content = Start helping in seconds: check recent labels that volunteers placed in {0} and tell us whether they got it right.
+landing.spotlight.title = Where {0}''s Sidewalks Score Highest and Lowest
 landing.choropleth.title = Pick a Neighborhood
 landing.choropleth.content = Choose a neighborhood to explore below or click on the <a href="/explore">''Explore''</a> button and you''ll be assigned a neighborhood automatically!
 landing.choropleth.legend = Percent of Neighborhood Complete
@@ -608,6 +609,7 @@ footer.logo.create.alt = Center for Research and Education on Accessible Technol
 cities.dashboard.cities = Deployment Cities
 cities.dashboard.distance = Streets Explored
 cities.dashboard.cities.icon.alt = Wheelchair user from Project Sidewalk logo holding a flag
+cities.spotlight.title = Where Sidewalks Score Highest and Lowest Across Our Cities
 cities.dashboard.cta.title = Bring Project Sidewalk to Your City!
 cities.dashboard.cta.content = Interested in mapping accessibility in your community? <br/> We''re always looking for new partners to help transform the future of urban accessibility.
 cities.dashboard.cta.button = Learn How to Deploy

@@ -23,7 +23,7 @@ class LabelTypeEnumDbSpec extends PlaySpec with GuiceOneAppPerSuite with RolledB
     }
   }
 
-  // The constraints spell the unrated types out by name (394.sql), so the enum's RatingScale is what they must match.
+  // The constraints spell the unrated types out by name (395.sql), so the enum's RatingScale is what they must match.
   "the unrated-type severity CHECKs" should {
     "name exactly the types LabelTypeEnum rates as Unrated" in {
       val checks = run(

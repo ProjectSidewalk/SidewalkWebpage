@@ -259,6 +259,7 @@ landing.how.you.help.find = ENCONTRAR PROBLEMAS
 landing.how.you.help.assess = AVALIAR A SEVERIDADE
 landing.validate.title = Valide o que outras pessoas encontraram
 landing.validate.content = Comece a ajudar em segundos: veja os rótulos recentes que voluntários colocaram em {0} e diga se estão corretos.
+landing.spotlight.title = Onde as calçadas de {0} têm as melhores e as piores pontuações
 landing.choropleth.title = Escolha um bairro
 landing.choropleth.content = Escolha um bairro para explorar abaixo ou clique no botão <a href="/explore">"Explorar"</a> e você receberá um bairro automaticamente!
 landing.choropleth.legend = Percentual do bairro concluído
@@ -627,6 +628,7 @@ footer.logo.create.alt = Logotipo do Center for Research and Education on Access
 cities.dashboard.cities = Cidades com implantação
 cities.dashboard.distance = Ruas exploradas
 cities.dashboard.cities.icon.alt = Usuário de cadeira de rodas do logotipo do Project Sidewalk segurando uma bandeira
+cities.spotlight.title = Onde as calçadas têm as melhores e as piores pontuações em nossas cidades
 cities.dashboard.cta.title = Leve o Project Sidewalk para a sua cidade!
 cities.dashboard.cta.content = Interessado em mapear acessibilidade na sua comunidade? <br/> Estamos sempre procurando novos parceiros para ajudar a transformar o futuro da acessibilidade urbana.
 cities.dashboard.cta.button = Saiba como implementar

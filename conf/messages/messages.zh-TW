@@ -328,6 +328,7 @@ landing.how.you.help.find = 尋找可及性問題
 landing.how.you.help.assess = 評估品質
 landing.validate.title = 驗證其他人的發現
 landing.validate.content = 只需幾秒即可開始協助:查看志工最近在{0}放置的標記,並告訴我們這些標記是否正確。
+landing.spotlight.title = {0} 人行道評分最高與最低的地方
 landing.choropleth.title = 選擇一個鄰里
 landing.choropleth.content = 選擇下面要探索的社區，或點擊<a href="/explore">「探索」</a>按鈕，系統將自動為您分配一個社區！
 landing.choropleth.legend = 鄰里完成度
@@ -696,6 +697,7 @@ footer.logo.create.alt = 無障礙技術和體驗研究與教育中心 (CREATE) 
 cities.dashboard.cities = 部署城市
 cities.dashboard.distance = 已探索街道
 cities.dashboard.cities.icon.alt = 來自 Project Sidewalk 標誌的輪椅使用者手持旗幟
+cities.spotlight.title = 我們各城市中人行道評分最高與最低的地方
 cities.dashboard.cta.title = 將 Project Sidewalk 帶到您的城市！
 cities.dashboard.cta.content = 有興趣繪製您所在社區的無障礙地圖嗎？ <br/>我們一直在尋找新的合作夥伴來幫助改變城市無障礙的未來。
 cities.dashboard.cta.button = 了解如何部署

@@ -134,6 +134,17 @@
       <div id="landing-validation-grid" class="landing-validation-grid" aria-live="polite"></div>
     </div>
 
+    @* Directly above the choropleth, so the neighborhood a hovered row lights up is visible without scrolling. *@
+    <div class="container" id="access-score-spotlight-container" hidden>
+      <div class="section-title-and-subtitle">
+        <h2 class="row section-title" id="access-score-spotlight-title">@Messages("landing.spotlight.title", currentCity.cityNameShort)</h2>
+        @* Filled by AccessScoreSpotlight.js: the wording depends on which unit is shown and on how much of the city
+           has enough data to be ranked. *@
+        <div class="row section-subtitle spotlight-subtitle" id="access-score-spotlight-subtitle"></div>
+      </div>
+      <div class="spotlight"></div>
+    </div>
+
     <div id="landing-choropleth-container" class="container choropleth-container">
       <div class="section-title-and-subtitle">
         <h2 class="row section-title" id="choose-region-title">@Messages("landing.choropleth.title")</h2>
@@ -261,9 +272,13 @@
     @* The grid's imagery credits, without the 170 KB pano-viewer bundle: this page shows stills, never a live viewer. *@
     <script src='@assets.path("js/common/pano-credit/build/pano-credit.js")' defer></script>
     <script src='@assets.path("js/LandingValidationGrid.js")' defer></script>
+    @* The AccessScore ramp the Spotlight's bars are painted from, read out of the main.css tokens. *@
+    <script src='@assets.path("js/common/scoreRamp.js")' defer></script>
+    <script src='@assets.path("js/AccessScoreSpotlight.js")' defer></script>
     <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
     <link href='@assets.path("css/components/deployment-map.css")' rel="stylesheet">
     <link href='@assets.path("css/components/landing-validation-grid.css")' rel="stylesheet">
+    <link href='@assets.path("css/components/access-score-spotlight.css")' rel="stylesheet">
     <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
     @* The grid cards' share chip + popover (.label-detail__share-*) are styled by css/components/share-widget.css, which common/main.scala.html links on every page — nothing else here needs label-detail.css. *@
 
@@ -322,6 +337,7 @@
       // grid renders its skeletons immediately to reserve layout, then fills itself on the first interaction.
       window.appManager.ready(function () {
         new LandingValidationGrid(document.getElementById('landing-validation-container'));
+        new AccessScoreSpotlight(document.getElementById('access-score-spotlight-container'));
       });
     </script>
   </div>
