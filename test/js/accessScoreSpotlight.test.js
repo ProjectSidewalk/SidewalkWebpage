@@ -24,7 +24,8 @@ let logged = [];
 /** A region row of the shape /v3/api/accessScoreSpotlight returns. */
 function regionRow(id, name, score, completion = 0.9, extra = {}) {
     return {
-        region_id: id, name, score, completion_rate: completion, audited_distance_m: 1000, ...extra,
+        region_id: id, name, score, completion_rate: completion, audited_distance_m: 1000, total_distance_m: 2500,
+        cluster_count: 1234, ...extra,
     };
 }
 
@@ -102,11 +103,37 @@ describe('the AccessScore Spotlight', () => {
     /** The name link text of each rendered row, in document order. */
     const rowNames = () => [...document.querySelectorAll('.spotlight-name-link')].map((n) => n.textContent);
 
+    /**
+     * The few strings rendered for real, so a test can see what a reader would: the subtitle's link, and values
+     * that i18next's default escaping would mangle in a text node.
+     */
+    const STRINGS = {
+        'common:access-score-spotlight.subtitle-regions': 'Scored by our <a href="{{href}}">AccessScore</a> algorithm.',
+        'common:access-score-spotlight.street-sub': '{{region}} · {{length}}',
+        'common:access-score-spotlight.updated-last': 'Last updated {{date}}.',
+        'common:access-score-spotlight.explore-region': 'Explore {{name}}',
+    };
+
+    /** i18next's default interpolation escaping, character for character. */
+    const escapeLikeI18next = (value) => String(value).replace(/[&<>"'/]/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;', '/': '&#x2F;',
+    })[c]);
+
     beforeAll(() => {
-        // Keys pass through, with interpolation values appended so a test can tell two renderings of one key apart.
+        // Keys pass through, with interpolation values appended so a test can tell two renderings of one key apart,
+        // except the STRINGS above, which interpolate the way i18next does -- escaping included, unless the call
+        // turns it off.
         window.i18next = {
             language: 'en',
-            t: (key, vars) => (vars ? `${key}|${JSON.stringify(vars)}` : key),
+            t: (key, vars) => {
+                if (STRINGS[key]) {
+                    const escape = vars?.interpolation?.escapeValue !== false;
+                    return STRINGS[key].replace(/\{\{(\w+)\}\}/g, (_, name) => (
+                        escape ? escapeLikeI18next(vars[name]) : String(vars[name])
+                    ));
+                }
+                return vars ? `${key}|${JSON.stringify(vars)}` : key;
+            },
         };
         window.util = {
             onFirstInteractionOrIdle: () => {},
@@ -425,13 +452,97 @@ describe('the AccessScore Spotlight', () => {
     it('takes both floors from the feed rather than restating the backend\'s rules', async () => {
         await mount({
             regions: feed('regions', { qualifying: 2, total: 9, top: FIVE_REGIONS.slice(0, 2) }),
-            streets: feed('streets', { qualifying: 0, total: 0 }),
+            streets: feed('streets', { qualifying: 3, total: 90, top: [streetRow(1, 'NW Market St', 0.9)] }),
         });
 
-        // The sparse subtitle quotes the completion floor the feed published, as a percent.
-        const subtitle = document.querySelector('.spotlight-subtitle').textContent;
-        expect(subtitle).toContain('common:access-score-spotlight.subtitle-sparse');
-        expect(subtitle).toContain('"percent":80');
-        expect(subtitle).toContain('"minLength":"100 m"');
+        // The footnote quotes the completion floor the feed published, as a percent, and the street length floor
+        // in the reader's units.
+        // (Two ranked neighborhoods is short of a list, so the module opens on streets.)
+        const note = () => document.querySelector('.spotlight-note').textContent;
+        expect(note()).toContain('common:access-score-spotlight.count-streets');
+        expect(note()).toContain('"minLength":"100 m"');
+        document.querySelectorAll('.spotlight-unit')[0].click();
+        expect(note()).toContain('common:access-score-spotlight.count-regions');
+        expect(note()).toContain('"percent":80');
+    });
+
+    describe('what a row says under its name', () => {
+        it('gives a neighborhood its size and the evidence behind the score, so every row is two lines', async () => {
+            await mount({
+                regions: feed('regions', {
+                    qualifying: 6, total: 9, top: [regionRow(42, 'Capitol Hill', 0.84, 0.97, {
+                        total_distance_m: 14600, cluster_count: 6120,
+                    })],
+                }),
+                streets: feed('streets', { qualifying: 0, total: 0 }),
+            });
+
+            const sub = document.querySelector('.spotlight-row .spotlight-sub').textContent;
+            expect(sub).toContain('common:access-score-spotlight.region-sub');
+            expect(sub).toContain('"length":"14.6 km"');
+            expect(sub).toContain('"clusters":"6,120"');
+        });
+
+        it('tells a neighborhood still short of the floor how big it is and how far along', async () => {
+            await mount({
+                regions: feed('regions', {
+                    qualifying: 1, total: 9, top: [regionRow(1, 'Ranked', 0.5)],
+                    nearest: [regionRow(3, 'Nearly', null, 0.67, { total_distance_m: 3000 })],
+                }),
+                streets: feed('streets', { qualifying: 0, total: 0 }),
+            });
+
+            const sub = document.querySelector('.spotlight-row--pending .spotlight-sub').textContent;
+            expect(sub).toContain('common:access-score-spotlight.region-sub-pending');
+            expect(sub).toContain('"length":"3.0 km"');
+            expect(sub).toContain('"percent":67');
+        });
+    });
+
+    describe('text that i18next would otherwise escape', () => {
+        it('prints an apostrophe in a neighborhood name as an apostrophe, in text and in an accessible name', async () => {
+            await mount({
+                regions: feed('regions', {
+                    qualifying: 1, total: 9, top: [regionRow(1, 'Ranked', 0.5)],
+                    nearest: [regionRow(3, "Al 'Ummah Community Center", null, 0.67)],
+                }),
+                streets: feed('streets', {
+                    qualifying: 9, total: 90,
+                    top: [streetRow(77, 'Queen Anne Road', 0.98, { region_name: "Al 'Ummah Community Center" })],
+                }),
+            });
+
+            // Opens on streets: one ranked neighborhood is short of a list.
+            expect(document.querySelector('.spotlight-sub').textContent).toBe("Al 'Ummah Community Center · 1.2 km");
+            document.querySelectorAll('.spotlight-unit')[0].click();
+            expect(document.querySelector('.spotlight-explore').getAttribute('aria-label'))
+                .toBe("Explore Al 'Ummah Community Center");
+        });
+
+        it('prints the last-updated date with its slashes, to the minute', async () => {
+            await mount({
+                regions: feed('regions', {
+                    qualifying: 6, total: 9, top: [regionRow(42, 'Capitol Hill', 0.84)],
+                    computedAt: '2026-09-16T20:57:30Z',
+                }),
+                streets: feed('streets', { qualifying: 0, total: 0 }),
+            });
+
+            const tip = document.querySelector('.spotlight-tip').textContent;
+            expect(tip).not.toContain('&#x2F;');
+            // The day depends on the worker's zone; newer ICU puts a narrow no-break space before AM/PM.
+            expect(tip).toMatch(/Last updated Sep 1[67], 2026, \d{1,2}:\d{2}[\s\u202f][AP]M\.$/);
+        });
+
+        it('links "AccessScore" in the subtitle to how the score is computed', async () => {
+            await mount({
+                regions: feed('regions', { qualifying: 6, total: 9, top: [regionRow(42, 'Capitol Hill', 0.84)] }),
+                streets: feed('streets', { qualifying: 0, total: 0 }),
+            });
+
+            const link = document.querySelector('.spotlight-subtitle a');
+            expect(link.textContent).toBe('AccessScore');
+            expect(link.getAttribute('href')).toBe('/v3/api-docs/accessScoreStreets#scoring-model');
+        });
     });
 });

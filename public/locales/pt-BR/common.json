@@ -357,9 +357,8 @@
   },
   "download-already-preparing": "Este arquivo já está sendo preparado para outra solicitação. Tente novamente em instantes.",
   "access-score-spotlight": {
-    "subtitle-regions": "As calçadas de cada bairro recebem uma pontuação de 0 a 100 pelo AccessScore, nosso método para transformar em um único número os elementos mapeados por voluntários, como rampas ausentes e problemas de superfície. Ele reflete o que os voluntários encontraram até agora, e não uma avaliação oficial.",
-    "subtitle-streets": "Cada rua explorada recebe uma pontuação de 0 a 100 pelo AccessScore. Só entram no ranking as ruas com pelo menos {{minLength}} e vários elementos mapeados.",
-    "subtitle-sparse": "As calçadas de cada bairro recebem uma pontuação de 0 a 100 pelo AccessScore assim que os voluntários exploram pelo menos {{percent}}% de suas ruas. {{qualifying}} de {{total}} bairros já chegaram lá. Ajude os próximos a cruzar a linha.",
+    "subtitle-regions": "As calçadas de cada bairro recebem de 0 a 100 pontos pelo nosso algoritmo <a href=\"{{href}}\">AccessScore</a> (100 é o melhor).",
+    "subtitle-streets": "Cada rua explorada recebe de 0 a 100 pontos pelo nosso algoritmo <a href=\"{{href}}\">AccessScore</a> (100 é o melhor) com base nas condições das calçadas.",
     "subtitle-one-region": "Esta cidade é mapeada como um único bairro, então há apenas uma pontuação para mostrar. Mude para Ruas para ver com mais detalhes.",
     "units-label": "Classificar bairros ou ruas",
     "unit-regions": "Bairros",
@@ -368,8 +367,8 @@
     "lowest": "Menores pontuações",
     "ranked-so-far": "Classificados até agora",
     "closest": "Mais perto de entrar no ranking",
-    "count-regions": "{{qualifying}} de {{total}} bairros estão pelo menos {{percent}}% explorados e classificados.",
-    "count-streets": "{{qualifying}} de {{total}} ruas estão exploradas e classificadas.",
+    "count-regions": "Só entram no ranking os bairros com pelo menos {{percent}}% explorados — {{qualifying}} de {{total}} até agora.",
+    "count-streets": "Só entram no ranking as ruas com pelo menos {{minLength}} e vários elementos mapeados — {{qualifying}} de {{total}} até agora.",
     "updated-nightly": "Atualizado toda noite",
     "updated-info": "As pontuações são recalculadas todas as noites com base em todas as etiquetas colocadas até então. Uma etiqueta que você adicionar hoje conta amanhã.",
     "updated-last": "Última atualização em {{date}}.",
@@ -377,8 +376,9 @@
     "cta-streets": "Ver todas as ruas na ferramenta AccessScore",
     "explore": "Explorar",
     "explore-region": "Explorar {{name}}",
-    "percent-explored": "{{percent}}% explorado",
     "street-sub": "{{region}} · {{length}}",
+    "region-sub": "{{length}} de ruas · {{clusters}} grupos",
+    "region-sub-pending": "{{length}} de ruas · {{percent}}% explorado",
     "street-in-city": "{{region}}, {{city}}",
     "unnamed": "Rua sem nome"
   }

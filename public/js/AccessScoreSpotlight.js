@@ -5,6 +5,8 @@
  * @property {number} [region_id]
  * @property {string} [name]
  * @property {number} [completion_rate]
+ * @property {number} [total_distance_m]
+ * @property {number} [cluster_count]
  * @property {number} [osm_way_id]
  * @property {number} [street_edge_id]
  * @property {string} [region_name]
@@ -57,6 +59,9 @@ class AccessScoreSpotlight {
   /** The choropleth's region source and the cities map's city source, as ps-map names them. */
   static #REGION_SOURCE = 'region-polygons';
   static #CITY_SOURCE = 'cities';
+
+  /** Where "AccessScore" in the subtitle leads: the API docs' walk-through of how a score is computed. */
+  static #METHOD_HREF = '/v3/api-docs/accessScoreStreets#scoring-model';
 
   #section;
   #root;
@@ -185,8 +190,9 @@ class AccessScoreSpotlight {
     }
     this.#root.appendChild(cols);
 
-    this.#root.appendChild(this.#buildNote(feed));
     if (!this.#crossCity) this.#root.appendChild(this.#buildCta());
+    // Last, as the footnote it is: who gets ranked, and when the numbers were last refreshed.
+    this.#root.appendChild(this.#buildNote(feed));
 
     if (!this.#viewLogged) {
       this.#viewLogged = true;
@@ -196,26 +202,34 @@ class AccessScoreSpotlight {
   }
 
   /**
-   * Writes the section subtitle, which says what a score is and, when the city is short of data, how far along it is.
+   * A translated string bound for a plain-text sink (textContent, an aria-label).
+   *
+   * i18next HTML-escapes interpolated values by default, which is right for markup and wrong for text: a neighborhood
+   * named Al 'Ummah would print as Al &#39;Ummah. Every value here reaches the page as a text node, so escaping is
+   * turned off; the one markup sink, the subtitle, calls i18next.t directly and keeps it.
+   * @param {string} key - The translation key.
+   * @param {object} [vars] - Interpolation values.
+   * @returns {string}
+   */
+  #t(key, vars = {}) {
+    return i18next.t(key, { ...vars, interpolation: { escapeValue: false } });
+  }
+
+  /**
+   * Writes the section subtitle: one sentence saying what a score is, with "AccessScore" linking to how it is
+   * computed. The rules for who is ranked belong to the footnote, not here.
    * @param {SpotlightFeed} feed - The unit's feed.
    */
   #renderSubtitle(feed) {
     const subtitle = this.#section.querySelector('.spotlight-subtitle');
     if (!subtitle) return;
-    let key = `common:access-score-spotlight.subtitle-${this.#unit}`;
-    if (this.#unit === 'regions' && feed.total === 1) {
-      key = 'common:access-score-spotlight.subtitle-one-region';
-    } else if (this.#unit === 'regions' && feed.qualifying < AccessScoreSpotlight.#LIST_SIZE) {
-      key = 'common:access-score-spotlight.subtitle-sparse';
-    }
-    // Both floors come from the feed: they are the backend's rules, and a copy here could disagree with the ranking
-    // the very same response was built by.
-    subtitle.textContent = i18next.t(key, {
-      percent: Math.round(feed.min_completion * 100),
-      qualifying: feed.qualifying,
-      total: feed.total,
-      minLength: util.distanceToString(feed.min_street_length_m),
-    });
+    const oneRegion = this.#unit === 'regions' && feed.total === 1;
+    const key = oneRegion
+      ? 'common:access-score-spotlight.subtitle-one-region'
+      : `common:access-score-spotlight.subtitle-${this.#unit}`;
+    // Markup sink: the translation carries the <a> so its position can move with the language, and i18next's
+    // escaping stays on. The only value interpolated is our own docs path.
+    subtitle.innerHTML = i18next.t(key, { href: AccessScoreSpotlight.#METHOD_HREF });
   }
 
   /** The Neighborhoods / Streets switch, as two toggle buttons rather than tabs: each redraws this same region. */
@@ -328,15 +342,15 @@ class AccessScoreSpotlight {
       cell.appendChild(link);
     }
 
-    const sub = this.#subLine(row, kind);
-    if (sub) cell.appendChild(sub);
+    cell.appendChild(this.#subLine(row, kind));
     return cell;
   }
 
   /**
-   * The row's second line, which differs per page and unit: a street's neighborhood and length, a pending
-   * neighborhood's progress, or — across cities — a link to the city the row came from.
-   * @returns {?HTMLElement}
+   * The row's second line, which differs per page and unit: a street's neighborhood and length, a neighborhood's
+   * size and the evidence behind its score, a pending neighborhood's progress, or — across cities — a link to the
+   * city the row came from. Every row has one, so switching units never changes the module's height.
+   * @returns {HTMLElement}
    */
   #subLine(row, kind) {
     if (row.city_url) {
@@ -344,21 +358,28 @@ class AccessScoreSpotlight {
       link.className = 'spotlight-sub-link';
       link.href = row.city_url;
       link.textContent = this.#unit === 'streets'
-        ? i18next.t('common:access-score-spotlight.street-in-city', { region: row.region_name, city: row.city_name })
+        ? this.#t('common:access-score-spotlight.street-in-city', { region: row.region_name, city: row.city_name })
         : row.city_name;
       return link;
     }
     const sub = document.createElement('span');
     sub.className = 'spotlight-sub';
-    if (kind === 'pending') {
-      sub.textContent = i18next.t('common:access-score-spotlight.percent-explored',
-        { percent: Math.round(row.completion_rate * 100) });
-    } else if (this.#unit === 'streets') {
-      // Length matters here in a way it does not for a neighborhood: it says how much sidewalk the score speaks for.
-      sub.textContent = i18next.t('common:access-score-spotlight.street-sub',
+    if (this.#unit === 'streets') {
+      // Length says how much sidewalk the score speaks for.
+      sub.textContent = this.#t('common:access-score-spotlight.street-sub',
         { region: row.region_name, length: util.longDistanceToString(row.length_m / 1000, 1) });
+    } else if (kind === 'pending') {
+      sub.textContent = this.#t('common:access-score-spotlight.region-sub-pending', {
+        length: util.longDistanceToString(row.total_distance_m / 1000, 1),
+        percent: Math.round(row.completion_rate * 100),
+      });
     } else {
-      return null;
+      // How big the neighborhood is and how much was found in it: a 74 over nine miles and hundreds of clusters is a
+      // different claim from a 74 over half a mile.
+      sub.textContent = this.#t('common:access-score-spotlight.region-sub', {
+        length: util.longDistanceToString(row.total_distance_m / 1000, 1),
+        clusters: row.cluster_count.toLocaleString(i18next.language),
+      });
     }
     return sub;
   }
@@ -393,21 +414,29 @@ class AccessScoreSpotlight {
     link.className = 'spotlight-explore';
     link.href = `/explore?regionId=${row.region_id}`;
     link.textContent = i18next.t('common:access-score-spotlight.explore');
-    link.setAttribute('aria-label', i18next.t('common:access-score-spotlight.explore-region', { name: row.name }));
+    link.setAttribute('aria-label', this.#t('common:access-score-spotlight.explore-region', { name: row.name }));
     link.addEventListener('click', () => {
       window.logWebpageActivity(`Click_module=AccessScoreSpotlightExplore_regionId=${row.region_id}`);
     });
     return link;
   }
 
-  /** The count line and the "Updated nightly" note, whose (i) carries the explanation and the last run's time. */
+  /**
+   * The footnote: who gets ranked and how many are, then "Updated nightly" with an (i) carrying the explanation and
+   * the last run's time.
+   */
   #buildNote(feed) {
     const note = document.createElement('div');
     note.className = 'spotlight-note';
 
     const counts = document.createElement('span');
-    counts.textContent = i18next.t(`common:access-score-spotlight.count-${this.#unit}`, {
-      qualifying: feed.qualifying, total: feed.total, percent: Math.round(feed.min_completion * 100),
+    // Both floors come from the feed: they are the backend's rules, and a copy here could disagree with the ranking
+    // the very same response was built by.
+    counts.textContent = this.#t(`common:access-score-spotlight.count-${this.#unit}`, {
+      qualifying: feed.qualifying,
+      total: feed.total,
+      percent: Math.round(feed.min_completion * 100),
+      minLength: util.distanceToString(feed.min_street_length_m),
     });
     note.appendChild(counts);
 
@@ -420,9 +449,11 @@ class AccessScoreSpotlight {
     tip.setAttribute('role', 'tooltip');
     tip.id = `spotlight-tip-${this.#crossCity ? 'cities' : 'city'}`;
     tip.hidden = true;
+    // Minute precision: the run's seconds say nothing a reader wants.
     const when = feed.computed_at
-      ? ` ${i18next.t('common:access-score-spotlight.updated-last',
-        { date: new Date(feed.computed_at).toLocaleString(i18next.language) })}`
+      ? ` ${this.#t('common:access-score-spotlight.updated-last', {
+        date: new Date(feed.computed_at).toLocaleString(i18next.language, { dateStyle: 'medium', timeStyle: 'short' }),
+      })}`
       : '';
     tip.textContent = `${i18next.t('common:access-score-spotlight.updated-info')}${when}`;
 

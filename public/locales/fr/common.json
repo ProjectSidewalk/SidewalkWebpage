@@ -357,9 +357,8 @@
   },
   "download-already-preparing": "Ce fichier est déjà en cours de préparation pour une autre demande. Veuillez réessayer dans un instant.",
   "access-score-spotlight": {
-    "subtitle-regions": "Les trottoirs de chaque quartier reçoivent une note de 0 à 100 avec AccessScore, notre méthode pour convertir en un seul chiffre les éléments cartographiés par les bénévoles, comme les bateaux manquants et les problèmes de revêtement. Elle reflète ce que les bénévoles ont trouvé jusqu'ici, et non une évaluation officielle.",
-    "subtitle-streets": "Chaque rue explorée reçoit une note de 0 à 100 avec AccessScore. Seules les rues d'au moins {{minLength}} comportant plusieurs éléments cartographiés sont classées.",
-    "subtitle-sparse": "Les trottoirs de chaque quartier reçoivent une note de 0 à 100 avec AccessScore dès que les bénévoles ont exploré au moins {{percent}}% de ses rues. {{qualifying}} quartiers sur {{total}} y sont parvenus. Aidez les suivants à franchir la ligne.",
+    "subtitle-regions": "Les trottoirs de chaque quartier reçoivent une note de 0 à 100 avec notre algorithme <a href=\"{{href}}\">AccessScore</a> (100 est la meilleure).",
+    "subtitle-streets": "Chaque rue explorée reçoit une note de 0 à 100 avec notre algorithme <a href=\"{{href}}\">AccessScore</a> (100 est la meilleure) selon l'état de ses trottoirs.",
     "subtitle-one-region": "Cette ville est cartographiée comme un seul quartier : il n'y a donc qu'une note à afficher. Passez à Rues pour un regard plus détaillé.",
     "units-label": "Classer les quartiers ou les rues",
     "unit-regions": "Quartiers",
@@ -368,8 +367,8 @@
     "lowest": "Notes les plus basses",
     "ranked-so-far": "Classés jusqu'ici",
     "closest": "Bientôt classés",
-    "count-regions": "{{qualifying}} quartiers sur {{total}} sont explorés à au moins {{percent}}% et classés.",
-    "count-streets": "{{qualifying}} rues sur {{total}} sont explorées et classées.",
+    "count-regions": "Seuls les quartiers explorés à au moins {{percent}}% sont classés — {{qualifying}} sur {{total}} jusqu'ici.",
+    "count-streets": "Seules les rues d'au moins {{minLength}} comportant plusieurs éléments cartographiés sont classées — {{qualifying}} sur {{total}} jusqu'ici.",
     "updated-nightly": "Mis à jour chaque nuit",
     "updated-info": "Les notes sont recalculées chaque nuit à partir de toutes les annotations posées jusque-là. Une annotation ajoutée aujourd'hui compte demain.",
     "updated-last": "Dernière mise à jour : {{date}}.",
@@ -377,8 +376,9 @@
     "cta-streets": "Voir toutes les rues dans l'outil AccessScore",
     "explore": "Explorer",
     "explore-region": "Explorer {{name}}",
-    "percent-explored": "{{percent}}% exploré",
     "street-sub": "{{region}} · {{length}}",
+    "region-sub": "{{length}} de rues · {{clusters}} groupes",
+    "region-sub-pending": "{{length}} de rues · {{percent}}% exploré",
     "street-in-city": "{{region}}, {{city}}",
     "unnamed": "Rue sans nom"
   }

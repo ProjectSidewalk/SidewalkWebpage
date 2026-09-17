@@ -357,9 +357,8 @@
   },
   "download-already-preparing": "Dit bestand wordt al voorbereid voor een andere aanvraag. Probeer het zo opnieuw.",
   "access-score-spotlight": {
-    "subtitle-regions": "De stoepen van elke wijk krijgen met AccessScore een score van 0 tot 100, onze methode om door vrijwilligers gekarteerde kenmerken zoals ontbrekende verlaagde stoepranden en oppervlakteproblemen om te zetten in één getal. Het weerspiegelt wat vrijwilligers tot nu toe hebben gevonden, geen officiële beoordeling.",
-    "subtitle-streets": "Elke onderzochte straat krijgt met AccessScore een score van 0 tot 100. Alleen straten van minstens {{minLength}} met meerdere gekarteerde kenmerken worden gerangschikt.",
-    "subtitle-sparse": "De stoepen van elke wijk krijgen met AccessScore een score van 0 tot 100 zodra vrijwilligers minstens {{percent}}% van de straten hebben onderzocht. {{qualifying}} van {{total}} wijken zijn zover. Help de volgende over de streep.",
+    "subtitle-regions": "De stoepen van elke wijk krijgen van ons <a href=\"{{href}}\">AccessScore</a>-algoritme een score van 0 tot 100 (100 is het best).",
+    "subtitle-streets": "Elke onderzochte straat krijgt van ons <a href=\"{{href}}\">AccessScore</a>-algoritme een score van 0 tot 100 (100 is het best) op basis van de staat van de stoepen.",
     "subtitle-one-region": "Deze stad is gekarteerd als één wijk, dus er is één score te tonen. Schakel over naar Straten voor meer detail.",
     "units-label": "Wijken of straten rangschikken",
     "unit-regions": "Wijken",
@@ -368,8 +367,8 @@
     "lowest": "Laagste scores",
     "ranked-so-far": "Tot nu toe gerangschikt",
     "closest": "Bijna gerangschikt",
-    "count-regions": "{{qualifying}} van {{total}} wijken zijn minstens {{percent}}% onderzocht en gerangschikt.",
-    "count-streets": "{{qualifying}} van {{total}} straten zijn onderzocht en gerangschikt.",
+    "count-regions": "Alleen wijken die voor minstens {{percent}}% zijn onderzocht worden gerangschikt — tot nu toe {{qualifying}} van {{total}}.",
+    "count-streets": "Alleen straten van minstens {{minLength}} met meerdere gekarteerde kenmerken worden gerangschikt — tot nu toe {{qualifying}} van {{total}}.",
     "updated-nightly": "Elke nacht bijgewerkt",
     "updated-info": "Scores worden elke nacht opnieuw berekend op basis van alle tot dan toe geplaatste labels. Een label dat je vandaag toevoegt telt morgen mee.",
     "updated-last": "Laatst bijgewerkt op {{date}}.",
@@ -377,8 +376,9 @@
     "cta-streets": "Bekijk alle straten in de AccessScore-tool",
     "explore": "Verkennen",
     "explore-region": "{{name}} verkennen",
-    "percent-explored": "{{percent}}% onderzocht",
     "street-sub": "{{region}} · {{length}}",
+    "region-sub": "{{length}} aan straten · {{clusters}} clusters",
+    "region-sub-pending": "{{length}} aan straten · {{percent}}% onderzocht",
     "street-in-city": "{{region}}, {{city}}",
     "unnamed": "Naamloze straat"
   }

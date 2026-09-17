@@ -95,7 +95,8 @@
 }
 
 /* rank | name | bar | score. The name column is the flexible one and clips rather than wrapping, so every row in a
-   list is the same height and the bars line up as a small chart. */
+   list is the same height and the bars line up as a small chart. Every row is two lines (name + detail), whichever
+   unit is shown, so the module keeps its height when the switch is used. */
 .spotlight-row {
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr) 96px 48px;
@@ -113,7 +114,10 @@
   box-shadow: inset 3px 0 0 var(--color-label-surface-problem, #f68d3e);
 }
 
+/* Two-line rows: the number sits on the name's line rather than floating between the lines. Same line-height as
+   the name, so the two share a baseline. */
 .spotlight-rank {
+  align-self: start;
   font: var(--text-caption-regular, 400 12px/18px sans-serif);
   color: var(--color-neutral-700, #6b6b6b);
   font-variant-numeric: tabular-nums;
@@ -277,10 +281,16 @@
   margin-top: 16px;
 }
 
+/* The subtitle's one link, "AccessScore", to how the score is computed. The pages' .section-subtitle sets the type. */
+.spotlight-subtitle a {
+  color: var(--color-link-200, #0a58ca);
+  text-decoration: underline;
+}
+
 /* Placeholder rows while the feed loads, so the section holds its space and the real rows swap in without a layout
-   shift. */
+   shift. Height is a real row's: 7px padding, two 18px lines, 7px padding. */
 .spotlight-row--skeleton {
-  height: 32px;
+  height: 50px;
   background: var(--color-neutral-100, #f0f0f0);
   animation: spotlight-pulse 1.5s ease-in-out infinite;
 }

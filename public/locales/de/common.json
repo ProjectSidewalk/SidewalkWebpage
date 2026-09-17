@@ -357,9 +357,8 @@
   },
   "download-already-preparing": "Diese Datei wird bereits für eine andere Anfrage vorbereitet. Bitte versuchen Sie es gleich noch einmal.",
   "access-score-spotlight": {
-    "subtitle-regions": "Die Gehwege jedes Quartiers werden mit AccessScore von 0 bis 100 bewertet – unserer Methode, von Freiwilligen kartierte Merkmale wie fehlende Bordsteinabsenkungen und Oberflächenprobleme in eine einzige Zahl zu überführen. Sie spiegelt wider, was Freiwillige bisher gefunden haben, und ist keine offizielle Bewertung.",
-    "subtitle-streets": "Jede erkundete Straße wird mit AccessScore von 0 bis 100 bewertet. Nur Straßen von mindestens {{minLength}} mit mehreren kartierten Merkmalen werden eingeordnet.",
-    "subtitle-sparse": "Die Gehwege jedes Quartiers werden mit AccessScore von 0 bis 100 bewertet, sobald Freiwillige mindestens {{percent}}% seiner Straßen erkundet haben. {{qualifying}} von {{total}} Quartieren sind so weit. Helfen Sie den nächsten über die Linie.",
+    "subtitle-regions": "Die Gehwege jedes Quartiers werden von unserem <a href=\"{{href}}\">AccessScore</a>-Algorithmus mit 0 bis 100 bewertet (100 ist am besten).",
+    "subtitle-streets": "Jede erkundete Straße wird von unserem <a href=\"{{href}}\">AccessScore</a>-Algorithmus anhand des Gehwegzustands mit 0 bis 100 bewertet (100 ist am besten).",
     "subtitle-one-region": "Diese Stadt ist als ein einziges Quartier kartiert, es gibt also nur eine Bewertung. Wechseln Sie zu Straßen für einen genaueren Blick.",
     "units-label": "Quartiere oder Straßen einordnen",
     "unit-regions": "Quartiere",
@@ -368,8 +367,8 @@
     "lowest": "Niedrigste Bewertungen",
     "ranked-so-far": "Bisher eingeordnet",
     "closest": "Kurz vor der Einordnung",
-    "count-regions": "{{qualifying}} von {{total}} Quartieren sind zu mindestens {{percent}}% erkundet und eingeordnet.",
-    "count-streets": "{{qualifying}} von {{total}} Straßen sind erkundet und eingeordnet.",
+    "count-regions": "Nur Quartiere, die zu mindestens {{percent}}% erkundet sind, werden eingeordnet – bisher {{qualifying}} von {{total}}.",
+    "count-streets": "Nur Straßen von mindestens {{minLength}} mit mehreren kartierten Merkmalen werden eingeordnet – bisher {{qualifying}} von {{total}}.",
     "updated-nightly": "Täglich nachts aktualisiert",
     "updated-info": "Die Bewertungen werden jede Nacht aus allen bis dahin gesetzten Markierungen neu berechnet. Eine Markierung, die Sie heute hinzufügen, zählt morgen.",
     "updated-last": "Zuletzt aktualisiert am {{date}}.",
@@ -377,8 +376,9 @@
     "cta-streets": "Alle Straßen im AccessScore-Werkzeug ansehen",
     "explore": "Erkunden",
     "explore-region": "{{name}} erkunden",
-    "percent-explored": "{{percent}}% erkundet",
     "street-sub": "{{region}} · {{length}}",
+    "region-sub": "{{length}} Straßen · {{clusters}} Cluster",
+    "region-sub-pending": "{{length}} Straßen · {{percent}}% erkundet",
     "street-in-city": "{{region}}, {{city}}",
     "unnamed": "Straße ohne Namen"
   }
