@@ -726,6 +726,22 @@ object ConfigService {
   )
 
   /**
+   * The (table, column) pairs the AccessScore Spotlight's cross-city fan-out reads (#5215).
+   *
+   * Both tables arrive with evolution 394, and every deployment applies its own evolutions when it restarts, so
+   * mid-rollout an updated instance can query a schema that has not created them yet. Gating the fan-out on this
+   * set makes such a city contribute nothing for a night instead of failing its whole query.
+   */
+  val SpotlightRequiredColumns: Set[(String, String)] = Set(
+    "region_access_score" -> "score",
+    "region_access_score" -> "completion_rate",
+    "region_access_score" -> "computed_at",
+    "street_access_score" -> "score",
+    "street_access_score" -> "tie_break",
+    "street_access_score" -> "computed_at"
+  )
+
+  /**
    * The (table, column) pairs a user's cross-city stats query reads (#4496).
    *
    * Deliberately smaller than [[LeaderboardRequiredColumns]]: a mapper's own totals need no visibility flags, so a
@@ -1028,6 +1044,18 @@ trait ConfigService {
   def getCrossCityHoursScope: Future[SelfViewScope]
 
   /**
+   * The deployments the AccessScore Spotlight's `/cities` scope may read, with the schema to read them from (#5215).
+   *
+   * Publicly launched cities only — a cross-city ranking is a public listing, so it follows the same rule as the
+   * city switcher and names no deployment that has not launched — intersected with the schemas that exist here and
+   * have applied the evolution the Spotlight tables come from.
+   *
+   * @param lang The language the city names are wanted in.
+   * @return     (city, schema) pairs in configured order; empty is a valid answer on a single-city database.
+   */
+  def getAccessScoreSpotlightScope(lang: Lang): Future[Seq[(CityInfo, String)]]
+
+  /**
    * Retrieves map parameters for a specific city by directly querying that city's database schema.
    *
    * This method attempts to retrieve map parameters (center coordinates, zoom level, and boundary coordinates) for the
@@ -1228,6 +1256,23 @@ class ConfigServiceImpl @Inject() (
 
   def getCrossCityHoursScope: Future[SelfViewScope] =
     crossCitySelfViewScope("getCrossCityHoursScope", ConfigService.CrossCityHoursRequiredColumns, "volunteer hours")
+
+  def getAccessScoreSpotlightScope(lang: Lang): Future[Seq[(CityInfo, String)]] = {
+    for {
+      cityIds <- availableCityIds()
+      ready   <- schemasWithColumns(ConfigService.SpotlightRequiredColumns)
+    } yield {
+      val available: Set[String] = cityIds.toSet
+      getAllCityInfo(lang)
+        .filter(city => city.isPublic && available.contains(city.cityId))
+        .flatMap { city =>
+          // A city id with no db-schema entry simply can't be queried.
+          try Some(city -> getCitySchema(city.cityId))
+          catch { case _: Exception => None }
+        }
+        .filter { case (_, schema) => ready.getOrElse(schema, false) }
+    }
+  }
 
   /**
    * Which cities one mapper's data may be gathered from, for a query needing `required`.

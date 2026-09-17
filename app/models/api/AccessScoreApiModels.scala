@@ -15,7 +15,9 @@ import models.utils.LatLngBBox
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.{LineString, MultiPolygon, Point}
 import play.api.libs.json.{JsObject, Json, Writes}
-import service.AccessScoreCalculator
+import service.{AccessScoreCalculator, AccessScoreSpotlight}
+
+import java.time.OffsetDateTime
 
 /**
  * Shared helpers for the AccessScore DTOs: the per-label-type column names used across CSV, GeoJSON, and shapefile
@@ -370,6 +372,11 @@ case class TagAdjustmentForApi(labelType: String, tag: String, delta: Double)
  * @param tagActiveThreshold            The fraction of labels a tag must cover to be active.
  * @param presetOrder                   The preset ids in display order.
  * @param presets                       Per preset id, a weight magnitude per scored type.
+ * @param minRegionCompletion           The share of a region's street length that must be explored before its score
+ *                                      is ranked anywhere. Not part of the scoring engine — it has no floor, and
+ *                                      scores whatever has been explored — but published here so the AccessScore
+ *                                      tool and the Spotlight module read one number instead of each holding a
+ *                                      literal that can drift from the other (#5215).
  */
 case class AccessScoreConfigForApi(
     scoredTypes: Seq[String],
@@ -387,7 +394,8 @@ case class AccessScoreConfigForApi(
     streetConditionPointTags: Seq[(String, String)],
     tagActiveThreshold: Double,
     presetOrder: Seq[String],
-    presets: Map[String, Map[String, Double]]
+    presets: Map[String, Map[String, Double]],
+    minRegionCompletion: Double
 ) {
 
   /** Serializes the configuration with snake_case keys; per-type and per-bucket objects keep the engine's order. */
@@ -422,9 +430,10 @@ case class AccessScoreConfigForApi(
       "street_condition_point_tags" -> streetConditionPointTags.map { case (t, tag) =>
         Json.obj("label_type" -> t, "tag" -> tag)
       },
-      "tag_active_threshold" -> tagActiveThreshold,
-      "preset_order"         -> presetOrder,
-      "presets"              -> JsObject(presetOrder.map(id => id -> orderedWeights(presets(id))))
+      "tag_active_threshold"  -> tagActiveThreshold,
+      "preset_order"          -> presetOrder,
+      "presets"               -> JsObject(presetOrder.map(id => id -> orderedWeights(presets(id)))),
+      "min_region_completion" -> minRegionCompletion
     )
   }
 }
@@ -456,7 +465,8 @@ object AccessScoreConfigForApi {
       streetConditionPointTags = AccessScoreCalculator.streetConditionPointTags.toSeq.sorted,
       tagActiveThreshold = AccessScoreCalculator.tagActiveThreshold,
       presetOrder = AccessScoreCalculator.presetOrder,
-      presets = AccessScoreCalculator.presets
+      presets = AccessScoreCalculator.presets,
+      minRegionCompletion = AccessScoreSpotlight.MinRegionCompletion
     )
   }
 
@@ -476,3 +486,152 @@ case class AccessScoreFiltersForApi(
     regionId: Option[Int] = None,
     regionName: Option[String] = None
 )
+
+/**
+ * The deployment a cross-city Spotlight row came from, so `/cities` can name it and link into its own tool (#5215).
+ *
+ * @param cityId   The deployment's `city-params` id.
+ * @param cityName The city's short display name.
+ * @param cityUrl  The deployment's public base URL. Only public deployments are ever listed, so this is never empty.
+ */
+case class SpotlightCityForApi(cityId: String, cityName: String, cityUrl: String) {
+
+  /** The three city fields a cross-city row carries, merged into the row's own object. */
+  def toJson: JsObject =
+    Json.obj("city_id" -> cityId, "city_name" -> cityName, "city_url" -> cityUrl)
+}
+
+/** One row of an AccessScore Spotlight list, whichever unit it ranks (#5215). */
+sealed trait SpotlightRowForApi {
+
+  /** The row's AccessScore in [0, 1], or None for a unit nobody has explored yet. */
+  def score: Option[Double]
+
+  /** The deployment the row came from, present only under `scope=cities`. */
+  def city: Option[SpotlightCityForApi]
+
+  /** The row as the endpoint publishes it, snake_case per the v3 conventions. */
+  def toJson: JsObject
+}
+
+/**
+ * One neighborhood in the AccessScore Spotlight (#5215).
+ *
+ * @param regionId         The region's id.
+ * @param name             The region's name.
+ * @param score            Its AccessScore in [0, 1], None when none of its streets has been explored.
+ * @param completionRate   The share of its street length that has been explored, the number the landing choropleth
+ *                         colors — not the AccessScore API's street-count `coverage`, which disagrees with it.
+ * @param auditedDistanceM How much of that street length has been explored, in meters.
+ * @param city             The deployment it came from, under `scope=cities` only.
+ */
+case class RegionSpotlightRowForApi(
+    regionId: Int,
+    name: String,
+    score: Option[Double],
+    completionRate: Double,
+    auditedDistanceM: Double,
+    city: Option[SpotlightCityForApi] = None
+) extends SpotlightRowForApi {
+
+  def toJson: JsObject = Json.obj(
+    "region_id"          -> regionId,
+    "name"               -> name,
+    "score"              -> score,
+    "completion_rate"    -> completionRate,
+    "audited_distance_m" -> auditedDistanceM
+  ) ++ city.map(_.toJson).getOrElse(Json.obj())
+}
+
+/**
+ * One named stretch of street in the AccessScore Spotlight: the edges of one OSM way inside one neighborhood (#5215).
+ *
+ * @param osmWayId        The OSM way the stretch belongs to.
+ * @param streetEdgeId    The group's longest edge, which is what a click opens the AccessScore tool on.
+ * @param regionId        The neighborhood the stretch lies in.
+ * @param regionName      That neighborhood's name, since a street name alone is ambiguous in a big city.
+ * @param name            The way's OSM name, None for an unnamed way.
+ * @param score           The length-weighted AccessScore of the group's explored edges, None when none is explored.
+ * @param lengthM         The whole stretch's length in meters, explored or not.
+ * @param clusterCount    Scored label clusters along it, the evidence behind the score.
+ * @param validationCount Validations cast on its labels, the first tie-break among equal scores.
+ * @param city            The deployment it came from, under `scope=cities` only.
+ */
+case class StreetSpotlightRowForApi(
+    osmWayId: Long,
+    streetEdgeId: Int,
+    regionId: Int,
+    regionName: String,
+    name: Option[String],
+    score: Option[Double],
+    lengthM: Double,
+    clusterCount: Int,
+    validationCount: Int,
+    city: Option[SpotlightCityForApi] = None
+) extends SpotlightRowForApi {
+
+  def toJson: JsObject = Json.obj(
+    "osm_way_id"       -> osmWayId,
+    "street_edge_id"   -> streetEdgeId,
+    "region_id"        -> regionId,
+    "region_name"      -> regionName,
+    "name"             -> name,
+    "score"            -> score,
+    "length_m"         -> lengthM,
+    "cluster_count"    -> clusterCount,
+    "validation_count" -> validationCount
+  ) ++ city.map(_.toJson).getOrElse(Json.obj())
+}
+
+/**
+ * The whole `/v3/api/accessScoreSpotlight` response: two ranked lists plus what they were drawn from (#5215).
+ *
+ * JSON only — there is no CSV/GeoJSON/shapefile form, because this is a page feed rather than a data export. The
+ * per-unit data it summarizes is downloadable from `/v3/api/accessScoreRegions` and `/v3/api/accessScoreStreets`.
+ *
+ * @param unit          Which unit was ranked: "regions" or "streets".
+ * @param minCompletion The completion floor a region must clear to be ranked, the same number
+ *                      `/v3/api/accessScoreConfig` publishes as `min_region_completion`.
+ * @param qualifying    How many units cleared every bar and are therefore ranked.
+ * @param total         How many units the city has in all, the "of M" the module prints.
+ * @param computedAt    When the nightly run that produced these rows finished. None before the first run; under
+ *                      `scope=cities` it is the OLDEST of the contributing cities' runs, so the claim holds for
+ *                      every row rather than only the freshest one.
+ * @param top           The highest-scoring rows, best first.
+ * @param bottom        The lowest-scoring rows, worst first.
+ * @param nearest       The units closest to qualifying, best-explored first. Populated only when fewer than `n`
+ *                      qualify, and only for `unit=regions` under the single-city scope — a neighborhood is
+ *                      somewhere a visitor can be sent to explore, and a street on another city's site is not.
+ */
+case class AccessScoreSpotlightForApi(
+    unit: String,
+    minCompletion: Double,
+    qualifying: Int,
+    total: Int,
+    computedAt: Option[OffsetDateTime],
+    top: Seq[SpotlightRowForApi],
+    bottom: Seq[SpotlightRowForApi],
+    nearest: Seq[SpotlightRowForApi]
+) {
+
+  /** Serializes the response with snake_case keys. */
+  def toJson: JsObject = Json.obj(
+    "unit"           -> unit,
+    "min_completion" -> minCompletion,
+    "qualifying"     -> qualifying,
+    "total"          -> total,
+    "computed_at"    -> computedAt,
+    "top"            -> top.map(_.toJson),
+    "bottom"         -> bottom.map(_.toJson),
+    "nearest"        -> nearest.map(_.toJson)
+  )
+}
+
+/** The units the Spotlight can rank, as the `unit` query parameter spells them. */
+object SpotlightUnit {
+  val Regions: String = "regions"
+  val Streets: String = "streets"
+
+  /** Both units, for validating the query parameter and for the api docs to list. */
+  val All: Seq[String] = Seq(Regions, Streets)
+}
