@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
+import formats.json.UserFormats._
 import models.auth.{WithAdmin, WithOwner}
 import play.api.Configuration
 import models.street.StreetPriorityForAdmin
@@ -12,11 +13,12 @@ import service.{
   ImageryFreshnessReportService,
   LabelService,
   StreetLifecycleService,
-  StreetService
+  StreetService,
+  UserService
 }
 
 import javax.inject._
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Controller for the redesigned Admin dashboard (issue #4272).
@@ -36,7 +38,8 @@ class AdminDashboardController @Inject() (
     healthService: HealthService,
     streetLifecycleService: StreetLifecycleService,
     imageryFreshnessReportService: ImageryFreshnessReportService,
-    streetService: StreetService
+    streetService: StreetService,
+    userService: UserService
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -203,6 +206,52 @@ class AdminDashboardController @Inject() (
   }
 
   /**
+   * Renders one team's admin page (#5381): who is on it, what they've done, and the controls to change the roster.
+   *
+   * Answers "who is in this class, and is their work any good?", which previously meant scrolling the whole user
+   * directory. Teams are per city (#5303), so this is one city's view. Only the team's existence is resolved here --
+   * the rest fills from `/adminapi/team/:teamId` -- so a bad id is a 404 rather than a page that reports nothing.
+   *
+   * @param teamId The team to show; 404 if no team has that id.
+   */
+  def team(teamId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    userService.findTeam(teamId).flatMap {
+      case None           => Future.successful(notFoundPage(request.path))
+      case Some(teamData) =>
+        configService.getCommonPageData(request2Messages.lang).map { commonData =>
+          cc.loggingService.insert(request.identity.userId, request.ipAddress, s"Visit_Admin_Team_Team=$teamId")
+          Ok(views.html.admin.dashboard.team(commonData, request.identity, teamData))
+        }
+    }
+  }
+
+  /**
+   * The team page's data endpoint (#5381), separate from the page render so the roster can be re-fetched after an add
+   * or a remove without a reload, and so a slow stats query never delays the page's header and controls.
+   *
+   * @param teamId The team to describe; 404 if no team has that id.
+   */
+  def getTeamOverview(teamId: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    userService.getTeamOverview(teamId).map {
+      case Some(overview) => Ok(Json.toJson(overview))
+      case None           => NotFound(Json.obj("status" -> "Error", "message" -> s"No team with id $teamId."))
+    }
+  }
+
+  /**
+   * Finds accounts by a username or email fragment, for the team page's add-member control (#5381). Server-side
+   * because pulling every account on the deployment to find one name would dwarf the page's own payload.
+   *
+   * @param query What the admin typed; blank returns nothing rather than the whole directory.
+   * @param limit The most matches to return, capped so a wide query can't return the directory either.
+   */
+  def searchUsers(query: String, limit: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    userService
+      .searchUsers(query, math.max(1, math.min(limit, AdminDashboardController.MaxUserSearchResults)))
+      .map(matches => Ok(Json.toJson(matches)))
+  }
+
+  /**
    * Renders the Across Cities page: a cross-deployment overview comparing every Project Sidewalk city at once (#4329).
    *
    * Answers "how is the whole project doing, and which deployments need attention?" — a per-city scorecard (coverage,
@@ -340,4 +389,10 @@ class AdminDashboardController @Inject() (
   def getStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     streetService.getPriorityWithInputs.map(streets => Ok(StreetPriorityForAdmin.payload(streets)))
   }
+}
+
+object AdminDashboardController {
+
+  /** The most add-member search matches an admin gets back at once; a wider query is narrowed, not paged. */
+  val MaxUserSearchResults: Int = 25
 }

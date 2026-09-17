@@ -508,6 +508,23 @@ class AuditTaskTable @Inject() (
   }
 
   /**
+   * Sums the same geodesic street lengths [[getDistanceAudited]] does, rather than reading the nightly
+   * `user_stat.meters_audited`, so a team page opened right after a mapathon isn't a day behind (#5381).
+   *
+   * @param userIds The users to measure.
+   * @return One entry per user with a completed audit: (user id, meters explored).
+   */
+  def getDistanceAuditedByUsers(userIds: Seq[String]): DBIO[Seq[(String, Double)]] = {
+    completedTasks
+      .filter(_.userId inSet userIds)
+      .join(streetEdgeTable.streets)
+      .on(_.streetEdgeId === _.streetEdgeId)
+      .groupBy(_._1.userId)
+      .map { case (_userId, rows) => (_userId, rows.map(_._2.geom.lengthGeodesic).sum.getOrElse(0d)) }
+      .result
+  }
+
+  /**
    * Get the sum of the line distance of all streets in the region that the user has not audited.
    */
   def getUnauditedDistance(userId: String, regionId: Int): DBIO[Double] = {

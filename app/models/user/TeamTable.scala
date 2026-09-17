@@ -46,6 +46,10 @@ class TeamTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvide
     teams.filter(_.open === true).result
   }
 
+  def find(teamId: Int): DBIO[Option[Team]] = {
+    teams.filter(_.teamId === teamId).result.headOption
+  }
+
   /**
    * Finds a team by id when given only ASCII digits, otherwise by name.
    *

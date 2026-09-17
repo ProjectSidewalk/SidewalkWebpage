@@ -1716,6 +1716,34 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   gap: 6px;
 }
 
+/* --- Team page ----------------------------------------------------------------------------------------------- */
+
+/* The team's own words, set apart from the page's explanatory copy below it. */
+.team-description {
+  font: var(--text-body-regular);
+  color: var(--color-neutral-700);
+  font-style: italic;
+}
+
+.team-header-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: var(--space-md) 0;
+}
+
+.team-header-label {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+/* Marks a search result who already belongs to another team, since adding them would move them off it. */
+.team-current {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
 /* --- Label Map page ------------------------------------------------------------------------------------------ */
 
 /* The shared PSMap fills a fixed-height holder; the common map sidebar positions itself absolutely inside it

@@ -1045,6 +1045,21 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Counts labels the way [[countLabelsFromUser]] does -- an excluded user's own work still counted -- so a member row
+   * on the admin team page reads the same as that member's own dashboard (#5381).
+   *
+   * @param userIds The users to count for.
+   * @return One entry per user who has placed a label: (user id, label count, time of their most recent label).
+   */
+  def countLabelsAndLatestByUsers(userIds: Seq[String]): DBIO[Seq[(String, Int, Option[OffsetDateTime])]] = {
+    labelsWithExcludedUsers
+      .filter(_.userId inSet userIds)
+      .groupBy(_.userId)
+      .map { case (_userId, rows) => (_userId, rows.length, rows.map(_.timeCreated).max) }
+      .result
+  }
+
+  /**
    * Counts all non-deleted, non-tutorial labels in the given region across all (non-excluded) users.
    * @param regionId ID of the region whose labels we're counting
    */
