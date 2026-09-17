@@ -356,6 +356,10 @@
     "vote-failed": "Je stem is niet opgeslagen. Probeer het opnieuw."
   },
   "download-already-preparing": "Dit bestand wordt al voorbereid voor een andere aanvraag. Probeer het zo opnieuw.",
+  "label-type-picker": {
+    "current": "{{labelType}} (huidig type)",
+    "change": "wijzigen"
+  },
   "access-score-spotlight": {
     "subtitle-regions": "De stoepen van elke wijk krijgen van ons <a href=\"{{href}}\">AccessScore</a>-algoritme een score van 0 tot 100 (100 is het best).",
     "subtitle-streets": "De stoepen van elke straat krijgen van ons <a href=\"{{href}}\">AccessScore</a>-algoritme een score van 0 tot 100 (100 is het best).",

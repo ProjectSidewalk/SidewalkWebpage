@@ -42,6 +42,8 @@ class Label {
     pitch: undefined,
     startTimestamp: undefined,
     validationResult: undefined,
+    oldLabelType: undefined,
+    newLabelType: undefined,
     oldSeverity: undefined,
     newSeverity: undefined,
     oldTags: undefined,
@@ -82,7 +84,11 @@ class Label {
       if ('label_timestamp' in params) this.setAuditProperty('labelTimestamp', moment(params.label_timestamp));
       if ('heading' in params) this.setAuditProperty('heading', params.heading);
       if ('label_id' in params) this.setAuditProperty('labelId', params.label_id);
-      if ('label_type' in params) this.setAuditProperty('labelType', params.label_type);
+      if ('label_type' in params) {
+        this.setAuditProperty('labelType', params.label_type);
+        this.setProperty('oldLabelType', params.label_type);
+        this.setProperty('newLabelType', params.label_type);
+      }
       if ('pitch' in params) this.setAuditProperty('pitch', params.pitch);
       if ('zoom' in params) this.setAuditProperty('zoom', params.zoom);
       if ('severity' in params) {
@@ -124,7 +130,7 @@ class Label {
    * @returns {string} Path of the icon under /assets.
    */
   getIconUrl() {
-    return util.misc.getIconImagePaths(this.#auditProperties.labelType).iconImagePath;
+    return util.misc.getIconImagePaths(this.getProperty('newLabelType')).iconImagePath;
   }
 
   /**
@@ -132,7 +138,27 @@ class Label {
    * @returns {string} A CSS colour.
    */
   getIconColor() {
-    return util.misc.getLabelColors(this.#auditProperties.labelType);
+    return util.misc.getLabelColors(this.getProperty('newLabelType'));
+  }
+
+  /**
+   * Records the type an expert says this label should be and re-bases the editable severity and tags on it, by the
+   * same rules the server applies: a rating survives only on the same scale, a tag only if the new type offers it.
+   * @param {string} labelType - The type to change to; the label's own type restores the original rating and tags.
+   */
+  setNewLabelType(labelType) {
+    const oldType = this.getProperty('oldLabelType');
+    this.setProperty('newLabelType', labelType);
+    if (labelType === oldType) {
+      this.setProperty('newSeverity', this.getProperty('oldSeverity'));
+      this.setProperty('newTags', [...(this.getProperty('oldTags') ?? [])]);
+      return;
+    }
+    const sameScale = util.misc.labelTypeHasSeverity(labelType)
+      && util.misc.getRatingScale(labelType) === util.misc.getRatingScale(oldType);
+    this.setProperty('newSeverity', sameScale ? this.getProperty('oldSeverity') : null);
+    const offered = new Set((svv.tagsByLabelType[labelType] ?? []).map((t) => t.tag_name));
+    this.setProperty('newTags', (this.getProperty('oldTags') ?? []).filter((t) => offered.has(t)));
   }
 
   /**

@@ -794,11 +794,9 @@ body {
   background: var(--color-orange-300);
 }
 
-/* The ink comes with it: svv-validation-menu.css pairs its own near-black chosen background with white type, and
-   this background is a pale one. */
+/* A shade paler than the desktop menu's chosen Unsure, matching the pale chosen Yes and No above. */
 #validate-unsure-button.chosen {
   background: var(--color-asphalt-100);
-  color: var(--color-neutral-900);
 }
 
 /* The tapped verdict's thumb, rising away from its button — the tap is confirmed where the eye already is, rather

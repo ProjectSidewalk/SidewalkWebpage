@@ -356,6 +356,10 @@
     "vote-failed": "Seu voto não foi salvo. Tente novamente."
   },
   "download-already-preparing": "Este arquivo já está sendo preparado para outra solicitação. Tente novamente em instantes.",
+  "label-type-picker": {
+    "current": "{{labelType}} (tipo atual)",
+    "change": "alterar"
+  },
   "access-score-spotlight": {
     "subtitle-regions": "As calçadas de cada bairro recebem de 0 a 100 pontos pelo nosso algoritmo <a href=\"{{href}}\">AccessScore</a> (100 é o melhor).",
     "subtitle-streets": "As calçadas de cada rua recebem de 0 a 100 pontos pelo nosso algoritmo <a href=\"{{href}}\">AccessScore</a> (100 é o melhor).",

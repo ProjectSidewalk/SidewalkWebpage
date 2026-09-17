@@ -90,6 +90,9 @@
         "unsure-button-3": "Not sure if there should be a sidewalk here",
         "unsure-button-3-tooltip": "Sometimes more context is necessary, and it's hard to determine if a sidewalk is necessary from just one image"
       }
+    },
+    "wrong-type": {
+      "header": "What type should this label be?"
     }
   },
   "center-ui": {

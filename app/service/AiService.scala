@@ -60,6 +60,12 @@ trait AiService {
    * @return A Future containing a sequence of LabelAiAssessment objects with validation results and tags
    */
   def validateLabelsWithAiDaily(n: Int): Future[Seq[Option[LabelAiAssessment]]]
+
+  /**
+   * Has the AI look at a label again right after its type changed (#3671), since its old assessment was about the
+   * old type. Does nothing for a label the nightly sweep would also skip. Never fails; problems are only logged.
+   */
+  def reassessAfterTypeChange(labelId: Int): Future[Unit]
 }
 
 @Singleton
@@ -137,6 +143,15 @@ class AiServiceImpl @Inject() (
     }
   }
 
+  def reassessAfterTypeChange(labelId: Int): Future[Unit] = {
+    if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON)) {
+      db.run(labelTable.getLabelsToValidateWithAi(1, Some(labelId)))
+        .flatMap(labelData => Future.traverse(labelData)(callAiApiAndSubmitData))
+        .map(_ => ())
+        .recover { case e => logger.error(s"AI re-assessment after a type change failed for label $labelId:", e) }
+    } else Future.successful(())
+  }
+
   /**
    * Calls the AI API to validate the label, then saves results and submits validation if applicable.
    * @param labelData The label data containing panorama and label information
@@ -168,17 +183,17 @@ class AiServiceImpl @Inject() (
               aiMissionId: Int <- getAiValidateMissionId(labelData.labelType)
               label: Label     <- labelTable.find(labelId).map(_.get) // If we got this far, we know label exists.
               validation: LabelValidation = LabelValidation(
-                0, labelId, aiValResult, SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX),
-                Some(labelPoint.canvasY), labelPoint.heading, labelPoint.pitch, labelPoint.zoom,
-                LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, startTime, aiResults.timestamp,
-                UiSource.SidewalkAI, ViewerType.Default
+                0, labelId, labelData.labelType, aiValResult, SidewalkUserTable.aiUserId, aiMissionId,
+                Some(labelPoint.canvasX), Some(labelPoint.canvasY), labelPoint.heading, labelPoint.pitch,
+                labelPoint.zoom, LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, startTime,
+                aiResults.timestamp, UiSource.SidewalkAI, ViewerType.Default
               )
               // The AI only votes, so it never edits the label.
               valId: Option[Int] <- validationService
                 .submitValidationsDbio(
                   Seq(
-                    ValidationSubmission(validation, label.severity, label.tags, comment = None, undone = false,
-                      redone = false, canEdit = false)
+                    ValidationSubmission(validation, newLabelType = None, label.severity, label.tags, comment = None,
+                      undone = false, redone = false, canEdit = false)
                   )
                 )
                 .map(_.headOption)
@@ -259,9 +274,9 @@ class AiServiceImpl @Inject() (
 
             Future.successful(
               Some(
-                LabelAiAssessment(0, labelData.labelId, valResult, valAccuracy, valConfidence, tags, tagsNotPresent,
-                  tagsConfidence, apiVersion, valModelId, valTrainingDate, taggerModelId, taggerTrainingDate,
-                  OffsetDateTime.now, None, aiImageSource)
+                LabelAiAssessment(0, labelData.labelId, labelData.labelType, valResult, valAccuracy, valConfidence,
+                  tags, tagsNotPresent, tagsConfidence, apiVersion, valModelId, valTrainingDate, taggerModelId,
+                  taggerTrainingDate, OffsetDateTime.now, None, aiImageSource)
               )
             )
           } else if (response.status == 502) {

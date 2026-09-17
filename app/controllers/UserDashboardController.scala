@@ -100,17 +100,7 @@ class UserDashboardController @Inject() (
   )(implicit request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
     authenticationService.findByUsername(username).flatMap {
       case Some(subject) => render(subject)
-      case None          =>
-        Future.successful(
-          NotFound(
-            views.html.errors.errorPage(
-              NOT_FOUND,
-              Messages("error.404.heading"),
-              Messages("error.404.message"),
-              requestedPath = Some(request.path)
-            )
-          )
-        )
+      case None          => Future.successful(notFoundPage(request.path))
     }
   }
 

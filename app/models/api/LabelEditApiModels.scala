@@ -1,6 +1,6 @@
 /**
- * Models for the Project Sidewalk Label Edits API (#2575): the data structures for requests and responses about
- * changes made to labels' severity and tags after they were placed.
+ * Models for the Project Sidewalk Label Edits API (#2575, #3671): the data structures for requests and responses about
+ * changes made to labels' type, severity and tags after they were placed.
  */
 package models.api
 
@@ -30,12 +30,15 @@ case class LabelEditFiltersForApi(
 )
 
 /**
- * One edit to a label's severity and/or tags, for the API. No GeoJSON form, as edits carry no geographic coordinates.
+ * One edit to a label's type, severity and/or tags, for the API. No GeoJSON form, as edits carry no geographic
+ * coordinates.
  *
  * @param labelEditId       Unique identifier for the edit
  * @param labelId           The edited label
- * @param labelType         Type of the edited label (e.g. "CurbRamp")
+ * @param labelType         The label's current type (e.g. "CurbRamp")
  * @param userId            Who made the edit (the labeler, a validator, or an admin)
+ * @param oldLabelType      The label's type before the edit
+ * @param newLabelType      The label's type after the edit; the same as oldLabelType unless the edit changed it
  * @param oldSeverity       Severity before the edit
  * @param newSeverity       Severity after the edit
  * @param oldTags           Tags before the edit
@@ -49,6 +52,8 @@ case class LabelEditDataForApi(
     labelId: Int,
     labelType: String,
     userId: String,
+    oldLabelType: String,
+    newLabelType: String,
     oldSeverity: Option[Int],
     newSeverity: Option[Int],
     oldTags: List[String],
@@ -71,6 +76,8 @@ object LabelEditDataForApi extends ApiFields[LabelEditDataForApi] {
     field("label_id")(_.labelId),
     field("label_type")(_.labelType),
     field("user_id")(_.userId),
+    field("old_label_type")(_.oldLabelType),
+    field("new_label_type")(_.newLabelType),
     field("old_severity")(_.oldSeverity),
     field("new_severity")(_.newSeverity),
     field("old_tags")(_.oldTags),

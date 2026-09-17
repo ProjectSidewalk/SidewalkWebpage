@@ -27,6 +27,15 @@ streets are excluded, and only the primary label types are served.
 
 where `totalVotes = agree_count + disagree_count + unsure_count` and `margin = |agree_count − disagree_count|`.
 
+A vote is in those counts only while it was cast on the type the label has now (`label_validation.label_type`, #3671).
+Editing a label's type therefore puts it back at the front of `NeedsVotes`, and a validator whose vote predates the
+change is served the label again (their old vote stays as history). A change made on Expert Validate arrives as an
+Agree, so the label starts again with that one vote; one made from the label detail card records no vote at all, so it
+starts with none. The same rule
+applies to the AI's vote in the AI-contested predicate below, and to the AI tag suggestions the tool shows. Expert
+Validate is where a type gets changed: its fourth verdict, "Wrong type", is submitted as an Agree on the picked type
+(`ValidationSubmission.newLabelType`), so the changer's own vote is the first one counted under the new type.
+
 - **capped out** — `totalVotes >= MaxCrowdVotes`. The crowd has had its five swings and is still undecided.
 - **unsure-heavy** — `unsure_count >= UnsureHeavyMinVotes` and `unsure_count >= agree_count + disagree_count`. The
   validators who looked mostly said "I can't tell".

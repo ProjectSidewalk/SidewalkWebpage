@@ -195,6 +195,8 @@ function filterStreetLayer(map) {
  * @property {Record<string, Set<string>>} selectedTags
  * @property {Record<string, GeoJSON.Feature[]>} sortedLabels
  * @property {Record<string, string>} layerNames
+ * @property {(labelId: number, labelType: string) => void} [updateLabelType] - Set by addLabelsToMap; moves a
+ *   label to another type's layer after its type is edited (#3671).
  * @property {{audited: number, outdated: number, unaudited: number}} [streetCounts] - Set once the streets load.
  * @property {ViewportLabelLoader} [labelLoader] - Set on maps that load labels by viewport.
  */

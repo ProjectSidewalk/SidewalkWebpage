@@ -90,6 +90,9 @@
         "unsure-button-3": "No estoy seguro de si debería haber una banqueta aquí.",
         "unsure-button-3-tooltip": "A veces es necesario más contexto y es difícil determinar si una banqueta es necesaria a partir de una sola imagen."
       }
+    },
+    "wrong-type": {
+      "header": "¿Qué tipo debería tener esta etiqueta?"
     }
   },
   "center-ui": {

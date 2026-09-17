@@ -387,6 +387,47 @@ class AdminShell {
   }
 
   /**
+   * @param {string|number|Date} ts - A timestamp, or null.
+   * @returns {number} Epoch millis for sorting; 0 for an absent or unparseable timestamp.
+   */
+  static ts(ts) {
+    if (AdminShell.nil(ts)) return 0;
+    const t = Date.parse(String(ts));
+    return isNaN(t) ? 0 : t;
+  }
+
+  /** @returns {Promise<any>} The endpoint's parsed JSON body. */
+  static async fetchJson(url) {
+    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
+    return resp.json();
+  }
+
+  /**
+   * Throws an Error carrying the server's message on a non-2xx response, so the caller can say why it didn't happen.
+   *
+   * @param {string} url - Endpoint to call.
+   * @param {string} method - HTTP method.
+   * @param {object} [body] - JSON body, when the endpoint takes one.
+   * @returns {Promise<any>} The parsed response body, or {} for an empty one.
+   */
+  static async mutate(url, method, body) {
+    const opts = { method, headers: { Accept: 'application/json' } };
+    if (body !== undefined) {
+      opts.headers['Content-Type'] = 'application/json; charset=utf-8';
+      opts.body = JSON.stringify(body);
+    }
+    const resp = await fetch(url, opts);
+    const text = await resp.text();
+    if (!resp.ok) throw new Error(text || `HTTP ${resp.status}`);
+    try {
+      return text ? JSON.parse(text) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  /**
    * Sets an element's text content by id, doing nothing when the element isn't on this page.
    *
    * @param {string} id - Element id.

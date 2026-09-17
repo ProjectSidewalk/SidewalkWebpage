@@ -356,6 +356,10 @@
     "vote-failed": "Your vote didn't save. Please try again."
   },
   "download-already-preparing": "This file is already being prepared for another request. Please try again shortly.",
+  "label-type-picker": {
+    "current": "{{labelType}} (current type)",
+    "change": "change"
+  },
   "access-score-spotlight": {
     "subtitle-regions": "Each neighborhood's sidewalks are scored from 0 to 100 by our <a href=\"{{href}}\">AccessScore</a> algorithm (100 is best).",
     "subtitle-streets": "Each street's sidewalks are scored from 0 to 100 by our <a href=\"{{href}}\">AccessScore</a> algorithm (100 is best).",
