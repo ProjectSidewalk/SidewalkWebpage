@@ -22,7 +22,6 @@ import service.ConfigService.{CrossCityFreshFor, CrossCityMaxAge}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
@@ -61,8 +60,26 @@ object AccessScoreSpotlight {
    */
   val MinStreetLengthMeters: Double = 100.0
 
-  /** How many scored clusters a stretch needs to be ranked, unless it has none at all (see [[streetQualifies]]). */
+  /**
+   * How many scored clusters a stretch needs to be ranked, unless it has none at all. The SQL in
+   * [[models.street.StreetAccessScoreTable.getSpotlight]] applies this: a stretch is ranked once somebody has
+   * explored it, it is long enough for a score to be about the street rather than one label, and it carries either
+   * this much labeled evidence or none at all — the "somebody walked it and found nothing" case. A confirmed
+   * absence of problems is a finding; one or two clusters on a long street is the thin middle that says little.
+   */
   val MinStreetClusters: Int = 3
+
+  /**
+   * The score a unit needs before it can be called one of the highest: the ramp's midpoint, above which the bar is
+   * on the green side. A "Highest scores" list must never carry a red bar, however small the city.
+   */
+  val HighestMinScore: Double = 0.5
+
+  /**
+   * The score a unit must be under to be called one of the lowest. Equal to [[HighestMinScore]] today, so every
+   * ranked unit is in exactly one list; the two are separate numbers so a gap between them is a constant change.
+   */
+  val LowestMaxScore: Double = 0.5
 
   /** How many rows each list holds when the caller asks for no particular number. */
   val DefaultListSize: Int = 5
@@ -84,19 +101,43 @@ object AccessScoreSpotlight {
     row.score.isDefined && math.round(row.completionRate * 100) >= math.round(minCompletion * 100)
 
   /**
-   * Whether a stretch of street is ranked.
+   * Whether a ranked unit belongs in the "Highest scores" list: at or above [[HighestMinScore]].
    *
-   * Three bars: somebody has explored it, it is long enough for a score to be about the street rather than about one
-   * label, and it carries either enough labeled evidence or none at all. That last arm is the "somebody walked it
-   * and found nothing" case the design asks for — a confirmed absence of problems is a finding, while one or two
-   * clusters on a long street is the thin middle that says little either way.
-   *
-   * @param row The stretch's snapshot row.
-   * @return    Whether it belongs in the ranked lists.
+   * @param row A ranked row, so `score` is defined.
    */
-  def streetQualifies(row: StreetAccessScore): Boolean =
-    row.score.isDefined && row.auditCount > 0 && row.lengthM >= MinStreetLengthMeters &&
-      (row.clusterCount >= MinStreetClusters || row.clusterCount == 0)
+  def isHighest(row: SpotlightRowForApi): Boolean = row.score.exists(_ >= HighestMinScore)
+
+  /**
+   * Whether a ranked unit belongs in the "Lowest scores" list: under [[LowestMaxScore]]. The two lists are disjoint
+   * by construction; a unit in the gap between the two bars, if there is one, is in neither.
+   *
+   * @param row A ranked row, so `score` is defined.
+   */
+  def isLowest(row: SpotlightRowForApi): Boolean = row.score.exists(_ < LowestMaxScore)
+
+  /**
+   * The two lists the module shows, from every ranked row.
+   *
+   * With `n` or more ranked, "Highest" is the best of those at or above [[HighestMinScore]] and "Lowest" the worst
+   * of those under [[LowestMaxScore]] — each short, or empty, when few clear its bar, and never overlapping. With
+   * fewer than `n` ranked there is no highest-and-lowest to show, so the first list holds every ranked row, best
+   * first, and the second is empty: the module's "Ranked so far" state.
+   *
+   * @param ranked      The ranked rows to draw from, in any order.
+   * @param n           How many rows each list holds.
+   * @param rankedCount How many rows are ranked in all, when `ranked` is only the candidates for the two lists
+   *                    rather than every ranked row — the cross-city merge's case.
+   * @return            (top, bottom).
+   */
+  def split(
+      ranked: Seq[SpotlightRowForApi],
+      n: Int,
+      rankedCount: Int = -1
+  ): (Seq[SpotlightRowForApi], Seq[SpotlightRowForApi]) = {
+    val count = if (rankedCount < 0) ranked.size else rankedCount
+    if (count < n) (rank(ranked, descending = true, n), Seq.empty)
+    else (rank(ranked.filter(isHighest), descending = true, n), rank(ranked.filter(isLowest), descending = false, n))
+  }
 
   /**
    * Builds one night's region rows: every region in the city, scored or not.
@@ -142,7 +183,8 @@ object AccessScoreSpotlight {
   /**
    * Counts the label clusters behind each region's score: those on its street edges plus those at its
    * intersections, which the region roll-up averages but never totals. An intersection outside every region (its
-   * `regionId` is None) belongs to no row and is skipped.
+   * `regionId` is None) belongs to no row and is skipped, and so is a grade-separated one, which the roll-up
+   * neither counts nor scores — the number must not claim evidence the score never used.
    *
    * @param streets       The city's street scores, each carrying its per-type cluster counts.
    * @param intersections The city's intersection scores, likewise.
@@ -153,7 +195,8 @@ object AccessScoreSpotlight {
       intersections: Seq[IntersectionAccessScoreForApi]
   ): Map[Int, Int] = {
     val onStreets: Seq[(Int, Int)] = streets.map(s => s.regionId -> s.clusterCounts.values.sum)
-    val atCorners: Seq[(Int, Int)] = intersections.flatMap(i => i.regionId.map(_ -> i.clusterCounts.values.sum))
+    val atCorners: Seq[(Int, Int)] =
+      intersections.filterNot(_.gradeSeparated).flatMap(i => i.regionId.map(_ -> i.clusterCounts.values.sum))
     (onStreets ++ atCorners).groupMapReduce(_._1)(_._2)(_ + _)
   }
 
@@ -215,7 +258,7 @@ object AccessScoreSpotlight {
    *
    * Score first; then, among equal scores, the most-validated row, since a well-checked street is the one worth
    * pointing at; then a stable key so two rows that are equal on both never swap between requests. A row with no
-   * score never reaches here — [[regionQualifies]] and [[streetQualifies]] have already dropped it — so its score
+   * score never reaches here — [[regionQualifies]] and the street query's bars have already dropped it — so its score
    * sorts last defensively rather than meaningfully.
    *
    * @param rows       The qualifying rows.
@@ -224,9 +267,12 @@ object AccessScoreSpotlight {
    * @return           The first `n` rows in that order.
    */
   def rank(rows: Seq[SpotlightRowForApi], descending: Boolean, n: Int): Seq[SpotlightRowForApi] = {
+    // A row can arrive twice from the cross-city merge (a city's own two lists are cut from one set); a list that
+    // names the same street twice is wrong whatever else is true, so the key that orders ties also dedupes.
+    val unique  = rows.distinctBy(stableKey)
     val ordered =
-      if (descending) rows.sortBy(row => (-row.score.getOrElse(Double.MinValue), -tieBreakVotes(row), stableKey(row)))
-      else rows.sortBy(row => (row.score.getOrElse(Double.MaxValue), -tieBreakVotes(row), stableKey(row)))
+      if (descending) unique.sortBy(row => (-row.score.getOrElse(Double.MinValue), -tieBreakVotes(row), stableKey(row)))
+      else unique.sortBy(row => (row.score.getOrElse(Double.MaxValue), -tieBreakVotes(row), stableKey(row)))
     ordered.take(n)
   }
 
@@ -342,14 +388,23 @@ class AccessScoreSpotlightService @Inject() (
    * page, the same bargain `getCityScorecards` makes. `computed_at` comes back as the *oldest* contributing run, so
    * "updated nightly, last at …" is true of every row rather than only the freshest city's.
    *
+   * Cached at [[AccessScoreSpotlight.MaxListSize]] and sliced to `n`: the global top `n` is a prefix of the global
+   * top 25, and `n` is caller-controlled, so keying the fan-out on it would let a hand-typed loop run it 25 times
+   * per unit and language.
+   *
    * @param unit Which unit to rank.
    * @param n    How many rows each list holds.
    * @param lang The language the city names are wanted in.
    * @return     The response the endpoint publishes; `nearest` is always empty here.
    */
-  def getCrossCitySpotlight(unit: String, n: Int, lang: Lang): Future[AccessScoreSpotlightForApi] = {
+  def getCrossCitySpotlight(unit: String, n: Int, lang: Lang): Future[AccessScoreSpotlightForApi] =
+    crossCitySpotlightFull(unit, lang).map(full => full.copy(top = full.top.take(n), bottom = full.bottom.take(n)))
+
+  /** [[getCrossCitySpotlight]] at the largest list size, which is the one entry per unit and language cached. */
+  private def crossCitySpotlightFull(unit: String, lang: Lang): Future[AccessScoreSpotlightForApi] = {
+    val n = AccessScoreSpotlight.MaxListSize
     swrCache.staleWhileRevalidate[AccessScoreSpotlightForApi](
-      s"accessScoreSpotlight:cities:${unit}_${n}_${lang.code}",
+      s"accessScoreSpotlight:cities:${unit}_${lang.code}",
       CrossCityFreshFor,
       CrossCityMaxAge
     ) {
@@ -359,7 +414,9 @@ class AccessScoreSpotlightService @Inject() (
             val spotlightCity = SpotlightCityForApi(city.cityId, city.cityNameShort, city.URL)
             val rows: Future[(Seq[SpotlightRowForApi], Int, Int, Option[OffsetDateTime])] =
               if (unit == SpotlightUnit.Streets) {
-                streetSpotlight(n, Some(schema), Some(spotlightCity)).map { case (response, _) =>
+                // Each city's two lists are disjoint (one is at or above the highest floor, the other under the
+                // lowest ceiling), so their union is a clean candidate set for the global ranking.
+                streetSpotlight(n, Some(schema), Some(spotlightCity), sparseRule = false).map { case (response, _) =>
                   (response.top ++ response.bottom, response.qualifying, response.total, response.computedAt)
                 }
               } else {
@@ -382,15 +439,22 @@ class AccessScoreSpotlightService @Inject() (
         Future.sequence(perCity).map { results =>
           val contributing = results.flatten
           val candidates   = contributing.flatMap(_._1)
+          val qualifying   = contributing.map(_._2).sum
+          // The sparse rule is judged on the merged count. For streets the candidates are each city's two
+          // threshold lists, so a merged count under n (fewer than n ranked stretches across every public city)
+          // would list only those; no real set of deployments produces that state.
+          val (top, bottom) = AccessScoreSpotlight.split(candidates, n, rankedCount = qualifying)
           AccessScoreSpotlightForApi(
             unit = unit,
             minCompletion = AccessScoreSpotlight.MinRegionCompletion,
             minStreetLengthM = AccessScoreSpotlight.MinStreetLengthMeters,
-            qualifying = contributing.map(_._2).sum,
+            highestMinScore = AccessScoreSpotlight.HighestMinScore,
+            lowestMaxScore = AccessScoreSpotlight.LowestMaxScore,
+            qualifying = qualifying,
             total = contributing.map(_._3).sum,
             computedAt = contributing.flatMap(_._4).sortBy(_.toInstant).headOption,
-            top = AccessScoreSpotlight.rank(candidates, descending = true, n),
-            bottom = AccessScoreSpotlight.rank(candidates, descending = false, n),
+            top = top,
+            bottom = bottom,
             nearest = Seq.empty
           )
         }
@@ -404,16 +468,19 @@ class AccessScoreSpotlightService @Inject() (
       snapshot   <- db.run(regionAccessScoreTable.getLatestSnapshot(None))
       computedAt <- db.run(regionAccessScoreTable.latestComputedAt(None))
     } yield {
-      val qualifying = snapshot.filter(row => AccessScoreSpotlight.regionQualifies(row))
+      val qualifying    = snapshot.filter(row => AccessScoreSpotlight.regionQualifies(row))
+      val (top, bottom) = AccessScoreSpotlight.split(qualifying, n)
       AccessScoreSpotlightForApi(
         unit = SpotlightUnit.Regions,
         minCompletion = AccessScoreSpotlight.MinRegionCompletion,
         minStreetLengthM = AccessScoreSpotlight.MinStreetLengthMeters,
+        highestMinScore = AccessScoreSpotlight.HighestMinScore,
+        lowestMaxScore = AccessScoreSpotlight.LowestMaxScore,
         qualifying = qualifying.size,
         total = snapshot.size,
         computedAt = computedAt,
-        top = AccessScoreSpotlight.rank(qualifying, descending = true, n),
-        bottom = AccessScoreSpotlight.rank(qualifying, descending = false, n),
+        top = top,
+        bottom = bottom,
         // Only when the ranked lists can't be filled: otherwise the module has a top and a bottom to show and the
         // "help the next one across the line" ask has nowhere to go.
         nearest =
@@ -426,31 +493,34 @@ class AccessScoreSpotlightService @Inject() (
   /**
    * A street feed, for this schema or another city's.
    *
-   * @param n      How many rows each list holds.
-   * @param schema The city schema to read, None for this deployment's own.
-   * @param city   The deployment to stamp on each row, under the cross-city scope.
-   * @return       The response, and the raw snapshot slice behind it.
+   * @param n           How many rows each list holds.
+   * @param schema      The city schema to read, None for this deployment's own.
+   * @param city        The deployment to stamp on each row, under the cross-city scope.
+   * @param sparseRule  Whether fewer than `n` ranked stretches collapse to one "ranked so far" list (see
+   *                    [[AccessScoreSpotlight.split]]). Off for a city read by the cross-city merge, where it is the
+   *                    merged count that decides.
+   * @return            The response, and the raw snapshot slice behind it.
    */
   private def streetSpotlight(
       n: Int,
       schema: Option[String],
-      city: Option[SpotlightCityForApi]
+      city: Option[SpotlightCityForApi],
+      sparseRule: Boolean = true
   ): Future[(AccessScoreSpotlightForApi, StreetSpotlightSnapshot)] = {
     db.run(
       streetAccessScoreTable.getSpotlight(
-        n,
-        AccessScoreSpotlight.MinStreetLengthMeters,
-        AccessScoreSpotlight.MinStreetClusters,
-        schema
+        n, AccessScoreSpotlight.MinStreetLengthMeters, AccessScoreSpotlight.MinStreetClusters,
+        AccessScoreSpotlight.HighestMinScore, AccessScoreSpotlight.LowestMaxScore, sparseRule, schema
       )
     ).map { snapshot =>
       val stamp: Seq[StreetSpotlightRowForApi] => Seq[SpotlightRowForApi] =
         rows => city.fold[Seq[SpotlightRowForApi]](rows)(c => rows.map(_.copy(city = Some(c))))
       val response = AccessScoreSpotlightForApi(
         unit = SpotlightUnit.Streets, minCompletion = AccessScoreSpotlight.MinRegionCompletion,
-        minStreetLengthM = AccessScoreSpotlight.MinStreetLengthMeters, qualifying = snapshot.qualifying,
-        total = snapshot.total, computedAt = snapshot.computedAt, top = stamp(snapshot.top),
-        bottom = stamp(snapshot.bottom),
+        minStreetLengthM = AccessScoreSpotlight.MinStreetLengthMeters,
+        highestMinScore = AccessScoreSpotlight.HighestMinScore, lowestMaxScore = AccessScoreSpotlight.LowestMaxScore,
+        qualifying = snapshot.qualifying, total = snapshot.total, computedAt = snapshot.computedAt,
+        top = stamp(snapshot.top), bottom = stamp(snapshot.bottom),
         // A street has no "closest to being ranked" call to action: the ask is always "explore this neighborhood",
         // which is what the regions unit already offers.
         nearest = Seq.empty
@@ -473,7 +543,4 @@ object AccessScoreSpotlightService {
 
   /** DB fetch size for the cluster stream the snapshot is computed from, matching the API's own default. */
   val BatchSize: Int = 25000
-
-  /** How stale this deployment's own feed may be before a request triggers a background recompute. */
-  val FreshFor: FiniteDuration = 10.minutes
 }

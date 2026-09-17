@@ -80,7 +80,8 @@ The **AccessScore Spotlight** (`AccessScoreSpotlight.js`, #5215), which the land
 logs `View_module=AccessScoreSpotlight_unit=<regions|streets>_count=<n>` when its lists first render — once per page
 view, not again on a unit switch — where `count` is how many rows were actually drawn across both columns, so a
 sparse city is distinguishable from a full one. Moving down the list logs
-`Hover_module=AccessScoreSpotlight_unit=<unit>_id=<regionId|streetEdgeId>` **once per row per page view**: a hover
+`Hover_module=AccessScoreSpotlight_unit=<unit>_id=<regionId|streetEdgeId>` (with `_city=<cityId>` appended on
+`/cities`, where ids repeat across cities) **once per row per page view**: a hover
 event per pointer pass would be one of the chattiest events on the site, and the question it answers ("was this row
 looked at") only needs the first. Keyboard focus counts as a hover, since it does the same thing. Clicking a row's
 name, or anywhere else on the row (which forwards to that link), logs

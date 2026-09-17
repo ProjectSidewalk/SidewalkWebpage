@@ -2,7 +2,7 @@ package service
 
 import models.api.{RegionSpotlightRowForApi, SpotlightUnit, StreetSpotlightRowForApi}
 import models.region.{RegionAccessScoreTable, RegionAccessScoreTableDef}
-import models.street.{StreetAccessScoreTable, StreetAccessScoreTableDef}
+import models.street.{StreetAccessScore, StreetAccessScoreTable, StreetAccessScoreTableDef}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
@@ -13,6 +13,8 @@ import play.api.i18n.Lang
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.dbio.DBIO
 
+import java.time.OffsetDateTime
+import java.time.temporal.ChronoUnit
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
@@ -155,12 +157,80 @@ class AccessScoreSpotlightSnapshotSpec extends PlaySpec with GuiceOneAppPerSuite
       noException should be thrownBy run(regionScoreTable.latestComputedAt(schema))
       noException should be thrownBy run(
         streetScoreTable.getSpotlight(
-          5,
-          AccessScoreSpotlight.MinStreetLengthMeters,
-          AccessScoreSpotlight.MinStreetClusters,
-          schema
+          5, AccessScoreSpotlight.MinStreetLengthMeters, AccessScoreSpotlight.MinStreetClusters,
+          AccessScoreSpotlight.HighestMinScore, AccessScoreSpotlight.LowestMaxScore, sparseRule = true, schema
         )
       )
+    }
+
+    "rank seeded stretches by the query's own bars and score bands, in the documented order" in {
+      // The CI database holds one region and a handful of streets, so the invariants above pass on empty lists.
+      // These rows are shaped to exercise every clause of the SQL: written as one run, read back, then replaced by
+      // a real run so nothing synthetic outlives the test.
+      val regionId =
+        run(sql"SELECT region_id FROM region WHERE deleted = FALSE ORDER BY region_id LIMIT 1".as[Int].head)
+      val edgeId = run(sql"SELECT street_edge_id FROM street_edge ORDER BY street_edge_id LIMIT 1".as[Int].head)
+      // Millisecond precision: Postgres keeps microseconds, and Java 17's clock can carry nanos past that.
+      val runAt = OffsetDateTime.now().truncatedTo(ChronoUnit.MILLIS)
+      def row(
+          way: Long,
+          score: Option[Double],
+          lengthM: Double = 500,
+          audits: Int = 1,
+          clusters: Int = 4,
+          votes: Int = 0,
+          tie: Double = 0.5
+      ): StreetAccessScore =
+        StreetAccessScore(
+          0,
+          way,
+          regionId,
+          edgeId,
+          Some(s"Way $way"),
+          score,
+          lengthM,
+          audits,
+          clusters,
+          votes,
+          tie,
+          runAt
+        )
+      val rows = Seq(
+        row(1, Some(0.95), tie = 0.2),
+        // Explored and nothing found: ranked, and a top score. Same score as way 1, so tie_break orders them.
+        row(2, Some(0.95), clusters = 0, tie = 0.7),
+        // Three at 0.80: the best-validated first, then the lower tie-break.
+        row(3, Some(0.80), votes = 9, tie = 0.9),
+        row(4, Some(0.80), votes = 9, tie = 0.1),
+        row(12, Some(0.80), votes = 30, tie = 0.95),
+        // Over the bar but sixth-best, so not in a list of five; and two under it.
+        row(5, Some(0.60)),
+        row(6, Some(0.49)),
+        row(7, Some(0.10)),
+        // Excluded: a stub, an unexplored stretch, the one-cluster thin middle, and a stretch with no score.
+        row(8, Some(0.05), lengthM = 20),
+        row(9, Some(0.05), audits = 0),
+        row(10, Some(0.05), clusters = 1),
+        row(11, None)
+      )
+      run(streetScoreTable.replaceSnapshot(rows))
+      def ways(list: Seq[models.api.SpotlightRowForApi]): Seq[Long] =
+        list.collect { case r: StreetSpotlightRowForApi => r.osmWayId }
+
+      try {
+        val feed = await(service.getSpotlight(SpotlightUnit.Streets, 5))
+        feed.total mustBe 12
+        feed.qualifying mustBe 8
+        ways(feed.top) mustBe Seq(1L, 2L, 12L, 4L, 3L)
+        ways(feed.bottom) mustBe Seq(7L, 6L)
+        feed.computedAt.map(_.toInstant) mustBe Some(runAt.toInstant)
+        feed.top.collect { case r: StreetSpotlightRowForApi => r.regionName.trim must not be empty }
+
+        // Fewer ranked than asked for: one list of everything ranked, best first, and no bottom.
+        val sparse = await(service.getSpotlight(SpotlightUnit.Streets, 25))
+        ways(sparse.top) mustBe Seq(1L, 2L, 12L, 4L, 3L, 5L, 6L, 7L)
+        sparse.bottom mustBe empty
+      } finally { await(service.recordSnapshot()): Unit }
     }
 
     "fan out over the public cities without failing on a city it cannot read" in {

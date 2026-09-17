@@ -43,6 +43,8 @@ function feed(unit, { qualifying = 0, total = 0, top = [], bottom = [], nearest 
         unit,
         min_completion: 0.8,
         min_street_length_m: 100,
+        highest_min_score: 0.5,
+        lowest_max_score: 0.5,
         qualifying,
         total,
         computed_at: computedAt,
@@ -210,7 +212,8 @@ describe('the AccessScore Spotlight', () => {
                 streets: feed('streets', { qualifying: 0, total: 0 }),
             });
 
-            expect(columnHeadings()).toEqual([
+            // The two headings carry their bar (the "and their bars" suite pins the number).
+            expect(columnHeadings().map((h) => h.split('|')[0])).toEqual([
                 'common:access-score-spotlight.highest', 'common:access-score-spotlight.lowest',
             ]);
             expect(rowNames()).toContain('South Park');
@@ -456,6 +459,24 @@ describe('the AccessScore Spotlight', () => {
             expect(hovers).toEqual(['Hover_module=AccessScoreSpotlight_unit=regions_id=42']);
         });
 
+        it('names the city in a cross-city hover, since two cities can share a region id', async () => {
+            const a = { city_id: 'a-city', city_name: 'A', city_url: 'https://a.example' };
+            const b = { city_id: 'b-city', city_name: 'B', city_url: 'https://b.example' };
+            await mount({
+                regions: feed('regions', {
+                    qualifying: 6, total: 9, top: [regionRow(1, 'A one', 0.9, 0.9, a), regionRow(1, 'B one', 0.8, 0.9, b)],
+                }),
+                streets: feed('streets', { qualifying: 0, total: 0 }),
+            }, { crossCity: true });
+
+            document.querySelectorAll('.spotlight-row').forEach((row) => row.dispatchEvent(new window.Event('mouseenter')));
+
+            expect(logged.filter((entry) => entry.startsWith('Hover_module=AccessScoreSpotlight'))).toEqual([
+                'Hover_module=AccessScoreSpotlight_unit=regions_id=1_city=a-city',
+                'Hover_module=AccessScoreSpotlight_unit=regions_id=1_city=b-city',
+            ]);
+        });
+
         it('says nothing when the map stack has not finished loading', async () => {
             const realChoropleth = window.choropleth;
             window.choropleth = undefined; // Both load on the same first-interaction gate; either can win.
@@ -538,6 +559,90 @@ describe('the AccessScore Spotlight', () => {
             expect(sub).toContain('common:access-score-spotlight.region-sub-pending');
             expect(sub).toContain('"length":"3.0 km"');
             expect(sub).toContain('"percent":67');
+        });
+    });
+
+    describe('the two lists and their bars', () => {
+        it('quotes each list\'s bar in its heading, from the feed', async () => {
+            await mount({
+                regions: feed('regions', { qualifying: 6, total: 9, top: FIVE_REGIONS, bottom: [regionRow(9, 'Low', 0.2)] }),
+                streets: feed('streets', { qualifying: 0, total: 0 }),
+            });
+
+            const headings = columnHeadings();
+            expect(headings[0]).toContain('common:access-score-spotlight.highest');
+            expect(headings[0]).toContain('"score":50');
+            expect(headings[1]).toContain('common:access-score-spotlight.lowest');
+            expect(headings[1]).toContain('"score":50');
+        });
+
+        it('says so when nothing clears a list\'s bar, instead of filling it from the other side', async () => {
+            await mount({
+                regions: feed('regions', { qualifying: 6, total: 9, top: [], bottom: FIVE_REGIONS }),
+                streets: feed('streets', { qualifying: 0, total: 0 }),
+            });
+
+            const empty = document.querySelector('.spotlight-row--empty');
+            expect(empty.textContent).toContain('common:access-score-spotlight.empty-highest-regions');
+            expect(empty.textContent).toContain('"score":50');
+            // The empty line is not a row: it has no link, no bar, and lights nothing.
+            expect(empty.querySelector('.spotlight-name-link')).toBeNull();
+            expect(document.querySelectorAll('.spotlight-row--empty')).toHaveLength(1);
+        });
+
+        it('does not offer a unit whose feed failed, so switching can never blank the section', async () => {
+            const section = await mount({
+                regions: null,
+                streets: feed('streets', { qualifying: 9, total: 90, top: [streetRow(1, 'NW Market St', 0.9)] }),
+            });
+
+            expect(section.hidden).toBe(false);
+            expect([...document.querySelectorAll('.spotlight-unit')].map((b) => b.textContent))
+                .toEqual(['common:access-score-spotlight.unit-streets']);
+        });
+    });
+
+    describe('the "Updated nightly" tip', () => {
+        const mountWithTip = () => mount({
+            regions: feed('regions', {
+                qualifying: 6, total: 9, top: [regionRow(42, 'Capitol Hill', 0.84)], computedAt: '2026-09-16T20:57:30Z',
+            }),
+            streets: feed('streets', { qualifying: 0, total: 0 }),
+        });
+        const tip = () => document.querySelector('.spotlight-tip');
+        const info = () => document.querySelector('.spotlight-info');
+
+        it('stays open after a tap: focus then click is one gesture, not a show and a hide', async () => {
+            await mountWithTip();
+            info().dispatchEvent(new window.Event('focus'));
+            expect(tip().hidden).toBe(false);
+            info().click();
+            expect(tip().hidden).toBe(false);
+            expect(info().getAttribute('aria-expanded')).toBe('true');
+            // A second click closes it.
+            info().click();
+            expect(tip().hidden).toBe(true);
+            expect(info().getAttribute('aria-expanded')).toBe('false');
+        });
+
+        it('survives the pointer leaving the button while pinned, and closes on Escape from anywhere', async () => {
+            await mountWithTip();
+            info().dispatchEvent(new window.Event('mouseenter'));
+            info().click();
+            document.querySelector('.spotlight-updated').dispatchEvent(new window.Event('mouseleave'));
+            expect(tip().hidden).toBe(false);
+
+            // Focus is nowhere near the tip; Escape still dismisses it (WCAG 1.4.13).
+            document.body.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            expect(tip().hidden).toBe(true);
+        });
+
+        it('hides on leaving the wrapper when only hovered, so an unpinned tip never lingers', async () => {
+            await mountWithTip();
+            info().dispatchEvent(new window.Event('mouseenter'));
+            expect(tip().hidden).toBe(false);
+            document.querySelector('.spotlight-updated').dispatchEvent(new window.Event('mouseleave'));
+            expect(tip().hidden).toBe(true);
         });
     });
 

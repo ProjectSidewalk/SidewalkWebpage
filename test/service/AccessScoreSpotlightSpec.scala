@@ -9,7 +9,6 @@ import models.api.{
   StreetSpotlightRowForApi
 }
 import models.region.NamedRegionCompletion
-import models.street.StreetAccessScore
 import org.locationtech.jts.geom.{GeometryFactory, LineString, MultiPolygon, Point}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -69,12 +68,17 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
   )
 
   /** One intersection as `AccessScoreService` scores it; only its region and cluster counts are read here. */
-  private def intersection(intersectionId: Int, regionId: Option[Int], clusters: Int): IntersectionAccessScoreForApi =
+  private def intersection(
+      intersectionId: Int,
+      regionId: Option[Int],
+      clusters: Int,
+      gradeSeparated: Boolean = false
+  ): IntersectionAccessScoreForApi =
     IntersectionAccessScoreForApi(
       intersectionId = intersectionId,
       regionId = regionId,
       degree = 4,
-      gradeSeparated = false,
+      gradeSeparated = gradeSeparated,
       streetEdgeIds = Seq.empty,
       auditCount = 1,
       score = Some(0.5),
@@ -142,22 +146,6 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
     AccessScoreSpotlight.regionQualifies(row, minCompletion = 0.5) shouldBe true
   }
 
-  test("a stretch of street is ranked when explored, long enough, and carrying evidence -- or none at all") {
-    def row(lengthM: Double, clusters: Int, audits: Int = 1, score: Option[Double] = Some(0.5)): StreetAccessScore =
-      StreetAccessScore(0, 1L, 1, 1, Some("Broadway E"), score, lengthM, audits, clusters, 0, 0.5, run)
-
-    AccessScoreSpotlight.streetQualifies(row(500, 4)) shouldBe true
-    // A 20 m stub with one bad label is one label, not a street with a bad score.
-    AccessScoreSpotlight.streetQualifies(row(20, 4)) shouldBe false
-    AccessScoreSpotlight.streetQualifies(row(500, 4, audits = 0)) shouldBe false
-    AccessScoreSpotlight.streetQualifies(row(500, 4, score = None)) shouldBe false
-    // One or two clusters on a long street is the thin middle that says little either way...
-    AccessScoreSpotlight.streetQualifies(row(500, 1)) shouldBe false
-    AccessScoreSpotlight.streetQualifies(row(500, 2)) shouldBe false
-    // ...while none at all on an explored street is a confirmed absence of problems, which is a finding.
-    AccessScoreSpotlight.streetQualifies(row(500, 0)) shouldBe true
-  }
-
   // --- Building a night's rows. ---
 
   test("every region gets a row, including the ones with no score, since they are the 'of M' and the CTA") {
@@ -191,7 +179,9 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
       intersection(1, regionId = Some(1), clusters = 2),
       intersection(2, regionId = Some(2), clusters = 5),
       // Outside every region: the roll-up gives it no region either, so it has no row to be counted on.
-      intersection(3, regionId = None, clusters = 9)
+      intersection(3, regionId = None, clusters = 9),
+      // A grade-separated crossing is neither counted nor scored by the roll-up, so its clusters are not evidence.
+      intersection(4, regionId = Some(1), clusters = 7, gradeSeparated = true)
     )
     AccessScoreSpotlight.clustersByRegion(streets, corners) shouldBe Map(1 -> 9, 2 -> 5)
   }
@@ -297,6 +287,57 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
       Seq("Best", "Mid")
     AccessScoreSpotlight.rank(rows, descending = false, 2).map(_.asInstanceOf[RegionSpotlightRowForApi].name) shouldBe
       Seq("Worst", "Mid")
+  }
+
+  test("highest and lowest are cut at their own scores, so a small city's two lists never overlap") {
+    val rows = Seq(
+      regionRow(1, "Great", Some(0.9), 0.9),
+      regionRow(2, "Fine", Some(0.6), 0.9),
+      regionRow(3, "On the line", Some(0.5), 0.9),
+      regionRow(4, "Just under", Some(0.49), 0.9),
+      regionRow(5, "Poor", Some(0.3), 0.9),
+      regionRow(6, "Awful", Some(0.1), 0.9)
+    )
+    val (top, bottom) = AccessScoreSpotlight.split(rows, n = 5)
+
+    // Exactly the bar is in ("at least"); a hair under is the other list ("under"). Six ranked, five asked for,
+    // and neither list borrows from the other to fill up.
+    top.map(_.asInstanceOf[RegionSpotlightRowForApi].name) shouldBe Seq("Great", "Fine", "On the line")
+    bottom.map(_.asInstanceOf[RegionSpotlightRowForApi].name) shouldBe Seq("Awful", "Poor", "Just under")
+  }
+
+  test("a list can be empty when nothing clears its bar, rather than borrowing from the other side") {
+    val allPoor       = (1 to 6).map(i => regionRow(i, s"Region $i", Some(0.1 + i * 0.05), 0.9))
+    val (top, bottom) = AccessScoreSpotlight.split(allPoor, n = 5)
+    top shouldBe empty
+    bottom should have size 5
+  }
+
+  test("with fewer than n ranked there is one list holding all of them, best first, whatever they score") {
+    val rows          = Seq(regionRow(1, "Low", Some(0.2), 0.9), regionRow(2, "High", Some(0.9), 0.9))
+    val (top, bottom) = AccessScoreSpotlight.split(rows, n = 5)
+    top.map(_.asInstanceOf[RegionSpotlightRowForApi].name) shouldBe Seq("High", "Low")
+    bottom shouldBe empty
+  }
+
+  test("the sparse rule is judged on the count the caller gives, when the rows are only the candidates") {
+    // The cross-city merge hands split() each city's two threshold lists, not every ranked row; with 60 ranked
+    // across the cities the lists must still be cut at their scores rather than collapsing into one list of three.
+    val rows =
+      Seq(regionRow(1, "A", Some(0.8), 0.9), regionRow(2, "B", Some(0.6), 0.9), regionRow(3, "C", Some(0.2), 0.9))
+    val (top, bottom) = AccessScoreSpotlight.split(rows, n = 5, rankedCount = 60)
+    top.map(_.asInstanceOf[RegionSpotlightRowForApi].name) shouldBe Seq("A", "B")
+    bottom.map(_.asInstanceOf[RegionSpotlightRowForApi].name) shouldBe Seq("C")
+  }
+
+  test("a row that arrives twice is listed once") {
+    // The cross-city merge cuts a city's two lists from one set, so a small city can hand the same street over
+    // twice; a list that names one street twice is wrong whatever else is true.
+    val twice = Seq(streetRow(1L, 0.9, 3), streetRow(2L, 0.8, 3), streetRow(1L, 0.9, 3))
+    AccessScoreSpotlight
+      .rank(twice, descending = true, 5)
+      .map(_.asInstanceOf[StreetSpotlightRowForApi].osmWayId) shouldBe
+      Seq(1L, 2L)
   }
 
   test("streets that score alike are ordered by how well validated they are, in both lists") {

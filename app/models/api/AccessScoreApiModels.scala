@@ -600,13 +600,19 @@ case class StreetSpotlightRowForApi(
  *                      `/v3/api/accessScoreConfig` publishes as `min_region_completion`.
  * @param minStreetLengthM The length floor a stretch of street must clear to be ranked, in meters. Published so the
  *                      module can say what it is without re-declaring it.
+ * @param highestMinScore The score a ranked unit needs to appear in `top`, in [0, 1].
+ * @param lowestMaxScore  The score a ranked unit must be under to appear in `bottom`, in [0, 1]. The two lists never
+ *                      overlap; a unit between the two bars, if they differ, is in neither.
  * @param qualifying    How many units cleared every bar and are therefore ranked.
  * @param total         How many units the city has in all, the "of M" the module prints.
- * @param computedAt    When the nightly run that produced these rows finished. None before the first run; under
- *                      `scope=cities` it is the OLDEST of the contributing cities' runs, so the claim holds for
- *                      every row rather than only the freshest one.
- * @param top           The highest-scoring rows, best first.
- * @param bottom        The lowest-scoring rows, worst first.
+ * @param computedAt    When the nightly run produced these rows (the run's timestamp, stamped on every row it
+ *                      wrote). None before the first run; under `scope=cities` it is the OLDEST of the contributing
+ *                      cities' runs, so the claim holds for every row rather than only the freshest one.
+ * @param top           With `n` or more ranked: the best of those scoring at least `highestMinScore`, best first,
+ *                      fewer than `n` when fewer clear it. With fewer than `n` ranked there is no highest-and-lowest
+ *                      to show, so this is every ranked unit, best first.
+ * @param bottom        With `n` or more ranked: the worst of those scoring under `lowestMaxScore`, worst first;
+ *                      empty otherwise.
  * @param nearest       The units closest to qualifying, best-explored first. Populated only when fewer than `n`
  *                      qualify, and only for `unit=regions` under the single-city scope — a neighborhood is
  *                      somewhere a visitor can be sent to explore, and a street on another city's site is not.
@@ -615,6 +621,8 @@ case class AccessScoreSpotlightForApi(
     unit: String,
     minCompletion: Double,
     minStreetLengthM: Double,
+    highestMinScore: Double,
+    lowestMaxScore: Double,
     qualifying: Int,
     total: Int,
     computedAt: Option[OffsetDateTime],
@@ -628,6 +636,8 @@ case class AccessScoreSpotlightForApi(
     "unit"                -> unit,
     "min_completion"      -> minCompletion,
     "min_street_length_m" -> minStreetLengthM,
+    "highest_min_score"   -> highestMinScore,
+    "lowest_max_score"    -> lowestMaxScore,
     "qualifying"          -> qualifying,
     "total"               -> total,
     "computed_at"         -> computedAt,

@@ -119,17 +119,29 @@ trait StreetAccessScoreTableRepository {
   /**
    * The newest run's highest- and lowest-scoring qualifying stretches, plus what they were drawn from.
    *
-   * @param n            How many rows each list holds.
-   * @param minLengthM   The length floor a stretch must clear to be ranked.
-   * @param minClusters  The cluster floor, which a stretch with no clusters at all also satisfies (see
-   *                     `service.AccessScoreSpotlight.streetQualifies`).
-   * @param schema       The city schema to read, or None for this deployment's own.
-   * @return             The bounded slice; empty lists and zero counts before the first run.
+   * The lists are cut the way `service.AccessScoreSpotlight.split` cuts a region list: with `n` or more ranked,
+   * `top` is the best of those scoring at least `highestMinScore` and `bottom` the worst of those under
+   * `lowestMaxScore`, each as short as that leaves it; with fewer than `n` ranked (and `sparseRule` on), `top` is
+   * every ranked stretch and `bottom` is empty.
+   *
+   * @param n               How many rows each list holds.
+   * @param minLengthM      The length floor a stretch must clear to be ranked.
+   * @param minClusters     The cluster floor, which a stretch with no clusters at all also satisfies (see
+   *                        `service.AccessScoreSpotlight.MinStreetClusters`).
+   * @param highestMinScore The score `top` starts at.
+   * @param lowestMaxScore  The score `bottom` stays under.
+   * @param sparseRule      Whether fewer than `n` ranked collapse to one list; off when a caller merges this city
+   *                        with others and the merged count is what decides.
+   * @param schema          The city schema to read, or None for this deployment's own.
+   * @return                The bounded slice; empty lists and zero counts before the first run.
    */
   def getSpotlight(
       n: Int,
       minLengthM: Double,
       minClusters: Int,
+      highestMinScore: Double,
+      lowestMaxScore: Double,
+      sparseRule: Boolean,
       schema: Option[String] = None
   ): DBIO[StreetSpotlightSnapshot]
 }
@@ -164,14 +176,17 @@ class StreetAccessScoreTable @Inject() (protected val dbConfigProvider: Database
       n: Int,
       minLengthM: Double,
       minClusters: Int,
+      highestMinScore: Double,
+      lowestMaxScore: Double,
+      sparseRule: Boolean,
       schema: Option[String]
   ): DBIO[StreetSpotlightSnapshot] = {
     val scores  = RegionAccessScoreTable.qualified(schema, "street_access_score")
     val regions = RegionAccessScoreTable.qualified(schema, "region")
 
     // A stretch is ranked once it has been explored, is long enough for a score to describe anything, and either
-    // carries enough labeled evidence or carries none at all -- the "somebody walked it and found nothing" case. The
-    // same rule in Scala is `service.AccessScoreSpotlight.streetQualifies`, which the cross-city merge reuses.
+    // carries enough labeled evidence or carries none at all -- the "somebody walked it and found nothing" case.
+    // This WHERE is the rule; the constants it binds are `service.AccessScoreSpotlight`'s.
     val counts = sql"""
       SELECT COUNT(*),
              COUNT(*) FILTER (
@@ -185,8 +200,9 @@ class StreetAccessScoreTable @Inject() (protected val dbConfigProvider: Database
       WHERE street_access_score.computed_at = (SELECT MAX(computed_at) FROM #$scores)
     """.as[(Int, Int, Option[java.sql.Timestamp])].head
 
-    // `direction` is a literal this file supplies, never a request value.
-    def ranked(direction: String) = sql"""
+    // `direction` is a literal this file supplies, never a request value. The score band is [minScore, maxScore),
+    // with no upper bound when `maxScore` is None -- bound as a typed NULL, which is what lets `IS NULL` work.
+    def ranked(direction: String, minScore: Double, maxScore: Option[Double]) = sql"""
       SELECT street_access_score.osm_way_id,
              street_access_score.street_edge_id,
              street_access_score.region_id,
@@ -204,16 +220,23 @@ class StreetAccessScoreTable @Inject() (protected val dbConfigProvider: Database
         AND street_access_score.audit_count > 0
         AND street_access_score.length_m >= $minLengthM
         AND (street_access_score.cluster_count >= $minClusters OR street_access_score.cluster_count = 0)
+        AND street_access_score.score >= $minScore
+        AND ($maxScore IS NULL OR street_access_score.score < $maxScore)
       ORDER BY street_access_score.score #$direction,
                street_access_score.validation_count DESC,
                street_access_score.tie_break ASC
       LIMIT $n
     """.as[StreetSpotlightRowForApi]
 
+    val none: DBIO[Vector[StreetSpotlightRowForApi]] = DBIO.successful(Vector.empty)
     for {
       (total, qualifying, computedAt) <- counts
-      top                             <- if (qualifying > 0) ranked("DESC") else DBIO.successful(Vector.empty)
-      bottom                          <- if (qualifying > 0) ranked("ASC") else DBIO.successful(Vector.empty)
+      sparse = sparseRule && qualifying < n
+      top <-
+        if (qualifying == 0) none
+        else if (sparse) ranked("DESC", 0.0, None)
+        else ranked("DESC", highestMinScore, None)
+      bottom <- if (qualifying == 0 || sparse) none else ranked("ASC", 0.0, Some(lowestMaxScore))
     } yield StreetSpotlightSnapshot(
       qualifying = qualifying, total = total, computedAt = computedAt.map(_.toInstant.atOffset(ZoneOffset.UTC)),
       top = top, bottom = bottom

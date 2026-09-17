@@ -71,6 +71,9 @@
     <pre><code class="language-json">{
   "unit": "regions",
   "min_completion": 0.8,
+  "min_street_length_m": 100,
+  "highest_min_score": 0.5,
+  "lowest_max_score": 0.5,
   "qualifying": 66,
   "total": 79,
   "computed_at": "2026-09-16T03:14:22Z",
@@ -108,11 +111,14 @@
         <tbody>
           <tr><td><code>unit</code></td><td><code>string</code></td><td>Which unit was ranked: <code>regions</code> or <code>streets</code>.</td></tr>
           <tr><td><code>min_completion</code></td><td><code>number</code></td><td>The share of a neighborhood's street length that must be explored before it is ranked, in <code>[0,&nbsp;1]</code>.</td></tr>
+          <tr><td><code>min_street_length_m</code></td><td><code>number</code></td><td>The length a stretch of street must reach before it is ranked, in meters.</td></tr>
+          <tr><td><code>highest_min_score</code></td><td><code>number</code></td><td>The score a ranked unit needs to appear in <code>top</code>, in <code>[0,&nbsp;1]</code>.</td></tr>
+          <tr><td><code>lowest_max_score</code></td><td><code>number</code></td><td>The score a ranked unit must be under to appear in <code>bottom</code>, in <code>[0,&nbsp;1]</code>. The two lists never overlap; a unit between the two bars, if they differ, is in neither.</td></tr>
           <tr><td><code>qualifying</code></td><td><code>integer</code></td><td>How many units cleared every bar and are therefore ranked.</td></tr>
           <tr><td><code>total</code></td><td><code>integer</code></td><td>How many units the city has in all.</td></tr>
-          <tr><td><code>computed_at</code></td><td><code>string</code></td><td>When the nightly run that produced these rows finished (ISO 8601). <code>null</code> before the first run. Under <code>scope=cities</code> this is the <em>oldest</em> of the contributing cities' runs, so it is true of every row rather than only the freshest one.</td></tr>
-          <tr><td><code>top</code></td><td><code>array</code></td><td>The highest-scoring rows, best first.</td></tr>
-          <tr><td><code>bottom</code></td><td><code>array</code></td><td>The lowest-scoring rows, worst first.</td></tr>
+          <tr><td><code>computed_at</code></td><td><code>string</code></td><td>The nightly run that produced these rows, as the timestamp it stamped on every row it wrote (ISO 8601). <code>null</code> before the first run. Under <code>scope=cities</code> this is the <em>oldest</em> of the contributing cities' runs, so it is true of every row rather than only the freshest one.</td></tr>
+          <tr><td><code>top</code></td><td><code>array</code></td><td>With <code>n</code> or more units ranked: the best of those scoring at least <code>highest_min_score</code>, best first &mdash; fewer than <code>n</code> rows when fewer clear it, and empty when none does. With fewer than <code>n</code> ranked there is no highest-and-lowest to show, so this holds every ranked unit, best first.</td></tr>
+          <tr><td><code>bottom</code></td><td><code>array</code></td><td>With <code>n</code> or more units ranked: the worst of those scoring under <code>lowest_max_score</code>, worst first; empty otherwise. Never overlaps <code>top</code>.</td></tr>
           <tr><td><code>nearest</code></td><td><code>array</code></td><td>Neighborhoods closest to the completion floor, best-explored first — the "help the next one across the line" list. Populated only when fewer than <code>n</code> units qualify, and only for <code>unit=regions</code> without <code>scope=cities</code>; empty otherwise.</td></tr>
         </tbody>
       </table>

@@ -265,6 +265,14 @@
   outline-offset: 2px;
 }
 
+/* A column with nothing over its bar: one quiet line where the rows would be. */
+.spotlight-row--empty {
+  display: block;
+  font: var(--text-caption-regular, 400 12px/18px sans-serif);
+  color: var(--color-neutral-700, #6b6b6b);
+  font-style: italic;
+}
+
 /* Grows upward from the (i) so it never pushes the section's layout around. */
 .spotlight-tip {
   position: absolute;
@@ -280,6 +288,17 @@
   background: var(--color-asphalt-500, #2d2a3f);
   border-radius: 6px;
   box-shadow: var(--box-shadow, 0 2px 5px rgb(0 0 0 / 15%));
+}
+
+/* Bridges the gap under the tip, so a pointer travelling from the (i) onto the tip never leaves the wrapper the
+   hide is bound to -- the tip stays hoverable (WCAG 1.4.13) without the gap being painted. */
+.spotlight-tip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 6px;
 }
 
 .spotlight-cta {

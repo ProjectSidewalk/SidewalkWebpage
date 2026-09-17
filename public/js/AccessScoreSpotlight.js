@@ -22,6 +22,8 @@
  * @property {string} unit
  * @property {number} min_completion
  * @property {number} min_street_length_m
+ * @property {number} highest_min_score
+ * @property {number} lowest_max_score
  * @property {number} qualifying
  * @property {number} total
  * @property {?string} computed_at
@@ -41,6 +43,10 @@
  * The scores come from a nightly snapshot rather than a live computation, which is what makes it safe to put on the
  * home page at all: the feed is a bounded read of two tables. That also means a label placed today counts tomorrow,
  * which the "Updated nightly" note says out loud.
+ *
+ * "Highest scores" only lists units at or above the feed's `highest_min_score` and "Lowest scores" only those under
+ * its `lowest_max_score`, so the lists never overlap and a red bar never sits under "Highest"; a column with nothing
+ * over its bar says so rather than borrowing from the other side.
  *
  * Most Project Sidewalk cities do not have enough explored ground to rank five neighborhoods, so the sparse case is
  * the common one and is treated as the ask rather than as an error: the columns become "Ranked so far" and "Closest
@@ -74,6 +80,8 @@ class AccessScoreSpotlight {
   #hoverLogged = new Set();
   /** The map feature currently lit, so it can be cleared when the pointer moves on. */
   #litFeature = null;
+  /** Closes the current "Updated nightly" tip if it is open; rebound on every render, called on Escape. */
+  #dismissTip = null;
 
   /**
    * @param {HTMLElement} sectionEl - The section element (rendered with `hidden`), holding a `.spotlight` root.
@@ -90,6 +98,12 @@ class AccessScoreSpotlight {
     // section re-hides if the city turns out to have nothing ranked.
     this.#section.hidden = false;
     this.#root.appendChild(this.#buildSkeleton());
+
+    // One listener for the module's lifetime rather than one per render: Escape must close the tip from wherever
+    // the keyboard focus is (WCAG 1.4.13), and the tip itself is rebuilt on every unit switch.
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this.#dismissTip?.();
+    });
 
     // Don't hit the server until the visitor shows a sign of engagement, so crawlers and link-preview fetches don't
     // spend the query. The maps this hover-links to load on the same gate.
@@ -180,11 +194,12 @@ class AccessScoreSpotlight {
       ranked ? 4 : 3,
       feed.top,
       'ranked',
+      feed,
     ));
     if (ranked) {
-      cols.appendChild(this.#buildColumn('lowest', 0, feed.bottom, 'ranked'));
+      cols.appendChild(this.#buildColumn('lowest', 0, feed.bottom, 'ranked', feed));
     } else if (!oneRegion && feed.nearest.length > 0) {
-      cols.appendChild(this.#buildColumn('closest', 2, feed.nearest, 'pending'));
+      cols.appendChild(this.#buildColumn('closest', 2, feed.nearest, 'pending', feed));
     } else {
       cols.classList.add('spotlight-cols--single');
     }
@@ -232,13 +247,16 @@ class AccessScoreSpotlight {
     subtitle.innerHTML = i18next.t(key, { href: AccessScoreSpotlight.#METHOD_HREF });
   }
 
-  /** The Neighborhoods / Streets switch, as two toggle buttons rather than tabs: each redraws this same region. */
+  /**
+   * The Neighborhoods / Streets switch, as two toggle buttons rather than tabs: each redraws this same region. A unit
+   * whose feed failed to load is not offered, since switching to it would have nothing to draw.
+   */
   #buildUnitSwitch() {
     const group = document.createElement('div');
     group.className = 'spotlight-units';
     group.setAttribute('role', 'group');
     group.setAttribute('aria-label', i18next.t('common:access-score-spotlight.units-label'));
-    for (const unit of ['regions', 'streets']) {
+    for (const unit of ['regions', 'streets'].filter((u) => this.#feeds[u])) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'spotlight-unit';
@@ -262,10 +280,14 @@ class AccessScoreSpotlight {
    * @param {number} rampStop - Which score-ramp color the heading's dot takes, 0 (worst) to 4 (best).
    * @param {SpotlightRow[]} rows - The rows to list.
    * @param {string} kind - 'ranked' for a scored row, 'pending' for a "closest to being ranked" one.
+   * @param {SpotlightFeed} feed - The feed, for the score bars the highest and lowest headings quote.
    * @returns {HTMLElement}
    */
-  #buildColumn(key, rampStop, rows, kind) {
+  #buildColumn(key, rampStop, rows, kind, feed) {
     const column = document.createElement('div');
+    // The bars the two lists are cut at, on the 0–100 scale the page prints; from the feed, never restated here.
+    const bar = { highest: feed.highest_min_score, lowest: feed.lowest_max_score }[key];
+    const score = bar === undefined ? undefined : Math.round(bar * 100);
     // A real heading under the section's <h2>, so the two lists are navigable structure rather than styled text.
     const heading = document.createElement('h3');
     heading.className = 'spotlight-col-heading';
@@ -273,12 +295,21 @@ class AccessScoreSpotlight {
     dot.className = 'spotlight-dot';
     dot.style.background = window.ScoreRamp.colors()[rampStop];
     heading.appendChild(dot);
-    heading.appendChild(document.createTextNode(i18next.t(`common:access-score-spotlight.${key}`)));
+    heading.appendChild(document.createTextNode(score === undefined
+      ? i18next.t(`common:access-score-spotlight.${key}`)
+      : this.#t(`common:access-score-spotlight.${key}`, { score })));
     column.appendChild(heading);
 
     const list = document.createElement('ol');
     list.className = 'spotlight-list';
     rows.forEach((row, index) => list.appendChild(this.#buildRow(row, index + 1, kind)));
+    if (rows.length === 0 && score !== undefined) {
+      // Nothing clears this list's bar: say so, rather than filling the column from the middle of the range.
+      const empty = document.createElement('li');
+      empty.className = 'spotlight-row spotlight-row--empty';
+      empty.textContent = this.#t(`common:access-score-spotlight.empty-${key}-${this.#unit}`, { score });
+      list.appendChild(empty);
+    }
     column.appendChild(list);
     return column;
   }
@@ -476,23 +507,41 @@ class AccessScoreSpotlight {
     info.textContent = 'i';
     info.setAttribute('aria-label', i18next.t('common:access-score-spotlight.updated-nightly'));
     info.setAttribute('aria-describedby', tip.id);
+    info.setAttribute('aria-expanded', 'false');
+    // Hover and focus reveal the tip while they last; a click pins it open until a second click, Escape, or focus
+    // leaving. Pinning is what makes a tap work: on touch, a tap is focus then click, and a plain toggle would show
+    // the tip and hide it again in the same gesture.
+    let pinned = false;
     const show = () => {
       tip.hidden = false;
     };
     const hide = () => {
+      if (!pinned) tip.hidden = true;
+    };
+    const unpin = () => {
+      pinned = false;
+      info.setAttribute('aria-expanded', 'false');
       tip.hidden = true;
     };
     info.addEventListener('mouseenter', show);
-    info.addEventListener('mouseleave', hide);
     info.addEventListener('focus', show);
-    info.addEventListener('blur', hide);
+    info.addEventListener('blur', unpin);
     info.addEventListener('click', () => {
-      tip.hidden = !tip.hidden;
+      if (pinned) {
+        unpin();
+      } else {
+        pinned = true;
+        info.setAttribute('aria-expanded', 'true');
+        show();
+      }
     });
-    // WCAG 1.4.13: a tooltip a pointer or keyboard revealed must be dismissable without moving either.
-    updated.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !tip.hidden) hide();
-    });
+    // Leaving the wrapper, not the button: the tip is inside it, so the pointer can travel onto the tip (WCAG
+    // 1.4.13 asks that it be hoverable) -- the stylesheet bridges the gap between the two.
+    updated.addEventListener('mouseleave', hide);
+    // ...and dismissable without moving pointer or focus: the constructor's Escape listener calls this.
+    this.#dismissTip = () => {
+      if (!tip.hidden) unpin();
+    };
     updated.appendChild(info);
     updated.appendChild(tip);
     note.appendChild(updated);
@@ -546,10 +595,12 @@ class AccessScoreSpotlight {
     if (feature.id === undefined || feature.id === null) return;
     if (this.#setFeatureState(feature, true)) this.#litFeature = feature;
 
+    // Ids are per city, so on /cities the city is part of the key and of the log line, as it is for a click.
     const id = this.#unit === 'streets' ? row.street_edge_id : row.region_id;
-    if (this.#hoverLogged.has(`${this.#unit}:${id}`)) return;
-    this.#hoverLogged.add(`${this.#unit}:${id}`);
-    window.logWebpageActivity(`Hover_module=AccessScoreSpotlight_unit=${this.#unit}_id=${id}`);
+    const city = row.city_id ? `_city=${row.city_id}` : '';
+    if (this.#hoverLogged.has(`${this.#unit}:${id}${city}`)) return;
+    this.#hoverLogged.add(`${this.#unit}:${id}${city}`);
+    window.logWebpageActivity(`Hover_module=AccessScoreSpotlight_unit=${this.#unit}_id=${id}${city}`);
   }
 
   /** Clears whatever map feature this module last lit, and the row highlight that went with it. */
