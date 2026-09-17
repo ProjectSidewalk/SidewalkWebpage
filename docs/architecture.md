@@ -168,6 +168,15 @@ those two tables, which is what makes a ranked AccessScore safe to put on a page
 intersection rebuild it records its own run and is recovered rather than propagated, so a clustering success never
 stands in for a snapshot nobody wrote.
 
+The **places refresh** (#5311) keeps the per-city `place` table current from OpenStreetMap: one Overpass query per
+run over the city's bounds for every tag in the `PlaceCategory` catalog (schools, health care, libraries, grocery,
+transit, parks, community centers), merged by `PlaceTable.replaceOsmPlaces` so a place keeps its `place_id` across
+refreshes, with the containing region and the nearest street within 250 m computed in SQL as it lands. It ticks
+nightly like every job but fetches only when the newest place is more than a week old, or the table is empty, which
+is how a city gets its places with nothing done at onboarding; the skipped ticks are recorded too, so the Health
+panel can tell "fresh" from "stuck". `/v3/api/places` serves the table (the whole-city read cached with `SwrCache`,
+cleared by a refresh), the AccessScore map draws it, and Admin > Management can run the fetch on demand.
+
 Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
 and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one
 that found nothing to do, since the absence of a log line is not something anyone notices. `/admin/health` renders

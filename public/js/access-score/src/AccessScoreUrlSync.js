@@ -10,7 +10,9 @@
  * region id, read with `unit`), `dark` (1 for the dark basemap); and the insights dock's `dock` (0 when collapsed,
  * 1 to open it on a narrow window, where it otherwise starts collapsed)
  * `b` (the brushed score range as `from-to` in whole percent, on the histogram's 10-point bin edges) and `focus`
- * (the region a rank-list click scoped the band to).
+ * (the region a rank-list click scoped the band to). The places layer (#5311) adds `places` (0 to hide it), `pc`
+ * (the enabled category ids, present only when some are off), and the selected place as `place` (`lat,lng`) with
+ * `placeName` — the same pair the searched place will use (#5340), so a link means one thing by "place".
  */
 class AccessScoreUrlSync {
   static #WRITE_DELAY_MS = 300;
@@ -21,6 +23,7 @@ class AccessScoreUrlSync {
   #selection = null;
   #dock = { open: true, brush: null, focus: null };
   #dark = false;
+  #place = null;
 
   /**
    * The state a URL asks for, validated against the engine config. Unknown or malformed tokens are dropped, so a
@@ -29,9 +32,9 @@ class AccessScoreUrlSync {
    * @param {object} config - The `/v3/api/accessScoreConfig` response.
    * @param {string} [search=window.location.search] - The query string to read.
    * @returns {{state: object, selection: ?number, dark: boolean,
-   *   dock: {open: boolean, brush: ?object, focus: ?number}}} A partial
-   *   `AccessScoreModel` state, the selected id if any, whether the dark basemap is asked for, and the dock's
-   *   state (`brush` as `{from, to}` bin indices).
+   *   dock: {open: boolean, brush: ?object, focus: ?number}, place: ?{lat: number, lng: number, name: ?string}}} A
+   *   partial `AccessScoreModel` state, the selected id if any, whether the dark basemap is asked for, the dock's
+   *   state (`brush` as `{from, to}` bin indices), and the place the link names, if any.
    */
   static read(config, search = window.location.search) {
     const params = new URLSearchParams(search);
@@ -53,6 +56,24 @@ class AccessScoreUrlSync {
 
     if (params.get('unaudited') === '0') state.showUnaudited = false;
     if (params.get('clusters') === '0') state.showClusters = false;
+    if (params.get('places') === '0') state.showPlaces = false;
+
+    // A `pc` naming nothing the catalog knows is dropped whole: "every category off" is not what it asked for.
+    const catalog = config.place_categories ?? [];
+    if (params.has('pc')) {
+      const asked = new Set(params.get('pc').split(',').map((token) => token.trim()));
+      const enabled = catalog.filter((category) => asked.has(category));
+      if (enabled.length > 0 && enabled.length < catalog.length) state.placeCategories = enabled;
+    }
+
+    // A place is a position, never a query: re-running a search would cost a request and could land elsewhere.
+    let place = null;
+    const placeMatch = /^(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)$/.exec(params.get('place') || '');
+    if (placeMatch) {
+      const lat = Number(placeMatch[1]);
+      const lng = Number(placeMatch[2]);
+      if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) place = { lat, lng, name: params.get('placeName') || null };
+    }
 
     const sel = Number.parseInt(params.get('sel'), 10);
 
@@ -76,7 +97,9 @@ class AccessScoreUrlSync {
         dock.brush = { from: from / step, to: to / step };
       }
     }
-    return { state, selection: Number.isFinite(sel) && sel > 0 ? sel : null, dark: params.get('dark') === '1', dock };
+    return {
+      state, selection: Number.isFinite(sel) && sel > 0 ? sel : null, dark: params.get('dark') === '1', dock, place,
+    };
   }
 
   /**
@@ -120,6 +143,12 @@ class AccessScoreUrlSync {
     this.scheduleWrite();
   }
 
+  /** @param {?{lat: number, lng: number, name: ?string}} place - The selected place, or null when its card closed. */
+  setPlace(place) {
+    this.#place = place;
+    this.scheduleWrite();
+  }
+
   /** Debounces URL writes so a slider drag or a continuous pan produces one replaceState. */
   scheduleWrite() {
     if (this.#writeTimer) clearTimeout(this.#writeTimer);
@@ -145,7 +174,11 @@ class AccessScoreUrlSync {
     set('w', weights, this.#model.weightsAreDefault);
     set('unaudited', state.showUnaudited ? '1' : '0', state.showUnaudited === defaults.showUnaudited);
     set('clusters', state.showClusters ? '1' : '0', state.showClusters === defaults.showClusters);
+    set('places', state.showPlaces ? '1' : '0', state.showPlaces === defaults.showPlaces);
+    set('pc', (state.placeCategories ?? []).join(','), state.placeCategories === null);
     set('sel', String(this.#selection), this.#selection === null);
+    set('place', this.#place ? `${this.#place.lat.toFixed(5)},${this.#place.lng.toFixed(5)}` : '', !this.#place);
+    set('placeName', this.#place?.name ?? '', !this.#place?.name);
     set('dark', '1', !this.#dark);
     set('dock', '0', this.#dock.open);
     const step = 100 / AccessScoreModel.HISTOGRAM_BINS;

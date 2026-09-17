@@ -121,6 +121,64 @@
   display: none;
 }
 
+/* ---- Places (#5311): one row per category, the icon doubling as the map legend ---- */
+
+.acs-place-categories {
+  margin-top: var(--space-xxs);
+}
+
+.acs-place-row .acs-check {
+  align-items: center;
+}
+
+/* The same disc the map draws, so the row is the legend for the marker. */
+.acs-place__icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(20px * var(--ui-scale, 1));
+  height: calc(20px * var(--ui-scale, 1));
+  border-radius: 50%;
+  background: var(--color-place-marker);
+  box-shadow: 0 0 0 1px var(--color-place-marker-halo);
+}
+
+.acs-place__icon img {
+  width: calc(12px * var(--ui-scale, 1));
+  height: calc(12px * var(--ui-scale, 1));
+}
+
+.acs-place__name {
+  flex: 1 1 auto;
+}
+
+.acs-place__count {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-600);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A row whose master toggle is off stays readable but steps back, as its disabled checkbox does. */
+.acs-place-row .acs-check:has(input:disabled) {
+  color: var(--color-neutral-600);
+  cursor: default;
+}
+
+.acs-place-row .acs-check:has(input:disabled) .acs-place__icon {
+  opacity: 0.5;
+}
+
+.acs-places-note {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-600);
+  margin: var(--space-xs) 0 0;
+}
+
+.acs-places-note[hidden] {
+  display: none;
+}
+
 /* Streets | Regions: two radios styled as one segmented control. */
 .acs-segmented {
   display: grid;
@@ -479,6 +537,25 @@
   display: flex;
   justify-content: flex-end;
   margin-top: var(--space-sm);
+}
+
+.acs-popup__place-street {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  align-items: flex-start;
+}
+
+.acs-popup__place-score {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-black);
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-popup__osm {
+  display: inline-block;
+  margin-top: var(--space-xs);
+  font: var(--text-caption-regular);
 }
 
 /* ---- Map legend: a card beside the zoom buttons ---- */

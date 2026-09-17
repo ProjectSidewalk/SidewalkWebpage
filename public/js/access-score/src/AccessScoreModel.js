@@ -29,12 +29,17 @@
  * in Seattle, about a millisecond) and the map/chart adapters read the results.
  */
 class AccessScoreModel {
-  /** The state a fresh page starts in; `weights` null means the engine's default weights. */
+  /**
+   * The state a fresh page starts in; `weights` null means the engine's default weights, and `placeCategories`
+   * null means every category the config lists (#5311).
+   */
   static DEFAULT_STATE = Object.freeze({
     unit: 'streets',
     weights: null,
     showUnaudited: true,
     showClusters: true,
+    showPlaces: true,
+    placeCategories: null,
   });
 
   /** Histogram resolution over the 0–1 score range. */
@@ -169,7 +174,11 @@ class AccessScoreModel {
 
   /** A copy of the current state. */
   get state() {
-    return { ...this.#state, weights: { ...this.#state.weights } };
+    return {
+      ...this.#state,
+      weights: { ...this.#state.weights },
+      placeCategories: this.#state.placeCategories === null ? null : [...this.#state.placeCategories],
+    };
   }
 
   /** Number of streets loaded. */

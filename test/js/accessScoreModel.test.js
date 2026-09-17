@@ -516,4 +516,17 @@ describe('AccessScoreModel', () => {
         expect(Object.values(model.contributions().clusterMeans).every((v) => v === 0)).toBe(true);
         expect(Object.values(model.contributions().means).every((v) => v === 0)).toBe(true);
     });
+
+    test('starts with every place category drawn, and hands out its own copy of a restriction', () => {
+        const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features: [] },
+            { type: 'FeatureCollection', features: [] }, []);
+        expect(AccessScoreModel.DEFAULT_STATE.showPlaces).toBe(true);
+        expect(AccessScoreModel.DEFAULT_STATE.placeCategories).toBeNull();
+        expect(model.state.placeCategories).toBeNull();
+        const state = model.setState({ placeCategories: ['school'], showPlaces: false });
+        expect(state.placeCategories).toEqual(['school']);
+        expect(state.showPlaces).toBe(false);
+        state.placeCategories.push('transit');
+        expect(model.state.placeCategories).toEqual(['school']);
+    });
 });

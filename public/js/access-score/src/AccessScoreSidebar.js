@@ -1,11 +1,11 @@
 /**
- * The AccessScore tool's sidebar: the unit switch, one weight slider per scored label type, and the options block
- * that gathers both view toggles in one place (#5217).
+ * The AccessScore tool's sidebar: the unit switch, one weight slider per scored label type, the options block
+ * that gathers the view toggles in one place (#5217), and the places section with one row per category (#5311).
  *
- * The DOM is rendered from the engine config (`/v3/api/accessScoreConfig`) so the type rows, their order, and the
- * default magnitudes are never re-declared here. The sidebar reports changes; the page owns the model and decides
- * what to do with them. Slider drags fire `input` continuously (the map follows in real time) and `change` once on
- * release (which is what gets logged).
+ * The DOM is rendered from the engine config (`/v3/api/accessScoreConfig`) so the type rows, the place categories,
+ * their order, and the default magnitudes are never re-declared here. The sidebar reports changes; the page owns
+ * the model and decides what to do with them. Slider drags fire `input` continuously (the map follows in real time)
+ * and `change` once on release (which is what gets logged).
  *
  * Explanations live in `data-ps-tooltip` info buttons in the Twirl markup rather than in paragraphs here: a panel
  * of seven sliders is unreadable with a paragraph between every control.
@@ -58,8 +58,32 @@ class AccessScoreSidebar {
     }
     e.showUnaudited.checked = state.showUnaudited;
     e.showClusters.checked = state.showClusters;
+    e.showPlaces.checked = state.showPlaces;
+    for (const [category, row] of Object.entries(e.placeRows)) {
+      row.input.checked = state.placeCategories === null || state.placeCategories.includes(category);
+      row.input.disabled = !state.showPlaces;
+    }
     this.#showUnitOptions(state.unit);
     this.#updateWeightsSummary();
+  }
+
+  /** @param {Record<string, number>} counts - Places per category id, once the feed has arrived. */
+  setPlaceCounts(counts) {
+    const format = new Intl.NumberFormat(i18next.language);
+    for (const [category, row] of Object.entries(this.#els.placeRows)) {
+      row.count.textContent = format.format(counts[category] ?? 0);
+    }
+  }
+
+  /** @param {boolean} show - True while the map sits below every enabled category's zoom. */
+  setPlacesZoomHint(show) {
+    this.#els.placesZoomHint.hidden = !show;
+  }
+
+  setPlacesUnavailable() {
+    this.#els.placesControls.hidden = true;
+    this.#els.placesZoomHint.hidden = true;
+    this.#els.placesUnavailable.hidden = false;
   }
 
   /**
@@ -105,6 +129,23 @@ class AccessScoreSidebar {
         </div>`;
     }).join('');
 
+    const categories = this.#config.place_categories ?? [];
+    const placeRows = root.querySelector('#acs-place-categories');
+    placeRows.innerHTML = categories.map((category) => {
+      const key = `accessscore:place-${category}`;
+      const name = i18next.exists(key) ? i18next.t(key) : category;
+      const icon = util.assetPath(`images/icons/${AccessScorePlacesLayer.presentation(category).icon}`);
+      return `
+        <div class="acs-check-row acs-place-row" data-category="${category}">
+          <label class="acs-check acs-place" for="acs-place-${category}">
+            <input type="checkbox" id="acs-place-${category}" data-category="${category}" checked>
+            <span class="acs-place__icon" aria-hidden="true"><img src="${icon}" alt=""></span>
+            <span class="acs-place__name">${name}</span>
+            <span class="acs-place__count"></span>
+          </label>
+        </div>`;
+    }).join('');
+
     this.#els = {
       unitInputs: Array.from(root.querySelectorAll('input[name="acs-unit"]')),
       weightRows: Object.fromEntries(this.#config.scored_types.map((type) => {
@@ -118,6 +159,14 @@ class AccessScoreSidebar {
       })),
       showUnaudited: root.querySelector('#acs-show-unaudited'),
       showClusters: root.querySelector('#acs-show-clusters'),
+      showPlaces: root.querySelector('#acs-show-places'),
+      placeRows: Object.fromEntries(categories.map((category) => {
+        const row = placeRows.querySelector(`.acs-place-row[data-category="${category}"]`);
+        return [category, { input: row.querySelector('input'), count: row.querySelector('.acs-place__count') }];
+      })),
+      placesControls: root.querySelector('#acs-places-controls'),
+      placesZoomHint: root.querySelector('#acs-places-zoom-hint'),
+      placesUnavailable: root.querySelector('#acs-places-unavailable'),
       reset: root.querySelector('#acs-reset'),
       streetOptions: root.querySelector('#acs-street-options'),
     };
@@ -146,7 +195,23 @@ class AccessScoreSidebar {
         { kind: 'ShowUnaudited', value: e.showUnaudited.checked, final: true }));
     e.showClusters.addEventListener('change', () => this.#emit({ showClusters: e.showClusters.checked },
       { kind: 'ShowClusters', value: e.showClusters.checked, final: true }));
+    e.showPlaces.addEventListener('change', () => {
+      for (const row of Object.values(e.placeRows)) row.input.disabled = !e.showPlaces.checked;
+      this.#emit({ showPlaces: e.showPlaces.checked },
+        { kind: 'ShowPlaces', value: e.showPlaces.checked, final: true });
+    });
+    for (const [category, row] of Object.entries(e.placeRows)) {
+      row.input.addEventListener('change', () => this.#emit({ placeCategories: this.#checkedPlaceCategories() },
+        { kind: 'PlaceCategory', value: `${category}_value=${row.input.checked}`, final: true }));
+    }
     e.reset.addEventListener('click', () => this.#emit(null, { kind: 'Reset', final: true }));
+  }
+
+  /** The enabled categories as the model states them: null when every row is checked, else the checked ids. */
+  #checkedPlaceCategories() {
+    const categories = this.#config.place_categories ?? [];
+    const checked = categories.filter((category) => this.#els.placeRows[category].input.checked);
+    return checked.length === categories.length ? null : checked;
   }
 
   /** The slider ceiling: `MAX_WEIGHT`, or the next whole number above the largest default if that is higher. */

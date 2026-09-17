@@ -93,6 +93,21 @@
           </div>
         }
 
+        @* Category rows are rendered by AccessScoreSidebar.js from the backend's catalog; the icons are the legend. *@
+        @section("acs-places-section", "places", "Places", "places-help") {
+          <div id="acs-places-controls">
+            <div class="acs-check-row">
+              <label class="acs-check" for="acs-show-places">
+                <input type="checkbox" id="acs-show-places" checked>
+                <span data-i18n="accessscore:show-places">Show places</span>
+              </label>
+            </div>
+            <div id="acs-place-categories" class="acs-place-categories"></div>
+          </div>
+          <p id="acs-places-zoom-hint" class="acs-places-note" data-i18n="accessscore:places-zoom-hint" hidden>Zoom in to see the rest</p>
+          <p id="acs-places-unavailable" class="acs-places-note" data-i18n="accessscore:places-unavailable" hidden>Places aren't available for this city yet.</p>
+        }
+
         <section class="filter-sidebar__section acs-section acs-actions" aria-label="Actions" data-i18n-aria-label="accessscore:actions">
           <button type="button" id="acs-reset-all" class="button-ps button--small button--secondary" data-i18n="accessscore:reset-all">Reset everything</button>
           <p class="acs-updated-at"><span id="acs-updated-at" aria-live="polite"></span>@info("updated-help")</p>

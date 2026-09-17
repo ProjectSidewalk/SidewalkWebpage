@@ -66,6 +66,9 @@ async function stubFeeds(context) {
   await context.route((url) => url.pathname === '/regions/completionRates',
     (route) => route.fulfill({json: COMPLETION}));
   await context.route('**/v3/api/labelClusters*', (route) => route.fulfill({json: clustersFixture()}));
+  // Stubbed for every test, not only the places ones: the live server has whatever its last refresh fetched, and the
+  // sidebar's rows and counts would otherwise depend on it.
+  await context.route('**/v3/api/places*', (route) => route.fulfill({json: placesFixture()}));
   await context.route('**/label/id/*', (route) => {
     const id = Number(route.request().url().split('/').pop());
     // Label 11 carries a (stubbed) crop so its chips are live; the rest have no picture to judge by. 12 and 13 are
@@ -91,6 +94,27 @@ function clustersFixture() {
   return {
     type: 'FeatureCollection',
     features: [cluster(1, 'CurbRamp', 1, 1, [11]), cluster(2, 'Obstacle', 2, 3, [12, 13])],
+  };
+}
+
+/** Three places: a school on street 1, a library with no street near it, and a bus stop on the unaudited street 3. */
+function placesFixture() {
+  const place = (id, category, name, lng, lat, streetId, distance) => ({
+    type: 'Feature',
+    geometry: {type: 'Point', coordinates: [lng, lat]},
+    properties: {
+      place_id: id, category, name, source: 'osm', osm_type: 'node', osm_id: 1000 + id,
+      osm_url: `https://www.openstreetmap.org/node/${1000 + id}`, region_id: 1, region_name: 'Fixture',
+      nearest_street_edge_id: streetId, nearest_street_distance_m: distance, fetched_at: '2026-09-17T09:00:00Z',
+    },
+  });
+  return {
+    type: 'FeatureCollection',
+    features: [
+      place(1, 'school', 'Fixture High School', -74.0089, 40.8805, 1, 12.5),
+      place(2, 'library', 'Fixture Library', -74.015, 40.885, null, null),
+      place(3, 'transit', null, -74.0069, 40.8805, 3, 4.2),
+    ],
   };
 }
 
@@ -593,4 +617,77 @@ test.describe('/accessScore', () => {
     await page.keyboard.press('Escape');
     await expect(pin).toHaveCount(0);
   });
+
+  test('the places layer draws one row per category, and its toggles reach the map and the URL (#5311)', async ({page}) => {
+    await page.goto('/accessScore');
+    await waitForAppReady(page);
+    await waitForTool(page);
+    await page.waitForFunction(() => document.querySelector('#acs-place-transit .acs-place__count, .acs-place-row[data-category="transit"] .acs-place__count')?.textContent === '1');
+
+    const rows = page.locator('.acs-place-row');
+    await expect(rows).toHaveCount(7);
+    await expect(rows.first()).toHaveAttribute('data-category', 'school');
+    await expect(rows.first().locator('.acs-place__count')).toHaveText('1');
+    await expect(rows.nth(1).locator('.acs-place__count')).toHaveText('0');
+
+    const visibility = () => page.evaluate(() => ({
+      school: window.accessScore.map.getLayoutProperty('acs-places-school', 'visibility'),
+      transit: window.accessScore.map.getLayoutProperty('acs-places-transit', 'visibility'),
+    }));
+    expect(await visibility()).toEqual({school: 'visible', transit: 'visible'});
+
+    await page.locator('#acs-place-transit').uncheck();
+    expect(await visibility()).toEqual({school: 'visible', transit: 'none'});
+    await expect.poll(() => urlParam(page, 'pc')).toBe('school,health,library,grocery,park,community');
+
+    await page.locator('#acs-show-places').uncheck();
+    expect(await visibility()).toEqual({school: 'none', transit: 'none'});
+    await expect(page.locator('#acs-place-school')).toBeDisabled();
+    await expect.poll(() => urlParam(page, 'places')).toBe('0');
+
+    await page.locator('#acs-reset-all').click();
+    await expect.poll(visibility).toEqual({school: 'visible', transit: 'visible'});
+    await expect(page.locator('#acs-place-transit')).toBeChecked();
+    await expect.poll(() => urlParam(page, 'places')).toBeNull();
+    await expect.poll(() => urlParam(page, 'pc')).toBeNull();
+  });
+
+  test('a place card names the place and the score of its street, hops to it, and round-trips through the URL (#5311)',
+    async ({page}) => {
+      await page.goto('/accessScore');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      await page.waitForFunction(() => window.accessScore.placesLayer.place(1) !== null);
+
+      await page.evaluate(() => window.accessScore.selectPlace(1));
+      const card = page.locator('.acs-popup');
+      await expect(card.locator('.acs-popup__title')).toHaveText('Fixture High School');
+      await expect(card.locator('.acs-popup__place-score')).toHaveText('81.8');
+      await expect(card.locator('.acs-popup__osm')).toHaveAttribute('href', 'https://www.openstreetmap.org/node/1001');
+      // A place is not a street selection: the dock keeps its city scope and `sel` stays out of the URL.
+      await expect.poll(() => urlParam(page, 'place')).toBe('40.88050,-74.00890');
+      await expect.poll(() => urlParam(page, 'placeName')).toBe('Fixture High School');
+      expect(await urlParam(page, 'sel')).toBeNull();
+
+      await page.locator('#acs-weight-CurbRamp').fill('0');
+      await expect(card.locator('.acs-popup__place-score')).toHaveText('50.0');
+
+      await card.locator('[data-acs-place-street]').click();
+      await expect.poll(() => urlParam(page, 'sel')).toBe('1');
+      await expect.poll(() => urlParam(page, 'place')).toBeNull();
+      await expect(page.locator('.acs-popup .acs-popup__title')).toHaveText('Cedar Lane · Street 1');
+
+      // A place with no street near it says so; an unnamed one is titled by its category.
+      await page.evaluate(() => window.accessScore.selectPlace(3));
+      await expect(page.locator('.acs-popup .acs-popup__title')).toHaveText('Transit stops');
+      await expect(page.locator('.acs-popup')).toContainText('Not yet audited');
+      await page.evaluate(() => window.accessScore.selectPlace(2));
+      await expect(page.locator('.acs-popup')).toContainText('No street within 250 m.');
+
+      // A shared link reopens the marker's card without a click.
+      await page.goto('/accessScore?place=40.88050,-74.00890&placeName=Fixture+High+School');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      await expect(page.locator('.acs-popup .acs-popup__title')).toHaveText('Fixture High School');
+    });
 });

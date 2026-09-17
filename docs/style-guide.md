@@ -187,7 +187,9 @@ consistent with it.
 
 **Icons.** SVG icons live as **their own files** in `public/images/icons/` — **never inlined** in Twirl templates
 (inlined SVGs are hard to find, reuse, and review — see #4058). Default to icons from the **feather** and **material**
-sets in the "Design System Tokens" Figma, named `<icon>-<set>.svg` (`map-pin-feather.svg`, `comment-material.svg`).
+sets in the "Design System Tokens" Figma, named `<icon>-<set>.svg` (`map-pin-feather.svg`, `comment-material.svg`);
+**lucide** (Feather's successor, ISC, the same stroke style) fills the gaps Feather has, such as the place-category
+glyphs (`bus-white-lucide.svg`).
 How to show one depends on where its color comes from:
 
 - **Color baked into the file: an `<img>`**, e.g.

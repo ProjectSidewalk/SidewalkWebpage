@@ -118,7 +118,11 @@ The AccessScore tool (`/accessScore`, `public/js/access-score/`, #5217) logs its
 `AccessScore_Select_streetId=<id>` / `AccessScore_Select_regionId=<id>` (a click on a street or neighborhood),
 `AccessScore_SelectCluster_labelType=<type>` (a click on a cluster dot, which opens the cluster sheet) and
 `AccessScore_SheetOpenLabel_labelId=<id>` (a card in that sheet opening the full label card), `AccessScore_ClearVote_result=<Agree|Disagree|Unsure>_labelId=<id>` (a vote cleared from a mini-card's chips in the sheet or the photo strip — casting one lands in `label_validation` with `source = 'AccessScoreSheet'` or `'AccessScoreStrip'` and is not logged here, the label card's rule),
-and the popup's hop `AccessScore_ExploreHere`. A click on a
+and the popup's hop `AccessScore_ExploreHere`. The places layer (#5311) adds `AccessScore_ShowPlaces_value=<bool>`
+(the master toggle), `AccessScore_PlaceCategory_value=<category>_value=<bool>` (one category's row),
+`AccessScore_SelectPlace_placeId=<id>` (a click on a place marker, which opens the place card; a card restored from a
+link's `place` param is not logged), and the card's own hops `AccessScore_PlaceSelectStreet_streetId=<id>` (selecting
+the nearest street) and `AccessScore_PlaceOpenOsm` (the OpenStreetMap link); `ExploreHere` is the shared hop. A click on a
 cluster dot also opens the shared label card, whose actions log as `Click_module=LabelDetail_…` (above). The insights
 dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`,
 `AccessScore_Brush_value=<from>-<to>` (the brushed score range in whole percent, logged once on release, never per

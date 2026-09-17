@@ -43,6 +43,23 @@ describe('AccessScoreUrlSync', () => {
         expect(selection).toBeNull();
     });
 
+    test('reads the places toggle, the enabled categories in catalog order, and a linked place', () => {
+        const { state, place } = AccessScoreUrlSync.read(config,
+            '?places=0&pc=transit,school,casino&place=40.88050,-74.01050&placeName=Teaneck+High+School');
+        expect(state.showPlaces).toBe(false);
+        expect(state.placeCategories).toEqual(['school', 'transit']);
+        expect(place).toEqual({ lat: 40.8805, lng: -74.0105, name: 'Teaneck High School' });
+        // Every category on is the default and is not a restriction; nothing the catalog knows is not a request.
+        expect(AccessScoreUrlSync.read(config, `?pc=${config.place_categories.join(',')}`).state.placeCategories)
+            .toBeUndefined();
+        expect(AccessScoreUrlSync.read(config, '?pc=casino').state.placeCategories).toBeUndefined();
+        expect(AccessScoreUrlSync.read(config, '?places=1').state.showPlaces).toBeUndefined();
+        for (const bad of ['40.88', '91,0', '0,181', 'abc,def', '']) {
+            expect(AccessScoreUrlSync.read(config, `?place=${bad}`).place).toBeNull();
+        }
+        expect(AccessScoreUrlSync.read(config, '?place=40.88,-74.01').place).toEqual({ lat: 40.88, lng: -74.01, name: null });
+    });
+
     test('reads the dark basemap flag', () => {
         expect(AccessScoreUrlSync.read(config, '?dark=1').dark).toBe(true);
         expect(AccessScoreUrlSync.read(config, '?dark=0').dark).toBe(false);
@@ -75,16 +92,23 @@ describe('AccessScoreUrlSync', () => {
         expect(params.get('regions')).toBe('5');
         expect(params.get('lat')).toBe('40.88000');
         expect(params.get('zoom')).toBe('13.50');
-        for (const name of ['unit', 'w', 'unaudited', 'clusters', 'sel', 'dock', 'b', 'dark', 'focus']) {
+        for (const name of ['unit', 'w', 'unaudited', 'clusters', 'places', 'pc', 'sel', 'place', 'placeName', 'dock',
+            'b', 'dark', 'focus']) {
             expect(params.has(name)).toBe(false);
         }
 
-        model.setState({ unit: 'regions', weights: { Obstacle: 1.75 }, showClusters: false });
+        model.setState({ unit: 'regions', weights: { Obstacle: 1.75 }, showClusters: false, showPlaces: false,
+            placeCategories: ['school', 'transit'] });
         sync.setSelection(7);
         sync.setDock({ open: false, brush: { from: 4, to: 6 }, focus: 3 });
         sync.setDark(true);
+        sync.setPlace({ lat: 40.880504, lng: -74.010498, name: 'Teaneck High School' });
         sync.writeNow();
         params = new URLSearchParams(window.location.search);
+        expect(params.get('places')).toBe('0');
+        expect(params.get('pc')).toBe('school,transit');
+        expect(params.get('place')).toBe('40.88050,-74.01050');
+        expect(params.get('placeName')).toBe('Teaneck High School');
         expect(params.get('dark')).toBe('1');
         expect(params.get('dock')).toBe('0');
         expect(params.get('b')).toBe('40-60');
@@ -99,7 +123,20 @@ describe('AccessScoreUrlSync', () => {
         expect(back.state.weights.Obstacle).toBe(1.75);
         expect(back.state.unit).toBe('regions');
         expect(back.state.showClusters).toBe(false);
+        expect(back.state.showPlaces).toBe(false);
+        expect(back.state.placeCategories).toEqual(['school', 'transit']);
+        expect(back.place).toEqual({ lat: 40.8805, lng: -74.0105, name: 'Teaneck High School' });
         expect(back.selection).toBe(7);
+
+        // A closed card and an unnamed place drop their params again.
+        sync.setPlace({ lat: 40.88, lng: -74.01, name: null });
+        sync.writeNow();
+        params = new URLSearchParams(window.location.search);
+        expect(params.get('place')).toBe('40.88000,-74.01000');
+        expect(params.has('placeName')).toBe(false);
+        sync.setPlace(null);
+        sync.writeNow();
+        expect(new URLSearchParams(window.location.search).has('place')).toBe(false);
         expect(back.dark).toBe(true);
         expect(back.dock).toEqual({ open: false, brush: { from: 4, to: 6 }, focus: 3 });
     });

@@ -17,6 +17,7 @@ declare var ApiDocsMap: any;
 declare var ApiDocsTheme: { color(token: string, alpha?: number): string };
 declare var createApiTableWrapper: (table: HTMLTableElement, label: string) => HTMLElement;
 declare var AccessScoreIntersectionsPreview: any;
+declare var PlacesPreview: any;
 declare var AccessScoreRegionsPreview: any;
 declare var AccessScoreStreetsPreview: any;
 declare var AggregateStatsByDayPreview: any;
