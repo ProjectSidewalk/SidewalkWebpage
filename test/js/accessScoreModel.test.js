@@ -288,8 +288,8 @@ describe('AccessScoreModel', () => {
 
     test('the completion floor is judged on the rounded percent the page prints', () => {
         const regions = [
-            { region_id: 1, name: 'Just under', rate: 0.4996, total_distance_m: 1000, completed_distance_m: 499.6 },
-            { region_id: 2, name: 'Just over', rate: 0.4949, total_distance_m: 1000, completed_distance_m: 494.9 },
+            { region_id: 1, name: 'Just under', rate: 0.7996, total_distance_m: 1000, completed_distance_m: 799.6 },
+            { region_id: 2, name: 'Just over', rate: 0.7949, total_distance_m: 1000, completed_distance_m: 794.9 },
         ];
         const features = [
             feature(FIXTURE.streets[1], 0, { region_id: 1 }),
@@ -297,9 +297,39 @@ describe('AccessScoreModel', () => {
         ];
         const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features },
             NO_INTERSECTIONS, regions);
-        expect(AccessScoreModel.MIN_COMPLETION).toBe(0.5);
-        expect(model.regionStats[0].belowFloor).toBe(false); // prints as 50%, so it counts as 50%
-        expect(model.regionStats[1].belowFloor).toBe(true); // prints as 49%
+        expect(model.minCompletion).toBe(FIXTURE.config.min_region_completion);
+        expect(model.regionStats[0].belowFloor).toBe(false); // prints as 80%, so it counts as 80%
+        expect(model.regionStats[1].belowFloor).toBe(true); // prints as 79%
+    });
+
+    // The floor is the backend's number (#5215): the tool and the landing page's AccessScore Spotlight both read
+    // `min_region_completion`, so neither can hatch a region the other ranks.
+    test('the completion floor comes from the config, not from a literal in the model', () => {
+        const regions = [
+            { region_id: 1, name: 'Two thirds', rate: 0.67, total_distance_m: 1000, completed_distance_m: 670 },
+        ];
+        const features = [feature(FIXTURE.streets[1], 0, { region_id: 1 })];
+        const collection = { type: 'FeatureCollection', features };
+        const strict = new AccessScoreModel(FIXTURE.config, collection, NO_INTERSECTIONS, regions);
+        const lenient = new AccessScoreModel({ ...FIXTURE.config, min_region_completion: 0.5 }, collection,
+            NO_INTERSECTIONS, regions);
+
+        expect(strict.regionStats[0].belowFloor).toBe(true);
+        expect(lenient.regionStats[0].belowFloor).toBe(false);
+    });
+
+    // An older deployment's config has no floor at all; hatching by a number this file invented would be worse than
+    // hatching nothing, so the comparison simply never fires.
+    test('a config without the floor hatches nothing rather than inventing a floor', () => {
+        const { min_region_completion: _dropped, ...older } = FIXTURE.config;
+        const regions = [
+            { region_id: 1, name: 'Barely started', rate: 0.02, total_distance_m: 1000, completed_distance_m: 20 },
+        ];
+        const features = [feature(FIXTURE.streets[1], 0, { region_id: 1 })];
+        const model = new AccessScoreModel(older, { type: 'FeatureCollection', features }, NO_INTERSECTIONS, regions);
+
+        expect(model.minCompletion).toBeUndefined();
+        expect(model.regionStats[0].belowFloor).toBe(false);
     });
 
     test('contributions report each type\'s mean term and mean cluster count over the scoped streets', () => {

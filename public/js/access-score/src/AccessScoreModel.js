@@ -37,18 +37,19 @@ class AccessScoreModel {
     showClusters: true,
   });
 
-  /**
-   * The share of a region's street network that must be audited before its score is shown; below it the region is
-   * hatched. Compared on the rounded percent so the rule can never disagree with the "N% explored" the page prints.
-   * A tool-side literal because the engine has no such floor: its region roll-up scores whatever has been audited,
-   * and this page alone decides that a region a tenth explored is not yet a picture of the region.
-   */
-  static MIN_COMPLETION = 0.5;
 
   /** Histogram resolution over the 0–1 score range. */
   static HISTOGRAM_BINS = 10;
 
   #config;
+  /**
+   * The share of a region's street network that must be explored before its score is shown; below it the region is
+   * hatched. Read from `/v3/api/accessScoreConfig`'s `min_region_completion` rather than held here, so this page and
+   * the landing page's AccessScore Spotlight can never disagree about which regions are ranked (#5215). A config
+   * without the field leaves this undefined, so the comparison is against NaN and never fires — an older API
+   * hatches nothing rather than hatching by a number this file invented.
+   */
+  #minCompletion;
   #types;
   #buckets;
   /** Per type: +1 for a feature type, −1 for a problem type (the engine's base-weight sign). */
@@ -127,6 +128,7 @@ class AccessScoreModel {
    */
   constructor(config, streets, intersections, regions, initialState = {}) {
     this.#config = config;
+    this.#minCompletion = config.min_region_completion;
     this.#types = config.scored_types;
     this.#buckets = config.severity_buckets;
     this.#saturation = config.street_condition_saturation_count;
@@ -215,6 +217,14 @@ class AccessScoreModel {
    */
   static binOf(score) {
     return AccessScoreModel.#bin(score, AccessScoreModel.HISTOGRAM_BINS);
+  }
+
+  /**
+   * The completion floor a region's score is shown above, as the backend publishes it.
+   * @returns {number|undefined} A share in [0, 1], or undefined when the config predates the field.
+   */
+  get minCompletion() {
+    return this.#minCompletion;
   }
 
   /**
@@ -967,7 +977,7 @@ class AccessScoreModel {
         name: r.name,
         completion,
         score,
-        belowFloor: Math.round(completion * 100) < Math.round(AccessScoreModel.MIN_COMPLETION * 100),
+        belowFloor: Math.round(completion * 100) < Math.round(this.#minCompletion * 100),
         streetCount: acc.streets,
         auditedStreetCount: acc.audited,
         totalLengthM: r.total_distance_m || 0,
