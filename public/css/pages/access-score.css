@@ -1116,6 +1116,14 @@
   min-height: 0;
 }
 
+/* The caption and status never give up their line: a card showing a real crop is as wide as the image's own
+   pixels before the ribbon fits it, and that intrinsic height would otherwise crush the two (`overflow: hidden`
+   lets a flex item shrink to nothing) to a clipped sliver above the pictures. */
+.acs-photos__caption,
+.acs-photos__status {
+  flex: none;
+}
+
 .acs-photos__ribbon {
   display: flex;
   flex: 1 1 auto;
