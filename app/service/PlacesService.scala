@@ -149,14 +149,18 @@ class PlacesServiceImpl @Inject() (
   private def fetchAndMerge(): Future[PlacesRefreshResult] = {
     val fetchedAt = OffsetDateTime.now
     for {
-      bbox <- configService.getCityMapParams.map { p =>
-        LatLngBBox(
-          minLat = math.min(p.lat1, p.lat2),
-          minLng = math.min(p.lng1, p.lng2),
-          maxLat = math.max(p.lat1, p.lat2),
-          maxLng = math.max(p.lng1, p.lng2)
-        )
-      }
+      // The regions' extent, padded by the 250 m the merge keeps; the map bounds only when a schema has no regions.
+      extent <- db.run(placeTable.regionsExtent)
+      bbox   <- extent
+        .map(e => Future.successful(pad(e)))
+        .getOrElse(configService.getCityMapParams.map { p =>
+          LatLngBBox(
+            minLat = math.min(p.lat1, p.lat2),
+            minLng = math.min(p.lng1, p.lng2),
+            maxLat = math.max(p.lat1, p.lat2),
+            maxLng = math.max(p.lng1, p.lng2)
+          )
+        })
       json <- fetchWithRetry(overpassQuery(bbox))
       fetched = parseOverpass(json)
       existing <- db.run(placeTable.osmPlaceCount)
@@ -208,6 +212,20 @@ object PlacesService {
 
   /** A fetch newer than this is fresh: the nightly tick asks Overpass nothing. Places change by the month. */
   val RefreshAfterDays: Long = 7
+
+  /** How far a kept place may sit from every region, as the merge enforces it; the fetch box is padded by it. */
+  val RegionMarginM: Double = 250
+
+  /**
+   * Widens a box by [[RegionMarginM]] on every side, in degrees at the box's own latitude.
+   * @param box The regions' extent.
+   * @return    The box to ask Overpass for.
+   */
+  def pad(box: LatLngBBox): LatLngBBox = {
+    val latDeg = RegionMarginM / 111320.0
+    val lngDeg = latDeg / math.max(0.1, math.cos(math.toRadians((box.minLat + box.maxLat) / 2)))
+    LatLngBBox(box.minLat - latDeg, box.minLng - lngDeg, box.maxLat + latDeg, box.maxLng + lngDeg)
+  }
 
   /** The Overpass-side budget for the query, and ours, which must outlast it. */
   val OverpassTimeoutSeconds: Int    = 180

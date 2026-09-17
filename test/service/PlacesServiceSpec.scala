@@ -40,6 +40,16 @@ class PlacesServiceSpec extends PlaySpec {
     }
   }
 
+  "pad" should {
+    "widen a box by the region margin, more in longitude the farther from the equator" in {
+      val padded = PlacesService.pad(teaneck)
+      padded.minLat mustBe (40.86 - 0.002246 +- 0.00001)
+      padded.maxLat mustBe (40.92 + 0.002246 +- 0.00001)
+      (padded.maxLng - teaneck.maxLng) must be > (padded.maxLat - teaneck.maxLat)
+      (teaneck.minLng - padded.minLng) mustBe (padded.maxLng - teaneck.maxLng)
+    }
+  }
+
   "parseOverpass" should {
     "take a node's own position and a way's or relation's center" in {
       val places = PlacesService.parseOverpass(

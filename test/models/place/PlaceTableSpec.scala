@@ -177,6 +177,20 @@ class PlaceTableSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
     }
   }
 
+  "regionsExtent" should {
+    "cover every live region" in {
+      // StreetFixtures' region is the unit square at the equator, well outside any city the schema holds.
+      val extent = runRolledBack(for {
+        _      <- insertRegion()
+        extent <- table.regionsExtent
+      } yield extent)
+      extent.value.minLat must be <= 0.0
+      extent.value.minLng must be <= 0.0
+      extent.value.maxLat must be >= 1.0
+      extent.value.maxLng must be >= 1.0
+    }
+  }
+
   "newestFetchedAt" should {
     "report the latest OSM fetch, ignoring city rows" in {
       val when            = now.minusDays(3)
