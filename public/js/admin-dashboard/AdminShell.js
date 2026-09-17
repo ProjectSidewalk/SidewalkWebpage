@@ -1,7 +1,8 @@
 /**
  * Shell behaviors for the redesigned admin dashboard (#4272): builds the right-hand "On this page" table of
  * contents from the page's headings, highlights the active section on scroll (scroll-spy), smooth-scrolls anchor
- * clicks past the fixed navbar, and adds the left nav's mobile disclosure (sidebarDisclosure.js).
+ * clicks past the fixed navbar, keeps a deep link's target in place while sections above it are still loading, and
+ * adds the left nav's mobile disclosure (sidebarDisclosure.js).
  *
  * This is a clean ES6 reimplementation of the equivalent api-docs.js logic, operating on the same .api-* markup so
  * the look and behavior match. It self-initializes on DOMContentLoaded.
@@ -15,6 +16,8 @@ class AdminShell {
   #headings = [];
   #tocLinks = [];
   #scrollSpyAttached = false;
+  /** The deep link's target while it is still being held in place; null once the reader has taken over. */
+  #deepLinkTarget = null;
 
   init() {
     this.#content = document.querySelector('.page-content');
@@ -24,6 +27,7 @@ class AdminShell {
     this.#buildTableOfContents();
     this.#setupScrollSpy();
     this.#setupSmoothScrolling();
+    this.#keepDeepLinkTargetInView();
     initSidebarDisclosure();
     this.#localizeDeployTimes();
   }
@@ -143,6 +147,46 @@ class AdminShell {
       window.scrollTo({ top, behavior: reduceMotion ? 'auto' : 'smooth' });
       history.replaceState(null, '', `#${id}`);
     });
+  }
+
+  /**
+   * Holds a deep link's target where the browser put it while the sections above it are still landing (#5001).
+   *
+   * The browser scrolls to `location.hash` exactly once, at load, but on these pages whole sections render after
+   * that: the dashboard's cross-city breakdown flips from `hidden` when its fan-out answers, the mistake gallery and
+   * badges fill in from their fetches, and each one that lands above the target pushes it down the page. Browser
+   * scroll anchoring doesn't cover a section unhiding (and Safari has none), so this re-scrolls the target into
+   * position each time the content column changes height — until the reader scrolls, presses a key, or touches the
+   * page, the one signal that where they are is now deliberate. A hash change re-arms it, so a deep link into a
+   * section that hasn't rendered yet lands once it does.
+   */
+  #keepDeepLinkTargetInView() {
+    if (typeof ResizeObserver === 'undefined') return;
+    const arm = () => {
+      this.#deepLinkTarget = AdminShell.#fragmentTarget();
+    };
+    const disarm = () => {
+      this.#deepLinkTarget = null;
+    };
+    ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach((type) => {
+      window.addEventListener(type, disarm, { passive: true });
+    });
+    window.addEventListener('hashchange', arm);
+    // scrollIntoView honours the headings' scroll-margin-top, so this lands exactly where the browser's own fragment
+    // scroll did. A target inside a still-hidden section is a no-op until that section shows.
+    new ResizeObserver(() => this.#deepLinkTarget?.scrollIntoView()).observe(this.#content);
+    arm();
+  }
+
+  /** @returns {HTMLElement|null} The element the URL fragment names, if any. */
+  static #fragmentTarget() {
+    const id = window.location.hash.slice(1);
+    if (!id) return null;
+    try {
+      return document.getElementById(decodeURIComponent(id));
+    } catch {
+      return null; // A malformed percent-escape in the fragment isn't an element either.
+    }
   }
 
   // ---- Shared formatting helpers ------------------------------------------------------------------------------
