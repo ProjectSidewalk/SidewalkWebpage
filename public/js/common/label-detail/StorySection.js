@@ -230,7 +230,8 @@ class StorySection {
 
       const dashLink = document.createElement('a');
       dashLink.className = 'label-detail__story-dashboard-link';
-      dashLink.href = '/dashboard#ud-stories-section';
+      // The heading, not its section: only headings carry the scroll-margin that clears the fixed navbar.
+      dashLink.href = '/dashboard#your-stories';
       dashLink.textContent = i18next.t('labelmap:story.see-all-stories');
       dashLink.addEventListener('click', () => {
         window.logWebpageActivity?.(`Click_module=StoryDashboardLink_labelId=${this.#labelId}`);
