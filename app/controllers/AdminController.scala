@@ -119,8 +119,7 @@ class AdminController @Inject() (
                   "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
                   "crop_marker"      -> marker,
                   "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
-                  "can_edit"         -> true,
-                  "can_change_type"  -> true
+                  "can_edit"         -> true
                 )
             )
         }

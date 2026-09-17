@@ -92,12 +92,27 @@ ALTER TABLE label_validation
   DROP CONSTRAINT label_validation_user_id_label_id_unique,
   ADD CONSTRAINT label_validation_user_id_label_id_label_type_key UNIQUE (user_id, label_id, label_type);
 
--- 4. The same no-severity rule on the label itself.
+-- 4. AI assessments remember the type they were about. The AI is asked about one type ("is this Curb Ramp there?"),
+--    so an assessment of the old type says nothing once the label is retyped. The vote it submitted already carries
+--    the type, but a city running tag suggestions with AI validation off saves no vote, and that assessment would
+--    otherwise look current forever and keep the old type's tag suggestions on screen.
+ALTER TABLE label_ai_assessment ADD COLUMN label_type label_type;
+
+UPDATE label_ai_assessment
+SET label_type = COALESCE(
+  (SELECT label_validation.label_type
+   FROM label_validation
+   WHERE label_validation.label_validation_id = label_ai_assessment.label_validation_id),
+  (SELECT label.label_type FROM label WHERE label.label_id = label_ai_assessment.label_id));
+
+ALTER TABLE label_ai_assessment ALTER COLUMN label_type SET NOT NULL;
+
+-- 5. The same no-severity rule on the label itself.
 ALTER TABLE label
   ADD CONSTRAINT label_unrated_no_severity_check
     CHECK (severity IS NULL OR label_type NOT IN ('Signal', 'NoSidewalk', 'Occlusion'));
 
--- 5. The comment list pairs each comment with its writer's vote. A writer can now hold a vote per type (say they
+-- 6. The comment list pairs each comment with its writer's vote. A writer can now hold a vote per type (say they
 -- voted, an admin retyped the label, and they voted again), and 370's join would list their comment once per vote,
 -- so it takes the vote on the label's current type -- the only one that counts.
 CREATE OR REPLACE VIEW label_comments_agg AS
@@ -164,6 +179,8 @@ ALTER TABLE label_validation
   DROP CONSTRAINT label_validation_user_id_label_id_label_type_key,
   DROP COLUMN label_type,
   ADD CONSTRAINT label_validation_user_id_label_id_unique UNIQUE (user_id, label_id);
+
+ALTER TABLE label_ai_assessment DROP COLUMN label_type;
 
 ALTER TABLE label_history
   DROP CONSTRAINT label_history_unrated_no_severity_check,

@@ -779,11 +779,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val aiValidations = aiData.map(_._2)
 
   /**
-   * Whether an AI assessment still speaks to the label: its vote was cast on the type the label has now (#3671). An
-   * assessment saved without a vote (AI voting switched off) has no type on record and is taken at face value.
+   * Whether an AI assessment still speaks to the label: the AI was asked about one type, so an assessment of a type
+   * the label has since lost says nothing about it now (#3671).
    */
-  private def aiVoteIsCurrent(l: LabelTableDef, aiVote: Rep[Option[LabelValidationTableDef]]): Rep[Boolean] =
-    aiVote.map(_.isCurrent(l)).getOrElse(true)
+  private def aiAssessmentIsCurrent(l: LabelTableDef, assessment: LabelAiAssessmentTableDef): Rep[Boolean] =
+    assessment.labelType === l.labelType
 
   val usersWithoutExcluded = usersUnfiltered
     .join(userStats)
@@ -1671,7 +1671,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // type change is left out along with the vote (#3671).
     val _labelInfoWithAiData = _labelInfo
       .joinLeft(aiData)
-      .on { case ((l, _, _, _, _, _, _, _), (laa, aiv)) => laa.labelId === l.labelId && aiVoteIsCurrent(l, aiv) }
+      .on { case ((l, _, _, _, _, _, _, _), (laa, _)) => laa.labelId === l.labelId && aiAssessmentIsCurrent(l, laa) }
       .map { case ((_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser), _ai) =>
         (_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser, _ai.map(_._1), _ai.map(_._2).flatten)
       }
@@ -2854,7 +2854,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       // No labels the AI has already assessed as their current type; an assessment from before a type change is about
       // a different label (#3671).
       .joinLeft(aiData)
-      .on { case ((l, _), (laa, aiv)) => laa.labelId === l.labelId && aiVoteIsCurrent(l, aiv) }
+      .on { case ((l, _), (laa, _)) => laa.labelId === l.labelId && aiAssessmentIsCurrent(l, laa) }
       .filter { case ((l, ur), ai) => ai.isEmpty }
       .joinLeft(labelAiFailures)
       .on(_._1._1.labelId === _.labelId)

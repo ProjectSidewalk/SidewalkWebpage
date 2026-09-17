@@ -70,8 +70,7 @@ class LabelController @Inject() (
                 "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
                 "crop_marker"      -> marker,
                 "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
-                "can_edit"         -> (metadata.fromCurrentUser || isAdmin(request.identity)),
-                "can_change_type"  -> isAdmin(request.identity)
+                "can_edit"         -> (metadata.fromCurrentUser || isAdmin(request.identity))
               )
           )
         }
@@ -80,9 +79,9 @@ class LabelController @Inject() (
   }
 
   /**
-   * Edits a label's type, severity or tags from the label popup (#2575, #3671). Severity and tags are the labeler's
-   * and admins' to change, the type only an admin's. An edit built on a type the label no longer has is refused with
-   * a 409 carrying the label's current state, which the card redraws itself from. Responds
+   * Edits a label's type, severity or tags from the label popup (#2575, #3671). Allowed to the labeler and to
+   * admins. An edit built on a type the label no longer has is refused with a 409 carrying the label's current
+   * state, which the card redraws itself from. Responds
    * with the label's resulting severity and tags, which can differ from what was sent if invalid tags were dropped.
    */
   def editLabel = cc.securityService.SecuredAction(parse.json) { implicit request =>

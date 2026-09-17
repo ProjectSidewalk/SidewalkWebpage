@@ -274,9 +274,9 @@ class AiServiceImpl @Inject() (
 
             Future.successful(
               Some(
-                LabelAiAssessment(0, labelData.labelId, valResult, valAccuracy, valConfidence, tags, tagsNotPresent,
-                  tagsConfidence, apiVersion, valModelId, valTrainingDate, taggerModelId, taggerTrainingDate,
-                  OffsetDateTime.now, None, aiImageSource)
+                LabelAiAssessment(0, labelData.labelId, labelData.labelType, valResult, valAccuracy, valConfidence,
+                  tags, tagsNotPresent, tagsConfidence, apiVersion, valModelId, valTrainingDate, taggerModelId,
+                  taggerTrainingDate, OffsetDateTime.now, None, aiImageSource)
               )
             )
           } else if (response.status == 502) {

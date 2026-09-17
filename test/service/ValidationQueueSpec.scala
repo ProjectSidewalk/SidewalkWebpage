@@ -267,10 +267,11 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
                             FROM label WHERE label_id = $labelId
                             RETURNING label_validation_id""".as[Int].head
       _ <- sqlu"""INSERT INTO label_ai_assessment
-                      (label_id, validation_result, validation_accuracy, validation_confidence, api_version,
+                      (label_id, label_type, validation_result, validation_accuracy, validation_confidence, api_version,
                        validator_model_id, validator_training_date, timestamp, label_validation_id, ai_image_source)
-                  VALUES ($labelId, $result::validation_option, 0.95, 0.95, 'spec-4715', 'spec-4715', now(), now(),
-                          $validationId, 'download')"""
+                  SELECT $labelId, COALESCE($labelType::label_type, label_type), $result::validation_option, 0.95, 0.95,
+                         'spec-4715', 'spec-4715', now(), now(), $validationId, 'download'
+                  FROM label WHERE label_id = $labelId"""
     } yield ()
   }
 

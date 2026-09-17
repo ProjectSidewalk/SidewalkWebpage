@@ -40,7 +40,8 @@ for CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
    [`sidewalk-ai-api`](https://github.com/ProjectSidewalk/sidewalk-ai-api) — Dockerized GPU
    service, ≥ 9–10 GB VRAM, serving both model families from HuggingFace).
 3. The response (validation result + estimated accuracy + per-tag scores + model provenance)
-   is stored in `label_ai_assessment`. If AI validations are enabled for the city and
+   is stored in `label_ai_assessment`, along with the type it was about, which is what makes an assessment stale once
+   the label is retyped (#3671) — the AI is asked about one type, so its answer only speaks to that type. If AI validations are enabled for the city and
    estimated accuracy ≥ `ai-validation-min-accuracy` (0.92 everywhere today), a real
    `label_validation` is submitted as the `SidewalkAI` user; below the threshold it
    downgrades to Unsure. HTTP 502 → `label_ai_failure` (permanently excluded).

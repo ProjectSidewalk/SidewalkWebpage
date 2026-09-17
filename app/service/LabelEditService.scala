@@ -219,12 +219,9 @@ class LabelEditServiceImpl @Inject() (
       labelTable
         .find(labelId)
         .flatMap {
-          case None                                                     => DBIO.successful(LabelEditOutcome.NotFound)
-          case Some(label) if label.deleted                             => DBIO.successful(LabelEditOutcome.NotFound)
-          case Some(label) if label.userId != editor.userId && !isAdmin => DBIO.successful(LabelEditOutcome.Forbidden)
-          // Retyping resets the label's counts and its labeler's accuracy, so it stays with admins even on own labels.
-          case Some(label) if labelType.exists(_ != label.labelType) && !isAdmin =>
-            DBIO.successful(LabelEditOutcome.Forbidden)
+          case None                                                      => DBIO.successful(LabelEditOutcome.NotFound)
+          case Some(label) if label.deleted                              => DBIO.successful(LabelEditOutcome.NotFound)
+          case Some(label) if label.userId != editor.userId && !isAdmin  => DBIO.successful(LabelEditOutcome.Forbidden)
           case Some(label) if labelTypeSeen.exists(_ != label.labelType) =>
             DBIO.successful(LabelEditOutcome.Conflict(label))
           case Some(_) =>
