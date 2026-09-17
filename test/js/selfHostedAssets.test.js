@@ -36,6 +36,29 @@ function urlTargets(css) {
     return Array.from(css.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g)).map((m) => m[2].trim());
 }
 
+/**
+ * Where a stylesheet's url(...) target lands on disk. Stylesheets address our assets either absolutely
+ * (/assets/... — how Play serves public/) or relative to the stylesheet's own directory; a data: URI or a remote
+ * URL lands nowhere.
+ * @param {string} file The stylesheet, as a repo-relative path.
+ * @param {string} target One of its url(...) targets, as urlTargets returns them.
+ * @returns {string|null} The absolute path, with any query string or fragment dropped, or null for a URL that
+ *   names no file of ours.
+ */
+function resolveTarget(file, target) {
+    if (target.startsWith('data:') || /^(https?:)?\/\//.test(target)) return null;
+    const resolved = target.startsWith('/assets/')
+        ? path.join(REPO_ROOT, 'public', target.slice('/assets/'.length))
+        : path.resolve(path.dirname(path.join(REPO_ROOT, file)), target);
+    return resolved.split('?')[0].split('#')[0];
+}
+
+/** @returns {Array<{file: string, body: string}>} Every @font-face body in our stylesheets, with the file it is in. */
+function fontFaceBlocks() {
+    return STYLESHEETS.flatMap((file) => Array.from(read(file).matchAll(/@font-face\s*\{([^}]*)\}/g))
+        .map(([, body]) => ({ file, body })));
+}
+
 describe('our stylesheets are self-contained', () => {
     test('there is at least one stylesheet to check, so a broken walk cannot pass vacuously', () => {
         expect(STYLESHEETS.length).toBeGreaterThan(10);
@@ -64,13 +87,8 @@ describe('our stylesheets are self-contained', () => {
         const missing = [];
         for (const file of STYLESHEETS) {
             for (const target of urlTargets(read(file))) {
-                if (target.startsWith('data:') || /^(https?:)?\/\//.test(target)) continue;
-                // Stylesheets address our assets either absolutely (/assets/... — how Play serves public/) or
-                // relative to the stylesheet's own directory.
-                const resolved = target.startsWith('/assets/')
-                    ? path.join(REPO_ROOT, 'public', target.slice('/assets/'.length))
-                    : path.resolve(path.dirname(path.join(REPO_ROOT, file)), target);
-                if (!fs.existsSync(resolved.split('?')[0].split('#')[0])) missing.push(`${file} -> ${target}`);
+                const resolved = resolveTarget(file, target);
+                if (resolved && !fs.existsSync(resolved)) missing.push(`${file} -> ${target}`);
             }
         }
         expect(missing).toEqual([]);
@@ -79,11 +97,9 @@ describe('our stylesheets are self-contained', () => {
 
 describe('the design system ships the faces its font tokens name', () => {
     /** Every font-family an @font-face in our CSS declares, lowercased — CSS matches family names case-insensitively. */
-    const declaredFamilies = new Set(
-        STYLESHEETS.flatMap((file) => Array.from(
-            read(file).matchAll(/@font-face\s*\{[^}]*?font-family:\s*(['"]?)([^;'"]+)\1\s*;/g),
-        ).map((m) => m[2].trim().toLowerCase())),
-    );
+    const declaredFamilies = new Set(fontFaceBlocks()
+        .map(({ body }) => /font-family:\s*(['"]?)([^;'"]+)\1\s*;/.exec(body)?.[2].trim().toLowerCase())
+        .filter(Boolean));
 
     /**
      * The first (i.e. preferred) family in each --font-* token that holds a family stack — the one a webfont has to
@@ -126,16 +142,14 @@ describe('the design system ships the faces its font tokens name', () => {
     function declaredWeights() {
         const KEYWORDS = { normal: 400, bold: 700 };
         const byFamily = new Map();
-        for (const file of STYLESHEETS) {
-            for (const [, body] of read(file).matchAll(/@font-face\s*\{([^}]*)\}/g)) {
-                const family = /font-family:\s*(['"]?)([^;'"]+)\1\s*;/.exec(body)?.[2].trim().toLowerCase();
-                if (!family) continue;
-                const spec = (/font-weight:\s*([^;]+);/.exec(body)?.[1] ?? 'normal').trim();
-                const parts = spec.split(/\s+/).map((p) => KEYWORDS[p] ?? Number(p));
-                const range = [parts[0], parts[1] ?? parts[0]];
-                if (!byFamily.has(family)) byFamily.set(family, []);
-                byFamily.get(family).push(range);
-            }
+        for (const { body } of fontFaceBlocks()) {
+            const family = /font-family:\s*(['"]?)([^;'"]+)\1\s*;/.exec(body)?.[2].trim().toLowerCase();
+            if (!family) continue;
+            const spec = (/font-weight:\s*([^;]+);/.exec(body)?.[1] ?? 'normal').trim();
+            const parts = spec.split(/\s+/).map((p) => KEYWORDS[p] ?? Number(p));
+            const range = [parts[0], parts[1] ?? parts[0]];
+            if (!byFamily.has(family)) byFamily.set(family, []);
+            byFamily.get(family).push(range);
         }
         return byFamily;
     }
@@ -173,7 +187,22 @@ describe('the design system ships the faces its font tokens name', () => {
         const families = fs.readdirSync(FONTS_ROOT, { withFileTypes: true })
             .filter((e) => e.isDirectory()).map((e) => e.name);
 
-        expect(families.length).toBeGreaterThanOrEqual(3); // Not passing vacuously on an empty read.
+        // The floor against an empty read is derived from what the stylesheets load rather than pinned to a count,
+        // which drifts whenever a family is added or retired (#5077): every @font-face src has to resolve into a
+        // directory the listing found. It is keyed on the URL's directory rather than the declared family, since
+        // "JetBrains Mono" and JetBrainsMono share no spelling rule — a family's files living in a directory of
+        // their own under public/fonts/, beside the license, is the layout this whole test relies on, so a src
+        // that lands anywhere else (`..`) or loose in public/fonts/ is an offender rather than an exemption.
+        const reached = fontFaceBlocks()
+            .flatMap(({ file, body }) => urlTargets(body).map((target) => {
+                const resolved = resolveTarget(file, target);
+                const dir = resolved && path.relative(FONTS_ROOT, resolved).split(path.sep)[0];
+                return { file, target, dir };
+            }))
+            .filter((r) => r.dir);
+        expect(reached.length).toBeGreaterThan(0);
+        const unlisted = reached.filter((r) => !families.includes(r.dir)).map((r) => `${r.file} -> ${r.target}`);
+        expect(unlisted).toEqual([]);
 
         const undocumented = [];
         for (const family of families) {
