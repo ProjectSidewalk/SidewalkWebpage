@@ -270,7 +270,7 @@ class AccessScoreDock {
         ? null
         : {
             score: cityScore,
-            label: AccessScoreDock.#text('accessscore:histogram-city',
+            label: i18next.t('accessscore:histogram-city',
               { city: this.#cityName, score: AccessScoreChart.score(cityScore) }),
           },
       brush: this.#brush,
@@ -378,15 +378,10 @@ class AccessScoreDock {
     };
   }
 
-  /** A translation for a plain-text sink (`textContent`); see `AccessScoreChart.text`. */
-  static #text(key, vars = {}) {
-    return AccessScoreChart.text(key, vars);
-  }
-
   /** "Tuxedo Square · Street 1932", or the id alone for an unnamed way. */
   static #streetTitle(scope) {
     return scope.name
-      ? AccessScoreDock.#text('accessscore:popup-street-named', { name: scope.name, id: scope.id })
+      ? i18next.t('accessscore:popup-street-named', { name: scope.name, id: scope.id })
       : i18next.t('accessscore:popup-street', { id: scope.id });
   }
 
@@ -410,10 +405,10 @@ class AccessScoreDock {
     let text;
     if (scope.kind === 'street') {
       text = scope.name
-        ? AccessScoreDock.#text('accessscore:scope-street-named', { name: scope.name })
+        ? i18next.t('accessscore:scope-street-named', { name: scope.name })
         : i18next.t('accessscore:scope-street', { id: scope.id });
     } else if (scope.kind === 'region') {
-      text = AccessScoreDock.#text('accessscore:scope-region', { name: scope.name });
+      text = i18next.t('accessscore:scope-region', { name: scope.name });
     } else {
       text = i18next.t('accessscore:scope-city');
     }
@@ -435,7 +430,7 @@ class AccessScoreDock {
       const ends = new Set([street?.startIntersection?.id, street?.endIntersection?.id]
         .filter((id) => id !== null && id !== undefined));
       request = {
-        caption: AccessScoreDock.#text('accessscore:photos-from', { scope: AccessScoreDock.#streetTitle(scope) }),
+        caption: i18next.t('accessscore:photos-from', { scope: AccessScoreDock.#streetTitle(scope) }),
         regionId: scope.regionId,
         streetId: scope.id,
         intersectionIds: ends,
@@ -443,7 +438,7 @@ class AccessScoreDock {
     } else if (scope.kind === 'region') {
       key = `region:${scope.id}`;
       request = {
-        caption: AccessScoreDock.#text('accessscore:photos-from', { scope: scope.name }),
+        caption: i18next.t('accessscore:photos-from', { scope: scope.name }),
         regionId: scope.id,
       };
     } else if (scope.kind === 'viewport') {
@@ -463,8 +458,8 @@ class AccessScoreDock {
       key = `city:${lowest ? lowest.regionId : 'none'}`;
       request = lowest
         ? {
-            caption: AccessScoreDock.#text('accessscore:photos-from', {
-              scope: AccessScoreDock.#text('accessscore:photos-lowest', { name: lowest.name }),
+            caption: i18next.t('accessscore:photos-from', {
+              scope: i18next.t('accessscore:photos-lowest', { name: lowest.name }),
             }),
             regionId: lowest.regionId,
           }

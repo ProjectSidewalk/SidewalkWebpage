@@ -143,8 +143,8 @@ class LabelMiniCard {
         </div>`
       : '';
     const lock = this.#lockReason();
-    // The name is interpolated unescaped and then escaped exactly once for the attribute: i18next's own escaping
-    // would double up with `esc` and print an apostrophe as `&#39;`.
+    // Escaping stays off although this is a markup sink: `esc` escapes the whole string once for the attribute
+    // below, and escaping the value too would print an apostrophe as `&#39;`.
     const openLabel = i18next.t('common:mini-card.open', { label: name, interpolation: { escapeValue: false } });
     this.#el.innerHTML = `
       <button type="button" class="lmc__open" aria-label="${esc(openLabel)}" data-ps-tooltip="${esc(name)}">

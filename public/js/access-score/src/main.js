@@ -32,7 +32,8 @@ window.AccessScoreApp = (function () {
 
   /** A length in meters in the reader's unit system, through i18next's distance formatter. */
   function formatLength(meters) {
-    return i18next.t('accessscore:length', { meters });
+    // Markup sink: the only caller writes this into the street popup's HTML.
+    return i18next.t('accessscore:length', { meters, interpolation: { escapeValue: true } });
   }
 
   /** The display name of a label type; one implementation for the whole tool. */
@@ -595,7 +596,9 @@ window.AccessScoreApp = (function () {
         ? i18next.t(`common:${util.misc.getRatingLevelKeys(type)[props.median_severity]}`)
         : null;
       const meta = [
-        i18next.t('accessscore:cluster-size', { count: props.cluster_size }),
+        i18next.t('accessscore:cluster-size', {
+          count: props.cluster_size, interpolation: { escapeValue: true },
+        }),
         rating,
       ].filter(Boolean).join(' · ');
       const street = model.explainStreet(props.street_edge_id);
@@ -604,7 +607,7 @@ window.AccessScoreApp = (function () {
       // "on this street" rather than pinning the number to the dot under the pointer.
       const effect = term
         ? `<div class="acs-tooltip__meta">${i18next.t('accessscore:cluster-effect', {
-          type: typeName(type), value: signed(term.term) })}</div>`
+          type: typeName(type), value: signed(term.term), interpolation: { escapeValue: true } })}</div>`
         : '';
       return `<strong><span class="acs-popup__swatch" style="background-color: ${
         util.misc.getLabelColors(type)};"></span>${typeName(type)}</strong>
@@ -642,24 +645,30 @@ window.AccessScoreApp = (function () {
         lines.push(`<li class="acs-tooltip__standout acs-tooltip__standout--${tone}">${
           i18next.t(`accessscore:tip-standout-${kind}-${tone}`, {
             type: typeName(n.standout.type), value: signed(n.standout.value), city: signed(n.standout.cityValue),
+            interpolation: { escapeValue: true },
           })}</li>`);
       }
       if (n.helped) {
         lines.push(`<li>${i18next.t('accessscore:tip-helped', {
-          type: typeName(n.helped.type), value: signed(n.helped.value) })}</li>`);
+          type: typeName(n.helped.type), value: signed(n.helped.value),
+          interpolation: { escapeValue: true } })}</li>`);
       }
       if (n.hurt) {
         lines.push(`<li>${i18next.t('accessscore:tip-hurt', {
-          type: typeName(n.hurt.type), value: signed(n.hurt.value) })}</li>`);
+          type: typeName(n.hurt.type), value: signed(n.hurt.value),
+          interpolation: { escapeValue: true } })}</li>`);
       }
       return lines.length ? `<ul class="acs-tooltip__why">${lines.join('')}</ul>` : '';
     }
 
     /** "Tuxedo Square · Street 1932", or just the id for an unnamed way. */
     function streetTitle(s) {
+      // Markup sink, and the name is OSM's: both callers interpolate the result into a tooltip or popup.
       return s.name
-        ? i18next.t('accessscore:popup-street-named', { name: s.name, id: s.streetId })
-        : i18next.t('accessscore:popup-street', { id: s.streetId });
+        ? i18next.t('accessscore:popup-street-named', {
+            name: s.name, id: s.streetId, interpolation: { escapeValue: true },
+          })
+        : i18next.t('accessscore:popup-street', { id: s.streetId, interpolation: { escapeValue: true } });
     }
 
     function streetTooltipHtml(id) {
@@ -671,7 +680,9 @@ window.AccessScoreApp = (function () {
       return `<strong>${title}</strong>
         <div class="acs-tooltip__score">${formatScore(s.score)}</div>
         ${componentsHtml(s)}
-        <div class="acs-tooltip__meta">${i18next.t('accessscore:tooltip-meta', { problems, features })}</div>
+        <div class="acs-tooltip__meta">${i18next.t('accessscore:tooltip-meta', {
+    problems, features, interpolation: { escapeValue: true },
+  })}</div>
         ${notableHtml('streets', id)}
         ${clickHintHtml()}`;
     }
@@ -682,11 +693,15 @@ window.AccessScoreApp = (function () {
       if (!r) return null;
       const percent = Math.round(r.completion * 100);
       if (r.score === null || r.belowFloor) {
-        return `<strong>${util.escapeHTML(r.name)}</strong><br>${i18next.t('accessscore:insufficient', { percent })}`;
+        return `<strong>${util.escapeHTML(r.name)}</strong><br>${i18next.t('accessscore:insufficient', {
+          percent, interpolation: { escapeValue: true },
+        })}`;
       }
       return `<strong>${util.escapeHTML(r.name)}</strong>
         <div class="acs-tooltip__score">${formatScore(r.score)}</div>
-        <div class="acs-tooltip__meta">${i18next.t('accessscore:completion', { percent })}</div>
+        <div class="acs-tooltip__meta">${i18next.t('accessscore:completion', {
+    percent, interpolation: { escapeValue: true },
+  })}</div>
         ${notableHtml('regions', id)}
         ${clickHintHtml()}`;
     }
@@ -701,6 +716,7 @@ window.AccessScoreApp = (function () {
       const end = (e) => (e && e.score !== null ? formatScore(e.score) : '—');
       return `<div class="acs-popup__components">${i18next.t('accessscore:score-components', {
         segment: formatScore(s.segmentScore), start: end(s.startIntersection), end: end(s.endIntersection),
+        interpolation: { escapeValue: true },
       })}</div>`;
     }
 
@@ -774,7 +790,7 @@ window.AccessScoreApp = (function () {
       if (!r) return null;
       const percent = Math.round(r.completion * 100);
       const score = r.score === null || r.belowFloor
-        ? i18next.t('accessscore:insufficient', { percent })
+        ? i18next.t('accessscore:insufficient', { percent, interpolation: { escapeValue: true } })
         : formatScore(r.score);
       const lngLat = regionCenter(id) || map.getCenter();
       // A region's breakdown is the mean per audited street of its streets' and its crossings' terms and clusters.
@@ -784,8 +800,11 @@ window.AccessScoreApp = (function () {
       }]));
       return `<h3 class="acs-popup__title">${util.escapeHTML(r.name)}</h3>
         <div class="acs-popup__score">${score}</div>
-        <div class="acs-popup__meta">${i18next.t('accessscore:completion', { percent })} · ${
-    i18next.t('accessscore:popup-streets', { audited: r.auditedStreetCount, total: r.streetCount })}</div>
+        <div class="acs-popup__meta">${i18next.t('accessscore:completion', {
+    percent, interpolation: { escapeValue: true },
+  })} · ${i18next.t('accessscore:popup-streets', {
+    audited: r.auditedStreetCount, total: r.streetCount, interpolation: { escapeValue: true },
+  })}</div>
         <h4 class="acs-popup__subtitle">${i18next.t('accessscore:popup-terms-mean')}</h4>
         ${termsTableHtml(terms, i18next.t('accessscore:popup-clusters-mean'))}
         ${hopLinksHtml(lngLat)}`;

@@ -192,6 +192,13 @@ class AppManager {
         // call site, so there is nothing a caller can forget and no metric/imperial pair of keys to keep in sync.
         // These must be plain values: a getter that called i18next.t() here would recurse through interpolation.
         defaultVariables: params.unitWords,
+        // Interpolated values reach a text node, an aria-label, a title or a confirm() far more often than they
+        // reach innerHTML, and there HTML-escaping is what the reader sees: a neighborhood called Al 'Ummah prints
+        // as "Al &#39;Ummah" and a formatted date as "9&#x2F;16&#x2F;2026" (#5389). So values are interpolated
+        // verbatim, and the far smaller set of calls that build markup says so at the call site with
+        // `interpolation: { escapeValue: true }`. The `ps/i18n-escape-in-markup` ESLint rule enforces that;
+        // docs/internationalization.md has the rule for the flows it cannot see.
+        escapeValue: false,
       },
     }, (err) => {
       // Registered before the error check: the formatter doesn't depend on any translation having loaded, and a page
