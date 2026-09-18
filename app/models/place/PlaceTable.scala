@@ -89,7 +89,7 @@ class PlaceTableDef(tag: Tag) extends Table[Place](tag, "place") {
   def nearestStreetEdgeId: Rep[Option[Int]]       = column[Option[Int]]("nearest_street_edge_id")
   def nearestStreetDistanceM: Rep[Option[Double]] = column[Option[Double]]("nearest_street_distance_m") // CHECK (>= 0)
   def fetchedAt: Rep[OffsetDateTime]              = column[OffsetDateTime]("fetched_at")
-  // Cross-column CHECKs in the DB (395.sql), which Slick can't express: an OSM reference is present exactly when
+  // Cross-column CHECKs in the DB (396.sql), which Slick can't express: an OSM reference is present exactly when
   // source is 'osm', and the street distance exactly when the street is.
 
   def * = (

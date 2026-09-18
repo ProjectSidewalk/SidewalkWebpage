@@ -15,7 +15,7 @@ import scala.io.Source
 /**
  * The `place` table's refresh merge (#5311), against the connected Postgres+PostGIS database, every case inside a
  * rolled-back transaction: which fetched objects it keeps, what it fills in for them, and that a place's id survives
- * a refresh. Also holds evolution 395's category CHECK to the Scala catalog, so a category added to one is missed by
+ * a refresh. Also holds evolution 396's category CHECK to the Scala catalog, so a category added to one is missed by
  * the spec rather than by the first refresh that writes it.
  *
  * The seeded world is [[util.StreetFixtures]]'s: a region that is the unit square and a street along its bottom edge,
@@ -57,10 +57,10 @@ class PlaceTableSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
           VALUES ('school', $name, 'city', '{}', ST_SetSRID(ST_MakePoint($lng, $lat), 4326), now())
           RETURNING place_id""".as[Int].head
 
-  "the category CHECK in evolution 395" should {
+  "the category CHECK in evolution 396" should {
     "list exactly the catalog's ids, in its order" in {
       val script = {
-        val source = Source.fromFile("conf/evolutions/default/395.sql", "UTF-8")
+        val source = Source.fromFile("conf/evolutions/default/396.sql", "UTF-8")
         try source.mkString
         finally source.close()
       }
