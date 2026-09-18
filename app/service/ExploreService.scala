@@ -279,7 +279,7 @@ class ExploreServiceImpl @Inject() (
         if (mission.missionType == MissionType.AuditOnboarding) {
           auditTaskTable.getATutorialTask(mission.missionId).map(Some(_))
         } else if (streetEdgeId.isDefined) {
-          auditTaskTable.selectANewTask(streetEdgeId.get, mission.missionId).map(Some(_))
+          auditTaskTable.selectANewTask(streetEdgeId.get, userId, mission.missionId).map(Some(_))
         } else if (routeOption.isDefined) {
           userRouteTable.getRouteTask(userRoute.get, mission.missionId)
         } else if (mission.currentAuditTaskId.isDefined) {
@@ -290,7 +290,7 @@ class ExploreServiceImpl @Inject() (
           // declines to serve it to the labeler who just bounced off it.
           // AuditTaskTable.resumableTasksForUser holds a second copy of this same no-imagery test, for the next-street
           // pick (#5370). Nothing links them, so a change to what counts as a give-up has to be made in both places.
-          auditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get).flatMap {
+          auditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get, userId).flatMap {
             case Some(currTask) =>
               streetEdgeIssueTable.reportedNoImagerySince(currTask.edgeId, userId, currTask.taskStart).flatMap {
                 case true  => auditTaskTable.selectANewTaskInARegion(regionId, userId, mission.missionId)
@@ -369,8 +369,12 @@ class ExploreServiceImpl @Inject() (
                 _                <- missionTable.updateCurrentAuditTaskId(mission.missionId, Some(auditTaskId))
                 updatedMission: Mission <- missionTable.getMission(mission.missionId).map(_.get)
                 // includeCompleted: a drop-in street the session already finished must still load on resume (#4451).
-                task: Option[NewTask] <- auditTaskTable.selectTaskFromTaskId(auditTaskId, includeCompleted = true)
-                nextTempLabelId: Int  <- labelTable.nextTempLabelId(userId)
+                task: Option[NewTask] <- auditTaskTable.selectTaskFromTaskId(
+                  auditTaskId,
+                  userId,
+                  includeCompleted = true
+                )
+                nextTempLabelId: Int          <- labelTable.nextTempLabelId(userId)
                 hasCompletedAMission: Boolean <-
                   missionTable.countCompletedMissions(userId, missionType = MissionType.Audit).map(_ > 0)
                 surveyData: Seq[SurveyQuestionWithOptions] <- surveyQuestionTable.listAllWithOptions

@@ -490,8 +490,10 @@ class ExploreAddressServiceSpec
           // The DAO split underneath: the default lookup serves flows that only ever see active tasks, while the
           // resume path opts into completed ones.
           val auditTaskId = task.auditTaskId.get
-          run(auditTaskTable.selectTaskFromTaskId(auditTaskId)) mustBe None
-          run(auditTaskTable.selectTaskFromTaskId(auditTaskId, includeCompleted = true)) mustBe defined
+          run(auditTaskTable.selectTaskFromTaskId(auditTaskId, completionUser.userId)) mustBe None
+          run(
+            auditTaskTable.selectTaskFromTaskId(auditTaskId, completionUser.userId, includeCompleted = true)
+          ) mustBe defined
       }
     }
   }

@@ -470,9 +470,15 @@ class TaskContainer {
     // `source` is the part worth counting: `switch` is a street picked back up mid-session, which is what #5370
     // added. `pageLoad` covers the street already in progress and a drop-in session, both of which carry an open row
     // too and neither of which is news.
-    this.#tracker.push('TaskStart', task.isResumed()
+    // `reaudit` rides along whichever shape the note takes, so re-audit tasks can be counted from the log (#4895).
+    const startNote = task.isResumed()
       ? { resumed: true, auditTaskId: task.getAuditTaskId(), source: task.cameFromTaskList() ? 'switch' : 'pageLoad' }
-      : undefined);
+      : {};
+    if (task.getProperty('needsReaudit')) startNote.reaudit = true;
+    this.#tracker.push('TaskStart', Object.keys(startNote).length ? startNote : undefined);
+    // Page load reaches here before the notice exists; Main.js announces that first street itself, once the
+    // mission-start screen is out of the way.
+    if (svl.reauditNotice) svl.reauditNotice.showForTask(task);
 
     if ('compass' in svl) {
       svl.compass.showMessage();
