@@ -8,6 +8,11 @@ version := "11.13.0"
 
 scalaVersion := "2.13.18"
 
+// Defaults to a week, which across several worktrees means a stale ~1GB server each, held until a reboot. An hour
+// keeps it warm through a working stretch; expiring costs one cold `make compile`, and a `~ run` or test counts as
+// busy, so this can't cut anything short.
+Global / serverIdleTimeout := Some(scala.concurrent.duration.Duration(1, "hour"))
+
 // These lines prevent documentation from being generated. Once we clean up our Scaladoc, we can remove these lines.
 Compile / doc / sources                := Seq.empty
 Compile / packageDoc / publishArtifact := false
@@ -254,4 +259,11 @@ scalacOptions ++= Seq(
 )
 
 javacOptions ++= Seq("-source", "17", "-target", "17")
-javaOptions ++= Seq("-Xmx4096M", "-Xms2048M")
+// Heap for the forked test JVM. Scoped to Test because that is all it ever reached: prod's heap comes from the
+// deploy tooling, not from here (#4564).
+//
+// Sized from a GC log rather than by feel — the suite's live set is ~160MB, peaking near 1.3GB under scoverage.
+// Headroom past that is not free: given a 4GB ceiling G1 saw no reason to collect and the process sat on 3GB of
+// RSS, and earlyoom kills the biggest process on a short dev box, which reads as a failed suite rather than a
+// killed one. -Xms matters as much as -Xmx, being committed up front even to run a single spec.
+Test / javaOptions ++= Seq("-Xmx2048M", "-Xms512M")
