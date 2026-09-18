@@ -67,9 +67,9 @@ Project Sidewalk has two separate translation systems; which one you use depends
 ### Interpolated values and HTML
 
 `AppManager._setupI18next` sets **`interpolation.escapeValue: false`**, so `i18next.t('key', { name })` interpolates
-`name` exactly as given. That is what a text sink needs: a neighborhood called *Al 'Ummah* printed as
-`Al &#39;Ummah`, and a formatted date as `9&#x2F;16&#x2F;2026`, in every sink that is not HTML — a text node, an
-`aria-label`, a `title`, a `confirm()`, a share sheet, a `document.title` (#5389).
+`name` exactly as given. In every sink that is not HTML — a text node, an `aria-label`, a `title`, a `confirm()`, a
+share sheet, a `document.title` — escaping is something the reader sees: it is what turned a neighborhood called
+*Al 'Ummah* into `Al &#39;Ummah` and a formatted date into `9&#x2F;16&#x2F;2026` (#5389).
 
 The price is that a value bound for `innerHTML` is not escaped for free. **When a translated string with interpolated
 values lands in markup, escape those values exactly once**, either way round:
