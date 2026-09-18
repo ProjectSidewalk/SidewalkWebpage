@@ -7,13 +7,21 @@ import models.api.{
   ApiError,
   IntersectionAccessScoreForApi,
   RegionAccessScoreForApi,
+  SpotlightUnit,
   StreetAccessScoreForApi
 }
 import models.utils.{LatLngBBox, SpatialQueryType}
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
-import service.{AccessScoreService, AccessScores, ApiService, ConfigService}
+import service.{
+  AccessScoreService,
+  AccessScoreSpotlight,
+  AccessScoreSpotlightService,
+  AccessScores,
+  ApiService,
+  ConfigService
+}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -37,6 +45,7 @@ class AccessScoreApiController @Inject() (
     configService: ConfigService,
     shapefileCreator: ShapefilesCreatorHelper,
     accessScoreService: AccessScoreService,
+    accessScoreSpotlightService: AccessScoreSpotlightService,
     apiService: ApiService
 )(implicit ec: ExecutionContext)
     extends BaseApiController(cc) {
@@ -219,6 +228,52 @@ class AccessScoreApiController @Inject() (
     }
   }
 
+  /**
+   * The AccessScore Spotlight feed (v3, #5215): the highest- and lowest-scoring neighborhoods or streets.
+   *
+   * Reads only the nightly `region_access_score` / `street_access_score` tables, so a landing page hit never sets a
+   * city's AccessScore recomputing. `scope=cities` fans the same read out over every publicly launched deployment
+   * and stamps each row with the city it came from; that scope has no `nearest` list, since its call to action
+   * would have to send the visitor to another city's site.
+   *
+   * JSON only: this is the feed behind a page module, not a data export. The underlying scores are downloadable in
+   * every format from `/v3/api/accessScoreRegions` and `/v3/api/accessScoreStreets`.
+   *
+   * @param unit  Which unit to rank: "regions" (default) or "streets".
+   * @param n     How many rows each list holds; defaults to 5 and is capped so one request can't ask for a city.
+   * @param scope "cities" for the cross-city ranking; anything else, or absent, is this deployment alone.
+   */
+  def getAccessScoreSpotlight(unit: Option[String], n: Option[Int], scope: Option[String]) =
+    silhouette.UserAwareAction.async { implicit request =>
+      val resolvedUnit: String = unit.getOrElse(SpotlightUnit.Regions)
+      if (!SpotlightUnit.All.contains(resolvedUnit)) {
+        Future.successful(
+          badRequest(
+            ApiError.invalidParameter(
+              s"unit must be one of ${SpotlightUnit.All.mkString(", ")}.",
+              "unit"
+            )
+          )
+        )
+      } else if (n.exists(value => value < 1 || value > AccessScoreSpotlight.MaxListSize)) {
+        Future.successful(
+          badRequest(
+            ApiError.invalidParameter(s"n must be between 1 and ${AccessScoreSpotlight.MaxListSize}.", "n")
+          )
+        )
+      } else {
+        val listSize: Int = n.getOrElse(AccessScoreSpotlight.DefaultListSize)
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+        val spotlight =
+          if (scope.contains(AccessScoreApiController.CitiesScope)) {
+            accessScoreSpotlightService.getCrossCitySpotlight(resolvedUnit, listSize, request2Messages.lang)
+          } else {
+            accessScoreSpotlightService.getSpotlight(resolvedUnit, listSize)
+          }
+        spotlight.map(result => Ok(result.toJson))
+      }
+    }
+
   /** Whether a request carries no geo-filter at all, i.e. resolves to the city's configured bounds. */
   private def isFullCity(bbox: Option[String], regionId: Option[Int], regionName: Option[String]): Boolean =
     bbox.isEmpty && regionId.isEmpty && regionName.isEmpty
@@ -287,4 +342,10 @@ class AccessScoreApiController @Inject() (
         }
     }
   }
+}
+
+object AccessScoreApiController {
+
+  /** The `scope` value that turns the Spotlight into a cross-city ranking. */
+  val CitiesScope: String = "cities"
 }

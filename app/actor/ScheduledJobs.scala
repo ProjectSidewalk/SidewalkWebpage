@@ -26,7 +26,8 @@ case class ScheduledJob(name: String, label: String, hour: Int, minute: Int) {
  *
  * Ordering matters in two places: the imagery-freshness sync runs at the top of the street-priority sequence, so the
  * imagery-age poll that feeds it has to come earlier in the night; and the intersection rebuild runs at the top of
- * clustering, so the OSM way refresh whose tags decide grade separation has to come earlier too.
+ * clustering, so the OSM way refresh whose tags decide grade separation has to come earlier too. The AccessScore
+ * Spotlight snapshot closes clustering, since it is computed from the clusters that run builds.
  */
 object ScheduledJobs {
   val CheckImageExpiry: ScheduledJob = ScheduledJob(CheckImageExpiryActor.Name, "Imagery expiry sweep", 0, 15)
@@ -58,13 +59,19 @@ object ScheduledJobs {
     label = "Intersection rebuild"
   )
 
+  /** Runs at the end of the clustering job (#5215), so it takes that job's time rather than restating it. */
+  val AccessScoreSnapshot: ScheduledJob = Clustering.copy(
+    name = service.AccessScoreSpotlightService.JobName,
+    label = "AccessScore Spotlight snapshot"
+  )
+
   /** After clustering, which can run long in a big city; the two share the CPU-intensive pool. */
   val CropGeneration: ScheduledJob = ScheduledJob(CropGenerationActor.Name, "Crop generation", 5, 0)
 
   /** Every job the Health panel expects to see a recent run of, in the order they run. */
   val All: Seq[ScheduledJob] = Seq(CheckImageExpiry, GetAiValidations, CheckImageryAge, UserStats, ImageryFreshnessSync,
     RecalculateStreetPriority, OsmWayRefresh, AuthTokenCleaner, FunnelStats, SidewalkPresenceRebuild,
-    IntersectionRebuild, Clustering, CropGeneration)
+    IntersectionRebuild, Clustering, AccessScoreSnapshot, CropGeneration)
 
   /**
    * How long after a job's last successful run it counts as overdue, in hours.

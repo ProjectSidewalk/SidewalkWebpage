@@ -90,6 +90,9 @@
         "unsure-button-3": "Ich bin mir nicht sicher, ob hier ein Trottoir sein sollte.",
         "unsure-button-3-tooltip": "Manchmal ist mehr Kontext erforderlich, und es ist schwierig, anhand eines einzelnen Bildes zu beurteilen, ob ein Trottoir notwendig ist."
       }
+    },
+    "wrong-type": {
+      "header": "Welchen Typ sollte dieses Etikett haben?"
     }
   },
   "center-ui": {

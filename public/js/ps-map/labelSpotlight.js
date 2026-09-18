@@ -32,10 +32,11 @@ function centerShowingLabelAt(coords, dx, dy, zoom) {
  * @param {(labelId: number) => ?Array<number>} host.getCoords - Best known [lng, lat] for a label ID.
  * @param {(labelId: number) => ?string} host.getLabelType - Best known label type for a label ID.
  * @returns {{spotlight: (labelId: number, jump?: boolean) => void, pulse: (labelId: number) => void,
- *     updateTail: () => void, spotlightedLabelId: () => ?number}}
+ *     updateTail: () => void, refreshBeacon: (labelId: number) => void, spotlightedLabelId: () => ?number}}
  *     `spotlight(labelId, jump)` beacons + positions the camera while the popup shows the label, `pulse(labelId)`
  *     flashes the dot once after the popup closes, `updateTail` repositions the tail (hosts call it on map
- *     'move'), and `spotlightedLabelId()` reports the currently spotlighted label (null when none).
+ *     'move'), `refreshBeacon(labelId)` redraws the beacon after the label's type changed (#3671), and
+ *     `spotlightedLabelId()` reports the currently spotlighted label (null when none).
  */
 function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, getLabelType }) {
   let spotlightedLabelId = null;
@@ -218,5 +219,10 @@ function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, getLabelT
     setBeacon(labelId, 'flash');
   };
 
-  return { spotlight, pulse, updateTail, spotlightedLabelId: () => spotlightedLabelId };
+  // The beacon's center dot is the type's color and outlives an edit, so the popup asks for a rebuild (#3671).
+  const refreshBeacon = (labelId) => {
+    if (labelId === spotlightedLabelId) setBeacon(labelId, 'spotlight');
+  };
+
+  return { spotlight, pulse, updateTail, refreshBeacon, spotlightedLabelId: () => spotlightedLabelId };
 }

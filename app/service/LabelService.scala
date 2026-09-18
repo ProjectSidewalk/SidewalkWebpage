@@ -40,6 +40,8 @@ trait LabelService {
   def selectTagsByLabelType(labelType: LabelTypeEnum.Base): Future[Seq[models.label.Tag]]
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]]
   def cleanTagList(tags: Seq[String], labelType: LabelTypeEnum.Base): DBIO[Seq[String]]
+  def severityFor(labelType: LabelTypeEnum.Base, severity: Option[Int]): Option[Int]
+  def findLabel(labelId: Int): Future[Option[Label]]
   def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]]
   def getLabelLatLng(labelId: Int): Future[Option[LatLng]]
   def getRecentLabelMetadata(takeN: Int): Future[Seq[LabelMetadata]]
@@ -249,6 +251,12 @@ class LabelServiceImpl @Inject() (
    * @param labelType Label type to filter tags by
    * @return Cleaned list of tags
    */
+  def findLabel(labelId: Int): Future[Option[Label]] = db.run(labelTable.find(labelId))
+
+  /** A severity a label of this type can carry: the one given, or none for an unrated type. */
+  def severityFor(labelType: LabelTypeEnum.Base, severity: Option[Int]): Option[Int] =
+    if (labelType.ratingScale == LabelTypeEnum.RatingScale.Unrated) None else severity
+
   def cleanTagList(tags: Seq[String], labelType: LabelTypeEnum.Base): DBIO[Seq[String]] = {
     for {
       validTags: Seq[String] <- selectTagsByLabelTypeDbio(labelType).map(_.map(_.tag))
@@ -834,12 +842,14 @@ class LabelServiceImpl @Inject() (
   def insertLabel(label: Label): DBIO[Int] = {
     for {
       cleanTags: Seq[String] <- cleanTagList(label.tags, label.labelType)
-      clean: Label = label.copy(tags = cleanTags.toList)
+      // An unrated type never carries a severity, whatever the client sent (the DB rejects one).
+      clean: Label = label.copy(tags = cleanTags.toList, severity = severityFor(label.labelType, label.severity))
       labelId: Int <- (labelTable.labelsUnfiltered returning labelTable.labelsUnfiltered.map(_.labelId)) += clean
 
       // Add a corresponding entry to the label_history table.
       _ <- labelHistoryTable.insert(
-        LabelHistory(0, labelId, clean.severity, clean.tags, clean.userId, clean.timeCreated, UiSource.Explore, None)
+        LabelHistory(0, labelId, clean.labelType, clean.severity, clean.tags, clean.userId, clean.timeCreated,
+          UiSource.Explore, None)
       )
     } yield {
       labelId

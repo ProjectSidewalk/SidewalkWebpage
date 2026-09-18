@@ -9,6 +9,8 @@ function defineValidateConstants() {
     Signal: i18next.t('common:signal'),
   };
 
+  // `newLabelType` marks a "really another type" reason: on Expert Validate it opens the type picker with that type
+  // chosen (null = nothing chosen); elsewhere it stays a plain reason (#3671).
   svv.reasonButtonInfo = {
     'curb-ramp': {
       'no-button-1': {
@@ -23,6 +25,7 @@ function defineValidateConstants() {
       },
       'no-button-3': {
         buttonText: i18next.t('validate:validate-menu.disagree-reason.curb-ramp.no-button-3'),
+        newLabelType: 'NoCurbRamp',
         tooltipText: i18next.t('validate:validate-menu.disagree-reason.curb-ramp.no-button-3-tooltip'),
         tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/CurbRampDisagree3.png'),
       },
@@ -55,6 +58,7 @@ function defineValidateConstants() {
       },
       'no-button-3': {
         buttonText: i18next.t('validate:validate-menu.disagree-reason.no-curb-ramp.no-button-3'),
+        newLabelType: 'CurbRamp',
         tooltipText: i18next.t('validate:validate-menu.disagree-reason.no-curb-ramp.no-button-3-tooltip'),
         tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/NoCurbRampDisagree3.png'),
       },
@@ -92,6 +96,7 @@ function defineValidateConstants() {
       },
       'no-button-3': {
         buttonText: i18next.t('validate:validate-menu.disagree-reason.obstacle.no-button-3'),
+        newLabelType: 'SurfaceProblem',
         tooltipText: i18next.t('validate:validate-menu.disagree-reason.obstacle.no-button-3-tooltip'),
         tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/ObstacleDisagree3.png'),
       },
@@ -114,6 +119,7 @@ function defineValidateConstants() {
     'surface-problem': {
       'no-button-1': {
         buttonText: i18next.t('validate:validate-menu.disagree-reason.surface-problem.no-button-1'),
+        newLabelType: 'NoSidewalk',
         tooltipText: i18next.t('validate:validate-menu.disagree-reason.surface-problem.no-button-1-tooltip'),
         tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/SurfaceProblemDisagree1.png'),
       },
@@ -156,6 +162,7 @@ function defineValidateConstants() {
       },
       'no-button-3': {
         buttonText: i18next.t('validate:validate-menu.disagree-reason.no-sidewalk.no-button-3'),
+        newLabelType: null,
         tooltipText: i18next.t('validate:validate-menu.disagree-reason.no-sidewalk.no-button-3-tooltip'),
         tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/NoSidewalkDisagree3.png'),
       },

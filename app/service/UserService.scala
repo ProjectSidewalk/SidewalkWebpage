@@ -57,6 +57,58 @@ case class PublicProfile(
 )
 
 /**
+ * One member's row on the admin team page (#5381). Every count is all-time and city-scoped, on the definitions that
+ * member's own dashboard uses, so an admin comparing the two never sees them disagree.
+ *
+ * @param labels          Labels they've placed (deleted and tutorial labels left out).
+ * @param validations     Validations they've given, counting votes the #4842 repair later voided.
+ * @param labelsValidated How many of their own labels someone has judged agree-or-disagree.
+ * @param labelsAgreed    How many of those were agreed with; with `labelsValidated` this gives their accuracy.
+ * @param lastActive      The later of their last label and their last validation.
+ * @param excluded        Whether their work is excluded from this city's stats, which mutes every count above.
+ */
+case class TeamMemberStats(
+    userId: String,
+    username: String,
+    role: Role.Value,
+    labels: Int,
+    validations: Int,
+    distanceMeters: Double,
+    labelsValidated: Int,
+    labelsAgreed: Int,
+    lastActive: Option[OffsetDateTime],
+    highQuality: Boolean,
+    excluded: Boolean
+)
+
+/**
+ * A team's totals for the admin team page's summary tiles (#5381). Accuracy travels as pooled `labelsValidated` /
+ * `labelsAgreed` rather than an averaged rate, so one member with three labels can't swing a class of thirty.
+ */
+case class TeamTotals(
+    members: Int,
+    labels: Int,
+    validations: Int,
+    distanceMeters: Double,
+    labelsValidated: Int,
+    labelsAgreed: Int
+)
+
+/**
+ * One account an admin can pick when adding someone to a team (#5381).
+ *
+ * @param team The team they're already on, so the admin can see that adding them would move them.
+ */
+case class UserSearchResult(userId: String, username: String, email: String, role: Role.Value, team: Option[String])
+
+/**
+ * Everything `/admin/team/:teamId` shows (#5381).
+ *
+ * @param members One row per member, ordered by labels placed (most first).
+ */
+case class TeamOverview(team: Team, members: Seq[TeamMemberStats], totals: TeamTotals)
+
+/**
  * A user's accuracy for one label type, for the dashboard's learning section.
  *
  * @param labelType   LabelTypeEnum name (e.g. "NoCurbRamp").
@@ -455,6 +507,19 @@ trait UserService {
   def getAllTeams: Future[Seq[Team]]
   def getAllOpenTeams: Future[Seq[Team]]
   def findTeamByIdOrName(idOrName: String): Future[Option[Team]]
+  def findTeam(teamId: Int): Future[Option[Team]]
+
+  /**
+   * @param teamId The team to describe.
+   * @return The team with its members and their totals, or None when no team has that id.
+   */
+  def getTeamOverview(teamId: Int): Future[Option[TeamOverview]]
+
+  /**
+   * @param query A fragment to match case-insensitively against username or email; a blank query matches nobody.
+   * @param limit The most matches to return.
+   */
+  def searchUsers(query: String, limit: Int): Future[Seq[UserSearchResult]]
   def createTeam(name: String, description: String): Future[Int]
   def getLeaderboardStats(
       n: Int,
@@ -743,6 +808,78 @@ class UserServiceImpl @Inject() (
   def getAllOpenTeams: Future[Seq[Team]] = db.run(teamTable.getAllOpenTeams)
 
   def findTeamByIdOrName(idOrName: String): Future[Option[Team]] = db.run(teamTable.findByIdOrName(idOrName))
+
+  def findTeam(teamId: Int): Future[Option[Team]] = db.run(teamTable.find(teamId))
+
+  def searchUsers(query: String, limit: Int): Future[Seq[UserSearchResult]] = {
+    if (query.trim.isEmpty) Future.successful(Seq())
+    else {
+      db.run(sidewalkUserTable.searchUsers(query, limit))
+        .map(_.map((UserSearchResult.apply _).tupled))
+    }
+  }
+
+  def getTeamOverview(teamId: Int): Future[Option[TeamOverview]] = {
+    val overview: DBIO[Option[TeamOverview]] = teamTable.find(teamId).flatMap {
+      case None       => DBIO.successful(None): DBIO[Option[TeamOverview]]
+      case Some(team) =>
+        userTeamTable.getMembers(teamId).flatMap { members =>
+          val userIds: Seq[String] = members.map(_._1)
+          // `inSet Nil` is a query that can only return nothing, so an empty team skips the five stat queries.
+          if (userIds.isEmpty) {
+            DBIO.successful(Some(TeamOverview(team, Seq(), TeamTotals(0, 0, 0, 0d, 0, 0)))): DBIO[Option[TeamOverview]]
+          } else {
+            for {
+              labelCounts      <- labelTable.countLabelsAndLatestByUsers(userIds)
+              validationCounts <- labelValidationTable.countValidationsAndLatestByUsers(userIds)
+              distances        <- auditTaskTable.getDistanceAuditedByUsers(userIds)
+              judged           <- labelValidationTable.getValidationCountsForUsers(userIds)
+              quality          <- userStatTable.getQualityAndExclusionForUsers(userIds)
+            } yield {
+              val labelsByUser      = labelCounts.map(row => row._1 -> (row._2, row._3)).toMap
+              val validationsByUser = validationCounts.map(row => row._1 -> (row._2, row._3)).toMap
+              val distanceByUser    = distances.toMap
+              val judgedByUser      = judged.toMap
+              val qualityByUser     = quality.map(row => row._1 -> (row._2, row._3)).toMap
+
+              val rows: Seq[TeamMemberStats] = members
+                .map { case (userId, username, role) =>
+                  val (labels, lastLabel)       = labelsByUser.getOrElse(userId, (0, None))
+                  val (validations, lastVal)    = validationsByUser.getOrElse(userId, (0, None))
+                  val (labelsValidated, agreed) = judgedByUser.getOrElse(userId, (0, 0))
+                  // No user_stat row means they've never visited this city; read that as the default good standing.
+                  val (highQuality, excluded) = qualityByUser.getOrElse(userId, (true, false))
+                  TeamMemberStats(
+                    userId,
+                    username,
+                    role,
+                    labels,
+                    validations,
+                    distanceByUser.getOrElse(userId, 0d),
+                    labelsValidated,
+                    agreed,
+                    Seq(lastLabel, lastVal).flatten.reduceOption((a, b) => if (a.isAfter(b)) a else b),
+                    highQuality,
+                    excluded
+                  )
+                }
+                .sortBy(member => (-member.labels, member.username.toLowerCase))
+
+              val totals = TeamTotals(
+                members = rows.size,
+                labels = rows.map(_.labels).sum,
+                validations = rows.map(_.validations).sum,
+                distanceMeters = rows.map(_.distanceMeters).sum,
+                labelsValidated = rows.map(_.labelsValidated).sum,
+                labelsAgreed = rows.map(_.labelsAgreed).sum
+              )
+              Some(TeamOverview(team, rows, totals))
+            }
+          }
+        }
+    }
+    db.run(overview)
+  }
 
   def createTeam(name: String, description: String): Future[Int] = db.run(teamTable.insert(name, description))
 

@@ -4,7 +4,8 @@ import org.apache.pekko.Done
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.Logger
 import play.api.http.ContentTypes
-import play.api.i18n.I18nSupport
+import controllers.AssetsFinder
+import play.api.i18n.{I18nSupport, Messages}
 import play.api.libs.json.JsObject
 import play.api.mvc._
 
@@ -121,6 +122,22 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
     val jsonSource: Source[String, _] =
       geoJsonFeatureCollection(logStreamFailures(features.map(_.toString), label, warnOnCutOff = false))
     Ok.chunked(jsonSource).as(ContentTypes.JSON)
+  }
+
+  /**
+   * The site's branded 404, for a request that routed fine but named nothing that exists -- a username, a team id.
+   *
+   * @param path The path that matched nothing, echoed back on the page.
+   */
+  protected def notFoundPage(path: String)(implicit messages: Messages, assets: AssetsFinder): Result = {
+    NotFound(
+      views.html.errors.errorPage(
+        NOT_FOUND,
+        Messages("error.404.heading"),
+        Messages("error.404.message"),
+        requestedPath = Some(path)
+      )
+    )
   }
 
   // Could add other common controller utilities here. Not sure if they should be here or in ControllerUtils.scala.

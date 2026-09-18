@@ -378,12 +378,14 @@ Server handoff for {city_id}:
      adds them otherwise (docs/google-cloud.md).
   4. Open the PR with the config, message, and docs changes; the auto-deploy picks the city up once it lands on
      develop (test) and in a release (prod).
-  5. Nightly jobs fill what onboarding leaves empty, so the dump you just copied has none of it: `intersection`
+  5. Add `{city_id},<prod fqdn>` to /etc/sidewalk/cities.csv on the pano scraper host (sidewalk-panorama-tools).
+     The nightly queue picks it up that evening; `scrape_queue.py --only {city_id}` pulls the panos now.
+  6. Nightly jobs fill what onboarding leaves empty, so the dump you just copied has none of it: `intersection`
      (with each street's corner links), `cluster`, `sidewalk_presence`, and the `osm_way` tag cache each arrive
      with their job's first nightly run (the schedule is actor/ScheduledJobs.scala, shifted by the city's
      update_offset_hours), and AccessScore reads zero until then. An admin can force the intersections and
      clusters early from /clustering; the osm_way tags have their own nightly refresh (#5297).
-  6. Round-trip check any time: make import-dump db={schema} restores db/{schema}-dump into the dev DB.
+  7. Round-trip check any time: make import-dump db={schema} restores db/{schema}-dump into the dev DB.
 '''
 
 

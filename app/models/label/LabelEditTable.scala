@@ -14,9 +14,10 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 /**
- * One change to a label's severity and/or tags after its creation (#2575): who made it, from what, to what, and
- * from which UI. The source of truth for edits; `label_history` is the state log derived from them.
+ * One change to a label's type, severity and/or tags after its creation (#2575, #3671): who made it, from what, to
+ * what, and from which UI. The source of truth for edits; `label_history` is the state log derived from them.
  *
+ * @param oldLabelType      The label's type before the edit. Equal to `newLabelType` unless the edit changed it.
  * @param labelValidationId The vote this edit was submitted with, when it was made in a validation tool. Such an
  *                          edit lives and dies with its vote; a standalone edit from the label popup has none.
  */
@@ -24,6 +25,8 @@ case class LabelEdit(
     labelEditId: Int,
     labelId: Int,
     userId: String,
+    oldLabelType: LabelTypeEnum.Base,
+    newLabelType: LabelTypeEnum.Base,
     oldSeverity: Option[Int],
     newSeverity: Option[Int],
     oldTags: List[String],
@@ -34,24 +37,24 @@ case class LabelEdit(
 )
 
 class LabelEditTableDef(tag: slick.lifted.Tag) extends Table[LabelEdit](tag, "label_edit") {
-  def labelEditId: Rep[Int]         = column[Int]("label_edit_id", O.PrimaryKey, O.AutoInc)
-  def labelId: Rep[Int]             = column[Int]("label_id")
-  def userId: Rep[String]           = column[String]("user_id")
-  def oldSeverity: Rep[Option[Int]] = column[Option[Int]]("old_severity") // CHECK: NULL or 1-3.
-  def newSeverity: Rep[Option[Int]] = column[Option[Int]]("new_severity") // CHECK: NULL or 1-3.
+  def labelEditId: Rep[Int]                 = column[Int]("label_edit_id", O.PrimaryKey, O.AutoInc)
+  def labelId: Rep[Int]                     = column[Int]("label_id")
+  def userId: Rep[String]                   = column[String]("user_id")
+  def oldLabelType: Rep[LabelTypeEnum.Base] = column[LabelTypeEnum.Base]("old_label_type")
+  def newLabelType: Rep[LabelTypeEnum.Base] = column[LabelTypeEnum.Base]("new_label_type")
+  // CHECK: NULL or 1-3, and NULL when the type on the same side is unrated (label_edit_unrated_no_severity_check).
+  def oldSeverity: Rep[Option[Int]] = column[Option[Int]]("old_severity")
+  def newSeverity: Rep[Option[Int]] = column[Option[Int]]("new_severity")
   def oldTags: Rep[List[String]]    = column[List[String]]("old_tags")
   def newTags: Rep[List[String]]    = column[List[String]]("new_tags")
   def source: Rep[UiSource]         = column[UiSource]("source")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def editTime: Rep[OffsetDateTime]       = column[OffsetDateTime]("edit_time")
   def labelValidationId: Rep[Option[Int]] = column[Option[Int]]("label_validation_id")
-  // CHECK label_edit_not_noop_check: the severity differs or the tag sets differ.
+  // CHECK label_edit_not_noop_check: the type differs, the severity differs, or the tag sets differ.
 
-  def * =
-    (labelEditId, labelId, userId, oldSeverity, newSeverity, oldTags, newTags, source, editTime, labelValidationId) <> (
-      (LabelEdit.apply _).tupled,
-      LabelEdit.unapply
-    )
+  def * = (labelEditId, labelId, userId, oldLabelType, newLabelType, oldSeverity, newSeverity, oldTags, newTags, source,
+    editTime, labelValidationId) <> ((LabelEdit.apply _).tupled, LabelEdit.unapply)
 
   def label           = foreignKey("label_edit_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def user            = foreignKey("label_edit_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
@@ -100,17 +103,35 @@ class LabelEditTable @Inject() (
       .headOption
 
   /** Extends a folded edit with a later change: its new state and time move, its old state stays. */
-  def updateNewState(labelEditId: Int, severity: Option[Int], tags: List[String], editTime: OffsetDateTime): DBIO[Int] =
+  def updateNewState(
+      labelEditId: Int,
+      labelType: LabelTypeEnum.Base,
+      severity: Option[Int],
+      tags: List[String],
+      editTime: OffsetDateTime
+  ): DBIO[Int] =
     labelEdits
       .filter(_.labelEditId === labelEditId)
-      .map(e => (e.newSeverity, e.newTags, e.editTime))
-      .update((severity, tags, editTime))
+      .map(e => (e.newLabelType, e.newSeverity, e.newTags, e.editTime))
+      .update((labelType, severity, tags, editTime))
 
   /** Rebases an edit onto a different starting state, after the edit before it was unwound. */
-  def updateOldState(labelEditId: Int, severity: Option[Int], tags: List[String]): DBIO[Int] =
-    labelEdits.filter(_.labelEditId === labelEditId).map(e => (e.oldSeverity, e.oldTags)).update((severity, tags))
+  def updateOldState(
+      labelEditId: Int,
+      labelType: LabelTypeEnum.Base,
+      severity: Option[Int],
+      tags: List[String]
+  ): DBIO[Int] =
+    labelEdits
+      .filter(_.labelEditId === labelEditId)
+      .map(e => (e.oldLabelType, e.oldSeverity, e.oldTags))
+      .update((labelType, severity, tags))
 
   def delete(labelEditId: Int): DBIO[Int] = labelEdits.filter(_.labelEditId === labelEditId).delete
+
+  /** Cuts an edit's tie to the vote it came with, leaving it on record as a standalone edit. */
+  def detachFromValidation(labelEditId: Int): DBIO[Int] =
+    labelEdits.filter(_.labelEditId === labelEditId).map(_.labelValidationId).update(None)
 
   /**
    * Edits for the v3 API, joined to their label.
@@ -133,8 +154,9 @@ class LabelEditTable @Inject() (
     val (edit, label) = tuple
     LabelEditDataForApi(
       labelEditId = edit.labelEditId, labelId = edit.labelId, labelType = label.labelType.name, userId = edit.userId,
-      oldSeverity = edit.oldSeverity, newSeverity = edit.newSeverity, oldTags = edit.oldTags, newTags = edit.newTags,
-      source = edit.source, editTime = edit.editTime, labelValidationId = edit.labelValidationId
+      oldLabelType = edit.oldLabelType.name, newLabelType = edit.newLabelType.name, oldSeverity = edit.oldSeverity,
+      newSeverity = edit.newSeverity, oldTags = edit.oldTags, newTags = edit.newTags, source = edit.source,
+      editTime = edit.editTime, labelValidationId = edit.labelValidationId
     )
   }
 }

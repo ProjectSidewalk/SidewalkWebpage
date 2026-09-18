@@ -21,6 +21,7 @@ object AiImageSource extends Enumeration {
 case class LabelAiAssessment(
     labelAiAssessmentId: Int,
     labelId: Int,
+    labelType: LabelTypeEnum.Base,
     validationResult: ValidationOption.Value,
     validationAccuracy: Double,
     validationConfidence: Double,
@@ -40,6 +41,7 @@ case class LabelAiAssessment(
 class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, "label_ai_assessment") {
   def labelAiAssessmentId: Rep[Int]                 = column[Int]("label_ai_assessment_id", O.PrimaryKey, O.AutoInc)
   def labelId: Rep[Int]                             = column[Int]("label_id")
+  def labelType: Rep[LabelTypeEnum.Base]            = column[LabelTypeEnum.Base]("label_type")
   def validationResult: Rep[ValidationOption.Value] = column[ValidationOption.Value]("validation_result")
   def validationAccuracy: Rep[Double]               = column[Double]("validation_accuracy")
   def validationConfidence: Rep[Double]             = column[Double]("validation_confidence")
@@ -58,9 +60,9 @@ class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, 
   def aiImageSource: Rep[AiImageSource]   = column[AiImageSource]("ai_image_source")
 
   def * =
-    (labelAiAssessmentId, labelId, validationResult, validationAccuracy, validationConfidence, tags, tagsNotPresent,
-      tagsConfidence, apiVersion, validatorModelId, validatorTrainingDate, taggerModelId, taggerTrainingDate, timestamp,
-      labelValidationId, aiImageSource) <> (
+    (labelAiAssessmentId, labelId, labelType, validationResult, validationAccuracy, validationConfidence, tags,
+      tagsNotPresent, tagsConfidence, apiVersion, validatorModelId, validatorTrainingDate, taggerModelId,
+      taggerTrainingDate, timestamp, labelValidationId, aiImageSource) <> (
       (LabelAiAssessment.apply _).tupled,
       LabelAiAssessment.unapply
     )

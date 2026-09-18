@@ -39,6 +39,8 @@ class LabelEditsApiContractSpec extends PlaySpec with GuiceOneAppPerSuite {
         (e \ "label_id").asOpt[Int] mustBe defined
         (e \ "label_type").asOpt[String] mustBe defined
         (e \ "user_id").asOpt[String] mustBe defined
+        (e \ "old_label_type").asOpt[String] mustBe defined
+        (e \ "new_label_type").asOpt[String] mustBe defined
         (e \ "old_tags").asOpt[Seq[String]] mustBe defined
         (e \ "new_tags").asOpt[Seq[String]] mustBe defined
         (e \ "source").asOpt[String] mustBe defined
@@ -52,8 +54,8 @@ class LabelEditsApiContractSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/v3/api/labelEdits?filetype=csv")).get
       status(resp) mustBe OK
       contentAsString(resp).linesIterator.next() mustBe
-        "label_edit_id,label_id,label_type,user_id,old_severity,new_severity,old_tags,new_tags," +
-        "source,edit_time,label_validation_id"
+        "label_edit_id,label_id,label_type,user_id,old_label_type,new_label_type,old_severity,new_severity," +
+        "old_tags,new_tags,source,edit_time,label_validation_id"
     }
 
     "filter by a valid source and return only that source" in {

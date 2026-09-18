@@ -181,7 +181,8 @@
         "Signal" : 0.5,
         "NoSidewalk" : 2
       }
-    }
+    },
+    "min_region_completion" : 0.8
   },
   "streets" : [ {
     "name" : "empty street",
@@ -611,7 +612,7 @@
       "Signal" : 0,
       "NoSidewalk" : 0
     },
-    "score" : 0.5926665999540698,
+    "score" : 0.5926665999540697,
     "reweighted" : [ {
       "preset" : "barriers",
       "sub_scores" : {
@@ -623,7 +624,7 @@
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.5926665999540698
+      "score" : 0.5926665999540697
     }, {
       "preset" : "infrastructure",
       "sub_scores" : {
@@ -2932,7 +2933,7 @@
       "Signal" : 0,
       "NoSidewalk" : -0.6666666666666666
     },
-    "score" : 0.0013630497232567267,
+    "score" : 0.0013630497232567265,
     "reweighted" : [ {
       "preset" : "barriers",
       "sub_scores" : {
@@ -3065,7 +3066,7 @@
       "Signal" : 0,
       "NoSidewalk" : -0.6666666666666666
     },
-    "score" : 0.0013630497232567267,
+    "score" : 0.0013630497232567265,
     "reweighted" : [ {
       "preset" : "barriers",
       "sub_scores" : {
@@ -4023,7 +4024,7 @@
         "Signal" : 0.65,
         "NoSidewalk" : -3
       },
-      "score" : 0.008697624682062146
+      "score" : 0.008697624682062144
     } ],
     "length_meters" : 296.5
   }, {
@@ -5242,7 +5243,7 @@
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.3094149698941045
+      "score" : 0.30941496989410455
     }, {
       "preset" : "infrastructure",
       "sub_scores" : {
@@ -6500,7 +6501,7 @@
         "Signal" : 1.15,
         "NoSidewalk" : 0
       },
-      "score" : 0.07802380049753341
+      "score" : 0.0780238004975334
     }, {
       "preset" : "infrastructure",
       "sub_scores" : {
@@ -9630,7 +9631,7 @@
         "Signal" : 1.5,
         "NoSidewalk" : -0.9166666666666666
       },
-      "score" : 0.282941144335898
+      "score" : 0.28294114433589795
     }, {
       "preset" : "missing_ramps",
       "sub_scores" : {
@@ -11115,7 +11116,7 @@
         "Signal" : 0.75,
         "NoSidewalk" : 0
       },
-      "score" : 0.48438008427698437
+      "score" : 0.4843800842769844
     }, {
       "preset" : "missing_ramps",
       "sub_scores" : {
@@ -12939,7 +12940,7 @@
         "Signal" : 0.9,
         "NoSidewalk" : 0
       },
-      "score" : 0.25350601666233785
+      "score" : 0.2535060166623378
     } ]
   }, {
     "name" : "random intersection 16",
@@ -13282,7 +13283,7 @@
       "Signal" : 0.4,
       "NoSidewalk" : 0
     },
-    "score" : 0.6094497836283251,
+    "score" : 0.6094497836283252,
     "reweighted" : [ {
       "preset" : "barriers",
       "sub_scores" : {

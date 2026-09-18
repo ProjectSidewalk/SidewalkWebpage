@@ -216,6 +216,9 @@ its default either way.
   site; a local run's rows stay local, since the dump leaves those tables' data out. The `osm_way` tags come from
   their own nightly refresh, and until they land every intersection is `grade_separated = FALSE`, which is why
   deriving them during onboarding would not help (#5297).
+- **The pano scraper.** Add `<city-id>,<prod fqdn>` to `/etc/sidewalk/cities.csv` on the scraper host
+  ([`sidewalk-panorama-tools`](https://github.com/ProjectSidewalk/sidewalk-panorama-tools)). The nightly queue picks
+  it up that evening; `scrape_queue.py --only <city-id>` pulls the panos now.
 - **Server.** `scp db/<schema>-dump <netid>@makelab1.cs.washington.edu:/www/sidewalk/new-city-dumps/<schema>-empty-dump`
   — the destination follows the convention every file in that directory uses, while the local name stays
   `<schema>-dump`, which is what `make import-dump` restores and what a populated prod pull is called too. (An ssh
@@ -230,10 +233,6 @@ its default either way.
 
 ## Optional follow-ups
 
-- **Pano scraper**, only when the deployment is also a computer-vision dataset: once prod is up, create the city's
-  directory under `sidewalk_panos/Panoramas/<city-id>` on the panorama store, seed it with a `log.csv` carrying the
-  same headers as the other cities' scraper logs (no trailing newline), and add a crontab entry for the city on the
-  scraper host, copied from another city's and spaced out to a different hour. Mikey holds the access to both.
 - **Uptime monitoring.** In [Uptime Robot](https://uptimerobot.com/), add an HTTP(s) monitor at a 5-minute interval
   on the `/signIn` endpoint of each stage (e.g. `https://sidewalk-<city>-test.cs.washington.edu/signIn`).
 - **A launch limited to an arbitrary boundary** (streets around transit stations, say) has no tooling: phased launches

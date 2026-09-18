@@ -355,5 +355,39 @@
     "no-image-to-judge": "Kein Bild, um dieses Label zu beurteilen",
     "vote-failed": "Deine Stimme wurde nicht gespeichert. Bitte versuche es erneut."
   },
-  "download-already-preparing": "Diese Datei wird bereits für eine andere Anfrage vorbereitet. Bitte versuchen Sie es gleich noch einmal."
+  "download-already-preparing": "Diese Datei wird bereits für eine andere Anfrage vorbereitet. Bitte versuchen Sie es gleich noch einmal.",
+  "label-type-picker": {
+    "current": "{{labelType}} (aktueller Typ)",
+    "change": "ändern"
+  },
+  "access-score-spotlight": {
+    "subtitle-regions": "Die Gehwege jedes Quartiers werden von unserem <a href=\"{{href}}\">AccessScore</a>-Algorithmus mit 0 bis 100 bewertet (100 ist am besten).",
+    "subtitle-streets": "Die Gehwege jeder Straße werden von unserem <a href=\"{{href}}\">AccessScore</a>-Algorithmus mit 0 bis 100 bewertet (100 ist am besten).",
+    "subtitle-one-region": "Diese Stadt ist als ein einziges Quartier kartiert, es gibt also nur eine Bewertung. Wechseln Sie zu Straßen für einen genaueren Blick.",
+    "units-label": "Quartiere oder Straßen einordnen",
+    "unit-regions": "Quartiere",
+    "unit-streets": "Straßen",
+    "highest": "Höchste Werte (ab {{score}})",
+    "lowest": "Niedrigste Werte (unter {{score}})",
+    "ranked-so-far": "Bisher eingeordnet",
+    "closest": "Kurz vor der Einordnung",
+    "empty-highest-regions": "Noch kein Quartier erreicht {{score}} oder mehr.",
+    "empty-highest-streets": "Noch keine Straße erreicht {{score}} oder mehr.",
+    "empty-lowest-regions": "Kein Quartier liegt unter {{score}}.",
+    "empty-lowest-streets": "Keine Straße liegt unter {{score}}.",
+    "count-regions": "Nur Quartiere, die zu mindestens {{percent}}% erkundet sind, werden eingeordnet – bisher {{qualifying}} von {{total}}.",
+    "count-streets": "Nur Straßen von mindestens {{minLength}} mit mehreren kartierten Merkmalen werden eingeordnet – bisher {{qualifying}} von {{total}}.",
+    "updated-nightly": "Täglich nachts aktualisiert",
+    "updated-info": "Die Bewertungen werden jede Nacht aus allen bis dahin gesetzten Markierungen neu berechnet. Eine Markierung, die Sie heute hinzufügen, zählt morgen.",
+    "updated-last": "Zuletzt aktualisiert am {{date}}.",
+    "cta-regions": "Alle Quartiere im AccessScore-Werkzeug ansehen",
+    "cta-streets": "Alle Straßen im AccessScore-Werkzeug ansehen",
+    "explore": "Erkunden",
+    "explore-region": "{{name}} erkunden",
+    "street-sub": "{{region}} · {{length}}",
+    "region-sub": "{{length}} Straßen · {{clusters}} Cluster",
+    "region-sub-pending": "{{length}} Straßen · {{percent}}% erkundet",
+    "street-in-city": "{{region}}, {{city}}",
+    "unnamed": "Straße ohne Namen"
+  }
 }

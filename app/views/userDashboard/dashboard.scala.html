@@ -462,6 +462,7 @@
      belongs to the card it's inside, and its save would refresh that card rather than this list. *@
   @common.storyComposer("ud-story-composer")
   <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/label-type-picker.css")' rel="stylesheet">
   <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
   @if(commonData.imagerySource == PanoSource.Infra3d) {
     <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
@@ -485,6 +486,7 @@
   <script src='@assets.path("js/common/label-detail/StorySection.js")'></script>
   <script src='@assets.path("js/common/share/ShareWidget.js")'></script>
   <script src='@assets.path("js/common/label-detail/TagEditor.js")'></script>
+  <script src='@assets.path("js/common/LabelTypePicker.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
 

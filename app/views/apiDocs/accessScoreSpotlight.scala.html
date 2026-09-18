@@ -1,0 +1,189 @@
+@import models.utils.SeoUtils
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@cityName = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head.cityNameFormatted}
+
+@content = {
+  <div class="page-section" id="access-score-spotlight-intro-section">
+    <h1 class="page-heading" id="access-score-spotlight-api">AccessScore: Spotlight API <a href="#access-score-spotlight-api" class="permalink">#</a></h1>
+    <p>The AccessScore: Spotlight API returns the <strong>highest- and lowest-scoring</strong> neighborhoods, or streets, in @cityName — the feed behind the AccessScore Spotlight module on the home page and on <a href="/cities">/cities</a>. It answers from a snapshot written once a night, at the end of the label-clustering run, so asking for it never sets a whole city's AccessScore recomputing.</p>
+    <p>This endpoint returns <strong>JSON only</strong>. It is a page feed rather than a data export: the scores it ranks are downloadable in every format from the <a href="@routes.ApiDocsController.accessScoreRegions">AccessScore: Regions API</a> and the <a href="@routes.ApiDocsController.accessScoreStreets">AccessScore: Streets API</a>.</p>
+    <p class="download-note"><strong>One method, not the method.</strong> There is no single correct way to measure street- and neighborhood-level accessibility. AccessScore implements one experimental algorithm, and a ranking built on it reflects what volunteers have found so far rather than an official assessment. Read <code>qualifying</code> and <code>total</code> alongside the lists: in most cities only part of the map has enough data to be ranked at all.</p>
+  </div>
+
+  <div class="page-section" id="endpoint-section">
+    <h2 class="page-heading" id="endpoint">Endpoint<a href="#endpoint" class="permalink">#</a></h2>
+    <p><code>GET /v3/api/accessScoreSpotlight</code></p>
+    <div class="api-subsection" id="endpoint-example-section">
+      <h3 class="page-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+      <p><code><a target="_blank" href="/v3/api/accessScoreSpotlight">/v3/api/accessScoreSpotlight</a></code> The top and bottom 5 neighborhoods in this city</p>
+      <p><code><a target="_blank" href="/v3/api/accessScoreSpotlight?unit=streets">/v3/api/accessScoreSpotlight?unit=streets</a></code> The top and bottom 5 streets</p>
+      <p><code><a target="_blank" href="/v3/api/accessScoreSpotlight?unit=regions&n=10">/v3/api/accessScoreSpotlight?unit=regions&amp;n=10</a></code> Ten rows in each list</p>
+      <p><code><a target="_blank" href="/v3/api/accessScoreSpotlight?scope=cities">/v3/api/accessScoreSpotlight?scope=cities</a></code> The same ranking across every publicly launched Project Sidewalk city</p>
+    </div>
+  </div>
+
+  <div class="page-section" id="what-qualifies-section">
+    <h2 class="page-heading" id="what-qualifies">What gets ranked<a href="#what-qualifies" class="permalink">#</a></h2>
+    <p>A score only describes the part of a place that volunteers have actually looked at, so a unit has to clear a bar before it is ranked anywhere.</p>
+    <ul>
+      <li><strong>Neighborhoods</strong> need a score and at least <code>min_completion</code> of their street length explored — the same distance-based completion the home page's choropleth colors, published as <code>min_region_completion</code> by the <a href="/v3/api/accessScoreConfig">AccessScore configuration</a>. The AccessScore tool applies the same floor, so the two can never disagree about who is ranked.</li>
+      <li><strong>Streets</strong> are grouped by OSM way within a neighborhood, because a street edge is one block of a way and a list of edges would print the same street name a dozen times. Each row is that named stretch: its score is the length-weighted mean of its explored edges, and its <code>street_edge_id</code> is the longest edge in the group. A stretch is ranked once it has been explored, is at least 100&nbsp;m long, and carries either three or more label clusters or none at all — a confirmed absence of problems is a finding, while one or two clusters on a long street says little either way.</li>
+    </ul>
+    <p>Streets that score alike are ordered by how many validations their labels have received (the best-checked first), then by a random number drawn once per nightly run, so a list of equal scores stays in one order for the day rather than reshuffling between two page loads.</p>
+  </div>
+
+  <div class="page-section" id="query-parameters-section">
+    <h2 class="page-heading" id="query-parameters">Query Parameters<a href="#query-parameters" class="permalink">#</a></h2>
+    <p>All parameters are optional.</p>
+    <div class="ps-table-wrapper" tabindex="0" role="region" aria-labelledby="query-parameters">
+      <table class="ps-table">
+        <thead>
+          <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>unit</code></td>
+            <td><code>string</code></td>
+            <td>What to rank: <code>regions</code> (default) or <code>streets</code>.</td>
+          </tr>
+          <tr>
+            <td><code>n</code></td>
+            <td><code>integer</code></td>
+            <td>How many rows each list holds, 1–25. Default: <code>5</code>.</td>
+          </tr>
+          <tr>
+            <td><code>scope</code></td>
+            <td><code>string</code></td>
+            <td><code>cities</code> ranks across every publicly launched Project Sidewalk deployment and stamps each row with the city it came from. Omitted, the ranking covers this city alone.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="page-section" id="responses-section">
+    <h2 class="page-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
+
+    <h3 class="page-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
+    <pre><code class="language-json">{
+  "unit": "regions",
+  "min_completion": 0.8,
+  "min_street_length_m": 100,
+  "highest_min_score": 0.5,
+  "lowest_max_score": 0.5,
+  "qualifying": 66,
+  "total": 79,
+  "computed_at": "2026-09-16T03:14:22Z",
+  "top": [
+    {
+      "region_id": 281,
+      "name": "Capitol Hill",
+      "score": 0.842,
+      "completion_rate": 0.97,
+      "audited_distance_m": 128411.2,
+      "total_distance_m": 132382.7,
+      "cluster_count": 6120
+    }
+  ],
+  "bottom": [
+    {
+      "region_id": 304,
+      "name": "South Park",
+      "score": 0.313,
+      "completion_rate": 0.88,
+      "audited_distance_m": 41220.7,
+      "total_distance_m": 46841.7,
+      "cluster_count": 1493
+    }
+  ],
+  "nearest": []
+}</code></pre>
+
+    <h4 id="response-fields">Field Descriptions <a href="#response-fields" class="permalink">#</a></h4>
+    <div class="ps-table-wrapper" tabindex="0" role="region" aria-labelledby="response-fields">
+      <table class="ps-table">
+        <thead>
+          <tr><th class="api-field-col">Field Path</th><th class="api-type-col">Type</th><th class="api-desc-col">Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>unit</code></td><td><code>string</code></td><td>Which unit was ranked: <code>regions</code> or <code>streets</code>.</td></tr>
+          <tr><td><code>min_completion</code></td><td><code>number</code></td><td>The share of a neighborhood's street length that must be explored before it is ranked, in <code>[0,&nbsp;1]</code>.</td></tr>
+          <tr><td><code>min_street_length_m</code></td><td><code>number</code></td><td>The length a stretch of street must reach before it is ranked, in meters.</td></tr>
+          <tr><td><code>highest_min_score</code></td><td><code>number</code></td><td>The score a ranked unit needs to appear in <code>top</code>, in <code>[0,&nbsp;1]</code>.</td></tr>
+          <tr><td><code>lowest_max_score</code></td><td><code>number</code></td><td>The score a ranked unit must be under to appear in <code>bottom</code>, in <code>[0,&nbsp;1]</code>. The two lists never overlap; a unit between the two bars, if they differ, is in neither.</td></tr>
+          <tr><td><code>qualifying</code></td><td><code>integer</code></td><td>How many units cleared every bar and are therefore ranked.</td></tr>
+          <tr><td><code>total</code></td><td><code>integer</code></td><td>How many units the city has in all.</td></tr>
+          <tr><td><code>computed_at</code></td><td><code>string</code></td><td>The nightly run that produced these rows, as the timestamp it stamped on every row it wrote (ISO 8601). <code>null</code> before the first run. Under <code>scope=cities</code> this is the <em>oldest</em> of the contributing cities' runs, so it is true of every row rather than only the freshest one.</td></tr>
+          <tr><td><code>top</code></td><td><code>array</code></td><td>With <code>n</code> or more units ranked: the best of those scoring at least <code>highest_min_score</code>, best first &mdash; fewer than <code>n</code> rows when fewer clear it, and empty when none does. With fewer than <code>n</code> ranked there is no highest-and-lowest to show, so this holds every ranked unit, best first.</td></tr>
+          <tr><td><code>bottom</code></td><td><code>array</code></td><td>With <code>n</code> or more units ranked: the worst of those scoring under <code>lowest_max_score</code>, worst first; empty otherwise. Never overlaps <code>top</code>.</td></tr>
+          <tr><td><code>nearest</code></td><td><code>array</code></td><td>Neighborhoods closest to the completion floor, best-explored first — the "help the next one across the line" list. Populated only when fewer than <code>n</code> units qualify, and only for <code>unit=regions</code> without <code>scope=cities</code>; empty otherwise.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4 id="region-row-fields">Neighborhood Row <a href="#region-row-fields" class="permalink">#</a></h4>
+    <div class="ps-table-wrapper" tabindex="0" role="region" aria-labelledby="region-row-fields">
+      <table class="ps-table">
+        <thead>
+          <tr><th class="api-field-col">Field Path</th><th class="api-type-col">Type</th><th class="api-desc-col">Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>region_id</code></td><td><code>integer</code></td><td>Project Sidewalk's identifier for the neighborhood.</td></tr>
+          <tr><td><code>name</code></td><td><code>string</code></td><td>The neighborhood's name.</td></tr>
+          <tr><td><code>score</code></td><td><code>number</code></td><td>Its AccessScore in <code>[0,&nbsp;1]</code>; <code>null</code> when none of its streets has been explored (only ever seen in <code>nearest</code>).</td></tr>
+          <tr><td><code>completion_rate</code></td><td><code>number</code></td><td>The share of its street length explored, in <code>[0,&nbsp;1]</code>.</td></tr>
+          <tr><td><code>audited_distance_m</code></td><td><code>number</code></td><td>How much of that street length has been explored, in meters.</td></tr>
+          <tr><td><code>total_distance_m</code></td><td><code>number</code></td><td>Its whole street length in meters &mdash; the neighborhood's size, which the module prints under the name so a score can be weighed against it.</td></tr>
+          <tr><td><code>cluster_count</code></td><td><code>integer</code></td><td>How many label clusters the score is built from, on its streets and at its intersections: the evidence behind the number.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4 id="street-row-fields">Street Row <a href="#street-row-fields" class="permalink">#</a></h4>
+    <div class="ps-table-wrapper" tabindex="0" role="region" aria-labelledby="street-row-fields">
+      <table class="ps-table">
+        <thead>
+          <tr><th class="api-field-col">Field Path</th><th class="api-type-col">Type</th><th class="api-desc-col">Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>osm_way_id</code></td><td><code>integer</code></td><td>The OSM way the stretch belongs to.</td></tr>
+          <tr><td><code>street_edge_id</code></td><td><code>integer</code></td><td>The longest street edge in the group, which is what the AccessScore tool's <code>?sel=</code> opens on.</td></tr>
+          <tr><td><code>region_id</code></td><td><code>integer</code></td><td>The neighborhood the stretch lies in.</td></tr>
+          <tr><td><code>region_name</code></td><td><code>string</code></td><td>That neighborhood's name.</td></tr>
+          <tr><td><code>name</code></td><td><code>string</code></td><td>The way's OSM name; <code>null</code> for an unnamed way.</td></tr>
+          <tr><td><code>score</code></td><td><code>number</code></td><td>Length-weighted AccessScore of its explored edges, in <code>[0,&nbsp;1]</code>.</td></tr>
+          <tr><td><code>length_m</code></td><td><code>number</code></td><td>The whole stretch's length in meters, explored or not.</td></tr>
+          <tr><td><code>cluster_count</code></td><td><code>integer</code></td><td>Scored label clusters along it, the evidence behind the score.</td></tr>
+          <tr><td><code>validation_count</code></td><td><code>integer</code></td><td>Validations cast on its labels.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4 id="cities-scope-fields">Cross-city Rows <a href="#cities-scope-fields" class="permalink">#</a></h4>
+    <p>With <code>scope=cities</code>, every row additionally carries <code>city_id</code>, <code>city_name</code>, and <code>city_url</code> — the deployment it came from and its public address. Only publicly launched cities are listed, and <code>qualifying</code> and <code>total</code> are the sums across them.</p>
+
+    <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
+    <ul>
+      <li><strong><code>400 Bad Request</code>:</strong> An unknown <code>unit</code>, or an <code>n</code> outside 1–25.</li>
+      <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
+    </ul>
+    @apiDocs.errorResponseBody()
+  </div>
+
+  <div class="page-section" id="best-practices-section">
+    <h2 class="page-heading" id="best-practices">Best Practices<a href="#best-practices" class="permalink">#</a></h2>
+    <ul>
+      <li><strong>Print <code>qualifying</code> of <code>total</code> beside the lists.</strong> A top five drawn from six ranked neighborhoods means something quite different from one drawn from sixty.</li>
+      <li><strong>Say when it was computed.</strong> These rows change once a night, so a label placed today moves them tomorrow — <code>computed_at</code> is what tells a reader that.</li>
+      <li><strong>Drill down:</strong> use the <a href="@routes.ApiDocsController.accessScoreRegions">AccessScore: Regions API</a> and <a href="@routes.ApiDocsController.accessScoreStreets">AccessScore: Streets API</a> for the full, unranked scores and the per-type breakdowns behind them.</li>
+    </ul>
+  </div>
+}
+
+@common.main(commonData, SeoUtils.apiDocsTitle("Access Score Spotlight API")) {
+  @common.navbar(commonData, user)
+  @apiDocs.layout("access-score-spotlight")(content)
+}

@@ -9,6 +9,7 @@ import formats.json.MissionFormats._
 import formats.json.ValidateFormats.{
   EnvironmentSubmission,
   LabelMapValidationSubmission,
+  LabelValidationSubmission,
   MoreLabelsRequest,
   ValidationTaskSubmission
 }
@@ -16,7 +17,13 @@ import models.auth.WithAdmin
 import models.label.{LabelTypeEnum, Tag}
 import models.mission.MissionType
 import models.user._
-import models.validation.{LabelValidation, ValidationTaskComment, ValidationTaskEnvironment, ValidationTaskInteraction}
+import models.validation.{
+  LabelValidation,
+  ValidationOption,
+  ValidationTaskComment,
+  ValidationTaskEnvironment,
+  ValidationTaskInteraction
+}
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json._
@@ -52,7 +59,8 @@ class ValidateController @Inject() (
     userService: service.UserService,
     panoDataService: service.PanoDataService,
     osmWayService: service.OsmWayService,
-    missionService: service.MissionService
+    missionService: service.MissionService,
+    aiService: service.AiService
 )(implicit assets: AssetsFinder)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -353,14 +361,25 @@ class ValidateController @Inject() (
   ): Future[Result] = {
     val currTime: OffsetDateTime = data.timestamp
 
+    // The type each vote was cast on: what the tool showed, or the mission's type for a client that doesn't say.
+    def labelTypeSeen(newVal: LabelValidationSubmission): LabelTypeEnum.Base =
+      newVal.labelType.orElse(data.missionProgress.map(_.labelType)).get
+    if (data.validations.exists(_.labelType.isEmpty) && data.missionProgress.isEmpty) {
+      return Future.successful(
+        BadRequest(Json.obj("status" -> "Error", "message" -> "validations need a label_type or a mission_progress"))
+      )
+    }
+
     // First do all the important stuff that needs to be done synchronously.
     val response: Future[Result] = for {
       // Insert validations and comments (if there are any).
       _ <- validationService.submitValidations(data.validations.map { newVal =>
         ValidationSubmission(
-          LabelValidation(0, newVal.labelId, newVal.validationResult, user.userId, newVal.missionId, newVal.canvasX,
-            newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth,
-            newVal.startTimestamp, newVal.endTimestamp, newVal.source, newVal.viewerType),
+          LabelValidation(0, newVal.labelId, labelTypeSeen(newVal), newVal.validationResult, user.userId,
+            newVal.missionId, newVal.canvasX, newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom,
+            newVal.canvasHeight, newVal.canvasWidth, newVal.startTimestamp, newVal.endTimestamp, newVal.source,
+            newVal.viewerType),
+          newVal.newLabelType,
           newVal.severity,
           newVal.tags,
           newVal.comment.map(c =>
@@ -374,6 +393,12 @@ class ValidateController @Inject() (
           canEdit = isAdmin(user)
         )
       })
+      // Not waited on: the AI's old assessment was about the old type, and the nightly sweep can take days.
+      _ = data.validations
+        .filter(v =>
+          v.newLabelType.isDefined && v.validationResult == ValidationOption.Agree && !v.undone && isAdmin(user)
+        )
+        .foreach(v => aiService.reassessAfterTypeChange(v.labelId))
 
       // Get data to return in POST response. Not much unless the mission is over and we need the next batch of labels.
       returnValue <- labelService.getDataForValidatePostRequest(user, data.missionProgress, data.validateParams)
@@ -537,29 +562,44 @@ class ValidateController @Inject() (
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       newVal => {
-        for {
-          mission <- missionService.resumeOrCreateNewValidateMission(
-            userId,
-            MissionType.LabelmapValidation,
-            newVal.labelType
-          )
-          newValIds <- validationService.submitValidations(
-            Seq(
-              ValidationSubmission(
-                LabelValidation(0, newVal.labelId, newVal.validationResult, userId, mission.get.missionId,
-                  newVal.canvasX, newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight,
-                  newVal.canvasWidth, newVal.startTimestamp, newVal.endTimestamp, newVal.source, newVal.viewerType),
-                newVal.severity,
-                newVal.tags,
-                comment = None,
-                newVal.undone,
-                newVal.redone,
-                canEdit = isAdmin(request.identity)
+        labelService.findLabel(newVal.labelId).flatMap {
+          case None => Future.successful(NotFound(Json.obj("status" -> "Error", "message" -> "No such label")))
+          // The popup judged a type the label no longer has (#3671); it reloads and the user votes again.
+          case Some(label) if label.labelType != newVal.labelType =>
+            Future.successful(Conflict(Json.obj("status" -> "Conflict", "label_type" -> label.labelType.name)))
+          case Some(label) =>
+            for {
+              mission <- missionService.resumeOrCreateNewValidateMission(
+                userId,
+                MissionType.LabelmapValidation,
+                label.labelType
               )
-            )
-          )
-        } yield {
-          Ok(Json.obj("status" -> "Success"))
+              newValIds <- validationService.submitValidations(
+                Seq(
+                  ValidationSubmission(
+                    LabelValidation(0, newVal.labelId, newVal.labelType, newVal.validationResult, userId,
+                      mission.get.missionId, newVal.canvasX, newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom,
+                      newVal.canvasHeight, newVal.canvasWidth, newVal.startTimestamp, newVal.endTimestamp,
+                      newVal.source, newVal.viewerType),
+                    newVal.newLabelType,
+                    newVal.severity,
+                    newVal.tags,
+                    comment = None,
+                    newVal.undone,
+                    newVal.redone,
+                    canEdit = isAdmin(request.identity)
+                  )
+                )
+              )
+            } yield {
+              if (
+                newVal.newLabelType.isDefined && newVal.validationResult == ValidationOption.Agree && !newVal.undone &&
+                isAdmin(request.identity)
+              ) {
+                aiService.reassessAfterTypeChange(newVal.labelId)
+              }
+              Ok(Json.obj("status" -> "Success"))
+            }
         }
       }
     )

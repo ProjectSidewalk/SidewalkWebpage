@@ -89,7 +89,8 @@ the app dir, #4925):
 
 `cropped.image.directory` additionally holds the **label crops** (#4865), cut from the self-hosted panorama store
 (`pano.images.directory`, which the nightly panorama-tools scraper fills) by the nightly `CropGenerationActor` via
-`CropService`, under `<city-id>/<LabelType>/`. They are disposable — delete the store and the next run rebuilds it —
+`CropService`, under `<city-id>/<LabelType>/` (a label whose type is edited has its crop moved to the new type's
+directory by `LabelEditService`). They are disposable — delete the store and the next run rebuilds it —
 which is why they live beside the app's other derived media rather than in the panorama store, which the app only
 reads.
 
@@ -159,6 +160,13 @@ generation, OSM way refresh, AI validations, and auth-token cleanup. The schedul
 `app/actor/ScheduledJobs.scala`: each actor reads its own time from there, staggered across the small hours and
 shifted per city by `ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and
 provider quotas.
+
+Label clustering closes with the **AccessScore Spotlight snapshot** (#5215), which writes `region_access_score`
+and `street_access_score` from the clusters that run just built: one row per region per night (kept, so the table is
+a score history) and one row per OSM way per region, replaced each run. The landing page and `/cities` read only
+those two tables, which is what makes a ranked AccessScore safe to put on a page nobody waits for. Like the
+intersection rebuild it records its own run and is recovered rather than propagated, so a clustering success never
+stands in for a snapshot nobody wrote.
 
 Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
 and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one
@@ -265,8 +273,9 @@ corresponding Twirl view:
 - **`gallery/`** — browsable, filterable gallery of labels.
 - **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one
   `<PageName>Page.js` per route, loaded by that page's Twirl template. `AdminShell.js` loads on every one of those
-  pages and holds the shared formatting helpers (escaping, numbers, durations, relative times, the standard table
-  markup).
+  pages (and the user dashboard's) and holds the shared shell behaviors — the "On this page" list and its
+  scroll-spy, and keeping a deep link's target in place while sections above it are still loading — plus the shared
+  formatting helpers (escaping, numbers, durations, relative times, the standard table markup).
 - **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles, plus the admin's view of a user's dashboard (`/admin/user/:username`). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
 - **`api-docs/`** — the `/api-docs` reference pages: one `<endpoint>Preview.js` per page renders a live sample of
   that endpoint, alongside `apiDocs.js` (shell behavior), `apiTableWrapper.js`, and `apiDocsTheme.js`
@@ -295,6 +304,14 @@ corresponding Twirl view:
   (`--color-score-ramp-dark-*`, passed per call as `{ mode: 'dark' }`) with a second chrome palette; the band and
   popups stay light and keep the light ramp. Grunt-bundled to `access-score/build/`; the shared score ramp is
   `common/scoreRamp.js`.
+- **`AccessScoreSpotlight.js`** — the AccessScore Spotlight (#5215), a standalone module (no Grunt bundle) that the
+  landing page and `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked
+  lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which
+  answers from the nightly snapshot tables; nothing is fetched until the visitor's first interaction, and the
+  section hides itself when the city has nothing ranked. Hovering or focusing a row lights that neighborhood on the
+  landing choropleth — or that city's circle on `/cities` — through the same `hover` feature-state the maps' own
+  pointer handlers use, and the map never moves. The completion floor below which a neighborhood is not ranked is
+  the backend's `min_region_completion`, the same number the AccessScore tool hatches by.
 - **`ps-map/`** — shared map component used across pages.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is

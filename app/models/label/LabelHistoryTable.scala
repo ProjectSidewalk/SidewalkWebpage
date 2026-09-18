@@ -11,12 +11,13 @@ import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 
 /**
- * The state of a label's severity and tags at one point in its life: its creation (one row per label, `labelEditId`
- * empty) and then after each edit (one row per `label_edit`, the source of truth this log is derived from).
+ * A label's type, severity and tags at one point in its life: its creation (one row per label, `labelEditId` empty),
+ * then after each edit (one row per `label_edit`, the source of truth this log is derived from).
  */
 case class LabelHistory(
     labelHistoryId: Int,
     labelId: Int,
+    labelType: LabelTypeEnum.Base,
     severity: Option[Int],
     tags: Seq[String],
     editedBy: String,
@@ -26,8 +27,10 @@ case class LabelHistory(
 )
 
 class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](tag, "label_history") {
-  def labelHistoryId: Rep[Int]   = column[Int]("label_history_id", O.PrimaryKey, O.AutoInc)
-  def labelId: Rep[Int]          = column[Int]("label_id")
+  def labelHistoryId: Rep[Int]           = column[Int]("label_history_id", O.PrimaryKey, O.AutoInc)
+  def labelId: Rep[Int]                  = column[Int]("label_id")
+  def labelType: Rep[LabelTypeEnum.Base] = column[LabelTypeEnum.Base]("label_type")
+  // CHECK: NULL or 1-3, and NULL when the type is unrated (label_history_unrated_no_severity_check).
   def severity: Rep[Option[Int]] = column[Option[Int]]("severity")
   def tags: Rep[List[String]]    = column[List[String]]("tags", O.Default(List()))
   def editedBy: Rep[String]      = column[String]("edited_by")
@@ -38,14 +41,14 @@ class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](ta
 
   // Need to do all this nonsense just to convert tags from a List to a Seq, since Slick doesn't have support for Seq.
   def * = (
-    labelHistoryId, labelId, severity, tags, editedBy, editTime, source, labelEditId
+    labelHistoryId, labelId, labelType, severity, tags, editedBy, editTime, source, labelEditId
   ) <> (
-    { t: (Int, Int, Option[Int], List[String], String, OffsetDateTime, UiSource, Option[Int]) =>
-      LabelHistory(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8)
+    { t: (Int, Int, LabelTypeEnum.Base, Option[Int], List[String], String, OffsetDateTime, UiSource, Option[Int]) =>
+      LabelHistory(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9)
     },
     { lh: LabelHistory =>
       Some(
-        (lh.labelHistoryId, lh.labelId, lh.severity, lh.tags.toList, lh.editedBy, lh.editTime, lh.source,
+        (lh.labelHistoryId, lh.labelId, lh.labelType, lh.severity, lh.tags.toList, lh.editedBy, lh.editTime, lh.source,
           lh.labelEditId)
       )
     }
@@ -76,20 +79,22 @@ class LabelHistoryTable @Inject() (protected val dbConfigProvider: DatabaseConfi
 
   def insert(l: LabelHistory): DBIO[Int] = {
     (labelHistory returning labelHistory.map(_.labelHistoryId)) +=
-      LabelHistory(0, l.labelId, l.severity, l.tags.distinct, l.editedBy, l.editTime, l.source, l.labelEditId)
+      LabelHistory(0, l.labelId, l.labelType, l.severity, l.tags.distinct, l.editedBy, l.editTime, l.source,
+        l.labelEditId)
   }
 
   /** Moves the row recording an edit's outcome along with the edit, when a later change is folded into it. */
   def updateStateForEdit(
       labelEditId: Int,
+      labelType: LabelTypeEnum.Base,
       severity: Option[Int],
       tags: List[String],
       editTime: OffsetDateTime
   ): DBIO[Int] =
     labelHistory
       .filter(_.labelEditId === labelEditId)
-      .map(h => (h.severity, h.tags, h.editTime))
-      .update((severity, tags, editTime))
+      .map(h => (h.labelType, h.severity, h.tags, h.editTime))
+      .update((labelType, severity, tags, editTime))
 
   def deleteForEdit(labelEditId: Int): DBIO[Int] = labelHistory.filter(_.labelEditId === labelEditId).delete
 }

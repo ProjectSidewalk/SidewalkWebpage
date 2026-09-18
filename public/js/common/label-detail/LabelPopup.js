@@ -26,6 +26,8 @@
  *     aren't the label map themselves — e.g. the user dashboard).
  * @param {(vote: ?string, metadata: Record<string, any>) => void} [opts.onVote] - Called with the vote cast (or null
  *   for a cleared one) and the label's metadata once a validation lands, for a host that shows the label elsewhere.
+ * @param {(metadata: Record<string, any>) => void} [opts.onEdit] - Called with the label's metadata after an edit
+ *   from the card (#2575, #3671), for a host that draws the label itself (the LabelMap's layers).
  * @param {boolean} [opts.showExploreHereLink] - Show the popup's "Explore here" footer link, which opens Explore at
  *     the shown label's pano and point of view (#4637).
  * @returns {Promise<Omit<LabelDetail, 'showLabel'> & {showLabel: (labelId: number, source: string) => Promise<void>,
@@ -53,6 +55,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
     showLabelMapLink: opts.showLabelMapLink,
     showExploreHereLink: opts.showExploreHereLink,
     onVote: opts.onVote,
+    onEdit: opts.onEdit,
   });
 
   // Close button + backdrop click. ESC is handled natively by <dialog>.

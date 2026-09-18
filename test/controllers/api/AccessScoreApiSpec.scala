@@ -133,6 +133,80 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       body must not include "baseWeight"
       body must not include "scoredTypes"
     }
+
+    "publish the completion floor the Spotlight and the AccessScore tool both apply" in {
+      // The one number behind "which regions are ranked" (#5215). Both readers take it from here, so a literal in
+      // either would be a second definition of the same rule.
+      val resp  = route(app, FakeRequest(GET, "/v3/api/accessScoreConfig")).get
+      val floor = (contentAsJson(resp) \ "min_region_completion").as[Double]
+      floor must (be >= 0.0 and be <= 1.0)
+      floor mustBe service.AccessScoreSpotlight.MinRegionCompletion
+    }
+  }
+
+  "GET /v3/api/accessScoreSpotlight" should {
+    "return the documented envelope, defaulting to regions" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/accessScoreSpotlight")).get
+      status(resp) mustBe OK
+      contentType(resp) mustBe Some("application/json")
+
+      val json = contentAsJson(resp)
+      (json \ "unit").as[String] mustBe "regions"
+      (json \ "min_completion").as[Double] mustBe service.AccessScoreSpotlight.MinRegionCompletion
+      (json \ "qualifying").as[Int] must be >= 0
+      (json \ "total").as[Int] must be >= 0
+      (json \ "top").asOpt[Seq[JsObject]] mustBe defined
+      (json \ "bottom").asOpt[Seq[JsObject]] mustBe defined
+      (json \ "nearest").asOpt[Seq[JsObject]] mustBe defined
+      // Present on every deployment; null until the nightly snapshot has run once (the CI database has no runs).
+      (json \ "computed_at").toOption mustBe defined
+    }
+
+    "rank streets when asked to" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/accessScoreSpotlight?unit=streets&n=3")).get
+      status(resp) mustBe OK
+      val json = contentAsJson(resp)
+      (json \ "unit").as[String] mustBe "streets"
+      (json \ "top").as[Seq[JsObject]].size must be <= 3
+      // A street has no "closest to being ranked" call to action -- that ask belongs to a neighborhood.
+      (json \ "nearest").as[Seq[JsObject]] mustBe empty
+    }
+
+    "rank across public cities when scope=cities" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/accessScoreSpotlight?scope=cities")).get
+      status(resp) mustBe OK
+      val json = contentAsJson(resp)
+      (json \ "unit").as[String] mustBe "regions"
+      (json \ "nearest").as[Seq[JsObject]] mustBe empty
+      // Every cross-city row names the deployment it came from, so a click can leave for the right site.
+      (json \ "top").as[Seq[JsObject]].foreach { row =>
+        (row \ "city_id").asOpt[String] mustBe defined
+        (row \ "city_url").asOpt[String] mustBe defined
+      }
+    }
+
+    "return 400 INVALID_PARAMETER for an unknown unit" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/accessScoreSpotlight?unit=intersections")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "unit"
+    }
+
+    "return 400 INVALID_PARAMETER for an out-of-range n" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/accessScoreSpotlight?n=0")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "n"
+
+      val tooMany = route(app, FakeRequest(GET, "/v3/api/accessScoreSpotlight?n=500")).get
+      status(tooMany) mustBe BAD_REQUEST
+      (contentAsJson(tooMany) \ "parameter").as[String] mustBe "n"
+    }
+
+    "keep every output field name snake_case" in {
+      val body = contentAsString(route(app, FakeRequest(GET, "/v3/api/accessScoreSpotlight")).get)
+      body must not include "minCompletion"
+      body must not include "computedAt"
+      body must not include "regionId"
+    }
   }
 
   "GET /v3/api/accessScoreRegions" should {
