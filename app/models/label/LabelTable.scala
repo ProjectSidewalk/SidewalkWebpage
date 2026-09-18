@@ -251,6 +251,13 @@ case class AdminValidationData(
     previousValidations: Seq[(String, ValidationOption.Value)]
 )
 
+/**
+ * One of the user's labels in a region, with what Explore needs to put it back on the canvas and the minimap.
+ *
+ * @param fromOutdatedImagery Whether the audit task that placed the label is flagged `outdated_imagery` (#4384): the
+ *                            imagery it was placed on has since been replaced, so during a re-audit the minimap can
+ *                            show it as an earlier era rather than as current work (#4945).
+ */
 case class ResumeLabelMetadata(
     labelData: Label,
     labelType: String,
@@ -260,7 +267,8 @@ case class ResumeLabelMetadata(
     cameraHeading: Option[Double],
     cameraPitch: Option[Double],
     panoWidth: Option[Int],
-    panoHeight: Option[Int]
+    panoHeight: Option[Int],
+    fromOutdatedImagery: Boolean
 )
 
 case class LabelDataForAi(labelId: Int, labelType: LabelTypeEnum.Base, labelPoint: LabelPoint, panoData: PanoData)
@@ -2308,10 +2316,16 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Gets the labels placed by a user in a region.
+   * Gets every label the user has placed in a region, across all of their missions there.
+   *
+   * Deliberately unscoped by mission or date: Explore loads these on every page load (not only on a resume) and uses
+   * the whole set for the mission-complete "your labels" count and for the minimap, where the current pass and
+   * earlier ones are told apart client-side by mission id and by `fromOutdatedImagery` (#4945). Narrowing the query
+   * would silently change that count.
+   *
    * @param regionId Region ID to get labels from
-   * @param userId User ID of user to find labels for
-   * @return list of labels placed by user in region
+   * @param userId   User ID of user to find labels for
+   * @return         The user's labels in the region that have a lat/lng, with their audit task's freshness flag.
    */
   def getLabelsFromUserInRegion(regionId: Int, userId: String): DBIO[Seq[ResumeLabelMetadata]] = {
     (for {
@@ -2319,10 +2333,14 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _label      <- labels if _mission.missionId === _label.missionId
       _labelPoint <- labelPoints if _label.labelId === _labelPoint.labelId
       _panoData   <- panoData if _label.panoId === _panoData.panoId
+      // The label's own audit task, for its outdated_imagery flag (#4945). `labels` already joins audit_task to drop
+      // tutorial streets, but that projection keeps only the label, so the flag has to be fetched here.
+      _auditTask <- auditTasks if _label.auditTaskId === _auditTask.auditTaskId
       if _mission.regionId === regionId && _mission.userId === userId
       if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
     } yield (_label, _label.labelTypeName, _labelPoint, _panoData.lat, _panoData.lng, _panoData.cameraHeading,
-      _panoData.cameraPitch, _panoData.width, _panoData.height)).result.map(_.map(ResumeLabelMetadata.tupled))
+      _panoData.cameraPitch, _panoData.width, _panoData.height, _auditTask.outdatedImagery)).result
+      .map(_.map(ResumeLabelMetadata.tupled))
   }
 
   /**
