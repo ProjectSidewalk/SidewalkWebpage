@@ -123,13 +123,13 @@ describe('the AccessScore Spotlight', () => {
 
     beforeAll(() => {
         // Keys pass through, with interpolation values appended so a test can tell two renderings of one key apart,
-        // except the STRINGS above, which interpolate the way i18next does -- escaping included, unless the call
-        // turns it off.
+        // except the STRINGS above, which interpolate the way the app configures i18next: values verbatim, escaped
+        // only where the call asks for it.
         window.i18next = {
             language: 'en',
             t: (key, vars) => {
                 if (STRINGS[key]) {
-                    const escape = vars?.interpolation?.escapeValue !== false;
+                    const escape = vars?.interpolation?.escapeValue === true;
                     return STRINGS[key].replace(/\{\{(\w+)\}\}/g, (_, name) => (
                         escape ? escapeLikeI18next(vars[name]) : String(vars[name])
                     ));

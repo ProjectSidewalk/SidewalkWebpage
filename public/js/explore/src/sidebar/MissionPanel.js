@@ -39,12 +39,16 @@ class MissionPanel {
       missionMessage = '';
     } else if (isRoute) {
       // On a user-defined route the mission is the route itself, so name it rather than the region.
-      missionMessage = i18next.t('right-ui.current-mission.message-route', { routeName: svl.routeName });
+      missionMessage = i18next.t('right-ui.current-mission.message-route', {
+        routeName: svl.routeName, interpolation: { escapeValue: true },
+      });
     } else {
       // The regular mission message names the region being explored.
       const region = svl.regionModel.currentRegion();
       const regionName = region ? region.getProperty('name') : '';
-      missionMessage = i18next.t('right-ui.current-mission.message', { regionName });
+      missionMessage = i18next.t('right-ui.current-mission.message', {
+        regionName, interpolation: { escapeValue: true },
+      });
     }
 
     if (missionType === 'audit' && !isRoute) {

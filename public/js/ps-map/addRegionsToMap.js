@@ -136,11 +136,13 @@ function addRegionsToMap(map, regionGeoJSON, completionRates, params) {
           ? Math.round(outdatedConverted * 10) / 10
           : Math.round(outdatedConverted);
         const reauditLine = outdatedRounded > 0
-          ? `${i18next.t('common:map.needs-reaudit', { n: outdatedRounded })}<br>`
+          ? `${i18next.t('common:map.needs-reaudit', { n: outdatedRounded, interpolation: { escapeValue: true } })}<br>`
           : '';
-        const reauditCta = i18next.t('common:map.click-to-reaudit', { url, regionId: hoveredRegionId });
+        const reauditCta = i18next.t('common:map.click-to-reaudit', {
+          url, regionId: hoveredRegionId, interpolation: { escapeValue: true },
+        });
         if (currRegion.properties.user_completed) {
-          popupContent = `<strong>${regionName}</strong>:
+          popupContent = `<strong>${util.escapeHTML(regionName)}</strong>:
             ${i18next.t('common:map.100-percent-complete')}<br>
             ${i18next.t('common:map.thanks')}`;
           if (reauditLine) {
@@ -151,20 +153,32 @@ function addRegionsToMap(map, regionGeoJSON, completionRates, params) {
           // A fully-audited region's CTA flips from "help finish" to "re-explore" when re-audits are the work left.
           const fullRegionCta = reauditLine
             ? `${reauditLine}${reauditCta}`
-            : i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId });
-          popupContent = `<strong>${regionName}</strong>:
+            : i18next.t('common:map.click-to-help', {
+                url, regionId: hoveredRegionId, interpolation: { escapeValue: true },
+              });
+          popupContent = `<strong>${util.escapeHTML(regionName)}</strong>:
             ${i18next.t('common:map.100-percent-complete')}<br>
             ${fullRegionCta}`;
         } else if (distanceLeftRounded === 0) {
-          popupContent = `<strong>${regionName}</strong>:
-            ${i18next.t('common:map.percent-complete', { percent: compRateRounded })}<br>
+          popupContent = `<strong>${util.escapeHTML(regionName)}</strong>:
+            ${i18next.t('common:map.percent-complete', {
+              percent: compRateRounded, interpolation: { escapeValue: true },
+            })}<br>
             ${i18next.t('common:map.less-than-one-unit-left')}<br>
-            ${reauditLine}${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
+            ${reauditLine}${i18next.t('common:map.click-to-help', {
+              url, regionId: hoveredRegionId, interpolation: { escapeValue: true },
+            })}`;
         } else {
-          popupContent = `<strong>${regionName}</strong>:
-            ${i18next.t('common:map.percent-complete', { percent: compRateRounded })}<br>
-            ${i18next.t('common:map.distance-left', { count: distanceLeftRounded })}<br>
-            ${reauditLine}${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
+          popupContent = `<strong>${util.escapeHTML(regionName)}</strong>:
+            ${i18next.t('common:map.percent-complete', {
+              percent: compRateRounded, interpolation: { escapeValue: true },
+            })}<br>
+            ${i18next.t('common:map.distance-left', {
+              count: distanceLeftRounded, interpolation: { escapeValue: true },
+            })}<br>
+            ${reauditLine}${i18next.t('common:map.click-to-help', {
+              url, regionId: hoveredRegionId, interpolation: { escapeValue: true },
+            })}`;
         }
 
         // Set tooltip to center of region.

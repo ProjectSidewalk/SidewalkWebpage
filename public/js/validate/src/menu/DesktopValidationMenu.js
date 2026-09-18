@@ -529,10 +529,7 @@ class DesktopValidationMenu {
         // Add the text to the tag.
         const translatedTagName = i18next.t(`common:tag.${tag.tag_name.replace(/:/g, '-')}`);
         const addRemoveTranslationKey = `expert-validate.${tag.action === 'add' ? 'add-tag' : 'remove-tag'}`;
-        template.text(i18next.t(addRemoveTranslationKey, {
-          tag: translatedTagName,
-          interpolation: { escapeValue: false },
-        }));
+        template.text(i18next.t(addRemoveTranslationKey, { tag: translatedTagName }));
         menuUI.aiSuggestedTagTemplate.parent().append(template);
 
         // Show tooltip with example image for the tag.

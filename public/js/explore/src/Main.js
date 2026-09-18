@@ -446,11 +446,11 @@ class Main {
           document.getElementById('compass-message-holder').classList.add('ps-hidden');
           svl.tracker.push('ExploreAddress_SessionStart');
           // Name the place when the search supplied one — "dropped near Teaneck High School" orients the user far
-          // better than a generic greeting. The name comes from a URL param and lands in innerHTML, so it must stay
-          // an i18next interpolation: the default escapeValue escapes it, while the <b> in the string itself renders.
+          // better than a generic greeting. The name comes from a URL param and the alert banner renders its
+          // message as HTML, so the value is escaped here while the <b> in the string itself renders.
           const placeName = this.#params.startPlaceName;
           const startMessage = placeName
-            ? i18next.t('popup.free-explore-start-named', { placeName })
+            ? i18next.t('popup.free-explore-start-named', { placeName, interpolation: { escapeValue: true } })
             : i18next.t('popup.free-explore-start');
           svl.alertController.showAlert(startMessage, 'exploreAddressStart', true);
         } else {

@@ -136,7 +136,9 @@ class MissionStartTutorial {
       return {
         isExampleCorrect,
         slideTitle: isExampleCorrect
-          ? i18next.t(titleKey, { labelType: i18next.t(lesson.nameKey) })
+          ? i18next.t(titleKey, {
+              labelType: i18next.t(lesson.nameKey), interpolation: { escapeValue: true },
+            })
           : i18next.t(titleKey),
         slideSubtitle: isExampleCorrect ? '' : i18next.t('common:mission-start-tutorial.label-type-subtitle'),
         slideDescription: i18next.t(`common:mission-start-tutorial.${lesson.copy}.slide-${i + 1}.description`),
@@ -208,9 +210,14 @@ class MissionStartTutorial {
     this.#labelTypeModule = {
       missionInstruction1: i18next.t(`${missionType}:mission-start-tutorial.mst-instruction-1`),
       missionInstruction2: isValidate
-        ? i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-            { nLabels: this.#data.nLabels, labelType: i18next.t(lesson.nameKey) })
-        : i18next.t('audit:mission-start-tutorial.mst-instruction-2', { region: this.#data.region }),
+        ? i18next.t('validate:mission-start-tutorial.mst-instruction-2', {
+            nLabels: this.#data.nLabels,
+            labelType: i18next.t(lesson.nameKey),
+            interpolation: { escapeValue: true },
+          })
+        : i18next.t('audit:mission-start-tutorial.mst-instruction-2', {
+            region: this.#data.region, interpolation: { escapeValue: true },
+          }),
       slides: MissionStartTutorial.slidesFor(missionType, this.#labelType),
     };
     this.#nSlides = this.#labelTypeModule.slides.length;
