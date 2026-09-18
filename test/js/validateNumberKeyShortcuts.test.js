@@ -152,11 +152,15 @@ describe('KeyboardManager number-key shortcuts', () => {
     });
 
     describe('on the Wrong-type verdict (Expert Validate, #3671)', () => {
-        /** The severity section as the menu leaves it: shown only once a rated type is picked. */
+        /**
+         * The severity section as the menu leaves it: shown only once a rated type is picked. Each button is a label
+         * wrapping a radio, the same shape as the view, so the test can tell which of the two a shortcut clicks.
+         */
         function renderSeveritySection(shown) {
             document.body.innerHTML = `
                 <div id="validate-severity-section" style="display: ${shown ? 'block' : 'none'}"></div>
-                <button id="severity-button-1"></button><button id="severity-button-2"></button>`;
+                <label id="severity-button-1"><input type="radio" id="validate-severity-radio-1"></label>
+                <label id="severity-button-2"><input type="radio" id="validate-severity-radio-2"></label>`;
         }
 
         beforeEach(() => {
@@ -164,12 +168,14 @@ describe('KeyboardManager number-key shortcuts', () => {
             choose('wrongType');
         });
 
-        it('digits rate severity once a type with a rating has been picked', () => {
+        // The radio, not the label around it: a label click moves focus into the radio, and the example tooltip on
+        // the label opens on focus, so it would pop up after every shortcut (#5298).
+        it('digits rate severity by clicking the radio once a type with a rating has been picked', () => {
             renderSeveritySection(true);
 
             pressDigit(2);
 
-            expect(clicks).toEqual(['severity-button-2']);
+            expect(clicks).toEqual(['validate-severity-radio-2']);
         });
 
         it('digits do nothing while the severity section is hidden, so no rating rides along unseen', () => {

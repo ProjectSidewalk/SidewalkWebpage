@@ -63,12 +63,10 @@ class KeyboardManager {
   #handleNumberKeyShortcut(n, e) {
     const validationMenuUi = this.#validationMenuUi;
     if (validationMenuUi.yesButton.hasClass('chosen')) {
-      if (svv.adminVersion) $(`#severity-button-${n}`).click();
+      if (svv.adminVersion) this.#clickSeverity(n);
     } else if (validationMenuUi.wrongTypeButton.hasClass('chosen')) {
       // Severity only once its section is showing, or a rating typed before a type is picked rides along unseen.
-      if (document.getElementById('validate-severity-section')?.style.display === 'block') {
-        $(`#severity-button-${n}`).click();
-      }
+      if (document.getElementById('validate-severity-section')?.style.display === 'block') this.#clickSeverity(n);
     } else if (validationMenuUi.noButton.hasClass('chosen')) {
       const buttonId = `#no-button-${n}`;
       // If there's no default disagree option for this key, focus on the comment box, otherwise click the button.
@@ -88,6 +86,16 @@ class KeyboardManager {
         $(buttonId).click();
       }
     }
+  }
+
+  /**
+   * Picks a severity by clicking its radio rather than the label around it. A click on the label moves focus into
+   * the radio, and the example-image tooltip on the label opens on focus for keyboard users, so it would pop up and
+   * stay open after every shortcut (#5298). Clicking the radio itself checks it without moving focus.
+   * @param {number} n - The severity to pick, 1-3.
+   */
+  #clickSeverity(n) {
+    $(`#validate-severity-radio-${n}`).click();
   }
 
   /**
