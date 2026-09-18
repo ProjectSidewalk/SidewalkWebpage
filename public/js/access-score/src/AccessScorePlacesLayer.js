@@ -134,7 +134,7 @@ class AccessScorePlacesLayer {
   /**
    * Replaces the places drawn, per category. Categories absent from the collection are emptied rather than left
    * stale. Before the layers exist the collection is kept and drawn once they do.
-   * @param {object} featureCollection - A `/v3/api/places` GeoJSON response.
+   * @param {GeoJSON.FeatureCollection} featureCollection - A `/v3/api/places` GeoJSON response.
    */
   setData(featureCollection) {
     this.#data = featureCollection;
@@ -165,7 +165,7 @@ class AccessScorePlacesLayer {
    * The place drawn nearest a point, if one is within `radiusM`: how a shared link's `place` param finds its marker.
    * @param {{lat: number, lng: number}} point - Where to look.
    * @param {number} [radiusM=5] - How far a marker may sit from the point and still be it.
-   * @returns {?object} The place's `properties`, or null.
+   * @returns {?Record<string, any>} The place's `properties`, or null.
    */
   placeNear(point, radiusM = 5) {
     const metersPerDegLat = 111320;
@@ -244,7 +244,7 @@ class AccessScorePlacesLayer {
   /**
    * Whether a place sits under a pointer event — the map's street/region tooltip yields to this one, and a click
    * on a marker must not also select the street beneath it.
-   * @param {object} e - A Mapbox pointer event.
+   * @param {mapboxgl.MapMouseEvent} e - A Mapbox pointer event.
    * @returns {boolean} True when a visible place is under the pointer.
    */
   claims(e) {

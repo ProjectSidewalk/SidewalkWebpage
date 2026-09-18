@@ -143,9 +143,8 @@ jobs:
         if: always()
         run: node tools/check-vendor-versions.mjs
 
-      # Blocking: TypeScript checks public/js/ against its JSDoc types (#5278), except the folders listed as UNCHECKED
-      # in tools/check-js-types.mjs. `if: always()` so it reports even when an earlier frontend step failed. Run
-      # locally with `make lint-js-types`.
+      # Blocking: TypeScript checks public/js/ against its JSDoc types (#5278). `if: always()` so it reports even
+      # when an earlier frontend step failed. Run locally with `make lint-js-types`.
       - name: JS types (blocking)
         if: always()
         run: node tools/check-js-types.mjs

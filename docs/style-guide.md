@@ -338,9 +338,8 @@ Rules:
   params from a view, log notes) is `Record<string, any>`.
 - When you know more than TypeScript can see, cast in place: `/** @type {HTMLInputElement} */ (el)`. Selector lookups
   (`querySelector`, `closest`) already return `HTMLElement`; `event.target` and `getElementById` often need a cast.
-- Every file in `public/js/` is type-checked except the folders in `UNCHECKED` (only AccessScore, for now);
-  `make lint-js-types args=--all` shows their errors too. Globals that no file in `public/js/` declares (vendor
-  libraries, values a view sets on `window`) go in [`tools/js-types/globals.d.ts`](../tools/js-types/globals.d.ts).
+- Every file in `public/js/` is type-checked. Globals that no file in `public/js/` declares (vendor libraries,
+  values a view sets on `window`) go in [`tools/js-types/globals.d.ts`](../tools/js-types/globals.d.ts).
 - Use `{Type} [paramName]` (square brackets) for optional parameters, and `{Type} [paramName=default]` when a
   default exists and is non-obvious.
 - Trivial one-line helpers may omit the header.
