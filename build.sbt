@@ -8,8 +8,7 @@ version := "11.13.0"
 
 scalaVersion := "2.13.18"
 
-// Defaults to a week, so every worktree you built in holds ~1GB until you reboot. Only idle servers are stopped,
-// and the cost of stopping one is a slower next compile.
+// Lowered from 1 week default to save memory when running multiple worktrees.
 Global / serverIdleTimeout := Some(scala.concurrent.duration.Duration(1, "hour"))
 
 // These lines prevent documentation from being generated. Once we clean up our Scaladoc, we can remove these lines.
