@@ -30,6 +30,13 @@
     .withLocale(messages.lang.toLocale))
 }
 
+@* A route is filed under the region it starts in and may run on through others (#3488); say so rather than let one
+   name stand for the whole route. *@
+@regionLabel(r: RouteWithStats) = @{
+  if (r.regionCount > 1) Messages("dashboard.routes.region.and.more", r.regionName, r.regionCount - 1)
+  else r.regionName
+}
+
 @common.main(commonData, Messages("seo.title.routes"), i18Namespaces = Seq("common", "dashboard")) {
   @common.navbar(commonData, Some(user))
 
@@ -81,7 +88,7 @@
                 <p class="route-card__desc">@desc</p>
               }
               <p class="route-card__meta">
-                @r.regionName · @distanceLabel(r.distanceMeters) ·
+                @regionLabel(r) · @distanceLabel(r.distanceMeters) ·
                 <time class="community-date" datetime="@r.createdAt.toInstant.toString">@dateLabel(r.createdAt)</time>
               </p>
               <p class="route-card__usage" title="@Messages("dashboard.routes.stats.tooltip")">

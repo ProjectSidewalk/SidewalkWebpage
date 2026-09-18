@@ -70,7 +70,7 @@ class RouteTaskQuerySpec extends PlaySpec with org.scalatest.BeforeAndAfterAll w
   private var auditTaskIds: Seq[Int]   = Seq.empty
 
   /**
-   * Two street ids sharing a region, so the seeded route is a legal one-neighborhood route.
+   * Two street ids sharing a region, which the seeded route is filed under.
    *
    * Drawn from the same filtered street query selectTasksInRoute joins against — a street that's hidden or is the
    * tutorial street would silently drop out of the result and look like a query bug.

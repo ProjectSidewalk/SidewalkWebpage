@@ -30,17 +30,24 @@ class LabelController @Inject() (
   private val logger = Logger(this.getClass)
 
   /**
-   * Fetches the labels that a user has added in the current region they are working in.
-   * @param regionId Region id
+   * Fetches the labels that a user has already added where they are working: the current region, plus every region
+   * their route runs through when they are on a route walk.
+   * @param regionId    Region id
+   * @param userRouteId The route walk the user is on, if any
    * @return A list of labels
    */
-  def getLabelsToResumeMission(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
-    for {
-      labels: Seq[ResumeLabelMetadata] <- labelService.getLabelsFromUserInRegion(regionId, request.identity.userId)
-      allTags: Seq[Tag]                <- labelService.selectAllTagsFuture
-    } yield {
-      Ok(Json.obj("labels" -> labels.map(l => LabelFormats.resumeLabelMetadatatoJson(l, allTags))))
-    }
+  def getLabelsToResumeMission(regionId: Int, userRouteId: Option[Int]) = cc.securityService.SecuredAction {
+    implicit request =>
+      for {
+        labels: Seq[ResumeLabelMetadata] <- labelService.getLabelsToResume(
+          regionId,
+          userRouteId,
+          request.identity.userId
+        )
+        allTags: Seq[Tag] <- labelService.selectAllTagsFuture
+      } yield {
+        Ok(Json.obj("labels" -> labels.map(l => LabelFormats.resumeLabelMetadatatoJson(l, allTags))))
+      }
   }
 
   /**

@@ -2,7 +2,7 @@ package models.route
 
 import com.google.inject.ImplementedBy
 import models.region.RegionTableDef
-import models.street.StreetEdgeTableDef
+import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
@@ -17,6 +17,9 @@ import scala.concurrent.ExecutionContext
 case class Route(
     routeId: Int,
     userId: String,
+    // The region the route STARTS in: its first street's region. A route is free to run on through other regions
+    // (#3488), so this is where a walk begins and what a listing names, not a boundary the streets stay inside.
+    // Derived from the streets like the two stats below, never taken from the client. See RouteTable.updateStats.
     regionId: Int,
     name: String,
     slug: String,
@@ -40,12 +43,12 @@ object Route {
 }
 
 /**
- * Why a route submission was refused: a Play i18n key and the length limit it interpolates.
+ * Why a route submission was refused: a Play i18n key and, for the keys about length, the limit they interpolate.
  *
  * The HTTP layer localizes it, so RouteService can enforce the content contract without knowing the request's
  * language — the same split as UserService.changeUsername's Left(i18nKey).
  */
-case class RouteRejection(messageKey: String, maxLength: Int)
+case class RouteRejection(messageKey: String, maxLength: Int = 0)
 
 /**
  * A route as it stands right after a save or update: its identity plus the display data its card needs.
@@ -53,6 +56,8 @@ case class RouteRejection(messageKey: String, maxLength: Int)
  * Returning the geometry and thumbnail here is what lets the client — including a guest, whose route list lives in
  * localStorage — keep a card in sync without a second round trip or a second polyline implementation.
  *
+ * @param regionName      Name of the region the route starts in.
+ * @param regionCount     How many regions the route's streets run through (1 when it never leaves the first).
  * @param encodedPolyline The route geometry, Google-encoded, for a static-map thumbnail.
  * @param thumbnailUrl    Ready static-map URL for that geometry; "" when the route has no streets.
  */
@@ -60,6 +65,8 @@ case class SavedRoute(
     routeId: Int,
     name: String,
     slug: String,
+    regionName: String,
+    regionCount: Int,
     distanceMeters: Double,
     encodedPolyline: String,
     thumbnailUrl: String
@@ -69,8 +76,9 @@ case class SavedRoute(
  * A user-created route with the display stats shown in route listings (e.g. the dashboard's "My Routes").
  *
  * @param routeId        ID of the route.
- * @param regionId       ID of the region the route is in.
+ * @param regionId       ID of the region the route starts in.
  * @param regionName     Name of that region.
+ * @param regionCount    How many regions the route's streets run through (1 when it never leaves the first).
  * @param name           User-supplied route name.
  * @param slug           URL slug for the route's /r/<slug> share link.
  * @param description    Optional public description of why the route matters.
@@ -82,6 +90,7 @@ case class RouteWithStats(
     routeId: Int,
     regionId: Int,
     regionName: String,
+    regionCount: Int,
     name: String,
     slug: String,
     description: Option[String],
@@ -128,11 +137,12 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     extends RouteTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  val routes       = TableQuery[RouteTableDef]
-  val routeStreets = TableQuery[RouteStreetTableDef]
-  val regions      = TableQuery[RegionTableDef]
-  val streetEdges  = TableQuery[StreetEdgeTableDef]
-  val userRoutes   = TableQuery[UserRouteTableDef]
+  val routes            = TableQuery[RouteTableDef]
+  val routeStreets      = TableQuery[RouteStreetTableDef]
+  val regions           = TableQuery[RegionTableDef]
+  val streetEdges       = TableQuery[StreetEdgeTableDef]
+  val userRoutes        = TableQuery[UserRouteTableDef]
+  val streetEdgeRegions = TableQuery[StreetEdgeRegionTableDef]
 
   def getRoute(routeId: Int): DBIO[Option[Route]] = {
     routes.filter(r => r.routeId === routeId && r.deleted === false).result.headOption
@@ -140,6 +150,36 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
   def insert(newRoute: Route): DBIO[Int] = {
     (routes returning routes.map(_.routeId)) += newRoute
+  }
+
+  /**
+   * Gets one non-deleted route as its listing row, for describing a route right after it is saved.
+   */
+  def getRouteWithStats(routeId: Int): DBIO[Option[RouteWithStats]] = {
+    routesWithStats(routes.filter(r => r.routeId === routeId && r.deleted === false)).map(_.headOption)
+  }
+
+  /**
+   * The region a street belongs to, which is the start region of a route whose first street it is.
+   *
+   * @return None when no such street exists.
+   */
+  def getRegionIdOfStreet(streetEdgeId: Int): DBIO[Option[Int]] = {
+    streetEdgeRegions.filter(_.streetEdgeId === streetEdgeId).map(_.regionId).result.headOption
+  }
+
+  /**
+   * Counts, per route, the distinct regions its streets run through. Routes with no streets are absent from the map.
+   */
+  def getRegionCounts(routeIds: Seq[Int]): DBIO[Map[Int, Int]] = {
+    routeStreets
+      .filter(_.routeId inSet routeIds)
+      .join(streetEdgeRegions)
+      .on(_.streetEdgeId === _.streetEdgeId)
+      .groupBy { case (routeStreet, _) => routeStreet.routeId }
+      .map { case (routeId, group) => (routeId, group.map(_._2.regionId).countDistinct) }
+      .result
+      .map(_.toMap)
   }
 
   /**
@@ -174,7 +214,10 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     routesWithStats(routes.filter(_.deleted === false), limit = Some(n))
   }
 
-  /** Projects a filtered route query to newest-first `RouteWithStats` rows with their region names. */
+  /**
+   * Projects a filtered route query to newest-first `RouteWithStats` rows, each with the name of the region it starts
+   * in and the number of regions it runs through.
+   */
   private def routesWithStats(
       filteredRoutes: Query[RouteTableDef, Route, Seq],
       limit: Option[Int] = None
@@ -191,23 +234,51 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           route.streetCount, route.createdAt)
       }
       .result
-      .map(_.map {
-        case (routeId, regionId, regionName, name, slug, description, distanceMeters, streetCount, createdAt) =>
-          RouteWithStats(routeId, regionId, regionName, name, slug, description, distanceMeters, streetCount, createdAt)
-      })
+      .flatMap { rows =>
+        getRegionCounts(rows.map(_._1)).map { regionCounts =>
+          rows.map {
+            case (routeId, regionId, regionName, name, slug, description, distanceMeters, streetCount, createdAt) =>
+              RouteWithStats(
+                routeId,
+                regionId,
+                regionName,
+                regionCounts.getOrElse(routeId, 1),
+                name,
+                slug,
+                description,
+                distanceMeters,
+                streetCount,
+                createdAt
+              )
+          }
+        }
+      }
   }
 
   /**
-   * Recomputes a route's cached distance and street count from its current streets.
+   * Recomputes what a route row caches about its streets: distance, street count, and the start region.
    *
    * Called whenever the street list changes, so listings can read the stats straight off the route row instead of
    * re-measuring every street's geometry per request. Distance is in geodesic meters; a route with no streets gets
-   * zeroes.
+   * zeroes. The start region follows the first street, so editing a route's beginning into another region moves it;
+   * a route left with no streets keeps the region it had, since region_id is NOT NULL.
    */
   def updateStats(routeId: Int): DBIO[Int] = {
     sqlu"""
       UPDATE route
-      SET distance_meters = COALESCE(stats.distance_meters, 0), street_count = COALESCE(stats.street_count, 0)
+      SET distance_meters = COALESCE(stats.distance_meters, 0),
+          street_count = COALESCE(stats.street_count, 0),
+          region_id = COALESCE(
+              (
+                  SELECT street_edge_region.region_id
+                  FROM route_street
+                  INNER JOIN street_edge_region ON route_street.street_edge_id = street_edge_region.street_edge_id
+                  WHERE route_street.route_id = $routeId
+                  ORDER BY route_street.position
+                  LIMIT 1
+              ),
+              route.region_id
+          )
       FROM (
           SELECT SUM(ST_Length(street_edge.geom::geography)) AS distance_meters,
                  COUNT(*) AS street_count

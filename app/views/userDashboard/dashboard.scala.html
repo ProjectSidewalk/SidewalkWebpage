@@ -71,6 +71,13 @@
   f"$dist%.2f $unitAbbr"
 }
 
+@* A route is filed under the region it starts in and may run on through others (#3488); say so rather than let one
+   name stand for the whole route. *@
+@regionLabel(r: RouteWithStats) = @{
+  if (r.regionCount > 1) Messages("dashboard.routes.region.and.more", r.regionName, r.regionCount - 1)
+  else r.regionName
+}
+
 @*
 * Unit-aware distance for a single street, matching the leaderboard's formatting (km/m for metric, miles/feet
 * otherwise). A street averages under 100 m and can be a metre or two long (#4670), so the large unit alone would
@@ -209,7 +216,7 @@
             @r.description.map { desc =>
               <span class="ud-route-desc">@desc</span>
             }
-            <span class="ud-route-meta">@r.regionName · @metersLabel(r.distanceMeters) ·
+            <span class="ud-route-meta">@regionLabel(r) · @metersLabel(r.distanceMeters) ·
               @* A timestamp's calendar date depends on the reader's timezone, which only the browser knows;
                  MyRoutes rewrites this to the local date, leaving the UTC rendering as the no-JS fallback. *@
               <time class="ud-route-date" datetime="@r.createdAt.toInstant.toString">@mediumDateLabel(r.createdAt)</time>

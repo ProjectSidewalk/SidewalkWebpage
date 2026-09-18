@@ -120,8 +120,10 @@ class Form {
         start_point_reversed: task.getProperty('startPointReversed'),
         current_mission_start: task.getMissionStart(missionId),
         last_priority_update_time: this.#lastPriorityUpdateTime,
-        // Request updated street priorities if we are at least 60% of the way through the current street.
-        request_updated_street_priority: !svl.isOnboarding() && (task.getAuditedDistance() / task.lineDistance()) > 0.6,
+        // Request updated street priorities if we are at least 60% of the way through the current street. Not on a
+        // route walk: priorities choose the next street, and a route's next street is fixed by its walking order.
+        request_updated_street_priority: !svl.isOnboarding() && !svl.userRouteId
+          && (task.getAuditedDistance() / task.lineDistance()) > 0.6,
         // How far along the street the user has gotten, measured from the street's start. The server reads it to
         // derive street completion for free-exploration sessions (#4451); it also accumulates real partial-audit data
         // so a future fractional-coverage model has history to build on.

@@ -245,7 +245,10 @@ class ExploreServiceImpl @Inject() (
                 logger.error(s"Tried to explore region $r, but there is no region with that id.")
                 DBIO.successful(None)
             }
-          // If user is on a route, assign them to the region associated with the route.
+          // If user is on a route, assign them to the region the route starts in. The route may run on into other
+          // regions (#3488); nothing on a walk is scoped by this one — the tasks come from the route's streets and
+          // region_completion is credited per street — so it serves as the page's region, the region the walk's
+          // mission is filed under, and where the user carries on exploring once the walk ends.
           case (_, _, Some(route), _, _) =>
             userCurrentRegionTable.insertOrUpdate(userId, route.regionId).flatMap(rId => regionTable.getRegion(rId))
           // If we aren't trying to do anything special and user already has a region assigned, use that region.

@@ -129,18 +129,30 @@ class RouteServiceImpl @Inject() (
    * If no name was submitted, the route is named "Route <id>" (which needs the id, so the row is inserted with a
    * placeholder slug that is replaced in the same transaction).
    *
-   * @return The new route's id, saved name, and slug, or Left if the name or description was rejected.
+   * The route is filed under the region of its first street. Its other streets may be in any region (#3488).
+   *
+   * @return The new route's id, saved name, and slug, or Left if the name or description was rejected or the first
+   *         street doesn't exist.
    */
   def saveRoute(route: NewRoute, userId: String): Future[Either[RouteRejection, SavedRoute]] =
     contentRejection(route.name, route.description) match {
       case Some(rejection) => Future.successful(Left(rejection))
       case None            =>
-        saveRouteAction(route, userId).flatMap { case (routeId, name, slug) =>
-          describeSavedRoute(routeId, name, slug).map(Right(_))
+        // The reads guarantee at least one street.
+        db.run(routeTable.getRegionIdOfStreet(route.streets.head.streetId)).flatMap {
+          case None                => Future.successful(Left(RouteRejection("routebuilder.streets.error.unknown")))
+          case Some(startRegionId) =>
+            saveRouteAction(route, startRegionId, userId).flatMap { case (routeId, name, slug) =>
+              describeSavedRoute(routeId, name, slug).map(Right(_))
+            }
         }
     }
 
-  private def saveRouteAction(route: NewRoute, userId: String): Future[(Int, String, String)] = withSlugRetry {
+  private def saveRouteAction(
+      route: NewRoute,
+      startRegionId: Int,
+      userId: String
+  ): Future[(Int, String, String)] = withSlugRetry {
     val submittedName: Option[String] = route.name.map(_.trim).filter(_.nonEmpty)
     val description: Option[String]   = cleanDescription(route.description)
     db.run((for {
@@ -148,7 +160,7 @@ class RouteServiceImpl @Inject() (
         .map(uniqueSlugAction(_, None))
         .getOrElse(DBIO.successful(s"route-tmp-${UUID.randomUUID}"))
       routeId: Int <- routeTable.insert(
-        Route(0, userId, route.regionId, submittedName.getOrElse(""), initialSlug, description, public = false,
+        Route(0, userId, startRegionId, submittedName.getOrElse(""), initialSlug, description, public = false,
           deleted = false, OffsetDateTime.now, distanceMeters = 0d, streetCount = 0)
       )
       savedName: String = submittedName.getOrElse(s"Route $routeId")
@@ -224,7 +236,7 @@ class RouteServiceImpl @Inject() (
    * without the client owning a second polyline implementation.
    */
   private def describeSavedRoute(routeId: Int, name: String, slug: String): Future[SavedRoute] = {
-    val routeFuture      = db.run(routeTable.getRoute(routeId))
+    val routeFuture      = db.run(routeTable.getRouteWithStats(routeId))
     val geometriesFuture = db.run(routeTable.getStreetGeometries(Seq(routeId)))
     for {
       route      <- routeFuture
@@ -235,6 +247,8 @@ class RouteServiceImpl @Inject() (
         routeId,
         name,
         slug,
+        route.map(_.regionName).getOrElse(""),
+        route.map(_.regionCount).getOrElse(1),
         route.map(_.distanceMeters).getOrElse(0d),
         polyline,
         RouteThumbnail.url(polyline, mapboxApiKey)

@@ -83,10 +83,28 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     (inSame.take(n).map(f => (f \ "properties" \ "street_edge_id").as[Int]), regionId)
   }
 
-  private def saveRouteBody(regionId: Int, streetId: Int, name: Option[String]): JsObject = {
-    val base =
-      Json.obj("region_id" -> regionId, "streets" -> Json.arr(Json.obj("street_id" -> streetId, "reverse" -> false)))
+  private def saveRouteBody(streetId: Int, name: Option[String]): JsObject = {
+    val base = Json.obj("streets" -> Json.arr(Json.obj("street_id" -> streetId, "reverse" -> false)))
     name.map(n => base + ("name" -> Json.toJson(n))).getOrElse(base)
+  }
+
+  /** Fetches one street from each of two different regions, for routes that cross a region boundary (#3488). */
+  private def streetsInTwoRegions(userCookies: Seq[Cookie]): ((Int, Int), (Int, Int)) = {
+    val resp = route(
+      app,
+      FakeRequest(GET, "/contribution/streets/all?filterLowQuality=true").withCookies(userCookies: _*)
+    ).get
+    status(resp) mustBe OK
+    val byRegion = (contentAsJson(resp) \ "features")
+      .as[Seq[JsValue]]
+      .groupBy(f => (f \ "properties" \ "region_id").as[Int])
+      .toSeq
+      .sortBy(_._1)
+    if (byRegion.size < 2) cancel("The connected DB has routable streets in only one region; needs a seeded DB.")
+    val picks = byRegion.take(2).map { case (regionId, streets) =>
+      ((streets.head \ "properties" \ "street_edge_id").as[Int], regionId)
+    }
+    (picks.head, picks(1))
   }
 
   private def saveRoute(userCookies: Seq[Cookie], body: JsValue) = route(
@@ -160,10 +178,10 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   "GET /routes (listing page)" should {
     "render for any user and include another user's route until it is soft-deleted" in {
-      val owner                = signUpFreshUser()
-      val (streetId, regionId) = anyStreet(owner)
-      val name                 = s"City Listing Walk ${uniqueTag()}"
-      val saved                = saveRoute(owner, saveRouteBody(regionId, streetId, Some(name)))
+      val owner         = signUpFreshUser()
+      val (streetId, _) = anyStreet(owner)
+      val name          = s"City Listing Walk ${uniqueTag()}"
+      val saved         = saveRoute(owner, saveRouteBody(streetId, Some(name)))
       status(saved) mustBe OK
       val routeId = (contentAsJson(saved) \ "route_id").as[Int]
 
@@ -200,47 +218,47 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   "POST /saveRoute" should {
     "save a named route, echoing the trimmed name" in {
-      val user                 = signUpFreshUser()
-      val (streetId, regionId) = anyStreet(user)
+      val user          = signUpFreshUser()
+      val (streetId, _) = anyStreet(user)
 
-      val resp = saveRoute(user, saveRouteBody(regionId, streetId, Some("  My Test Walk  ")))
+      val resp = saveRoute(user, saveRouteBody(streetId, Some("  My Test Walk  ")))
       status(resp) mustBe OK
       (contentAsJson(resp) \ "route_id").asOpt[Int] mustBe defined
       (contentAsJson(resp) \ "name").as[String] mustBe "My Test Walk"
     }
 
     "fall back to a default name when none is submitted" in {
-      val user                 = signUpFreshUser()
-      val (streetId, regionId) = anyStreet(user)
+      val user          = signUpFreshUser()
+      val (streetId, _) = anyStreet(user)
 
-      val resp = saveRoute(user, saveRouteBody(regionId, streetId, None))
+      val resp = saveRoute(user, saveRouteBody(streetId, None))
       status(resp) mustBe OK
       val routeId = (contentAsJson(resp) \ "route_id").as[Int]
       (contentAsJson(resp) \ "name").as[String] mustBe s"Route $routeId"
     }
 
     "reject an offensive route name via the profanity guard (400)" in {
-      val user                 = signUpFreshUser()
-      val (streetId, regionId) = anyStreet(user)
-      status(saveRoute(user, saveRouteBody(regionId, streetId, Some("shithead street")))) mustBe BAD_REQUEST
+      val user          = signUpFreshUser()
+      val (streetId, _) = anyStreet(user)
+      status(saveRoute(user, saveRouteBody(streetId, Some("shithead street")))) mustBe BAD_REQUEST
     }
 
     "reject a route name over 100 characters (400)" in {
-      val user                 = signUpFreshUser()
-      val (streetId, regionId) = anyStreet(user)
-      status(saveRoute(user, saveRouteBody(regionId, streetId, Some("x" * 101)))) mustBe BAD_REQUEST
+      val user          = signUpFreshUser()
+      val (streetId, _) = anyStreet(user)
+      status(saveRoute(user, saveRouteBody(streetId, Some("x" * 101)))) mustBe BAD_REQUEST
     }
 
     "generate a slug from the name, suffixing duplicates" in {
-      val user                 = signUpFreshUser()
-      val (streetId, regionId) = anyStreet(user)
-      val tag                  = uniqueTag()
+      val user          = signUpFreshUser()
+      val (streetId, _) = anyStreet(user)
+      val tag           = uniqueTag()
 
-      val first = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Walk $tag")))
+      val first = saveRoute(user, saveRouteBody(streetId, Some(s"Walk $tag")))
       status(first) mustBe OK
       (contentAsJson(first) \ "slug").as[String] mustBe s"walk-$tag"
 
-      val second = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Walk $tag")))
+      val second = saveRoute(user, saveRouteBody(streetId, Some(s"Walk $tag")))
       status(second) mustBe OK
       (contentAsJson(second) \ "slug").as[String] mustBe s"walk-$tag-2"
 
@@ -249,10 +267,10 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "save an optional description, surfacing it in the route list" in {
-      val user                 = signUpFreshUser()
-      val (streetId, regionId) = anyStreet(user)
+      val user          = signUpFreshUser()
+      val (streetId, _) = anyStreet(user)
 
-      val body = saveRouteBody(regionId, streetId, Some(s"Described Walk ${uniqueTag()}")) +
+      val body = saveRouteBody(streetId, Some(s"Described Walk ${uniqueTag()}")) +
         ("description" -> Json.toJson("  An important route from our library to school.  "))
       val saved = saveRoute(user, body)
       status(saved) mustBe OK
@@ -263,29 +281,64 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "reject a description over 500 characters (400)" in {
-      val user                 = signUpFreshUser()
-      val (streetId, regionId) = anyStreet(user)
-      val body                 = saveRouteBody(regionId, streetId, None) + ("description" -> Json.toJson("x" * 501))
+      val user          = signUpFreshUser()
+      val (streetId, _) = anyStreet(user)
+      val body          = saveRouteBody(streetId, None) + ("description" -> Json.toJson("x" * 501))
       status(saveRoute(user, body)) mustBe BAD_REQUEST
     }
 
     // A saved zero-street route is unexplorable (no mission distance) and invisible in listings, so its owner
     // couldn't delete it either — it has to be refused at the door.
+    "file a route under the region of its first street, whatever region the client claims" in {
+      val user                         = signUpFreshUser()
+      val ((a, regionA), (b, regionB)) = streetsInTwoRegions(user)
+      // A cross-region route (#3488) that also carries a region_id pointing at the wrong end of it.
+      val body = Json.obj(
+        "region_id" -> regionB,
+        "name"      -> s"Two Region Walk ${uniqueTag()}",
+        "streets"   -> Json.arr(
+          Json.obj("street_id" -> a, "reverse" -> false),
+          Json.obj("street_id" -> b, "reverse" -> false)
+        )
+      )
+      val saved = saveRoute(user, body)
+      status(saved) mustBe OK
+      val routeId = (contentAsJson(saved) \ "route_id").as[Int]
+      (contentAsJson(saved) \ "region_count").as[Int] mustBe 2
+      (contentAsJson(saved) \ "region_name").as[String] must not be empty
+
+      val listed = listRoutes(user).find(r => (r \ "route_id").as[Int] == routeId).get
+      (listed \ "region_id").as[Int] mustBe regionA
+      (listed \ "region_count").as[Int] mustBe 2
+
+      // Editing the route so it starts from its other end moves it to that region.
+      status(putRoute(user, routeId, streetsBody(b -> true, a -> true))) mustBe OK
+      val relisted = listRoutes(user).find(r => (r \ "route_id").as[Int] == routeId).get
+      (relisted \ "region_id").as[Int] mustBe regionB
+      (relisted \ "region_count").as[Int] mustBe 2
+    }
+
+    "reject a route whose first street does not exist (400, not a foreign-key 500)" in {
+      val user = signUpFreshUser()
+      val resp = saveRoute(user, saveRouteBody(Int.MaxValue, Some(s"Ghost Street Walk ${uniqueTag()}")))
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "message").as[String] mustBe messagesApi("routebuilder.streets.error.unknown")
+    }
+
     "reject a route with no streets (400)" in {
-      val user          = signUpFreshUser()
-      val (_, regionId) = anyStreet(user)
-      val body          = Json.obj("region_id" -> regionId, "streets" -> Json.arr(), "name" -> "Empty Walk")
+      val user = signUpFreshUser()
+      val body = Json.obj("streets" -> Json.arr(), "name" -> "Empty Walk")
       status(saveRoute(user, body)) mustBe BAD_REQUEST
     }
   }
 
   "PUT /userapi/routes/:routeId with streets" should {
     "replace the street list in place, serving it back in the updated walking order" in {
-      val user                  = signUpFreshUser()
-      val (streetIds, regionId) = streetsInRegion(user, 2)
-      val (a, b)                = (streetIds.head, streetIds(1))
+      val user           = signUpFreshUser()
+      val (streetIds, _) = streetsInRegion(user, 2)
+      val (a, b)         = (streetIds.head, streetIds(1))
 
-      val saved = saveRoute(user, saveRouteBody(regionId, a, Some(s"Edit Walk ${uniqueTag()}")))
+      val saved = saveRoute(user, saveRouteBody(a, Some(s"Edit Walk ${uniqueTag()}")))
       status(saved) mustBe OK
       val routeId = (contentAsJson(saved) \ "route_id").as[Int]
 
@@ -317,11 +370,11 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     // UNIQUE (route_id, position) is not deferrable, so every edit that moves a row past another one has to
     // vacate before it lands. Each shape below duplicates a (route_id, position) pair if it doesn't.
     "reorder, insert mid-route, and remove non-tail streets without colliding on position" in {
-      val user                  = signUpFreshUser()
-      val (streetIds, regionId) = streetsInRegion(user, 3)
-      val (a, b, c)             = (streetIds.head, streetIds(1), streetIds(2))
+      val user           = signUpFreshUser()
+      val (streetIds, _) = streetsInRegion(user, 3)
+      val (a, b, c)      = (streetIds.head, streetIds(1), streetIds(2))
 
-      val saved   = saveRoute(user, saveRouteBody(regionId, a, Some(s"Reorder Walk ${uniqueTag()}")))
+      val saved   = saveRoute(user, saveRouteBody(a, Some(s"Reorder Walk ${uniqueTag()}")))
       val routeId = (contentAsJson(saved) \ "route_id").as[Int]
 
       status(putRoute(user, routeId, streetsBody(a -> false, b -> false, c -> false))) mustBe OK
@@ -348,10 +401,10 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "reject an empty street list and an empty update (400), and 404 a non-owner's street update" in {
-      val user                 = signUpFreshUser()
-      val (streetId, regionId) = anyStreet(user)
-      val saved                = saveRoute(user, saveRouteBody(regionId, streetId, None))
-      val routeId              = (contentAsJson(saved) \ "route_id").as[Int]
+      val user          = signUpFreshUser()
+      val (streetId, _) = anyStreet(user)
+      val saved         = saveRoute(user, saveRouteBody(streetId, None))
+      val routeId       = (contentAsJson(saved) \ "route_id").as[Int]
 
       status(putRoute(user, routeId, Json.obj("streets" -> Json.arr()))) mustBe BAD_REQUEST
       status(putRoute(user, routeId, Json.obj())) mustBe BAD_REQUEST
@@ -364,11 +417,11 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   "GET /r/:slug" should {
     "redirect current and retired slugs to Explore, 404ing unknown slugs and deleted routes" in {
-      val user                 = signUpFreshUser()
-      val (streetId, regionId) = anyStreet(user)
-      val tag                  = uniqueTag()
+      val user          = signUpFreshUser()
+      val (streetId, _) = anyStreet(user)
+      val tag           = uniqueTag()
 
-      val saved = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Slug Walk $tag")))
+      val saved = saveRoute(user, saveRouteBody(streetId, Some(s"Slug Walk $tag")))
       status(saved) mustBe OK
       val routeId = (contentAsJson(saved) \ "route_id").as[Int]
       val slug1   = (contentAsJson(saved) \ "slug").as[String]
@@ -403,11 +456,11 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     // #5150: the link handed out during a demo was retyped from the route's name, so its casing missed the slug.
     "resolve a link retyped from the route's name rather than copied" in {
-      val user                 = signUpFreshUser()
-      val (streetId, regionId) = anyStreet(user)
-      val tag                  = uniqueTag()
+      val user          = signUpFreshUser()
+      val (streetId, _) = anyStreet(user)
+      val tag           = uniqueTag()
 
-      val saved = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Demo For Yochai $tag")))
+      val saved = saveRoute(user, saveRouteBody(streetId, Some(s"Demo For Yochai $tag")))
       status(saved) mustBe OK
       val routeId = (contentAsJson(saved) \ "route_id").as[Int]
       (contentAsJson(saved) \ "slug").as[String] mustBe s"demo-for-yochai-$tag"
@@ -432,11 +485,11 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     // Case folding alone isn't enough: the run in "St. Louis" folds to "--", where the stored slug collapsed it to
     // one dash. Slugifying the URL is the candidate that closes that gap (RouteServiceImpl.slugCandidates).
     "resolve a retyped name whose punctuation collapsed when its slug was generated" in {
-      val user                 = signUpFreshUser()
-      val (streetId, regionId) = anyStreet(user)
-      val tag                  = uniqueTag()
+      val user          = signUpFreshUser()
+      val (streetId, _) = anyStreet(user)
+      val tag           = uniqueTag()
 
-      val saved = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"St. Louis Walk $tag")))
+      val saved = saveRoute(user, saveRouteBody(streetId, Some(s"St. Louis Walk $tag")))
       status(saved) mustBe OK
       val routeId = (contentAsJson(saved) \ "route_id").as[Int]
       (contentAsJson(saved) \ "slug").as[String] mustBe s"st-louis-walk-$tag"
@@ -451,10 +504,10 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     // is the only error detection a share link has. This pins the namespace closed: a live route's id is not a way
     // in, however tempting it looks. /explore?routeId=<id> is where an id belongs, and still takes one.
     "not resolve a bare route id — /r/ is for slugs" in {
-      val user                 = signUpFreshUser()
-      val (streetId, regionId) = anyStreet(user)
+      val user          = signUpFreshUser()
+      val (streetId, _) = anyStreet(user)
 
-      val saved = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Slug Only Walk ${uniqueTag()}")))
+      val saved = saveRoute(user, saveRouteBody(streetId, Some(s"Slug Only Walk ${uniqueTag()}")))
       status(saved) mustBe OK
       val routeId = (contentAsJson(saved) \ "route_id").as[Int]
       val slug    = (contentAsJson(saved) \ "slug").as[String]
@@ -470,11 +523,11 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     // construction, after a route. Landing them on a generic "page not found" with only a home button wastes the
     // one chance to hand them the list that may well hold the route they were sent to.
     "answer a dead share link with a route-aware 404 offering the route list" in {
-      val user                 = signUpFreshUser()
-      val (streetId, regionId) = anyStreet(user)
-      val tag                  = uniqueTag()
+      val user          = signUpFreshUser()
+      val (streetId, _) = anyStreet(user)
+      val tag           = uniqueTag()
 
-      val saved = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Dead Link Walk $tag")))
+      val saved = saveRoute(user, saveRouteBody(streetId, Some(s"Dead Link Walk $tag")))
       status(saved) mustBe OK
       val routeId = (contentAsJson(saved) \ "route_id").as[Int]
       val slug    = (contentAsJson(saved) \ "slug").as[String]
@@ -512,7 +565,7 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       val (streetId, regionId) = anyStreet(owner)
 
       // Save a route and find it in the owner's list with its display stats.
-      val saved = saveRoute(owner, saveRouteBody(regionId, streetId, Some("Ownership Walk")))
+      val saved = saveRoute(owner, saveRouteBody(streetId, Some("Ownership Walk")))
       status(saved) mustBe OK
       val routeId = (contentAsJson(saved) \ "route_id").as[Int]
 

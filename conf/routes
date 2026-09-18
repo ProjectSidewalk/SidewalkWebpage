@@ -165,7 +165,7 @@ GET     /labels/all                                     controllers.LabelControl
 GET     /label/id/:labelId                              controllers.LabelController.getLabelData(labelId: Int)
 POST    /label/edit                                     controllers.LabelController.editLabel
 GET     /label/tags                                     controllers.LabelController.getLabelTags
-GET     /label/resumeMission                            controllers.LabelController.getLabelsToResumeMission(regionId: Int)
+GET     /label/resumeMission                            controllers.LabelController.getLabelsToResumeMission(regionId: Int, userRouteId: Option[Int] ?= None)
 GET     /label/countInRegion                            controllers.LabelController.getRegionLabelCount(regionId: Int)
 POST    /label/labels                                   controllers.GalleryController.getLabels
 

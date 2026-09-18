@@ -2308,21 +2308,40 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Gets the labels placed by a user in a region.
-   * @param regionId Region ID to get labels from
-   * @param userId User ID of user to find labels for
-   * @return list of labels placed by user in region
+   * Gets the labels a user has already placed in a set of regions, so Explore can show them again instead of letting
+   * the user label the same thing twice.
+   *
+   * A label counts when either the mission it was placed in is filed under one of the regions, or the street it sits
+   * on belongs to one. The two differ whenever a walk leaves its mission's region: a route is filed under the region
+   * it starts in however far it runs (#3488), so going by the mission alone would hide a route's labels from a later
+   * visit to the neighborhood they are actually in, and going by the street alone would drop a label that sits just
+   * across a boundary from the mission it was placed in.
+   *
+   * @param regionIds Regions to get labels from.
+   * @param userId    User to find labels for.
    */
-  def getLabelsFromUserInRegion(regionId: Int, userId: String): DBIO[Seq[ResumeLabelMetadata]] = {
-    (for {
-      _mission    <- missions
-      _label      <- labels if _mission.missionId === _label.missionId
-      _labelPoint <- labelPoints if _label.labelId === _labelPoint.labelId
-      _panoData   <- panoData if _label.panoId === _panoData.panoId
-      if _mission.regionId === regionId && _mission.userId === userId
-      if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
-    } yield (_label, _label.labelTypeName, _labelPoint, _panoData.lat, _panoData.lng, _panoData.cameraHeading,
-      _panoData.cameraPitch, _panoData.width, _panoData.height)).result.map(_.map(ResumeLabelMetadata.tupled))
+  def getLabelsFromUserInRegions(regionIds: Seq[Int], userId: String): DBIO[Seq[ResumeLabelMetadata]] = {
+    labels
+      .join(missions)
+      .on(_.missionId === _.missionId)
+      .join(labelPoints)
+      .on { case ((_label, _), _labelPoint) => _label.labelId === _labelPoint.labelId }
+      .join(panoData)
+      .on { case (((_label, _), _), _panoData) => _label.panoId === _panoData.panoId }
+      .joinLeft(streetEdgeRegions)
+      .on { case ((((_label, _), _), _), _streetRegion) => _label.streetEdgeId === _streetRegion.streetEdgeId }
+      .filter { case ((((_label, _mission), _labelPoint), _), _streetRegion) =>
+        // Tutorial labels sit on the tutorial street, which is filed under a real region like any other street.
+        _label.userId === userId && !_label.tutorial &&
+        _labelPoint.lat.isDefined && _labelPoint.lng.isDefined &&
+        ((_mission.regionId inSet regionIds) || (_streetRegion.map(_.regionId) inSet regionIds)).getOrElse(false)
+      }
+      .map { case ((((_label, _), _labelPoint), _panoData), _) =>
+        (_label, _label.labelTypeName, _labelPoint, _panoData.lat, _panoData.lng, _panoData.cameraHeading,
+          _panoData.cameraPitch, _panoData.width, _panoData.height)
+      }
+      .result
+      .map(_.map(ResumeLabelMetadata.tupled))
   }
 
   /**
