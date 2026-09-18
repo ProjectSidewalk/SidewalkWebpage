@@ -299,8 +299,8 @@ corresponding Twirl view:
   the map view (streets and a neighborhood choropleth colored from feature-state, with a ramp legend beside the
   zoom buttons, `AccessScoreMapLegend.js`), the cluster evidence layer
   (`AccessScoreClusterLayer.js`, fed by `/v3/api/labelClusters` — the clusters the engine actually scores, not the
-  raw labels), the places layer (`AccessScorePlacesLayer.js`, fed by `/v3/api/places`: one symbol layer per category
-  and the place card, #5311), the cluster sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop
+  raw labels), the places layer (`AccessScorePlacesLayer.js`, fed by `/v3/api/places`: one symbol layer per category,
+  every category off until a reader ticks it, and the place card, #5311), the cluster sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop
   cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
   coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
   drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and

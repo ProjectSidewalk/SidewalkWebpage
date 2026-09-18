@@ -126,7 +126,7 @@
   "place-transit": "大眾運輸站點",
   "place-park": "公園",
   "place-community": "社區中心",
-  "places-zoom-hint": "放大以查看其餘地點",
+  "places-summary": "{{count}} / {{total}}",
   "places-unavailable": "此城市尚無地點資料。",
   "popup-nearest-street": "最近的街道",
   "popup-street-distance": "距離 {{meters, distance(style: small)}}",

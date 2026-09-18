@@ -11,12 +11,12 @@
  * 1 to open it on a narrow window, where it otherwise starts collapsed)
  * `b` (the brushed score range as `from-to` in whole percent, on the histogram's 10-point bin edges) and `focus`
  * (the region a rank-list click scoped the band to). The places layer (#5311) adds `pc` (the enabled category ids,
- * present only when some are off; `none` hides the layer), and the selected place as `place` (`lat,lng`) with
+ * or `all`; absent when none are on, the default), and the selected place as `place` (`lat,lng`) with
  * `placeName` — the same pair the searched place will use (#5340), so a link means one thing by "place".
  */
 class AccessScoreUrlSync {
-  /** The `pc` value for no place category at all: an empty list would read as an absent param. */
-  static #NO_CATEGORIES = 'none';
+  /** The `pc` value for every place category: the full list spelled out would break the moment one is added. */
+  static #ALL_CATEGORIES = 'all';
 
   static #WRITE_DELAY_MS = 300;
 
@@ -63,15 +63,16 @@ class AccessScoreUrlSync {
     if (params.get('unaudited') === '0') state.showUnaudited = false;
     if (params.get('clusters') === '0') state.showClusters = false;
 
-    // `pc=none` is the "Deselect all" state. Any other `pc` naming nothing the catalog knows is dropped whole:
-    // "every category off" is not what it asked for.
+    // Absent means none, the default. `pc=all` is "Select all"; a list naming every category reads the same. A
+    // list naming nothing the catalog knows is dropped whole, since "none" is not what it asked for either.
     const catalog = config.place_categories ?? [];
-    if (params.get('pc') === AccessScoreUrlSync.#NO_CATEGORIES) {
-      state.placeCategories = [];
+    if (params.get('pc') === AccessScoreUrlSync.#ALL_CATEGORIES) {
+      state.placeCategories = null;
     } else if (params.has('pc')) {
       const asked = new Set(params.get('pc').split(',').map((token) => token.trim()));
       const enabled = catalog.filter((category) => asked.has(category));
-      if (enabled.length > 0 && enabled.length < catalog.length) state.placeCategories = enabled;
+      if (enabled.length === catalog.length && catalog.length > 0) state.placeCategories = null;
+      else if (enabled.length > 0) state.placeCategories = enabled;
     }
 
     // A place is a position, never a query: re-running a search would cost a request and could land elsewhere.
@@ -183,8 +184,8 @@ class AccessScoreUrlSync {
     set('unaudited', state.showUnaudited ? '1' : '0', state.showUnaudited === defaults.showUnaudited);
     set('clusters', state.showClusters ? '1' : '0', state.showClusters === defaults.showClusters);
     const categories = state.placeCategories;
-    set('pc', categories?.length === 0 ? AccessScoreUrlSync.#NO_CATEGORIES : (categories ?? []).join(','),
-      categories === null);
+    set('pc', categories === null ? AccessScoreUrlSync.#ALL_CATEGORIES : (categories ?? []).join(','),
+      categories !== null && categories.length === 0);
     set('sel', String(this.#selection), this.#selection === null);
     set('place', this.#place ? `${this.#place.lat.toFixed(5)},${this.#place.lng.toFixed(5)}` : '', !this.#place);
     set('placeName', this.#place?.name ?? '', !this.#place?.name);

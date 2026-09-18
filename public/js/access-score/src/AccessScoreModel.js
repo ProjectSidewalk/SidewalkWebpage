@@ -127,8 +127,8 @@
  */
 class AccessScoreModel {
   /**
-   * The state a fresh page starts in; `weights` null means the engine's default weights, and `placeCategories`
-   * null means every category the config lists, an empty list none of them (#5311).
+   * The state a fresh page starts in; `weights` null means the engine's default weights. Places start off — the
+   * score map comes first, and a reader adds the destinations they care about (#5311).
    * @type {Readonly<AccessScoreState>}
    */
   static DEFAULT_STATE = Object.freeze({
@@ -136,7 +136,7 @@ class AccessScoreModel {
     weights: null,
     showUnaudited: true,
     showClusters: true,
-    placeCategories: null,
+    placeCategories: [],
   });
 
   /** Histogram resolution over the 0–1 score range. */

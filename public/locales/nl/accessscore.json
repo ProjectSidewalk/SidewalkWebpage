@@ -136,7 +136,7 @@
   "place-transit": "Haltes",
   "place-park": "Parken",
   "place-community": "Buurtcentra",
-  "places-zoom-hint": "Zoom in om de rest te zien",
+  "places-summary": "{{count}} van {{total}}",
   "places-unavailable": "Plekken zijn voor deze stad nog niet beschikbaar.",
   "popup-nearest-street": "Dichtstbijzijnde straat",
   "popup-street-distance": "{{meters, distance(style: small)}} verderop",

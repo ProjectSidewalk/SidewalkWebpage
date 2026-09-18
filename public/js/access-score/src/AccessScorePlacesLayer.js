@@ -3,7 +3,7 @@
  * transit stops, parks, and community centers, one Mapbox symbol layer per category, fed by `/v3/api/places`.
  *
  * The categories come from the backend (`place_categories` on `/v3/api/accessScoreConfig`); what this class holds
- * is presentation only — which glyph each category wears and the zoom it appears at. Every marker is the same disc
+ * is presentation only — which glyph each category wears. Every marker is the same disc
  * in the place-marker color with a white glyph: the map already spends its hues on the score ramp and the label
  * types, so a place reads as a landmark rather than as data, and the sidebar's icon list is the legend. Mapbox's
  * own collision detection thins the markers where they crowd (a big city has thousands of bus stops), which is why
@@ -14,22 +14,22 @@
  */
 class AccessScorePlacesLayer {
   /**
-   * Per category: the glyph file under `images/icons/` and the zoom the category first appears at. Schools, health
-   * care and libraries are few enough to be useful at city scale; the rest wait for street level, like the cluster
-   * dots.
+   * Per category: the glyph file under `images/icons/`. No zoom gate: every category starts off, so one that is on
+   * was asked for, and a reader who ticks "Transit stops" at city scale should see stops, not an empty map. Collision
+   * detection keeps a crowded category to what fits.
    */
   static PRESENTATION = Object.freeze({
-    school: Object.freeze({ icon: 'school-white-lucide.svg', minZoom: 12 }),
-    health: Object.freeze({ icon: 'hospital-white-lucide.svg', minZoom: 12 }),
-    library: Object.freeze({ icon: 'library-white-lucide.svg', minZoom: 12 }),
-    grocery: Object.freeze({ icon: 'shopping-basket-white-lucide.svg', minZoom: 14 }),
-    transit: Object.freeze({ icon: 'bus-white-lucide.svg', minZoom: 14 }),
-    park: Object.freeze({ icon: 'trees-white-lucide.svg', minZoom: 14 }),
-    community: Object.freeze({ icon: 'users-white-lucide.svg', minZoom: 14 }),
+    school: Object.freeze({ icon: 'school-white-lucide.svg' }),
+    health: Object.freeze({ icon: 'hospital-white-lucide.svg' }),
+    library: Object.freeze({ icon: 'library-white-lucide.svg' }),
+    grocery: Object.freeze({ icon: 'shopping-basket-white-lucide.svg' }),
+    transit: Object.freeze({ icon: 'bus-white-lucide.svg' }),
+    park: Object.freeze({ icon: 'trees-white-lucide.svg' }),
+    community: Object.freeze({ icon: 'users-white-lucide.svg' }),
   });
 
-  /** What a category the backend added before this file learned it looks like: a plain pin at street level. */
-  static DEFAULT_PRESENTATION = Object.freeze({ icon: 'map-pin-white-lucide.svg', minZoom: 14 });
+  /** What a category the backend added before this file learned it looks like: a plain pin. */
+  static DEFAULT_PRESENTATION = Object.freeze({ icon: 'map-pin-white-lucide.svg' });
 
   /** The marker disc's diameter in CSS pixels at `icon-size` 1. */
   static MARKER_PX = 26;
@@ -87,7 +87,7 @@ class AccessScorePlacesLayer {
   /**
    * The presentation of a category: its own row, or the default for one this file does not know.
    * @param {string} category - A category id.
-   * @returns {{icon: string, minZoom: number}} The glyph file and the zoom it appears at.
+   * @returns {{icon: string}} The glyph file.
    */
   static presentation(category) {
     return AccessScorePlacesLayer.PRESENTATION[category] ?? AccessScorePlacesLayer.DEFAULT_PRESENTATION;
@@ -227,21 +227,6 @@ class AccessScorePlacesLayer {
   }
 
   /**
-   * The lowest zoom at which any enabled category is drawn, so the sidebar can say "zoom in" only while nothing
-   * enabled can show.
-   * @returns {number} A zoom level; Infinity when no category is enabled.
-   */
-  lowestVisibleZoom() {
-    let lowest = Infinity;
-    for (const category of this.#categories) {
-      if (this.#isEnabled(category)) {
-        lowest = Math.min(lowest, AccessScorePlacesLayer.presentation(category).minZoom);
-      }
-    }
-    return lowest;
-  }
-
-  /**
    * Whether a place sits under a pointer event — the map's street/region tooltip yields to this one, and a click
    * on a marker must not also select the street beneath it.
    * @param {mapboxgl.MapMouseEvent} e - A Mapbox pointer event.
@@ -289,7 +274,6 @@ class AccessScorePlacesLayer {
       id,
       type: 'symbol',
       source: id,
-      minzoom: AccessScorePlacesLayer.presentation(category).minZoom,
       layout: {
         'visibility': this.#isEnabled(category) ? 'visible' : 'none',
         'icon-image': AccessScorePlacesLayer.#imageId(category),

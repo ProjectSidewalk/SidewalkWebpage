@@ -78,16 +78,22 @@
         </section>
 
         @* Category rows are rendered by AccessScoreSidebar.js from the backend's catalog; the icons are the legend.
-           The heading's action is the shared filter sidebar's: "Deselect all" while every row is on, "Select all"
-           otherwise, so one "Only" click has a one-click way back. *@
+           Folded like the weights, and every category starts off: the scores are the map, places are what a reader
+           adds. The hint beside the heading counts the categories on, and the heading's action is the shared filter
+           sidebar's: "Select all" until every row is on, then "Deselect all". *@
         <section class="filter-sidebar__section acs-section" id="acs-places-section" aria-labelledby="acs-places-section-heading">
           <div class="filter-sidebar__heading-row">
-            <h3 class="filter-sidebar__heading" id="acs-places-section-heading" data-i18n="accessscore:places">Places</h3>
-            <button type="button" id="acs-places-toggle-all" class="filter-sidebar__deselect-all acs-heading-action" data-i18n="labelmap:deselect-all">Deselect all</button>
+            <h3 class="filter-sidebar__heading acs-disclosure__heading" id="acs-places-section-heading">
+              <button type="button" id="acs-places-toggle" class="acs-disclosure" aria-expanded="false" aria-controls="acs-place-categories">
+                <img class="acs-disclosure__chevron" src='@assets.path("images/icons/chevron-right-feather.svg")' alt="" data-down-src='@assets.path("images/icons/chevron-right-feather.svg")' data-up-src='@assets.path("images/icons/chevron-down-feather.svg")'>
+                <span data-i18n="accessscore:places">Places</span>
+                <span class="acs-disclosure__hint" id="acs-places-summary"></span>
+              </button>
+            </h3>
+            <button type="button" id="acs-places-toggle-all" class="filter-sidebar__deselect-all acs-heading-action" data-i18n="labelmap:select-all">Select all</button>
             @info("places-help")
           </div>
-          <div id="acs-place-categories" class="acs-place-categories"></div>
-          <p id="acs-places-zoom-hint" class="acs-places-note" data-i18n="accessscore:places-zoom-hint" hidden>Zoom in to see the rest</p>
+          <div id="acs-place-categories" class="acs-place-categories" hidden></div>
           <p id="acs-places-unavailable" class="acs-places-note" data-i18n="accessscore:places-unavailable" hidden>Places aren't available for this city yet.</p>
         </section>
 

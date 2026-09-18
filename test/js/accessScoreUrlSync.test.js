@@ -43,16 +43,18 @@ describe('AccessScoreUrlSync', () => {
         expect(selection).toBeNull();
     });
 
-    test('reads the enabled categories in catalog order, "none" as none, and a linked place', () => {
+    test('reads the enabled categories in catalog order, "all" as every category, and a linked place', () => {
         const { state, place } = AccessScoreUrlSync.read(config,
             '?pc=transit,school,casino&place=40.88050,-74.01050&placeName=Teaneck+High+School');
         expect(state.placeCategories).toEqual(['school', 'transit']);
-        expect(AccessScoreUrlSync.read(config, '?pc=none').state.placeCategories).toEqual([]);
+        expect(AccessScoreUrlSync.read(config, '?pc=all').state.placeCategories).toBeNull();
         expect(place).toEqual({ lat: 40.8805, lng: -74.0105, name: 'Teaneck High School' });
-        // Every category on is the default and is not a restriction; nothing the catalog knows is not a request.
+        // The full list spelled out reads as "all"; nothing the catalog knows is not a request, and an absent
+        // param is the default (none on).
         expect(AccessScoreUrlSync.read(config, `?pc=${config.place_categories.join(',')}`).state.placeCategories)
-            .toBeUndefined();
+            .toBeNull();
         expect(AccessScoreUrlSync.read(config, '?pc=casino').state.placeCategories).toBeUndefined();
+        expect(AccessScoreUrlSync.read(config, '').state.placeCategories).toBeUndefined();
         for (const bad of ['40.88', '91,0', '0,181', 'abc,def', '']) {
             expect(AccessScoreUrlSync.read(config, `?place=${bad}`).place).toBeNull();
         }
@@ -125,11 +127,14 @@ describe('AccessScoreUrlSync', () => {
         expect(back.place).toEqual({ lat: 40.8805, lng: -74.0105, name: 'Teaneck High School' });
         expect(back.selection).toBe(7);
 
-        // "Deselect all" round-trips too: an empty list would otherwise write an absent param and read as every category.
+        // "Select all" writes `all` rather than the list, and "Deselect all" is the default, so it writes nothing.
+        model.setState({ placeCategories: null });
+        sync.writeNow();
+        expect(new URLSearchParams(window.location.search).get('pc')).toBe('all');
+        expect(AccessScoreUrlSync.read(config, window.location.search).state.placeCategories).toBeNull();
         model.setState({ placeCategories: [] });
         sync.writeNow();
-        expect(new URLSearchParams(window.location.search).get('pc')).toBe('none');
-        expect(AccessScoreUrlSync.read(config, window.location.search).state.placeCategories).toEqual([]);
+        expect(new URLSearchParams(window.location.search).has('pc')).toBe(false);
 
         // A closed card and an unnamed place drop their params again.
         sync.setPlace({ lat: 40.88, lng: -74.01, name: null });

@@ -85,15 +85,11 @@ class AccessScoreSidebar {
     }
   }
 
-  /** @param {boolean} show - True while the map sits below every enabled category's zoom. */
-  setPlacesZoomHint(show) {
-    this.#els.placesZoomHint.hidden = !show;
-  }
-
   setPlacesUnavailable() {
-    this.#els.placeCategories.hidden = true;
+    this.setPlacesOpen(false);
+    this.#els.placesToggle.disabled = true;
     this.#els.placesToggleAll.hidden = true;
-    this.#els.placesZoomHint.hidden = true;
+    this.#els.placesSummary.textContent = '';
     this.#els.placesUnavailable.hidden = false;
   }
 
@@ -185,8 +181,9 @@ class AccessScoreSidebar {
         }];
       })),
       placesToggleAll: root.querySelector('#acs-places-toggle-all'),
+      placesToggle: root.querySelector('#acs-places-toggle'),
+      placesSummary: root.querySelector('#acs-places-summary'),
       placeCategories: placeRows,
-      placesZoomHint: root.querySelector('#acs-places-zoom-hint'),
       placesUnavailable: root.querySelector('#acs-places-unavailable'),
       reset: root.querySelector('#acs-reset'),
       weightsToggle: root.querySelector('#acs-weights-toggle'),
@@ -235,10 +232,14 @@ class AccessScoreSidebar {
       });
     }
     e.reset.addEventListener('click', () => this.#emit(null, { kind: 'Reset', final: true }));
-    // Opening the fold is worth knowing about: it says whether people reach for the weights at all.
+    // Opening a fold is worth knowing about: it says whether people reach for the weights or the places at all.
     e.weightsToggle.addEventListener('click', () => {
       const open = this.setWeightsOpen(!this.weightsOpen);
       this.#emit(null, { kind: 'Section', value: `weights_open=${open}`, final: true });
+    });
+    e.placesToggle.addEventListener('click', () => {
+      const open = this.setPlacesOpen(!this.placesOpen);
+      this.#emit(null, { kind: 'Section', value: `places_open=${open}`, final: true });
     });
   }
 
@@ -253,10 +254,28 @@ class AccessScoreSidebar {
    * @returns {boolean} The state now in force.
    */
   setWeightsOpen(open) {
-    const e = this.#els;
-    e.weightsToggle.setAttribute('aria-expanded', String(open));
-    e.weights.hidden = !open;
-    const chevron = e.weightsToggle.querySelector('img');
+    return AccessScoreSidebar.#setFold(this.#els.weightsToggle, this.#els.weights, open);
+  }
+
+  /** @returns {boolean} Whether the places section is unfolded. */
+  get placesOpen() {
+    return this.#els.placesToggle.getAttribute('aria-expanded') === 'true';
+  }
+
+  /**
+   * Folds or unfolds the places section without emitting a change; the page opens it for a link with places on.
+   * @param {boolean} open - True to show the category rows.
+   * @returns {boolean} The state now in force.
+   */
+  setPlacesOpen(open) {
+    return AccessScoreSidebar.#setFold(this.#els.placesToggle, this.#els.placeCategories, open);
+  }
+
+  /** The accordion mechanics both folds share: the heading button's state, the body, and the chevron. */
+  static #setFold(toggle, body, open) {
+    toggle.setAttribute('aria-expanded', String(open));
+    body.hidden = !open;
+    const chevron = toggle.querySelector('img');
     chevron.src = open ? chevron.dataset.upSrc : chevron.dataset.downSrc;
     return open;
   }
@@ -274,10 +293,18 @@ class AccessScoreSidebar {
     return checked.length === categories.length ? null : checked;
   }
 
-  /** The section action reads as what a click would do: "Deselect all" with every row on, "Select all" otherwise. */
+  /**
+   * The section action reads as what a click would do: "Deselect all" with every row on, "Select all" otherwise.
+   * The hint beside the folded heading counts the rows that are on, since that is what a fold would otherwise hide.
+   */
   #updatePlacesAction() {
-    const allOn = this.#checkedPlaceCategories() === null;
+    const categories = this.#config.place_categories ?? [];
+    const on = categories.filter((category) => this.#els.placeRows[category].input.checked).length;
+    const allOn = on === categories.length;
     this.#els.placesToggleAll.textContent = i18next.t(allOn ? 'labelmap:deselect-all' : 'labelmap:select-all');
+    this.#els.placesSummary.textContent = on === 0
+      ? ''
+      : i18next.t('accessscore:places-summary', { count: on, total: categories.length });
   }
 
   /** The slider ceiling: `MAX_WEIGHT`, or the next whole number above the largest default if that is higher. */

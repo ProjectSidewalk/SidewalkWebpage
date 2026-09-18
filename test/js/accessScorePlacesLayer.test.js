@@ -80,13 +80,13 @@ describe('AccessScorePlacesLayer', () => {
         expect([...map.layers.keys()]).toEqual(['acs-places-school', 'acs-places-health', 'acs-places-transit']);
         const school = map.layers.get('acs-places-school');
         expect(school.type).toBe('symbol');
-        expect(school.minzoom).toBe(12);
+        // No zoom gate: a category a reader turns on is drawn at whatever zoom they are at.
+        expect(school.minzoom).toBeUndefined();
         expect(school.layout['icon-image']).toBe('acs-place-school');
         expect(school.layout['icon-allow-overlap']).toBe(false);
         expect(school.layout['text-optional']).toBe(true);
         // Named places win collisions within a category: a null name must sort last, not read as present.
         expect(school.layout['symbol-sort-key']).toEqual(['case', ['to-boolean', ['coalesce', ['get', 'name'], '']], 0, 1]);
-        expect(map.layers.get('acs-places-health').minzoom).toBe(12);
         expect(map.sources.get('acs-places-school').promoteId).toBe('place_id');
     });
 
@@ -96,7 +96,7 @@ describe('AccessScorePlacesLayer', () => {
         expect(AccessScorePlacesLayer.presentation('skatepark')).toEqual(AccessScorePlacesLayer.DEFAULT_PRESENTATION);
         expect(AccessScorePlacesLayer.rasterize).toHaveBeenCalledWith(
             '/assets/images/icons/map-pin-white-lucide.svg', expect.anything());
-        expect(map.layers.get('acs-places-skatepark').minzoom).toBe(14);
+        expect(map.layers.get('acs-places-skatepark').layout['icon-image']).toBe('acs-place-skatepark');
     });
 
     test('buffers data given before the icons are ready, then splits it by category', async () => {
@@ -115,21 +115,18 @@ describe('AccessScorePlacesLayer', () => {
         expect(layer.counts()).toEqual({ school: 1, health: 0, transit: 2 });
     });
 
-    test('shows and hides by the category set, and reports the lowest zoom that can draw', async () => {
+    test('shows and hides by the category set', async () => {
         const { map, layer } = mount();
         await layer.ready;
         const visibility = () => Object.fromEntries(CATEGORIES.map((c) => [c, map.layers.get(`acs-places-${c}`).layout.visibility]));
         expect(visibility()).toEqual({ school: 'visible', health: 'visible', transit: 'visible' });
-        expect(layer.lowestVisibleZoom()).toBe(12);
 
         layer.setCategories(['transit']);
         expect(visibility()).toEqual({ school: 'none', health: 'none', transit: 'visible' });
-        expect(layer.lowestVisibleZoom()).toBe(14);
 
         // "Deselect all": an empty set, distinct from null.
         layer.setCategories([]);
         expect(visibility()).toEqual({ school: 'none', health: 'none', transit: 'none' });
-        expect(layer.lowestVisibleZoom()).toBe(Infinity);
 
         layer.setCategories(null);
         expect(visibility()).toEqual({ school: 'visible', health: 'visible', transit: 'visible' });

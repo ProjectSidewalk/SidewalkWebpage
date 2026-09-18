@@ -636,30 +636,42 @@ test.describe('/accessScore', () => {
     await expect(pin).toHaveCount(0);
   });
 
-  test('the places layer draws one row per category, and its toggles reach the map and the URL (#5311)', async ({page, consoleErrors}) => {
+  test('the places layer starts folded and off, and its toggles reach the map and the URL (#5311)', async ({page, consoleErrors}) => {
     await page.goto('/accessScore');
     await waitForAppReady(page);
     await waitForTool(page);
     await page.waitForFunction(() => document.querySelector('.acs-place-row[data-category="transit"] .acs-place__count')?.textContent === '1');
 
+    // Folded like the weights, and nothing on: the scores are the map until a reader adds places.
+    const fold = page.locator('#acs-places-toggle');
+    await expect(fold).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('#acs-place-categories')).toBeHidden();
+    await expect(page.locator('#acs-places-summary')).toHaveText('');
+    const visibility = () => page.evaluate(() => ({
+      school: window.accessScore.map.getLayoutProperty('acs-places-school', 'visibility'),
+      transit: window.accessScore.map.getLayoutProperty('acs-places-transit', 'visibility'),
+    }));
+    expect(await visibility()).toEqual({school: 'none', transit: 'none'});
+    expect(await urlParam(page, 'pc')).toBeNull();
+
+    await fold.click();
+    await expect(fold).toHaveAttribute('aria-expanded', 'true');
     const rows = page.locator('.acs-place-row');
     await expect(rows).toHaveCount(7);
     await expect(rows.first()).toHaveAttribute('data-category', 'school');
     await expect(rows.first().locator('.acs-place__count')).toHaveText('1');
     await expect(rows.nth(1).locator('.acs-place__count')).toHaveText('0');
+    await expect(page.locator('#acs-place-transit')).not.toBeChecked();
 
-    const visibility = () => page.evaluate(() => ({
-      school: window.accessScore.map.getLayoutProperty('acs-places-school', 'visibility'),
-      transit: window.accessScore.map.getLayoutProperty('acs-places-transit', 'visibility'),
-    }));
-    expect(await visibility()).toEqual({school: 'visible', transit: 'visible'});
+    // A ticked category shows at whatever zoom the map is at: the tool opens at city scale, and a reader who asks
+    // for transit stops there should see them.
+    await page.locator('#acs-place-transit').check();
+    expect(await visibility()).toEqual({school: 'none', transit: 'visible'});
+    await expect.poll(() => urlParam(page, 'pc')).toBe('transit');
+    await expect(page.locator('#acs-places-summary')).toHaveText('1 of 7');
 
-    await page.locator('#acs-place-transit').uncheck();
-    expect(await visibility()).toEqual({school: 'visible', transit: 'none'});
-    await expect.poll(() => urlParam(page, 'pc')).toBe('school,health,library,grocery,park,community');
-
-    // "Only" turns every other row off in one click; the heading's action then reads "Select all" and is the one
-    // click back, and reads "Deselect all" again once every row is on.
+    // "Only" turns every other row off in one click; the heading's action reads "Select all" until every row is
+    // on, and "Deselect all" then.
     const toggleAll = page.locator('#acs-places-toggle-all');
     await expect(toggleAll).toHaveText('Select all');
     await page.locator('.acs-place-row[data-category="school"]').hover();
@@ -668,18 +680,25 @@ test.describe('/accessScore', () => {
     await expect.poll(() => urlParam(page, 'pc')).toBe('school');
     await toggleAll.click();
     expect(await visibility()).toEqual({school: 'visible', transit: 'visible'});
-    await expect.poll(() => urlParam(page, 'pc')).toBeNull();
+    await expect.poll(() => urlParam(page, 'pc')).toBe('all');
     await expect(toggleAll).toHaveText('Deselect all');
+    await expect(page.locator('#acs-places-summary')).toHaveText('7 of 7');
 
     await toggleAll.click();
     expect(await visibility()).toEqual({school: 'none', transit: 'none'});
     await expect(page.locator('#acs-place-school')).not.toBeChecked();
-    await expect.poll(() => urlParam(page, 'pc')).toBe('none');
+    await expect.poll(() => urlParam(page, 'pc')).toBeNull();
     await expect(toggleAll).toHaveText('Select all');
 
-    await page.locator('#acs-reset-all').click();
-    await expect.poll(visibility).toEqual({school: 'visible', transit: 'visible'});
+    // A link with places on opens the fold, as one with custom weights opens the sliders.
+    await page.goto('/accessScore?pc=school,transit');
+    await waitForAppReady(page);
+    await waitForTool(page);
+    await expect(fold).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator('#acs-place-transit')).toBeChecked();
+    await expect.poll(visibility).toEqual({school: 'visible', transit: 'visible'});
+    await page.locator('#acs-reset-all').click();
+    await expect.poll(visibility).toEqual({school: 'none', transit: 'none'});
     await expect.poll(() => urlParam(page, 'pc')).toBeNull();
     expect(consoleErrors).toEqual([]);
   });
@@ -718,11 +737,13 @@ test.describe('/accessScore', () => {
       await page.evaluate(() => window.accessScore.selectPlace(2));
       await expect(page.locator('.acs-popup')).toContainText('No street within 250 m.');
 
-      // A shared link reopens the marker's card without a click.
+      // A shared link reopens the marker's card without a click, and draws its category so the card sits on a marker.
       await page.goto('/accessScore?place=40.88050,-74.00890&placeName=Fixture+High+School');
       await waitForAppReady(page);
       await waitForTool(page);
       await expect(page.locator('.acs-popup .acs-popup__title')).toHaveText('Fixture High School');
+      await expect(page.locator('#acs-place-school')).toBeChecked();
+      await expect.poll(() => urlParam(page, 'pc')).toBe('school');
       expect(consoleErrors).toEqual([]);
     });
 });

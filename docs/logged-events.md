@@ -113,8 +113,9 @@ The AccessScore tool (`/accessScore`, `public/js/access-score/`, #5217) logs its
 **`Click_module=AccessScore_<Action>`** family, on a control's settled `change` (never per slider tick):
 `AccessScore_Unit_value=<streets|regions>`, `AccessScore_Weight_value=<labelType>_value=<magnitude>`,
 `AccessScore_ShowUnaudited_value=<bool>`, `AccessScore_ShowClusters_value=<bool>` (the evidence layer),
-`AccessScore_DarkMap_value=<bool>` (the dark basemap toggled), `AccessScore_Section_value=weights_open=<bool>` (the
-weights fold toggled; it starts closed, so an open says the weights were reached for), `AccessScore_Reset` (the weights),
+`AccessScore_DarkMap_value=<bool>` (the dark basemap toggled), `AccessScore_Section_value=weights_open=<bool>` /
+`AccessScore_Section_value=places_open=<bool>` (a fold toggled; both start closed, so an open says the section was
+reached for), `AccessScore_Reset` (the weights),
 `AccessScore_ResetAll`
 (weights, view options, selection, brush, band, basemap and camera back to the page as first opened),
 `AccessScore_Select_streetId_value=<id>` / `AccessScore_Select_regionId_value=<id>` (a click on a street or neighborhood;

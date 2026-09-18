@@ -242,8 +242,10 @@ window.AccessScoreApp = (function () {
 
     sidebar.setState(model.state);
     sidebar.setContributions(model.contributions().means);
-    // A link that carries custom weights opens the fold, so what it shares is in view rather than a "Custom" hint.
+    // A link that carries custom weights, or places, opens that fold, so what it shares is in view rather than a
+    // hint beside a heading.
     if (!model.weightsAreDefault) sidebar.setWeightsOpen(true);
+    if (model.state.placeCategories === null || model.state.placeCategories.length > 0) sidebar.setPlacesOpen(true);
     renderUpdatedAt(config.clusters_updated_at);
     // A live `setStyle` drops everything the tool added, so the map view and the cluster layer remount once the new
     // style has loaded. The band keeps the light ramp; only the map surface changes.
@@ -416,17 +418,7 @@ window.AccessScoreApp = (function () {
         onSelect: (props) => selectPlace(props),
       });
 
-      const apply = (state) => {
-        layer.setCategories(state.placeCategories);
-        updateZoomHint();
-      };
-
-      // With every category off there is nothing to zoom in for; `lowestVisibleZoom` is Infinity then.
-      const updateZoomHint = () => {
-        const lowest = layer.lowestVisibleZoom();
-        sidebar.setPlacesZoomHint(Number.isFinite(lowest) && map.getZoom() < lowest);
-      };
-      map.on('zoomend', updateZoomHint);
+      const apply = (state) => layer.setCategories(state.placeCategories);
 
       // A place is not a `sel` — it never scopes the dock or lands in `sel=` — but one card is open at a time, so a
       // street or region card closes, and its selection with it, when a place card opens (as `select` does the
@@ -480,10 +472,20 @@ window.AccessScoreApp = (function () {
           layer.setData(featureCollection);
           await layer.ready;
           sidebar.setPlaceCounts(layer.counts());
-          updateZoomHint();
-          // A shared link's place: the marker it names, if the feed has one there (#5340 owns the search pin).
+          // A shared link's place: the marker it names, if the feed has one there (#5340 owns the search pin). Its
+          // category is drawn too, so the card sits on a marker rather than on bare map.
           const linked = urlState.place ? layer.placeNear(urlState.place) : null;
-          if (linked) selectPlace(layer.place(linked.place_id), { fromUrl: true });
+          if (linked) {
+            const enabled = model.state.placeCategories;
+            if (enabled !== null && !enabled.includes(linked.category)) {
+              model.setState({ placeCategories: [...enabled, linked.category] });
+              sidebar.setState(model.state);
+              sidebar.setPlacesOpen(true);
+              apply(model.state);
+              urlSync.scheduleWrite();
+            }
+            selectPlace(layer.place(linked.place_id), { fromUrl: true });
+          }
         })
         .catch((e) => {
           console.warn('AccessScore places failed to load', e);

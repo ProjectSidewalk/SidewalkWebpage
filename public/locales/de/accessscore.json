@@ -136,7 +136,7 @@
   "place-transit": "Haltestellen",
   "place-park": "Parks",
   "place-community": "Gemeindezentren",
-  "places-zoom-hint": "Zoomen Sie hinein, um den Rest zu sehen",
+  "places-summary": "{{count}} von {{total}}",
   "places-unavailable": "Für diese Stadt sind noch keine Orte verfügbar.",
   "popup-nearest-street": "Nächste Straße",
   "popup-street-distance": "{{meters, distance(style: small)}} entfernt",

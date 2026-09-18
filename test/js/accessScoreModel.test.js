@@ -520,8 +520,9 @@ describe('AccessScoreModel', () => {
     test('starts with every place category drawn, and hands out its own copy of a restriction', () => {
         const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features: [] },
             { type: 'FeatureCollection', features: [] }, []);
-        expect(AccessScoreModel.DEFAULT_STATE.placeCategories).toBeNull();
-        expect(model.state.placeCategories).toBeNull();
+        // Places start off: the score map comes first.
+        expect(AccessScoreModel.DEFAULT_STATE.placeCategories).toEqual([]);
+        expect(model.state.placeCategories).toEqual([]);
         const state = model.setState({ placeCategories: ['school'] });
         expect(state.placeCategories).toEqual(['school']);
         state.placeCategories.push('transit');
