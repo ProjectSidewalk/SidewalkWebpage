@@ -204,7 +204,8 @@ object ExploreFormats {
         // "current_mission_start" -> currentMissionStart.map(p => geojson.LatLng(p.getY, p.getX)),
         "route_street_id"       -> task.routeStreetId,
         "route_street_position" -> task.routeStreetPosition,
-        "reported_no_imagery"   -> task.reportedNoImagery
+        "reported_no_imagery"   -> task.reportedNoImagery,
+        "needs_reaudit"         -> task.needsReaudit
       )
     )
   }

@@ -56,7 +56,8 @@ case class NewTask(
     routeStreetId: Option[Int],         // The route_street_id if this task is part of a route.
     routeStreetPosition: Option[Int],   // The street's walking-order position within that route.
     maxSpeed: Option[String],           // Raw OSM maxspeed tag for the street's way (e.g. "25 mph"), if known.
-    reportedNoImagery: Boolean          // Reported imagery-less during this route walk; false outside a route.
+    reportedNoImagery: Boolean,         // Reported imagery-less during this route walk; false outside a route.
+    needsReaudit: Boolean               // Audited before, but every completed audit predates newer imagery (#4895).
 )
 case class AuditedStreetWithTimestamp(
     streetEdgeId: Int,
@@ -188,17 +189,34 @@ class AuditTaskTable @Inject() (
     _r   <- regionsWithoutDeleted if _ser.regionId === _r.regionId
   } yield _ser
 
-  // Sub query with columns (street_edge_id, completed_by_any_user): (Int, Boolean).
-  // TODO it would be better to only consider "good user" audits here, but it takes too long to calculate each time.
-  def streetCompletedByAnyUser: Query[(Rep[Int], Rep[Boolean]), (Int, Boolean), Seq] = {
-    // Completion count for audited streets. Audits on since-replaced imagery don't count as completion (#4384).
-    val completionCnt =
+  /**
+   * Every street's audit state as the task payload reports it: (street_edge_id, completed_by_any_user, needs_reaudit).
+   *
+   * `completed_by_any_user` counts only audits on current imagery (#4384), so on its own it cannot tell a street
+   * nobody has walked from one whose audits have all been overtaken by newer imagery -- both read false. The third
+   * column is that distinction: audited before, but with no up-to-date audit left. Explore uses it to tell the labeler
+   * they are refreshing a street rather than mapping it for the first time (#4895). The tutorial street reads false on
+   * both, having no completed audits in the table.
+   *
+   * TODO it would be better to only consider "good user" audits here, but it takes too long to calculate each time.
+   */
+  def streetAuditState: Query[(Rep[Int], Rep[Boolean], Rep[Boolean]), (Int, Boolean, Boolean), Seq] = {
+    val upToDateCnt =
       upToDateCompletedTasks.groupBy(_.streetEdgeId).map { case (_street, group) => (_street, group.length) }
+    val everCnt =
+      completedTasks.groupBy(_.streetEdgeId).map { case (_street, group) => (_street, group.length) }
 
-    // Gets completion count of 0 for unaudited streets w/ a left join, then checks if completion count is > 0.
-    streetEdgeTable.streetsWithTutorial.joinLeft(completionCnt).on(_.streetEdgeId === _._1).map { case (_edge, _cnt) =>
-      (_edge.streetEdgeId, _cnt.map(_._2).ifNull(0.asColumnOf[Int]) > 0)
-    }
+    // Left joins so unaudited streets come through with counts of 0 rather than dropping out of the task list.
+    streetEdgeTable.streetsWithTutorial
+      .joinLeft(upToDateCnt)
+      .on(_.streetEdgeId === _._1)
+      .joinLeft(everCnt)
+      .on(_._1.streetEdgeId === _._1)
+      .map { case ((_edge, _upToDate), _ever) =>
+        val upToDate = _upToDate.map(_._2).ifNull(0.asColumnOf[Int])
+        val ever     = _ever.map(_._2).ifNull(0.asColumnOf[Int])
+        (_edge.streetEdgeId, upToDate > 0, ever > 0 && upToDate === 0)
+      }
   }
 
   /**
@@ -552,7 +570,7 @@ class AuditTaskTable @Inject() (
     // Join with other queries to get completion count and priority for each of the street edges.
     val edges = for {
       se   <- streetEdgeTable.streets if se.streetEdgeId === streetEdgeId
-      scau <- streetCompletedByAnyUser if se.streetEdgeId === scau._1
+      scau <- streetAuditState if se.streetEdgeId === scau._1
       sep  <- streetEdgePriorities if scau._1 === sep.streetEdgeId
       sms  <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === sms._1
     } yield (
@@ -572,7 +590,8 @@ class AuditTaskTable @Inject() (
       routeStreetId,
       routeStreetPosition,
       sms._2, // maxSpeed
-      false   // reportedNoImagery is route-scoped; see NewTask.
+      false,  // reportedNoImagery is route-scoped; see NewTask.
+      scau._3 // needsReaudit
     )
 
     edges.result.head.map(NewTask.tupled)
@@ -604,7 +623,8 @@ class AuditTaskTable @Inject() (
           None: Option[Int],    // routeStreetId is None for the tutorial task.
           None: Option[Int],    // routeStreetPosition is None for the tutorial task.
           None: Option[String], // maxSpeed isn't shown during the tutorial.
-          false                 // reportedNoImagery is route-scoped; see NewTask.
+          false,                // reportedNoImagery is route-scoped; see NewTask.
+          false                 // needsReaudit: the tutorial street is never a re-audit.
         )
       }
       .result
@@ -627,7 +647,7 @@ class AuditTaskTable @Inject() (
       ser <- getStreetEdgeRegionsNotAuditedQuery(userId, regionId)
       se  <- streetEdgeTable.streets if ser.streetEdgeId === se.streetEdgeId
       sp  <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
-      sc  <- streetCompletedByAnyUser if se.streetEdgeId === sc._1
+      sc  <- streetAuditState if se.streetEdgeId === sc._1
       sms <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === sms._1
     } yield (
       se.streetEdgeId,
@@ -646,7 +666,8 @@ class AuditTaskTable @Inject() (
       None: Option[Int],   // routeStreetId
       None: Option[Int],   // routeStreetPosition
       sms._2,              // maxSpeed
-      false                // reportedNoImagery is route-scoped; see NewTask.
+      false,               // reportedNoImagery is route-scoped; see NewTask.
+      sc._3                // needsReaudit
     )
 
     // Get the priority of the highest priority task.
@@ -689,12 +710,13 @@ class AuditTaskTable @Inject() (
       at  <- matchingTasks if at.auditTaskId === taskId
       se  <- streetEdgeTable.streetsWithTutorial if at.streetEdgeId === se.streetEdgeId
       sp  <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
-      sc  <- streetCompletedByAnyUser if sp.streetEdgeId === sc._1
+      sc  <- streetAuditState if sp.streetEdgeId === sc._1
       sms <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === sms._1
     } yield (
       se.streetEdgeId, se.geom, at.currentLng, at.currentLat, se.wayType, at.startPointReversed, at.taskStart, sc._2,
       sp.priority, at.completed, at.auditTaskId.?, at.currentMissionId, at.currentMissionStart, routeStreetId,
-      routeStreetPosition, sms._2, false // reportedNoImagery is route-scoped; see NewTask.
+      routeStreetPosition, sms._2, false, // reportedNoImagery is route-scoped; see NewTask.
+      sc._3                               // needsReaudit
     )
 
     newTask.result.headOption.map(_.map(NewTask.tupled))
@@ -737,7 +759,7 @@ class AuditTaskTable @Inject() (
         .on(_._1.streetEdgeId === _._1)
       se   <- streetEdgeTable.streets if ser.streetEdgeId === se.streetEdgeId
       sep  <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
-      scau <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
+      scau <- streetAuditState if sep.streetEdgeId === scau._1
       sms  <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === sms._1
     } yield (
       se.streetEdgeId,
@@ -756,7 +778,8 @@ class AuditTaskTable @Inject() (
       None: Option[Int],                                   // routeStreetId
       None: Option[Int],                                   // routeStreetPosition
       sms._2,                                              // maxSpeed
-      false                                                // reportedNoImagery is route-scoped; see NewTask.
+      false,                                               // reportedNoImagery is route-scoped; see NewTask.
+      scau._3                                              // needsReaudit
     )
 
     tasks.result.map(_.map(NewTask.tupled(_)))
@@ -958,7 +981,7 @@ class AuditTaskTable @Inject() (
       ((_se1, _rs), ucs) <- edgesInRoute.joinLeft(userCompletedStreets).on(_._2.routeStreetId === _._1)
       _se2               <- streetEdgeTable.streets if _se1.streetEdgeId === _se2.streetEdgeId
       _sep               <- streetEdgePriorities if _se2.streetEdgeId === _sep.streetEdgeId
-      _scau              <- streetCompletedByAnyUser if _sep.streetEdgeId === _scau._1
+      _scau              <- streetAuditState if _sep.streetEdgeId === _scau._1
       _sms               <- osmWayTable.streetMaxSpeeds if _se2.streetEdgeId === _sms._1
     } yield (
       _se2.streetEdgeId,
@@ -976,8 +999,9 @@ class AuditTaskTable @Inject() (
       ucs.flatMap(_._5), // fill currentMissionStart if the user has an existing mission for this street.
       _rs.routeStreetId.asColumnOf[Option[Int]],
       _rs.position.asColumnOf[Option[Int]],
-      _sms._2,                             // maxSpeed
-      _se2.streetEdgeId in reportedStreets // reportedNoImagery
+      _sms._2,                              // maxSpeed
+      _se2.streetEdgeId in reportedStreets, // reportedNoImagery
+      _scau._3                              // needsReaudit
     )
 
     tasks.result.map(_.map(NewTask.tupled(_)))
