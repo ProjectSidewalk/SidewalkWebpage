@@ -26,7 +26,8 @@ import scala.concurrent.ExecutionContext
  * @param tags                   The object's whole OSM tag map, for features that want more than the name.
  * @param geom                   The place as a point: the node, or the way's or relation's center.
  * @param regionId               The region containing the point, or None just outside every region.
- * @param nearestStreetEdgeId    The nearest street within 250 m (the tutorial street excluded), for the place card.
+ * @param nearestStreetEdgeId    The nearest open street within 250 m (the tutorial street excluded), for the place
+ *                               card; the same streets the AccessScore feed scores.
  * @param nearestStreetDistanceM Geodesic meters to it; set exactly when the street is (a CHECK).
  * @param fetchedAt              When the refresh last saw the object.
  */
@@ -219,7 +220,8 @@ class PlaceTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                           SELECT street_edge.street_edge_id,
                                  ST_Distance(street_edge.geom::geography, fetched_place.geom::geography) AS distance_m
                           FROM street_edge
-                          WHERE street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+                          WHERE street_edge.status = 'open'
+                            AND street_edge.street_edge_id IS DISTINCT FROM (SELECT tutorial_street_edge_id FROM config)
                             AND ST_DWithin(street_edge.geom, fetched_place.geom, 0.005)
                             AND ST_DWithin(street_edge.geom::geography, fetched_place.geom::geography, 250)
                           ORDER BY ST_Distance(street_edge.geom::geography, fetched_place.geom::geography)

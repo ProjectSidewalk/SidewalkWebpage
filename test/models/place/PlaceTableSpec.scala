@@ -51,6 +51,14 @@ class PlaceTableSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
   private def placeByOsm(osmType: String, osmId: Long): DBIO[Option[Place]] =
     table.places.filter(p => p.osmType === osmType && p.osmId === osmId).result.headOption
 
+  /** A street the fixture's shape (the unit square's bottom edge) shifted north by `lat` degrees, in any status. */
+  private def insertStreetAt(lat: Double, status: String): DBIO[Int] =
+    sql"""INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
+          VALUES ((SELECT COALESCE(MAX(street_edge_id), 0) + 1 FROM street_edge),
+                  ST_SetSRID(ST_MakeLine(ST_MakePoint(0, $lat), ST_MakePoint(1, $lat)), 4326),
+                  0, $lat, 1, $lat, 'residential', CAST($status AS street_edge_status))
+          RETURNING street_edge_id""".as[Int].head
+
   /** A city-supplied row, which no refresh may touch. */
   private def insertCityPlace(name: String, lng: Double, lat: Double): DBIO[Int] =
     sql"""INSERT INTO place (category, name, source, tags, geom, fetched_at)
@@ -112,6 +120,22 @@ class PlaceTableSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
       school.source mustBe "osm"
       school.nearestStreetDistanceM.value mustBe (11.1 +- 0.5)
       school.fetchedAt.toInstant mustBe fetchedAt.toInstant
+    }
+
+    "link a place to the nearest open street, past a closer one that is closed or without imagery" in {
+      val (school, openId) = runRolledBack(for {
+        regionId <- insertRegion()
+        openId   <- insertStreet(Some(regionId))
+        // Both nearer than the open street at the equator, and neither auditable: the feed the card reads never
+        // scores them, so the place must look past them.
+        _      <- insertStreetAt(lat = 0.00005, status = "closed")
+        _      <- insertStreetAt(lat = 0.00008, status = "no_imagery")
+        _      <- table.replaceOsmPlaces(Seq(fetched(1L, "school", Some("Spec School"), lng = 0.5, lat = 0.0001)), now)
+        school <- placeByOsm("node", 1L)
+      } yield (school.value, openId))
+
+      school.nearestStreetEdgeId mustBe Some(openId)
+      school.nearestStreetDistanceM.value mustBe (11.1 +- 0.5)
     }
 
     "keep a place's id across a refresh, update what changed, delete what is gone, and leave city rows alone" in {

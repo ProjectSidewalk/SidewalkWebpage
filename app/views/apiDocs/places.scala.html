@@ -73,7 +73,7 @@
         </tbody>
       </table>
     </div>
-    <p>The nearest street is the closest of the city's streets within 250&nbsp;m of the place (geodesic distance to the street's centerline), and the region is the one whose polygon contains the point. Both are recomputed on every refresh. A refresh keeps a place's <code>place_id</code> as long as OpenStreetMap keeps the object, so an id in a shared link stays valid.</p>
+    <p>The nearest street is the closest open street within 250&nbsp;m of the place (geodesic distance to the street's centerline) &mdash; the same streets the AccessScore and Streets APIs serve, so a street in a hidden region or without imagery is never the answer &mdash; and the region is the one whose polygon contains the point. Both are recomputed on every refresh. A refresh keeps a place's <code>place_id</code> as long as OpenStreetMap keeps the object, so an id in a shared link stays valid.</p>
     <p>Places are refreshed from OpenStreetMap when the newest one is more than @PlacesService.RefreshAfterDays days old; <code>fetched_at</code> on each place says when.</p>
   </div>
 
@@ -119,7 +119,7 @@
           <tr>
             <td><code>bbox</code></td>
             <td><code>string</code></td>
-            <td>Filter by bounding box, as <code>minLongitude,minLatitude,maxLongitude,maxLatitude</code> (e.g., <code>-74.04,40.88,-74.00,40.91</code>), WGS84 (EPSG:4326). Returns the places inside the box. If omitted, the city's default bounding box is used.</td>
+            <td>Filter by bounding box, as <code>minLongitude,minLatitude,maxLongitude,maxLatitude</code> (e.g., <code>-74.04,40.88,-74.00,40.91</code>), WGS84 (EPSG:4326). Returns the places inside the box. If omitted, with no region filter either, every place in the city is returned: a place is always within 250&nbsp;m of one of the city's regions, so there is no default box to fall back to.</td>
           </tr>
           <tr>
             <td><code>regionId</code></td>
@@ -201,7 +201,7 @@
           <tr><td><code>properties.osm_url</code></td><td><code>string</code></td><td>The object's page on openstreetmap.org, where a wrong or missing place is fixed for everyone; <code>null</code> for a city place.</td></tr>
           <tr><td><code>properties.region_id</code></td><td><code>integer</code></td><td>Identifier of the region containing the point; <code>null</code> just outside every region.</td></tr>
           <tr><td><code>properties.region_name</code></td><td><code>string</code></td><td>Name of that region; <code>null</code> with it.</td></tr>
-          <tr><td><code>properties.nearest_street_edge_id</code></td><td><code>integer</code></td><td>The <code>street_edge_id</code> of the nearest street within 250&nbsp;m (see the <a href="@routes.ApiDocsController.streets">Streets API</a>); <code>null</code> when no street is that close.</td></tr>
+          <tr><td><code>properties.nearest_street_edge_id</code></td><td><code>integer</code></td><td>The <code>street_edge_id</code> of the nearest open street within 250&nbsp;m (see the <a href="@routes.ApiDocsController.streets">Streets API</a>); <code>null</code> when no street is that close.</td></tr>
           <tr><td><code>properties.nearest_street_distance_m</code></td><td><code>number</code></td><td>Geodesic meters from the place to that street's centerline; <code>null</code> with it.</td></tr>
           <tr><td><code>properties.fetched_at</code></td><td><code>string</code></td><td>When the place was last fetched from its source (ISO&nbsp;8601).</td></tr>
         </tbody>

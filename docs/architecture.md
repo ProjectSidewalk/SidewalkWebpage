@@ -171,7 +171,7 @@ stands in for a snapshot nobody wrote.
 The **places refresh** (#5311) keeps the per-city `place` table current from OpenStreetMap: one Overpass query per
 run over the city's bounds for every tag in the `PlaceCategory` catalog (schools, health care, libraries, grocery,
 transit, parks, community centers), merged by `PlaceTable.replaceOsmPlaces` so a place keeps its `place_id` across
-refreshes, with the containing region and the nearest street within 250 m computed in SQL as it lands. It ticks
+refreshes, with the containing region and the nearest open street within 250 m computed in SQL as it lands. It ticks
 nightly like every job but fetches only when the newest place is more than a week old, or the table is empty, which
 is how a city gets its places with nothing done at onboarding; the skipped ticks are recorded too, so the Health
 panel can tell "fresh" from "stuck". `/v3/api/places` serves the table (the whole-city read cached with `SwrCache`,
@@ -299,7 +299,8 @@ corresponding Twirl view:
   the map view (streets and a neighborhood choropleth colored from feature-state, with a ramp legend beside the
   zoom buttons, `AccessScoreMapLegend.js`), the cluster evidence layer
   (`AccessScoreClusterLayer.js`, fed by `/v3/api/labelClusters` — the clusters the engine actually scores, not the
-  raw labels), the cluster sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop
+  raw labels), the places layer (`AccessScorePlacesLayer.js`, fed by `/v3/api/places`: one symbol layer per category
+  and the place card, #5311), the cluster sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop
   cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
   coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
   drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and

@@ -30,7 +30,9 @@ CREATE TABLE place (
     tags JSONB NOT NULL DEFAULT '{}' CHECK (jsonb_typeof(tags) = 'object'),
     geom geometry(Point, 4326) NOT NULL,
     region_id INTEGER REFERENCES region(region_id),
-    nearest_street_edge_id INTEGER REFERENCES street_edge(street_edge_id) ON DELETE SET NULL,
+    -- No ON DELETE action: SET NULL would null the id alone and trip the paired-NULL check below. Streets are
+    -- status-flagged rather than deleted, and the weekly refresh recomputes both columns anyway.
+    nearest_street_edge_id INTEGER REFERENCES street_edge(street_edge_id),
     nearest_street_distance_m DOUBLE PRECISION CHECK (nearest_street_distance_m >= 0),
     fetched_at TIMESTAMPTZ NOT NULL,
     -- An OSM place has an OSM reference and a city-supplied one has none. Named, since Postgres takes place_osm_type_check
