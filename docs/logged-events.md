@@ -128,8 +128,7 @@ and the popup's hop `AccessScore_ExploreHere`. The places layer (#5311) adds
 `AccessScore_PlaceCategorySelectAll` / `AccessScore_PlaceCategoryDeselectAll` (the heading's section action, the
 shared filter sidebar's),
 `AccessScore_SelectPlace_placeId_value=<id>` (a click on a place marker, which opens the place card; a card restored from a
-link's `place` param is not logged), and the card's own hops `AccessScore_PlaceSelectStreet_streetId_value=<id>` (selecting
-the nearest street) and `AccessScore_PlaceOpenOsm` (the OpenStreetMap link); `ExploreHere` is the shared hop. A click on a
+link's `place` param is not logged); the card's one hop is the shared `ExploreHere`. A click on a
 cluster dot also opens the shared label card, whose actions log as `Click_module=LabelDetail_…` (above). The insights
 dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`,
 `AccessScore_Brush_value=<from>-<to>` (the brushed score range in whole percent, logged once on release, never per

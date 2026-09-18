@@ -130,8 +130,5 @@
   "places-unavailable": "此城市尚無地點資料。",
   "popup-nearest-street": "最近的街道",
   "popup-street-distance": "距離 {{meters, distance(style: small)}}",
-  "popup-street-unaudited": "尚未審核",
-  "popup-no-street-nearby": "250 公尺內沒有街道。",
-  "popup-select-street": "選取街道",
-  "popup-view-osm": "在 OpenStreetMap 上檢視"
+  "popup-no-street-nearby": "250 公尺內沒有街道。"
 }

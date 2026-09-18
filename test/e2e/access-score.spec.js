@@ -703,7 +703,7 @@ test.describe('/accessScore', () => {
     expect(consoleErrors).toEqual([]);
   });
 
-  test('a place card names the place and the score of its street, hops to it, and round-trips through the URL (#5311)',
+  test('a place card is its nearest street\'s card headed by the place, and round-trips through the URL (#5311)',
     async ({page, consoleErrors}) => {
       await page.goto('/accessScore');
       await waitForAppReady(page);
@@ -713,8 +713,12 @@ test.describe('/accessScore', () => {
       await page.evaluate(() => window.accessScore.selectPlace(1));
       const card = page.locator('.acs-popup');
       await expect(card.locator('.acs-popup__title')).toHaveText('Fixture High School');
-      await expect(card.locator('.acs-popup__place-score')).toHaveText('81.8');
-      await expect(card.locator('.acs-popup__osm')).toHaveAttribute('href', 'https://www.openstreetmap.org/node/1001');
+      // The street card's shape, headed by the place: the street, the score, and what drives it.
+      await expect(card.locator('.acs-popup__subtitle').first()).toHaveText('Cedar Lane · Street 1');
+      await expect(card.locator('.acs-popup__score')).toHaveText('81.8');
+      await expect(card.locator('.acs-popup__subtitle').nth(1)).toHaveText('What drives this score');
+      await expect(card.locator('table')).toBeVisible();
+      await expect(card.locator('[data-acs-hop="ExploreHere"]')).toHaveAttribute('href', '/explore?lat=40.88050&lng=-74.00890');
       // A place is not a street selection: it never lands in `sel`, and the dock keeps its city scope.
       await expect.poll(() => urlParam(page, 'place')).toBe('40.88050,-74.00890');
       await expect.poll(() => urlParam(page, 'placeName')).toBe('Fixture High School');
@@ -722,20 +726,19 @@ test.describe('/accessScore', () => {
 
       await page.locator('#acs-weights-toggle').click();
       await page.locator('#acs-weight-CurbRamp').fill('0');
-      await expect(card.locator('.acs-popup__place-score')).toHaveText('50.0');
+      await expect(card.locator('.acs-popup__score')).toHaveText('50.0');
+      expect(await urlParam(page, 'sel')).toBeNull();
 
-      await card.locator('[data-acs-place-street]').click();
-      await expect.poll(() => urlParam(page, 'sel')).toBe('1');
-      await expect.poll(() => urlParam(page, 'place')).toBeNull();
-      await expect(page.locator('.acs-popup .acs-popup__title')).toHaveText('Cedar Lane · Street 1');
-
-      // A place with no street near it says so; an unnamed one is titled by its category.
+      // A place with no street near it says so; an unnamed one is titled by its category, and one on an unaudited
+      // street has no score and no table.
       await page.evaluate(() => window.accessScore.selectPlace(3));
       await expect(page.locator('.acs-popup .acs-popup__title')).toHaveText('Transit stops');
       await expect(page.locator('.acs-popup .acs-popup__meta').first()).toHaveText('Fixture');
-      await expect(page.locator('.acs-popup')).toContainText('Not yet audited');
+      await expect(page.locator('.acs-popup .acs-popup__score')).toHaveText('Not yet audited');
+      await expect(page.locator('.acs-popup table')).toHaveCount(0);
       await page.evaluate(() => window.accessScore.selectPlace(2));
       await expect(page.locator('.acs-popup')).toContainText('No street within 250 m.');
+      await expect(page.locator('.acs-popup .acs-popup__score')).toHaveCount(0);
 
       // A shared link reopens the marker's card without a click, and draws its category so the card sits on a marker.
       await page.goto('/accessScore?place=40.88050,-74.00890&placeName=Fixture+High+School');

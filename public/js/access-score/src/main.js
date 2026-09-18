@@ -457,25 +457,6 @@ window.AccessScoreApp = (function () {
         if (card && selected) card.setHTML(placePopupHtml(selected));
       };
 
-      // The card's own hops. Delegated, since the card's DOM is rebuilt on every selection and refresh.
-      document.addEventListener('click', (e) => {
-        const target = e.target instanceof Element ? e.target : null;
-        const streetHop = target?.closest('[data-acs-place-street]');
-        if (streetHop instanceof HTMLElement) {
-          const streetId = Number(streetHop.dataset.acsPlaceStreet);
-          log('PlaceSelectStreet_streetId', streetId);
-          const lngLat = streetCenter(streetId);
-          if (lngLat) {
-            if (model.state.unit !== 'streets') {
-              sidebar.setState(model.setState({ unit: 'streets' }));
-              applyChange({ kind: 'Unit', value: 'streets', final: false });
-            }
-            select({ unit: 'streets', id: streetId, lngLat });
-          }
-        }
-        if (target?.closest('[data-acs-place-osm]')) log('PlaceOpenOsm');
-      });
-
       apply(model.state);
       fetchJson(PLACES_ENDPOINT)
         .then(async (featureCollection) => {
@@ -505,13 +486,40 @@ window.AccessScoreApp = (function () {
       return { layer, apply, select: selectPlace, refreshCard };
     }
 
-    /** An unnamed place (most playgrounds and bus stops) is titled by its category, which then needs no second line. */
+    /**
+     * The place tooltip has the street tooltip's shape — title, score, a line of context — with the score being
+     * the nearest street's. An unnamed place (most playgrounds and bus stops) is titled by its category, which
+     * then needs no second line.
+     */
     function placeTooltipHtml(props) {
       const category = placeCategoryName(props.category);
-      if (!props.name) return `<strong>${category}</strong>${clickHintHtml()}`;
-      return `<strong>${util.escapeHTML(props.name)}</strong>
-        <div class="acs-tooltip__meta">${category}</div>
+      const street = placeStreet(props);
+      const title = props.name ? util.escapeHTML(props.name) : category;
+      const scoreHtml = street?.audited
+        ? `<div class="acs-tooltip__score">${formatScore(street.score)}</div>`
+        : '';
+      return `<strong>${title}</strong>
+        ${props.name ? `<div class="acs-tooltip__meta">${category}</div>` : ''}
+        ${scoreHtml}
+        <div class="acs-tooltip__meta">${placeStreetLine(props, street)}</div>
         ${clickHintHtml()}`;
+    }
+
+    /** The nearest street's explanation, or null when none is within reach. */
+    function placeStreet(props) {
+      return props.nearest_street_edge_id === null || props.nearest_street_edge_id === undefined
+        ? null
+        : model.explainStreet(props.nearest_street_edge_id);
+    }
+
+    /** "Street 1525 · 25 ft away", or why there is no score: no street in reach, or one not yet audited. */
+    function placeStreetLine(props, street) {
+      if (!street) return i18next.t('accessscore:popup-no-street-nearby');
+      const distance = i18next.t('accessscore:popup-street-distance', {
+        meters: Math.round(props.nearest_street_distance_m),
+      });
+      const status = street.audited ? '' : ` · ${i18next.t('accessscore:unaudited')}`;
+      return `${streetTitle(street)} · ${distance}${status}`;
     }
 
     /** A category's translated name, or its id for one the locale does not know yet. */
@@ -520,7 +528,11 @@ window.AccessScoreApp = (function () {
       return i18next.exists(key) ? i18next.t(key) : category;
     }
 
-    /** The place card: the "so what" of a red block next to a school is the score of the street it sits on. */
+    /**
+     * The place card is the street card of the nearest street, headed by the place: the "so what" of a red block
+     * next to a school is the score of the street it sits on, and what drives it. A place with no street in reach,
+     * or an unaudited one, says so where the score would be.
+     */
     function placePopupHtml(props) {
       const category = placeCategoryName(props.category);
       const title = props.name ? util.escapeHTML(props.name) : category;
@@ -530,36 +542,28 @@ window.AccessScoreApp = (function () {
       // An unnamed place is already titled by its category, so the meta line does not repeat it.
       const meta = [props.name ? category : null, region ? util.escapeHTML(region.name) : null]
         .filter(Boolean).join(' · ');
-      const street = props.nearest_street_edge_id === null || props.nearest_street_edge_id === undefined
-        ? null
-        : model.explainStreet(props.nearest_street_edge_id);
+      const street = placeStreet(props);
       let streetHtml;
       if (!street) {
         streetHtml = `<p class="acs-popup__empty">${i18next.t('accessscore:popup-no-street-nearby')}</p>`;
       } else {
-        const score = street.audited
-          ? `<span class="acs-popup__place-score">${formatScore(street.score)}</span>`
-          : `<span class="acs-popup__empty">${i18next.t('accessscore:popup-street-unaudited')}</span>`;
         const distance = i18next.t('accessscore:popup-street-distance', {
           meters: Math.round(props.nearest_street_distance_m),
         });
-        streetHtml = `<div class="acs-popup__place-street">
-          <div>${streetTitle(street)}</div>
-          <div class="acs-popup__meta">${score} · ${distance}</div>
-          <button type="button" class="button-ps button--small button--secondary"
-                  data-acs-place-street="${street.streetId}">${i18next.t('accessscore:popup-select-street')}</button>
-        </div>`;
+        const score = street.audited ? formatScore(street.score) : i18next.t('accessscore:unaudited');
+        const drivers = street.audited
+          ? `${componentsHtml(street)}
+          <h4 class="acs-popup__subtitle">${i18next.t('accessscore:popup-terms')}</h4>
+          ${termsTableHtml(street.terms)}`
+          : '';
+        streetHtml = `<h4 class="acs-popup__subtitle">${streetTitle(street)}</h4>
+          <div class="acs-popup__meta">${i18next.t('accessscore:popup-nearest-street')} · ${distance}</div>
+          <div class="acs-popup__score">${score}</div>
+          ${drivers}`;
       }
-      const osm = props.osm_url
-        ? `<a class="acs-popup__osm" href="${util.escapeHTML(props.osm_url)}" target="_blank" rel="noopener"
-              data-acs-place-osm>${i18next.t('accessscore:popup-view-osm')}<span class="sr-only"> ${
-    i18next.t('common:opens-new-tab')}</span></a>`
-        : '';
       return `<h3 class="acs-popup__title">${title}</h3>
-        <div class="acs-popup__meta">${meta}</div>
-        <h4 class="acs-popup__subtitle">${i18next.t('accessscore:popup-nearest-street')}</h4>
+        ${meta ? `<div class="acs-popup__meta">${meta}</div>` : ''}
         ${streetHtml}
-        ${osm}
         ${hopLinksHtml(props.lngLat)}`;
     }
 

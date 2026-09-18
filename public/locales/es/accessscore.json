@@ -140,8 +140,5 @@
   "places-unavailable": "Los lugares aún no están disponibles para esta ciudad.",
   "popup-nearest-street": "Calle más cercana",
   "popup-street-distance": "a {{meters, distance(style: small)}}",
-  "popup-street-unaudited": "Aún sin auditar",
-  "popup-no-street-nearby": "No hay ninguna calle a menos de 250 m.",
-  "popup-select-street": "Seleccionar calle",
-  "popup-view-osm": "Ver en OpenStreetMap"
+  "popup-no-street-nearby": "No hay ninguna calle a menos de 250 m."
 }

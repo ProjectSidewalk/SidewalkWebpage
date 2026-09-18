@@ -140,8 +140,5 @@
   "places-unavailable": "Plekken zijn voor deze stad nog niet beschikbaar.",
   "popup-nearest-street": "Dichtstbijzijnde straat",
   "popup-street-distance": "{{meters, distance(style: small)}} verderop",
-  "popup-street-unaudited": "Nog niet beoordeeld",
-  "popup-no-street-nearby": "Geen straat binnen 250 m.",
-  "popup-select-street": "Straat selecteren",
-  "popup-view-osm": "Bekijken op OpenStreetMap"
+  "popup-no-street-nearby": "Geen straat binnen 250 m."
 }

@@ -605,25 +605,6 @@
   margin-top: var(--space-sm);
 }
 
-.acs-popup__place-street {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xxs);
-  align-items: flex-start;
-}
-
-.acs-popup__place-score {
-  font: var(--text-small-bold);
-  color: var(--color-neutral-black);
-  font-variant-numeric: tabular-nums;
-}
-
-.acs-popup__osm {
-  display: inline-block;
-  margin-top: var(--space-xs);
-  font: var(--text-caption-regular);
-}
-
 /* ---- Map legend: a card beside the zoom buttons ---- */
 
 /* Mapbox floats its corner controls into a column; a reversed flex row puts the legend beside the zoom buttons
