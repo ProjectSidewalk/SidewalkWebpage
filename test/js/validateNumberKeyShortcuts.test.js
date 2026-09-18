@@ -152,10 +152,7 @@ describe('KeyboardManager number-key shortcuts', () => {
     });
 
     describe('on the Wrong-type verdict (Expert Validate, #3671)', () => {
-        /**
-         * The severity section as the menu leaves it: shown only once a rated type is picked. Each button is a label
-         * wrapping a radio, the same shape as the view, so the test can tell which of the two a shortcut clicks.
-         */
+        /** The severity section as the menu leaves it: shown only once a rated type is picked. */
         function renderSeveritySection(shown) {
             document.body.innerHTML = `
                 <div id="validate-severity-section" style="display: ${shown ? 'block' : 'none'}"></div>
@@ -168,8 +165,6 @@ describe('KeyboardManager number-key shortcuts', () => {
             choose('wrongType');
         });
 
-        // The radio, not the label around it: a label click moves focus into the radio, and the example tooltip on
-        // the label opens on focus, so it would pop up after every shortcut (#5298).
         it('digits rate severity by clicking the radio once a type with a rating has been picked', () => {
             renderSeveritySection(true);
 

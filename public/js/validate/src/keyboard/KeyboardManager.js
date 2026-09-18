@@ -88,12 +88,7 @@ class KeyboardManager {
     }
   }
 
-  /**
-   * Picks a severity by clicking its radio rather than the label around it. A click on the label moves focus into
-   * the radio, and the example-image tooltip on the label opens on focus for keyboard users, so it would pop up and
-   * stay open after every shortcut (#5298). Clicking the radio itself checks it without moving focus.
-   * @param {number} n - The severity to pick, 1-3.
-   */
+  /** Clicks the radio, not its label: a label click focuses the radio, which opens the tooltip (#5298). */
   #clickSeverity(n) {
     $(`#validate-severity-radio-${n}`).click();
   }
