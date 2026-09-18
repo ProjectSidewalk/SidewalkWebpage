@@ -80,7 +80,7 @@ describe('AccessScorePlacesLayer', () => {
         expect([...map.layers.keys()]).toEqual(['acs-places-school', 'acs-places-health', 'acs-places-transit']);
         const school = map.layers.get('acs-places-school');
         expect(school.type).toBe('symbol');
-        expect(school.minzoom).toBe(14);
+        expect(school.minzoom).toBe(12);
         expect(school.layout['icon-image']).toBe('acs-place-school');
         expect(school.layout['icon-allow-overlap']).toBe(false);
         expect(school.layout['text-optional']).toBe(true);
@@ -115,26 +115,24 @@ describe('AccessScorePlacesLayer', () => {
         expect(layer.counts()).toEqual({ school: 1, health: 0, transit: 2 });
     });
 
-    test('shows and hides by the master toggle and the category set, and reports the lowest zoom that can draw', async () => {
+    test('shows and hides by the category set, and reports the lowest zoom that can draw', async () => {
         const { map, layer } = mount();
         await layer.ready;
         const visibility = () => Object.fromEntries(CATEGORIES.map((c) => [c, map.layers.get(`acs-places-${c}`).layout.visibility]));
         expect(visibility()).toEqual({ school: 'visible', health: 'visible', transit: 'visible' });
         expect(layer.lowestVisibleZoom()).toBe(12);
 
-        layer.setCategories(['school', 'transit']);
-        expect(visibility()).toEqual({ school: 'visible', health: 'none', transit: 'visible' });
+        layer.setCategories(['transit']);
+        expect(visibility()).toEqual({ school: 'none', health: 'none', transit: 'visible' });
         expect(layer.lowestVisibleZoom()).toBe(14);
 
-        layer.setVisible(false);
+        // "Deselect all": an empty set, distinct from null.
+        layer.setCategories([]);
         expect(visibility()).toEqual({ school: 'none', health: 'none', transit: 'none' });
-        expect(layer.claims({ point: [0, 0] })).toBe(false);
+        expect(layer.lowestVisibleZoom()).toBe(Infinity);
 
-        layer.setVisible(true);
         layer.setCategories(null);
         expect(visibility()).toEqual({ school: 'visible', health: 'visible', transit: 'visible' });
-        layer.setCategories([]);
-        expect(layer.lowestVisibleZoom()).toBe(Infinity);
     });
 
     test('claims a pointer event only when a visible marker is under it', async () => {
@@ -187,8 +185,5 @@ describe('AccessScorePlacesLayer', () => {
         click.handler(event);
         expect(event.preventDefault).toHaveBeenCalled();
         expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ place_id: 7, name: 'Stop', lngLat: { lng: -74.02, lat: 40.88 } }));
-        layer.setVisible(false);
-        click.handler(event);
-        expect(onSelect).toHaveBeenCalledTimes(1);
     });
 });

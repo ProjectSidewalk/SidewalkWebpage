@@ -15,6 +15,9 @@
  * `placeName` — the same pair the searched place will use (#5340), so a link means one thing by "place".
  */
 class AccessScoreUrlSync {
+  /** The `pc` value for no place category at all: an empty list would read as an absent param. */
+  static #NO_CATEGORIES = 'none';
+
   static #WRITE_DELAY_MS = 300;
 
   #model;
@@ -56,11 +59,13 @@ class AccessScoreUrlSync {
 
     if (params.get('unaudited') === '0') state.showUnaudited = false;
     if (params.get('clusters') === '0') state.showClusters = false;
-    if (params.get('places') === '0') state.showPlaces = false;
 
-    // A `pc` naming nothing the catalog knows is dropped whole: "every category off" is not what it asked for.
+    // `pc=none` is the "Deselect all" state. Any other `pc` naming nothing the catalog knows is dropped whole:
+    // "every category off" is not what it asked for.
     const catalog = config.place_categories ?? [];
-    if (params.has('pc')) {
+    if (params.get('pc') === AccessScoreUrlSync.#NO_CATEGORIES) {
+      state.placeCategories = [];
+    } else if (params.has('pc')) {
       const asked = new Set(params.get('pc').split(',').map((token) => token.trim()));
       const enabled = catalog.filter((category) => asked.has(category));
       if (enabled.length > 0 && enabled.length < catalog.length) state.placeCategories = enabled;
@@ -174,8 +179,9 @@ class AccessScoreUrlSync {
     set('w', weights, this.#model.weightsAreDefault);
     set('unaudited', state.showUnaudited ? '1' : '0', state.showUnaudited === defaults.showUnaudited);
     set('clusters', state.showClusters ? '1' : '0', state.showClusters === defaults.showClusters);
-    set('places', state.showPlaces ? '1' : '0', state.showPlaces === defaults.showPlaces);
-    set('pc', (state.placeCategories ?? []).join(','), state.placeCategories === null);
+    const categories = state.placeCategories;
+    set('pc', categories?.length === 0 ? AccessScoreUrlSync.#NO_CATEGORIES : (categories ?? []).join(','),
+      categories === null);
     set('sel', String(this.#selection), this.#selection === null);
     set('place', this.#place ? `${this.#place.lat.toFixed(5)},${this.#place.lng.toFixed(5)}` : '', !this.#place);
     set('placeName', this.#place?.name ?? '', !this.#place?.name);

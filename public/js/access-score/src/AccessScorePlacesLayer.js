@@ -14,11 +14,12 @@
  */
 class AccessScorePlacesLayer {
   /**
-   * Per category: the glyph file under `images/icons/` and the zoom the category first appears at. Health care and
-   * libraries are few enough to be useful at city scale; the rest wait for street level, like the cluster dots.
+   * Per category: the glyph file under `images/icons/` and the zoom the category first appears at. Schools, health
+   * care and libraries are few enough to be useful at city scale; the rest wait for street level, like the cluster
+   * dots.
    */
   static PRESENTATION = Object.freeze({
-    school: Object.freeze({ icon: 'school-white-lucide.svg', minZoom: 14 }),
+    school: Object.freeze({ icon: 'school-white-lucide.svg', minZoom: 12 }),
     health: Object.freeze({ icon: 'hospital-white-lucide.svg', minZoom: 12 }),
     library: Object.freeze({ icon: 'library-white-lucide.svg', minZoom: 12 }),
     grocery: Object.freeze({ icon: 'shopping-basket-white-lucide.svg', minZoom: 14 }),
@@ -51,7 +52,6 @@ class AccessScorePlacesLayer {
   #tooltip;
   #tooltipHtml;
   #onSelect;
-  #visible = true;
   /** The enabled category ids, or null for every category. */
   #enabled = null;
   /** The last collection drawn, kept so a basemap swap can redraw it, and buffered until the icons are ready. */
@@ -217,18 +217,8 @@ class AccessScorePlacesLayer {
   }
 
   /**
-   * Shows or hides every place layer.
-   * @param {boolean} visible - True to draw them.
-   */
-  setVisible(visible) {
-    this.#visible = visible;
-    this.#applyVisibility();
-    if (!visible) this.#clearHover();
-  }
-
-  /**
    * Restricts the drawn categories.
-   * @param {?Array<string>} categories - The category ids to draw, or null for all of them.
+   * @param {?Array<string>} categories - The category ids to draw, null for all of them, an empty list for none.
    */
   setCategories(categories) {
     this.#enabled = categories === null ? null : new Set(categories);
@@ -258,7 +248,7 @@ class AccessScorePlacesLayer {
    * @returns {boolean} True when a visible place is under the pointer.
    */
   claims(e) {
-    if (!this.#visible || !this.#mounted) return false;
+    if (!this.#mounted) return false;
     return this.#map.queryRenderedFeatures(e.point, { layers: this.#layers }).length > 0;
   }
 
@@ -301,7 +291,7 @@ class AccessScorePlacesLayer {
       source: id,
       minzoom: AccessScorePlacesLayer.presentation(category).minZoom,
       layout: {
-        'visibility': this.#isDrawn(category) ? 'visible' : 'none',
+        'visibility': this.#isEnabled(category) ? 'visible' : 'none',
         'icon-image': AccessScorePlacesLayer.#imageId(category),
         'icon-size': ['interpolate', ['linear'], ['zoom'], ...AccessScorePlacesLayer.#SIZE_STOPS],
         'icon-allow-overlap': false,
@@ -331,7 +321,7 @@ class AccessScorePlacesLayer {
     if (!this.#mounted) return;
     for (const category of this.#categories) {
       this.#map.setLayoutProperty(
-        AccessScorePlacesLayer.#layerId(category), 'visibility', this.#isDrawn(category) ? 'visible' : 'none',
+        AccessScorePlacesLayer.#layerId(category), 'visibility', this.#isEnabled(category) ? 'visible' : 'none',
       );
     }
   }
@@ -340,13 +330,9 @@ class AccessScorePlacesLayer {
     return this.#enabled === null || this.#enabled.has(category);
   }
 
-  #isDrawn(category) {
-    return this.#visible && this.#isEnabled(category);
-  }
-
   #addInteractions() {
     this.#map.on('mousemove', this.#layers, (e) => {
-      if (!this.#visible || !e.features.length) return;
+      if (!e.features.length) return;
       const feature = e.features[0];
       if (this.#hovered?.id !== feature.id || this.#hovered?.source !== feature.layer.id) {
         this.#clearHover();
@@ -359,7 +345,7 @@ class AccessScorePlacesLayer {
     });
     this.#map.on('mouseleave', this.#layers, () => this.#clearHover());
     this.#map.on('click', this.#layers, (e) => {
-      if (!this.#visible || !e.features.length) return;
+      if (!e.features.length) return;
       // The street or region under the marker keeps its selection; AccessScoreMapView checks defaultPrevented.
       e.preventDefault();
       const feature = e.features[0];

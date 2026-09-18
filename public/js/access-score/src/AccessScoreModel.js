@@ -31,14 +31,13 @@
 class AccessScoreModel {
   /**
    * The state a fresh page starts in; `weights` null means the engine's default weights, and `placeCategories`
-   * null means every category the config lists (#5311).
+   * null means every category the config lists, an empty list none of them (#5311).
    */
   static DEFAULT_STATE = Object.freeze({
     unit: 'streets',
     weights: null,
     showUnaudited: true,
     showClusters: true,
-    showPlaces: true,
     placeCategories: null,
   });
 

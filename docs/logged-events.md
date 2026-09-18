@@ -113,15 +113,18 @@ The AccessScore tool (`/accessScore`, `public/js/access-score/`, #5217) logs its
 **`Click_module=AccessScore_<Action>`** family, on a control's settled `change` (never per slider tick):
 `AccessScore_Unit_value=<streets|regions>`, `AccessScore_Weight_value=<labelType>_value=<magnitude>`,
 `AccessScore_ShowUnaudited_value=<bool>`, `AccessScore_ShowClusters_value=<bool>` (the evidence layer),
-`AccessScore_DarkMap_value=<bool>` (the dark basemap toggled), `AccessScore_Reset` (the weights), `AccessScore_ResetAll`
+`AccessScore_DarkMap_value=<bool>` (the dark basemap toggled), `AccessScore_Section_value=weights_open=<bool>` (the
+weights fold toggled; it starts closed, so an open says the weights were reached for), `AccessScore_Reset` (the weights),
+`AccessScore_ResetAll`
 (weights, view options, selection, brush, band, basemap and camera back to the page as first opened),
 `AccessScore_Select_streetId=<id>` / `AccessScore_Select_regionId=<id>` (a click on a street or neighborhood),
 `AccessScore_SelectCluster_labelType=<type>` (a click on a cluster dot, which opens the cluster sheet) and
 `AccessScore_SheetOpenLabel_labelId=<id>` (a card in that sheet opening the full label card), `AccessScore_ClearVote_result=<Agree|Disagree|Unsure>_labelId=<id>` (a vote cleared from a mini-card's chips in the sheet or the photo strip — casting one lands in `label_validation` with `source = 'AccessScoreSheet'` or `'AccessScoreStrip'` and is not logged here, the label card's rule),
-and the popup's hop `AccessScore_ExploreHere`. The places layer (#5311) adds `AccessScore_ShowPlaces_value=<bool>`
-(the master toggle), `AccessScore_PlaceCategory_value=<category>_value=<bool>` (one category's row),
+and the popup's hop `AccessScore_ExploreHere`. The places layer (#5311) adds
+`AccessScore_PlaceCategory_value=<category>_value=<bool>` (one category's row),
 `AccessScore_PlaceCategoryOnly_value=<category>` (a row's hover-revealed "Only") and
-`AccessScore_PlaceCategorySelectAll` (the heading's "Select all", shown once a row is off),
+`AccessScore_PlaceCategorySelectAll` / `AccessScore_PlaceCategoryDeselectAll` (the heading's section action, the
+shared filter sidebar's),
 `AccessScore_SelectPlace_placeId=<id>` (a click on a place marker, which opens the place card; a card restored from a
 link's `place` param is not logged), and the card's own hops `AccessScore_PlaceSelectStreet_streetId=<id>` (selecting
 the nearest street) and `AccessScore_PlaceOpenOsm` (the OpenStreetMap link); `ExploreHere` is the shared hop. A click on a

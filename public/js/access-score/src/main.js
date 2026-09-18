@@ -13,7 +13,9 @@ window.AccessScoreApp = (function () {
   const INTERSECTIONS_ENDPOINT = '/v3/api/accessScoreIntersections';
   const PLACES_ENDPOINT = '/v3/api/places';
   /** The sidebar changes that alter which places are drawn. */
-  const PLACE_CHANGE_KINDS = new Set(['ShowPlaces', 'PlaceCategory', 'PlaceCategoryOnly', 'PlaceCategorySelectAll']);
+  const PLACE_CHANGE_KINDS = new Set([
+    'PlaceCategory', 'PlaceCategoryOnly', 'PlaceCategorySelectAll', 'PlaceCategoryDeselectAll',
+  ]);
   const EMPTY_COLLECTION = { type: 'FeatureCollection', features: [] };
 
   /** Fetches JSON, treating a non-2xx status as a failure so the overlay's error card shows. */
@@ -195,6 +197,10 @@ window.AccessScoreApp = (function () {
 
     /** Applies a state change everywhere it shows: map, sidebar bars, dock, URL, and the panel's listeners. */
     const applyChange = (meta) => {
+      if (meta.kind === 'Section') {
+        log(meta.kind, meta.value);
+        return;
+      }
       const state = model.state;
       if (meta.kind === 'Unit') mapView.setUnit(state.unit);
       if (meta.kind === 'ShowUnaudited') mapView.setShowUnaudited(state.showUnaudited);
@@ -226,6 +232,8 @@ window.AccessScoreApp = (function () {
 
     sidebar.setState(model.state);
     sidebar.setContributions(model.contributions().means);
+    // A link that carries custom weights opens the fold, so what it shares is in view rather than a "Custom" hint.
+    if (!model.weightsAreDefault) sidebar.setWeightsOpen(true);
     renderUpdatedAt(config.clusters_updated_at);
     // A live `setStyle` drops everything the tool added, so the map view and the cluster layer remount once the new
     // style has loaded. The band keeps the light ramp; only the map surface changes.
@@ -398,14 +406,14 @@ window.AccessScoreApp = (function () {
       });
 
       const apply = (state) => {
-        layer.setVisible(state.showPlaces);
         layer.setCategories(state.placeCategories);
         updateZoomHint();
       };
 
+      // With every category off there is nothing to zoom in for; `lowestVisibleZoom` is Infinity then.
       const updateZoomHint = () => {
-        const state = model.state;
-        sidebar.setPlacesZoomHint(state.showPlaces && map.getZoom() < layer.lowestVisibleZoom());
+        const lowest = layer.lowestVisibleZoom();
+        sidebar.setPlacesZoomHint(Number.isFinite(lowest) && map.getZoom() < lowest);
       };
       map.on('zoomend', updateZoomHint);
 

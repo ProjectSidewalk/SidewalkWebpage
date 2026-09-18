@@ -58,11 +58,9 @@ class AccessScoreSidebar {
     }
     e.showUnaudited.checked = state.showUnaudited;
     e.showClusters.checked = state.showClusters;
-    e.showPlaces.checked = state.showPlaces;
     for (const [category, row] of Object.entries(e.placeRows)) {
       row.input.checked = state.placeCategories === null || state.placeCategories.includes(category);
     }
-    this.#setPlacesEnabled(state.showPlaces);
     this.#showUnitOptions(state.unit);
     this.#updateWeightsSummary();
     this.#updatePlacesAction();
@@ -82,7 +80,8 @@ class AccessScoreSidebar {
   }
 
   setPlacesUnavailable() {
-    this.#els.placesControls.hidden = true;
+    this.#els.placeCategories.hidden = true;
+    this.#els.placesToggleAll.hidden = true;
     this.#els.placesZoomHint.hidden = true;
     this.#els.placesUnavailable.hidden = false;
   }
@@ -166,7 +165,6 @@ class AccessScoreSidebar {
       })),
       showUnaudited: root.querySelector('#acs-show-unaudited'),
       showClusters: root.querySelector('#acs-show-clusters'),
-      showPlaces: root.querySelector('#acs-show-places'),
       placeRows: Object.fromEntries(categories.map((category) => {
         const row = placeRows.querySelector(`.acs-place-row[data-category="${category}"]`);
         return [category, {
@@ -175,11 +173,14 @@ class AccessScoreSidebar {
           only: row.querySelector('.filter-sidebar__only'),
         }];
       })),
-      placesSelectAll: root.querySelector('#acs-places-select-all'),
-      placesControls: root.querySelector('#acs-places-controls'),
+      placesToggleAll: root.querySelector('#acs-places-toggle-all'),
+      placeCategories: placeRows,
       placesZoomHint: root.querySelector('#acs-places-zoom-hint'),
       placesUnavailable: root.querySelector('#acs-places-unavailable'),
       reset: root.querySelector('#acs-reset'),
+      weightsToggle: root.querySelector('#acs-weights-toggle'),
+      weights: root.querySelector('#acs-weights'),
+      weightsSummary: root.querySelector('#acs-weights-summary'),
       streetOptions: root.querySelector('#acs-street-options'),
     };
   }
@@ -207,10 +208,12 @@ class AccessScoreSidebar {
         { kind: 'ShowUnaudited', value: e.showUnaudited.checked, final: true }));
     e.showClusters.addEventListener('change', () => this.#emit({ showClusters: e.showClusters.checked },
       { kind: 'ShowClusters', value: e.showClusters.checked, final: true }));
-    e.showPlaces.addEventListener('change', () => {
-      this.#setPlacesEnabled(e.showPlaces.checked);
-      this.#emit({ showPlaces: e.showPlaces.checked },
-        { kind: 'ShowPlaces', value: e.showPlaces.checked, final: true });
+    // The shared filter sidebar's section action: it offers whichever of the two has the most left to give, so
+    // after one "Only" click it reads "Select all" rather than clearing the one row left.
+    e.placesToggleAll.addEventListener('click', () => {
+      const checked = this.#checkedPlaceCategories() !== null;
+      for (const row of Object.values(e.placeRows)) row.input.checked = checked;
+      this.#emitPlaceCategories({ kind: checked ? 'PlaceCategorySelectAll' : 'PlaceCategoryDeselectAll' });
     });
     for (const [category, row] of Object.entries(e.placeRows)) {
       row.input.addEventListener('change', () => this.#emitPlaceCategories(
@@ -220,11 +223,31 @@ class AccessScoreSidebar {
         this.#emitPlaceCategories({ kind: 'PlaceCategoryOnly', value: category });
       });
     }
-    e.placesSelectAll.addEventListener('click', () => {
-      for (const row of Object.values(e.placeRows)) row.input.checked = true;
-      this.#emitPlaceCategories({ kind: 'PlaceCategorySelectAll' });
-    });
     e.reset.addEventListener('click', () => this.#emit(null, { kind: 'Reset', final: true }));
+    // Opening the fold is worth knowing about: it says whether people reach for the weights at all.
+    e.weightsToggle.addEventListener('click', () => {
+      const open = this.setWeightsOpen(!this.weightsOpen);
+      this.#emit(null, { kind: 'Section', value: `weights_open=${open}`, final: true });
+    });
+  }
+
+  /** @returns {boolean} Whether the weights section is unfolded. */
+  get weightsOpen() {
+    return this.#els.weightsToggle.getAttribute('aria-expanded') === 'true';
+  }
+
+  /**
+   * Folds or unfolds the weights section without emitting a change; the page opens it for a link with custom weights.
+   * @param {boolean} open - True to show the sliders.
+   * @returns {boolean} The state now in force.
+   */
+  setWeightsOpen(open) {
+    const e = this.#els;
+    e.weightsToggle.setAttribute('aria-expanded', String(open));
+    e.weights.hidden = !open;
+    const chevron = e.weightsToggle.querySelector('img');
+    chevron.src = open ? chevron.dataset.upSrc : chevron.dataset.downSrc;
+    return open;
   }
 
   /** Reports the category rows as they now stand, after any of the three ways they change. */
@@ -240,18 +263,10 @@ class AccessScoreSidebar {
     return checked.length === categories.length ? null : checked;
   }
 
-  /** The master toggle off takes the rows and their "Only" buttons with it. */
-  #setPlacesEnabled(enabled) {
-    for (const row of Object.values(this.#els.placeRows)) {
-      row.input.disabled = !enabled;
-      row.only.disabled = !enabled;
-    }
-    this.#els.placesSelectAll.disabled = !enabled;
-  }
-
-  /** "Select all" has something to do only once a row is off. */
+  /** The section action reads as what a click would do: "Deselect all" with every row on, "Select all" otherwise. */
   #updatePlacesAction() {
-    this.#els.placesSelectAll.hidden = this.#checkedPlaceCategories() === null;
+    const allOn = this.#checkedPlaceCategories() === null;
+    this.#els.placesToggleAll.textContent = i18next.t(allOn ? 'labelmap:deselect-all' : 'labelmap:select-all');
   }
 
   /** The slider ceiling: `MAX_WEIGHT`, or the next whole number above the largest default if that is higher. */
@@ -280,8 +295,13 @@ class AccessScoreSidebar {
     return `×${Number(value).toFixed(2)}`;
   }
 
-  /** "Reset weights" only appears once a slider has moved; at the defaults there is nothing to reset. */
+  /**
+   * "Reset weights" only appears once a slider has moved; at the defaults there is nothing to reset. The hint
+   * beside the folded heading says the same thing for a reader who cannot see the sliders.
+   */
   #updateWeightsSummary() {
-    this.#els.reset.hidden = this.#slidersAtDefault();
+    const atDefault = this.#slidersAtDefault();
+    this.#els.reset.hidden = atDefault;
+    this.#els.weightsSummary.textContent = atDefault ? '' : i18next.t('accessscore:weights-custom');
   }
 }

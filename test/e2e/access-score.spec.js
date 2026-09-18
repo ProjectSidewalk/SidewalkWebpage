@@ -199,12 +199,20 @@ test.describe('/accessScore', () => {
     await waitForTool(page);
     const requestsAfterLoad = scoreRequests.length;
 
+    // The sliders start folded away; a link with custom weights opens the fold itself (checked below).
+    const fold = page.locator('#acs-weights-toggle');
+    await expect(fold).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('#acs-weights')).toBeHidden();
+    await fold.click();
+    await expect(fold).toHaveAttribute('aria-expanded', 'true');
+
     // Zero the curb-ramp weight: street 1 falls to the neutral 0.5.
     await page.locator('#acs-weight-CurbRamp').fill('0');
     await page.locator('#acs-weight-CurbRamp').dispatchEvent('input');
     await page.locator('#acs-weight-CurbRamp').dispatchEvent('change');
     expect(await scoreOf(page, 1)).toBeCloseTo(0.5, 6);
     await expect(page.locator('#acs-reset')).toBeVisible();
+    await expect(page.locator('#acs-weights-summary')).toHaveText('Custom');
     expect(scoreRequests.length).toBe(requestsAfterLoad);
 
     // The URL carries the custom weights, so the view is shareable.
@@ -215,7 +223,14 @@ test.describe('/accessScore', () => {
     await page.locator('#acs-reset').click();
     expect(await scoreOf(page, 1)).toBeCloseTo(0.8176, 3);
     await expect(page.locator('#acs-reset')).toBeHidden();
+    await expect(page.locator('#acs-weights-summary')).toBeEmpty();
     await expect.poll(() => page.evaluate(() => new URL(window.location.href).searchParams.has('w'))).toBe(false);
+
+    await page.goto('/accessScore?w=CurbRamp:0');
+    await waitForAppReady(page);
+    await waitForTool(page);
+    await expect(page.locator('#acs-weights-toggle')).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#acs-weights')).toBeVisible();
   });
 
   test('switching to regions shows the choropleth and rolls the streets up', async ({page}) => {
@@ -448,6 +463,7 @@ test.describe('/accessScore', () => {
     await page.goto('/accessScore');
     await waitForAppReady(page);
     await waitForTool(page);
+    await page.locator('#acs-weights-toggle').click();
     await page.locator('#acs-weight-CurbRamp').fill('0');
     await page.locator('#acs-weight-CurbRamp').dispatchEvent('input');
     await page.locator('#acs-weight-CurbRamp').dispatchEvent('change');
@@ -640,29 +656,28 @@ test.describe('/accessScore', () => {
     expect(await visibility()).toEqual({school: 'visible', transit: 'none'});
     await expect.poll(() => urlParam(page, 'pc')).toBe('school,health,library,grocery,park,community');
 
-    // "Only" turns every other row off in one click; "Select all", shown once any row is off, is the one click back.
-    const selectAll = page.locator('#acs-places-select-all');
-    await expect(selectAll).toBeVisible();
+    // "Only" turns every other row off in one click; the heading's action then reads "Select all" and is the one
+    // click back, and reads "Deselect all" again once every row is on.
+    const toggleAll = page.locator('#acs-places-toggle-all');
+    await expect(toggleAll).toHaveText('Select all');
     await page.locator('.acs-place-row[data-category="school"]').hover();
     await page.locator('.acs-place-row[data-category="school"] .filter-sidebar__only').click();
     expect(await visibility()).toEqual({school: 'visible', transit: 'none'});
     await expect.poll(() => urlParam(page, 'pc')).toBe('school');
-    await expect(selectAll).toBeVisible();
-    await selectAll.click();
+    await toggleAll.click();
     expect(await visibility()).toEqual({school: 'visible', transit: 'visible'});
     await expect.poll(() => urlParam(page, 'pc')).toBeNull();
-    await expect(selectAll).toBeHidden();
+    await expect(toggleAll).toHaveText('Deselect all');
 
-    await page.locator('#acs-show-places').uncheck();
+    await toggleAll.click();
     expect(await visibility()).toEqual({school: 'none', transit: 'none'});
-    await expect(page.locator('#acs-place-school')).toBeDisabled();
-    await expect(page.locator('.acs-place-row[data-category="school"] .filter-sidebar__only')).toBeDisabled();
-    await expect.poll(() => urlParam(page, 'places')).toBe('0');
+    await expect(page.locator('#acs-place-school')).not.toBeChecked();
+    await expect.poll(() => urlParam(page, 'pc')).toBe('none');
+    await expect(toggleAll).toHaveText('Select all');
 
     await page.locator('#acs-reset-all').click();
     await expect.poll(visibility).toEqual({school: 'visible', transit: 'visible'});
     await expect(page.locator('#acs-place-transit')).toBeChecked();
-    await expect.poll(() => urlParam(page, 'places')).toBeNull();
     await expect.poll(() => urlParam(page, 'pc')).toBeNull();
   });
 
@@ -683,6 +698,7 @@ test.describe('/accessScore', () => {
       await expect.poll(() => urlParam(page, 'placeName')).toBe('Fixture High School');
       expect(await urlParam(page, 'sel')).toBeNull();
 
+      await page.locator('#acs-weights-toggle').click();
       await page.locator('#acs-weight-CurbRamp').fill('0');
       await expect(card.locator('.acs-popup__place-score')).toHaveText('50.0');
 

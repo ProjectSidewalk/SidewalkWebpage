@@ -179,26 +179,6 @@
   display: none;
 }
 
-/* The master toggle off disables the rows and their "Only" with them; the count stays as the row's only trailing
-   content, so the swap above must not apply. */
-.acs-place-row:has(input:disabled) .filter-sidebar__only {
-  display: none;
-}
-
-.acs-place-row:has(input:disabled) .acs-place__count {
-  display: inline;
-}
-
-/* A row whose master toggle is off stays readable but steps back, as its disabled checkbox does. */
-.acs-place-row .acs-check:has(input:disabled) {
-  color: var(--color-neutral-600);
-  cursor: default;
-}
-
-.acs-place-row .acs-check:has(input:disabled) .acs-place__icon {
-  opacity: 0.5;
-}
-
 .acs-places-note {
   font: var(--text-caption-regular);
   color: var(--color-neutral-600);
@@ -405,6 +385,61 @@
 .acs-heading-action {
   margin-left: auto;
   white-space: nowrap;
+}
+
+/* ---- A section folded behind its heading (the weights) ---- */
+
+.acs-disclosure__heading {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The button inherits the heading's type so the fold reads as the heading, with only the chevron saying it opens. */
+.acs-disclosure {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.acs-disclosure:hover {
+  color: var(--color-link-200);
+}
+
+.acs-disclosure:focus-visible {
+  outline: 2px solid var(--color-asphalt-400);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Inset to sit flush with the heading's left edge: the glyph has its own margin inside the 22px box. */
+.acs-disclosure__chevron {
+  width: 22px;
+  height: 22px;
+  margin-left: -6px;
+  flex: none;
+}
+
+/* "Custom" beside a folded heading: the one fact the fold would hide. Empty while the weights are the defaults. */
+.acs-disclosure__hint {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin-left: var(--space-xxs);
+}
+
+.acs-disclosure__hint:empty {
+  display: none;
+}
+
+.acs-weights[hidden] {
+  display: none;
 }
 
 #acs-weights-section .filter-sidebar__heading {
