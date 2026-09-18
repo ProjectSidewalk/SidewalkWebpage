@@ -71,9 +71,8 @@ refuse_if_watch_run_here() {
 refuse_if_watch_run_here "$@"
 
 # Every checkout's tests share one database, and most specs commit rather than roll back, so simultaneous runs
-# overwrite each other's rows. The lock is container-local: one container serves every checkout, and a bind-mounted
-# path can't be relied on for locking. Freed by the kernel however this exits — except on Ctrl-C, which kills the
-# client while the server may still be running the tests.
+# overwrite each other's rows. Container-local, since one container serves every checkout and a bind mount is not
+# something to rely on for locking.
 if [ -n "$DB_LOCK" ]; then
   lock="${SBT_DB_TEST_LOCK:-/tmp/sidewalk-scala-tests.lock}"
   mkdir -p "$(dirname "$lock")" 2>/dev/null
@@ -90,6 +89,20 @@ if [ -n "$DB_LOCK" ]; then
       echo "warning: $lock could not be locked — running WITHOUT the cross-checkout lock"
     fi
   fi
+
+  # The lock dies with this process, but the *server* runs the tests: kill the client and the suite carries on
+  # unlocked. Forked test JVMs take their options from an @-file named sbt-args…, so one of those is a suite on the
+  # database whoever owns it. Bounded, so a wedged JVM can't block testing forever.
+  waited=0
+  while pgrep -f 'sbt-args' >/dev/null 2>&1; do
+    [ "$waited" -eq 0 ] && echo "==> waiting: a test JVM from an earlier run is still using the database"
+    [ "$waited" -ge 1200 ] && {
+      echo "warning: it has been 20 min and that JVM is still there — starting anyway, results may be unreliable"
+      break
+    }
+    sleep 5
+    waited=$((waited + 5))
+  done
 fi
 
 exec sbt --jvm-client "$@"
