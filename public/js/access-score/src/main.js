@@ -12,6 +12,8 @@ window.AccessScoreApp = (function () {
   const SCORE_ENDPOINT = '/v3/api/accessScoreStreets';
   const INTERSECTIONS_ENDPOINT = '/v3/api/accessScoreIntersections';
   const PLACES_ENDPOINT = '/v3/api/places';
+  /** The sidebar changes that alter which places are drawn. */
+  const PLACE_CHANGE_KINDS = new Set(['ShowPlaces', 'PlaceCategory', 'PlaceCategoryOnly', 'PlaceCategorySelectAll']);
   const EMPTY_COLLECTION = { type: 'FeatureCollection', features: [] };
 
   /** Fetches JSON, treating a non-2xx status as a failure so the overlay's error card shows. */
@@ -197,7 +199,7 @@ window.AccessScoreApp = (function () {
       if (meta.kind === 'Unit') mapView.setUnit(state.unit);
       if (meta.kind === 'ShowUnaudited') mapView.setShowUnaudited(state.showUnaudited);
       if (meta.kind === 'ShowClusters') evidence.setVisible(state.showClusters);
-      if (meta.kind === 'ShowPlaces' || meta.kind === 'PlaceCategory') places?.apply(state);
+      if (PLACE_CHANGE_KINDS.has(meta.kind)) places?.apply(state);
       mapView.applyScores();
       // A reset moves every slider; a slider mid-drag already shows its own value.
       if (meta.kind !== 'Weight' || meta.final) sidebar.setState(model.state);
@@ -469,10 +471,11 @@ window.AccessScoreApp = (function () {
       return { layer, apply, select: selectPlace, refreshCard };
     }
 
+    /** An unnamed place (most playgrounds and bus stops) is titled by its category, which then needs no second line. */
     function placeTooltipHtml(props) {
       const category = placeCategoryName(props.category);
-      const title = props.name ? util.escapeHTML(props.name) : category;
-      return `<strong>${title}</strong>
+      if (!props.name) return `<strong>${category}</strong>${clickHintHtml()}`;
+      return `<strong>${util.escapeHTML(props.name)}</strong>
         <div class="acs-tooltip__meta">${category}</div>
         ${clickHintHtml()}`;
     }
@@ -490,7 +493,9 @@ window.AccessScoreApp = (function () {
       const region = props.region_id === null || props.region_id === undefined
         ? null
         : model.explainRegion(props.region_id);
-      const meta = [category, region ? util.escapeHTML(region.name) : null].filter(Boolean).join(' · ');
+      // An unnamed place is already titled by its category, so the meta line does not repeat it.
+      const meta = [props.name ? category : null, region ? util.escapeHTML(region.name) : null]
+        .filter(Boolean).join(' · ');
       const street = props.nearest_street_edge_id === null || props.nearest_street_edge_id === undefined
         ? null
         : model.explainStreet(props.nearest_street_edge_id);

@@ -153,10 +153,40 @@
   flex: 1 1 auto;
 }
 
+/* The row's right edge: the count, swapped for "Only" while the pointer or keyboard focus is in the row, the shared
+   filter sidebar's exclusive-select affordance. A sibling of the label, not a child: inside it, a click on the button
+   would also toggle the checkbox. */
+.acs-place__slot {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--space-xs);
+}
+
 .acs-place__count {
   font: var(--text-caption-regular);
   color: var(--color-neutral-600);
   font-variant-numeric: tabular-nums;
+}
+
+.acs-place-row:hover .filter-sidebar__only,
+.acs-place-row:has(:focus-visible) .filter-sidebar__only {
+  display: inline;
+}
+
+.acs-place-row:hover .acs-place__count,
+.acs-place-row:has(:focus-visible) .acs-place__count {
+  display: none;
+}
+
+/* The master toggle off disables the rows and their "Only" with them; the count stays as the row's only trailing
+   content, so the swap above must not apply. */
+.acs-place-row:has(input:disabled) .filter-sidebar__only {
+  display: none;
+}
+
+.acs-place-row:has(input:disabled) .acs-place__count {
+  display: inline;
 }
 
 /* A row whose master toggle is off stays readable but steps back, as its disabled checkbox does. */
@@ -371,7 +401,8 @@
   white-space: nowrap;
 }
 
-.acs-weights-reset {
+/* A heading row's action ("Reset weights", "Select all"): shown only once it has something to do. */
+.acs-heading-action {
   margin-left: auto;
   white-space: nowrap;
 }

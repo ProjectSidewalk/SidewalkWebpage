@@ -640,9 +640,23 @@ test.describe('/accessScore', () => {
     expect(await visibility()).toEqual({school: 'visible', transit: 'none'});
     await expect.poll(() => urlParam(page, 'pc')).toBe('school,health,library,grocery,park,community');
 
+    // "Only" turns every other row off in one click; "Select all", shown once any row is off, is the one click back.
+    const selectAll = page.locator('#acs-places-select-all');
+    await expect(selectAll).toBeVisible();
+    await page.locator('.acs-place-row[data-category="school"]').hover();
+    await page.locator('.acs-place-row[data-category="school"] .filter-sidebar__only').click();
+    expect(await visibility()).toEqual({school: 'visible', transit: 'none'});
+    await expect.poll(() => urlParam(page, 'pc')).toBe('school');
+    await expect(selectAll).toBeVisible();
+    await selectAll.click();
+    expect(await visibility()).toEqual({school: 'visible', transit: 'visible'});
+    await expect.poll(() => urlParam(page, 'pc')).toBeNull();
+    await expect(selectAll).toBeHidden();
+
     await page.locator('#acs-show-places').uncheck();
     expect(await visibility()).toEqual({school: 'none', transit: 'none'});
     await expect(page.locator('#acs-place-school')).toBeDisabled();
+    await expect(page.locator('.acs-place-row[data-category="school"] .filter-sidebar__only')).toBeDisabled();
     await expect.poll(() => urlParam(page, 'places')).toBe('0');
 
     await page.locator('#acs-reset-all').click();
@@ -680,6 +694,7 @@ test.describe('/accessScore', () => {
       // A place with no street near it says so; an unnamed one is titled by its category.
       await page.evaluate(() => window.accessScore.selectPlace(3));
       await expect(page.locator('.acs-popup .acs-popup__title')).toHaveText('Transit stops');
+      await expect(page.locator('.acs-popup .acs-popup__meta').first()).toHaveText('Fixture');
       await expect(page.locator('.acs-popup')).toContainText('Not yet audited');
       await page.evaluate(() => window.accessScore.selectPlace(2));
       await expect(page.locator('.acs-popup')).toContainText('No street within 250 m.');

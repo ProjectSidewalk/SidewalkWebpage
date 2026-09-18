@@ -120,6 +120,8 @@ The AccessScore tool (`/accessScore`, `public/js/access-score/`, #5217) logs its
 `AccessScore_SheetOpenLabel_labelId=<id>` (a card in that sheet opening the full label card), `AccessScore_ClearVote_result=<Agree|Disagree|Unsure>_labelId=<id>` (a vote cleared from a mini-card's chips in the sheet or the photo strip — casting one lands in `label_validation` with `source = 'AccessScoreSheet'` or `'AccessScoreStrip'` and is not logged here, the label card's rule),
 and the popup's hop `AccessScore_ExploreHere`. The places layer (#5311) adds `AccessScore_ShowPlaces_value=<bool>`
 (the master toggle), `AccessScore_PlaceCategory_value=<category>_value=<bool>` (one category's row),
+`AccessScore_PlaceCategoryOnly_value=<category>` (a row's hover-revealed "Only") and
+`AccessScore_PlaceCategorySelectAll` (the heading's "Select all", shown once a row is off),
 `AccessScore_SelectPlace_placeId=<id>` (a click on a place marker, which opens the place card; a card restored from a
 link's `place` param is not logged), and the card's own hops `AccessScore_PlaceSelectStreet_streetId=<id>` (selecting
 the nearest street) and `AccessScore_PlaceOpenOsm` (the OpenStreetMap link); `ExploreHere` is the shared hop. A click on a

@@ -61,10 +61,11 @@ class AccessScoreSidebar {
     e.showPlaces.checked = state.showPlaces;
     for (const [category, row] of Object.entries(e.placeRows)) {
       row.input.checked = state.placeCategories === null || state.placeCategories.includes(category);
-      row.input.disabled = !state.showPlaces;
     }
+    this.#setPlacesEnabled(state.showPlaces);
     this.#showUnitOptions(state.unit);
     this.#updateWeightsSummary();
+    this.#updatePlacesAction();
   }
 
   /** @param {Record<string, number>} counts - Places per category id, once the feed has arrived. */
@@ -135,14 +136,20 @@ class AccessScoreSidebar {
       const key = `accessscore:place-${category}`;
       const name = i18next.exists(key) ? i18next.t(key) : category;
       const icon = util.assetPath(`images/icons/${AccessScorePlacesLayer.presentation(category).icon}`);
+      // "Only" is the shared filter sidebar's exclusive select; its visible text gets the row's name for a screen
+      // reader, since the button swaps in for the count on hover and focus and reads as a bare "Only" otherwise.
       return `
         <div class="acs-check-row acs-place-row" data-category="${category}">
           <label class="acs-check acs-place" for="acs-place-${category}">
             <input type="checkbox" id="acs-place-${category}" data-category="${category}" checked>
             <span class="acs-place__icon" aria-hidden="true"><img src="${icon}" alt=""></span>
             <span class="acs-place__name">${name}</span>
-            <span class="acs-place__count"></span>
           </label>
+          <span class="acs-place__slot">
+            <span class="acs-place__count"></span>
+            <button type="button" class="filter-sidebar__only" data-category="${category}"
+                    aria-label="${i18next.t('common:only')}: ${name}">${i18next.t('common:only')}</button>
+          </span>
         </div>`;
     }).join('');
 
@@ -162,8 +169,13 @@ class AccessScoreSidebar {
       showPlaces: root.querySelector('#acs-show-places'),
       placeRows: Object.fromEntries(categories.map((category) => {
         const row = placeRows.querySelector(`.acs-place-row[data-category="${category}"]`);
-        return [category, { input: row.querySelector('input'), count: row.querySelector('.acs-place__count') }];
+        return [category, {
+          input: row.querySelector('input'),
+          count: row.querySelector('.acs-place__count'),
+          only: row.querySelector('.filter-sidebar__only'),
+        }];
       })),
+      placesSelectAll: root.querySelector('#acs-places-select-all'),
       placesControls: root.querySelector('#acs-places-controls'),
       placesZoomHint: root.querySelector('#acs-places-zoom-hint'),
       placesUnavailable: root.querySelector('#acs-places-unavailable'),
@@ -196,15 +208,29 @@ class AccessScoreSidebar {
     e.showClusters.addEventListener('change', () => this.#emit({ showClusters: e.showClusters.checked },
       { kind: 'ShowClusters', value: e.showClusters.checked, final: true }));
     e.showPlaces.addEventListener('change', () => {
-      for (const row of Object.values(e.placeRows)) row.input.disabled = !e.showPlaces.checked;
+      this.#setPlacesEnabled(e.showPlaces.checked);
       this.#emit({ showPlaces: e.showPlaces.checked },
         { kind: 'ShowPlaces', value: e.showPlaces.checked, final: true });
     });
     for (const [category, row] of Object.entries(e.placeRows)) {
-      row.input.addEventListener('change', () => this.#emit({ placeCategories: this.#checkedPlaceCategories() },
-        { kind: 'PlaceCategory', value: `${category}_value=${row.input.checked}`, final: true }));
+      row.input.addEventListener('change', () => this.#emitPlaceCategories(
+        { kind: 'PlaceCategory', value: `${category}_value=${row.input.checked}` }));
+      row.only.addEventListener('click', () => {
+        for (const [other, otherRow] of Object.entries(e.placeRows)) otherRow.input.checked = other === category;
+        this.#emitPlaceCategories({ kind: 'PlaceCategoryOnly', value: category });
+      });
     }
+    e.placesSelectAll.addEventListener('click', () => {
+      for (const row of Object.values(e.placeRows)) row.input.checked = true;
+      this.#emitPlaceCategories({ kind: 'PlaceCategorySelectAll' });
+    });
     e.reset.addEventListener('click', () => this.#emit(null, { kind: 'Reset', final: true }));
+  }
+
+  /** Reports the category rows as they now stand, after any of the three ways they change. */
+  #emitPlaceCategories(meta) {
+    this.#updatePlacesAction();
+    this.#emit({ placeCategories: this.#checkedPlaceCategories() }, { ...meta, final: true });
   }
 
   /** The enabled categories as the model states them: null when every row is checked, else the checked ids. */
@@ -212,6 +238,20 @@ class AccessScoreSidebar {
     const categories = this.#config.place_categories ?? [];
     const checked = categories.filter((category) => this.#els.placeRows[category].input.checked);
     return checked.length === categories.length ? null : checked;
+  }
+
+  /** The master toggle off takes the rows and their "Only" buttons with it. */
+  #setPlacesEnabled(enabled) {
+    for (const row of Object.values(this.#els.placeRows)) {
+      row.input.disabled = !enabled;
+      row.only.disabled = !enabled;
+    }
+    this.#els.placesSelectAll.disabled = !enabled;
+  }
+
+  /** "Select all" has something to do only once a row is off. */
+  #updatePlacesAction() {
+    this.#els.placesSelectAll.hidden = this.#checkedPlaceCategories() === null;
   }
 
   /** The slider ceiling: `MAX_WEIGHT`, or the next whole number above the largest default if that is higher. */
