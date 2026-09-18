@@ -325,6 +325,18 @@ class AccessScoreModel {
   }
 
   /**
+   * One street's histogram bin: the cheap read a per-marker recolor makes for every place on the map, where
+   * `explainStreet` would build the full term breakdown each time.
+   * @param {number} streetId - The street's `street_edge_id`.
+   * @returns {?number} A bin index in `[0, HISTOGRAM_BINS)`, or null for an unaudited or unknown street.
+   */
+  streetBin(streetId) {
+    const i = this.#indexById.get(streetId);
+    if (i === undefined || this.#bins[i] === AccessScoreModel.UNBINNED) return null;
+    return this.#bins[i];
+  }
+
+  /**
    * The histogram bin a score falls in.
    * @param {number} score - A score in [0, 1].
    * @returns {number} A bin index in `[0, HISTOGRAM_BINS)`; the top edge folds into the last bin.

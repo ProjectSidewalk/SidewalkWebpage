@@ -220,8 +220,10 @@ window.AccessScoreApp = (function () {
       if (meta.kind !== 'Weight' || meta.final) sidebar.setState(model.state);
       sidebar.setContributions(model.contributions().means);
       if (popup) select(null);
-      // The place card stays open across a reweighting; its nearest-street score follows the sliders.
+      // The place card stays open across a reweighting; its nearest-street score follows the sliders, as do the
+      // markers' discs.
       places?.refreshCard();
+      places?.layer.rescore();
       dock.applyChange(meta);
       urlSync.scheduleWrite();
       if (meta.final) log(meta.kind, meta.value);
@@ -254,6 +256,7 @@ window.AccessScoreApp = (function () {
     const setDarkMap = (next) => {
       document.getElementById('acs-map-holder')?.classList.toggle('acs-map-holder--dark', next);
       mapView.setDark(next);
+      places?.layer.setDark(next);
       map.once('style.load', () => {
         mapView.remount();
         evidence?.layer.remount();
@@ -287,6 +290,7 @@ window.AccessScoreApp = (function () {
       evidence.setVisible(state.showClusters);
       places?.apply(state);
       mapView.applyScores();
+      places?.layer.rescore();
       sidebar.setState(state);
       sidebar.setContributions(model.contributions().means);
       dock.setBrush(null, { log: false });
@@ -416,6 +420,12 @@ window.AccessScoreApp = (function () {
         categories,
         tooltipHtml: placeTooltipHtml,
         onSelect: (props) => selectPlace(props),
+        // A marker's disc is the nearest street's score, binned as the histogram bins it.
+        bins: AccessScoreModel.HISTOGRAM_BINS,
+        binOf: (props) => (props.nearest_street_edge_id === null || props.nearest_street_edge_id === undefined
+          ? null
+          : model.streetBin(props.nearest_street_edge_id)),
+        dark,
       });
 
       const apply = (state) => layer.setCategories(state.placeCategories);
