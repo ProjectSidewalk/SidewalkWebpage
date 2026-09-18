@@ -51,6 +51,7 @@ class ImageryPollOutcomeSpec extends PlaySpec with GuiceOneAppPerSuite {
       app.injector.instanceOf[WSClient],
       configService,
       app.injector.instanceOf[PanoDataService],
+      app.injector.instanceOf[MapillarySourceService],
       app.injector.instanceOf[StreetImageryTable],
       app.injector.instanceOf[StreetReopenCandidateTable],
       app.injector.instanceOf[AuditTaskTable],

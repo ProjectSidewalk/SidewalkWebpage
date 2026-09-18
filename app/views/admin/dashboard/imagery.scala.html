@@ -1,4 +1,5 @@
 @import service.CommonPageData
+@import models.pano.PanoSource
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole
@@ -92,6 +93,26 @@
     <p class="ac-note" id="imagery-freshness-note"></p>
   </div>
 
+  @* Only a Mapillary deployment mixes contributors' imagery, so only there is there anything to restrict (#5407). *@
+  @if(commonData.imagerySource == PanoSource.Mapillary) {
+    <div class="page-section" id="imagery-sources-section">
+      <h2 class="page-heading" id="imagery-sources">Imagery sources <a href="#imagery-sources" class="permalink">#</a></h2>
+      <p>This deployment runs on Mapillary, which mixes 360° imagery from every contributor. Listing one or more Mapillary usernames here restricts the deployment to <em>their</em> imagery: Explore only places labelers on it and only walks between their panoramas, and the nightly imagery-age poll only counts it. With nobody listed, all public imagery is used. A username is checked against Mapillary before it is accepted, so a typo can't restrict the deployment to nothing.</p>
+      <p class="ac-note">A restriction does not by itself hide the streets the listed creators never drove: those are still offered, and labelers report them as having no imagery one at a time. To hide them up front, re-run the street imagery scan with <code>--mapillary-creator</code> (see <code>scripts/README.md</code>).</p>
+      <div class="coverage-status" id="imagery-sources-status" role="status" aria-live="polite">Loading imagery sources…</div>
+      <div id="imagery-sources-list"></div>
+      <form class="imagery-sources-form" id="imagery-sources-form">
+        <div class="partners-form-field">
+          <label class="partners-form-label" for="imagery-sources-username">Mapillary username</label>
+          <input type="text" class="ps-input" id="imagery-sources-username" name="username" maxlength="60" required
+          autocomplete="off" autocapitalize="off" spellcheck="false">
+        </div>
+        <button type="submit" class="button-ps button--primary button--medium">Add creator</button>
+      </form>
+      <p class="partners-form-error" id="imagery-sources-error" role="alert" hidden></p>
+    </div>
+  }
+
     <!-- Page-specific library: Mapbox for the segment map. -->
   <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")">
   <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")"></script>
@@ -101,6 +122,8 @@
   <script src="@assets.path("js/admin-dashboard/StreetPriorityTable.js")"></script>
   <script src="@assets.path("js/admin-dashboard/ImageryPipelinePanel.js")"></script>
   <script src="@assets.path("js/admin-dashboard/ImageryPage.js")"></script>
+  <script src="@assets.path("js/common/ConfirmDialog.js")"></script>
+  <script src="@assets.path("js/admin-dashboard/MapillarySourcesPanel.js")"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       new ImageryPage({
@@ -110,6 +133,7 @@
         pipelineUrl: '/adminapi/imageryFreshness',
         pipelineDays: @service.ImageryFreshnessReportService.DefaultDays
       }).init();
+      new MapillarySourcesPanel({ sourcesUrl: '/adminapi/mapillarySources' }).init();
     });
   </script>
 }

@@ -3,6 +3,7 @@ package controllers
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import formats.json.UserFormats._
 import models.auth.{WithAdmin, WithOwner}
+import models.pano.PanoSource
 import play.api.Configuration
 import models.street.StreetPriorityForAdmin
 import play.api.libs.json.Json
@@ -12,6 +13,7 @@ import service.{
   HealthService,
   ImageryFreshnessReportService,
   LabelService,
+  MapillarySourceService,
   StreetLifecycleService,
   StreetService,
   UserService
@@ -38,6 +40,7 @@ class AdminDashboardController @Inject() (
     healthService: HealthService,
     streetLifecycleService: StreetLifecycleService,
     imageryFreshnessReportService: ImageryFreshnessReportService,
+    mapillarySourceService: MapillarySourceService,
     streetService: StreetService,
     userService: UserService
 )(implicit ec: ExecutionContext)
@@ -376,6 +379,84 @@ class AdminDashboardController @Inject() (
    */
   def getImageryFreshness(days: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     imageryFreshnessReportService.getReport(days).map(report => Ok(Json.toJson(report)))
+  }
+
+  /**
+   * The Imagery page's source-restriction endpoint: the Mapillary creators this deployment is restricted to (#5407).
+   *
+   * `provider` rides along so the page can explain why the control is absent on a GSV or Panoramax deployment rather
+   * than render a list nothing reads.
+   */
+  def getMapillarySources = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    mapillarySourceService.getAllowedSources.map { sources =>
+      Ok(
+        Json.obj(
+          "provider" -> configService.getPanoSource.toString,
+          "sources"  -> sources.map { case (source, addedByUsername) =>
+            Json.obj(
+              "source_type"  -> source.sourceType,
+              "source_value" -> source.sourceValue,
+              "added_by"     -> addedByUsername,
+              "added_at"     -> source.addedAt
+            )
+          }
+        )
+      )
+    }
+  }
+
+  /**
+   * Adds a Mapillary creator to the deployment's allowlist (#5407), which restricts imagery discovery to the listed
+   * creators from the first one on. Body: `{"username": "..."}`.
+   *
+   * Refused on a deployment whose provider isn't Mapillary (409), for text that can't be a username (400), for a
+   * username Mapillary has no 360 imagery under (422) -- accepting it would restrict the deployment to nothing -- and
+   * when Mapillary can't be asked (502). Only an add that changed something is logged.
+   */
+  def addMapillaryCreator = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
+    def error(message: String) = Json.obj("status" -> "Error", "message" -> message)
+    val provider               = configService.getPanoSource
+    (request.body \ "username").asOpt[String] match {
+      case _ if provider != PanoSource.Mapillary =>
+        Future.successful(Conflict(error(s"This deployment's imagery provider is $provider, not mapillary.")))
+      case None           => Future.successful(BadRequest(error("Expected a JSON body with a 'username' string.")))
+      case Some(username) =>
+        mapillarySourceService.addCreator(username, request.identity.userId).map {
+          case MapillarySourceService.Added =>
+            cc.loggingService.insert(
+              request.identity.userId,
+              request.ipAddress,
+              s"AddMapillaryCreator_Username=${username.trim}"
+            )
+            Ok(Json.obj("status" -> "success", "username" -> username.trim, "added" -> 1))
+          case MapillarySourceService.AlreadyListed =>
+            Ok(Json.obj("status" -> "success", "username" -> username.trim, "added" -> 0))
+          case MapillarySourceService.InvalidUsername =>
+            BadRequest(error(s"'${username.trim}' can't be a Mapillary username."))
+          case MapillarySourceService.NoPanosFound =>
+            UnprocessableEntity(error(s"Mapillary has no 360° imagery under the username '${username.trim}'."))
+          case MapillarySourceService.VerificationFailed(reason) =>
+            BadGateway(error(s"Couldn't verify '${username.trim}' with Mapillary: $reason"))
+        }
+    }
+  }
+
+  /**
+   * Removes a Mapillary creator from the deployment's allowlist (#5407). Removing the last one returns the deployment
+   * to unfiltered imagery. Idempotent: removing an unlisted creator succeeds with `removed = 0`, since the admin's
+   * goal -- that creator not listed -- holds. Only a removal that changed something is logged.
+   */
+  def removeMapillaryCreator(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    mapillarySourceService.removeCreator(username).map { removed =>
+      if (removed > 0) {
+        cc.loggingService.insert(
+          request.identity.userId,
+          request.ipAddress,
+          s"RemoveMapillaryCreator_Username=${username.trim}"
+        )
+      }
+      Ok(Json.obj("status" -> "success", "username" -> username.trim, "removed" -> removed))
+    }
   }
 
   /**

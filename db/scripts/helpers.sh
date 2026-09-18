@@ -187,3 +187,33 @@ run_with_progress() {
     rm -f "$logfile"
     return "$status"
 }
+
+# Restricts a deployment to imagery from the listed Mapillary creators (#5407) by seeding mapillary_allowed_source,
+# the table /admin/imagery edits afterwards. For onboarding a city that must launch already restricted, before it has
+# an admin to do it from the page. Idempotent: a creator already listed is left as it was.
+# $1:   comma-separated Mapillary usernames (e.g. "alice,bob"); a no-op when empty.
+# $2..: psql connection arguments, passed through verbatim.
+allow_mapillary_creators() {
+    local creators=$1
+    shift
+    if [[ -z "$creators" ]]; then
+        echo "No Mapillary creators provided; leaving the deployment unrestricted."
+        return 0
+    fi
+    # The usernames are spliced into SQL below, so hold them to the same shape the app accepts
+    # (MapillarySourceService.isPlausibleUsername) rather than trusting the caller.
+    local values="" creator
+    local IFS=','
+    for creator in $creators; do
+        if [[ ! "$creator" =~ ^[A-Za-z0-9_.-]{1,60}$ ]]; then
+            echo "Error: '$creator' can't be a Mapillary username; refusing to seed the allowlist." >&2
+            return 1
+        fi
+        values+="${values:+, }('creator', '$creator')"
+    done
+    psql "$@" -v ON_ERROR_STOP=1 <<EOSQL
+        INSERT INTO mapillary_allowed_source (source_type, source_value)
+        VALUES $values
+        ON CONFLICT (source_type, source_value) DO NOTHING;
+EOSQL
+}

@@ -32,6 +32,7 @@ class PanoManager {
    * @param {number} [params.startLat] - Optional starting latitude; the fallback if startPanoId fails to load
    * @param {number} [params.startLng] - Optional starting longitude; the fallback if startPanoId fails to load
    * @param {{heading: number, pitch: number, zoom: number}} [params.startPov] - Optional POV to face after loading
+   * @param {string[]} [params.allowedCreators] - Mapillary usernames the imagery is restricted to; empty = unfiltered
    * @param {object} errorParams - Params necessary in case loading the initial location fails
    * @param {Task} errorParams.task - The assigned Task; used if no imagery is found to record the street
    * @param {number} errorParams.missionId - The current mission ID; used if no imagery is found
@@ -169,6 +170,7 @@ class PanoManager {
       accessToken: viewerAccessToken,
       defaultNavigation: false, // We create our own navigation arrows.
       preloadNeighbors: true, // Pre-download linked panos so walking down the street doesn't wait on the network.
+      allowedCreators: params.allowedCreators ?? [], // Only the Mapillary viewer reads it (#5407).
     };
 
     // Add the starting location to panoOptions. A pano seed is tried first; the lat/lng (plus backups sampled along

@@ -38,6 +38,10 @@ class MapillaryViewer extends PanoViewer {
     // Prefetched image search results, keyed by location. Each entry is { centerPoint, promise: Promise<Array> }.
     // Call prefetchLocation() to populate, clearPrefetchCache() to reset between streets.
     this.prefetchedSearches = [];
+
+    // Mapillary usernames this deployment's imagery is restricted to (#5407); empty means unfiltered. The backend
+    // owns the list (the admin Imagery page edits it) and hands it over in panoOptions.allowedCreators.
+    this.allowedCreators = [];
   }
 
   /**
@@ -73,7 +77,14 @@ class MapillaryViewer extends PanoViewer {
     this.viewer = new mapillary.Viewer(panoOpts);
 
     // Restrict to panoramas -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#setfilter
-    this.viewer.setFilter(['==', 'cameraType', 'spherical']);
+    // The filter governs the SDK's own navigation graph, so adding the creator restriction here is what keeps the
+    // spatial edges behind getLinkedPanos() (Explore's arrows) and the SDK's arrows inside the allowed imagery; the
+    // location search below is filtered separately, since it queries the Graph API directly.
+    this.allowedCreators = Array.isArray(panoOptions.allowedCreators) ? panoOptions.allowedCreators : [];
+    const sphericalOnly = ['==', 'cameraType', 'spherical'];
+    this.viewer.setFilter(this.allowedCreators.length > 0
+      ? ['all', sphericalOnly, ['in', 'creatorUsername', ...this.allowedCreators]]
+      : sphericalOnly);
 
     // Initialize pano at the desired location.
     await this._moveToInitialLocation(panoOpts);
@@ -222,9 +233,10 @@ class MapillaryViewer extends PanoViewer {
    *
    * @param {turf.Point} centerPoint - The center of the output bounding box
    * @param {number} radius - A distance (in km) to extend from the center point in each direction
+   * @param {?string} creator - Restrict the search to this Mapillary username, or null for every creator
    * @returns {string} A URL that can be called to fetch Mapillary images within the bounding box
    */
-  #createPanoFetchUrl = (centerPoint, radius) => {
+  #createPanoFetchUrl = (centerPoint, radius, creator) => {
     // Create a bounding box using to search for imagery.
     const boundingBox = [
       turf.destination(centerPoint, radius, 270).geometry.coordinates[0], // West
@@ -236,10 +248,11 @@ class MapillaryViewer extends PanoViewer {
     // Parameters listed here: https://www.mapillary.com/developer/api-documentation#image
     const params = new URLSearchParams({
       access_token: this.viewer._navigator._api._data._accessToken,
-      fields: 'id,geometry,computed_geometry,captured_at,sequence,width,camera_type,computed_rotation',
+      fields: 'id,geometry,computed_geometry,captured_at,sequence,width,camera_type,computed_rotation,creator',
       is_pano: 'true',
       bbox: boundingBox.join(','),
     });
+    if (creator) params.set('creator_username', creator);
 
     return `https://graph.mapillary.com/images?${params.toString()}`;
   };
@@ -540,12 +553,31 @@ class MapillaryViewer extends PanoViewer {
    * @returns {Promise<Array>} Raw pano objects from the Mapillary API.
    */
   #fetchImages = async (centerPoint, radius) => {
+    // The API's creator filter takes one username, so a restricted deployment (#5407) asks once per allowed creator.
+    // Filtering server-side rather than discarding other creators' panos here matters in dense coverage: the
+    // unfiltered box can exceed the API's size limit and shrink (below) until it no longer reaches our imagery.
+    if (this.allowedCreators.length === 0) return this.#fetchImagesBy(centerPoint, radius, null);
+    const perCreator = await Promise.all(
+      this.allowedCreators.map((creator) => this.#fetchImagesBy(centerPoint, radius, creator)),
+    );
+    return perCreator.flat();
+  };
+
+  /**
+   * Fetches the panos in a box around a point from one creator, or from everyone.
+   *
+   * @param {turf.Point} centerPoint - The center of the search box.
+   * @param {number} radius - Search radius in kilometers.
+   * @param {?string} creator - Mapillary username to restrict to, or null for every creator.
+   * @returns {Promise<Array>} Raw pano objects from the Mapillary API.
+   */
+  #fetchImagesBy = async (centerPoint, radius, creator) => {
     // Docs for how to filter images: https://www.mapillary.com/developer/api-documentation#image
     // TODO don't send accessToken in the URL: https://www.mapillary.com/developer/api-documentation#authentication
     // NOTE The 'limit' API param doesn't do what it says. Including it can make the API return no images when the
     //      limit is set to something greater than 0 and we get images if we exclude the limit param. Don't use it!
     while (radius > 0) {
-      const url = this.#createPanoFetchUrl(centerPoint, radius);
+      const url = this.#createPanoFetchUrl(centerPoint, radius, creator);
       const response = await fetch(url);
       const data = await response.json();
       console.log(data);
@@ -575,8 +607,11 @@ class MapillaryViewer extends PanoViewer {
    * @returns {?Record<string, any>} The best candidate pano, or null if none are viable.
    */
   #selectBestPano = (panos, excludedPanoIds, excludedTimestamps, centerPoint, currentSequenceId) => {
+    // The creator check repeats what the creator-scoped request already guarantees. It is here so the restriction
+    // holds for any pano list handed in, whatever fetched it.
     const candidates = panos.filter(
-      (pano) => !excludedPanoIds.has(pano.id) && !excludedTimestamps.has(pano.captured_at),
+      (pano) => !excludedPanoIds.has(pano.id) && !excludedTimestamps.has(pano.captured_at)
+        && (this.allowedCreators.length === 0 || this.allowedCreators.includes(pano.creator?.username)),
     );
 
     let bestPano = null;

@@ -495,6 +495,31 @@ def mapillary_has_imagery(response_json: dict) -> bool:
     return not no_imagery
 
 
+def merge_mapillary_responses(responses: list[dict]) -> dict:
+    """
+    Combines the responses for one point into the single response the rest of the scan reads.
+
+    A scan restricted with ``--mapillary-creator`` asks once per creator, because the API's ``creator_username``
+    filter takes one username; an unrestricted scan asks once, and that response passes through untouched. The images
+    are pooled so the point's capture date is ranked across every allowed creator, exactly as the viewer ranks them.
+    An error response is returned as-is, so ``mapillary_has_imagery`` still decides what each error code means.
+
+    Args:
+        responses: One decoded Mapillary images response per request made at the point (at least one).
+
+    Returns:
+        A response-shaped dict: the lone response, the first error response, or ``{'data': [every image]}``.
+    """
+    if len(responses) == 1:
+        return responses[0]
+    images = []
+    for response in responses:
+        if 'error' in response:
+            return response
+        images.extend(response.get('data', []))
+    return {'data': images}
+
+
 def score_pano(image: dict, lat: float, lng: float, now_ms: float) -> float | None:
     """
     Scores one candidate Mapillary image for a location, the way Explore's pano viewer does.
@@ -882,12 +907,13 @@ def _pano_info(api: str, response_json: dict, lat: float, lng: float) -> PanoInf
 
 
 def _point_pano_info(api: str, lat: float, lng: float, fetch: Callable[..., dict], gsv_url: str,
-                     mapillary_url: str, radius_km: float, infra3d: Infra3dScan | None = None) -> PanoInfo:
+                     mapillary_urls: list[str], radius_km: float, infra3d: Infra3dScan | None = None) -> PanoInfo:
     """
     Queries the configured provider at one point (via ``fetch``) and returns its ``PanoInfo``.
 
     ``radius_km`` is the Mapillary/Panoramax bbox half-extent / Infra3d max frame distance; GSV bakes its radius into
     ``gsv_url``. ``infra3d`` is the ``Infra3dScan`` (token holder + campaign scope), needed only for that provider.
+    ``mapillary_urls`` holds one base URL per allowed creator, or the single unrestricted one.
     """
     if api == 'GSV':
         return _pano_info(api, fetch(gsv_url + '&location=' + str(lat) + ',' + str(lng)), lat, lng)
@@ -895,16 +921,17 @@ def _point_pano_info(api: str, lat: float, lng: float, fetch: Callable[..., dict
         return _pano_info(api, fetch(_panoramax_bbox_url(lat, lng, radius_km), headers=PANORAMAX_HEADERS), lat, lng)
     if api == 'Infra3d':
         return _infra3d_point_pano_info(infra3d, lat, lng, radius_km, fetch)
-    return _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, lat, lng, radius_km)), lat, lng)
+    responses = [fetch(_mapillary_bbox_url(url, lat, lng, radius_km)) for url in mapillary_urls]
+    return _pano_info(api, merge_mapillary_responses(responses), lat, lng)
 
 
 def _check_endpoints(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_url_endpoint: str,
-                     mapillary_url: str, infra3d: Infra3dScan | None = None) -> tuple[PanoInfo, PanoInfo]:
+                     mapillary_urls: list[str], infra3d: Infra3dScan | None = None) -> tuple[PanoInfo, PanoInfo]:
     """Checks both of a street's endpoints; returns ``(first_pano_info, second_pano_info)``."""
     # GSV carries its radius in the URL, so the endpoint URL goes where the along-street point URL normally would.
-    first = _point_pano_info(api, street.y1, street.x1, fetch, gsv_url_endpoint, mapillary_url, ENDPOINT_RADIUS_KM,
+    first = _point_pano_info(api, street.y1, street.x1, fetch, gsv_url_endpoint, mapillary_urls, ENDPOINT_RADIUS_KM,
                              infra3d)
-    second = _point_pano_info(api, street.y2, street.x2, fetch, gsv_url_endpoint, mapillary_url, ENDPOINT_RADIUS_KM,
+    second = _point_pano_info(api, street.y2, street.x2, fetch, gsv_url_endpoint, mapillary_urls, ENDPOINT_RADIUS_KM,
                               infra3d)
     return first, second
 
@@ -925,7 +952,7 @@ def summarize_dates(dates: Collection[str]) -> tuple[str | None, str | None, int
 
 
 def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_url: str, gsv_url_endpoint: str,
-                   mapillary_url: str, infra3d: Infra3dScan | None = None) -> StreetResult:
+                   mapillary_urls: list[str], infra3d: Infra3dScan | None = None) -> StreetResult:
     """
     Checks one street for imagery and returns its outcome (pure of any file/checkpoint I/O, so it is pool-safe).
 
@@ -939,7 +966,8 @@ def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_
         fetch:            A ``fetch(url, **kwargs) -> json`` (typically from ``make_fetch``, with retry).
         gsv_url:          GSV metadata base URL with the along-street radius baked in (GSV only).
         gsv_url_endpoint: GSV metadata base URL with the endpoint radius baked in (GSV only).
-        mapillary_url:    Mapillary images base URL (Mapillary only).
+        mapillary_urls:   Mapillary images base URLs, one per allowed creator or the single unrestricted one
+                          (Mapillary only).
         infra3d:          An ``Infra3dScan`` (token holder + campaign scope) (Infra3d only).
 
     Returns:
@@ -948,7 +976,7 @@ def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_
         early-exit point sampling means no extra API calls are made.
     """
     try:
-        first, second = _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url, infra3d)
+        first, second = _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_urls, infra3d)
         coords = list(street['geom'].coords)
         dates = [d for d in (first.capture_date, second.capture_date) if d]
 
@@ -959,7 +987,7 @@ def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_
             # `no branch`: street_has_no_imagery settles and stops consuming before this loop is exhausted (for any
             # real street, which has >= 2 points), so the generator is abandoned rather than run to completion.
             for coord in coords:  # pragma: no branch  -- Shapely coords are (x=lng, y=lat).
-                info = _point_pano_info(api, coord[1], coord[0], fetch, gsv_url, mapillary_url, POINT_RADIUS_KM,
+                info = _point_pano_info(api, coord[1], coord[0], fetch, gsv_url, mapillary_urls, POINT_RADIUS_KM,
                                         infra3d)
                 if info.capture_date:
                     dates.append(info.capture_date)
@@ -1163,6 +1191,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('--campaign', action='append', default=[], metavar='UID',
                         help='Infra3d campaign to count imagery from (repeatable). Required only when the tenant '
                              'holds more than one campaign; the scan lists them if so.')
+    parser.add_argument('--mapillary-creator', action='append', default=[], metavar='USERNAME',
+                        help='Count only this Mapillary creator\'s imagery (repeatable), for a deployment restricted '
+                             'to chosen creators. Spelled exactly as on Mapillary. Omit to count everyone\'s.')
     parser.add_argument('--workers', type=int, default=DEFAULT_WORKERS,
                         help='Number of streets to check concurrently (default: %(default)s).')
     parser.add_argument('--max-qps', type=float, default=DEFAULT_MAX_QPS,
@@ -1177,6 +1208,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.sample is not None and args.sample <= 0:
         parser.error('--sample needs a positive number of streets (bare --sample checks %d).' % DEFAULT_SAMPLE)
+    if args.mapillary_creator and not args.mapillary:
+        parser.error('--mapillary-creator only applies to a --mapillary scan.')
     api = 'GSV' if args.gsv else 'Mapillary' if args.mapillary else 'Panoramax' if args.panoramax else 'Infra3d'
     # One shared rate limiter caps total request rate across all worker threads.
     fetch = make_fetch(rate_limiter=RateLimiter(args.max_qps))
@@ -1217,8 +1250,13 @@ def main(argv: list[str] | None = None) -> int:
         os.makedirs(scan_dir, exist_ok=True)
     else:
         scan_dir = os.path.dirname(input_path)
+    # The creator restriction is part of the checkpoint's name (the one file the templates name by provider), because
+    # a checkpoint settles streets for good: resuming an everyone's-imagery checkpoint under a restriction, or the
+    # reverse, would keep verdicts reached under the other rule.
+    creators = sorted(set(args.mapillary_creator))
+    checkpoint_scope = '_'.join([provider] + [quote(creator, safe='') for creator in creators])
     checkpoint_path, output_path, failed_path, summary_path = (
-        os.path.join(scan_dir, os.path.basename(template.format(args.city_id, provider)))
+        os.path.join(scan_dir, os.path.basename(template.format(args.city_id, checkpoint_scope)))
         for template in (CHECKPOINT_FILE, OUTPUT_FILE, FAILED_FILE, SUMMARY_FILE))
 
     if not os.path.isfile(input_path):
@@ -1252,10 +1290,15 @@ def main(argv: list[str] | None = None) -> int:
     mapillary_fields = 'captured_at,geometry,computed_geometry,width'
     mapillary_url = 'https://graph.mapillary.com/images?is_pano=true&fields=%s&access_token=%s' % (mapillary_fields,
                                                                                                   api_key)
+    # creator_username takes one username, so a restricted scan carries one base URL per creator and asks each in
+    # turn. Filtering on Mapillary's side rather than ours also keeps a dense box under the API's response-size limit.
+    mapillary_urls = [mapillary_url + '&creator_username=' + quote(creator) for creator in creators] or [mapillary_url]
+    if creators:
+        print('Counting only Mapillary imagery by: %s' % ', '.join(creators))
     checkpoint_lock = threading.Lock()
 
     def check_and_record(street: pd.Series) -> StreetResult:
-        result = process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url, infra3d)
+        result = process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_urls, infra3d)
         with checkpoint_lock:  # process_street does no file I/O; only the checkpoint append needs serializing.
             append_checkpoint(result, checkpoint_path)
         return result

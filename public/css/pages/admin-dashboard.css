@@ -2713,6 +2713,21 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   white-space: normal;
 }
 
+/* Imagery sources (#5407): one field and its button on a row, the button sitting on the field's baseline rather
+   than stretching to the label's height. */
+.imagery-sources-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.imagery-sources-form .ps-input {
+  width: 260px;
+  max-width: 100%;
+}
+
 /* Tier table under the priority map: the legend, the per-tier counts, and the explanation of the single ordering
    they sit on, in one place so a reader never has to pair a color with prose somewhere else. */
 .imagery-tier-wrap {

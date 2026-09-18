@@ -39,6 +39,9 @@ Run the three from the **main checkout**: `db/` is the bind mount the db contain
   second-guessed.
 - **Imagery provider** — `gsv`, `mapillary`, `panoramax`, or `infra3d`. The preflight in step 2 tells you which
   actually covers the city. The web container needs the provider's credentials for the scan (Panoramax needs none).
+  A Mapillary city can launch **restricted to chosen creators** — one running only on imagery we collected
+  ourselves, say (#5407): pass `--mapillary-creator <username>` (repeatable) to the preflight, and to
+  `make onboard-city` as `args="--mapillary-creator <username>"`. Afterwards the list is edited on `/admin/imagery`.
 - **The web image** must carry the geo stack (`osmnx`, `geopandas` — in `requirements-offline-tools.txt`). It is
   installed at image build time, so after pulling a branch that adds it: `docker compose build web` and recreate the
   container.
@@ -178,7 +181,9 @@ its default either way.
    comes straight back to this step.
 7. **Imagery scan** — exports the endpoints from the database, runs `check_streets_for_imagery.py` for the city's
    provider (resumable; an hour or so for a mid-sized city), hides the no-imagery streets, and imports the imagery-age
-   summary into `street_imagery`. `--skip-scan` defers it; a rerun picks it up.
+   summary into `street_imagery`. `--skip-scan` defers it; a rerun picks it up. With `--mapillary-creator` the scan
+   counts only those creators' imagery, so the streets they never drove are hidden, and the same usernames are
+   seeded into `mapillary_allowed_source` (scan or no scan), which is what restricts the running app.
 8. **Dump** — `pg_dump -Fc` of the finished schema to `db/<schema>-dump`, the file `make import-dump` and the
    server both restore, with the data of every table the clone, the fill and the scan do not write left out
    (`--exclude-table-data`, from the schema's own catalog, with those tables' sequences), `region_completion`

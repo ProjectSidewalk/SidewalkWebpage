@@ -388,6 +388,13 @@ Supported languages: en, es, de, nl, zh-TW, pt-BR, fr, plus regional English var
 - `conf/application.conf` is the base; environment overlays are `application.local.conf`, `application.staging.conf`,
   `application.test.conf`. Local dev runs with `application.local.conf`.
 - Per-city settings live in `conf/cityparams.conf`, selected via the `SIDEWALK_CITY_ID` env var.
+- A setting an admin should be able to change without a deploy lives in the city's schema instead, behind an admin
+  page. The Mapillary **imagery sources** are the example (#5407): `mapillary_allowed_source` lists the creators a
+  deployment's imagery is restricted to (empty = unrestricted), edited on `/admin/imagery` and read through
+  `MapillarySourceService.getAllowedCreators` by the three places that *discover* Mapillary panos — Explore's viewer
+  (`MapillaryViewer`, via `CommonPageData.mapillaryAllowedCreators`), the nightly imagery-age poll, and, as a
+  command-line flag because it runs before the schema exists, the street imagery scan. Code that opens a pano by id
+  (Validate, label popups, the existence check) is deliberately unfiltered: that pano was already chosen.
 - Secrets/keys (Mapbox, Google Maps, Gemini, Mapillary, Infra3d, Silhouette signer/crypter, DB credentials) come
   from environment variables; local values live in a `docker-compose.override.yml`.
 

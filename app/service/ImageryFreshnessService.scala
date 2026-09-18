@@ -209,6 +209,7 @@ class ImageryFreshnessServiceImpl @Inject() (
     ws: WSClient,
     configService: ConfigService,
     panoDataService: PanoDataService,
+    mapillarySourceService: MapillarySourceService,
     streetImageryTable: StreetImageryTable,
     streetReopenCandidateTable: StreetReopenCandidateTable,
     auditTaskTable: AuditTaskTable,
@@ -276,8 +277,13 @@ class ImageryFreshnessServiceImpl @Inject() (
         }
       case PanoSource.Mapillary =>
         config.getOptional[String]("mapillary-access-token") match {
-          case Some(token) => pollStreets("Mapillary")(fetchMapillaryPointObservations(token))
-          case None        =>
+          // The creator restriction (#5407) is resolved once per run too, so one night's batch is polled under one
+          // rule even if an admin edits the list midway.
+          case Some(token) =>
+            mapillarySourceService.getAllowedCreators.flatMap { allowedCreators =>
+              pollStreets("Mapillary")(fetchMapillaryPointObservations(token, allowedCreators))
+            }
+          case None =>
             Future.failed(
               new MissingImageryCredentialException("No mapillary-access-token configured for a Mapillary city.")
             )
@@ -484,6 +490,9 @@ class ImageryFreshnessServiceImpl @Inject() (
   /**
    * Queries the Mapillary Graph API for panos in a small bbox around a point. Only 360° panos count (is_pano), since
    * that's what the Mapillary pano viewer serves to labelers; captured_at device-clock timestamps are sanity-clamped.
+   * On a deployment restricted to chosen creators (#5407) only their panos count, for the same reason: another
+   * contributor's newer capture is imagery no labeler here will be shown, so it must not flag a re-audit or make a
+   * no_imagery street look regained.
    *
    * Known limitation: the endpoint takes no ordering parameter, so in a densely-covered bbox the newest image can
    * fall outside the first `limit` results and this under-reports the street's newest capture. That direction is
@@ -491,11 +500,12 @@ class ImageryFreshnessServiceImpl @Inject() (
    * chance. Paging (or a captured_at lower bound seeded from the stored newest_capture) is tracked in #4704.
    */
   private def fetchMapillaryPointObservations(
-      accessToken: String
+      accessToken: String,
+      allowedCreators: Seq[String]
   )(lat: Double, lng: Double): Future[Option[Seq[PanoObservation]]] = {
     val (dLat, dLng) = bboxHalfWidths(lat, SampleRadiusMeters)
     val bbox         = s"${lng - dLng},${lat - dLat},${lng + dLng},${lat + dLat}"
-    ws.url(s"https://graph.mapillary.com/images?bbox=$bbox&fields=id,captured_at,is_pano,geometry&limit=100")
+    ws.url(s"https://graph.mapillary.com/images?bbox=$bbox&fields=id,captured_at,is_pano,geometry,creator&limit=100")
       .addHttpHeaders("Authorization" -> s"OAuth $accessToken")
       .withRequestTimeout(5.seconds)
       .get()
@@ -504,7 +514,9 @@ class ImageryFreshnessServiceImpl @Inject() (
           case 200 =>
             val images = (Json.parse(response.body) \ "data").asOpt[JsArray].map(_.value).getOrElse(Seq.empty)
             Some(images.toSeq.collect {
-              case img if (img \ "is_pano").asOpt[Boolean].contains(true) =>
+              case img
+                  if (img \ "is_pano").asOpt[Boolean].contains(true) && MapillarySourceService
+                    .creatorAllowed(allowedCreators, (img \ "creator" \ "username").asOpt[String]) =>
                 val id   = (img \ "id").asOpt[String].getOrElse("")
                 val date = (img \ "captured_at").asOpt[Long].flatMap(ms => parseMapillaryCapturedAt(ms))
                 // The geometry field is a GeoJSON Point, so coordinates come as [lng, lat].

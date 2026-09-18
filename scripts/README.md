@@ -97,6 +97,22 @@ The token lives 60 minutes and is refreshed automatically during a long scan. In
 default `--max-qps 10` is in the range of a single busy browser session, so keep it there (or lower) rather than
 raising it.
 
+### Mapillary creators (`--mapillary-creator`)
+
+Mapillary mixes imagery from every contributor. A deployment restricted to chosen creators (#5407, the "Imagery
+sources" list on `/admin/imagery`) must be scanned under the same restriction, or streets only *other* people drove
+stay open and labelers hit them one at a time as "no imagery":
+
+```
+make check-imagery id=seattle-gopro-wa args="--mapillary --mapillary-creator profjfray"
+```
+
+The flag is repeatable and the username is spelled exactly as on Mapillary. The API's `creator_username` filter
+takes one username, so each sampled point is asked once per creator and the images are pooled before the capture
+date is ranked. Filtering on Mapillary's side also keeps a densely covered box under the API's response-size limit.
+The restriction is part of the checkpoint's file name, so a restricted scan never resumes an unrestricted one's
+verdicts (or the reverse). `make onboard-city` takes the same flag and also seeds the city's allowlist with it.
+
 ### Preflight (`--sample`)
 
 ```bash

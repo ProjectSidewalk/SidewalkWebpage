@@ -670,6 +670,25 @@ def test_run_imagery_scan_exports_scans_hides_and_imports(monkeypatch, tmp_path,
     assert '1 street(s) without imagery' in out
 
 
+def test_run_imagery_scan_restricts_a_mapillary_scan_to_the_given_creators(monkeypatch, tmp_path):
+    monkeypatch.setattr(snc, 'REPO_ROOT', tmp_path)
+    monkeypatch.setattr(snc.sys, 'stdin', SimpleNamespace(isatty=lambda: False))
+    monkeypatch.setattr(snc, 'web_env', lambda name: 'token')
+    calls = _fake_run(monkeypatch, {'COPY (SELECT': (0, 'street_edge_id,region_id\n1,1\n')})
+    snc.run_imagery_scan('sidewalk_x', 'x', 'mapillary', ['alice', 'bob'])
+    assert any('--city-id x --mapillary --mapillary-creator alice --mapillary-creator bob' in cmd
+               for cmd in _joined(calls))
+
+
+def test_seed_mapillary_creators_seeds_the_allowlist_only_when_asked(monkeypatch, capsys):
+    calls = _fake_run(monkeypatch, {})
+    snc.seed_mapillary_creators('sidewalk_x', [])
+    assert calls == [] and capsys.readouterr().out == ''
+    snc.seed_mapillary_creators('sidewalk_x', ['alice', 'bob'])
+    assert any(cmd[-3:] == ['/opt/scripts/allow-mapillary-creators.sh', 'sidewalk_x', 'alice,bob'] for cmd in calls)
+    assert 'alice, bob' in capsys.readouterr().out
+
+
 def test_parse_report_lists_the_regions(monkeypatch, tmp_path):
     monkeypatch.setattr(snc, 'REPO_ROOT', tmp_path)
     city_dir = tmp_path / 'db' / 'onboarding' / 'x'
@@ -1054,7 +1073,8 @@ def _stub_steps(monkeypatch, repo_copy):
                         lambda schema, city_id, verify=False, allow_running_apps=False:
                         record['evolutions'].append((schema, verify)))
     monkeypatch.setattr(snc, 'run_imagery_scan',
-                        lambda schema, city_id, pano_type: record.__setitem__('scan', pano_type))
+                        lambda schema, city_id, pano_type, mapillary_creators=(): record.update(
+                            scan=pano_type, scan_creators=list(mapillary_creators)))
     monkeypatch.setattr(snc, 'dump_schema', lambda schema: record.__setitem__('dump', schema))
     monkeypatch.setattr(snc, 'highest_evolution', lambda: 375)
     monkeypatch.setattr(snc, 'highest_evolution_hash', lambda: 'hash375')
@@ -1125,7 +1145,33 @@ def test_main_first_run_walks_every_step(repo_copy, monkeypatch, capsys):
     assert any(cmd[-4:] == ['/opt/scripts/fill-new-schema.sh', 'sidewalk_testville_wa', '2', 'include:1 2']
                for cmd in calls)
     assert record['scan'] == 'mapillary' and record['dump'] == 'sidewalk_testville_wa'
+    # No --mapillary-creator: the scan is unrestricted and the allowlist is never touched.
+    assert record['scan_creators'] == [] and not any('allow-mapillary-creators.sh' in cmd for cmd in _joined(calls))
     assert 'Server handoff for testville-wa' in out and 'mapathon_event_link` was cleared' in out
+
+
+def test_main_launches_a_city_restricted_to_mapillary_creators(repo_copy, monkeypatch):
+    _city_artifacts(repo_copy)
+    record = _stub_steps(monkeypatch, repo_copy)
+    calls = _fake_run(monkeypatch, dict(_FRESH_DB))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '2', 'all')
+    snc.main(['testville-wa', '--pano-type', 'mapillary', '--mapillary-creator', 'alice'])
+    # The same creators reach both halves: the scan that hides what they never drove, and the app's allowlist.
+    assert record['scan_creators'] == ['alice']
+    assert any(cmd[-3:] == ['/opt/scripts/allow-mapillary-creators.sh', 'sidewalk_testville_wa', 'alice']
+               for cmd in calls)
+
+
+def test_main_refuses_mapillary_creators_on_another_provider(repo_copy, monkeypatch):
+    # On any other provider the flag is a mistake, caught before anything is written.
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    _fake_run(monkeypatch, dict(_FRESH_DB))
+    before = snc.CITYPARAMS.read_text()
+    _answers(monkeypatch, 'y', '', '', '')
+    with pytest.raises(SystemExit, match='only applies to a mapillary city'):
+        snc.main(['testville-wa', '--pano-type', 'gsv', '--mapillary-creator', 'alice'])
+    assert snc.CITYPARAMS.read_text() == before
 
 
 def test_main_rerun_skips_what_already_happened(repo_copy, monkeypatch, capsys):

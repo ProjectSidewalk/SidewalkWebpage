@@ -679,7 +679,7 @@ def _street(line, street_edge_id=100, region_id=1):
 
 
 def _run_process(line, api, fetch):
-    return cs.process_street(_street(line), api, fetch, 'gsv&radius=15', 'gsv&radius=25', 'mapillary')
+    return cs.process_street(_street(line), api, fetch, 'gsv&radius=15', 'gsv&radius=25', ['mapillary'])
 
 
 def test_process_street_gsv_no_imagery():
@@ -1073,6 +1073,66 @@ def test_main_mapillary_branch(monkeypatch, tmp_path):
     monkeypatch.setattr(cs, '_get_json', lambda url: {'data': []})  # no imagery
     assert cs.main(['--city-id', _CITY, '--mapillary']) == 0
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]
+
+
+def test_merge_mapillary_responses_passes_a_lone_response_through():
+    # The unrestricted scan's one response is handed on untouched, error or not.
+    error = {'error': {'code': 100, 'message': 'too many'}}
+    assert cs.merge_mapillary_responses([error]) is error
+
+
+def test_merge_mapillary_responses_pools_images_across_creators():
+    responses = [{'data': [_image(image_id=1)]}, {'data': []}, {'data': [_image(image_id=2)]}]
+    merged = cs.merge_mapillary_responses(responses)
+    assert [image['id'] for image in merged['data']] == [1, 2]
+
+
+def test_merge_mapillary_responses_surfaces_an_error_response():
+    # One creator's request erroring must not be papered over by another creator's images: mapillary_has_imagery
+    # decides what each error code means, so it has to see the error.
+    error = {'error': {'code': 190, 'message': 'bad token'}}
+    assert cs.merge_mapillary_responses([{'data': [_image()]}, error]) is error
+
+
+def test_process_street_asks_every_allowed_mapillary_creator():
+    # One creator has nothing here and the other does: the street has imagery, and both were asked at each point.
+    urls = []
+
+    def fetch(url):
+        urls.append(url)
+        return {'data': [_image()]} if 'creator_username=bob' in url else {'data': []}
+
+    result = cs.process_street(_street(_LINE_60), 'Mapillary', fetch, None, None,
+                               ['m?creator_username=alice', 'm?creator_username=bob'])
+    assert result.outcome == cs.HAS_IMAGERY
+    asked = [sum('creator_username=%s' % creator in url for url in urls) for creator in ('alice', 'bob')]
+    assert asked[0] == asked[1] > 0
+
+
+def test_main_mapillary_creator_flag_restricts_every_request(monkeypatch, tmp_path, capsys):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)], env_var='MAPILLARY_ACCESS_TOKEN')
+    urls = []
+
+    def fake_get_json(url):
+        urls.append(url)
+        return {'data': []}
+
+    monkeypatch.setattr(cs, '_get_json', fake_get_json)
+    assert cs.main(['--city-id', _CITY, '--mapillary', '--mapillary-creator', 'prof jfray',
+                    '--mapillary-creator', 'alice', '--max-qps', '1000']) == 0
+    assert 'alice, prof jfray' in capsys.readouterr().out
+    # Every request names exactly one creator (URL-quoted), and both creators were asked.
+    assert urls and all(url.count('creator_username=') == 1 for url in urls)
+    assert {url.split('creator_username=')[1].split('&')[0] for url in urls} == {'alice', 'prof%20jfray'}
+    assert _output(tmp_path)['street_edge_id'].tolist() == [100]
+    # The restriction is part of the checkpoint's name, so an unrestricted scan can't resume these verdicts.
+    assert (tmp_path / cs.CHECKPOINT_FILE.format(_CITY, 'mapillary_alice_prof%20jfray')).is_file()
+    assert not (tmp_path / cs.CHECKPOINT_FILE.format(_CITY, 'mapillary')).exists()
+
+
+def test_main_rejects_a_mapillary_creator_on_another_provider():
+    with pytest.raises(SystemExit):
+        cs.main(['--city-id', _CITY, '--gsv', '--mapillary-creator', 'alice'])
 
 
 def test_main_panoramax_branch_needs_no_key(monkeypatch, tmp_path, capsys):

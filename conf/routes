@@ -83,6 +83,9 @@ PUT     /adminapi/streets/:streetEdgeId/reopen          controllers.AdminDashboa
 DELETE  /adminapi/streets/:streetEdgeId/reopenCandidate controllers.AdminDashboardController.dismissReopenCandidate(streetEdgeId: Int)
 GET     /adminapi/imageryFreshness                      controllers.AdminDashboardController.getImageryFreshness(days: Int ?= service.ImageryFreshnessReportService.DefaultDays)
 GET     /adminapi/streetPriority                        controllers.AdminDashboardController.getStreetPriority
+GET     /adminapi/mapillarySources                      controllers.AdminDashboardController.getMapillarySources
+POST    /adminapi/mapillarySources/creators             controllers.AdminDashboardController.addMapillaryCreator
+DELETE  /adminapi/mapillarySources/creators/:username   controllers.AdminDashboardController.removeMapillaryCreator(username: String)
 GET     /adminapi/team/:teamId                          controllers.AdminDashboardController.getTeamOverview(teamId: Int)
 GET     /adminapi/userSearch                            controllers.AdminDashboardController.searchUsers(query: String ?= "", limit: Int ?= controllers.AdminDashboardController.MaxUserSearchResults)
 GET     /adminapi/auditedStreetTimes                    controllers.AdminController.getAuditedStreetsWithTimestamps

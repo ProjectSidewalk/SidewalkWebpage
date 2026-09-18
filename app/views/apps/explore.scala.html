@@ -1043,6 +1043,9 @@
     mainParam.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
       : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
     mainParam.viewerAccessToken = "@commonData.imageryAccessToken";
+    @* Mapillary creators this deployment's imagery is restricted to (#5407); empty means unfiltered. Explore is the
+       one tool that discovers imagery by location, so it is the one page that hands this to its viewer. *@
+    mainParam.viewerAllowedCreators = @jsonForScript(commonData.mapillaryAllowedCreators);
 
     window.appManager.ready(function () {
       new Main(mainParam);
