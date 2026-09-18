@@ -858,7 +858,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextStringOption(),
       r.nextStringOption().map(ValidationOption.withName), // userValidation
       r.nextStringOption().map(ValidationOption.withName), // aiValidation
-      r.nextString().split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
+      Map("agree" -> r.nextInt(), "disagree" -> r.nextInt(), "unsure" -> r.nextInt()),
       r.nextArray[String]().toList,
       (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
       r.nextStringOption().map(LabelTable.parseCommentsJson).getOrElse(Seq.empty),
@@ -1270,7 +1270,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              lb_big.description,
              lb_big.validation_result, -- userValidation
              ai_val.validation_result, -- aiValidation
-             val.val_counts,
+             lb1.agree_count,
+             lb1.disagree_count,
+             lb1.unsure_count,
              lb_big.tags,
              at.low_quality,
              at.incomplete,
@@ -1312,13 +1314,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           FROM label AS lb
           #$validatorJoin
       ) AS lb_big ON lb1.label_id = lb_big.label_id
-      INNER JOIN (
-          SELECT label_id,
-                 CONCAT('agree:', CAST(agree_count AS TEXT),
-                        ',disagree:', CAST(disagree_count AS TEXT),
-                        ',unsure:', CAST(unsure_count AS TEXT)) AS val_counts
-          FROM label
-      ) AS val ON lb1.label_id = val.label_id
       LEFT JOIN (
           SELECT label_validation.label_id, label_validation.validation_result, label_validation.label_type
           FROM label_validation
