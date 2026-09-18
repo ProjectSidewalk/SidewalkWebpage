@@ -13,7 +13,7 @@ Project Sidewalk is a public civic-tech app with real end users, yet it currentl
 ## Test architecture — four layers (fat base, thin top)
 
 - **(a) Unit, no-DB** — plain ScalaTest on pure logic / DI-free `object`s. Milliseconds, no app, no services.
-- **(b) DB integration** — `*Service`/`*Table` query tests against **real Postgres + PostGIS** (H2 cannot emulate the slick-pg geometry/enum/jsonb/hstore types in `app/models/utils/MyPostgresProfile.scala`). Home of the #4239 / #4228 regressions.
+- **(b) DB integration** — `*Service`/`*Table` query tests against **real Postgres + PostGIS** (H2 cannot emulate the slick-pg geometry/enum/jsonb/array types in `app/models/utils/MyPostgresProfile.scala`). Home of the #4239 / #4228 regressions.
 - **(c) In-JVM functional/route** — boot a `GuiceApplicationBuilder` app with faked Silhouette auth, stubbed `WSClient`, and the eager actors disabled; exercise controllers/routes including auth guards and the public v3 API.
 - **(d) Thin browser E2E** — Playwright smoke suite ([`test/e2e/`](../test/e2e)): loads each core page in headless Chromium and fails on uncaught console/page errors, external imagery stubbed or skip-guarded. Runs on every PR as a **blocking step** and a **required status check** (`e2e-smoke`) — advisory until #5115 seeded the database it runs against. **Landed with #4504** (page-load phase; interactions and flows are later phases).
 

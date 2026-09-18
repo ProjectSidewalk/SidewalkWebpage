@@ -57,6 +57,11 @@ trait MyPostgresProfile
     /** Postgres's `random()`, a fresh draw in [0, 1) per row, so `sortBy(_ => random)` shuffles a query's rows. */
     val random: Rep[Double] = SimpleFunction.nullary[Double]("random")
 
+    // Shared, because slick-pg looks an array's element type up by `tag.repr`: left to materialize itself, each
+    // `nextArray[T]()` rebuilds the tag and re-renders that string per row, ~0.3 µs inside the `GetResult`.
+    implicit val stringElementTag: izumi.reflect.Tag[String] = ArrayElementTags.string
+    implicit val intElementTag: izumi.reflect.Tag[Int]       = ArrayElementTags.int
+
     // Adds implicit conversion from JTS Geometry types to Play JSON JsValue. Need to explicitly add each geom type.
     private val mapper = new ObjectMapper()
     mapper.registerModule(new JtsModule())
@@ -334,3 +339,9 @@ object ClusteringThreshold {
 }
 
 object MyPostgresProfile extends MyPostgresProfile
+
+/** Out here because beside the implicits that expose them, each tag resolves to itself and initializes to null. */
+private[utils] object ArrayElementTags {
+  val string: izumi.reflect.Tag[String] = izumi.reflect.Tag[String]
+  val int: izumi.reflect.Tag[Int]       = izumi.reflect.Tag[Int]
+}

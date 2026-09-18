@@ -585,6 +585,17 @@ object LabelTable {
     }
   }
 
+  /** @return The votes in one label's `validations` aggregate, each as the Raw Labels API reports it. */
+  private def parseValidationsJson(json: String): Seq[LabelValidationSummaryForApi] = {
+    play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
+      LabelValidationSummaryForApi(
+        (obj \ "user_id").as[String],
+        (obj \ "result").as[String],
+        ValidatorType.fromIsAi((obj \ "is_ai").as[Boolean])
+      )
+    }
+  }
+
   // Define an implicit conversion from the tuple representation to the case class.
   implicit val labelValidationMetadataConverter: TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] =
     new TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] {
@@ -688,16 +699,7 @@ object LabelTable {
       agreeCount = r.nextInt(),
       disagreeCount = r.nextInt(),
       unsureCount = r.nextInt(),
-      validations = r
-        .nextArray[String]()
-        .map { v =>
-          v.split(":") match {
-            case Array(userId, result, isAi) =>
-              LabelValidationSummaryForApi(userId, result, ValidatorType.fromIsAi(isAi == "t"))
-            case _ => LabelValidationSummaryForApi("unknown", "unknown", "unknown")
-          }
-        }
-        .toList,
+      validations = r.nextStringOption().map(parseValidationsJson).getOrElse(Seq.empty),
       auditTaskId = r.nextIntOption(),
       missionId = r.nextIntOption(),
       imageCaptureDate = r.nextStringOption(),
@@ -2457,18 +2459,18 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
       INNER JOIN user_stat ON label.user_id = user_stat.user_id
       LEFT JOIN (
-          -- EXISTS, not a join, so it can never repeat a vote and the parser below reads it as t/f. Skips the same votes
-          -- the counts skip (self-votes, excluded users, votes cast on an earlier label type), so the list adds up to
-          -- agree/disagree/unsure_count.
+          -- EXISTS, not a join, so it can never repeat a vote. Skips the same votes the counts skip (self-votes,
+          -- excluded users, votes cast on an earlier label type), so the list adds up to agree/disagree/unsure_count.
           SELECT label.label_id,
-                 array_agg(CONCAT(
-                   label_validation.user_id, ':', label_validation.validation_result, ':',
-                   EXISTS (
+                 json_agg(json_build_object(
+                   'user_id', label_validation.user_id,
+                   'result', label_validation.validation_result,
+                   'is_ai', EXISTS (
                      SELECT 1
                      FROM sidewalk_login.user_role
                      WHERE user_role.user_id = label_validation.user_id AND user_role.role = 'AI'
                    )
-                 )) AS validations
+                 ))::text AS validations
           FROM label
           INNER JOIN label_validation ON label.label_id = label_validation.label_id
           WHERE label_validation.label_type = label.label_type
