@@ -88,14 +88,28 @@ row.button.setAttribute('data-ps-tooltip', util.escapeHTML(label)); // psTooltip
 Markup sinks in this codebase are `innerHTML` / `outerHTML`, `insertAdjacentHTML`, a MapLibre popup's `setHTML`,
 jQuery's `.html()` / `.append()` / `$('<p>…')`, a Bootstrap tooltip built with `html: true`, and the
 **`data-ps-tooltip` attribute**, which `psTooltip.js` writes into the tooltip card's `innerHTML`. Helpers count too:
-`AlertController.showAlert`, `PopUpMessage.notify`, and the onboarding message boxes all render HTML.
+`AlertController.showAlert`, `PopUpMessage.notify`, and the onboarding message boxes all render HTML. Text sinks are
+everything else — a text node, `.text()`, `alert` / `confirm`, a share sheet, and an attribute *unless* something
+renders it as markup: `title` is plain text on most elements and HTML on one carrying `data-toggle="tooltip"`, since
+`explore/src/Main.js` initializes every one of those with `html: true`.
 
 The **`ps/i18n-escape-in-markup`** ESLint rule (`tools/eslint-rules/i18n-escape-in-markup.js`) blocks the ones it can
 see syntactically — a `t()` call with interpolation variables that reaches one of those sinks, directly or through a
-template literal, a concatenation or a local variable, without stating `interpolation.escapeValue`. It cannot follow
-a value that is returned from a function, parked on an object property, or handed to a helper, so those are on you:
-when a string you build ends up as HTML somewhere else, escape it there or say `escapeValue: true` here. Values we
-computed ourselves — a count, an id, an asset path — carry nothing to escape and need neither.
+template literal, a concatenation, a pass-through string method, a `map(…).join('')`, or a local variable, without
+stating `interpolation.escapeValue`.
+
+**It is a tripwire, not a proof.** Strip every `escapeValue: true` in the tree and re-lint, and it reproduces 19 of
+the 45 decisions — the #5389 audit is the guarantee, the rule is what catches the next call taking a familiar shape.
+It cannot see a value returned from a function, parked on an object property, or handed to a helper; a jQuery object
+whose name doesn't look like one (`menuUI.template.parent().append(…)`); or a `title` that is markup only because of
+how the element was initialized. **It also matches `i18next.t` literally**, so an alias, a wrapper method, or
+`i18next?.t(…)` turns it off for that call with no signal — don't wrap `i18next.t` (four such wrappers were removed
+in #5389 for exactly this reason), and write `el.innerHTML`, never `el['innerHTML']`.
+
+So when a string you build ends up as HTML somewhere the rule can't follow, escape it there or say
+`escapeValue: true` here. Values we computed ourselves — a count, an id, an asset path — carry nothing to escape and
+need neither. And if the rule fires on something that is really a text sink, the answer is `escapeValue: false` with
+a comment, never `true`: turning escaping on at a text sink is the bug #5389 fixed.
 
 Two things escaping never touches: the **translation string itself** (markup inside a locale value always renders),
 and a variable written **`{{- labelType}}`**, which i18next interpolates raw whatever the setting is — the label-type

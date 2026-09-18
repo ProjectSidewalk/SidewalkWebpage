@@ -182,6 +182,8 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-1'][0],
         maxHeading: headingRanges['stage-1'][1],
       },
+      // The message box takes HTML, and the type name is a translation of ours — the German ones carry a `&shy;`,
+      // which has to reach the box as an entity — so escaping stays off for it here and at the eight siblings below.
       message: { message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:curb-ramp') }) },
       panoId,
       annotations: [
@@ -206,6 +208,8 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-1'][1],
       },
       message: {
+        // escapeValue off here and at every sibling that interpolates a *Html helper: the value is a fragment this
+        // file builds (ratingChipHtml / tagPillHtml / kbdHtml), so escaping it would print the span at the reader.
         message: i18next.t('tutorial.rate-severity-1', {
           rating: ratingChipHtml('CurbRamp', 2),
           interpolation: { escapeValue: false },

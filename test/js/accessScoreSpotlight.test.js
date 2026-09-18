@@ -107,7 +107,7 @@ describe('the AccessScore Spotlight', () => {
 
     /**
      * The few strings rendered for real, so a test can see what a reader would: the subtitle's link, and values
-     * that i18next's default escaping would mangle in a text node.
+     * that escaping would mangle in a text node.
      */
     const STRINGS = {
         'common:access-score-spotlight.subtitle-regions': 'Scored by our <a href="{{href}}">AccessScore</a> algorithm.',
@@ -116,7 +116,7 @@ describe('the AccessScore Spotlight', () => {
         'common:access-score-spotlight.explore-region': 'Explore {{name}}',
     };
 
-    /** i18next's default interpolation escaping, character for character. */
+    /** i18next's escaping, character for character, for the calls that ask for it. */
     const escapeLikeI18next = (value) => String(value).replace(/[&<>"'/]/g, (c) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;', '/': '&#x2F;',
     })[c]);

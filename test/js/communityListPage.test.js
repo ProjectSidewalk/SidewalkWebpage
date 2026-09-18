@@ -418,8 +418,8 @@ describe('StoryListPage', () => {
             const setTarget = jest.spyOn(window.ShareWidget.prototype, 'setTarget');
             new window.StoryListPage().init();
 
-            // The text feeds only plain-text sinks (intent URLs, mailto, the native sheet), so i18next's default
-            // interpolation escaping would ship "It&#39;s icy &amp;…" verbatim — the call must opt out of it.
+            // The text feeds only plain-text sinks (intent URLs, mailto, the native sheet), so escaping it would
+            // ship "It&#39;s icy &amp;…" verbatim — the call must leave the storyteller's words alone.
             expect(setTarget.mock.calls[0][0].text).toBe("shared:It's icy & the ramp is blocked.");
         });
 

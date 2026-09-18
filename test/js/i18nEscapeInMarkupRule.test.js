@@ -8,7 +8,8 @@
  * The rule is the standing guard on the site-wide `interpolation.escapeValue: false` default: a translated string
  * that interpolates values and lands in an HTML sink has to state its escaping at the call site. These cases pin
  * both halves of that contract — the sink shapes it recognizes, and the flows it deliberately lets through, since a
- * silent widening there would turn the whole tree red on the next lint run.
+ * silent widening there would turn the whole tree red on the next lint run. The native-DOM `append`/`before` cases
+ * matter most: a false positive there would push a contributor at a *text* sink into the escaping #5389 removed.
  *
  * Node environment, not the suite's usual jsdom: ESLint's RuleTester calls `structuredClone`, which jsdom's global
  * does not provide. Jest only reads that docblock when it is the file's first one, hence the split header.
@@ -46,6 +47,15 @@ describe('i18n-escape-in-markup', () => {
             { code: 'function title(s) { return i18next.t("ns:key", { name: s.name }); }' },
             { code: 'const opts = { message: i18next.t("ns:key", { name }) };' },
             { code: 'show(i18next.t("ns:key", { name }));' },
+            // A `map` callback whose result is not joined into markup goes nowhere this rule can see.
+            { code: 'const names = xs.map((x) => i18next.t("ns:key", { name: x }));' },
+
+            // The native DOM twins of jQuery's insert methods take text, so reporting them would push a
+            // contributor at a text sink toward the very escaping #5389 turned off.
+            { code: 'el.append(i18next.t("ns:key", { name }));' },
+            { code: 'el.before(i18next.t("ns:key", { name }));' },
+            { code: 'params.append("t", i18next.t("ns:key", { name }));' },
+            { code: 'fd.append("t", i18next.t("ns:key", { name }));' },
 
             // A same-named variable in another function is a different variable.
             {
@@ -67,11 +77,30 @@ describe('i18n-escape-in-markup', () => {
             { code: 'el.setAttribute("data-ps-tooltip", i18next.t("ns:key", { count }));', errors },
             { code: '$el.attr("data-ps-tooltip", i18next.t("ns:key", { count }));', errors },
 
+            // A jQuery-shaped receiver makes the ambiguous insert methods markup again.
+            { code: '$el.append(i18next.t("ns:key", { name }));', errors },
+            { code: '$("#x").prepend(i18next.t("ns:key", { name }));', errors },
+            { code: '$("#x").find(".y").replaceWith(i18next.t("ns:key", { name }));', errors },
+
             // Carried there by a template literal, a concatenation, a ternary, or an array that is joined.
             { code: 'el.innerHTML = `<b>${i18next.t("ns:key", { name })}</b>`;', errors },
             { code: 'el.innerHTML = "<b>" + i18next.t("ns:key", { name }) + "</b>";', errors },
             { code: 'el.innerHTML = flag ? i18next.t("ns:key", { name }) : "";', errors },
             { code: 'el.innerHTML = [i18next.t("ns:key", { name })].join("");', errors },
+
+            // A pass-through string method keeps the value on its way to the sink.
+            { code: 'el.innerHTML = i18next.t("ns:key", { name }).toUpperCase().replace(/A/g, "B");', errors },
+            { code: 'el.innerHTML = tpl.replace("%s", i18next.t("ns:key", { name }));', errors },
+            { code: 'el.innerHTML = i18next.t("ns:key", { name }).slice(0, 40);', errors },
+
+            // The list idiom: a map/flatMap callback whose results are joined into markup.
+            { code: 'el.innerHTML = xs.map((x) => i18next.t("ns:key", { name: x })).join("");', errors },
+            {
+                code: 'el.innerHTML = xs.map((x) => { return `<li>${i18next.t("ns:key", { name: x })}</li>`; })'
+                    + '.join("");',
+                errors,
+            },
+            { code: 'el.innerHTML = xs.flatMap((x) => [i18next.t("ns:key", { name: x })]).join("");', errors },
 
             // Parked in a local variable first, including through an array the function pushes onto.
             { code: 'function f() { const s = i18next.t("ns:key", { name }); el.innerHTML = s; }', errors },
