@@ -14,7 +14,8 @@
  *       │                  │
  *   (0,0)   A ──b── (0.001,0)  B
  *
- * Street "b" runs A->B, "a" runs A->C, "c" runs B->D, "d" runs C->D, "e" runs D->E (a different region).
+ * Street "b" runs A->B, "a" runs A->C, "c" runs B->D, "d" runs C->D, "e" runs D->E (a different region, which
+ * routing is free to cross into).
  */
 
 const fs = require('fs');
@@ -52,7 +53,7 @@ function gridStreets() {
         street(11, [A, C]), // a: left edge
         street(12, [B, D]), // c: right edge
         street(13, [C, D]), // d: top edge
-        street(14, [D, E], 2) // e: leaves the region
+        street(14, [D, E], 2) // e: crosses into another region
     ];
 }
 
@@ -146,10 +147,33 @@ describe('RouteGraph', () => {
             expect(result.streets).toContainEqual({ streetId: 30, flip: true });
         });
 
-        it('returns different-region when the pins snap to different regions', () => {
+        it('routes across a region boundary', () => {
             const graph = new RouteGraph(gridStreets());
             const result = graph.route({ lng: A[0], lat: A[1] }, { lng: E[0], lat: E[1] });
-            expect(result.error).toBe('different-region');
+            expect(result.error).toBeUndefined();
+            // Street e is the only way to E, and it belongs to a different region than the rest of the grid.
+            expect(result.streets[result.streets.length - 1]).toEqual({ streetId: 14, flip: false });
+            expect(result.streets).toHaveLength(3);
+        });
+
+        it('stays shortest across a network large enough to reorder the open set many times', () => {
+            // A 12 x 12 lattice of ~111 m blocks: the diagonal trip is 22 blocks however it is walked, so any
+            // returned path longer than that means the priority queue handed back a non-minimal node.
+            const n = 12;
+            const streets = [];
+            let id = 1000;
+            for (let x = 0; x < n; x++) {
+                for (let y = 0; y < n; y++) {
+                    const here = [x * 0.001, y * 0.001];
+                    if (x + 1 < n) streets.push(street(id++, [here, [(x + 1) * 0.001, y * 0.001]], x % 3));
+                    if (y + 1 < n) streets.push(street(id++, [here, [x * 0.001, (y + 1) * 0.001]], y % 3));
+                }
+            }
+            const graph = new RouteGraph(streets);
+            const corner = (n - 1) * 0.001;
+            const result = graph.route({ lng: 0, lat: 0 }, { lng: corner, lat: corner });
+            expect(result.error).toBeUndefined();
+            expect(result.streets).toHaveLength(2 * (n - 1));
         });
 
         it('returns no-path when the network is disconnected', () => {
@@ -174,33 +198,7 @@ describe('RouteGraph', () => {
             // A point just below the bottom edge, nearer its B end.
             const snapped = graph.snapToStreet({ lng: 0.0009, lat: -0.0001 });
             expect(snapped.streetId).toBe(10);
-            expect(snapped.regionId).toBe(1);
             expect(snapped.distanceM).toBeLessThan(30);
-        });
-    });
-
-    describe('isNearStreet()', () => {
-        // A ~1.1 km straight street with vertices only at its ends, so mid-block the nearest VERTEX is ~555 m
-        // away even for a point sitting right on the line.
-        const longStreet = () => [street(40, [[0, 0], [0.01, 0]])];
-
-        it('detects a point on a long street mid-block, where snapToStreet\'s vertex proxy cannot', () => {
-            const graph = new RouteGraph(longStreet());
-            const midBlock = { lng: 0.005, lat: 0.00005 }; // ~5.5 m off the centerline.
-            expect(graph.isNearStreet(midBlock, 1, 25)).toBe(true);
-            expect(graph.snapToStreet(midBlock, 1, 25)).toBeNull();
-        });
-
-        it('rejects a point beyond the tolerance', () => {
-            const graph = new RouteGraph(longStreet());
-            expect(graph.isNearStreet({ lng: 0.005, lat: 0.0005 }, 1, 25)).toBe(false); // ~55 m off.
-        });
-
-        it('honors the region filter', () => {
-            const graph = new RouteGraph(gridStreets());
-            const onE = { lng: 0.0015, lat: 0.001 }; // Mid-block on street e (region 2).
-            expect(graph.isNearStreet(onE, 2, 25)).toBe(true);
-            expect(graph.isNearStreet(onE, 1, 25)).toBe(false);
         });
     });
 });

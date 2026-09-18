@@ -1,10 +1,12 @@
 /**
- * RouteBuilder — the /routeBuilder page. Building is staged coarse-to-fine: the user first clicks the region
- * to build in (routes are constrained to one region, so the choice is made explicit and the map zooms to it), then
- * clicks points on the map — the first click drops a start (previewed by a ghost flag), and each further click
- * extends the route from the last point along an A* walking path over the street network (RouteGraph). Routes are
- * contiguous by construction. Clicking the drawn route opens a small action menu (RoutePopover: reverse / delete).
- * A slim Start/End address seed (DirectionsPanel) can plant the first two points, implicitly selecting the region.
+ * RouteBuilder — the /routeBuilder page. Building is staged coarse-to-fine, and the stage is read off the map's zoom
+ * rather than remembered: zoomed out to the city, streets are too dense to aim at, so the regions are shown as a
+ * tinted, labeled overview and a click zooms in to the one under it; zoomed in (however the user got there — that
+ * click, the scroll wheel, or an address search), a click drops the route's start, previewed by a ghost flag. Each
+ * further click extends the route from the last point along an A* walking path over the street network (RouteGraph),
+ * anywhere in the city: regions organize missions, not routes, so a route is free to cross from one into the next
+ * (#3488). Routes are contiguous by construction. Clicking the drawn route opens a small action menu (RoutePopover:
+ * reverse / delete). A slim Start/End address seed (DirectionsPanel) can plant the first two points.
  * The save flow lives in SaveModal; saved routes surface as cards on the intro panel (SavedRoutesPanel). The
  * in-progress route is drafted to sessionStorage so reloads (e.g. the sign-in round-trip) can't lose it.
  *
@@ -26,15 +28,13 @@ class RouteBuilder {
 
   // Zoom eased to when the first point lands, close enough that the basemap renders street names for building.
   static BUILD_ZOOM = 15.5;
+  // The zoom at which a click starts placing points instead of zooming in. At 14 a city block is about ten pixels
+  // long: the closest view where the ghost flag can still be steered onto one particular intersection.
+  static PLACE_ZOOM = 14;
   // How far a clicked or geocoded point may be from a street and still snap to it. Generous enough for a click
-  // aimed at a street or an address set back from one, tight enough that a point in another part of the city
-  // doesn't silently attach to the nearest street of the selected region.
+  // aimed at a street or an address set back from one, tight enough that a point out in the water or past the
+  // city's edge doesn't silently attach to a street the user never pointed at.
   static MAX_SNAP_DISTANCE_M = 250;
-  // A point this close to a street of the selected region counts as inside that region even when the
-  // point-in-polygon test disagrees. Streets aren't strictly contained in their region polygon — one can run
-  // along and slightly across a boundary — so deciding by polygon alone would refuse clicks/hovers on parts of the
-  // region's own streets. Sized to cover that stray (~15 m) plus half a street width and click slop.
-  static BOUNDARY_STREET_TOL_M = 25;
   // How long the explorer takes to walk the route in the preview animation.
   static EXPLORER_ANIMATION_MS = 2500;
   // How long the pointer rests on the drawn route before its action menu opens (discoverable but not twitchy).
@@ -48,16 +48,17 @@ class RouteBuilder {
   // Muted categorical tints cycled by region id, so adjacent regions read as visually distinct choices.
   static REGION_FILL_COLORS = ['#78C9AB', '#FBD98C', '#F29173', '#9F9DB1', '#78B0EA'];
 
-  // Region paints by stage: while choosing, every region is washed and outlined so the map reads as a set of
-  // clickable choices; once one is selected, only it stays outlined and the wash drops to a hover-only tint.
-  static REGION_PAINT_CHOOSING = {
+  // Region paints by stage: in the overview every region is washed and outlined so the map reads as a set of
+  // places to zoom in to; while building, the wash goes and only faint outlines stay, as orientation. They mark
+  // where one neighborhood ends, not where a route must.
+  static REGION_PAINT_OVERVIEW = {
     fillOpacity: ['case', ['boolean', ['feature-state', 'hover'], false], 0.38, 0.18],
     lineOpacity: 0.4,
   };
 
-  static REGION_PAINT_SELECTED = {
-    fillOpacity: ['case', ['boolean', ['feature-state', 'hover'], false], 0.15, 0.0],
-    lineOpacity: ['case', ['boolean', ['feature-state', 'current'], false], 0.5, 0.0],
+  static REGION_PAINT_BUILDING = {
+    fillOpacity: 0,
+    lineOpacity: 0.25,
   };
 
   #status = {
@@ -77,7 +78,7 @@ class RouteBuilder {
   // Route state. The route is #waypoints plus the resolved street list of each leg between them (#segments);
   // the drawn streets, endpoint flags, and stats are derived from those.
   #regionData = null;
-  #currRegionId = null;
+  #overviewShown = null; // Which stage the region layers are painted for (null until they exist). See #syncStage.
   #streetData = null;
   #streetsInRoute = null; // The 'streets-chosen' GeoJSON source: cloned, oriented street features for the route.
   #waypoints = []; // Ordered [{ lng, lat }] snapped points the user clicked/seeded.
@@ -156,7 +157,7 @@ class RouteBuilder {
     // Wire the route-management buttons.
     document.getElementById('cancel-button').addEventListener('click', () => this.#clickCancelRoute());
     // Clears everything so the user can start a fresh route (confirming first if unsaved work would be lost),
-    // zooming back out to the city view so the region choice is on screen.
+    // zooming back out to the city view so they can pick where the next one goes.
     document.getElementById('new-route-button').addEventListener('click', async () => {
       window.logWebpageActivity('RouteBuilder_Click=NewRoute');
       if (!(await this.#unsavedWorkConfirmed())) return;
@@ -169,7 +170,6 @@ class RouteBuilder {
 
     this.#saveModal = new SaveModal({
       isSignedIn: this.#isSignedIn,
-      getRegionId: () => this.#currRegionId,
       getStreetsPayload: () => this.#routeStreetsPayload(),
       getSuggestedName: () => this.#suggestedRouteName(),
       getCamera: () => this.#cameraSnapshot(),
@@ -252,6 +252,8 @@ class RouteBuilder {
 
     // Once all the layers have loaded, put them in the correct order.
     this.#map.on('sourcedataloading', this.#moveLayers);
+    // The pre-route stage is a function of zoom, so every zoom change may be a stage change.
+    this.#map.on('zoom', () => this.#syncStage());
 
     this.#directionsPanel = new DirectionsPanel({
       map: this.#map,
@@ -362,7 +364,7 @@ class RouteBuilder {
     });
   }
 
-  // A transient message floated over the map (out-of-region / no-path feedback).
+  // A transient message floated over the map (no-street / no-path feedback).
   #showMapMessage(message) {
     Toast.show({ message, duration: 2500 });
   }
@@ -384,13 +386,49 @@ class RouteBuilder {
   }
 
   /**
-   * Updates the on-map call-to-action for the pre-route stages: pick a region, then a start point. Once the
+   * Whether the map is in the overview stage: no route yet, and zoomed out too far to aim at a street. Here the
+   * regions are the click targets and a click zooms in; past PLACE_ZOOM (or once a route exists, at any zoom) clicks
+   * place points.
+   *
+   * Deriving the stage from the zoom, rather than remembering that a region was clicked, is what lets every way of
+   * getting close — a region click, the scroll wheel, an address search, a restored camera — lead to the same place.
+   *
+   * @returns {boolean}
+   */
+  #inOverview() {
+    return !this.#routeStarted() && this.#map.getZoom() < RouteBuilder.PLACE_ZOOM;
+  }
+
+  /**
+   * Brings the region layers, the CTA, and the pointer feedback in line with the current stage. Cheap to call on
+   * every zoom event: the map is only touched when the stage actually flips.
+   */
+  #syncStage() {
+    const map = this.#map;
+    if (!this.#status.regionsRendered) return;
+    const overview = this.#inOverview();
+    if (overview === this.#overviewShown) return;
+    this.#overviewShown = overview;
+
+    const paint = overview ? RouteBuilder.REGION_PAINT_OVERVIEW : RouteBuilder.REGION_PAINT_BUILDING;
+    map.setLayoutProperty('regions-label', 'visibility', overview ? 'visible' : 'none');
+    map.setPaintProperty('regions-fill', 'fill-opacity', paint.fillOpacity);
+    map.setPaintProperty('regions-outline', 'line-opacity', paint.lineOpacity);
+    // What the pointer was showing belongs to the stage just left; the next mouse move redraws it for this one.
+    this.#clearGhostStart();
+    this.#setCursorGuide(null);
+    map.getCanvas().style.cursor = '';
+    this.#updateCta();
+  }
+
+  /**
+   * Updates the on-map call-to-action for the pre-route stages: zoom in, then pick a start point. Once the
    * route has started, guidance moves to the hint anchored at the newest flag (#showHint) and the pill hides.
    */
   #updateCta() {
     if (!this.#ctaEl) return;
     if (!this.#routeStarted()) {
-      const key = this.#currRegionId === null ? 'cta-select-region' : 'cta-pick-start';
+      const key = this.#inOverview() ? 'cta-select-region' : 'cta-pick-start';
       this.#ctaEl.innerHTML = `
         <img src="${util.assetPath('images/icons/routebuilder/flag-start.svg')}" class="cta-flag" alt="">
         <span>${i18next.t(key)}</span>`;
@@ -429,9 +467,9 @@ class RouteBuilder {
   }
 
   /**
-   * Renders the regions: an invisible fill that acts as the hover/click target while choosing where to
-   * build (lightly tinted on hover), name labels shown only during that choice, and a solid outline drawn for the
-   * selected region alone — boundaries stay off the map otherwise to keep the visual noise down.
+   * Renders the regions: a tinted fill that is the hover/click target in the overview stage, name labels shown
+   * only there, and an outline that stays on faintly while building so the user can see which neighborhood they are
+   * in. Which of those shows is #syncStage's call.
    */
   #renderRegionsHelper() {
     const map = this.#map;
@@ -451,7 +489,7 @@ class RouteBuilder {
       source: 'regions',
       paint: {
         'fill-color': ['get', 'fill_color'],
-        'fill-opacity': RouteBuilder.REGION_PAINT_CHOOSING.fillOpacity,
+        'fill-opacity': RouteBuilder.REGION_PAINT_OVERVIEW.fillOpacity,
       },
     });
     map.addLayer({
@@ -460,8 +498,8 @@ class RouteBuilder {
       source: 'regions',
       paint: {
         'line-color': RouteBuilder.#token('--color-asphalt-500'),
-        'line-width': ['case', ['boolean', ['feature-state', 'current'], false], 2, 1.5],
-        'line-opacity': RouteBuilder.REGION_PAINT_CHOOSING.lineOpacity,
+        'line-width': 1.5,
+        'line-opacity': RouteBuilder.REGION_PAINT_OVERVIEW.lineOpacity,
       },
     });
     map.addLayer({
@@ -480,10 +518,10 @@ class RouteBuilder {
       },
     });
 
-    // While choosing a region (any time the route hasn't started), regions highlight on hover.
+    // In the overview, where a region is what a click acts on, regions highlight on hover.
     let hoveredRegion = null;
     map.on('mousemove', 'regions-fill', (event) => {
-      if (this.#routeStarted()) return;
+      if (!this.#inOverview()) return;
       const regionId = event.features[0].properties.region_id;
       if (regionId !== hoveredRegion) {
         if (hoveredRegion !== null) {
@@ -492,8 +530,7 @@ class RouteBuilder {
         hoveredRegion = regionId;
         map.setFeatureState({ source: 'regions', id: hoveredRegion }, { hover: true });
       }
-      // Inside the selected region the ghost flag is the affordance; elsewhere the region itself is clickable.
-      if (this.#currRegionId === null || regionId !== this.#currRegionId) map.getCanvas().style.cursor = 'pointer';
+      map.getCanvas().style.cursor = 'pointer';
     });
     map.on('mouseleave', 'regions-fill', () => {
       if (hoveredRegion !== null) map.setFeatureState({ source: 'regions', id: hoveredRegion }, { hover: false });
@@ -502,38 +539,31 @@ class RouteBuilder {
     });
 
     this.#status.regionsRendered = true;
+    this.#syncStage();
     this.#maybeRestorePendingRoute();
   }
 
   /**
-   * Selects the region to build in: outlines it, hides the region-name labels and hover tint, and zooms the
-   * map to fit it. Re-selecting a different region (before any point is placed) just moves the selection.
+   * Zooms from the overview in to a clicked region, far enough that the next click can place a point.
+   *
+   * A region that fits on screen at placing zoom is framed whole. A bigger one can't be — framing it would leave the
+   * user still in the overview, having clicked and got nowhere — so the map goes to the spot they clicked instead.
    *
    * @param {number} regionId
-   * @param {boolean} [fit=true] - Whether to zoom the map to the region (false when an address already zoomed us).
+   * @param {{lng: number, lat: number}} lngLat - Where in the region the user clicked.
    */
-  #selectRegion(regionId, fit = true) {
+  #zoomToRegion(regionId, lngLat) {
     const map = this.#map;
-    if (this.#currRegionId === regionId) return;
-    if (this.#currRegionId !== null) {
-      map.setFeatureState({ source: 'regions', id: this.#currRegionId }, { current: false });
-    }
-    this.#currRegionId = regionId;
-    map.setFeatureState({ source: 'regions', id: regionId }, { current: true });
-    if (map.getLayer('regions-label')) map.setLayoutProperty('regions-label', 'visibility', 'none');
-    map.setPaintProperty('regions-fill', 'fill-opacity', RouteBuilder.REGION_PAINT_SELECTED.fillOpacity);
-    map.setPaintProperty(
-      'regions-outline', 'line-opacity', RouteBuilder.REGION_PAINT_SELECTED.lineOpacity,
-    );
+    const region = this.#regionData?.features.find((n) => n.properties.region_id === regionId);
+    if (!region) return;
     // Mousemove doesn't fire during the zoom animation, so drop the stale pointer feedback now.
-    this.#clearGhostStart();
     this.#setCursorGuide(null);
-
-    if (fit) {
-      const region = this.#regionData?.features.find((n) => n.properties.region_id === regionId);
-      if (region) map.fitBounds(turf.bbox(region), { padding: 60, duration: 1200, maxZoom: 16 });
+    const framed = map.cameraForBounds(turf.bbox(region), { padding: 60, maxZoom: 16 });
+    if (framed && framed.zoom >= RouteBuilder.PLACE_ZOOM) {
+      map.easeTo({ center: framed.center, zoom: framed.zoom, duration: 1200 });
+    } else {
+      map.easeTo({ center: [lngLat.lng, lngLat.lat], zoom: RouteBuilder.PLACE_ZOOM, duration: 1200 });
     }
-    this.#updateCta();
   }
 
   /**
@@ -690,9 +720,8 @@ class RouteBuilder {
     });
 
     // Click handling follows the staged flow. On the drawn route: open the reverse/delete menu (a small pixel box
-    // around the click gives the thin line a comfortable hit target). Before any point exists: clicking a
-    // region selects it (clicking a different one moves the selection); clicking inside the selected one
-    // plants the start. After that, clicks extend the route.
+    // around the click gives the thin line a comfortable hit target). In the overview: zoom in to the region
+    // under the click. Otherwise the click is a point — the start, then each extension of the route.
     map.on('click', (event) => {
       const { x, y } = event.point;
       const onRoute = this.#waypoints.length > 0
@@ -702,18 +731,12 @@ class RouteBuilder {
         this.#routePopover.open(event.lngLat, true);
         return;
       }
-      if (!this.#routeStarted()) {
+      if (this.#inOverview()) {
         const clickedRegionId = this.#regionIdAtPoint(event.point);
-        // A click on a street of the selected region falls through to the waypoint flow even when the ground under
-        // it belongs to another polygon (or none) — the street, not the polygon, is what the user aimed at.
-        if (!this.#onCurrentRegionStreet(event.lngLat)) {
-          if (clickedRegionId === null) return; // Clicked outside every region.
-          if (clickedRegionId !== this.#currRegionId) {
-            window.logWebpageActivity(`RouteBuilder_Click=SelectRegion_RegionId=${clickedRegionId}`);
-            this.#selectRegion(clickedRegionId);
-            return;
-          }
-        }
+        if (clickedRegionId === null) return; // Clicked outside every region.
+        window.logWebpageActivity(`RouteBuilder_Click=ZoomToRegion_RegionId=${clickedRegionId}`);
+        this.#zoomToRegion(clickedRegionId, event.lngLat);
+        return;
       }
       this.#addWaypoint(event.lngLat, 'MapClick');
     });
@@ -735,38 +758,6 @@ class RouteBuilder {
   }
 
   /**
-   * Returns the region id whose region polygon contains a coordinate, or null if none does.
-   *
-   * Tests the loaded polygons rather than what the map has rendered, so it answers for points outside the
-   * current viewport too — a geocoded address in another region is exactly the case that must not read as
-   * "no region" and slip past the one-region rule.
-   *
-   * @param {{lng: number, lat: number}} lngLat
-   * @returns {number|null}
-   */
-  #regionIdContaining(lngLat) {
-    const region = this.#regionData?.features.find(
-      (f) => turf.booleanPointInPolygon([lngLat.lng, lngLat.lat], f),
-    );
-    return region ? region.properties.region_id : null;
-  }
-
-  /**
-   * Whether a coordinate is effectively on one of the selected region's streets.
-   *
-   * The polygon-based region tests treat such a point as inside the selected region: a street can stray slightly
-   * across (or run along) its region's boundary, so the polygon under the pointer alone would misclassify
-   * points on the region's own streets.
-   *
-   * @param {{lng: number, lat: number}} lngLat
-   * @returns {boolean}
-   */
-  #onCurrentRegionStreet(lngLat) {
-    return this.#currRegionId !== null && this.#routeGraph !== null
-      && this.#routeGraph.isNearStreet(lngLat, this.#currRegionId, RouteBuilder.BOUNDARY_STREET_TOL_M);
-  }
-
-  /**
    * Pointer pipeline for the map (rAF-throttled — snapping scans the street network, so at most one pass per
    * frame): keeps the ghost flag (where the next click lands) and the cursor guide (what the next click does) in
    * sync with the mouse.
@@ -779,33 +770,26 @@ class RouteBuilder {
     this.#ghostRaf = requestAnimationFrame(() => {
       this.#ghostRaf = null;
       const point = this.#map.project(this.#ghostLngLat);
-      const hoverRegionId = this.#regionIdAtPoint(point);
-      this.#updateGhost(hoverRegionId);
-      this.#updateCursorGuide(hoverRegionId, point);
+      const snapped = this.#updateGhost();
+      this.#updateCursorGuide(this.#regionIdAtPoint(point), snapped, point);
     });
   }
 
   /**
-   * Moves the ghost flag to the intersection nearest the mouse. Once a region is selected this is the click
-   * affordance: a translucent start flag before the first point, then a translucent end flag while extending.
-   * Snapping is restricted to the selected region; hovering a different region shows a not-allowed cursor once the
-   * route is locked there — unless the pointer is on a current-region street that strays across the polygon line.
+   * Moves the ghost flag to the intersection nearest the mouse. Past the overview this is the click affordance: a
+   * translucent start flag before the first point, then a translucent end flag while extending. It shows only where
+   * a click would actually land a point, so it is held to the same snap distance #addWaypoint enforces.
    *
-   * @param {number|null} hoverRegionId - Region under the pointer, if any.
+   * @returns {boolean} Whether the flag is showing, i.e. whether a click here would place a point.
    */
-  #updateGhost(hoverRegionId) {
+  #updateGhost() {
     const source = this.#map.getSource('ghost-start');
-    if (!source || this.#currRegionId === null || !this.#routeGraph) return;
-    if (this.#routeStarted() && hoverRegionId !== null && hoverRegionId !== this.#currRegionId
-      && !this.#onCurrentRegionStreet(this.#ghostLngLat)) {
+    if (!source || !this.#routeGraph || this.#inOverview()) return false;
+    const snap = this.#routeGraph.snapToStreet(this.#ghostLngLat, RouteBuilder.MAX_SNAP_DISTANCE_M);
+    if (!snap) {
       this.#clearGhostStart();
-      this.#map.getCanvas().style.cursor = 'not-allowed';
-      return;
+      return false;
     }
-    if (this.#map.getCanvas().style.cursor === 'not-allowed') this.#map.getCanvas().style.cursor = '';
-
-    const snap = this.#routeGraph.snapToStreet(this.#ghostLngLat, this.#currRegionId);
-    if (!snap) return;
     const kind = this.#routeStarted() ? 'end' : 'start';
     source.setData({
       type: 'FeatureCollection',
@@ -813,32 +797,31 @@ class RouteBuilder {
         type: 'Feature', properties: { kind }, geometry: { type: 'Point', coordinates: snap.nodeLngLat },
       }],
     });
+    return true;
   }
 
   /**
-   * The cursor guide: a small bubble following the pointer that says what a click here does — pick or switch a
-   * region (named), start the route, or set the end point. It retires once the mechanic is demonstrably
-   * learned (2+ points) and stays out of the way of the drawn route's own menu.
+   * The cursor guide: a small bubble following the pointer that says what a click here does — zoom in to a region
+   * (named), start the route, or set the end point. It retires once the mechanic is demonstrably learned (2+
+   * points) and stays out of the way of the drawn route's own menu.
    *
    * @param {number|null} hoverRegionId - Region under the pointer, if any.
+   * @param {boolean} snapped - Whether the ghost flag found a street here, so a click would place a point.
    * @param {{x: number, y: number}} point - Screen position of the pointer.
    */
-  #updateCursorGuide(hoverRegionId, point) {
+  #updateCursorGuide(hoverRegionId, snapped, point) {
     let text = null;
     const overRoute = this.#streetsInRoute !== null && this.#streetsInRoute.features.length > 0
       && this.#map.queryRenderedFeatures([[point.x - 6, point.y - 6], [point.x + 6, point.y + 6]],
         { layers: ['streets-chosen'] }).length > 0;
-    // The guide mirrors what a click would do, so the strayed-street exception applies here too: hovering a
-    // current-region street that pokes across the polygon line guides toward placing a point, not switching.
-    const onOwnStreet = this.#onCurrentRegionStreet(this.#ghostLngLat);
     if (!overRoute && !this.#routePopover.isOpen()) {
-      if (!this.#routeStarted()) {
-        if (hoverRegionId !== null && hoverRegionId !== this.#currRegionId && !onOwnStreet) {
+      if (this.#inOverview()) {
+        if (hoverRegionId !== null) {
           text = i18next.t('guide-select-region', { region: this.#getRegionName(hoverRegionId) ?? '' });
-        } else if (hoverRegionId !== null || onOwnStreet) {
-          text = i18next.t('guide-pick-start');
         }
-      } else if (this.#waypoints.length === 1 && (hoverRegionId === this.#currRegionId || onOwnStreet)) {
+      } else if (snapped && !this.#routeStarted()) {
+        text = i18next.t('guide-pick-start');
+      } else if (snapped && this.#waypoints.length === 1) {
         text = i18next.t('guide-pick-end');
       }
     }
@@ -892,10 +875,9 @@ class RouteBuilder {
   }
 
   /**
-   * Adds a waypoint at the nearest street to a clicked/typed point and extends the route to it.
-   *
-   * The first waypoint locks the route to its region (kept lightly — a click in another region is refused with a
-   * toast). A non-first waypoint must be reachable from the previous one along the street network.
+   * Adds a waypoint at the nearest street to a clicked/typed point and extends the route to it. A non-first
+   * waypoint must be reachable from the previous one along the street network; which regions the path runs through
+   * on the way is of no concern here (#3488).
    *
    * @param {{lng: number, lat: number}} lngLat - The click or geocoded address.
    * @param {string} source - Where the point came from, for activity logging ('MapClick'/'AddressStart'/...).
@@ -907,34 +889,20 @@ class RouteBuilder {
     if (this.#waypoints.length === 0 && this.#streetsInRoute.features.length > 0) this.#emptyRoute();
     const graph = this.#getRouteGraph();
 
-    // Region rule: a point in a different region than the selected one is refused (with a toast). The
-    // polygon under the point decides — except for points on a current-region street that strays across the
-    // polygon line — and snapping is restricted to the selected region, so a point near a boundary can't silently
-    // slip across it.
-    const pointRegionId = this.#regionIdContaining(lngLat);
-    if (this.#currRegionId !== null && pointRegionId !== null && pointRegionId !== this.#currRegionId
-      && !this.#onCurrentRegionStreet(lngLat)) {
-      this.#showMapMessage(i18next.t('one-region-warning'));
-      window.logWebpageActivity(`RouteBuilder_AddWaypoint=DifferentRegion_Source=${source}`);
-      return;
-    }
-    // Capped: an address the geocoder places outside the selected region would otherwise snap to whatever
-    // street of it happens to be nearest, silently extending the route to somewhere the user never pointed at.
-    const snap = graph.snapToStreet(lngLat, this.#currRegionId, RouteBuilder.MAX_SNAP_DISTANCE_M);
+    // Capped: an address the geocoder places past the edge of the street network would otherwise snap to whatever
+    // street happens to be nearest, silently extending the route to somewhere the user never pointed at.
+    const snap = graph.snapToStreet(lngLat, RouteBuilder.MAX_SNAP_DISTANCE_M);
     if (!snap) {
       this.#showMapMessage(i18next.t('no-street-nearby'));
       window.logWebpageActivity(`RouteBuilder_AddWaypoint=NoStreetNearby_Source=${source}`);
       return;
     }
-    // An address-seeded first point selects its region implicitly (no zoom-to-fit; we ease to the point below).
-    if (this.#currRegionId === null) this.#selectRegion(snap.regionId, false);
-
     const point = { lng: snap.nodeLngLat[0], lat: snap.nodeLngLat[1] };
     // A non-first point must be reachable from the current end along the street network. The leg this finds is
     // the leg we keep — re-deriving it during the redraw would be both wasted work and a chance to diverge.
     let newSegment = null;
     if (this.#waypoints.length > 0) {
-      const result = graph.route(this.#waypoints[this.#waypoints.length - 1], point, this.#currRegionId);
+      const result = graph.route(this.#waypoints[this.#waypoints.length - 1], point);
       if (result.error) {
         this.#showMapMessage(i18next.t('no-path-error'));
         window.logWebpageActivity(`RouteBuilder_AddWaypoint=NoPath_Source=${source}`);
@@ -1000,6 +968,7 @@ class RouteBuilder {
     this.#updateStats();
     this.#syncDirectionsFields();
     this.#directionsPanel.setEndVisible(this.#routeStarted());
+    this.#syncStage(); // A first point leaves the overview (and clearing the route may return to it) at any zoom.
     this.#updateCta();
     this.#saveDraft();
   }
@@ -1073,10 +1042,26 @@ class RouteBuilder {
     this.#streetDistanceEl.innerText = this.#formatDistance(km);
     this.#routeTimeEl.innerText = this.#formatEstTime(km);
 
-    const regionName = this.#getRegionName(this.#currRegionId);
-    this.#statsCaptionEl.textContent = regionName
-      ? i18next.t('street-count-in-region', { count: feats.length, region: regionName })
-      : i18next.t('street-count', { count: feats.length });
+    const regionIds = this.#routeRegionIds();
+    const regionName = this.#getRegionName(regionIds[0]);
+    if (regionIds.length > 1) {
+      this.#statsCaptionEl.textContent
+        = i18next.t('street-count-across-regions', { streets: feats.length, regions: regionIds.length });
+    } else {
+      this.#statsCaptionEl.textContent = regionName
+        ? i18next.t('street-count-in-region', { count: feats.length, region: regionName })
+        : i18next.t('street-count', { count: feats.length });
+    }
+  }
+
+  /**
+   * The regions the drawn route runs through, in the order it first enters each — so the first is the one it
+   * starts in, which is also the one the server files it under.
+   *
+   * @returns {number[]} Empty when no route is drawn.
+   */
+  #routeRegionIds() {
+    return [...new Set((this.#streetsInRoute?.features ?? []).map((f) => f.properties.region_id))];
   }
 
   /**
@@ -1301,8 +1286,8 @@ class RouteBuilder {
   }
 
   /**
-   * Clears #waypoints and all derived route state (drawn streets, flags, region lock). Does not touch the undo
-   * stack or the panel/CTA — callers decide those.
+   * Clears #waypoints and all derived route state (drawn streets, flags). Does not touch the undo stack or the
+   * panel — callers decide those.
    */
   #emptyRoute() {
     const map = this.#map;
@@ -1315,28 +1300,12 @@ class RouteBuilder {
     this.#routePopover.close();
     this.#cancelExplorer();
     this.#hideHint();
-    this.#unlockRegion();
+    this.#syncStage(); // With no route left, a zoomed-out map is back in the overview.
     this.#editingRouteId = null;
     this.#savedBaseline = null;
     this.#updateStats();
     this.#saveDraft();
     this.#savedRoutes.markActive(null);
-  }
-
-  /** Releases the region selection: back to the choosing stage (all regions washed/outlined, labels visible). */
-  #unlockRegion() {
-    const map = this.#map;
-    if (this.#currRegionId !== null) {
-      map.setFeatureState({ source: 'regions', id: this.#currRegionId }, { current: false });
-    }
-    this.#currRegionId = null;
-    if (map.getLayer('regions-label')) {
-      map.setLayoutProperty('regions-label', 'visibility', 'visible');
-      map.setPaintProperty('regions-fill', 'fill-opacity', RouteBuilder.REGION_PAINT_CHOOSING.fillOpacity);
-      map.setPaintProperty(
-        'regions-outline', 'line-opacity', RouteBuilder.REGION_PAINT_CHOOSING.lineOpacity,
-      );
-    }
   }
 
   /**
@@ -1380,9 +1349,6 @@ class RouteBuilder {
       return;
     }
 
-    const region = this.#regionOfFirstStreet(pending.streets);
-    if (region === null) return;
-    this.#selectRegion(region, false);
     if (this.#seedRouteFromStreets(pending.streets) === 0) return;
     this.#setPanelState('building');
     this.#applyCamera(pending.camera); // Back to the exact view the user left for the sign-in round trip.
@@ -1433,17 +1399,13 @@ class RouteBuilder {
   }
 
   /**
-   * The region of the first stored street that exists in the loaded street data.
+   * Whether any of a stored route's streets still exists in the loaded street data.
    *
    * @param {Array<{street_id: number}>} streets - Stored streets in the /saveRoute wire format.
-   * @returns {?number} null when none of them resolve, which means there is no route left to draw.
+   * @returns {boolean} False means there is no route left to draw.
    */
-  #regionOfFirstStreet(streets) {
-    for (const stored of streets) {
-      const feature = this.#getRouteGraph().getFeature(stored.street_id);
-      if (feature) return feature.properties.region_id;
-    }
-    return null;
+  #anyStreetResolves(streets) {
+    return streets.some((stored) => this.#getRouteGraph().getFeature(stored.street_id) !== undefined);
   }
 
   /** A street's coordinates in the route's walking direction (a copy when flipped; never mutates the source). */
@@ -1534,14 +1496,12 @@ class RouteBuilder {
         // Resolve the stored streets before touching anything: if none of them are in the loaded street data
         // (every street hidden, or the region closed, since the route was saved), the user keeps what they had
         // open and gets told, rather than silently losing it to a load that then draws nothing.
-        const region = this.#regionOfFirstStreet(data.streets);
-        if (region === null) {
+        if (!this.#anyStreetResolves(data.streets)) {
           this.#showMapMessage(i18next.t('route-load-empty'));
           return;
         }
         this.#emptyRoute(); // Also closes any previous editing session.
         this.#undoStack.clear();
-        this.#selectRegion(region, false);
         const drawn = this.#seedRouteFromStreets(data.streets);
         this.#setPanelState('building');
         // If streets were dropped (e.g. since hidden as low-quality), say so — the user is looking at, and will
@@ -1637,8 +1597,8 @@ class RouteBuilder {
   }
 
   /**
-   * Persists the in-progress route (waypoints + region) to this tab's storage so a reload — including the sign-in
-   * round-trip — can restore it. Cleared when the route empties.
+   * Persists the in-progress route (waypoints + resolved legs) to this tab's storage so a reload — including the
+   * sign-in round-trip — can restore it. Cleared when the route empties.
    */
   #saveDraft() {
     try {
@@ -1646,7 +1606,6 @@ class RouteBuilder {
         sessionStorage.setItem(
           RouteBuilder.DRAFT_KEY,
           JSON.stringify({
-            regionId: this.#currRegionId,
             waypoints: this.#waypoints,
             // The resolved legs, not just the waypoints: the route is never re-derived by routing, so a draft
             // that only stored waypoints would restore as an empty route.
@@ -1691,7 +1650,7 @@ class RouteBuilder {
   }
 
   /**
-   * Restores an unsaved in-progress route from this tab's draft stash: its region, waypoints, and resolved legs.
+   * Restores an unsaved in-progress route from this tab's draft stash: its waypoints and resolved legs.
    * The camera returns to the stashed view, falling back to fitting the restored route when the draft predates
    * the camera field or it's corrupt.
    */
@@ -1703,14 +1662,12 @@ class RouteBuilder {
       return; // Storage unavailable or a corrupted draft: start fresh.
     }
     if (!draft || !Array.isArray(draft.waypoints) || draft.waypoints.length === 0) return;
-    if (draft.regionId === null || draft.regionId === undefined) return;
     // waypoints.length === segments.length + 1 is the invariant the editing actions rely on; a draft that
     // doesn't satisfy it (corrupt, or written by an older build) is dropped rather than restored inconsistent.
     if (!Array.isArray(draft.segments) || draft.segments.length !== draft.waypoints.length - 1) return;
 
     // A draft must never be able to break page init — on any failure, drop it and start fresh.
     try {
-      this.#selectRegion(draft.regionId, false);
       this.#waypoints = draft.waypoints;
       this.#segments = draft.segments;
       if (Number.isInteger(draft.editingRouteId)) {
@@ -1845,7 +1802,7 @@ class RouteBuilder {
       routeId: saved.route_id,
       name: saved.name,
       slug: saved.slug,
-      regionName: this.#getRegionName(this.#currRegionId),
+      regionName: SavedRoutesPanel.regionLabel(saved.region_name, saved.region_count),
       url: `${window.location.origin}/r/${saved.slug}`,
       distanceMeters: saved.distance_meters,
       thumbnailUrl: saved.thumbnail_url,
@@ -1854,8 +1811,8 @@ class RouteBuilder {
 
   /**
    * Suggests a route name for the save modal from the reverse-geocoded start/end streets — "Palisade Ave to
-   * Cedar Ln", or just the street name for a single-street loop. Falls back to "Route in {region}" when the
-   * street names haven't resolved (geocoding is async/best-effort).
+   * Cedar Ln", or just the street name for a single-street loop. Falls back to "Route in {region}", naming the
+   * region the route starts in, when the street names haven't resolved (geocoding is async/best-effort).
    *
    * @returns {string}
    */
@@ -1864,7 +1821,7 @@ class RouteBuilder {
     if (start && end) {
       return start === end ? start : i18next.t('route-name-streets', { start, end });
     }
-    const regionName = this.#getRegionName(this.#currRegionId);
+    const regionName = this.#getRegionName(this.#routeRegionIds()[0]);
     return regionName ? i18next.t('route-name-default', { region: regionName }) : '';
   }
 }

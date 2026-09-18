@@ -62,7 +62,7 @@ class SavedRoutesPanel {
           name: r.name,
           slug: r.slug,
           description: r.description,
-          regionName: r.region_name,
+          regionName: SavedRoutesPanel.regionLabel(r.region_name, r.region_count),
           distanceMeters: r.distance_meters,
           savedAt: r.created_at,
           startedCount: r.started_count,
@@ -73,6 +73,18 @@ class SavedRoutesPanel {
     } else {
       this.#render(this.#readGuestRoutes(), highlightRouteId);
     }
+  }
+
+  /**
+   * The region text for a route's card. A route is filed under the region it starts in and may run on through
+   * others (#3488), so a route that does says so rather than letting one name stand for all of it.
+   *
+   * @param {string} regionName - The region the route starts in.
+   * @param {number} [regionCount=1] - How many regions its streets run through.
+   * @returns {string}
+   */
+  static regionLabel(regionName, regionCount = 1) {
+    return regionCount > 1 ? i18next.t('region-and-more', { region: regionName, more: regionCount - 1 }) : regionName;
   }
 
   /**
