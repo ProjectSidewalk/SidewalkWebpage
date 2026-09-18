@@ -53,8 +53,7 @@ class AccessScoreClusterLayer {
    * @param {string[]} options.types - The scored label types, in the engine's order (bottom layer first).
    * @param {(props: AccessScoreClusterProps) => ?string} options.tooltipHtml - A cluster's `properties` in, its
    *   tooltip's HTML out, or null for no tooltip.
-   * @param {(props: AccessScoreClusterProps) => void} options.onSelect - Called on a click with the cluster's
-   *   `properties`.
+   * @param {(props: AccessScoreClusterProps) => void} options.onSelect - Called on a click, with its `properties`.
    */
   constructor(map, { types, tooltipHtml, onSelect }) {
     this.#map = map;
