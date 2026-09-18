@@ -10,8 +10,8 @@
  * region id, read with `unit`), `dark` (1 for the dark basemap); and the insights dock's `dock` (0 when collapsed,
  * 1 to open it on a narrow window, where it otherwise starts collapsed)
  * `b` (the brushed score range as `from-to` in whole percent, on the histogram's 10-point bin edges) and `focus`
- * (the region a rank-list click scoped the band to). The places layer (#5311) adds `places` (0 to hide it), `pc`
- * (the enabled category ids, present only when some are off), and the selected place as `place` (`lat,lng`) with
+ * (the region a rank-list click scoped the band to). The places layer (#5311) adds `pc` (the enabled category ids,
+ * present only when some are off; `none` hides the layer), and the selected place as `place` (`lat,lng`) with
  * `placeName` — the same pair the searched place will use (#5340), so a link means one thing by "place".
  */
 class AccessScoreUrlSync {

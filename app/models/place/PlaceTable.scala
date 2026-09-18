@@ -106,7 +106,7 @@ class PlaceTableDef(tag: Tag) extends Table[Place](tag, "place") {
     "place_nearest_street_edge_id_fkey",
     nearestStreetEdgeId,
     TableQuery[models.street.StreetEdgeTableDef]
-  )(_.streetEdgeId.?, onDelete = ForeignKeyAction.SetNull)
+  )(_.streetEdgeId.?)
 }
 
 /**

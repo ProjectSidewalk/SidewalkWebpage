@@ -640,7 +640,7 @@ test.describe('/accessScore', () => {
     await page.goto('/accessScore');
     await waitForAppReady(page);
     await waitForTool(page);
-    await page.waitForFunction(() => document.querySelector('#acs-place-transit .acs-place__count, .acs-place-row[data-category="transit"] .acs-place__count')?.textContent === '1');
+    await page.waitForFunction(() => document.querySelector('.acs-place-row[data-category="transit"] .acs-place__count')?.textContent === '1');
 
     const rows = page.locator('.acs-place-row');
     await expect(rows).toHaveCount(7);

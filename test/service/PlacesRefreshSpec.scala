@@ -44,8 +44,8 @@ class PlacesRefreshSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVal
   private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 60.seconds)
   private def await[T](f: Future[T]): T  = Await.result(f, 60.seconds)
 
-  /** An OSM id no real fetch will ever answer with, so a seeded row is unmistakably this spec's. */
-  private val SpecOsmId = 9_000_000_001L
+  /** Negative, which no OSM object carries, so a seeded row is unmistakably this spec's. */
+  private val SpecOsmId = -5311L
 
   /**
    * Runs `body` against a service whose Overpass is a local server answering every query with `answer`, counting
