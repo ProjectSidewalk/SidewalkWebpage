@@ -2,6 +2,7 @@ package service
 
 import models.place.PlaceCategory
 import models.utils.LatLngBBox
+import org.scalatest.OptionValues
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, Json}
 
@@ -9,7 +10,7 @@ import play.api.libs.json.{JsObject, Json}
  * Unit tests for the places refresh's pure halves (#5311): the Overpass query it sends and the parsing of what comes
  * back. No application, DB, or network required; both live on the companion object.
  */
-class PlacesServiceSpec extends PlaySpec {
+class PlacesServiceSpec extends PlaySpec with OptionValues {
 
   private val teaneck = LatLngBBox(minLat = 40.86, minLng = -74.03, maxLat = 40.92, maxLng = -73.97)
 
@@ -125,6 +126,19 @@ class PlacesServiceSpec extends PlaySpec {
     "read an empty or malformed response as no places" in {
       PlacesService.parseOverpass(Json.obj()) mustBe empty
       PlacesService.parseOverpass(Json.obj("elements" -> "nope")) mustBe empty
+    }
+  }
+
+  "overpassRemark" should {
+    "read the error a timed-out or out-of-memory query answers 200 with, and nothing from a complete answer" in {
+      val partial = Json.parse(
+        """{"elements": [{"type": "node", "id": 1, "lat": 40.9, "lon": -74.0, "tags": {"amenity": "school"}}],
+          |  "remark": "runtime error: Query timed out in \"query\" at line 3 after 180 seconds."}""".stripMargin
+      )
+      PlacesService.overpassRemark(partial).value must startWith("runtime error: Query timed out")
+      PlacesService.overpassRemark(Json.parse("""{"elements": []}""")) mustBe None
+      PlacesService.overpassRemark(Json.parse("""{"elements": [], "remark": "  "}""")) mustBe None
+      PlacesService.overpassRemark(Json.parse("[]")) mustBe None
     }
   }
 

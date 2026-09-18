@@ -11,7 +11,7 @@ import org.apache.pekko.pattern.after
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Sink
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, PrecisionModel}
-import play.api.Logger
+import play.api.{Configuration, Logger}
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, JsValue, Json}
@@ -27,7 +27,8 @@ import scala.util.control.NonFatal
 /**
  * What a run of the places refresh did (#5311).
  *
- * @param skipped   True when the table was fresh enough that nothing was fetched; the counts are then the table's.
+ * @param skipped   True when nothing was fetched: the table was fresh enough, or the city has no regions yet to
+ *                  keep a place near; the counts are then the table's.
  * @param fetched   Objects Overpass returned that resolved to a category.
  * @param dropped   Of those, the ones outside the city (farther than 250 m from every region).
  * @param total     Rows in the table afterwards.
@@ -103,13 +104,19 @@ class PlacesServiceImpl @Inject() (
     cacheApi: AsyncCacheApi,
     swrCache: SwrCache,
     actorSystem: ActorSystem,
-    configService: ConfigService,
     apiService: ApiService,
-    placeTable: PlaceTable
+    placeTable: PlaceTable,
+    config: Configuration
 )(implicit ec: ExecutionContext, mat: Materializer)
     extends PlacesService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   import PlacesService._
+
+  // Both exist for the spec that stands in a fake Overpass; production reads the defaults.
+  private val overpassUrl: String =
+    config.getOptional[String]("places.overpass.url").getOrElse(OutboundHttp.OverpassUrl)
+  private val retryDelay: FiniteDuration =
+    config.getOptional[FiniteDuration]("places.overpass.retry-delay").getOrElse(RetryDelay)
 
   private val logger  = Logger(this.getClass)
   private val running = new AtomicBoolean(false)
@@ -148,19 +155,19 @@ class PlacesServiceImpl @Inject() (
 
   private def fetchAndMerge(): Future[PlacesRefreshResult] = {
     val fetchedAt = OffsetDateTime.now
+    db.run(placeTable.regionsExtent).flatMap {
+      // The merge keeps only places within 250 m of a region, so a schema with no regions yet (a city mid-onboarding)
+      // has nothing to keep: fetching would only spend an Overpass slot on objects the merge drops.
+      case None =>
+        logger.warn("Places refresh skipped: the city has no regions, so there is nowhere to keep a place.")
+        skippedResult(None)
+      case Some(extent) => fetchAndMerge(pad(extent), fetchedAt)
+    }
+  }
+
+  /** The fetch over the regions' extent, padded by the 250 m the merge keeps, and the merge itself. */
+  private def fetchAndMerge(bbox: LatLngBBox, fetchedAt: OffsetDateTime): Future[PlacesRefreshResult] = {
     for {
-      // The regions' extent, padded by the 250 m the merge keeps; the map bounds only when a schema has no regions.
-      extent <- db.run(placeTable.regionsExtent)
-      bbox   <- extent
-        .map(e => Future.successful(pad(e)))
-        .getOrElse(configService.getCityMapParams.map { p =>
-          LatLngBBox(
-            minLat = math.min(p.lat1, p.lat2),
-            minLng = math.min(p.lng1, p.lng2),
-            maxLat = math.max(p.lat1, p.lat2),
-            maxLng = math.max(p.lng1, p.lng2)
-          )
-        })
       json <- fetchWithRetry(overpassQuery(bbox))
       fetched = parseOverpass(json)
       existing <- db.run(placeTable.osmPlaceCount)
@@ -186,12 +193,12 @@ class PlacesServiceImpl @Inject() (
     fetch(query).recoverWith {
       case NonFatal(e) if attempt < MaxAttempts =>
         logger.warn(s"Overpass places query attempt $attempt/$MaxAttempts failed (${e.getMessage}); retrying.")
-        after(RetryDelay * attempt.toLong, actorSystem.scheduler)(fetchWithRetry(query, attempt + 1))
+        after(retryDelay * attempt.toLong, actorSystem.scheduler)(fetchWithRetry(query, attempt + 1))
     }
   }
 
   private def fetch(query: String): Future[JsValue] = {
-    ws.url(OutboundHttp.OverpassUrl)
+    ws.url(overpassUrl)
       .addHttpHeaders("User-Agent" -> OutboundHttp.UserAgent)
       // Past the query's own server-side timeout, so a slow answer is Overpass giving up, never us hanging up on it.
       .withRequestTimeout(RequestTimeout)
@@ -200,7 +207,11 @@ class PlacesServiceImpl @Inject() (
         if (response.status != 200) {
           throw new RuntimeException(s"Overpass places query failed with status ${response.status}.")
         }
-        Json.parse(response.body)
+        val json = Json.parse(response.body)
+        overpassRemark(json).foreach { remark =>
+          throw new RuntimeException(s"Overpass places query answered 200 with a remark: $remark")
+        }
+        json
       }
   }
 }
@@ -227,7 +238,10 @@ object PlacesService {
     LatLngBBox(box.minLat - latDeg, box.minLng - lngDeg, box.maxLat + latDeg, box.maxLng + lngDeg)
   }
 
-  /** The Overpass-side budget for the query, and ours, which must outlast it. */
+  /**
+   * The Overpass-side budget for the query, and ours, which must outlast it. Overpass is silent while it computes, so
+   * `play.ws.timeout.idle` (application.conf) must outlast ours too; Play has no per-request idle timeout.
+   */
   val OverpassTimeoutSeconds: Int    = 180
   val RequestTimeout: FiniteDuration = 200.seconds
   val MaxAttempts: Int               = 3
@@ -256,6 +270,16 @@ object PlacesService {
        |);
        |out tags center;""".stripMargin
   }
+
+  /**
+   * The error a 200 answer carries, if any. A query that ran out of time or memory still answers 200, with the
+   * elements written so far and a top-level `remark` naming the error; merging that partial list would delete
+   * every place it omitted, so a remark fails the fetch (overpy does the same).
+   *
+   * @param json The parsed response.
+   * @return     The remark's text, or None for a complete answer.
+   */
+  def overpassRemark(json: JsValue): Option[String] = (json \ "remark").asOpt[String].map(_.trim).filter(_.nonEmpty)
 
   /**
    * Turns an Overpass `out tags center;` response into fetched places.
