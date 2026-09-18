@@ -4,7 +4,7 @@ import com.typesafe.sbt.web.pipeline.Pipeline
 
 name := """sidewalk-webpage"""
 
-version := "11.13.0"
+version := "11.14.0"
 
 scalaVersion := "2.13.18"
 
