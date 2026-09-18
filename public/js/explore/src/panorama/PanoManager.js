@@ -292,8 +292,12 @@ class PanoManager {
     // Store the returned pano metadata.
     svl.panoStore.addPanoMetadata(panoId, panoData);
 
-    // Add the capture date of the image to the bottom-right corner of the UI.
-    svl.ui.streetview.date.text(panoData.getProperty('captureDate').format('MMM YYYY'));
+    // Draw the bottom-left imagery note for this pano: its capture date, and how that sits against the street's last
+    // audit (#5413). Month-granular on the wire because that is all a capture date carries.
+    svl.panoDateNote?.update({
+      captureDateIso: panoData.getProperty('captureDate').format('YYYY-MM-DD'),
+      task: svl.taskContainer?.getCurrentTask() ?? null,
+    });
 
     // Mark that we visited this pano so that we can tell if they've gotten stuck.
     svl.stuckAlert.panoVisited(panoId);

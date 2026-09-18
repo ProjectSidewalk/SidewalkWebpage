@@ -1,0 +1,32 @@
+/* The bottom-left imagery pills (#5413): the pano's capture date, and how that sits against the street's last audit.
+   A dark rounded chip rather than the bare text this corner used to carry, because there are two facts here now and
+   a run of shadowed text gives the eye nothing to separate them by. Matches .pano-overlay-button's surface, the tool's
+   other overlay on this pano, so the corner reads as the same UI rather than as part of the imagery.
+
+   The info button sits inside the date pill (Main.js hands PanoInfoPopover that element as its container) because what
+   it explains is the imagery -- putting it after both pills would leave it stranded between two unrelated facts. */
+.svl-pano-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: calc(2px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
+  border-radius: calc(999px * var(--ui-scale, 1));
+  background-color: var(--color-asphalt-400);
+  color: var(--color-neutral-white);
+  font: var(--text-caption-regular);
+
+  /* The holder shadows its text for legibility over bare imagery; on a filled pill that only smears it. */
+  text-shadow: none;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.svl-pano-pill[hidden] {
+  display: none;
+}
+
+/* The button is a sibling of the date text inside the pill, so the pill's own padding owns the spacing and the
+   baseline nudge #pano-info-button carries for the un-pilled layout would push it off center. */
+#svl-panorama-date-pill #pano-info-button {
+  margin-top: 0;
+  margin-left: calc(6px * var(--ui-scale, 1));
+}

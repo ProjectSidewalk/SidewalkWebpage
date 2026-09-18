@@ -99,6 +99,11 @@ input[type="radio"] {
 #svl-panorama-date-holder {
   display: flex;
   justify-content: flex-start;
+
+  /* Holds the imagery pills (#5413; svl-pano-date-pills.css), centered against the imagery-source logo they sit
+     beside rather than stretched to the row's full height. */
+  align-items: center;
+  gap: calc(6px * var(--ui-scale));
   height: calc(28px * var(--ui-scale));
   position: absolute;
   bottom: calc(var(--bottom-left-links-clearance, 0px) * var(--ui-scale));
@@ -149,9 +154,10 @@ input[type="radio"] {
   transform-origin: bottom left;
 }
 
-/* No left padding — the holder's left offset above owns the whole gap to the imagery-source logo. */
+/* Unpadded: the pill around it owns its spacing, and the holder's left offset owns the gap to the imagery-source
+   logo (#5413). */
 #svl-panorama-date {
-  padding: calc(3px * var(--ui-scale)) calc(3px * var(--ui-scale)) calc(3px * var(--ui-scale)) 0;
+  padding: 0;
 }
 
 /* Scale Bootstrap tooltips (severity descriptions, button hints, etc.) with the UI. They render on <body>, so they read

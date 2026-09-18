@@ -165,6 +165,12 @@
       "message-others": "Ein anderer Nutzer hat diese Straße im {{lastMapped}} kartiert, aber die Bilder wurden seitdem erneuert (im {{newImagery}}). Schauen wir, was sich verändert hat!",
       "message-others-no-dates": "Ein anderer Nutzer hat diese Straße schon einmal kartiert, aber die Bilder wurden seitdem erneuert. Schauen wir, was sich verändert hat!"
     },
+    "pano-date-note": {
+      "image-date": "Bild: {{date}}",
+      "last-audited": "Zuletzt kartiert: {{date}}",
+      "mapped-this-view-you": "Diese Ansicht hast du kartiert",
+      "mapped-this-view-others": "Bereits im {{date}} kartiert"
+    },
     "minimap": {
       "coach-dismiss": "Verstanden",
       "distance-left": "Noch {{distance}}",

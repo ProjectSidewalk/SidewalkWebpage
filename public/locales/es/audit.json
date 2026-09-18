@@ -165,6 +165,12 @@
       "message-others": "Otro usuario mapeó esta calle en {{lastMapped}}, pero las imágenes se han renovado desde entonces (en {{newImagery}}). ¡Veamos qué ha cambiado!",
       "message-others-no-dates": "Otro usuario ya mapeó esta calle antes, pero las imágenes se han renovado desde entonces. ¡Veamos qué ha cambiado!"
     },
+    "pano-date-note": {
+      "image-date": "Imagen: {{date}}",
+      "last-audited": "Último mapeo: {{date}}",
+      "mapped-this-view-you": "Ya mapeaste esta vista",
+      "mapped-this-view-others": "Ya mapeada en {{date}}"
+    },
     "minimap": {
       "coach-dismiss": "Entendido",
       "distance-left": "Quedan {{distance}}",

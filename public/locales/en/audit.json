@@ -165,6 +165,12 @@
       "message-others": "Another user mapped this street in {{lastMapped}} but the imagery has been refreshed since then (in {{newImagery}}). Let's see what's changed!",
       "message-others-no-dates": "Another user mapped this street before, but the imagery has been refreshed since then. Let's see what's changed!"
     },
+    "pano-date-note": {
+      "image-date": "Image: {{date}}",
+      "last-audited": "Last audited: {{date}}",
+      "mapped-this-view-you": "You mapped this view",
+      "mapped-this-view-others": "Already mapped in {{date}}"
+    },
     "minimap": {
       "coach-dismiss": "Got it",
       "distance-left": "{{distance}} left",

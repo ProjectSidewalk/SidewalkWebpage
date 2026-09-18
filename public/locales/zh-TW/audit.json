@@ -165,6 +165,12 @@
       "message-others": "另一位使用者在 {{lastMapped}} 標註過這條街道，但影像之後已更新（{{newImagery}}）。一起來看看有什麼改變吧！",
       "message-others-no-dates": "另一位使用者先前標註過這條街道，但影像之後已更新。一起來看看有什麼改變吧！"
     },
+    "pano-date-note": {
+      "image-date": "影像：{{date}}",
+      "last-audited": "上次標註：{{date}}",
+      "mapped-this-view-you": "你已標註過這個畫面",
+      "mapped-this-view-others": "已於 {{date}} 標註"
+    },
     "minimap": {
       "coach-dismiss": "知道了",
       "distance-left": "剩餘 {{distance}}",

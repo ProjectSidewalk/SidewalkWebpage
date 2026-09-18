@@ -165,6 +165,12 @@
       "message-others": "Een andere gebruiker heeft deze straat in {{lastMapped}} in kaart gebracht, maar de beelden zijn sindsdien vernieuwd (in {{newImagery}}). Laten we kijken wat er veranderd is!",
       "message-others-no-dates": "Een andere gebruiker heeft deze straat eerder in kaart gebracht, maar de beelden zijn sindsdien vernieuwd. Laten we kijken wat er veranderd is!"
     },
+    "pano-date-note": {
+      "image-date": "Beeld: {{date}}",
+      "last-audited": "Laatst in kaart gebracht: {{date}}",
+      "mapped-this-view-you": "Dit beeld heb je al in kaart gebracht",
+      "mapped-this-view-others": "Al in kaart gebracht in {{date}}"
+    },
     "minimap": {
       "coach-dismiss": "Begrepen",
       "distance-left": "Nog {{distance}}",

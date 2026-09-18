@@ -365,6 +365,31 @@ util.distanceToString = (meters) =>
 util.longDistanceToString = (km, precision = 0) =>
   i18next.services.formatter.format(km, `distance(style: large; precision: ${precision})`, i18next.language, {});
 
+/**
+ * Renders a date at month precision for this reader, e.g. "October 2024" or "Oct 2024".
+ *
+ * Month precision because that is all an imagery capture date carries — GSV reports `2024-10` — so anything finer
+ * would be inventing a day we do not have. Null for a missing or unparseable value rather than a fallback string:
+ * `pano_data.capture_date` is free text holding whatever the imagery API returned, including the literal
+ * "Invalid date", and callers want to drop the date from their sentence rather than print that at a labeler.
+ *
+ * @param {?string} iso - A date (`2024-10-01`) or timestamp (`2024-10-01T12:00:00-07:00`) string.
+ * @param {object} [options]
+ * @param {boolean} [options.short=false] - Abbreviate the month ("Oct" rather than "October").
+ * @returns {?string} The localized month and year, or null if there is no usable date.
+ */
+util.monthYear = function (iso, { short = false } = {}) {
+  if (!iso) return null;
+  // A bare date parses as UTC midnight, which west of Greenwich is the evening before -- and for a first-of-month
+  // capture date that is the wrong month. Reading the calendar fields directly sidesteps the zone entirely.
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  const date = dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString(i18next.language, { month: short ? 'short' : 'long', year: 'numeric' });
+};
+
 // A cross-browser function to capture a mouse position, relative to the given DOM element. The UI is scaled through
 // real layout sizes (var(--ui-scale)), so offset() already reflects the scaled position and no compensation is needed.
 function mousePosition(e, dom) {

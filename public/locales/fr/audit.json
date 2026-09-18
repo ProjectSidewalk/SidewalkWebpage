@@ -165,6 +165,12 @@
       "message-others": "Un autre utilisateur a cartographié cette rue en {{lastMapped}}, mais les images ont été actualisées depuis (en {{newImagery}}). Voyons ce qui a changé !",
       "message-others-no-dates": "Un autre utilisateur a déjà cartographié cette rue, mais les images ont été actualisées depuis. Voyons ce qui a changé !"
     },
+    "pano-date-note": {
+      "image-date": "Image : {{date}}",
+      "last-audited": "Dernière cartographie : {{date}}",
+      "mapped-this-view-you": "Vous avez cartographié cette vue",
+      "mapped-this-view-others": "Déjà cartographiée en {{date}}"
+    },
     "minimap": {
       "coach-dismiss": "Compris",
       "distance-left": "{{distance}} restants",
