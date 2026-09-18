@@ -55,8 +55,7 @@ check-host-dir = $(if $(findstring /,$(wt)),$(error wt= takes a worktree's name,
   the container can't see $(host-dir), only checkouts inside $(main-root)))
 # A worktree may have no node_modules of its own, so always use the main checkout's.
 node-modules = /home/node_modules
-# The checkout `make` was run from, whatever wt= points the work at, so a repo script always comes from the same
-# commit as the Makefile calling it.
+# The checkout `make` ran from, whatever wt= points the work at, so a repo script matches the Makefile calling it.
 self-container-dir = /home$(patsubst $(main-root)%,%,$(CURDIR))
 # Same sbt settings as tools/qa-worktree.sh (reuse the main checkout's downloads, cap memory). Set through SBT_OPTS,
 # since sbt drops command-line flags when it starts a background server.
@@ -382,7 +381,7 @@ lint-js-types:
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/check-js-types.mjs"
 	@echo "Finished checking JS types";
 
-# The sbt targets below go through tools/sbt-run.sh, whose header says what it guards against.
+# The sbt targets below go through tools/sbt-run.sh; its header says what that guards against.
 #
 # Scala formatting (.scalafmt.conf). `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.
 scalafmt:
@@ -399,8 +398,8 @@ compile:
 test-scala:
 	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/sbt-run.sh --dir $(container-dir) --db-lock $(if $(only),'testOnly $(only)',test)"
 
-# Drops the dist/stage output but not the compiled classes, so the next `make compile` is still incremental. This is
-# what piles up: each release build writes ~1GB of jars under its own version and never removes the older ones.
+# Each release build leaves ~1GB of jars named after its version and removes none of the older ones. Drops those,
+# keeping compiled classes so the next `make compile` is still incremental.
 clean-dist:
 	@echo "Removing packaged build output from $(host-dir)..."
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && rm -rf target/scala-2.13/*.jar target/universal/stage"
