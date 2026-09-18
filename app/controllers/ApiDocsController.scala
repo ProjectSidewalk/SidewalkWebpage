@@ -152,6 +152,16 @@ class ApiDocsController @Inject() (
   }
 
   /**
+   * Displays API documentation for places (#5311).
+   */
+  def places = cc.securityService.UserAwareAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_Places")
+      Ok(views.html.apiDocs.places(commonData, request.identity))
+    }
+  }
+
+  /**
    * Displays API documentation for the deployed cities.
    */
   def cities = cc.securityService.UserAwareAction { implicit request =>

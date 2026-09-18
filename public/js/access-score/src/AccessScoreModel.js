@@ -19,6 +19,7 @@
  * @property {Record<string, Record<string, number>>} presets - Weight magnitude per type, by preset id; `default`
  *     holds the engine's own weights, the ones every reset returns to.
  * @property {?string} clusters_updated_at - When the clusters were last rebuilt (ISO 8601), or null for never.
+ * @property {string[]} place_categories - The place categories the map can show (#5311), in display order.
  */
 
 /**
@@ -34,6 +35,8 @@
  *     meaning the engine's defaults; the model fills it in at construction.
  * @property {boolean} showUnaudited - Whether unaudited streets are drawn faintly rather than left off the map.
  * @property {boolean} showClusters - Whether the cluster evidence layer is drawn.
+ * @property {?string[]} placeCategories - The place categories drawn: null for every one the config lists, an
+ *     empty list for none (#5311).
  */
 
 /**
@@ -124,7 +127,8 @@
  */
 class AccessScoreModel {
   /**
-   * The state a fresh page starts in; `weights` null means the engine's default weights.
+   * The state a fresh page starts in; `weights` null means the engine's default weights. Places start off — the
+   * score map comes first, and a reader adds the destinations they care about (#5311).
    * @type {Readonly<AccessScoreState>}
    */
   static DEFAULT_STATE = Object.freeze({
@@ -132,6 +136,7 @@ class AccessScoreModel {
     weights: null,
     showUnaudited: true,
     showClusters: true,
+    placeCategories: [],
   });
 
   /** Histogram resolution over the 0–1 score range. */
@@ -275,7 +280,11 @@ class AccessScoreModel {
    * @returns {AccessScoreState}
    */
   get state() {
-    return { ...this.#state, weights: { ...this.#state.weights } };
+    return {
+      ...this.#state,
+      weights: { ...this.#state.weights },
+      placeCategories: this.#state.placeCategories === null ? null : [...this.#state.placeCategories],
+    };
   }
 
   /** Number of streets loaded. */
@@ -313,6 +322,18 @@ class AccessScoreModel {
    */
   get streetBins() {
     return this.#bins;
+  }
+
+  /**
+   * One street's histogram bin: the cheap read a per-marker recolor makes for every place on the map, where
+   * `explainStreet` would build the full term breakdown each time.
+   * @param {number} streetId - The street's `street_edge_id`.
+   * @returns {?number} A bin index in `[0, HISTOGRAM_BINS)`, or null for an unaudited or unknown street.
+   */
+  streetBin(streetId) {
+    const i = this.#indexById.get(streetId);
+    if (i === undefined || this.#bins[i] === AccessScoreModel.UNBINNED) return null;
+    return this.#bins[i];
   }
 
   /**

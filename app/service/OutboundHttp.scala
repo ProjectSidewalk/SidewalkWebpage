@@ -11,4 +11,7 @@ object OutboundHttp {
    * tell whose traffic this is or where to write if it misbehaves, and the OSM API's usage policy requires it.
    */
   val UserAgent: String = "ProjectSidewalk/1.0 (+https://projectsidewalk.org; sidewalk@cs.uw.edu)"
+
+  /** The public Overpass instance both OSM-derived refreshes query (ways for speed limits, #4654; places, #5311). */
+  val OverpassUrl: String = "https://overpass-api.de/api/interpreter"
 }

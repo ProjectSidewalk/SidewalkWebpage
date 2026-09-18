@@ -57,8 +57,8 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
         "/labelingGuide/occlusion", "/api", "/leaderboard", "/routeBuilder", "/terms", "/cities"
       ) ++ Seq(
         "labelTypes", "cities", "labelTags", "rawLabels", "labelClusters", "streets", "streetTypes", "sidewalkPresence",
-        "regions", "accessScoreStreets", "accessScoreRegions", "validations", "validation-result-types", "user-stats",
-        "overall-stats", "overall-stats-by-day", "aggregate-stats", "aggregate-stats-by-day"
+        "regions", "places", "accessScoreStreets", "accessScoreRegions", "validations", "validation-result-types",
+        "user-stats", "overall-stats", "overall-stats-by-day", "aggregate-stats", "aggregate-stats-by-day"
       ).map(p => s"/v3/api-docs/$p")
 
   /** Duplicate-alias Disallow lines, derived from the same alias map that drives canonical URLs (SeoUtils). */
