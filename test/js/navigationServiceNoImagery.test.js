@@ -89,6 +89,7 @@ function makeTask(streetEdgeId, { lengthKm = 0.1, atEnd = false, walkOrder = nul
         streetEdgeId,
         getStreetEdgeId: () => streetEdgeId,
         getWalkOrder: () => walkOrder,
+        getProperty: () => null,
         givenUp: false,
         giveUpOnImagery() {
           this.givenUp = true;

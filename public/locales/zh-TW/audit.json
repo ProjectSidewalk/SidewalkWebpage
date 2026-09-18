@@ -158,6 +158,11 @@
     "route-unavailable": {
       "message": "找不到這條路線，可能已被刪除。"
     },
+    "reaudit": {
+      "title": "這條街道有更新的街景影像",
+      "message": "上次標註於 {{lastMapped}}；這裡的街景影像拍攝於 {{newImagery}}。你的標籤會更新這條街道，先前的成果仍然有效。",
+      "message-no-dates": "這條街道先前已標註過，但街景影像之後已更新。你的標籤會更新這條街道，先前的成果仍然有效。"
+    },
     "minimap": {
       "coach-dismiss": "知道了",
       "distance-left": "剩餘 {{distance}}",

@@ -158,6 +158,11 @@
     "route-unavailable": {
       "message": "Esa ruta no está disponible. Es posible que se haya eliminado."
     },
+    "reaudit": {
+      "title": "Esta calle tiene imágenes más recientes",
+      "message": "Se mapeó por última vez en {{lastMapped}}; la vista de calle aquí es de {{newImagery}}. Tus etiquetas la actualizan; el trabajo anterior sigue contando.",
+      "message-no-dates": "Ya se había mapeado, pero la vista de calle se ha actualizado desde entonces. Tus etiquetas la actualizan; el trabajo anterior sigue contando."
+    },
     "minimap": {
       "coach-dismiss": "Entendido",
       "distance-left": "Quedan {{distance}}",

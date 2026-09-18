@@ -158,6 +158,11 @@
     "route-unavailable": {
       "message": "Die route is niet beschikbaar. Mogelijk is hij verwijderd."
     },
+    "reaudit": {
+      "title": "Deze straat heeft nieuwere beelden",
+      "message": "Voor het laatst in kaart gebracht in {{lastMapped}}; de straatbeelden hier zijn van {{newImagery}}. Jouw labels werken het bij — eerder werk telt nog steeds mee.",
+      "message-no-dates": "Deze straat is al eerder in kaart gebracht, maar de straatbeelden zijn sindsdien vernieuwd. Jouw labels werken het bij — eerder werk telt nog steeds mee."
+    },
     "minimap": {
       "coach-dismiss": "Begrepen",
       "distance-left": "Nog {{distance}}",

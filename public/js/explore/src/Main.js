@@ -170,6 +170,7 @@ class Main {
     }
     svl.popUpMessage = new PopUpMessage(svl.taskContainer, svl.tracker);
     svl.aiGuidance = new AiGuidance(svl.tracker, svl.popUpMessage);
+    svl.reauditNotice = new ReauditNotice(svl.tracker);
 
     // Logs when the page's focus changes.
     const logPageFocus = () => {
@@ -453,6 +454,7 @@ class Main {
             ? i18next.t('popup.free-explore-start-named', { placeName })
             : i18next.t('popup.free-explore-start');
           svl.alertController.showAlert(startMessage, 'exploreAddressStart', true);
+          svl.reauditNotice.showForTask(svl.taskContainer.getCurrentTask());
         } else {
           // Initialize explore mission screens focused on a randomized label type, though users can switch between
           // them.
@@ -473,8 +475,11 @@ class Main {
           // Toasts telling the user this visit resumed something in progress (#4833), or that the route the URL
           // asked for could not be opened (#5156), deferred until the mission-start screen closes so they aren't
           // missed underneath it. At most one shows: they occupy the same spot over the pano, and the dropped-route
-          // news outranks a resume note the sidebar's route name already carries.
+          // news outranks a resume note the sidebar's route name already carries. A re-audit notice for the first
+          // street (#4895) takes the same spot after whichever of them showed has faded.
+          let otherToastShown = false;
           if (this.#takeRouteUnavailableNotice()) {
+            otherToastShown = true;
             document.addEventListener('ps:mission-start-tutorial:done', () => {
               svl.tracker.push('RouteUnavailableToast_Shown');
               Toast.show({
@@ -485,6 +490,7 @@ class Main {
               });
             }, { once: true });
           } else if (svl.userRouteId && this.#params.routeResumed) {
+            otherToastShown = true;
             document.addEventListener('ps:mission-start-tutorial:done', () => {
               svl.tracker.push('RouteResumeToast_Shown');
               Toast.show({
@@ -502,6 +508,7 @@ class Main {
               });
             }, { once: true });
           } else if (!svl.userRouteId && resuming) {
+            otherToastShown = true;
             document.addEventListener('ps:mission-start-tutorial:done', () => {
               svl.tracker.push('MissionResumeToast_Shown');
               Toast.show({
@@ -515,6 +522,9 @@ class Main {
               });
             }, { once: true });
           }
+          document.addEventListener('ps:mission-start-tutorial:done', () => {
+            svl.reauditNotice.showForTask(svl.taskContainer.getCurrentTask(), { afterMs: otherToastShown ? 10500 : 0 });
+          }, { once: true });
         }
 
         this.#startTheMission(mission, currentRegion);

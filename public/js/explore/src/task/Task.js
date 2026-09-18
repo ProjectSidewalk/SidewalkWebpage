@@ -41,6 +41,7 @@ class Task {
     auditTaskId: null,
     streetEdgeId: null,
     completedByAnyUser: null,
+    needsReaudit: false,
     priority: null,
     taskStart: null,
     currentMissionId: null,
@@ -76,6 +77,8 @@ class Task {
 
     this.setProperty('streetEdgeId', this.#geojson.properties.street_edge_id);
     this.setProperty('completedByAnyUser', this.#geojson.properties.completed_by_any_user);
+    // Audited before, but every completed audit predates newer imagery (#4895); false for a never-audited street.
+    this.setProperty('needsReaudit', Boolean(this.#geojson.properties.needs_reaudit));
     this.setProperty('priority', this.#geojson.properties.priority);
     this.setProperty('currentMissionId', currMissionId);
     this.setProperty('auditTaskId', this.#geojson.properties.audit_task_id);
@@ -223,6 +226,7 @@ class Task {
   complete() {
     this.#status.isComplete = true;
     this.#properties.completedByAnyUser = true;
+    this.#properties.needsReaudit = false;
     this.#properties.priority = 1 / (1 + (1 / this.#properties.priority));
   }
 

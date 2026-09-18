@@ -23,6 +23,7 @@ class Toast {
   #dismissed = false;
   #repositionHandler = null;
   #pauseOnHover;
+  #onClose;
   #hovered = false;
   #focused = false;
 
@@ -40,10 +41,13 @@ class Toast {
    *      white card glares against the imagery and reads as part of the UI chrome rather than a passing note.
    * @param {boolean} [opts.compact] - Tighter padding and smaller type, for a one-line aside rather than an
    *      announcement with a title and an action.
+   * @param {() => void} [opts.onClose] - Called when the user clicks the close button, and not when the toast fades
+   *      out on its own: the two say different things about whether the message was read.
    */
   constructor(opts = {}) {
     this.#reference = opts.reference || null;
     this.#duration = opts.duration ?? 5000;
+    this.#onClose = opts.onClose || null;
     // A toast anchored to a small control — a dashboard "Copy link" button — opens under the cursor that just
     // clicked it, so pausing on hover would strand it on screen until the user happened to move the mouse. Only a
     // toast with an action button to reach for earns the pause.
@@ -106,7 +110,10 @@ class Toast {
     closeIcon.src = util.assetPath('images/icons/cross.svg');
     closeIcon.alt = '';
     close.appendChild(closeIcon);
-    close.addEventListener('click', () => this.dismiss());
+    close.addEventListener('click', () => {
+      if (this.#onClose) this.#onClose();
+      this.dismiss();
+    });
     el.appendChild(close);
 
     el.addEventListener('mouseenter', () => {
