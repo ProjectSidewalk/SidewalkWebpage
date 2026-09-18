@@ -160,8 +160,10 @@
     },
     "reaudit": {
       "title": "Für diese Straße gibt es neuere Bilder",
-      "message": "Zuletzt kartiert im {{lastMapped}}; die Straßenansicht hier stammt von {{newImagery}}. Deine Labels aktualisieren sie – frühere Arbeit zählt weiterhin.",
-      "message-no-dates": "Diese Straße wurde schon einmal kartiert, aber die Straßenansicht wurde seitdem erneuert. Deine Labels aktualisieren sie – frühere Arbeit zählt weiterhin."
+      "message-you": "Du hast diese Straße zuletzt im {{lastMapped}} kartiert, aber die Bilder wurden seitdem erneuert (im {{newImagery}}). Schauen wir, was sich verändert hat!",
+      "message-you-no-dates": "Du hast diese Straße schon einmal kartiert, aber die Bilder wurden seitdem erneuert. Schauen wir, was sich verändert hat!",
+      "message-others": "Ein anderer Nutzer hat diese Straße im {{lastMapped}} kartiert, aber die Bilder wurden seitdem erneuert (im {{newImagery}}). Schauen wir, was sich verändert hat!",
+      "message-others-no-dates": "Ein anderer Nutzer hat diese Straße schon einmal kartiert, aber die Bilder wurden seitdem erneuert. Schauen wir, was sich verändert hat!"
     },
     "minimap": {
       "coach-dismiss": "Verstanden",

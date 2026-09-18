@@ -160,8 +160,10 @@
     },
     "reaudit": {
       "title": "這條街道有更新的街景影像",
-      "message": "上次標註於 {{lastMapped}}；這裡的街景影像拍攝於 {{newImagery}}。你的標籤會更新這條街道，先前的成果仍然有效。",
-      "message-no-dates": "這條街道先前已標註過，但街景影像之後已更新。你的標籤會更新這條街道，先前的成果仍然有效。"
+      "message-you": "你上次標註這條街道是在 {{lastMapped}}，但影像之後已更新（{{newImagery}}）。一起來看看有什麼改變吧！",
+      "message-you-no-dates": "你先前標註過這條街道，但影像之後已更新。一起來看看有什麼改變吧！",
+      "message-others": "另一位使用者在 {{lastMapped}} 標註過這條街道，但影像之後已更新（{{newImagery}}）。一起來看看有什麼改變吧！",
+      "message-others-no-dates": "另一位使用者先前標註過這條街道，但影像之後已更新。一起來看看有什麼改變吧！"
     },
     "minimap": {
       "coach-dismiss": "知道了",

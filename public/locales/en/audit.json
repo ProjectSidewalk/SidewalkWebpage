@@ -160,8 +160,10 @@
     },
     "reaudit": {
       "title": "This street has newer imagery",
-      "message": "It was last mapped in {{lastMapped}}; the street view here is from {{newImagery}}. Your labels refresh it — earlier work still counts.",
-      "message-no-dates": "It was mapped before, but the street view has been updated since. Your labels refresh it — earlier work still counts."
+      "message-you": "You last mapped this street in {{lastMapped}} but the imagery has been refreshed since then (in {{newImagery}}). Let's see what's changed!",
+      "message-you-no-dates": "You mapped this street before, but the imagery has been refreshed since then. Let's see what's changed!",
+      "message-others": "Another user mapped this street in {{lastMapped}} but the imagery has been refreshed since then (in {{newImagery}}). Let's see what's changed!",
+      "message-others-no-dates": "Another user mapped this street before, but the imagery has been refreshed since then. Let's see what's changed!"
     },
     "minimap": {
       "coach-dismiss": "Got it",

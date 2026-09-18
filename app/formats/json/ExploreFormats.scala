@@ -205,7 +205,11 @@ object ExploreFormats {
         "route_street_id"       -> task.routeStreetId,
         "route_street_position" -> task.routeStreetPosition,
         "reported_no_imagery"   -> task.reportedNoImagery,
-        "needs_reaudit"         -> task.needsReaudit
+        "needs_reaudit"         -> task.needsReaudit,
+        // Carried on the payload so the re-audit notice costs no request of its own (#4895).
+        "mapped_by_this_user" -> task.mappedByThisUser,
+        "last_mapped_at"      -> task.lastMappedAt,
+        "new_imagery_date"    -> task.newImageryDate
       )
     )
   }

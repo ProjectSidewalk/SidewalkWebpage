@@ -474,12 +474,10 @@ class Main {
 
           // Toasts telling the user this visit resumed something in progress (#4833), or that the route the URL
           // asked for could not be opened (#5156), deferred until the mission-start screen closes so they aren't
-          // missed underneath it. At most one shows: they occupy the same spot over the pano, and the dropped-route
-          // news outranks a resume note the sidebar's route name already carries. A re-audit notice for the first
-          // street (#4895) takes the same spot after whichever of them showed has faded.
-          let otherToastShown = false;
+          // missed underneath it. At most one of these three shows: the dropped-route news outranks a resume note the
+          // sidebar's route name already carries. The re-audit notice (#4895) is raised alongside them and `Toast`
+          // queues it behind whichever took the spot, so no duration arithmetic is needed here.
           if (this.#takeRouteUnavailableNotice()) {
-            otherToastShown = true;
             document.addEventListener('ps:mission-start-tutorial:done', () => {
               svl.tracker.push('RouteUnavailableToast_Shown');
               Toast.show({
@@ -490,7 +488,6 @@ class Main {
               });
             }, { once: true });
           } else if (svl.userRouteId && this.#params.routeResumed) {
-            otherToastShown = true;
             document.addEventListener('ps:mission-start-tutorial:done', () => {
               svl.tracker.push('RouteResumeToast_Shown');
               Toast.show({
@@ -508,7 +505,6 @@ class Main {
               });
             }, { once: true });
           } else if (!svl.userRouteId && resuming) {
-            otherToastShown = true;
             document.addEventListener('ps:mission-start-tutorial:done', () => {
               svl.tracker.push('MissionResumeToast_Shown');
               Toast.show({
@@ -523,7 +519,7 @@ class Main {
             }, { once: true });
           }
           document.addEventListener('ps:mission-start-tutorial:done', () => {
-            svl.reauditNotice.showForTask(svl.taskContainer.getCurrentTask(), { afterMs: otherToastShown ? 10500 : 0 });
+            svl.reauditNotice.showForTask(svl.taskContainer.getCurrentTask());
           }, { once: true });
         }
 

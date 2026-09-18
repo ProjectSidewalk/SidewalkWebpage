@@ -42,6 +42,9 @@ class Task {
     streetEdgeId: null,
     completedByAnyUser: null,
     needsReaudit: false,
+    mappedByThisUser: false,
+    lastMappedAt: null,
+    newImageryDate: null,
     priority: null,
     taskStart: null,
     currentMissionId: null,
@@ -77,8 +80,12 @@ class Task {
 
     this.setProperty('streetEdgeId', this.#geojson.properties.street_edge_id);
     this.setProperty('completedByAnyUser', this.#geojson.properties.completed_by_any_user);
-    // Audited before, but every completed audit predates newer imagery (#4895); false for a never-audited street.
+    // Audited before, but every completed audit predates newer imagery (#4895). `lastMappedAt` follows
+    // `mappedByThisUser`: their own last audit if they mapped it, the street's otherwise.
     this.setProperty('needsReaudit', Boolean(this.#geojson.properties.needs_reaudit));
+    this.setProperty('mappedByThisUser', Boolean(this.#geojson.properties.mapped_by_this_user));
+    this.setProperty('lastMappedAt', this.#geojson.properties.last_mapped_at ?? null);
+    this.setProperty('newImageryDate', this.#geojson.properties.new_imagery_date ?? null);
     this.setProperty('priority', this.#geojson.properties.priority);
     this.setProperty('currentMissionId', currMissionId);
     this.setProperty('auditTaskId', this.#geojson.properties.audit_task_id);
@@ -227,6 +234,7 @@ class Task {
     this.#status.isComplete = true;
     this.#properties.completedByAnyUser = true;
     this.#properties.needsReaudit = false;
+    this.#properties.mappedByThisUser = true; // They have now mapped it, whoever did the earlier pass.
     this.#properties.priority = 1 / (1 + (1 / this.#properties.priority));
   }
 

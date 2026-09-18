@@ -1,9 +1,10 @@
 /**
- * The Explore re-audit notice (#4895): which tasks earn the "this street has newer imagery" toast, that it shows once
- * per street, what it logs, and how it degrades when the dates can't be fetched.
+ * The Explore re-audit notice (#4895): which tasks earn the "this street has newer imagery" toast, which of the four
+ * wordings it picks, that it shows once per street, and what it logs.
  *
- * ReauditNotice is a top-level `class` written for the Grunt-concatenation world, so the source is eval'd into the
- * jsdom global scope with the globals it reads (`svl`, `Toast`, `i18next`, `fetch`) stubbed around it.
+ * Everything the notice needs now rides on the task payload, so there is no request to stub and no in-flight race to
+ * cover. ReauditNotice is a top-level `class` written for the Grunt-concatenation world, so the source is eval'd into
+ * the jsdom global scope with the globals it reads (`Toast`, `i18next`) stubbed around it.
  */
 
 const fs = require('fs');
@@ -15,96 +16,101 @@ const SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/explore/src/alert/Re
 window.eval(`${SRC}; window.ReauditNotice = ReauditNotice;`);
 const { ReauditNotice } = window;
 
-/** A stand-in for Task exposing the two reads the notice makes. */
-const makeTask = (streetEdgeId, needsReaudit) => ({
+/** A stand-in for Task exposing the reads the notice makes. */
+const makeTask = (streetEdgeId, props = {}) => ({
     getStreetEdgeId: () => streetEdgeId,
-    getProperty: (key) => (key === 'needsReaudit' ? needsReaudit : null),
+    getProperty: (key) => (key in props ? props[key] : null),
 });
 
-const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
+const REAUDIT_BY_ME = {
+    needsReaudit: true,
+    mappedByThisUser: true,
+    lastMappedAt: '2019-06-14T18:20:00Z',
+    newImageryDate: '2025-03-01',
+};
+const REAUDIT_BY_OTHERS = { ...REAUDIT_BY_ME, mappedByThisUser: false };
 
 describe('ReauditNotice.showForTask', () => {
     let tracker;
-    let currentStreetId;
 
     beforeEach(() => {
         tracker = { push: jest.fn() };
-        currentStreetId = 7;
-        window.svl = { taskContainer: { getCurrentTaskStreetEdgeId: () => currentStreetId } };
         window.Toast = { show: jest.fn() };
         window.i18next = {
             language: 'en',
             t: (key, opts) => (opts ? `${key}|${opts.lastMapped}|${opts.newImagery}` : key),
         };
         document.body.innerHTML = '<div id="pano"></div>';
-        global.fetch = jest.fn(() => Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ last_audited_at: '2019-06-14T18:20:00Z', new_imagery_date: '2025-03-01' }),
-        }));
     });
 
-    test('does nothing for a street that is not a re-audit, and never fetches', async () => {
+    test('does nothing for a street that is not a re-audit', () => {
         const notice = new ReauditNotice(tracker);
-        await expect(notice.showForTask(makeTask(7, false))).resolves.toBe(false);
-        expect(global.fetch).not.toHaveBeenCalled();
+        expect(notice.showForTask(makeTask(7, { needsReaudit: false }))).toBe(false);
         expect(window.Toast.show).not.toHaveBeenCalled();
         expect(tracker.push).not.toHaveBeenCalled();
     });
 
-    test('shows a dated toast for a re-audit street and logs it', async () => {
+    test('says "you mapped this" when the earlier pass was the labeler\'s own, and logs it', () => {
         const notice = new ReauditNotice(tracker);
-        await expect(notice.showForTask(makeTask(7, true))).resolves.toBe(true);
+        expect(notice.showForTask(makeTask(7, REAUDIT_BY_ME))).toBe(true);
 
-        expect(global.fetch).toHaveBeenCalledWith('/contribution/street/7/reauditSummary');
         expect(window.Toast.show).toHaveBeenCalledTimes(1);
         const opts = window.Toast.show.mock.calls[0][0];
         expect(opts.title).toBe('right-ui.reaudit.title');
-        // A first-of-month capture date must read as that month, not the evening before in the local zone.
-        expect(opts.message).toBe('right-ui.reaudit.message|June 2019|March 2025');
+        // Month precision, and a first-of-month capture date must not slip a month to the local timezone.
+        expect(opts.message).toBe('right-ui.reaudit.message-you|June 2019|March 2025');
         expect(opts.dark).toBe(true);
         expect(opts.reference).toBe(document.getElementById('pano'));
+
         expect(tracker.push).toHaveBeenCalledWith('ReauditToast_Shown', {
-            streetEdgeId: 7, lastAuditedAt: '2019-06-14T18:20:00Z', newImageryDate: '2025-03-01',
+            streetEdgeId: 7,
+            mappedByThisUser: true,
+            lastMappedAt: '2019-06-14T18:20:00Z',
+            newImageryDate: '2025-03-01',
         });
     });
 
-    test('logs an explicit close through the toast\'s onClose hook', async () => {
+    test('says "someone mapped this" when the earlier pass was not the labeler\'s', () => {
         const notice = new ReauditNotice(tracker);
-        await notice.showForTask(makeTask(7, true));
+        expect(notice.showForTask(makeTask(7, REAUDIT_BY_OTHERS))).toBe(true);
+
+        expect(window.Toast.show.mock.calls[0][0].message)
+            .toBe('right-ui.reaudit.message-others|June 2019|March 2025');
+        expect(tracker.push.mock.calls[0][1].mappedByThisUser).toBe(false);
+    });
+
+    test.each([
+        ['neither date', {}, 'right-ui.reaudit.message-you-no-dates'],
+        ['no imagery date', { lastMappedAt: '2019-06-14T18:20:00Z' }, 'right-ui.reaudit.message-you-no-dates'],
+        ['no audit date', { newImageryDate: '2025-03-01' }, 'right-ui.reaudit.message-you-no-dates'],
+        ['an unparseable date', { lastMappedAt: 'not-a-date', newImageryDate: '2025-03-01' },
+            'right-ui.reaudit.message-you-no-dates'],
+    ])('falls back to the dateless wording with %s', (_label, dates, expected) => {
+        const notice = new ReauditNotice(tracker);
+        const task = makeTask(7, { needsReaudit: true, mappedByThisUser: true, ...dates });
+        expect(notice.showForTask(task)).toBe(true);
+        // Half a comparison reads worse than none, and a raw ISO string must never reach the sentence.
+        expect(window.Toast.show.mock.calls[0][0].message).toBe(expected);
+    });
+
+    test('the dateless wording also splits on who mapped it', () => {
+        const notice = new ReauditNotice(tracker);
+        expect(notice.showForTask(makeTask(7, { needsReaudit: true, mappedByThisUser: false }))).toBe(true);
+        expect(window.Toast.show.mock.calls[0][0].message).toBe('right-ui.reaudit.message-others-no-dates');
+    });
+
+    test('the close button logs a dismissal distinct from a fade', () => {
+        const notice = new ReauditNotice(tracker);
+        notice.showForTask(makeTask(7, REAUDIT_BY_ME));
         window.Toast.show.mock.calls[0][0].onClose();
-        expect(tracker.push).toHaveBeenLastCalledWith('Click_ReauditToast_Close', { streetEdgeId: 7 });
+        expect(tracker.push).toHaveBeenCalledWith('Click_ReauditToast_Close', { streetEdgeId: 7 });
     });
 
-    test('shows once per street, however often the street becomes current', async () => {
+    test('announces each street once, but every re-audit street', () => {
         const notice = new ReauditNotice(tracker);
-        await notice.showForTask(makeTask(7, true));
-        await expect(notice.showForTask(makeTask(7, true))).resolves.toBe(false);
-        expect(window.Toast.show).toHaveBeenCalledTimes(1);
-
-        currentStreetId = 8;
-        await expect(notice.showForTask(makeTask(8, true))).resolves.toBe(true);
+        expect(notice.showForTask(makeTask(7, REAUDIT_BY_ME))).toBe(true);
+        expect(notice.showForTask(makeTask(7, REAUDIT_BY_ME))).toBe(false);
+        expect(notice.showForTask(makeTask(8, REAUDIT_BY_ME))).toBe(true);
         expect(window.Toast.show).toHaveBeenCalledTimes(2);
-    });
-
-    test('falls back to the dateless wording when the summary is unavailable', async () => {
-        global.fetch = jest.fn(() => Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({}) }));
-        const notice = new ReauditNotice(tracker);
-        await expect(notice.showForTask(makeTask(7, true))).resolves.toBe(true);
-        expect(window.Toast.show.mock.calls[0][0].message).toBe('right-ui.reaudit.message-no-dates');
-        expect(tracker.push).toHaveBeenCalledWith('ReauditToast_Shown', {
-            streetEdgeId: 7, lastAuditedAt: null, newImageryDate: null,
-        });
-    });
-
-    test('stays quiet when the labeler has moved on before the summary arrived', async () => {
-        let resolveFetch;
-        global.fetch = jest.fn(() => new Promise((resolve) => { resolveFetch = resolve; }));
-        const notice = new ReauditNotice(tracker);
-        const shown = notice.showForTask(makeTask(7, true));
-        await flushPromises();
-        currentStreetId = 9;
-        resolveFetch({ ok: true, json: () => Promise.resolve({ last_audited_at: '2019-06-14T18:20:00Z' }) });
-        await expect(shown).resolves.toBe(false);
-        expect(window.Toast.show).not.toHaveBeenCalled();
     });
 });

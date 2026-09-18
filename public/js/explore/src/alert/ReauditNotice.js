@@ -3,14 +3,18 @@
  * audit now predates newer street-view imagery (#4895).
  *
  * Without this, a labeler who remembers mapping a street reads its reappearance as the system having lost their
- * work, and one who doesn't can't tell a refresh from a first pass. The server marks the street on the task payload
- * (`needs_reaudit`, from `AuditTaskTable.streetAuditState`); the dates the toast quotes come from the same summary
- * the dashboard's re-audit list reads, fetched only for streets that are actually re-audits, so a city with nothing
- * flagged never pays for a request. Nothing here blocks the walk: the toast is informational, sits over the pano, and
- * fades on its own.
+ * work, and one who doesn't can't tell a refresh from a first pass. Everything it says rides on the task payload
+ * (`AuditTaskTable.streetAuditState`), so serving a re-audit street costs no request of its own.
+ *
+ * The wording splits on who did the earlier pass: "you last mapped this street" is the case #4895 is really about, while a
+ * street somebody else mapped gets the same news without claiming the reader's memory of it. That split also keeps
+ * this consistent with the minimap's earlier-label eras (#4945), which are the user's own work only -- on a street
+ * mapped by others there are no dimmed markers, and the toast no longer implies there should be.
+ *
+ * Nothing here blocks the walk: the toast is informational, sits over the pano, and fades on its own.
  */
 class ReauditNotice {
-  /** How long the toast stays up, matching the resume toasts it shares the spot with. */
+  /** How long the toast stays up. Longer than the 10 s resume toasts it shares the spot with: this one is news. */
   static DURATION_MS = 12000;
 
   #tracker;
@@ -26,39 +30,35 @@ class ReauditNotice {
   /**
    * Shows the notice for a task if it is a re-audit and hasn't been announced yet this session.
    *
-   * Every street switch and direction reversal passes through `TaskContainer.setCurrentTask`, so the notice is keyed
-   * by street rather than by call: a reversal on a street already announced is silent, and so is coming back to it.
+   * Keyed by street rather than by call, since `PanoManager` can reverse without a `setCurrentTask`: coming back to
+   * a street already announced is silent. The street counts as announced only once the toast is raised, or a notice
+   * still queued behind another would burn it for the session.
    *
    * @param {Task} task - The task that just became current.
-   * @param {{afterMs?: number}} [opts] - Delay before showing, for when another toast has just taken the spot.
-   * @returns {Promise<boolean>} Whether a toast was shown.
+   * @returns {boolean} Whether a toast was shown.
    */
-  async showForTask(task, opts = {}) {
+  showForTask(task) {
     if (!task || !task.getProperty('needsReaudit')) return false;
     const streetEdgeId = task.getStreetEdgeId();
     if (this.#shownStreetIds.has(streetEdgeId)) return false;
+
+    const lastMapped = this.#monthYear(task.getProperty('lastMappedAt'));
+    const newImagery = this.#monthYear(task.getProperty('newImageryDate'));
+    const byThisUser = Boolean(task.getProperty('mappedByThisUser'));
+    // Both dates or neither: the sentence reads as a comparison, so half of one is worse than none.
+    const haveDates = Boolean(lastMapped && newImagery);
+    const key = `right-ui.reaudit.message-${byThisUser ? 'you' : 'others'}${haveDates ? '' : '-no-dates'}`;
+
     this.#shownStreetIds.add(streetEdgeId);
-
-    const summary = await this.#fetchSummary(streetEdgeId);
-    if (opts.afterMs) await new Promise((resolve) => setTimeout(resolve, opts.afterMs));
-    // The street may have been left behind while the fetch was in flight; a toast about a street the labeler is no
-    // longer on would be exactly the confusion this notice exists to prevent.
-    if (svl.taskContainer && svl.taskContainer.getCurrentTaskStreetEdgeId() !== streetEdgeId) return false;
-
-    const lastMapped = summary && summary.last_audited_at ? this.#monthYear(summary.last_audited_at) : null;
-    const newImagery = summary && summary.new_imagery_date ? this.#monthYear(summary.new_imagery_date) : null;
-    const message = lastMapped && newImagery
-      ? i18next.t('right-ui.reaudit.message', { lastMapped, newImagery })
-      : i18next.t('right-ui.reaudit.message-no-dates');
-
     this.#tracker.push('ReauditToast_Shown', {
       streetEdgeId,
-      lastAuditedAt: summary ? summary.last_audited_at ?? null : null,
-      newImageryDate: summary ? summary.new_imagery_date ?? null : null,
+      mappedByThisUser: byThisUser,
+      lastMappedAt: task.getProperty('lastMappedAt') ?? null,
+      newImageryDate: task.getProperty('newImageryDate') ?? null,
     });
     Toast.show({
       title: i18next.t('right-ui.reaudit.title'),
-      message,
+      message: haveDates ? i18next.t(key, { lastMapped, newImagery }) : i18next.t(key),
       reference: document.getElementById('pano'),
       dark: true,
       duration: ReauditNotice.DURATION_MS,
@@ -68,38 +68,21 @@ class ReauditNotice {
   }
 
   /**
-   * The street's last audit and newest imagery dates, or null when the request fails or the server answers 404
-   * because a fresh audit by another labeler already covers the street. Either way the notice still shows, with the
-   * dateless message: the payload flag is the fact, the dates are decoration.
+   * Month precision, which is all GSV capture dates carry. Null for a missing or unparseable value, so the sentence
+   * drops to the dateless wording rather than printing a raw timestamp at the labeler.
    *
-   * @param {number} streetEdgeId
-   * @returns {Promise<?{last_audited_at: string, new_imagery_date: ?string}>}
-   */
-  async #fetchSummary(streetEdgeId) {
-    try {
-      const response = await fetch(`/contribution/street/${streetEdgeId}/reauditSummary`);
-      if (!response.ok) return null;
-      return await response.json();
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * "March 2019" in the page's language. Capture dates come at month precision from GSV, so anything finer would
-   * claim more than the data knows.
-   *
-   * @param {string} iso - A date (`2019-03-01`) or timestamp string.
-   * @returns {string}
+   * @param {?string} iso - A date (`2019-03-01`) or timestamp string.
+   * @returns {?string}
    */
   #monthYear(iso) {
+    if (!iso) return null;
     // A bare date parses as UTC midnight, which west of Greenwich is the evening before -- and for a first-of-month
     // capture date that is the wrong month. Reading the calendar fields directly sidesteps the zone entirely.
     const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
     const date = dateOnly
       ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
       : new Date(iso);
-    if (Number.isNaN(date.getTime())) return iso;
+    if (Number.isNaN(date.getTime())) return null;
     return date.toLocaleDateString(i18next.language, { month: 'long', year: 'numeric' });
   }
 }

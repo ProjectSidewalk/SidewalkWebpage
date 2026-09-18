@@ -160,8 +160,10 @@
     },
     "reaudit": {
       "title": "Esta calle tiene imágenes más recientes",
-      "message": "Se mapeó por última vez en {{lastMapped}}; la vista de calle aquí es de {{newImagery}}. Tus etiquetas la actualizan; el trabajo anterior sigue contando.",
-      "message-no-dates": "Ya se había mapeado, pero la vista de calle se ha actualizado desde entonces. Tus etiquetas la actualizan; el trabajo anterior sigue contando."
+      "message-you": "Mapeaste esta calle por última vez en {{lastMapped}}, pero las imágenes se han renovado desde entonces (en {{newImagery}}). ¡Veamos qué ha cambiado!",
+      "message-you-no-dates": "Ya mapeaste esta calle antes, pero las imágenes se han renovado desde entonces. ¡Veamos qué ha cambiado!",
+      "message-others": "Otro usuario mapeó esta calle en {{lastMapped}}, pero las imágenes se han renovado desde entonces (en {{newImagery}}). ¡Veamos qué ha cambiado!",
+      "message-others-no-dates": "Otro usuario ya mapeó esta calle antes, pero las imágenes se han renovado desde entonces. ¡Veamos qué ha cambiado!"
     },
     "minimap": {
       "coach-dismiss": "Entendido",

@@ -160,8 +160,10 @@
     },
     "reaudit": {
       "title": "Deze straat heeft nieuwere beelden",
-      "message": "Voor het laatst in kaart gebracht in {{lastMapped}}; de straatbeelden hier zijn van {{newImagery}}. Jouw labels werken het bij — eerder werk telt nog steeds mee.",
-      "message-no-dates": "Deze straat is al eerder in kaart gebracht, maar de straatbeelden zijn sindsdien vernieuwd. Jouw labels werken het bij — eerder werk telt nog steeds mee."
+      "message-you": "Jij hebt deze straat voor het laatst in {{lastMapped}} in kaart gebracht, maar de beelden zijn sindsdien vernieuwd (in {{newImagery}}). Laten we kijken wat er veranderd is!",
+      "message-you-no-dates": "Jij hebt deze straat eerder in kaart gebracht, maar de beelden zijn sindsdien vernieuwd. Laten we kijken wat er veranderd is!",
+      "message-others": "Een andere gebruiker heeft deze straat in {{lastMapped}} in kaart gebracht, maar de beelden zijn sindsdien vernieuwd (in {{newImagery}}). Laten we kijken wat er veranderd is!",
+      "message-others-no-dates": "Een andere gebruiker heeft deze straat eerder in kaart gebracht, maar de beelden zijn sindsdien vernieuwd. Laten we kijken wat er veranderd is!"
     },
     "minimap": {
       "coach-dismiss": "Begrepen",
