@@ -93,6 +93,9 @@ class MissionContainer extends EventEmitter {
     const currTask = svl.taskContainer.getCurrentTask();
     const missionId = mission.getProperty('missionId');
     currTask.setProperty('currentMissionId', missionId);
+    // The mission boundary is what separates this pass's minimap markers from earlier ones (#4945). No-op at page
+    // load, before any labels are fetched.
+    svl.labelContainer?.refreshMinimapEras();
 
     // If this is the start of a new mission, mark the location along the street that the user is at when the
     // mission starts. This will be used later to draw their route on the mission complete map.
