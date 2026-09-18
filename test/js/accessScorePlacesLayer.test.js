@@ -84,6 +84,8 @@ describe('AccessScorePlacesLayer', () => {
         expect(school.layout['icon-image']).toBe('acs-place-school');
         expect(school.layout['icon-allow-overlap']).toBe(false);
         expect(school.layout['text-optional']).toBe(true);
+        // Named places win collisions within a category: a null name must sort last, not read as present.
+        expect(school.layout['symbol-sort-key']).toEqual(['case', ['to-boolean', ['coalesce', ['get', 'name'], '']], 0, 1]);
         expect(map.layers.get('acs-places-health').minzoom).toBe(12);
         expect(map.sources.get('acs-places-school').promoteId).toBe('place_id');
     });

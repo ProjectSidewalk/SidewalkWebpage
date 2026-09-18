@@ -39,6 +39,12 @@ class AccessScorePlacesLayer {
   /** Names appear from this zoom; below it the glyph alone marks the place. */
   static #NAME_ZOOM = 16;
 
+  /**
+   * The collision priority: a named place before an unnamed one (lower draws first). `has` would count a `null`
+   * name as present, so the test is on the coalesced string.
+   */
+  static SORT_KEY = Object.freeze(['case', ['to-boolean', ['coalesce', ['get', 'name'], '']], 0, 1]);
+
   #map;
   #categories;
   #layers = [];
@@ -299,6 +305,9 @@ class AccessScorePlacesLayer {
         'icon-image': AccessScorePlacesLayer.#imageId(category),
         'icon-size': ['interpolate', ['linear'], ['zoom'], ...AccessScorePlacesLayer.#SIZE_STOPS],
         'icon-allow-overlap': false,
+        // Named places win collisions: where markers crowd, the named park is drawn and the unnamed playground
+        // inside it is what gets thinned, not the other way round.
+        'symbol-sort-key': AccessScorePlacesLayer.SORT_KEY,
         'text-field': ['step', ['zoom'], '', AccessScorePlacesLayer.#NAME_ZOOM, ['coalesce', ['get', 'name'], '']],
         'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
         'text-size': 11,
