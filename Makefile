@@ -402,7 +402,7 @@ test-scala:
 # keeping compiled classes so the next `make compile` is still incremental.
 clean-dist:
 	@echo "Removing packaged build output from $(host-dir)..."
-	@docker exec $(web-container) bash -lc "cd $(container-dir) && rm -rf target/scala-2.13/*.jar target/universal/stage"
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && rm -rf target/scala-2.13/*.jar target/universal/stage target/universal/*.zip"
 	@echo "Done. target/ is now $$(du -sh $(host-dir)/target 2>/dev/null | cut -f1)."
 
 # The JS/CSS/HTML linters run in the web container, where their node_modules live (no host-side npm install).

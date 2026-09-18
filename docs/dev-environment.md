@@ -299,7 +299,7 @@ make dev
 ### Checking that backend changes compile
 
 The quickest pass/fail on a Scala change is a compile. The sbt **thin client** hands the command to a background
-sbt server, so it won't collide with a running `sbt ~ run` over build locks:
+sbt server rather than starting its own:
 
 ```bash
 make compile
@@ -313,9 +313,10 @@ so it dies on startup, though `sbt --client --version` still prints happily (#52
 directory, so each worktree gets its own; `sbt shutdownall` stops every one of them, the running `~ run` included.
 An idle one stops itself after an hour (`serverIdleTimeout`) instead of holding ~1GB until you reboot.
 
-The targets go through [`tools/sbt-run.sh`](../tools/sbt-run.sh), which refuses to run while a `make qa-worktree`
-app holds that checkout's server — sbt would otherwise queue the command behind an app that never finishes, and
-the terminal would hang with nothing on screen.
+That server serves one command at a time, so **it will not run anything while `~ run` is up in the same
+checkout** — `run` holds the task for as long as the app lives, and your command queues behind it forever with
+nothing on screen. (A `~ compile` is fine; a watch loop yields between runs.) So run the app and compile it from
+different checkouts. [`tools/sbt-run.sh`](../tools/sbt-run.sh) refuses with an explanation rather than hanging.
 
 ### Running the backend tests
 
