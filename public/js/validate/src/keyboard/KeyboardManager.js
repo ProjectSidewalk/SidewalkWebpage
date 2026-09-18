@@ -88,7 +88,10 @@ class KeyboardManager {
     }
   }
 
-  /** Clicks the radio, not its label: a label click focuses the radio, which opens the tooltip (#5298). */
+  /**
+   * Clicks the radio, not its label: a label click focuses the radio, which opens the tooltip (#5298).
+   * @param {number} n - The severity to pick, 1-3.
+   */
   #clickSeverity(n) {
     $(`#validate-severity-radio-${n}`).click();
   }
