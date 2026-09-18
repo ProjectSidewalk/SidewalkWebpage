@@ -18,24 +18,21 @@
  * @param {(labelId: number) => void} [opts.onShow] - Called with the label's ID every time one is shown (map click,
  *     deep link, prev/next arrows); LabelMap uses it to keep the shown label spotlighted on the map.
  * @param {(labelId: number, metadata: Record<string, any>) => void} [opts.onMetadata] - Called with the label's ID
- *     and its fetched metadata payload once the shown label's data has loaded (skipped if another label was opened in
- *     the meantime); LabelMap uses the payload's camera coords to position the map for labels its own layer data
- *     can't locate.
+ *     and its metadata payload once the shown label's data has loaded, unless another label was opened meanwhile;
+ *     LabelMap uses the payload's camera coords to position the map for labels its own layer data can't locate.
  * @param {(labelId: number) => void} [opts.onClose] - Called with the last-shown label's ID whenever the dialog
  *     closes (X, ESC, or backdrop); LabelMap uses it to pulse that label's spot on the map.
  * @param {boolean} [opts.showLabelMapLink] - Show the popup's "View on Label Map" footer link (for hosts that
  *     aren't the label map themselves — e.g. the user dashboard).
  * @param {(vote: ?string, metadata: Record<string, any>) => void} [opts.onVote] - Called with the vote cast (or null
- *   for a cleared one) and the label's metadata after a validation lands, so a host showing the label elsewhere can
- *   refresh it.
+ *   for a cleared one) and the label's metadata once a validation lands, for a host that shows the label elsewhere.
  * @param {boolean} [opts.showExploreHereLink] - Show the popup's "Explore here" footer link, which opens Explore at
  *     the shown label's pano and point of view (#4637).
  * @returns {Promise<Omit<LabelDetail, 'showLabel'> & {showLabel: (labelId: number, source: string) => Promise<void>,
  *     setNearbyNavigator: (nav: {next: (labelId: number) => ?number, prev: (labelId: number) => ?number,
  *     hasPrev: (labelId: number) => boolean, hasNext: (labelId: number) => boolean,
- *     onRefresh: (listener: () => void) => void}) => void}>} Resolves with the LabelDetail, its showLabel() replaced
- *     by one that takes an id only and opens the dialog first, once the dialog is wired; the pano viewer itself is
- *     built on the first showLabel().
+ *     onRefresh: (listener: () => void) => void}) => void}>} Resolves once the dialog is wired, with the LabelDetail
+ *     whose showLabel() now takes an id only and opens the dialog first; the pano viewer is built on the first call.
  */
 async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, opts = {}) {
   const dialog = /** @type {HTMLDialogElement} */ (document.getElementById('label-modal'));

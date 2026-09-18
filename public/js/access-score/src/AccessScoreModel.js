@@ -14,7 +14,7 @@
  * @property {{per_meters: number, min_length_meters: number}} [length_normalization] - Optional because the model
  *     scores without it (nothing scaled by length), which the parity tests rely on.
  * @property {Record<string, Record<string, number>>} presets - Weight magnitude per type, by preset id; `default`
- *     is the engine's own.
+ *     holds the engine's own weights, the ones every reset returns to.
  * @property {?string} clusters_updated_at - When the clusters were last rebuilt (ISO 8601), or null for never.
  */
 
@@ -214,10 +214,10 @@ class AccessScoreModel {
 
   /**
    * @param {AccessScoreConfig} config - The `/v3/api/accessScoreConfig` response.
-   * @param {GeoJSON.FeatureCollection} streets - The `/v3/api/accessScoreStreets` response (properties are read;
-   *                                              geometry is left to the map).
+   * @param {GeoJSON.FeatureCollection} streets - The `/v3/api/accessScoreStreets` response; the properties are
+   *   read here, the geometry is the map's.
    * @param {GeoJSON.FeatureCollection} intersections - The `/v3/api/accessScoreIntersections` response; an empty
-   *                                                    one leaves every headline equal to its segment score.
+   *   one leaves every headline equal to its segment score.
    * @param {Array<{region_id: number, name: string, rate: number, total_distance_m: number,
    *   completed_distance_m: number}>} regions - `/regions/completionRates` rows.
    * @param {Partial<AccessScoreState>} [initialState] - Overrides of `DEFAULT_STATE` (e.g. from the URL).

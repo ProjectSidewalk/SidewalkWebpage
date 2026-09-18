@@ -1,6 +1,5 @@
 /**
- * What a dock view draws: the key the render/update split is decided on, plus whatever the view reads besides
- * (each view's `render` names its own shape).
+ * What a dock view draws: the key the render/update split turns on, plus whatever the view reads (its own typedef).
  * @typedef {{shapeKey: string} & Record<string, any>} AccessScoreChartData
  */
 
@@ -8,8 +7,8 @@
  * Base for the views in the AccessScore insights dock (#5217): a container, the callbacks a view reports through,
  * and the render/update split that keeps a slider drag cheap.
  *
- * Generic over the view's data, so a subclass declares `@augments {AccessScoreChart<ItsData>}` and the dock's
- * `draw` calls are checked against that shape.
+ * Generic over the view's data: a subclass declares `@augments {AccessScoreChart<ItsData>}`, and the dock's `draw`
+ * calls are then checked against that shape rather than against the base's loose one.
  *
  * `draw(data)` compares `data.shapeKey` with the last one drawn and calls `render` — a full DOM rebuild, for a new
  * unit, scope, or roster — only when it changed; otherwise `update`, which subclasses keep to writes of

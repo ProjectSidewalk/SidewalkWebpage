@@ -44,8 +44,8 @@ class AccessScoreSidebar {
   }
 
   /**
-   * Subscribes to changes. The callback receives the partial state the change sets (null for a reset, which the
-   * page resolves) and what the change was.
+   * Subscribes to changes. The callback receives the partial state the change sets — null for a reset, which the
+   * page resolves against the engine's defaults — and the change's meta, which says what moved and whether it settled.
    * @param {(partial: ?Partial<AccessScoreState>, meta: AccessScoreChangeMeta) => void} callback - The subscriber.
    */
   onChange(callback) {

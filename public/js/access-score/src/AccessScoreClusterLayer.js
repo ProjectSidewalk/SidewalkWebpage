@@ -5,8 +5,7 @@
  * @property {number} label_cluster_id
  * @property {string} label_type
  * @property {number} street_edge_id - The street the cluster sits on.
- * @property {?number} intersection_id - The crossing a corner-type cluster scores toward, or null when the cluster
- *     scores the street's segment.
+ * @property {?number} intersection_id - The crossing a corner-type cluster scores toward; null for a segment's.
  * @property {?number} median_severity - The labels' median rating, 1–3, or null for an unrated type.
  * @property {number} agree_count
  * @property {number} disagree_count
@@ -52,10 +51,10 @@ class AccessScoreClusterLayer {
    * @param {mapboxgl.Map} map - A loaded Mapbox map.
    * @param {object} options - Data and callbacks.
    * @param {string[]} options.types - The scored label types, in the engine's order (bottom layer first).
-   * @param {(props: AccessScoreClusterProps) => ?string} options.tooltipHtml - Called with a cluster's
-   *   `properties`; returns tooltip HTML or null.
-   * @param {(props: AccessScoreClusterProps) => void} options.onSelect - Called with a cluster's `properties` on a
-   *   click.
+   * @param {(props: AccessScoreClusterProps) => ?string} options.tooltipHtml - A cluster's `properties` in, its
+   *   tooltip's HTML out, or null for no tooltip.
+   * @param {(props: AccessScoreClusterProps) => void} options.onSelect - Called on a click with the cluster's
+   *   `properties`.
    */
   constructor(map, { types, tooltipHtml, onSelect }) {
     this.#map = map;

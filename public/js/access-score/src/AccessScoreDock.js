@@ -223,9 +223,9 @@ class AccessScoreDock {
   /**
    * Sets or clears the brush.
    * @param {?{from: number, to: number}} range - Bin indices, `to` exclusive, or null to clear.
-   * @param {{final?: boolean, log?: boolean, announce?: boolean}} [options] - `final` false mid-sweep (nothing is
-   *   logged or announced until release); `log` false for a programmatic change; `announce` false to skip the live
-   *   region.
+   * @param {{final?: boolean, log?: boolean, announce?: boolean}} [options] - `final` false mid-sweep, so nothing
+   *   is logged or announced until release; `log` false for a programmatic change; `announce` false to keep the
+   *   live region quiet.
    */
   setBrush(range, { final = true, log = true, announce = true } = {}) {
     this.#brush = range ? { from: range.from, to: range.to } : null;
