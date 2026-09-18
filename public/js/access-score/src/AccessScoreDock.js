@@ -26,14 +26,21 @@
  */
 class AccessScoreDock {
   #root;
+  /** @type {AccessScoreModel} */
   #model;
+  /** @type {AccessScoreMapView} */
   #mapView;
+  /** @type {mapboxgl.Map} */
   #map;
   #callbacks;
   #els;
+  /** @type {AccessScoreHistogram} */
   #histogram;
+  /** @type {AccessScoreWhatsHere} */
   #whatsHere;
+  /** @type {AccessScoreRankBars} */
   #rank;
+  /** @type {AccessScorePhotoStrip} */
   #photos;
   /** The scope the photo strip last loaded, so a slider tick never refetches it. */
   #photoScopeKey = null;
@@ -74,10 +81,11 @@ class AccessScoreDock {
    * @param {AccessScoreMapView} options.mapView - The map view, for the dim.
    * @param {mapboxgl.Map} options.map - The map, for the bottom padding.
    * @param {string} [options.cityName] - The city's short name, as the backend states it, for the needle label.
-   * @param {Function} options.onRankSelect - Called with a region id when a rank row is clicked.
-   * @param {Function} options.onOpenLabel - Called with `(labelId, stripLabelIds)` when a photo is chosen.
-   * @param {Function} options.onStateChange - Called after any change the URL should carry.
-   * @param {Function} [options.log] - Called with `(kind, value)` for an interaction worth logging.
+   * @param {(regionId: number) => void} options.onRankSelect - Called when a rank row is clicked.
+   * @param {(labelId: number, stripLabelIds: number[]) => void} [options.onOpenLabel] - Called when a photo is
+   *   chosen, with the strip's label ids for the card's arrows to page through.
+   * @param {() => void} options.onStateChange - Called after any change the URL should carry.
+   * @param {(kind: string, value?: string|number) => void} [options.log] - Called for an interaction worth logging.
    */
   constructor(root, {
     model, mapView, map, cityName = '', onRankSelect, onOpenLabel = () => {}, onStateChange, log = () => {},
@@ -154,7 +162,8 @@ class AccessScoreDock {
 
   /**
    * Applies the state a URL carried.
-   * @param {object} state - Any of `open` (boolean), `brush` (`{from, to}` in bin indices) and `focus` (a region id).
+   * @param {{open?: boolean, brush?: ?{from: number, to: number}, focus?: ?number}} [state] - Whether the dock is
+   *   open, the brush in bin indices, and the focused region's id; each left out when the URL didn't say.
    */
   applyUrlState({ open, brush, focus } = {}) {
     if (open === false) this.setOpen(false, { log: false });
@@ -164,7 +173,7 @@ class AccessScoreDock {
 
   /**
    * Redraws for a model change, as reported by the sidebar.
-   * @param {{kind: string, final: boolean}} meta - The change; a weight mid-drag skips the map's dim rewrite.
+   * @param {AccessScoreChangeMeta} meta - The change; a weight mid-drag skips the map's dim rewrite.
    */
   applyChange(meta) {
     // A focused region belongs to the unit it was chosen in; the reset puts the band back to the city.
@@ -175,7 +184,7 @@ class AccessScoreDock {
 
   /**
    * Follows the map's selection: the histogram and the rank list mark it, and the map fades everything else.
-   * @param {?{unit: string, id: number}} selection - The selection, or null.
+   * @param {?{unit: AccessScoreUnit, id: number}} selection - The selection, or null.
    */
   setSelection(selection) {
     this.#selection = selection ? { unit: selection.unit, id: selection.id } : null;
@@ -187,7 +196,7 @@ class AccessScoreDock {
   /**
    * Follows the map's hover: the histogram caret, the collapsed strip's caret, and the rank list mark the feature
    * under the pointer.
-   * @param {?{unit: string, id: number, score: ?number}} hover - The hovered feature, or null on leave.
+   * @param {?{unit: AccessScoreUnit, id: number, score: ?number}} hover - The hovered feature, or null on leave.
    */
   markHover(hover) {
     this.#mapHover = hover;
@@ -200,7 +209,7 @@ class AccessScoreDock {
   /**
    * Opens or collapses the dock. Collapsed, only the bar with the ramp strip and the KPIs stays.
    * @param {boolean} open - The state.
-   * @param {object} [options] - `log` false for a programmatic change.
+   * @param {{log?: boolean}} [options] - `log` false for a programmatic change.
    */
   setOpen(open, { log = true } = {}) {
     this.#open = open;
@@ -214,8 +223,9 @@ class AccessScoreDock {
   /**
    * Sets or clears the brush.
    * @param {?{from: number, to: number}} range - Bin indices, `to` exclusive, or null to clear.
-   * @param {object} [options] - `final` false mid-sweep (nothing is logged or announced until release);
-   *                             `announce` false to skip the live region.
+   * @param {{final?: boolean, log?: boolean, announce?: boolean}} [options] - `final` false mid-sweep, so nothing
+   *   is logged or announced until release; `log` false for a programmatic change; `announce` false for a change
+   *   the live region should not read out, such as the brush a shared link carried in.
    */
   setBrush(range, { final = true, log = true, announce = true } = {}) {
     this.#brush = range ? { from: range.from, to: range.to } : null;
@@ -306,7 +316,7 @@ class AccessScoreDock {
 
   /**
    * Re-renders the photo strip's card for a label from fresh JSON, after a vote cast in the full label card.
-   * @param {object} label - A `/label/id/:id` JSON.
+   * @param {Record<string, any>} label - A `/label/id/:id` JSON.
    */
   refreshLabel(label) {
     this.#photos.refreshLabel(label);

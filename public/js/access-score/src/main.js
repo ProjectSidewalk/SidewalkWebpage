@@ -48,13 +48,17 @@ window.AccessScoreApp = (function () {
    * @param {string} options.mapboxApiKey - The Mapbox access token.
    * @param {typeof PanoViewer} options.viewerType - The pano viewer class for the city's imagery, for the label card.
    * @param {string} options.imageryAccessToken - The imagery provider's token.
-   * @param {?string} options.username - The signed-in user's name, or null.
-   * @returns {Promise<object>} Resolves with `{map, model, mapView}` once the map is scored (also exposed as
-   *   `window.accessScore` for the insights panel and the browser tests).
+   * @param {?string} [options.username] - The signed-in user's name, or null.
+   * @returns {Promise<{map: mapboxgl.Map, model: AccessScoreModel, mapView: AccessScoreMapView,
+   *   sidebar: AccessScoreSidebar, dock: AccessScoreDock, config: AccessScoreConfig,
+   *   streets: GeoJSON.FeatureCollection, regions: GeoJSON.FeatureCollection, clusterLoader: ViewportLabelLoader,
+   *   clusterLayer: AccessScoreClusterLayer, placeSearch: ?{clear: () => boolean}}>} Resolves once the map is scored
+   *   (also exposed as `window.accessScore` for the browser tests).
    */
   async function start({ mapboxApiKey, viewerType, imageryAccessToken, username = null }) {
     const overlay = new MapLoadingOverlay({ onRetry: () => window.location.reload() });
     const sidebarEl = document.getElementById('filter-sidebar');
+    /** @type {mapboxgl.Map} */
     let map = null;
 
     const dataPromise = Promise.all([
@@ -75,7 +79,10 @@ window.AccessScoreApp = (function () {
     document.getElementById('acs-map-holder')?.classList.toggle('acs-map-holder--dark', dark);
 
     let initialCamera = null;
-    // The address-search handle, kept so the app object can hand out its `clear()` (#5321).
+    /**
+     * The address-search handle, kept so the app object can hand out its `clear()` (#5321).
+     * @type {?{clear: () => boolean}}
+     */
     let placeSearch = null;
     const mapPromise = createPSMap($, {
       mapName: 'acs-map',
@@ -110,7 +117,9 @@ window.AccessScoreApp = (function () {
     const model = new AccessScoreModel(config, streets, intersections, completion, urlState.state);
     const sidebar = new AccessScoreSidebar(sidebarEl, config);
     const urlSync = new AccessScoreUrlSync(model, map);
+    /** @type {?mapboxgl.Popup} */
     let popup = null;
+    /** @type {?AccessScoreDock} */
     let dock = null;
 
     const explanationHtml = ({ unit, id }) => (unit === 'streets' ? streetPopupHtml(id) : regionPopupHtml(id));
@@ -219,7 +228,7 @@ window.AccessScoreApp = (function () {
     renderUpdatedAt(config.clusters_updated_at);
     // A live `setStyle` drops everything the tool added, so the map view and the cluster layer remount once the new
     // style has loaded. The band keeps the light ramp; only the map surface changes.
-    const darkInput = document.getElementById('acs-dark-map');
+    const darkInput = /** @type {HTMLInputElement} */ (document.getElementById('acs-dark-map'));
     /** Swaps the basemap; the toggle's own change logs it, a reset does not (it logs `ResetAll`). */
     const setDarkMap = (next) => {
       document.getElementById('acs-map-holder')?.classList.toggle('acs-map-holder--dark', next);
@@ -306,6 +315,7 @@ window.AccessScoreApp = (function () {
      * arithmetic uses, which is exactly the question a reader checking a score would trip over.
      */
     async function mountClusterEvidence() {
+      /** @type {?AccessScoreClusterSheet} */
       let sheet = null;
       const popupLabelViewer = await LabelPopup(false, viewerType, imageryAccessToken, username, {
         syncUrlSource: 'AccessScore',
@@ -612,7 +622,7 @@ window.AccessScoreApp = (function () {
 
   // Hops out of a popup are logged by delegation, since the popup's DOM is rebuilt on every selection.
   document.addEventListener('click', (e) => {
-    const hop = e.target.closest?.('[data-acs-hop]');
+    const hop = e.target instanceof Element ? e.target.closest('[data-acs-hop]') : null;
     if (hop) log(hop.dataset.acsHop);
   });
 

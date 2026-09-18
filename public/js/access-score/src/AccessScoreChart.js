@@ -1,6 +1,14 @@
 /**
+ * What a dock view draws: the key the render/update split turns on, plus whatever the view reads (its own typedef).
+ * @typedef {{shapeKey: string} & Record<string, any>} AccessScoreChartData
+ */
+
+/**
  * Base for the views in the AccessScore insights dock (#5217): a container, the callbacks a view reports through,
  * and the render/update split that keeps a slider drag cheap.
+ *
+ * Generic over the view's data: a subclass declares `@augments {AccessScoreChart<ItsData>}`, and the dock's `draw`
+ * calls are then checked against that shape rather than against the base's loose one.
  *
  * `draw(data)` compares `data.shapeKey` with the last one drawn and calls `render` — a full DOM rebuild, for a new
  * unit, scope, or roster — only when it changed; otherwise `update`, which subclasses keep to writes of
@@ -10,6 +18,7 @@
  * The views are hand-rolled HTML rather than a chart library: the page already carries Mapbox GL and a pano SDK,
  * and every datum here is a named, focusable element in its own right, which is also why there is no separate
  * table view — the chart *is* readable without color or a pointer.
+ * @template {AccessScoreChartData} [T=AccessScoreChartData]
  */
 class AccessScoreChart {
   #container;
@@ -33,7 +42,7 @@ class AccessScoreChart {
 
   /**
    * Draws the data, rebuilding the DOM only when its shape changed.
-   * @param {object} data - View data; `data.shapeKey` names the shape (unit, scope, roster) it was computed for.
+   * @param {T} data - View data; `shapeKey` names the shape (unit, scope, roster) it was computed for.
    */
   draw(data) {
     if (data.shapeKey !== this.#shapeKey) {
@@ -46,7 +55,7 @@ class AccessScoreChart {
 
   /**
    * Full DOM rebuild. Subclasses cache the nodes `update` writes to here.
-   * @param {object} data - View data.
+   * @param {T} data - View data.
    */
   render(data) { // eslint-disable-line no-unused-vars
     throw new Error('render() is abstract');
@@ -54,7 +63,7 @@ class AccessScoreChart {
 
   /**
    * A cheap redraw over the DOM `render` built: values, widths, colors, states — never structure.
-   * @param {object} data - View data of the same shape as the last render.
+   * @param {T} data - View data of the same shape as the last render.
    */
   update(data) { // eslint-disable-line no-unused-vars
     throw new Error('update() is abstract');
@@ -72,7 +81,7 @@ class AccessScoreChart {
   /**
    * A number in the reader's locale.
    * @param {number} value - The number.
-   * @param {object} [options] - `Intl.NumberFormat` options.
+   * @param {Intl.NumberFormatOptions} [options] - `Intl.NumberFormat` options.
    * @returns {string} The formatted number.
    */
   static number(value, options = {}) {
@@ -104,7 +113,7 @@ class AccessScoreChart {
    * caller — so a name with an apostrophe or ampersand is not entity-escaped on its way in: i18next escapes
    * interpolated values for HTML sinks by default.
    * @param {string} key - The i18next key.
-   * @param {object} [vars] - Interpolation values.
+   * @param {Record<string, any>} [vars] - Interpolation values.
    * @returns {string} The translation, values interpolated verbatim.
    */
   static text(key, vars = {}) {

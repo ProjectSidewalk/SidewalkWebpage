@@ -17,8 +17,9 @@ class AccessScoreClusterSheet {
 
   /**
    * @param {object} options - Callbacks.
-   * @param {Function} options.onOpenLabel - Called with `(labelId, clusterLabelIds)` when a card is chosen.
-   * @param {Function} [options.log] - Called with `(kind, value)` for an interaction worth logging.
+   * @param {(labelId: number, clusterLabelIds: number[]) => void} options.onOpenLabel - Called when a card is
+   *   chosen, with the cluster's label ids for the card's arrows to page through.
+   * @param {(kind: string, value?: string|number) => void} [options.log] - Called for an interaction worth logging.
    */
   constructor({ onOpenLabel, log = () => {} }) {
     this.#onOpenLabel = onOpenLabel;
@@ -63,8 +64,7 @@ class AccessScoreClusterSheet {
 
   /**
    * Opens the sheet for a cluster and loads its labels.
-   * @param {object} props - The cluster's properties from the map layer: `label_type`, `label_ids`,
-   *                         `cluster_size`, `median_severity`, `street_edge_id`.
+   * @param {AccessScoreClusterProps} props - The cluster's properties from the map layer.
    * @param {string} [effect] - An optional line saying what the cluster's type does to its street's score.
    */
   async open(props, effect = '') {
@@ -120,7 +120,7 @@ class AccessScoreClusterSheet {
 
   /**
    * Re-renders one card from fresh label JSON, after a vote cast in the full label card.
-   * @param {object} label - A `/label/id/:id` JSON.
+   * @param {Record<string, any>} label - A `/label/id/:id` JSON.
    */
   refreshLabel(label) {
     this.#cards.get(label.label_id)?.update(label);

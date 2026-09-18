@@ -1,4 +1,14 @@
 /**
+ * What the rank list draws.
+ * @typedef {object} AccessScoreRankBarsData
+ * @property {string} shapeKey - The roster's region ids: the rows are rebuilt when it changes.
+ * @property {AccessScoreRegionStats[]} rows - From `AccessScoreModel#rankedRegions`, best first.
+ * @property {?{from: number, to: number}} brush - Bin indices, `to` exclusive, or null with no brush.
+ * @property {?number} selectedId - The region to mark, or null.
+ * @property {number} floored - How many regions the completion floor left out.
+ */
+
+/**
  * The regions ranked by score in the AccessScore insights dock (#5217): every region with enough data,
  * best first, each a button carrying its name, a bar colored by the ramp at its score, and the figure.
  *
@@ -9,17 +19,14 @@
  *
  * Callbacks: `onSelect(regionId)` on a click; `onHover(regionId)` and `onHoverEnd()` as the pointer or focus
  * rests on a row.
+ * @augments {AccessScoreChart<AccessScoreRankBarsData>}
  */
 class AccessScoreRankBars extends AccessScoreChart {
   #els = null;
   #rows = new Map();
   #selectedId = null;
 
-  /**
-   * @param {object} data - `{shapeKey, rows, brush, selectedId, hoverId, floored}`: `rows` from
-   *   `AccessScoreModel#rankedRegions` (the shape key names their ids), `brush` `{from, to}` in bin indices or
-   *   null, `selectedId` the region to mark or null, `floored` how many regions the completion floor left out.
-   */
+  /** @param {AccessScoreRankBarsData} data - What to draw. */
   render(data) {
     const c = this.container;
     c.innerHTML = `
@@ -53,6 +60,7 @@ class AccessScoreRankBars extends AccessScoreChart {
     this.update(data);
   }
 
+  /** @param {AccessScoreRankBarsData} data - What to draw, over the rows of the last render. */
   update(data) {
     const list = this.#els.list;
     // Appending an existing node moves it, so the reorder is the sort itself, with no teardown.

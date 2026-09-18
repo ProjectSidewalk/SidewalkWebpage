@@ -1,4 +1,98 @@
 /**
+ * The engine's constants as `/v3/api/accessScoreConfig` publishes them — the keys the tool reads; the response
+ * carries more (`tag_adjustments`, `preset_order`, …) that only the API docs show.
+ * @typedef {object} AccessScoreConfig
+ * @property {string[]} scored_types - The scored label types, in the engine's order.
+ * @property {string[]} intersection_types - The corner types an intersection is scored from.
+ * @property {string[]} severity_buckets - The rating buckets ('1', '2', '3', 'null'), in the engine's order.
+ * @property {Record<string, {base_weight: number, scoring: string, length_normalized: boolean}>} type_weights - Per
+ *     scored type: its signed default weight, its scoring mode (`presence_only`, `positive_quality`,
+ *     `negative_severity`, `street_condition`) and whether its term is a per-length density.
+ * @property {Record<string, number>} quality_multiplier - Per bucket, for a `positive_quality` type.
+ * @property {Record<string, number>} severity_multiplier - Per bucket, for a `negative_severity` type.
+ * @property {number} street_condition_saturation_count - Clusters at which a `street_condition` type's term is full.
+ * @property {number} [min_region_completion] - The share of a region's streets that must be explored before its
+ *     score is shown (#5215); optional so a config from before it hatches nothing rather than by a number this file
+ *     invents.
+ * @property {{per_meters: number, min_length_meters: number}} [length_normalization] - Optional because the model
+ *     scores without it (nothing scaled by length), which the parity tests rely on.
+ * @property {Record<string, Record<string, number>>} presets - Weight magnitude per type, by preset id; `default`
+ *     holds the engine's own weights, the ones every reset returns to.
+ * @property {?string} clusters_updated_at - When the clusters were last rebuilt (ISO 8601), or null for never.
+ */
+
+/**
+ * Which features the tool scores and draws: streets, or the regions rolled up from them.
+ * @typedef {'streets'|'regions'} AccessScoreUnit
+ */
+
+/**
+ * The tool's state: what the sidebar sets and every view reads.
+ * @typedef {object} AccessScoreState
+ * @property {AccessScoreUnit} unit
+ * @property {?Record<string, number>} weights - Weight magnitude per scored type. Null only in `DEFAULT_STATE`,
+ *     meaning the engine's defaults; the model fills it in at construction.
+ * @property {boolean} showUnaudited - Whether unaudited streets are drawn faintly rather than left off the map.
+ * @property {boolean} showClusters - Whether the cluster evidence layer is drawn.
+ */
+
+/**
+ * One scored type's part of a street's or an intersection's score.
+ * @typedef {object} AccessScoreTerm
+ * @property {number} clusterCount - Clusters of the type on the street (or at the crossing).
+ * @property {Record<string, number>} buckets - Those clusters per rating bucket.
+ * @property {number} units - The rating-weighted cluster count the weight applies to.
+ * @property {number} weight - The signed weight under the current state.
+ * @property {number} weighted - `weight × units`.
+ * @property {number} tagAdjustment - The tag-based delta the engine adds.
+ * @property {number} lengthFactor - The per-length scaling for a length-normalized type; 1 otherwise.
+ * @property {number} term - `(weighted + tagAdjustment) × lengthFactor`, the type's whole contribution.
+ */
+
+/**
+ * How a street's score comes about under the current state, from `explainStreet`.
+ * @typedef {object} AccessScoreStreetExplanation
+ * @property {number} streetId
+ * @property {?string} name - The street's OSM name, or null for an unnamed way.
+ * @property {number} regionId
+ * @property {number} lengthM
+ * @property {boolean} audited
+ * @property {?number} score - The headline (the mean of the segment and its scored end crossings); null unaudited.
+ * @property {?number} segmentScore - The block's own score; null when unaudited.
+ * @property {?{id: number, score: ?number}} startIntersection - The crossing at the start, its `score` null where
+ *     the crossing is unscored; null where the street has no crossing at that end.
+ * @property {?{id: number, score: ?number}} endIntersection - Likewise at the end.
+ * @property {number} preSigmoid - The sum of the segment's terms.
+ * @property {Record<string, AccessScoreTerm>} terms - The segment's term per scored type.
+ */
+
+/**
+ * How an intersection's score comes about under the current state, from `explainIntersection`.
+ * @typedef {object} AccessScoreIntersectionExplanation
+ * @property {number} intersectionId
+ * @property {number} regionId
+ * @property {boolean} gradeSeparated
+ * @property {boolean} audited
+ * @property {?number} score - Null when grade-separated or unaudited.
+ * @property {number} preSigmoid - The sum of the corner terms.
+ * @property {Record<string, AccessScoreTerm>} terms - The corner types only, each with `lengthFactor` 1.
+ */
+
+/**
+ * One region's roll-up under the current state, from `regionStats` and `explainRegion`.
+ * @typedef {object} AccessScoreRegionStats
+ * @property {number} regionId
+ * @property {string} name
+ * @property {number} completion - The share of the region's street network audited, in [0, 1].
+ * @property {?number} score - The street-length-weighted mean of its audited streets' scores; null with none.
+ * @property {boolean} belowFloor - True when `completion` is under the floor, so the score is withheld.
+ * @property {number} streetCount
+ * @property {number} auditedStreetCount
+ * @property {number} totalLengthM
+ * @property {number} auditedLengthM
+ */
+
+/**
  * The AccessScore tool's scoring model: the engine's math, re-run in the browser (#5217).
  *
  * Holds one city's streets and intersections as the count-based inputs `/v3/api/accessScoreStreets` and
@@ -29,7 +123,10 @@
  * in Seattle, about a millisecond) and the map/chart adapters read the results.
  */
 class AccessScoreModel {
-  /** The state a fresh page starts in; `weights` null means the engine's default weights. */
+  /**
+   * The state a fresh page starts in; `weights` null means the engine's default weights.
+   * @type {Readonly<AccessScoreState>}
+   */
   static DEFAULT_STATE = Object.freeze({
     unit: 'streets',
     weights: null,
@@ -40,6 +137,7 @@ class AccessScoreModel {
   /** Histogram resolution over the 0–1 score range. */
   static HISTOGRAM_BINS = 10;
 
+  /** @type {AccessScoreConfig} */
   #config;
   /**
    * The share of a region's street network that must be explored before its score is shown; below it the region is
@@ -96,6 +194,7 @@ class AccessScoreModel {
   #regions = [];
   #regionIndexById = new Map();
 
+  /** @type {AccessScoreState} */
   #state;
   // Derived per pass.
   #units;
@@ -109,6 +208,7 @@ class AccessScoreModel {
   #intScores;
   /** Histogram bin per street, filled alongside the scores; `UNBINNED` for an unaudited street. */
   #bins;
+  /** @type {AccessScoreRegionStats[]} */
   #regionStats = [];
   #cityContributions = null;
 
@@ -116,14 +216,14 @@ class AccessScoreModel {
   static UNBINNED = 255;
 
   /**
-   * @param {object} config - The `/v3/api/accessScoreConfig` response.
-   * @param {object} streets - The `/v3/api/accessScoreStreets` GeoJSON FeatureCollection (properties are read;
-   *                           geometry is left to the map).
-   * @param {object} intersections - The `/v3/api/accessScoreIntersections` GeoJSON FeatureCollection; an empty
-   *                                 one leaves every headline equal to its segment score.
-   * @param {Array<object>} regions - `/regions/completionRates` rows: `region_id`, `name`, `rate`,
-   *                                  `total_distance_m`, `completed_distance_m`.
-   * @param {object} [initialState] - Overrides of `DEFAULT_STATE` (e.g. from the URL).
+   * @param {AccessScoreConfig} config - The `/v3/api/accessScoreConfig` response.
+   * @param {GeoJSON.FeatureCollection} streets - The `/v3/api/accessScoreStreets` response; the properties are
+   *   read here, the geometry is the map's.
+   * @param {GeoJSON.FeatureCollection} intersections - The `/v3/api/accessScoreIntersections` response; an empty
+   *   one leaves every headline equal to its segment score.
+   * @param {Array<{region_id: number, name: string, rate: number, total_distance_m: number,
+   *   completed_distance_m: number}>} regions - `/regions/completionRates` rows.
+   * @param {Partial<AccessScoreState>} [initialState] - Overrides of `DEFAULT_STATE` (e.g. from the URL).
    */
   constructor(config, streets, intersections, regions, initialState = {}) {
     this.#config = config;
@@ -157,7 +257,10 @@ class AccessScoreModel {
     this.#recompute();
   }
 
-  /** The engine configuration the model was built from. */
+  /**
+   * The engine configuration the model was built from.
+   * @returns {AccessScoreConfig}
+   */
   get config() {
     return this.#config;
   }
@@ -167,7 +270,10 @@ class AccessScoreModel {
     return this.#types;
   }
 
-  /** A copy of the current state. */
+  /**
+   * A copy of the current state.
+   * @returns {AccessScoreState}
+   */
   get state() {
     return { ...this.#state, weights: { ...this.#state.weights } };
   }
@@ -228,8 +334,7 @@ class AccessScoreModel {
 
   /**
    * Per-region roll-ups under the current state, in the order the regions were given.
-   * @returns {Array<{regionId: number, name: string, completion: number, score: ?number, belowFloor: boolean,
-   *   streetCount: number, auditedStreetCount: number, totalLengthM: number, auditedLengthM: number}>}
+   * @returns {AccessScoreRegionStats[]}
    */
   get regionStats() {
     return this.#regionStats;
@@ -244,8 +349,8 @@ class AccessScoreModel {
   /**
    * Applies a partial state and recomputes. A partial `weights` merges over the current magnitudes.
    *
-   * @param {object} partial - Any of the `DEFAULT_STATE` keys.
-   * @returns {object} The resulting state (a copy).
+   * @param {Partial<AccessScoreState>} partial - Any of the `DEFAULT_STATE` keys.
+   * @returns {AccessScoreState} The resulting state (a copy).
    */
   setState(partial) {
     const next = { ...this.#state, ...partial };
@@ -269,18 +374,15 @@ class AccessScoreModel {
    * How a street's score comes about under the current state, for the "why this score" panel.
    *
    * @param {number} streetId - The street's `street_edge_id`.
-   * @returns {?object} `{streetId, name, regionId, lengthM, audited, score, segmentScore, startIntersection,
-   *   endIntersection, preSigmoid, terms}`: `score` is the headline, `segmentScore` the block's own score (null
-   *   when unaudited), each end `{id, score}` with `score` null where the crossing is unscored, or null where the
-   *   street has no crossing at that end; `terms` (the segment's) maps each scored type to `{clusterCount, buckets,
-   *   units, weight, weighted, tagAdjustment, lengthFactor, term}` — `term` is `(weighted + tagAdjustment) ×
-   *   lengthFactor`. Null for an unknown id.
+   * @returns {?AccessScoreStreetExplanation} The headline, the block's own score, each end crossing's, and the
+   *   segment's term per scored type. Null for an unknown id.
    */
   explainStreet(streetId) {
     const i = this.#indexById.get(streetId);
     if (i === undefined) return null;
     const T = this.#types.length;
     const B = this.#buckets.length;
+    /** @type {Record<string, AccessScoreTerm>} */
     const terms = {};
     let preSigmoid = 0;
     this.#types.forEach((type, t) => {
@@ -323,15 +425,14 @@ class AccessScoreModel {
    * How an intersection's score comes about under the current state.
    *
    * @param {number} intersectionId - The intersection's `intersection_id`.
-   * @returns {?object} `{intersectionId, regionId, gradeSeparated, audited, score, preSigmoid, terms}` — `score`
-   *   null when grade-separated or unaudited; `terms` covers the corner types only, in the shape `explainStreet`
-   *   uses (with `lengthFactor` 1). Null for an unknown id.
+   * @returns {?AccessScoreIntersectionExplanation} Its score and the corner types' terms. Null for an unknown id.
    */
   explainIntersection(intersectionId) {
     const j = this.#intIndexById.get(intersectionId);
     if (j === undefined) return null;
     const TI = this.#intTypeIdx.length;
     const B = this.#buckets.length;
+    /** @type {Record<string, AccessScoreTerm>} */
     const terms = {};
     let preSigmoid = 0;
     this.#intTypeIdx.forEach((t, u) => {
@@ -366,7 +467,7 @@ class AccessScoreModel {
   /**
    * One region's roll-up under the current state.
    * @param {number} regionId - The region's id.
-   * @returns {?object} The entry of `regionStats`, or null for an unknown id.
+   * @returns {?AccessScoreRegionStats} The entry of `regionStats`, or null for an unknown id.
    */
   explainRegion(regionId) {
     const r = this.#regionIndexById.get(regionId);
@@ -485,7 +586,7 @@ class AccessScoreModel {
 
   /**
    * Every scored region, best first; a tie goes to the one with more audited length behind its score.
-   * @returns {Array<object>} Entries of `regionStats`, floor applied.
+   * @returns {AccessScoreRegionStats[]} Entries of `regionStats`, floor applied.
    */
   rankedRegions() {
     return this.#regionStats.filter((r) => r.score !== null && !r.belowFloor)
@@ -557,7 +658,7 @@ class AccessScoreModel {
    * The intersection array indices a scope takes in, each once: the ends of a street set, the intersections of a
    * region set, or every intersection for the city. The one rule for every aggregate that pools crossings with
    * streets, so What's here, the contribution bars, and the KPIs agree on which corners they are counting.
-   * @param {object} scope - `{streetIds}` or `{regionIds}`, or neither.
+   * @param {{streetIds?: Set<number>, regionIds?: Set<number>}} scope - A street set, a region set, or neither.
    * @returns {Iterable<number>} Indices into the intersection arrays.
    */
   #intersectionsInScope({ streetIds, regionIds }) {

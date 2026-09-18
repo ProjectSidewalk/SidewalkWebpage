@@ -15,7 +15,9 @@
 class AccessScoreUrlSync {
   static #WRITE_DELAY_MS = 300;
 
+  /** @type {AccessScoreModel} */
   #model;
+  /** @type {mapboxgl.Map} */
   #map;
   #writeTimer = null;
   #selection = null;
@@ -26,15 +28,15 @@ class AccessScoreUrlSync {
    * The state a URL asks for, validated against the engine config. Unknown or malformed tokens are dropped, so a
    * link from an older build degrades to the defaults rather than failing.
    *
-   * @param {object} config - The `/v3/api/accessScoreConfig` response.
+   * @param {AccessScoreConfig} config - The `/v3/api/accessScoreConfig` response.
    * @param {string} [search=window.location.search] - The query string to read.
-   * @returns {{state: object, selection: ?number, dark: boolean,
-   *   dock: {open: boolean, brush: ?object, focus: ?number}}} A partial
-   *   `AccessScoreModel` state, the selected id if any, whether the dark basemap is asked for, and the dock's
-   *   state (`brush` as `{from, to}` bin indices).
+   * @returns {{state: Partial<AccessScoreState>, selection: ?number, dark: boolean,
+   *   dock: {open: boolean, brush: ?{from: number, to: number}, focus: ?number}}} A partial `AccessScoreModel`
+   *   state, the selected id if any, whether the dark basemap is asked for, and the dock's state in bin indices.
    */
   static read(config, search = window.location.search) {
     const params = new URLSearchParams(search);
+    /** @type {Partial<AccessScoreState>} */
     const state = {};
     const unit = params.get('unit');
     if (unit === 'streets' || unit === 'regions') state.unit = unit;
