@@ -346,7 +346,9 @@ class AccessScorePlacesLayer {
     this.#map.on('mouseleave', this.#layers, () => this.#clearHover());
     this.#map.on('click', this.#layers, (e) => {
       if (!e.features.length) return;
-      // The street or region under the marker keeps its selection; AccessScoreMapView checks defaultPrevented.
+      // The street or region under the marker is not what was clicked: AccessScoreMapView asks `claims` before it
+      // selects one. Its bare-map handler was registered first, so it runs before this and clears any selection —
+      // which is the page's "one card at a time" rule anyway. `preventDefault` marks the click handled for the rest.
       e.preventDefault();
       const feature = e.features[0];
       const [lng, lat] = feature.geometry.coordinates;

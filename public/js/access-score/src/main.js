@@ -233,7 +233,8 @@ window.AccessScoreApp = (function () {
         // What is drawn (unit, cluster dots, unaudited streets) is the reader's view, not the weighting, and stays.
         model.setState({ weights: { ...config.presets.default } });
         sidebar.setState(model.state);
-      } else {
+      } else if (partial) {
+        // A `Section` fold changes nothing the model holds and reports null.
         model.setState(partial);
       }
       applyChange(meta);
@@ -427,7 +428,9 @@ window.AccessScoreApp = (function () {
       };
       map.on('zoomend', updateZoomHint);
 
-      // A place is not a `sel`: the street/region selection stays untouched, so the dock keeps its scope.
+      // A place is not a `sel` — it never scopes the dock or lands in `sel=` — but one card is open at a time, so a
+      // street or region card closes, and its selection with it, when a place card opens (as `select` does the
+      // reverse).
       const selectPlace = (props, { fromUrl = false } = {}) => {
         const previous = card;
         card = null;

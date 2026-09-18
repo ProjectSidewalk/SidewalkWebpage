@@ -188,7 +188,7 @@ test.describe('/accessScore', () => {
     await expect(page.locator('#filter-sidebar')).not.toHaveClass(/filter-sidebar--loading/);
   });
 
-  test('a weight slider re-scores in the browser and marks the weights custom', async ({page, context}) => {
+  test('a weight slider re-scores in the browser and marks the weights custom', async ({page, context, consoleErrors}) => {
     const scoreRequests = [];
     await context.route('**/v3/api/accessScoreStreets*', (route) => {
       scoreRequests.push(route.request().url());
@@ -231,6 +231,8 @@ test.describe('/accessScore', () => {
     await waitForTool(page);
     await expect(page.locator('#acs-weights-toggle')).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator('#acs-weights')).toBeVisible();
+    // The fold's click reports no state; the page must not try to apply one.
+    expect(consoleErrors).toEqual([]);
   });
 
   test('switching to regions shows the choropleth and rolls the streets up', async ({page}) => {
@@ -634,7 +636,7 @@ test.describe('/accessScore', () => {
     await expect(pin).toHaveCount(0);
   });
 
-  test('the places layer draws one row per category, and its toggles reach the map and the URL (#5311)', async ({page}) => {
+  test('the places layer draws one row per category, and its toggles reach the map and the URL (#5311)', async ({page, consoleErrors}) => {
     await page.goto('/accessScore');
     await waitForAppReady(page);
     await waitForTool(page);
@@ -679,10 +681,11 @@ test.describe('/accessScore', () => {
     await expect.poll(visibility).toEqual({school: 'visible', transit: 'visible'});
     await expect(page.locator('#acs-place-transit')).toBeChecked();
     await expect.poll(() => urlParam(page, 'pc')).toBeNull();
+    expect(consoleErrors).toEqual([]);
   });
 
   test('a place card names the place and the score of its street, hops to it, and round-trips through the URL (#5311)',
-    async ({page}) => {
+    async ({page, consoleErrors}) => {
       await page.goto('/accessScore');
       await waitForAppReady(page);
       await waitForTool(page);
@@ -693,7 +696,7 @@ test.describe('/accessScore', () => {
       await expect(card.locator('.acs-popup__title')).toHaveText('Fixture High School');
       await expect(card.locator('.acs-popup__place-score')).toHaveText('81.8');
       await expect(card.locator('.acs-popup__osm')).toHaveAttribute('href', 'https://www.openstreetmap.org/node/1001');
-      // A place is not a street selection: the dock keeps its city scope and `sel` stays out of the URL.
+      // A place is not a street selection: it never lands in `sel`, and the dock keeps its city scope.
       await expect.poll(() => urlParam(page, 'place')).toBe('40.88050,-74.00890');
       await expect.poll(() => urlParam(page, 'placeName')).toBe('Fixture High School');
       expect(await urlParam(page, 'sel')).toBeNull();
@@ -720,5 +723,6 @@ test.describe('/accessScore', () => {
       await waitForAppReady(page);
       await waitForTool(page);
       await expect(page.locator('.acs-popup .acs-popup__title')).toHaveText('Fixture High School');
+      expect(consoleErrors).toEqual([]);
     });
 });
