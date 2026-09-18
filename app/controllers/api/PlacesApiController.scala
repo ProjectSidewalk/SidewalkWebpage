@@ -71,13 +71,17 @@ class PlacesApiController @Inject() (
         configService.getCityMapParams.flatMap { cityMapParams =>
           val (finalBbox, finalRegionId, finalRegionName) =
             resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
-          val filters = PlaceFiltersForApi(
-            bbox = finalBbox,
+          // Every place already sits within 250 m of a region, so with no location filter the whole city is the
+          // answer, not the configured map box that the sibling endpoints fall back to: a category on its own then
+          // reads the same city-wide list the tool downloads.
+          val noLocationFilter: Boolean = bbox.isEmpty && regionId.isEmpty && regionName.isEmpty
+          val filters                   = PlaceFiltersForApi(
+            bbox = if (noLocationFilter) None else finalBbox,
             regionId = finalRegionId,
             regionName = finalRegionName,
             categories = parsedCategories.toOption.flatten
           )
-          val isFullCity: Boolean = bbox.isEmpty && regionId.isEmpty && regionName.isEmpty && category.isEmpty
+          val isFullCity: Boolean = noLocationFilter && category.isEmpty
 
           val streamFuture: Future[Source[PlaceForApi, _]] =
             if (isFullCity) {

@@ -1,19 +1,26 @@
 package controllers.api
 
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
+import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.JsObject
+import play.api.libs.json.{JsNull, JsObject}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 /**
  * Locks the response contract of the v3 Places API (#5311): GET /v3/api/places returns a GeoJSON FeatureCollection by
  * default and a snake_case CSV header for filetype=csv, serves every file format, and rejects a malformed bbox, a
- * non-positive regionId, or an unknown category with 400 INVALID_PARAMETER. Asserts shape, not data: CI's schema has
- * no places, and a dev schema has whatever its last refresh fetched.
+ * non-positive regionId, or an unknown category with 400 INVALID_PARAMETER. CI's schema has no places and a dev
+ * schema has whatever its last refresh fetched, so the cases that need a row seed a city-sourced one and delete it
+ * after: the route reads through its own connection, so a rolled-back transaction could not serve it.
  *
  * Boots the real application (real Slick/PostGIS) and exercises the routes end to end. The endpoint is
  * `UserAwareAction` (no auth needed); the eager scheduling actors are disabled so they don't fire background work.
@@ -30,6 +37,31 @@ class PlacesApiSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   // A tiny near-empty bbox keeps the streamed body cheap regardless of how much data the connected DB holds.
   private val tinyBbox = "bbox=0,0,0.001,0.001"
+
+  private lazy val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
+
+  private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 60.seconds)
+
+  /**
+   * Runs `body` with one committed city-sourced library inside `tinyBbox`, deleted afterwards whatever happens. A
+   * city row has no OSM reference, region, or street, which is the sparsest shape the properties contract covers.
+   */
+  private def withSeededPlace[T](body: Int => T): T = {
+    val placeId = run(sql"""INSERT INTO place (category, name, source, tags, geom, fetched_at)
+                            VALUES ('library', 'Spec Library', 'city', '{}',
+                                    ST_SetSRID(ST_MakePoint(0.0005, 0.0005), 4326), now())
+                            RETURNING place_id""".as[Int].head)
+    try body(placeId)
+    finally {
+      val _ = run(sqlu"DELETE FROM place WHERE place_id = $placeId")
+    }
+  }
+
+  private def featureIds(query: String): Seq[Int] = {
+    val resp = route(app, FakeRequest(GET, s"/v3/api/places?$query")).get
+    status(resp) mustBe OK
+    (contentAsJson(resp) \ "features").as[Seq[JsObject]].map(f => (f \ "properties" \ "place_id").as[Int])
+  }
 
   "GET /v3/api/places" should {
     "return 200 GeoJSON FeatureCollection by default" in {
@@ -51,17 +83,30 @@ class PlacesApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       }
     }
 
-    "carry the documented snake_case properties on every feature" in {
-      val resp     = route(app, FakeRequest(GET, "/v3/api/places")).get
+    "carry the documented snake_case properties on every feature, nulls included" in withSeededPlace { placeId =>
+      val resp     = route(app, FakeRequest(GET, s"/v3/api/places?$tinyBbox")).get
       val features = (contentAsJson(resp) \ "features").as[Seq[JsObject]]
-      // Guarded: CI's schema holds no places, so the shape is asserted on whatever the connected schema has.
-      features.headOption.foreach { feature =>
-        (feature \ "geometry" \ "type").as[String] mustBe "Point"
-        val props = (feature \ "properties").as[JsObject]
-        props.keys must contain allOf ("place_id", "category", "name", "source", "osm_type", "osm_id", "osm_url",
-          "region_id", "region_name", "nearest_street_edge_id", "nearest_street_distance_m", "fetched_at")
-        props.keys must not contain "placeId"
-      }
+      val feature  = features.find(f => (f \ "properties" \ "place_id").as[Int] == placeId).get
+      (feature \ "geometry" \ "type").as[String] mustBe "Point"
+      (feature \ "geometry" \ "coordinates").as[Seq[Double]] mustBe Seq(0.0005, 0.0005)
+      val props = (feature \ "properties").as[JsObject]
+      props.keys must contain allOf ("place_id", "category", "name", "source", "osm_type", "osm_id", "osm_url",
+        "region_id", "region_name", "nearest_street_edge_id", "nearest_street_distance_m", "fetched_at")
+      props.keys must not contain "placeId"
+      (props \ "category").as[String] mustBe "library"
+      (props \ "name").as[String] mustBe "Spec Library"
+      (props \ "source").as[String] mustBe "city"
+      // A city row has no OSM object to link, and this one sits in no region and near no street.
+      Seq("osm_type", "osm_id", "osm_url", "region_id", "region_name", "nearest_street_edge_id",
+        "nearest_street_distance_m").foreach(key => (props \ key).get mustBe JsNull)
+    }
+
+    "filter by category, city-wide when no location filter is given" in withSeededPlace { placeId =>
+      featureIds(s"$tinyBbox&category=library") must contain(placeId)
+      featureIds(s"$tinyBbox&category=school,transit") must not contain placeId
+      // A category on its own is not confined to the configured map box: every place is inside the city already.
+      featureIds("category=library") must contain(placeId)
+      featureIds("category=school") must not contain placeId
     }
 
     "return CSV with the documented snake_case header when filetype=csv" in {

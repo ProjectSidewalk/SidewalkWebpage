@@ -399,6 +399,7 @@ class AdminJobTriggerSpec
         (GET, "/adminapi/recalculateStreetPriority", RecalculateStreetPriorityActor.Name),
         (GET, "/adminapi/checkImagery", CheckImageExpiryActor.Name),
         (GET, "/adminapi/refreshOsmWayData", OsmWayRefreshActor.Name),
+        (POST, "/adminapi/refreshPlaces", PlacesRefreshActor.Name),
         (POST, "/adminapi/generateCrops", CropGenerationActor.Name),
         (GET, "/runClustering", ClusteringActor.Name)
       ).foreach { case (method, path, jobName) =>
