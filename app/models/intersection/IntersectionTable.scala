@@ -167,7 +167,7 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
       degree = r.nextInt(),
       gradeSeparated = r.nextBoolean(),
       regionId = r.nextIntOption(),
-      streetEdgeIds = r.nextString().split(",").filter(_.nonEmpty).map(_.toInt).toSeq,
+      streetEdgeIds = r.nextArray[Int](),
       auditCount = r.nextInt()
     )
   }
@@ -291,7 +291,7 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
                  intersection.degree,
                  intersection.grade_separated,
                  intersection.region_id,
-                 array_to_string(array_agg(incident.street_edge_id ORDER BY incident.street_edge_id), ','),
+                 array_agg(incident.street_edge_id ORDER BY incident.street_edge_id),
                  COALESCE(SUM(audits.audit_count), 0)::INTEGER
           FROM intersection
           INNER JOIN (
