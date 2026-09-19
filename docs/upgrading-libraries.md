@@ -325,9 +325,12 @@ The web image carries two, and **which one a package targets decides which file 
   frozen until the interpreter moves. [pandas](https://pandas.pydata.org/docs/whatsnew/) ·
   [scipy](https://docs.scipy.org/doc/scipy/release.html) ·
   [haversine](https://github.com/mapado/haversine/releases) · [requests](https://github.com/psf/requests/releases)
-- **`requirements-offline-tools.txt`** (3.13, `check_streets_for_imagery.py` + `onboard_city.py`) — **pandas 3.0.5**,
+- **`requirements-offline-tools.txt`** (3.13, `check_streets_for_imagery.py` + `onboard_city.py` +
+  `street_gradient.py`) — **pandas 3.0.5**,
   **requests 2.34.2**, **shapely 2.1.2**, **geopy 2.5.0**, **tenacity 9.1.4**, **tqdm 4.70.1**, plus the onboarding
-  geo stack: **osmnx 2.1.1**, **geopandas 1.1.4**, **pyogrio 0.13.0**, **scipy 1.17.1**. Self-contained rather
+  geo stack: **osmnx 2.1.1**, **geopandas 1.1.4**, **pyogrio 0.13.0**, **scipy 1.17.1**, and the street-gradient
+  raster stack: **rasterio 1.5.1** (its wheel bundles GDAL, so nothing comes from the OS), **pyproj 3.8.0**.
+  Self-contained rather
   than layered on `requirements.txt`, since the two files target different interpreters and so can't share a pin.
   **Note:** requires **Python ≥ 3.11**, and pandas is what sets that floor — re-check it when bumping pandas, and
   update the docs that quote it. [shapely](https://github.com/shapely/shapely/releases) ·
@@ -335,7 +338,9 @@ The web image carries two, and **which one a package targets decides which file 
   [tqdm](https://github.com/tqdm/tqdm/releases) · [osmnx](https://github.com/gboeing/osmnx/releases) ·
   [geopandas](https://github.com/geopandas/geopandas/releases) ·
   [pyogrio](https://github.com/geopandas/pyogrio/blob/main/CHANGES.md) ·
-  [scipy](https://docs.scipy.org/doc/scipy/release.html)
+  [scipy](https://docs.scipy.org/doc/scipy/release.html) ·
+  [rasterio](https://github.com/rasterio/rasterio/blob/main/CHANGES.txt) ·
+  [pyproj](https://pyproj4.github.io/pyproj/stable/history.html)
 - **`requirements-dev.txt`** (both) — **pytest 9.1.1** / **pytest-cov 7.1.0** on 3.10+, **pytest 8.3.5** /
   **pytest-cov 5.0.0** below, by environment marker. **Note:** the boundary is pytest 9's own floor, not the 3.8 side
   — 8.3.5 is both the last pytest supporting 3.8 and the first supporting 3.13, so it covers the 3.8–3.9 gap. Keep the
