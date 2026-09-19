@@ -519,7 +519,11 @@ may require membership in that account's group; if you're locked out, ask UW CSE
 hostnames, and ports are omitted here for the same reason as the rest of this doc — see the note at the top.)
 
 **A `502` with nothing in the app log — where to look.** Successful requests aren't access-logged and a reverse-proxy
-`502` can originate at the proxy itself, so a failing page may leave **no** trace in the application log. Two checks:
+`502` can originate at the proxy itself, so a failing page may leave **no** trace in the application log. Apache's
+`ProxyTimeout` is **60 s**: a request the app takes longer than that to answer is a `502` at the client no matter
+what the JVM does next, which is why the full-city AccessScore endpoints give up waiting at 45 s and answer `503` +
+`Retry-After` instead (`AccessScoreService.FullCityColdWait`, #5418) — lower the proxy's timeout and that constant has
+to follow. Two checks:
 
 - **Reproduce against the backend directly, bypassing the proxy** — but carry a session cookie and follow redirects
   (`curl -L -c jar -b jar`): an anonymous request is bounced through the anon-session flow (a fast `303` to
