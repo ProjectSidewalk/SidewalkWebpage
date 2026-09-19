@@ -1,6 +1,9 @@
 /**
  * Collapsible legend ("map key") for the Explore minimap. Collapsed, it's a small pill showing the route marks
  * themselves; expanded, a card names each mark. Defaults to collapsed; the user opens it from the pill (#4639).
+ *
+ * The card also carries the "My earlier labels" checkbox (#4945), which shows or hides the dimmed markers of labels
+ * the user placed in earlier missions here; the labels themselves are untouched.
  */
 class MinimapLegend {
   #uiMinimap;
@@ -19,6 +22,13 @@ class MinimapLegend {
     uiMinimap.legendClose.on('click', () => this.#setExpanded(false, 'Click_MinimapLegend_Close'));
     $(document).on('keydown', (e) => {
       if (e.key === 'Escape' && this.#expanded) this.#setExpanded(false, 'MinimapLegend_EscapeClose');
+    });
+
+    // The checkbox reflects the remembered preference from the first paint; the markers it governs are created later
+    // (LabelContainer.fetchLabelsToResumeMission applies the same preference to them).
+    uiMinimap.legendEarlierLabels.prop('checked', LabelContainer.earlierLabelsShownPreference());
+    uiMinimap.legendEarlierLabels.on('change', (e) => {
+      svl.labelContainer.setEarlierLabelsShown(/** @type {HTMLInputElement} */ (e.target).checked, true);
     });
   }
 
