@@ -13,12 +13,13 @@
 -- PROWAG walking-surface limit (1:20) and ramp limit (1:12, so 8.33% exactly, named for the round figure).
 --
 -- quality says how the profile was obtained. A bare-earth model removes bridges and knows nothing of tunnels, so a
--- street tagged as one (structure_interpolated), or one whose sampled profile holds an implausible pitch the tags did
--- not explain, or a pitch or end-to-end grade steeper than any real street (suspect), carries a straight line between
--- its endpoint elevations instead of samples. no_data means the model had nothing under the street or under either of
--- its ends, and every statistic is NULL. They are NULL as well on the few suspect streets whose own endpoints imply a
--- grade no street has (a short stub with one end on each side of a retaining wall), since there is no trustworthy
--- line to draw.
+-- street tagged as one (structure) has its two endpoint elevations and no grade at all: its ends sit at the lip of
+-- what it crosses, where the model already reads partway down, so even a line between them is steep on a level deck.
+-- A street whose sampled profile holds an implausible pitch the tags did not explain, or a pitch steeper than any real
+-- street (suspect), carries a straight line between its endpoint elevations instead of samples. no_data means the
+-- model had nothing under the street or under either of its ends, and every statistic is NULL. They are NULL as well
+-- on the few suspect streets whose own endpoints imply a grade no street has (a short stub with one end on each side
+-- of a retaining wall), since there is no trustworthy line to draw.
 --
 -- confidence is a function of the model's grid size, from the resolution sweep against 1 m lidar: a bare-earth model
 -- at 10 m or finer reproduces the statistics below closely, one at 20 m less so, and a coarser one supports
@@ -29,7 +30,7 @@
 --
 -- geom_md5 is md5(ST_AsBinary(street_edge.geom)) at sampling time, so a street whose geometry has been edited since
 -- shows up as stale by comparing the two.
-CREATE TYPE street_gradient_quality AS ENUM ('measured', 'structure_interpolated', 'suspect', 'no_data');
+CREATE TYPE street_gradient_quality AS ENUM ('measured', 'structure', 'suspect', 'no_data');
 CREATE TYPE street_gradient_confidence AS ENUM ('high', 'medium', 'low');
 
 CREATE TABLE street_gradient (
@@ -51,11 +52,14 @@ CREATE TABLE street_gradient (
     geom_md5 TEXT NOT NULL CHECK (geom_md5 ~ '^[0-9a-f]{32}$'),
     sampled_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     -- Named by what they assert, since Postgres already takes <table>_<column>_check for the inline checks above.
-    CONSTRAINT street_gradient_no_data_means_no_statistics_check CHECK (
-        (quality <> 'no_data' OR net_grade IS NULL)
-        AND (net_grade IS NOT NULL OR quality IN ('no_data', 'suspect'))
-        AND (net_grade IS NULL) = (elev_start_m IS NULL)
-        AND (net_grade IS NULL) = (elev_end_m IS NULL)
+    CONSTRAINT street_gradient_statistics_match_quality_check CHECK (
+        (elev_start_m IS NULL) = (elev_end_m IS NULL)
+        AND CASE quality
+            WHEN 'measured' THEN net_grade IS NOT NULL AND elev_start_m IS NOT NULL
+            WHEN 'structure' THEN net_grade IS NULL AND elev_start_m IS NOT NULL
+            WHEN 'no_data' THEN net_grade IS NULL AND elev_start_m IS NULL
+            ELSE (net_grade IS NULL) = (elev_start_m IS NULL)
+        END
     ),
     CONSTRAINT street_gradient_windowed_statistics_together_check CHECK (
         (mean_grade IS NULL) = (max_grade IS NULL)

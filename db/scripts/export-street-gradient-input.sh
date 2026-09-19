@@ -9,10 +9,10 @@ set -euo pipefail
 #
 # is_structure marks a street whose OSM way is a bridge, a tunnel or a covered way, read from the nightly osm_way
 # table the same way the intersection derivation reads it. A bare-earth elevation model has the ground under a bridge
-# and over a tunnel, so the sampler draws those streets as a straight line between their endpoints. A city whose
-# osm_way table is still empty (a new city before its first nightly refresh, or a dev database that never ran one)
-# would export every street as not a structure and have its bridges sampled as the ravine beneath them, with nothing
-# downstream able to tell. So an empty osm_way stops the export unless --allow-empty-osm-way says it is expected.
+# and over a tunnel, so the sampler gives those streets no grade. A city whose osm_way table is still empty (a new
+# city before its first nightly refresh, or a dev database that never ran one) would export every street as not a
+# structure and have its bridges sampled as the ravine beneath them, with nothing downstream able to tell. So an empty
+# osm_way stops the export unless --allow-empty-osm-way says it is expected.
 
 source /opt/scripts/helpers.sh
 

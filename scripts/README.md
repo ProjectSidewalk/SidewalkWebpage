@@ -235,8 +235,9 @@ make import-street-gradient
   far). Anything else goes through `--dem-dir`: a directory of hand-downloaded GeoTIFFs in any mix of coordinate
   systems, elevations in meters.
 - **Bridges and tunnels.** A bare-earth model has the ground under a bridge, so streets the export marks
-  `is_structure` (from `osm_way.tags`) are drawn as a straight line between their endpoints, and so is an untagged
-  street whose profile holds an implausible pitch (`quality = suspect`).
+  `is_structure` (from `osm_way.tags`) get their endpoint elevations and no grade (`quality = structure`), and an
+  untagged street whose profile holds an implausible pitch is drawn as a straight line between its endpoints
+  (`quality = suspect`).
 - **An empty `osm_way` stops the export**, since every bridge would then be sampled as the ground beneath it. Pass
   `args=--allow-empty-osm-way` for a city that really has none, and `args=--all` to resample every street.
 - **Resume.** Rows are flushed a grid cell at a time; `--resume` keeps the ones that answer the current export (same

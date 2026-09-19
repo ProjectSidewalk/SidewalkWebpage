@@ -25,12 +25,13 @@ include buildings and tree canopy) read flat Amsterdam as a 6% grade. So the gri
 the model is bare-earth, and a source is only registered here if it is.
 
 What a bare-earth model cannot see. It removes bridges and knows nothing of tunnels, so a street on a structure
-samples the ravine or the hill instead of the deck. Streets tagged as structures are therefore not sampled along their
-length: their profile is a straight line between their two endpoint elevations (``structure_interpolated``). Tags miss
-some (a lid over a freeway, a street whose ``osm_way_street_edge`` row names a different way of the same road), so a
-profile holding a short pitch that is both very steep and wildly out of line with the street's end-to-end grade, or
-steeper than any real street, is treated the same way and marked ``suspect``. The grade *of* a bridge deck is out of
-reach either way.
+samples the ravine or the hill instead of the deck. A street tagged as a structure therefore gets no grade at all
+(``structure``), only its two endpoint elevations: even a straight line between those is wrong, because a bridge's
+ends sit at the lip of what it crosses and read partway into it (Teaneck's level Route 4 overpasses came out at 20 to
+37%). Tags miss some structures (a lid over a freeway, a street whose ``osm_way_street_edge`` row names a different
+way of the same road), so a profile holding a short pitch that is both very steep and wildly out of line with the
+street's end-to-end grade, or steeper than any real street, is marked ``suspect`` and carries a straight line between
+its ends instead of its samples. The grade *of* a bridge deck is out of reach either way.
 
 Grades are fractions (0.05 is a 5% grade, the OpenSidewalks ``incline`` convention). ``net_grade``, ``climb_m`` and
 ``descent_m`` follow the street's digitized direction, the rest are direction-free.
@@ -106,7 +107,7 @@ CELL_DEGREES = 0.05
 CELL_DEGREES_FINE = 0.01
 
 QUALITY_MEASURED = 'measured'
-QUALITY_STRUCTURE = 'structure_interpolated'
+QUALITY_STRUCTURE = 'structure'
 QUALITY_SUSPECT = 'suspect'
 QUALITY_NO_DATA = 'no_data'
 
@@ -264,10 +265,10 @@ def edge_gradient(z: np.ndarray, length_m: float, is_structure: bool, smooth_sam
         smooth_samples: Moving-average width in samples, for a model fine enough to need it.
 
     Returns:
-        ``{'quality': ...}`` alone for ``no_data`` and for a ``suspect`` street whose own endpoints are implausible,
-        otherwise that plus ``elev_start_m``, ``elev_end_m`` and everything :func:`grade_metrics` returns. Smoothing
-        leaves the endpoint elevations alone (see :func:`smooth`), so streets sharing a node report the same number
-        for it.
+        ``{'quality': ...}`` alone for ``no_data`` and for a ``suspect`` street whose own endpoints are implausible.
+        A ``structure`` adds ``elev_start_m`` and ``elev_end_m`` and nothing else. The rest add those two and
+        everything :func:`grade_metrics` returns. Smoothing leaves the endpoint elevations alone (see :func:`smooth`),
+        so streets sharing a node report the same number for it.
     """
     missing = np.isnan(z)
     # Every statistic is normalized by the whole length, so an end the model cannot see would have to be invented, and
@@ -278,13 +279,16 @@ def edge_gradient(z: np.ndarray, length_m: float, is_structure: bool, smooth_sam
     if length_m <= 0 or unusable:
         return {'quality': QUALITY_NO_DATA}
     filled = fill_gaps(z)
+    ends = {'elev_start_m': float(filled[0]), 'elev_end_m': float(filled[-1])}
+    # No grade for a structure, not even end to end: its ends sit at the lip of what it crosses, where the model
+    # already reads partway down, so the line between them is steep on a level deck. The elevations are kept for
+    # whatever can later anchor the whole structure on solid ground.
+    if is_structure:
+        return {'quality': QUALITY_STRUCTURE, **ends}
     net = abs(filled[-1] - filled[0]) / length_m
     if net > MAX_PLAUSIBLE_GRADE:
         return {'quality': QUALITY_SUSPECT}
-    ends = {'elev_start_m': float(filled[0]), 'elev_end_m': float(filled[-1])}
     straight = np.linspace(filled[0], filled[-1], len(filled))
-    if is_structure:
-        return {'quality': QUALITY_STRUCTURE, **ends, **grade_metrics(straight, length_m)}
     profile = smooth(filled, smooth_samples)
     steepest = float(window_grades(profile, length_m, MEAN_WINDOW_M).max())
     out_of_line = steepest > SUSPECT_GRADE and steepest > SUSPECT_RATIO * net

@@ -58,7 +58,7 @@ Grades are fractions: 0.05 is a 5% grade, the OpenSidewalks `incline` convention
 | `climb_m`, `descent_m` | Summed rise and fall in the digitized direction, over 10 m steps so sample noise does not accumulate. |
 | `elev_start_m`, `elev_end_m` | Elevation at the first and last vertex. Streets meeting at a node sample the same point, so they agree wherever the model has data at the node. |
 | `profile_cm` | Elevations in whole centimeters at even spacing, endpoints included, about every 10 m. Spacing is the street's length over `array_length - 1`. |
-| `quality` | `measured`, `structure_interpolated`, `suspect`, or `no_data` (below). |
+| `quality` | `measured`, `structure`, `suspect`, or `no_data` (below). |
 | `confidence` | `high` for a model at 10 m or finer, `medium` to 20 m, `low` beyond. Pinned to `dem_resolution_m` by a CHECK. |
 | `dem_source`, `dem_resolution_m` | Which model, for attribution and for upgrading a city's source later. |
 | `geom_md5` | `md5(ST_AsBinary(geom))` when sampled, for the staleness test. |
@@ -79,16 +79,21 @@ centerline sample.
 It removes bridges and knows nothing of tunnels, so a street on a structure samples the ravine or the hill, not the
 deck: in the study windows the 1 to 4% of streets tagged as structures showed a median "max grade" of 40 to 48%.
 
-- **`structure_interpolated`**: the street's OSM way is tagged `bridge`, `tunnel` or `covered`. Its profile is a
-  straight line between its endpoint elevations.
+- **`structure`**: the street's OSM way is tagged `bridge`, `tunnel` or `covered`. It has `elev_start_m` and
+  `elev_end_m` and every grade statistic NULL. Not even a straight line between the two ends holds up: a bridge's
+  ends sit at the lip of what it crosses, where a 10 m model already reads partway down. Drawn that way, 58 of
+  Teaneck's 60 tagged streets averaged a 10% grade (the other two came out over 40%), 27 of them over the 8.33% ramp
+  limit, and the level Route 4 overpasses (Margaret Street, Cedar Lane, Grayson Place) read 20 to 37%. The elevations
+  are kept so that a later pass can anchor a whole bridge on solid ground set back from its abutments.
 - **`suspect`**: the sampled profile holds a 10 m pitch over 20% that is also more than three times the street's
-  end-to-end grade, on a street with no structure tag. Same treatment. This catches what tags miss, such as a lid over
+  end-to-end grade, on a street with no structure tag. Its statistics come from a straight line between its endpoint
+  elevations instead of its samples. This catches what tags miss, such as a lid over
   a freeway or a street whose `osm_way_street_edge` row names a different way of the same road, and it leaves a
   uniformly steep hill alone, since there the pitch and the end-to-end grade agree. A pitch over 40% is suspect
   whatever the end-to-end grade, since no street anywhere is that steep (Canton Avenue and Baldwin Street are 35 to
   37%). And when the end-to-end grade is itself over 40%, the endpoints are what is wrong (a 10 m stub with one end on
-  each side of a retaining wall: 24 of Seattle's 27,645 streets), so the row is `suspect` with every statistic NULL,
-  tagged structure or not. Together the rules fired on 1.3% of Teaneck's untagged streets (28 of 2,114).
+  each side of a retaining wall: 24 of Seattle's 27,645 streets), so the row is `suspect` with every statistic and
+  both elevations NULL. Together the rules fired on 1.2% of Teaneck's untagged streets (26 of 2,112).
 - **`no_data`**: the model has no data at either end of the street, or (unless it is a structure, which is read at
   its ends only) at more than half the samples along it. Every statistic is NULL. Gaps between the ends are bridged
   along the profile, which matters for models like AHN that blank every building and canal. A missing end is not

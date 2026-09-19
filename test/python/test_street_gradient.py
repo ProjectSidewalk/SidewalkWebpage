@@ -227,15 +227,18 @@ def test_edge_gradient_has_no_data_for_an_empty_a_zero_length_or_an_unanchored_p
     assert sg.edge_gradient(np.array([1.0, 2.0, 3.0, np.nan]), 15.0, True) == {'quality': sg.QUALITY_NO_DATA}
 
 
-def test_edge_gradient_draws_a_structure_as_a_straight_line_between_its_ends():
+def test_edge_gradient_gives_a_structure_its_endpoint_elevations_and_no_grade():
     # A bare-earth model under a bridge: the deck is level at 30 m, the ravine below drops 20 m.
     z = np.array([30.0, 22.0, 10.0, 10.0, 10.0, 12.0, 24.0, 31.0])
-    got = sg.edge_gradient(z, 70.0, True)
-    assert got['quality'] == sg.QUALITY_STRUCTURE
-    assert got['max_grade'] == pytest.approx(1.0 / 70.0) and got['mean_grade'] == pytest.approx(1.0 / 70.0)
-    assert got['descent_m'] == 0 and got['climb_m'] == pytest.approx(1.0)
+    assert sg.edge_gradient(z, 70.0, True) == {'quality': sg.QUALITY_STRUCTURE, 'elev_start_m': 30.0,
+                                               'elev_end_m': 31.0}
     # Mostly missing in between is fine for a structure: only its ends are read.
     assert sg.edge_gradient(np.array([30.0] + [np.nan] * 6 + [31.0]), 70.0, True)['quality'] == sg.QUALITY_STRUCTURE
+    # One end read at the lip of the cut it crosses: 12 m over 11 m is no grade to report, and no verdict on the ends.
+    lip = sg.edge_gradient(np.array([30.0, 24.0, 18.0]), 11.0, True)
+    assert lip['quality'] == sg.QUALITY_STRUCTURE and 'net_grade' not in lip
+    row = sg.format_row(_street(5, [], True), lip, 'usgs-3dep-10m', 10.0)
+    assert (row['elev_start_m'], row['elev_end_m'], row['net_grade'], row['profile_cm']) == ('30.00', '18.00', '', '')
 
 
 def test_edge_gradient_flags_an_untagged_artifact_but_not_a_uniformly_steep_hill():
@@ -257,7 +260,6 @@ def test_edge_gradient_caps_what_any_street_can_be():
     assert got['quality'] == sg.QUALITY_SUSPECT and got['max_grade'] < sg.MAX_PLAUSIBLE_GRADE
     # A 10 m stub whose ends are 6 m apart in height: the endpoints themselves are wrong, so nothing is reported.
     assert sg.edge_gradient(np.array([10.0, 13.0, 16.0]), 10.0, False) == {'quality': sg.QUALITY_SUSPECT}
-    assert sg.edge_gradient(np.array([10.0, 13.0, 16.0]), 10.0, True) == {'quality': sg.QUALITY_SUSPECT}
 
 
 def test_edge_gradient_smooths_a_fine_model_without_moving_its_endpoints():
@@ -312,7 +314,8 @@ def test_directory_locator_projects_once_per_coordinate_system_and_stops_when_ev
     try:
         sg.warp_transform = lambda *args: calls.append(args[1]) or real(*args)
         assert locate(np.array([_LNG + 0.001]), np.array([_LAT + 0.01])) == [str(a)]  # Placed by a: b is never tested.
-        assert locate(np.array([_LNG + 0.001, _LNG + 0.021]), np.full(2, _LAT + 0.01)) == [str(a), str(tmp_path / 'b.tif')]
+        both = locate(np.array([_LNG + 0.001, _LNG + 0.021]), np.full(2, _LAT + 0.01))
+        assert both == [str(a), str(tmp_path / 'b.tif')]
     finally:
         sg.warp_transform = real
     assert len(opened) == 2 and len(calls) == 2  # Two tiles in one system: one projection per batch, not per tile.
