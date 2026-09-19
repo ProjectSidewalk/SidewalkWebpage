@@ -63,7 +63,7 @@ class ModalMissionComplete {
   #showStanding(total) {
     const ui = this.#uiModalMissionComplete;
     ui.yourOverallTotalCount.html(util.isMobile()
-      ? i18next.t('mission-complete.all-time', { count: total })
+      ? i18next.t('mission-complete.all-time', { count: total, interpolation: { escapeValue: true } })
       : total);
 
     const { badge, next, fraction, remaining } = BadgeAchievements.getProgress('validations', total);
@@ -108,7 +108,9 @@ class ModalMissionComplete {
     }
     const totalLabels = mission.getProperty('agreeCount') + mission.getProperty('disagreeCount')
       + mission.getProperty('unsureCount');
-    const message = i18next.t(`mission-complete.body-${mission.getProperty('labelType')}`, { n: totalLabels });
+    const message = i18next.t(`mission-complete.body-${mission.getProperty('labelType')}`, {
+      n: totalLabels, interpolation: { escapeValue: true },
+    });
 
     // Disable user from clicking the 'Validate next mission' button and set background to gray. When we have a new
     // mission from the back end, nextMissionLoaded() will be called from Form.js to re-enable the button.

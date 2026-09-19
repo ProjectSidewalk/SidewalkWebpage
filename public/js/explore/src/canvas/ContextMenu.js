@@ -511,7 +511,10 @@ class ContextMenu {
                 keyChar = tagText[underlineIndex + underlineClassOffset];
                 tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
               }
-              const tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', { c: keyChar });
+              // The tooltip is built with `html: true`, so its shortcut letter is escaped on the way in.
+              const tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {
+                c: keyChar, interpolation: { escapeValue: true },
+              });
               const tooltipImage = `<img class="context-menu-tooltip__img--tag" src="${img}"/>`;
 
               // Create the tooltip. 'auto top' flips it below the tag if it would clip the viewport top.

@@ -64,6 +64,57 @@ Project Sidewalk has two separate translation systems; which one you use depends
 > Most user-facing text in the apps is in the **frontend** system. Reach for the backend message files only for
 > server-rendered Twirl pages.
 
+### Interpolated values and HTML
+
+`AppManager._setupI18next` sets **`interpolation.escapeValue: false`**, so `i18next.t('key', { name })` interpolates
+`name` exactly as given. In every sink that is not HTML — a text node, an `aria-label`, a `title`, a `confirm()`, a
+share sheet, a `document.title` — escaping is something the reader sees: it is what turned a neighborhood called
+*Al 'Ummah* into `Al &#39;Ummah` and a formatted date into `9&#x2F;16&#x2F;2026` (#5389).
+
+The price is that a value bound for `innerHTML` is not escaped for free. **When a translated string with interpolated
+values lands in markup, escape those values exactly once**, either way round:
+
+```js
+// The string builds markup, so i18next escapes what is put into it. The <a> in the translation still renders:
+// escapeValue only ever touches values.
+subtitle.innerHTML = i18next.t('common:subtitle', { href: DOCS_URL, interpolation: { escapeValue: true } });
+
+// Or escape at the sink, when the same string also feeds a text sink (here an accessible name).
+const label = i18next.t('accessscore:rank-row', { name: region.name });
+row.button.setAttribute('aria-label', label);
+row.button.setAttribute('data-ps-tooltip', util.escapeHTML(label)); // psTooltip renders this as HTML.
+```
+
+Markup sinks in this codebase are `innerHTML` / `outerHTML`, `insertAdjacentHTML`, a MapLibre popup's `setHTML`,
+jQuery's `.html()` / `.append()` / `$('<p>…')`, a Bootstrap tooltip built with `html: true`, and the
+**`data-ps-tooltip` attribute**, which `psTooltip.js` writes into the tooltip card's `innerHTML`. Helpers count too:
+`AlertController.showAlert`, `PopUpMessage.notify`, and the onboarding message boxes all render HTML. Text sinks are
+everything else — a text node, `.text()`, `alert` / `confirm`, a share sheet, and an attribute *unless* something
+renders it as markup: `title` is plain text on most elements and HTML on one carrying `data-toggle="tooltip"`, since
+`explore/src/Main.js` initializes every one of those with `html: true`.
+
+The **`ps/i18n-escape-in-markup`** ESLint rule (`tools/eslint-rules/i18n-escape-in-markup.js`) blocks the ones it can
+see syntactically — a `t()` call with interpolation variables that reaches one of those sinks, directly or through a
+template literal, a concatenation, a pass-through string method, a `map(…).join('')`, or a local variable, without
+stating `interpolation.escapeValue`.
+
+**It is a tripwire, not a proof.** Strip every `escapeValue: true` in the tree and re-lint, and it reproduces 19 of
+the 45 decisions — the #5389 audit is the guarantee, the rule is what catches the next call taking a familiar shape.
+It cannot see a value returned from a function, parked on an object property, or handed to a helper; a jQuery object
+whose name doesn't look like one (`menuUI.template.parent().append(…)`); or a `title` that is markup only because of
+how the element was initialized. **It also matches `i18next.t` literally**, so an alias, a wrapper method, or
+`i18next?.t(…)` turns it off for that call with no signal — don't wrap `i18next.t` (four such wrappers were removed
+in #5389 for exactly this reason), and write `el.innerHTML`, never `el['innerHTML']`.
+
+So when a string you build ends up as HTML somewhere the rule can't follow, escape it there or say
+`escapeValue: true` here. Values we computed ourselves — a count, an id, an asset path — carry nothing to escape and
+need neither. And if the rule fires on something that is really a text sink, the answer is `escapeValue: false` with
+a comment, never `true`: turning escaping on at a text sink is the bug #5389 fixed.
+
+Two things escaping never touches: the **translation string itself** (markup inside a locale value always renders),
+and a variable written **`{{- labelType}}`**, which i18next interpolates raw whatever the setting is — the label-type
+names use that, because the German ones carry a `&shy;`.
+
 ## Measurement units
 
 Units are **not** a property of the language: readers choose metric or imperial on the Settings page (#4404), so every

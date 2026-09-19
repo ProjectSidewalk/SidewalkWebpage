@@ -123,7 +123,8 @@ function buildExploreHereContent(map, lat, lng, placeName, address, exploreHref)
       ? `
       <p class="explore-here__context">
         <span class="explore-here__region"></span>
-        <span class="explore-here__percent">${i18next.t('labelmap:explore-here-percent', { percent })}</span>
+        <span class="explore-here__percent">${i18next.t('labelmap:explore-here-percent',
+          { percent, interpolation: { escapeValue: true } })}</span>
       </p>
       <div class="explore-here__track"><div class="explore-here__fill" style="width:${percent}%"></div></div>`
       : ''}

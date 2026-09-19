@@ -63,10 +63,13 @@ class StatusField {
     const missionLength = svv.missionContainer
       ? svv.missionContainer.getCurrentMission().getProperty('labelsValidated')
       : svv.missionLength;
-    const newMissionTitle = i18next.t(
-      'mission-start-tutorial.mst-instruction-2',
-      { nLabels: missionLength, labelType: i18next.t(`common:${util.camelToKebab(labelType)}`) },
-    ).toUpperCase().replace(/&SHY;/g, '&shy;');
+    // The title bar takes HTML. The type name is written `{{- labelType}}`, so its soft hyphen survives both the
+    // escaping below and the uppercasing — which is what the entity is put back together after.
+    const newMissionTitle = i18next.t('mission-start-tutorial.mst-instruction-2', {
+      nLabels: missionLength,
+      labelType: i18next.t(`common:${util.camelToKebab(labelType)}`),
+      interpolation: { escapeValue: true },
+    }).toUpperCase().replace(/&SHY;/g, '&shy;');
     this.#statusUI.upperMenuTitle.html(newMissionTitle);
     svv.ui.validationMenu.header.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
   }

@@ -107,7 +107,7 @@ describe('the AccessScore Spotlight', () => {
 
     /**
      * The few strings rendered for real, so a test can see what a reader would: the subtitle's link, and values
-     * that i18next's default escaping would mangle in a text node.
+     * that escaping would mangle in a text node.
      */
     const STRINGS = {
         'common:access-score-spotlight.subtitle-regions': 'Scored by our <a href="{{href}}">AccessScore</a> algorithm.',
@@ -116,20 +116,20 @@ describe('the AccessScore Spotlight', () => {
         'common:access-score-spotlight.explore-region': 'Explore {{name}}',
     };
 
-    /** i18next's default interpolation escaping, character for character. */
+    /** i18next's escaping, character for character, for the calls that ask for it. */
     const escapeLikeI18next = (value) => String(value).replace(/[&<>"'/]/g, (c) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;', '/': '&#x2F;',
     })[c]);
 
     beforeAll(() => {
         // Keys pass through, with interpolation values appended so a test can tell two renderings of one key apart,
-        // except the STRINGS above, which interpolate the way i18next does -- escaping included, unless the call
-        // turns it off.
+        // except the STRINGS above, which interpolate the way the app configures i18next: values verbatim, escaped
+        // only where the call asks for it.
         window.i18next = {
             language: 'en',
             t: (key, vars) => {
                 if (STRINGS[key]) {
-                    const escape = vars?.interpolation?.escapeValue !== false;
+                    const escape = vars?.interpolation?.escapeValue === true;
                     return STRINGS[key].replace(/\{\{(\w+)\}\}/g, (_, name) => (
                         escape ? escapeLikeI18next(vars[name]) : String(vars[name])
                     ));

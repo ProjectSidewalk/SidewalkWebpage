@@ -169,9 +169,7 @@ class MistakeGallery {
     const valNote = document.createElement('span');
     valNote.className = 'ud-card-note';
     if (m.validator_comment) {
-      // escapeValue off: the result lands in textContent, so i18next's HTML-escaping would show literal entities.
-      valNote.textContent = i18next.t('dashboard:mistake-cards.validator-quote',
-        { c: m.validator_comment, interpolation: { escapeValue: false } });
+      valNote.textContent = i18next.t('dashboard:mistake-cards.validator-quote', { c: m.validator_comment });
     } else {
       valNote.textContent = i18next.t('dashboard:validator-no-comment');
       valNote.classList.add('ud-card-note-muted');
@@ -197,8 +195,7 @@ class MistakeGallery {
       // These are always the viewer's own labels, so prefix the (already-localized) title with "Your label:".
       const titleEl = document.querySelector('#label-modal .label-detail__title');
       if (titleEl) {
-        titleEl.textContent = i18next.t('dashboard:mistake-cards.your-label',
-          { type: titleEl.textContent, interpolation: { escapeValue: false } });
+        titleEl.textContent = i18next.t('dashboard:mistake-cards.your-label', { type: titleEl.textContent });
       }
       this.#mountPopupPanel(m);
     } catch (e) {
@@ -310,8 +307,7 @@ class MistakeGallery {
     if (note) {
       const saved = document.createElement('p');
       saved.className = 'ud-card-your-note';
-      saved.textContent = i18next.t('dashboard:mistake-cards.your-note',
-        { note, interpolation: { escapeValue: false } });
+      saved.textContent = i18next.t('dashboard:mistake-cards.your-note', { note });
       sec.appendChild(saved);
     }
 

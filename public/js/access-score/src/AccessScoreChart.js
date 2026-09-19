@@ -109,18 +109,6 @@ class AccessScoreChart {
   }
 
   /**
-   * A translation for a plain-text sink — `textContent`, `aria-label`, or a string that is escaped once by the
-   * caller — so a name with an apostrophe or ampersand is not entity-escaped on its way in: i18next escapes
-   * interpolated values for HTML sinks by default.
-   * @param {string} key - The i18next key.
-   * @param {Record<string, any>} [vars] - Interpolation values.
-   * @returns {string} The translation, values interpolated verbatim.
-   */
-  static text(key, vars = {}) {
-    return i18next.t(key, { ...vars, interpolation: { escapeValue: false } });
-  }
-
-  /**
    * Escapes text for an HTML attribute or element body. Region names come from the database, so they take this
    * path rather than being trusted into markup.
    * @param {*} value - The text.

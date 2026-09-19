@@ -10,6 +10,10 @@ const globals = require('globals');
 const stylistic = require('@stylistic/eslint-plugin');
 const json = require('@eslint/json').default;
 const jsdoc = require('eslint-plugin-jsdoc');
+// Our own rules, as an inline plugin: flat config takes a plugin object directly, so a one-rule plugin needs no
+// package, no build step and no npm publish. See tools/eslint-rules/ for what each rule guards.
+const i18nEscapeInMarkup = require('./tools/eslint-rules/i18n-escape-in-markup');
+const psPlugin = {rules: {'i18n-escape-in-markup': i18nEscapeInMarkup}};
 
 module.exports = [
   // ESLint core "recommended" -- ~45 correctness rules. Listed first so the explicit block below overrides it.
@@ -28,6 +32,7 @@ module.exports = [
     files: ['public/js/**/*.js'],
     plugins: {
       '@stylistic': stylistic,
+      'ps': psPlugin,
     },
     languageOptions: {
       ecmaVersion: 2022, // ES2022 -- needed for class fields, including `#private` members.
@@ -38,6 +43,10 @@ module.exports = [
       },
     },
     rules: {
+      // --- Project Sidewalk's own rules ---
+      // An `error`, so CI blocks on it: what it guards is an XSS, not a style preference (#5389).
+      'ps/i18n-escape-in-markup': 'error',
+
       // --- Code-quality / ES6 rules (ESLint core) ---
       'curly': ['error', 'multi-line', 'consistent'],
       'eqeqeq': ['error', 'always'],

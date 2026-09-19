@@ -376,15 +376,15 @@ describe('StoryListPage', () => {
         /** Loads the real ShareWidget (the page builds one per card) plus the collaborators it reaches for. */
         function loadShareWidget() {
             window.eval(`${SHARE_SRC}\nwindow.ShareWidget = ShareWidget;`);
-            // The share text key resolves with the excerpt interpolated; everything else echoes its key. Mimics
-            // real i18next's default HTML-escaping of interpolated values (off only when the call opts out), so a
-            // call that forgot `escapeValue: false` ships visible entities here too, not just in production.
+            // The share text key resolves with the excerpt interpolated; everything else echoes its key. Mimics how
+            // the app configures i18next — values verbatim unless the call asks for escaping — so a share string
+            // that wrongly opted into it would ship visible entities here too, not just in production.
             const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/'/g, '&#39;');
             window.i18next = {
                 t: (key, opts) => {
                     if (!opts || opts.excerpt === undefined) return key;
-                    const raw = opts.interpolation && opts.interpolation.escapeValue === false;
-                    return `shared:${raw ? opts.excerpt : esc(opts.excerpt)}`;
+                    const escapes = opts.interpolation && opts.interpolation.escapeValue === true;
+                    return `shared:${escapes ? esc(opts.excerpt) : opts.excerpt}`;
                 },
             };
             window.matchMedia = jest.fn().mockReturnValue({ matches: false }); // jsdom has none; act as desktop.
@@ -418,8 +418,8 @@ describe('StoryListPage', () => {
             const setTarget = jest.spyOn(window.ShareWidget.prototype, 'setTarget');
             new window.StoryListPage().init();
 
-            // The text feeds only plain-text sinks (intent URLs, mailto, the native sheet), so i18next's default
-            // interpolation escaping would ship "It&#39;s icy &amp;…" verbatim — the call must opt out of it.
+            // The text feeds only plain-text sinks (intent URLs, mailto, the native sheet), so escaping it would
+            // ship "It&#39;s icy &amp;…" verbatim — the call must leave the storyteller's words alone.
             expect(setTarget.mock.calls[0][0].text).toBe("shared:It's icy & the ramp is blocked.");
         });
 

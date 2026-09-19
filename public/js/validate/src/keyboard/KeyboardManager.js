@@ -63,12 +63,10 @@ class KeyboardManager {
   #handleNumberKeyShortcut(n, e) {
     const validationMenuUi = this.#validationMenuUi;
     if (validationMenuUi.yesButton.hasClass('chosen')) {
-      if (svv.adminVersion) $(`#severity-button-${n}`).click();
+      if (svv.adminVersion) this.#clickSeverity(n);
     } else if (validationMenuUi.wrongTypeButton.hasClass('chosen')) {
       // Severity only once its section is showing, or a rating typed before a type is picked rides along unseen.
-      if (document.getElementById('validate-severity-section')?.style.display === 'block') {
-        $(`#severity-button-${n}`).click();
-      }
+      if (document.getElementById('validate-severity-section')?.style.display === 'block') this.#clickSeverity(n);
     } else if (validationMenuUi.noButton.hasClass('chosen')) {
       const buttonId = `#no-button-${n}`;
       // If there's no default disagree option for this key, focus on the comment box, otherwise click the button.
@@ -88,6 +86,14 @@ class KeyboardManager {
         $(buttonId).click();
       }
     }
+  }
+
+  /**
+   * Clicks the radio, not its label: a label click focuses the radio, which opens the tooltip (#5298).
+   * @param {number} n - The severity to pick, 1-3.
+   */
+  #clickSeverity(n) {
+    $(`#validate-severity-radio-${n}`).click();
   }
 
   /**
