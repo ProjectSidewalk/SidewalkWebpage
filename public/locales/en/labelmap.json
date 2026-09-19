@@ -9,6 +9,7 @@
   "zoom-in-for-labels": "Zoom in to see sidewalk labels",
   "loading-elapsed": "{{seconds}}s elapsed",
   "load-failed": "We couldn't load the map data.",
+  "computing-scores-retry": "Computing this city's scores — retrying in {{seconds}}s…",
   "retry": "Try again",
   "is-correct": "Is this label correct?",
   "label-type": "Label Type",

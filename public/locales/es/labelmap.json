@@ -9,6 +9,7 @@
   "zoom-in-for-labels": "Acerca el mapa para ver las etiquetas",
   "loading-elapsed": "{{seconds}} s transcurridos",
   "load-failed": "No pudimos cargar los datos del mapa.",
+  "computing-scores-retry": "Calculando las puntuaciones de esta ciudad — reintentando en {{seconds}} s…",
   "retry": "Intentar de nuevo",
   "is-correct": "Esta etiqueta es correcta?",
   "label-type": "Tipo de etiqueta",

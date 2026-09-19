@@ -111,6 +111,18 @@
   margin: 6px 0 0;
 }
 
+/* What a page knows about the wait beyond the clock (MapLoadingOverlay.setStatus); kept narrow so a sentence wraps
+   under the spinner instead of widening the card. */
+.labelmap-loading__status {
+  font: var(--text-body-regular);
+  margin: 10px 0 0;
+  max-width: 300px;
+}
+
+.labelmap-loading__status[hidden] {
+  display: none;
+}
+
 /* The overlay ignores pointer events so the map stays draggable while loading; the retry button must not. */
 .labelmap-loading__card--error {
   pointer-events: auto;

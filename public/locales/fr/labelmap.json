@@ -9,6 +9,7 @@
   "zoom-in-for-labels": "Zoomez pour voir les étiquettes de trottoir",
   "loading-elapsed": "{{seconds}} s écoulées",
   "load-failed": "Impossible de charger les données de la carte.",
+  "computing-scores-retry": "Calcul des scores de cette ville en cours — nouvelle tentative dans {{seconds}} s…",
   "retry": "Réessayer",
   "is-correct": "Cette étiquette est-elle correcte ?",
   "label-type": "Type d'étiquette",

@@ -9,6 +9,7 @@
   "zoom-in-for-labels": "Zoom in om etiketten te zien",
   "loading-elapsed": "{{seconds}} s verstreken",
   "load-failed": "We konden de kaartgegevens niet laden.",
+  "computing-scores-retry": "De scores van deze stad worden berekend — nieuwe poging in {{seconds}} s…",
   "retry": "Opnieuw proberen",
   "is-correct": "Klopt dit etiket?",
   "label-type": "Etikettype",
