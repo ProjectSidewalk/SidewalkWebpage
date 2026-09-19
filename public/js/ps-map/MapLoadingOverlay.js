@@ -12,8 +12,8 @@
  * surfaces when the JSON parse throws (#3932).
  *
  * A status line under the counter carries what a page knows about the wait that the clock doesn't — the
- * AccessScore tool's "computing, retrying in N s" when the server has said so (#5418). It lives inside the
- * `aria-live` region, so a screen reader hears each update without the page re-announcing the whole card.
+ * AccessScore tool's "scores aren't ready yet, retrying in N s" when the server has said so (#5418). It lives inside
+ * the `aria-live` region, so a screen reader hears each update without the page re-announcing the whole card.
  *
  * Markup comes from the shared `common.mapLoadingOverlay` Twirl partial, so /labelMap, /admin/label-map and
  * /accessScore present the same thing.

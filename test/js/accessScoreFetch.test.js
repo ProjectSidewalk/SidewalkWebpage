@@ -4,7 +4,8 @@
  * backoff, a `4xx` is never retried, and the page hears about each wait through `onWait`.
  *
  * Timers are faked so a test that "waits 30 seconds" runs in milliseconds; each wait is advanced explicitly, which
- * also pins that the helper waits exactly as long as it says it will.
+ * also pins that the helper waits exactly as long as it says it will. Jest's modern fake timers also fake the clocks
+ * (`Date.now`, `performance.now`), so advancing the timers is what moves the wall clock the total-wait cap reads.
  */
 
 const fs = require('fs');
@@ -36,7 +37,8 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
     const URL = '/v3/api/accessScoreStreets';
 
     beforeAll(() => {
-        window.eval(`${read('public/js/access-score/src/AccessScoreFetch.js')}\nwindow.AccessScoreFetch = AccessScoreFetch;`);
+        const source = read('public/js/access-score/src/AccessScoreFetch.js');
+        window.eval(`${source}\nwindow.AccessScoreFetch = AccessScoreFetch;`);
         AccessScoreFetch = window.AccessScoreFetch;
     });
 
@@ -53,7 +55,8 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
         global.fetch = jest.fn().mockResolvedValue(response(200, { body: { type: 'FeatureCollection' } }));
         const onWait = jest.fn();
 
-        await expect(AccessScoreFetch.fetchJsonWithRetry(URL, { onWait })).resolves.toEqual({ type: 'FeatureCollection' });
+        const result = AccessScoreFetch.fetchJsonWithRetry(URL, { onWait });
+        await expect(result).resolves.toEqual({ type: 'FeatureCollection' });
         expect(fetch).toHaveBeenCalledTimes(1);
         expect(onWait).not.toHaveBeenCalled();
     });
@@ -119,7 +122,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
         expect(fetch).toHaveBeenCalledTimes(1);
     });
 
-    test('gives up with the last failure once the next wait would pass the total cap', async () => {
+    test('gives up with the last failure once the next wait would end past the total cap', async () => {
         global.fetch = jest.fn().mockResolvedValue(response(503, { headers: { 'Retry-After': '40' } }));
         const onWait = jest.fn();
 
@@ -159,5 +162,47 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
         expect(onWait).toHaveBeenCalledWith(1, 5);
         await jest.advanceTimersByTimeAsync(5_000);
         await expect(result).resolves.toEqual({});
+    });
+
+    test('counts the time a request itself took toward the cap, not just the sleeps between attempts', async () => {
+        // Each attempt is held for 45 s before the 503 comes back, the way a still-cold server holds a request for
+        // its own deadline. Sleeps alone would be 30 + 30 = 60 s inside a 100 s cap; on the wall clock the third
+        // attempt would end at 45 + 30 + 45 + 30 + 45 = 195 s, so the second wait is the one that gets refused.
+        global.fetch = jest.fn(async () => {
+            await jest.advanceTimersByTimeAsync(45_000);
+            return response(503, { headers: { 'Retry-After': '30' } });
+        });
+        const onWait = jest.fn();
+
+        const result = AccessScoreFetch.fetchJsonWithRetry(URL, { onWait, maxTotalWaitSeconds: 100 });
+        const outcome = expect(result).rejects.toThrow('HTTP 503');
+        await jest.advanceTimersByTimeAsync(0); // First attempt: 45 s in flight, then a 30 s wait is admitted (75 s).
+        expect(onWait).toHaveBeenCalledWith(1, 30);
+        await jest.advanceTimersByTimeAsync(30_000); // Second attempt: 45 s more puts the clock at 120 s, over the cap.
+        await outcome;
+        expect(fetch).toHaveBeenCalledTimes(2);
+        expect(onWait).toHaveBeenCalledTimes(1);
+    });
+
+    test('tells the page about each attempt before its request goes out, numbering them from 1', async () => {
+        global.fetch = jest.fn()
+            .mockResolvedValueOnce(response(503, { headers: { 'Retry-After': '10' } }))
+            .mockResolvedValueOnce(response(503, { headers: { 'Retry-After': '10' } }))
+            .mockResolvedValueOnce(response(200, { body: { ok: true } }));
+        const onAttempt = jest.fn(() => {
+            // Called before the fetch of the same attempt: the count of fetches so far is one less than the attempt.
+            expect(fetch).toHaveBeenCalledTimes(onAttempt.mock.calls.length - 1);
+        });
+
+        const result = AccessScoreFetch.fetchJsonWithRetry(URL, { onAttempt });
+        await jest.advanceTimersByTimeAsync(0);
+        expect(onAttempt).toHaveBeenCalledWith(1);
+        await jest.advanceTimersByTimeAsync(10_000);
+        expect(onAttempt).toHaveBeenCalledWith(2);
+        await jest.advanceTimersByTimeAsync(10_000);
+        expect(onAttempt).toHaveBeenCalledWith(3);
+
+        await expect(result).resolves.toEqual({ ok: true });
+        expect(onAttempt.mock.calls).toEqual([[1], [2], [3]]);
     });
 });

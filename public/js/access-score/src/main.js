@@ -26,8 +26,11 @@ window.AccessScoreApp = (function () {
   }
 
   /**
-   * Fetches one of the whole-city score feeds, waiting out a server that is still computing them (#5418) and telling
-   * the overlay so the wait reads as progress rather than a hang.
+   * Fetches one of the whole-city score feeds, waiting out a server that is not ready to answer yet (#5418) and
+   * telling the overlay so the wait reads as progress rather than a hang.
+   *
+   * The wording never claims the server is computing: the same retry path covers the proxy's own `503` while the
+   * backend is down mid-deploy, when nothing is being computed at all.
    *
    * @param {string} url - The feed's URL.
    * @param {MapLoadingOverlay} overlay - Where the wait is announced.
@@ -35,7 +38,12 @@ window.AccessScoreApp = (function () {
    */
   function fetchScores(url, overlay) {
     return AccessScoreFetch.fetchJsonWithRetry(url, {
-      onWait: (_attempt, seconds) => overlay.setStatus(i18next.t('labelmap:computing-scores-retry', { seconds })),
+      // The first attempt is the ordinary page load, which the overlay's own spinner and clock already cover. A retry
+      // can sit for up to the server's 45 s cold wait with no countdown running, so it needs its own line.
+      onAttempt: (attempt) => {
+        if (attempt >= 2) overlay.setStatus(i18next.t('labelmap:waiting-for-scores'));
+      },
+      onWait: (_attempt, seconds) => overlay.setStatus(i18next.t('labelmap:waiting-for-scores-retry', { seconds })),
     });
   }
 
