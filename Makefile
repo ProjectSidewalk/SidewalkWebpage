@@ -5,7 +5,7 @@
         hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-regions \
         lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-vendor-versions lint-js-types \
-        scalafmt scalafmt-fix compile test-scala \
+        scalafmt scalafmt-fix compile test-scala clean-dist \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
         lint-eslint lint-htmlhint lint-stylelint lint-fix-eslint lint-fix-stylelint
 
@@ -55,6 +55,8 @@ check-host-dir = $(if $(findstring /,$(wt)),$(error wt= takes a worktree's name,
   the container can't see $(host-dir), only checkouts inside $(main-root)))
 # A worktree may have no node_modules of its own, so always use the main checkout's.
 node-modules = /home/node_modules
+# The checkout `make` ran from, whatever wt= points the work at, so a repo script matches the Makefile calling it.
+self-container-dir = /home$(patsubst $(main-root)%,%,$(CURDIR))
 # Same sbt settings as tools/qa-worktree.sh (reuse the main checkout's downloads, cap memory). Set through SBT_OPTS,
 # since sbt drops command-line flags when it starts a background server.
 sbt-opts = -Dsbt.coursier.home=/home/.coursier -Dsbt.global.base=/home/.sbt -Dsbt.boot.directory=/home/.sbt/boot \
@@ -379,22 +381,29 @@ lint-js-types:
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/check-js-types.mjs"
 	@echo "Finished checking JS types";
 
-# Scala formatting (.scalafmt.conf). The sbt thin client (`--jvm-client`) shares the running `sbt ~ run`'s server
-# instead of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats
-# in place.
+# The sbt targets below go through tools/sbt-run.sh; its header says what that guards against.
+#
+# Scala formatting (.scalafmt.conf). `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.
 scalafmt:
-	@echo "Checking Scala formatting..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(container-dir) && sbt --jvm-client scalafmtCheckAll"
+	@echo "Checking Scala formatting..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/sbt-run.sh --dir $(container-dir) scalafmtCheckAll"
 
 scalafmt-fix:
-	@echo "Formatting Scala..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(container-dir) && sbt --jvm-client scalafmtAll"
+	@echo "Formatting Scala..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/sbt-run.sh --dir $(container-dir) scalafmtAll"
 
 # Compile, and run the Scala tests (which need the db container). Narrow the tests with only=, e.g.
-# `make test-scala only=controllers.api.PublicApiSpec`.
+# `make test-scala only=controllers.api.PublicApiSpec`. A test run waits for any other checkout's to finish first.
 compile:
-	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(container-dir) && sbt --jvm-client compile"
+	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/sbt-run.sh --dir $(container-dir) compile"
 
 test-scala:
-	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(container-dir) && sbt --jvm-client $(if $(only),'testOnly $(only)',test)"
+	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/sbt-run.sh --dir $(container-dir) --db-lock $(if $(only),'testOnly $(only)',test)"
+
+# Each release build leaves ~1GB of jars named after its version and removes none of the older ones. Drops those,
+# keeping compiled classes so the next `make compile` is still incremental.
+clean-dist:
+	@echo "Removing packaged build output from $(host-dir)..."
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && rm -rf target/scala-2.13/*.jar target/universal/stage target/universal/*.zip"
+	@echo "Done. target/ is now $$(du -sh $(host-dir)/target 2>/dev/null | cut -f1)."
 
 # The JS/CSS/HTML linters run in the web container, where their node_modules live (no host-side npm install).
 # `-e FORCE_COLOR=1` (not `docker exec -t`) restores colorized output while keeping the targets pipeable.
