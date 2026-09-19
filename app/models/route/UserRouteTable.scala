@@ -134,7 +134,7 @@ class UserRouteTable @Inject() (
       .resumableRouteTask(currRoute.userRouteId)
       .flatMap {
         case Some((currTaskId, currRouteStreetId, currPosition)) =>
-          auditTaskTable.selectTaskFromTaskId(currTaskId, Some(currRouteStreetId), Some(currPosition))
+          auditTaskTable.selectTaskFromTaskId(currTaskId, currRoute.userId, Some(currRouteStreetId), Some(currPosition))
         case None => DBIO.successful(None)
       }
 
@@ -154,7 +154,8 @@ class UserRouteTable @Inject() (
           .flatMap {
             case Some((nextStreetId, routeStreetId, reversed, position)) =>
               auditTaskTable
-                .selectANewTask(nextStreetId, missionId, reversed, Some(routeStreetId), Some(position))
+                .selectANewTask(nextStreetId, currRoute.userId, missionId, reversed, Some(routeStreetId),
+                  Some(position))
                 .map(Some(_))
             case None => DBIO.successful(None)
           }

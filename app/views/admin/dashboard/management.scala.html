@@ -31,7 +31,7 @@
 
   <div class="page-section" id="teams-section">
     <h2 class="page-heading" id="teams">Teams <a href="#teams" class="permalink">#</a></h2>
-    <p>Teams contributors can join. <b>Status</b> controls whether a team is open to new members; <b>visibility</b> controls whether it shows in public team lists. Toggle either inline.</p>
+    <p>Teams contributors can join. <b>Status</b> controls whether a team is open to new members; <b>visibility</b> controls whether it shows in public team lists. Toggle either inline, or click a team's name to open its own page, where its members and their contributions live.</p>
     <div id="mgmt-teams"></div>
   </div>
 
@@ -76,6 +76,13 @@
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
+          <b>Refresh places</b>
+          <span class="dq-sub">Fetches the city's schools, clinics, libraries, grocery stores, transit stops, parks, and community centers from OpenStreetMap for the AccessScore map. The nightly job does this weekly; this runs it now.</span>
+        </div>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-refresh-places" data-confirm="Fetch the city's places from OpenStreetMap now? It can take a few minutes for a big city.">Run</button>
+      </div>
+      <div class="mgmt-action">
+        <div class="mgmt-action-text">
           <b>Clear server cache</b>
           <span class="dq-sub">Clears Play's cached values; the next page loads rebuild them.</span>
         </div>
@@ -100,7 +107,8 @@
         recalcPriorityUrl: '/adminapi/recalculateStreetPriority',
         recalcValidationCountsUrl: '/adminapi/recalculateValidationCounts',
         generateCropsUrl: '/adminapi/generateCrops',
-        rebuildSidewalkPresenceUrl: '/adminapi/rebuildSidewalkPresence'
+        rebuildSidewalkPresenceUrl: '/adminapi/rebuildSidewalkPresence',
+        refreshPlacesUrl: '/adminapi/refreshPlaces'
       }).init();
     });
   </script>

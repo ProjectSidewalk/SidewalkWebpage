@@ -355,5 +355,39 @@
     "no-image-to-judge": "No hay imagen para juzgar esta etiqueta",
     "vote-failed": "Tu voto no se guardó. Inténtalo de nuevo."
   },
-  "download-already-preparing": "Este archivo ya se está preparando para otra solicitud. Inténtalo de nuevo en un momento."
+  "download-already-preparing": "Este archivo ya se está preparando para otra solicitud. Inténtalo de nuevo en un momento.",
+  "label-type-picker": {
+    "current": "{{labelType}} (tipo actual)",
+    "change": "cambiar"
+  },
+  "access-score-spotlight": {
+    "subtitle-regions": "Las aceras de cada barrio reciben de 0 a 100 puntos con nuestro algoritmo <a href=\"{{href}}\">AccessScore</a> (100 es lo mejor).",
+    "subtitle-streets": "Las aceras de cada calle reciben de 0 a 100 puntos con nuestro algoritmo <a href=\"{{href}}\">AccessScore</a> (100 es lo mejor).",
+    "subtitle-one-region": "Esta ciudad está mapeada como un solo barrio, así que hay una única puntuación. Cambia a Calles para verlo con más detalle.",
+    "units-label": "Clasificar barrios o calles",
+    "unit-regions": "Barrios",
+    "unit-streets": "Calles",
+    "highest": "Puntuaciones más altas ({{score}}+)",
+    "lowest": "Puntuaciones más bajas (menos de {{score}})",
+    "ranked-so-far": "Clasificados hasta ahora",
+    "closest": "Más cerca de clasificarse",
+    "empty-highest-regions": "Ningún barrio alcanza todavía {{score}} o más.",
+    "empty-highest-streets": "Ninguna calle alcanza todavía {{score}} o más.",
+    "empty-lowest-regions": "Ningún barrio está por debajo de {{score}}.",
+    "empty-lowest-streets": "Ninguna calle está por debajo de {{score}}.",
+    "count-regions": "Solo se clasifican los barrios explorados al menos en un {{percent}}% — {{qualifying}} de {{total}} hasta ahora.",
+    "count-streets": "Solo se clasifican las calles de al menos {{minLength}} con varios elementos mapeados — {{qualifying}} de {{total}} hasta ahora.",
+    "updated-nightly": "Se actualiza cada noche",
+    "updated-info": "Las puntuaciones se recalculan cada noche con todas las etiquetas colocadas hasta ese momento. Una etiqueta que añadas hoy cuenta mañana.",
+    "updated-last": "Última actualización: {{date}}.",
+    "cta-regions": "Ver todos los barrios en la herramienta AccessScore",
+    "cta-streets": "Ver todas las calles en la herramienta AccessScore",
+    "explore": "Explorar",
+    "explore-region": "Explorar {{name}}",
+    "street-sub": "{{region}} · {{length}}",
+    "region-sub": "{{length}} de calles · {{clusters}} grupos",
+    "region-sub-pending": "{{length}} de calles · {{percent}}% explorado",
+    "street-in-city": "{{region}}, {{city}}",
+    "unnamed": "Calle sin nombre"
+  }
 }

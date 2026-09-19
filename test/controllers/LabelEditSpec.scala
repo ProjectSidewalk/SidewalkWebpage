@@ -33,24 +33,46 @@ class LabelEditSpec
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
 
-  /** Pre-test severity and tags of every real label the suite edited, restored in `afterAll`. */
-  private var labelBackup: Map[Int, (Option[Int], List[String])] = Map.empty
+  /** Pre-test type, severity and tags of every real label the suite edited, restored in `afterAll`. */
+  private var labelBackup: Map[Int, Target] = Map.empty
 
   private case class Target(labelId: Int, labelType: String, severity: Option[Int], tags: List[String])
 
-  /** A real, rated label to edit; the suite's users are fresh, so none of them is its labeler. */
-  private def pickLabel(): Target = {
+  /**
+   * A real, rated label to edit; the suite's users are fresh, so none of them is its labeler.
+   * @param where Extra SQL conditions on `label`, for the type-change cases.
+   */
+  private def pickLabel(where: String = ""): Target = {
     val row = run(
       sql"""SELECT label_id, label_type::text, severity, array_to_string(tags, '|')
             FROM label
-            WHERE deleted = FALSE AND tutorial = FALSE AND severity IS NOT NULL
+            WHERE deleted = FALSE AND tutorial = FALSE AND severity IS NOT NULL #$where
             ORDER BY label_id
             LIMIT 1""".as[(Int, String, Option[Int], String)]
     ).headOption.getOrElse(cancel("No rated label in the connected schema to edit."))
     val target = Target(row._1, row._2, row._3, splitTags(row._4))
-    if (!labelBackup.contains(target.labelId)) labelBackup += (target.labelId -> (target.severity, target.tags))
+    if (!labelBackup.contains(target.labelId)) labelBackup += (target.labelId -> target)
     target
   }
+
+  /**
+   * An Obstacle or SurfaceProblem (both rated on the Severity scale, so a change between them keeps the severity) that
+   * belongs to no cluster, since a type change takes a label out of its cluster and the suite shouldn't move real ones.
+   *
+   * Every vote on it must also name its current type, which the cases below assume when they expect a change to leave
+   * the label with no counted votes. A vote stamped with some other type is a leftover from an interrupted run in a
+   * dev database, and picking that label would fail the count assertions rather than the behavior they check.
+   */
+  private def pickTypeChangeLabel(): Target = pickLabel(
+    """AND label_type IN ('Obstacle', 'SurfaceProblem')
+       AND NOT EXISTS (SELECT 1 FROM cluster_label WHERE cluster_label.label_id = label.label_id)
+       AND NOT EXISTS (SELECT 1 FROM label_validation
+                       WHERE label_validation.label_id = label.label_id
+                         AND label_validation.label_type <> label.label_type)"""
+  )
+
+  private def otherSeverityType(labelType: String): String =
+    if (labelType == "Obstacle") "SurfaceProblem" else "Obstacle"
 
   private def splitTags(joined: String): List[String] = if (joined.isEmpty) Nil else joined.split('|').toList
 
@@ -78,6 +100,16 @@ class LabelEditSpec
   private def editBody(labelId: Int, severity: Option[Int], tags: Seq[String], source: String = "LabelMap"): JsObject =
     Json.obj("label_id" -> labelId, "severity" -> severity, "tags" -> tags, "source" -> source)
 
+  /** An edit body that also says which type the popup showed and which type the label should become. */
+  private def typeEditBody(
+      labelId: Int,
+      labelTypeSeen: String,
+      newLabelType: String,
+      severity: Option[Int],
+      tags: Seq[String]
+  ): JsObject =
+    editBody(labelId, severity, tags) ++ Json.obj("label_type" -> labelTypeSeen, "new_label_type" -> newLabelType)
+
   /** Every source string a host passes to `showLabel()` in `public/js`; each has to be a `UiSource` member. */
   private val cardHostSources = Seq(
     "LabelMap", "UserMap", "SharedLabel", "LabelSearchPage", "GalleryExpanded", "AdminLabelMap", "AdminActivity",
@@ -93,6 +125,35 @@ class LabelEditSpec
     ).head
     (row._1, splitTags(row._2))
   }
+
+  /** The label's (type, severity, tags, agree_count, disagree_count, unsure_count, correct). */
+  private def fullState(labelId: Int): (String, Option[Int], List[String], Int, Int, Int, Option[Boolean]) = {
+    val r = run(
+      sql"""SELECT label_type::text, severity, array_to_string(tags, '|'), agree_count, disagree_count, unsure_count,
+                   correct
+            FROM label WHERE label_id = $labelId""".as[(String, Option[Int], String, Int, Int, Int, Option[Boolean])]
+    ).head
+    (r._1, r._2, splitTags(r._3), r._4, r._5, r._6, r._7)
+  }
+
+  /** The user's edits of the label as (old_label_type, new_label_type, old_severity, new_severity, new_tags). */
+  private def typeEditsBy(labelId: Int, userId: String): Seq[(String, String, Option[Int], Option[Int], List[String])] =
+    run(
+      sql"""SELECT old_label_type::text, new_label_type::text, old_severity, new_severity, array_to_string(new_tags, '|')
+            FROM label_edit
+            WHERE label_id = $labelId AND user_id = $userId
+            ORDER BY label_edit_id""".as[(String, String, Option[Int], Option[Int], String)]
+    ).map(r => (r._1, r._2, r._3, r._4, splitTags(r._5)))
+
+  /** The user's votes on the label as (label_type, validation_result). */
+  private def votesBy(labelId: Int, userId: String): Seq[(String, String)] =
+    run(
+      sql"""SELECT label_type::text, validation_result::text FROM label_validation
+            WHERE label_id = $labelId AND user_id = $userId ORDER BY label_validation_id""".as[(String, String)]
+    )
+
+  private def tagsFor(labelType: String): Set[String] =
+    run(sql"SELECT tag FROM tag WHERE label_type::text = $labelType".as[String]).toSet
 
   /** The user's edits of the label: (old_severity, new_severity, old_tags, new_tags, label_validation_id). */
   private def editsBy(
@@ -117,8 +178,17 @@ class LabelEditSpec
             WHERE label_history.label_id = $labelId""".as[Int]
     ).head
 
-  /** A `POST /labelmap/validate` body for the label, carrying the given severity as the validator's correction. */
-  private def popupVoteBody(target: Target, result: String, severity: Option[Int], undone: Boolean): JsObject = {
+  /**
+   * A `POST /labelmap/validate` body for the label, carrying the given severity (and type, when given) as the
+   * validator's correction.
+   */
+  private def popupVoteBody(
+      target: Target,
+      result: String,
+      severity: Option[Int],
+      undone: Boolean,
+      newLabelType: Option[String] = None
+  ): JsObject = {
     val (labelType, heading, pitch, zoom) = run(
       sql"""SELECT label.label_type::text, label_point.heading, label_point.pitch, label_point.zoom
             FROM label
@@ -129,6 +199,7 @@ class LabelEditSpec
     Json.obj(
       "label_id"          -> target.labelId,
       "label_type"        -> labelType,
+      "new_label_type"    -> newLabelType,
       "validation_result" -> result,
       "severity"          -> severity,
       "tags"              -> target.tags,
@@ -162,9 +233,10 @@ class LabelEditSpec
           )
         )
       }
-      labelBackup.foreach { case (labelId, (severity, tags)) =>
+      labelBackup.foreach { case (labelId, t) =>
         val _ = run(
-          sqlu"""UPDATE label SET severity = $severity, tags = string_to_array(${tags.mkString("|")}, '|')
+          sqlu"""UPDATE label SET label_type = ${t.labelType}::label_type, severity = ${t.severity},
+                     tags = string_to_array(${t.tags.mkString("|")}, '|')
                  WHERE label_id = $labelId"""
         )
       }
@@ -253,6 +325,116 @@ class LabelEditSpec
       // Re-sending the label's own values writes nothing.
       status(postEdit(session, editBody(target.labelId, target.severity, target.tags))) mustBe OK
       editsBy(target.labelId, userId) mustBe empty
+    }
+  }
+
+  "POST /label/edit with a new_label_type" should {
+    "change the type, keep a same-scale severity, drop tags the new type lacks, recount votes, and refuse a stale client" in {
+      val target               = pickTypeChangeLabel()
+      val other                = otherSeverityType(target.labelType)
+      val (userId, _, session) = signUpFreshUser()
+      grantAdmin(userId)
+      val before = fullState(target.labelId)
+
+      // Obstacle <-> SurfaceProblem: both rated on the Severity scale, so the severity stays; tags are re-checked.
+      val changed =
+        postEdit(session, typeEditBody(target.labelId, target.labelType, other, target.severity, target.tags))
+      status(changed) mustBe OK
+      (contentAsJson(changed) \ "label_type").as[String] mustBe other
+      val afterChange = fullState(target.labelId)
+      afterChange._1 mustBe other
+      afterChange._2 mustBe target.severity
+      afterChange._3.toSet must be(afterChange._3.toSet intersect tagsFor(other))
+      // Every real vote on this label was cast on the old type, so none counts any more.
+      (afterChange._4, afterChange._5, afterChange._6, afterChange._7) mustBe ((0, 0, 0, None))
+      typeEditsBy(target.labelId, userId).map(e => (e._1, e._2, e._4)) mustBe
+        Seq((target.labelType, other, target.severity))
+
+      // A rating given with a change to a type on the other scale is a rating for the new type, so it stands.
+      val fresh = if (target.severity.contains(3)) 1 else 3
+      status(postEdit(session, typeEditBody(target.labelId, other, "CurbRamp", Some(fresh), Nil))) mustBe OK
+      fullState(target.labelId)._2 mustBe Some(fresh)
+
+      // An unrated type carries no severity, whatever the client sent.
+      status(postEdit(session, typeEditBody(target.labelId, "CurbRamp", "Signal", Some(2), Nil))) mustBe OK
+      val asSignal = fullState(target.labelId)
+      (asSignal._1, asSignal._2) mustBe (("Signal", None))
+
+      // A client still showing the original type is told the label moved on, and changes nothing.
+      val stale = postEdit(session, typeEditBody(target.labelId, target.labelType, other, target.severity, target.tags))
+      status(stale) mustBe CONFLICT
+      (contentAsJson(stale) \ "label_type").as[String] mustBe "Signal"
+      fullState(target.labelId)._1 mustBe "Signal"
+
+      // Back to where it started: the edit folds into the row the first change opened, which nets out, and the old
+      // votes count again.
+      status(
+        postEdit(session, typeEditBody(target.labelId, "Signal", target.labelType, target.severity, target.tags))
+      ) mustBe OK
+      fullState(target.labelId) mustBe before
+      typeEditsBy(target.labelId, userId) mustBe empty
+    }
+  }
+
+  "POST /labelmap/validate with a new_label_type" should {
+    "record an admin's Agree as a vote on the new type with the change linked to it, and unwind both on undo" in {
+      val target               = pickTypeChangeLabel()
+      val other                = otherSeverityType(target.labelType)
+      val (userId, _, session) = signUpFreshUser()
+      grantAdmin(userId)
+      val before = fullState(target.labelId)
+
+      val agreed = postPopupVote(session, popupVoteBody(target, "Agree", target.severity, undone = false, Some(other)))
+      status(agreed) mustBe OK
+      val afterChange = fullState(target.labelId)
+      afterChange._1 mustBe other
+      // The changer's Agree is the only vote on the new type: one agree, and the label is back in the queue.
+      (afterChange._4, afterChange._5, afterChange._6, afterChange._7) mustBe ((1, 0, 0, Some(true)))
+      votesBy(target.labelId, userId) mustBe Seq((other, "Agree"))
+      val edits = editsBy(target.labelId, userId)
+      edits.map(_._5.isDefined) mustBe Seq(true)
+      typeEditsBy(target.labelId, userId).map(e => (e._1, e._2)) mustBe Seq((target.labelType, other))
+
+      // A popup still showing the old type is told to reload rather than filing a vote on a type the label lost.
+      val staleVote = postPopupVote(
+        session,
+        popupVoteBody(target, "Agree", target.severity, undone = false)
+          + ("label_type" -> Json.toJson(target.labelType))
+      )
+      status(staleVote) mustBe CONFLICT
+      (contentAsJson(staleVote) \ "label_type").as[String] mustBe other
+      votesBy(target.labelId, userId) mustBe Seq((other, "Agree"))
+
+      // Undoing the vote unwinds the type change with it.
+      status(
+        postPopupVote(session, popupVoteBody(target, "Agree", target.severity, undone = true, Some(other)))
+      ) mustBe OK
+      fullState(target.labelId) mustBe before
+      votesBy(target.labelId, userId) mustBe empty
+      typeEditsBy(target.labelId, userId) mustBe empty
+    }
+
+    "keep the type change when the changer later votes on the label again, rather than on an undo" in {
+      val target               = pickTypeChangeLabel()
+      val other                = otherSeverityType(target.labelType)
+      val (userId, _, session) = signUpFreshUser()
+      grantAdmin(userId)
+
+      status(postPopupVote(session, popupVoteBody(target, "Agree", target.severity, undone = false, Some(other))))
+        .mustBe(OK)
+      fullState(target.labelId)._1 mustBe other
+
+      // The re-typed label is served again, and this validator votes on it a second time. That replaces their verdict
+      // and nothing else: they are not taking back what they said the type was, and reverting it here would leave the
+      // vote they just cast naming a type the label no longer has.
+      val revote =
+        postPopupVote(session, popupVoteBody(target.copy(labelType = other), "Agree", target.severity, undone = false))
+      status(revote) mustBe OK
+      fullState(target.labelId)._1 mustBe other
+      votesBy(target.labelId, userId) mustBe Seq((other, "Agree"))
+      // The change stays on record, no longer tied to the vote that has been replaced.
+      typeEditsBy(target.labelId, userId).map(e => (e._1, e._2)) mustBe Seq((target.labelType, other))
+      editsBy(target.labelId, userId).map(_._5.isDefined) mustBe Seq(false)
     }
   }
 

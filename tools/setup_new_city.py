@@ -13,7 +13,8 @@ It chains every remaining setup step, pausing only where a human is required:
      docs/dev-environment.md — then lists the translation keys a human still owes.
   2. Creates the city's GA4 properties and fills the measurement + property ids (tools/create_ga_properties.py) —
      when the repo-root ga-service-account.json key exists and the ids are still empty; skipped with a pointer
-     otherwise.
+     otherwise. Then offers to add the city's hostnames to the production Maps key's referrers
+     (tools/maps_key_referrers.py); when gcloud can't read or edit the key, skipped with a pointer.
   3. Creates the empty city schema by cloning a donor city's structure + seed rows (db/scripts/create-new-schema.sh;
      the donor defaults to the active dev city and is refused if it sits ahead of this checkout's evolutions, or if
      its top evolution is another branch's under the same number — the script gets the file's Play hash to tell).
@@ -372,15 +373,19 @@ Server handoff for {city_id}:
      (or an ssh alias of your own that sets the user; a bare hostname without one fails with "Permission denied").
   2. On the server, register the city with the IT tooling (uwcseit-sidewalk-tools: bin/setup-new.pl), which creates the
      DB role, restores the dump into sidewalk_test / sidewalk_prod, and writes the vhost — test stage first.
-  3. DNS + Google Cloud: add {test_url} and {prod_url} as referrers on the Maps API key (docs/google-cloud.md).
+  3. DNS, and confirm {test_url} and {prod_url} are on the Maps API key's referrers, or the city's map and panos
+     won't load: step 2 offers to add them, and `python3 tools/maps_key_referrers.py {city_id}`
+     adds them otherwise (docs/google-cloud.md).
   4. Open the PR with the config, message, and docs changes; the auto-deploy picks the city up once it lands on
      develop (test) and in a release (prod).
-  5. Nightly jobs fill what onboarding leaves empty, so the dump you just copied has none of it: `intersection`
+  5. Add `{city_id},<prod fqdn>` to /etc/sidewalk/cities.csv on the pano scraper host (sidewalk-panorama-tools).
+     The nightly queue picks it up that evening; `scrape_queue.py --only {city_id}` pulls the panos now.
+  6. Nightly jobs fill what onboarding leaves empty, so the dump you just copied has none of it: `intersection`
      (with each street's corner links), `cluster`, `sidewalk_presence`, and the `osm_way` tag cache each arrive
      with their job's first nightly run (the schedule is actor/ScheduledJobs.scala, shifted by the city's
      update_offset_hours), and AccessScore reads zero until then. An admin can force the intersections and
      clusters early from /clustering; the osm_way tags have their own nightly refresh (#5297).
-  6. Round-trip check any time: make import-dump db={schema} restores db/{schema}-dump into the dev DB.
+  7. Round-trip check any time: make import-dump db={schema} restores db/{schema}-dump into the dev DB.
 '''
 
 
@@ -1037,6 +1042,24 @@ def cityparams_landing_urls(city_id):
                                   missing=f'<{stage} URL: not in cityparams.conf>') for stage in ('prod', 'test'))
 
 
+def offer_maps_key_referrers(city_id):
+    """Asks to add the city's hostnames to the production Maps key, and points at the standalone tool when it can't."""
+    import maps_key_referrers
+    try:
+        project_id, key = maps_key_referrers.find_key()
+        to_add = maps_key_referrers.missing_for_city(city_id, key)
+        if not to_add:
+            print('  Both hostnames are already on the Maps key.')
+        elif prompt(f'  Add {", ".join(to_add)} to the production Maps key? (y/n)', 'y') == 'y':
+            maps_key_referrers.append_referrers(project_id, key, to_add)
+        else:
+            print(f'  Not added; run `python3 tools/maps_key_referrers.py {city_id}` before launch.')
+    except maps_key_referrers.MapsKeyError as err:
+        # Stopping here would strand every rerun at step 2, so a failure only prints the way to finish it later.
+        print(f'  Maps key referrers: skipping, since {err}. Run `python3 tools/maps_key_referrers.py {city_id}` once '
+              'that is fixed, or the city\'s map and panos won\'t load.')
+
+
 def main(argv=None):
     global ASSUME_DEFAULTS
     parser = argparse.ArgumentParser(description='Guided end-to-end new-city setup from onboarding artifacts.')
@@ -1188,7 +1211,7 @@ def main(argv=None):
         print('\n[dry-run] stopping before the docker/db steps.')
         return
 
-    print('\nStep 2/8 — create the Google Analytics properties...')
+    print('\nStep 2/8 — create the Google Analytics properties and add the Maps key referrers...')
     import create_ga_properties
     if not create_ga_properties.KEY_FILE.is_file():
         print(f'  No {create_ga_properties.KEY_FILE.name} in the repo root; skipping — see '
@@ -1197,6 +1220,7 @@ def main(argv=None):
         print('  GA measurement ids are already filled in; skipping.')
     else:
         create_ga_properties.create_for_city(city_id)
+    offer_maps_key_referrers(city_id)
 
     for container in (DB_CONTAINER, WEB_CONTAINER):
         if not container_up(container):

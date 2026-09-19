@@ -12,7 +12,7 @@ import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ExcludedTag, LatLngBBox, MyPostgresProfile}
-import models.validation.LabelValidationTable
+import models.validation.{LabelValidationTable, ValidationLabelFilter}
 import models.validation.ValidationQueuePolicy.ValidationQueue
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.Logger
@@ -40,6 +40,8 @@ trait LabelService {
   def selectTagsByLabelType(labelType: LabelTypeEnum.Base): Future[Seq[models.label.Tag]]
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]]
   def cleanTagList(tags: Seq[String], labelType: LabelTypeEnum.Base): DBIO[Seq[String]]
+  def severityFor(labelType: LabelTypeEnum.Base, severity: Option[Int]): Option[Int]
+  def findLabel(labelId: Int): Future[Option[Label]]
   def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]]
   def getLabelLatLng(labelId: Int): Future[Option[LatLng]]
   def getRecentLabelMetadata(takeN: Int): Future[Seq[LabelMetadata]]
@@ -70,8 +72,7 @@ trait LabelService {
       viewer: PanoSource,
       labelType: LabelTypeEnum.Base,
       queues: Seq[ValidationQueue],
-      userIds: Option[Set[String]] = None,
-      regionIds: Option[Set[Int]] = None,
+      filter: ValidationLabelFilter,
       unvalidatedOnly: Boolean = false,
       excludedLabelIds: Set[Int] = Set.empty
   ): Future[Seq[LabelValidationMetadata]]
@@ -112,20 +113,26 @@ object LabelServiceImpl {
    * The cascade is walked in order and the first queue with at least one such type wins, so Expert Validate falls
    * back from triage to the crowd's queue and finally to everything rather than stalling when a queue empties out.
    *
-   * @param candidates    Per-type counts, already narrowed to the types this mission may use.
-   * @param queues        The cascade, in order.
-   * @param missionLength How many labels a mission needs.
-   * @return              The winning queue and its types; `(Any, empty)` when no queue can fill a mission, which
-   *                      leaves the caller with no label type to serve.
+   * @param candidates        Per-type counts, already narrowed to the types this mission may use.
+   * @param queues            The cascade, in order.
+   * @param missionLength     How many labels a mission needs.
+   * @param allowShortMission If no queue can fill a whole mission, take one with any labels (a filtered page's pool).
+   * @return                  The winning queue and its types; `(Any, empty)` when no queue qualifies, which leaves
+   *                          the caller with no label type to serve.
    */
   private[service] def chooseQueueAndTypes(
       candidates: Seq[LabelTypeValidationsLeft],
       queues: Seq[ValidationQueue],
-      missionLength: Int
+      missionLength: Int,
+      allowShortMission: Boolean
   ): (ValidationQueue, Seq[LabelTypeValidationsLeft]) = {
-    queues
-      .map(queue => (queue, candidates.filter(_.canFill(queue, missionLength))))
-      .find { case (_, types) => types.nonEmpty }
+    def firstQueueHolding(minLabels: Int): Option[(ValidationQueue, Seq[LabelTypeValidationsLeft])] =
+      queues
+        .map(queue => (queue, candidates.filter(_.canFill(queue, minLabels))))
+        .find { case (_, types) => types.nonEmpty }
+
+    firstQueueHolding(missionLength)
+      .orElse(if (allowShortMission) firstQueueHolding(1) else None)
       .getOrElse((ValidationQueue.Any, Seq.empty[LabelTypeValidationsLeft]))
   }
 
@@ -244,6 +251,12 @@ class LabelServiceImpl @Inject() (
    * @param labelType Label type to filter tags by
    * @return Cleaned list of tags
    */
+  def findLabel(labelId: Int): Future[Option[Label]] = db.run(labelTable.find(labelId))
+
+  /** A severity a label of this type can carry: the one given, or none for an unrated type. */
+  def severityFor(labelType: LabelTypeEnum.Base, severity: Option[Int]): Option[Int] =
+    if (labelType.ratingScale == LabelTypeEnum.RatingScale.Unrated) None else severity
+
   def cleanTagList(tags: Seq[String], labelType: LabelTypeEnum.Base): DBIO[Seq[String]] = {
     for {
       validTags: Seq[String] <- selectTagsByLabelTypeDbio(labelType).map(_.map(_.tag))
@@ -384,8 +397,7 @@ class LabelServiceImpl @Inject() (
    * @param queues           Queues to draw from, in order; each later queue only tops up what the earlier ones could
    *                         not fill, so a mission is still handed a full set of labels once the queue that should
    *                         serve it runs dry (#2929).
-   * @param userIds          Optional list of user IDs to filter by.
-   * @param regionIds        Optional list of region IDs to filter by.
+   * @param filter           Expert Validate's user, region, and team filters.
    * @param excludedLabelIds Labels the caller already holds and must not be handed again (#4810).
    * @return                 Seq[LabelValidationMetadata]
    */
@@ -395,8 +407,7 @@ class LabelServiceImpl @Inject() (
       viewer: PanoSource,
       labelType: LabelTypeEnum.Base,
       queues: Seq[ValidationQueue],
-      userIds: Option[Set[String]] = None,
-      regionIds: Option[Set[Int]] = None,
+      filter: ValidationLabelFilter,
       unvalidatedOnly: Boolean = false,
       excludedLabelIds: Set[Int] = Set.empty
   ): Future[Seq[LabelValidationMetadata]] = {
@@ -408,8 +419,7 @@ class LabelServiceImpl @Inject() (
         labelType,
         queue,
         configService.getAiTagSuggestionsEnabled,
-        userIds,
-        regionIds,
+        filter,
         unvalidatedOnly,
         excluded,
         // An unsided label is a face of its own, and it is already excluded by id.
@@ -604,6 +614,7 @@ class LabelServiceImpl @Inject() (
    * @param requiredLabelType labelType of the current mission.
    * @param queues            Queues to consider, in order; see `ValidateParams.queueCascade`.
    * @param unvalidatedOnly   Whether the mission is restricted to labels with no decision recorded.
+   * @param filter            Expert Validate's filters; only types with labels matching them can be picked.
    */
   def getLabelTypeToValidate(
       userId: String,
@@ -611,19 +622,20 @@ class LabelServiceImpl @Inject() (
       viewerType: PanoSource,
       requiredLabelType: Option[LabelTypeEnum.Base],
       queues: Seq[ValidationQueue],
-      unvalidatedOnly: Boolean
+      unvalidatedOnly: Boolean,
+      filter: ValidationLabelFilter
   ): Future[Option[LabelTypeEnum.Base]] = {
-    val counts =
-      labelTable.getAvailableValidationsLabelsByType(userId, viewerType, unvalidatedOnly, queues, requiredLabelType)
+    val counts = labelTable.getAvailableValidationsLabelsByType(userId, viewerType, unvalidatedOnly, queues,
+      requiredLabelType, filter)
     db.run(counts.map { availValidations =>
       // NoSidewalk competes like any other type; its weight in the lottery is its count of block faces still needing
       // votes rather than its label count (LabelTypeValidationsLeft.weightFor, #5285).
       val candidates: Seq[LabelTypeValidationsLeft] = availValidations
-        .filter(_.validationsAvailable >= missionLength)
         .filter(x => requiredLabelType.isEmpty || requiredLabelType.contains(x.labelType))
         .filter(x => LabelTypeEnum.primaryValidateLabelTypes.contains(x.labelType))
 
-      val (queue, typesFiltered) = LabelServiceImpl.chooseQueueAndTypes(candidates, queues, missionLength)
+      val (queue, typesFiltered) =
+        LabelServiceImpl.chooseQueueAndTypes(candidates, queues, missionLength, allowShortMission = !filter.isEmpty)
 
       if (typesFiltered.length < 2) {
         typesFiltered.map(_.labelType).headOption
@@ -658,7 +670,7 @@ class LabelServiceImpl @Inject() (
     // TODO can this be merged with `getDataForValidatePostRequest`?
     val viewerType: PanoSource = configService.getPanoSource
     getLabelTypeToValidate(user.userId, labelCount, viewerType, validateParams.labelType, validateParams.queueCascade,
-      validateParams.unvalidatedOnly)
+      validateParams.unvalidatedOnly, validateParams.labelFilter)
       .flatMap {
         case Some(labelType) =>
           for {
@@ -672,8 +684,7 @@ class LabelServiceImpl @Inject() (
             labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
             labelsToRetrieve: Int = labelsToValidate - labelsProgress
             labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, viewerType, labelType,
-              validateParams.queueCascade, validateParams.userIds.map(_.toSet), validateParams.regionIds.map(_.toSet),
-              validateParams.unvalidatedOnly)
+              validateParams.queueCascade, validateParams.labelFilter, validateParams.unvalidatedOnly)
             adminData <- {
               if (validateParams.adminVersion) getExtraAdminValidateData(labelMetadata.map(_.labelId))
               else Future.successful(Seq.empty[AdminValidationData])
@@ -715,8 +726,7 @@ class LabelServiceImpl @Inject() (
     } else {
       for {
         labelList <- retrieveLabelListForValidation(user.userId, nToRetrieve, viewerType, labelType,
-          validateParams.queueCascade, validateParams.userIds.map(_.toSet), validateParams.regionIds.map(_.toSet),
-          validateParams.unvalidatedOnly, excludedLabelIds)
+          validateParams.queueCascade, validateParams.labelFilter, validateParams.unvalidatedOnly, excludedLabelIds)
         adminData <- {
           if (validateParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
           else Future.successful(Seq.empty[AdminValidationData])
@@ -741,7 +751,7 @@ class LabelServiceImpl @Inject() (
       nextMissionLabelType <- {
         if (missionProgress.exists(_.completed))
           getLabelTypeToValidate(user.userId, labelsToRetrieve, viewerType, validateParams.labelType,
-            validateParams.queueCascade, validateParams.unvalidatedOnly)
+            validateParams.queueCascade, validateParams.unvalidatedOnly, validateParams.labelFilter)
         else Future.successful(Option.empty[LabelTypeEnum.Base])
       }
     } yield {
@@ -754,8 +764,8 @@ class LabelServiceImpl @Inject() (
               Some(nextMissionLabelType)
             )
             labelList: Seq[LabelValidationMetadata] <- retrieveLabelListForValidation(user.userId, labelsToRetrieve,
-              viewerType, nextMissionLabelType, validateParams.queueCascade, validateParams.userIds.map(_.toSet),
-              validateParams.regionIds.map(_.toSet), validateParams.unvalidatedOnly)
+              viewerType, nextMissionLabelType, validateParams.queueCascade, validateParams.labelFilter,
+              validateParams.unvalidatedOnly)
             adminData <- {
               if (validateParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
               else Future.successful(Seq.empty[AdminValidationData])
@@ -832,12 +842,14 @@ class LabelServiceImpl @Inject() (
   def insertLabel(label: Label): DBIO[Int] = {
     for {
       cleanTags: Seq[String] <- cleanTagList(label.tags, label.labelType)
-      clean: Label = label.copy(tags = cleanTags.toList)
+      // An unrated type never carries a severity, whatever the client sent (the DB rejects one).
+      clean: Label = label.copy(tags = cleanTags.toList, severity = severityFor(label.labelType, label.severity))
       labelId: Int <- (labelTable.labelsUnfiltered returning labelTable.labelsUnfiltered.map(_.labelId)) += clean
 
       // Add a corresponding entry to the label_history table.
       _ <- labelHistoryTable.insert(
-        LabelHistory(0, labelId, clean.severity, clean.tags, clean.userId, clean.timeCreated, UiSource.Explore, None)
+        LabelHistory(0, labelId, clean.labelType, clean.severity, clean.tags, clean.userId, clean.timeCreated,
+          UiSource.Explore, None)
       )
     } yield {
       labelId

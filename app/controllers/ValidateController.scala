@@ -9,6 +9,7 @@ import formats.json.MissionFormats._
 import formats.json.ValidateFormats.{
   EnvironmentSubmission,
   LabelMapValidationSubmission,
+  LabelValidationSubmission,
   MoreLabelsRequest,
   ValidationTaskSubmission
 }
@@ -16,7 +17,13 @@ import models.auth.WithAdmin
 import models.label.{LabelTypeEnum, Tag}
 import models.mission.MissionType
 import models.user._
-import models.validation.{LabelValidation, ValidationTaskComment, ValidationTaskEnvironment, ValidationTaskInteraction}
+import models.validation.{
+  LabelValidation,
+  ValidationOption,
+  ValidationTaskComment,
+  ValidationTaskEnvironment,
+  ValidationTaskInteraction
+}
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json._
@@ -49,9 +56,11 @@ class ValidateController @Inject() (
     validationService: service.ValidationService,
     authenticationService: service.AuthenticationService,
     regionService: service.RegionService,
+    userService: service.UserService,
     panoDataService: service.PanoDataService,
     osmWayService: service.OsmWayService,
-    missionService: service.MissionService
+    missionService: service.MissionService,
+    aiService: service.AiService
 )(implicit assets: AssetsFinder)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -75,7 +84,8 @@ class ValidateController @Inject() (
           None,
           regionsParam(regions, neighborhoods),
           unvalidatedOnly,
-          triage = None
+          triage = None,
+          teams = None
         ).flatMap { case (validateParams, response) =>
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
@@ -104,6 +114,7 @@ class ValidateController @Inject() (
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    * @param triage          Serve the triage queue first (the default); false gives the same stream /validate gets.
    * @param neighborhoods   Old name for `regions`, still read so existing links keep working.
+   * @param teams           Comma-separated list of team names or team IDs whose members' labels to validate.
    */
   def expertValidate(
       labelType: Option[String],
@@ -111,7 +122,8 @@ class ValidateController @Inject() (
       regions: Option[String],
       unvalidatedOnly: Option[Boolean],
       triage: Option[Boolean],
-      neighborhoods: Option[String]
+      neighborhoods: Option[String],
+      teams: Option[String]
   ) =
     cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
       if (isMobile(request)) {
@@ -124,7 +136,8 @@ class ValidateController @Inject() (
           users,
           regionsParam(regions, neighborhoods),
           unvalidatedOnly,
-          triage
+          triage,
+          teams
         ).flatMap { case (validateParams, response) =>
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
@@ -159,7 +172,8 @@ class ValidateController @Inject() (
         None,
         regionsParam(regions, neighborhoods),
         unvalidatedOnly,
-        triage = None
+        triage = None,
+        teams = None
       ).flatMap { case (validateParams, response) =>
         if (response.header.status == 200) {
           val user: SidewalkUserWithRole = request.identity
@@ -192,6 +206,7 @@ class ValidateController @Inject() (
    * @param regions         Comma-separated list of region names or region IDs to validate (could be mixed).
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    * @param triage          Serve the triage queue first; only the admin pages offer it, where it defaults to on.
+   * @param teams           Comma-separated list of team names or team IDs to validate (could be mixed).
    */
   def checkParams(
       adminVersion: Boolean,
@@ -199,7 +214,8 @@ class ValidateController @Inject() (
       users: Option[String],
       regions: Option[String],
       unvalidatedOnly: Option[Boolean],
-      triage: Option[Boolean]
+      triage: Option[Boolean],
+      teams: Option[String]
   ): Future[(ValidateParams, Result)] = {
     // Users and regions may be given by id or by name, so each is resolved both ways before deciding it is invalid.
     val parsedLabelType: Option[Option[LabelTypeEnum.Base]] = labelType.map(LabelTypeEnum.byName.get)
@@ -234,6 +250,10 @@ class ValidateController @Inject() (
         }
         .toSeq
     )
+    val teamIdList: Option[Seq[Future[Option[Int]]]] =
+      teams.map(
+        _.split(',').map(_.trim).toSeq.map(teamStr => userService.findTeamByIdOrName(teamStr).map(_.map(_.teamId)))
+      )
     for {
       userIds: Option[Seq[Option[String]]] <- userIdsList match {
         case Some(userIds) => Future.sequence(userIds).map(Some(_))
@@ -242,6 +262,10 @@ class ValidateController @Inject() (
       regionIds: Option[Seq[Option[Int]]] <- regionIdList match {
         case Some(regionIds) => Future.sequence(regionIds).map(Some(_))
         case None            => Future.successful(None)
+      }
+      teamIds: Option[Seq[Option[Int]]] <- teamIdList match {
+        case Some(teamIds) => Future.sequence(teamIds).map(Some(_))
+        case None          => Future.successful(None)
       }
     } yield {
       // Return a BadRequest if anything is wrong, or the ValidateParams if everything looks good.
@@ -260,6 +284,11 @@ class ValidateController @Inject() (
           ValidateParams(adminVersion),
           BadRequest(s"One or more of the regions provided were not found; please double check your list of regions! You can use either their names or IDs. You provided: ${regions.get}")
         )
+      } else if (teamIds.isDefined && teamIds.get.length != teamIds.get.flatten.length) {
+        (
+          ValidateParams(adminVersion),
+          BadRequest(s"One or more of the teams provided were not found; please double check your list of teams! You can use either their names or IDs. You provided: ${teams.get}")
+        )
       } else {
         (
           ValidateParams(
@@ -268,7 +297,8 @@ class ValidateController @Inject() (
             userIds.map(_.flatten),
             regionIds.map(_.flatten),
             unvalidatedOnly.getOrElse(false),
-            triage = adminVersion && triage.getOrElse(true)
+            triage = adminVersion && triage.getOrElse(true),
+            teamIds = teamIds.map(_.flatten)
           ),
           Ok("")
         )
@@ -331,14 +361,25 @@ class ValidateController @Inject() (
   ): Future[Result] = {
     val currTime: OffsetDateTime = data.timestamp
 
+    // The type each vote was cast on: what the tool showed, or the mission's type for a client that doesn't say.
+    def labelTypeSeen(newVal: LabelValidationSubmission): LabelTypeEnum.Base =
+      newVal.labelType.orElse(data.missionProgress.map(_.labelType)).get
+    if (data.validations.exists(_.labelType.isEmpty) && data.missionProgress.isEmpty) {
+      return Future.successful(
+        BadRequest(Json.obj("status" -> "Error", "message" -> "validations need a label_type or a mission_progress"))
+      )
+    }
+
     // First do all the important stuff that needs to be done synchronously.
     val response: Future[Result] = for {
       // Insert validations and comments (if there are any).
       _ <- validationService.submitValidations(data.validations.map { newVal =>
         ValidationSubmission(
-          LabelValidation(0, newVal.labelId, newVal.validationResult, user.userId, newVal.missionId, newVal.canvasX,
-            newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth,
-            newVal.startTimestamp, newVal.endTimestamp, newVal.source, newVal.viewerType),
+          LabelValidation(0, newVal.labelId, labelTypeSeen(newVal), newVal.validationResult, user.userId,
+            newVal.missionId, newVal.canvasX, newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom,
+            newVal.canvasHeight, newVal.canvasWidth, newVal.startTimestamp, newVal.endTimestamp, newVal.source,
+            newVal.viewerType),
+          newVal.newLabelType,
           newVal.severity,
           newVal.tags,
           newVal.comment.map(c =>
@@ -352,6 +393,12 @@ class ValidateController @Inject() (
           canEdit = isAdmin(user)
         )
       })
+      // Not waited on: the AI's old assessment was about the old type, and the nightly sweep can take days.
+      _ = data.validations
+        .filter(v =>
+          v.newLabelType.isDefined && v.validationResult == ValidationOption.Agree && !v.undone && isAdmin(user)
+        )
+        .foreach(v => aiService.reassessAfterTypeChange(v.labelId))
 
       // Get data to return in POST response. Not much unless the mission is over and we need the next batch of labels.
       returnValue <- labelService.getDataForValidatePostRequest(user, data.missionProgress, data.validateParams)
@@ -515,29 +562,44 @@ class ValidateController @Inject() (
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       newVal => {
-        for {
-          mission <- missionService.resumeOrCreateNewValidateMission(
-            userId,
-            MissionType.LabelmapValidation,
-            newVal.labelType
-          )
-          newValIds <- validationService.submitValidations(
-            Seq(
-              ValidationSubmission(
-                LabelValidation(0, newVal.labelId, newVal.validationResult, userId, mission.get.missionId,
-                  newVal.canvasX, newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight,
-                  newVal.canvasWidth, newVal.startTimestamp, newVal.endTimestamp, newVal.source, newVal.viewerType),
-                newVal.severity,
-                newVal.tags,
-                comment = None,
-                newVal.undone,
-                newVal.redone,
-                canEdit = isAdmin(request.identity)
+        labelService.findLabel(newVal.labelId).flatMap {
+          case None => Future.successful(NotFound(Json.obj("status" -> "Error", "message" -> "No such label")))
+          // The popup judged a type the label no longer has (#3671); it reloads and the user votes again.
+          case Some(label) if label.labelType != newVal.labelType =>
+            Future.successful(Conflict(Json.obj("status" -> "Conflict", "label_type" -> label.labelType.name)))
+          case Some(label) =>
+            for {
+              mission <- missionService.resumeOrCreateNewValidateMission(
+                userId,
+                MissionType.LabelmapValidation,
+                label.labelType
               )
-            )
-          )
-        } yield {
-          Ok(Json.obj("status" -> "Success"))
+              newValIds <- validationService.submitValidations(
+                Seq(
+                  ValidationSubmission(
+                    LabelValidation(0, newVal.labelId, newVal.labelType, newVal.validationResult, userId,
+                      mission.get.missionId, newVal.canvasX, newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom,
+                      newVal.canvasHeight, newVal.canvasWidth, newVal.startTimestamp, newVal.endTimestamp,
+                      newVal.source, newVal.viewerType),
+                    newVal.newLabelType,
+                    newVal.severity,
+                    newVal.tags,
+                    comment = None,
+                    newVal.undone,
+                    newVal.redone,
+                    canEdit = isAdmin(request.identity)
+                  )
+                )
+              )
+            } yield {
+              if (
+                newVal.newLabelType.isDefined && newVal.validationResult == ValidationOption.Agree && !newVal.undone &&
+                isAdmin(request.identity)
+              ) {
+                aiService.reassessAfterTypeChange(newVal.labelId)
+              }
+              Ok(Json.obj("status" -> "Success"))
+            }
         }
       }
     )

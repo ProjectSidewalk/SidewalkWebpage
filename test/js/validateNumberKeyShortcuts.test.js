@@ -60,6 +60,7 @@ describe('KeyboardManager number-key shortcuts', () => {
             yesButton: makeControl(),
             noButton: makeControl(),
             unsureButton: makeControl(),
+            wrongTypeButton: makeControl(),
         });
 
         // Minimal jQuery stand-in over the real DOM: the manager only asks a selector for `hasClass` and `click`.
@@ -86,11 +87,12 @@ describe('KeyboardManager number-key shortcuts', () => {
         }
     });
 
-    /** Selects a verdict, as clicking Agree / Disagree / Unsure would. */
+    /** Selects a verdict, as clicking Agree / Disagree / Unsure / Wrong type would. */
     function choose(verdict) {
         validationMenuUi.yesButton = makeControl({ chosen: verdict === 'yes' });
         validationMenuUi.noButton = makeControl({ chosen: verdict === 'no' });
         validationMenuUi.unsureButton = makeControl({ chosen: verdict === 'unsure' });
+        validationMenuUi.wrongTypeButton = makeControl({ chosen: verdict === 'wrongType' });
     }
 
     describe('on a label type with a fourth disagree reason (Missing Curb Ramp)', () => {
@@ -146,6 +148,47 @@ describe('KeyboardManager number-key shortcuts', () => {
             pressDigit(2);
 
             expect(clicks).toEqual(['no-button-2']);
+        });
+    });
+
+    describe('on the Wrong-type verdict (Expert Validate, #3671)', () => {
+        /** The severity section as the menu leaves it: shown only once a rated type is picked. */
+        function renderSeveritySection(shown) {
+            document.body.innerHTML = `
+                <div id="validate-severity-section" style="display: ${shown ? 'block' : 'none'}"></div>
+                <label id="severity-button-1"><input type="radio" id="validate-severity-radio-1"></label>
+                <label id="severity-button-2"><input type="radio" id="validate-severity-radio-2"></label>`;
+        }
+
+        beforeEach(() => {
+            window.svv.adminVersion = true;
+            choose('wrongType');
+        });
+
+        it('digits rate severity by clicking the radio once a type with a rating has been picked', () => {
+            renderSeveritySection(true);
+
+            pressDigit(2);
+
+            expect(clicks).toEqual(['validate-severity-radio-2']);
+        });
+
+        it('digits do nothing while the severity section is hidden, so no rating rides along unseen', () => {
+            renderSeveritySection(false);
+
+            pressDigit(2);
+
+            expect(clicks).toEqual([]);
+            expect(validationMenuUi.optionalCommentTextBox.click).not.toHaveBeenCalled();
+        });
+
+        it('T presses the Wrong-type button, and C reaches the comment box', () => {
+            renderSeveritySection(false);
+            window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyT', key: 't', bubbles: true }));
+            window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyC', key: 'c', bubbles: true }));
+
+            expect(validationMenuUi.wrongTypeButton.click).toHaveBeenCalledTimes(1);
+            expect(validationMenuUi.optionalCommentTextBox.click).toHaveBeenCalledTimes(1);
         });
     });
 

@@ -46,7 +46,7 @@ class ManagementPage {
 
   async init() {
     try {
-      const data = await this.#fetchJson(this.#urls.userStatsUrl);
+      const data = await AdminShell.fetchJson(this.#urls.userStatsUrl);
       this.#users = (data && data.user_stats) || [];
       this.#teams = (data && data.teams) || [];
       this.#teamsByName = new Map(this.#teams.map((t) => [t.name, t]));
@@ -85,9 +85,9 @@ class ManagementPage {
         sort: (u) => u.ownValidatedAgreedPct || 0,
         help: 'Share of this user’s own labels that other people agreed with when validating them '
           + '(with how many were validated).' },
-      { key: 'signUpTime', label: 'Signed up', align: 'right', sort: (u) => ManagementPage.#ts(u.signUpTime) },
+      { key: 'signUpTime', label: 'Signed up', align: 'right', sort: (u) => AdminShell.ts(u.signUpTime) },
       { key: 'lastSignInTime', label: 'Last sign-in', align: 'right',
-        sort: (u) => ManagementPage.#ts(u.lastSignInTime) },
+        sort: (u) => AdminShell.ts(u.lastSignInTime) },
       { key: 'signInCount', label: 'Sign-ins', align: 'right', sort: (u) => u.signInCount || 0 },
     ];
   }
@@ -281,7 +281,7 @@ class ManagementPage {
     const previous = user ? user.role : null;
     const newRole = sel.value;
     try {
-      const res = await this.#mutate(this.#urls.setRoleUrl, 'PUT', { user_id: userId, role_id: newRole });
+      const res = await AdminShell.mutate(this.#urls.setRoleUrl, 'PUT', { user_id: userId, role_id: newRole });
       if (user) user.role = res.role || newRole;
       this.#flash(`Set ${user ? user.username : userId} to ${newRole}.`);
     } catch (err) {
@@ -297,7 +297,7 @@ class ManagementPage {
     const teamId = parseInt(sel.value, 10);
     const team = this.#teams.find((t) => t.teamId === teamId);
     try {
-      await this.#mutate(`${this.#urls.setTeamUrl}?userId=${encodeURIComponent(userId)}&teamId=${teamId}`, 'PUT');
+      await AdminShell.mutate(`${this.#urls.setTeamUrl}?userId=${encodeURIComponent(userId)}&teamId=${teamId}`, 'PUT');
       if (user) user.team = team ? team.name : user.team;
       this.#flash(`Assigned ${user ? user.username : userId} to ${team ? team.name : `team ${teamId}`}.`);
     } catch (err) {
@@ -319,14 +319,16 @@ class ManagementPage {
     }
     const head = `<tr>
       <th scope="col">Team</th><th scope="col">Description</th>
-      <th scope="col">Status</th><th scope="col">Visibility</th>
+      <th scope="col">Status</th><th scope="col">Visibility</th><th scope="col">Labels</th>
     </tr>`;
     const body = this.#teams.map((t) => `
       <tr data-team-id="${t.teamId}">
-        <td>${ManagementPage.#esc(t.name)}</td>
+        <td><a href="/admin/team/${t.teamId}">${ManagementPage.#esc(t.name)}</a></td>
         <td>${ManagementPage.#esc(t.description || '')}</td>
         <td>${ManagementPage.#toggle('status', t.teamId, t.open, 'Open', 'Closed')}</td>
         <td>${ManagementPage.#toggle('visibility', t.teamId, t.visible, 'Visible', 'Hidden')}</td>
+        <td><a class="dq-validate-btn" href="/expertValidate?teams=${t.teamId}"
+          aria-label="Validate labels from ${ManagementPage.#esc(t.name)}">Validate</a></td>
       </tr>`).join('');
     el.innerHTML = `
       <table class="ps-table ps-table--compact contrib-table mgmt-table">
@@ -349,7 +351,7 @@ class ManagementPage {
 
   async #toggleTeam(btn, teamId, baseUrl, field, next, onLabel, offLabel) {
     try {
-      await this.#mutate(`${baseUrl}/${teamId}`, 'PUT', { [field]: next });
+      await AdminShell.mutate(`${baseUrl}/${teamId}`, 'PUT', { [field]: next });
       const team = this.#teams.find((t) => t.teamId === teamId);
       if (team) team[field === 'open' ? 'open' : 'visible'] = next;
       ManagementPage.#setToggle(btn, next, onLabel, offLabel);
@@ -376,7 +378,7 @@ class ManagementPage {
         btn.disabled = true;
         this.#maintResult(`Running: ${label}…`);
         try {
-          await this.#mutate(url, method);
+          await AdminShell.mutate(url, method);
           this.#maintResult(done);
         } catch (err) {
           this.#maintResult(`Failed: ${label} — ${err.message}`, true);
@@ -393,6 +395,8 @@ class ManagementPage {
       'Started: generate crops. It runs in the background — the Health panel reports how it ended.');
     run('mgmt-rebuild-sidewalk-presence', this.#urls.rebuildSidewalkPresenceUrl, 'POST',
       'rebuild sidewalk presence');
+    run('mgmt-refresh-places', this.#urls.refreshPlacesUrl, 'POST', 'refresh places',
+      'Started: refresh places. It runs in the background — the Health panel reports how it ended.');
     run('mgmt-clear-cache', this.#urls.clearCacheUrl, 'PUT', 'clear server cache');
   }
 
@@ -409,32 +413,6 @@ class ManagementPage {
   }
 
   // --- Networking + helpers ---------------------------------------------------------------------------------------
-
-  async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
-  }
-
-  /**
-   * Fires a mutation request and resolves to the parsed JSON (or {} for empty bodies). Throws an Error carrying the
-   * server's message on a non-2xx response so callers can revert the control and surface why.
-   */
-  async #mutate(url, method, body) {
-    const opts = { method, headers: { Accept: 'application/json' } };
-    if (body !== undefined) {
-      opts.headers['Content-Type'] = 'application/json; charset=utf-8';
-      opts.body = JSON.stringify(body);
-    }
-    const resp = await fetch(url, opts);
-    const text = await resp.text();
-    if (!resp.ok) throw new Error(text || `HTTP ${resp.status}`);
-    try {
-      return text ? JSON.parse(text) : {};
-    } catch {
-      return {};
-    }
-  }
 
   #flash(message, isError = false) {
     this.#setStatus(message, isError, false);
@@ -499,12 +477,6 @@ class ManagementPage {
   static #pctFactor(rows, field) {
     const maxVal = rows.reduce((m, u) => Math.max(m, u[field] || 0), 0);
     return maxVal <= 1 ? 100 : 1;
-  }
-
-  static #ts(iso) {
-    if (!iso) return 0;
-    const t = Date.parse(iso);
-    return isNaN(t) ? 0 : t;
   }
 
   static #date(iso) {

@@ -495,6 +495,23 @@ class PopupPanoManager {
   }
 
   /**
+   * Redraws the markers, on the pano and the crop fallback alike, as the label's new type (#3671).
+   * @param {string} labelType
+   */
+  setLabelType(labelType) {
+    if (!this.label) return;
+    this.label.label_type = labelType;
+    const icon = this.#iconFor(labelType);
+    const color = util.misc.getLabelColors(labelType);
+    for (const { marker } of this.#labelMarkers) {
+      marker.setIcon(icon);
+      marker.marker_.style.setProperty('--label-color', color);
+    }
+    if (icon) this.#fallbackMarker.style.setProperty('--label-icon', `url(${icon})`);
+    this.#fallbackMarker.style.setProperty('--label-color', color);
+  }
+
+  /**
    * Resets the fallback image's zoom/pan back to the identity transform.
    */
   #resetFallbackTransform() {

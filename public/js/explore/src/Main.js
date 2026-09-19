@@ -170,6 +170,7 @@ class Main {
     }
     svl.popUpMessage = new PopUpMessage(svl.taskContainer, svl.tracker);
     svl.aiGuidance = new AiGuidance(svl.tracker, svl.popUpMessage);
+    svl.reauditNotice = new ReauditNotice(svl.tracker);
 
     // Logs when the page's focus changes.
     const logPageFocus = () => {
@@ -446,13 +447,14 @@ class Main {
           document.getElementById('compass-message-holder').classList.add('ps-hidden');
           svl.tracker.push('ExploreAddress_SessionStart');
           // Name the place when the search supplied one — "dropped near Teaneck High School" orients the user far
-          // better than a generic greeting. The name comes from a URL param and lands in innerHTML, so it must stay
-          // an i18next interpolation: the default escapeValue escapes it, while the <b> in the string itself renders.
+          // better than a generic greeting. The name comes from a URL param and the alert banner renders its
+          // message as HTML, so the value is escaped here while the <b> in the string itself renders.
           const placeName = this.#params.startPlaceName;
           const startMessage = placeName
-            ? i18next.t('popup.free-explore-start-named', { placeName })
+            ? i18next.t('popup.free-explore-start-named', { placeName, interpolation: { escapeValue: true } })
             : i18next.t('popup.free-explore-start');
           svl.alertController.showAlert(startMessage, 'exploreAddressStart', true);
+          svl.reauditNotice.showForTask(svl.taskContainer.getCurrentTask());
         } else {
           // Initialize explore mission screens focused on a randomized label type, though users can switch between
           // them.
@@ -472,8 +474,9 @@ class Main {
 
           // Toasts telling the user this visit resumed something in progress (#4833), or that the route the URL
           // asked for could not be opened (#5156), deferred until the mission-start screen closes so they aren't
-          // missed underneath it. At most one shows: they occupy the same spot over the pano, and the dropped-route
-          // news outranks a resume note the sidebar's route name already carries.
+          // missed underneath it. At most one of these three shows: the dropped-route news outranks a resume note the
+          // sidebar's route name already carries. The re-audit notice (#4895) is raised alongside them and `Toast`
+          // queues it behind whichever took the spot, so no duration arithmetic is needed here.
           if (this.#takeRouteUnavailableNotice()) {
             document.addEventListener('ps:mission-start-tutorial:done', () => {
               svl.tracker.push('RouteUnavailableToast_Shown');
@@ -515,6 +518,9 @@ class Main {
               });
             }, { once: true });
           }
+          document.addEventListener('ps:mission-start-tutorial:done', () => {
+            svl.reauditNotice.showForTask(svl.taskContainer.getCurrentTask());
+          }, { once: true });
         }
 
         this.#startTheMission(mission, currentRegion);
@@ -537,6 +543,11 @@ class Main {
         svl.LABEL_HIT_MARGIN = util.labelHitMargin(scale);
       };
       applyExploreScale();
+      // The pano was painted at scale 1 and its box has just changed size, which is exactly what can leave GSV
+      // black until the camera moves (#2468): tell the viewer its box moved, then have it force a frame. The
+      // workaround lives in the viewer (PanoViewer.repaint()) so only the provider that needs it does anything.
+      svl.panoViewer.resize();
+      svl.panoViewer.repaint();
       // The canvas was rasterized at scale 1 during init; re-raster it at the chosen scale.
       if (svl.canvas) svl.canvas.resize();
       if (svl.onboarding) svl.onboarding.resize();
@@ -547,14 +558,28 @@ class Main {
       }
       window.dispatchEvent(new Event('resize'));
 
+      // Attached below the synthetic resize above, so page load never logs one: nothing was resized there, and the
+      // rescale, re-raster and repaint that event stands in for have just been run inline.
       let resizeRasterTimer;
       window.addEventListener('resize', () => {
         applyExploreScale();
         clearTimeout(resizeRasterTimer);
         resizeRasterTimer = setTimeout(() => {
+          // The viewer hears about the settled size, after the rescale above has changed its box — telling it per
+          // event would describe the box it already had, and the last event of a drag would go unanswered. It also
+          // keeps the providers whose resize() is a full re-measure (Mapillary, Infra3d, Panoramax) off the event
+          // firehose. The repaint is GSV's #2468 workaround; PanoViewer.repaint() is a no-op elsewhere.
+          svl.panoViewer.resize();
+          svl.panoViewer.repaint();
           if (svl.canvas) svl.canvas.resize();
           if (svl.onboarding) svl.onboarding.resize();
           if (svl.observedArea) svl.observedArea.update();
+          // Logged on the settled size rather than per event, so a window drag is one line (#5367). The repaint
+          // above bypasses the POV path that logs POV_Changed, so none follows this one.
+          svl.tracker.push('Window_Resized', {
+            width: document.documentElement.clientWidth,
+            height: document.documentElement.clientHeight,
+          });
         }, 150);
       });
     }

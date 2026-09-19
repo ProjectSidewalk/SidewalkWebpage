@@ -32,8 +32,10 @@ class UserTeamTable @Inject() (
 ) extends UserTeamTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  val userTeams = TableQuery[UserTeamTableDef]
-  val teams     = TableQuery[TeamTableDef]
+  val userTeams     = TableQuery[UserTeamTableDef]
+  val teams         = TableQuery[TeamTableDef]
+  val sidewalkUsers = TableQuery[SidewalkUserTableDef]
+  val userRoles     = TableQuery[UserRoleTableDef]
 
   /**
    * Gets the team the given user is affiliated with.
@@ -42,6 +44,21 @@ class UserTeamTable @Inject() (
    */
   def getTeam(userId: String): DBIO[Option[Team]] = {
     teams.join(userTeams).on(_.teamId === _.teamId).filter(_._2.userId === userId).map(_._1).result.headOption
+  }
+
+  /**
+   * @param teamId The id of the team.
+   * @return One entry per member: (user id, username, role).
+   */
+  def getMembers(teamId: Int): DBIO[Seq[(String, String, Role.Value)]] = {
+    userTeams
+      .filter(_.teamId === teamId)
+      .join(sidewalkUsers)
+      .on(_.userId === _.userId)
+      .join(userRoles)
+      .on(_._1.userId === _.userId)
+      .map { case ((_userTeam, _user), _userRole) => (_user.userId, _user.username, _userRole.role) }
+      .result
   }
 
   def getUserIdsWithTeamNames: DBIO[Seq[(String, String)]] = {

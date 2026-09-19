@@ -278,13 +278,6 @@ class PanoManager {
     }
 
     this.resetNavArrows();
-
-    // Issue: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2468
-    // This line of code is here to fix the bug when zooming with ctr +/-, the screen turns black.
-    // We are updating the pano POV slightly to simulate an update the gets rid of the black pano.
-    $(window).on('resize', () => {
-      this.updatePov(0.0025, 0.0025);
-    });
   }
 
   /**

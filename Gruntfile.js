@@ -41,6 +41,7 @@ module.exports = function (grunt) {
           'public/js/common/PanoMarker.js',
           'public/js/common/LabelVisibilityToggle.js',
           'public/js/common/LabelCardView.js',
+          'public/js/common/LabelTypePicker.js',
           'public/js/common/utilitiesSidewalk.js',
           'public/js/common/SpeedLimit.js',
           'public/js/common/MissionStartTutorial.js',
@@ -66,6 +67,7 @@ module.exports = function (grunt) {
           'public/js/common/label-detail/StoryComposer.js',
           'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/TagEditor.js',
+          'public/js/common/LabelTypePicker.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
           // The shared filter sidebar owns the sidebar controls; GalleryFilter is the Gallery's adapter for it.
@@ -106,6 +108,7 @@ module.exports = function (grunt) {
           'public/js/access-score/src/AccessScoreMapView.js',
           'public/js/access-score/src/AccessScoreSidebar.js',
           'public/js/access-score/src/AccessScoreClusterLayer.js',
+          'public/js/access-score/src/AccessScorePlacesLayer.js',
           // The insights dock: the chart base class precedes the views that extend it (a subclass evaluates its
           // superclass at definition time), and the dock that owns them comes last.
           'public/js/access-score/src/AccessScoreChart.js',
@@ -147,6 +150,7 @@ module.exports = function (grunt) {
           'public/js/common/label-detail/StoryComposer.js',
           'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/TagEditor.js',
+          'public/js/common/LabelTypePicker.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
           'public/js/shared-label/*.js'

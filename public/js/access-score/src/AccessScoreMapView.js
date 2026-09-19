@@ -24,6 +24,7 @@ class AccessScoreMapView {
   static HATCH_IMAGE = 'acs-hatch';
 
   #map;
+  /** @type {AccessScoreModel} */
   #model;
   #onSelect;
   #onHover;

@@ -10,23 +10,18 @@
 // Each run sees more than any one page loads (all of common/, and every other page script in the last run), so a
 // name a page never loads still resolves. This catches wrong types, not missing <script> tags.
 //
-// Every file in public/js/ must type-check cleanly, except those under UNCHECKED. Run with --all to see their errors
-// too. Exits non-zero if a checked file has an error or no tsconfig reads it.
+// Every file in public/js/ must type-check cleanly. Exits non-zero if a file has an error or no tsconfig reads it.
 //
-// Usage: node tools/check-js-types.mjs [--all]
+// Usage: node tools/check-js-types.mjs
 
 import { execFileSync } from 'node:child_process';
-import { readdirSync, statSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const TS_MAJOR = 7;
-
-// Folders under public/js/ (each with everything inside it) or single files whose errors don't fail the check yet.
-// Shrink this list; never grow it. AccessScore is in beta and changing fast, so it's cleaned up once it settles.
-const UNCHECKED = ['public/js/access-score'];
 
 // common/ is in every run, and each run can find different errors there (a common/ typedef can clash with one app's
 // class), so every run's errors count; the same error from several runs is printed once.
@@ -88,33 +83,19 @@ function runTsc(tsc, config) {
 
 /**
  * Lists the JS files under a folder, skipping build/ bundles.
- * @param {string} entry - A folder or file path relative to the repo root.
- * @returns {string[]} Paths relative to the repo root; empty if the entry doesn't exist.
+ * @param {string} folder - A folder path relative to the repo root.
+ * @returns {string[]} Paths relative to the repo root.
  */
-function jsFilesUnder(entry) {
-  const path = join(ROOT, entry);
-  let stat;
-  try {
-    stat = statSync(path);
-  } catch {
-    return [];
-  }
-  if (stat.isFile()) return entry.endsWith('.js') ? [entry] : [];
-  return readdirSync(path, { withFileTypes: true })
+function jsFilesUnder(folder) {
+  return readdirSync(join(ROOT, folder), { withFileTypes: true })
     .filter((d) => d.name !== 'build')
-    .flatMap((d) => jsFilesUnder(join(entry, d.name)));
+    .flatMap((d) => {
+      const path = join(folder, d.name);
+      if (d.isDirectory()) return jsFilesUnder(path);
+      return d.name.endsWith('.js') ? [path] : [];
+    });
 }
 
-/**
- * Finds the UNCHECKED entry a file falls under.
- * @param {string} file - Path relative to the repo root, or empty for an error tied to no file.
- * @returns {string|undefined} The entry, or undefined if the file is checked.
- */
-function uncheckedEntry(file) {
-  return UNCHECKED.find((entry) => file === entry || file.startsWith(`${entry}/`));
-}
-
-const showAll = process.argv.includes('--all');
 const tsc = findTsc();
 
 const seen = new Set();
@@ -131,41 +112,14 @@ for (const config of RUNS) {
 
 // A file only counts as checked if tsc actually read it; a new bundle that no tsconfig includes would otherwise pass
 // silently.
-const coverageProblems = [
-  ...UNCHECKED.filter((entry) => jsFilesUnder(entry).length === 0).map((e) => `UNCHECKED lists ${e}, which has no JS.`),
-  ...jsFilesUnder('public/js')
-    .filter((f) => !uncheckedEntry(f) && !readFiles.has(f))
-    .map((f) => `${f} isn't read by any tsconfig in tools/js-types/.`),
-];
-// Anything outside public/js/ (a config or globals.d.ts) affects every folder, so its errors always count.
-const failing = errors.filter((e) => !uncheckedEntry(e.file));
+const coverageProblems = jsFilesUnder('public/js')
+  .filter((f) => !readFiles.has(f))
+  .map((f) => `${f} isn't read by any tsconfig in tools/js-types/.`);
 
-const unchecked = errors.filter((e) => uncheckedEntry(e.file));
-if (showAll && unchecked.length) {
-  for (const e of unchecked) console.log(e.text);
-
-  // A count per folder, to show how much cleanup is left.
-  const perFolder = new Map();
-  for (const e of unchecked) {
-    const folder = dirname(e.file);
-    perFolder.set(folder, (perFolder.get(folder) || 0) + 1);
-  }
-  console.log('\nErrors in unchecked folders:');
-  for (const [folder, count] of [...perFolder].sort((a, b) => a[1] - b[1])) {
-    console.log(`${String(count).padStart(6)}  ${folder}`);
-  }
-  console.log('');
-}
-
-// Only a note, not a failure, so a folder that happens to be clean mid-rewrite doesn't break its author's build.
-for (const entry of UNCHECKED.filter((en) => !unchecked.some((e) => uncheckedEntry(e.file) === en))) {
-  console.log(`Note: ${entry} has no type errors now; remove it from UNCHECKED.`);
-}
-
-if (failing.length || coverageProblems.length) {
-  console.error([...failing.map((e) => e.text), ...coverageProblems].join('\n'));
-  if (failing.length) console.error(`\n✗ ${failing.length} type error(s) in checked files or shared config.`);
+if (errors.length || coverageProblems.length) {
+  console.error([...errors.map((e) => e.text), ...coverageProblems].join('\n'));
+  if (errors.length) console.error(`\n✗ ${errors.length} type error(s).`);
   if (coverageProblems.length) console.error(`\n✗ ${coverageProblems.length} coverage problem(s).`);
   process.exit(1);
 }
-console.log(`✓ No type errors in public/js/${UNCHECKED.length ? ` outside ${UNCHECKED.join(', ')}` : ''}.`);
+console.log('✓ No type errors in public/js/.');

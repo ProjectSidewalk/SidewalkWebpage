@@ -26,15 +26,15 @@ const htmlEscape = (s) => String(s)
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 /**
- * Minimal i18next stand-in that reproduces the one behavior under test: interpolated values are HTML-escaped unless
- * the caller passes `interpolation: { escapeValue: false }`.
+ * Minimal i18next stand-in that reproduces the one behavior under test: with the app's `escapeValue: false` default
+ * (AppManager._setupI18next), interpolated values are HTML-escaped only where the call asks for it.
  */
 const i18nextStub = {
   language: 'en',
   t(namespacedKey, opts = {}) {
     const template = STRINGS[namespacedKey.replace('dashboard:cities.', '')];
     if (template === undefined) return namespacedKey;
-    const escapes = opts.interpolation?.escapeValue !== false;
+    const escapes = opts.interpolation?.escapeValue === true;
     return Object.entries(opts).reduce((out, [name, value]) => {
       if (name === 'interpolation') return out;
       return out.split(`{{${name}}}`).join(escapes ? htmlEscape(value) : String(value));

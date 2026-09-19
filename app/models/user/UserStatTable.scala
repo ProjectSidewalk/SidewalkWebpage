@@ -1100,6 +1100,14 @@ class UserStatTable @Inject() (
       .result
   }
 
+  /**
+   * @param userIds The users to look up.
+   * @return One entry per user with a `user_stat` row: (user id, high quality, excluded from the city's stats).
+   */
+  def getQualityAndExclusionForUsers(userIds: Seq[String]): DBIO[Seq[(String, Boolean, Boolean)]] = {
+    userStats.filter(_.userId inSet userIds).map(x => (x.userId, x.highQuality, x.excluded)).result
+  }
+
   def getUserQuality: DBIO[Seq[(String, Boolean, Option[Boolean])]] = {
     // TODO temporarily removing to improve admin page load time:
     // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802

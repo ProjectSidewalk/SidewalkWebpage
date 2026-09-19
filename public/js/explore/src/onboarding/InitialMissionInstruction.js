@@ -113,9 +113,10 @@ class InitialMissionInstruction {
     this.#tracker.push('PopUpShow_LetsGetStarted');
 
     const title = i18next.t('popup.start-title');
-    const message = i18next.t(
-      'popup.start-body', { region: region.getProperty('name'), city: window.cityNameShort },
-    );
+    // PopUpMessage renders its body as HTML, so the region and city names are escaped on the way in.
+    const message = i18next.t('popup.start-body', {
+      region: region.getProperty('name'), city: window.cityNameShort, interpolation: { escapeValue: true },
+    });
     this.#popUpMessage.notify(title, message, () => {
       this.#navigationService.bindPositionUpdate(this.#instructToCheckSidewalks);
       this.#aiGuidance.showAiGuidanceMessage(); // Show AI guidance message for the current street.

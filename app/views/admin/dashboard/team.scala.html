@@ -1,0 +1,74 @@
+@import service.CommonPageData
+@import models.user.{SidewalkUserWithRole, Team}
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole, team: Team
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@* One team's admin page (#5381): who is on a team, how much they've done, whether their work holds up, and the controls to change the roster. Reached from each row of the Management page's Teams table. The header is server-rendered from the team the controller resolved, so a 404 never reaches this page; everything below fills from /adminapi/team/:teamId. Teams are per city (#5303), so this is one city's view. *@
+
+@content = {
+  <div class="page-section" id="team-intro-section">
+    <h1 class="page-heading" id="team">@team.name <a href="#team" class="permalink">#</a></h1>
+    @if(team.description.nonEmpty) {
+      <p class="team-description">@team.description</p>
+    }
+    <div class="team-header-controls">
+      <span class="team-header-label">Status</span>
+      <button type="button" class="mgmt-toggle @if(team.open){is-on}else{is-off}" id="team-status-toggle" data-kind="status" data-on="@team.open" aria-pressed="@team.open">@if(team.open){Open}else{Closed}</button>
+      <span class="team-header-label">Visibility</span>
+      <button type="button" class="mgmt-toggle @if(team.visible){is-on}else{is-off}" id="team-visibility-toggle" data-kind="visibility" data-on="@team.visible" aria-pressed="@team.visible">@if(team.visible){Visible}else{Hidden}</button>
+      <a class="dq-validate-btn" href="@routes.ValidateController.expertValidate(None, None, None, None, None, None, Some(team.teamId.toString))">Validate their labels</a>
+      <a class="dq-validate-btn" href="@routes.AdminDashboardController.management#teams">All teams</a>
+    </div>
+    <div class="coverage-status" id="team-status" role="status" aria-live="polite">Loading team…</div>
+  </div>
+
+  <div class="page-section" id="team-stats-section">
+    <h2 class="page-heading" id="team-stats">Team stats <a href="#team-stats" class="permalink">#</a></h2>
+    <p>Accuracy pools the team's labels rather than averaging each member's accuracy, so one member with a handful of labels can't swing the team's number.</p>
+    <div class="ps-kpis" id="team-kpis">
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-team-members">—</span><span class="ps-kpi-label">Members</span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-team-labels">—</span><span class="ps-kpi-label">Labels</span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-team-validations">—</span><span class="ps-kpi-label">Validations given</span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-team-distance">—</span><span class="ps-kpi-label">Distance explored</span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-team-accuracy">—</span><span class="ps-kpi-label">Labeling accuracy</span><span class="ps-kpi-note" id="kpi-team-accuracy-note"></span></div>
+    </div>
+  </div>
+
+  <div class="page-section" id="team-members-section">
+    <h2 class="page-heading" id="members">Members <a href="#members" class="permalink">#</a></h2>
+    <div class="ps-table-scroll">
+      <div id="team-members"></div>
+    </div>
+  </div>
+
+  <div class="page-section" id="team-add-section">
+    <h2 class="page-heading" id="add-members">Add members <a href="#add-members" class="permalink">#</a></h2>
+    <p>Search by username or email.</p>
+    <div class="mgmt-toolbar">
+      <label class="sr-only" for="team-add-search">Search users by username or email</label>
+      <input type="search" id="team-add-search" class="ps-input mgmt-search" placeholder="Search username or email…">
+    </div>
+    <div id="team-add-results"></div>
+  </div>
+
+  <script src='@assets.path("js/common/ConfirmDialog.js")'></script>
+  <script src="@assets.path("js/admin-dashboard/TeamPage.js")"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      new TeamPage(@team.teamId, {
+        overviewUrl: '/adminapi/team',
+        userSearchUrl: '/adminapi/userSearch',
+        setTeamUrl: '/userapi/setUserTeam',
+        leaveTeamUrl: '/userapi/leaveTeam',
+        teamStatusUrl: '/adminapi/updateTeamStatus',
+        teamVisibilityUrl: '/adminapi/updateTeamVisibility'
+      }).init();
+    });
+  </script>
+}
+
+@common.main(commonData, "Sidewalk - Admin Team") {
+  @common.navbar(commonData, Some(user))
+  @admin.dashboard.adminLayout("management", commonData, user)(content)
+}

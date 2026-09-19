@@ -1,19 +1,20 @@
 /**
- * Settings' change-password form (#2285). Submitting and error display are AuthModal.js's `wireAsyncSubmit`; this adds
- * what happens on success, since the user stays on the page.
+ * A Settings form that acts on the account: change password (#2285) or sign out of other devices (#5305). Submitting
+ * and error display are AuthModal.js's `wireAsyncSubmit`; this adds what happens on success, since the user stays on
+ * the page.
  */
-class ChangePasswordForm {
+class AccountForm {
   #form;
 
   #status;
 
   /**
-   * @param {HTMLFormElement} form - The #set-password-form element.
+   * @param {HTMLFormElement} form - The form, with a `role="status"` element for the success message.
    */
   constructor(form) {
     this.#form = form;
     this.#status = form.querySelector('[role="status"]');
-    // Added before wireAsyncSubmit's listener, so a stale "changed" message clears as soon as the next submit starts.
+    // Added before wireAsyncSubmit's listener, so a stale success message clears as soon as the next submit starts.
     form.addEventListener('submit', () => this.#setStatus('', false));
     wireAsyncSubmit(form, { onSuccess: (data) => this.#onChanged(/** @type {{message: string}} */ (data)) });
   }

@@ -31,6 +31,7 @@ import slick.dbio.DBIO
 
 import java.io.{File, IOException}
 import java.net.{SocketTimeoutException, URL}
+import java.nio.file.{Files, StandardCopyOption}
 import java.time.OffsetDateTime
 import java.util.Base64
 import javax.crypto.Mac
@@ -485,6 +486,7 @@ trait PanoDataService {
   def cropFile(labelId: Int, labelType: String): File
   def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean
   def cropUrl(labelId: Int, labelType: LabelTypeEnum.Base): Option[String]
+  def moveCrop(labelId: Int, from: LabelTypeEnum.Base, to: LabelTypeEnum.Base): Boolean
   def localBackupImageFile(panoId: String): Option[File]
   def getLocalBackupImage(panoId: String): Future[Option[PanoData]]
 }
@@ -922,6 +924,29 @@ class PanoDataServiceImpl @Inject() (
   def cropUrl(labelId: Int, labelType: LabelTypeEnum.Base): Option[String] =
     if (cropExists(labelId, labelType)) Some(signingService.signedUrl(s"/cropImage/${labelType.name}/$labelId"))
     else None
+
+  /**
+   * Moves a label's crop to the directory of its new type (#3671), since crops are filed by type. A missing source is
+   * fine (no crop yet, or already moved by a retried write), and a failed move is only logged: CropService cuts a
+   * fresh crop under the new type on its next run either way.
+   * @return Whether a file was moved.
+   */
+  def moveCrop(labelId: Int, from: LabelTypeEnum.Base, to: LabelTypeEnum.Base): Boolean = {
+    val source = cropFile(labelId, from.name)
+    val target = cropFile(labelId, to.name)
+    if (from == to || !source.isFile) false
+    else {
+      try {
+        Files.createDirectories(target.getParentFile.toPath)
+        Files.move(source.toPath, target.toPath, StandardCopyOption.REPLACE_EXISTING)
+        true
+      } catch {
+        case NonFatal(e) =>
+          logger.warn(s"Could not move crop for label $labelId from ${from.name} to ${to.name}: ${e.getMessage}")
+          false
+      }
+    }
+  }
 
   /**
    * Returns the on-disk file for a self-hosted pano image if one exists on the filesystem. Images are stored at

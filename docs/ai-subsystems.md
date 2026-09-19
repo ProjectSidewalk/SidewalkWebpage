@@ -31,14 +31,17 @@ for CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
 **Flow:**
 1. `GetAiValidationsActor` (`app/actor/GetAiValidationsActor.scala`) runs nightly at the time
    `app/actor/ScheduledJobs.scala` gives it (staggered per city), selecting up to 800 labels/day via
-   `LabelTable.getLabelsToValidateWithAi` (unassessed, GSV-only, prioritized).
+   `LabelTable.getLabelsToValidateWithAi` (not assessed as its current type, GSV-only, prioritized). A label whose
+   type was edited is assessed again right after the edit (`AiService.reassessAfterTypeChange`, same eligibility
+   rules, #3671), with this sweep as the fallback.
 2. `AiService.callAiApi` (`app/service/AiService.scala`) POSTs
    `{label_type, panorama_id, x, y, city}` to
    `https://sidewalk-ai-api.cs.washington.edu/process` (code:
    [`sidewalk-ai-api`](https://github.com/ProjectSidewalk/sidewalk-ai-api) — Dockerized GPU
    service, ≥ 9–10 GB VRAM, serving both model families from HuggingFace).
 3. The response (validation result + estimated accuracy + per-tag scores + model provenance)
-   is stored in `label_ai_assessment`. If AI validations are enabled for the city and
+   is stored in `label_ai_assessment`, along with the type it was about, which is what makes an assessment stale once
+   the label is retyped (#3671) — the AI is asked about one type, so its answer only speaks to that type. If AI validations are enabled for the city and
    estimated accuracy ≥ `ai-validation-min-accuracy` (0.92 everywhere today), a real
    `label_validation` is submitted as the `SidewalkAI` user; below the threshold it
    downgrades to Unsure. HTTP 502 → `label_ai_failure` (permanently excluded).

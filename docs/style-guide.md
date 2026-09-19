@@ -94,6 +94,10 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
     value: a newline in `title="..."` renders literally in the tooltip.
   - `eslint --fix` can't do this conversion for you (`prefer-template` only fires when a variable is involved, not on
     literal-plus-literal chains), so convert concatenated HTML by hand as you touch it.
+  - Anything interpolated into that markup must be escaped exactly once — `util.escapeHTML(value)`, or, for a
+    translated string, `interpolation: { escapeValue: true }` on the `i18next.t()` call (the
+    `ps/i18n-escape-in-markup` rule blocks a build that forgets). i18next interpolates values verbatim by default,
+    since most of them land in a text node: `docs/internationalization.md` → "Interpolated values and HTML".
 - **Semicolons required** (`semi`); always parenthesize arrow-function params (`arrow-parens`).
 - **No space between a function name and its `(`**; **do** put a space before a block's `{` and around operators and
   keywords (`if`, `for`). Blank line before and after function declarations (`padding-line-between-statements`).
@@ -187,7 +191,9 @@ consistent with it.
 
 **Icons.** SVG icons live as **their own files** in `public/images/icons/` — **never inlined** in Twirl templates
 (inlined SVGs are hard to find, reuse, and review — see #4058). Default to icons from the **feather** and **material**
-sets in the "Design System Tokens" Figma, named `<icon>-<set>.svg` (`map-pin-feather.svg`, `comment-material.svg`).
+sets in the "Design System Tokens" Figma, named `<icon>-<set>.svg` (`map-pin-feather.svg`, `comment-material.svg`);
+**lucide** (Feather's successor, ISC, the same stroke style) fills the gaps Feather has, such as the place-category
+glyphs (`bus-white-lucide.svg`).
 How to show one depends on where its color comes from:
 
 - **Color baked into the file: an `<img>`**, e.g.
@@ -336,9 +342,8 @@ Rules:
   params from a view, log notes) is `Record<string, any>`.
 - When you know more than TypeScript can see, cast in place: `/** @type {HTMLInputElement} */ (el)`. Selector lookups
   (`querySelector`, `closest`) already return `HTMLElement`; `event.target` and `getElementById` often need a cast.
-- Every file in `public/js/` is type-checked except the folders in `UNCHECKED` (only AccessScore, for now);
-  `make lint-js-types args=--all` shows their errors too. Globals that no file in `public/js/` declares (vendor
-  libraries, values a view sets on `window`) go in [`tools/js-types/globals.d.ts`](../tools/js-types/globals.d.ts).
+- Every file in `public/js/` is type-checked. Globals that no file in `public/js/` declares (vendor libraries,
+  values a view sets on `window`) go in [`tools/js-types/globals.d.ts`](../tools/js-types/globals.d.ts).
 - Use `{Type} [paramName]` (square brackets) for optional parameters, and `{Type} [paramName=default]` when a
   default exists and is non-obvious.
 - Trivial one-line helpers may omit the header.

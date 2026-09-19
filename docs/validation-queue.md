@@ -27,6 +27,15 @@ streets are excluded, and only the primary label types are served.
 
 where `totalVotes = agree_count + disagree_count + unsure_count` and `margin = |agree_count − disagree_count|`.
 
+A vote is in those counts only while it was cast on the type the label has now (`label_validation.label_type`, #3671).
+Editing a label's type therefore puts it back at the front of `NeedsVotes`, and a validator whose vote predates the
+change is served the label again (their old vote stays as history). A change made on Expert Validate arrives as an
+Agree, so the label starts again with that one vote; one made from the label detail card records no vote at all, so it
+starts with none. The same rule
+applies to the AI's vote in the AI-contested predicate below, and to the AI tag suggestions the tool shows. Expert
+Validate is where a type gets changed: its fourth verdict, "Wrong type", is submitted as an Agree on the picked type
+(`ValidationSubmission.newLabelType`), so the changer's own vote is the first one counted under the new type.
+
 - **capped out** — `totalVotes >= MaxCrowdVotes`. The crowd has had its five swings and is still undecided.
 - **unsure-heavy** — `unsure_count >= UnsureHeavyMinVotes` and `unsure_count >= agree_count + disagree_count`. The
   validators who looked mostly said "I can't tell".
@@ -148,9 +157,11 @@ the AI's vote onto every servable label) only when the cascade has a `Triage` qu
 only when the cascade has `NeedsVotes` and the mission is not pinned to another type.
 
 1. Keep types with at least one full mission's worth of available labels, honoring a requested type if there is one.
-   The counts apply `unvalidatedOnly` when the page does, so they describe the same pool the label query draws from.
+   The counts apply `unvalidatedOnly` and Expert Validate's `?users=`, `?regions=`, and `?teams=` filters
+   (`ValidationLabelFilter`) when the page does, so they describe the same pool the label query draws from.
    Every primary type qualifies, `NoSidewalk` included (#5285); the gate is on labels for every type, so a small city
-   with eight faces across forty labels still gets `NoSidewalk` missions.
+   with eight faces across forty labels still gets `NoSidewalk` missions. On a filtered page, when no type has a full
+   mission's worth, a type with any matching labels qualifies: the mission ends early rather than never starting.
 2. Walk the cascade and take the **first queue in which some type can fill a whole mission**. That queue decides both
    which types are in play and what they are weighted by. For `Any` the weights are uniform — it is the fallback, and
    its counts carry no priority signal.

@@ -37,6 +37,12 @@ class CustomErrorHandler @Inject() (
    */
   private def isApiRequest(request: RequestHeader): Boolean = request.path.startsWith("/v3/api/")
 
+  /** City-specific files the frontend requests in case they exist, then falls back to the generic one (#5366). */
+  private def isOptionalCityAsset(path: String): Boolean =
+    (path.startsWith("/assets/locales/") && (path.endsWith("-india.json") || path.endsWith("-zurich.json"))) ||
+      path.startsWith("/assets/images/examples/tags/india/") ||
+      path.startsWith("/assets/images/examples/tags/zurich/")
+
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
     // Don't log common, harmless 404s
     val shouldSkipLogging =
@@ -44,7 +50,7 @@ class CustomErrorHandler @Inject() (
         request.path.endsWith(".map") ||              // Source maps
           request.path.startsWith("/.well-known/") || // Well-known URLs
           request.path == "/favicon.ico" ||           // Common favicon requests
-          request.path.endsWith("-india.json")        // We only added the India files for en so far so we expect these.
+          isOptionalCityAsset(request.path)
       )
 
     if (!shouldSkipLogging) {

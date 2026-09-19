@@ -1,11 +1,20 @@
 /**
- * The AccessScore tool's sidebar: the unit switch, one weight slider per scored label type, and the options block
- * that gathers both view toggles in one place (#5217).
+ * What the sidebar reports with a change, which the page applies, logs, and hands the dock.
+ * @typedef {object} AccessScoreChangeMeta
+ * @property {string} kind - `Unit`, `Weight`, `ShowUnaudited`, `ShowClusters`, `PlaceCategory`, `PlaceCategoryOnly`,
+ *   `PlaceCategorySelectAll`, `PlaceCategoryDeselectAll`, `Section` or `Reset`; the page adds `ResetAll`.
+ * @property {boolean} final - False for a slider mid-drag, true for a settled value (the one to log).
+ * @property {string|boolean} [value] - What the change set, for the log.
+ */
+
+/**
+ * The AccessScore tool's sidebar: the unit switch, one weight slider per scored label type, the options block
+ * that gathers the view toggles in one place (#5217), and the places section with one row per category (#5311).
  *
- * The DOM is rendered from the engine config (`/v3/api/accessScoreConfig`) so the type rows, their order, and the
- * default magnitudes are never re-declared here. The sidebar reports changes; the page owns the model and decides
- * what to do with them. Slider drags fire `input` continuously (the map follows in real time) and `change` once on
- * release (which is what gets logged).
+ * The DOM is rendered from the engine config (`/v3/api/accessScoreConfig`) so the type rows, the place categories,
+ * their order, and the default magnitudes are never re-declared here. The sidebar reports changes; the page owns
+ * the model and decides what to do with them. Slider drags fire `input` continuously (the map follows in real time)
+ * and `change` once on release (which is what gets logged).
  *
  * Explanations live in `data-ps-tooltip` info buttons in the Twirl markup rather than in paragraphs here: a panel
  * of seven sliders is unreadable with a paragraph between every control.
@@ -18,13 +27,15 @@ class AccessScoreSidebar {
   static MAX_WEIGHT = 3;
 
   #root;
+  /** @type {AccessScoreConfig} */
   #config;
+  /** @type {Array<(partial: ?Partial<AccessScoreState>, meta: AccessScoreChangeMeta) => void>} */
   #listeners = [];
   #els = {};
 
   /**
    * @param {HTMLElement} root - The `#filter-sidebar` element carrying the tool's section markup.
-   * @param {object} config - The `/v3/api/accessScoreConfig` response.
+   * @param {AccessScoreConfig} config - The `/v3/api/accessScoreConfig` response.
    */
   constructor(root, config) {
     this.#root = root;
@@ -34,9 +45,9 @@ class AccessScoreSidebar {
   }
 
   /**
-   * Subscribes to changes. The callback receives `(partialState, {kind, final})`: `final` is false for a slider
-   * mid-drag and true for a settled value (the one to log).
-   * @param {Function} callback - The subscriber.
+   * Subscribes to changes. The callback receives the partial state the change sets — null for a reset, which the
+   * page resolves against the engine's defaults — and the change's meta, which says what moved and whether it settled.
+   * @param {(partial: ?Partial<AccessScoreState>, meta: AccessScoreChangeMeta) => void} callback - The subscriber.
    */
   onChange(callback) {
     this.#listeners.push(callback);
@@ -44,7 +55,7 @@ class AccessScoreSidebar {
 
   /**
    * Syncs the controls to a model state without emitting a change (used on load and after a reset).
-   * @param {object} state - An `AccessScoreModel` state.
+   * @param {AccessScoreState} state - An `AccessScoreModel` state.
    */
   setState(state) {
     const e = this.#els;
@@ -58,8 +69,28 @@ class AccessScoreSidebar {
     }
     e.showUnaudited.checked = state.showUnaudited;
     e.showClusters.checked = state.showClusters;
+    for (const [category, row] of Object.entries(e.placeRows)) {
+      row.input.checked = state.placeCategories === null || state.placeCategories.includes(category);
+    }
     this.#showUnitOptions(state.unit);
     this.#updateWeightsSummary();
+    this.#updatePlacesAction();
+  }
+
+  /** @param {Record<string, number>} counts - Places per category id, once the feed has arrived. */
+  setPlaceCounts(counts) {
+    const format = new Intl.NumberFormat(i18next.language);
+    for (const [category, row] of Object.entries(this.#els.placeRows)) {
+      row.count.textContent = format.format(counts[category] ?? 0);
+    }
+  }
+
+  setPlacesUnavailable() {
+    this.setPlacesOpen(false);
+    this.#els.placesToggle.disabled = true;
+    this.#els.placesToggleAll.hidden = true;
+    this.#els.placesSummary.textContent = '';
+    this.#els.placesUnavailable.hidden = false;
   }
 
   /**
@@ -105,6 +136,29 @@ class AccessScoreSidebar {
         </div>`;
     }).join('');
 
+    const categories = this.#config.place_categories ?? [];
+    const placeRows = root.querySelector('#acs-place-categories');
+    placeRows.innerHTML = categories.map((category) => {
+      const key = `accessscore:place-${category}`;
+      const name = i18next.exists(key) ? i18next.t(key) : category;
+      const icon = util.assetPath(`images/icons/${AccessScorePlacesLayer.presentation(category).icon}`);
+      // "Only" is the shared filter sidebar's exclusive select; its visible text gets the row's name for a screen
+      // reader, since the button swaps in for the count on hover and focus and reads as a bare "Only" otherwise.
+      return `
+        <div class="acs-check-row acs-place-row" data-category="${category}">
+          <label class="acs-check acs-place" for="acs-place-${category}">
+            <input type="checkbox" id="acs-place-${category}" data-category="${category}" checked>
+            <span class="acs-place__icon" aria-hidden="true"><img src="${icon}" alt=""></span>
+            <span class="acs-place__name">${name}</span>
+          </label>
+          <span class="acs-place__slot">
+            <span class="acs-place__count"></span>
+            <button type="button" class="filter-sidebar__only" data-category="${category}"
+                    aria-label="${i18next.t('common:only')}: ${name}">${i18next.t('common:only')}</button>
+          </span>
+        </div>`;
+    }).join('');
+
     this.#els = {
       unitInputs: Array.from(root.querySelectorAll('input[name="acs-unit"]')),
       weightRows: Object.fromEntries(this.#config.scored_types.map((type) => {
@@ -118,7 +172,23 @@ class AccessScoreSidebar {
       })),
       showUnaudited: root.querySelector('#acs-show-unaudited'),
       showClusters: root.querySelector('#acs-show-clusters'),
+      placeRows: Object.fromEntries(categories.map((category) => {
+        const row = placeRows.querySelector(`.acs-place-row[data-category="${category}"]`);
+        return [category, {
+          input: row.querySelector('input'),
+          count: row.querySelector('.acs-place__count'),
+          only: row.querySelector('.filter-sidebar__only'),
+        }];
+      })),
+      placesToggleAll: root.querySelector('#acs-places-toggle-all'),
+      placesToggle: root.querySelector('#acs-places-toggle'),
+      placesSummary: root.querySelector('#acs-places-summary'),
+      placeCategories: placeRows,
+      placesUnavailable: root.querySelector('#acs-places-unavailable'),
       reset: root.querySelector('#acs-reset'),
+      weightsToggle: root.querySelector('#acs-weights-toggle'),
+      weights: root.querySelector('#acs-weights'),
+      weightsSummary: root.querySelector('#acs-weights-summary'),
       streetOptions: root.querySelector('#acs-street-options'),
     };
   }
@@ -146,7 +216,95 @@ class AccessScoreSidebar {
         { kind: 'ShowUnaudited', value: e.showUnaudited.checked, final: true }));
     e.showClusters.addEventListener('change', () => this.#emit({ showClusters: e.showClusters.checked },
       { kind: 'ShowClusters', value: e.showClusters.checked, final: true }));
+    // The shared filter sidebar's section action: it offers whichever of the two has the most left to give, so
+    // after one "Only" click it reads "Select all" rather than clearing the one row left.
+    e.placesToggleAll.addEventListener('click', () => {
+      const checked = this.#checkedPlaceCategories() !== null;
+      for (const row of Object.values(e.placeRows)) row.input.checked = checked;
+      this.#emitPlaceCategories({ kind: checked ? 'PlaceCategorySelectAll' : 'PlaceCategoryDeselectAll' });
+    });
+    for (const [category, row] of Object.entries(e.placeRows)) {
+      row.input.addEventListener('change', () => this.#emitPlaceCategories(
+        { kind: 'PlaceCategory', value: `${category}_value=${row.input.checked}` }));
+      row.only.addEventListener('click', () => {
+        for (const [other, otherRow] of Object.entries(e.placeRows)) otherRow.input.checked = other === category;
+        this.#emitPlaceCategories({ kind: 'PlaceCategoryOnly', value: category });
+      });
+    }
     e.reset.addEventListener('click', () => this.#emit(null, { kind: 'Reset', final: true }));
+    // Opening a fold is worth knowing about: it says whether people reach for the weights or the places at all.
+    e.weightsToggle.addEventListener('click', () => {
+      const open = this.setWeightsOpen(!this.weightsOpen);
+      this.#emit(null, { kind: 'Section', value: `weights_open=${open}`, final: true });
+    });
+    e.placesToggle.addEventListener('click', () => {
+      const open = this.setPlacesOpen(!this.placesOpen);
+      this.#emit(null, { kind: 'Section', value: `places_open=${open}`, final: true });
+    });
+  }
+
+  /** @returns {boolean} Whether the weights section is unfolded. */
+  get weightsOpen() {
+    return this.#els.weightsToggle.getAttribute('aria-expanded') === 'true';
+  }
+
+  /**
+   * Folds or unfolds the weights section without emitting a change; the page opens it for a link with custom weights.
+   * @param {boolean} open - True to show the sliders.
+   * @returns {boolean} The state now in force.
+   */
+  setWeightsOpen(open) {
+    return AccessScoreSidebar.#setFold(this.#els.weightsToggle, this.#els.weights, open);
+  }
+
+  /** @returns {boolean} Whether the places section is unfolded. */
+  get placesOpen() {
+    return this.#els.placesToggle.getAttribute('aria-expanded') === 'true';
+  }
+
+  /**
+   * Folds or unfolds the places section without emitting a change; the page opens it for a link with places on.
+   * @param {boolean} open - True to show the category rows.
+   * @returns {boolean} The state now in force.
+   */
+  setPlacesOpen(open) {
+    return AccessScoreSidebar.#setFold(this.#els.placesToggle, this.#els.placeCategories, open);
+  }
+
+  /** The accordion mechanics both folds share: the heading button's state, the body, and the chevron. */
+  static #setFold(toggle, body, open) {
+    toggle.setAttribute('aria-expanded', String(open));
+    body.hidden = !open;
+    const chevron = toggle.querySelector('img');
+    chevron.src = open ? chevron.dataset.upSrc : chevron.dataset.downSrc;
+    return open;
+  }
+
+  /** Reports the category rows as they now stand, after any of the three ways they change. */
+  #emitPlaceCategories(meta) {
+    this.#updatePlacesAction();
+    this.#emit({ placeCategories: this.#checkedPlaceCategories() }, { ...meta, final: true });
+  }
+
+  /** The enabled categories as the model states them: null when every row is checked, else the checked ids. */
+  #checkedPlaceCategories() {
+    const categories = this.#config.place_categories ?? [];
+    const checked = categories.filter((category) => this.#els.placeRows[category].input.checked);
+    return checked.length === categories.length ? null : checked;
+  }
+
+  /**
+   * The section action reads as what a click would do: "Deselect all" with every row on, "Select all" otherwise.
+   * The hint beside the folded heading counts the rows that are on, since that is what a fold would otherwise hide.
+   */
+  #updatePlacesAction() {
+    const categories = this.#config.place_categories ?? [];
+    const on = categories.filter((category) => this.#els.placeRows[category].input.checked).length;
+    const allOn = on === categories.length;
+    this.#els.placesToggleAll.textContent = i18next.t(allOn ? 'labelmap:deselect-all' : 'labelmap:select-all');
+    this.#els.placesSummary.textContent = on === 0
+      ? ''
+      : i18next.t('accessscore:places-summary', { count: on, total: categories.length });
   }
 
   /** The slider ceiling: `MAX_WEIGHT`, or the next whole number above the largest default if that is higher. */
@@ -175,8 +333,13 @@ class AccessScoreSidebar {
     return `×${Number(value).toFixed(2)}`;
   }
 
-  /** "Reset weights" only appears once a slider has moved; at the defaults there is nothing to reset. */
+  /**
+   * "Reset weights" only appears once a slider has moved; at the defaults there is nothing to reset. The hint
+   * beside the folded heading says the same thing for a reader who cannot see the sliders.
+   */
   #updateWeightsSummary() {
-    this.#els.reset.hidden = this.#slidersAtDefault();
+    const atDefault = this.#slidersAtDefault();
+    this.#els.reset.hidden = atDefault;
+    this.#els.weightsSummary.textContent = atDefault ? '' : i18next.t('accessscore:weights-custom');
   }
 }

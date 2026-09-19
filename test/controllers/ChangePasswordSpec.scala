@@ -87,6 +87,37 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
     )
   }
 
+  /** @return The cookies of a new sign-in, as if from a second device. */
+  private def signIn(email: String, password: String, rememberMe: Boolean = true): Seq[Cookie] =
+    cookies(
+      route(
+        app,
+        FakeRequest(POST, "/authenticate/credentials")
+          .withHeaders(XHR)
+          .withFormUrlEncodedBody("email" -> email, "password" -> password, "rememberMe" -> rememberMe.toString)
+          .withCSRFToken
+      ).get
+    ).toSeq
+
+  /** @return Whether `session` still opens Settings, which a revoked session is bounced away from. */
+  private def isSignedIn(session: Seq[Cookie]): Boolean =
+    status(route(app, FakeRequest(GET, "/dashboard/settings").withCookies(session: _*)).get) == OK
+
+  /** @return `session` with any cookie `result` set replacing the one of the same name. */
+  private def afterResponse(session: Seq[Cookie], result: Future[Result]): Seq[Cookie] = {
+    val set = cookies(result).toSeq
+    session.filterNot(cookie => set.exists(_.name == cookie.name)) ++ set
+  }
+
+  private def signOutOtherDevices(session: Seq[Cookie]): Future[Result] =
+    route(
+      app,
+      FakeRequest(POST, "/dashboard/settings/signOutOtherDevices")
+        .withCookies(session: _*)
+        .withHeaders(XHR)
+        .withCSRFToken
+    ).get
+
   private def errors(result: Future[Result]): JsValue = (contentAsJson(result) \ "errors").get
 
   "POST /dashboard/settings/password" should {
@@ -121,6 +152,26 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
       signInStatus(email, NewPassword) mustBe OK
     }
 
+    "sign out every other device, keep this browser signed in, and let the new password sign in again (#5305)" in {
+      val (_, email, session) = signUpFreshUser()
+      val otherDevice         = signIn(email, signUpPassword)
+      isSignedIn(otherDevice) mustBe true
+
+      val result = changePassword(session, signUpPassword)
+      status(result) mustBe OK
+      isSignedIn(afterResponse(session, result)) mustBe true
+      isSignedIn(otherDevice) mustBe false
+      isSignedIn(signIn(email, NewPassword)) mustBe true
+    }
+
+    "leave every device signed in when the current password is wrong" in {
+      val (_, email, session) = signUpFreshUser()
+      val otherDevice         = signIn(email, signUpPassword)
+      status(changePassword(session, WrongCurrent)) mustBe UNAUTHORIZED
+      isSignedIn(session) mustBe true
+      isSignedIn(otherDevice) mustBe true
+    }
+
     "lock the form after too many wrong current passwords, even when the right one finally arrives" in {
       val (_, email, session) = signUpFreshUser()
       (1 to MaxAttempts).foreach(_ => status(changePassword(session, WrongCurrent)) mustBe UNAUTHORIZED)
@@ -133,11 +184,53 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
     }
 
     "count successful changes toward the limit too, so a session can't change its password back and forth forever" in {
-      val (_, _, session) = signUpFreshUser()
-      status(changePassword(session, signUpPassword, "Another33", "Another33")) mustBe OK
-      status(changePassword(session, "Another33", NewPassword, NewPassword)) mustBe OK
-      status(changePassword(session, NewPassword, "Third444", "Third444")) mustBe OK
+      val (_, _, signUpSession) = signUpFreshUser()
+      // Each change replaces the session cookie, so every request carries the one the last change set.
+      var session = signUpSession
+      Seq((signUpPassword, "Another33"), ("Another33", NewPassword), (NewPassword, "Third444")).foreach {
+        case (current, next) =>
+          val result = changePassword(session, current, next, next)
+          status(result) mustBe OK
+          session = afterResponse(session, result)
+      }
       status(changePassword(session, "Third444")) mustBe TOO_MANY_REQUESTS
+    }
+  }
+
+  "POST /dashboard/settings/signOutOtherDevices" should {
+    "sign out every other device and keep this browser signed in (#5305)" in {
+      val (_, email, session) = signUpFreshUser()
+      val otherDevice         = signIn(email, signUpPassword)
+      val result              = signOutOtherDevices(session)
+      status(result) mustBe OK
+      isSignedIn(afterResponse(session, result)) mustBe true
+      isSignedIn(otherDevice) mustBe false
+      isSignedIn(signIn(email, signUpPassword)) mustBe true
+    }
+
+    "cover a sign-in without \"remember me\", and let that device sign in again afterward" in {
+      val (_, email, session) = signUpFreshUser()
+      val otherDevice         = signIn(email, signUpPassword, rememberMe = false)
+      status(signOutOtherDevices(session)) mustBe OK
+      isSignedIn(otherDevice) mustBe false
+      isSignedIn(signIn(email, signUpPassword, rememberMe = false)) mustBe true
+    }
+
+    "leave the cookie alone on an ordinary request, so one already on its way can't overwrite a renewed cookie" in {
+      val (_, email, _) = signUpFreshUser()
+      val session       = signIn(email, signUpPassword)
+      val result        = route(app, FakeRequest(GET, "/dashboard/settings").withCookies(session: _*)).get
+      status(result) mustBe OK
+      cookies(result).filter(cookie => session.exists(_.name == cookie.name)) mustBe empty
+    }
+
+    "delete the signed-out device's cookie instead of leaving it in the browser" in {
+      val (_, email, session) = signUpFreshUser()
+      val otherDevice         = signIn(email, signUpPassword)
+      status(signOutOtherDevices(session)) mustBe OK
+      val result  = route(app, FakeRequest(GET, "/dashboard/settings").withCookies(otherDevice: _*)).get
+      val cleared = cookies(result).find(cookie => otherDevice.exists(_.name == cookie.name))
+      cleared.map(_.value) mustBe Some("")
     }
   }
 
@@ -150,6 +243,22 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
     "send someone who finishes a reset while signed in back to Settings, where the message shows" in {
       val (userId, _, session) = signUpFreshUser()
       resetRedirect(userId, session) mustBe Some("/dashboard/settings#change-password")
+    }
+
+    "sign out every other device, keeping the browser that finished the reset signed in (#5305)" in {
+      val (userId, email, session) = signUpFreshUser()
+      val otherDevice              = signIn(email, signUpPassword)
+      val token                    = await(app.injector.instanceOf[AuthenticationService].createToken(userId))
+      val result                   = route(
+        app,
+        FakeRequest(POST, s"/resetPassword?token=$token")
+          .withCookies(session: _*)
+          .withFormUrlEncodedBody("passwordReset" -> NewPassword, "passwordResetConfirm" -> NewPassword)
+          .withCSRFToken
+      ).get
+      redirectLocation(result) mustBe Some("/dashboard/settings#change-password")
+      isSignedIn(afterResponse(session, result)) mustBe true
+      isSignedIn(otherDevice) mustBe false
     }
 
     "send someone who isn't signed in to sign in with the new password" in {

@@ -135,7 +135,10 @@ its default either way.
 2. **Google Analytics** — with `ga-service-account.json` in the repo root (one-time setup in
    `tools/create_ga_properties.py`), creates the prod and test properties inside the existing GA accounts and fills
    both the `G-…` measurement ids and the numeric property ids. Skipped with a pointer otherwise; run the script
-   standalone later.
+   standalone later. Then it asks to add both URLs' hostnames to the production Maps key's referrers
+   (`tools/maps_key_referrers.py`, which only ever appends); without them the city's map and panos don't load. It
+   needs `gcloud` signed in as an identity that can edit the key, and when gcloud can't read or edit it, the step is
+   skipped with a pointer.
 3. **Schema** — `db/scripts/create-new-schema.sh` clones a **donor** city's structure and seed rows (evolutions,
    version history, `config` with its tutorial street, tags, survey questions), creates the role, bumps the
    sequences, grants `readonly_user`. The SidewalkAI user's per-schema rows are not among the seeds: the clone
@@ -207,12 +210,17 @@ its default either way.
   total street distance behind the completion percentage is cached too.
 - **What the nightly jobs still owe.** Onboarding fills only what no scheduled job can produce, so a new city's
   `intersection` table (with each street's corner links, #5095), its `cluster` table, its `sidewalk_presence`
-  table, and its `osm_way` tag cache are all empty — in the dump you hand the server, too — until each job's first
+  table, its `place` table (the schools, clinics, and transit stops the AccessScore map shows, fetched from
+  OpenStreetMap on the first nightly tick or from Admin > Management > "Refresh places", #5311), and its `osm_way`
+  tag cache are all empty — in the dump you hand the server, too — until each job's first
   nightly run (`app/actor/ScheduledJobs.scala`, shifted by the city's `update_offset_hours`). AccessScore reads
   zero until then. An admin can force the intersections and clusters early from `/clustering` — on the launched
   site; a local run's rows stay local, since the dump leaves those tables' data out. The `osm_way` tags come from
   their own nightly refresh, and until they land every intersection is `grade_separated = FALSE`, which is why
   deriving them during onboarding would not help (#5297).
+- **The pano scraper.** Add `<city-id>,<prod fqdn>` to `/etc/sidewalk/cities.csv` on the scraper host
+  ([`sidewalk-panorama-tools`](https://github.com/ProjectSidewalk/sidewalk-panorama-tools)). The nightly queue picks
+  it up that evening; `scrape_queue.py --only <city-id>` pulls the panos now.
 - **Server.** `scp db/<schema>-dump <netid>@makelab1.cs.washington.edu:/www/sidewalk/new-city-dumps/<schema>-empty-dump`
   — the destination follows the convention every file in that directory uses, while the local name stays
   `<schema>-dump`, which is what `make import-dump` restores and what a populated prod pull is called too. (An ssh
@@ -220,17 +228,13 @@ its default either way.
   QA'd the city locally, dump it again first**: `make onboard-city id=<city-id> args="--dump-only"` reruns only the
   dump step. The QA data stays in your local schema and out of the dump; the one thing the step changes is the
   street priorities a walk moved, which it resets to the fill's 1 on a `y`. Then the IT tooling
-  (`uwcseit-sidewalk-tools`: `bin/setup-new.pl`, test stage first), the Maps-key referrers for both URLs
-  (`docs/google-cloud.md`), DNS, and the PR with the config, message, and docs changes. Where the tooling can't be
-  used, the fallback is an email to CS support asking for the test and prod servers, with both URLs, any redirect
-  from an older name, `SIDEWALK_CITY_ID`, and `DATABASE_USER`.
+  (`uwcseit-sidewalk-tools`: `bin/setup-new.pl`, test stage first), the Maps-key referrers for both URLs if step 2
+  skipped them (`python3 tools/maps_key_referrers.py <city-id>`), DNS, and the PR with the config, message, and docs
+  changes. Where the tooling can't be used, the fallback is an email to CS support asking for the test and prod
+  servers, with both URLs, any redirect from an older name, `SIDEWALK_CITY_ID`, and `DATABASE_USER`.
 
 ## Optional follow-ups
 
-- **Pano scraper**, only when the deployment is also a computer-vision dataset: once prod is up, create the city's
-  directory under `sidewalk_panos/Panoramas/<city-id>` on the panorama store, seed it with a `log.csv` carrying the
-  same headers as the other cities' scraper logs (no trailing newline), and add a crontab entry for the city on the
-  scraper host, copied from another city's and spaced out to a different hour. Mikey holds the access to both.
 - **Uptime monitoring.** In [Uptime Robot](https://uptimerobot.com/), add an HTTP(s) monitor at a 5-minute interval
   on the `/signIn` endpoint of each stage (e.g. `https://sidewalk-<city>-test.cs.washington.edu/signIn`).
 - **A launch limited to an arbitrary boundary** (streets around transit stations, say) has no tooling: phased launches

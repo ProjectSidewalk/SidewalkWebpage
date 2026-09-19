@@ -1,5 +1,5 @@
 /**
- * Tests Settings' change-password form (public/js/user-dashboard/ChangePasswordForm.js, #2285): what the user sees
+ * Tests Settings' account forms (public/js/user-dashboard/AccountForm.js), mostly change password (#2285): what the user sees
  * after a success, a wrong current password, a form-level error, and a failed request. AuthModal.js is loaded for
  * real, so these also catch the form drifting from the markup `wireAsyncSubmit` expects.
  */
@@ -15,8 +15,8 @@ const GENERIC_ERROR = 'Something went wrong on our end. Please try again.';
 const formFactory = (0, eval)(
   `(function (fetch) {
     ${read('public/js/common/AuthModal.js')}
-    ${read('public/js/user-dashboard/ChangePasswordForm.js')}
-    return ChangePasswordForm;
+    ${read('public/js/user-dashboard/AccountForm.js')}
+    return AccountForm;
   })`
 );
 
@@ -67,8 +67,8 @@ async function submit(form) {
  */
 async function submitWith(fetchImpl, beforeSubmit = () => {}) {
   const form = renderForm();
-  const ChangePasswordForm = formFactory(fetchImpl);
-  new ChangePasswordForm(form);
+  const AccountForm = formFactory(fetchImpl);
+  new AccountForm(form);
   beforeSubmit(form);
   await submit(form);
   return form;
@@ -145,4 +145,16 @@ test('the next submit clears an earlier "changed" message before its own reply a
   form.dispatchEvent(new window.Event('submit', { cancelable: true }));
   expect(status().textContent).toBe('');
   expect(status().classList.contains('ud-save-ok')).toBe(false);
+});
+
+test('a form with no fields, like "Sign out of other devices", shows the server\'s message', async () => {
+  document.body.innerHTML = `
+    <form id="set-devices-form" method="post" action="/dashboard/settings/signOutOtherDevices">
+      <button type="submit">Sign out of other devices</button>
+      <span class="ud-save-status" role="status"></span>
+    </form>`;
+  const form = document.getElementById('set-devices-form');
+  new (formFactory(respondWith(200, { success: true, message: 'Signed out.' })))(form);
+  await submit(form);
+  expect(status().textContent).toBe('Signed out.');
 });

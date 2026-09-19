@@ -23,10 +23,17 @@
   outline-offset: 1px;
 }
 
+/* The picture and its marker scale together on hover, so the marker stays on the feature. */
 .lmc__figure {
+  position: relative;
   display: block;
   width: 100%;
   height: 100%;
+  transition: transform var(--transition-fast);
+}
+
+.lmc__open:hover .lmc__figure {
+  transform: scale(1.04);
 }
 
 .lmc__image {
@@ -34,11 +41,6 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform var(--transition-fast);
-}
-
-.lmc__open:hover .lmc__image {
-  transform: scale(1.04);
 }
 
 .lmc__placeholder {
@@ -57,16 +59,19 @@
   height: calc(28px * var(--ui-scale, 1));
 }
 
-/* The type badge sits on the picture's corner, ringed in surface so it reads on any crop. */
-.lmc__badge {
+/* Centred on the labeled feature at the fractions LabelMiniCard.js sets per crop (#2660): the mark Gallery draws. */
+.lmc__marker {
   position: absolute;
-  top: 3px;
-  right: 3px;
-  width: calc(18px * var(--ui-scale, 1));
-  height: calc(18px * var(--ui-scale, 1));
-  border-radius: 50%;
-  background: var(--color-neutral-white);
-  box-shadow: 0 0 0 1px var(--color-neutral-white);
+
+  --lmc-marker-x: 0.5;
+  --lmc-marker-y: 0.5;
+
+  left: calc(var(--lmc-marker-x) * 100%);
+  top: calc(var(--lmc-marker-y) * 100%);
+  width: clamp(calc(16px * var(--ui-scale, 1)), 12%, calc(24px * var(--ui-scale, 1)));
+  height: auto;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 1px 4px rgb(0 0 0 / 55%));
   pointer-events: none;
 }
 
@@ -131,8 +136,9 @@
   box-shadow: var(--box-shadow);
 }
 
+/* Crops are cut 3:2 (CropGeometry), so at 3:2 the picture shows whole and the marker's fractions land on it. */
 .lmc--sheet .lmc__open {
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 3 / 2;
 }
 
 .lmc__body {
@@ -184,12 +190,12 @@
 /* ---- Strip size: a thumbnail with the chips over its foot ---- */
 
 .lmc--strip {
-  /* As tall as the ribbon gives it, 4:3 from that height, so a ribbon of crops fills its panel at any band height. */
+  /* As tall as the ribbon gives it, 3:2 from that height (the crops' shape), so a ribbon fills any band height. */
   flex: 0 0 auto;
   width: auto;
   height: 100%;
   min-height: calc(72px * var(--ui-scale, 1));
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 3 / 2;
   border-radius: var(--border-radius);
   overflow: hidden;
 }

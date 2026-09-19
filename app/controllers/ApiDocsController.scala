@@ -122,6 +122,16 @@ class ApiDocsController @Inject() (
   }
 
   /**
+   * Displays API documentation for the AccessScore Spotlight feed (#5215).
+   */
+  def accessScoreSpotlight = cc.securityService.UserAwareAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_AccessScoreSpotlight")
+      Ok(views.html.apiDocs.accessScoreSpotlight(commonData, request.identity))
+    }
+  }
+
+  /**
    * Displays API documentation for the street types.
    */
   def streetTypes = cc.securityService.UserAwareAction { implicit request =>
@@ -138,6 +148,16 @@ class ApiDocsController @Inject() (
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_SidewalkPresence")
       Ok(views.html.apiDocs.sidewalkPresence(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Displays API documentation for places (#5311).
+   */
+  def places = cc.securityService.UserAwareAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_Places")
+      Ok(views.html.apiDocs.places(commonData, request.identity))
     }
   }
 

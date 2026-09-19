@@ -139,6 +139,9 @@ object LabelTypeEnum {
   // Types whose labels carry a 1-3 rating. The denominator for any "% rated" stat, in SQL as well as on the page.
   lazy val ratedTypeNames: Seq[String] = ordered.filter(_.ratingScale != RatingScale.Unrated).map(_.name)
 
+  // Types whose labels never carry a severity; the *_unrated_no_severity_check constraints (395.sql) list these names.
+  lazy val unratedTypeNames: Seq[String] = ordered.filter(_.ratingScale == RatingScale.Unrated).map(_.name)
+
   // Maps label type names to their associated colors. Used for retrieving colors by label type name.
   lazy val labelTypeToColor: Map[String, String] = values.map(lt => lt.name -> lt.color).toMap
 

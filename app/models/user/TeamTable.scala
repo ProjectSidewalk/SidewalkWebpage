@@ -9,6 +9,7 @@ import javax.inject.{Inject, Singleton}
 
 case class Team(teamId: Int, name: String, description: String, open: Boolean, visible: Boolean)
 
+// `name` also carries DB-only UNIQUE/CHECK constraints Slick has no DSL for; see evolution 393 (#5342).
 class TeamTableDef(tag: slick.lifted.Tag) extends Table[Team](tag, "team") {
   def teamId: Rep[Int]         = column[Int]("team_id", O.PrimaryKey, O.AutoInc)
   def name: Rep[String]        = column[String]("name")
@@ -43,6 +44,26 @@ class TeamTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvide
    */
   def getAllOpenTeams: DBIO[Seq[Team]] = {
     teams.filter(_.open === true).result
+  }
+
+  def find(teamId: Int): DBIO[Option[Team]] = {
+    teams.filter(_.teamId === teamId).result.headOption
+  }
+
+  /**
+   * Finds a team by id when given only ASCII digits, otherwise by name.
+   *
+   * Names are compared in SQL, matching the `team_name_key` index; Java's case folding differs for some letters.
+   *
+   * @param idOrName A team id or name, as typed in a URL.
+   */
+  def findByIdOrName(idOrName: String): DBIO[Option[Team]] = {
+    val byId: Option[Int] = if (idOrName.matches("[0-9]+")) idOrName.toIntOption else None
+    byId match {
+      case Some(id) => teams.filter(_.teamId === id).result.headOption
+      case None     =>
+        teams.filter(_.name.trim.toLowerCase === idOrName.bind.trim.toLowerCase).result.headOption
+    }
   }
 
   /**

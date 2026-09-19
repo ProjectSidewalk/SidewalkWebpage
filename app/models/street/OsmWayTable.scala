@@ -73,7 +73,7 @@ class OsmWayTable @Inject() (
   /**
    * Sub query with columns (street_edge_id, maxspeed): (Int, Option[String]).
    *
-   * Left-joined over all streets (like AuditTaskTable.streetCompletedByAnyUser) so consumers can inner-join it as a
+   * Left-joined over all streets (like AuditTaskTable.streetAuditState) so consumers can inner-join it as a
    * plain generator without dropping streets that have no osm_way row yet. That guarantee is load-bearing: the
    * NewTask queries in AuditTaskTable all consume this in inner-join position, so removing the left-join wrapper
    * would silently drop every street that lacks a cached OSM way from task selection.

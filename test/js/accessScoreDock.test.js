@@ -6,7 +6,7 @@
  * a weight slider mid-drag redraws the views but leaves the map's dim state alone.
  */
 
-const {FIXTURE, stubI18next, stubUtilMisc, stubFetch, loadSources, feature, DOCK_HTML} =
+const {FIXTURE, stubI18next, installUtil, stubFetch, loadSources, feature, DOCK_HTML} =
     require('./support/accessScoreDockHarness');
 
 /** A flushed microtask queue, for the strip's fetch chain under fake timers. */
@@ -40,7 +40,7 @@ describe('AccessScoreDock', () => {
 
     beforeAll(() => {
         stubI18next();
-        stubUtilMisc();
+        installUtil();
         loadSources();
     });
 
@@ -74,7 +74,7 @@ describe('AccessScoreDock', () => {
             clustersByRegion: {
                 1: [
                     {label_cluster_id: 1, label_type: 'Obstacle', street_edge_id: 1, intersection_id: null, region_id: 1,
-                        region_name: 'Fixture', median_severity: 3, cluster_size: 2, label_ids: [101, 102],
+                        region_name: 'Fixture', median_severity: 3, cluster_size: 2, label_ids: [100, 101],
                         coordinates: [0.5, 0.5]},
                     {label_cluster_id: 2, label_type: 'CurbRamp', street_edge_id: 2, intersection_id: null, region_id: 1,
                         region_name: 'Fixture', median_severity: 1, cluster_size: 1, label_ids: [103],
@@ -84,6 +84,10 @@ describe('AccessScoreDock', () => {
                     {label_cluster_id: 3, label_type: 'SurfaceProblem', street_edge_id: model.streetCount,
                         intersection_id: null, region_id: 2, region_name: 'Other', median_severity: 2, cluster_size: 1,
                         label_ids: [201], coordinates: [0.2, 0.2]},
+                    // A cluster whose label the stub does not serve: it never gets a picture.
+                    {label_cluster_id: 4, label_type: 'CurbRamp', street_edge_id: model.streetCount,
+                        intersection_id: null, region_id: 2, region_name: 'Other', median_severity: 1, cluster_size: 1,
+                        label_ids: [301], coordinates: [0.1, 0.1]},
                 ],
             },
             labels: {
@@ -143,7 +147,7 @@ describe('AccessScoreDock', () => {
         expect(shownSegments.map((el) => el.dataset.bucket))
             .toEqual(Object.entries(ramps.buckets).filter(([, n]) => n > 0).map(([b]) => b));
         expect(row.querySelector('.acs-whats-here__segment[data-bucket="1"]').style.getPropertyValue('--acs-segment'))
-            .toBe('var(--color-positive-1)');
+            .toBe('var(--color-jade-400)');
         const max = Math.max(...counted.types.map((t) => t.total));
         const widest = counted.types.find((t) => t.total === max);
         expect(document.querySelector(`.acs-whats-here__row[data-type="${widest.type}"] .acs-whats-here__bar`)
@@ -324,7 +328,8 @@ describe('AccessScoreDock', () => {
         await settle();
         expect(document.querySelector('.acs-photos__caption').textContent).toBe('photos-from scope=Fixture');
         const items = document.querySelectorAll('.acs-photos__item');
-        // Severity 3 ahead of 1; a label with a crop shows it, one without shows the type placeholder.
+        // Severity 3 ahead of 1, each cluster shown by its newest label (101 over 100); a label with a crop shows
+        // it, one without shows the type placeholder.
         expect(Array.from(items).map((el) => el.dataset.labelId)).toEqual(['101', '103']);
         expect(items[0].querySelector('.lmc__image').getAttribute('src')).toBe('https://example.test/101.jpg');
         expect(items[1].querySelector('.lmc__placeholder')).not.toBeNull();
@@ -369,6 +374,73 @@ describe('AccessScoreDock', () => {
         expect(Array.from(document.querySelectorAll('.acs-photos__item')).map((el) => el.dataset.labelId))
             .toEqual(expectedIds);
     });
+    test('the strip ranks worst first, the confirmed ahead of the unchecked and the disputed last (#5386)', async () => {
+        const rank = window.AccessScorePhotoStrip.compareWorstFirst;
+        const entries = [
+            {id: 'sev2-confirmed', severity: 2, agree: 3, disagree: 0},
+            {id: 'sev3-disputed', severity: 3, agree: 1, disagree: 2},
+            {id: 'unrated', severity: null, agree: 5, disagree: 0},
+            {id: 'sev3-unchecked-big', severity: 3, agree: 0, disagree: 0, size: 4},
+            {id: 'sev3-confirmed-1', severity: 3, agree: 1, disagree: 0},
+            {id: 'sev3-confirmed-4', severity: 3, agree: 4, disagree: 1},
+            {id: 'sev3-unchecked-small', severity: 3, agree: 0, disagree: 0, size: 1},
+        ];
+        expect(entries.slice().sort(rank).map((e) => e.id)).toEqual([
+            'sev3-confirmed-4', 'sev3-confirmed-1', 'sev3-unchecked-big', 'sev3-unchecked-small', 'sev3-disputed',
+            'sev2-confirmed', 'unrated',
+        ]);
+
+        // Cluster 5 has the worse median but its label is disputed, so cluster 4's confirmed label leads: the ribbon
+        // takes the labels' own order. The region the city scope already fetched answers from the strip's cache, so
+        // the feed below is served for the other one.
+        const ranked = model.rankedRegions();
+        const region = ranked[ranked.length - 1].regionId === 1 ? 2 : 1;
+        const previous = fetchMock.getMockImplementation();
+        const clusterOf = (id, labelId, extra) => ({type: 'Feature', properties: {label_cluster_id: id,
+            label_type: 'Obstacle', street_edge_id: 1, intersection_id: null, region_id: region, region_name: 'R',
+            label_ids: [labelId], cluster_size: 1, ...extra}});
+        const labelOf = (id, extra) => ({label_id: id, label_type: 'Obstacle', crop_url: null,
+            backup_image_url: null, ...extra});
+        fetchMock.mockImplementation((input) => {
+            const url = new URL(String(input), 'http://localhost');
+            if (url.pathname === '/v3/api/labelClusters') {
+                return Promise.resolve({ok: true, status: 200, json: () => Promise.resolve({
+                    type: 'FeatureCollection',
+                    features: [
+                        clusterOf(4, 401, {median_severity: 2, agree_count: 2, disagree_count: 0}),
+                        clusterOf(5, 501, {median_severity: 3, agree_count: 0, disagree_count: 0}),
+                        clusterOf(6, 601, {median_severity: 1, agree_count: 0, disagree_count: 3}),
+                    ],
+                })});
+            }
+            if (url.pathname === '/label/id/401') {
+                return Promise.resolve({ok: true, status: 200,
+                    json: () => Promise.resolve(labelOf(401, {severity: 3, num_agree: 2, num_disagree: 0}))});
+            }
+            if (url.pathname === '/label/id/501') {
+                return Promise.resolve({ok: true, status: 200,
+                    json: () => Promise.resolve(labelOf(501, {severity: 3, num_agree: 0, num_disagree: 1}))});
+            }
+            if (url.pathname === '/label/id/601') {
+                return Promise.resolve({ok: true, status: 200,
+                    json: () => Promise.resolve(labelOf(601, {severity: 1, num_agree: 0, num_disagree: 3}))});
+            }
+            return previous(input);
+        });
+        model.setState({unit: 'regions'});
+        dock.applyChange({kind: 'Unit', final: true});
+        dock.setSelection({unit: 'regions', id: region});
+        flush();
+        await settle();
+        const ribbon = document.querySelector('.acs-photos__ribbon');
+        expect(ribbon.tagName).toBe('OL'); // a ranking, numbered by the CSS
+        expect(Array.from(ribbon.querySelectorAll('.acs-photos__item')).map((el) => el.dataset.labelId))
+            .toEqual(['401', '501', '601']);
+        // The label card pages through the strip in ribbon order.
+        ribbon.querySelector('.acs-photos__item .lmc__open').click();
+        expect(callbacks.onOpenLabel).toHaveBeenCalledWith(401, [401, 501, 601]);
+    });
+
     test('zoomed in with nothing selected, the strip follows the area in view and a settled pan refreshes it', async () => {
         const moveend = map.on.mock.calls.find(([name]) => name === 'moveend')[1];
         const captionEl = () => document.querySelector('.acs-photos__caption').textContent;
@@ -409,6 +481,23 @@ describe('AccessScoreDock', () => {
         await settle();
         expect(shownIds()).toEqual(['101']);
         expect(fetchMock.mock.calls.filter(([u]) => String(u).includes('/v3/api/labelClusters'))).toHaveLength(2);
+
+        // A pan onto a cluster whose label never loads leaves the empty state up, and the next pan over the same
+        // cluster retries the label rather than keeping an empty ribbon with no text.
+        const labelFetches = () => fetchMock.mock.calls.filter(([u]) => String(u).includes('/label/id/')).length;
+        map.getBounds = () => ({getWest: () => 0, getSouth: () => 0, getEast: () => 0.15, getNorth: () => 0.15});
+        moveend({originalEvent: {}});
+        jest.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        await settle();
+        expect(shownIds()).toEqual([]);
+        expect(document.querySelector('.acs-photos__status').textContent).toBe('photos-empty');
+        const before = labelFetches();
+        map.getBounds = () => ({getWest: () => -0.0004, getSouth: () => 0, getEast: () => 0.15, getNorth: () => 0.15});
+        moveend({originalEvent: {}});
+        jest.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        await settle();
+        expect(labelFetches()).toBe(before + 1);
+        expect(document.querySelector('.acs-photos__status').textContent).toBe('photos-empty');
 
         // A selection outranks the viewport.
         dock.setSelection({unit: 'streets', id: 2});

@@ -28,6 +28,7 @@ import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTableDef, LatLngBBox, MyPostgresProfile}
 import models.validation.{
   LabelValidationTableDef,
+  ValidationLabelFilter,
   ValidationOption,
   ValidationQueuePolicy,
   ValidationTaskCommentTableDef
@@ -584,6 +585,17 @@ object LabelTable {
     }
   }
 
+  /** @return The votes in one label's `validations` aggregate, each as the Raw Labels API reports it. */
+  private def parseValidationsJson(json: String): Seq[LabelValidationSummaryForApi] = {
+    play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
+      LabelValidationSummaryForApi(
+        (obj \ "user_id").as[String],
+        (obj \ "result").as[String],
+        ValidatorType.fromIsAi((obj \ "is_ai").as[Boolean])
+      )
+    }
+  }
+
   // Define an implicit conversion from the tuple representation to the case class.
   implicit val labelValidationMetadataConverter: TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] =
     new TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] {
@@ -665,10 +677,7 @@ object LabelTable {
       panoSource = PanoSource.withName(r.nextString()),
       labelType = r.nextString(),
       severity = r.nextIntOption(),
-      tags = {
-        val tagsStr = r.nextString()
-        if (tagsStr != null && tagsStr.nonEmpty) tagsStr.split(",").filter(_.nonEmpty).toList else List.empty
-      },
+      tags = r.nextArray[String]().toList,
       description = r.nextStringOption(),
       timeCreated = {
         val timestamp = r.nextTimestamp()
@@ -690,23 +699,7 @@ object LabelTable {
       agreeCount = r.nextInt(),
       disagreeCount = r.nextInt(),
       unsureCount = r.nextInt(),
-      validations = {
-        val validationsStr = r.nextStringOption().getOrElse("")
-        if (validationsStr.isEmpty) {
-          List.empty[LabelValidationSummaryForApi]
-        } else {
-          validationsStr
-            .split(",")
-            .map { v =>
-              v.split(":") match {
-                case Array(userId, result, isAi) =>
-                  LabelValidationSummaryForApi(userId, result, ValidatorType.fromIsAi(isAi == "t"))
-                case _ => LabelValidationSummaryForApi("unknown", "unknown", "unknown")
-              }
-            }
-            .toList
-        }
-      },
+      validations = r.nextStringOption().map(parseValidationsJson).getOrElse(Seq.empty),
       auditTaskId = r.nextIntOption(),
       missionId = r.nextIntOption(),
       imageCaptureDate = r.nextStringOption(),
@@ -766,6 +759,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val usersUnfiltered        = TableQuery[SidewalkUserTableDef]
   val userStats              = TableQuery[UserStatTableDef]
   val userRoles              = TableQuery[UserRoleTableDef]
+  val userTeams              = TableQuery[UserTeamTableDef]
   val configTable            = TableQuery[ConfigTableDef]
   val streetEdgeRegions      = TableQuery[StreetEdgeRegionTableDef]
   val routeStreets           = TableQuery[RouteStreetTableDef]
@@ -776,6 +770,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val aiData        = labelAiAssessments.joinLeft(labelValidations).on(_.labelValidationId === _.labelValidationId)
   val aiValidations = aiData.map(_._2)
 
+  /**
+   * Whether an AI assessment still speaks to the label: the AI was asked about one type, so an assessment of a type
+   * the label has since lost says nothing about it now (#3671).
+   */
+  private def aiAssessmentIsCurrent(l: LabelTableDef, assessment: LabelAiAssessmentTableDef): Rep[Boolean] =
+    assessment.labelType === l.labelType
+
   val usersWithoutExcluded = usersUnfiltered
     .join(userStats)
     .on(_.userId === _.userId)
@@ -783,6 +784,25 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     .map(_._1)
 
   val tutorialStreetId: Query[Rep[Int], Int, Seq] = configTable.map(_.tutorialStreetEdgeID)
+
+  /**
+   * Validations cast on each street's labels, for the AccessScore Spotlight's street tie-break (#5215).
+   *
+   * Sums the cached per-label vote counters rather than joining `label_validation`, so this stays one pass over
+   * `label` at city scale. A street with no labels, or none anybody has voted on, is simply absent from the map.
+   *
+   * @return `street_edge_id -> total agree + disagree + unsure votes` over the labels that count everywhere else
+   *         (not deleted, not the tutorial, not from an excluded contributor).
+   */
+  def validationCountsByStreet: DBIO[Map[Int, Int]] = {
+    labels
+      .groupBy(_.streetEdgeId)
+      .map { case (streetEdgeId, group) =>
+        (streetEdgeId, group.map(l => l.agreeCount + l.disagreeCount + l.unsureCount).sum)
+      }
+      .result
+      .map(_.map { case (streetEdgeId, votes) => streetEdgeId -> votes.getOrElse(0) }.toMap)
+  }
 
   // This subquery gets the most commonly accessed set of labels. It removes labels that have been deleted, labels from
   // the tutorial, and labels from users where `excluded=TRUE` in the `user_stat` table. The first version also includes
@@ -838,8 +858,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextStringOption(),
       r.nextStringOption().map(ValidationOption.withName), // userValidation
       r.nextStringOption().map(ValidationOption.withName), // aiValidation
-      r.nextString().split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
-      r.nextString().split(",").filter(_.nonEmpty).toList,
+      Map("agree" -> r.nextInt(), "disagree" -> r.nextInt(), "unsure" -> r.nextInt()),
+      r.nextArray[String]().toList,
       (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
       r.nextStringOption().map(LabelTable.parseCommentsJson).getOrElse(Seq.empty),
       (r.nextDoubleOption(), r.nextDoubleOption()) match {
@@ -1024,6 +1044,21 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Counts labels the way [[countLabelsFromUser]] does -- an excluded user's own work still counted -- so a member row
+   * on the admin team page reads the same as that member's own dashboard (#5381).
+   *
+   * @param userIds The users to count for.
+   * @return One entry per user who has placed a label: (user id, label count, time of their most recent label).
+   */
+  def countLabelsAndLatestByUsers(userIds: Seq[String]): DBIO[Seq[(String, Int, Option[OffsetDateTime])]] = {
+    labelsWithExcludedUsers
+      .filter(_.userId inSet userIds)
+      .groupBy(_.userId)
+      .map { case (_userId, rows) => (_userId, rows.length, rows.map(_.timeCreated).max) }
+      .result
+  }
+
+  /**
    * Counts all non-deleted, non-tutorial labels in the given region across all (non-excluded) users.
    * @param regionId ID of the region whose labels we're counting
    */
@@ -1200,9 +1235,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       escapedValidatorId
         .map { id =>
           s"""LEFT JOIN (
-             |    SELECT label_id, validation_result
+             |    SELECT label_id, validation_result, label_type
              |    FROM label_validation WHERE user_id = '$id'
-             |) AS user_validation ON lb.label_id = user_validation.label_id""".stripMargin
+             |) AS user_validation ON lb.label_id = user_validation.label_id
+             |    AND user_validation.label_type = lb.label_type""".stripMargin
         }
         .getOrElse("LEFT JOIN ( SELECT NULL AS validation_result ) AS user_validation ON lb.label_id = NULL")
 
@@ -1234,8 +1270,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              lb_big.description,
              lb_big.validation_result, -- userValidation
              ai_val.validation_result, -- aiValidation
-             val.val_counts,
-             array_to_string(lb_big.tags, ','),
+             lb1.agree_count,
+             lb1.disagree_count,
+             lb1.unsure_count,
+             lb_big.tags,
              at.low_quality,
              at.incomplete,
              at.stale,
@@ -1276,19 +1314,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           FROM label AS lb
           #$validatorJoin
       ) AS lb_big ON lb1.label_id = lb_big.label_id
-      INNER JOIN (
-          SELECT label_id,
-                 CONCAT('agree:', CAST(agree_count AS TEXT),
-                        ',disagree:', CAST(disagree_count AS TEXT),
-                        ',unsure:', CAST(unsure_count AS TEXT)) AS val_counts
-          FROM label
-      ) AS val ON lb1.label_id = val.label_id
       LEFT JOIN (
-          SELECT label_id, validation_result
+          SELECT label_validation.label_id, label_validation.validation_result, label_validation.label_type
           FROM label_validation
           INNER JOIN user_role ON label_validation.user_id = user_role.user_id
           WHERE user_role.role = 'AI'
-      ) AS ai_val ON lb1.label_id = ai_val.label_id
+      ) AS ai_val ON lb1.label_id = ai_val.label_id AND ai_val.label_type = lb1.label_type
       LEFT JOIN (
           SELECT validation_task_comment.label_id,
                  json_agg(json_build_object('username', sidewalk_user.username,
@@ -1298,8 +1329,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                           ORDER BY validation_task_comment.timestamp)::text AS comments
           FROM validation_task_comment
           INNER JOIN sidewalk_user ON validation_task_comment.user_id = sidewalk_user.user_id
+          LEFT JOIN label AS commented_label ON validation_task_comment.label_id = commented_label.label_id
           LEFT JOIN label_validation ON validation_task_comment.label_id = label_validation.label_id
               AND validation_task_comment.user_id = label_validation.user_id
+              AND label_validation.label_type = commented_label.label_type
           GROUP BY validation_task_comment.label_id
        ) AS comment ON lb1.label_id = comment.label_id
       WHERE #$labelFilter
@@ -1339,15 +1372,33 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   private def servableLabels(
       userId: String,
       viewer: PanoSource,
-      unvalidatedOnly: Boolean
+      unvalidatedOnly: Boolean,
+      filter: ValidationLabelFilter
   ): Query[LabelTableDef, Label, Seq] = {
     for {
       _lb <- labels
       _pd <- panoData if _pd.panoId === _lb.panoId
       if imageryViewable(_pd) && _pd.source === viewer && _lb.userId =!= userId
       if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty
+      if matchesFilter(_lb, filter)
       if !validatedByUser(_lb, userId)
     } yield _lb
+  }
+
+  /**
+   * Whether the label passes Expert Validate's user, region, and team filters.
+   *
+   * Region and team are `EXISTS`, not joins, so a label is never counted twice.
+   */
+  private def matchesFilter(l: LabelTableDef, filter: ValidationLabelFilter): Rep[Boolean] = {
+    val always: Rep[Boolean] = true
+    filter.userIds.fold(always)(ids => l.userId inSetBind ids) &&
+    filter.regionIds.fold(always)(ids =>
+      streetEdgeRegions.filter(ser => ser.streetEdgeId === l.streetEdgeId && (ser.regionId inSetBind ids)).exists
+    ) &&
+    filter.teamIds.fold(always)(ids =>
+      userTeams.filter(ut => ut.userId === l.userId && (ut.teamId inSetBind ids)).exists
+    )
   }
 
   /**
@@ -1359,7 +1410,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * sensibly, and the same query then hashes one pass of the aggregate in 0.1 s.
    */
   private def validatedByUser(l: LabelTableDef, userId: String): Rep[Boolean] =
-    labelValidations.filter(v => v.userId === userId && v.labelId === l.labelId).exists
+    labelValidations.filter(v => v.userId === userId && v.labelId === l.labelId && v.isCurrent(l)).exists
 
   /**
    * Whether the AI placed the label, as an `EXISTS` rather than a join on `user_role`, so it reads as the predicate it
@@ -1386,15 +1437,17 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param queues            The cascade the counts are for; decides which of the per-queue counts are worth taking.
    * @param requiredLabelType A type the mission is pinned to, if any; the face count is skipped unless NoSidewalk
    *                          could be served.
+   * @param filter            Expert Validate's filters, so a type is only picked if it has labels matching them.
    */
   def getAvailableValidationsLabelsByType(
       userId: String,
       viewer: PanoSource,
       unvalidatedOnly: Boolean,
       queues: Seq[ValidationQueuePolicy.ValidationQueue],
-      requiredLabelType: Option[LabelTypeEnum.Base]
+      requiredLabelType: Option[LabelTypeEnum.Base],
+      filter: ValidationLabelFilter
   ): DBIO[Seq[LabelTypeValidationsLeft]] = {
-    val servable = servableLabels(userId, viewer, unvalidatedOnly)
+    val servable = servableLabels(userId, viewer, unvalidatedOnly, filter)
 
     val countsByType = servable
       .groupBy(_.labelType)
@@ -1425,7 +1478,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         requiredLabelType.forall(_ == LabelTypeEnum.NoSidewalk)
     val facesNeedingVotes: DBIO[Option[Int]] =
       if (canServeNoSidewalkFromNeedsVotes)
-        countNoSidewalkFacesNeedingVotes(userId, viewer, unvalidatedOnly).map(Some(_))
+        countNoSidewalkFacesNeedingVotes(userId, viewer, unvalidatedOnly, filter).map(Some(_))
       else DBIO.successful(None)
 
     for {
@@ -1512,10 +1565,16 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param userId          User ID for the current user.
    * @param viewer          The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param unvalidatedOnly Count only labels with no decision recorded, the same filter the label query applies.
+   * @param filter          Expert Validate's filters, the same ones the label query applies.
    */
-  def countNoSidewalkFacesNeedingVotes(userId: String, viewer: PanoSource, unvalidatedOnly: Boolean): DBIO[Int] = {
+  def countNoSidewalkFacesNeedingVotes(
+      userId: String,
+      viewer: PanoSource,
+      unvalidatedOnly: Boolean,
+      filter: ValidationLabelFilter
+  ): DBIO[Int] = {
     val sidedServable = for {
-      _lb <- servableLabels(userId, viewer, unvalidatedOnly)
+      _lb <- servableLabels(userId, viewer, unvalidatedOnly, filter)
       if _lb.labelType === (LabelTypeEnum.NoSidewalk: LabelTypeEnum.Base) && ValidationQueuePolicy.needsVotes(_lb)
       _lp <- labelPoints if _lb.labelId === _lp.labelId && _lp.streetSide.isDefined
     } yield (_lb.streetEdgeId, _lp.streetSide)
@@ -1566,8 +1625,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param userId           User ID for the current user.
    * @param labelType        Label type of labels requested.
    * @param queue            Which subset of labels to draw from.
-   * @param userIds          Optional list of user IDs to filter by.
-   * @param regionIds        Optional list of region IDs to filter by.
+   * @param filter           Expert Validate's user, region, and team filters.
    * @param excludedLabelIds Labels the caller already holds and must not be handed again (#4810).
    * @param excludedFaces    Block faces, as (street edge, side), whose labels must not be handed out (#5285): a
    *                         NoSidewalk mission holds one label per face, and a face's other labels are dropped here
@@ -1581,8 +1639,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       labelType: LabelTypeEnum.Base,
       queue: ValidationQueuePolicy.ValidationQueue,
       includeAiTags: Boolean = true,
-      userIds: Option[Set[String]] = None,
-      regionIds: Option[Set[Int]] = None,
+      filter: ValidationLabelFilter,
       unvalidatedOnly: Boolean = false,
       excludedLabelIds: Set[Int] = Set.empty,
       excludedFaces: Set[(Int, StreetSide.Value)] = Set.empty
@@ -1608,15 +1665,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       // Filter out labels the caller already holds; the empty-set constant is for the same `IN ()` reason as above.
       if (if (excludedLabelIds.isEmpty) true: Rep[Boolean] else !(_lb.labelId inSetBind excludedLabelIds))
       if !onExcludedFaces(_lb, _lp, StreetSide.Left) && !onExcludedFaces(_lb, _lp, StreetSide.Right)
-      if regionIds.map(ids => _ser.regionId inSetBind ids).getOrElse(true: Rep[Boolean]) // Filter by region IDs.
-      if userIds.map(ids => _lb.userId inSetBind ids).getOrElse(true: Rep[Boolean])      // Filter by user IDs.
+      if matchesFilter(_lb, filter)
       if !validatedByUser(_lb, userId) // See the predicate for why this is not a left join.
     } yield (_lb, _lp, _pd, _us, _at, _lb.labelTypeName, _ser.regionId, isAiLabeler(_lb))
 
-    // Get any AI suggested tags and validation.
+    // Get any AI suggested tags and validation. An assessment is about one label type, so one whose vote predates a
+    // type change is left out along with the vote (#3671).
     val _labelInfoWithAiData = _labelInfo
       .joinLeft(aiData)
-      .on(_._1.labelId === _._1.labelId)
+      .on { case ((l, _, _, _, _, _, _, _), (laa, _)) => laa.labelId === l.labelId && aiAssessmentIsCurrent(l, laa) }
       .map { case ((_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser), _ai) =>
         (_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser, _ai.map(_._1), _ai.map(_._2).flatten)
       }
@@ -1808,7 +1865,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       (((lb, lp, pd, labelType, regionId, isAiUser, aiv), uv), comments) <-
         _labelsFilteredByAiValidation
           .joinLeft(_userValidations)
-          .on(_._1.labelId === _.labelId)
+          // Only the vote cast on the type the label has now: votes on a type it lost don't count, and a validator
+          // who voted on both would otherwise list the label twice (#3671).
+          .on((l, v) => l._1.labelId === v.labelId && v.isCurrent(l._1))
           .joinLeft(commentsAggregated)
           .on(_._1._1.labelId === _.labelId)
     } yield (
@@ -2354,7 +2413,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              pano_data.source::text,
              label.label_type::text,
              label.severity,
-             array_to_string(label.tags, ','),
+             label.tags,
              label.description,
              label.time_created,
              user_stat.high_quality,
@@ -2395,20 +2454,22 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
       INNER JOIN user_stat ON label.user_id = user_stat.user_id
       LEFT JOIN (
-          -- EXISTS, not a join, so it can never repeat a vote and the parser below reads it as t/f. Skips the same votes
-          -- the counts skip (self-votes, excluded users), so the list adds up to agree/disagree/unsure_count.
+          -- EXISTS, not a join, so it can never repeat a vote. Skips the same votes the counts skip (self-votes,
+          -- excluded users, votes cast on an earlier label type), so the list adds up to agree/disagree/unsure_count.
           SELECT label.label_id,
-                 array_to_string(array_agg(CONCAT(
-                   label_validation.user_id, ':', label_validation.validation_result, ':',
-                   EXISTS (
+                 json_agg(json_build_object(
+                   'user_id', label_validation.user_id,
+                   'result', label_validation.validation_result,
+                   'is_ai', EXISTS (
                      SELECT 1
                      FROM sidewalk_login.user_role
                      WHERE user_role.user_id = label_validation.user_id AND user_role.role = 'AI'
                    )
-                 )), ',') AS validations
+                 ))::text AS validations
           FROM label
           INNER JOIN label_validation ON label.label_id = label_validation.label_id
-          WHERE label_validation.user_id <> label.user_id
+          WHERE label_validation.label_type = label.label_type
+            AND label_validation.user_id <> label.user_id
             AND label_validation.user_id NOT IN (SELECT user_stat.user_id FROM user_stat WHERE user_stat.excluded)
           GROUP BY label.label_id
       ) AS "vals" ON label.label_id = vals.label_id
@@ -2782,17 +2843,21 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Get a list of labels for AI to validate, prioritizing unvalidated labels on older images.
    * @param n The number of labels to retrieve
+   * @param labelId Only consider this label, for re-assessing one label right after its type changed (#3671)
    * @return A sequence of LabelDataForAi objects to feed to the SidewalkAI API for validation
    */
-  def getLabelsToValidateWithAi(n: Int): DBIO[Seq[LabelDataForAi]] = {
+  def getLabelsToValidateWithAi(n: Int, labelId: Option[Int] = None): DBIO[Seq[LabelDataForAi]] = {
     val possibleLabels = labels
+      .filterOpt(labelId)(_.labelId === _)
       .filter(_.labelType inSet LabelTypeEnum.aiLabelTypes)
       .join(userRoles)
       .on(_.userId === _.userId)
       .filter { case (l, ur) => ur.role =!= Role.Ai } // No labels created by AI
-      .joinLeft(labelAiAssessments)
-      .on(_._1.labelId === _.labelId)
-      .filter { case ((l, ur), laa) => laa.map(_.labelId).isEmpty } // No labels that AI's already validated
+      // No labels the AI has already assessed as their current type; an assessment from before a type change is about
+      // a different label (#3671).
+      .joinLeft(aiData)
+      .on { case ((l, _), (laa, _)) => laa.labelId === l.labelId && aiAssessmentIsCurrent(l, laa) }
+      .filter { case ((l, ur), ai) => ai.isEmpty }
       .joinLeft(labelAiFailures)
       .on(_._1._1.labelId === _.labelId)
       .filter { case (((l, ur), laa), laf) => laf.map(_.labelId).isEmpty } // No labels with a permanent failure
@@ -2978,17 +3043,24 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Recounts agree/disagree/unsure counts and `correct` on labels from their validations.
    *
-   * Must match the live counting in `ValidationService`: votes on your own label and votes from excluded users don't
-   * count, and a tie leaves `correct` empty. Only changed rows are written.
+   * Must match the live counting in `ValidationService`: votes on your own label, votes from excluded users, and votes
+   * cast when the label had a different type (#3671) don't count, and a tie leaves `correct` empty. Only changed rows
+   * are written.
    *
    * @param validatorId Only recount the labels this user validated; recount every label if None.
    * @return The number of labels whose counts changed.
    */
-  def recalculateValidationCounts(validatorId: Option[String]): DBIO[Int] = {
-    val scope: SQLActionBuilder = validatorId match {
+  def recalculateValidationCounts(validatorId: Option[String]): DBIO[Int] =
+    recalculateValidationCountsWhere(validatorId match {
       case Some(id) => sql"WHERE label.label_id IN (SELECT label_id FROM label_validation WHERE user_id = $id)"
       case None     => sql""
-    }
+    })
+
+  /** Recounts one label, after a type change put a different set of its votes in play. */
+  def recalculateValidationCountsForLabel(labelId: Int): DBIO[Int] =
+    recalculateValidationCountsWhere(sql"WHERE label.label_id = $labelId")
+
+  private def recalculateValidationCountsWhere(scope: SQLActionBuilder): DBIO[Int] = {
     sql"""
       UPDATE label
       SET (agree_count, disagree_count, unsure_count, correct) = (
@@ -3004,6 +3076,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                      COUNT(*) FILTER (WHERE label_validation.validation_result = 'Unsure') AS n_unsure
               FROM label
               LEFT JOIN label_validation ON label.label_id = label_validation.label_id
+                  AND label_validation.label_type = label.label_type
                   AND label_validation.user_id <> label.user_id
                   AND NOT EXISTS (
                       SELECT 1 FROM user_stat

@@ -1,8 +1,8 @@
 /**
- * A label at a glance, with a vote (#5217): its crop (or backup image, or type icon), a type badge, its rating,
- * and agree / disagree / unsure chips that validate it in place. For any surface that shows many labels at once
- * (the AccessScore cluster sheet and photo strip today), so a picture is never shown without the means to say
- * whether it is right.
+ * A label at a glance, with a vote (#5217): its crop (or backup image, or type icon), the type icon over the
+ * feature itself, its rating, and agree / disagree / unsure chips that validate it in place. For any surface that
+ * shows many labels at once (the AccessScore cluster sheet and photo strip today), so a picture is never shown
+ * without the means to say whether it is right.
  *
  * A vote posts to `/labelmap/validate` with the payload the label card and the Gallery card send. The crop is a
  * screenshot of the label's stored point of view, so the vote carries that POV and the pano canvas the label was
@@ -114,6 +114,11 @@ class LabelMiniCard {
     const image = src
       ? `<img class="lmc__image" src="${esc(src)}" alt="" loading="lazy">`
       : LabelMiniCard.placeholder(type).outerHTML;
+    // On the feature, as Gallery marks it: anywhere else it reads as a misplaced label (#5386). Only a crop has a
+    // known position (#2660); the backup image is the whole pano and the placeholder already carries the icon.
+    const marker = label.crop_url
+      ? `<img class="lmc__marker" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">`
+      : '';
     const colors = rating ? util.misc.getSeverityLevelColors(label.severity, type) : null;
     const tags = (label.tags || []).map((tag) =>
       `<span class="lmc__tag">${esc(i18next.t(`common:tag.${tag}`, { defaultValue: tag }))}</span>`).join('');
@@ -138,13 +143,12 @@ class LabelMiniCard {
         </div>`
       : '';
     const lock = this.#lockReason();
-    // The name is interpolated unescaped and then escaped exactly once for the attribute: i18next's own escaping
-    // would double up with `esc` and print an apostrophe as `&#39;`.
+    // Escaping stays off although this is a markup sink: `esc` escapes the whole string once for the attribute
+    // below, and escaping the value too would print an apostrophe as `&#39;`.
     const openLabel = i18next.t('common:mini-card.open', { label: name, interpolation: { escapeValue: false } });
     this.#el.innerHTML = `
       <button type="button" class="lmc__open" aria-label="${esc(openLabel)}" data-ps-tooltip="${esc(name)}">
-        <span class="lmc__figure">${image}</span>
-        <img class="lmc__badge" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
+        <span class="lmc__figure">${image}${marker}</span>
       </button>
       ${body}
       <div class="lmc__votes" role="group" aria-label="${esc(i18next.t('common:mini-card.votes'))}">
@@ -153,12 +157,20 @@ class LabelMiniCard {
     this.#els = {
       open: this.#el.querySelector('.lmc__open'),
       image: this.#el.querySelector('.lmc__image'),
+      marker: this.#el.querySelector('.lmc__marker'),
       chips: Object.fromEntries(LabelMiniCard.ACTIONS.map((a) => [a, this.#el.querySelector(`[data-action="${a}"]`)])),
     };
+    if (this.#els.marker) {
+      // Custom properties rather than offsets, so the marker's centring on the point stays in CSS beside its size.
+      const { x, y } = util.misc.labelMarkerFraction('crop', label.crop_marker, label.canvas_x, label.canvas_y);
+      this.#els.marker.style.setProperty('--lmc-marker-x', String(x));
+      this.#els.marker.style.setProperty('--lmc-marker-y', String(y));
+    }
     this.#els.open.addEventListener('click', () => this.#opts.onOpen(label.label_id));
-    // A picture that fails to load falls back to the type icon, like one that never had a picture.
+    // A failed picture falls back to the type icon, as if it never had one; its marker then has nothing to point at.
     this.#els.image?.addEventListener('error', () => {
       this.#els.image.replaceWith(LabelMiniCard.placeholder(type));
+      this.#els.marker?.remove();
     }, { once: true });
     for (const [action, chip] of Object.entries(this.#els.chips)) {
       chip.addEventListener('click', () => this.#vote(action));

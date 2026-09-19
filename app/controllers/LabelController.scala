@@ -10,7 +10,7 @@ import models.utils.LatLngBBox
 import play.api.Logger
 import play.api.libs.json._
 import play.silhouette.api.Silhouette
-import service.{CropService, LabelEditOutcome, LabelEditService, LabelService, PanoDataService}
+import service.{AiService, CropService, LabelEditOutcome, LabelEditService, LabelService, PanoDataService}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -22,6 +22,7 @@ class LabelController @Inject() (
     implicit val ec: ExecutionContext,
     labelService: LabelService,
     labelEditService: LabelEditService,
+    aiService: AiService,
     panoDataService: PanoDataService,
     cropService: CropService
 ) extends CustomBaseController(cc) {
@@ -78,7 +79,9 @@ class LabelController @Inject() (
   }
 
   /**
-   * Edits a label's severity and tags from the label popup (#2575). Allowed to the labeler and to admins. Responds
+   * Edits a label's type, severity or tags from the label popup (#2575, #3671). Allowed to the labeler and to
+   * admins. An edit built on a type the label no longer has is refused with a 409 carrying the label's current
+   * state, which the card redraws itself from. Responds
    * with the label's resulting severity and tags, which can differ from what was sent if invalid tags were dropped.
    */
   def editLabel = cc.securityService.SecuredAction(parse.json) { implicit request =>
@@ -91,10 +94,31 @@ class LabelController @Inject() (
             Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "severity must be 1-3 or null")))
           } else {
             labelEditService
-              .editLabel(submission.labelId, request.identity, submission.severity, submission.tags, submission.source)
+              .editLabel(submission.labelId, request.identity, submission.labelType, submission.newLabelType,
+                submission.severity, submission.tags, submission.source)
               .map {
                 case LabelEditOutcome.Applied(label) =>
-                  Ok(Json.obj("status" -> "Success", "severity" -> label.severity, "tags" -> label.tags))
+                  // Not waited on: the AI's old assessment was about the old type, and the nightly sweep can take days.
+                  if (submission.labelType.exists(_ != label.labelType))
+                    aiService.reassessAfterTypeChange(label.labelId)
+                  Ok(
+                    Json.obj(
+                      "status"     -> "Success",
+                      "label_type" -> label.labelType.name,
+                      "severity"   -> label.severity,
+                      "tags"       -> label.tags
+                    )
+                  )
+                // The label's type changed under the editor; the current state comes back so the card can redraw.
+                case LabelEditOutcome.Conflict(label) =>
+                  Conflict(
+                    Json.obj(
+                      "status"     -> "Conflict",
+                      "label_type" -> label.labelType.name,
+                      "severity"   -> label.severity,
+                      "tags"       -> label.tags
+                    )
+                  )
                 case LabelEditOutcome.Forbidden =>
                   Forbidden(Json.obj("status" -> "Error", "message" -> "Only the labeler or an admin can edit a label"))
                 case LabelEditOutcome.NotFound =>

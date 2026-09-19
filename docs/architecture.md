@@ -59,8 +59,9 @@ The backend follows a consistent layering: **routes → Controller → Service �
 - **Per-city schemas** — each city is its own schema (`sidewalk_<city>`); they're essentially identical.
   Authentication lives in the shared `sidewalk_login` schema, along with anything that belongs to the account rather
   than to one city: `user_settings` holds choices the user makes (units, service-hours tracking) and
-  `user_account_state` holds what the site records about them (having finished the Explore tutorial). Both only get a
-  row once there's something to store (#3720). Per-city stats and privacy flags stay in each city's `user_stat`.
+  `user_account_state` holds what the site records about them (having finished the Explore tutorial, and when a
+  password change or Settings' "Sign out of other devices" last signed them out everywhere, #5305). Both only get a row once there's something to store
+  (#3720). Per-city stats and privacy flags stay in each city's `user_stat`.
   The schema holds auth to one account per email, one login row per account, and one password per login row
   (#5317), and sign-in, reset, and change-password all reach the password through the account.
 - **Evolutions** — schema changes are Play evolutions: numbered SQL files in `conf/evolutions/default/`, each with
@@ -88,7 +89,8 @@ the app dir, #4925):
 
 `cropped.image.directory` additionally holds the **label crops** (#4865), cut from the self-hosted panorama store
 (`pano.images.directory`, which the nightly panorama-tools scraper fills) by the nightly `CropGenerationActor` via
-`CropService`, under `<city-id>/<LabelType>/`. They are disposable — delete the store and the next run rebuilds it —
+`CropService`, under `<city-id>/<LabelType>/` (a label whose type is edited has its crop moved to the new type's
+directory by `LabelEditService`). They are disposable — delete the store and the next run rebuilds it —
 which is why they live beside the app's other derived media rather than in the panorama store, which the app only
 reads.
 
@@ -106,16 +108,17 @@ different places — the snapshot at its canvas fraction, the job's window where
 says (the centre, unless the window shifted off a pole) — and the files look alike, so **every crop's provenance is a
 `label_crop` row** (#2660): which writer, and the label's position as fractions of the image. Each writer records its
 row as it writes, the job's reconcile pass classifies any crop found without one (by size, then by the file's age
-against the label's, and never on a signal that disagrees with the others), and the five surfaces that draw a marker
+against the label's, and never on a signal that disagrees with the others), and the six surfaces that draw a marker
 on a crop — the Gallery card, the landing validation grid, the dashboard's mistake cards, the popup's crop fallback,
-the share preview — take it from the row (`crop_marker` in the label payloads), falling back to the canvas fraction
-only while a crop is unrecorded or the image on screen is the Street View still. A new crop writer must write that row,
-and a new surface that marks a crop must read it. A pano too wide for the viewer's GPU is shown from a downscaled copy,
-and `/backupImage/:panoId` serves that in place of the native file without the viewer being able to tell, because it
-places markers by angle. **The viewer decides when one is needed**, because only it knows the GPU: Pannellum uploads
-an equirect as two halves, so its limit is `2 x MAX_TEXTURE_SIZE` and a device advertising 8192 renders a 16384-wide
-pano — the widest GSV produces — untouched. When a device can't, it appends `?maxWidth=` and `PanoDisplayCopyService`
-cuts a copy at that width on demand, caching it under the crop store (#5256).
+the share preview, the label mini-card (`LabelMiniCard.js`, the AccessScore sheet and photo strip) — take it from the
+row (`crop_marker` in the label payloads), falling back to the canvas fraction only while a crop is unrecorded or the
+image on screen is the Street View still. A new crop writer must write that row, and a new surface that marks a crop
+must read it. A pano too wide for the viewer's GPU is shown from a downscaled copy, and `/backupImage/:panoId` serves
+that in place of the native file without the viewer being able to tell, because it places markers by angle. **The
+viewer decides when one is needed**, because only it knows the GPU: Pannellum uploads an equirect as two halves, so
+its limit is `2 x MAX_TEXTURE_SIZE` and a device advertising 8192 renders a 16384-wide pano — the widest GSV
+produces — untouched. When a device can't, it appends `?maxWidth=` and `PanoDisplayCopyService` cuts a copy at that
+width on demand, caching it under the crop store (#5256).
 
 The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
 downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,
@@ -157,6 +160,22 @@ generation, OSM way refresh, AI validations, and auth-token cleanup. The schedul
 `app/actor/ScheduledJobs.scala`: each actor reads its own time from there, staggered across the small hours and
 shifted per city by `ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and
 provider quotas.
+
+Label clustering closes with the **AccessScore Spotlight snapshot** (#5215), which writes `region_access_score`
+and `street_access_score` from the clusters that run just built: one row per region per night (kept, so the table is
+a score history) and one row per OSM way per region, replaced each run. The landing page and `/cities` read only
+those two tables, which is what makes a ranked AccessScore safe to put on a page nobody waits for. Like the
+intersection rebuild it records its own run and is recovered rather than propagated, so a clustering success never
+stands in for a snapshot nobody wrote.
+
+The **places refresh** (#5311) keeps the per-city `place` table current from OpenStreetMap: one Overpass query per
+run over the city's bounds for every tag in the `PlaceCategory` catalog (schools, health care, libraries, grocery,
+transit, parks, community centers), merged by `PlaceTable.replaceOsmPlaces` so a place keeps its `place_id` across
+refreshes, with the containing region and the nearest open street within 250 m computed in SQL as it lands. It ticks
+nightly like every job but fetches only when the newest place is more than a week old, or the table is empty, which
+is how a city gets its places with nothing done at onboarding; the skipped ticks are recorded too, so the Health
+panel can tell "fresh" from "stuck". `/v3/api/places` serves the table (the whole-city read cached with `SwrCache`,
+cleared by a refresh), the AccessScore map draws it, and Admin > Management can run the fetch on demand.
 
 Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
 and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one
@@ -263,8 +282,9 @@ corresponding Twirl view:
 - **`gallery/`** — browsable, filterable gallery of labels.
 - **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one
   `<PageName>Page.js` per route, loaded by that page's Twirl template. `AdminShell.js` loads on every one of those
-  pages and holds the shared formatting helpers (escaping, numbers, durations, relative times, the standard table
-  markup).
+  pages (and the user dashboard's) and holds the shared shell behaviors — the "On this page" list and its
+  scroll-spy, and keeping a deep link's target in place while sections above it are still loading — plus the shared
+  formatting helpers (escaping, numbers, durations, relative times, the standard table markup).
 - **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles, plus the admin's view of a user's dashboard (`/admin/user/:username`). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
 - **`api-docs/`** — the `/api-docs` reference pages: one `<endpoint>Preview.js` per page renders a live sample of
   that endpoint, alongside `apiDocs.js` (shell behavior), `apiTableWrapper.js`, and `apiDocsTheme.js`
@@ -279,12 +299,15 @@ corresponding Twirl view:
   the map view (streets and a neighborhood choropleth colored from feature-state, with a ramp legend beside the
   zoom buttons, `AccessScoreMapLegend.js`), the cluster evidence layer
   (`AccessScoreClusterLayer.js`, fed by `/v3/api/labelClusters` — the clusters the engine actually scores, not the
-  raw labels), the cluster sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop
+  raw labels), the places layer (`AccessScorePlacesLayer.js`, fed by `/v3/api/places`: one symbol layer per category,
+  every category off until a reader ticks it, each marker's disc in the score color of its nearest street — drawn
+  per histogram bin, since a symbol's image can't read feature-state — and the place card, #5311), the cluster sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop
   cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
   coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
   drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and
   intersections (`AccessScoreWhatsHere.js`); the ranked neighborhoods; and a photo strip of label crops from the
-  scope's neighborhood feed (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
+  scope's neighborhood feed, ranked worst first with confirmed labels ahead of unchecked ones
+  (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
   the whole city is the population, a brush emphasizes in the overview views, narrows what's here and dims the
   map, and a selection marks the overview views, scopes what's here and the photos, and fades the rest of the
   map). An optional dark basemap (`?dark=1`, or the sidebar toggle, which is a live `map.setStyle` followed by a
@@ -292,6 +315,14 @@ corresponding Twirl view:
   (`--color-score-ramp-dark-*`, passed per call as `{ mode: 'dark' }`) with a second chrome palette; the band and
   popups stay light and keep the light ramp. Grunt-bundled to `access-score/build/`; the shared score ramp is
   `common/scoreRamp.js`.
+- **`AccessScoreSpotlight.js`** — the AccessScore Spotlight (#5215), a standalone module (no Grunt bundle) that the
+  landing page and `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked
+  lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which
+  answers from the nightly snapshot tables; nothing is fetched until the visitor's first interaction, and the
+  section hides itself when the city has nothing ranked. Hovering or focusing a row lights that neighborhood on the
+  landing choropleth — or that city's circle on `/cities` — through the same `hover` feature-state the maps' own
+  pointer handlers use, and the map never moves. The completion floor below which a neighborhood is not ranked is
+  the backend's `min_region_completion`, the same number the AccessScore tool hatches by.
 - **`ps-map/`** — shared map component used across pages.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is
