@@ -110,6 +110,16 @@ class AccessScoreSpotlight {
     util.onFirstInteractionOrIdle(() => this.#start());
   }
 
+  /**
+   * Whether a unit is worth offering: it ranks something, or — regions only — it can ask for the neighborhood
+   * nearest the floor. A feed that failed to load is never offerable.
+   * @param {?SpotlightFeed} feed - The unit's feed.
+   * @returns {boolean}
+   */
+  static #hasContent(feed) {
+    return Boolean(feed) && (feed.qualifying > 0 || feed.nearest.length > 0);
+  }
+
   /** Fetches both units, picks the one to open on, and renders — or hides the section if nothing is ranked. */
   async #start() {
     const [regions, streets] = await Promise.all([this.#fetchUnit('regions'), this.#fetchUnit('streets')]);
@@ -241,10 +251,11 @@ class AccessScoreSpotlight {
 
   /**
    * The Neighborhoods / Streets switch: toggle buttons, not tabs, since each redraws this same region.
-   * @returns {?HTMLElement} The group, or null below two offerable units (the subtitle already names a lone unit).
+   * @returns {?HTMLElement} The group, or null below two offerable units — a switch whose only destination is a
+   *   heading over an empty list is worse than no switch.
    */
   #buildUnitSwitch() {
-    const offered = ['regions', 'streets'].filter((u) => this.#feeds[u]);
+    const offered = ['regions', 'streets'].filter((u) => AccessScoreSpotlight.#hasContent(this.#feeds[u]));
     if (offered.length < 2) return null;
     const group = document.createElement('div');
     group.className = 'spotlight-units';

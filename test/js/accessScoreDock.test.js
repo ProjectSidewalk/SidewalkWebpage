@@ -112,6 +112,7 @@ describe('AccessScoreDock', () => {
         expect(document.querySelectorAll('.acs-whats-here__row')).toHaveLength(FIXTURE.config.scored_types.length);
         expect(document.querySelector('.acs-whats-here__caption').textContent).toBe('scope-city');
         expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(2);
+        expect(document.getElementById('acs-dock-body').classList).not.toContain('acs-dock__body--no-rank');
         // With nothing selected the strip reads the lowest-ranked region and says so.
         const ranked = model.rankedRegions();
         const lowest = ranked[ranked.length - 1];
@@ -539,12 +540,18 @@ describe('AccessScoreDock', () => {
             config: FIXTURE.config, ...callbacks});
         flush();
         expect(document.querySelector('.acs-dock__panel--rank')).toBeNull();
+        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(0);
         expect(document.getElementById('acs-dock-body').classList).toContain('acs-dock__body--no-rank');
         expect(document.querySelectorAll('.acs-histogram__bin')).toHaveLength(10);
         expect(document.querySelectorAll('.acs-whats-here__row')).toHaveLength(FIXTURE.config.scored_types.length);
+        // Every path that marks or clears a rank row, the brushed redraw included, is a no-op rather than a throw.
         expect(() => {
             dock.markHover({unit: 'streets', id: 1, score: 0.5});
             dock.markHover(null);
+            dock.setBrush({from: 2, to: 5}, {final: true});
+            flush();
+            dock.setBrush(null, {final: true});
+            flush();
         }).not.toThrow();
         await settle();
         expect(document.querySelector('.acs-photos__caption').textContent).toBe('photos-from scope=Fixture');

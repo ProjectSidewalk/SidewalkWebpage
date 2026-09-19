@@ -321,7 +321,9 @@ corresponding Twirl view:
   lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which
   answers from the nightly snapshot tables; nothing is fetched until the visitor's first interaction, and the
   section hides itself when the city has nothing ranked. A city mapped as one neighborhood has no neighborhood
-  ranking to give, so that unit is dropped and the module is its street list, with no switch left to offer. Hovering or focusing a row lights that neighborhood on the
+  ranking to give, so that unit is dropped in favor of its street list — unless no street is ranked either, where the
+  one score is still better than an empty section — and the unit switch is only drawn when both units have something
+  to show. Hovering or focusing a row lights that neighborhood on the
   landing choropleth — or that city's circle on `/cities` — through the same `hover` feature-state the maps' own
   pointer handlers use, and the map never moves. The completion floor below which a neighborhood is not ranked is
   the backend's `min_region_completion`, the same number the AccessScore tool hatches by.

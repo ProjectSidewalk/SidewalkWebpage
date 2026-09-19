@@ -174,7 +174,9 @@ class AccessScoreDock {
   applyUrlState({ open, brush, focus } = {}) {
     if (open === false) this.setOpen(false, { log: false });
     if (brush) this.setBrush(brush, { final: true, log: false, announce: false });
-    if (focus) this.setFocusRegion(focus);
+    // Only the rank list can focus a region, so without one a hand-built `focus=` would scope the band with nothing
+    // on screen saying why.
+    if (focus && this.#rank) this.setFocusRegion(focus);
   }
 
   /**

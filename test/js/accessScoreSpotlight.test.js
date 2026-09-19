@@ -178,14 +178,25 @@ describe('the AccessScore Spotlight', () => {
                 .toBe('common:access-score-spotlight.unit-streets');
         });
 
-        it('opens on neighborhoods when no street qualifies, whatever the neighborhood count', async () => {
+        it('opens on neighborhoods when no street qualifies, and does not offer the empty street unit', async () => {
             await mount({
                 regions: feed('regions', { qualifying: 1, total: 9, top: [regionRow(1, 'Downtown', 0.71)] }),
                 streets: feed('streets', { qualifying: 0, total: 900 }),
             });
 
-            expect(document.querySelector('.spotlight-unit[aria-pressed="true"]').textContent)
-                .toBe('common:access-score-spotlight.unit-regions');
+            expect(rowNames()).toEqual(['Downtown']);
+            expect(document.querySelectorAll('.spotlight-unit')).toHaveLength(0);
+        });
+
+        it('offers a unit that ranks nothing but can still ask for the neighborhood nearest the floor', async () => {
+            await mount({
+                regions: feed('regions', { qualifying: 0, total: 9, nearest: [regionRow(3, 'Riverside', null, 0.67)] }),
+                streets: feed('streets', { qualifying: 9, total: 90, top: [streetRow(1, 'Main St', 0.7)] }),
+            });
+
+            expect([...document.querySelectorAll('.spotlight-unit')].map((b) => b.textContent)).toEqual([
+                'common:access-score-spotlight.unit-regions', 'common:access-score-spotlight.unit-streets',
+            ]);
         });
 
         it('drops the neighborhood unit entirely in a city mapped as a single neighborhood', async () => {
@@ -206,6 +217,23 @@ describe('the AccessScore Spotlight', () => {
             });
 
             expect(rowNames()).toEqual(['Oradell']);
+            // The street unit ranks nothing, so it is not offered and the subtitle cannot send a reader to it.
+            expect(document.querySelectorAll('.spotlight-unit')).toHaveLength(0);
+            expect(document.querySelector('.spotlight-subtitle').textContent)
+                .toContain('common:access-score-spotlight.subtitle-one-region');
+        });
+
+        it('never drops the neighborhood unit on /cities, where the count is every deployment\'s regions', async () => {
+            const city = { city_id: 'oradell', city_name: 'Oradell', city_url: 'https://oradell.example' };
+            await mount({
+                regions: feed('regions', { qualifying: 1, total: 1, top: [regionRow(1, 'Oradell', 0.62, 0.9, city)] }),
+                streets: feed('streets', { qualifying: 30, total: 200,
+                    top: [streetRow(1, 'Kinderkamack Rd', 0.5, city)] }),
+            }, { crossCity: true });
+
+            expect([...document.querySelectorAll('.spotlight-unit')].map((b) => b.textContent)).toEqual([
+                'common:access-score-spotlight.unit-regions', 'common:access-score-spotlight.unit-streets',
+            ]);
         });
     });
 
@@ -510,7 +538,7 @@ describe('the AccessScore Spotlight', () => {
             regions: feed('regions', {
                 qualifying: 66, total: 79, top: FIVE_REGIONS, bottom: FIVE_REGIONS.slice(0, 3),
             }),
-            streets: feed('streets', { qualifying: 0, total: 0 }),
+            streets: feed('streets', { qualifying: 4, total: 90, top: [streetRow(1, 'Main St', 0.7)] }),
         });
 
         const views = logged.filter((entry) => entry.startsWith('View_module=AccessScoreSpotlight'));

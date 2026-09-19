@@ -363,7 +363,7 @@
   "access-score-spotlight": {
     "subtitle-regions": "Each neighborhood's sidewalks are scored from 0 to 100 by our <a href=\"{{href}}\">AccessScore</a> algorithm (100 is best).",
     "subtitle-streets": "Each street's sidewalks are scored from 0 to 100 by our <a href=\"{{href}}\">AccessScore</a> algorithm (100 is best).",
-    "subtitle-one-region": "This city is mapped as a single neighborhood, so there is one score to show. Switch to Streets for a closer look.",
+    "subtitle-one-region": "This city is mapped as a single neighborhood, so there is one score to show.",
     "units-label": "Rank neighborhoods or streets",
     "unit-regions": "Neighborhoods",
     "unit-streets": "Streets",

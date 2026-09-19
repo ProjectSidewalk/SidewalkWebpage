@@ -94,11 +94,11 @@ const DOCK_HTML = `
         </div>
         <div id="acs-dock-status" role="status"></div>
       </div>
-      <div id="acs-dock-body">
-        <div id="acs-histogram"></div>
-        <div id="acs-whats-here"></div>
-        <div id="acs-rank-bars"></div>
-        <div id="acs-photos"></div>
+      <div id="acs-dock-body" class="acs-dock__body">
+        <section class="acs-dock__panel acs-dock__panel--histogram"><div id="acs-histogram"></div></section>
+        <section class="acs-dock__panel acs-dock__panel--whats-here"><div id="acs-whats-here"></div></section>
+        <section class="acs-dock__panel acs-dock__panel--rank"><div id="acs-rank-bars"></div></section>
+        <section class="acs-dock__panel acs-dock__panel--photos"><div id="acs-photos"></div></section>
       </div>
     </aside>
   </div>`;
