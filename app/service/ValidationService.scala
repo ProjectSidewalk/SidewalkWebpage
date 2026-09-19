@@ -2,13 +2,17 @@ package service
 
 import com.google.inject.ImplementedBy
 import models.label._
-import models.user.UserStatTable
+import models.mission.MissionType
+import models.user.{Role, SidewalkUserWithRole, UserStatTable}
+import models.utils.CommonUtils.UiSource.UiSource
+import models.utils.CommonUtils.ViewerType
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.validation._
 import org.postgresql.util.{PSQLException, PSQLState}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
+import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -42,6 +46,7 @@ trait ValidationService {
   def deleteComment(labelId: Int, userId: String): Future[Int]
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]]
   def submitValidationsDbio(validationSubmissions: Seq[ValidationSubmission]): DBIO[Seq[Int]]
+  def deleteLabel(labelId: Int, editor: SidewalkUserWithRole, source: UiSource): Future[LabelEditOutcome]
 }
 
 @Singleton
@@ -52,7 +57,9 @@ class ValidationServiceImpl @Inject() (
     validationTaskInteractionTable: ValidationTaskInteractionTable,
     validationTaskCommentTable: ValidationTaskCommentTable,
     labelTable: LabelTable,
+    labelPointTable: LabelPointTable,
     labelEditService: LabelEditService,
+    missionService: MissionService,
     userStatTable: UserStatTable,
     implicit val ec: ExecutionContext
 ) extends ValidationService
@@ -224,6 +231,57 @@ class ValidationServiceImpl @Inject() (
    */
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]] =
     runWithUniqueViolationRetry(submitValidationsDbio(validationSubmissions))
+
+  /**
+   * Deletes a label from the label popup (#3591). The labeler just deletes. An admin deleting someone else's label
+   * first files a Disagree from the label's own viewpoint, so the delete counts against the labeler the way a vote
+   * would rather than quietly improving their accuracy; a label the crowd already agreed with keeps that verdict.
+   * Anyone else is refused, and a label already deleted is left as it is.
+   */
+  def deleteLabel(labelId: Int, editor: SidewalkUserWithRole, source: UiSource): Future[LabelEditOutcome] = {
+    val isAdmin: Boolean = Role.ADMIN_ROLES.contains(editor.role)
+    db.run(labelTable.find(labelId)).flatMap {
+      case None                                                     => Future.successful(LabelEditOutcome.NotFound)
+      case Some(label) if label.userId != editor.userId && !isAdmin => Future.successful(LabelEditOutcome.Forbidden)
+      case Some(label) if label.deleted                 => Future.successful(LabelEditOutcome.Applied(label))
+      case Some(label) if label.userId == editor.userId =>
+        db.run(labelEditService.deleteLabelDbio(labelId, editor.userId, source).transactionally)
+      case Some(label) =>
+        missionService
+          .resumeOrCreateNewValidateMission(editor.userId, MissionType.LabelmapValidation, label.labelType)
+          .flatMap { mission =>
+            runWithUniqueViolationRetry(
+              (for {
+                _       <- disagreeAsAdmin(label, editor.userId, mission.get.missionId, source)
+                outcome <- labelEditService.deleteLabelDbio(labelId, editor.userId, source)
+              } yield outcome).transactionally
+            )
+          }
+    }
+  }
+
+  /** A Disagree on the label from where it was placed, the only viewpoint a delete has. */
+  private def disagreeAsAdmin(label: Label, adminId: String, missionId: Int, source: UiSource): DBIO[Seq[Int]] = {
+    val now = OffsetDateTime.now
+    labelPointTable.labelPoints.filter(_.labelId === label.labelId).result.head.flatMap { point =>
+      submitValidationsDbio(
+        Seq(
+          ValidationSubmission(
+            LabelValidation(0, label.labelId, label.labelType, ValidationOption.Disagree, adminId, missionId,
+              Some(point.canvasX), Some(point.canvasY), point.heading, point.pitch, point.zoom,
+              LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, now, now, source, ViewerType.Default),
+            newLabelType = None,
+            label.severity,
+            label.tags,
+            comment = None,
+            undone = false,
+            redone = false,
+            canEdit = false
+          )
+        )
+      )
+    }
+  }
 
   /**
    * Submits a set of validations from a POST request on Validate.

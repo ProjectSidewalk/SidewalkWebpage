@@ -396,52 +396,53 @@ class UserStatTable @Inject() (
    * Update the accuracy column in the user_stat table for the given users, or every user if the list is empty.
    * @param users A list of user_ids to update, update all users if the list is empty.
    */
-  def updateAccuracy(users: Seq[String]): DBIO[Unit] = {
-    val filterStatement: String =
-      if (users.isEmpty) ""
-      else s"""AND label.user_id IN ('${users.mkString("','")}')"""
-    updateAccuracyWhere(sql""" #$filterStatement""")
-  }
+  def updateAccuracy(users: Seq[String]): DBIO[Unit] =
+    updateAccuracyWhere(if (users.isEmpty) None else Some(sql"""IN ('#${users.mkString("','")}')"""))
 
   /**
    * Update the accuracy column for everyone whose labels the given user validated, e.g. after excluding that user.
    * @param validatorId The user whose validations decide which labelers are updated.
    */
-  def updateAccuracyForLabelersValidatedBy(validatorId: String): DBIO[Unit] = {
-    updateAccuracyWhere(sql"""
-      AND label.user_id IN (
+  def updateAccuracyForLabelersValidatedBy(validatorId: String): DBIO[Unit] =
+    updateAccuracyWhere(
+      Some(sql"""IN (
           SELECT label.user_id
           FROM label_validation
           INNER JOIN label ON label_validation.label_id = label.label_id
           WHERE label_validation.user_id = $validatorId
       )""")
-  }
+    )
 
   /**
-   * Recomputes own_labels_validated and accuracy for the labelers the filter keeps.
-   * @param labelFilter Extra conditions on `label`, starting with a space and AND; empty to update every user.
+   * Recomputes own_labels_validated and accuracy for the given labelers.
+   * @param userSet An `IN (...)` clause scoping both the labels aggregated and the rows written; None for every user.
    */
-  private def updateAccuracyWhere(labelFilter: SQLActionBuilder): DBIO[Unit] = {
+  private def updateAccuracyWhere(userSet: Option[SQLActionBuilder]): DBIO[Unit] = {
+    def scoped(column: String): SQLActionBuilder = userSet.map(set => sql" AND #$column ".concat(set)).getOrElse(sql"")
     sql"""
-      SELECT user_stat.user_id, new_validated_count, new_accuracy
+      SELECT user_stat.user_id, COALESCE(new_validated_count, 0), new_accuracy
       FROM user_stat
-      INNER JOIN (
+      -- LEFT so a labeler whose counted labels all went away (deleted, or their voters excluded) is reset to no
+      -- validated labels rather than left with a stale accuracy.
+      LEFT JOIN (
           SELECT user_id,
                  CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS new_accuracy,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS new_validated_count
           FROM label
-          WHERE label.deleted = FALSE
+          WHERE #${LabelTable.countsTowardAccuracySql}
               AND label.tutorial = FALSE"""
-      .concat(labelFilter)
-      .concat(sql"""
+      .concat(scoped("label.user_id"))
+      .concat(
+        sql"""
           GROUP BY user_id
       ) "accuracy_subquery" ON user_stat.user_id = accuracy_subquery.user_id
       -- Filter out users if their validated count and accuracy are unchanged from what's already in the database.
-      WHERE own_labels_validated <> new_validated_count
+      WHERE (own_labels_validated <> COALESCE(new_validated_count, 0)
           OR (accuracy IS NULL AND new_accuracy IS NOT NULL)
           OR (accuracy IS NOT NULL AND new_accuracy IS NULL)
-          OR (accuracy IS NOT NULL AND new_accuracy IS NOT NULL AND ROUND(accuracy::NUMERIC, 3) <> ROUND(new_accuracy::NUMERIC, 3));
-    """)
+          OR (accuracy IS NOT NULL AND new_accuracy IS NOT NULL AND ROUND(accuracy::NUMERIC, 3) <> ROUND(new_accuracy::NUMERIC, 3)))"""
+      )
+      .concat(scoped("user_stat.user_id"))
       .as[(String, Int, Option[Double])]
       .flatMap { usersToUpdate: Seq[(String, Int, Option[Double])] =>
         // Update the own_labels_validated and accuracy columns in the user_stat table.
@@ -721,7 +722,8 @@ class UserStatTable @Inject() (
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
           FROM label
           #$joinUserTeamForAcc
-          WHERE (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
+          WHERE #${LabelTable.countsTowardAccuracySql}
+              AND (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
           GROUP BY #$groupingColName
       ) "accuracy" ON label_counts.#$groupingColName = accuracy.#$groupingColName
       ORDER BY score DESC, label_counts.label_count DESC;
@@ -1056,8 +1058,8 @@ class UserStatTable @Inject() (
 
   /**
    * Per-label-type validation tallies for a user: how many of their labels of each type were judged correct vs
-   * incorrect (by majority vote). Only non-deleted, non-tutorial labels. Drives the dashboard's per-type accuracy
-   * bars.
+   * incorrect (by majority vote), over the labels that count toward accuracy (#3591). Drives the dashboard's per-type
+   * accuracy bars.
    *
    * @param userId The user whose labels to tally.
    * @return       One row per label type present: (label type name, correct count, incorrect count).
@@ -1068,7 +1070,7 @@ class UserStatTable @Inject() (
              COUNT(*) FILTER (WHERE label.correct IS TRUE)::int AS correct,
              COUNT(*) FILTER (WHERE label.correct IS FALSE)::int AS incorrect
       FROM label
-      WHERE label.user_id = $userId AND label.deleted = FALSE AND label.tutorial = FALSE
+      WHERE label.user_id = $userId AND #${LabelTable.countsTowardAccuracySql} AND label.tutorial = FALSE
       GROUP BY label.label_type::text;
     """.as[(String, Int, Int)]
   }
@@ -1211,7 +1213,7 @@ class UserStatTable @Inject() (
       val col    = lt.name.toLowerCase
       val isType = s"label_type = '${lt.name}'"
       Seq(
-        s"${col}_labels"              -> s"COUNT(CASE WHEN $isType THEN 1 END)",
+        s"${col}_labels"              -> s"COUNT(CASE WHEN $isType AND NOT label.deleted THEN 1 END)",
         s"${col}_validated_correct"   -> s"COUNT(CASE WHEN $isType AND correct THEN 1 END)",
         s"${col}_validated_incorrect" -> s"COUNT(CASE WHEN $isType AND NOT correct THEN 1 END)",
         s"${col}_not_validated"       -> s"COUNT(CASE WHEN $isType AND correct IS NULL THEN 1 END)"
@@ -1265,10 +1267,11 @@ class UserStatTable @Inject() (
           FROM voided_label_validation
           GROUP BY voided_label_validation.user_id
       ) AS voided_validations ON user_stat.user_id = voided_validations.user_id
-      -- Label and validation counts
+      -- Label and validation counts. The verdict counts follow the accuracy rule (a label deleted from the popup
+      -- after being judged incorrect still counts, #3591); the plain label counts are live labels only.
       LEFT JOIN (
           SELECT audit_task.user_id,
-                 COUNT(*) AS labels,
+                 COUNT(*) FILTER (WHERE NOT label.deleted) AS labels,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_labels,
                  SUM(agree_count) + SUM(disagree_count) + SUM(unsure_count) AS validations_received,
                  COUNT(CASE WHEN correct THEN 1 END) AS labels_validated_correct,
@@ -1277,7 +1280,7 @@ class UserStatTable @Inject() (
                  #$labelTypeCountCols
           FROM audit_task
           INNER JOIN label ON audit_task.audit_task_id = label.audit_task_id
-          WHERE deleted = FALSE
+          WHERE #${LabelTable.countsTowardAccuracySql}
               AND tutorial = FALSE
               AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
               AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)

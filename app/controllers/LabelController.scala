@@ -6,14 +6,25 @@ import formats.json.LabelFormats
 import formats.json.ValidateFormats.{labelEditSubmissionReads, LabelEditSubmission}
 import models.auth.DefaultEnv
 import models.label._
+import models.utils.CommonUtils.UiSource
 import models.utils.LatLngBBox
 import play.api.Logger
 import play.api.libs.json._
+import play.api.mvc.Result
 import play.silhouette.api.Silhouette
-import service.{AiService, CropService, LabelEditOutcome, LabelEditService, LabelService, PanoDataService}
+import service.{
+  AiService,
+  CropService,
+  LabelEditOutcome,
+  LabelEditService,
+  LabelService,
+  PanoDataService,
+  ValidationService
+}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 @Singleton
 class LabelController @Inject() (
@@ -22,6 +33,7 @@ class LabelController @Inject() (
     implicit val ec: ExecutionContext,
     labelService: LabelService,
     labelEditService: LabelEditService,
+    validationService: ValidationService,
     aiService: AiService,
     panoDataService: PanoDataService,
     cropService: CropService
@@ -127,6 +139,28 @@ class LabelController @Inject() (
           }
         }
       )
+  }
+
+  /** Soft-deletes a label, as its labeler or as an admin (#3591). `source` is the `UiSource` name of the host page. */
+  def deleteLabel(labelId: Int, source: String) = cc.securityService.SecuredAction { implicit request =>
+    Try(UiSource.withName(source)).toOption match {
+      case None => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> s"Invalid source: $source")))
+      case Some(uiSource) =>
+        validationService.deleteLabel(labelId, request.identity, uiSource).map(deletionResponse(labelId))
+    }
+  }
+
+  def restoreLabel(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
+    labelEditService.restoreLabel(labelId, request.identity).map(deletionResponse(labelId))
+  }
+
+  private def deletionResponse(labelId: Int)(outcome: LabelEditOutcome): Result = outcome match {
+    case LabelEditOutcome.Applied(label) => Ok(Json.obj("status" -> "Success", "deleted" -> label.deleted))
+    case LabelEditOutcome.Forbidden      =>
+      Forbidden(
+        Json.obj("status" -> "Error", "message" -> "Only the labeler or an admin can delete or restore a label")
+      )
+    case _ => NotFound(Json.obj("status" -> "Error", "message" -> s"No label found with ID: $labelId"))
   }
 
   /**

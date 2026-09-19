@@ -46,6 +46,8 @@ trait LabelEditService {
       source: UiSource
   ): Future[LabelEditOutcome]
   def revertEditForValidation(labelValidationId: Int, retracted: Boolean): DBIO[Boolean]
+  def deleteLabelDbio(labelId: Int, deleterId: String, source: UiSource): DBIO[LabelEditOutcome]
+  def restoreLabel(labelId: Int, editor: SidewalkUserWithRole): Future[LabelEditOutcome]
   def updateLabelFromExplore(
       labelId: Int,
       deleted: Boolean,
@@ -278,8 +280,61 @@ class LabelEditServiceImpl @Inject() (
   }
 
   /**
+   * Soft-deletes a label from the label popup (#3591), stamped so it can be restored. Who may delete is decided by
+   * the caller (`ValidationService.deleteLabel`, which also files an admin's Disagree).
+   */
+  def deleteLabelDbio(labelId: Int, deleterId: String, source: UiSource): DBIO[LabelEditOutcome] =
+    labelTable.find(labelId).flatMap {
+      case None        => DBIO.successful(LabelEditOutcome.NotFound)
+      case Some(label) => setDeleted(label, deleterId, Some(source))
+    }
+
+  /**
+   * Undoes a delete. The labeler can undo their own delete and an admin can undo any; an admin's delete carries their
+   * Disagree, which stays on the record.
+   */
+  def restoreLabel(labelId: Int, editor: SidewalkUserWithRole): Future[LabelEditOutcome] = {
+    val isAdmin: Boolean = Role.ADMIN_ROLES.contains(editor.role)
+    db.run(
+      labelTable
+        .find(labelId)
+        .flatMap {
+          case None => DBIO.successful(LabelEditOutcome.NotFound)
+          case Some(label)
+              if !isAdmin && (label.userId != editor.userId || label.deletedBy.exists(_ != editor.userId)) =>
+            DBIO.successful(LabelEditOutcome.Forbidden)
+          case Some(label) => setDeleted(label, editor.userId, None)
+        }
+        .transactionally
+    )
+  }
+
+  /**
+   * The shared delete/restore write, a no-op when the label is already in the requested state. Recomputes the
+   * labeler's accuracy since a correct label stops counting.
+   * @param deleteFrom The page the label is being deleted from, or None to restore it.
+   */
+  private def setDeleted(label: Label, editorId: String, deleteFrom: Option[UiSource]): DBIO[LabelEditOutcome] = {
+    val deleted: Boolean = deleteFrom.isDefined
+    if (label.deleted == deleted) DBIO.successful(LabelEditOutcome.Applied(label))
+    else {
+      val (by, at, from) = LabelDeletion.fields(editorId, deleteFrom)
+      for {
+        _ <- labelTable.labelsUnfiltered
+          .filter(_.labelId === label.labelId)
+          .map(_.deletion)
+          .update((deleted, by, at, from))
+        _ <- userStatTable.updateAccuracy(Seq(label.userId))
+      } yield LabelEditOutcome.Applied(
+        label.copy(deleted = deleted, deletedBy = by, deletedAt = at, deletedSource = from)
+      )
+    }
+  }
+
+  /**
    * Updates the metadata a user can change on the Explore page after placing a label. While the label's only history
    * row is its creation row, the change is part of placing it and that row absorbs it; after that it is an edit.
+   * A delete is stamped as from Explore, so it never counts toward accuracy (#3591).
    */
   def updateLabelFromExplore(
       labelId: Int,
@@ -308,7 +363,14 @@ class LabelEditServiceImpl @Inject() (
             } else DBIO.successful(())
           }
         }
-      rowsUpdated: Int <- labelQuery.map(l => (l.deleted, l.description)).update((deleted, description))
+      rowsUpdated: Int <- labelQuery.map(l => (l.description, l.deletion)).update {
+        // A resend must not move the original stamp.
+        if (label.deleted == deleted) (description, (deleted, label.deletedBy, label.deletedAt, label.deletedSource))
+        else {
+          val (by, at, from) = LabelDeletion.fields(label.userId, Option.when(deleted)(UiSource.Explore))
+          (description, (deleted, by, at, from))
+        }
+      }
     } yield rowsUpdated
   }
 }

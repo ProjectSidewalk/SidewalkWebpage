@@ -165,6 +165,8 @@ DELETE  /labelmap/comment/:labelId                      controllers.ValidateCont
 GET     /labels/all                                     controllers.LabelController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None, bbox: Option[String] ?= None)
 GET     /label/id/:labelId                              controllers.LabelController.getLabelData(labelId: Int)
 POST    /label/edit                                     controllers.LabelController.editLabel
+DELETE  /label/:labelId                                 controllers.LabelController.deleteLabel(labelId: Int, source: String)
+POST    /label/:labelId/restore                         controllers.LabelController.restoreLabel(labelId: Int)
 GET     /label/tags                                     controllers.LabelController.getLabelTags
 GET     /label/resumeMission                            controllers.LabelController.getLabelsToResumeMission(regionId: Int)
 GET     /label/countInRegion                            controllers.LabelController.getRegionLabelCount(regionId: Int)
