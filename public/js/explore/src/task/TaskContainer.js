@@ -479,9 +479,6 @@ class TaskContainer {
     // Page load reaches here before the notice exists; Main.js announces that first street itself, once the
     // mission-start screen is out of the way.
     if (svl.reauditNotice) svl.reauditNotice.showForTask(task);
-    // The street carries `lastMappedAt`, so the bottom-left imagery note re-reads it here as well as on a pano
-    // change: reversing onto a different street does not always load a new pano (#5413).
-    if (svl.panoDateNote) svl.panoDateNote.update({ task });
 
     if ('compass' in svl) {
       svl.compass.showMessage();

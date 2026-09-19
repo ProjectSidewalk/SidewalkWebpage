@@ -154,12 +154,6 @@ input[type="radio"] {
   transform-origin: bottom left;
 }
 
-/* Unpadded: the pill around it owns its spacing, and the holder's left offset owns the gap to the imagery-source
-   logo (#5413). */
-#svl-panorama-date {
-  padding: 0;
-}
-
 /* Scale Bootstrap tooltips (severity descriptions, button hints, etc.) with the UI. They render on <body>, so they read
    --ui-scale from :root. Font/padding are scaled rather than transformed so Bootstrap's positioning still works. */
 .tooltip-inner {

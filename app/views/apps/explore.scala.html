@@ -478,10 +478,10 @@
               <span class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></span>
             </div>
           </div>
-          @* Hidden until the first pano reports a capture date (#5413) -- an empty pill is a bare chip with the info
-             button floating in it, and there is nothing for that button to explain before a pano loads. *@
+          @* Never hidden: it holds PanoInfoPopover's button too, which has to survive a pano reporting no usable
+             capture date. PanoDateNote adds .svl-pano-pill, only on panos carrying an assessment note (#5413). *@
           <div id="svl-panorama-date-holder">
-            <span id="svl-panorama-date-pill" class="svl-pano-pill" hidden><span id="svl-panorama-date"></span></span>
+            <span id="svl-panorama-date-pill"><span id="svl-panorama-date"></span></span>
           </div>
           @* Stuck / sound / feedback controls at top-left of the pano. Collapsed by default. *@
           <div id="explore-control-buttons-holder" class="pano-overlay-button-group">

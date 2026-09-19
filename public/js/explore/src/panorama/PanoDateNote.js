@@ -53,6 +53,8 @@ class PanoDateNote {
     this.#noteEl.id = 'svl-pano-date-note';
     this.#noteEl.className = 'svl-pano-pill';
     this.#noteEl.hidden = true;
+    // Focusable so the psTooltip explaining the note is reachable by keyboard; it is the only way to that text.
+    this.#noteEl.tabIndex = 0;
     holderEl.appendChild(this.#noteEl);
   }
 
@@ -89,45 +91,62 @@ class PanoDateNote {
   }
 
   /**
-   * Redraws the corner for the pano and street now showing. Safe to call with either half unchanged: the pano moves
-   * far more often than the street, but `lastMappedAt` changes with the street alone.
+   * Redraws the corner for a pano and the street it belongs to.
    *
-   * @param {object} [update]
-   * @param {?string} [update.captureDateIso] - This pano's capture date; omit to keep the last one.
-   * @param {?Task} [update.task] - The current task; omit to keep the last one.
+   * Both halves are required so that neither can be retained from an earlier call: `setCurrentTask` swaps to the
+   * next street while the labeler still stands on the previous street's final pano, so a kept capture date would be
+   * compared — and logged — against a street it was never on.
+   *
+   * @param {?string} captureDateIso - Capture date of the pano now showing.
+   * @param {?Task} task - The task whose street that pano sits on.
    */
-  update({ captureDateIso, task } = {}) {
-    if (captureDateIso !== undefined) this.#captureDateIso = captureDateIso;
-    if (task !== undefined) this.#task = task;
+  update(captureDateIso, task) {
+    this.#captureDateIso = captureDateIso;
+    this.#task = task;
 
     const captureDate = util.monthYear(this.#captureDateIso, { short: true });
     const lastMappedAt = this.#task ? this.#task.getProperty('lastMappedAt') : null;
     const state = PanoDateNote.stateFor(this.#captureDateIso, lastMappedAt);
 
-    // The pill stays hidden until there is a date to put in it, or the corner shows an empty chip with the info
-    // button floating inside it.
-    this.#datePillEl.hidden = captureDate === null;
+    const byThisUser = this.#task ? Boolean(this.#task.getProperty('mappedByThisUser')) : false;
 
-    // Nothing to compare against: the bare date Explore has always shown. Labelling it "Image:" would only add a
-    // word to a line that has nothing to distinguish it from.
-    if (state === PanoDateNote.STATE.UNAUDITED) {
+    // Someone else's assessment is withheld: Project Sidewalk wants independent ones, and their labels are never
+    // drawn here (`getLabelsToResumeMission` is scoped to the requester), so it would only imply redundancy.
+    // An unreadable date lands here too rather than hiding the element, which is PanoInfoPopover's container: a pano
+    // with broken metadata is when its id and position are most wanted.
+    if (captureDate === null
+      || state === PanoDateNote.STATE.UNAUDITED
+      || (state === PanoDateNote.STATE.ALREADY_MAPPED && !byThisUser)) {
+      // No "Image:" prefix and no chip: nothing sits beside the date to distinguish it from, and with no chip
+      // surface an empty date leaves the bare info button the corner carried before #5413.
+      this.#datePillEl.classList.remove('svl-pano-pill');
       this.#dateEl.textContent = captureDate ?? '';
       this.#noteEl.hidden = true;
       return;
     }
 
-    const mappedDate = util.monthYear(lastMappedAt, { short: true });
-    const byThisUser = Boolean(this.#task.getProperty('mappedByThisUser'));
+    const reaudit = state === PanoDateNote.STATE.REAUDIT;
+    this.#datePillEl.classList.add('svl-pano-pill');
     this.#dateEl.textContent = i18next.t('right-ui.pano-date-note.image-date', { date: captureDate });
-    this.#noteEl.textContent
-      = state === PanoDateNote.STATE.REAUDIT
-        ? i18next.t('right-ui.pano-date-note.last-audited', { date: mappedDate })
-        : i18next.t(
-            byThisUser
-              ? 'right-ui.pano-date-note.mapped-this-view-you'
-              : 'right-ui.pano-date-note.mapped-this-view-others',
-            { date: mappedDate },
-          );
+    // The state, not a date: the imagery chip beside it already carries one, and two dates left the eye to work out
+    // which way round they ran.
+    this.#noteEl.textContent = i18next.t(
+      reaudit ? 'right-ui.pano-date-note.needs-reassessment' : 'right-ui.pano-date-note.already-assessed');
+    this.#noteEl.classList.toggle('svl-pano-pill--action', reaudit);
+
+    // Why the two dates matter does not fit a chip, and prose wants spelled-out months. Only the re-assessment half
+    // splits on authorship; the other is only ever the labeler's own.
+    const tipKey = reaudit
+      ? `right-ui.pano-date-note.needs-reassessment-tip-${byThisUser ? 'you' : 'others'}`
+      : 'right-ui.pano-date-note.already-assessed-tip';
+    this.#noteEl.setAttribute('data-ps-tooltip', i18next.t(tipKey, {
+      assessedDate: util.monthYear(lastMappedAt),
+      captureDate: util.monthYear(this.#captureDateIso),
+      // psTooltip renders this attribute through innerHTML. Two dates of ours need no escaping today; escaping
+      // costs nothing on a date and covers whoever interpolates something a user wrote here later. One level, not
+      // the two a markup-parsed attribute needs -- setAttribute does no parsing, so innerHTML is the only consumer.
+      interpolation: { escapeValue: true },
+    }));
     this.#noteEl.hidden = false;
     this.#log(state, lastMappedAt, byThisUser);
   }

@@ -294,10 +294,10 @@ class PanoManager {
 
     // Draw the bottom-left imagery note for this pano: its capture date, and how that sits against the street's last
     // audit (#5413). Month-granular on the wire because that is all a capture date carries.
-    svl.panoDateNote?.update({
-      captureDateIso: panoData.getProperty('captureDate').format('YYYY-MM-DD'),
-      task: svl.taskContainer?.getCurrentTask() ?? null,
-    });
+    svl.panoDateNote?.update(
+      panoData.getProperty('captureDate').format('YYYY-MM-DD'),
+      svl.taskContainer?.getCurrentTask() ?? null,
+    );
 
     // Mark that we visited this pano so that we can tell if they've gotten stuck.
     svl.stuckAlert.panoVisited(panoId);

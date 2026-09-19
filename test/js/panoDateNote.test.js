@@ -36,25 +36,35 @@ describe('PanoDateNote', () => {
     let tracker;
     let note;
 
-    /** The two pills' rendered text, with the note's hidden state. */
+    /** The corner's rendered text, with the note's hidden state. */
     const corner = () => ({
         date: document.getElementById('svl-panorama-date').textContent,
         note: document.getElementById('svl-pano-date-note').textContent,
         noteHidden: document.getElementById('svl-pano-date-note').hidden,
     });
+    const datePilled = () =>
+        document.getElementById('svl-panorama-date-pill').classList.contains('svl-pano-pill');
+    const tip = () => document.getElementById('svl-pano-date-note').getAttribute('data-ps-tooltip');
+    const noteIsAction = () =>
+        document.getElementById('svl-pano-date-note').classList.contains('svl-pano-pill--action');
 
     beforeEach(() => {
         tracker = { push: jest.fn() };
         window.i18next = {
             language: 'en',
-            t: (key, opts) => (opts && opts.date ? `${key}|${opts.date}` : key),
+            t: (key, opts) => {
+                if (opts && opts.date) return `${key}|${opts.date}`;
+                if (opts && opts.assessedDate) return `${key}|${opts.assessedDate}|${opts.captureDate}`;
+                return key;
+            },
         };
         loadGlobalScript('public/js/common/utilities.js');
         // Mirrors explore.scala.html, including the pill starting hidden. PanoInfoPopover's button would be a second
         // child of the pill on the real page; nothing here reads it.
         document.body.innerHTML =
             '<div id="svl-panorama-date-holder">'
-            + '<span id="svl-panorama-date-pill" class="svl-pano-pill" hidden><span id="svl-panorama-date"></span></span>'
+            + '<span id="svl-panorama-date-pill"><span id="svl-panorama-date"></span>'
+            + '<i id="pano-info-button"></i></span>'
             + '</div>';
         note = new PanoDateNote(
             tracker,
@@ -89,6 +99,15 @@ describe('PanoDateNote', () => {
             expect(PanoDateNote.stateFor('2024-06-01', '2024-07-07T12:00:00-07:00')).toBe('already-mapped');
         });
 
+        test('the chip and its tooltip never disagree about which month an assessment landed in', () => {
+            // Where `stateFor` and `util.monthYear` used to part company: the comparison read November off the
+            // string, the sentence converted into the reader's zone and said October. jest.config.js pins the TZ.
+            const utcMidnight = { ...MAPPED_BY_ME, lastMappedAt: '2024-11-01T03:00:00Z' };
+            note.update('2024-11-01', makeTask(31, utcMidnight));
+            expect(corner().note).toBe('right-ui.pano-date-note.already-assessed');
+            expect(tip()).toBe('right-ui.pano-date-note.already-assessed-tip|November 2024|November 2024');
+        });
+
         test('a timestamp is read in the offset it carries, not shifted into the local zone', () => {
             // 2024-07-01T00:30+02:00 is still June 30 in UTC. Reading the calendar fields keeps it in July, so a July
             // capture does not flip to a re-audit on the strength of the reader's time zone.
@@ -97,63 +116,90 @@ describe('PanoDateNote', () => {
     });
 
     describe('update', () => {
-        test('the date pill stays hidden until a pano reports a capture date', () => {
+        test('an unreadable capture date empties the corner but keeps the info button', () => {
+            // The pill element is PanoInfoPopover's container, so hiding it would take pano id, position and the
+            // report links away on exactly the panos whose metadata someone needs to report.
             const pill = document.getElementById('svl-panorama-date-pill');
-            expect(pill.hidden).toBe(true);
+            const infoButton = () => document.getElementById('pano-info-button');
 
-            note.update({ captureDateIso: null, task: makeTask(31, MAPPED_BY_ME) });
-            expect(pill.hidden).toBe(true);
-            expect(corner().noteHidden).toBe(true);
+            for (const captureDateIso of [null, 'Invalid date', '2024-13-01']) {
+                note.update(captureDateIso, makeTask(31, MAPPED_BY_ME));
+                expect(corner()).toEqual({ date: '', note: expect.any(String), noteHidden: true });
+                expect(datePilled()).toBe(false);
+                expect(pill.hidden).toBe(false);
+                expect(infoButton()).not.toBeNull();
+            }
 
-            note.update({ captureDateIso: '2024-10-01' });
-            expect(pill.hidden).toBe(false);
+            note.update('2024-10-01', makeTask(31, MAPPED_BY_ME));
+            expect(corner().date).toBe('right-ui.pano-date-note.image-date|Oct 2024');
+            expect(infoButton()).not.toBeNull();
         });
 
-        test('shows the bare capture date on a street nobody has audited', () => {
-            note.update({ captureDateIso: '2024-10-01', task: makeTask(31, {}) });
+        test('shows the bare capture date on a street nobody has assessed', () => {
+            note.update('2024-10-01', makeTask(31, {}));
             expect(corner()).toEqual({ date: 'Oct 2024', note: '', noteHidden: true });
+            expect(datePilled()).toBe(false);
             expect(tracker.push).not.toHaveBeenCalled();
         });
 
-        test('names the imagery and the last audit when this pano is newer', () => {
-            note.update({ captureDateIso: '2024-10-01', task: makeTask(1755, MAPPED_BY_ME) });
+        test('names the imagery and the last assessment when this pano is newer', () => {
+            note.update('2024-10-01', makeTask(1755, MAPPED_BY_ME));
             expect(corner()).toEqual({
                 date: 'right-ui.pano-date-note.image-date|Oct 2024',
-                note: 'right-ui.pano-date-note.last-audited|Jul 2024',
+                note: 'right-ui.pano-date-note.needs-reassessment',
                 noteHidden: false,
             });
+            expect(datePilled()).toBe(true);
+            expect(noteIsAction()).toBe(true);
+            // Spelled-out months, and both dates: the chip names only the state, so it has room for neither.
+            expect(tip()).toBe('right-ui.pano-date-note.needs-reassessment-tip-you|July 2024|October 2024');
         });
 
-        test('says the labeler already mapped this view when the pano predates their audit', () => {
-            note.update({ captureDateIso: '2022-03-01', task: makeTask(31, MAPPED_BY_ME) });
+        test('the same street assessed by someone else still gets the re-assessment note', () => {
+            // The chip names no one; only the tooltip, with room for a sentence, says whose earlier pass it was.
+            note.update('2024-10-01', makeTask(1755, MAPPED_BY_OTHERS));
+            expect(corner().note).toBe('right-ui.pano-date-note.needs-reassessment');
+            expect(tip()).toBe('right-ui.pano-date-note.needs-reassessment-tip-others|July 2024|October 2024');
+        });
+
+        test('says the labeler assessed this view when the pano predates their own assessment', () => {
+            note.update('2022-03-01', makeTask(31, MAPPED_BY_ME));
             expect(corner()).toEqual({
                 date: 'right-ui.pano-date-note.image-date|Mar 2022',
-                // The date rides along even though en's wording does not use it, so a language that needs "you
-                // mapped this in July 2024" to read naturally has it available.
-                note: 'right-ui.pano-date-note.mapped-this-view-you|Jul 2024',
+                note: 'right-ui.pano-date-note.already-assessed',
                 noteHidden: false,
             });
+            expect(datePilled()).toBe(true);
+            // Neutral: this state asks the labeler for nothing.
+            expect(noteIsAction()).toBe(false);
+            expect(tip()).toBe('right-ui.pano-date-note.already-assessed-tip|July 2024|March 2022');
         });
 
-        test('credits the earlier pass to someone else when it was not this labeler', () => {
-            note.update({ captureDateIso: '2022-03-01', task: makeTask(31, MAPPED_BY_OTHERS) });
-            expect(corner().note).toBe('right-ui.pano-date-note.mapped-this-view-others|Jul 2024');
+        test('withholds that someone else assessed this view, to keep the assessment independent', () => {
+            note.update('2022-03-01', makeTask(31, MAPPED_BY_OTHERS));
+            expect(corner()).toEqual({ date: 'Mar 2022', note: '', noteHidden: true });
+            expect(datePilled()).toBe(false);
+            expect(tracker.push).not.toHaveBeenCalled();
         });
 
-        test('a street switch re-reads lastMappedAt without a new pano', () => {
-            note.update({ captureDateIso: '2022-03-01', task: makeTask(1755, MAPPED_BY_ME) });
-            expect(corner().note).toBe('right-ui.pano-date-note.mapped-this-view-you|Jul 2024');
+        test('each render names one pano and the street that pano is on, never a mix of two', () => {
+            // A street transition swaps the task while the labeler still stands on the previous street's last pano,
+            // so anything retained across calls pairs one street's assessment with the other's imagery.
+            note.update('2022-03-01', makeTask(1755, MAPPED_BY_ME));
+            expect(corner().note).toBe('right-ui.pano-date-note.already-assessed');
 
-            // Same pano date, different street, never audited: the note has to clear, not linger.
-            note.update({ task: makeTask(99, {}) });
-            expect(corner()).toEqual({ date: 'Mar 2022', note: expect.any(String), noteHidden: true });
+            note.update('2024-10-01', makeTask(99, {}));
+            expect(corner()).toEqual({ date: 'Oct 2024', note: expect.any(String), noteHidden: true });
+            expect(datePilled()).toBe(false);
+            expect(tracker.push.mock.calls.map((c) => [c[1].streetEdgeId, c[1].captureDate]))
+                .toEqual([[1755, '2022-03-01']]);
         });
 
         test('one partly-refreshed street reports both of its states', () => {
             // Walking street 1755 from its 2021 end to its 2024 end: the same street is both, which is the case
             // audit_task.outdated_imagery cannot express.
-            note.update({ captureDateIso: '2021-10-01', task: makeTask(1755, MAPPED_BY_ME) });
-            note.update({ captureDateIso: '2024-10-01', task: makeTask(1755, MAPPED_BY_ME) });
+            note.update('2021-10-01', makeTask(1755, MAPPED_BY_ME));
+            note.update('2024-10-01', makeTask(1755, MAPPED_BY_ME));
 
             expect(tracker.push).toHaveBeenCalledTimes(2);
             expect(tracker.push.mock.calls.map((c) => c[1].state)).toEqual(['already-mapped', 'reaudit']);
@@ -168,7 +214,7 @@ describe('PanoDateNote', () => {
 
         test('walking a street logs its state once, not once per pano', () => {
             for (const captureDateIso of ['2024-10-01', '2024-10-01', '2024-11-01', '2024-10-01']) {
-                note.update({ captureDateIso, task: makeTask(1755, MAPPED_BY_ME) });
+                note.update(captureDateIso, makeTask(1755, MAPPED_BY_ME));
             }
             expect(tracker.push).toHaveBeenCalledTimes(1);
             expect(tracker.push).toHaveBeenCalledWith('PanoDateNote_Shown', expect.objectContaining({
@@ -177,8 +223,8 @@ describe('PanoDateNote', () => {
         });
 
         test('each street is logged on its own', () => {
-            note.update({ captureDateIso: '2024-10-01', task: makeTask(1755, MAPPED_BY_ME) });
-            note.update({ captureDateIso: '2024-10-01', task: makeTask(1756, MAPPED_BY_ME) });
+            note.update('2024-10-01', makeTask(1755, MAPPED_BY_ME));
+            note.update('2024-10-01', makeTask(1756, MAPPED_BY_ME));
             expect(tracker.push.mock.calls.map((c) => c[1].streetEdgeId)).toEqual([1755, 1756]);
         });
     });

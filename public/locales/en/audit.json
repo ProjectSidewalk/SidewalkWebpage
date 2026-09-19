@@ -160,16 +160,18 @@
     },
     "reaudit": {
       "title": "This street has newer imagery",
-      "message-you": "You last mapped this street in {{lastMapped}} but the imagery has been refreshed since then (in {{newImagery}}). Let's see what's changed!",
-      "message-you-no-dates": "You mapped this street before, but the imagery has been refreshed since then. Let's see what's changed!",
-      "message-others": "Another user mapped this street in {{lastMapped}} but the imagery has been refreshed since then (in {{newImagery}}). Let's see what's changed!",
-      "message-others-no-dates": "Another user mapped this street before, but the imagery has been refreshed since then. Let's see what's changed!"
+      "message-you": "You last assessed this street in {{lastMapped}}, but the imagery has been refreshed since then (in {{newImagery}}). Please assess this street again to help us analyze what has changed.",
+      "message-you-no-dates": "You assessed this street before, but the imagery has been refreshed since then. Please assess this street again to help us analyze what has changed.",
+      "message-others": "This street was last assessed in {{lastMapped}}, but the imagery has been refreshed since then (in {{newImagery}}). Please assess this street again to help us analyze what has changed.",
+      "message-others-no-dates": "This street was assessed before, but the imagery has been refreshed since then. Please assess this street again to help us analyze what has changed."
     },
     "pano-date-note": {
       "image-date": "Image: {{date}}",
-      "last-audited": "Last audited: {{date}}",
-      "mapped-this-view-you": "You mapped this view",
-      "mapped-this-view-others": "Already mapped in {{date}}"
+      "needs-reassessment": "Needs re-assessment",
+      "already-assessed": "Already assessed",
+      "already-assessed-tip": "You last assessed this location in {{assessedDate}}, and the imagery ({{captureDate}}) has not changed since that assessment. Feel free to add new labels if you spot something!",
+      "needs-reassessment-tip-you": "You last assessed this location in {{assessedDate}}, but the imagery here is newer ({{captureDate}}). Please assess it again to help us analyze what has changed.",
+      "needs-reassessment-tip-others": "A user last assessed this location in {{assessedDate}}, but the imagery here is newer ({{captureDate}}). Please assess it again to help us analyze what has changed."
     },
     "minimap": {
       "coach-dismiss": "Got it",

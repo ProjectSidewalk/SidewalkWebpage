@@ -216,6 +216,13 @@ class Main {
 
     svl.panoDateNote = new PanoDateNote(svl.tracker, svl.ui.streetview.dateHolder[0],
       svl.ui.streetview.datePill[0], svl.ui.streetview.date[0]);
+    // The first pano and the first task both land before this line, so their own updates find no note to draw on and
+    // the corner stays empty until the labeler's first step (#4671 closed the same gap for the nav arrows).
+    const initialCaptureDate = svl.panoStore.getPanoData(svl.panoViewer.getPanoId())?.getProperty('captureDate');
+    svl.panoDateNote.update(
+      initialCaptureDate ? initialCaptureDate.format('YYYY-MM-DD') : null,
+      svl.taskContainer.getCurrentTask(),
+    );
 
     // Speed limit
     svl.speedLimit = new SpeedLimit(() => svl.panoViewer, () => svl.panoViewer.getPosition(), svl.isOnboarding,

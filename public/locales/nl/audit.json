@@ -160,16 +160,18 @@
     },
     "reaudit": {
       "title": "Deze straat heeft nieuwere beelden",
-      "message-you": "Jij hebt deze straat voor het laatst in {{lastMapped}} in kaart gebracht, maar de beelden zijn sindsdien vernieuwd (in {{newImagery}}). Laten we kijken wat er veranderd is!",
-      "message-you-no-dates": "Jij hebt deze straat eerder in kaart gebracht, maar de beelden zijn sindsdien vernieuwd. Laten we kijken wat er veranderd is!",
-      "message-others": "Een andere gebruiker heeft deze straat in {{lastMapped}} in kaart gebracht, maar de beelden zijn sindsdien vernieuwd (in {{newImagery}}). Laten we kijken wat er veranderd is!",
-      "message-others-no-dates": "Een andere gebruiker heeft deze straat eerder in kaart gebracht, maar de beelden zijn sindsdien vernieuwd. Laten we kijken wat er veranderd is!"
+      "message-you": "Jij hebt deze straat voor het laatst in {{lastMapped}} beoordeeld, maar de beelden zijn sindsdien vernieuwd (in {{newImagery}}). Beoordeel deze straat opnieuw, zodat we kunnen analyseren wat er veranderd is.",
+      "message-you-no-dates": "Jij hebt deze straat eerder beoordeeld, maar de beelden zijn sindsdien vernieuwd. Beoordeel deze straat opnieuw, zodat we kunnen analyseren wat er veranderd is.",
+      "message-others": "Deze straat is voor het laatst in {{lastMapped}} beoordeeld, maar de beelden zijn sindsdien vernieuwd (in {{newImagery}}). Beoordeel deze straat opnieuw, zodat we kunnen analyseren wat er veranderd is.",
+      "message-others-no-dates": "Deze straat is eerder beoordeeld, maar de beelden zijn sindsdien vernieuwd. Beoordeel deze straat opnieuw, zodat we kunnen analyseren wat er veranderd is."
     },
     "pano-date-note": {
       "image-date": "Beeld: {{date}}",
-      "last-audited": "Laatst in kaart gebracht: {{date}}",
-      "mapped-this-view-you": "Dit beeld heb je al in kaart gebracht",
-      "mapped-this-view-others": "Al in kaart gebracht in {{date}}"
+      "needs-reassessment": "Nieuwe beoordeling nodig",
+      "already-assessed": "Al beoordeeld",
+      "already-assessed-tip": "Jij hebt deze locatie voor het laatst in {{assessedDate}} beoordeeld, en de beelden ({{captureDate}}) zijn sinds die beoordeling niet veranderd. Voeg gerust nieuwe labels toe als je iets ziet!",
+      "needs-reassessment-tip-you": "Jij hebt deze locatie voor het laatst in {{assessedDate}} beoordeeld, maar de beelden hier zijn nieuwer ({{captureDate}}). Beoordeel de locatie opnieuw, zodat we kunnen analyseren wat er veranderd is.",
+      "needs-reassessment-tip-others": "Een gebruiker heeft deze locatie voor het laatst in {{assessedDate}} beoordeeld, maar de beelden hier zijn nieuwer ({{captureDate}}). Beoordeel de locatie opnieuw, zodat we kunnen analyseren wat er veranderd is."
     },
     "minimap": {
       "coach-dismiss": "Begrepen",
