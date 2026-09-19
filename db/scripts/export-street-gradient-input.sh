@@ -4,26 +4,47 @@ set -euo pipefail
 # Step 1 of filling the street_gradient table (#5223): write the streets that scripts/street_gradient.py should sample
 # to db/onboarding/<city-id>/street_gradient_input.csv. By default that is only the streets with no street_gradient row
 # or whose geometry has changed since they were sampled (geom_md5), so after a street import the same three commands
-# top the table up instead of resampling the city. Pass "all" as the third argument to export every street, e.g.
-# after the sampling method itself changes.
+# top the table up instead of resampling the city. Pass --all to export every street, e.g. after the sampling method
+# itself changes.
 #
 # is_structure marks a street whose OSM way is a bridge, a tunnel or a covered way, read from the nightly osm_way
 # table the same way the intersection derivation reads it. A bare-earth elevation model has the ground under a bridge
 # and over a tunnel, so the sampler draws those streets as a straight line between their endpoints. A city whose
-# osm_way table is still empty (a new city before its first nightly refresh) exports every street as not a structure,
-# so run this after that refresh.
+# osm_way table is still empty (a new city before its first nightly refresh, or a dev database that never ran one)
+# would export every street as not a structure and have its bridges sampled as the ravine beneath them, with nothing
+# downstream able to tell. So an empty osm_way stops the export unless --allow-empty-osm-way says it is expected.
 
 source /opt/scripts/helpers.sh
 
-# Optional positional args ($1 schema, $2 city id, $3 "all") so a caller can drive the script without its prompts.
-SCHEMA_NAME=${1:-$(prompt_with_default "Schema name")}
-CITY_ID=${2:-$(prompt_with_default "City id (the db/onboarding/<city-id> dir to write into, e.g. seattle-wa)")}
-SCOPE=${3:-stale}
-if [[ "$SCOPE" != "stale" && "$SCOPE" != "all" ]]; then
-    echo "Error: the third argument is \"all\" or omitted, not \"$SCOPE\"." >&2
+# Flags anywhere, plus optional positional args ($1 schema, $2 city id) so a caller can drive the script without its
+# prompts. `make export-street-gradient-input args=--all` still prompts for both.
+EXPORT_ALL=FALSE
+ALLOW_EMPTY_OSM_WAY=false
+POSITIONAL=()
+for arg in "$@"; do
+    case "$arg" in
+        --all) EXPORT_ALL=TRUE ;;
+        --allow-empty-osm-way) ALLOW_EMPTY_OSM_WAY=true ;;
+        -*) echo "Error: unknown option \"$arg\". Options: --all, --allow-empty-osm-way." >&2; exit 1 ;;
+        *) POSITIONAL+=("$arg") ;;
+    esac
+done
+SCHEMA_NAME=${POSITIONAL[0]:-$(prompt_with_default "Schema name")}
+CITY_ID=${POSITIONAL[1]:-$(prompt_with_default \
+    "City id (the db/onboarding/<city-id> dir to write into, e.g. seattle-wa)")}
+# The same shape scripts/street_gradient.py accepts, so a typo cannot create a directory the sampler then refuses.
+if [[ ! "$CITY_ID" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+    echo "Error: city id \"$CITY_ID\" is not lowercase kebab-case (e.g. seattle-wa)." >&2
     exit 1
 fi
-EXPORT_ALL=$([[ "$SCOPE" == "all" ]] && echo TRUE || echo FALSE)
+
+OSM_WAYS=$(psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" -At -c "SELECT COUNT(*) FROM osm_way")
+if [[ "$OSM_WAYS" -eq 0 && "$ALLOW_EMPTY_OSM_WAY" != true ]]; then
+    echo "Error: $SCHEMA_NAME.osm_way is empty, so no street can be recognized as a bridge or tunnel and each would" >&2
+    echo "be sampled as the ground beneath it. Export after the nightly OSM refresh has filled it, or pass" >&2
+    echo "--allow-empty-osm-way if that is expected here." >&2
+    exit 1
+fi
 
 OUT_DIR=/opt/onboarding/$CITY_ID
 mkdir -p "$OUT_DIR"

@@ -260,11 +260,12 @@ import-street-imagery:
 
 # Street gradient (#5223, docs/street-gradient.md) in three steps: export the streets that need sampling, sample them
 # against a bare-earth elevation model (scripts/street_gradient.py, in the web container), load the result. The export
+# takes `args=--all` to resample every street and `args=--allow-empty-osm-way` for a city with no OSM ways. The export
 # and import prompt for the schema; the sampler takes its flags via args=, e.g.
 # `make street-gradient id=cdmx args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"`.
 # Main checkout only, like build-city-data: the db container sees only that checkout's db/.
 export-street-gradient-input:
-	@docker exec -it $(db-container) sh -c "/opt/scripts/export-street-gradient-input.sh"
+	@docker exec -it $(db-container) sh -c "/opt/scripts/export-street-gradient-input.sh $(args)"
 
 street-gradient:
 	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/street_gradient.py --city-id $(id) $(args)"

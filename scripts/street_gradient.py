@@ -47,6 +47,7 @@ import math
 import re
 import sys
 from collections.abc import Callable, Iterable, Sequence
+from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -82,20 +83,20 @@ PROFILE_SPACING_M = 10.0
 GRADE_THRESHOLDS = (1 / 20, 1 / 12)  # ADA / PROWAG: walking surface 1:20, ramp 1:12.
 
 # A street with more than this share of its samples on no-data has no usable profile. Below it the gaps (AHN blanks
-# every building and canal, for one) are bridged along the street.
+# every building and canal, for one) are bridged along the street. Its two end samples are the exception: nothing lies
+# beyond one to bridge from, so a street missing either has no profile whatever the share.
 MAX_NODATA_FRACTION = 0.5
 
 # The artifact rule: some 10 m pitch over SUSPECT_GRADE that is also more than SUSPECT_RATIO times the street's
-# end-to-end grade (floored, so a level street needs a 6% pitch's worth of disagreement rather than any at all). On
-# the study windows this flags 0.4-1.5% of untagged streets and leaves a uniformly steep hill alone, since its pitch
-# and its end-to-end grade agree.
+# end-to-end grade. On the study windows this flags 0.4-1.5% of untagged streets and leaves a uniformly steep hill
+# alone, since its pitch and its end-to-end grade agree. The ratio only binds above a SUSPECT_GRADE / SUSPECT_RATIO
+# (6.7%) end-to-end grade. Below that, any pitch over SUSPECT_GRADE is already more than three times it.
 SUSPECT_GRADE = 0.20
 SUSPECT_RATIO = 3.0
-SUSPECT_NET_FLOOR = 0.02
 # No street is steeper than this anywhere (the steepest on record, Pittsburgh's Canton Avenue and Dunedin's Baldwin
 # Street, are 35-37%), so a pitch over it is an artifact whatever the end-to-end grade says. When the end-to-end grade
 # itself is over it, the endpoints are what is wrong (a 10 m stub whose ends straddle a retaining wall or an abutment:
-# 28 of Seattle's 27,645 streets) and there is nothing left to draw a line between.
+# 24 of Seattle's 27,645 streets) and there is nothing left to draw a line between.
 MAX_PLAUSIBLE_GRADE = 0.40
 
 # Streets are sampled one grid cell at a time so a city never has to fit in memory and GDAL's block cache sees
@@ -110,8 +111,8 @@ QUALITY_SUSPECT = 'suspect'
 QUALITY_NO_DATA = 'no_data'
 
 OUTPUT_FIELDS = ('street_edge_id', 'quality', 'confidence', 'net_grade', 'mean_grade', 'max_grade',
-                 'meters_over_5pct', 'meters_over_8pct', 'climb_m', 'descent_m', 'elev_start_m', 'elev_end_m',
-                 'profile_cm', 'dem_source', 'dem_resolution_m', 'geom_md5')
+                 'meters_over_5pct_grade', 'meters_over_8pct_grade', 'climb_m', 'descent_m', 'elev_start_m',
+                 'elev_end_m', 'profile_cm', 'dem_source', 'dem_resolution_m', 'geom_md5')
 
 # GDAL's defaults give up on the first dropped connection and list the whole S3 prefix before opening one file.
 GDAL_ENV = {'GDAL_HTTP_MAX_RETRY': '5', 'GDAL_HTTP_RETRY_DELAY': '2', 'GDAL_DISABLE_READDIR_ON_OPEN': 'EMPTY_DIR',
@@ -132,7 +133,7 @@ def sample_points(coords: Sequence[tuple[float, float]], step_m: float) -> tuple
     Evenly spaced points along a lng/lat line, both endpoints included.
 
     The endpoints are exact so that every street meeting at a node samples the same spot and they agree on its
-    elevation (as long as the model has data there: over a gap each street fills in from its own nearest sample).
+    elevation (a street whose model has no data at an endpoint gets no statistics at all, see ``edge_gradient``).
     Spacing is the geodesic length over a whole number of intervals, as close to ``step_m`` as that allows.
 
     Args:
@@ -148,8 +149,14 @@ def sample_points(coords: Sequence[tuple[float, float]], step_m: float) -> tuple
     n = max(1, round(length / step_m))
     targets = np.linspace(0.0, length, n + 1)
     # Vertices are tens of meters apart at most, so interpolating lng and lat linearly between them is exact to well
-    # under a raster cell.
-    return np.interp(targets, along, lngs), np.interp(targets, along, lats), length
+    # under a raster cell. Longitude is unwrapped first: across the antimeridian (179.999 to -179.999, a few hundred
+    # meters in Fiji or the Chathams) the raw values would interpolate the long way round, through longitude 0.
+    # Wrapping back costs a value its last bit, so it is kept to the values that left [-180, 180], and the endpoints
+    # are restored outright: their exact agreement at shared nodes is the point of sampling them.
+    sampled = np.interp(targets, along, np.unwrap(lngs, period=360.0))
+    sampled = np.where(np.abs(sampled) > 180.0, (sampled + 180.0) % 360.0 - 180.0, sampled)
+    sampled[0], sampled[-1] = lngs[0], lngs[-1]
+    return sampled, np.interp(targets, along, lats), length
 
 
 def bilinear(grid: np.ndarray, rows: np.ndarray, cols: np.ndarray) -> np.ndarray:
@@ -173,7 +180,7 @@ def bilinear(grid: np.ndarray, rows: np.ndarray, cols: np.ndarray) -> np.ndarray
 
 
 def fill_gaps(z: np.ndarray) -> np.ndarray:
-    """Bridges NaN runs linearly along the profile (flat past the first and last known value)."""
+    """Bridges NaN runs linearly along a profile whose first and last values are known."""
     known = ~np.isnan(z)
     return np.interp(np.arange(len(z)), np.flatnonzero(known), z[known])
 
@@ -217,11 +224,15 @@ def grade_metrics(z: np.ndarray, length_m: float) -> dict:
 
     Returns:
         ``net_grade`` (signed, digitized direction), ``mean_grade`` and ``max_grade`` (absolute, see the window
-        constants), ``meters_over_5pct`` / ``meters_over_8pct`` (the share of 10 m baselines over each threshold, as a
-        length), ``climb_m`` / ``descent_m`` (summed over 10 m steps so sample noise does not accumulate), and
-        ``profile_cm`` (elevations every ~10 m, endpoints included, in whole centimeters).
+        constants), ``meters_over_5pct_grade`` / ``meters_over_8pct_grade`` (the share of 10 m baselines over each of
+        ``GRADE_THRESHOLDS``, as a length; the second is the 1:12 ramp limit, 8.33%), ``climb_m`` / ``descent_m``
+        (summed over 10 m steps so sample noise does not accumulate), and ``profile_cm`` (elevations every ~10 m,
+        endpoints included, in whole centimeters).
     """
-    g_mean, g_max = window_grades(z, length_m, MEAN_WINDOW_M), window_grades(z, length_m, MAX_WINDOW_M)
+    g_mean = window_grades(z, length_m, MEAN_WINDOW_M)
+    # A street shorter than the 30 m baseline has no such window. Its steepest 10 m pitch is the best maximum it has,
+    # where its end-to-end grade would only repeat net_grade.
+    g_max = window_grades(z, length_m, MAX_WINDOW_M) if length_m >= MAX_WINDOW_M else g_mean
     step = length_m / (len(z) - 1)
     stride = max(1, round(MEAN_WINDOW_M / step))
     knots = z[::stride] if (len(z) - 1) % stride == 0 else np.append(z[::stride], z[-1])
@@ -234,8 +245,8 @@ def grade_metrics(z: np.ndarray, length_m: float) -> dict:
         # Floored at the mean: on a bumpy street the 10 m baselines can average more than any 30 m one reaches, and a
         # maximum below the mean reads as a bug to whoever consumes the pair.
         'max_grade': float(max(g_max.max(), g_mean.mean())),
-        'meters_over_5pct': float((g_mean > GRADE_THRESHOLDS[0]).mean() * length_m),
-        'meters_over_8pct': float((g_mean > GRADE_THRESHOLDS[1]).mean() * length_m),
+        'meters_over_5pct_grade': float((g_mean > GRADE_THRESHOLDS[0]).mean() * length_m),
+        'meters_over_8pct_grade': float((g_mean > GRADE_THRESHOLDS[1]).mean() * length_m),
         'climb_m': float(dz[dz > 0].sum()),
         'descent_m': float(-dz[dz < 0].sum()),
         'profile_cm': [int(round(v * 100)) for v in profile],
@@ -259,9 +270,11 @@ def edge_gradient(z: np.ndarray, length_m: float, is_structure: bool, smooth_sam
         for it.
     """
     missing = np.isnan(z)
-    # A structure is read at its two ends only, so what the model holds in between (nothing, under an AHN bridge)
-    # does not count against it.
-    unusable = (missing[0] or missing[-1]) if is_structure else missing.mean() > MAX_NODATA_FRACTION
+    # Every statistic is normalized by the whole length, so an end the model cannot see would have to be invented, and
+    # holding the nearest known elevation out to it reads the unseen stretch as level: a 1% street missing a fifth of
+    # its length at each end came out at 0.6%. A structure is read at its two ends only, so what the model holds in
+    # between (nothing, under an AHN bridge) does not count against it.
+    unusable = missing[0] or missing[-1] or (not is_structure and missing.mean() > MAX_NODATA_FRACTION)
     if length_m <= 0 or unusable:
         return {'quality': QUALITY_NO_DATA}
     filled = fill_gaps(z)
@@ -274,7 +287,7 @@ def edge_gradient(z: np.ndarray, length_m: float, is_structure: bool, smooth_sam
         return {'quality': QUALITY_STRUCTURE, **ends, **grade_metrics(straight, length_m)}
     profile = smooth(filled, smooth_samples)
     steepest = float(window_grades(profile, length_m, MEAN_WINDOW_M).max())
-    out_of_line = steepest > SUSPECT_GRADE and steepest > SUSPECT_RATIO * max(net, SUSPECT_NET_FLOOR)
+    out_of_line = steepest > SUSPECT_GRADE and steepest > SUSPECT_RATIO * net
     if out_of_line or steepest > MAX_PLAUSIBLE_GRADE:
         return {'quality': QUALITY_SUSPECT, **ends, **grade_metrics(straight, length_m)}
     return {'quality': QUALITY_MEASURED, **ends, **grade_metrics(profile, length_m)}
@@ -344,13 +357,22 @@ def directory_locator(dem_dir: Path, opener: Callable = rasterio.open) -> Locato
         sys.exit(f'error: no .tif files in {dem_dir}')
 
     def locate(lngs: np.ndarray, lats: np.ndarray) -> list:
-        found = [None] * len(lngs)
+        found = np.full(len(lngs), None, dtype=object)
+        placed = np.zeros(len(lngs), dtype=bool)
+        # A fine national model ships as hundreds of tiles in one or two coordinate systems, so the batch is
+        # projected once per system rather than once per tile.
+        projected: dict = {}
         for path, crs, bounds in rasters:
-            xs, ys = warp_transform('EPSG:4326', crs, list(lngs), list(lats))
-            for i, (x, y) in enumerate(zip(xs, ys)):
-                if found[i] is None and bounds.left <= x <= bounds.right and bounds.bottom <= y <= bounds.top:
-                    found[i] = path
-        return found
+            if placed.all():
+                break
+            if crs not in projected:
+                xs, ys = warp_transform('EPSG:4326', crs, list(lngs), list(lats))
+                projected[crs] = np.array(xs), np.array(ys)
+            xs, ys = projected[crs]
+            inside = (xs >= bounds.left) & (xs <= bounds.right) & (ys >= bounds.bottom) & (ys <= bounds.top)
+            found[inside & ~placed] = path
+            placed |= inside
+        return list(found)
     return locate
 
 
@@ -462,6 +484,14 @@ def valid_city_id(value: str) -> str:
     return value
 
 
+def positive_float(value: str) -> float:
+    """argparse type for ``--dem-resolution-m``: a grid size the table's CHECK would otherwise refuse at import."""
+    number = float(value)
+    if not number > 0:
+        raise argparse.ArgumentTypeError(f'"{value}" — a grid size in meters, greater than 0.')
+    return number
+
+
 def read_streets(path: Path) -> list[dict]:
     """
     Reads the export.
@@ -476,20 +506,34 @@ def read_streets(path: Path) -> list[dict]:
                  'coords': list(wkb.loads(row['geom'], hex=True).coords)} for row in csv.DictReader(f)]
 
 
-def done_ids(path: Path) -> set[int]:
+def done_ids(path: Path, streets: Iterable[dict]) -> set[int]:
     """
-    The street ids an earlier, interrupted run already wrote to ``path``.
+    The streets of the current export that ``path`` already answers, for ``--resume``.
 
-    A run killed mid-write leaves a partial last line. It is cut off first: read as a row it would mark a street done
-    that is not (or, cut inside the id, a different street), and the resumed run would append onto the end of it.
+    ``path`` is trimmed to exactly those rows. The output file outlives a run, so it can hold more than an
+    interrupted run's progress: a row for a street whose geometry has changed since (same id, another ``geom_md5``),
+    which is the very street a top-up export asks for and which the import would refuse, or rows under another
+    version's columns. A run killed mid-write also leaves a partial last line, which is cut off first: read as a row
+    it would mark a street done that is not (or, cut inside the id, a different street), and the resumed run would
+    append onto the end of it.
+
+    Returns:
+        The ``street_edge_id`` of every row kept.
     """
     if not path.exists():
         return set()
     data = path.read_bytes()
-    if not data.endswith(b'\n'):
-        path.write_bytes(data[:data.rfind(b'\n') + 1])
-    with path.open(newline='') as f:
-        return {int(row['street_edge_id']) for row in csv.DictReader(f)}
+    text = data[:data.rfind(b'\n') + 1].decode()
+    wanted = {(street['street_edge_id'], street['geom_md5']) for street in streets}
+    reader = csv.DictReader(text.splitlines())
+    rows = list(reader) if reader.fieldnames == list(OUTPUT_FIELDS) else []
+    kept = [row for row in rows if (int(row['street_edge_id']), row['geom_md5']) in wanted]
+    if len(kept) < len(rows) or not rows or len(text) < len(data):
+        with path.open('w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=OUTPUT_FIELDS)
+            writer.writeheader()
+            writer.writerows(kept)
+    return {int(row['street_edge_id']) for row in kept}
 
 
 def format_row(street: dict, result: dict, source_name: str, resolution_m: float) -> dict:
@@ -499,7 +543,8 @@ def format_row(street: dict, result: dict, source_name: str, resolution_m: float
            'geom_md5': street['geom_md5']}
     for field in ('net_grade', 'mean_grade', 'max_grade'):
         row[field] = f'{result[field]:.5f}' if field in result else ''
-    for field in ('meters_over_5pct', 'meters_over_8pct', 'climb_m', 'descent_m', 'elev_start_m', 'elev_end_m'):
+    for field in ('meters_over_5pct_grade', 'meters_over_8pct_grade', 'climb_m', 'descent_m', 'elev_start_m',
+                  'elev_end_m'):
         row[field] = f'{result[field]:.2f}' if field in result else ''
     row['profile_cm'] = '{' + ','.join(map(str, result['profile_cm'])) + '}' if 'profile_cm' in result else ''
     return row
@@ -541,8 +586,9 @@ def process_cell(streets: list[dict], sampler: RasterSampler, source: Source) ->
 
 def resolve_source(args: argparse.Namespace, conf_text: str, opener: Callable = rasterio.open) -> Source:
     """
-    Picks the elevation source: hand-downloaded rasters when ``--dem-dir`` is given, else ``--source``, else the one
-    registered for the city's country. Exits with what to do instead when none of those yields one.
+    Picks the elevation source: hand-downloaded rasters when ``--dem-dir`` is given, else ``--source`` (argparse
+    allows only one of the two), else the one registered for the city's country. Exits with what to do instead when
+    none of those yields one.
     """
     if args.dem_dir:
         if not (args.dem_name and args.dem_resolution_m):
@@ -570,13 +616,15 @@ def main(argv: list[str] | None = None, opener: Callable = rasterio.open) -> int
     parser = argparse.ArgumentParser(description='Compute street gradients from a bare-earth elevation model.')
     parser.add_argument('--city-id', required=True, type=valid_city_id,
                         help='The cityparams city id, e.g. "seattle-wa"; data files live in db/onboarding/<city-id>/.')
-    parser.add_argument('--source', choices=sorted(REMOTE_SOURCES),
-                        help="Override the elevation source registered for the city's country.")
-    parser.add_argument('--dem-dir', type=Path,
-                        help='A directory of hand-downloaded bare-earth GeoTIFFs (elevations in meters) to use '
-                             'instead of a registered source; relative paths are taken from the repo root.')
+    which = parser.add_mutually_exclusive_group()
+    which.add_argument('--source', choices=sorted(REMOTE_SOURCES),
+                       help="Override the elevation source registered for the city's country.")
+    which.add_argument('--dem-dir', type=Path,
+                       help='A directory of hand-downloaded bare-earth GeoTIFFs (elevations in meters) to use '
+                            'instead of a registered source; relative paths are taken from the repo root.')
     parser.add_argument('--dem-name', help='With --dem-dir: the source name to record, e.g. "inegi-mdt-5m".')
-    parser.add_argument('--dem-resolution-m', type=float, help="With --dem-dir: the model's grid size in meters.")
+    parser.add_argument('--dem-resolution-m', type=positive_float,
+                        help="With --dem-dir: the model's grid size in meters.")
     parser.add_argument('--resume', action='store_true',
                         help='Keep the rows an interrupted run already wrote and sample only the remaining streets.')
     args = parser.parse_args(argv)
@@ -589,14 +637,14 @@ def main(argv: list[str] | None = None, opener: Callable = rasterio.open) -> int
     source = resolve_source(args, CITYPARAMS.read_text(), opener)
 
     streets = read_streets(in_path)
-    skip = done_ids(out_path) if args.resume else set()
+    skip = done_ids(out_path, streets) if args.resume else set()
     todo = [street for street in streets if street['street_edge_id'] not in skip]
     log.info('%s: %d street(s) to sample from %s (%d already done).', args.city_id, len(todo), source.name,
              len(streets) - len(todo))
 
-    sampler = RasterSampler(source.locate, opener)
     counts: dict = {}
-    with rasterio.Env(**GDAL_ENV), out_path.open('a' if skip else 'w', newline='') as f:
+    with (rasterio.Env(**GDAL_ENV), closing(RasterSampler(source.locate, opener)) as sampler,
+          out_path.open('a' if skip else 'w', newline='') as f):
         writer = csv.DictWriter(f, fieldnames=OUTPUT_FIELDS)
         if not skip:
             writer.writeheader()
@@ -606,7 +654,6 @@ def main(argv: list[str] | None = None, opener: Callable = rasterio.open) -> int
             f.flush()
             for row in rows:
                 counts[row['quality']] = counts.get(row['quality'], 0) + 1
-    sampler.close()
     log.info('Wrote %s: %s.', out_path, ', '.join(f'{n} {quality}' for quality, n in sorted(counts.items())) or
              'nothing new')
     return 0

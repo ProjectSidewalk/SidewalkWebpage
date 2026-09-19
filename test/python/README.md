@@ -1,8 +1,9 @@
 # Python utility tests
 
 Unit tests for the four standalone Python scripts in [`scripts/`](../../scripts) — `label_clustering.py`,
-`check_streets_for_imagery.py`, `onboard_city.py`, and `street_gradient.py`. This is the **first** Python test layer for Project Sidewalk.
-See [`docs/testing-and-ci.md`](../../docs/testing-and-ci.md) for where it fits in the overall testing plan.
+`check_streets_for_imagery.py`, `onboard_city.py`, and `street_gradient.py`. This is the **first** Python test layer
+for Project Sidewalk. See [`docs/testing-and-ci.md`](../../docs/testing-and-ci.md) for where it fits in the overall
+testing plan.
 
 ## What is covered
 
@@ -104,8 +105,7 @@ script arriving with no tests fails the gate rather than going unmeasured — th
 to the scripts the running interpreter *cannot* import too, so each half omits those files via **`COVERAGE_OMIT`**
 (plus **`COVERAGE_OMIT2`** and **`COVERAGE_OMIT3`** on the 3.8 half, which can't import any of the three offline
 scripts) — `cov-omit-*` in the [`Makefile`](../../Makefile), `coverage-omit`/`-2`/`-3` in the CI matrix; unset, a
-hand-run fails loudly
-instead. (`tools/` is outside `source`: one-off utilities, not held to 100%.)
+hand-run fails loudly instead. (`tools/` is outside `source`: one-off utilities, not held to 100%.)
 
 If you add logic, add a test — keep new code pure where possible (or hide I/O behind a thin wrapper and mock it) so the
 100% gate stays meaningful rather than something to lower.

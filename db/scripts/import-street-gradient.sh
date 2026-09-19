@@ -8,8 +8,10 @@ set -euo pipefail
 # A row is only loaded when its geom_md5 still matches the street's geometry. street_edge_id is a per-city serial, so
 # a CSV pointed at the wrong schema matches thousands of ids by accident, and the geometry hash is what tells a
 # street from its namesake in another city. The same test skips a street deleted or edited between the export and
-# this import. A few skipped rows are normal and are reported. Most of the file failing the test means the wrong
-# city or a stale export, and aborts the import.
+# this import. A few skipped rows are normal and are reported. Most of a sizeable file failing the test means the
+# wrong city or a stale export, and aborts the import. A top-up of a handful of streets is too small for that share to
+# mean anything (one street edited since the export is a third of a three-row file), so it only aborts when nothing
+# matches at all.
 
 source /opt/scripts/helpers.sh
 
@@ -30,22 +32,22 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
     BEGIN;
 
     CREATE TEMP TABLE street_gradient_import (
-        street_edge_id   INTEGER,
-        quality          TEXT,
-        confidence       TEXT,
-        net_grade        TEXT,
-        mean_grade       TEXT,
-        max_grade        TEXT,
-        meters_over_5pct TEXT,
-        meters_over_8pct TEXT,
-        climb_m          TEXT,
-        descent_m        TEXT,
-        elev_start_m     TEXT,
-        elev_end_m       TEXT,
-        profile_cm       TEXT,
-        dem_source       TEXT,
-        dem_resolution_m DOUBLE PRECISION,
-        geom_md5         TEXT
+        street_edge_id         INTEGER,
+        quality                TEXT,
+        confidence             TEXT,
+        net_grade              TEXT,
+        mean_grade             TEXT,
+        max_grade              TEXT,
+        meters_over_5pct_grade TEXT,
+        meters_over_8pct_grade TEXT,
+        climb_m                TEXT,
+        descent_m              TEXT,
+        elev_start_m           TEXT,
+        elev_end_m             TEXT,
+        profile_cm             TEXT,
+        dem_source             TEXT,
+        dem_resolution_m       DOUBLE PRECISION,
+        geom_md5               TEXT
     ) ON COMMIT DROP;
 
     \copy street_gradient_import FROM '$CSV_FILENAME' WITH (FORMAT csv, HEADER true)
@@ -60,25 +62,32 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
            (SELECT COUNT(*) FROM street_gradient_match) AS rows_matching_a_street;
 
     DO \$\$
+    DECLARE
+        rows_in_csv INTEGER := (SELECT COUNT(*) FROM street_gradient_import);
+        rows_matching INTEGER := (SELECT COUNT(*) FROM street_gradient_match);
     BEGIN
-        IF (SELECT COUNT(*) FROM street_gradient_match) * 2 < (SELECT COUNT(*) FROM street_gradient_import) THEN
-            RAISE EXCEPTION 'Fewer than half the CSV rows match a street geometry in this schema.'
-                USING HINT = 'Wrong city, or an export older than a street import?';
+        IF rows_in_csv > 0 AND rows_matching = 0 THEN
+            RAISE EXCEPTION 'None of the % CSV row(s) match a street geometry in this schema.', rows_in_csv
+                USING HINT = 'Wrong city? Otherwise every street in the file changed since the export: export again.';
+        ELSIF rows_in_csv >= 20 AND rows_matching * 2 < rows_in_csv THEN
+            RAISE EXCEPTION 'Only % of the % CSV rows match a street geometry in this schema.',
+                rows_matching, rows_in_csv
+                USING HINT = 'An export older than a street import? Export and sample again.';
         END IF;
     END
     \$\$;
 
     INSERT INTO street_gradient (street_edge_id, quality, confidence, net_grade, mean_grade, max_grade,
-                                 meters_over_5pct, meters_over_8pct, climb_m, descent_m, elev_start_m, elev_end_m,
-                                 profile_cm, dem_source, dem_resolution_m, geom_md5, sampled_at)
+                                 meters_over_5pct_grade, meters_over_8pct_grade, climb_m, descent_m, elev_start_m,
+                                 elev_end_m, profile_cm, dem_source, dem_resolution_m, geom_md5, sampled_at)
     SELECT street_gradient_import.street_edge_id,
            quality::street_gradient_quality,
            confidence::street_gradient_confidence,
            NULLIF(net_grade, '')::DOUBLE PRECISION,
            NULLIF(mean_grade, '')::DOUBLE PRECISION,
            NULLIF(max_grade, '')::DOUBLE PRECISION,
-           NULLIF(meters_over_5pct, '')::DOUBLE PRECISION,
-           NULLIF(meters_over_8pct, '')::DOUBLE PRECISION,
+           NULLIF(meters_over_5pct_grade, '')::DOUBLE PRECISION,
+           NULLIF(meters_over_8pct_grade, '')::DOUBLE PRECISION,
            NULLIF(climb_m, '')::DOUBLE PRECISION,
            NULLIF(descent_m, '')::DOUBLE PRECISION,
            NULLIF(elev_start_m, '')::DOUBLE PRECISION,
@@ -91,22 +100,22 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
     FROM street_gradient_import
     INNER JOIN street_gradient_match ON street_gradient_import.street_edge_id = street_gradient_match.street_edge_id
     ON CONFLICT (street_edge_id) DO UPDATE
-    SET quality          = EXCLUDED.quality,
-        confidence       = EXCLUDED.confidence,
-        net_grade        = EXCLUDED.net_grade,
-        mean_grade       = EXCLUDED.mean_grade,
-        max_grade        = EXCLUDED.max_grade,
-        meters_over_5pct = EXCLUDED.meters_over_5pct,
-        meters_over_8pct = EXCLUDED.meters_over_8pct,
-        climb_m          = EXCLUDED.climb_m,
-        descent_m        = EXCLUDED.descent_m,
-        elev_start_m     = EXCLUDED.elev_start_m,
-        elev_end_m       = EXCLUDED.elev_end_m,
-        profile_cm       = EXCLUDED.profile_cm,
-        dem_source       = EXCLUDED.dem_source,
-        dem_resolution_m = EXCLUDED.dem_resolution_m,
-        geom_md5         = EXCLUDED.geom_md5,
-        sampled_at       = EXCLUDED.sampled_at;
+    SET quality                = EXCLUDED.quality,
+        confidence             = EXCLUDED.confidence,
+        net_grade              = EXCLUDED.net_grade,
+        mean_grade             = EXCLUDED.mean_grade,
+        max_grade              = EXCLUDED.max_grade,
+        meters_over_5pct_grade = EXCLUDED.meters_over_5pct_grade,
+        meters_over_8pct_grade = EXCLUDED.meters_over_8pct_grade,
+        climb_m                = EXCLUDED.climb_m,
+        descent_m              = EXCLUDED.descent_m,
+        elev_start_m           = EXCLUDED.elev_start_m,
+        elev_end_m             = EXCLUDED.elev_end_m,
+        profile_cm             = EXCLUDED.profile_cm,
+        dem_source             = EXCLUDED.dem_source,
+        dem_resolution_m       = EXCLUDED.dem_resolution_m,
+        geom_md5               = EXCLUDED.geom_md5,
+        sampled_at             = EXCLUDED.sampled_at;
 
     SELECT quality, COUNT(*) AS streets FROM street_gradient GROUP BY quality ORDER BY quality;
 

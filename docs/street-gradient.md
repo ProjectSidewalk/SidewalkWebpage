@@ -18,16 +18,21 @@ make street-gradient id=<city-id>         # -> db/onboarding/<city-id>/street_gr
 make import-street-gradient               # prompts: schema, CSV path -> upsert into street_gradient
 ```
 
-The import loads a row only while its `geom_md5` still matches the street, and aborts when most of the file does not,
-which is what a CSV pointed at the wrong city's schema looks like (`street_edge_id` is a per-city serial).
+The import loads a row only while its `geom_md5` still matches the street, and aborts when none of the file does, or
+less than half of a file of 20 rows or more, which is what a CSV pointed at the wrong city's schema looks like
+(`street_edge_id` is a per-city serial). A smaller top-up just reports the rows it skipped.
 
 The export holds only streets with no row yet or whose geometry changed since they were sampled (`geom_md5`), so
-after a street import the same three commands top the table up. Pass `all` as the export script's third argument to
-resample everything, which is what a change to the method itself calls for. Seattle's 27,645 streets take about 13
-seconds; the sampler flushes a grid cell at a time, and `--resume` continues an interrupted run.
+after a street import the same three commands top the table up. `make export-street-gradient-input args=--all`
+resamples everything, which is what a change to the method itself calls for. Seattle's 27,645 streets take about 13
+seconds; the sampler flushes a grid cell at a time, and `--resume` continues an interrupted run. It keeps only the
+rows that answer the current export (same street, same `geom_md5`), so a leftover CSV from an earlier fill never
+stands in for a street whose geometry has changed since.
 
 Run the export after the city's first nightly OSM way refresh. Which streets are bridges or tunnels comes from
-`osm_way.tags`, and a new city's `osm_way` table is empty until that job has run.
+`osm_way.tags`, and with an empty `osm_way` every bridge would be sampled as the ravine beneath it without anything
+downstream noticing, so the export refuses to run against one. `args=--allow-empty-osm-way` overrides that for a
+city that really has none.
 
 A city whose country has no registered source (every country but the USA today) is sampled from rasters someone
 downloaded by hand:
@@ -48,8 +53,8 @@ Grades are fractions: 0.05 is a 5% grade, the OpenSidewalks `incline` convention
 |---|---|
 | `net_grade` | End-to-end grade, signed in the street's digitized direction. |
 | `mean_grade` | Mean absolute grade over every 10 m baseline. |
-| `max_grade` | Steepest absolute grade over any 30 m baseline (the whole street when it is shorter), never below `mean_grade`. |
-| `meters_over_5pct`, `meters_over_8pct` | Length of street whose 10 m baselines exceed 5% and 8.33% (ADA / PROWAG walking surface and ramp limits). |
+| `max_grade` | Steepest absolute grade over any 30 m baseline (any 10 m baseline on a street under 30 m), never below `mean_grade`. |
+| `meters_over_5pct_grade`, `meters_over_8pct_grade` | Length of street whose 10 m baselines exceed the ADA / PROWAG walking-surface limit (1:20, 5%) and ramp limit (1:12, which is 8.33%; the column is named for the round figure). |
 | `climb_m`, `descent_m` | Summed rise and fall in the digitized direction, over 10 m steps so sample noise does not accumulate. |
 | `elev_start_m`, `elev_end_m` | Elevation at the first and last vertex. Streets meeting at a node sample the same point, so they agree wherever the model has data at the node. |
 | `profile_cm` | Elevations in whole centimeters at even spacing, endpoints included, about every 10 m. Spacing is the street's length over `array_length - 1`. |
@@ -59,7 +64,10 @@ Grades are fractions: 0.05 is a 5% grade, the OpenSidewalks `incline` convention
 | `geom_md5` | `md5(ST_AsBinary(geom))` when sampled, for the staleness test. |
 
 `max_grade` uses a 30 m baseline because the maximum of a noisy series is biased upward: against lidar, a 10 m maximum
-carried 3 to 4 times the error of the mean, a 30 m one about half of that.
+carried 3 to 4 times the error of the mean, a 30 m one about half of that. A street under 30 m (16% of Seattle's) has
+no such baseline, and its end-to-end grade would only repeat `net_grade`, so it takes its steepest 10 m pitch. Against
+the lidar's own steepest 10 m pitch on those streets that is off by 1.0 to 1.1 pp with no bias, where the end-to-end
+grade was off by 1.3 to 1.6 pp and read 0.9 to 1.2 pp low.
 
 The street centerline is the right thing to sample. PROWAG R302.4.1 caps a pedestrian access route at 5% *except*
 where the adjacent street is steeper, in which case the sidewalk may match the street, so street grade is the number
@@ -74,16 +82,19 @@ deck: in the study windows the 1 to 4% of streets tagged as structures showed a 
 - **`structure_interpolated`**: the street's OSM way is tagged `bridge`, `tunnel` or `covered`. Its profile is a
   straight line between its endpoint elevations.
 - **`suspect`**: the sampled profile holds a 10 m pitch over 20% that is also more than three times the street's
-  end-to-end grade (floored at 2%), on a street with no structure tag. Same treatment. This catches what tags miss, such
-  as a lid over a freeway or a street whose `osm_way_street_edge` row names a different way of the same road, and it
-  leaves a uniformly steep hill alone, since there the pitch and the end-to-end grade agree. A pitch over 40% is suspect
+  end-to-end grade, on a street with no structure tag. Same treatment. This catches what tags miss, such as a lid over
+  a freeway or a street whose `osm_way_street_edge` row names a different way of the same road, and it leaves a
+  uniformly steep hill alone, since there the pitch and the end-to-end grade agree. A pitch over 40% is suspect
   whatever the end-to-end grade, since no street anywhere is that steep (Canton Avenue and Baldwin Street are 35 to
   37%). And when the end-to-end grade is itself over 40%, the endpoints are what is wrong (a 10 m stub with one end on
-  each side of a retaining wall: 28 of Seattle's 27,645 streets), so the row is `suspect` with every statistic NULL,
-  tagged structure or not. Together the rules fired on 1.2% of Teaneck's untagged streets.
-- **`no_data`**: more than half the samples fell on no-data (or, for a structure, either endpoint did). Every
-  statistic is NULL. Shorter gaps are bridged along the profile, which matters for models like AHN that blank every
-  building and canal.
+  each side of a retaining wall: 24 of Seattle's 27,645 streets), so the row is `suspect` with every statistic NULL,
+  tagged structure or not. Together the rules fired on 1.3% of Teaneck's untagged streets (28 of 2,114).
+- **`no_data`**: the model has no data at either end of the street, or (unless it is a structure, which is read at
+  its ends only) at more than half the samples along it. Every statistic is NULL. Gaps between the ends are bridged
+  along the profile, which matters for models like AHN that blank every building and canal. A missing end is not
+  bridged because there is nothing beyond it to bridge from, and every statistic is normalized by the whole length:
+  holding the last known elevation out to the end reads the unseen stretch as level, which turned a 1% street missing
+  a fifth of its length at each end into a 0.6% one.
 
 The grade *of* a bridge deck is out of reach with any bare-earth model. Amsterdam's canal bridges are real barriers
 that this table reports as level.
@@ -129,10 +140,11 @@ What follows from it:
   smoothed first, came within 1.0 to 1.4 pp in hilly cities (r 0.72 to 0.86). The table allows such a row: the
   windowed statistics may be NULL while `net_grade` is set.
 
-The production sampler reproduces the study. On all of Teaneck, against the lidar reference: `mean_grade` MAE 0.18 pp,
-`max_grade` 0.32 pp, the 5% flag at precision and recall 0.94, and the same 11 of 11 structures the study found from
-OSM tags. On all of Seattle (27,645 streets, 13 seconds): `mean_grade` 0.32 pp, `max_grade` 0.40 pp, the 5% flag at
-precision 0.98 and recall 0.96, with no measured street over 40%.
+The production sampler reproduces the study. Run on all of Teaneck and compared on the 1,031 streets of the study
+window, against the lidar reference: `mean_grade` MAE 0.18 pp, `max_grade` 0.29 pp on streets of 30 m and longer, the
+5% flag at precision and recall 0.94, and the same 11 of 11 structures the study found from OSM tags. Run on all of
+Seattle (27,645 streets, 13 seconds) and compared on the window's 3,138: `mean_grade` 0.32 pp, `max_grade` 0.37 pp,
+the 5% flag at precision 0.98 and recall 0.96, with no measured street over 40%.
 
 Caveats: windows, not whole cities; the reference is lidar, not a field survey; the 20 m and 30 m rows are idealized,
 so a real photogrammetric 20 m model will do somewhat worse.

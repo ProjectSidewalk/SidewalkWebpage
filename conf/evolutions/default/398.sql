@@ -9,14 +9,16 @@
 -- Grades are fractions (0.05 is a 5% grade). net_grade, climb_m and descent_m follow the street's digitized
 -- direction, mean_grade and max_grade are absolute. profile_cm holds elevations in whole centimeters at even spacing
 -- from the first vertex to the last (about every 10 m), so the spacing is the street's length over one less than the
--- array's length.
+-- array's length. meters_over_5pct_grade and meters_over_8pct_grade are the length of street steeper than the ADA /
+-- PROWAG walking-surface limit (1:20) and ramp limit (1:12, so 8.33% exactly, named for the round figure).
 --
 -- quality says how the profile was obtained. A bare-earth model removes bridges and knows nothing of tunnels, so a
 -- street tagged as one (structure_interpolated), or one whose sampled profile holds an implausible pitch the tags did
 -- not explain, or a pitch or end-to-end grade steeper than any real street (suspect), carries a straight line between
--- its endpoint elevations instead of samples. no_data means the model had nothing under the street, and every statistic
--- is NULL. They are NULL as well on the few suspect streets whose own endpoints imply a grade no street has (a short
--- stub with one end on each side of a retaining wall), since there is no trustworthy line to draw.
+-- its endpoint elevations instead of samples. no_data means the model had nothing under the street or under either of
+-- its ends, and every statistic is NULL. They are NULL as well on the few suspect streets whose own endpoints imply a
+-- grade no street has (a short stub with one end on each side of a retaining wall), since there is no trustworthy
+-- line to draw.
 --
 -- confidence is a function of the model's grid size, from the resolution sweep against 1 m lidar: a bare-earth model
 -- at 10 m or finer reproduces the statistics below closely, one at 20 m less so, and a coarser one supports
@@ -37,8 +39,8 @@ CREATE TABLE street_gradient (
     net_grade DOUBLE PRECISION,
     mean_grade DOUBLE PRECISION CHECK (mean_grade >= 0),
     max_grade DOUBLE PRECISION CHECK (max_grade >= 0),
-    meters_over_5pct DOUBLE PRECISION CHECK (meters_over_5pct >= 0),
-    meters_over_8pct DOUBLE PRECISION CHECK (meters_over_8pct >= 0),
+    meters_over_5pct_grade DOUBLE PRECISION CHECK (meters_over_5pct_grade >= 0),
+    meters_over_8pct_grade DOUBLE PRECISION CHECK (meters_over_8pct_grade >= 0),
     climb_m DOUBLE PRECISION CHECK (climb_m >= 0),
     descent_m DOUBLE PRECISION CHECK (descent_m >= 0),
     elev_start_m DOUBLE PRECISION,
@@ -57,14 +59,14 @@ CREATE TABLE street_gradient (
     ),
     CONSTRAINT street_gradient_windowed_statistics_together_check CHECK (
         (mean_grade IS NULL) = (max_grade IS NULL)
-        AND (mean_grade IS NULL) = (meters_over_5pct IS NULL)
-        AND (mean_grade IS NULL) = (meters_over_8pct IS NULL)
+        AND (mean_grade IS NULL) = (meters_over_5pct_grade IS NULL)
+        AND (mean_grade IS NULL) = (meters_over_8pct_grade IS NULL)
         AND (mean_grade IS NULL) = (climb_m IS NULL)
         AND (mean_grade IS NULL) = (descent_m IS NULL)
         AND (mean_grade IS NULL) = (profile_cm IS NULL)
         AND (mean_grade IS NULL OR net_grade IS NOT NULL)
     ),
-    CONSTRAINT street_gradient_threshold_ordering_check CHECK (meters_over_8pct <= meters_over_5pct),
+    CONSTRAINT street_gradient_threshold_ordering_check CHECK (meters_over_8pct_grade <= meters_over_5pct_grade),
     CONSTRAINT street_gradient_confidence_matches_resolution_check CHECK (
         confidence = CASE WHEN dem_resolution_m <= 10 THEN 'high'
                           WHEN dem_resolution_m <= 20 THEN 'medium'

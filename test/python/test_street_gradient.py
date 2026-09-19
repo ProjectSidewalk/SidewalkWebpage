@@ -15,6 +15,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 import rasterio
+import shapely
 from pyproj import Geod
 from rasterio.errors import RasterioIOError
 from rasterio.transform import from_origin
@@ -84,6 +85,14 @@ def test_sample_points_follows_the_vertices_not_the_chord():
     assert (lngs[3], lats[3]) == pytest.approx(corner)
 
 
+def test_sample_points_crosses_the_antimeridian_the_short_way():
+    lngs, lats, length = sg.sample_points([(179.999, -36.0), (-179.999, -36.0)], 5.0)
+    assert length == pytest.approx(180.3, abs=0.1)
+    assert (lngs[0], lngs[-1]) == (179.999, -179.999)
+    assert (np.abs(lngs) >= 179.999).all()  # Interpolated raw, the midpoint would sit at longitude 0.
+    assert max(_GEOD.line_lengths(lngs, lats)) < 5.1
+
+
 def test_sample_points_of_a_zero_length_line_is_its_point_twice():
     lngs, lats, length = sg.sample_points([(_LNG, _LAT), (_LNG, _LAT)], 5.0)
     assert length == 0
@@ -111,9 +120,9 @@ def test_bilinear_is_nan_off_the_grid_beside_a_nan_cell_and_on_a_grid_too_small_
     assert np.isnan(sg.bilinear(np.ones((5, 1)), np.array([1.0]), np.array([0.0]))).all()
 
 
-def test_fill_gaps_bridges_inside_and_holds_flat_outside():
-    z = np.array([np.nan, 10.0, np.nan, np.nan, 16.0, np.nan])
-    assert list(sg.fill_gaps(z)) == [10.0, 10.0, 12.0, 14.0, 16.0, 16.0]
+def test_fill_gaps_bridges_a_run_linearly():
+    z = np.array([10.0, np.nan, np.nan, 16.0, 17.0])
+    assert list(sg.fill_gaps(z)) == [10.0, 12.0, 14.0, 16.0, 17.0]
 
 
 def test_smooth_widens_an_even_window_so_the_endpoints_still_hold():
@@ -150,7 +159,7 @@ def test_grade_metrics_of_a_constant_six_percent_climb():
     m = sg.grade_metrics(z, length)
     assert m['net_grade'] == pytest.approx(0.06)
     assert m['mean_grade'] == pytest.approx(0.06) and m['max_grade'] == pytest.approx(0.06)
-    assert m['meters_over_5pct'] == pytest.approx(length) and m['meters_over_8pct'] == 0
+    assert m['meters_over_5pct_grade'] == pytest.approx(length) and m['meters_over_8pct_grade'] == 0
     assert m['climb_m'] == pytest.approx(6.0) and m['descent_m'] == 0
     assert m['profile_cm'][0] == 5000 and m['profile_cm'][-1] == 5600 and len(m['profile_cm']) == 11
 
@@ -163,8 +172,8 @@ def test_grade_metrics_of_a_hill_counts_both_sides_and_signs_net_by_direction():
     assert m['net_grade'] == pytest.approx(-0.5 / length)
     assert m['climb_m'] == pytest.approx(5.0) and m['descent_m'] == pytest.approx(5.5)
     assert m['max_grade'] == pytest.approx(0.10)
-    assert 0 < m['meters_over_8pct'] < length  # The baselines straddling the crest read under 8%.
-    assert m['meters_over_8pct'] <= m['meters_over_5pct']
+    assert 0 < m['meters_over_8pct_grade'] < length  # The baselines straddling the crest read under 8%.
+    assert m['meters_over_8pct_grade'] <= m['meters_over_5pct_grade']
 
 
 def test_grade_metrics_never_reports_a_maximum_under_the_mean():
@@ -172,6 +181,15 @@ def test_grade_metrics_never_reports_a_maximum_under_the_mean():
     m = sg.grade_metrics(z, 160.0)
     assert m['mean_grade'] > 0.02
     assert m['max_grade'] == m['mean_grade']
+
+
+def test_grade_metrics_of_a_street_under_30_m_takes_its_steepest_10_m_pitch_as_the_maximum():
+    z = np.array([0.0, 0.0, 0.0, 1.0, 2.0])  # 5 m steps: level for 10 m, then 20% for 10 m. 10% end to end.
+    m = sg.grade_metrics(z, 20.0)
+    assert m['net_grade'] == pytest.approx(0.10)
+    assert m['max_grade'] == pytest.approx(0.20)
+    # At 30 m the 30 m baseline takes over, and it is the whole street.
+    assert sg.grade_metrics(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 2.0]), 30.0)['max_grade'] == pytest.approx(2 / 30)
 
 
 def test_grade_metrics_of_a_street_shorter_than_every_baseline():
@@ -195,10 +213,16 @@ def test_edge_gradient_measures_a_clean_profile_and_bridges_a_short_gap():
     assert (got['elev_start_m'], got['elev_end_m']) == pytest.approx((20.0, 24.0))
 
 
-def test_edge_gradient_has_no_data_for_an_empty_a_zero_length_or_an_unanchored_structure_profile():
+def test_edge_gradient_has_no_data_for_an_empty_a_zero_length_or_an_unanchored_profile():
     mostly_missing = np.array([1.0, np.nan, np.nan, np.nan, np.nan, 2.0])
     assert sg.edge_gradient(mostly_missing, 25.0, False) == {'quality': sg.QUALITY_NO_DATA}
     assert sg.edge_gradient(np.array([1.0, 1.0]), 0.0, False) == {'quality': sg.QUALITY_NO_DATA}
+    # A 1% street missing a fifth of its length at each end: held flat out to the ends it would read 0.6%, measured.
+    ramp = 100.0 + 0.01 * np.linspace(0, 100, 11)
+    for lost in (slice(0, 2), slice(-2, None), slice(0, 1), slice(-1, None)):
+        z = ramp.copy()
+        z[lost] = np.nan
+        assert sg.edge_gradient(z, 100.0, False) == {'quality': sg.QUALITY_NO_DATA}
     assert sg.edge_gradient(np.array([np.nan, 1.0, 2.0, 3.0]), 15.0, True) == {'quality': sg.QUALITY_NO_DATA}
     assert sg.edge_gradient(np.array([1.0, 2.0, 3.0, np.nan]), 15.0, True) == {'quality': sg.QUALITY_NO_DATA}
 
@@ -221,7 +245,7 @@ def test_edge_gradient_flags_an_untagged_artifact_but_not_a_uniformly_steep_hill
     assert got['max_grade'] == 0 and got['profile_cm'] == [3000] * 5
     hill = 0.25 * np.linspace(0, 100, 21)  # 25% end to end: steep, and the pitch agrees with the net grade.
     assert sg.edge_gradient(hill, 100.0, False)['quality'] == sg.QUALITY_MEASURED
-    # Over the ratio but under the grade floor: a 12% pitch on a level street is a driveway dip, not an artifact.
+    # Over the ratio but under SUSPECT_GRADE: a 12% pitch on a level street is a driveway dip, not an artifact.
     dip = np.array([10.0, 10.0, 8.8, 10.0, 10.0, 10.0, 10.0])
     assert sg.edge_gradient(dip, 60.0, False)['quality'] == sg.QUALITY_MEASURED
 
@@ -272,6 +296,26 @@ def test_directory_locator_finds_the_covering_raster_first_in_name_order(tmp_pat
     lngs = np.array([_LNG + 0.005, _LNG + 0.015, _LNG + 0.025, _LNG + 0.5])
     got = locate(lngs, np.full(4, _LAT + 0.01))
     assert got == [str(a), str(a), str(tmp_path / 'b.TIF'), None]
+
+
+def test_directory_locator_projects_once_per_coordinate_system_and_stops_when_every_point_is_placed(tmp_path):
+    a = _write_plane(tmp_path / 'a.tif')
+    _write_plane(tmp_path / 'b.tif', lng=_LNG + 0.02)
+    opened = []
+
+    def opener(path):
+        opened.append(path)
+        return rasterio.open(path)
+    locate = sg.directory_locator(tmp_path, opener)
+    calls = []
+    real = sg.warp_transform
+    try:
+        sg.warp_transform = lambda *args: calls.append(args[1]) or real(*args)
+        assert locate(np.array([_LNG + 0.001]), np.array([_LAT + 0.01])) == [str(a)]  # Placed by a: b is never tested.
+        assert locate(np.array([_LNG + 0.001, _LNG + 0.021]), np.full(2, _LAT + 0.01)) == [str(a), str(tmp_path / 'b.tif')]
+    finally:
+        sg.warp_transform = real
+    assert len(opened) == 2 and len(calls) == 2  # Two tiles in one system: one projection per batch, not per tile.
 
 
 def test_directory_locator_refuses_a_directory_with_no_rasters(tmp_path):
@@ -376,6 +420,13 @@ def test_country_id_resolves_every_city_in_the_real_cityparams():
     assert sg.country_id('crowdstudy', conf) == 'usa'
 
 
+def test_positive_float_refuses_zero_negatives_and_nan():
+    assert sg.positive_float('0.5') == 0.5
+    for bad in ('0', '-5', 'nan'):
+        with pytest.raises(argparse.ArgumentTypeError, match='greater than 0'):
+            sg.positive_float(bad)
+
+
 def test_valid_city_id_accepts_kebab_case_only():
     assert sg.valid_city_id('newport-ky') == 'newport-ky'
     for bad in ('Seattle', '../etc', 'a--b', ''):
@@ -383,14 +434,15 @@ def test_valid_city_id_accepts_kebab_case_only():
             sg.valid_city_id(bad)
 
 
-def _write_input(path, streets):
-    """The export's shape: psql booleans as t/f, the geometry as hex EWKB."""
+def _write_input(path, streets, md5=_MD5):
+    """The export's shape: psql booleans as t/f, the geometry as hex EWKB (SRID 4326, as ST_AsHEXEWKB writes it)."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open('w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['street_edge_id', 'geom_md5', 'is_structure', 'geom'])
         for street_id, coords, is_structure in streets:
-            writer.writerow([street_id, _MD5, 't' if is_structure else 'f', LineString(coords).wkb_hex])
+            geom = shapely.to_wkb(shapely.set_srid(LineString(coords), 4326), hex=True, include_srid=True)
+            writer.writerow([street_id, md5, 't' if is_structure else 'f', geom])
 
 
 def test_read_streets_parses_the_export(tmp_path):
@@ -402,19 +454,51 @@ def test_read_streets_parses_the_export(tmp_path):
     assert streets[0]['coords'][0] == (_LNG, _LAT) and streets[0]['geom_md5'] == _MD5
 
 
-def test_done_ids_is_empty_without_a_file_and_reads_one_back(tmp_path):
+def test_read_streets_parses_what_postgis_itself_exports(tmp_path):
+    # Seattle street 1, verbatim from the export's query: ST_AsHEXEWKB carries the SRID flag plain WKB does not.
+    path = tmp_path / 'in.csv'
+    path.write_text('street_edge_id,geom_md5,is_structure,geom\n1,9b25a2a1f1577c1e05facdbb4f06b7cb,f,0102000020E6100000'
+                    '02000000D1F4C8D57E935EC046802E75EBD24740423AE1CA7E935EC0903E9C76E7D24740\n')
+    assert sg.read_streets(path)[0]['coords'] == [(-122.3046164, 47.6478106), (-122.3046138, 47.6476887)]
+
+
+def _output_line(street_id, md5=_MD5):
+    return f'{street_id},measured,high,0,0,0,0,0,0,0,0,0,"{{0,0}}",earlier,10.0,{md5}\n'
+
+
+_HEADER = ','.join(sg.OUTPUT_FIELDS) + '\n'
+_WANTED = [_street(3, []), _street(9, [])]
+
+
+def test_done_ids_is_empty_without_a_file_and_reads_one_back_untouched(tmp_path):
     path = tmp_path / 'out.csv'
-    assert sg.done_ids(path) == set()
-    path.write_text('street_edge_id,quality\n3,measured\n9,no_data\n')
-    assert sg.done_ids(path) == {3, 9}
-    assert path.read_text().endswith('9,no_data\n')
+    assert sg.done_ids(path, _WANTED) == set()
+    path.write_text(_HEADER + _output_line(3) + _output_line(9))
+    before = path.stat().st_mtime_ns
+    assert sg.done_ids(path, _WANTED) == {3, 9}
+    assert path.stat().st_mtime_ns == before
 
 
 def test_done_ids_cuts_off_the_partial_line_a_killed_run_left(tmp_path):
     path = tmp_path / 'out.csv'
-    path.write_text('street_edge_id,quality\n3,measured\n123')  # Killed while writing street 12345.
-    assert sg.done_ids(path) == {3}
-    assert path.read_text() == 'street_edge_id,quality\n3,measured\n'
+    path.write_text(_HEADER + _output_line(3) + '123')  # Killed while writing street 12345.
+    assert sg.done_ids(path, _WANTED) == {3}
+    assert path.read_text() == _HEADER + _output_line(3)
+
+
+def test_done_ids_drops_a_row_whose_street_changed_or_left_the_export(tmp_path):
+    path = tmp_path / 'out.csv'
+    stale = 'f' * 32  # Street 9 was re-imported with a new geometry since this row was written.
+    path.write_text(_HEADER + _output_line(3) + _output_line(9, stale) + _output_line(40))
+    assert sg.done_ids(path, _WANTED) == {3}
+    assert path.read_text() == _HEADER + _output_line(3)
+
+
+def test_done_ids_starts_over_from_a_file_with_other_columns(tmp_path):
+    path = tmp_path / 'out.csv'
+    path.write_text('street_edge_id,quality,geom_md5\n3,measured,' + _MD5 + '\n')
+    assert sg.done_ids(path, _WANTED) == set()
+    assert path.read_text() == _HEADER
 
 
 def test_format_row_leaves_a_no_data_street_blank_and_formats_a_measured_one():
@@ -547,6 +631,21 @@ def test_main_resume_keeps_finished_rows_and_a_plain_rerun_starts_over(city, cap
 def test_main_resume_with_no_earlier_output_writes_a_header(city):
     assert sg.main([*_DEM_ARGS, '--resume']) == 0
     assert len(_read_output(city)) == 2
+
+
+def test_main_refuses_both_a_registered_source_and_a_directory(city, capsys):
+    with pytest.raises(SystemExit):
+        sg.main([*_DEM_ARGS, '--source', 'usgs-3dep-10m'])
+    assert 'not allowed with argument' in capsys.readouterr().err
+
+
+def test_main_closes_its_rasters_when_sampling_fails(city, monkeypatch):
+    closed = []
+    monkeypatch.setattr(sg.RasterSampler, 'close', lambda self: closed.append(True))
+    monkeypatch.setattr(sg, 'process_cell', lambda *args: 1 / 0)
+    with pytest.raises(ZeroDivisionError):
+        sg.main(_DEM_ARGS)
+    assert closed == [True]
 
 
 def test_main_points_at_the_export_when_there_is_no_input(city):

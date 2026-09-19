@@ -1,9 +1,9 @@
 # Python utility scripts
 
 Four standalone Python utilities for Project Sidewalk. They are **not** part of the running web app's request path
-(except as noted below) — they are run out-of-band. `check_streets_for_imagery.py`, `onboard_city.py` and `street_gradient.py` resolve their
-data/output paths relative to the repo root, so they can be launched from any working directory. Unit tests for all
-four live in [`test/python/`](../test/python).
+(except as noted below) — they are run out-of-band. `check_streets_for_imagery.py`, `onboard_city.py` and
+`street_gradient.py` resolve their data/output paths relative to the repo root, so they can be launched from any
+working directory. Unit tests for all four live in [`test/python/`](../test/python).
 
 ## Which interpreter to use
 
@@ -237,7 +237,10 @@ make import-street-gradient
 - **Bridges and tunnels.** A bare-earth model has the ground under a bridge, so streets the export marks
   `is_structure` (from `osm_way.tags`) are drawn as a straight line between their endpoints, and so is an untagged
   street whose profile holds an implausible pitch (`quality = suspect`).
-- **Resume.** Rows are flushed a grid cell at a time; `--resume` keeps them and samples the rest.
+- **An empty `osm_way` stops the export**, since every bridge would then be sampled as the ground beneath it. Pass
+  `args=--allow-empty-osm-way` for a city that really has none, and `args=--all` to resample every street.
+- **Resume.** Rows are flushed a grid cell at a time; `--resume` keeps the ones that answer the current export (same
+  street, same `geom_md5`) and samples the rest.
 - **No network in tests.** `test/python/test_street_gradient.py` writes small GeoTIFFs whose elevation is a known
   plane, so every expected grade is arithmetic.
 
