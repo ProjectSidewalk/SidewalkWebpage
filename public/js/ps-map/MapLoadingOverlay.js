@@ -11,14 +11,19 @@
  * chunked 200, so a stream that dies mid-flight arrives as a truncated body under a success status and only
  * surfaces when the JSON parse throws (#3932).
  *
- * Markup comes from the shared `common.mapLoadingOverlay` Twirl partial, so /labelMap and /admin/label-map
- * present the same thing.
+ * A status line under the counter carries what a page knows about the wait that the clock doesn't — the
+ * AccessScore tool's "scores aren't ready yet, retrying in N s" when the server has said so (#5418). It lives inside
+ * the `aria-live` region, so a screen reader hears each update without the page re-announcing the whole card.
+ *
+ * Markup comes from the shared `common.mapLoadingOverlay` Twirl partial, so /labelMap, /admin/label-map and
+ * /accessScore present the same thing.
  */
 class MapLoadingOverlay {
   #root;
   #loadingCard;
   #errorCard;
   #elapsedEl;
+  #statusEl;
   #retryButton;
   #timer = null;
   #failed = false;
@@ -34,6 +39,7 @@ class MapLoadingOverlay {
     this.#loadingCard = document.getElementById('labelmap-loading-card');
     this.#errorCard = document.getElementById('labelmap-error-card');
     this.#elapsedEl = document.getElementById('labelmap-loading-elapsed');
+    this.#statusEl = document.getElementById('labelmap-loading-status');
     this.#retryButton = document.getElementById('labelmap-retry');
     this.#retryButton.addEventListener('click', () => {
       // A retry is a fresh attempt: clear the failure latch and put the spinner back up for immediate feedback.
@@ -76,7 +82,21 @@ class MapLoadingOverlay {
   hide() {
     if (!this.#root) return;
     this.#stopTimer();
+    this.setStatus('');
     this.#root.hidden = true;
+  }
+
+  /**
+   * Sets, or with an empty string clears, the status line under the spinner's clock. Independent of `show()`, which
+   * the map's `load` event fires: a feed can report its wait before or after the map is ready, and neither order
+   * may lose the message.
+   *
+   * @param {string} text - What to say about the wait; empty hides the line.
+   */
+  setStatus(text) {
+    if (!this.#statusEl) return;
+    this.#statusEl.textContent = text;
+    this.#statusEl.hidden = !text;
   }
 
   /**
@@ -87,6 +107,7 @@ class MapLoadingOverlay {
     if (!this.#root) return;
     this.#failed = true;
     this.#stopTimer();
+    this.setStatus('');
     this.#loadingCard.hidden = true;
     this.#errorCard.hidden = false;
     this.#root.setAttribute('aria-busy', 'false');

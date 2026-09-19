@@ -9,6 +9,8 @@
   "zoom-in-for-labels": "Zoom in to see sidewalk labels",
   "loading-elapsed": "{{seconds}}s elapsed",
   "load-failed": "We couldn't load the map data.",
+  "waiting-for-scores": "Waiting for this city's scores…",
+  "waiting-for-scores-retry": "Scores aren't ready yet — retrying in {{seconds}}s…",
   "retry": "Try again",
   "is-correct": "Is this label correct?",
   "label-type": "Label Type",
