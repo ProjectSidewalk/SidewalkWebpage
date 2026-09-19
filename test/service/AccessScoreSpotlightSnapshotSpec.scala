@@ -40,6 +40,7 @@ class AccessScoreSpotlightSnapshotSpec extends PlaySpec with GuiceOneAppPerSuite
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val service                    = app.injector.instanceOf[AccessScoreSpotlightService]
+  private val accessScoreService         = app.injector.instanceOf[AccessScoreService]
   private val regionScoreTable           = app.injector.instanceOf[RegionAccessScoreTable]
   private val streetScoreTable           = app.injector.instanceOf[StreetAccessScoreTable]
   private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
@@ -94,6 +95,29 @@ class AccessScoreSpotlightSnapshotSpec extends PlaySpec with GuiceOneAppPerSuite
         lengthM must be >= 0.0
         tieBreak must (be >= 0.0 and be < 1.0)
       }
+    }
+  }
+
+  "the snapshot's computation" should {
+    // The identity checks are the proof: a request path that recomputed would hand back an equal-but-distinct value,
+    // the same way ConfigServiceTrendSpec proves its warmed key is served rather than rebuilt.
+    "seed the full-city request cache with the very value it computed" in {
+      val (_, computed) = await(accessScoreService.computeCityWideScores(AccessScoreSpotlightService.BatchSize))
+
+      val served = await(accessScoreService.getFullCityScores(AccessScoreSpotlightService.BatchSize))
+      served mustBe defined
+      assert(served.get eq computed)
+    }
+
+    "leave the request path warm after a whole recordSnapshot, so the tool never waits on a cold JVM" in {
+      await(service.recordSnapshot())
+
+      val first  = await(accessScoreService.getFullCityScores(AccessScoreSpotlightService.BatchSize))
+      val second = await(accessScoreService.getFullCityScores(AccessScoreSpotlightService.BatchSize))
+      first mustBe defined
+      assert(second.get eq first.get)
+      // The region roll-up reads the same cached value, so it is warm too.
+      await(accessScoreService.getFullCityRegionScores(AccessScoreSpotlightService.BatchSize)) mustBe defined
     }
   }
 
