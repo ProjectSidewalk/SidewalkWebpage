@@ -166,7 +166,12 @@ and `street_access_score` from the clusters that run just built: one row per reg
 a score history) and one row per OSM way per region, replaced each run. The landing page and `/cities` read only
 those two tables, which is what makes a ranked AccessScore safe to put on a page nobody waits for. Like the
 intersection rebuild it records its own run and is recovered rather than propagated, so a clustering success never
-stands in for a snapshot nobody wrote.
+stands in for a snapshot nobody wrote. The snapshot's computation is the very value `/v3/api/accessScoreStreets` and
+its siblings cache per JVM, so it also seeds that cache (`SwrCache.put`, #5418): on a large city the whole-city
+computation takes longer than the reverse proxy allows a request, so a cold cache — after a deploy, or a city nobody
+opened in two days — would otherwise cost the first visitor a `502`. When the cache is cold anyway, the full-city
+endpoints wait at most 45 s and then answer `503` with `Retry-After: 30` while the computation finishes in the
+background; the AccessScore tool retries on that header and says so under its spinner.
 
 The **places refresh** (#5311) keeps the per-city `place` table current from OpenStreetMap: one Overpass query per
 run over the city's bounds for every tag in the `PlaceCategory` catalog (schools, health care, libraries, grocery,
