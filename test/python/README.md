@@ -1,7 +1,7 @@
 # Python utility tests
 
-Unit tests for the three standalone Python scripts in [`scripts/`](../../scripts) — `label_clustering.py`,
-`check_streets_for_imagery.py`, and `onboard_city.py`. This is the **first** Python test layer for Project Sidewalk.
+Unit tests for the four standalone Python scripts in [`scripts/`](../../scripts) — `label_clustering.py`,
+`check_streets_for_imagery.py`, `onboard_city.py`, and `street_gradient.py`. This is the **first** Python test layer for Project Sidewalk.
 See [`docs/testing-and-ci.md`](../../docs/testing-and-ci.md) for where it fits in the overall testing plan.
 
 ## What is covered

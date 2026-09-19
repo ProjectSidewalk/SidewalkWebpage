@@ -4,7 +4,12 @@ set -euo pipefail
 # Step 3 of filling the street_gradient table (#5223): upsert the CSV scripts/street_gradient.py wrote
 # (db/onboarding/<city-id>/street_gradient.csv). A row for a street that already has one replaces it whole, since a
 # resample is only ever asked for when the geometry or the method changed and the old statistics describe neither.
-# A street deleted between the export and this import is skipped rather than failing the batch on its foreign key.
+#
+# A row is only loaded when its geom_md5 still matches the street's geometry. street_edge_id is a per-city serial, so
+# a CSV pointed at the wrong schema matches thousands of ids by accident, and the geometry hash is what tells a
+# street from its namesake in another city. The same test skips a street deleted or edited between the export and
+# this import. A few skipped rows are normal and are reported. Most of the file failing the test means the wrong
+# city or a stale export, and aborts the import.
 
 source /opt/scripts/helpers.sh
 
@@ -45,6 +50,24 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
 
     \copy street_gradient_import FROM '$CSV_FILENAME' WITH (FORMAT csv, HEADER true)
 
+    CREATE TEMP TABLE street_gradient_match ON COMMIT DROP AS
+    SELECT street_gradient_import.street_edge_id
+    FROM street_gradient_import
+    INNER JOIN street_edge ON street_gradient_import.street_edge_id = street_edge.street_edge_id
+        AND street_gradient_import.geom_md5 = md5(ST_AsBinary(street_edge.geom));
+
+    SELECT (SELECT COUNT(*) FROM street_gradient_import) AS rows_in_csv,
+           (SELECT COUNT(*) FROM street_gradient_match) AS rows_matching_a_street;
+
+    DO \$\$
+    BEGIN
+        IF (SELECT COUNT(*) FROM street_gradient_match) * 2 < (SELECT COUNT(*) FROM street_gradient_import) THEN
+            RAISE EXCEPTION 'Fewer than half the CSV rows match a street geometry in this schema.'
+                USING HINT = 'Wrong city, or an export older than a street import?';
+        END IF;
+    END
+    \$\$;
+
     INSERT INTO street_gradient (street_edge_id, quality, confidence, net_grade, mean_grade, max_grade,
                                  meters_over_5pct, meters_over_8pct, climb_m, descent_m, elev_start_m, elev_end_m,
                                  profile_cm, dem_source, dem_resolution_m, geom_md5, sampled_at)
@@ -66,7 +89,7 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
            geom_md5,
            now()
     FROM street_gradient_import
-    INNER JOIN street_edge ON street_gradient_import.street_edge_id = street_edge.street_edge_id
+    INNER JOIN street_gradient_match ON street_gradient_import.street_edge_id = street_gradient_match.street_edge_id
     ON CONFLICT (street_edge_id) DO UPDATE
     SET quality          = EXCLUDED.quality,
         confidence       = EXCLUDED.confidence,

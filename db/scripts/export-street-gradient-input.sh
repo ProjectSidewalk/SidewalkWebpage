@@ -28,8 +28,12 @@ EXPORT_ALL=$([[ "$SCOPE" == "all" ]] && echo TRUE || echo FALSE)
 OUT_DIR=/opt/onboarding/$CITY_ID
 mkdir -p "$OUT_DIR"
 OUT_FILE=$OUT_DIR/street_gradient_input.csv
+# Written beside the target and moved into place on success, so a failed export never leaves a partial file under the
+# name the sampler reads.
+TMP_FILE=$OUT_FILE.partial
+trap 'rm -f "$TMP_FILE"' EXIT
 
-psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" > "$OUT_FILE" <<EOSQL
+psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" > "$TMP_FILE" <<EOSQL
     COPY (
         SELECT street_edge.street_edge_id,
                md5(ST_AsBinary(street_edge.geom)) AS geom_md5,
@@ -47,5 +51,6 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" > "$OUT_FILE" <<EOSQL
         ORDER BY street_edge.street_edge_id
     ) TO STDOUT WITH (FORMAT csv, HEADER)
 EOSQL
+mv "$TMP_FILE" "$OUT_FILE"
 
 echo "Done! Wrote $(($(wc -l < "$OUT_FILE") - 1)) street(s) to $OUT_FILE. Next: make street-gradient id=$CITY_ID"

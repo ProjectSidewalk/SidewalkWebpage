@@ -1,4 +1,4 @@
-"""
+r"""
 Computes each street's gradient (running slope, climb, elevation profile) from a bare-earth elevation model and writes
 it to a CSV that ``db/scripts/import-street-gradient.sh`` loads into the ``street_gradient`` table (#5223).
 
@@ -11,7 +11,8 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
   2. Run (from anywhere — data files are resolved relative to the repo root, not your working directory):
 
          make street-gradient id=seattle-wa
-         make street-gradient id=cdmx args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"
+         make street-gradient id=cdmx \
+             args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"
 
      The first form picks the elevation source from the city's ``country-id`` in ``conf/cityparams.conf``; the second
      reads GeoTIFFs someone downloaded by hand, for sources that have no scriptable endpoint.
@@ -78,7 +79,7 @@ SMOOTH_FINE_M = 5.0
 MEAN_WINDOW_M = 10.0
 MAX_WINDOW_M = 30.0
 PROFILE_SPACING_M = 10.0
-GRADE_THRESHOLDS = (0.05, 0.0833)  # ADA / PROWAG: walking surface 1:20, ramp 1:12.
+GRADE_THRESHOLDS = (1 / 20, 1 / 12)  # ADA / PROWAG: walking surface 1:20, ramp 1:12.
 
 # A street with more than this share of its samples on no-data has no usable profile. Below it the gaps (AHN blanks
 # every building and canal, for one) are bridged along the street.
@@ -131,7 +132,8 @@ def sample_points(coords: Sequence[tuple[float, float]], step_m: float) -> tuple
     Evenly spaced points along a lng/lat line, both endpoints included.
 
     The endpoints are exact so that every street meeting at a node samples the same spot and they agree on its
-    elevation. Spacing is the geodesic length over a whole number of intervals, as close to ``step_m`` as that allows.
+    elevation (as long as the model has data there: over a gap each street fills in from its own nearest sample).
+    Spacing is the geodesic length over a whole number of intervals, as close to ``step_m`` as that allows.
 
     Args:
         coords: The line's (lng, lat) vertices.
@@ -178,15 +180,16 @@ def fill_gaps(z: np.ndarray) -> np.ndarray:
 
 def smooth(z: np.ndarray, samples: int) -> np.ndarray:
     """
-    A centered moving average over ``samples`` points.
+    A centered moving average over ``samples`` points (one more when that is even, so the window has a center).
 
     The ends are padded by reflecting the profile through its endpoint values, which continues its slope instead of
     flattening it. That leaves a constant grade untouched and both endpoint elevations exactly where they were, so
-    the end-to-end grade survives smoothing (padding with the end value itself shaved 2% off it).
+    the end-to-end grade survives smoothing, where padding with the end value itself would shave about 2% off it.
     """
-    if samples < 2 or len(z) < samples:
+    samples |= 1
+    if samples < 3 or len(z) < samples:
         return z
-    padded = np.pad(z, (samples // 2, samples - 1 - samples // 2), mode='reflect', reflect_type='odd')
+    padded = np.pad(z, samples // 2, mode='reflect', reflect_type='odd')
     return np.convolve(padded, np.ones(samples) / samples, mode='valid')
 
 
@@ -402,11 +405,21 @@ class RasterSampler:
             # Cell centers, not corners: the value at (row, col) sits at (row + 0.5, col + 0.5) in GDAL's pixel space.
             cols = inv.a * xs + inv.b * ys + inv.c - 0.5
             rows = inv.d * xs + inv.e * ys + inv.f - 0.5
-            r0, c0 = max(0, math.floor(rows.min())), max(0, math.floor(cols.min()))
-            r1, c1 = min(ds.height, math.floor(rows.max()) + 2), min(ds.width, math.floor(cols.max()) + 2)
-            if r1 <= r0 or c1 <= c0:
+            # The outer half cell of a raster lies beyond its first and last cell centers. Tiles of a national model
+            # abut exactly, so at every seam that band is all either neighbor has, and it takes the edge cell's value
+            # rather than none.
+            on_raster = (rows >= -0.5) & (rows <= ds.height - 0.5) & (cols >= -0.5) & (cols <= ds.width - 0.5)
+            if not on_raster.any():
                 continue
+            idx = idx[on_raster]
+            rows, cols = np.clip(rows[on_raster], 0, ds.height - 1), np.clip(cols[on_raster], 0, ds.width - 1)
+            r0, c0 = math.floor(rows.min()), math.floor(cols.min())
+            r1, c1 = min(ds.height, math.floor(rows.max()) + 2), min(ds.width, math.floor(cols.max()) + 2)
+            # A single row or column cannot be interpolated, so the window reaches back one cell at the far edge.
+            r0, c0 = max(0, min(r0, r1 - 2)), max(0, min(c0, c1 - 2))
             grid = ds.read(1, window=Window(c0, r0, c1 - c0, r1 - r0), masked=True).astype(float).filled(np.nan)
+            # rasterio hands back stored values. GEDTM30, for one, stores decimeters with a 0.1 scale.
+            grid = grid * ds.scales[0] + ds.offsets[0]
             out[idx] = bilinear(grid, rows - r0, cols - c0)
         return out
 
@@ -464,9 +477,17 @@ def read_streets(path: Path) -> list[dict]:
 
 
 def done_ids(path: Path) -> set[int]:
-    """The street ids an earlier, interrupted run already wrote to ``path``."""
+    """
+    The street ids an earlier, interrupted run already wrote to ``path``.
+
+    A run killed mid-write leaves a partial last line. It is cut off first: read as a row it would mark a street done
+    that is not (or, cut inside the id, a different street), and the resumed run would append onto the end of it.
+    """
     if not path.exists():
         return set()
+    data = path.read_bytes()
+    if not data.endswith(b'\n'):
+        path.write_bytes(data[:data.rfind(b'\n') + 1])
     with path.open(newline='') as f:
         return {int(row['street_edge_id']) for row in csv.DictReader(f)}
 

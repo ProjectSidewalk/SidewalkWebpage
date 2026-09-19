@@ -8,13 +8,18 @@ phases of #5223.
 
 ## Filling or topping up a city
 
-Three commands, from the main checkout (the db container sees only that checkout's `db/`):
+Three commands, from the main checkout (the db container sees only that checkout's `db/`). The sampler needs
+rasterio, which arrives with `requirements-offline-tools.txt`, so a web image built before #5223 has to be rebuilt
+first (`make dev`):
 
 ```bash
 make export-street-gradient-input         # prompts: schema, city id -> db/onboarding/<city-id>/street_gradient_input.csv
 make street-gradient id=<city-id>         # -> db/onboarding/<city-id>/street_gradient.csv
 make import-street-gradient               # prompts: schema, CSV path -> upsert into street_gradient
 ```
+
+The import loads a row only while its `geom_md5` still matches the street, and aborts when most of the file does not,
+which is what a CSV pointed at the wrong city's schema looks like (`street_edge_id` is a per-city serial).
 
 The export holds only streets with no row yet or whose geometry changed since they were sampled (`geom_md5`), so
 after a street import the same three commands top the table up. Pass `all` as the export script's third argument to
@@ -46,7 +51,7 @@ Grades are fractions: 0.05 is a 5% grade, the OpenSidewalks `incline` convention
 | `max_grade` | Steepest absolute grade over any 30 m baseline (the whole street when it is shorter), never below `mean_grade`. |
 | `meters_over_5pct`, `meters_over_8pct` | Length of street whose 10 m baselines exceed 5% and 8.33% (ADA / PROWAG walking surface and ramp limits). |
 | `climb_m`, `descent_m` | Summed rise and fall in the digitized direction, over 10 m steps so sample noise does not accumulate. |
-| `elev_start_m`, `elev_end_m` | Elevation at the first and last vertex. Streets meeting at a node sample the same point, so they agree. |
+| `elev_start_m`, `elev_end_m` | Elevation at the first and last vertex. Streets meeting at a node sample the same point, so they agree wherever the model has data at the node. |
 | `profile_cm` | Elevations in whole centimeters at even spacing, endpoints included, about every 10 m. Spacing is the street's length over `array_length - 1`. |
 | `quality` | `measured`, `structure_interpolated`, `suspect`, or `no_data` (below). |
 | `confidence` | `high` for a model at 10 m or finer, `medium` to 20 m, `low` beyond. Pinned to `dem_resolution_m` by a CHECK. |
@@ -68,14 +73,14 @@ deck: in the study windows the 1 to 4% of streets tagged as structures showed a 
 
 - **`structure_interpolated`**: the street's OSM way is tagged `bridge`, `tunnel` or `covered`. Its profile is a
   straight line between its endpoint elevations.
-- **`suspect`**: no tag, but the sampled profile holds a 10 m pitch over 20% that is also more than three times the
-  street's end-to-end grade (floored at 2%). Same treatment. This catches what tags miss, such as a lid over a freeway
-  or a street whose `osm_way_street_edge` row names a different way of the same road, and it leaves a uniformly steep
-  hill alone, since there the pitch and the end-to-end grade agree. A pitch over 40% is suspect whatever the
-  end-to-end grade, since no street anywhere is that steep (Canton Avenue and Baldwin Street are 35 to 37%). And when
-  the end-to-end grade is itself over 40%, the endpoints are what is wrong (a 10 m stub with one end on each side of
-  a retaining wall: 28 of Seattle's 27,645 streets), so the row is `suspect` with every statistic NULL. Together the
-  rules fired on 1.2% of Teaneck's untagged streets.
+- **`suspect`**: the sampled profile holds a 10 m pitch over 20% that is also more than three times the street's
+  end-to-end grade (floored at 2%), on a street with no structure tag. Same treatment. This catches what tags miss, such
+  as a lid over a freeway or a street whose `osm_way_street_edge` row names a different way of the same road, and it
+  leaves a uniformly steep hill alone, since there the pitch and the end-to-end grade agree. A pitch over 40% is suspect
+  whatever the end-to-end grade, since no street anywhere is that steep (Canton Avenue and Baldwin Street are 35 to
+  37%). And when the end-to-end grade is itself over 40%, the endpoints are what is wrong (a 10 m stub with one end on
+  each side of a retaining wall: 28 of Seattle's 27,645 streets), so the row is `suspect` with every statistic NULL,
+  tagged structure or not. Together the rules fired on 1.2% of Teaneck's untagged streets.
 - **`no_data`**: more than half the samples fell on no-data (or, for a structure, either endpoint did). Every
   statistic is NULL. Shorter gaps are bridged along the profile, which matters for models like AHN that blank every
   building and canal.

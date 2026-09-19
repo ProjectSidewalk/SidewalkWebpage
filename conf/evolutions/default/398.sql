@@ -13,14 +13,17 @@
 --
 -- quality says how the profile was obtained. A bare-earth model removes bridges and knows nothing of tunnels, so a
 -- street tagged as one (structure_interpolated), or one whose sampled profile holds an implausible pitch the tags did
--- not explain (suspect), carries a straight line between its endpoint elevations instead of samples. no_data means
--- the model had nothing under the street, and every statistic is NULL. They are NULL as well on the few suspect
--- streets whose own endpoints imply a grade no street has (a short stub with one end on each side of a retaining
--- wall), since there is no trustworthy line to draw.
+-- not explain, or a pitch or end-to-end grade steeper than any real street (suspect), carries a straight line between
+-- its endpoint elevations instead of samples. no_data means the model had nothing under the street, and every statistic
+-- is NULL. They are NULL as well on the few suspect streets whose own endpoints imply a grade no street has (a short
+-- stub with one end on each side of a retaining wall), since there is no trustworthy line to draw.
 --
 -- confidence is a function of the model's grid size, from the resolution sweep against 1 m lidar: a bare-earth model
 -- at 10 m or finer reproduces the statistics below closely, one at 20 m less so, and a coarser one supports
 -- net_grade alone, which is why the windowed statistics may be NULL on a row that still has a net_grade.
+--
+-- There is no Slick model yet, on purpose: nothing in the app reads or writes this table until the API phase of
+-- #5223, which adds StreetGradientTable alongside its first query.
 --
 -- geom_md5 is md5(ST_AsBinary(street_edge.geom)) at sampling time, so a street whose geometry has been edited since
 -- shows up as stale by comparing the two.

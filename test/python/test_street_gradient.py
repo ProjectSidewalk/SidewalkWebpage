@@ -36,18 +36,23 @@ def _east(meters, lng=_LNG, lat=_LAT):
 
 
 def _write_plane(path, rise_per_degree_lng=0.0, base=100.0, size=200, nodata_cols=(), lng=_LNG, lat=_LAT,
-                 cell=_CELL_DEG):
+                 cell=_CELL_DEG, decimeters=False):
     """
     A `size` x `size` EPSG:4326 GeoTIFF whose elevation at a cell center is `base + rise_per_degree_lng * (center lng -
     west edge)`. Bilinear interpolation of a plane is exact, so a sampled elevation is this formula at the point.
-    Columns in `nodata_cols` are no-data.
+    Columns in `nodata_cols` are no-data. `decimeters` stores the same surface the way GEDTM30 does: int32 tenths of a
+    meter with a 0.1 scale.
     """
     centers = (np.arange(size) + 0.5) * cell
-    grid = np.tile(base + rise_per_degree_lng * centers, (size, 1)).astype('float32')
+    grid = np.tile(base + rise_per_degree_lng * centers, (size, 1))
+    grid = np.round(grid * 10) if decimeters else grid
     grid[:, list(nodata_cols)] = -9999
-    with rasterio.open(path, 'w', driver='GTiff', height=size, width=size, count=1, dtype='float32', nodata=-9999,
+    dtype = 'int32' if decimeters else 'float32'
+    with rasterio.open(path, 'w', driver='GTiff', height=size, width=size, count=1, dtype=dtype, nodata=-9999,
                        crs='EPSG:4326', transform=from_origin(lng, lat + size * cell, cell, cell)) as ds:
-        ds.write(grid, 1)
+        ds.write(grid.astype(dtype), 1)
+        if decimeters:
+            ds.scales = (0.1,)
     return path
 
 
@@ -109,6 +114,12 @@ def test_bilinear_is_nan_off_the_grid_beside_a_nan_cell_and_on_a_grid_too_small_
 def test_fill_gaps_bridges_inside_and_holds_flat_outside():
     z = np.array([np.nan, 10.0, np.nan, np.nan, 16.0, np.nan])
     assert list(sg.fill_gaps(z)) == [10.0, 10.0, 12.0, 14.0, 16.0, 16.0]
+
+
+def test_smooth_widens_an_even_window_so_the_endpoints_still_hold():
+    bumpy = np.array([2.0, 0.0, 3.0, 5.0, 1.0, 0.0, 4.0, 7.0])
+    assert list(sg.smooth(bumpy, 4)) == list(sg.smooth(bumpy, 5))
+    assert (sg.smooth(bumpy, 4)[0], sg.smooth(bumpy, 4)[-1]) == pytest.approx((2.0, 7.0))
 
 
 def test_smooth_leaves_a_constant_grade_and_both_endpoints_alone_and_is_a_no_op_when_it_cannot_apply():
@@ -282,6 +293,31 @@ def test_raster_sampler_reads_a_plane_exactly_and_marks_nodata_and_uncovered_poi
     assert sampler._datasets == {}
 
 
+def test_raster_sampler_leaves_no_dead_band_where_two_tiles_abut(tmp_path):
+    rise = 50000.0
+    _write_plane(tmp_path / 'a.tif', rise_per_degree_lng=rise, size=100)
+    _write_plane(tmp_path / 'b.tif', rise_per_degree_lng=rise, size=100, lng=_LNG + 0.01, base=100.0 + rise * 0.01)
+    sampler = sg.RasterSampler(sg.directory_locator(tmp_path))
+    # Every tenth of a cell across the seam at _LNG + 0.01, the seam itself included, then both outer edges and the
+    # north-east corner cell, whose window would otherwise be a single row and column.
+    lngs = np.concatenate([_LNG + 0.01 + _CELL_DEG * np.arange(-10, 11) / 10,
+                           [_LNG + 0.00002, _LNG + 0.01998, _LNG + 0.00999]])
+    lats = np.concatenate([np.full(23, _LAT + 0.005), [_LAT + 0.00999]])
+    got = sampler.sample(lngs, lats)
+    assert not np.isnan(got).any()
+    # Inside the half-cell band the edge cell's value stands in, so the plane is matched to within half a cell's rise.
+    assert np.abs(got - (100.0 + rise * (lngs - _LNG))).max() <= rise * _CELL_DEG / 2 + 1e-3
+    sampler.close()
+
+
+def test_raster_sampler_applies_a_rasters_scale(tmp_path):
+    _write_plane(tmp_path / 'dm.tif', rise_per_degree_lng=50000.0, decimeters=True)
+    sampler = sg.RasterSampler(sg.directory_locator(tmp_path))
+    got = sampler.sample(np.array([_LNG + 0.01005]), np.array([_LAT + 0.01]))
+    assert got[0] == pytest.approx(100.0 + 50000.0 * 0.01005, abs=0.06)  # Meters, not the stored decimeters.
+    sampler.close()
+
+
 def test_raster_sampler_survives_a_missing_raster_and_asks_for_it_once(tmp_path):
     path = str(_write_plane(tmp_path / 'dem.tif'))
     opened = []
@@ -371,6 +407,14 @@ def test_done_ids_is_empty_without_a_file_and_reads_one_back(tmp_path):
     assert sg.done_ids(path) == set()
     path.write_text('street_edge_id,quality\n3,measured\n9,no_data\n')
     assert sg.done_ids(path) == {3, 9}
+    assert path.read_text().endswith('9,no_data\n')
+
+
+def test_done_ids_cuts_off_the_partial_line_a_killed_run_left(tmp_path):
+    path = tmp_path / 'out.csv'
+    path.write_text('street_edge_id,quality\n3,measured\n123')  # Killed while writing street 12345.
+    assert sg.done_ids(path) == {3}
+    assert path.read_text() == 'street_edge_id,quality\n3,measured\n'
 
 
 def test_format_row_leaves_a_no_data_street_blank_and_formats_a_measured_one():

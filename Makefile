@@ -275,7 +275,7 @@ import-street-gradient:
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
 # Split by interpreter because the scripts are: label_clustering.py runs in-band on prod's `python3` (3.8), while the
 # offline tooling needs >= 3.11. Each half runs the whole directory minus the files only the other's interpreter can
-# import, so a new test file runs in both by default instead of silently in neither. COVERAGE_OMIT/COVERAGE_OMIT2/COVERAGE_OMIT3 are
+# import, so a new test file runs in both by default instead of silently in neither. The COVERAGE_OMIT* slots are
 # explained in pyproject.toml.
 pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py \
                     --ignore=test/python/test_onboard_city.py --ignore=test/python/test_street_gradient.py

@@ -1,9 +1,9 @@
 # Python utility scripts
 
-Three standalone Python utilities for Project Sidewalk. They are **not** part of the running web app's request path
-(except as noted below) — they are run out-of-band. `check_streets_for_imagery.py` and `onboard_city.py` resolve their
+Four standalone Python utilities for Project Sidewalk. They are **not** part of the running web app's request path
+(except as noted below) — they are run out-of-band. `check_streets_for_imagery.py`, `onboard_city.py` and `street_gradient.py` resolve their
 data/output paths relative to the repo root, so they can be launched from any working directory. Unit tests for all
-three live in [`test/python/`](../test/python).
+four live in [`test/python/`](../test/python).
 
 ## Which interpreter to use
 
