@@ -856,6 +856,11 @@
   display: none;
 }
 
+/* A single-region city drops the rank panel (AccessScoreDock.js); the remaining three share its width. */
+.acs-dock__body--no-rank {
+  grid-template-columns: minmax(200px, 1fr) minmax(215px, 1fr) minmax(320px, 2.2fr);
+}
+
 /* Every panel is a column of one fixed height — the photos' — so the charts stretch to it and the rank list
    scrolls within it, rather than the longest list setting the band's height. */
 .acs-dock__panel {

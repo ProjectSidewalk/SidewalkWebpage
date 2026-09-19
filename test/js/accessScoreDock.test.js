@@ -528,4 +528,25 @@ describe('AccessScoreDock', () => {
         expect(document.querySelector('.acs-photos__caption').textContent)
             .toBe('photos-from scope=popup-street-named name=Cedar Lane id=1');
     });
+
+    test('a city with one neighborhood drops the rank panel, and the views that talk to it still work', async () => {
+        const oneRegion = [REGIONS[0]];
+        const features = FIXTURE.streets.map((c, i) => feature(c, i, {region_id: 1}));
+        model = new window.AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features},
+            {type: 'FeatureCollection', features: []}, oneRegion);
+        document.body.innerHTML = DOCK_HTML;
+        dock = new window.AccessScoreDock(document.getElementById('acs-dock'), {model, mapView, map,
+            config: FIXTURE.config, ...callbacks});
+        flush();
+        expect(document.querySelector('.acs-dock__panel--rank')).toBeNull();
+        expect(document.getElementById('acs-dock-body').classList).toContain('acs-dock__body--no-rank');
+        expect(document.querySelectorAll('.acs-histogram__bin')).toHaveLength(10);
+        expect(document.querySelectorAll('.acs-whats-here__row')).toHaveLength(FIXTURE.config.scored_types.length);
+        expect(() => {
+            dock.markHover({unit: 'streets', id: 1, score: 0.5});
+            dock.markHover(null);
+        }).not.toThrow();
+        await settle();
+        expect(document.querySelector('.acs-photos__caption').textContent).toBe('photos-from scope=Fixture');
+    });
 });

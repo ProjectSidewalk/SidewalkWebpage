@@ -305,7 +305,8 @@ corresponding Twirl view:
   cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
   coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
   drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and
-  intersections (`AccessScoreWhatsHere.js`); the ranked neighborhoods; and a photo strip of label crops from the
+  intersections (`AccessScoreWhatsHere.js`); the ranked neighborhoods, dropped altogether in a city that has only one
+  neighborhood, since there is nothing to rank it against; and a photo strip of label crops from the
   scope's neighborhood feed, ranked worst first with confirmed labels ahead of unchecked ones
   (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
   the whole city is the population, a brush emphasizes in the overview views, narrows what's here and dims the
@@ -319,7 +320,8 @@ corresponding Twirl view:
   landing page and `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked
   lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which
   answers from the nightly snapshot tables; nothing is fetched until the visitor's first interaction, and the
-  section hides itself when the city has nothing ranked. Hovering or focusing a row lights that neighborhood on the
+  section hides itself when the city has nothing ranked. A city mapped as one neighborhood has no neighborhood
+  ranking to give, so that unit is dropped and the module is its street list, with no switch left to offer. Hovering or focusing a row lights that neighborhood on the
   landing choropleth — or that city's circle on `/cities` — through the same `hover` feature-state the maps' own
   pointer handlers use, and the map never moves. The completion floor below which a neighborhood is not ranked is
   the backend's `min_region_completion`, the same number the AccessScore tool hatches by.
