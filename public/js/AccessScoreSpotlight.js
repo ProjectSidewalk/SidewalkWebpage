@@ -110,6 +110,16 @@ class AccessScoreSpotlight {
     util.onFirstInteractionOrIdle(() => this.#start());
   }
 
+  /**
+   * Whether a unit is worth offering: it ranks something, or — regions only — it can ask for the neighborhood
+   * nearest the floor. A feed that failed to load is never offerable.
+   * @param {?SpotlightFeed} feed - The unit's feed.
+   * @returns {boolean}
+   */
+  static #hasContent(feed) {
+    return Boolean(feed) && (feed.qualifying > 0 || feed.nearest.length > 0);
+  }
+
   /** Fetches both units, picks the one to open on, and renders — or hides the section if nothing is ranked. */
   async #start() {
     const [regions, streets] = await Promise.all([this.#fetchUnit('regions'), this.#fetchUnit('streets')]);
@@ -121,10 +131,11 @@ class AccessScoreSpotlight {
       return;
     }
 
-    // Streets qualify almost as soon as a city starts, so a young city opens on streets and switches to
-    // neighborhoods once enough of them clear the completion floor. A city mapped as one neighborhood has no
-    // interesting neighborhood list at all, so it opens on streets too.
-    const neighborhoodsWorthOpening = ranked(regions) >= AccessScoreSpotlight.#LIST_SIZE && regions.total > 1;
+    // One neighborhood is nothing to rank against — unless no street is ranked either, when one score beats none.
+    if (!this.#crossCity && regions && regions.total === 1 && ranked(streets) > 0) this.#feeds.regions = null;
+
+    // Streets qualify early, so a young city opens on streets until enough neighborhoods clear the completion floor.
+    const neighborhoodsWorthOpening = this.#feeds.regions && ranked(regions) >= AccessScoreSpotlight.#LIST_SIZE;
     this.#unit = neighborhoodsWorthOpening || ranked(streets) === 0 ? 'regions' : 'streets';
     this.#render();
   }
@@ -177,10 +188,13 @@ class AccessScoreSpotlight {
 
     this.#renderSubtitle(feed);
 
-    const head = document.createElement('div');
-    head.className = 'spotlight-head';
-    head.appendChild(this.#buildUnitSwitch());
-    this.#root.appendChild(head);
+    const units = this.#buildUnitSwitch();
+    if (units) {
+      const head = document.createElement('div');
+      head.className = 'spotlight-head';
+      head.appendChild(units);
+      this.#root.appendChild(head);
+    }
 
     const cols = document.createElement('div');
     cols.className = 'spotlight-cols';
@@ -236,15 +250,18 @@ class AccessScoreSpotlight {
   }
 
   /**
-   * The Neighborhoods / Streets switch, as two toggle buttons rather than tabs: each redraws this same region. A unit
-   * whose feed failed to load is not offered, since switching to it would have nothing to draw.
+   * The Neighborhoods / Streets switch: toggle buttons, not tabs, since each redraws this same region.
+   * @returns {?HTMLElement} The group, or null below two offerable units — a switch whose only destination is a
+   *   heading over an empty list is worse than no switch.
    */
   #buildUnitSwitch() {
+    const offered = ['regions', 'streets'].filter((u) => AccessScoreSpotlight.#hasContent(this.#feeds[u]));
+    if (offered.length < 2) return null;
     const group = document.createElement('div');
     group.className = 'spotlight-units';
     group.setAttribute('role', 'group');
     group.setAttribute('aria-label', i18next.t('common:access-score-spotlight.units-label'));
-    for (const unit of ['regions', 'streets'].filter((u) => this.#feeds[u])) {
+    for (const unit of offered) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'spotlight-unit';

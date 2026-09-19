@@ -38,8 +38,8 @@ class AccessScoreDock {
   #histogram;
   /** @type {AccessScoreWhatsHere} */
   #whatsHere;
-  /** @type {AccessScoreRankBars} */
-  #rank;
+  /** @type {?AccessScoreRankBars} Null in a single-region city, which has no rank panel. */
+  #rank = null;
   /** @type {AccessScorePhotoStrip} */
   #photos;
   /** The scope the photo strip last loaded, so a slider tick never refetches it. */
@@ -128,15 +128,21 @@ class AccessScoreDock {
       onOpenLabel: (labelId, ids) => this.#callbacks.onOpenLabel(labelId, ids),
       log,
     });
-    this.#rank = new AccessScoreRankBars(root.querySelector('#acs-rank-bars'), {
-      onSelect: (regionId) => {
-        this.#callbacks.log('RankSelect_regionId', regionId);
-        this.setFocusRegion(regionId);
-        this.#callbacks.onRankSelect(regionId);
-      },
-      onHover: (regionId) => this.#hoverRegion(regionId),
-      onHoverEnd: () => this.#hoverEnd(),
-    });
+    // One region has nothing to rank against, so the panel goes and the band's grid closes over its column.
+    if (model.regionStats.length > 1) {
+      this.#rank = new AccessScoreRankBars(root.querySelector('#acs-rank-bars'), {
+        onSelect: (regionId) => {
+          this.#callbacks.log('RankSelect_regionId', regionId);
+          this.setFocusRegion(regionId);
+          this.#callbacks.onRankSelect(regionId);
+        },
+        onHover: (regionId) => this.#hoverRegion(regionId),
+        onHoverEnd: () => this.#hoverEnd(),
+      });
+    } else {
+      root.querySelector('.acs-dock__panel--rank')?.remove();
+      this.#els.body.classList.add('acs-dock__body--no-rank');
+    }
     this.#bind();
     this.#observeHeight();
     this.#schedule({ dim: false });
@@ -168,7 +174,9 @@ class AccessScoreDock {
   applyUrlState({ open, brush, focus } = {}) {
     if (open === false) this.setOpen(false, { log: false });
     if (brush) this.setBrush(brush, { final: true, log: false, announce: false });
-    if (focus) this.setFocusRegion(focus);
+    // Only the rank list can focus a region, so without one a hand-built `focus=` would scope the band with nothing
+    // on screen saying why.
+    if (focus && this.#rank) this.setFocusRegion(focus);
   }
 
   /**
@@ -202,8 +210,8 @@ class AccessScoreDock {
     this.#mapHover = hover;
     this.#markCaret(hover?.score ?? this.#selectionScore());
     const regionId = hover ? this.#regionOf(hover) : null;
-    if (regionId !== null) this.#rank.highlight([regionId]);
-    else this.#rank.clearHighlight();
+    if (regionId !== null) this.#rank?.highlight([regionId]);
+    else this.#rank?.clearHighlight();
   }
 
   /**
@@ -292,14 +300,16 @@ class AccessScoreDock {
       empty: breakdown.streets === 0 && breakdown.intersections === 0,
     });
     if (needPhotos) this.#showPhotos(this.#photoScope());
-    const rows = this.#model.rankedRegions();
-    this.#rank.draw({
-      shapeKey: rows.map((r) => r.regionId).sort((a, b) => a - b).join(','),
-      rows,
-      brush: this.#brush,
-      selectedId: this.#selection ? this.#regionOf(this.#selection) : this.#focusRegionId,
-      floored: this.#model.regionStats.length - rows.length,
-    });
+    if (this.#rank) {
+      const rows = this.#model.rankedRegions();
+      this.#rank.draw({
+        shapeKey: rows.map((r) => r.regionId).sort((a, b) => a - b).join(','),
+        rows,
+        brush: this.#brush,
+        selectedId: this.#selection ? this.#regionOf(this.#selection) : this.#focusRegionId,
+        floored: this.#model.regionStats.length - rows.length,
+      });
+    }
 
     this.#renderKpis(kpis);
     this.#renderCaption();
@@ -459,7 +469,10 @@ class AccessScoreDock {
       request = lowest
         ? {
             caption: i18next.t('accessscore:photos-from', {
-              scope: i18next.t('accessscore:photos-lowest', { name: lowest.name }),
+              // "(lowest scoring)" is a comparison, so a city with one region is captioned by its name alone.
+              scope: this.#model.regionStats.length > 1
+                ? i18next.t('accessscore:photos-lowest', { name: lowest.name })
+                : lowest.name,
             }),
             regionId: lowest.regionId,
           }
@@ -509,7 +522,7 @@ class AccessScoreDock {
     const streets = this.#model.state.unit === 'streets';
     const ids = streets ? this.#model.streetIdsInBins(bin, bin + 1) : this.#model.regionIdsInBins(bin, bin + 1);
     this.#hover = { ids };
-    this.#rank.highlight(this.#model.regionIdsInBins(bin, bin + 1));
+    this.#rank?.highlight(this.#model.regionIdsInBins(bin, bin + 1));
     this.#applyMapDim();
   }
 
@@ -524,7 +537,7 @@ class AccessScoreDock {
   #hoverEnd() {
     if (!this.#hover) return;
     this.#hover = null;
-    this.#rank.clearHighlight();
+    this.#rank?.clearHighlight();
     this.#markCaret(this.#mapHover?.score ?? this.#selectionScore());
     this.#applyMapDim();
   }
