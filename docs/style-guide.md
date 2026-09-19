@@ -94,6 +94,10 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
     value: a newline in `title="..."` renders literally in the tooltip.
   - `eslint --fix` can't do this conversion for you (`prefer-template` only fires when a variable is involved, not on
     literal-plus-literal chains), so convert concatenated HTML by hand as you touch it.
+  - Anything interpolated into that markup must be escaped exactly once — `util.escapeHTML(value)`, or, for a
+    translated string, `interpolation: { escapeValue: true }` on the `i18next.t()` call (the
+    `ps/i18n-escape-in-markup` rule blocks a build that forgets). i18next interpolates values verbatim by default,
+    since most of them land in a text node: `docs/internationalization.md` → "Interpolated values and HTML".
 - **Semicolons required** (`semi`); always parenthesize arrow-function params (`arrow-parens`).
 - **No space between a function name and its `(`**; **do** put a space before a block's `{` and around operators and
   keywords (`if`, `for`). Blank line before and after function declarations (`padding-line-between-statements`).
@@ -187,7 +191,9 @@ consistent with it.
 
 **Icons.** SVG icons live as **their own files** in `public/images/icons/` — **never inlined** in Twirl templates
 (inlined SVGs are hard to find, reuse, and review — see #4058). Default to icons from the **feather** and **material**
-sets in the "Design System Tokens" Figma, named `<icon>-<set>.svg` (`map-pin-feather.svg`, `comment-material.svg`).
+sets in the "Design System Tokens" Figma, named `<icon>-<set>.svg` (`map-pin-feather.svg`, `comment-material.svg`);
+**lucide** (Feather's successor, ISC, the same stroke style) fills the gaps Feather has, such as the place-category
+glyphs (`bus-white-lucide.svg`).
 How to show one depends on where its color comes from:
 
 - **Color baked into the file: an `<img>`**, e.g.

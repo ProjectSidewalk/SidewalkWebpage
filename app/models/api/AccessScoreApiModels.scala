@@ -11,6 +11,7 @@
 package models.api
 
 import models.label.LabelTypeEnum
+import models.place.PlaceCategory
 import models.utils.LatLngBBox
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.{LineString, MultiPolygon, Point}
@@ -377,6 +378,9 @@ case class TagAdjustmentForApi(labelType: String, tag: String, delta: Double)
  *                                      scores whatever has been explored — but published here so the AccessScore
  *                                      tool and the Spotlight module read one number instead of each holding a
  *                                      literal that can drift from the other (#5215).
+ * @param placeCategories               The place categories the AccessScore map can show (#5311), in display order,
+ *                                      as `/v3/api/places` files them. Published here, beside the other lists the
+ *                                      tool renders its controls from, rather than re-declared in the frontend.
  */
 case class AccessScoreConfigForApi(
     scoredTypes: Seq[String],
@@ -395,7 +399,8 @@ case class AccessScoreConfigForApi(
     tagActiveThreshold: Double,
     presetOrder: Seq[String],
     presets: Map[String, Map[String, Double]],
-    minRegionCompletion: Double
+    minRegionCompletion: Double,
+    placeCategories: Seq[String]
 ) {
 
   /** Serializes the configuration with snake_case keys; per-type and per-bucket objects keep the engine's order. */
@@ -433,7 +438,8 @@ case class AccessScoreConfigForApi(
       "tag_active_threshold"  -> tagActiveThreshold,
       "preset_order"          -> presetOrder,
       "presets"               -> JsObject(presetOrder.map(id => id -> orderedWeights(presets(id)))),
-      "min_region_completion" -> minRegionCompletion
+      "min_region_completion" -> minRegionCompletion,
+      "place_categories"      -> placeCategories
     )
   }
 }
@@ -466,7 +472,8 @@ object AccessScoreConfigForApi {
       tagActiveThreshold = AccessScoreCalculator.tagActiveThreshold,
       presetOrder = AccessScoreCalculator.presetOrder,
       presets = AccessScoreCalculator.presets,
-      minRegionCompletion = AccessScoreSpotlight.MinRegionCompletion
+      minRegionCompletion = AccessScoreSpotlight.MinRegionCompletion,
+      placeCategories = PlaceCategory.ids
     )
   }
 

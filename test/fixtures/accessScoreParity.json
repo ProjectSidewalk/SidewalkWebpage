@@ -182,7 +182,8 @@
         "NoSidewalk" : 2
       }
     },
-    "min_region_completion" : 0.8
+    "min_region_completion" : 0.8,
+    "place_categories" : [ "school", "health", "library", "grocery", "transit", "park", "community" ]
   },
   "streets" : [ {
     "name" : "empty street",

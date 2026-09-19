@@ -46,6 +46,7 @@ class AdminController @Inject() (
     jobRunService: JobRunService,
     trafficService: TrafficService,
     sidewalkPresenceService: SidewalkPresenceService,
+    placesService: PlacesService,
     actorSystem: ActorSystem
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
@@ -1121,6 +1122,29 @@ class AdminController @Inject() (
       jobRunService
         .record(SidewalkPresenceActor.Name, JobRunTrigger.Manual)(sidewalkPresenceService.rebuild())(_.runDetails)
         .map(result => Ok(result.runDetails))
+    }
+  }
+
+  /**
+   * Fetches the city's places from OpenStreetMap now, whatever the table's age (#5311).
+   *
+   * Recorded as a manual run of the nightly job, so the Health panel charts both triggers as one. The Overpass query
+   * can take minutes for a big city, longer than a proxy waits on a response, so like crop generation this answers
+   * at once and the run row is the account of what happened. Refused rather than raced while a run is in flight,
+   * before anything is recorded, so a refused click leaves nothing on the Health panel.
+   */
+  def refreshPlaces = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    if (placesService.isRunning) {
+      Future.successful(Conflict("A places refresh is already in progress."))
+    } else {
+      jobRunService
+        .record(PlacesRefreshActor.Name, JobRunTrigger.Manual)(placesService.refresh(force = true))(_.runDetails)
+        .onComplete {
+          case Success(result) => logger.info(s"Manually triggered places refresh finished: ${result.runDetails}")
+          case Failure(e)      => logger.error(s"Manually triggered places refresh failed: ${e.getMessage}")
+        }
+      Future.successful(Accepted("Places refresh started. It reports to the Health panel when it finishes."))
     }
   }
 

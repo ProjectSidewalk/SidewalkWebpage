@@ -121,6 +121,74 @@
   display: none;
 }
 
+/* ---- Places (#5311): one row per category, the icon doubling as the map legend ---- */
+
+.acs-place-categories {
+  margin-top: var(--space-xxs);
+}
+
+.acs-place-row .acs-check {
+  align-items: center;
+}
+
+/* The same disc the map draws, so the row is the legend for the marker. */
+.acs-place__icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(20px * var(--ui-scale, 1));
+  height: calc(20px * var(--ui-scale, 1));
+  border-radius: 50%;
+  background: var(--color-place-marker);
+  box-shadow: 0 0 0 1px var(--color-place-marker-halo);
+}
+
+.acs-place__icon img {
+  width: calc(12px * var(--ui-scale, 1));
+  height: calc(12px * var(--ui-scale, 1));
+}
+
+.acs-place__name {
+  flex: 1 1 auto;
+}
+
+/* The row's right edge: the count, swapped for "Only" while the pointer or keyboard focus is in the row, the shared
+   filter sidebar's exclusive-select affordance. A sibling of the label, not a child: inside it, a click on the button
+   would also toggle the checkbox. */
+.acs-place__slot {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--space-xs);
+}
+
+.acs-place__count {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-600);
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-place-row:hover .filter-sidebar__only,
+.acs-place-row:has(:focus-visible) .filter-sidebar__only {
+  display: inline;
+}
+
+.acs-place-row:hover .acs-place__count,
+.acs-place-row:has(:focus-visible) .acs-place__count {
+  display: none;
+}
+
+.acs-places-note {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-600);
+  margin: var(--space-xs) 0 0;
+}
+
+.acs-places-note[hidden] {
+  display: none;
+}
+
 /* Streets | Regions: two radios styled as one segmented control. */
 .acs-segmented {
   display: grid;
@@ -313,9 +381,65 @@
   white-space: nowrap;
 }
 
-.acs-weights-reset {
+/* A heading row's action ("Reset weights", "Select all"): shown only once it has something to do. */
+.acs-heading-action {
   margin-left: auto;
   white-space: nowrap;
+}
+
+/* ---- A section folded behind its heading (the weights) ---- */
+
+.acs-disclosure__heading {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The button inherits the heading's type so the fold reads as the heading, with only the chevron saying it opens. */
+.acs-disclosure {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.acs-disclosure:hover {
+  color: var(--color-link-200);
+}
+
+.acs-disclosure:focus-visible {
+  outline: 2px solid var(--color-asphalt-400);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Inset to sit flush with the heading's left edge: the glyph has its own margin inside the 22px box. */
+.acs-disclosure__chevron {
+  width: 22px;
+  height: 22px;
+  margin-left: -6px;
+  flex: none;
+}
+
+/* "Custom" beside a folded heading: the one fact the fold would hide. Empty while the weights are the defaults. */
+.acs-disclosure__hint {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin-left: var(--space-xxs);
+}
+
+.acs-disclosure__hint:empty {
+  display: none;
+}
+
+.acs-weights[hidden] {
+  display: none;
 }
 
 #acs-weights-section .filter-sidebar__heading {

@@ -920,10 +920,7 @@ class LabelDetail {
     // spotlight page and serves the og:image crawlers embed in the share card.
     if (this.#shareWidget) {
       // The title feeds the native sheet and the email subject, so it carries the descriptive text, not "Share".
-      // escapeValue off: plain-text sinks only, and a type name can carry an apostrophe (Can't See the Sidewalk).
-      const shareText = i18next.t('common:share.text', {
-        labelType: labelTypeName, interpolation: { escapeValue: false },
-      });
+      const shareText = i18next.t('common:share.text', { labelType: labelTypeName });
       this.#shareWidget.setTarget({
         url: `${window.location.origin}/label/${meta.label_id}`,
         title: shareText,
@@ -1645,10 +1642,14 @@ class LabelDetail {
           // `_zero` key covers "nobody else" without a second key and a branch here — it resolves whenever count is
           // 0, even in languages (zh-TW) whose CLDR rules have no zero category, so those carry only _zero/_other.
           const others = Math.max(0, (this.#validationCounts[action] ?? 1) - 1);
-          tip = i18next.t(`labelmap:vote-tooltip-voted-${action.toLowerCase()}`, { count: others });
+          tip = i18next.t(`labelmap:vote-tooltip-voted-${action.toLowerCase()}`, {
+            count: others, interpolation: { escapeValue: true },
+          });
         } else {
           const count = this.#validationCounts[action] ?? 0;
-          tip = i18next.t(`labelmap:vote-tooltip-${action.toLowerCase()}`, { count });
+          tip = i18next.t(`labelmap:vote-tooltip-${action.toLowerCase()}`, {
+            count, interpolation: { escapeValue: true },
+          });
         }
         // The AI's vote is folded into this option's count, so flag it where it applies. Sentences are appended in
         // order of usefulness, so what clicking *does* lands last rather than trailing off into a footnote.

@@ -72,7 +72,9 @@ function addStreetsToMap(map, streetData, params) {
       // The re-audit card already carries this street's Explore link, so a second popup would only cover it. On
       // touch there is no hover, no card, and this stays the only way in.
       if (reauditCard.isShowingFor(streetId)) return;
-      const popupContent = i18next.t('common:explore-street-link', { streetId });
+      const popupContent = i18next.t('common:explore-street-link', {
+        streetId, interpolation: { escapeValue: true },
+      });
       streetPopup.setLngLat(event.lngLat).setHTML(popupContent).addTo(map);
     });
 

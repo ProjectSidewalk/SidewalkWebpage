@@ -121,18 +121,13 @@ class ModalMissionComplete {
     if (svl.regionModel.isRouteComplete) {
       this.#els.title.textContent = i18next.t('mission-complete.title-route-complete');
     } else if (svl.regionModel.isRegionComplete) {
-      // escapeValue off: the result lands in textContent, so i18next's HTML-escaping would show literal entities.
-      this.#els.title.textContent = i18next.t('mission-complete.title-region-complete', {
-        regionName, interpolation: { escapeValue: false },
-      });
+      this.#els.title.textContent = i18next.t('mission-complete.title-region-complete', { regionName });
     } else {
       this.#els.title.textContent = i18next.t('mission-complete.title-generic');
     }
-    // escapeValue off: the result lands in textContent, so i18next's HTML-escaping would show literal entities.
     this.#els.subtitle.textContent = i18next.t('mission-complete.subtitle', {
       distance: this.#formatMissionDistance(mission.getDistance('miles')),
       regionName,
-      interpolation: { escapeValue: false },
     });
   }
 

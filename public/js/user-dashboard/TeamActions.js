@@ -95,9 +95,8 @@ class TeamActions {
   static async #leave(btn) {
     const wasOpen = btn.dataset.teamOpen === 'true';
     const confirmed = await ConfirmDialog.confirm({
-      // escapeValue off: the name renders as textContent inside ConfirmDialog, not markup, so it needn't be escaped.
       message: i18next.t(wasOpen ? 'dashboard:team-leave-confirm-open' : 'dashboard:team-leave-confirm-closed',
-        { name: btn.dataset.teamName, interpolation: { escapeValue: false } }),
+        { name: btn.dataset.teamName }),
       confirmText: i18next.t('dashboard:team-leave'),
       cancelText: i18next.t('common:cancel'),
       danger: true,

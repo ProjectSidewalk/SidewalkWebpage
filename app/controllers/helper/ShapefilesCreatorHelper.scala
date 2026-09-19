@@ -6,6 +6,7 @@ import models.api.{
   IntersectionAccessScoreForApi,
   LabelClusterForApi,
   LabelDataForApi,
+  PlaceForApi,
   RawLabelInClusterDataForApi,
   RegionAccessScoreForApi,
   RegionDataForApi,
@@ -300,6 +301,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
   )
   private lazy val regionsLayer =
     new GeoPackageLayer[RegionDataForApi]("regions", classOf[MultiPolygon], RegionDataForApi, _.geometry)
+  private lazy val placesLayer = new GeoPackageLayer[PlaceForApi]("places", classOf[Point], PlaceForApi, _.geometry)
   private lazy val accessScoreStreetsLayer = new GeoPackageLayer[StreetAccessScoreForApi](
     "access_score_streets",
     classOf[LineString],
@@ -387,6 +389,13 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = createGeneralGeoPackage(source, outputFile, batchSize, sidewalkPresenceLayer)
+
+  /** Creates a GeoPackage of places (`/v3/api/places`, #5311), in a `places` layer. */
+  def createPlacesGeopackage(
+      source: Source[PlaceForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = createGeneralGeoPackage(source, outputFile, batchSize, placesLayer)
 
   /** Creates a GeoPackage of regions (`/v3/api/regions`), in a `regions` layer. */
   def createRegionDataGeopackage(
@@ -945,6 +954,52 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(face.lastNoSidewalkLabelDate.map(_.toString).orNull)
       featureBuilder.add(face.validatedNoSidewalkCount)
       featureBuilder.add(face.rejectedNoSidewalkCount)
+      featureBuilder.buildFeature(null)
+    }
+
+    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /**
+   * Writes places (#5311) as a Shapefile: one Point per place. Field names are camelCase and abbreviated to the DBF
+   * format's 10-character limit; the GeoPackage carries the canonical snake_case names.
+   */
+  def createPlacesShapefile(
+      source: Source[PlaceForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "Place",
+      "the_geom:Point:srid=4326,"
+        + "placeId:Integer,"
+        + "category:String,"
+        + "name:String,"
+        + "source:String,"
+        + "osmType:String,"
+        + "osmId:String," // OSM id as String (shapefiles don't handle Long well)
+        + "osmUrl:String,"
+        + "regionId:Integer,"
+        + "regionName:String,"
+        + "streetId:Integer," // nearest_street_edge_id
+        + "distM:Double,"     // nearest_street_distance_m
+        + "fetchedAt:String"
+    )
+
+    def buildFeature(place: PlaceForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+      featureBuilder.add(place.geometry)
+      featureBuilder.add(place.placeId)
+      featureBuilder.add(place.category)
+      featureBuilder.add(place.name.orNull)
+      featureBuilder.add(place.source)
+      featureBuilder.add(place.osmType.orNull)
+      featureBuilder.add(place.osmId.map(_.toString).orNull)
+      featureBuilder.add(place.osmUrl.orNull)
+      featureBuilder.add(place.regionId.map(Integer.valueOf).orNull)
+      featureBuilder.add(place.regionName.orNull)
+      featureBuilder.add(place.nearestStreetEdgeId.map(Integer.valueOf).orNull)
+      featureBuilder.add(place.nearestStreetDistanceM.map(Double.box).orNull)
+      featureBuilder.add(place.fetchedAt.toString)
       featureBuilder.buildFeature(null)
     }
 

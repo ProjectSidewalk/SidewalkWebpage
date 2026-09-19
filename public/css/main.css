@@ -171,6 +171,13 @@
   --color-street-audited: var(--color-asphalt-500);
   --color-street-unaudited: var(--color-orange-600);
 
+  /* Place markers on the AccessScore map (#5311): one color for every category, with the glyph and the sidebar's icon
+     list carrying the category. The map already spends its hues on the score ramp and the seven label types, and a
+     dark disc with a light halo holds >= 3:1 on both basemaps, so a place reads as a landmark rather than as data.
+     The api-docs preview reads the same two tokens. */
+  --color-place-marker: var(--color-asphalt-800);
+  --color-place-marker-halo: var(--color-neutral-white);
+
   /* Font stacks. Mulish handles ~all type (body, UI, headings H3 and below); Raleway is reserved for top-level H1/H2
        and the Small-Accent style. Mulish doesn't ship CJK glyphs, so its stack ends with Traditional-Chinese system
        fonts (PingFang TC on macOS/iOS, Microsoft JhengHei on Windows; Linux/Android fall through via sans-serif). The

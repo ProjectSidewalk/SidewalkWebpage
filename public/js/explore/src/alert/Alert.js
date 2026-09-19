@@ -23,6 +23,9 @@ class Alert {
    *     reporting something that happened to the labeler without their asking does not.
    */
   _showAlert(translationKey, type, interpolation = {}, dontShow = true) {
-    this.#alertHandler.showAlert(i18next.t(translationKey, interpolation), type, dontShow);
+    // The banner renders its message as HTML, so whatever a subclass passes is escaped; markup a message needs
+    // belongs in the translation, which escapeValue never touches.
+    this.#alertHandler.showAlert(
+      i18next.t(translationKey, { ...interpolation, interpolation: { escapeValue: true } }), type, dontShow);
   }
 }
