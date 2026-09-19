@@ -523,7 +523,9 @@ hostnames, and ports are omitted here for the same reason as the rest of this do
 `ProxyTimeout` is **60 s**: a request the app takes longer than that to answer is a `502` at the client no matter
 what the JVM does next, which is why the full-city AccessScore endpoints give up waiting at 45 s and answer `503` +
 `Retry-After` instead (`AccessScoreService.FullCityColdWait`, #5418) — lower the proxy's timeout and that constant has
-to follow. Two checks:
+to follow. That `Retry-After` reaches the browser only if the vhost does not rewrite proxied error responses
+(`ProxyErrorOverride`), which is worth checking whenever the Apache config changes; without it the AccessScore tool
+falls back to its own backoff and still converges, just more slowly. Two checks:
 
 - **Reproduce against the backend directly, bypassing the proxy** — but carry a session cookie and follow redirects
   (`curl -L -c jar -b jar`): an anonymous request is bounced through the anon-session flow (a fast `303` to
