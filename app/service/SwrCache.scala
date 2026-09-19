@@ -89,7 +89,8 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(imp
    * For a job that has already done the computation a request would otherwise block on — the nightly AccessScore
    * Spotlight snapshot computes the very value `/v3/api/accessScoreStreets` caches — so a cold JVM's first request
    * after the job is a hit, not a wait. Deliberately not routed through the in-flight map: the caller's value is
-   * final, and a request-triggered refresh that started earlier must neither be handed this value nor block it.
+   * final, and a request-triggered refresh that started earlier must neither be handed this value nor block it. Nor
+   * may it overwrite it: a refresh that finishes after this write finds the newer timestamp and leaves it in place.
    *
    * @param key    Cache key, the same one the readers use.
    * @param value  The value to serve from now on.
@@ -119,6 +120,12 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(imp
   /**
    * Recomputes the value behind `key` and caches it, coalescing concurrent calls into one shared computation.
    *
+   * The write is skipped when the cache already holds a value computed after this refresh started: a [[put]] landed
+   * while the compute ran, and the caller of `put` had newer inputs than this compute read. The nightly AccessScore
+   * snapshot seeds its key at the end of the clustering job, and a request-triggered refresh that started
+   * mid-clustering would otherwise land afterwards and replace the post-clustering scores with pre-clustering ones
+   * for the rest of the fresh window. The refresh's own callers still receive what it computed (#5418).
+   *
    * @return The freshly computed value, or the computation's failure (already-cached data is left untouched).
    */
   private def refreshCachedValue[T](key: String, maxAge: FiniteDuration)(compute: => Future[T]): Future[T] =
@@ -127,11 +134,18 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(imp
         // The cast is safe because a given key is only ever refreshed with one result type.
         case Some(inFlight) => inFlight.asInstanceOf[Future[T]]
         case None           =>
+          val startedAt = OffsetDateTime.now()
           // Future.delegate guards against `compute` throwing synchronously (before producing a Future): the throw
           // becomes a failed Future handled by the onComplete logging below, instead of escaping to a caller that
           // could have been served stale data.
           val computation = Future.delegate(compute).flatMap { value =>
-            cacheApi.set(key, Timestamped(value, OffsetDateTime.now()), maxAge).map(_ => value)
+            cacheApi.get[Timestamped[T]](key).flatMap {
+              case Some(newer) if newer.computedAt.isAfter(startedAt) =>
+                logger.debug(s"Recompute of cached '$key' finished behind a newer value; keeping the newer one.")
+                Future.successful(value)
+              case _ =>
+                cacheApi.set(key, Timestamped(value, OffsetDateTime.now()), maxAge).map(_ => value)
+            }
           }
           computation.onComplete { result =>
             synchronized { val _ = refreshesInFlight.remove(key) }

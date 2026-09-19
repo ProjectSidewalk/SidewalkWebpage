@@ -73,6 +73,8 @@ class AccessScoreApiController @Inject() (
     resolveAccessScoreArea(bbox, regionId, regionName).flatMap {
       case Left(error)                           => Future.successful(badRequest(error))
       case Right((resolvedBbox, regionFilterId)) =>
+        // Logged before the still-computing branch too: a `503` a user reports has to be findable in webpage_activity.
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
         streetScores(bbox, regionId, regionName, resolvedBbox).flatMap {
           case None             => Future.successful(scoresStillComputing)
           case Some(allStreets) =>
@@ -81,7 +83,6 @@ class AccessScoreApiController @Inject() (
               regionFilterId.fold(allStreets)(id => allStreets.filter(_.regionId == id))
             val baseFileName: String                             = timestampedFilename("accessScoreStreets")
             val streetStream: Source[StreetAccessScoreForApi, _] = Source.fromIterator(() => streets.iterator)
-            cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
             filetype match {
               case Some("csv") =>
@@ -125,6 +126,7 @@ class AccessScoreApiController @Inject() (
     resolveAccessScoreArea(bbox, regionId, regionName).flatMap {
       case Left(error)                           => Future.successful(badRequest(error))
       case Right((resolvedBbox, regionFilterId)) =>
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
         accessScores(bbox, regionId, regionName, resolvedBbox).flatMap {
           case None         => Future.successful(scoresStillComputing)
           case Some(scores) =>
@@ -141,7 +143,6 @@ class AccessScoreApiController @Inject() (
             }
             val baseFileName: String                             = timestampedFilename("accessScoreIntersections")
             val stream: Source[IntersectionAccessScoreForApi, _] = Source.fromIterator(() => intersections.iterator)
-            cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
             filetype match {
               case Some("csv") =>
@@ -189,6 +190,7 @@ class AccessScoreApiController @Inject() (
     resolveAccessScoreArea(bbox, regionId, regionName).flatMap {
       case Left(error)                           => Future.successful(badRequest(error))
       case Right((resolvedBbox, regionFilterId)) =>
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
         val regionScores: Future[Option[Seq[RegionAccessScoreForApi]]] =
           if (isFullCity(bbox, regionId, regionName)) accessScoreService.getFullCityRegionScores(DEFAULT_BATCH_SIZE)
           else accessScoreService.computeRegionScoresV3(resolvedBbox, DEFAULT_BATCH_SIZE).map(Some(_))
@@ -199,7 +201,6 @@ class AccessScoreApiController @Inject() (
               regionFilterId.fold(allRegions)(id => allRegions.filter(_.regionId == id))
             val baseFileName: String                             = timestampedFilename("accessScoreRegions")
             val regionStream: Source[RegionAccessScoreForApi, _] = Source.fromIterator(() => regions.iterator)
-            cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
             filetype match {
               case Some("csv") =>
@@ -314,13 +315,15 @@ class AccessScoreApiController @Inject() (
   /**
    * The answer to a full-city request whose scores are still being computed (#5418): a `503` with a `Retry-After`,
    * sent before the reverse proxy's 60-second timeout would have turned the wait into a `502`. The computation keeps
-   * running server-side, so a client that honors the header finds a warm cache; the AccessScore tool does.
+   * running server-side, so a client that honors the header finds a warm cache; the AccessScore tool does. The detail
+   * names no cause: the cache is cold after a deploy, but also after the value aged out or a compute failed.
    */
   private def scoresStillComputing: Result =
     ApiError
       .toResult(
         ApiError.stillComputing(
-          "This city's AccessScores are being computed for the first time since the server started. Retry shortly."
+          "This city's AccessScores are still being computed. Retry after the number of seconds in the Retry-After " +
+            "header."
         )
       )
       .withHeaders(RETRY_AFTER -> AccessScoreApiController.StillComputingRetryAfterSeconds.toString)

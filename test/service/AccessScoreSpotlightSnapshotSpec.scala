@@ -8,6 +8,7 @@ import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
+import play.api.cache.AsyncCacheApi
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.i18n.Lang
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -110,12 +111,16 @@ class AccessScoreSpotlightSnapshotSpec extends PlaySpec with GuiceOneAppPerSuite
     }
 
     "leave the request path warm after a whole recordSnapshot, so the tool never waits on a cold JVM" in {
+      // Cold first, and the cache is inspected before any request-path read: on this database the request path
+      // computes inside its own deadline, so a read that came first would warm the key itself and prove nothing.
+      val cacheApi = app.injector.instanceOf[AsyncCacheApi]
+      await(cacheApi.remove(AccessScoreService.FullCityCacheKey))
+      await(cacheApi.get[Any](AccessScoreService.FullCityCacheKey)) mustBe empty
+
       await(service.recordSnapshot())
 
-      val first  = await(accessScoreService.getFullCityScores(AccessScoreSpotlightService.BatchSize))
-      val second = await(accessScoreService.getFullCityScores(AccessScoreSpotlightService.BatchSize))
-      first mustBe defined
-      assert(second.get eq first.get)
+      // The wrapper type is SwrCache's own, so presence is the check; the identity test above pins the value.
+      await(cacheApi.get[Any](AccessScoreService.FullCityCacheKey)) mustBe defined
       // The region roll-up reads the same cached value, so it is warm too.
       await(accessScoreService.getFullCityRegionScores(AccessScoreSpotlightService.BatchSize)) mustBe defined
     }

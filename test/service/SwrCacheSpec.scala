@@ -11,9 +11,10 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, Promise}
 
 /**
- * The two additions #5418 made to [[SwrCache]], against the app's real Play cache: `put`, which lets a job that has
- * already computed a value seed it for the request path, and the cold-wait deadline, which turns a compute that
- * outlasts the request into a `None` while the compute keeps running toward the cache.
+ * What #5418 added to [[SwrCache]], against the app's real Play cache: `put`, which lets a job that has already
+ * computed a value seed it for the request path and which a slower refresh must not overwrite, and the cold-wait
+ * deadline, which turns a compute that outlasts the request into a `None` while the compute keeps running toward the
+ * cache.
  *
  * Every key is unique to its test so nothing here can see, or leave, another test's value; the cache is per JVM and
  * the suite shares one. The computes are `Promise`s the tests complete by hand, so "still running" and "finished" are
@@ -49,6 +50,30 @@ class SwrCacheSpec extends PlaySpec with GuiceOneAppPerSuite {
       val served =
         await(swrCache.staleWhileRevalidateWithin[Payload](key, 10.minutes, 1.hour, 1.second)(fail("compute ran")))
       assert(served.exists(_ eq seeded))
+    }
+
+    "outlive a refresh that started before the put and finished after it" in {
+      // The nightly seed's race: a request-triggered compute reads pre-clustering inputs, the job seeds the
+      // post-clustering value while it runs, and the compute lands last. The seed must be what is served.
+      val key      = freshKey()
+      val promise  = Promise[Payload]()
+      val computed = Payload(6)
+      val seeded   = Payload(7)
+
+      val refresh = swrCache.staleWhileRevalidateWithin[Payload](key, 10.minutes, 1.hour, 200.millis)(promise.future)
+      await(refresh) mustBe None
+      await(swrCache.put(key, seeded, 1.hour))
+
+      assert(await(swrCache.staleWhileRevalidate[Payload](key, 10.minutes, 1.hour)(fail("compute ran"))) eq seeded)
+      promise.success(computed)
+
+      // The skipped write is a no-op with nothing to await, so the proof is that the seed stays served: an overwrite
+      // would land within milliseconds of the compute completing, well inside this window.
+      val until = System.nanoTime() + 1.second.toNanos
+      while (System.nanoTime() < until) {
+        assert(await(swrCache.staleWhileRevalidate[Payload](key, 10.minutes, 1.hour)(fail("compute ran"))) eq seeded)
+        Thread.sleep(50)
+      }
     }
   }
 

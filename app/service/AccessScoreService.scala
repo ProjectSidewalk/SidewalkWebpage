@@ -73,7 +73,8 @@ class AccessScoreService @Inject() (
 )(implicit mat: Materializer) {
 
   /**
-   * Computes v3 AccessScores for every street intersecting the bbox and every intersection at their ends (#3855, #5095).
+   * Computes v3 AccessScores for every street intersecting the bbox and every intersection at their ends (#3855,
+   * #5095).
    *
    * Loads the streets, their lengths, their end intersections and links, and streams the lean per-cluster scoring
    * rows, splitting each by whether it is attributed to an intersection (which it then scores) or not (it scores its
@@ -295,9 +296,9 @@ class AccessScoreService @Inject() (
    * is the one a page load would have computed, and seeding it is what keeps the tool loading in a city nobody has
    * opened since the deploy. The write comes before the snapshot's own tables are touched, so a failed insert still
    * leaves the cache warm. It is a plain [[SwrCache.put]], not a coalesced refresh: a request-triggered refresh that
-   * started mid-clustering would otherwise hand this caller pre-clustering data. That refresh, if one is in flight,
-   * may still land after this write and overwrite it with the older scores; [[AccessScoreService.FullCityFreshFor]]
-   * bounds how long that lasts.
+   * started mid-clustering would otherwise hand this caller pre-clustering data. Such a refresh, if one is in flight,
+   * cannot overwrite the seed either — [[SwrCache]] keeps the value with the later timestamp — so the first scores
+   * served after a clustering run are the run's.
    *
    * @param batchSize DB fetch size for the cluster stream.
    * @return          The region roll-up and the street/intersection scores it was rolled up from.
