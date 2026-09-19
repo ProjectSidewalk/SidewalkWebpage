@@ -373,21 +373,23 @@ util.longDistanceToString = (km, precision = 0) =>
  * `pano_data.capture_date` is free text holding whatever the imagery API returned, including the literal
  * "Invalid date", and callers want to drop the date from their sentence rather than print that at a labeler.
  *
- * @param {?string} iso - A date (`2024-10-01`) or timestamp (`2024-10-01T12:00:00-07:00`) string.
+ * @param {?string} iso - A month (`2024-10`), date (`2024-10-01`) or timestamp (`2024-10-01T12:00:00-07:00`) string.
  * @param {object} [options]
  * @param {boolean} [options.short=false] - Abbreviate the month ("Oct" rather than "October").
  * @returns {?string} The localized month and year, or null if there is no usable date.
  */
 util.monthYear = function (iso, { short = false } = {}) {
-  if (!iso) return null;
-  // A bare date parses as UTC midnight, which west of Greenwich is the evening before -- and for a first-of-month
-  // capture date that is the wrong month. Reading the calendar fields directly sidesteps the zone entirely.
-  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-  const date = dateOnly
-    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
-    : new Date(iso);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString(i18next.language, { month: short ? 'short' : 'long', year: 'numeric' });
+  // Never through `Date` parsing, which reinterprets all three shapes in the reader's zone: a bare date or month
+  // lands on UTC midnight, and a timestamp leaves the offset it was recorded in, so either can print the month
+  // before. `PanoDateNote.monthKey` reads the string the same way, and the two must agree or a note contradicts
+  // its own tooltip.
+  const parts = /^(\d{4})-(\d{2})(?:\D|$)/.exec(iso ?? '');
+  if (parts === null) return null;
+  const month = Number(parts[2]);
+  // `new Date(2024, 12, 1)` would roll into January rather than reject, quietly printing the wrong year.
+  if (month < 1 || month > 12) return null;
+  return new Date(Number(parts[1]), month - 1, 1)
+    .toLocaleDateString(i18next.language, { month: short ? 'short' : 'long', year: 'numeric' });
 };
 
 // A cross-browser function to capture a mouse position, relative to the given DOM element. The UI is scaled through
