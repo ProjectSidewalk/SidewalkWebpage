@@ -77,6 +77,67 @@
           <div id="acs-weights" class="acs-weights" hidden></div>
         </section>
 
+        @* How street slope enters the score (#5223). Hidden until AccessScoreSlopePanel.js finds both the engine's
+           slope settings and a sampled city in the config; folded like the weights, since its weight starts at 0. The
+           statistic's options, the slider's range and the thresholds' bounds are filled in from the config. *@
+        <section class="filter-sidebar__section acs-section" id="acs-slope-section" aria-labelledby="acs-slope-section-heading" hidden>
+          <div class="filter-sidebar__heading-row">
+            <h3 class="filter-sidebar__heading acs-disclosure__heading" id="acs-slope-section-heading">
+              <button type="button" id="acs-slope-toggle" class="acs-disclosure" aria-expanded="false" aria-controls="acs-slope">
+                <img class="acs-disclosure__chevron" src='@assets.path("images/icons/chevron-right-feather.svg")' alt="" data-down-src='@assets.path("images/icons/chevron-right-feather.svg")' data-up-src='@assets.path("images/icons/chevron-down-feather.svg")'>
+                <span data-i18n="accessscore:slope-section">Street slope</span>
+                <span class="acs-disclosure__hint" id="acs-slope-summary"></span>
+              </button>
+            </h3>
+            <button type="button" id="acs-slope-reset" class="filter-sidebar__deselect-all acs-heading-action" data-i18n="accessscore:slope-reset" hidden>Reset slope</button>
+            @info("slope-help")
+          </div>
+          <div id="acs-slope" class="acs-slope" hidden>
+            <div class="acs-weight">
+              <div class="acs-weight__head">
+                <label class="acs-weight__label" for="acs-slope-weight" data-i18n="accessscore:slope-weight">Slope weight</label>
+                <span class="acs-weight__role acs-weight__role--problem" data-i18n="accessscore:row-hurts">hurts</span>
+                <output class="acs-weight__value" id="acs-slope-weight-value" for="acs-slope-weight"></output>
+              </div>
+              <input type="range" class="acs-range" id="acs-slope-weight" min="0" step="0.05">
+            </div>
+            <div class="acs-field">
+              <label class="acs-field__label" for="acs-slope-statistic" data-i18n="accessscore:slope-statistic">Measured by</label>
+              <select class="ps-select" id="acs-slope-statistic"></select>
+            </div>
+            <fieldset class="acs-fieldset">
+              <legend class="acs-field__label" data-i18n="accessscore:slope-thresholds">Grade thresholds</legend>
+              <div class="acs-field acs-field--inline">
+                <label for="acs-slope-low" data-i18n="accessscore:slope-low">No penalty up to</label>
+                <span class="acs-percent"><input type="number" class="ps-input acs-percent__input" id="acs-slope-low" step="0.1" inputmode="decimal" aria-describedby="acs-slope-low-unit"><span id="acs-slope-low-unit">%</span></span>
+              </div>
+              <div class="acs-field acs-field--inline">
+                <label for="acs-slope-high" data-i18n="accessscore:slope-high">Full penalty from</label>
+                <span class="acs-percent"><input type="number" class="ps-input acs-percent__input" id="acs-slope-high" step="0.1" inputmode="decimal" aria-describedby="acs-slope-high-unit"><span id="acs-slope-high-unit">%</span></span>
+              </div>
+              <p class="acs-field__note" id="acs-slope-fixed-note" data-i18n="accessscore:slope-fixed-note" hidden>This measure uses the accessibility limits of 5% and 8.3%, so the thresholds do not apply.</p>
+            </fieldset>
+            <div class="acs-check-row">
+              <label class="acs-check" for="acs-slope-barrier">
+                <input type="checkbox" id="acs-slope-barrier">
+                <span data-i18n="accessscore:slope-barrier">Treat very steep streets as barriers</span>
+              </label>
+              @info("slope-barrier-help")
+            </div>
+            <div class="acs-field acs-field--inline">
+              <label for="acs-slope-barrier-threshold" data-i18n="accessscore:slope-barrier-threshold">A barrier when steeper than</label>
+              <span class="acs-percent"><input type="number" class="ps-input acs-percent__input" id="acs-slope-barrier-threshold" step="0.1" inputmode="decimal" aria-describedby="acs-slope-barrier-threshold-unit"><span id="acs-slope-barrier-threshold-unit">%</span></span>
+            </div>
+            <div class="acs-check-row">
+              <label class="acs-check" for="acs-slope-low-confidence">
+                <input type="checkbox" id="acs-slope-low-confidence">
+                <span data-i18n="accessscore:slope-low-confidence">Include approximate slopes</span>
+              </label>
+              @info("slope-low-confidence-help")
+            </div>
+          </div>
+        </section>
+
         @* Category rows are rendered by AccessScoreSidebar.js from the backend's catalog; the icons are the legend.
            Folded like the weights, and every category starts off: the scores are the map, places are what a reader
            adds. The hint beside the heading counts the categories on, and the heading's action is the shared filter

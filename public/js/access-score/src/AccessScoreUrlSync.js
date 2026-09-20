@@ -13,7 +13,10 @@
  * percent, on the histogram's 10-point bin edges) and `focus` (the region a rank-list click scoped the band to). The
  * places layer (#5311) adds `pc` (the enabled category ids, or `all`; absent when none are on, the default), and the
  * selected place as `place` (`lat,lng`) with `placeName` — the same pair the searched place will use (#5340), so a link
- * means one thing by "place".
+ * means one thing by "place". The slope settings (#5223) ride in `slope` as `key:value` tokens, each present only
+ * where it differs from the engine's default: `w` (weight), `s` (statistic id), `lo` / `hi` (the thresholds, as
+ * fractions), `b` (the barrier threshold, whose presence is what turns the barrier on) and `lc` (1 to admit
+ * coarse-model slopes).
  */
 class AccessScoreUrlSync {
   /** The `pc` value for every place category: the full list spelled out would break the moment one is added. */
@@ -63,6 +66,9 @@ class AccessScoreUrlSync {
 
     if (params.get('unaudited') === '0') state.showUnaudited = false;
     if (params.get('clusters') === '0') state.showClusters = false;
+    // A partial: the model's constructor merges it over the engine's defaults, as `setState` does.
+    const slope = AccessScoreUrlSync.#readSlope(config, params.get('slope'));
+    if (slope) state.slope = /** @type {AccessScoreSlopeSettings} */ (slope);
     // A link from a sampled city opened in one that is not: there is no slope to color by, so the score stays.
     if (params.get('grade') === '1' && (config.gradient?.sources ?? []).length > 0) state.showGrade = true;
 
@@ -187,6 +193,9 @@ class AccessScoreUrlSync {
     set('unaudited', state.showUnaudited ? '1' : '0', state.showUnaudited === defaults.showUnaudited);
     set('clusters', state.showClusters ? '1' : '0', state.showClusters === defaults.showClusters);
     set('grade', '1', state.showGrade === defaults.showGrade);
+    // Empty for the defaults, and also for a barrier grade edited while the barrier is off, which a link cannot say.
+    const slope = this.#slopeParam(state.slope);
+    set('slope', slope, slope === '');
     const categories = state.placeCategories;
     set('pc', categories === null ? AccessScoreUrlSync.#ALL_CATEGORIES : (categories ?? []).join(','),
       categories !== null && categories.length === 0);
@@ -208,6 +217,63 @@ class AccessScoreUrlSync {
   }
 
   /** A number as a short decimal string ("0.75", not "0.7500000000000001"). */
+  /**
+   * The `slope` param's tokens as a partial of the slope settings, each checked against what the config allows so a
+   * stale or hand-edited link degrades to the engine's defaults token by token.
+   * @param {AccessScoreConfig} config - The engine config; without its `slope` block there is nothing to set.
+   * @param {?string} raw - The param's value.
+   * @returns {?Partial<AccessScoreSlopeSettings>} The settings the link names, or null for none.
+   */
+  static #readSlope(config, raw) {
+    if (!raw || !config.slope) return null;
+    const { min, max } = config.slope.threshold_range;
+    const grade = (text) => {
+      const value = Number.parseFloat(text);
+      return Number.isFinite(value) && value >= min && value <= max ? value : null;
+    };
+    /** @type {Partial<AccessScoreSlopeSettings>} */
+    const slope = {};
+    for (const token of raw.split(',')) {
+      const colon = token.indexOf(':');
+      const [key, text] = [token.slice(0, colon), token.slice(colon + 1)];
+      if (key === 'w') {
+        const weight = Number.parseFloat(text);
+        if (Number.isFinite(weight) && weight >= 0) slope.weight = weight;
+      } else if (key === 's' && config.slope.statistics.includes(text)) {
+        slope.statistic = text;
+      } else if (key === 'lo' && grade(text) !== null) {
+        slope.lowThreshold = grade(text);
+      } else if (key === 'hi' && grade(text) !== null) {
+        slope.highThreshold = grade(text);
+      } else if (key === 'b' && grade(text) !== null) {
+        slope.barrierEnabled = true;
+        slope.barrierThreshold = grade(text);
+      } else if (key === 'lc' && text === '1') {
+        slope.includeLowConfidence = true;
+      }
+    }
+    return Object.keys(slope).length > 0 ? slope : null;
+  }
+
+  /**
+   * The `slope` param for the settings in force: only the tokens that differ from the engine's defaults. A barrier
+   * threshold is written only while the barrier is on, since its presence is what a reader of the link takes as "on".
+   * @param {AccessScoreSlopeSettings} slope - The model's slope settings.
+   * @returns {string}
+   */
+  #slopeParam(slope) {
+    const defaults = AccessScoreModel.slopeDefaults(this.#model.config);
+    const differs = (key) => Math.abs(slope[key] - defaults[key]) >= 1e-9;
+    const tokens = [];
+    if (differs('weight')) tokens.push(`w:${this.#trim(slope.weight)}`);
+    if (slope.statistic !== defaults.statistic) tokens.push(`s:${slope.statistic}`);
+    if (differs('lowThreshold')) tokens.push(`lo:${this.#trim(slope.lowThreshold)}`);
+    if (differs('highThreshold')) tokens.push(`hi:${this.#trim(slope.highThreshold)}`);
+    if (slope.barrierEnabled) tokens.push(`b:${this.#trim(slope.barrierThreshold)}`);
+    if (slope.includeLowConfidence) tokens.push('lc:1');
+    return tokens.join(',');
+  }
+
   #trim(value) {
     return String(Math.round(value * 1000) / 1000);
   }

@@ -611,6 +611,68 @@
   margin-top: var(--space-sm);
 }
 
+/* ---- The Slope section's form controls (#5223): a labeled select, and grade inputs with their unit ---- */
+
+.acs-slope {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.acs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font: var(--text-caption-regular);
+}
+
+/* A short label with its grade beside it, on one line. */
+.acs-field--inline {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
+.acs-field__label {
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-900);
+}
+
+.acs-field__note {
+  margin: 0;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.acs-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.acs-fieldset legend {
+  padding: 0;
+  margin-bottom: 2px;
+}
+
+.acs-percent {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.acs-percent__input {
+  width: calc(72px * var(--ui-scale, 1));
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 /* The popup's slope block (#5223). The note says why a number is missing or approximate, and the credit is the
    elevation model's licence condition, so both are text-sized rather than fine print. */
 .acs-popup__note,

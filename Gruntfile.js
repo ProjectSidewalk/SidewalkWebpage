@@ -108,6 +108,7 @@ module.exports = function (grunt) {
           'public/js/access-score/src/AccessScoreElevationProfile.js',
           'public/js/access-score/src/AccessScoreMapLegend.js',
           'public/js/access-score/src/AccessScoreMapView.js',
+          'public/js/access-score/src/AccessScoreSlopePanel.js',
           'public/js/access-score/src/AccessScoreSidebar.js',
           'public/js/access-score/src/AccessScoreClusterLayer.js',
           'public/js/access-score/src/AccessScorePlacesLayer.js',

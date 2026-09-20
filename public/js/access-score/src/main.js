@@ -16,6 +16,8 @@ window.AccessScoreApp = (function () {
   const PLACE_CHANGE_KINDS = new Set([
     'PlaceCategory', 'PlaceCategoryOnly', 'PlaceCategorySelectAll', 'PlaceCategoryDeselectAll',
   ]);
+  /** The sliders: mid-drag, the sidebar must not be re-synced from the model (the thumb is under a finger). */
+  const DRAG_KINDS = new Set(['Weight', 'SlopeWeight']);
   const EMPTY_COLLECTION = { type: 'FeatureCollection', features: [] };
 
   /** Fetches JSON, treating a non-2xx status as a failure so the overlay's error card shows. */
@@ -235,7 +237,7 @@ window.AccessScoreApp = (function () {
       if (PLACE_CHANGE_KINDS.has(meta.kind)) places?.apply(state);
       mapView.applyScores();
       // A reset moves every slider; a slider mid-drag already shows its own value.
-      if (meta.kind !== 'Weight' || meta.final) sidebar.setState(model.state);
+      if (meta.final || !DRAG_KINDS.has(meta.kind)) sidebar.setState(model.state);
       sidebar.setContributions(model.contributions().means);
       if (popup) select(null);
       // The place card stays open across a reweighting; its nearest-street score follows the sliders, as do the
@@ -265,6 +267,7 @@ window.AccessScoreApp = (function () {
     // A link that carries custom weights, or places, opens that fold, so what it shares is in view rather than a
     // hint beside a heading.
     if (!model.weightsAreDefault) sidebar.setWeightsOpen(true);
+    if (!model.slopeIsDefault && sidebar.slope.available) sidebar.slope.setOpen(true);
     if (model.state.placeCategories === null || model.state.placeCategories.length > 0) sidebar.setPlacesOpen(true);
     renderUpdatedAt(config.clusters_updated_at);
     // A live `setStyle` drops everything the tool added, so the map view and the cluster layer remount once the new
@@ -301,7 +304,10 @@ window.AccessScoreApp = (function () {
       select(null);
       places?.select(null);
       placeSearch?.clear();
-      model.setState({ ...AccessScoreModel.DEFAULT_STATE, weights: { ...config.presets.default } });
+      model.setState({
+        ...AccessScoreModel.DEFAULT_STATE, weights: { ...config.presets.default },
+        slope: AccessScoreModel.slopeDefaults(config),
+      });
       const state = model.state;
       mapView.setUnit(state.unit);
       mapView.setShowUnaudited(state.showUnaudited);
@@ -863,6 +869,14 @@ window.AccessScoreApp = (function () {
         }
       } else if (g.netGrade !== null) {
         lines.push(t('slope-net-only', { grade: percentHtml(Math.abs(g.netGrade)) }));
+      }
+      // What slope did to this street's score under the settings in force: nothing to say at the engine's own.
+      if (s.audited && s.barrier) {
+        lines.push(`<strong>${t('slope-barrier-effect', {
+          limit: percentHtml(model.state.slope.barrierThreshold),
+        })}</strong>`);
+      } else if (s.audited && s.slopeTerm !== 0) {
+        lines.push(t('slope-effect', { term: `−${Math.abs(s.slopeTerm).toFixed(2)}` }));
       }
       const notes = [];
       if (g.quality !== 'measured') notes.push(t(`slope-quality-${g.quality.replace('_', '-')}`));
