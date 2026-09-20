@@ -85,6 +85,64 @@ describe('AccessScoreModel', () => {
         });
     });
 
+    test('reproduces every slope case: units, term, barrier and segment score (#5223)', () => {
+        expect(FIXTURE.slope_cases.length).toBeGreaterThanOrEqual(15);
+        const byName = new Map(FIXTURE.streets.map((c) => [c.name, c]));
+        for (const c of FIXTURE.slope_cases) {
+            // The slope as `accessScoreStreets` reports it; `dem_source` is what marks a street as sampled at all.
+            const slope = c.slope === null ? {} : { ...c.slope, grade_quality: 'measured', dem_source: 'fixture' };
+            const one = { type: 'FeatureCollection', features: [feature(byName.get(c.street), 0, slope)] };
+            const model = new AccessScoreModel(FIXTURE.config, one, NO_INTERSECTIONS, [REGION]);
+            const s = c.settings;
+            model.setState({
+                slope: {
+                    weight: s.weight, statistic: s.statistic, lowThreshold: s.low_threshold,
+                    highThreshold: s.high_threshold, barrierEnabled: s.barrier_enabled,
+                    barrierThreshold: s.barrier_threshold, includeLowConfidence: s.include_low_confidence,
+                },
+            });
+            const explained = model.explainStreet(1);
+            const clue = `slope case '${c.name}'`;
+            expect([clue, Math.abs(explained.slopeUnits - c.units) < tol]).toEqual([clue, true]);
+            expect([clue, Math.abs(explained.slopeTerm - c.slope_term) < tol]).toEqual([clue, true]);
+            expect([clue, explained.barrier]).toEqual([clue, c.barrier]);
+            // No intersections, so the headline is the segment alone.
+            expect([clue, Math.abs(explained.segmentScore - c.segment_score) < tol]).toEqual([clue, true]);
+            expect([clue, Math.abs(explained.score - c.segment_score) < tol]).toEqual([clue, true]);
+        }
+    });
+
+    test('starts on the engine\'s slope settings, under which a steep street scores as its labels alone do', () => {
+        const steep = {
+            mean_grade: 0.2, max_grade: 0.3, net_grade: 0.2, meters_over_5pct: 100, meters_over_8pct: 100,
+            grade_confidence: 'high', grade_quality: 'measured', dem_source: 'fixture',
+        };
+        const sloped = {
+            type: 'FeatureCollection', features: FIXTURE.streets.map((c, i) => feature(c, i, steep)),
+        };
+        const model = new AccessScoreModel(FIXTURE.config, sloped, NO_INTERSECTIONS, [REGION]);
+        expect(model.slopeIsDefault).toBe(true);
+        expect(model.state.slope.weight).toBe(0);
+        FIXTURE.streets.forEach((c, i) => {
+            expect(model.explainStreet(i + 1).slopeTerm).toBe(0);
+            expect(Math.abs(model.streetScores[i] - c.score)).toBeLessThan(tol);
+        });
+        model.setState({ slope: { weight: 1 } });
+        expect(model.slopeIsDefault).toBe(false);
+        // A partial slope merges: the statistic and thresholds stayed the engine's.
+        expect(model.state.slope.statistic).toBe(FIXTURE.config.slope.statistic);
+        expect(model.explainStreet(1).slopeTerm).toBe(-1);
+    });
+
+    test('a config from before the slope settings scores exactly as before and offers no slope', () => {
+        const { slope, ...older } = FIXTURE.config;
+        expect(slope).toBeDefined();
+        const model = new AccessScoreModel(older, streets, NO_INTERSECTIONS, [REGION]);
+        expect(model.state.slope.weight).toBe(0);
+        expect(model.state.slope.barrierEnabled).toBe(false);
+        FIXTURE.streets.forEach((c, i) => expect(Math.abs(model.streetScores[i] - c.score)).toBeLessThan(tol));
+    });
+
     test('reproduces every fixture street under each reweighting the fixture carries', () => {
         const model = new AccessScoreModel(FIXTURE.config, streets, NO_INTERSECTIONS, [REGION]);
         for (const preset of FIXTURE.config.preset_order.filter((id) => id !== 'default')) {
