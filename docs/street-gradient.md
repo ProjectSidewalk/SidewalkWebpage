@@ -3,8 +3,8 @@
 Every street gets a running slope, a climb and an elevation profile, sampled along its centerline from a bare-earth
 elevation model (#5223). It needs no labeling, so it exists for unaudited streets too. The numbers live in the
 `street_gradient` table (398.sql), filled offline by [`scripts/street_gradient.py`](../scripts/street_gradient.py).
-The app reads it and never writes it ([Where it shows up](#where-it-shows-up)). Slope is not part of the AccessScore:
-the scoring term is a later phase of #5223.
+The app reads it and never writes it ([Where it shows up](#where-it-shows-up)). Slope can be weighed into the
+AccessScore, at an engine weight of 0 ([Slope in the score](#slope-in-the-score)).
 
 ## Filling or topping up a city
 
@@ -203,6 +203,36 @@ The test for a new country is the one used here: an open bare-earth model at 10 
   per street), and a sentence saying why when the numbers are missing (`structure`, `no_data`) or approximate
   (`suspect`, a coarse model). A street is drawn by its mean grade, or by the size of its `net_grade` where a coarse
   model supports nothing else (`AccessScoreModel.displayGrade`).
+
+## Slope in the score
+
+Slope does not fit the AccessScore's per-label-type sum (it is not a label type, and `sub_scores` stays keyed by
+label type), so it joins a segment's pre-sigmoid sum as its own **modifier term**: `logit(segment_score) =
+Σ sub_scores + slope_term`. `AccessScoreCalculator` owns it (`SlopeSettings`, `slopeUnits`, `slopeTerm`,
+`slopeIsBarrier`, `segmentScoreWithSlope`), and `AccessScoreModel.js` mirrors it, both held to the `slope_cases` of
+`test/fixtures/accessScoreParity.json`.
+
+- **The engine's weight is 0** (`defaultSlopeSettings`), so every served score is bit-for-bit the label-only one.
+  `AccessScoreTeaneckSnapshotSpec` and a parity test hold to that. What a steep block should cost next to a missing
+  curb ramp is a calibration question nobody has answered yet; until then the term exists for the tool.
+- `slope_term = −weight × units`, never positive. Under **mean grade** or **max grade**, `units` ramps from 0 at the
+  low threshold (default 5%) to 1 at the high one (8.33%). Under **meters over the limits**, `units` is the share of
+  the street over 5% plus the share over 8.33%, halved. That statistic ignores the thresholds: the two lengths are
+  measured against the fixed limits when the street is sampled, and recomputing them for other thresholds would put
+  every street's profile in the city-wide payload.
+- The thresholds are settings, not constants, because people's limits differ (AccessMap offers 8%/10% and 10%/12%
+  profiles for manual and power wheelchairs).
+- **Barrier** (off by default): a street whose `max_grade` exceeds the barrier threshold scores 0 outright.
+- **Low-confidence grades sit out** unless admitted; an admitted coarse-model row stands in `|net_grade|` for the
+  grade it lacks. A street with no grade (`structure`, `no_data`, unsampled) never takes a term.
+- **An unaudited street stays unscored.** Slope modifies a score that labels produced; it never creates one, so the
+  headline keeps meaning "assessed by people". Such a street still shows its slope on the grade layer and in its
+  popup.
+
+`/v3/api/accessScoreConfig` publishes the settings under `slope` (the defaults, the statistic ids, the range a
+threshold may take), and `/v3/api/accessScoreStreets` publishes each street's `slope_term` (0 today). The tool's
+**Street slope** sidebar section (`AccessScoreSlopePanel.js`) edits them, hidden in an unsampled city; the settings
+ride in the URL as `slope=` and the street popup says what slope did to the score.
 
 ## Attribution
 

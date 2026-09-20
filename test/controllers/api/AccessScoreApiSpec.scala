@@ -55,7 +55,7 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
         "street_edge_id,osm_way_id,street_name,region_id,score,segment_score,start_intersection_id,end_intersection_id," +
           "start_intersection_score,end_intersection_score,audit_count,length_meters,label_count," +
           "mean_grade,max_grade,net_grade,total_climb_meters,total_descent_meters,meters_over_5pct," +
-          "meters_over_8pct,grade_confidence,grade_quality,dem_source,cluster_counts.CurbRamp"
+          "meters_over_8pct,grade_confidence,grade_quality,dem_source,slope_term,cluster_counts.CurbRamp"
       )
       body must include(
         "sub_scores.NoSidewalk,severity_counts.CurbRamp.1,severity_counts.CurbRamp.2,severity_counts.CurbRamp.3," +
@@ -163,6 +163,18 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
         (source \ "credit").as[String] must not be empty
         (source \ "street_count").as[Int] must be > 0
       }
+    }
+
+    "publish the engine's slope settings, whose zero weight is what keeps the served scores label-only" in {
+      val slope = contentAsJson(route(app, FakeRequest(GET, "/v3/api/accessScoreConfig")).get) \ "slope"
+      (slope \ "weight").as[Double] mustBe 0.0
+      (slope \ "barrier_enabled").as[Boolean] mustBe false
+      (slope \ "include_low_confidence").as[Boolean] mustBe false
+      (slope \ "statistic").as[String] mustBe "mean_grade"
+      (slope \ "statistics").as[Seq[String]] mustBe Seq("mean_grade", "max_grade", "meters_over_limit")
+      (slope \ "low_threshold").as[Double] mustBe 0.05
+      (slope \ "high_threshold").as[Double] mustBe (1.0 / 12.0)
+      (slope \ "threshold_range" \ "min").as[Double] must be < (slope \ "threshold_range" \ "max").as[Double]
     }
 
     "publish the completion floor the Spotlight and the AccessScore tool both apply" in {

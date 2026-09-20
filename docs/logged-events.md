@@ -114,6 +114,10 @@ The AccessScore tool (`/accessScore`, `public/js/access-score/`, #5217) logs its
 `AccessScore_Unit_value=<streets|regions>`, `AccessScore_Weight_value=<labelType>_value=<magnitude>`,
 `AccessScore_ShowUnaudited_value=<bool>`, `AccessScore_ShowClusters_value=<bool>` (the evidence layer),
 `AccessScore_ShowGrade_value=<bool>` (the streets colored by slope instead of by score, #5223),
+the Slope section's `AccessScore_SlopeWeight_value=<magnitude>`, `AccessScore_SlopeStat_value=<statistic id>`,
+`AccessScore_SlopeThreshold_value=<low|high|barrier>_value=<percent>`, `AccessScore_SlopeBarrier_value=<bool>`,
+`AccessScore_SlopeLowConfidence_value=<bool>` and `AccessScore_SlopeReset` (#5223; its fold logs
+`AccessScore_Section_value=slope_open=<bool>` like the other two),
 `AccessScore_DarkMap_value=<bool>` (the dark basemap toggled), `AccessScore_Section_value=weights_open=<bool>` /
 `AccessScore_Section_value=places_open=<bool>` (a fold toggled; both start closed, so an open says the section was
 reached for), `AccessScore_Reset` (the weights),
