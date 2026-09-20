@@ -177,12 +177,12 @@
   "slope-thresholds": "Steigungsschwellen",
   "slope-low": "Kein Abzug bis",
   "slope-high": "Voller Abzug ab",
-  "slope-fixed-note": "Dieses Maß verwendet die Barrierefreiheitsgrenzen von 5 % und 8,3 %, daher gelten die Schwellenwerte nicht.",
-  "slope-barrier": "Sehr steile Straßen als Barrieren behandeln",
-  "slope-barrier-help": "Eine Straße, deren steilster Abschnitt über dieser Steigung liegt, erhält die Bewertung 0, unabhängig von ihren Gehwegen.",
+  "slope-fixed-note": "Dieses Maß verwendet die Barrierefreiheitsgrenzen von {{low}} und {{high}}, daher gelten die Schwellenwerte nicht.",
+  "slope-barrier": "Sehr steile Abschnitte als Barrieren behandeln",
+  "slope-barrier-help": "Ein Abschnitt, dessen steilste Stelle über dieser Steigung liegt, erhält die Bewertung 0, unabhängig von seinen Gehwegen. In die Bewertung der Straße fließen die Kreuzungen an ihren Enden weiterhin ein.",
   "slope-barrier-threshold": "Eine Barriere, wenn steiler als",
-  "slope-low-confidence": "Ungefähre Steigungen einbeziehen",
-  "slope-low-confidence-help": "Manche Städte haben nur ein grobes Höhenmodell, das eine ungefähre Steigung von Ende zu Ende liefert. Aktivieren Sie dies, damit auch diese Steigungen zählen.",
-  "slope-effect": "Auswirkung der Steigung auf die Bewertung: {{term}}",
-  "slope-barrier-effect": "Bewertung 0: steiler als die Barriere von {{limit}}."
+  "slope-approximate-include": "Ungefähre Steigungen einbeziehen",
+  "slope-approximate-include-help": "Manche Steigungen sind nur eine gerade Linie zwischen den beiden Enden einer Straße: wo eine Stadt nur ein grobes Höhenmodell hat oder wo das Modell unzuverlässig wirkte. Aktivieren Sie dies, damit auch diese Steigungen zählen.",
+  "slope-barrier-effect": "Der Abschnitt erhält 0: steiler als die Barriere von {{limit}}.",
+  "popup-slope-barrier": "Barriere: 0"
 }

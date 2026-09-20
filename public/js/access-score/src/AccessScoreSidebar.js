@@ -3,7 +3,7 @@
  * @typedef {object} AccessScoreChangeMeta
  * @property {string} kind - `Unit`, `Weight`, `ShowUnaudited`, `ShowClusters`, `ShowGrade`, `PlaceCategory`,
  *   `PlaceCategoryOnly`, `PlaceCategorySelectAll`, `PlaceCategoryDeselectAll`, `Section` or `Reset`; the slope panel's
- *   `SlopeWeight`, `SlopeStat`, `SlopeThreshold`, `SlopeBarrier`, `SlopeLowConfidence` and `SlopeReset`; and the
+ *   `SlopeWeight`, `SlopeStat`, `SlopeThreshold`, `SlopeBarrier`, `SlopeApproximate` and `SlopeReset`; and the
  *   page adds `ResetAll`.
  * @property {boolean} final - False for a slider mid-drag, true for a settled value (the one to log).
  * @property {string|boolean} [value] - What the change set, for the log.
@@ -47,8 +47,7 @@ class AccessScoreSidebar {
     this.#render();
     this.#bind();
     // The slope section keeps its own controls and reports through the same channel as everything else here.
-    this.#slope = new AccessScoreSlopePanel(root, config, this.#maxWeight(), (partial, meta) =>
-      this.#emit(partial, meta));
+    this.#slope = new AccessScoreSlopePanel(root, config, (partial, meta) => this.#emit(partial, meta));
   }
 
   /** The Slope section, for the page to fold open when a link carries custom slope settings. */

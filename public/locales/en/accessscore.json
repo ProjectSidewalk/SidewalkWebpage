@@ -177,12 +177,12 @@
   "slope-thresholds": "Grade thresholds",
   "slope-low": "No penalty up to",
   "slope-high": "Full penalty from",
-  "slope-fixed-note": "This measure uses the accessibility limits of 5% and 8.3%, so the thresholds do not apply.",
-  "slope-barrier": "Treat very steep streets as barriers",
-  "slope-barrier-help": "A street whose steepest stretch is over this grade scores 0, whatever its sidewalks are like.",
+  "slope-fixed-note": "This measure uses the accessibility limits of {{low}} and {{high}}, so the thresholds do not apply.",
+  "slope-barrier": "Treat very steep segments as barriers",
+  "slope-barrier-help": "A segment whose steepest stretch is over this grade scores 0, whatever its sidewalks are like. The street's score still averages in the crossings at its ends.",
   "slope-barrier-threshold": "A barrier when steeper than",
-  "slope-low-confidence": "Include approximate slopes",
-  "slope-low-confidence-help": "Some cities only have a coarse elevation model, which gives a rough end-to-end slope. Turn this on to let those slopes count too.",
-  "slope-effect": "Effect of slope on the score: {{term}}",
-  "slope-barrier-effect": "Scored 0: steeper than the {{limit}} barrier."
+  "slope-approximate-include": "Include approximate slopes",
+  "slope-approximate-include-help": "Some slopes are only a straight line between a street's two ends: where a city has only a coarse elevation model, or where the model looked unreliable. Turn this on to let those slopes count too.",
+  "slope-barrier-effect": "The segment scores 0: steeper than the {{limit}} barrier.",
+  "popup-slope-barrier": "barrier: 0"
 }

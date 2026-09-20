@@ -1,7 +1,7 @@
 /**
  * The sidebar's Slope section (#5223): how street slope enters the score. A weight, the statistic that drives it,
- * the two thresholds the term ramps between, a switch that scores very steep streets 0 outright, and whether
- * slopes from a coarse elevation model take part.
+ * the two thresholds the term ramps between, a switch that scores a very steep block 0 outright, and whether
+ * approximate slopes (a coarse elevation model's, or a profile the sampler distrusted) take part.
  *
  * Every default, the list of statistics and the range a threshold may take come from `/v3/api/accessScoreConfig`
  * (`slope`), so nothing here knows a grade. The engine's own weight is 0: the section changes nothing until a reader
@@ -24,11 +24,10 @@ class AccessScoreSlopePanel {
   /**
    * @param {HTMLElement} root - The sidebar element carrying the `#acs-slope-section` markup.
    * @param {AccessScoreConfig} config - The `/v3/api/accessScoreConfig` response.
-   * @param {number} maxWeight - The top of the weight slider, the label-type sliders' own.
    * @param {(partial: ?Partial<AccessScoreState>, meta: AccessScoreChangeMeta) => void} emit - Reports a change, as
    *   the sidebar's other controls do.
    */
-  constructor(root, config, maxWeight, emit) {
+  constructor(root, config, emit) {
     this.#config = config;
     this.#emit = emit;
     this.#settings = AccessScoreModel.slopeDefaults(config);
@@ -38,11 +37,11 @@ class AccessScoreSlopePanel {
       summary: q('#acs-slope-summary'), reset: q('#acs-slope-reset'), weight: q('#acs-slope-weight'),
       weightOutput: q('#acs-slope-weight-value'), statistic: q('#acs-slope-statistic'), low: q('#acs-slope-low'),
       high: q('#acs-slope-high'), fixedNote: q('#acs-slope-fixed-note'), barrier: q('#acs-slope-barrier'),
-      barrierThreshold: q('#acs-slope-barrier-threshold'), lowConfidence: q('#acs-slope-low-confidence'),
+      barrierThreshold: q('#acs-slope-barrier-threshold'), approximate: q('#acs-slope-approximate'),
     };
     this.#els.section.hidden = !this.available;
     if (!this.available) return;
-    this.#render(maxWeight);
+    this.#render();
     this.#bind();
   }
 
@@ -85,14 +84,14 @@ class AccessScoreSlopePanel {
     e.high.value = AccessScoreSlopePanel.#toPercent(s.highThreshold);
     e.barrier.checked = s.barrierEnabled;
     e.barrierThreshold.value = AccessScoreSlopePanel.#toPercent(s.barrierThreshold);
-    e.lowConfidence.checked = s.includeLowConfidence;
+    e.approximate.checked = s.includeApproximate;
     this.#reflect();
   }
 
   /** Fills in what the config decides: the slider's range, the statistics on offer, the thresholds' bounds. */
-  #render(maxWeight) {
+  #render() {
     const e = this.#els;
-    e.weight.max = String(maxWeight);
+    e.weight.max = String(this.#config.slope.weight_range.max);
     e.statistic.innerHTML = this.#config.slope.statistics.map((id) => {
       const key = `accessscore:slope-statistic-${id.replaceAll('_', '-')}`;
       const name = i18next.exists(key) ? i18next.t(key) : id;
@@ -124,10 +123,15 @@ class AccessScoreSlopePanel {
     e.statistic.addEventListener('change', () => change({ statistic: e.statistic.value }, 'SlopeStat',
       e.statistic.value));
     // A threshold settles on `change` (blur, Enter, a spinner click), so a half-typed "1" on the way to "12" never
-    // reaches the map. An empty or out-of-range entry snaps back to the value in force.
+    // reaches the map. An entry that is empty, out of range, or would cross the other threshold snaps back to the
+    // value in force: the engine reads crossed thresholds as a step, under which "no penalty up to" and "full
+    // penalty from" would both be false labels.
     const threshold = (input, key, label) => input.addEventListener('change', () => {
       const grade = this.#readThreshold(input);
-      if (grade === null) {
+      const crossed = grade !== null && (
+        (key === 'lowThreshold' && grade >= this.#settings.highThreshold)
+        || (key === 'highThreshold' && grade <= this.#settings.lowThreshold));
+      if (grade === null || crossed) {
         input.value = AccessScoreSlopePanel.#toPercent(this.#settings[key]);
         return;
       }
@@ -137,10 +141,18 @@ class AccessScoreSlopePanel {
     threshold(e.low, 'lowThreshold', 'low');
     threshold(e.high, 'highThreshold', 'high');
     threshold(e.barrierThreshold, 'barrierThreshold', 'barrier');
-    e.barrier.addEventListener('change', () => change({ barrierEnabled: e.barrier.checked }, 'SlopeBarrier',
-      e.barrier.checked));
-    e.lowConfidence.addEventListener('change', () => change({ includeLowConfidence: e.lowConfidence.checked },
-      'SlopeLowConfidence', e.lowConfidence.checked));
+    // Switching the barrier off returns its grade to the default. A grade with no barrier decides nothing and
+    // cannot ride in a link, so keeping it would leave the section saying "Custom" over settings a reload forgets.
+    e.barrier.addEventListener('change', () => {
+      const patch = { barrierEnabled: e.barrier.checked };
+      if (!e.barrier.checked) {
+        patch.barrierThreshold = AccessScoreModel.slopeDefaults(this.#config).barrierThreshold;
+        e.barrierThreshold.value = AccessScoreSlopePanel.#toPercent(patch.barrierThreshold);
+      }
+      change(patch, 'SlopeBarrier', e.barrier.checked);
+    });
+    e.approximate.addEventListener('change', () => change({ includeApproximate: e.approximate.checked },
+      'SlopeApproximate', e.approximate.checked));
     e.reset.addEventListener('click', () => {
       const defaults = AccessScoreModel.slopeDefaults(this.#config);
       this.setState(/** @type {AccessScoreState} */ ({ slope: defaults }));
@@ -154,33 +166,41 @@ class AccessScoreSlopePanel {
 
   /**
    * A threshold input's value as a grade, or null where it is not a number inside the range the config allows.
+   * Rounded to the tenth of a percent the input shows, so the grade in force is the one on screen: "8.33" held in
+   * full but shown as "8.3" would quietly become 8.3 the next time the field was touched.
    * @param {HTMLInputElement} input - One of the three threshold inputs.
    * @returns {?number}
    */
   #readThreshold(input) {
     const percent = Number.parseFloat(input.value);
     if (!Number.isFinite(percent)) return null;
-    const grade = percent / 100;
+    const grade = Math.round(percent * 10) / 1000;
     const { min, max } = this.#config.slope.threshold_range;
     return grade >= min && grade <= max ? grade : null;
   }
 
   /**
    * Shows what the settings in force imply: which controls apply, and whether there is anything to reset. The
-   * thresholds are disabled (with the reason beside them) under the over-limit statistic, and the barrier's grade
-   * until the barrier is on.
+   * thresholds are disabled under the over-limit statistic, and the barrier's grade until the barrier is on.
+   *
+   * A disabled input leaves the tab order, so the reason cannot hang off the inputs alone: it is written into a
+   * status region, which announces it when the statistic changes, and the fieldset is described by that region, so
+   * it is also read on the way into the group. The two limits in it are the config's, formatted for the reader.
    */
   #reflect() {
     const e = this.#els;
     const fixed = this.#settings.statistic === AccessScoreSlopePanel.#FIXED_LIMITS_STATISTIC;
     e.low.disabled = fixed;
     e.high.disabled = fixed;
-    e.fixedNote.hidden = !fixed;
+    const limits = this.#config.gradient;
+    e.fixedNote.textContent = fixed
+      ? i18next.t('accessscore:slope-fixed-note', {
+          low: AccessScoreGradeRamp.percent(limits.walking_surface_limit),
+          high: AccessScoreGradeRamp.percent(limits.ramp_limit),
+        })
+      : '';
     e.barrierThreshold.disabled = !this.#settings.barrierEnabled;
-    const defaults = AccessScoreModel.slopeDefaults(this.#config);
-    const atDefault = Object.keys(defaults).every((k) => (typeof defaults[k] === 'number'
-      ? Math.abs(defaults[k] - this.#settings[k]) < 1e-9
-      : defaults[k] === this.#settings[k]));
+    const atDefault = AccessScoreModel.slopeMatchesDefaults(this.#config, this.#settings);
     e.reset.hidden = atDefault;
     e.summary.textContent = atDefault ? '' : i18next.t('accessscore:weights-custom');
   }

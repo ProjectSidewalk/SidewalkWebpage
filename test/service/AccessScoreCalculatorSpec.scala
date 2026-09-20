@@ -478,7 +478,9 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
     d.lowThreshold shouldBe 0.05
     d.highThreshold shouldBe (1.0 / 12.0)
     d.barrierEnabled shouldBe false
-    d.includeLowConfidence shouldBe false
+    // Not the ramp limit: a street's steepest 30 m at 8.33% is an ordinary block, not a "very steep" one.
+    d.barrierThreshold shouldBe 0.125
+    d.includeApproximate shouldBe false
   }
 
   test("the slope term ramps from nothing at the low threshold to the whole weight at the high one") {
@@ -505,14 +507,14 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
   }
 
   test("a barrier needs the switch, a steepest stretch over the threshold, and an admitted confidence") {
-    val steep  = measured(0.07, 0.12)
-    val coarse = Some(AccessScoreCalculator.SlopeInput(None, None, Some(-0.2), None, None, lowConfidence = true))
+    val steep  = measured(0.07, 0.15)
+    val coarse = Some(AccessScoreCalculator.SlopeInput(None, None, Some(-0.2), None, None, approximate = true))
     val on     = slopeOn.copy(barrierEnabled = true)
     AccessScoreCalculator.slopeIsBarrier(steep, slopeOn) shouldBe false
     AccessScoreCalculator.slopeIsBarrier(steep, on) shouldBe true
-    AccessScoreCalculator.slopeIsBarrier(measured(0.07, 1.0 / 12.0), on) shouldBe false
+    AccessScoreCalculator.slopeIsBarrier(measured(0.07, 0.125), on) shouldBe false
     AccessScoreCalculator.slopeIsBarrier(coarse, on) shouldBe false
-    AccessScoreCalculator.slopeIsBarrier(coarse, on.copy(includeLowConfidence = true)) shouldBe true
+    AccessScoreCalculator.slopeIsBarrier(coarse, on.copy(includeApproximate = true)) shouldBe true
     AccessScoreCalculator.slopeIsBarrier(None, on) shouldBe false
     AccessScoreCalculator.segmentScoreWithSlope(Map("CurbRamp" -> 3.0), steep, 100, on) shouldBe 0.0
   }

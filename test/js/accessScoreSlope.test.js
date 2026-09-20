@@ -30,9 +30,9 @@ const MARKUP = `
       <input type="range" id="acs-slope-weight" min="0" step="0.05">
       <select id="acs-slope-statistic"></select>
       <input type="number" id="acs-slope-low"><input type="number" id="acs-slope-high">
-      <p id="acs-slope-fixed-note" hidden></p>
+      <p id="acs-slope-fixed-note" role="status"></p>
       <input type="checkbox" id="acs-slope-barrier"><input type="number" id="acs-slope-barrier-threshold">
-      <input type="checkbox" id="acs-slope-low-confidence">
+      <input type="checkbox" id="acs-slope-approximate">
     </div>
   </section>`;
 
@@ -42,10 +42,15 @@ describe('slope in the AccessScore scoring controls', () => {
     let AccessScoreUrlSync;
 
     beforeAll(() => {
-        window.i18next = { language: 'en', t: (key) => key, exists: () => false };
+        // Echoes the key with any interpolated values, so a test can see what was handed to a string.
+        window.i18next = {
+            language: 'en',
+            exists: () => false,
+            t: (key, values = {}) => [key, ...Object.entries(values).map(([k, v]) => `${k}=${v}`)].join(' '),
+        };
         window.util = { escapeHTML: (text) => String(text) };
         window.eval(read('public/js/common/urlQuery.js'));
-        for (const name of ['Model', 'SlopePanel', 'UrlSync']) {
+        for (const name of ['Model', 'GradeRamp', 'SlopePanel', 'UrlSync']) {
             window.eval(`${read(`public/js/access-score/src/AccessScore${name}.js`)}
                 window.AccessScore${name} = AccessScore${name};`);
         }
@@ -56,7 +61,7 @@ describe('slope in the AccessScore scoring controls', () => {
     function mount(config = CONFIG) {
         document.body.innerHTML = MARKUP;
         const emitted = [];
-        const panel = new AccessScoreSlopePanel(document.body, config, 3, (partial, meta) =>
+        const panel = new AccessScoreSlopePanel(document.body, config, (partial, meta) =>
             emitted.push({ partial, meta }));
         panel.setState({ slope: AccessScoreModel.slopeDefaults(config) });
         return { panel, emitted, el: (id) => document.getElementById(id) };
@@ -84,7 +89,7 @@ describe('slope in the AccessScore scoring controls', () => {
         test('shows the engine defaults as percentages, offers its statistics, and has nothing to reset', () => {
             const { el } = mount();
             expect(el('acs-slope-weight').value).toBe('0');
-            expect(el('acs-slope-weight').max).toBe('3');
+            expect(el('acs-slope-weight').max).toBe(String(CONFIG.slope.weight_range.max));
             expect(el('acs-slope-low').value).toBe('5');
             expect(el('acs-slope-high').value).toBe('8.3');
             expect(el('acs-slope-low').min).toBe('1');
@@ -93,6 +98,8 @@ describe('slope in the AccessScore scoring controls', () => {
             expect(el('acs-slope-reset').hidden).toBe(true);
             expect(el('acs-slope-summary').textContent).toBe('');
             expect(el('acs-slope-barrier-threshold').disabled).toBe(true);
+            expect(el('acs-slope-barrier-threshold').value).toBe('12.5');
+            expect(el('acs-slope-fixed-note').textContent).toBe('');
         });
 
         test('a slider drag reports unsettled values, then one settled one, and marks the section custom', () => {
@@ -114,11 +121,21 @@ describe('slope in the AccessScore scoring controls', () => {
             expect(emitted).toHaveLength(1);
             expect(emitted[0].partial.slope.lowThreshold).toBeCloseTo(0.08, 12);
             expect(emitted[0].meta).toEqual({ kind: 'SlopeThreshold', value: 'low_value=8', final: true });
-            for (const bad of ['', 'abc', '0.5', '41']) {
+            // Empty, not a number, outside the config's range, and past the other threshold (8.33%).
+            for (const bad of ['', 'abc', '0.5', '41', '8.4', '9']) {
                 edit(el('acs-slope-low'), bad);
                 expect(el('acs-slope-low').value).toBe('8');
             }
+            edit(el('acs-slope-high'), 8);
+            expect(el('acs-slope-high').value).toBe('8.3');
             expect(emitted).toHaveLength(1);
+        });
+
+        test('holds the grade it shows: a second decimal is rounded away before it is emitted', () => {
+            const { emitted, el } = mount();
+            edit(el('acs-slope-high'), '9.26');
+            expect(el('acs-slope-high').value).toBe('9.3');
+            expect(emitted[0].partial.slope.highThreshold).toBeCloseTo(0.093, 12);
         });
 
         test('the over-limit statistic disables the thresholds and says why', () => {
@@ -127,10 +144,12 @@ describe('slope in the AccessScore scoring controls', () => {
             expect(emitted[0].partial).toEqual({ slope: { statistic: 'meters_over_limit' } });
             expect(el('acs-slope-low').disabled).toBe(true);
             expect(el('acs-slope-high').disabled).toBe(true);
-            expect(el('acs-slope-fixed-note').hidden).toBe(false);
+            // The reason names the config's two limits, in a status region a screen reader hears it from.
+            expect(el('acs-slope-fixed-note').getAttribute('role')).toBe('status');
+            expect(el('acs-slope-fixed-note').textContent).toBe('accessscore:slope-fixed-note low=5% high=8.3%');
             edit(el('acs-slope-statistic'), 'max_grade');
             expect(el('acs-slope-low').disabled).toBe(false);
-            expect(el('acs-slope-fixed-note').hidden).toBe(true);
+            expect(el('acs-slope-fixed-note').textContent).toBe('');
         });
 
         test('the barrier grade is only editable while the barrier is on', () => {
@@ -140,8 +159,24 @@ describe('slope in the AccessScore scoring controls', () => {
                 partial: { slope: { barrierEnabled: true } }, meta: { kind: 'SlopeBarrier', value: true, final: true },
             });
             expect(el('acs-slope-barrier-threshold').disabled).toBe(false);
-            edit(el('acs-slope-low-confidence'), true);
-            expect(emitted[1].meta.kind).toBe('SlopeLowConfidence');
+            edit(el('acs-slope-approximate'), true);
+            expect(emitted[1]).toEqual({
+                partial: { slope: { includeApproximate: true } },
+                meta: { kind: 'SlopeApproximate', value: true, final: true },
+            });
+        });
+
+        test('switching the barrier off returns its grade to the default, so "Custom" never outlives a reload', () => {
+            const { emitted, el } = mount();
+            edit(el('acs-slope-barrier'), true);
+            edit(el('acs-slope-barrier-threshold'), 20);
+            expect(el('acs-slope-reset').hidden).toBe(false);
+            edit(el('acs-slope-barrier'), false);
+            expect(emitted[emitted.length - 1].partial.slope).toEqual({
+                barrierEnabled: false, barrierThreshold: CONFIG.slope.defaults.barrier_threshold,
+            });
+            expect(el('acs-slope-barrier-threshold').value).toBe('12.5');
+            expect(el('acs-slope-reset').hidden).toBe(true);
         });
 
         test('reset returns every control to the engine defaults and reports the full settings', () => {
@@ -169,24 +204,41 @@ describe('slope in the AccessScore scoring controls', () => {
 
     describe('the slope URL param', () => {
         test('reads each token against the config and drops what it does not allow', () => {
-            const { state } = AccessScoreUrlSync.read(CONFIG, '?slope=w:1.5,s:max_grade,lo:0.08,hi:0.1,b:0.12,lc:1');
+            const { state } = AccessScoreUrlSync.read(CONFIG, '?slope=w:1.5,s:max_grade,lo:0.08,hi:0.1,b:0.15,ap:1');
             expect(state.slope).toEqual({
                 weight: 1.5, statistic: 'max_grade', lowThreshold: 0.08, highThreshold: 0.1, barrierEnabled: true,
-                barrierThreshold: 0.12, includeLowConfidence: true,
+                barrierThreshold: 0.15, includeApproximate: true,
             });
-            expect(AccessScoreUrlSync.read(CONFIG, '?slope=w:-1,s:steepness,lo:0.9,hi:abc,b:0,lc:0,zz:1').state.slope)
-                .toBeUndefined();
+            expect(AccessScoreUrlSync.read(CONFIG, '?slope=w:-1,s:steepness,lo:0.9,hi:abc,b:0,ap:0,zz:1,nocolon')
+                .state.slope).toBeUndefined();
             expect(AccessScoreUrlSync.read(CONFIG, '?slope=w:2,s:steepness').state.slope).toEqual({ weight: 2 });
             const { slope, ...older } = CONFIG;
             expect(slope).toBeDefined();
             expect(AccessScoreUrlSync.read(older, '?slope=w:2').state.slope).toBeUndefined();
         });
 
+        test('holds a weight to the slider\'s range, so the control and the map cannot disagree', () => {
+            expect(AccessScoreUrlSync.read(CONFIG, '?slope=w:50').state.slope)
+                .toEqual({ weight: CONFIG.slope.weight_range.max });
+        });
+
+        test('drops thresholds that cross, as a pair, whether one came from the link or both', () => {
+            expect(AccessScoreUrlSync.read(CONFIG, '?slope=w:1,lo:0.2,hi:0.1').state.slope).toEqual({ weight: 1 });
+            // 0.2 alone crosses the default high threshold of 8.33%.
+            expect(AccessScoreUrlSync.read(CONFIG, '?slope=w:1,lo:0.2').state.slope).toEqual({ weight: 1 });
+            expect(AccessScoreUrlSync.read(CONFIG, '?slope=lo:0.06').state.slope).toEqual({ lowThreshold: 0.06 });
+        });
+
+        test('reads nothing in a city with no slopes, where no section exists to show or undo it', () => {
+            const unsampled = { ...CONFIG, gradient: { ...GRADIENT, sources: [] } };
+            expect(AccessScoreUrlSync.read(unsampled, '?slope=w:2,b:0.05').state.slope).toBeUndefined();
+        });
+
         test('a partial from a link merges over the engine defaults in the model', () => {
             const { state } = AccessScoreUrlSync.read(CONFIG, '?slope=w:2');
             const model = new AccessScoreModel(CONFIG, EMPTY, EMPTY, [], state);
             expect(model.state.slope.weight).toBe(2);
-            expect(model.state.slope.highThreshold).toBe(CONFIG.slope.high_threshold);
+            expect(model.state.slope.highThreshold).toBe(CONFIG.slope.defaults.high_threshold);
         });
 
         test('writes only the settings that differ, and nothing at the defaults', () => {
@@ -199,10 +251,18 @@ describe('slope in the AccessScore scoring controls', () => {
             expect(param()).toBeNull();
             model.setState({ slope: { weight: 1.5, statistic: 'max_grade', barrierEnabled: true } });
             sync.writeNow();
-            expect(param()).toBe('w:1.5,s:max_grade,b:0.083');
-            // What was written reads back as the same settings, to the link's three decimals.
+            expect(param()).toBe('w:1.5,s:max_grade,b:0.125');
             const back = AccessScoreUrlSync.read(CONFIG, window.location.search).state.slope;
-            expect(back).toEqual({ weight: 1.5, statistic: 'max_grade', barrierEnabled: true, barrierThreshold: 0.083 });
+            expect(back).toEqual({ weight: 1.5, statistic: 'max_grade', barrierEnabled: true, barrierThreshold: 0.125 });
+
+            // A grade that is a default with no short decimal (1/12) is written to five places and read back as
+            // exactly the default, so a round trip cannot move a street across the threshold.
+            model.setState({ slope: { barrierThreshold: 1 / 12, lowThreshold: 0.02, highThreshold: 0.0765 } });
+            sync.writeNow();
+            expect(param()).toBe('w:1.5,s:max_grade,lo:0.02,hi:0.0765,b:0.08333');
+            const snapped = AccessScoreUrlSync.read(CONFIG, window.location.search).state.slope;
+            expect(snapped.barrierThreshold).toBe(0.08333);
+            expect(AccessScoreUrlSync.read(CONFIG, '?slope=hi:0.08333,lo:0.06').state.slope.highThreshold).toBe(1 / 12);
             model.setState({ slope: AccessScoreModel.slopeDefaults(CONFIG) });
             sync.writeNow();
             expect(param()).toBeNull();

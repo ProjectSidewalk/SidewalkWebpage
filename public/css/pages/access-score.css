@@ -657,6 +657,11 @@
   color: var(--color-neutral-700);
 }
 
+/* An empty status region takes no room: it holds a sentence only while the thresholds are switched off. */
+.acs-field__note:empty {
+  display: none;
+}
+
 .acs-fieldset {
   display: flex;
   flex-direction: column;
@@ -683,6 +688,11 @@
   width: calc(72px * var(--ui-scale, 1));
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+/* Slope's row in the terms table has no label type to take a color from; it takes the slope map's mid blue. */
+.acs-popup__swatch--slope {
+  background-color: var(--color-grade-ramp-3);
 }
 
 /* The popup's slope block (#5223). The note says why a number is missing or approximate, and the credit is the

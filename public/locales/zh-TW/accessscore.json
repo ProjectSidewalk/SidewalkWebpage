@@ -167,12 +167,12 @@
   "slope-thresholds": "坡度門檻",
   "slope-low": "不扣分的上限",
   "slope-high": "完全扣分的起點",
-  "slope-fixed-note": "此衡量方式使用 5% 與 8.3% 的無障礙限制，因此門檻不適用。",
-  "slope-barrier": "將非常陡峭的街道視為障礙",
-  "slope-barrier-help": "最陡路段超過此坡度的街道，無論人行道狀況如何，分數皆為 0。",
+  "slope-fixed-note": "此衡量方式使用 {{low}} 與 {{high}} 的無障礙限制，因此門檻不適用。",
+  "slope-barrier": "將非常陡峭的路段視為障礙",
+  "slope-barrier-help": "最陡處超過此坡度的路段，無論人行道狀況如何，分數皆為 0。街道的分數仍會與兩端路口的分數一起平均。",
   "slope-barrier-threshold": "坡度超過此值即為障礙",
-  "slope-low-confidence": "納入概略坡度",
-  "slope-low-confidence-help": "部分城市只有解析度較低的高程模型，只能提供兩端之間的概略坡度。開啟此選項可讓這些坡度也納入計算。",
-  "slope-effect": "坡度對分數的影響：{{term}}",
-  "slope-barrier-effect": "分數為 0：坡度超過 {{limit}} 的障礙門檻。"
+  "slope-approximate-include": "納入概略坡度",
+  "slope-approximate-include-help": "有些坡度只是街道兩端之間的直線：可能是城市只有解析度較低的高程模型，或是模型在該處看起來不可靠。開啟此選項可讓這些坡度也納入計算。",
+  "slope-barrier-effect": "此路段分數為 0：坡度超過 {{limit}} 的障礙門檻。",
+  "popup-slope-barrier": "障礙：0"
 }

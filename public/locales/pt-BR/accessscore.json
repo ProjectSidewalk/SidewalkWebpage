@@ -177,12 +177,12 @@
   "slope-thresholds": "Limiares de inclinação",
   "slope-low": "Sem penalidade até",
   "slope-high": "Penalidade total a partir de",
-  "slope-fixed-note": "Esta medida usa os limites de acessibilidade de 5% e 8,3%, portanto os limiares não se aplicam.",
-  "slope-barrier": "Tratar ruas muito íngremes como barreiras",
-  "slope-barrier-help": "Uma rua cujo trecho mais íngreme ultrapasse esta inclinação recebe 0, sejam como forem as suas calçadas.",
+  "slope-fixed-note": "Esta medida usa os limites de acessibilidade de {{low}} e {{high}}, portanto os limiares não se aplicam.",
+  "slope-barrier": "Tratar trechos muito íngremes como barreiras",
+  "slope-barrier-help": "Um trecho cujo ponto mais íngreme ultrapasse esta inclinação recebe 0, sejam como forem as suas calçadas. A pontuação da rua continua incluindo os cruzamentos das suas extremidades.",
   "slope-barrier-threshold": "É uma barreira se ultrapassar",
-  "slope-low-confidence": "Incluir inclinações aproximadas",
-  "slope-low-confidence-help": "Algumas cidades só têm um modelo de elevação pouco detalhado, que fornece uma inclinação aproximada de ponta a ponta. Ative esta opção para que essas inclinações também contem.",
-  "slope-effect": "Efeito da inclinação na pontuação: {{term}}",
-  "slope-barrier-effect": "Pontuação 0: ultrapassa a barreira de {{limit}}."
+  "slope-approximate-include": "Incluir inclinações aproximadas",
+  "slope-approximate-include-help": "Algumas inclinações são apenas uma linha reta entre as duas extremidades da rua: onde a cidade só tem um modelo de elevação pouco detalhado, ou onde o modelo pareceu pouco confiável. Ative esta opção para que essas inclinações também contem.",
+  "slope-barrier-effect": "O trecho recebe 0: ultrapassa a barreira de {{limit}}.",
+  "popup-slope-barrier": "barreira: 0"
 }

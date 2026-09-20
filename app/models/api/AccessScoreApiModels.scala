@@ -368,25 +368,35 @@ case class TagAdjustmentForApi(labelType: String, tag: String, delta: Double)
  *
  * @param defaults     The engine's own settings, the ones every reset returns to.
  * @param statistics   The statistics a reader may choose between, by their API names, in display order.
+ * @param weightMax    The most a control may set the weight to.
  * @param thresholdMin The lowest grade a threshold may be set to.
  * @param thresholdMax The highest.
  */
 case class SlopeConfigForApi(
     defaults: AccessScoreCalculator.SlopeSettings,
     statistics: Seq[String],
+    weightMax: Double,
     thresholdMin: Double,
     thresholdMax: Double
 ) {
+
+  /**
+   * The engine's values sit under `defaults`, apart from what a control may offer, so `defaults.statistic` (the one
+   * in force) and `statistics` (the ones on offer) are not neighbors in one flat object.
+   */
   def toJson: JsObject = Json.obj(
-    "weight"                 -> defaults.weight,
-    "statistic"              -> AccessScoreCalculator.slopeStatisticName(defaults.statistic),
-    "statistics"             -> statistics,
-    "low_threshold"          -> defaults.lowThreshold,
-    "high_threshold"         -> defaults.highThreshold,
-    "barrier_enabled"        -> defaults.barrierEnabled,
-    "barrier_threshold"      -> defaults.barrierThreshold,
-    "include_low_confidence" -> defaults.includeLowConfidence,
-    "threshold_range"        -> Json.obj("min" -> thresholdMin, "max" -> thresholdMax)
+    "defaults" -> Json.obj(
+      "weight"              -> defaults.weight,
+      "statistic"           -> AccessScoreCalculator.slopeStatisticName(defaults.statistic),
+      "low_threshold"       -> defaults.lowThreshold,
+      "high_threshold"      -> defaults.highThreshold,
+      "barrier_enabled"     -> defaults.barrierEnabled,
+      "barrier_threshold"   -> defaults.barrierThreshold,
+      "include_approximate" -> defaults.includeApproximate
+    ),
+    "statistics"      -> statistics,
+    "weight_range"    -> Json.obj("min" -> 0.0, "max" -> weightMax),
+    "threshold_range" -> Json.obj("min" -> thresholdMin, "max" -> thresholdMax)
   )
 }
 
@@ -396,7 +406,7 @@ object SlopeConfigForApi {
   def current: SlopeConfigForApi = SlopeConfigForApi(
     defaults = AccessScoreCalculator.defaultSlopeSettings,
     statistics = AccessScoreCalculator.slopeStatistics.map(AccessScoreCalculator.slopeStatisticName),
-    thresholdMin = AccessScoreCalculator.slopeThresholdMin,
+    weightMax = AccessScoreCalculator.slopeWeightMax, thresholdMin = AccessScoreCalculator.slopeThresholdMin,
     thresholdMax = AccessScoreCalculator.slopeThresholdMax
   )
 }

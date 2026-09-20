@@ -185,14 +185,20 @@
     "min_region_completion" : 0.8,
     "place_categories" : [ "school", "health", "library", "grocery", "transit", "park", "community" ],
     "slope" : {
-      "weight" : 0,
-      "statistic" : "mean_grade",
+      "defaults" : {
+        "weight" : 0,
+        "statistic" : "mean_grade",
+        "low_threshold" : 0.05,
+        "high_threshold" : 0.08333333333333333,
+        "barrier_enabled" : false,
+        "barrier_threshold" : 0.125,
+        "include_approximate" : false
+      },
       "statistics" : [ "mean_grade", "max_grade", "meters_over_limit" ],
-      "low_threshold" : 0.05,
-      "high_threshold" : 0.08333333333333333,
-      "barrier_enabled" : false,
-      "barrier_threshold" : 0.08333333333333333,
-      "include_low_confidence" : false,
+      "weight_range" : {
+        "min" : 0,
+        "max" : 3
+      },
       "threshold_range" : {
         "min" : 0.01,
         "max" : 0.4
@@ -13724,7 +13730,8 @@
       "net_grade" : 0.12,
       "meters_over_5pct" : 300,
       "meters_over_8pct" : 250,
-      "grade_confidence" : "high"
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
     },
     "settings" : {
       "weight" : 0,
@@ -13732,8 +13739,8 @@
       "low_threshold" : 0.05,
       "high_threshold" : 0.08333333333333333,
       "barrier_enabled" : false,
-      "barrier_threshold" : 0.08333333333333333,
-      "include_low_confidence" : false
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
     },
     "units" : 1,
     "slope_term" : 0,
@@ -13748,7 +13755,8 @@
       "net_grade" : -0.06,
       "meters_over_5pct" : 0,
       "meters_over_8pct" : 0,
-      "grade_confidence" : "high"
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
     },
     "settings" : {
       "weight" : 1,
@@ -13756,8 +13764,8 @@
       "low_threshold" : 0.05,
       "high_threshold" : 0.08333333333333333,
       "barrier_enabled" : false,
-      "barrier_threshold" : 0.08333333333333333,
-      "include_low_confidence" : false
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
     },
     "units" : 0.5,
     "slope_term" : -0.5,
@@ -13772,7 +13780,8 @@
       "net_grade" : 0.05,
       "meters_over_5pct" : 0,
       "meters_over_8pct" : 0,
-      "grade_confidence" : "high"
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
     },
     "settings" : {
       "weight" : 1,
@@ -13780,8 +13789,8 @@
       "low_threshold" : 0.05,
       "high_threshold" : 0.08333333333333333,
       "barrier_enabled" : false,
-      "barrier_threshold" : 0.08333333333333333,
-      "include_low_confidence" : false
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
     },
     "units" : 0,
     "slope_term" : 0,
@@ -13796,7 +13805,8 @@
       "net_grade" : 0.1,
       "meters_over_5pct" : 0,
       "meters_over_8pct" : 0,
-      "grade_confidence" : "high"
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
     },
     "settings" : {
       "weight" : 1.75,
@@ -13804,8 +13814,8 @@
       "low_threshold" : 0.05,
       "high_threshold" : 0.08333333333333333,
       "barrier_enabled" : false,
-      "barrier_threshold" : 0.08333333333333333,
-      "include_low_confidence" : false
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
     },
     "units" : 1,
     "slope_term" : -1.75,
@@ -13820,7 +13830,8 @@
       "net_grade" : 0.02,
       "meters_over_5pct" : 0,
       "meters_over_8pct" : 0,
-      "grade_confidence" : "high"
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
     },
     "settings" : {
       "weight" : 1,
@@ -13828,8 +13839,8 @@
       "low_threshold" : 0.05,
       "high_threshold" : 0.08333333333333333,
       "barrier_enabled" : false,
-      "barrier_threshold" : 0.08333333333333333,
-      "include_low_confidence" : false
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
     },
     "units" : 0.75,
     "slope_term" : -0.75,
@@ -13844,7 +13855,8 @@
       "net_grade" : 0.05,
       "meters_over_5pct" : 180,
       "meters_over_8pct" : 60,
-      "grade_confidence" : "high"
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
     },
     "settings" : {
       "weight" : 1,
@@ -13852,8 +13864,8 @@
       "low_threshold" : 0.05,
       "high_threshold" : 0.08333333333333333,
       "barrier_enabled" : false,
-      "barrier_threshold" : 0.08333333333333333,
-      "include_low_confidence" : false
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
     },
     "units" : 0.4,
     "slope_term" : -0.4,
@@ -13868,7 +13880,8 @@
       "net_grade" : 0.05,
       "meters_over_5pct" : 180,
       "meters_over_8pct" : 60,
-      "grade_confidence" : "high"
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
     },
     "settings" : {
       "weight" : 1,
@@ -13876,8 +13889,8 @@
       "low_threshold" : 0.2,
       "high_threshold" : 0.3,
       "barrier_enabled" : false,
-      "barrier_threshold" : 0.08333333333333333,
-      "include_low_confidence" : false
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
     },
     "units" : 0.4,
     "slope_term" : -0.4,
@@ -13892,7 +13905,8 @@
       "net_grade" : 0.09,
       "meters_over_5pct" : 0,
       "meters_over_8pct" : 0,
-      "grade_confidence" : "high"
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
     },
     "settings" : {
       "weight" : 1,
@@ -13900,8 +13914,8 @@
       "low_threshold" : 0.08,
       "high_threshold" : 0.1,
       "barrier_enabled" : false,
-      "barrier_threshold" : 0.08333333333333333,
-      "include_low_confidence" : false
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
     },
     "units" : 0.49999999999999967,
     "slope_term" : -0.49999999999999967,
@@ -13916,7 +13930,8 @@
       "net_grade" : 0.08,
       "meters_over_5pct" : 0,
       "meters_over_8pct" : 0,
-      "grade_confidence" : "high"
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
     },
     "settings" : {
       "weight" : 1,
@@ -13924,8 +13939,8 @@
       "low_threshold" : 0.08,
       "high_threshold" : 0.08,
       "barrier_enabled" : false,
-      "barrier_threshold" : 0.08333333333333333,
-      "include_low_confidence" : false
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
     },
     "units" : 1,
     "slope_term" : -1,
@@ -13936,11 +13951,12 @@
     "street" : "one good curb ramp",
     "slope" : {
       "mean_grade" : 0.07,
-      "max_grade" : 0.12,
+      "max_grade" : 0.15,
       "net_grade" : 0.07,
       "meters_over_5pct" : 0,
       "meters_over_8pct" : 0,
-      "grade_confidence" : "high"
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
     },
     "settings" : {
       "weight" : 1,
@@ -13948,8 +13964,8 @@
       "low_threshold" : 0.05,
       "high_threshold" : 0.08333333333333333,
       "barrier_enabled" : true,
-      "barrier_threshold" : 0.08333333333333333,
-      "include_low_confidence" : false
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
     },
     "units" : 0.6000000000000002,
     "slope_term" : -0.6000000000000002,
@@ -13964,7 +13980,8 @@
       "net_grade" : 0.06,
       "meters_over_5pct" : 0,
       "meters_over_8pct" : 0,
-      "grade_confidence" : "high"
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
     },
     "settings" : {
       "weight" : 1,
@@ -13973,7 +13990,7 @@
       "high_threshold" : 0.08333333333333333,
       "barrier_enabled" : true,
       "barrier_threshold" : 0.1,
-      "include_low_confidence" : false
+      "include_approximate" : false
     },
     "units" : 0.29999999999999993,
     "slope_term" : -0.29999999999999993,
@@ -13988,7 +14005,8 @@
       "net_grade" : 0.07,
       "meters_over_5pct" : 0,
       "meters_over_8pct" : 0,
-      "grade_confidence" : "high"
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
     },
     "settings" : {
       "weight" : 0,
@@ -13996,8 +14014,8 @@
       "low_threshold" : 0.05,
       "high_threshold" : 0.08333333333333333,
       "barrier_enabled" : true,
-      "barrier_threshold" : 0.08333333333333333,
-      "include_low_confidence" : false
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
     },
     "units" : 0.6000000000000002,
     "slope_term" : 0,
@@ -14012,7 +14030,8 @@
       "net_grade" : -0.2,
       "meters_over_5pct" : null,
       "meters_over_8pct" : null,
-      "grade_confidence" : "low"
+      "grade_confidence" : "low",
+      "grade_quality" : "measured"
     },
     "settings" : {
       "weight" : 1,
@@ -14020,8 +14039,8 @@
       "low_threshold" : 0.05,
       "high_threshold" : 0.08333333333333333,
       "barrier_enabled" : true,
-      "barrier_threshold" : 0.08333333333333333,
-      "include_low_confidence" : false
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
     },
     "units" : 0,
     "slope_term" : 0,
@@ -14036,7 +14055,8 @@
       "net_grade" : -0.07,
       "meters_over_5pct" : null,
       "meters_over_8pct" : null,
-      "grade_confidence" : "low"
+      "grade_confidence" : "low",
+      "grade_quality" : "measured"
     },
     "settings" : {
       "weight" : 1,
@@ -14044,8 +14064,8 @@
       "low_threshold" : 0.05,
       "high_threshold" : 0.08333333333333333,
       "barrier_enabled" : false,
-      "barrier_threshold" : 0.08333333333333333,
-      "include_low_confidence" : true
+      "barrier_threshold" : 0.125,
+      "include_approximate" : true
     },
     "units" : 0.6000000000000002,
     "slope_term" : -0.6000000000000002,
@@ -14060,7 +14080,8 @@
       "net_grade" : 0.2,
       "meters_over_5pct" : null,
       "meters_over_8pct" : null,
-      "grade_confidence" : "low"
+      "grade_confidence" : "low",
+      "grade_quality" : "measured"
     },
     "settings" : {
       "weight" : 1,
@@ -14068,13 +14089,138 @@
       "low_threshold" : 0.05,
       "high_threshold" : 0.08333333333333333,
       "barrier_enabled" : true,
-      "barrier_threshold" : 0.08333333333333333,
-      "include_low_confidence" : true
+      "barrier_threshold" : 0.125,
+      "include_approximate" : true
     },
     "units" : 1,
     "slope_term" : -1,
     "barrier" : true,
     "segment_score" : 0
+  }, {
+    "name" : "a distrusted profile sits out by default, like a coarse one",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : 0.2,
+      "max_grade" : 0.2,
+      "net_grade" : 0.2,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "suspect"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : true,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 0,
+    "slope_term" : 0,
+    "barrier" : false,
+    "segment_score" : 0.679178699175393
+  }, {
+    "name" : "an admitted distrusted profile scores by its straight line",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : 0.07,
+      "max_grade" : 0.07,
+      "net_grade" : -0.07,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "suspect"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : true
+    },
+    "units" : 0.6000000000000002,
+    "slope_term" : -0.6000000000000002,
+    "barrier" : false,
+    "segment_score" : 0.5374298453437495
+  }, {
+    "name" : "thresholds that have crossed act as a step at the low one",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : 0.09,
+      "max_grade" : 0.11,
+      "net_grade" : 0.09,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.1,
+      "high_threshold" : 0.06,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 0,
+    "slope_term" : 0,
+    "barrier" : false,
+    "segment_score" : 0.679178699175393
+  }, {
+    "name" : "a grade over crossed thresholds takes the whole weight",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : 0.11,
+      "max_grade" : 0.12,
+      "net_grade" : 0.11,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.1,
+      "high_threshold" : 0.06,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 1,
+    "slope_term" : -1,
+    "barrier" : false,
+    "segment_score" : 0.43782349911420193
+  }, {
+    "name" : "the over-limit statistic finds no lengths on a coarse-model row",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : null,
+      "max_grade" : null,
+      "net_grade" : 0.2,
+      "meters_over_5pct" : null,
+      "meters_over_8pct" : null,
+      "grade_confidence" : "low",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "meters_over_limit",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : true
+    },
+    "units" : 0,
+    "slope_term" : 0,
+    "barrier" : false,
+    "segment_score" : 0.679178699175393
   }, {
     "name" : "an unsampled street takes no slope term",
     "street" : "problems on a 300 m street",
@@ -14085,8 +14231,8 @@
       "low_threshold" : 0.05,
       "high_threshold" : 0.08333333333333333,
       "barrier_enabled" : true,
-      "barrier_threshold" : 0.08333333333333333,
-      "include_low_confidence" : false
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
     },
     "units" : 0,
     "slope_term" : 0,
@@ -14101,7 +14247,8 @@
       "net_grade" : null,
       "meters_over_5pct" : null,
       "meters_over_8pct" : null,
-      "grade_confidence" : "high"
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
     },
     "settings" : {
       "weight" : 1,
@@ -14109,8 +14256,8 @@
       "low_threshold" : 0.05,
       "high_threshold" : 0.08333333333333333,
       "barrier_enabled" : true,
-      "barrier_threshold" : 0.08333333333333333,
-      "include_low_confidence" : false
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
     },
     "units" : 0,
     "slope_term" : 0,

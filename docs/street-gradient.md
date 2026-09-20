@@ -222,17 +222,28 @@ label type), so it joins a segment's pre-sigmoid sum as its own **modifier term*
   every street's profile in the city-wide payload.
 - The thresholds are settings, not constants, because people's limits differ (AccessMap offers 8%/10% and 10%/12%
   profiles for manual and power wheelchairs).
-- **Barrier** (off by default): a street whose `max_grade` exceeds the barrier threshold scores 0 outright.
-- **Low-confidence grades sit out** unless admitted; an admitted coarse-model row stands in `|net_grade|` for the
-  grade it lacks. A street with no grade (`structure`, `no_data`, unsampled) never takes a term.
+- **Barrier** (off by default): a street whose `max_grade` exceeds the barrier threshold has a **segment** score of
+  0 outright. Its headline still averages that 0 with the crossings at its ends, which is why the tool's popup says
+  "the segment scores 0" under a headline that may not be. The default grade is 1:8 (12.5%), not the ramp limit:
+  `max_grade` is a street's steepest 30 m, and 8.33% there is an ordinary block in a hilly city. 12.5% is also where
+  the slope map's steepest class begins, so the barrier zeroes the streets the map already paints as its worst.
+- **Approximate grades sit out** unless admitted (`include_approximate`). Two kinds of row are approximate, and for
+  the same reason, that their grade is a straight line between the street's ends: a `low`-confidence row from a
+  coarse model, which has `net_grade` alone and stands in `|net_grade|` for the grade it lacks; and a `suspect` row,
+  whose `mean_grade` and `max_grade` the sampler set to that line because it distrusted the profile it read. Neither
+  says anything of the pitches along the street, which is what the thresholds and the barrier are about. A street
+  with no grade (`structure`, `no_data`, unsampled) never takes a term.
+- **Crossed thresholds** (high at or under low) leave no ramp, and the engine reads the low one as a step. The
+  tool refuses them, in the section and from a link, since both of its threshold labels would then be false.
 - **An unaudited street stays unscored.** Slope modifies a score that labels produced; it never creates one, so the
   headline keeps meaning "assessed by people". Such a street still shows its slope on the grade layer and in its
   popup.
 
-`/v3/api/accessScoreConfig` publishes the settings under `slope` (the defaults, the statistic ids, the range a
-threshold may take), and `/v3/api/accessScoreStreets` publishes each street's `slope_term` (0 today). The tool's
+`/v3/api/accessScoreConfig` publishes the settings under `slope` (`defaults`, the statistic ids, and the ranges a
+weight and a threshold may take), and `/v3/api/accessScoreStreets` publishes each street's `slope_term` (0 today). The tool's
 **Street slope** sidebar section (`AccessScoreSlopePanel.js`) edits them, hidden in an unsampled city; the settings
-ride in the URL as `slope=` and the street popup says what slope did to the score.
+ride in the URL as `slope=`, the street popup's "What drives this score" table gains a Slope row once slope is
+weighed in, and its Slope block says when a barrier has zeroed the segment.
 
 ## Attribution
 

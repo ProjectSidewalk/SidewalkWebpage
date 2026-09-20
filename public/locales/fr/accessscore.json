@@ -177,12 +177,12 @@
   "slope-thresholds": "Seuils de pente",
   "slope-low": "Aucune pénalité jusqu'à",
   "slope-high": "Pénalité complète à partir de",
-  "slope-fixed-note": "Cette mesure utilise les limites d'accessibilité de 5 % et 8,3 % ; les seuils ne s'appliquent donc pas.",
-  "slope-barrier": "Traiter les rues très raides comme des barrières",
-  "slope-barrier-help": "Une rue dont le tronçon le plus raide dépasse cette pente obtient 0, quel que soit l'état de ses trottoirs.",
+  "slope-fixed-note": "Cette mesure utilise les limites d'accessibilité de {{low}} et {{high}} ; les seuils ne s'appliquent donc pas.",
+  "slope-barrier": "Traiter les tronçons très raides comme des barrières",
+  "slope-barrier-help": "Un tronçon dont le passage le plus raide dépasse cette pente obtient 0, quel que soit l'état de ses trottoirs. Le score de la rue continue d'intégrer les intersections à ses extrémités.",
   "slope-barrier-threshold": "Une barrière au-delà de",
-  "slope-low-confidence": "Inclure les pentes approximatives",
-  "slope-low-confidence-help": "Certaines villes n'ont qu'un modèle d'élévation peu détaillé, qui donne une pente approximative d'un bout à l'autre. Activez cette option pour que ces pentes comptent aussi.",
-  "slope-effect": "Effet de la pente sur le score : {{term}}",
-  "slope-barrier-effect": "Score de 0 : plus raide que le seuil de barrière de {{limit}}."
+  "slope-approximate-include": "Inclure les pentes approximatives",
+  "slope-approximate-include-help": "Certaines pentes ne sont qu'une ligne droite entre les deux extrémités d'une rue : là où la ville n'a qu'un modèle d'élévation peu détaillé, ou là où le modèle semblait peu fiable. Activez cette option pour que ces pentes comptent aussi.",
+  "slope-barrier-effect": "Le tronçon obtient 0 : plus raide que le seuil de barrière de {{limit}}.",
+  "popup-slope-barrier": "barrière : 0"
 }

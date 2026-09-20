@@ -536,21 +536,32 @@ test.describe('/accessScore', () => {
       // The over-limit measure uses fixed limits, so the thresholds switch off and say why.
       await page.locator('#acs-slope-statistic').selectOption('meters_over_limit');
       await expect(page.locator('#acs-slope-low')).toBeDisabled();
-      await expect(page.locator('#acs-slope-fixed-note')).toBeVisible();
+      await expect(page.getByRole('status').filter({hasText: 'accessibility limits of 5% and 8.3%'})).toBeVisible();
       await page.locator('#acs-slope-statistic').selectOption('mean_grade');
 
-      // A barrier at the default 8.3%: the street's steepest stretch is 12%, so it scores 0 outright.
+      // The table that explains the score now has a row for what slope took off it.
+      await page.goto(`/accessScore?slope=w:1&sel=1`);
+      await waitForAppReady(page);
+      await waitForTool(page);
+      await expect(page.locator('.acs-popup__table')).toContainText(/Slope\s*—\s*−1\.00/);
+
+      // A barrier at the default 12.5% leaves a street whose steepest stretch is 12% alone; at 10% it scores 0.
       await page.locator('#acs-slope-barrier').check();
+      await expect.poll(() => urlParam(page, 'slope')).toBe('w:1,b:0.125');
+      expect(await scoreOf(page, 1)).toBeGreaterThan(0);
+      await page.locator('#acs-slope-barrier-threshold').fill('10');
+      await page.locator('#acs-slope-barrier-threshold').blur();
       await expect.poll(() => scoreOf(page, 1)).toBe(0);
-      await expect.poll(() => urlParam(page, 'slope')).toBe('w:1,b:0.083');
+      await expect.poll(() => urlParam(page, 'slope')).toBe('w:1,b:0.1');
 
       // The link restores the settings, opens the fold, and the popup says what slope did.
-      await page.goto('/accessScore?slope=w:1,b:0.083&sel=1');
+      await page.goto('/accessScore?slope=w:1,b:0.1&sel=1');
       await waitForAppReady(page);
       await waitForTool(page);
       await expect(page.locator('#acs-slope')).toBeVisible();
       await expect(page.locator('#acs-slope-barrier')).toBeChecked();
-      await expect(page.locator('.acs-popup')).toContainText('Scored 0: steeper than the 8.3% barrier.');
+      await expect(page.locator('.acs-popup')).toContainText('The segment scores 0: steeper than the 10% barrier.');
+      await expect(page.locator('.acs-popup__table')).toContainText('barrier: 0');
 
       await page.locator('#acs-slope-reset').click();
       await expect.poll(() => scoreOf(page, 1)).toBeCloseTo(flat, 9);

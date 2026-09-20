@@ -6,7 +6,7 @@ import models.api.{IntersectionAccessScoreForApi, RegionAccessScoreForApi, Stree
 import models.cluster.ClusterScoreRow
 import models.intersection.{IntersectionInfo, IntersectionStreetEnd, StreetEnd}
 import models.region.Region
-import models.street.{StreetEdgeInfo, StreetGradientConfidence, StreetGradientStats}
+import models.street.{StreetEdgeInfo, StreetGradientConfidence, StreetGradientQuality, StreetGradientStats}
 import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{LatLngBBox, SpatialQueryType}
 import org.apache.pekko.stream.Materializer
@@ -197,7 +197,10 @@ class AccessScoreService @Inject() (
     )
   }
 
-  /** A street's stored slope as the engine takes it; `low` confidence is the coarse-model tier. */
+  /**
+   * A street's stored slope as the engine takes it. `approximate` gathers the two ways a row's grade is an
+   * end-to-end line: the coarse-model tier (`low` confidence), and a profile the sampler distrusted (`suspect`).
+   */
   private def toSlopeInput(g: StreetGradientStats): AccessScoreCalculator.SlopeInput =
     AccessScoreCalculator.SlopeInput(
       meanGrade = g.meanGrade,
@@ -205,7 +208,7 @@ class AccessScoreService @Inject() (
       netGrade = g.netGrade,
       metersOver5pct = g.metersOver5pctGrade,
       metersOver8pct = g.metersOver8pctGrade,
-      lowConfidence = g.confidence == StreetGradientConfidence.Low
+      approximate = g.confidence == StreetGradientConfidence.Low || g.quality == StreetGradientQuality.Suspect
     )
 
   /**

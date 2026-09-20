@@ -579,7 +579,7 @@ window.AccessScoreApp = (function () {
         const drivers = street.audited
           ? `${componentsHtml(street)}
           <h4 class="acs-popup__subtitle">${i18next.t('accessscore:popup-terms')}</h4>
-          ${termsTableHtml(street.terms)}`
+          ${termsTableHtml(street.terms, undefined, street)}`
           : '';
         streetHtml = `<h4 class="acs-popup__subtitle">${streetTitle(street)}</h4>
           <div class="acs-popup__meta">${i18next.t('accessscore:popup-nearest-street')} · ${distance}</div>
@@ -774,8 +774,29 @@ window.AccessScoreApp = (function () {
      * The per-type breakdown shared by both popups: cluster count (a per-street average for a region, hence
      * the decimal) and signed term per type that has any clusters.
      */
-    function termsTableHtml(terms, clustersHeading = i18next.t('accessscore:popup-clusters')) {
-      const rows = config.scored_types.filter((type) => terms[type].clusterCount > 0).map((type) => {
+    /**
+     * The slope's row in a street's terms table (#5223): slope is part of what drives the score once a reader has
+     * weighed it in, so a table headed "What drives this score" that left it out would not add up to the score
+     * beside it. Under a barrier the row says so in place of a term, since the rows above it then explain a sum the
+     * segment's 0 did not come from. Empty at the engine's own settings, where slope drives nothing.
+     * @param {?AccessScoreStreetExplanation} street - The street the table explains, or null for a unit with no slope.
+     * @returns {string} A table row, or ''.
+     */
+    function slopeRowHtml(street) {
+      if (!street || (!street.barrier && street.slopeTerm === 0)) return '';
+      const effect = street.barrier
+        ? i18next.t('accessscore:popup-slope-barrier')
+        : `−${Math.abs(street.slopeTerm).toFixed(2)}`;
+      return `<tr>
+          <td><span class="acs-popup__swatch acs-popup__swatch--slope"></span>${
+  i18next.t('accessscore:popup-slope')}</td>
+          <td class="acs-popup__num">—</td>
+          <td class="acs-popup__num acs-popup__term--problem">${effect}</td>
+        </tr>`;
+    }
+
+    function termsTableHtml(terms, clustersHeading = i18next.t('accessscore:popup-clusters'), street = null) {
+      const typeRows = config.scored_types.filter((type) => terms[type].clusterCount > 0).map((type) => {
         const t = terms[type];
         const sign = t.term >= 0 ? '+' : '−';
         const count = Number.isInteger(t.clusterCount) ? t.clusterCount : t.clusterCount.toFixed(1);
@@ -787,6 +808,7 @@ window.AccessScoreApp = (function () {
     Math.abs(t.term).toFixed(2)}</td>
         </tr>`;
       }).join('');
+      const rows = `${typeRows}${slopeRowHtml(street)}`;
       if (!rows) return `<p class="acs-popup__empty">${i18next.t('accessscore:popup-no-clusters')}</p>`;
       return `<table class="acs-popup__table">
         <thead><tr>
@@ -820,7 +842,7 @@ window.AccessScoreApp = (function () {
         <div class="acs-popup__meta">${region ? `${util.escapeHTML(region.name)} · ` : ''}${
     formatLength(s.lengthM)}</div>
         <h4 class="acs-popup__subtitle">${i18next.t('accessscore:popup-terms')}</h4>
-        ${termsTableHtml(s.terms)}
+        ${termsTableHtml(s.terms, undefined, s)}
         ${slopeHtml(s)}
         ${hopLinksHtml(lngLat)}`;
     }
@@ -870,13 +892,13 @@ window.AccessScoreApp = (function () {
       } else if (g.netGrade !== null) {
         lines.push(t('slope-net-only', { grade: percentHtml(Math.abs(g.netGrade)) }));
       }
-      // What slope did to this street's score under the settings in force: nothing to say at the engine's own.
+      // A barrier zeroes the segment, not the street: the headline above still averages that 0 with the crossings
+      // at either end, so the sentence names the segment, in the word the components line uses for it. The term
+      // itself is a row of the table above.
       if (s.audited && s.barrier) {
         lines.push(`<strong>${t('slope-barrier-effect', {
           limit: percentHtml(model.state.slope.barrierThreshold),
         })}</strong>`);
-      } else if (s.audited && s.slopeTerm !== 0) {
-        lines.push(t('slope-effect', { term: `−${Math.abs(s.slopeTerm).toFixed(2)}` }));
       }
       const notes = [];
       if (g.quality !== 'measured') notes.push(t(`slope-quality-${g.quality.replace('_', '-')}`));

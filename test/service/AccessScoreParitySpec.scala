@@ -118,7 +118,7 @@ class AccessScoreParitySpec extends AnyFunSuite with Matchers {
       AccessScoreCalculator.slopeStatistics.map(st => AccessScoreCalculator.slopeStatisticName(st) -> st).toMap
     val streetByName = streets.map(st => (st \ "name").as[String] -> st).toMap
     val cases        = (fixture \ "slope_cases").as[Seq[JsValue]]
-    cases.size should be >= 15
+    cases.size should be >= 20
 
     cases.foreach { c =>
       // Read back from the JSON, not from the generator's case list: the JS side only ever sees the JSON, so this
@@ -130,7 +130,7 @@ class AccessScoreParitySpec extends AnyFunSuite with Matchers {
         highThreshold = (c \ "settings" \ "high_threshold").as[Double],
         barrierEnabled = (c \ "settings" \ "barrier_enabled").as[Boolean],
         barrierThreshold = (c \ "settings" \ "barrier_threshold").as[Double],
-        includeLowConfidence = (c \ "settings" \ "include_low_confidence").as[Boolean]
+        includeApproximate = (c \ "settings" \ "include_approximate").as[Boolean]
       )
       val slope = (c \ "slope").asOpt[JsObject].map { g =>
         AccessScoreCalculator.SlopeInput(
@@ -139,7 +139,7 @@ class AccessScoreParitySpec extends AnyFunSuite with Matchers {
           (g \ "net_grade").asOpt[Double],
           (g \ "meters_over_5pct").asOpt[Double],
           (g \ "meters_over_8pct").asOpt[Double],
-          lowConfidence = (g \ "grade_confidence").as[String] == "low"
+          approximate = (g \ "grade_confidence").as[String] == "low" || (g \ "grade_quality").as[String] == "suspect"
         )
       }
       val street    = streetByName((c \ "street").as[String])

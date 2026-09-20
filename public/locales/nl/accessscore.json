@@ -177,12 +177,12 @@
   "slope-thresholds": "Hellingsdrempels",
   "slope-low": "Geen aftrek tot",
   "slope-high": "Volle aftrek vanaf",
-  "slope-fixed-note": "Deze maat gebruikt de toegankelijkheidsgrenzen van 5% en 8,3%, dus de drempels zijn niet van toepassing.",
-  "slope-barrier": "Zeer steile straten als barrière behandelen",
-  "slope-barrier-help": "Een straat waarvan het steilste stuk boven deze helling ligt, krijgt een score van 0, hoe de stoepen ook zijn.",
+  "slope-fixed-note": "Deze maat gebruikt de toegankelijkheidsgrenzen van {{low}} en {{high}}, dus de drempels zijn niet van toepassing.",
+  "slope-barrier": "Zeer steile wegvakken als barrière behandelen",
+  "slope-barrier-help": "Een wegvak waarvan het steilste stuk boven deze helling ligt, krijgt een score van 0, hoe de stoepen ook zijn. In de score van de straat tellen de kruisingen aan de uiteinden nog steeds mee.",
   "slope-barrier-threshold": "Een barrière indien steiler dan",
-  "slope-low-confidence": "Benaderde hellingen meenemen",
-  "slope-low-confidence-help": "Sommige steden hebben alleen een grof hoogtemodel, dat een ruwe helling van begin tot eind geeft. Zet dit aan om ook die hellingen mee te tellen.",
-  "slope-effect": "Effect van de helling op de score: {{term}}",
-  "slope-barrier-effect": "Score 0: steiler dan de barrière van {{limit}}."
+  "slope-approximate-include": "Benaderde hellingen meenemen",
+  "slope-approximate-include-help": "Sommige hellingen zijn slechts een rechte lijn tussen de twee uiteinden van een straat: waar een stad alleen een grof hoogtemodel heeft, of waar het model onbetrouwbaar leek. Zet dit aan om ook die hellingen mee te tellen.",
+  "slope-barrier-effect": "Het wegvak scoort 0: steiler dan de barrière van {{limit}}.",
+  "popup-slope-barrier": "barrière: 0"
 }

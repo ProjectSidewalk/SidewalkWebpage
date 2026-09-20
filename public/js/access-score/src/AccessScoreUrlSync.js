@@ -15,12 +15,16 @@
  * selected place as `place` (`lat,lng`) with `placeName` — the same pair the searched place will use (#5340), so a link
  * means one thing by "place". The slope settings (#5223) ride in `slope` as `key:value` tokens, each present only
  * where it differs from the engine's default: `w` (weight), `s` (statistic id), `lo` / `hi` (the thresholds, as
- * fractions), `b` (the barrier threshold, whose presence is what turns the barrier on) and `lc` (1 to admit
- * coarse-model slopes).
+ * fractions), `b` (the barrier threshold, whose presence is what turns the barrier on) and `ap` (1 to admit
+ * approximate slopes).
  */
 class AccessScoreUrlSync {
   /** The `pc` value for every place category: the full list spelled out would break the moment one is added. */
   static #ALL_CATEGORIES = 'all';
+
+  /** The precision a grade is written to: a thousandth of a percent, far finer than any threshold a reader sets. */
+  static #GRADE_DECIMALS = 5;
+  static #GRADE_STEP = 10 ** -AccessScoreUrlSync.#GRADE_DECIMALS;
 
   static #WRITE_DELAY_MS = 300;
 
@@ -216,20 +220,30 @@ class AccessScoreUrlSync {
     util.url.replaceQuery(url);
   }
 
-  /** A number as a short decimal string ("0.75", not "0.7500000000000001"). */
   /**
    * The `slope` param's tokens as a partial of the slope settings, each checked against what the config allows so a
    * stale or hand-edited link degrades to the engine's defaults token by token.
-   * @param {AccessScoreConfig} config - The engine config; without its `slope` block there is nothing to set.
+   *
+   * Nothing is read in a city with no slope to weigh (no settings published, or no street sampled): its Slope
+   * section is hidden, so settings from a link would be in force with nothing on screen to show or undo them, and
+   * would be written back into every link made from there. A weight is held to the slider's own range, since a
+   * range input clamps what it is handed and the control would then show one weight while the map used another.
+   * Thresholds that cross are dropped as a pair: the section refuses them too, as they make both of its labels false.
+   *
+   * @param {AccessScoreConfig} config - The engine config.
    * @param {?string} raw - The param's value.
    * @returns {?Partial<AccessScoreSlopeSettings>} The settings the link names, or null for none.
    */
   static #readSlope(config, raw) {
-    if (!raw || !config.slope) return null;
+    if (!raw || !config.slope || (config.gradient?.sources ?? []).length === 0) return null;
+    const defaults = AccessScoreModel.slopeDefaults(config);
     const { min, max } = config.slope.threshold_range;
-    const grade = (text) => {
+    // A grade is written to five decimals, so one that was a default (1/12, 1/8) comes back a hair off it. Snapping
+    // it home keeps a round trip from moving a street sitting between 0.08333 and 1/12 across a threshold.
+    const grade = (text, fallback) => {
       const value = Number.parseFloat(text);
-      return Number.isFinite(value) && value >= min && value <= max ? value : null;
+      if (!Number.isFinite(value) || value < min || value > max) return null;
+      return Math.abs(value - fallback) < AccessScoreUrlSync.#GRADE_STEP ? fallback : value;
     };
     /** @type {Partial<AccessScoreSlopeSettings>} */
     const slope = {};
@@ -238,19 +252,23 @@ class AccessScoreUrlSync {
       const [key, text] = [token.slice(0, colon), token.slice(colon + 1)];
       if (key === 'w') {
         const weight = Number.parseFloat(text);
-        if (Number.isFinite(weight) && weight >= 0) slope.weight = weight;
+        if (Number.isFinite(weight) && weight >= 0) slope.weight = Math.min(weight, config.slope.weight_range.max);
       } else if (key === 's' && config.slope.statistics.includes(text)) {
         slope.statistic = text;
-      } else if (key === 'lo' && grade(text) !== null) {
-        slope.lowThreshold = grade(text);
-      } else if (key === 'hi' && grade(text) !== null) {
-        slope.highThreshold = grade(text);
-      } else if (key === 'b' && grade(text) !== null) {
+      } else if (key === 'lo' && grade(text, defaults.lowThreshold) !== null) {
+        slope.lowThreshold = grade(text, defaults.lowThreshold);
+      } else if (key === 'hi' && grade(text, defaults.highThreshold) !== null) {
+        slope.highThreshold = grade(text, defaults.highThreshold);
+      } else if (key === 'b' && grade(text, defaults.barrierThreshold) !== null) {
         slope.barrierEnabled = true;
-        slope.barrierThreshold = grade(text);
-      } else if (key === 'lc' && text === '1') {
-        slope.includeLowConfidence = true;
+        slope.barrierThreshold = grade(text, defaults.barrierThreshold);
+      } else if (key === 'ap' && text === '1') {
+        slope.includeApproximate = true;
       }
+    }
+    if ((slope.lowThreshold ?? defaults.lowThreshold) >= (slope.highThreshold ?? defaults.highThreshold)) {
+      delete slope.lowThreshold;
+      delete slope.highThreshold;
     }
     return Object.keys(slope).length > 0 ? slope : null;
   }
@@ -264,16 +282,18 @@ class AccessScoreUrlSync {
   #slopeParam(slope) {
     const defaults = AccessScoreModel.slopeDefaults(this.#model.config);
     const differs = (key) => Math.abs(slope[key] - defaults[key]) >= 1e-9;
+    const grade = (value) => String(Number(value.toFixed(AccessScoreUrlSync.#GRADE_DECIMALS)));
     const tokens = [];
     if (differs('weight')) tokens.push(`w:${this.#trim(slope.weight)}`);
     if (slope.statistic !== defaults.statistic) tokens.push(`s:${slope.statistic}`);
-    if (differs('lowThreshold')) tokens.push(`lo:${this.#trim(slope.lowThreshold)}`);
-    if (differs('highThreshold')) tokens.push(`hi:${this.#trim(slope.highThreshold)}`);
-    if (slope.barrierEnabled) tokens.push(`b:${this.#trim(slope.barrierThreshold)}`);
-    if (slope.includeLowConfidence) tokens.push('lc:1');
+    if (differs('lowThreshold')) tokens.push(`lo:${grade(slope.lowThreshold)}`);
+    if (differs('highThreshold')) tokens.push(`hi:${grade(slope.highThreshold)}`);
+    if (slope.barrierEnabled) tokens.push(`b:${grade(slope.barrierThreshold)}`);
+    if (slope.includeApproximate) tokens.push('ap:1');
     return tokens.join(',');
   }
 
+  /** A number as a short decimal string ("0.75", not "0.7500000000000001"). */
   #trim(value) {
     return String(Math.round(value * 1000) / 1000);
   }

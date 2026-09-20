@@ -516,8 +516,10 @@ object AccessScoreCalculator {
    * @param highThreshold        The grade at or over which the term is at full strength.
    * @param barrierEnabled       Whether a street steeper than `barrierThreshold` scores 0 outright.
    * @param barrierThreshold     The `maxGrade` over which a street is a barrier, when enabled.
-   * @param includeLowConfidence Whether a grade from a coarse (30 m) elevation model takes part at all. Off by
-   *                             default: such a model supports an end-to-end grade only, to within about a point.
+   * @param includeApproximate   Whether an approximate grade takes part at all ([[SlopeInput.approximate]]). Off
+   *                             by default: such a grade is an end-to-end line, good to within about a point, and
+   *                             says nothing of the pitches along the street that the thresholds and the barrier
+   *                             are about.
    */
   case class SlopeSettings(
       weight: Double,
@@ -526,23 +528,31 @@ object AccessScoreCalculator {
       highThreshold: Double,
       barrierEnabled: Boolean,
       barrierThreshold: Double,
-      includeLowConfidence: Boolean
+      includeApproximate: Boolean
   )
 
   // --- TUNABLE: how slope enters the score. The weight is 0 until a calibration pass says what a steep block should
   // cost next to a missing curb ramp, so today's scores are exactly the label-only ones. The thresholds default to
   // the two ADA / PROWAG limits; a reader moves them because people's limits differ (a manual and a power wheelchair
-  // user do not share one), which is why they are settings and not constants. ---
+  // user do not share one), which is why they are settings and not constants. The barrier's grade is not the ramp
+  // limit: `maxGrade` is a street's steepest 30 m, and 8.33% there is an ordinary block in a hilly city, where a
+  // switch labeled "very steep" would zero a large share of the map. It is 1:8 (12.5%), the steepest ramp the ADA
+  // tolerates anywhere, which is also where the slope map's steepest class begins, so the streets the barrier zeroes
+  // are the ones the map already paints as its worst. ---
   val defaultSlopeSettings: SlopeSettings = SlopeSettings(
     weight = 0.0, statistic = MeanGrade, lowThreshold = StreetGradientStats.WalkingSurfaceLimit,
     highThreshold = StreetGradientStats.RampLimit, barrierEnabled = false,
-    barrierThreshold = StreetGradientStats.RampLimit, includeLowConfidence = false
+    barrierThreshold = StreetGradientStats.MapClassBreaks.last, includeApproximate = false
   )
 
   // --- TUNABLE: the grades a reader may set a threshold between. The floor keeps "everything is steep" off the
   // table; the ceiling is above the steepest real streets (Canton Avenue and Baldwin Street are 35 to 37%). ---
   val slopeThresholdMin: Double = 0.01
   val slopeThresholdMax: Double = 0.4
+
+  // --- TUNABLE: the most a reader may weigh slope, the ceiling of the label types' own sliders: at 3 a street over
+  // the high threshold loses what three severe obstacles would cost it, and the sigmoid has little left to give. ---
+  val slopeWeightMax: Double = 3.0
 
   /**
    * A street's slope, as the engine needs it: `StreetGradientStats` without the database's types.
@@ -552,7 +562,10 @@ object AccessScoreCalculator {
    * @param netGrade       Signed end-to-end grade, the one statistic a coarse model supports.
    * @param metersOver5pct Meters steeper than the walking-surface limit.
    * @param metersOver8pct Meters steeper than the ramp limit.
-   * @param lowConfidence  Whether the grade came from a coarse elevation model.
+   * @param approximate    Whether the grade is an end-to-end line and not a sampled profile: it came from a coarse
+   *                       elevation model (`low` confidence), or the sampler distrusted the profile it read and drew
+   *                       a straight line between the street's ends in its place (`suspect` quality), which makes
+   *                       `meanGrade` and `maxGrade` both the size of `netGrade`.
    */
   case class SlopeInput(
       meanGrade: Option[Double],
@@ -560,12 +573,12 @@ object AccessScoreCalculator {
       netGrade: Option[Double],
       metersOver5pct: Option[Double],
       metersOver8pct: Option[Double],
-      lowConfidence: Boolean
+      approximate: Boolean
   )
 
-  /** Whether a street's slope takes part under the settings: it has one, and its confidence is admitted. */
+  /** Whether a street's slope takes part under the settings: it has one, and it is sampled or approximates count. */
   private def slopeCounts(slope: Option[SlopeInput], settings: SlopeSettings): Option[SlopeInput] =
-    slope.filter(s => settings.includeLowConfidence || !s.lowConfidence)
+    slope.filter(s => settings.includeApproximate || !s.approximate)
 
   /**
    * How far a grade sits between the two thresholds, in [0, 1]. Thresholds that have crossed or met leave no ramp
@@ -580,12 +593,14 @@ object AccessScoreCalculator {
   /**
    * How much of the slope term a street takes, in [0, 1].
    *
-   * [[MeanGrade]] and [[MaxGrade]] ramp from 0 at the low threshold to 1 at the high one. A street with no windowed
-   * statistics (a coarse-model row, once those are admitted) stands in the size of its end-to-end grade for either.
+   * [[MeanGrade]] and [[MaxGrade]] ramp from 0 at the low threshold to 1 at the high one. A street with neither,
+   * whatever its confidence (in practice a coarse-model row, once admitted), stands in the size of its end-to-end
+   * grade for either.
    * [[MetersOverLimit]] is the share of the street over the walking-surface limit, with the share over the ramp limit
    * counted again: a street wholly between the two limits takes half the term, one wholly over both takes all of it.
    *
-   * @param slope        The street's slope, or None where it has not been sampled or has no grade (a bridge, a gap).
+   * @param slope        The street's slope, or None where it has not been sampled. A bridge or a gap in the model
+   *                     has a row, so it arrives as Some with every grade None, and takes no units either.
    * @param lengthMeters The street's length, the denominator of the over-limit share.
    * @param settings     How slope enters the score.
    * @return             The units the weight applies to; 0 for a street whose slope does not take part.
@@ -618,7 +633,8 @@ object AccessScoreCalculator {
 
   /**
    * Whether the settings treat the street as impassable: the barrier switch is on and the street's steepest stretch
-   * (its end-to-end grade, for an admitted coarse-model row) is over the barrier threshold.
+   * (its end-to-end grade, for a row with no steepest stretch) is over the barrier threshold. An approximate grade
+   * the settings do not admit cannot make a barrier, as it cannot make a term.
    */
   def slopeIsBarrier(slope: Option[SlopeInput], settings: SlopeSettings): Boolean =
     settings.barrierEnabled && slopeCounts(slope, settings).exists { s =>

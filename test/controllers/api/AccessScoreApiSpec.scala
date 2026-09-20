@@ -167,13 +167,15 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "publish the engine's slope settings, whose zero weight is what keeps the served scores label-only" in {
       val slope = contentAsJson(route(app, FakeRequest(GET, "/v3/api/accessScoreConfig")).get) \ "slope"
-      (slope \ "weight").as[Double] mustBe 0.0
-      (slope \ "barrier_enabled").as[Boolean] mustBe false
-      (slope \ "include_low_confidence").as[Boolean] mustBe false
-      (slope \ "statistic").as[String] mustBe "mean_grade"
+      (slope \ "defaults" \ "weight").as[Double] mustBe 0.0
+      (slope \ "defaults" \ "barrier_enabled").as[Boolean] mustBe false
+      (slope \ "defaults" \ "include_approximate").as[Boolean] mustBe false
+      (slope \ "defaults" \ "statistic").as[String] mustBe "mean_grade"
+      (slope \ "defaults" \ "low_threshold").as[Double] mustBe 0.05
+      (slope \ "defaults" \ "high_threshold").as[Double] mustBe (1.0 / 12.0)
+      (slope \ "defaults" \ "barrier_threshold").as[Double] mustBe 0.125
       (slope \ "statistics").as[Seq[String]] mustBe Seq("mean_grade", "max_grade", "meters_over_limit")
-      (slope \ "low_threshold").as[Double] mustBe 0.05
-      (slope \ "high_threshold").as[Double] mustBe (1.0 / 12.0)
+      (slope \ "weight_range" \ "max").as[Double] must be > 0.0
       (slope \ "threshold_range" \ "min").as[Double] must be < (slope \ "threshold_range" \ "max").as[Double]
     }
 

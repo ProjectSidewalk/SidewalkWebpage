@@ -86,11 +86,11 @@ describe('AccessScoreModel', () => {
     });
 
     test('reproduces every slope case: units, term, barrier and segment score (#5223)', () => {
-        expect(FIXTURE.slope_cases.length).toBeGreaterThanOrEqual(15);
+        expect(FIXTURE.slope_cases.length).toBeGreaterThanOrEqual(20);
         const byName = new Map(FIXTURE.streets.map((c) => [c.name, c]));
         for (const c of FIXTURE.slope_cases) {
             // The slope as `accessScoreStreets` reports it; `dem_source` is what marks a street as sampled at all.
-            const slope = c.slope === null ? {} : { ...c.slope, grade_quality: 'measured', dem_source: 'fixture' };
+            const slope = c.slope === null ? {} : { ...c.slope, dem_source: 'fixture' };
             const one = { type: 'FeatureCollection', features: [feature(byName.get(c.street), 0, slope)] };
             const model = new AccessScoreModel(FIXTURE.config, one, NO_INTERSECTIONS, [REGION]);
             const s = c.settings;
@@ -98,7 +98,7 @@ describe('AccessScoreModel', () => {
                 slope: {
                     weight: s.weight, statistic: s.statistic, lowThreshold: s.low_threshold,
                     highThreshold: s.high_threshold, barrierEnabled: s.barrier_enabled,
-                    barrierThreshold: s.barrier_threshold, includeLowConfidence: s.include_low_confidence,
+                    barrierThreshold: s.barrier_threshold, includeApproximate: s.include_approximate,
                 },
             });
             const explained = model.explainStreet(1);
@@ -130,8 +130,28 @@ describe('AccessScoreModel', () => {
         model.setState({ slope: { weight: 1 } });
         expect(model.slopeIsDefault).toBe(false);
         // A partial slope merges: the statistic and thresholds stayed the engine's.
-        expect(model.state.slope.statistic).toBe(FIXTURE.config.slope.statistic);
+        expect(model.state.slope.statistic).toBe(FIXTURE.config.slope.defaults.statistic);
         expect(model.explainStreet(1).slopeTerm).toBe(-1);
+    });
+
+    test('a barrier zeroes the segment, and the headline still averages it with the crossings', () => {
+        // The case the popup has to describe honestly: the block scores 0 while the street's headline does not.
+        const crossing = FIXTURE.intersections.find((c) => c.score > 0.6);
+        const ramp = FIXTURE.streets.find((c) => c.name === 'one good curb ramp');
+        const one = {
+            type: 'FeatureCollection',
+            features: [feature(ramp, 0, {
+                start_intersection_id: 7, mean_grade: 0.1, max_grade: 0.2, net_grade: 0.1, meters_over_5pct: 100,
+                meters_over_8pct: 100, grade_confidence: 'high', grade_quality: 'measured', dem_source: 'fixture',
+            })],
+        };
+        const crossings = { type: 'FeatureCollection', features: [intersectionFeature(crossing, 7)] };
+        const model = new AccessScoreModel(FIXTURE.config, one, crossings, [REGION]);
+        model.setState({ slope: { barrierEnabled: true } });
+        const s = model.explainStreet(1);
+        expect(s.barrier).toBe(true);
+        expect(s.segmentScore).toBe(0);
+        expect(Math.abs(s.score - crossing.score / 2)).toBeLessThan(tol);
     });
 
     test('a config from before the slope settings scores exactly as before and offers no slope', () => {

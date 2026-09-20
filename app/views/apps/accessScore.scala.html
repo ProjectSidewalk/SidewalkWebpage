@@ -105,7 +105,7 @@
               <label class="acs-field__label" for="acs-slope-statistic" data-i18n="accessscore:slope-statistic">Measured by</label>
               <select class="ps-select" id="acs-slope-statistic"></select>
             </div>
-            <fieldset class="acs-fieldset">
+            <fieldset class="acs-fieldset" aria-describedby="acs-slope-fixed-note">
               <legend class="acs-field__label" data-i18n="accessscore:slope-thresholds">Grade thresholds</legend>
               <div class="acs-field acs-field--inline">
                 <label for="acs-slope-low" data-i18n="accessscore:slope-low">No penalty up to</label>
@@ -115,12 +115,13 @@
                 <label for="acs-slope-high" data-i18n="accessscore:slope-high">Full penalty from</label>
                 <span class="acs-percent"><input type="number" class="ps-input acs-percent__input" id="acs-slope-high" step="0.1" inputmode="decimal" aria-describedby="acs-slope-high-unit"><span id="acs-slope-high-unit">%</span></span>
               </div>
-              <p class="acs-field__note" id="acs-slope-fixed-note" data-i18n="accessscore:slope-fixed-note" hidden>This measure uses the accessibility limits of 5% and 8.3%, so the thresholds do not apply.</p>
+              @* Filled in by AccessScoreSlopePanel.js, with the two limits from the config, while the thresholds are off. *@
+              <p class="acs-field__note" id="acs-slope-fixed-note" role="status"></p>
             </fieldset>
             <div class="acs-check-row">
               <label class="acs-check" for="acs-slope-barrier">
                 <input type="checkbox" id="acs-slope-barrier">
-                <span data-i18n="accessscore:slope-barrier">Treat very steep streets as barriers</span>
+                <span data-i18n="accessscore:slope-barrier">Treat very steep segments as barriers</span>
               </label>
               @info("slope-barrier-help")
             </div>
@@ -129,11 +130,11 @@
               <span class="acs-percent"><input type="number" class="ps-input acs-percent__input" id="acs-slope-barrier-threshold" step="0.1" inputmode="decimal" aria-describedby="acs-slope-barrier-threshold-unit"><span id="acs-slope-barrier-threshold-unit">%</span></span>
             </div>
             <div class="acs-check-row">
-              <label class="acs-check" for="acs-slope-low-confidence">
-                <input type="checkbox" id="acs-slope-low-confidence">
-                <span data-i18n="accessscore:slope-low-confidence">Include approximate slopes</span>
+              <label class="acs-check" for="acs-slope-approximate">
+                <input type="checkbox" id="acs-slope-approximate">
+                <span data-i18n="accessscore:slope-approximate-include">Include approximate slopes</span>
               </label>
-              @info("slope-low-confidence-help")
+              @info("slope-approximate-include-help")
             </div>
           </div>
         </section>

@@ -194,14 +194,21 @@ object AccessScoreParityFixtureGen {
       net: Double,
       over5: Double = 0.0,
       over8: Double = 0.0,
-      lowConfidence: Boolean = false
-  ): SlopeInput = SlopeInput(Some(mean), Some(max), Some(net), Some(over5), Some(over8), lowConfidence)
+      approximate: Boolean = false
+  ): SlopeInput = SlopeInput(Some(mean), Some(max), Some(net), Some(over5), Some(over8), approximate)
+
+  /**
+   * What the sampler writes for a profile it distrusted: a straight line between the street's ends, so the mean and
+   * the steepest stretch are both the size of the end-to-end grade, from a model that is otherwise high-confidence.
+   */
+  private def suspect(net: Double): SlopeInput =
+    SlopeInput(Some(math.abs(net)), Some(math.abs(net)), Some(net), Some(0.0), Some(0.0), approximate = true)
 
   /** What a coarse model yields: an end-to-end grade and nothing else. */
-  private def netOnly(net: Double): SlopeInput = SlopeInput(None, None, Some(net), None, None, lowConfidence = true)
+  private def netOnly(net: Double): SlopeInput = SlopeInput(None, None, Some(net), None, None, approximate = true)
 
   /** What a bridge or a gap in the model yields: a row with no grade at all. */
-  private val noGrade: SlopeInput = SlopeInput(None, None, None, None, None, lowConfidence = false)
+  private val noGrade: SlopeInput = SlopeInput(None, None, None, None, None, approximate = false)
 
   private val weighted: SlopeSettings = AccessScoreCalculator.defaultSlopeSettings.copy(weight = 1.0)
 
@@ -266,7 +273,7 @@ object AccessScoreParityFixtureGen {
       (
         "a barrier scores zero whatever the labels say",
         ramp,
-        Some(slope(0.07, 0.12, 0.07)),
+        Some(slope(0.07, 0.15, 0.07)),
         weighted.copy(barrierEnabled = true)
       ),
       (
@@ -291,13 +298,43 @@ object AccessScoreParityFixtureGen {
         "an admitted coarse-model grade stands in its end-to-end size",
         ramp,
         Some(netOnly(-0.07)),
-        weighted.copy(includeLowConfidence = true)
+        weighted.copy(includeApproximate = true)
       ),
       (
         "an admitted coarse-model grade can be a barrier",
         ramp,
         Some(netOnly(0.2)),
-        weighted.copy(includeLowConfidence = true, barrierEnabled = true)
+        weighted.copy(includeApproximate = true, barrierEnabled = true)
+      ),
+      (
+        "a distrusted profile sits out by default, like a coarse one",
+        ramp,
+        Some(suspect(0.2)),
+        weighted.copy(barrierEnabled = true)
+      ),
+      (
+        "an admitted distrusted profile scores by its straight line",
+        ramp,
+        Some(suspect(-0.07)),
+        weighted.copy(includeApproximate = true)
+      ),
+      (
+        "thresholds that have crossed act as a step at the low one",
+        ramp,
+        Some(slope(0.09, 0.11, 0.09)),
+        weighted.copy(lowThreshold = 0.1, highThreshold = 0.06)
+      ),
+      (
+        "a grade over crossed thresholds takes the whole weight",
+        ramp,
+        Some(slope(0.11, 0.12, 0.11)),
+        weighted.copy(lowThreshold = 0.1, highThreshold = 0.06)
+      ),
+      (
+        "the over-limit statistic finds no lengths on a coarse-model row",
+        ramp,
+        Some(netOnly(0.2)),
+        weighted.copy(statistic = AccessScoreCalculator.MetersOverLimit, includeApproximate = true)
       ),
       ("an unsampled street takes no slope term", hilly, None, weighted.copy(barrierEnabled = true)),
       (
@@ -316,18 +353,21 @@ object AccessScoreParityFixtureGen {
     "net_grade"        -> s.netGrade,
     "meters_over_5pct" -> s.metersOver5pct,
     "meters_over_8pct" -> s.metersOver8pct,
-    "grade_confidence" -> (if (s.lowConfidence) "low" else "high")
+    // The two ways a row is approximate, told apart as the API tells them apart: a coarse model has no windowed
+    // statistics; a distrusted profile has them, and they are its straight line.
+    "grade_confidence" -> (if (s.approximate && s.meanGrade.isEmpty) "low" else "high"),
+    "grade_quality"    -> (if (s.approximate && s.meanGrade.isDefined) "suspect" else "measured")
   )
 
   /** Slope settings in the config's field names, as `accessScoreConfig` publishes the defaults. */
   def settingsJson(s: SlopeSettings): JsObject = Json.obj(
-    "weight"                 -> s.weight,
-    "statistic"              -> AccessScoreCalculator.slopeStatisticName(s.statistic),
-    "low_threshold"          -> s.lowThreshold,
-    "high_threshold"         -> s.highThreshold,
-    "barrier_enabled"        -> s.barrierEnabled,
-    "barrier_threshold"      -> s.barrierThreshold,
-    "include_low_confidence" -> s.includeLowConfidence
+    "weight"              -> s.weight,
+    "statistic"           -> AccessScoreCalculator.slopeStatisticName(s.statistic),
+    "low_threshold"       -> s.lowThreshold,
+    "high_threshold"      -> s.highThreshold,
+    "barrier_enabled"     -> s.barrierEnabled,
+    "barrier_threshold"   -> s.barrierThreshold,
+    "include_approximate" -> s.includeApproximate
   )
 
   /** The clusters and length of a street case above, by name. */

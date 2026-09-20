@@ -38,17 +38,14 @@
  */
 
 /**
- * The slope half of the scoring config, in the API's names. The first seven fields are the engine's default
- * settings; `statistics` and `threshold_range` are what a control may offer.
+ * The slope half of the scoring config, in the API's names: the engine's default settings, and what a control may
+ * offer beside them.
  * @typedef {object} AccessScoreSlopeConfig
- * @property {number} weight
- * @property {string} statistic
+ * @property {{weight: number, statistic: string, low_threshold: number, high_threshold: number,
+ *     barrier_enabled: boolean, barrier_threshold: number, include_approximate: boolean}} defaults - The engine's own
+ *     settings, the ones every reset returns to.
  * @property {string[]} statistics - The statistic ids a reader may choose between, in display order.
- * @property {number} low_threshold
- * @property {number} high_threshold
- * @property {boolean} barrier_enabled
- * @property {number} barrier_threshold
- * @property {boolean} include_low_confidence
+ * @property {{min: number, max: number}} weight_range - The weights a control may set.
  * @property {{min: number, max: number}} threshold_range - The grades a threshold may be set between.
  */
 
@@ -62,7 +59,9 @@
  * @property {number} highThreshold - The grade at or over which the term is at full strength.
  * @property {boolean} barrierEnabled - Whether a street steeper than `barrierThreshold` scores 0 outright.
  * @property {number} barrierThreshold - The steepest-stretch grade over which a street is a barrier.
- * @property {boolean} includeLowConfidence - Whether a coarse elevation model's grades take part at all.
+ * @property {boolean} includeApproximate - Whether an approximate grade takes part at all: one from a coarse
+ *     elevation model (`low` confidence), or a straight line drawn where the sampler distrusted the profile it read
+ *     (`suspect` quality). Either is an end-to-end line that says nothing of the pitches along the street.
  */
 
 /**
@@ -467,25 +466,36 @@ class AccessScoreModel {
    * @returns {AccessScoreSlopeSettings}
    */
   static slopeDefaults(config) {
-    const s = config.slope;
+    const d = config.slope?.defaults;
     return {
-      weight: s?.weight ?? 0,
-      statistic: s?.statistic ?? 'mean_grade',
-      lowThreshold: s?.low_threshold ?? 0,
-      highThreshold: s?.high_threshold ?? 0,
-      barrierEnabled: s?.barrier_enabled ?? false,
-      barrierThreshold: s?.barrier_threshold ?? 0,
-      includeLowConfidence: s?.include_low_confidence ?? false,
+      weight: d?.weight ?? 0,
+      statistic: d?.statistic ?? 'mean_grade',
+      lowThreshold: d?.low_threshold ?? 0,
+      highThreshold: d?.high_threshold ?? 0,
+      barrierEnabled: d?.barrier_enabled ?? false,
+      barrierThreshold: d?.barrier_threshold ?? 0,
+      includeApproximate: d?.include_approximate ?? false,
     };
+  }
+
+  /**
+   * Whether slope settings equal the engine's defaults. The one definition, for the model's own state and for the
+   * panel, whose controls can be ahead of the model mid-edit.
+   * @param {AccessScoreConfig} config - The `/v3/api/accessScoreConfig` response.
+   * @param {AccessScoreSlopeSettings} settings - The settings to compare.
+   * @returns {boolean}
+   */
+  static slopeMatchesDefaults(config, settings) {
+    const defaults = AccessScoreModel.slopeDefaults(config);
+    return Object.keys(defaults).every((k) => {
+      const [a, b] = [defaults[k], settings[k]];
+      return typeof a === 'number' ? Math.abs(a - b) < 1e-9 : a === b;
+    });
   }
 
   /** Whether every slope setting equals the engine's default, so the panel can say "default" or "custom". */
   get slopeIsDefault() {
-    const defaults = AccessScoreModel.slopeDefaults(this.#config);
-    return Object.keys(defaults).every((k) => {
-      const [a, b] = [defaults[k], this.#state.slope[k]];
-      return typeof a === 'number' ? Math.abs(a - b) < 1e-9 : a === b;
-    });
+    return AccessScoreModel.slopeMatchesDefaults(this.#config, this.#state.slope);
   }
 
   /**
@@ -529,10 +539,14 @@ class AccessScoreModel {
     return steepest !== null && steepest > settings.barrierThreshold;
   }
 
-  /** A street's slope where it takes part under the settings (it has one, its confidence is admitted), else null. */
+  /**
+   * A street's slope where it takes part under the settings, else null: it has one, and it is a sampled profile or
+   * the settings admit approximate ones (the engine's `SlopeInput.approximate`: `low` confidence or `suspect`).
+   */
   static #slopeCounts(gradient, settings) {
     if (!gradient) return null;
-    return settings.includeLowConfidence || gradient.confidence !== 'low' ? gradient : null;
+    const approximate = gradient.confidence === 'low' || gradient.quality === 'suspect';
+    return settings.includeApproximate || !approximate ? gradient : null;
   }
 
   /**

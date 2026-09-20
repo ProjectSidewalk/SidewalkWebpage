@@ -177,12 +177,12 @@
   "slope-thresholds": "Umbrales de pendiente",
   "slope-low": "Sin penalización hasta",
   "slope-high": "Penalización completa desde",
-  "slope-fixed-note": "Esta medida usa los límites de accesibilidad del 5 % y el 8,3 %, por lo que los umbrales no se aplican.",
-  "slope-barrier": "Tratar las calles muy empinadas como barreras",
-  "slope-barrier-help": "Una calle cuyo tramo más empinado supere esta pendiente obtiene 0, sean como sean sus aceras.",
+  "slope-fixed-note": "Esta medida usa los límites de accesibilidad del {{low}} y el {{high}}, por lo que los umbrales no se aplican.",
+  "slope-barrier": "Tratar los tramos muy empinados como barreras",
+  "slope-barrier-help": "Un tramo cuyo punto más empinado supere esta pendiente obtiene 0, sean como sean sus aceras. La puntuación de la calle sigue promediando los cruces de sus extremos.",
   "slope-barrier-threshold": "Es una barrera si supera",
-  "slope-low-confidence": "Incluir pendientes aproximadas",
-  "slope-low-confidence-help": "Algunas ciudades solo tienen un modelo de elevación poco detallado, que da una pendiente aproximada de extremo a extremo. Active esta opción para que esas pendientes también cuenten.",
-  "slope-effect": "Efecto de la pendiente en la puntuación: {{term}}",
-  "slope-barrier-effect": "Puntuación 0: supera la barrera del {{limit}}."
+  "slope-approximate-include": "Incluir pendientes aproximadas",
+  "slope-approximate-include-help": "Algunas pendientes son solo una línea recta entre los dos extremos de la calle: donde la ciudad solo tiene un modelo de elevación poco detallado, o donde el modelo parecía poco fiable. Active esta opción para que esas pendientes también cuenten.",
+  "slope-barrier-effect": "El tramo obtiene 0: supera la barrera del {{limit}}.",
+  "popup-slope-barrier": "barrera: 0"
 }
