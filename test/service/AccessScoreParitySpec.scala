@@ -113,6 +113,63 @@ class AccessScoreParitySpec extends AnyFunSuite with Matchers {
     }
   }
 
+  test("every slope case reproduces from the fixture's own slope and settings (#5223)") {
+    val statisticByName =
+      AccessScoreCalculator.slopeStatistics.map(st => AccessScoreCalculator.slopeStatisticName(st) -> st).toMap
+    val streetByName = streets.map(st => (st \ "name").as[String] -> st).toMap
+    val cases        = (fixture \ "slope_cases").as[Seq[JsValue]]
+    cases.size should be >= 15
+
+    cases.foreach { c =>
+      // Read back from the JSON, not from the generator's case list: the JS side only ever sees the JSON, so this
+      // is what proves the file alone carries the case.
+      val settings = AccessScoreCalculator.SlopeSettings(
+        weight = (c \ "settings" \ "weight").as[Double],
+        statistic = statisticByName((c \ "settings" \ "statistic").as[String]),
+        lowThreshold = (c \ "settings" \ "low_threshold").as[Double],
+        highThreshold = (c \ "settings" \ "high_threshold").as[Double],
+        barrierEnabled = (c \ "settings" \ "barrier_enabled").as[Boolean],
+        barrierThreshold = (c \ "settings" \ "barrier_threshold").as[Double],
+        includeLowConfidence = (c \ "settings" \ "include_low_confidence").as[Boolean]
+      )
+      val slope = (c \ "slope").asOpt[JsObject].map { g =>
+        AccessScoreCalculator.SlopeInput(
+          (g \ "mean_grade").asOpt[Double],
+          (g \ "max_grade").asOpt[Double],
+          (g \ "net_grade").asOpt[Double],
+          (g \ "meters_over_5pct").asOpt[Double],
+          (g \ "meters_over_8pct").asOpt[Double],
+          lowConfidence = (g \ "grade_confidence").as[String] == "low"
+        )
+      }
+      val street    = streetByName((c \ "street").as[String])
+      val length    = (street \ "length_meters").as[Double]
+      val subScores =
+        AccessScoreCalculator.scoreByType((street \ "clusters").as[Seq[JsValue]].map(cluster), Some(length))
+
+      withClue(s"slope case '${(c \ "name").as[String]}': ") {
+        AccessScoreCalculator.slopeUnits(slope, length, settings) shouldBe ((c \ "units").as[Double] +- tolerance)
+        AccessScoreCalculator.slopeTerm(slope, length, settings) shouldBe ((c \ "slope_term").as[Double] +- tolerance)
+        AccessScoreCalculator.slopeIsBarrier(slope, settings) shouldBe (c \ "barrier").as[Boolean]
+        AccessScoreCalculator.segmentScoreWithSlope(subScores, slope, length, settings) shouldBe
+          ((c \ "segment_score").as[Double] +- tolerance)
+      }
+    }
+  }
+
+  test("at the engine's own slope settings a slope changes no score") {
+    // The promise #5223's phase 3 makes: the headline the API serves is the label-only one until the weight moves.
+    AccessScoreCalculator.defaultSlopeSettings.weight shouldBe 0.0
+    AccessScoreCalculator.defaultSlopeSettings.barrierEnabled shouldBe false
+    val steep = Some(AccessScoreCalculator.SlopeInput(Some(0.2), Some(0.3), Some(0.2), Some(500), Some(500), false))
+    streets.foreach { s =>
+      val length    = (s \ "length_meters").as[Double]
+      val subScores = AccessScoreCalculator.scoreByType((s \ "clusters").as[Seq[JsValue]].map(cluster), Some(length))
+      AccessScoreCalculator.segmentScoreWithSlope(subScores, steep, length) shouldBe
+        AccessScoreCalculator.scoreFromSubScores(subScores)
+    }
+  }
+
   test("every region case reproduces through scoreRegion and scoreRegionIntersections") {
     (fixture \ "regions").as[Seq[JsValue]].foreach { r =>
       val pairs =

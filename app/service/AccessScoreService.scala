@@ -6,7 +6,7 @@ import models.api.{IntersectionAccessScoreForApi, RegionAccessScoreForApi, Stree
 import models.cluster.ClusterScoreRow
 import models.intersection.{IntersectionInfo, IntersectionStreetEnd, StreetEnd}
 import models.region.Region
-import models.street.{StreetEdgeInfo, StreetGradientStats}
+import models.street.{StreetEdgeInfo, StreetGradientConfidence, StreetGradientStats}
 import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{LatLngBBox, SpatialQueryType}
 import org.apache.pekko.stream.Materializer
@@ -164,8 +164,13 @@ class AccessScoreService @Inject() (
     // The score is squashed from the same per-type terms the API reports, so `sub_scores` always explains
     // `segment_score`.
     val subScores: Map[String, Double] = AccessScoreCalculator.scoreByType(inputs, Some(lengthMeters))
-    val segmentScore: Option[Double]   =
-      if (s.auditCount > 0) Some(AccessScoreCalculator.scoreFromSubScores(subScores)) else None
+    // Slope joins the sum under the engine's default settings, whose weight is 0 (#5223): the term is published so
+    // the identity `logit(segment_score) = sum(sub_scores) + slope_term` stays true the day the weight is not.
+    val slope: Option[AccessScoreCalculator.SlopeInput] = gradient.map(toSlopeInput)
+    val slopeTerm: Double                               =
+      AccessScoreCalculator.slopeTerm(slope, lengthMeters, AccessScoreCalculator.defaultSlopeSettings)
+    val segmentScore: Option[Double] =
+      if (s.auditCount > 0) Some(AccessScoreCalculator.segmentScoreWithSlope(subScores, slope, lengthMeters)) else None
 
     StreetAccessScoreForApi(
       streetEdgeId = s.street.streetEdgeId,
@@ -187,9 +192,21 @@ class AccessScoreService @Inject() (
       severityCounts = AccessScoreCalculator.severityCountsByType(inputs),
       tagAdjustments = AccessScoreCalculator.tagAdjustmentsByType(inputs),
       gradient = gradient,
+      slopeTerm = slopeTerm,
       geometry = s.street.geom
     )
   }
+
+  /** A street's stored slope as the engine takes it; `low` confidence is the coarse-model tier. */
+  private def toSlopeInput(g: StreetGradientStats): AccessScoreCalculator.SlopeInput =
+    AccessScoreCalculator.SlopeInput(
+      meanGrade = g.meanGrade,
+      maxGrade = g.maxGrade,
+      netGrade = g.netGrade,
+      metersOver5pct = g.metersOver5pctGrade,
+      metersOver8pct = g.metersOver8pctGrade,
+      lowConfidence = g.confidence == StreetGradientConfidence.Low
+    )
 
   /**
    * Builds a single intersection's AccessScore DTO from the cluster rows attributed to it.

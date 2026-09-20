@@ -2,7 +2,7 @@ package service
 
 import models.api.AccessScoreConfigForApi
 import play.api.libs.json.{JsNull, JsObject, JsValue, Json}
-import service.AccessScoreCalculator.ClusterScoreInput
+import service.AccessScoreCalculator.{ClusterScoreInput, SlopeInput, SlopeSettings}
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
@@ -21,7 +21,9 @@ import java.nio.file.{Files, Paths}
  * crosswalk, point vs pooled NoSidewalk tags, the tag threshold on both sides, an unscored type, an empty street)
  * plus a seeded random spread, so the JS port is exercised on inputs it will meet in the wild. Streets are scored
  * as segments with a length (#5095), so the length normalization is exercised too; intersections are scored from
- * their pooled corner features with no length; and the headline cases pin how a street combines the three.
+ * their pooled corner features with no length; and the headline cases pin how a street combines the three. The slope
+ * cases (#5223) re-score a few of those streets with a slope and non-default slope settings, the one part of the
+ * model the API never exercises, since the engine's own slope weight is 0.
  */
 object AccessScoreParityFixtureGen {
 
@@ -185,6 +187,177 @@ object AccessScoreParityFixtureGen {
     "three streets"      -> Seq((0.1, 10.0), (0.5, 20.0), (0.9, 70.0))
   )
 
+  /** A measured street's slope, from a high-resolution model unless said otherwise. */
+  private def slope(
+      mean: Double,
+      max: Double,
+      net: Double,
+      over5: Double = 0.0,
+      over8: Double = 0.0,
+      lowConfidence: Boolean = false
+  ): SlopeInput = SlopeInput(Some(mean), Some(max), Some(net), Some(over5), Some(over8), lowConfidence)
+
+  /** What a coarse model yields: an end-to-end grade and nothing else. */
+  private def netOnly(net: Double): SlopeInput = SlopeInput(None, None, Some(net), None, None, lowConfidence = true)
+
+  /** What a bridge or a gap in the model yields: a row with no grade at all. */
+  private val noGrade: SlopeInput = SlopeInput(None, None, None, None, None, lowConfidence = false)
+
+  private val weighted: SlopeSettings = AccessScoreCalculator.defaultSlopeSettings.copy(weight = 1.0)
+
+  /**
+   * The slope cases: a base street from the cases above (by name, so its clusters and length are not repeated), a
+   * slope or none, and the settings to score it under. Each edge of [[AccessScoreCalculator.slopeUnits]] and
+   * [[AccessScoreCalculator.slopeIsBarrier]] appears once, named for what it pins.
+   */
+  val slopeCases: Seq[(String, String, Option[SlopeInput], SlopeSettings)] = {
+    val hilly = "problems on a 300 m street"
+    val ramp  = "one good curb ramp"
+    Seq(
+      (
+        "the default settings ignore a steep street",
+        hilly,
+        Some(slope(0.12, 0.2, 0.12, 300, 250)),
+        AccessScoreCalculator.defaultSlopeSettings
+      ),
+      (
+        "a mean grade halfway between the limits takes half the weight",
+        ramp,
+        Some(slope((0.05 + 1.0 / 12) / 2, 0.09, -0.06)),
+        weighted
+      ),
+      ("a mean grade exactly at the low threshold costs nothing", ramp, Some(slope(0.05, 0.07, 0.05)), weighted),
+      (
+        "a mean grade over the high threshold takes the whole weight",
+        hilly,
+        Some(slope(0.11, 0.14, 0.1)),
+        weighted.copy(weight = 1.75)
+      ),
+      (
+        "the max-grade statistic reads the steepest stretch",
+        ramp,
+        Some(slope(0.03, 0.075, 0.02)),
+        weighted.copy(statistic = AccessScoreCalculator.MaxGrade)
+      ),
+      (
+        "meters over the limits is a share of the length, the ramp limit counted twice",
+        hilly,
+        Some(slope(0.06, 0.1, 0.05, over5 = 180, over8 = 60)),
+        weighted.copy(statistic = AccessScoreCalculator.MetersOverLimit)
+      ),
+      (
+        "meters over the limits ignores the reader's thresholds",
+        hilly,
+        Some(slope(0.06, 0.1, 0.05, over5 = 180, over8 = 60)),
+        weighted.copy(statistic = AccessScoreCalculator.MetersOverLimit, lowThreshold = 0.2, highThreshold = 0.3)
+      ),
+      (
+        "custom thresholds move the ramp",
+        ramp,
+        Some(slope(0.09, 0.11, 0.09)),
+        weighted.copy(lowThreshold = 0.08, highThreshold = 0.1)
+      ),
+      (
+        "thresholds that have met act as a step",
+        ramp,
+        Some(slope(0.0801, 0.1, 0.08)),
+        weighted.copy(lowThreshold = 0.08, highThreshold = 0.08)
+      ),
+      (
+        "a barrier scores zero whatever the labels say",
+        ramp,
+        Some(slope(0.07, 0.12, 0.07)),
+        weighted.copy(barrierEnabled = true)
+      ),
+      (
+        "a street exactly at the barrier threshold is not a barrier",
+        ramp,
+        Some(slope(0.06, 0.1, 0.06)),
+        weighted.copy(barrierEnabled = true, barrierThreshold = 0.1)
+      ),
+      (
+        "a barrier needs no weight",
+        hilly,
+        Some(slope(0.07, 0.15, 0.07)),
+        AccessScoreCalculator.defaultSlopeSettings.copy(barrierEnabled = true)
+      ),
+      (
+        "a coarse-model grade sits out by default, barrier included",
+        ramp,
+        Some(netOnly(-0.2)),
+        weighted.copy(barrierEnabled = true)
+      ),
+      (
+        "an admitted coarse-model grade stands in its end-to-end size",
+        ramp,
+        Some(netOnly(-0.07)),
+        weighted.copy(includeLowConfidence = true)
+      ),
+      (
+        "an admitted coarse-model grade can be a barrier",
+        ramp,
+        Some(netOnly(0.2)),
+        weighted.copy(includeLowConfidence = true, barrierEnabled = true)
+      ),
+      ("an unsampled street takes no slope term", hilly, None, weighted.copy(barrierEnabled = true)),
+      (
+        "a bridge has a row and no grade, so no term and no barrier",
+        ramp,
+        Some(noGrade),
+        weighted.copy(barrierEnabled = true)
+      )
+    )
+  }
+
+  /** A slope in the API's field names, as `accessScoreStreets` reports it. */
+  private def slopeJson(s: SlopeInput): JsObject = Json.obj(
+    "mean_grade"       -> s.meanGrade,
+    "max_grade"        -> s.maxGrade,
+    "net_grade"        -> s.netGrade,
+    "meters_over_5pct" -> s.metersOver5pct,
+    "meters_over_8pct" -> s.metersOver8pct,
+    "grade_confidence" -> (if (s.lowConfidence) "low" else "high")
+  )
+
+  /** Slope settings in the config's field names, as `accessScoreConfig` publishes the defaults. */
+  def settingsJson(s: SlopeSettings): JsObject = Json.obj(
+    "weight"                 -> s.weight,
+    "statistic"              -> AccessScoreCalculator.slopeStatisticName(s.statistic),
+    "low_threshold"          -> s.lowThreshold,
+    "high_threshold"         -> s.highThreshold,
+    "barrier_enabled"        -> s.barrierEnabled,
+    "barrier_threshold"      -> s.barrierThreshold,
+    "include_low_confidence" -> s.includeLowConfidence
+  )
+
+  /** The clusters and length of a street case above, by name. */
+  def baseStreet(name: String): (Seq[ClusterScoreInput], Double) =
+    namedStreets
+      .collectFirst { case (n, cs) if n == name => (cs, referenceLength) }
+      .orElse(lengthStreets.collectFirst { case (n, len, cs) if n == name => (cs, len) })
+      .getOrElse(throw new IllegalArgumentException(s"no street case named '$name'"))
+
+  /** One slope case in the fixture's JSON shape: the base street's name, the slope, the settings, and the results. */
+  private def slopeCaseJson(
+      name: String,
+      street: String,
+      slope: Option[SlopeInput],
+      settings: SlopeSettings
+  ): JsObject = {
+    val (clusters, length) = baseStreet(street)
+    val subScores          = AccessScoreCalculator.scoreByType(clusters, Some(length))
+    Json.obj(
+      "name"          -> name,
+      "street"        -> street,
+      "slope"         -> slope.map(slopeJson).getOrElse[JsValue](JsNull),
+      "settings"      -> settingsJson(settings),
+      "units"         -> AccessScoreCalculator.slopeUnits(slope, length, settings),
+      "slope_term"    -> AccessScoreCalculator.slopeTerm(slope, length, settings),
+      "barrier"       -> AccessScoreCalculator.slopeIsBarrier(slope, settings),
+      "segment_score" -> AccessScoreCalculator.segmentScoreWithSlope(subScores, slope, length, settings)
+    )
+  }
+
   /**
    * One unit case in the fixture's JSON shape: inputs, engine outputs, and the outputs under each preset. A street
    * carries its `length_meters` and is scored as a segment; an intersection has no length.
@@ -232,6 +405,9 @@ object AccessScoreParityFixtureGen {
         "end_scores"    -> ends,
         "score" -> AccessScoreCalculator.headlineScore(segment, ends).map(Json.toJson(_)).getOrElse[JsValue](JsNull)
       )
+    },
+    "slope_cases" -> slopeCases.map { case (name, street, slope, settings) =>
+      slopeCaseJson(name, street, slope, settings)
     },
     "regions" -> regionCases.map { case (name, streets) =>
       Json.obj(

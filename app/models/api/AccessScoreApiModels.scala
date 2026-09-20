@@ -135,6 +135,8 @@ object AccessScoreApiModels {
  *                               scales, before length normalization).
  * @param gradient               The street's slope statistics (#5223), or None if it has not been sampled. Slope
  *                               needs no labeling, so an unaudited street carries it too.
+ * @param slopeTerm              What slope adds to the segment's pre-sigmoid sum under the engine's settings: never
+ *                               positive, and 0 while the engine's slope weight is.
  * @param geometry               The LineString geometry of the street.
  */
 case class StreetAccessScoreForApi(
@@ -156,6 +158,7 @@ case class StreetAccessScoreForApi(
     severityCounts: Map[String, Map[String, Int]],
     tagAdjustments: Map[String, Double],
     gradient: Option[StreetGradientStats],
+    slopeTerm: Double,
     geometry: LineString
 ) extends StreamingApiType {
 
@@ -189,6 +192,7 @@ object StreetAccessScoreForApi extends ApiFields[StreetAccessScoreForApi] {
     field("length_meters")(_.lengthMeters),
     field("label_count")(_.labelCount)
   ) ++ StreetGradientApiFields.statFields.map(_.on[StreetAccessScoreForApi](_.gradient)) ++
+    Seq[ApiField[StreetAccessScoreForApi]](field("slope_term")(_.slopeTerm)) ++
     AccessScoreApiModels.perTypeFields[StreetAccessScoreForApi](
       AccessScoreApiModels.orderedTypes, _.clusterCounts, _.subScores, _.severityCounts, _.tagAdjustments
     )
@@ -359,6 +363,45 @@ case class TypeWeightForApi(baseWeight: Double, scoring: String, lengthNormalize
 case class TagAdjustmentForApi(labelType: String, tag: String, delta: Double)
 
 /**
+ * How slope enters a segment's score, for `/v3/api/accessScoreConfig` (#5223): everything a client needs to run the
+ * slope term itself and to build the controls for it, so none of it is re-declared as a frontend literal.
+ *
+ * @param defaults     The engine's own settings, the ones every reset returns to.
+ * @param statistics   The statistics a reader may choose between, by their API names, in display order.
+ * @param thresholdMin The lowest grade a threshold may be set to.
+ * @param thresholdMax The highest.
+ */
+case class SlopeConfigForApi(
+    defaults: AccessScoreCalculator.SlopeSettings,
+    statistics: Seq[String],
+    thresholdMin: Double,
+    thresholdMax: Double
+) {
+  def toJson: JsObject = Json.obj(
+    "weight"                 -> defaults.weight,
+    "statistic"              -> AccessScoreCalculator.slopeStatisticName(defaults.statistic),
+    "statistics"             -> statistics,
+    "low_threshold"          -> defaults.lowThreshold,
+    "high_threshold"         -> defaults.highThreshold,
+    "barrier_enabled"        -> defaults.barrierEnabled,
+    "barrier_threshold"      -> defaults.barrierThreshold,
+    "include_low_confidence" -> defaults.includeLowConfidence,
+    "threshold_range"        -> Json.obj("min" -> thresholdMin, "max" -> thresholdMax)
+  )
+}
+
+object SlopeConfigForApi {
+
+  /** The engine's current slope configuration. */
+  def current: SlopeConfigForApi = SlopeConfigForApi(
+    defaults = AccessScoreCalculator.defaultSlopeSettings,
+    statistics = AccessScoreCalculator.slopeStatistics.map(AccessScoreCalculator.slopeStatisticName),
+    thresholdMin = AccessScoreCalculator.slopeThresholdMin,
+    thresholdMax = AccessScoreCalculator.slopeThresholdMax
+  )
+}
+
+/**
  * The AccessScore engine's configuration, published so a client can recompute a street's score from the counts the
  * streets endpoint carries — under the engine's weights or its own — without re-declaring any of it (#3855).
  *
@@ -386,6 +429,9 @@ case class TagAdjustmentForApi(labelType: String, tag: String, delta: Double)
  * @param placeCategories               The place categories the AccessScore map can show (#5311), in display order,
  *                                      as `/v3/api/places` files them. Published here, beside the other lists the
  *                                      tool renders its controls from, rather than re-declared in the frontend.
+ * @param slope                         How slope enters a segment's score (#5223): the engine's default settings,
+ *                                      the statistics a reader may choose between, and the range a threshold may
+ *                                      take. The default weight is 0, so the scores served are label-only.
  */
 case class AccessScoreConfigForApi(
     scoredTypes: Seq[String],
@@ -405,7 +451,8 @@ case class AccessScoreConfigForApi(
     presetOrder: Seq[String],
     presets: Map[String, Map[String, Double]],
     minRegionCompletion: Double,
-    placeCategories: Seq[String]
+    placeCategories: Seq[String],
+    slope: SlopeConfigForApi
 ) {
 
   /** Serializes the configuration with snake_case keys; per-type and per-bucket objects keep the engine's order. */
@@ -444,7 +491,8 @@ case class AccessScoreConfigForApi(
       "preset_order"          -> presetOrder,
       "presets"               -> JsObject(presetOrder.map(id => id -> orderedWeights(presets(id)))),
       "min_region_completion" -> minRegionCompletion,
-      "place_categories"      -> placeCategories
+      "place_categories"      -> placeCategories,
+      "slope"                 -> slope.toJson
     )
   }
 }
@@ -477,6 +525,7 @@ object AccessScoreConfigForApi {
       tagActiveThreshold = AccessScoreCalculator.tagActiveThreshold,
       presetOrder = AccessScoreCalculator.presetOrder,
       presets = AccessScoreCalculator.presets,
+      slope = SlopeConfigForApi.current,
       minRegionCompletion = AccessScoreSpotlight.MinRegionCompletion,
       placeCategories = PlaceCategory.ids
     )

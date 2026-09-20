@@ -441,6 +441,7 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
             elevEndM = Some(100.0), demSource = "usgs-3dep-10m", demResolutionM = 10.0
           )
         ),
+        slopeTerm = -0.25,
         geometry = line
       )
       inTempDir("access-score-streets") { base =>
