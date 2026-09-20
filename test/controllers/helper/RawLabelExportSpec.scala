@@ -432,6 +432,7 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         subScores = Map("CurbRamp" -> 1.5),
         severityCounts = Map("CurbRamp" -> Map("1" -> 2)),
         tagAdjustments = Map.empty,
+        gradient = None,
         geometry = line
       )
       inTempDir("access-score-streets") { base =>

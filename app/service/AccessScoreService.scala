@@ -6,7 +6,7 @@ import models.api.{IntersectionAccessScoreForApi, RegionAccessScoreForApi, Stree
 import models.cluster.ClusterScoreRow
 import models.intersection.{IntersectionInfo, IntersectionStreetEnd, StreetEnd}
 import models.region.Region
-import models.street.StreetEdgeInfo
+import models.street.{StreetEdgeInfo, StreetGradientStats}
 import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{LatLngBBox, SpatialQueryType}
 import org.apache.pekko.stream.Materializer
@@ -74,6 +74,7 @@ class AccessScoreService @Inject() (
         val streetIds: Seq[Int] = streets.map(_.street.streetEdgeId)
         val lengthsFuture       = apiService.getStreetLengths(streetIds)
         val namesFuture         = apiService.getStreetNames(streetIds)
+        val gradientsFuture     = apiService.getStreetGradientStats(streetIds)
         val intersectionsFuture = apiService.getIntersectionsForStreets(spatialQueryType, bbox)
         val streetEndsFuture    = apiService.getStreetEnds(spatialQueryType, bbox)
 
@@ -94,6 +95,7 @@ class AccessScoreService @Inject() (
         for {
           lengths       <- lengthsFuture
           names         <- namesFuture
+          gradients     <- gradientsFuture
           intersections <- intersectionsFuture
           streetEnds    <- streetEndsFuture
           _             <- streamFuture
@@ -119,6 +121,7 @@ class AccessScoreService @Inject() (
                 names.get(streetId),
                 rows,
                 lengths.getOrElse(streetId, 0.0),
+                gradients.get(streetId),
                 startId,
                 endId,
                 startId.flatMap(scoreByIntersection.get).flatten,
@@ -139,6 +142,7 @@ class AccessScoreService @Inject() (
    * @param streetName             The street's OSM name, if its way has one.
    * @param rows                   The cluster rows scoring the street's segment.
    * @param lengthMeters           The street's length in meters.
+   * @param gradient               The street's slope statistics, if it has been sampled (#5223).
    * @param startIntersectionId    The intersection at the street's start, if any.
    * @param endIntersectionId      The intersection at the street's end, if any.
    * @param startIntersectionScore Its score, if it has one.
@@ -150,6 +154,7 @@ class AccessScoreService @Inject() (
       streetName: Option[String],
       rows: Seq[ClusterScoreRow],
       lengthMeters: Double,
+      gradient: Option[StreetGradientStats],
       startIntersectionId: Option[Int],
       endIntersectionId: Option[Int],
       startIntersectionScore: Option[Double],
@@ -181,6 +186,7 @@ class AccessScoreService @Inject() (
       subScores = subScores,
       severityCounts = AccessScoreCalculator.severityCountsByType(inputs),
       tagAdjustments = AccessScoreCalculator.tagAdjustmentsByType(inputs),
+      gradient = gradient,
       geometry = s.street.geom
     )
   }
@@ -234,7 +240,7 @@ class AccessScoreService @Inject() (
    */
   def getFullCityScores(batchSize: Int): Future[AccessScores] =
     swrCache.staleWhileRevalidate[AccessScores](
-      "accessScore:full-city:v2",
+      "accessScore:full-city:v3",
       AccessScoreService.FullCityFreshFor,
       AccessScoreService.FullCityMaxAge
     )(cityBbox.flatMap(bbox => computeAccessScoresV3(SpatialQueryType.Street, bbox, batchSize)))

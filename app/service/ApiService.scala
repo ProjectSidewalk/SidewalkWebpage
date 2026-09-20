@@ -8,7 +8,15 @@ import models.intersection.{IntersectionInfo, IntersectionStreetEnd, Intersectio
 import models.label._
 import models.place.PlaceTable
 import models.region.{Region, RegionTable}
-import models.street.{OsmWayTable, SidewalkPresenceTable, StreetEdgeInfo, StreetEdgeTable}
+import models.street.{
+  OsmWayTable,
+  SidewalkPresenceTable,
+  StreetEdgeInfo,
+  StreetEdgeTable,
+  StreetGradient,
+  StreetGradientStats,
+  StreetGradientTable
+}
 import models.user.UserStatTable
 import models.utils.BackgroundJobRunTable
 import models.utils.MyPostgresProfile.api._
@@ -47,6 +55,15 @@ trait ApiService {
 
   /** The OSM name of each given street edge, for the AccessScore API's `street_name`; unnamed streets are absent. */
   def getStreetNames(streetEdgeIds: Seq[Int]): Future[Map[Int, String]]
+
+  /** Slope statistics of each given street edge (#5223); a street that has not been sampled is absent. */
+  def getStreetGradientStats(streetEdgeIds: Seq[Int]): Future[Map[Int, StreetGradientStats]]
+
+  /** One street's full gradient row, elevation profile included, or None if it has not been sampled. */
+  def getStreetGradient(streetEdgeId: Int): Future[Option[StreetGradient]]
+
+  /** The elevation models this city's gradients came from, as (dem_source, street count), most streets first. */
+  def getStreetGradientSourceCounts: Future[Seq[(String, Int)]]
 
   /** The intersections at the ends of the streets the filter selects, with what AccessScore needs to score them (#5095). */
   def getIntersectionsForStreets(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[IntersectionInfo]]
@@ -235,6 +252,7 @@ class ApiServiceImpl @Inject() (
     clusterTable: ClusterTable,
     streetEdgeTable: StreetEdgeTable,
     osmWayTable: OsmWayTable,
+    streetGradientTable: StreetGradientTable,
     sidewalkPresenceTable: SidewalkPresenceTable,
     placeTable: PlaceTable,
     regionTable: RegionTable,
@@ -340,6 +358,14 @@ class ApiServiceImpl @Inject() (
 
   def getStreetNames(streetEdgeIds: Seq[Int]): Future[Map[Int, String]] =
     db.run(osmWayTable.getStreetNames(streetEdgeIds))
+
+  def getStreetGradientStats(streetEdgeIds: Seq[Int]): Future[Map[Int, StreetGradientStats]] =
+    db.run(streetGradientTable.getStats(streetEdgeIds))
+
+  def getStreetGradient(streetEdgeId: Int): Future[Option[StreetGradient]] =
+    db.run(streetGradientTable.getForStreet(streetEdgeId))
+
+  def getStreetGradientSourceCounts: Future[Seq[(String, Int)]] = db.run(streetGradientTable.sourceCounts)
 
   /** Derives a lat/lng bounding box from a region's MultiPolygon envelope (geometry is stored in EPSG:4326). */
   private def regionToBBox(region: Region): LatLngBBox = {
