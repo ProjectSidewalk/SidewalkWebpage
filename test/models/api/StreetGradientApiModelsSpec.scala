@@ -112,6 +112,10 @@ class StreetGradientApiModelsSpec extends PlaySpec {
 
       (json \ "walking_surface_limit").as[Double] mustBe 0.05
       (json \ "ramp_limit").as[Double] mustBe (1.0 / 12.0)
+      // Ascending, and holding both limits, or the map's classes would not line up with the numbers beside them.
+      val breaks = (json \ "map_class_breaks").as[Seq[Double]]
+      breaks mustBe breaks.sorted
+      breaks must contain allOf (0.05, 1.0 / 12.0)
       val sources = (json \ "sources").as[Seq[JsObject]]
       sources must have size 1
       (sources.head \ "street_count").as[Int] mustBe 2172

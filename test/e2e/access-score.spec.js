@@ -411,6 +411,74 @@ test.describe('/accessScore', () => {
       .toHaveText(/Segment 81\.8 · Start crossing — · End crossing —/);
   });
 
+  test('coloring by slope swaps the paint and the legend, reaches the URL, and the popup draws the profile (#5223)',
+    async ({page, context, consoleErrors}) => {
+      // The slope controls only exist in a sampled city, so the live config gains a gradient block, streets 1 and 3
+      // gain slope fields (3 is unaudited: slope needs no labels), and the per-street profile is stubbed.
+      await context.route('**/v3/api/accessScoreConfig', async (route) => {
+        const config = await (await route.fetch()).json();
+        config.gradient = {
+          walking_surface_limit: 0.05, ramp_limit: 1 / 12, map_class_breaks: [1 / 48, 0.05, 1 / 12, 0.125],
+          sources: [{dem_source: 'fixture-dem', title: 'Fixture DEM', credit: 'Elevation: Fixture Survey',
+            licence: 'Public domain', url: 'https://example.org/dem', street_count: 2}],
+        };
+        return route.fulfill({json: config});
+      });
+      const slope = (mean, max) => ({
+        mean_grade: mean, max_grade: max, net_grade: -mean, total_climb_meters: 0.5, total_descent_meters: 6.5,
+        meters_over_5pct: 40, meters_over_8pct: 0, grade_confidence: 'high', grade_quality: 'measured',
+        dem_source: 'fixture-dem',
+      });
+      await context.route('**/v3/api/accessScoreStreets*', (route) => {
+        const streets = streetsFixture();
+        Object.assign(streets.features[0].properties, slope(0.062, 0.081));
+        Object.assign(streets.features[2].properties, slope(0.01, 0.015));
+        return route.fulfill({json: streets});
+      });
+      await context.route('**/v3/api/streetGradientProfile*', (route) => route.fulfill({json: {
+        street_edge_id: 1, profile: {spacing_meters: 50, elevations_meters: [104, 101.5, 98]},
+      }}));
+
+      await page.goto('/accessScore');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      const lineColor = () => page.evaluate(() => window.accessScore.map.getPaintProperty('acs-streets', 'line-color'));
+      expect(JSON.stringify(await lineColor())).toContain('interpolate');
+      await expect(page.locator('.acs-map-legend__grade')).toBeHidden();
+
+      await page.locator('#acs-show-grade').check();
+      expect(JSON.stringify(await lineColor())).toContain('step');
+      await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
+      await expect(page.locator('.acs-map-legend__class')).toHaveCount(5);
+      await expect(page.locator('.acs-map-legend__score')).toBeHidden();
+      await expect.poll(() => urlParam(page, 'grade')).toBe('1');
+      // The credit rides on the street source, so Mapbox's own attribution control carries it.
+      await expect(page.locator('.mapboxgl-ctrl-attrib')).toContainText('Elevation: Fixture Survey');
+
+      // Regions have no slope: the ramp comes back with the unit, and the toggle leaves with it.
+      await page.locator('label[for="acs-unit-regions"]').click();
+      await expect(page.locator('.acs-map-legend__score')).toBeVisible();
+      await expect(page.locator('#acs-grade-option')).toBeHidden();
+      await page.locator('label[for="acs-unit-streets"]').click();
+      await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
+
+      // A shared link opens on the slope coloring with the street's card up, profile and credit included.
+      await page.goto('/accessScore?grade=1&sel=1');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      await expect(page.locator('#acs-show-grade')).toBeChecked();
+      await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
+      const popup = page.locator('.acs-popup');
+      await expect(popup).toContainText('Average 6.2% · steepest stretch 8.1%');
+      await expect(popup.locator('svg.acs-profile__chart')).toBeVisible();
+      await expect(popup.locator('.acs-popup__credit')).toHaveText('Elevation: Fixture Survey');
+
+      await page.locator('#acs-show-grade').uncheck();
+      expect(JSON.stringify(await lineColor())).toContain('interpolate');
+      await expect.poll(() => urlParam(page, 'grade')).toBeNull();
+      expect(consoleErrors).toEqual([]);
+    });
+
   test('what\'s here counts the whole city, and the photo strip shows the worst clusters of the scope', async ({page}) => {
     await page.goto('/accessScore');
     await waitForAppReady(page);

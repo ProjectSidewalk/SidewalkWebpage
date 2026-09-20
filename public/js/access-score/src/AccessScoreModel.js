@@ -20,6 +20,36 @@
  *     holds the engine's own weights, the ones every reset returns to.
  * @property {?string} clusters_updated_at - When the clusters were last rebuilt (ISO 8601), or null for never.
  * @property {string[]} place_categories - The place categories the map can show (#5311), in display order.
+ * @property {AccessScoreGradientConfig} [gradient] - How to read and credit the streets' slope fields (#5223);
+ *     optional so a config from before it draws no grade layer rather than one classed at numbers this file invents.
+ */
+
+/**
+ * The slope half of the config: the two ADA / PROWAG limits, the grades the map is classed at, and the credit for
+ * each elevation model the city's streets were sampled from. Grades are fractions (0.05 is 5%).
+ * @typedef {object} AccessScoreGradientConfig
+ * @property {number} walking_surface_limit - 1:20, the running-slope limit for a walking surface.
+ * @property {number} ramp_limit - 1:12, the running-slope limit for a ramp.
+ * @property {number[]} map_class_breaks - Ascending grades dividing the map's slope classes.
+ * @property {Array<{dem_source: string, title: string, credit: string, licence: string, url: ?string,
+ *     street_count: number}>} sources - The city's elevation models, most streets first; empty where none is sampled.
+ */
+
+/**
+ * A street's slope as the API reports it, from `explainStreet` (#5223). It comes from an elevation model, not from
+ * labels, so an unaudited street has one too. Every number is null on a street with no usable profile (a bridge, a
+ * tunnel, a gap in the model), which `quality` names.
+ * @typedef {object} AccessScoreStreetGradient
+ * @property {?number} meanGrade - Mean absolute grade over 10 m baselines.
+ * @property {?number} maxGrade - Steepest grade over a 30 m baseline.
+ * @property {?number} netGrade - End-to-end grade, signed in the street's digitized direction.
+ * @property {?number} climbM - Summed rise in meters, in the digitized direction.
+ * @property {?number} descentM - Summed fall in meters.
+ * @property {?number} metersOver5pct - Meters steeper than the walking-surface limit.
+ * @property {?number} metersOver8pct - Meters steeper than the ramp limit.
+ * @property {string} confidence - 'high', 'medium' or 'low', from the elevation model's grid size.
+ * @property {string} quality - 'measured', 'structure', 'suspect' or 'no_data'.
+ * @property {string} demSource - The elevation model's name, which `gradient.sources` credits.
  */
 
 /**
@@ -35,6 +65,7 @@
  *     meaning the engine's defaults; the model fills it in at construction.
  * @property {boolean} showUnaudited - Whether unaudited streets are drawn faintly rather than left off the map.
  * @property {boolean} showClusters - Whether the cluster evidence layer is drawn.
+ * @property {boolean} showGrade - Whether streets are colored by slope instead of by score (#5223).
  * @property {?string[]} placeCategories - The place categories drawn: null for every one the config lists, an
  *     empty list for none (#5311).
  */
@@ -67,6 +98,7 @@
  * @property {?{id: number, score: ?number}} endIntersection - Likewise at the end.
  * @property {number} preSigmoid - The sum of the segment's terms.
  * @property {Record<string, AccessScoreTerm>} terms - The segment's term per scored type.
+ * @property {?AccessScoreStreetGradient} gradient - The street's slope, or null where it has not been sampled.
  */
 
 /**
@@ -136,6 +168,7 @@ class AccessScoreModel {
     weights: null,
     showUnaudited: true,
     showClusters: true,
+    showGrade: false,
     placeCategories: [],
   });
 
@@ -174,6 +207,8 @@ class AccessScoreModel {
   #lengths;
   /** Per street: the factor a length-normalized type's term is scaled by (`per_meters / max(length, min)`). */
   #lengthFactors;
+  /** @type {Array<?AccessScoreStreetGradient>} Each street's slope, parallel to `streetIds`; null where unsampled. */
+  #gradients;
   #audited;
   /** Cluster counts per (street, type, bucket): index (i * T + t) * B + b. */
   #counts;
@@ -316,6 +351,21 @@ class AccessScoreModel {
   }
 
   /**
+   * The grade a street is drawn and described by: its mean grade, or the magnitude of its end-to-end grade where a
+   * coarse elevation model supports nothing finer. One definition, so the map's color, the legend's classes and the
+   * tooltip's number cannot disagree about which statistic they show.
+   * @param {number} streetId - The street's `street_edge_id`.
+   * @returns {?number} A non-negative grade as a fraction, or null for an unknown, unsampled or profile-less street.
+   */
+  displayGrade(streetId) {
+    const i = this.#indexById.get(streetId);
+    const g = i === undefined ? null : this.#gradients[i];
+    if (!g) return null;
+    if (g.meanGrade !== null) return g.meanGrade;
+    return g.netGrade === null ? null : Math.abs(g.netGrade);
+  }
+
+  /**
    * Each street's histogram bin by position, `UNBINNED` for an unaudited street. Filled in the scoring pass, so a
    * brush's "which streets are in these bins" is one linear read with no per-frame allocation.
    * @returns {Uint8Array} Bin indices in `[0, HISTOGRAM_BINS)`, parallel to `streetIds`.
@@ -439,6 +489,7 @@ class AccessScoreModel {
       endIntersection: end(this.#endInt[i]),
       preSigmoid,
       terms,
+      gradient: this.#gradients[i] ? { ...this.#gradients[i] } : null,
     };
   }
 
@@ -888,6 +939,28 @@ class AccessScoreModel {
     return Math.min(n - 1, Math.max(0, Math.floor(score * n)));
   }
 
+  /**
+   * A street's slope fields, or null where the API reports none: `dem_source` is set on every sampled street and on
+   * no other, so it is the one field that says whether the rest mean anything.
+   * @param {Record<string, any>} p - An `accessScoreStreets` feature's properties.
+   * @returns {?AccessScoreStreetGradient}
+   */
+  static #gradientOf(p) {
+    if (!p.dem_source) return null;
+    return {
+      meanGrade: p.mean_grade ?? null,
+      maxGrade: p.max_grade ?? null,
+      netGrade: p.net_grade ?? null,
+      climbM: p.total_climb_meters ?? null,
+      descentM: p.total_descent_meters ?? null,
+      metersOver5pct: p.meters_over_5pct ?? null,
+      metersOver8pct: p.meters_over_8pct ?? null,
+      confidence: p.grade_confidence,
+      quality: p.grade_quality,
+      demSource: p.dem_source,
+    };
+  }
+
   /** Unpacks the API features into the typed arrays. */
   #loadStreets(features) {
     const T = this.#types.length;
@@ -898,6 +971,7 @@ class AccessScoreModel {
     this.#names = new Array(this.#n).fill(null);
     this.#lengths = new Float64Array(this.#n);
     this.#lengthFactors = new Float64Array(this.#n);
+    this.#gradients = new Array(this.#n).fill(null);
     this.#audited = new Uint8Array(this.#n);
     this.#counts = new Int32Array(this.#n * T * B);
     this.#clusterCounts = new Int32Array(this.#n * T);
@@ -914,6 +988,7 @@ class AccessScoreModel {
       this.#lengths[i] = p.length_meters || 0;
       this.#lengthFactors[i] = this.#lengthFactor(this.#lengths[i]);
       this.#audited[i] = p.audit_count > 0 ? 1 : 0;
+      this.#gradients[i] = AccessScoreModel.#gradientOf(p);
       this.#indexById.set(p.street_edge_id, i);
       this.#types.forEach((type, t) => {
         const base = i * T + t;

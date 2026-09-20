@@ -1,8 +1,9 @@
 /**
  * What the sidebar reports with a change, which the page applies, logs, and hands the dock.
  * @typedef {object} AccessScoreChangeMeta
- * @property {string} kind - `Unit`, `Weight`, `ShowUnaudited`, `ShowClusters`, `PlaceCategory`, `PlaceCategoryOnly`,
- *   `PlaceCategorySelectAll`, `PlaceCategoryDeselectAll`, `Section` or `Reset`; the page adds `ResetAll`.
+ * @property {string} kind - `Unit`, `Weight`, `ShowUnaudited`, `ShowClusters`, `ShowGrade`, `PlaceCategory`,
+ *   `PlaceCategoryOnly`, `PlaceCategorySelectAll`, `PlaceCategoryDeselectAll`, `Section` or `Reset`; the page adds
+ *   `ResetAll`.
  * @property {boolean} final - False for a slider mid-drag, true for a settled value (the one to log).
  * @property {string|boolean} [value] - What the change set, for the log.
  */
@@ -68,6 +69,7 @@ class AccessScoreSidebar {
       row.output.textContent = AccessScoreSidebar.#format(state.weights[type]);
     }
     e.showUnaudited.checked = state.showUnaudited;
+    e.showGrade.checked = state.showGrade;
     e.showClusters.checked = state.showClusters;
     for (const [category, row] of Object.entries(e.placeRows)) {
       row.input.checked = state.placeCategories === null || state.placeCategories.includes(category);
@@ -171,6 +173,8 @@ class AccessScoreSidebar {
         }];
       })),
       showUnaudited: root.querySelector('#acs-show-unaudited'),
+      showGrade: root.querySelector('#acs-show-grade'),
+      gradeOption: root.querySelector('#acs-grade-option'),
       showClusters: root.querySelector('#acs-show-clusters'),
       placeRows: Object.fromEntries(categories.map((category) => {
         const row = placeRows.querySelector(`.acs-place-row[data-category="${category}"]`);
@@ -214,6 +218,8 @@ class AccessScoreSidebar {
     e.showUnaudited.addEventListener('change', () =>
       this.#emit({ showUnaudited: e.showUnaudited.checked },
         { kind: 'ShowUnaudited', value: e.showUnaudited.checked, final: true }));
+    e.showGrade.addEventListener('change', () =>
+      this.#emit({ showGrade: e.showGrade.checked }, { kind: 'ShowGrade', value: e.showGrade.checked, final: true }));
     e.showClusters.addEventListener('change', () => this.#emit({ showClusters: e.showClusters.checked },
       { kind: 'ShowClusters', value: e.showClusters.checked, final: true }));
     // The shared filter sidebar's section action: it offers whichever of the two has the most left to give, so
@@ -313,9 +319,15 @@ class AccessScoreSidebar {
     return Math.max(AccessScoreSidebar.MAX_WEIGHT, Math.ceil(largest) + 1);
   }
 
-  /** The unaudited-streets toggle only means something in the streets unit. */
+  /**
+   * The street-only toggles mean nothing in the regions unit, and the slope toggle nothing in a city whose streets
+   * have not been sampled: the config lists the elevation models in use, and an empty list is that city.
+   */
   #showUnitOptions(unit) {
     this.#els.streetOptions.hidden = unit !== 'streets';
+    const gradient = this.#config.gradient;
+    const sampled = Boolean(gradient && gradient.sources.length > 0 && gradient.map_class_breaks.length > 0);
+    this.#els.gradeOption.hidden = unit !== 'streets' || !sampled;
   }
 
   /** Whether every slider sits on the engine's default magnitude. */

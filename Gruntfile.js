@@ -104,6 +104,8 @@ module.exports = function (grunt) {
           'public/js/common/scoreRamp.js',
           'public/js/access-score/src/AccessScoreModel.js',
           'public/js/access-score/src/AccessScoreUrlSync.js',
+          'public/js/access-score/src/AccessScoreGradeRamp.js',
+          'public/js/access-score/src/AccessScoreElevationProfile.js',
           'public/js/access-score/src/AccessScoreMapLegend.js',
           'public/js/access-score/src/AccessScoreMapView.js',
           'public/js/access-score/src/AccessScoreSidebar.js',

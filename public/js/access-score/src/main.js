@@ -36,6 +36,15 @@ window.AccessScoreApp = (function () {
     return i18next.t('accessscore:length', { meters, interpolation: { escapeValue: true } });
   }
 
+  /**
+   * An elevation, a rise, or a short stretch of street in meters, to the whole meter or foot. Not `formatLength`: its
+   * nearest-25 rounding suits a street's length and would turn a 7 ft drop into "0 ft".
+   */
+  function formatElevation(meters) {
+    // Markup sink: the callers write this into the street popup's HTML.
+    return i18next.t('accessscore:elevation', { meters, interpolation: { escapeValue: true } });
+  }
+
   /** The display name of a label type; one implementation for the whole tool. */
   function typeName(type) {
     return AccessScoreChart.typeName(type);
@@ -119,6 +128,9 @@ window.AccessScoreApp = (function () {
       throw e;
     }
 
+    // The elevation models the city's slopes came from (#5223); empty in a city that has not been sampled, which is
+    // what keeps every slope control and credit off the page there.
+    const gradeSources = config.gradient?.sources ?? [];
     const urlState = AccessScoreUrlSync.read(config);
     const model = new AccessScoreModel(config, streets, intersections, completion, urlState.state);
     const sidebar = new AccessScoreSidebar(sidebarEl, config);
@@ -156,6 +168,7 @@ window.AccessScoreApp = (function () {
         className: 'acs-popup', maxWidth: '360px', focusAfterOpen: !fromUrl, closeOnClick: false,
       })
         .setLngLat(selection.lngLat).setHTML(html).addTo(map);
+      if (selection.unit === 'streets') loadProfile(selection.id, popup);
       popup.on('close', () => {
         if (!popup) return;
         popup = null;
@@ -179,6 +192,8 @@ window.AccessScoreApp = (function () {
       clickClaimed: (e) => evidence?.layer.claims(e) === true || places?.layer.claims(e) === true,
       hoverClaimed: (e) => evidence?.layer.claims(e) === true || places?.layer.claims(e) === true,
       dark,
+      gradeBreaks: gradeSources.length > 0 ? config.gradient.map_class_breaks : null,
+      gradeAttribution: gradeAttributionHtml(),
     });
     evidence = await mountClusterEvidence();
     places = mountPlaces();
@@ -214,6 +229,7 @@ window.AccessScoreApp = (function () {
       const state = model.state;
       if (meta.kind === 'Unit') mapView.setUnit(state.unit);
       if (meta.kind === 'ShowUnaudited') mapView.setShowUnaudited(state.showUnaudited);
+      if (meta.kind === 'ShowGrade') mapView.setShowGrade(state.showGrade);
       if (meta.kind === 'ShowClusters') evidence.setVisible(state.showClusters);
       if (PLACE_CHANGE_KINDS.has(meta.kind)) places?.apply(state);
       mapView.applyScores();
@@ -288,6 +304,7 @@ window.AccessScoreApp = (function () {
       const state = model.state;
       mapView.setUnit(state.unit);
       mapView.setShowUnaudited(state.showUnaudited);
+      mapView.setShowGrade(state.showGrade);
       evidence.setVisible(state.showClusters);
       places?.apply(state);
       mapView.applyScores();
@@ -671,14 +688,29 @@ window.AccessScoreApp = (function () {
         : i18next.t('accessscore:popup-street', { id: s.streetId, interpolation: { escapeValue: true } });
     }
 
+    /** The tooltip's slope line, shown only while slope is what the map is colored by. */
+    function gradeTooltipHtml(id) {
+      if (!mapView.showingGrade) return '';
+      const grade = model.displayGrade(id);
+      const text = grade === null
+        ? i18next.t('accessscore:slope-none')
+        : i18next.t('accessscore:slope-tooltip', {
+            grade: AccessScoreGradeRamp.percent(grade), interpolation: { escapeValue: true },
+          });
+      return `<div class="acs-tooltip__meta">${text}</div>`;
+    }
+
     function streetTooltipHtml(id) {
       const s = model.explainStreet(id);
       if (!s) return null;
       const title = streetTitle(s);
-      if (!s.audited) return `<strong>${title}</strong><br>${i18next.t('accessscore:unaudited')}`;
+      if (!s.audited) {
+        return `<strong>${title}</strong><br>${i18next.t('accessscore:unaudited')}${gradeTooltipHtml(id)}`;
+      }
       const { problems, features } = countClusters(s);
       return `<strong>${title}</strong>
         <div class="acs-tooltip__score">${formatScore(s.score)}</div>
+        ${gradeTooltipHtml(id)}
         ${componentsHtml(s)}
         <div class="acs-tooltip__meta">${i18next.t('accessscore:tooltip-meta', {
     problems, features, interpolation: { escapeValue: true },
@@ -782,7 +814,102 @@ window.AccessScoreApp = (function () {
     formatLength(s.lengthM)}</div>
         <h4 class="acs-popup__subtitle">${i18next.t('accessscore:popup-terms')}</h4>
         ${termsTableHtml(s.terms)}
+        ${slopeHtml(s)}
         ${hopLinksHtml(lngLat)}`;
+    }
+
+    /**
+     * The elevation models' credit line for the map's attribution control (#5223), each linked to its publisher
+     * where it has a page. The names and URLs are the backend's, and text all the same, so they are escaped.
+     */
+    function gradeAttributionHtml() {
+      return gradeSources.map((source) => {
+        const credit = util.escapeHTML(source.credit);
+        return source.url
+          ? `<a href="${util.escapeHTML(source.url)}" target="_blank" rel="noopener">${credit}</a>`
+          : credit;
+      }).join(' | ');
+    }
+
+    /** A grade as a percentage, escaped for markup. */
+    function percentHtml(grade) {
+      return util.escapeHTML(AccessScoreGradeRamp.percent(grade));
+    }
+
+    /**
+     * The popup's slope block (#5223): the grades, the climb, how much of the street is over the walking-surface
+     * limit, a slot the elevation profile loads into, and why the numbers are missing or approximate when they are.
+     * Empty for a street that has not been sampled, so a city with no slope data shows no sign of the feature.
+     * @param {AccessScoreStreetExplanation} s - The street.
+     * @returns {string}
+     */
+    function slopeHtml(s) {
+      const g = s.gradient;
+      if (!g) return '';
+      const t = (key, values = {}) => i18next.t(`accessscore:${key}`, {
+        ...values, interpolation: { escapeValue: false },
+      });
+      const lines = [];
+      if (g.meanGrade !== null && g.maxGrade !== null) {
+        lines.push(t('slope-summary', { mean: percentHtml(g.meanGrade), max: percentHtml(g.maxGrade) }));
+        lines.push(t('slope-climb', {
+          climb: formatElevation(g.climbM ?? 0), descent: formatElevation(g.descentM ?? 0),
+        }));
+        if ((g.metersOver5pct ?? 0) > 0) {
+          lines.push(t('slope-over-limit', {
+            length: formatElevation(g.metersOver5pct), limit: percentHtml(config.gradient.walking_surface_limit),
+          }));
+        }
+      } else if (g.netGrade !== null) {
+        lines.push(t('slope-net-only', { grade: percentHtml(Math.abs(g.netGrade)) }));
+      }
+      const notes = [];
+      if (g.quality !== 'measured') notes.push(t(`slope-quality-${g.quality.replace('_', '-')}`));
+      else if (g.confidence !== 'high') notes.push(t('slope-approximate'));
+      const source = gradeSources.find((d) => d.dem_source === g.demSource);
+      return `<h4 class="acs-popup__subtitle">${t('popup-slope')}</h4>
+        ${lines.map((line) => `<div class="acs-popup__meta">${line}</div>`).join('')}
+        ${g.meanGrade !== null ? '<div class="acs-popup__profile" data-acs-profile aria-live="polite"></div>' : ''}
+        ${notes.map((note) => `<p class="acs-popup__note">${note}</p>`).join('')}
+        ${source ? `<p class="acs-popup__credit">${util.escapeHTML(source.credit)}</p>` : ''}`;
+    }
+
+    /**
+     * Fetches a street's elevation profile into its open popup. The profile is the one slope field too heavy for the
+     * city-wide payload, so it is asked for a street at a time, and only where the popup made a slot for it (a
+     * street with windowed statistics, which is exactly a street with a profile).
+     * @param {number} streetId - The selected street.
+     * @param {mapboxgl.Popup} forPopup - The popup the profile belongs in; a later selection replaces it, and a
+     *                                    late answer for an earlier street is dropped.
+     */
+    async function loadProfile(streetId, forPopup) {
+      const slot = forPopup.getElement()?.querySelector('[data-acs-profile]');
+      if (!slot) return;
+      slot.textContent = i18next.t('accessscore:profile-loading');
+      try {
+        const { profile } = await fetchJson(`/v3/api/streetGradientProfile?streetEdgeId=${streetId}`);
+        if (popup !== forPopup) return;
+        if (!profile) {
+          slot.remove();
+          return;
+        }
+        const { low, high } = AccessScoreElevationProfile.range(profile);
+        const text = { low: formatElevation(low), high: formatElevation(high) };
+        slot.innerHTML = AccessScoreElevationProfile.html(profile, {
+          ...text,
+          start: i18next.t('accessscore:profile-start'),
+          end: i18next.t('accessscore:profile-end'),
+          label: i18next.t('accessscore:profile-label', {
+            start: formatElevation(profile.elevations_meters[0]),
+            end: formatElevation(profile.elevations_meters[profile.elevations_meters.length - 1]),
+            ...text,
+            interpolation: { escapeValue: false },
+          }),
+        });
+      } catch (e) {
+        console.warn('AccessScore elevation profile failed to load', e);
+        if (popup === forPopup) slot.textContent = i18next.t('accessscore:profile-failed');
+      }
     }
 
     function regionPopupHtml(id) {

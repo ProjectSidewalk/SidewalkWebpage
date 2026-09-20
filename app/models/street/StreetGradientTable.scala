@@ -84,6 +84,14 @@ object StreetGradientStats {
 
   /** The ADA / PROWAG running-slope limit for a ramp, 1:12 (8.33%). `metersOver8pctGrade` is measured against it. */
   val RampLimit: Double = 1.0 / 12.0
+
+  /**
+   * The grades a slope map is classed at, ascending: a street under the first reads as level, one over the last as
+   * steeper than any accessible ramp. The two ADA / PROWAG limits sit between 1:48 (2.08%, the most a surface may
+   * slope and still count as level) and 1:8 (12.5%, the steepest ramp the ADA tolerates anywhere, and only over a
+   * 75 mm rise), so each class boundary is one a reader can look up.
+   */
+  val MapClassBreaks: Seq[Double] = Seq(1.0 / 48.0, WalkingSurfaceLimit, RampLimit, 1.0 / 8.0)
 }
 
 /**

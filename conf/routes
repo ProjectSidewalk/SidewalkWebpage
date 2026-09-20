@@ -314,6 +314,7 @@ GET     /v3/api-docs/streetTypes                        controllers.ApiDocsContr
 GET     /v3/api-docs/sidewalkPresence                   controllers.ApiDocsController.sidewalkPresence
 GET     /v3/api-docs/places                             controllers.ApiDocsController.places
 GET     /v3/api-docs/regions                            controllers.ApiDocsController.regions
+GET     /v3/api-docs/streetGradientProfile              controllers.ApiDocsController.streetGradientProfile
 GET     /v3/api-docs/accessScoreStreets                 controllers.ApiDocsController.accessScoreStreets
 GET     /v3/api-docs/accessScoreIntersections           controllers.ApiDocsController.accessScoreIntersections
 GET     /v3/api-docs/accessScoreRegions                 controllers.ApiDocsController.accessScoreRegions
