@@ -619,6 +619,17 @@
   gap: var(--space-xs);
 }
 
+/* display: flex would otherwise beat the user-agent's [hidden] rule, and the fold would never close. */
+.acs-slope[hidden] {
+  display: none;
+}
+
+/* The page's base label style is bold with a bottom margin; these labels sit beside their control as plain text. */
+.acs-field label {
+  margin: 0;
+  font: var(--text-caption-regular);
+}
+
 .acs-field {
   display: flex;
   flex-direction: column;
@@ -634,6 +645,7 @@
   gap: var(--space-xs);
 }
 
+.acs-field .acs-field__label,
 .acs-field__label {
   font: var(--text-caption-medium);
   color: var(--color-neutral-900);
