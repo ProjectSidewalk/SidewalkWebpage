@@ -40,9 +40,10 @@ window.AccessScoreApp = (function () {
    * An elevation, a rise, or a short stretch of street in meters, to the whole meter or foot. Not `formatLength`: its
    * nearest-25 rounding suits a street's length and would turn a 7 ft drop into "0 ft".
    */
-  function formatElevation(meters) {
-    // Markup sink: the callers write this into the street popup's HTML.
-    return i18next.t('accessscore:elevation', { meters, interpolation: { escapeValue: true } });
+  function formatElevation(meters, { escape = true } = {}) {
+    // Markup sink by default: most callers write this into the street popup's HTML. The elevation profile asks for
+    // plain text, since it escapes whatever it is given where that meets its own markup.
+    return i18next.t('accessscore:elevation', { meters, interpolation: { escapeValue: escape } });
   }
 
   /** The display name of a label type; one implementation for the whole tool. */
@@ -825,7 +826,8 @@ window.AccessScoreApp = (function () {
     function gradeAttributionHtml() {
       return gradeSources.map((source) => {
         const credit = util.escapeHTML(source.credit);
-        return source.url
+        // Escaping keeps a URL inside its attribute; only the scheme keeps it from being a `javascript:` one.
+        return /^https:\/\//i.test(source.url ?? '')
           ? `<a href="${util.escapeHTML(source.url)}" target="_blank" rel="noopener">${credit}</a>`
           : credit;
       }).join(' | ');
@@ -855,10 +857,9 @@ window.AccessScoreApp = (function () {
         lines.push(t('slope-climb', {
           climb: formatElevation(g.climbM ?? 0), descent: formatElevation(g.descentM ?? 0),
         }));
-        if ((g.metersOver5pct ?? 0) > 0) {
-          lines.push(t('slope-over-limit', {
-            length: formatElevation(g.metersOver5pct), limit: percentHtml(config.gradient.walking_surface_limit),
-          }));
+        const limit = config.gradient?.walking_surface_limit;
+        if ((g.metersOver5pct ?? 0) > 0 && typeof limit === 'number') {
+          lines.push(t('slope-over-limit', { length: formatElevation(g.metersOver5pct), limit: percentHtml(limit) }));
         }
       } else if (g.netGrade !== null) {
         lines.push(t('slope-net-only', { grade: percentHtml(Math.abs(g.netGrade)) }));
@@ -872,6 +873,30 @@ window.AccessScoreApp = (function () {
         ${g.meanGrade !== null ? '<div class="acs-popup__profile" data-acs-profile aria-live="polite"></div>' : ''}
         ${notes.map((note) => `<p class="acs-popup__note">${note}</p>`).join('')}
         ${source ? `<p class="acs-popup__credit">${util.escapeHTML(source.credit)}</p>` : ''}`;
+    }
+
+    /**
+     * The elevation profile's chart, with its scale and its accessible name in the reader's units. Everything is
+     * handed over as plain text: `AccessScoreElevationProfile` escapes it where it meets the markup.
+     * @param {AccessScoreProfile} profile - A street's profile, from `/v3/api/streetGradientProfile`.
+     * @returns {string} The chart's markup; empty for a profile too short to draw.
+     */
+    function profileHtml(profile) {
+      const plain = { escape: false };
+      const elevations = profile.elevations_meters;
+      const { low, high } = AccessScoreElevationProfile.range(profile);
+      const text = { low: formatElevation(low, plain), high: formatElevation(high, plain) };
+      return AccessScoreElevationProfile.html(profile, {
+        ...text,
+        start: i18next.t('accessscore:profile-start'),
+        end: i18next.t('accessscore:profile-end'),
+        label: i18next.t('accessscore:profile-label', {
+          ...text,
+          start: formatElevation(elevations[0], plain),
+          end: formatElevation(elevations[elevations.length - 1], plain),
+          interpolation: { escapeValue: false },
+        }),
+      });
     }
 
     /**
@@ -889,23 +914,11 @@ window.AccessScoreApp = (function () {
       try {
         const { profile } = await fetchJson(`/v3/api/streetGradientProfile?streetEdgeId=${streetId}`);
         if (popup !== forPopup) return;
-        if (!profile) {
-          slot.remove();
-          return;
-        }
-        const { low, high } = AccessScoreElevationProfile.range(profile);
-        const text = { low: formatElevation(low), high: formatElevation(high) };
-        slot.innerHTML = AccessScoreElevationProfile.html(profile, {
-          ...text,
-          start: i18next.t('accessscore:profile-start'),
-          end: i18next.t('accessscore:profile-end'),
-          label: i18next.t('accessscore:profile-label', {
-            start: formatElevation(profile.elevations_meters[0]),
-            end: formatElevation(profile.elevations_meters[profile.elevations_meters.length - 1]),
-            ...text,
-            interpolation: { escapeValue: false },
-          }),
-        });
+        // The slot is a live region that has just said "loading", so every ending is said in it too: removing it
+        // would leave a screen-reader user waiting on a profile that is not coming.
+        const html = profile ? profileHtml(profile) : '';
+        if (html) slot.innerHTML = html;
+        else slot.textContent = i18next.t('accessscore:profile-none');
       } catch (e) {
         console.warn('AccessScore elevation profile failed to load', e);
         if (popup === forPopup) slot.textContent = i18next.t('accessscore:profile-failed');

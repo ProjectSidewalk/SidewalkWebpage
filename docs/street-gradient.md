@@ -3,7 +3,7 @@
 Every street gets a running slope, a climb and an elevation profile, sampled along its centerline from a bare-earth
 elevation model (#5223). It needs no labeling, so it exists for unaudited streets too. The numbers live in the
 `street_gradient` table (398.sql), filled offline by [`scripts/street_gradient.py`](../scripts/street_gradient.py).
-The app only reads it ([Where it shows up](#where-it-shows-up)). Slope is not part of the AccessScore: the scoring
+The app reads it and never writes it ([Where it shows up](#where-it-shows-up)). Slope is not part of the AccessScore: the scoring
 term is a later phase of #5223.
 
 ## Filling or topping up a city
@@ -188,14 +188,17 @@ The test for a new country is the one used here: an open bare-earth model at 10 
   pulls the arrays. The full-city cache holds them, so an import shows up within its ten-minute freshness window.
 - **`/v3/api/streetGradientProfile?streetEdgeId=`** serves one street's statistics and its profile, in meters at a
   stated spacing. A sampled street with no profile (a structure, a gap, a coarse-model row) answers 200 with
-  `profile: null`; only a street with no row is a 404.
+  `profile: null`; only a street with no row is a 404. `stale: true` marks a street whose geometry has changed since
+  it was sampled (the export script's own `geom_md5` test, asked for one street): its numbers describe the old line
+  until the next top-up. The city-wide payload does not carry the flag, since the hash is computed per row.
 - **`/v3/api/accessScoreConfig`** publishes, under `gradient`, the two limits (`StreetGradientStats`), the grades a
   slope map is classed at (`MapClassBreaks`: 1:48, 1:20, 1:12, 1:8), and the credit for each elevation model the
   city's rows came from. An empty `sources` is how a client knows the city has not been sampled.
 - **The AccessScore tool** (`/accessScore`) gets an Options checkbox, "Color streets by slope", hidden in an
   unsampled city. It recolors the street lines through `AccessScoreGradeRamp` (classed, from the
   `--color-grade-ramp-*` tokens; every street with a grade is drawn at full strength, audited or not), swaps the map
-  legend for the class list, and rides in the URL as `grade=1`. The street popup always shows a Slope block: mean and
+  legend for the class list, and rides in the URL as `grade=1`. While it is on, "Show unaudited streets" is
+  disabled, since slope is drawn for every street. The popup of a sampled street shows a Slope block: mean and
   steepest grade, climb and drop, the length over 5%, the elevation profile (`AccessScoreElevationProfile`, fetched
   per street), and a sentence saying why when the numbers are missing (`structure`, `no_data`) or approximate
   (`suspect`, a coarse model). A street is drawn by its mean grade, or by the size of its `net_grade` where a coarse

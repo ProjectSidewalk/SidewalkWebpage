@@ -451,6 +451,12 @@ test.describe('/accessScore', () => {
       await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
       await expect(page.locator('.acs-map-legend__class')).toHaveCount(5);
       await expect(page.locator('.acs-map-legend__score')).toBeHidden();
+      // The classes are a named list, not an image: a screen reader reaches each row's grades.
+      const classes = page.getByRole('group', {name: 'Street slope'}).getByRole('listitem');
+      await expect(classes).toHaveCount(6);
+      await expect(classes.first()).toHaveText(/Under 2\.1%/);
+      // Slope is drawn for every street, so the toggle that would decide nothing is off until the score returns.
+      await expect(page.locator('#acs-show-unaudited')).toBeDisabled();
       await expect.poll(() => urlParam(page, 'grade')).toBe('1');
       // The credit rides on the street source, so Mapbox's own attribution control carries it.
       await expect(page.locator('.mapboxgl-ctrl-attrib')).toContainText('Elevation: Fixture Survey');
@@ -474,6 +480,7 @@ test.describe('/accessScore', () => {
       await expect(popup.locator('.acs-popup__credit')).toHaveText('Elevation: Fixture Survey');
 
       await page.locator('#acs-show-grade').uncheck();
+      await expect(page.locator('#acs-show-unaudited')).toBeEnabled();
       expect(JSON.stringify(await lineColor())).toContain('interpolate');
       await expect.poll(() => urlParam(page, 'grade')).toBeNull();
       expect(consoleErrors).toEqual([]);

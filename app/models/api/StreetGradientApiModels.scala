@@ -7,7 +7,7 @@
 package models.api
 
 import models.street.{DemSource, StreetGradient, StreetGradientStats}
-import play.api.libs.json.{JsNull, JsObject, JsValue, Json, Writes}
+import play.api.libs.json.{JsNull, JsObject, JsValue, Json}
 
 /** The slope fields, declared once so the city-wide payload and the per-street profile name them identically. */
 object StreetGradientApiFields {
@@ -70,8 +70,11 @@ case class StreetGradientConfigForApi(sources: Seq[DemSourceForApi]) {
  *
  * @param gradient     The street's `street_gradient` row.
  * @param lengthMeters The street's geodesic length, which the profile's spacing is derived from.
+ * @param stale        Whether the street's geometry has changed since it was sampled. The row then describes the line
+ *                     the street used to follow, and `spacing_meters` (today's length over yesterday's sample count)
+ *                     is only approximate, so the response says so instead of passing the numbers off as current.
  */
-case class StreetGradientProfileForApi(gradient: StreetGradient, lengthMeters: Double) {
+case class StreetGradientProfileForApi(gradient: StreetGradient, lengthMeters: Double, stale: Boolean = false) {
 
   /**
    * The profile as meters at a stated spacing, or None where the row has no profile (a structure, a coarse-model row,
@@ -93,12 +96,9 @@ case class StreetGradientProfileForApi(gradient: StreetGradient, lengthMeters: D
         "elev_end_meters"       -> stats.elevEndM,
         "dem_resolution_meters" -> stats.demResolutionM,
         "sampled_at"            -> gradient.sampledAt,
+        "stale"                 -> stale,
         "profile"               -> profileJson.getOrElse[JsValue](JsNull),
         "attribution"           -> DemSourceForApi(DemSource.forName(stats.demSource)).toJson
       )
   }
-}
-
-object StreetGradientProfileForApi {
-  implicit val writes: Writes[StreetGradientProfileForApi] = (p: StreetGradientProfileForApi) => p.toJson
 }

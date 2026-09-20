@@ -20,7 +20,8 @@ class AccessScoreElevationProfile {
   /**
    * The chart's markup.
    * @param {AccessScoreProfile} profile - The street's profile, from `/v3/api/streetGradientProfile`.
-   * @param {object} text - The words and formatted numbers around the chart, already escaped for markup.
+   * @param {object} text - The words and formatted numbers around the chart, as plain text: every one is escaped
+   *   here, where it meets the markup, so a quote in a translation cannot close the `aria-label` it lands in.
    * @param {string} text.label - The accessible name: what the chart shows, in a sentence.
    * @param {string} text.low - The lowest elevation, formatted.
    * @param {string} text.high - The highest elevation, formatted.
@@ -32,19 +33,20 @@ class AccessScoreElevationProfile {
     const elevations = profile?.elevations_meters ?? [];
     if (elevations.length < 2) return '';
     const { points, baseline } = AccessScoreElevationProfile.#layout(elevations);
+    const esc = Object.fromEntries(Object.entries(text).map(([key, value]) => [key, util.escapeHTML(String(value))]));
     const line = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
     const first = points[0];
     const last = points[points.length - 1];
     const viewBox = `0 0 ${AccessScoreElevationProfile.#WIDTH} ${AccessScoreElevationProfile.#HEIGHT}`;
     const area = `${line} L${last[0].toFixed(1)},${baseline} L${first[0].toFixed(1)},${baseline} Z`;
     return `<figure class="acs-profile">
-        <div class="acs-profile__scale" aria-hidden="true"><span>${text.high}</span><span>${text.low}</span></div>
+        <div class="acs-profile__scale" aria-hidden="true"><span>${esc.high}</span><span>${esc.low}</span></div>
         <svg class="acs-profile__chart" viewBox="${viewBox}" preserveAspectRatio="none" role="img"
-             aria-label="${text.label}">
+             aria-label="${esc.label}">
           <path class="acs-profile__area" d="${area}"></path>
           <path class="acs-profile__line" d="${line}"></path>
         </svg>
-        <div class="acs-profile__ends" aria-hidden="true"><span>${text.start}</span><span>${text.end}</span></div>
+        <div class="acs-profile__ends" aria-hidden="true"><span>${esc.start}</span><span>${esc.end}</span></div>
       </figure>`;
   }
 

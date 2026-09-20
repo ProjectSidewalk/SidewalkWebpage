@@ -6,6 +6,11 @@
  *
  * While the streets are colored by slope (#5223) the ramp gives way to the slope classes, each a swatch beside the
  * grades it spans; the score ramp returns with the score coloring, and under the regions unit, which has no slope.
+ *
+ * The two blocks are exposed differently on purpose. The score ramp is one picture with one name (`role="img"`): a
+ * gradient has no parts to read. The slope classes are a list, because `role="img"` would prune its children from
+ * the accessibility tree, and the class rows are the only place a reader who cannot tell two close blues apart, or
+ * cannot see the map at all, finds which grades a color stands for without hovering a street.
  */
 class AccessScoreMapLegend {
   #container = null;
@@ -36,9 +41,8 @@ class AccessScoreMapLegend {
   onAdd() {
     const root = document.createElement('div');
     root.className = 'mapboxgl-ctrl acs-map-legend';
-    root.setAttribute('role', 'img');
     root.innerHTML = `
-      <div class="acs-map-legend__score">
+      <div class="acs-map-legend__score" role="img" aria-label="${i18next.t('accessscore:legend')}">
         <div class="acs-map-legend__row">
           <span class="acs-map-legend__end">0</span>
           <span class="acs-map-legend__bar"><span class="acs-map-legend__caret" hidden></span></span>
@@ -52,7 +56,7 @@ class AccessScoreMapLegend {
           <span class="acs-map-legend__swatch"></span><span class="acs-map-legend__none-label"></span>
         </div>
       </div>
-      <div class="acs-map-legend__grade" hidden></div>`;
+      <div class="acs-map-legend__grade" role="group" aria-labelledby="acs-map-legend-grade-title" hidden></div>`;
     this.#container = root;
     this.#scoreBlock = root.querySelector('.acs-map-legend__score');
     this.#gradeBlock = root.querySelector('.acs-map-legend__grade');
@@ -97,7 +101,6 @@ class AccessScoreMapLegend {
     const grade = this.#grade && this.#unit === 'streets';
     this.#scoreBlock.hidden = grade;
     this.#gradeBlock.hidden = !grade;
-    this.#container.setAttribute('aria-label', i18next.t(grade ? 'accessscore:grade-legend' : 'accessscore:legend'));
   }
 
   /** Builds the slope classes' rows: a swatch and the grades it spans, gentlest first, then the no-data swatch. */
@@ -112,16 +115,20 @@ class AccessScoreMapLegend {
     };
     const classes = AccessScoreGradeRamp.classes(this.#gradeBreaks, this.#mode);
     const rows = classes.map((c) => `
-      <div class="acs-map-legend__class">
-        <span class="acs-map-legend__class-swatch"></span><span>${range(c)}</span>
-      </div>`).join('');
+      <li class="acs-map-legend__class">
+        <span class="acs-map-legend__class-swatch" aria-hidden="true"></span><span>${range(c)}</span>
+      </li>`).join('');
+    // `role="list"`: the rows are styled without markers, and Safari drops list semantics from such a list.
     this.#gradeBlock.innerHTML = `
-      <div class="acs-map-legend__title">${i18next.t('accessscore:grade-legend-title')}</div>
-      ${rows}
-      <div class="acs-map-legend__none">
-        <span class="acs-map-legend__swatch acs-map-legend__swatch--no-grade"></span>
-        <span>${i18next.t('accessscore:grade-legend-none')}</span>
-      </div>`;
+      <div class="acs-map-legend__title" id="acs-map-legend-grade-title">${
+  i18next.t('accessscore:grade-legend-title')}</div>
+      <ul class="acs-map-legend__classes" role="list">
+        ${rows}
+        <li class="acs-map-legend__none">
+          <span class="acs-map-legend__swatch acs-map-legend__swatch--no-grade" aria-hidden="true"></span>
+          <span>${i18next.t('accessscore:grade-legend-none')}</span>
+        </li>
+      </ul>`;
     // The dark basemap's steepest classes are near-white, which the legend's white card would swallow.
     this.#gradeBlock.classList.toggle('acs-map-legend__grade--dark', this.#mode === 'dark');
     // The colors are data read from the tokens, set as properties like the score bar's gradient above.

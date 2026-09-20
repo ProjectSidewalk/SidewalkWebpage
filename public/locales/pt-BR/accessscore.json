@@ -143,8 +143,7 @@
   "popup-street-distance": "a {{meters, distance(style: small)}}",
   "popup-no-street-nearby": "Nenhuma rua a menos de 250 m.",
   "show-grade": "Colorir ruas por inclinação",
-  "show-grade-help": "Colore cada rua pela sua inclinação em vez do AccessScore. A inclinação vem de um modelo de elevação, não das etiquetas, então as ruas não auditadas também a têm.",
-  "grade-legend": "Legenda de inclinação das ruas",
+  "show-grade-help": "Colore cada rua pela sua inclinação em vez do AccessScore. A inclinação vem de um modelo de elevação, não das etiquetas, então as ruas não auditadas também a têm. Enquanto isto estiver ativado, todas as ruas com inclinação são desenhadas, então “Mostrar ruas não auditadas” não tem efeito.",
   "grade-legend-title": "Inclinação da rua",
   "grade-legend-none": "Sem dados de inclinação",
   "grade-class-under": "Menos de {{to}}",
@@ -165,5 +164,6 @@
   "profile-start": "Início",
   "profile-end": "Fim",
   "profile-loading": "Carregando o perfil de elevação…",
-  "profile-failed": "Não foi possível carregar o perfil de elevação."
+  "profile-failed": "Não foi possível carregar o perfil de elevação.",
+  "profile-none": "Não há perfil de elevação disponível para esta rua."
 }

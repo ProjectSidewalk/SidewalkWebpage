@@ -267,9 +267,9 @@ class StreetsApiController @Inject() (
       gradient <- gradientFuture
       length   <- lengthFuture
     } yield (gradient, length) match {
-      case (Some(g), Some(lengthMeters)) => Ok(StreetGradientProfileForApi(g, lengthMeters).toJson)
-      case (_, None)                     => ApiError.toResult(ApiError.notFound(s"No street with id $streetEdgeId"))
-      case (None, _)                     =>
+      case (Some((g, stale)), Some(lengthMeters)) => Ok(StreetGradientProfileForApi(g, lengthMeters, stale).toJson)
+      case (_, None) => ApiError.toResult(ApiError.notFound(s"No street with id $streetEdgeId"))
+      case (None, _) =>
         ApiError.toResult(ApiError.notFound(s"Street $streetEdgeId has no gradient data"))
     }).recover { case e: Exception =>
       ApiError.toResult(ApiError.internalServerError(s"Failed to retrieve the street's gradient: ${e.getMessage}"))

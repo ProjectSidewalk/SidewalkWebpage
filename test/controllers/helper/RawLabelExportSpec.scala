@@ -11,6 +11,7 @@ import models.api.{
 }
 import models.label.StreetSide
 import models.pano.PanoSource
+import models.street.{StreetGradientConfidence, StreetGradientQuality, StreetGradientStats}
 import org.apache.pekko.stream.scaladsl.Source
 import org.geotools.api.data.{DataStore, DataStoreFinder}
 import org.geotools.api.feature.simple.SimpleFeature
@@ -432,7 +433,14 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         subScores = Map("CurbRamp" -> 1.5),
         severityCounts = Map("CurbRamp" -> Map("1" -> 2)),
         tagAdjustments = Map.empty,
-        gradient = None,
+        gradient = Some(
+          StreetGradientStats(
+            streetEdgeId = 951, quality = StreetGradientQuality.Measured, confidence = StreetGradientConfidence.High,
+            netGrade = Some(-0.04), meanGrade = Some(0.06), maxGrade = Some(0.09), metersOver5pctGrade = Some(40.0),
+            metersOver8pctGrade = Some(10.0), climbM = Some(1.5), descentM = Some(5.5), elevStartM = Some(104.0),
+            elevEndM = Some(100.0), demSource = "usgs-3dep-10m", demResolutionM = 10.0
+          )
+        ),
         geometry = line
       )
       inTempDir("access-score-streets") { base =>
@@ -453,6 +461,13 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         features(951).getAttribute("severity_counts_CurbRamp_null") mustBe 0 // Sparse entries are filled with zero.
         features(951).getAttribute("end_intersection_id") mustBe null
         features(951).getAttribute("street_name") mustBe "Cedar Lane"
+        // The slope fields (#5223) come off the same field list, as REAL and TEXT columns.
+        features(951).getAttribute("mean_grade") mustBe 0.06
+        features(951).getAttribute("net_grade") mustBe -0.04
+        features(951).getAttribute("total_descent_meters") mustBe 5.5
+        features(951).getAttribute("meters_over_8pct") mustBe 10.0
+        features(951).getAttribute("grade_quality") mustBe "measured"
+        features(951).getAttribute("dem_source") mustBe "usgs-3dep-10m"
         declaredSrsId(gpkg, "access_score_streets") mustBe 4326
       }
       // The shapefile has its own hand-written columns, so the name is checked there too.
@@ -463,6 +478,23 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         val (names, features) = readBack(openShapefile(shp), "streetId")
         names must contain("streetName")
         features(951).getAttribute("streetName") mustBe "Cedar Lane"
+        // The DBF columns are written by hand, in an order `buildFeature` has to repeat: a slip there would land a
+        // value under its neighbor's name, which only a read-back of each one catches.
+        names.take(24) mustBe Seq(
+          "the_geom", "streetId", "osmWayId", "streetName", "regionId", "score", "segScore", "sIntId", "eIntId",
+          "sIntScore", "eIntScore", "auditCount", "lengthM", "labelCount", "meanGrade", "maxGrade", "netGrade",
+          "climbM", "descentM", "mOver5pct", "mOver8pct", "gradeConf", "gradeQual", "demSource"
+        )
+        features(951).getAttribute("meanGrade") mustBe 0.06
+        features(951).getAttribute("maxGrade") mustBe 0.09
+        features(951).getAttribute("netGrade") mustBe -0.04
+        features(951).getAttribute("climbM") mustBe 1.5
+        features(951).getAttribute("descentM") mustBe 5.5
+        features(951).getAttribute("mOver5pct") mustBe 40.0
+        features(951).getAttribute("mOver8pct") mustBe 10.0
+        features(951).getAttribute("gradeConf") mustBe "high"
+        features(951).getAttribute("gradeQual") mustBe "measured"
+        features(951).getAttribute("demSource") mustBe "usgs-3dep-10m"
       }
     }
   }

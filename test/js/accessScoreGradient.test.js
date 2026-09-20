@@ -57,6 +57,7 @@ describe('street slope in the AccessScore tool', () => {
 
     beforeAll(() => {
         window.i18next = { language: 'en' };
+        window.util = { escapeHTML: (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') };
         for (const name of ['Model', 'GradeRamp', 'ElevationProfile', 'UrlSync']) {
             if (name === 'UrlSync') window.eval(read('public/js/common/urlQuery.js'));
             window.eval(`${read(`public/js/access-score/src/AccessScore${name}.js`)}
@@ -118,12 +119,42 @@ describe('street slope in the AccessScore tool', () => {
     describe('AccessScoreGradeRamp', () => {
         const breaks = GRADIENT.map_class_breaks;
 
-        test('puts a grade exactly at a limit inside it, and anything over in the next class', () => {
-            expect(AccessScoreGradeRamp.classOf(0, breaks)).toBe(0);
-            expect(AccessScoreGradeRamp.classOf(0.05, breaks)).toBe(1);
-            expect(AccessScoreGradeRamp.classOf(0.0501, breaks)).toBe(2);
-            expect(AccessScoreGradeRamp.classOf(1 / 12, breaks)).toBe(2);
-            expect(AccessScoreGradeRamp.classOf(0.5, breaks)).toBe(4);
+        /** Evaluates the `case`/`step` expression the way Mapbox does: the last stop at or below the input wins. */
+        function colorOf(expr, grade) {
+            if (grade < 0) return expr[2];
+            const step = expr[3];
+            if (!Array.isArray(step)) return step;
+            let color = step[2];
+            for (let i = 3; i < step.length; i += 2) if (grade >= step[i]) color = step[i + 1];
+            return color;
+        }
+
+        test('a street exactly at a limit is colored as within it, and anything over as the next class', () => {
+            const expr = AccessScoreGradeRamp.expression(['get', 'grade'], breaks, { noneColor: '#999999' });
+            expect(colorOf(expr, -1)).toBe('#999999');
+            expect(colorOf(expr, 0)).toBe('#000001');
+            // Every break, exactly: "not steeper than 1:20" includes 1:20, which a bare `step` would put above it.
+            breaks.forEach((b, i) => {
+                expect(colorOf(expr, b)).toBe(`#00000${i + 1}`);
+                expect(colorOf(expr, b + 1e-9)).toBe(`#00000${i + 2}`);
+                expect(colorOf(expr, b - 1e-9)).toBe(`#00000${i + 1}`);
+            });
+            expect(colorOf(expr, 0.5)).toBe('#000005');
+        });
+
+        test('with no breaks there is one class and no `step`, which Mapbox would reject without stops', () => {
+            const expr = AccessScoreGradeRamp.expression(['get', 'grade'], [], { noneColor: '#999999' });
+            expect(expr).toEqual(['case', ['<', ['get', 'grade'], 0], '#999999', '#000005']);
+        });
+
+        test('warns when the backend publishes more classes than there are colors to tell them apart', () => {
+            const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+            AccessScoreGradeRamp.colors(5);
+            expect(warn).not.toHaveBeenCalled();
+            const six = AccessScoreGradeRamp.colors(6);
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(new Set(six).size).toBeLessThan(6);
+            warn.mockRestore();
         });
 
         test('reads one token per class, the dark set on the dark basemap', () => {
@@ -181,6 +212,17 @@ describe('street slope in the AccessScore tool', () => {
             // Downhill in the digitized direction: the first sample is drawn above the last (smaller y).
             const ys = line.split(' ').map((p) => Number(p.split(',')[1]));
             expect(ys[0]).toBeLessThan(ys[2]);
+        });
+
+        test('escapes every word it is given, so a quote in a translation cannot close the accessible name', () => {
+            const profile = { spacing_meters: 50, elevations_meters: [10, 12] };
+            document.body.innerHTML = AccessScoreElevationProfile.html(profile, {
+                ...text, label: 'Profile "start" to <end>', start: 'A&B',
+            });
+            const svg = document.querySelector('svg.acs-profile__chart');
+            expect(svg.getAttribute('aria-label')).toBe('Profile "start" to <end>');
+            expect(svg.attributes).toHaveLength(5);
+            expect(document.querySelector('.acs-profile__ends').textContent).toContain('A&B');
         });
 
         test('keeps a near-level street a flat line through the middle instead of magnifying its noise', () => {

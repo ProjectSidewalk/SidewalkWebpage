@@ -116,6 +116,12 @@
   margin-top: 0;
 }
 
+/* A toggle that currently decides nothing (#5223): still there, so the panel does not reflow, and visibly off. */
+.acs-check-row--disabled .acs-check {
+  color: var(--color-neutral-600);
+  cursor: not-allowed;
+}
+
 /* display: flex would otherwise beat the user-agent's [hidden] rule when the row is the streets-only toggle. */
 .acs-check-row[hidden] {
   display: none;
@@ -752,6 +758,12 @@
 .acs-map-legend__title {
   margin-bottom: 2px;
   font: var(--text-tiny-medium);
+}
+
+.acs-map-legend__classes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .acs-map-legend__class {

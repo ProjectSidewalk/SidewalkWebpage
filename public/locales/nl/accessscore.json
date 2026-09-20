@@ -143,8 +143,7 @@
   "popup-street-distance": "{{meters, distance(style: small)}} verderop",
   "popup-no-street-nearby": "Geen straat binnen 250 m.",
   "show-grade": "Straten kleuren op helling",
-  "show-grade-help": "Kleurt elke straat naar hoe steil die is in plaats van naar de AccessScore. De helling komt uit een hoogtemodel, niet uit labels, dus ook niet-gecontroleerde straten hebben er een.",
-  "grade-legend": "Legenda straathelling",
+  "show-grade-help": "Kleurt elke straat naar hoe steil die is in plaats van naar de AccessScore. De helling komt uit een hoogtemodel, niet uit labels, dus ook niet-geïnspecteerde straten hebben er een. Zolang dit aanstaat, wordt elke straat met een helling getekend, dus ‘Niet-geïnspecteerde straten tonen’ heeft geen effect.",
   "grade-legend-title": "Straathelling",
   "grade-legend-none": "Geen hellingsgegevens",
   "grade-class-under": "Minder dan {{to}}",
@@ -165,5 +164,6 @@
   "profile-start": "Begin",
   "profile-end": "Eind",
   "profile-loading": "Hoogteprofiel laden…",
-  "profile-failed": "Het hoogteprofiel kon niet worden geladen."
+  "profile-failed": "Het hoogteprofiel kon niet worden geladen.",
+  "profile-none": "Voor deze straat is geen hoogteprofiel beschikbaar."
 }

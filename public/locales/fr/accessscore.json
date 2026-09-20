@@ -143,8 +143,7 @@
   "popup-street-distance": "à {{meters, distance(style: small)}}",
   "popup-no-street-nearby": "Aucune rue à moins de 250 m.",
   "show-grade": "Colorer les rues selon la pente",
-  "show-grade-help": "Colore chaque rue selon sa pente plutôt que selon son AccessScore. La pente provient d'un modèle d'élévation, et non des étiquettes : les rues non auditées en ont donc une aussi.",
-  "grade-legend": "Légende de la pente des rues",
+  "show-grade-help": "Colore chaque rue selon sa pente plutôt que selon son AccessScore. La pente provient d'un modèle d'élévation, et non des étiquettes : les rues non auditées en ont donc une aussi. Tant que cette option est activée, toutes les rues ayant une pente sont dessinées ; « Afficher les rues non auditées » n'a donc aucun effet.",
   "grade-legend-title": "Pente de la rue",
   "grade-legend-none": "Aucune donnée de pente",
   "grade-class-under": "Moins de {{to}}",
@@ -165,5 +164,6 @@
   "profile-start": "Début",
   "profile-end": "Fin",
   "profile-loading": "Chargement du profil d'élévation…",
-  "profile-failed": "Impossible de charger le profil d'élévation."
+  "profile-failed": "Impossible de charger le profil d'élévation.",
+  "profile-none": "Aucun profil d'élévation n'est disponible pour cette rue."
 }

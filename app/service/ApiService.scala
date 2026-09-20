@@ -59,8 +59,11 @@ trait ApiService {
   /** Slope statistics of each given street edge (#5223); a street that has not been sampled is absent. */
   def getStreetGradientStats(streetEdgeIds: Seq[Int]): Future[Map[Int, StreetGradientStats]]
 
-  /** One street's full gradient row, elevation profile included, or None if it has not been sampled. */
-  def getStreetGradient(streetEdgeId: Int): Future[Option[StreetGradient]]
+  /**
+   * One street's full gradient row, elevation profile included, with whether the street's geometry has changed
+   * since it was sampled; None if it has not been sampled.
+   */
+  def getStreetGradient(streetEdgeId: Int): Future[Option[(StreetGradient, Boolean)]]
 
   /** The elevation models this city's gradients came from, as (dem_source, street count), most streets first. */
   def getStreetGradientSourceCounts: Future[Seq[(String, Int)]]
@@ -362,8 +365,10 @@ class ApiServiceImpl @Inject() (
   def getStreetGradientStats(streetEdgeIds: Seq[Int]): Future[Map[Int, StreetGradientStats]] =
     db.run(streetGradientTable.getStats(streetEdgeIds))
 
-  def getStreetGradient(streetEdgeId: Int): Future[Option[StreetGradient]] =
-    db.run(streetGradientTable.getForStreet(streetEdgeId))
+  def getStreetGradient(streetEdgeId: Int): Future[Option[(StreetGradient, Boolean)]] = db.run(for {
+    gradient <- streetGradientTable.getForStreet(streetEdgeId)
+    stale    <- streetGradientTable.isStale(streetEdgeId)
+  } yield gradient.map(g => (g, stale.getOrElse(false))))
 
   def getStreetGradientSourceCounts: Future[Seq[(String, Int)]] = db.run(streetGradientTable.sourceCounts)
 

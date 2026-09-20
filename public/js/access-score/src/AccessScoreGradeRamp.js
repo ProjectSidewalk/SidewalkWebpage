@@ -18,25 +18,17 @@ class AccessScoreGradeRamp {
    * @returns {string[]} A hex color per class.
    */
   static colors(classCount, mode = 'light') {
+    // More classes than tokens would hand two neighbors one color, on a scale whose colors exist to tell a street's
+    // class apart. The breaks are the backend's, so this can only happen by adding one there without a token here.
+    if (classCount > AccessScoreGradeRamp.#STEPS) {
+      console.warn(`AccessScoreGradeRamp: ${classCount} slope classes share ${AccessScoreGradeRamp.#STEPS} colors`);
+    }
     const style = getComputedStyle(document.documentElement);
     const last = AccessScoreGradeRamp.#STEPS - 1;
     return Array.from({ length: classCount }, (_, i) => {
       const step = classCount === 1 ? last : Math.round((i * last) / (classCount - 1));
       return style.getPropertyValue(`--color-grade-ramp${mode === 'dark' ? '-dark' : ''}-${step + 1}`).trim();
     });
-  }
-
-  /**
-   * The index of the class a grade falls in: the number of breaks it exceeds, so a street exactly at a limit reads
-   * as within it, which is how the limit is written ("not steeper than 1:20").
-   * @param {number} grade - A non-negative grade as a fraction.
-   * @param {number[]} breaks - The ascending class breaks.
-   * @returns {number} An index in `[0, breaks.length]`.
-   */
-  static classOf(grade, breaks) {
-    let i = 0;
-    while (i < breaks.length && grade > breaks[i]) i++;
-    return i;
   }
 
   /**
@@ -48,10 +40,12 @@ class AccessScoreGradeRamp {
    */
   static expression(valueExpr, breaks, { noneColor, mode = 'light' }) {
     const colors = AccessScoreGradeRamp.colors(breaks.length + 1, mode);
-    // `step` puts a value equal to a stop in the class above it; the smallest representable nudge keeps a street
-    // exactly at a limit on the side `classOf` puts it.
+    // A street exactly at a limit is within it ("not steeper than 1:20"), but `step` puts a value equal to a stop in
+    // the class above. The smallest representable nudge moves each stop just past its limit.
     const stops = breaks.flatMap((b, i) => [b + Number.EPSILON, colors[i + 1]]);
-    return ['case', ['<', valueExpr, 0], noneColor, ['step', valueExpr, colors[0], ...stops]];
+    // Mapbox rejects a `step` with no stops; with no breaks there is one class and one color.
+    const graded = stops.length > 0 ? ['step', valueExpr, colors[0], ...stops] : colors[0];
+    return ['case', ['<', valueExpr, 0], noneColor, graded];
   }
 
   /**

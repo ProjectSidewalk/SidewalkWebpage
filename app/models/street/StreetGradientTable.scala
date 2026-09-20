@@ -92,6 +92,15 @@ object StreetGradientStats {
    * 75 mm rise), so each class boundary is one a reader can look up.
    */
   val MapClassBreaks: Seq[Double] = Seq(1.0 / 48.0, WalkingSurfaceLimit, RampLimit, 1.0 / 8.0)
+
+  /**
+   * A grade as the percentage a page states it by, to two decimals with no trailing zeros: 0.05 is "5%", 1/12 is
+   * "8.33%". For the pages that quote these constants, so each reads them off the engine and formats them one way.
+   */
+  def percentLabel(grade: Double): String = {
+    val text = f"${grade * 100}%.2f"
+    (if (text.contains('.')) text.reverse.dropWhile(_ == '0').dropWhile(_ == '.').reverse else text) + "%"
+  }
 }
 
 /**
@@ -162,7 +171,10 @@ class StreetGradientTable @Inject() (protected val dbConfigProvider: DatabaseCon
    * Slope statistics for each of the given streets, without their profiles.
    *
    * `inSet` inlines the ids rather than binding them: the AccessScore API passes a whole city's streets, and pgjdbc
-   * caps a statement at 65,535 parameters, as `StreetEdgeTable.getStreetLengths` already works around.
+   * caps a statement at 65,535 parameters, as `StreetEdgeTable.getStreetLengths` already works around. For that
+   * whole-city call the id list filters nothing out, and an unfiltered read would be cheaper; it is kept because the
+   * same method serves a bbox of a few streets, where reading a city's rows to keep a dozen would not be, and the
+   * whole-city result is cached for ten minutes anyway.
    *
    * @param streetEdgeIds The streets to look up.
    * @return Map from street_edge_id to its statistics; a street that has not been sampled is absent.
@@ -185,6 +197,21 @@ class StreetGradientTable @Inject() (protected val dbConfigProvider: DatabaseCon
    */
   def getForStreet(streetEdgeId: Int): DBIO[Option[StreetGradient]] =
     streetGradients.filter(_.streetEdgeId === streetEdgeId).result.headOption
+
+  /**
+   * Whether a street's geometry has changed since it was sampled, by the same `geom_md5` comparison the export
+   * script tops the table up with. A stale row still describes a real profile, of the line the street used to
+   * follow: its samples no longer sit at even spacing along the current one. Asked a street at a time, since the
+   * hash is computed per row.
+   *
+   * @param streetEdgeId The street to check.
+   * @return Some(true) if the street has moved since, Some(false) if not, None if it has no gradient row.
+   */
+  def isStale(streetEdgeId: Int): DBIO[Option[Boolean]] =
+    sql"""SELECT street_gradient.geom_md5 <> md5(ST_AsBinary(street_edge.geom))
+          FROM street_gradient
+          JOIN street_edge ON street_edge.street_edge_id = street_gradient.street_edge_id
+          WHERE street_gradient.street_edge_id = $streetEdgeId""".as[Boolean].headOption
 
   /**
    * The elevation models this city's rows were sampled from, with how many streets each covers.

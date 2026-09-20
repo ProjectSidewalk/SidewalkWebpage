@@ -133,8 +133,7 @@
   "popup-street-distance": "距離 {{meters, distance(style: small)}}",
   "popup-no-street-nearby": "250 公尺內沒有街道。",
   "show-grade": "依坡度為街道上色",
-  "show-grade-help": "依街道的陡峭程度而非 AccessScore 為每條街道上色。坡度來自高程模型，而非標記，因此尚未審核的街道也有坡度。",
-  "grade-legend": "街道坡度圖例",
+  "show-grade-help": "依街道的陡峭程度而非 AccessScore 為每條街道上色。坡度來自高程模型，而非標記，因此尚未審核的街道也有坡度。開啟時會繪製所有具有坡度的街道，因此「顯示尚未審核的街道」不會有任何作用。",
   "grade-legend-title": "街道坡度",
   "grade-legend-none": "無坡度資料",
   "grade-class-under": "低於 {{to}}",
@@ -143,7 +142,7 @@
   "popup-slope": "坡度",
   "slope-summary": "平均 {{mean}} · 最陡路段 {{max}}",
   "slope-climb": "上升 {{climb}} · 下降 {{descent}}",
-  "slope-over-limit": "{{length}} 的坡度超過 {{limit}}",
+  "slope-over-limit": "有 {{length}} 的坡度超過 {{limit}}",
   "slope-net-only": "兩端之間約 {{grade}}",
   "slope-tooltip": "坡度 {{grade}}",
   "slope-none": "無坡度資料",
@@ -155,5 +154,6 @@
   "profile-start": "起點",
   "profile-end": "終點",
   "profile-loading": "正在載入高程剖面…",
-  "profile-failed": "無法載入高程剖面。"
+  "profile-failed": "無法載入高程剖面。",
+  "profile-none": "這條街道沒有可用的高程剖面。"
 }

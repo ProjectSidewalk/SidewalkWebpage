@@ -70,6 +70,7 @@ class AccessScoreSidebar {
     }
     e.showUnaudited.checked = state.showUnaudited;
     e.showGrade.checked = state.showGrade;
+    this.#showGradeOptions(state.showGrade);
     e.showClusters.checked = state.showClusters;
     for (const [category, row] of Object.entries(e.placeRows)) {
       row.input.checked = state.placeCategories === null || state.placeCategories.includes(category);
@@ -218,8 +219,10 @@ class AccessScoreSidebar {
     e.showUnaudited.addEventListener('change', () =>
       this.#emit({ showUnaudited: e.showUnaudited.checked },
         { kind: 'ShowUnaudited', value: e.showUnaudited.checked, final: true }));
-    e.showGrade.addEventListener('change', () =>
-      this.#emit({ showGrade: e.showGrade.checked }, { kind: 'ShowGrade', value: e.showGrade.checked, final: true }));
+    e.showGrade.addEventListener('change', () => {
+      this.#showGradeOptions(e.showGrade.checked);
+      this.#emit({ showGrade: e.showGrade.checked }, { kind: 'ShowGrade', value: e.showGrade.checked, final: true });
+    });
     e.showClusters.addEventListener('change', () => this.#emit({ showClusters: e.showClusters.checked },
       { kind: 'ShowClusters', value: e.showClusters.checked, final: true }));
     // The shared filter sidebar's section action: it offers whichever of the two has the most left to give, so
@@ -328,6 +331,18 @@ class AccessScoreSidebar {
     const gradient = this.#config.gradient;
     const sampled = Boolean(gradient && gradient.sources.length > 0 && gradient.map_class_breaks.length > 0);
     this.#els.gradeOption.hidden = unit !== 'streets' || !sampled;
+  }
+
+  /**
+   * "Show unaudited streets" decides nothing while the streets are colored by slope, which draws every street with
+   * a grade whether or not anyone has audited it. A checkbox that still toggled, reached the URL and was logged
+   * while changing nothing on the map would read as broken, so it is disabled for as long as that holds (its help
+   * says why) and keeps its value for when the score coloring returns.
+   * @param {boolean} showGrade - Whether the streets are colored by slope.
+   */
+  #showGradeOptions(showGrade) {
+    this.#els.showUnaudited.disabled = showGrade;
+    this.#els.streetOptions.classList.toggle('acs-check-row--disabled', showGrade);
   }
 
   /** Whether every slider sits on the engine's default magnitude. */

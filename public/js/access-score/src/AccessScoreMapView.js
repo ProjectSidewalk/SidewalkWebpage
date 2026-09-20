@@ -253,11 +253,6 @@ class AccessScoreMapView {
     this.#map.setPaintProperty(AccessScoreMapView.STREET_LAYER, 'line-opacity', this.#streetOpacity());
   }
 
-  /** Whether the config published slope classes, without which there is no slope coloring to offer. */
-  get gradeAvailable() {
-    return this.#gradeBreaks !== null;
-  }
-
   /**
    * Colors the streets by slope, or by score again.
    * @param {boolean} show - True for slope. Ignored (score stays) where the config published no slope classes.

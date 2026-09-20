@@ -286,6 +286,18 @@ class AccessScoreService @Inject() (
    */
   def clustersUpdatedAt: Future[Option[OffsetDateTime]] = apiService.lastSuccessfulJobFinish(ClusteringActor.Name)
 
+  /**
+   * The elevation models the city's street gradients came from, as (dem_source, street count), most streets first
+   * (#5223). Cached like the full-city scores: `accessScoreConfig` is asked for on every AccessScore tool load and
+   * was a constant before it carried this, while the answer only changes when someone imports a gradient CSV.
+   */
+  def gradientSourceCounts: Future[Seq[(String, Int)]] =
+    swrCache.staleWhileRevalidate[Seq[(String, Int)]](
+      "accessScore:gradient-sources:v1",
+      AccessScoreService.FullCityFreshFor,
+      AccessScoreService.FullCityMaxAge
+    )(apiService.getStreetGradientSourceCounts)
+
   /** The city's configured map bounds, the area every unfiltered v3 request is resolved to. */
   private def cityBbox: Future[LatLngBBox] =
     configService.getCityMapParams.map { p =>

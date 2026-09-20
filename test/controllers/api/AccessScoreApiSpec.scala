@@ -155,6 +155,8 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val json = contentAsJson(route(app, FakeRequest(GET, "/v3/api/accessScoreConfig")).get)
       (json \ "gradient" \ "walking_surface_limit").as[Double] mustBe 0.05
       (json \ "gradient" \ "ramp_limit").as[Double] mustBe (1.0 / 12.0)
+      // Empty on a schema with no gradient rows (CI's), so the array itself is what every run asserts; the shape
+      // of its entries is pinned without a database by StreetGradientApiModelsSpec.
       val sources = (json \ "gradient" \ "sources").as[Seq[JsObject]]
       sources.foreach { source =>
         (source \ "dem_source").as[String] must not be empty

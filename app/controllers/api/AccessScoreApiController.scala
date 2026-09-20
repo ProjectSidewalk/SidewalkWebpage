@@ -228,7 +228,7 @@ class AccessScoreApiController @Inject() (
     // The engine's constants plus the runtime facts a reader needs: how fresh the clusters are, and which elevation
     // models the city's grades came from (a per-city fact, so the credit cannot be a constant either).
     val updatedAtFuture = accessScoreService.clustersUpdatedAt
-    val sourcesFuture   = apiService.getStreetGradientSourceCounts
+    val sourcesFuture   = accessScoreService.gradientSourceCounts
     for {
       updatedAt <- updatedAtFuture
       sources   <- sourcesFuture

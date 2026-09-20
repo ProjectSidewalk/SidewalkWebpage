@@ -89,6 +89,40 @@ class StreetGradientTableSpec
     }
   }
 
+  "StreetGradientTable.isStale" should {
+
+    /** Seeds a measured row carrying the street's real geometry hash, as the sampler writes it. */
+    def insertCurrent(streetEdgeId: Int): DBIO[Int] =
+      sqlu"""INSERT INTO street_gradient (street_edge_id, quality, confidence, net_grade, elev_start_m, elev_end_m,
+                                          dem_source, dem_resolution_m, geom_md5)
+             SELECT $streetEdgeId, 'measured', 'low', 0.01, 10, 11, 'spec-dem', 30, md5(ST_AsBinary(geom))
+             FROM street_edge
+             WHERE street_edge_id = $streetEdgeId"""
+
+    "be false while the street's geometry is the one that was sampled" in {
+      runRolledBack(for {
+        id    <- insertStreet()
+        _     <- insertCurrent(id)
+        stale <- table.isStale(id)
+      } yield stale) mustBe Some(false)
+    }
+
+    "turn true once the street's geometry is edited" in {
+      runRolledBack(for {
+        id <- insertStreet()
+        _  <- insertCurrent(id)
+        _  <- sqlu"""UPDATE street_edge
+                        SET geom = ST_SetSRID(ST_MakeLine(ST_MakePoint(0, 0), ST_MakePoint(2, 0)), 4326)
+                        WHERE street_edge_id = $id"""
+        stale <- table.isStale(id)
+      } yield stale) mustBe Some(true)
+    }
+
+    "be None for a street that has not been sampled" in {
+      runRolledBack(insertStreet().flatMap(table.isStale)) mustBe None
+    }
+  }
+
   "StreetGradientTable.getStats" should {
     "key the sampled streets by id and leave an unsampled one out" in {
       val (sampled, unsampled, stats) = runRolledBack(for {

@@ -143,8 +143,7 @@
   "popup-street-distance": "{{meters, distance(style: small)}} away",
   "popup-no-street-nearby": "No street within 250 m.",
   "show-grade": "Color streets by slope",
-  "show-grade-help": "Colors every street by how steep it is instead of by its AccessScore. Slope comes from an elevation model, not from labels, so unaudited streets have it too.",
-  "grade-legend": "Street slope legend",
+  "show-grade-help": "Colors every street by how steep it is instead of by its AccessScore. Slope comes from an elevation model, not from labels, so unaudited streets have it too. While this is on, every street with a slope is drawn, so “Show unaudited streets” has no effect.",
   "grade-legend-title": "Street slope",
   "grade-legend-none": "No slope data",
   "grade-class-under": "Under {{to}}",
@@ -165,5 +164,6 @@
   "profile-start": "Start",
   "profile-end": "End",
   "profile-loading": "Loading the elevation profile…",
-  "profile-failed": "The elevation profile could not be loaded."
+  "profile-failed": "The elevation profile could not be loaded.",
+  "profile-none": "No elevation profile is available for this street."
 }

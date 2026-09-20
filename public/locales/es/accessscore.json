@@ -143,8 +143,7 @@
   "popup-street-distance": "a {{meters, distance(style: small)}}",
   "popup-no-street-nearby": "No hay ninguna calle a menos de 250 m.",
   "show-grade": "Colorear calles por pendiente",
-  "show-grade-help": "Colorea cada calle según su inclinación en lugar de su AccessScore. La pendiente proviene de un modelo de elevación, no de las etiquetas, por lo que las calles sin auditar también la tienen.",
-  "grade-legend": "Leyenda de pendiente de las calles",
+  "show-grade-help": "Colorea cada calle según su inclinación en lugar de su AccessScore. La pendiente proviene de un modelo de elevación, no de las etiquetas, por lo que las calles sin auditar también la tienen. Mientras esté activado se dibujan todas las calles con pendiente, por lo que «Mostrar calles sin auditar» no tiene efecto.",
   "grade-legend-title": "Pendiente de la calle",
   "grade-legend-none": "Sin datos de pendiente",
   "grade-class-under": "Menos de {{to}}",
@@ -165,5 +164,6 @@
   "profile-start": "Inicio",
   "profile-end": "Final",
   "profile-loading": "Cargando el perfil de elevación…",
-  "profile-failed": "No se pudo cargar el perfil de elevación."
+  "profile-failed": "No se pudo cargar el perfil de elevación.",
+  "profile-none": "No hay perfil de elevación disponible para esta calle."
 }

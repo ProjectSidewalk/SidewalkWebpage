@@ -79,6 +79,29 @@ class StreetGradientApiModelsSpec extends PlaySpec {
     }
   }
 
+  "the stale flag" should {
+    "default to false and be stated when the street has moved since it was sampled" in {
+      val row = StreetGradient(
+        stats(StreetGradientQuality.Measured, measured = true),
+        Some(List(100, 200)),
+        "0" * 32,
+        sampledAt
+      )
+      (StreetGradientProfileForApi(row, 100.0).toJson \ "stale").as[Boolean] mustBe false
+      (StreetGradientProfileForApi(row, 100.0, stale = true).toJson \ "stale").as[Boolean] mustBe true
+    }
+  }
+
+  "StreetGradientStats.percentLabel" should {
+    "state a grade as a percentage with no trailing zeros" in {
+      StreetGradientStats.percentLabel(0.05) mustBe "5%"
+      StreetGradientStats.percentLabel(1.0 / 12.0) mustBe "8.33%"
+      StreetGradientStats.percentLabel(0.125) mustBe "12.5%"
+      StreetGradientStats.percentLabel(0.1) mustBe "10%"
+      StreetGradientStats.percentLabel(0.0) mustBe "0%"
+    }
+  }
+
   "StreetGradientApiFields.statFields" should {
     "serialize an unsampled street as a null in every slope field" in {
       val values = StreetGradientApiFields.statFields.map(_.value(None))

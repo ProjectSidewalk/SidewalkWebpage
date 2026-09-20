@@ -143,8 +143,7 @@
   "popup-street-distance": "{{meters, distance(style: small)}} entfernt",
   "popup-no-street-nearby": "Keine Straße im Umkreis von 250 m.",
   "show-grade": "Straßen nach Steigung einfärben",
-  "show-grade-help": "Färbt jede Straße danach ein, wie steil sie ist, statt nach ihrem AccessScore. Die Steigung stammt aus einem Höhenmodell, nicht aus Markierungen, daher haben auch ungeprüfte Straßen eine.",
-  "grade-legend": "Legende zur Straßensteigung",
+  "show-grade-help": "Färbt jede Straße danach ein, wie steil sie ist, statt nach ihrem AccessScore. Die Steigung stammt aus einem Höhenmodell, nicht aus Labels, daher haben auch nicht erfasste Straßen eine. Solange dies aktiv ist, wird jede Straße mit einer Steigung gezeichnet, daher hat „Nicht erfasste Straßen anzeigen“ keine Wirkung.",
   "grade-legend-title": "Straßensteigung",
   "grade-legend-none": "Keine Steigungsdaten",
   "grade-class-under": "Unter {{to}}",
@@ -165,5 +164,6 @@
   "profile-start": "Anfang",
   "profile-end": "Ende",
   "profile-loading": "Höhenprofil wird geladen…",
-  "profile-failed": "Das Höhenprofil konnte nicht geladen werden."
+  "profile-failed": "Das Höhenprofil konnte nicht geladen werden.",
+  "profile-none": "Für diese Straße ist kein Höhenprofil verfügbar."
 }
