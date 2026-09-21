@@ -1627,10 +1627,11 @@ class LabelDetail {
       const url = `/label/${meta.label_id}?source=${encodeURIComponent(this.#source)}`;
       const res = await util.lazyIdentityFetch(url, { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const state = await res.json();
       // An admin's delete files their Disagree with it, which only the server can count.
       if (asAdmin && this.#currentLabelMeta === meta) await this.#refreshVotes(meta);
       this.#logAction('DeleteLabel', false, meta.label_id);
-      if (!this.#setDeleted(meta, true, true)) return;
+      if (!this.#setDeleted(meta, true, !!state.can_restore, true)) return;
       // Delete had focus and just hid; Restore is where the next move is.
       this.#els.restoreButton?.focus();
     } catch (err) {
@@ -1657,7 +1658,7 @@ class LabelDetail {
       this.#logAction(`RestoreLabel${undo ? '_undo=true' : ''}`, viaKeyboard, meta.label_id);
       // Read before Restore hides: the browser only moves focus off a hidden element at its next render.
       const hadFocus = document.activeElement === this.#els.restoreButton;
-      if (!this.#setDeleted(meta, false, false)) return;
+      if (!this.#setDeleted(meta, false, false, false)) return;
       // Only a Restore that had focus hands it to Delete; a Ctrl+Z from elsewhere leaves focus alone.
       if (hadFocus) this.#els.deleteButton?.focus();
     } catch (err) {
@@ -1674,16 +1675,18 @@ class LabelDetail {
    * (paging isn't blocked while the request is in flight).
    * @param {Record<string, any>} meta - Updated in place.
    * @param {boolean} deleted
+   * @param {boolean} canRestore - The server's say: a delete that found the label already deleted by an admin
+   *     succeeds, but the labeler gets no undo for it.
    * @param {boolean} viaThisCard - A delete just made here is what Ctrl+Z may undo.
    * @returns {boolean} Whether the card was redrawn.
    */
-  #setDeleted(meta, deleted, viaThisCard) {
+  #setDeleted(meta, deleted, canRestore, viaThisCard) {
     meta.deleted = deleted;
-    meta.can_restore = deleted; // Whoever could delete it from here can restore it.
+    meta.can_restore = canRestore;
     if (typeof this.#onDelete === 'function') this.#onDelete(meta);
     if (this.#currentLabelMeta !== meta) return false;
     this.#deleted = deleted;
-    this.#canRestore = deleted;
+    this.#canRestore = canRestore;
     this.#deletedHere = deleted && viaThisCard;
     // A type-change Undo still on screen would now edit a deleted label, which the server refuses.
     if (deleted) this.#showEditStatus('');

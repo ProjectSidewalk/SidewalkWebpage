@@ -1,8 +1,8 @@
 # --- !Ups
 -- Who deleted a label, when, and from which page (#3591). Users can now delete their own labels from the label popup
 -- long after placing them, so a delete needs an author and a source to be undoable and to be told apart from an
--- Explore-session delete: a label deleted in Explore drops out of its labeler's accuracy as before, one deleted anywhere
--- else keeps an "incorrect" verdict, so deleting can never raise accuracy (LabelTable.countsTowardAccuracySql).
+-- Explore-session delete: a label deleted in Explore drops out of its labeler's accuracy, one deleted anywhere else
+-- keeps an "incorrect" verdict, so deleting can never raise accuracy (LabelTable.countsTowardAccuracySql).
 --
 -- Every label deleted so far was deleted by its labeler in Explore, the only place that could, so those two columns
 -- are backfilled. When it happened was never recorded, so deleted_at stays NULL for them and the CHECK doesn't require
@@ -22,7 +22,7 @@ ALTER TABLE label
   );
 CREATE INDEX label_deleted_by_idx ON label (deleted_by) WHERE deleted_by IS NOT NULL;
 
--- The AccessScore page's label card has been sending this source all along, and is no longer refused for it.
+-- The AccessScore page's label card sends this source, so the enum needs it for the card's votes and deletes.
 ALTER TYPE ui_source ADD VALUE IF NOT EXISTS 'AccessScore';
 
 -- The AI validator's votes were written with canvas_height and canvas_width swapped (720 by 480 is the viewport's

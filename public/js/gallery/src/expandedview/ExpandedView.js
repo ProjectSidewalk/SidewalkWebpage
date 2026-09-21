@@ -186,12 +186,15 @@ class ExpandedView {
 
   /**
    * Called by LabelDetail after a delete or restore (#3591); syncs the small card, incl. an admin delete's Disagree.
-   * @param {{deleted: boolean, user_validation: ?string}} meta - The label's metadata as it now stands.
+   * Looked up by id, since paging while the request was in flight may have moved refCard on to a neighbor.
+   * @param {{label_id: number, deleted: boolean, can_restore: boolean, user_validation: ?string}} meta - The
+   *     label's metadata as it now stands.
    */
   #handleDelete = (meta) => {
-    if (!this.refCard) return;
-    this.refCard.setDeleted(!!meta.deleted);
-    this.refCard.updateUserValidation(meta.user_validation ?? null);
+    const card = sg.cardContainer.getCards().find((c) => c.getLabelId() === meta.label_id);
+    if (!card) return;
+    card.setDeleted(!!meta.deleted, !!meta.can_restore);
+    card.updateUserValidation(meta.user_validation ?? null);
   };
 
   /**

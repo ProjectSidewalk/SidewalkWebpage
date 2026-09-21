@@ -289,7 +289,10 @@ class LabelEditServiceImpl @Inject() (
       case Some(label) => setDeleted(label, deleterId, Some(source))
     }
 
-  /** Undoes a delete: the labeler their own, an admin any. An admin's delete leaves its Disagree on the record. */
+  /**
+   * Undoes a delete under `LabelDeletion.canRestore`. An admin's delete leaves its Disagree on the record. A label
+   * that isn't deleted is left alone, as a success for anyone who could have deleted it.
+   */
   def restoreLabel(labelId: Int, editor: SidewalkUserWithRole): Future[LabelEditOutcome] = {
     val isAdmin: Boolean = Role.ADMIN_ROLES.contains(editor.role)
     db.run(
@@ -297,8 +300,9 @@ class LabelEditServiceImpl @Inject() (
         .find(labelId)
         .flatMap {
           case None => DBIO.successful(LabelEditOutcome.NotFound)
-          case Some(label)
-              if !isAdmin && (label.userId != editor.userId || label.deletedBy.exists(_ != editor.userId)) =>
+          case Some(label) if !label.deleted && (isAdmin || label.userId == editor.userId) =>
+            DBIO.successful(LabelEditOutcome.Applied(label))
+          case Some(label) if !LabelDeletion.canRestore(label.deleted, label.deletedBy, Some(editor)) =>
             DBIO.successful(LabelEditOutcome.Forbidden)
           case Some(label) => setDeleted(label, editor.userId, None)
         }

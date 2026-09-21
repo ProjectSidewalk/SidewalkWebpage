@@ -135,6 +135,8 @@ describe('deleting a label from the card (#3591)', () => {
   let confirmAnswer;
   /** The HTTP status the next DELETE or restore gets; 200 unless a test says otherwise. */
   let nextStatus;
+  /** What the next DELETE or restore answers with; the labeler's own delete unless a test says otherwise. */
+  let nextBody;
 
   const flush = () => new Promise((resolve) => { setTimeout(resolve, 0); });
   const q = (sel) => card.querySelector(sel);
@@ -168,11 +170,15 @@ describe('deleting a label from the card (#3591)', () => {
     card = buildCard();
     confirmAnswer = true;
     nextStatus = 200;
+    nextBody = null;
     onDelete = jest.fn();
-    request = jest.fn(async () => {
+    request = jest.fn(async (url, opts) => {
       const status = nextStatus;
+      const deleted = opts.method === 'DELETE';
+      const body = nextBody ?? { deleted, can_restore: deleted };
       nextStatus = 200;
-      return { ok: status < 400, status, json: async () => ({}) };
+      nextBody = null;
+      return { ok: status < 400, status, json: async () => body };
     });
 
     window.i18next = { t: (key) => key };
@@ -402,7 +408,7 @@ describe('deleting a label from the card (#3591)', () => {
   test('paging away while a delete is in flight still tells the host and logs it, without touching the new card', async () => {
     let finish;
     request.mockImplementationOnce(() => new Promise((resolve) => {
-      finish = () => resolve({ ok: true, status: 200, json: async () => ({}) });
+      finish = () => resolve({ ok: true, status: 200, json: async () => ({ deleted: true, can_restore: true }) });
     }));
     const first = await showLabel({ label_id: 42 });
     deleteButton().click();
@@ -427,6 +433,15 @@ describe('deleting a label from the card (#3591)', () => {
     pressCtrlZ();
     await flush();
     expect(document.activeElement).toBe(deleteButton());
+  });
+
+  test('a delete that finds the label already deleted by an admin offers no Restore', async () => {
+    await showLabel({});
+    nextBody = { deleted: true, can_restore: false };
+    await deleteLabel();
+    expect(card.classList.contains('label-detail--deleted')).toBe(true);
+    expect(restoreButton().hidden).toBe(true);
+    expect(onDelete).toHaveBeenLastCalledWith(expect.objectContaining({ deleted: true, can_restore: false }));
   });
 
   test('a restore from a card opened on an already-deleted label is not an undo', async () => {

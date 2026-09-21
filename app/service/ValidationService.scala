@@ -307,10 +307,11 @@ class ValidationServiceImpl @Inject() (
         else
           labelValidationTable.getValidation(validation.labelId, validation.userId, validation.labelType).flatMap {
             existingVal =>
-              // The undone/redone flags cover the replacements the client knows about, but a duplicate can arrive without
-              // them: a POST retried after its original committed, or the label served again in a later mission. Removing
-              // first makes those a clean replacement (latest verdict wins) instead of a unique-constraint violation, and
-              // reuses the redo path so severity/tags, label_history, and validation counts unwind first (#4377).
+              // The undone/redone flags cover the replacements the client knows about, but a duplicate can arrive
+              // without them: a POST retried after its original committed, or the label served again in a later
+              // mission. Removing first makes those a clean replacement (latest verdict wins) instead of a
+              // unique-constraint violation, and reuses the redo path so severity/tags, label_history, and validation
+              // counts unwind first (#4377).
               val oldValRemoved = existingVal match {
                 case Some(oldVal) => deleteLabelValidation(oldVal, retracted = valSubmission.undone).map(_ > 0)
                 case None         => DBIO.successful(false)
@@ -321,9 +322,9 @@ class ValidationServiceImpl @Inject() (
               // its own replaces it. A repeat validation carrying none leaves the user's earlier text alone.
               val oldCommentRemoved =
                 if (valSubmission.undone || valSubmission.redone || valSubmission.comment.isDefined) {
-                  // A retracted vote taking the text with it is no request to erase anything, so the history tells it apart
-                  // from an edit (#5076). An undo inserts nothing afterwards, so a comment riding along with one is
-                  // retracted rather than replaced.
+                  // A retracted vote taking the text with it is no request to erase anything, so the history tells it
+                  // apart from an edit (#5076). An undo inserts nothing afterwards, so a comment riding along with one
+                  // is retracted rather than replaced.
                   val changeType =
                     if (valSubmission.comment.isDefined && !valSubmission.undone) ValidationCommentChangeType.Edit
                     else ValidationCommentChangeType.ValidationChange
@@ -334,8 +335,8 @@ class ValidationServiceImpl @Inject() (
               val newValInserted = if (!valSubmission.undone) {
                 for {
                   newValId: Int <- insert(validation)
-                  // Only an Agree applies the submitted type, severity and tags; the edit is linked to the vote so an undo
-                  // unwinds it.
+                  // Only an Agree applies the submitted type, severity and tags; the edit is linked to the vote so an
+                  // undo unwinds it.
                   _ <- {
                     if (validation.validationResult == ValidationOption.Agree && valSubmission.canEdit) {
                       labelEditService.applyEdit(validation.labelId, validation.userId, typeChange,

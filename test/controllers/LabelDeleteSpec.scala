@@ -20,8 +20,8 @@ import java.time.OffsetDateTime
 
 /**
  * Functional tests for `DELETE /label/:id` and `POST /label/:id/restore` (#3591): authorization, the delete stamp and
- * its removal on restore, an admin's delete filing a Disagree, and the accuracy rule. A real label is handed to the suite's fresh user for the duration and
- * put back in `afterAll`. Cancels when the connected schema has no label.
+ * its removal on restore, an admin's delete filing a Disagree, and the accuracy rule. A real label is handed to the
+ * suite's fresh user for the duration and put back in `afterAll`. Cancels when the connected schema has no label.
  */
 class LabelDeleteSpec
     extends PlaySpec
@@ -128,6 +128,8 @@ class LabelDeleteSpec
       val (userId, _, session) = signUpFreshUser()
       val labelId              = adoptLabel(userId)
       status(delete(session, labelId, "NotAPage")) mustBe BAD_REQUEST
+      // An Explore delete is the only kind that leaves the labeler's accuracy, so the endpoint won't take the name.
+      status(delete(session, labelId, "Explore")) mustBe BAD_REQUEST
       deletionOf(labelId)._1 mustBe false
       status(delete(session, -1)) mustBe NOT_FOUND
     }
@@ -146,7 +148,11 @@ class LabelDeleteSpec
       votesBy(labelId, otherId) mustBe Seq(("Disagree", "LabelMap"))
       disagreeCountOf(labelId) mustBe disagreesBefore + 1
 
-      // The labeler can't undo an admin's delete; the admin can, and the vote stands.
+      // The labeler can't undo an admin's delete; the admin can, and the vote stands. A stale card deleting it again
+      // is told as much, so it doesn't offer a Restore that would be refused.
+      val repeat = delete(ownerSession, labelId)
+      status(repeat) mustBe OK
+      (contentAsJson(repeat) \ "can_restore").as[Boolean] mustBe false
       status(restore(ownerSession, labelId)) mustBe FORBIDDEN
       deletionOf(labelId)._1 mustBe true
       status(restore(session, labelId)) mustBe OK
@@ -166,6 +172,7 @@ class LabelDeleteSpec
       val deleted = delete(session, labelId, "LabelMap")
       status(deleted) mustBe OK
       (contentAsJson(deleted) \ "deleted").as[Boolean] mustBe true
+      (contentAsJson(deleted) \ "can_restore").as[Boolean] mustBe true
       deletionOf(labelId) mustBe ((true, Some(userId), true, Some("LabelMap")))
 
       // The first stamp is the one that counts.
@@ -175,6 +182,7 @@ class LabelDeleteSpec
       val restored = restore(session, labelId)
       status(restored) mustBe OK
       (contentAsJson(restored) \ "deleted").as[Boolean] mustBe false
+      (contentAsJson(restored) \ "can_restore").as[Boolean] mustBe false
       deletionOf(labelId) mustBe ((false, None, false, None))
       status(restore(session, labelId)) mustBe OK
       deletionOf(labelId) mustBe ((false, None, false, None))

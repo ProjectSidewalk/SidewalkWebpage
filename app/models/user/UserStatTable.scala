@@ -440,7 +440,8 @@ class UserStatTable @Inject() (
       WHERE (own_labels_validated <> COALESCE(new_validated_count, 0)
           OR (accuracy IS NULL AND new_accuracy IS NOT NULL)
           OR (accuracy IS NOT NULL AND new_accuracy IS NULL)
-          OR (accuracy IS NOT NULL AND new_accuracy IS NOT NULL AND ROUND(accuracy::NUMERIC, 3) <> ROUND(new_accuracy::NUMERIC, 3)))"""
+          OR (accuracy IS NOT NULL AND new_accuracy IS NOT NULL
+              AND ROUND(accuracy::NUMERIC, 3) <> ROUND(new_accuracy::NUMERIC, 3)))"""
       )
       .concat(scoped("user_stat.user_id"))
       .as[(String, Int, Option[Double])]

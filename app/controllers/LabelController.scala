@@ -6,6 +6,7 @@ import formats.json.LabelFormats
 import formats.json.ValidateFormats.{labelEditSubmissionReads, LabelEditSubmission}
 import models.auth.DefaultEnv
 import models.label._
+import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.UiSource
 import models.utils.LatLngBBox
 import play.api.Logger
@@ -84,9 +85,7 @@ class LabelController @Inject() (
                 "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
                 "can_edit"         -> (metadata.fromCurrentUser || isAdmin(request.identity)),
                 "deleted"          -> metadata.deleted,
-                // Who may undo a delete (#3591): whoever did it, or an admin.
-                "can_restore" -> (metadata.deleted && (metadata.deletedBy
-                  .contains(userId) || isAdmin(request.identity)))
+                "can_restore"      -> LabelDeletion.canRestore(metadata.deleted, metadata.deletedBy, request.identity)
               )
           )
         }
@@ -145,27 +144,47 @@ class LabelController @Inject() (
       )
   }
 
-  /** Soft-deletes a label, as its labeler or as an admin (#3591). `source` is the `UiSource` name of the host page. */
+  /**
+   * Soft-deletes a label, as its labeler or as an admin (#3591). `source` is the `UiSource` name of the host page.
+   * Explore is refused: its deletes arrive with the session's labels, and an Explore delete is the one kind that
+   * takes a label out of its labeler's accuracy, so it can't be had for the asking.
+   */
   def deleteLabel(labelId: Int, source: String) = cc.securityService.SecuredAction { implicit request =>
-    Try(UiSource.withName(source)).toOption match {
+    Try(UiSource.withName(source)).toOption.filter(_ != UiSource.Explore) match {
       case None => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> s"Invalid source: $source")))
       case Some(uiSource) =>
-        validationService.deleteLabel(labelId, request.identity, uiSource).map(deletionResponse(labelId))
+        validationService
+          .deleteLabel(labelId, request.identity, uiSource)
+          .map(deletionResponse(labelId, request.identity))
     }
   }
 
+  /** Undoes a delete (#3591): the labeler their own, an admin any. */
   def restoreLabel(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
-    labelEditService.restoreLabel(labelId, request.identity).map(deletionResponse(labelId))
+    labelEditService.restoreLabel(labelId, request.identity).map(deletionResponse(labelId, request.identity))
   }
 
-  private def deletionResponse(labelId: Int)(outcome: LabelEditOutcome): Result = outcome match {
-    case LabelEditOutcome.Applied(label) => Ok(Json.obj("status" -> "Success", "deleted" -> label.deleted))
-    case LabelEditOutcome.Forbidden      =>
-      Forbidden(
-        Json.obj("status" -> "Error", "message" -> "Only the labeler or an admin can delete or restore a label")
-      )
-    case _ => NotFound(Json.obj("status" -> "Error", "message" -> s"No label found with ID: $labelId"))
-  }
+  /**
+   * The reply to a delete or restore, carrying the label's state as it now stands. `can_restore` comes from the
+   * server rather than being assumed by the card: a delete that finds the label already deleted by an admin succeeds
+   * without handing the labeler an undo they can't use.
+   */
+  private def deletionResponse(labelId: Int, user: SidewalkUserWithRole)(outcome: LabelEditOutcome): Result =
+    outcome match {
+      case LabelEditOutcome.Applied(label) =>
+        Ok(
+          Json.obj(
+            "status"      -> "Success",
+            "deleted"     -> label.deleted,
+            "can_restore" -> LabelDeletion.canRestore(label.deleted, label.deletedBy, Some(user))
+          )
+        )
+      case LabelEditOutcome.Forbidden =>
+        Forbidden(
+          Json.obj("status" -> "Error", "message" -> "Only the labeler or an admin can delete or restore a label")
+        )
+      case _ => NotFound(Json.obj("status" -> "Error", "message" -> s"No label found with ID: $labelId"))
+    }
 
   /**
    * Get all labels with the metadata needed for /labelMap, as a GeoJSON FeatureCollection of points.

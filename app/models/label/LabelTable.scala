@@ -80,6 +80,10 @@ object LabelDeletion {
       case Some(source) => (Some(userId), Some(OffsetDateTime.now), Some(source))
       case None         => (None, None, None)
     }
+
+  /** Who may undo a delete: whoever did it, or an admin. One rule for the endpoints, the card, and the DB write. */
+  def canRestore(deleted: Boolean, deletedBy: Option[String], user: Option[SidewalkUserWithRole]): Boolean =
+    deleted && user.exists(u => Role.ADMIN_ROLES.contains(u.role) || deletedBy.contains(u.userId))
 }
 
 case class LabelValidationInfo(

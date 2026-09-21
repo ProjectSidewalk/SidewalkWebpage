@@ -167,10 +167,9 @@
             self.nearbyNav?.refresh();
             spotlight.refreshBeacon(meta.label_id);
           },
-          onDelete: (meta) => {
-            self.mapData?.setLabelDeleted?.(meta.label_id, meta.deleted);
-            self.nearbyNav?.refresh();
-          }
+          // The navigator is left as is: rebuilding it would forget the label whose card is still open, and
+          // Next needs a known label to page from. The dot is off the layer, so paging can't land on it anyway.
+          onDelete: (meta) => self.mapData?.setLabelDeleted?.(meta.label_id, meta.deleted)
         }),
         navigationControlPosition: 'top-right',
         highQualityFilter: true

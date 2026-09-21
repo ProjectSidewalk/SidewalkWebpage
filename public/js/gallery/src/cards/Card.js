@@ -434,10 +434,11 @@ class Card {
    * Fades the card after a delete from the expanded view (#3591) rather than removing it, so paging and the grid's
    * layout hold until the next load. Remembered in the properties, which the expanded view is rebuilt from.
    * @param {boolean} deleted
+   * @param {boolean} canRestore - Whether the viewer may undo it, as the server said.
    */
-  setDeleted(deleted) {
+  setDeleted(deleted, canRestore) {
     this.#properties.deleted = deleted;
-    this.#properties.can_restore = deleted;
+    this.#properties.can_restore = canRestore;
     this.#card.classList.toggle('gallery-card--deleted', deleted);
   }
 
