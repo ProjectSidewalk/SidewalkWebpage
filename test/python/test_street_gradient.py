@@ -172,6 +172,8 @@ def test_grade_metrics_of_a_hill_counts_both_sides_and_signs_net_by_direction():
     assert m['net_grade'] == pytest.approx(-0.5 / length)
     assert m['climb_m'] == pytest.approx(5.0) and m['descent_m'] == pytest.approx(5.5)
     assert m['max_grade'] == pytest.approx(0.10)
+    # Every 30 m baseline on either side of the crest is 10%; the first of them is the one reported.
+    assert (m['max_grade_from_m'], m['max_grade_to_m']) == pytest.approx((0.0, 30.0))
     assert 0 < m['meters_over_8pct_grade'] < length  # The baselines straddling the crest read under 8%.
     assert m['meters_over_8pct_grade'] <= m['meters_over_5pct_grade']
 
@@ -181,6 +183,15 @@ def test_grade_metrics_never_reports_a_maximum_under_the_mean():
     m = sg.grade_metrics(z, 160.0)
     assert m['mean_grade'] > 0.02
     assert m['max_grade'] == m['mean_grade']
+    # No stretch reaches a floored maximum, so there is nowhere along the street to point at.
+    assert 'max_grade_from_m' not in m and 'max_grade_to_m' not in m
+
+
+def test_steepest_window_finds_the_steep_baseline_and_covers_a_street_shorter_than_it():
+    z = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, 3.0, 4.5, 4.5, 4.5])  # 5 m steps: 30% from 25 m to 40 m.
+    assert sg.steepest_window(z, 50.0, 10.0) == pytest.approx((25.0, 35.0))
+    assert sg.steepest_window(z, 50.0, 30.0) == pytest.approx((10.0, 40.0))
+    assert sg.steepest_window(np.array([0.0, 1.0]), 8.0, 30.0) == (0.0, 8.0)
 
 
 def test_grade_metrics_of_a_street_under_30_m_takes_its_steepest_10_m_pitch_as_the_maximum():
@@ -188,6 +199,7 @@ def test_grade_metrics_of_a_street_under_30_m_takes_its_steepest_10_m_pitch_as_t
     m = sg.grade_metrics(z, 20.0)
     assert m['net_grade'] == pytest.approx(0.10)
     assert m['max_grade'] == pytest.approx(0.20)
+    assert (m['max_grade_from_m'], m['max_grade_to_m']) == pytest.approx((10.0, 20.0))
     # At 30 m the 30 m baseline takes over, and it is the whole street.
     assert sg.grade_metrics(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 2.0]), 30.0)['max_grade'] == pytest.approx(2 / 30)
 
@@ -195,6 +207,7 @@ def test_grade_metrics_of_a_street_under_30_m_takes_its_steepest_10_m_pitch_as_t
 def test_grade_metrics_of_a_street_shorter_than_every_baseline():
     m = sg.grade_metrics(np.array([10.0, 10.4]), 8.0)
     assert m['mean_grade'] == m['max_grade'] == pytest.approx(0.05)
+    assert (m['max_grade_from_m'], m['max_grade_to_m']) == pytest.approx((0.0, 8.0))
     assert m['climb_m'] == pytest.approx(0.4)
     assert m['profile_cm'] == [1000, 1040]
 
@@ -246,6 +259,10 @@ def test_edge_gradient_flags_an_untagged_artifact_but_not_a_uniformly_steep_hill
     got = sg.edge_gradient(ravine, 40.0, False)
     assert got['quality'] == sg.QUALITY_SUSPECT
     assert got['max_grade'] == 0 and got['profile_cm'] == [3000] * 5
+    # A straight line is equally steep everywhere, so it has no steepest stretch to report.
+    assert 'max_grade_from_m' not in got
+    row = sg.format_row(_street(5, [], False), got, 'usgs-3dep-10m', 10.0)
+    assert (row['max_grade'], row['max_grade_from_m'], row['max_grade_to_m']) == ('0.00000', '', '')
     hill = 0.25 * np.linspace(0, 100, 21)  # 25% end to end: steep, and the pitch agrees with the net grade.
     assert sg.edge_gradient(hill, 100.0, False)['quality'] == sg.QUALITY_MEASURED
     # Over the ratio but under SUSPECT_GRADE: a 12% pitch on a level street is a driveway dip, not an artifact.
@@ -466,7 +483,7 @@ def test_read_streets_parses_what_postgis_itself_exports(tmp_path):
 
 
 def _output_line(street_id, md5=_MD5):
-    return f'{street_id},measured,high,0,0,0,0,0,0,0,0,0,"{{0,0}}",earlier,10.0,{md5}\n'
+    return f'{street_id},measured,high,0,0,0,0,10,0,0,0,0,0,0,"{{0,0}}",earlier,10.0,{md5}\n'
 
 
 _HEADER = ','.join(sg.OUTPUT_FIELDS) + '\n'
@@ -618,7 +635,8 @@ def test_main_samples_every_street_and_writes_the_csv(city, caplog):
 def test_main_resume_keeps_finished_rows_and_a_plain_rerun_starts_over(city, caplog):
     caplog.set_level('INFO')
     header = ','.join(sg.OUTPUT_FIELDS)
-    (city / sg.OUTPUT_NAME).write_text(f'{header}\n1,measured,high,9,9,9,0,0,0,0,0,0,"{{0,0}}",earlier,10.0,{_MD5}\n')
+    (city / sg.OUTPUT_NAME).write_text(f'{header}\n'
+        f'1,measured,high,9,9,9,0,10,0,0,0,0,0,0,"{{0,0}}",earlier,10.0,{_MD5}\n')
     assert sg.main([*_DEM_ARGS, '--resume']) == 0
     rows = _read_output(city)
     assert [(row['street_edge_id'], row['dem_source']) for row in rows] == [('1', 'earlier'), ('2', 'test-plane')]

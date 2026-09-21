@@ -112,8 +112,10 @@ QUALITY_SUSPECT = 'suspect'
 QUALITY_NO_DATA = 'no_data'
 
 OUTPUT_FIELDS = ('street_edge_id', 'quality', 'confidence', 'net_grade', 'mean_grade', 'max_grade',
-                 'meters_over_5pct_grade', 'meters_over_8pct_grade', 'climb_m', 'descent_m', 'elev_start_m',
-                 'elev_end_m', 'profile_cm', 'dem_source', 'dem_resolution_m', 'geom_md5')
+                 'max_grade_from_m', 'max_grade_to_m', 'meters_over_5pct_grade', 'meters_over_8pct_grade', 'climb_m',
+                 'descent_m', 'elev_start_m', 'elev_end_m', 'profile_cm', 'dem_source', 'dem_resolution_m', 'geom_md5')
+# db/scripts/import-street-gradient.sh loads these by position and checks the CSV's header against them first, so a
+# change here is a change there too.
 
 # GDAL's defaults give up on the first dropped connection and list the whole S3 prefix before opening one file.
 GDAL_ENV = {'GDAL_HTTP_MAX_RETRY': '5', 'GDAL_HTTP_RETRY_DELAY': '2', 'GDAL_DISABLE_READDIR_ON_OPEN': 'EMPTY_DIR',
@@ -215,6 +217,22 @@ def window_grades(z: np.ndarray, length_m: float, window_m: float) -> np.ndarray
     return np.abs(z[w:] - z[:-w]) / (w * step)
 
 
+def steepest_window(z: np.ndarray, length_m: float, window_m: float) -> tuple[float, float]:
+    """
+    Where along the street the steepest ``window_m`` baseline of :func:`window_grades` lies, so a chart can point at
+    the stretch ``max_grade`` describes instead of re-deriving it from the coarser stored profile.
+
+    Returns:
+        Its start and end in meters from the first vertex; the whole street when it is shorter than the baseline.
+    """
+    step = length_m / (len(z) - 1)
+    w = max(1, round(window_m / step))
+    if len(z) - 1 < w:
+        return 0.0, float(length_m)
+    i = int(np.argmax(window_grades(z, length_m, window_m)))
+    return float(i * step), float((i + w) * step)
+
+
 def grade_metrics(z: np.ndarray, length_m: float) -> dict:
     """
     The stored statistics of one evenly sampled elevation profile.
@@ -225,8 +243,9 @@ def grade_metrics(z: np.ndarray, length_m: float) -> dict:
 
     Returns:
         ``net_grade`` (signed, digitized direction), ``mean_grade`` and ``max_grade`` (absolute, see the window
-        constants), ``meters_over_5pct_grade`` / ``meters_over_8pct_grade`` (the share of 10 m baselines over each of
-        ``GRADE_THRESHOLDS``, as a length; the second is the 1:12 ramp limit, 8.33%), ``climb_m`` / ``descent_m``
+        constants), ``max_grade_from_m`` / ``max_grade_to_m`` (where along the street the baseline that set
+        ``max_grade`` lies, absent where the mean floored it), ``meters_over_5pct_grade`` /
+        ``meters_over_8pct_grade`` (the share of 10 m baselines over each of ``GRADE_THRESHOLDS``, as a length; the second is the 1:12 ramp limit, 8.33%), ``climb_m`` / ``descent_m``
         (summed over 10 m steps so sample noise does not accumulate), and ``profile_cm`` (elevations every ~10 m,
         endpoints included, in whole centimeters).
     """
@@ -235,17 +254,21 @@ def grade_metrics(z: np.ndarray, length_m: float) -> dict:
     # where its end-to-end grade would only repeat net_grade.
     g_max = window_grades(z, length_m, MAX_WINDOW_M) if length_m >= MAX_WINDOW_M else g_mean
     step = length_m / (len(z) - 1)
+    steepest = steepest_window(z, length_m, MAX_WINDOW_M if length_m >= MAX_WINDOW_M else MEAN_WINDOW_M)
     stride = max(1, round(MEAN_WINDOW_M / step))
     knots = z[::stride] if (len(z) - 1) % stride == 0 else np.append(z[::stride], z[-1])
     dz = np.diff(knots)
     n_profile = max(1, round(length_m / PROFILE_SPACING_M))
     profile = np.interp(np.linspace(0, length_m, n_profile + 1), np.linspace(0, length_m, len(z)), z)
+    # Floored at the mean: on a bumpy street the 10 m baselines can average more than any 30 m one reaches, and a
+    # maximum below the mean reads as a bug to whoever consumes the pair. A floored maximum was set by no stretch of
+    # the street, so it has no place along it to report.
+    floored = g_mean.mean() > g_max.max()
     return {
         'net_grade': float(z[-1] - z[0]) / length_m,
         'mean_grade': float(g_mean.mean()),
-        # Floored at the mean: on a bumpy street the 10 m baselines can average more than any 30 m one reaches, and a
-        # maximum below the mean reads as a bug to whoever consumes the pair.
         'max_grade': float(max(g_max.max(), g_mean.mean())),
+        **({} if floored else {'max_grade_from_m': steepest[0], 'max_grade_to_m': steepest[1]}),
         'meters_over_5pct_grade': float((g_mean > GRADE_THRESHOLDS[0]).mean() * length_m),
         'meters_over_8pct_grade': float((g_mean > GRADE_THRESHOLDS[1]).mean() * length_m),
         'climb_m': float(dz[dz > 0].sum()),
@@ -293,7 +316,9 @@ def edge_gradient(z: np.ndarray, length_m: float, is_structure: bool, smooth_sam
     steepest = float(window_grades(profile, length_m, MEAN_WINDOW_M).max())
     out_of_line = steepest > SUSPECT_GRADE and steepest > SUSPECT_RATIO * net
     if out_of_line or steepest > MAX_PLAUSIBLE_GRADE:
-        return {'quality': QUALITY_SUSPECT, **ends, **grade_metrics(straight, length_m)}
+        # Every stretch of a straight line is equally steep, so the line has no steepest stretch to point at.
+        line = {k: v for k, v in grade_metrics(straight, length_m).items() if not k.startswith('max_grade_')}
+        return {'quality': QUALITY_SUSPECT, **ends, **line}
     return {'quality': QUALITY_MEASURED, **ends, **grade_metrics(profile, length_m)}
 
 
@@ -547,8 +572,8 @@ def format_row(street: dict, result: dict, source_name: str, resolution_m: float
            'geom_md5': street['geom_md5']}
     for field in ('net_grade', 'mean_grade', 'max_grade'):
         row[field] = f'{result[field]:.5f}' if field in result else ''
-    for field in ('meters_over_5pct_grade', 'meters_over_8pct_grade', 'climb_m', 'descent_m', 'elev_start_m',
-                  'elev_end_m'):
+    for field in ('max_grade_from_m', 'max_grade_to_m', 'meters_over_5pct_grade', 'meters_over_8pct_grade', 'climb_m',
+                  'descent_m', 'elev_start_m', 'elev_end_m'):
         row[field] = f'{result[field]:.2f}' if field in result else ''
     row['profile_cm'] = '{' + ','.join(map(str, result['profile_cm'])) + '}' if 'profile_cm' in result else ''
     return row

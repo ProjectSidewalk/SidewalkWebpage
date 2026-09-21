@@ -26,6 +26,19 @@ if [[ ! -f "$CSV_FILENAME" ]]; then
     exit 1
 fi
 
+# COPY maps columns by position, so a CSV from another version of the sampler would fail on whichever column first
+# disagrees, with an error that names the column and not the cause. The header is the sampler's OUTPUT_FIELDS.
+EXPECTED_HEADER="street_edge_id,quality,confidence,net_grade,mean_grade,max_grade,max_grade_from_m,max_grade_to_m,\
+meters_over_5pct_grade,meters_over_8pct_grade,climb_m,descent_m,elev_start_m,elev_end_m,profile_cm,dem_source,\
+dem_resolution_m,geom_md5"
+ACTUAL_HEADER=$(head -n 1 "$CSV_FILENAME" | tr -d '\r')
+if [[ "$ACTUAL_HEADER" != "$EXPECTED_HEADER" ]]; then
+    echo "Error: $CSV_FILENAME has the columns of another version of scripts/street_gradient.py." >&2
+    echo "Resample the city with the current script, which writes these columns:" >&2
+    echo "$EXPECTED_HEADER" >&2
+    exit 1
+fi
+
 # Staged as text so the sampler's empty fields survive as '' and become NULL here. The table's CHECK constraints then
 # hold the rows to the same invariants the sampler is meant to produce, and one bad row fails the whole transaction.
 psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
@@ -38,6 +51,8 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
         net_grade              TEXT,
         mean_grade             TEXT,
         max_grade              TEXT,
+        max_grade_from_m       TEXT,
+        max_grade_to_m         TEXT,
         meters_over_5pct_grade TEXT,
         meters_over_8pct_grade TEXT,
         climb_m                TEXT,
@@ -78,14 +93,17 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
     \$\$;
 
     INSERT INTO street_gradient (street_edge_id, quality, confidence, net_grade, mean_grade, max_grade,
-                                 meters_over_5pct_grade, meters_over_8pct_grade, climb_m, descent_m, elev_start_m,
-                                 elev_end_m, profile_cm, dem_source, dem_resolution_m, geom_md5, sampled_at)
+                                 max_grade_from_m, max_grade_to_m, meters_over_5pct_grade, meters_over_8pct_grade,
+                                 climb_m, descent_m, elev_start_m, elev_end_m, profile_cm, dem_source,
+                                 dem_resolution_m, geom_md5, sampled_at)
     SELECT street_gradient_import.street_edge_id,
            quality::street_gradient_quality,
            confidence::street_gradient_confidence,
            NULLIF(net_grade, '')::DOUBLE PRECISION,
            NULLIF(mean_grade, '')::DOUBLE PRECISION,
            NULLIF(max_grade, '')::DOUBLE PRECISION,
+           NULLIF(max_grade_from_m, '')::DOUBLE PRECISION,
+           NULLIF(max_grade_to_m, '')::DOUBLE PRECISION,
            NULLIF(meters_over_5pct_grade, '')::DOUBLE PRECISION,
            NULLIF(meters_over_8pct_grade, '')::DOUBLE PRECISION,
            NULLIF(climb_m, '')::DOUBLE PRECISION,
@@ -105,6 +123,8 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
         net_grade              = EXCLUDED.net_grade,
         mean_grade             = EXCLUDED.mean_grade,
         max_grade              = EXCLUDED.max_grade,
+        max_grade_from_m       = EXCLUDED.max_grade_from_m,
+        max_grade_to_m         = EXCLUDED.max_grade_to_m,
         meters_over_5pct_grade = EXCLUDED.meters_over_5pct_grade,
         meters_over_8pct_grade = EXCLUDED.meters_over_8pct_grade,
         climb_m                = EXCLUDED.climb_m,

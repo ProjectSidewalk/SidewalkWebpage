@@ -54,6 +54,7 @@ Grades are fractions: 0.05 is a 5% grade, the OpenSidewalks `incline` convention
 | `net_grade` | End-to-end grade, signed in the street's digitized direction. |
 | `mean_grade` | Mean absolute grade over every 10 m baseline. |
 | `max_grade` | Steepest absolute grade over any 30 m baseline (any 10 m baseline on a street under 30 m), never below `mean_grade`. |
+| `max_grade_from_m`, `max_grade_to_m` | Where that baseline lies, in meters from the first vertex. Located on the full-resolution samples, since `profile_cm` is too coarse to reproduce `max_grade`. NULL on a `suspect` row's straight line and where `max_grade` was floored at `mean_grade`: no one stretch set it. |
 | `meters_over_5pct_grade`, `meters_over_8pct_grade` | Length of street whose 10 m baselines exceed the ADA / PROWAG walking-surface limit (1:20, 5%) and ramp limit (1:12, which is 8.33%; the column is named for the round figure). |
 | `climb_m`, `descent_m` | Summed rise and fall in the digitized direction, over 10 m steps so sample noise does not accumulate. |
 | `elev_start_m`, `elev_end_m` | Elevation at the first and last vertex. Streets meeting at a node sample the same point, so they agree wherever the model has data at the node. |

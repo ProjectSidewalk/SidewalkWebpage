@@ -12,6 +12,13 @@
 -- array's length. meters_over_5pct_grade and meters_over_8pct_grade are the length of street steeper than the ADA /
 -- PROWAG walking-surface limit (1:20) and ramp limit (1:12, so 8.33% exactly, named for the round figure).
 --
+-- max_grade_from_m and max_grade_to_m say where along the street max_grade was measured, in meters from the first
+-- vertex over the same baseline (30 m, or 10 m on a street under 30 m), so a chart can mark the stretch the score
+-- reads instead of re-deriving it from profile_cm, which is sampled too coarsely to agree with max_grade. They are
+-- NULL wherever max_grade is, and also where no stretch set it: on a suspect row (a straight line is equally steep
+-- everywhere) and where max_grade was floored at mean_grade. The two may be equal: a street a few millimeters long is
+-- its own steepest stretch, and the sampler's centimeter rounding leaves it none.
+--
 -- quality says how the profile was obtained. A bare-earth model removes bridges and knows nothing of tunnels, so a
 -- street tagged as one (structure) has its two endpoint elevations and no grade at all: its ends sit at the lip of
 -- what it crosses, where the model already reads partway down, so even a line between them is steep on a level deck.
@@ -40,6 +47,8 @@ CREATE TABLE street_gradient (
     net_grade DOUBLE PRECISION,
     mean_grade DOUBLE PRECISION CHECK (mean_grade >= 0),
     max_grade DOUBLE PRECISION CHECK (max_grade >= 0),
+    max_grade_from_m DOUBLE PRECISION CHECK (max_grade_from_m >= 0),
+    max_grade_to_m DOUBLE PRECISION,
     meters_over_5pct_grade DOUBLE PRECISION CHECK (meters_over_5pct_grade >= 0),
     meters_over_8pct_grade DOUBLE PRECISION CHECK (meters_over_8pct_grade >= 0),
     climb_m DOUBLE PRECISION CHECK (climb_m >= 0),
@@ -69,6 +78,10 @@ CREATE TABLE street_gradient (
         AND (mean_grade IS NULL) = (descent_m IS NULL)
         AND (mean_grade IS NULL) = (profile_cm IS NULL)
         AND (mean_grade IS NULL OR net_grade IS NOT NULL)
+    ),
+    CONSTRAINT street_gradient_steepest_stretch_check CHECK (
+        (max_grade_from_m IS NULL) = (max_grade_to_m IS NULL)
+        AND (max_grade_from_m IS NULL OR (max_grade IS NOT NULL AND max_grade_to_m >= max_grade_from_m))
     ),
     CONSTRAINT street_gradient_threshold_ordering_check CHECK (meters_over_8pct_grade <= meters_over_5pct_grade),
     CONSTRAINT street_gradient_confidence_matches_resolution_check CHECK (
