@@ -58,7 +58,10 @@ function loadSources() {
     const classes = ['AccessScoreModel', 'AccessScoreGradeRamp', 'AccessScoreChart', 'AccessScoreHistogram',
         'AccessScoreWhatsHere', 'AccessScoreRankBars', 'AccessScoreClusterSheet', 'AccessScorePhotoStrip',
         'AccessScoreDock'];
-    for (const name of classes) window.eval(`${read(`public/js/access-score/src/${name}.js`)}\nwindow.${name} = ${name};`);
+    for (const name of classes) {
+        const dir = name === 'AccessScoreGradeRamp' ? 'common' : 'access-score/src';  // Shared with the API docs.
+        window.eval(`${read(`public/js/${dir}/${name}.js`)}\nwindow.${name} = ${name};`);
+    }
 }
 
 /** A street feature in the API's shape, from a fixture case. */

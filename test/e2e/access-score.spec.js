@@ -518,15 +518,15 @@ test.describe('/accessScore', () => {
       await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
       const popup = page.locator('.acs-popup');
       await expect(popup).toContainText('Steepest 8.1% · average 6.2%');
-      await expect(popup.locator('svg.acs-profile__chart')).toBeVisible();
+      await expect(popup.locator('svg.elevation-profile__chart')).toBeVisible();
       // The bracket marks the stretch the backend placed; the legend's rows are toggles that highlight the chart.
-      await expect(popup.locator('.acs-profile__callout')).toContainText('8.1%');
-      const rows = popup.locator('.acs-profile__legend').getByRole('button');
+      await expect(popup.locator('.elevation-profile__callout')).toContainText('8.1%');
+      const rows = popup.locator('.elevation-profile__legend').getByRole('button');
       await expect(rows).toHaveCount(2);
       // By keyboard: a legend row is a real button, reachable and pressable without a pointer.
       await rows.first().press('Enter');
       await expect(rows.first()).toHaveAttribute('aria-pressed', 'true');
-      await expect(popup.locator('.acs-profile')).toHaveClass(/acs-profile--filtered/);
+      await expect(popup.locator('.elevation-profile')).toHaveClass(/elevation-profile--filtered/);
       await expect(popup.locator('.acs-popup__credit')).toHaveText('Elevation: Fixture Survey');
 
       await page.locator('#acs-show-grade').uncheck();

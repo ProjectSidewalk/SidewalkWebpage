@@ -12,6 +12,32 @@
     <p>The grade statistics also ride on every street of the <a href="@routes.ApiDocsController.accessScoreStreets#street-grade">AccessScore: Streets API</a>, which is where to get them for a whole city, and where they feed each street's score. The profile is served here, a street at a time, because it is the one grade field too heavy for a city-wide file.</p>
   </div>
 
+  <div class="page-section" id="street-grade-preview-section">
+    <h2 class="page-heading" id="visual-example">Street Grade Preview <a href="#visual-example" class="permalink">#</a></h2>
+    <p>Below is a live preview of street grades from a sample region, retrieved directly from the API: the same map as the <a href="@routes.ApplicationController.accessScore">AccessScore tool</a>'s "Color streets by grade" layer. Each street is colored by its <code>max_grade</code>, its steepest 30&nbsp;m stretch; gray streets have no grade (a bridge, a tunnel, or no elevation data). Hover a street to see the elevation profile this API returns for it, colored by how steep each stretch is. Click a street to pin its popup, so you can explore the profile: point along it, or press a legend row to highlight that class's stretches.</p>
+    <div id="street-grade-preview" class="map-container"></div>
+
+    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'>
+    <link rel="stylesheet" href='@assets.path("css/pages/api-docs/access-score.css")'>
+    <link rel="stylesheet" href='@assets.path("css/components/elevation-profile.css")'>
+    @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
+       set: the language plugin and the preview both read the mapboxgl global as they parse. The grade ramp and the
+       chart are the AccessScore tool's own, shared from js/common/. *@
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
+    <script src='@assets.path("js/common/geoBounds.js")' defer></script>
+    <script src='@assets.path("js/common/AccessScoreGradeRamp.js")' defer></script>
+    <script src='@assets.path("js/common/AccessScoreElevationProfile.js")' defer></script>
+    <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
+    <script src='@assets.path("js/api-docs/streetGradePreview.js")' defer></script>
+    <script>
+      // Waits on appManager: the map's language control and the chart's strings both come from i18next.
+      window.appManager.ready(function() {
+        StreetGradePreview.setup({ mapboxApiKey: '@commonData.mapboxApiKey' }).init();
+      });
+    </script>
+  </div>
+
   <div class="page-section" id="endpoint-section">
     <h2 class="page-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
     <p><code>GET /v3/api/streetGrade</code></p>
@@ -109,7 +135,8 @@
   </div>
 }
 
-@common.main(commonData, SeoUtils.apiDocsTitle("Street Grade API")) {
+@* The preview's elevation chart is the AccessScore tool's, whose strings live in that tool's namespace. *@
+@common.main(commonData, SeoUtils.apiDocsTitle("Street Grade API"), i18Namespaces = Seq("common", "accessscore")) {
   @common.navbar(commonData, user)
   @apiDocs.layout("street-grade")(content)
 }

@@ -68,7 +68,9 @@ describe('street slope in the AccessScore tool', () => {
         window.eval(read('public/js/common/scoreRamp.js'));
         for (const name of ['Model', 'GradeRamp', 'ElevationProfile', 'MapLegend', 'UrlSync']) {
             if (name === 'UrlSync') window.eval(read('public/js/common/urlQuery.js'));
-            window.eval(`${read(`public/js/access-score/src/AccessScore${name}.js`)}
+            // The ramp and the chart are shared with the API docs, so they live in common/.
+            const dir = ['GradeRamp', 'ElevationProfile'].includes(name) ? 'common' : 'access-score/src';
+            window.eval(`${read(`public/js/${dir}/AccessScore${name}.js`)}
                 window.AccessScore${name} = AccessScore${name};`);
         }
         ({ AccessScoreModel, AccessScoreGradeRamp, AccessScoreElevationProfile, AccessScoreUrlSync } = window);
@@ -350,7 +352,7 @@ describe('street slope in the AccessScore tool', () => {
             new AccessScoreElevationProfile(slot, PROFILE, {
                 breaks: BREAKS, steepest, label, onLog: (kind, value) => logged.push([kind, value]),
             });
-            return { slot, logged, rows: [...slot.querySelectorAll('.acs-profile__class')] };
+            return { slot, logged, rows: [...slot.querySelectorAll('.elevation-profile__class')] };
         }
 
         test('analyzes each stretch into a signed grade and a slope class, and sums the length per class', () => {
@@ -365,7 +367,7 @@ describe('street slope in the AccessScore tool', () => {
 
         test('draws one colored stretch of line and ground per pair of samples, as a slider over the stretches', () => {
             const { slot } = mount();
-            const svg = slot.querySelector('svg.acs-profile__chart');
+            const svg = slot.querySelector('svg.elevation-profile__chart');
             // A slider, not an image: browse mode steps past an image without handing it the arrow keys.
             expect(svg.getAttribute('role')).toBe('slider');
             expect(svg.getAttribute('tabindex')).toBe('0');
@@ -373,11 +375,11 @@ describe('street slope in the AccessScore tool', () => {
             expect(svg.getAttribute('aria-valuemin')).toBe('0');
             expect(svg.getAttribute('aria-valuemax')).toBe('3');
             expect(svg.getAttribute('aria-valuetext')).toContain('accessscore:profile-readout-level');
-            const list = slot.querySelector('.acs-profile__legend');
+            const list = slot.querySelector('.elevation-profile__legend');
             expect(document.getElementById(list.getAttribute('aria-labelledby')).textContent)
                 .toContain('accessscore:profile-legend-title');
-            expect(slot.querySelectorAll('.acs-profile__stroke')).toHaveLength(4);
-            expect([...slot.querySelectorAll('.acs-profile__ground')].map((g) => g.dataset.class))
+            expect(slot.querySelectorAll('.elevation-profile__stroke')).toHaveLength(4);
+            expect([...slot.querySelectorAll('.elevation-profile__ground')].map((g) => g.dataset.class))
                 .toEqual(['0', '3', '4', '0']);
         });
 
@@ -385,21 +387,21 @@ describe('street slope in the AccessScore tool', () => {
             const { rows } = mount();
             expect(rows.map((r) => r.dataset.class)).toEqual(['4', '3', '0']);
             expect(rows[0].textContent).toContain('accessscore:grade-class-over');
-            expect(rows[0].querySelector('.acs-profile__length').textContent).toContain('meters=10');
-            expect(rows[2].querySelector('.acs-profile__length').textContent).toContain('meters=20');
-            expect(rows[0].querySelector('.acs-profile__share-fill').style.width).toBe('25%');
+            expect(rows[0].querySelector('.elevation-profile__length').textContent).toContain('meters=10');
+            expect(rows[2].querySelector('.elevation-profile__length').textContent).toContain('meters=20');
+            expect(rows[0].querySelector('.elevation-profile__share-fill').style.width).toBe('25%');
             expect(rows.every((r) => r.getAttribute('aria-pressed') === 'false')).toBe(true);
         });
 
         test("brackets the backend's steepest stretch where it says, with its length and grade", () => {
             const { slot } = mount();
-            const callout = slot.querySelector('.acs-profile__callout').textContent;
+            const callout = slot.querySelector('.elevation-profile__callout').textContent;
             expect(callout).toContain('accessscore:profile-steepest');
             expect(callout).toContain('meters=20');
             expect(callout).toContain('grade=12.5%');
             // The bracket starts where the second stretch's ground does and ends where the third's does.
-            const bracket = slot.querySelector('.acs-profile__bracket').getAttribute('d').match(/[\d.]+/g).map(Number);
-            const groundX = (i) => Number(slot.querySelectorAll('.acs-profile__ground')[i].getAttribute('d')
+            const bracket = slot.querySelector('.elevation-profile__bracket').getAttribute('d').match(/[\d.]+/g).map(Number);
+            const groundX = (i) => Number(slot.querySelectorAll('.elevation-profile__ground')[i].getAttribute('d')
                 .match(/M([\d.]+)/)[1]);
             expect(bracket[0]).toBeCloseTo(groundX(1), 0);
             expect(bracket[3]).toBeCloseTo(groundX(3), 0);
@@ -407,28 +409,28 @@ describe('street slope in the AccessScore tool', () => {
 
         test('draws no bracket where the backend placed no steepest stretch', () => {
             const { slot } = mount({ steepest: null });
-            expect(slot.querySelector('.acs-profile__bracket')).toBeNull();
-            expect(slot.querySelector('.acs-profile__callout')).toBeNull();
+            expect(slot.querySelector('.elevation-profile__bracket')).toBeNull();
+            expect(slot.querySelector('.elevation-profile__callout')).toBeNull();
         });
 
         test('a legend row previews its stretches on hover and pins them on press, several at a time', () => {
             const { slot, logged, rows } = mount();
-            const figure = slot.querySelector('.acs-profile');
-            const lit = () => [...slot.querySelectorAll('.acs-profile__ground')]
-                .map((g) => g.classList.contains('acs-profile__mark--on'));
+            const figure = slot.querySelector('.elevation-profile');
+            const lit = () => [...slot.querySelectorAll('.elevation-profile__ground')]
+                .map((g) => g.classList.contains('elevation-profile__mark--on'));
 
             rows[2].dispatchEvent(new Event('pointerenter'));
-            expect(figure.classList.contains('acs-profile--filtered')).toBe(true);
+            expect(figure.classList.contains('elevation-profile--filtered')).toBe(true);
             expect(lit()).toEqual([true, false, false, true]);
             rows[2].dispatchEvent(new Event('pointerleave'));
-            expect(figure.classList.contains('acs-profile--filtered')).toBe(false);
+            expect(figure.classList.contains('elevation-profile--filtered')).toBe(false);
 
             rows[0].click();
             rows[1].click();
             expect(lit()).toEqual([false, true, true, false]);
             expect(rows[0].getAttribute('aria-pressed')).toBe('true');
             // Two adjacent pinned stretches make one run of steep street, not two.
-            const readout = slot.querySelector('.acs-profile__readout').textContent;
+            const readout = slot.querySelector('.elevation-profile__readout').textContent;
             expect(readout).toContain('accessscore:profile-highlight');
             expect(readout).toContain('count=1');
             expect(readout).toContain('meters=20');
@@ -441,9 +443,9 @@ describe('street slope in the AccessScore tool', () => {
 
         test('stepping along the chart lights the legend row of the stretch under the cursor, with its grade', () => {
             const { slot, logged, rows } = mount();
-            const svg = slot.querySelector('svg.acs-profile__chart');
-            const readout = slot.querySelector('.acs-profile__readout');
-            const at = () => rows.filter((r) => r.classList.contains('acs-profile__class--at'))
+            const svg = slot.querySelector('svg.elevation-profile__chart');
+            const readout = slot.querySelector('.elevation-profile__readout');
+            const at = () => rows.filter((r) => r.classList.contains('elevation-profile__class--at'))
                 .map((r) => r.dataset.class);
 
             svg.dispatchEvent(new Event('focus'));
@@ -456,7 +458,7 @@ describe('street slope in the AccessScore tool', () => {
             expect(readout.textContent).toContain('grade=15%');
             expect(svg.getAttribute('aria-valuenow')).toBe('2');
             expect(svg.getAttribute('aria-valuetext')).toBe(readout.textContent);
-            expect(slot.querySelector('.acs-profile__cursor').getAttribute('visibility')).toBe('visible');
+            expect(slot.querySelector('.elevation-profile__cursor').getAttribute('visibility')).toBe('visible');
             svg.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }));
             svg.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
             expect(at()).toEqual(['0']);
@@ -464,7 +466,7 @@ describe('street slope in the AccessScore tool', () => {
             svg.dispatchEvent(new Event('blur'));
             expect(at()).toEqual([]);
             expect(readout.textContent).toBe('');
-            expect(slot.querySelector('.acs-profile__cursor').getAttribute('visibility')).toBe('hidden');
+            expect(slot.querySelector('.elevation-profile__cursor').getAttribute('visibility')).toBe('hidden');
             // A sweep along the chart is one interaction, logged once.
             expect(logged).toEqual([['ProfileScrub', undefined]]);
         });
@@ -480,7 +482,7 @@ describe('street slope in the AccessScore tool', () => {
 
         test('escapes the accessible name, so a quote in a translation cannot close its attribute', () => {
             const { slot } = mount({ label: 'Profile "start" to <end>' });
-            const svg = slot.querySelector('svg.acs-profile__chart');
+            const svg = slot.querySelector('svg.elevation-profile__chart');
             expect(svg.getAttribute('aria-label')).toBe('Profile "start" to <end>');
             expect(svg.hasAttribute('end')).toBe(false);
         });
@@ -492,22 +494,22 @@ describe('street slope in the AccessScore tool', () => {
             new AccessScoreElevationProfile(slot, { spacing_meters: 12, elevations_meters: [10, 10.6] }, {
                 breaks: BREAKS, steepest: { from: 1, to: 11, grade: 0.06 }, label: 'x',
             });
-            const numbers = slot.querySelector('.acs-profile__bracket').getAttribute('d').match(/-?[\d.]+|Infinity|NaN/g);
+            const numbers = slot.querySelector('.elevation-profile__bracket').getAttribute('d').match(/-?[\d.]+|Infinity|NaN/g);
             expect(numbers.every((v) => Number.isFinite(Number(v)))).toBe(true);
-            expect(Number(slot.querySelector('.acs-profile__callout').getAttribute('y'))).toBeGreaterThan(0);
+            expect(Number(slot.querySelector('.elevation-profile__callout').getAttribute('y'))).toBeGreaterThan(0);
         });
 
         test('draws no bracket for a stretch of no length or one past the drawn street', () => {
             for (const steepest of [{ from: 10, to: 10, grade: 0.1 }, { from: 60, to: 90, grade: 0.1 }]) {
-                expect(mount({ steepest }).slot.querySelector('.acs-profile__bracket')).toBeNull();
+                expect(mount({ steepest }).slot.querySelector('.elevation-profile__bracket')).toBeNull();
             }
         });
 
         test('maps the pointer to the stretch under it, holding the nearest one in the pads either side', () => {
             const { slot, logged } = mount();
-            const svg = slot.querySelector('svg.acs-profile__chart');
+            const svg = slot.querySelector('svg.elevation-profile__chart');
             svg.getBoundingClientRect = () => ({ left: 0, width: 340, top: 0, height: 132 });
-            const readout = slot.querySelector('.acs-profile__readout');
+            const readout = slot.querySelector('.elevation-profile__readout');
             const move = (clientX) => svg.dispatchEvent(new MouseEvent('pointermove', { clientX }));
             move(2);
             expect(readout.textContent).toContain('accessscore:profile-readout-level');
@@ -520,7 +522,7 @@ describe('street slope in the AccessScore tool', () => {
 
         test('a pointer leaving a focused chart hands the cursor back to the keyboard', () => {
             const { slot } = mount();
-            const svg = slot.querySelector('svg.acs-profile__chart');
+            const svg = slot.querySelector('svg.elevation-profile__chart');
             svg.getBoundingClientRect = () => ({ left: 0, width: 340, top: 0, height: 132 });
             svg.focus();
             svg.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
@@ -534,14 +536,14 @@ describe('street slope in the AccessScore tool', () => {
 
         test('a Tab passing through the chart is not logged as a scrub', () => {
             const { slot, logged } = mount();
-            slot.querySelector('svg.acs-profile__chart').dispatchEvent(new Event('focus'));
+            slot.querySelector('svg.elevation-profile__chart').dispatchEvent(new Event('focus'));
             expect(logged).toEqual([]);
         });
 
         test('once the cursor leaves, the readout returns to what the pinned rows cover', () => {
             const { slot, rows } = mount();
-            const svg = slot.querySelector('svg.acs-profile__chart');
-            const readout = slot.querySelector('.acs-profile__readout');
+            const svg = slot.querySelector('svg.elevation-profile__chart');
+            const readout = slot.querySelector('.elevation-profile__readout');
             rows[0].click();
             svg.dispatchEvent(new Event('focus'));
             expect(readout.textContent).toContain('accessscore:profile-readout');
@@ -551,14 +553,14 @@ describe('street slope in the AccessScore tool', () => {
 
         test("tabbing between rows keeps the preview of the row under the pointer", () => {
             const { slot, rows } = mount();
-            const figure = slot.querySelector('.acs-profile');
+            const figure = slot.querySelector('.elevation-profile');
             rows[2].dispatchEvent(new Event('pointerenter'));
             rows[0].dispatchEvent(new Event('focus'));
             rows[0].dispatchEvent(new Event('blur'));
             // The blur was row 0's own; row 2, still under the pointer, keeps its preview.
-            expect(figure.classList.contains('acs-profile--filtered')).toBe(true);
-            expect(slot.querySelector('.acs-profile__ground[data-class="0"]').classList
-                .contains('acs-profile__mark--on')).toBe(true);
+            expect(figure.classList.contains('elevation-profile--filtered')).toBe(true);
+            expect(slot.querySelector('.elevation-profile__ground[data-class="0"]').classList
+                .contains('elevation-profile__mark--on')).toBe(true);
         });
 
         test('keeps a near-level street a flat line through the middle instead of magnifying its noise', () => {
@@ -566,7 +568,7 @@ describe('street slope in the AccessScore tool', () => {
             const slot = document.getElementById('slot');
             const level = { spacing_meters: 10, elevations_meters: [50, 50.02, 50] };
             new AccessScoreElevationProfile(slot, level, { breaks: BREAKS, steepest: null, label: 'x' });
-            const ys = [...slot.querySelectorAll('.acs-profile__stroke')]
+            const ys = [...slot.querySelectorAll('.elevation-profile__stroke')]
                 .flatMap((p) => p.getAttribute('d').match(/,([\d.]+)/g).map((m) => Number(m.slice(1))));
             expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(1);
         });

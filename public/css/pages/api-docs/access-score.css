@@ -1,8 +1,8 @@
 /**
  * AccessScore API Documentation - Specific Styles.
  *
- * The AccessScore (streets, regions, and intersections) preview frames and their feature popups; toolbar, legend,
- * and status messages use the shared map classes in api-docs.css.
+ * The AccessScore (streets, regions, and intersections) and Street Grade preview frames and their feature popups;
+ * toolbar, legend, and status messages use the shared map classes in api-docs.css.
  */
 
 /* ---- Preview Container ---- */
@@ -11,7 +11,8 @@
    column, and a toolbar (where a preview has one) stacks above it. */
 #access-score-streets-preview,
 #access-score-regions-preview,
-#access-score-intersections-preview {
+#access-score-intersections-preview,
+#street-grade-preview {
   display: flex;
   flex-direction: column;
   background-color: var(--color-neutral-white);
@@ -19,7 +20,8 @@
 
 #access-score-streets-map,
 #access-score-regions-map,
-#access-score-intersections-map {
+#access-score-intersections-map,
+#street-grade-map {
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
@@ -35,4 +37,27 @@
 .as-breakdown {
   margin: 6px 0 0;
   font: var(--text-caption-regular);
+}
+
+/* Over the legend: the chart is taller than any other preview's popup, and Mapbox stacks its control corners, where
+   the legend lives, at z-index 2, above its popups. A plain number, since it only has to beat Mapbox's own. */
+.map-popup--profile {
+  z-index: 3;
+}
+
+/* The Street Grade preview's popup carries an elevation chart, which reads at the width the AccessScore tool's popup
+   gives it and no narrower. A fixed width, because the chart's SVG scales to its box and would collapse in a
+   shrink-to-fit one; capped by the map's own width (the preview-map container) so it never spills off a phone. */
+.map-popup--profile .mapboxgl-popup-content {
+  width: min(340px, 85cqi);
+  max-width: none;
+}
+
+.map-popup__profile {
+  margin-top: var(--space-xs);
+  font: var(--text-caption-regular);
+}
+
+.map-popup__hint {
+  color: var(--color-neutral-700);
 }

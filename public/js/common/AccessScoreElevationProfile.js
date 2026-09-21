@@ -93,20 +93,20 @@ class AccessScoreElevationProfile {
     const drawable = steepest && steepest.to > steepest.from && steepest.from >= 0
       && steepest.to <= length + profile.spacing_meters;
     slot.innerHTML = this.#html(breaks, drawable ? steepest : null, label);
-    this.#root = /** @type {HTMLElement} */ (slot.querySelector('.acs-profile'));
-    this.#svg = /** @type {SVGSVGElement} */ (this.#root.querySelector('.acs-profile__chart'));
-    this.#cursorLine = this.#root.querySelector('.acs-profile__cursor');
-    this.#readout = /** @type {HTMLElement} */ (this.#root.querySelector('.acs-profile__readout'));
-    this.#rows = /** @type {HTMLButtonElement[]} */ ([...this.#root.querySelectorAll('.acs-profile__class')]);
+    this.#root = /** @type {HTMLElement} */ (slot.querySelector('.elevation-profile'));
+    this.#svg = /** @type {SVGSVGElement} */ (this.#root.querySelector('.elevation-profile__chart'));
+    this.#cursorLine = this.#root.querySelector('.elevation-profile__cursor');
+    this.#readout = /** @type {HTMLElement} */ (this.#root.querySelector('.elevation-profile__readout'));
+    this.#rows = /** @type {HTMLButtonElement[]} */ ([...this.#root.querySelectorAll('.elevation-profile__class')]);
     this.#marks = [...this.#svg.querySelectorAll('[data-class]')];
     // The colors are data read from the tokens, set as properties like the map legend's swatches.
     for (const el of this.#root.querySelectorAll('[data-class]')) {
       const color = colors[Number(/** @type {HTMLElement} */ (el).dataset.class)];
       const style = /** @type {HTMLElement} */ (el).style;
-      if (el.classList.contains('acs-profile__stroke')) style.stroke = color;
+      if (el.classList.contains('elevation-profile__stroke')) style.stroke = color;
       else if (el.tagName.toLowerCase() === 'path' || el.tagName.toLowerCase() === 'rect') style.fill = color;
     }
-    for (const el of this.#root.querySelectorAll('.acs-profile__swatch, .acs-profile__share-fill')) {
+    for (const el of this.#root.querySelectorAll('.elevation-profile__swatch, .elevation-profile__share-fill')) {
       const style = /** @type {HTMLElement} */ (el).style;
       style.background = colors[Number(/** @type {HTMLElement} */ (el.closest('[data-class]')).dataset.class)];
       const share = /** @type {HTMLElement} */ (el).dataset.share;
@@ -159,38 +159,39 @@ class AccessScoreElevationProfile {
     const pts = this.#points();
     const n = pts.length - 1;
     const at = ([px, py]) => `${px.toFixed(1)},${py.toFixed(1)}`;
-    const ground = this.#analysis.stretches.map((s, i) => `<path class="acs-profile__ground"
+    const ground = this.#analysis.stretches.map((s, i) => `<path class="elevation-profile__ground"
         data-class="${s.classIndex}" d="M${at(pts[i])} L${at(pts[i + 1])} L${at([pts[i + 1][0], base])}
         L${at([pts[i][0], base])} Z"></path>`).join('');
-    const line = this.#analysis.stretches.map((s, i) => `<path class="acs-profile__stroke"
+    const line = this.#analysis.stretches.map((s, i) => `<path class="elevation-profile__stroke"
         data-class="${s.classIndex}" d="M${at(pts[i])} L${at(pts[i + 1])}"></path>`).join('');
     const z = this.#profile.elevations_meters;
-    const text = (x, y, content, anchor = 'start', kind = 'end') => `<text class="acs-profile__${kind}"
+    const text = (x, y, content, anchor = 'start', kind = 'end') => `<text class="elevation-profile__${kind}"
         x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}">${content}</text>`;
     const [x0, xn] = [pts[0][0], pts[n][0]];
     const spacing = self.#lengthValue(this.#profile.spacing_meters);
     const legendTitle = self.#t('profile-legend-title', { spacing });
-    const titleId = `acs-profile-legend-${self.#nextId++}`;
-    const casing = `<path class="acs-profile__casing" d="M${pts.map(at).join(' L')}"></path>`;
-    return `<figure class="acs-profile">
-        <svg class="acs-profile__chart" viewBox="0 0 ${self.#WIDTH} ${self.#HEIGHT}" role="slider" tabindex="0"
+    const titleId = `elevation-profile-legend-${self.#nextId++}`;
+    const casing = `<path class="elevation-profile__casing" d="M${pts.map(at).join(' L')}"></path>`;
+    return `<figure class="elevation-profile">
+        <svg class="elevation-profile__chart" viewBox="0 0 ${self.#WIDTH} ${self.#HEIGHT}" role="slider" tabindex="0"
              aria-label="${util.escapeHTML(label)}" aria-valuemin="0" aria-valuemax="${n - 1}" aria-valuenow="0"
              aria-valuetext="${util.escapeHTML(this.#stretchText(0))}" aria-orientation="horizontal">
           <g aria-hidden="true">
             ${ground}${casing}${line}
-            <line class="acs-profile__axis" x1="${x0.toFixed(1)}" x2="${xn.toFixed(1)}" y1="${base}" y2="${base}">
+            <line class="elevation-profile__axis" x1="${x0.toFixed(1)}" x2="${xn.toFixed(1)}" y1="${base}" y2="${base}">
             </line>
             ${text(x0 - 6, pts[0][1] + 4, self.#length(z[0]), 'end')}
             ${text(xn + 6, pts[n][1] + 4, self.#length(z[n]))}
             ${this.#extremesHtml(pts, steepest)}${this.#bracketHtml(steepest, pts, top)}
             ${text(x0, base + 14, self.#length(0), 'start', 'tick')}
             ${text(xn, base + 14, self.#length(this.#analysis.length), 'end', 'tick')}
-            <line class="acs-profile__cursor" x1="0" x2="0" y1="${top - 6}" y2="${base}" visibility="hidden"></line>
+            <line class="elevation-profile__cursor" x1="0" x2="0" y1="${top - 6}" y2="${base}"
+                  visibility="hidden"></line>
           </g>
         </svg>
-        <p class="acs-profile__legend-title" id="${titleId}">${legendTitle}</p>
-        <ul class="acs-profile__legend" aria-labelledby="${titleId}">${this.#legendHtml(breaks)}</ul>
-        <p class="acs-profile__readout"></p>
+        <p class="elevation-profile__legend-title" id="${titleId}">${legendTitle}</p>
+        <ul class="elevation-profile__legend" aria-labelledby="${titleId}">${this.#legendHtml(breaks)}</ul>
+        <p class="elevation-profile__readout"></p>
       </figure>`;
   }
 
@@ -215,12 +216,13 @@ class AccessScoreElevationProfile {
     return [...lengths.keys()].sort((a, b) => b - a).map((classIndex) => {
       const meters = lengths.get(classIndex);
       const share = Math.min(100, (100 * meters) / length).toFixed(1);
-      return `<li><button type="button" class="acs-profile__class" data-class="${classIndex}" aria-pressed="false">
-          <span class="acs-profile__swatch" aria-hidden="true"></span>
+      return `<li><button type="button" class="elevation-profile__class" data-class="${classIndex}"
+                          aria-pressed="false">
+          <span class="elevation-profile__swatch" aria-hidden="true"></span>
           <span>${AccessScoreElevationProfile.#classLabel(classIndex, breaks)}</span>
-          <span class="acs-profile__share" aria-hidden="true"><span class="acs-profile__share-fill"
+          <span class="elevation-profile__share" aria-hidden="true"><span class="elevation-profile__share-fill"
             data-share="${share}"></span></span>
-          <span class="acs-profile__length">${AccessScoreElevationProfile.#length(meters)}</span>
+          <span class="elevation-profile__length">${AccessScoreElevationProfile.#length(meters)}</span>
         </button></li>`;
     }).join('');
   }
@@ -252,8 +254,8 @@ class AccessScoreElevationProfile {
       length: self.#lengthValue(steepest.to - steepest.from), grade: AccessScoreGradeRamp.percent(steepest.grade),
     });
     const f = (v) => v.toFixed(1);
-    return `<path class="acs-profile__bracket" d="M${f(x1)},${f(y + 5)} V${f(y)} H${f(x2)} V${f(y + 5)}"></path>
-        <text class="acs-profile__callout" x="${f(cx)}" y="${f(y - 5)}" text-anchor="middle">${text}</text>`;
+    return `<path class="elevation-profile__bracket" d="M${f(x1)},${f(y + 5)} V${f(y)} H${f(x2)} V${f(y + 5)}"></path>
+        <text class="elevation-profile__callout" x="${f(cx)}" y="${f(y - 5)}" text-anchor="middle">${text}</text>`;
   }
 
   /**
@@ -287,8 +289,8 @@ class AccessScoreElevationProfile {
     const mark = (i, dy, key) => {
       const [px, py] = pts[i].map((v) => v.toFixed(1));
       const words = self.#t(key, { elevation: self.#lengthValue(z[i]) });
-      return `<circle class="acs-profile__extreme" cx="${px}" cy="${py}" r="2.5"></circle>
-        <text class="acs-profile__end" x="${px}" y="${(pts[i][1] + dy).toFixed(1)}"
+      return `<circle class="elevation-profile__extreme" cx="${px}" cy="${py}" r="2.5"></circle>
+        <text class="elevation-profile__end" x="${px}" y="${(pts[i][1] + dy).toFixed(1)}"
           text-anchor="middle">${words}</text>`;
     };
     const high = z.indexOf(Math.max(...z));
@@ -419,7 +421,7 @@ class AccessScoreElevationProfile {
     this.#cursor = cursor;
     const stretch = stretches[this.#cursor];
     for (const row of this.#rows) {
-      row.classList.toggle('acs-profile__class--at', Number(row.dataset.class) === stretch?.classIndex);
+      row.classList.toggle('elevation-profile__class--at', Number(row.dataset.class) === stretch?.classIndex);
     }
     if (!stretch) {
       this.#cursorLine.setAttribute('visibility', 'hidden');
@@ -443,10 +445,10 @@ class AccessScoreElevationProfile {
   #paint() {
     const preview = this.#hovered ?? this.#focused;
     const active = preview !== null ? new Set([preview]) : this.#pinned;
-    this.#root.classList.toggle('acs-profile--filtered', active.size > 0);
+    this.#root.classList.toggle('elevation-profile--filtered', active.size > 0);
     for (const mark of this.#marks) {
       const classIndex = Number(/** @type {HTMLElement} */ (mark).dataset.class);
-      mark.classList.toggle('acs-profile__mark--on', active.has(classIndex));
+      mark.classList.toggle('elevation-profile__mark--on', active.has(classIndex));
     }
     for (const row of this.#rows) row.setAttribute('aria-pressed', String(this.#pinned.has(Number(row.dataset.class))));
     if (this.#cursor >= 0) return;

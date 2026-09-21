@@ -200,6 +200,10 @@ keys, `#acs-slope-*`) keep the older word: renaming them would change nothing a 
 - **`/v3/api/accessScoreConfig`** publishes, under `grade`, the two limits (`StreetGradientStats`), the grades a
   slope map is classed at (`MapClassBreaks`: 1:48, 1:20, 1:12, 1:8), and the credit for each elevation model the
   city's rows came from. An empty `sources` is how a client knows the city has not been sampled.
+- **The Street Grade API docs page** (`/v3/api-docs/streetGrade`) previews both endpoints on one map: a sample
+  region's streets colored by `max_grade` in the tool's slope classes, and, on hover, the street's profile in the
+  tool's own chart (click pins the popup so the chart can be used). The ramp and the chart live in `js/common/`
+  and `css/components/elevation-profile.css` so the docs load the same code as the tool, not a copy of it.
 - **The AccessScore tool** (`/accessScore`) gets an Options checkbox, "Color streets by grade", hidden in an
   unsampled city. It recolors the street lines through `AccessScoreGradeRamp` (classed, from the
   `--color-grade-ramp-*` tokens; every street with a grade is drawn at full strength, audited or not), swaps the map

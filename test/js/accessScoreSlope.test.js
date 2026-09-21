@@ -54,7 +54,8 @@ describe('slope in the AccessScore scoring controls', () => {
         window.util = { escapeHTML: (text) => String(text) };
         window.eval(read('public/js/common/urlQuery.js'));
         for (const name of ['Model', 'GradeRamp', 'SlopePanel', 'UrlSync']) {
-            window.eval(`${read(`public/js/access-score/src/AccessScore${name}.js`)}
+            const dir = name === 'GradeRamp' ? 'common' : 'access-score/src';  // The ramp is shared with the API docs.
+            window.eval(`${read(`public/js/${dir}/AccessScore${name}.js`)}
                 window.AccessScore${name} = AccessScore${name};`);
         }
         ({ AccessScoreModel, AccessScoreSlopePanel, AccessScoreUrlSync } = window);
