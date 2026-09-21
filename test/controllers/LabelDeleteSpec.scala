@@ -9,11 +9,14 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.{JsArray, Json}
 import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import _root_.util.SignedUpAccounts
+
+import java.time.OffsetDateTime
 
 /**
  * Functional tests for `DELETE /label/:id` and `POST /label/:id/restore` (#3591): authorization, the delete stamp and
@@ -191,6 +194,39 @@ class LabelDeleteSpec
       flags(otherSession) mustBe ((true, false))
       grantAdmin(otherId)
       flags(otherSession) mustBe ((true, true))
+    }
+
+    "drop a vote that arrives after the label was deleted" in {
+      val (ownerId, _, ownerSession) = signUpFreshUser()
+      val (voterId, _, voterSession) = signUpFreshUser()
+      val labelId                    = adoptLabel(ownerId)
+      val label = contentAsJson(route(app, FakeRequest(GET, s"/label/id/$labelId").withCookies(voterSession: _*)).get)
+      status(delete(ownerSession, labelId)) mustBe OK
+      val now  = OffsetDateTime.now
+      val vote = Json.obj(
+        "label_id"          -> labelId,
+        "label_type"        -> (label \ "label_type").as[String],
+        "validation_result" -> "Disagree",
+        "severity"          -> (label \ "severity").asOpt[Int],
+        "tags"              -> (label \ "tags").as[JsArray],
+        "heading"           -> (label \ "heading").as[Double],
+        "pitch"             -> (label \ "pitch").as[Double],
+        "zoom"              -> (label \ "zoom").as[Double],
+        "canvas_width"      -> 720,
+        "canvas_height"     -> 440,
+        "start_timestamp"   -> now,
+        "end_timestamp"     -> now,
+        "source"            -> "LabelMap",
+        "undone"            -> false,
+        "redone"            -> false,
+        "viewer_type"       -> "Default"
+      )
+      val resp = route(
+        app,
+        FakeRequest(POST, "/labelmap/validate").withCookies(voterSession: _*).withJsonBody(vote).withCSRFToken
+      ).get
+      status(resp) mustBe OK
+      votesBy(labelId, voterId) mustBe empty
     }
 
     "keep an incorrect verdict in the labeler's accuracy but drop a correct one" in {

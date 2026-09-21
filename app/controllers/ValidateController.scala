@@ -377,7 +377,7 @@ class ValidateController @Inject() (
         ValidationSubmission(
           LabelValidation(0, newVal.labelId, labelTypeSeen(newVal), newVal.validationResult, user.userId,
             newVal.missionId, newVal.canvasX, newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom,
-            newVal.canvasHeight, newVal.canvasWidth, newVal.startTimestamp, newVal.endTimestamp, newVal.source,
+            newVal.canvasWidth, newVal.canvasHeight, newVal.startTimestamp, newVal.endTimestamp, newVal.source,
             newVal.viewerType),
           newVal.newLabelType,
           newVal.severity,
@@ -579,7 +579,7 @@ class ValidateController @Inject() (
                   ValidationSubmission(
                     LabelValidation(0, newVal.labelId, newVal.labelType, newVal.validationResult, userId,
                       mission.get.missionId, newVal.canvasX, newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom,
-                      newVal.canvasHeight, newVal.canvasWidth, newVal.startTimestamp, newVal.endTimestamp,
+                      newVal.canvasWidth, newVal.canvasHeight, newVal.startTimestamp, newVal.endTimestamp,
                       newVal.source, newVal.viewerType),
                     newVal.newLabelType,
                     newVal.severity,

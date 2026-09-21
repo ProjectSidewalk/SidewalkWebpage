@@ -362,8 +362,7 @@ class LabelDetail {
    *     paths are logged under different event names (`KeyboardShortcut_…` vs `Click_…`) so they stay countable
    *     apart, which is the convention every other tool's tracker follows.
    */
-  #logAction(action, viaKeyboard = false) {
-    const labelId = this.#currentLabelMeta?.label_id;
+  #logAction(action, viaKeyboard = false, labelId = this.#currentLabelMeta?.label_id) {
     window.logWebpageActivity(
       `${viaKeyboard ? 'KeyboardShortcut' : 'Click'}_module=LabelDetail_action=${action}_labelId=${labelId}`,
     );
@@ -690,7 +689,8 @@ class LabelDetail {
   #pressUndo(e) {
     const typeUndo = this.#els.editStatus?.type?.querySelector('.label-detail__edit-status-action');
     const restore = this.#els.restoreButton;
-    const undo = typeUndo ?? (this.#deletedHere && restore && !restore.hidden ? restore : null);
+    const restoreUp = this.#deletedHere && restore && !restore.hidden;
+    const undo = restoreUp ? restore : typeUndo;
     const target = e.target instanceof Element ? e.target : null;
     if (!undo || !this.#isShowing || target?.closest('input, textarea, [contenteditable]')) return;
     e.preventDefault();
@@ -1627,12 +1627,10 @@ class LabelDetail {
       const url = `/label/${meta.label_id}?source=${encodeURIComponent(this.#source)}`;
       const res = await util.lazyIdentityFetch(url, { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      if (this.#currentLabelMeta !== meta) return;
       // An admin's delete files their Disagree with it, which only the server can count.
-      if (asAdmin) await this.#refreshVotes(meta);
-      if (this.#currentLabelMeta !== meta) return;
-      this.#setDeleted(meta, true, true);
-      this.#logAction('DeleteLabel');
+      if (asAdmin && this.#currentLabelMeta === meta) await this.#refreshVotes(meta);
+      this.#logAction('DeleteLabel', false, meta.label_id);
+      if (!this.#setDeleted(meta, true, true)) return;
       // Delete had focus and just hid; Restore is where the next move is.
       this.#els.restoreButton?.focus();
     } catch (err) {
@@ -1656,11 +1654,12 @@ class LabelDetail {
     try {
       const res = await util.lazyIdentityFetch(`/label/${meta.label_id}/restore`, { method: 'POST' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      if (this.#currentLabelMeta !== meta) return;
-      this.#setDeleted(meta, false, false);
-      this.#logAction(`RestoreLabel${undo ? '_undo=true' : ''}`, viaKeyboard);
+      this.#logAction(`RestoreLabel${undo ? '_undo=true' : ''}`, viaKeyboard, meta.label_id);
+      // Read before Restore hides: the browser only moves focus off a hidden element at its next render.
+      const hadFocus = document.activeElement === this.#els.restoreButton;
+      if (!this.#setDeleted(meta, false, false)) return;
       // Only a Restore that had focus hands it to Delete; a Ctrl+Z from elsewhere leaves focus alone.
-      if (document.activeElement === document.body) this.#els.deleteButton?.focus();
+      if (hadFocus) this.#els.deleteButton?.focus();
     } catch (err) {
       console.error(err);
       if (this.#currentLabelMeta !== meta) return;
@@ -1671,19 +1670,25 @@ class LabelDetail {
   }
 
   /**
-   * Records the deleted state, redraws what hangs off it, and tells the host.
+   * Records the deleted state and tells the host, then redraws the card if that label is still the one on screen
+   * (paging isn't blocked while the request is in flight).
    * @param {Record<string, any>} meta - Updated in place.
    * @param {boolean} deleted
    * @param {boolean} viaThisCard - A delete just made here is what Ctrl+Z may undo.
+   * @returns {boolean} Whether the card was redrawn.
    */
   #setDeleted(meta, deleted, viaThisCard) {
     meta.deleted = deleted;
     meta.can_restore = deleted; // Whoever could delete it from here can restore it.
+    if (typeof this.#onDelete === 'function') this.#onDelete(meta);
+    if (this.#currentLabelMeta !== meta) return false;
     this.#deleted = deleted;
     this.#canRestore = deleted;
     this.#deletedHere = deleted && viaThisCard;
+    // A type-change Undo still on screen would now edit a deleted label, which the server refuses.
+    if (deleted) this.#showEditStatus('');
     this.#applyInteractionLock();
-    if (typeof this.#onDelete === 'function') this.#onDelete(meta);
+    return true;
   }
 
   /**

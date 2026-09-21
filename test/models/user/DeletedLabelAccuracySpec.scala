@@ -1,6 +1,7 @@
 package models.user
 
 import models.utils.MyPostgresProfile.api._
+import models.validation.LabelValidationTable
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -19,6 +20,7 @@ class DeletedLabelAccuracySpec extends PlaySpec with GuiceOneAppPerSuite with Ro
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val userStatTable    = app.injector.instanceOf[UserStatTable]
+  private lazy val validationTable  = app.injector.instanceOf[LabelValidationTable]
   private lazy val labelEditService = app.injector.instanceOf[LabelEditService]
 
   /** A non-excluded labeler with three or more live labels, so one always stays live: (user_id, label_a, label_b). */
@@ -57,6 +59,10 @@ class DeletedLabelAccuracySpec extends PlaySpec with GuiceOneAppPerSuite with Ro
   private def talliesOf(userId: String): DBIO[(Int, Int)] =
     userStatTable.getLabelTypeAccuracy(userId).map(rows => (rows.map(_._2).sum, rows.map(_._3).sum))
 
+  /** The admin tables' (labels validated, agreed) for the user. */
+  private def adminCountsOf(userId: String): DBIO[(Int, Int)] =
+    validationTable.getValidationCountsForUsers(Seq(userId)).map(_.headOption.map(_._2).getOrElse((0, 0)))
+
   "a labeler's accuracy" should {
     "keep an incorrect label deleted from the popup, drop a correct one, and drop anything deleted in Explore" in {
       val (userId, correctId, incorrectId) = target
@@ -64,16 +70,30 @@ class DeletedLabelAccuracySpec extends PlaySpec with GuiceOneAppPerSuite with Ro
         _        <- setUpVerdicts(userId, correctId, incorrectId)
         baseline <- accuracyOf(userId)
         tallies0 <- talliesOf(userId)
+        admin0   <- adminCountsOf(userId)
         _        <- markDeleted(incorrectId, userId, "UserDashboard")
         kept     <- accuracyOf(userId)
         tallies1 <- talliesOf(userId)
+        admin1   <- adminCountsOf(userId)
         _        <- markDeleted(correctId, userId, "LabelMap")
         dropped  <- accuracyOf(userId)
         tallies2 <- talliesOf(userId)
+        admin2   <- adminCountsOf(userId)
         _        <- sqlu"UPDATE label SET deleted_source = 'Explore' WHERE label_id = $incorrectId"
         explore  <- accuracyOf(userId)
-      } yield (baseline, tallies0, kept, tallies1, dropped, tallies2, explore))
-      result mustBe (((2, Some(0.5)), (1, 1), (2, Some(0.5)), (1, 1), (1, Some(0.0)), (0, 1), (0, None)))
+      } yield (baseline, tallies0, admin0, kept, tallies1, admin1, dropped, tallies2, admin2, explore))
+      result mustBe ((
+        (2, Some(0.5)),
+        (1, 1),
+        (2, 1),
+        (2, Some(0.5)),
+        (1, 1),
+        (2, 1),
+        (1, Some(0.0)),
+        (0, 1),
+        (1, 0),
+        (0, None)
+      ))
     }
   }
 
@@ -99,6 +119,21 @@ class DeletedLabelAccuracySpec extends PlaySpec with GuiceOneAppPerSuite with Ro
       first._4 mustBe Some("Explore")
       again mustBe first
       back mustBe ((false, None, false, None))
+    }
+
+    "not undo a delete made from the card" in {
+      val (userId, labelId, _) = target
+      val result               = runRolledBack(for {
+        label <- sql"SELECT severity, description, array_to_string(tags, '|') FROM label WHERE label_id = $labelId"
+          .as[(Option[Int], Option[String], String)]
+          .head
+        tags = if (label._3.isEmpty) Nil else label._3.split('|').toList
+        _ <- sqlu"""UPDATE label SET deleted = TRUE, deleted_by = $userId, deleted_at = NOW(),
+                        deleted_source = 'LabelMap' WHERE label_id = $labelId"""
+        _    <- labelEditService.updateLabelFromExplore(labelId, deleted = false, label._1, label._2, tags)
+        kept <- stampOf(labelId)
+      } yield kept)
+      result mustBe ((true, Some(userId), true, Some("LabelMap")))
     }
   }
 

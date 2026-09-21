@@ -24,11 +24,7 @@
     @* Delete (#3591): LabelDetail shows it to the labeler and admins and confirms first. *@
     <button type="button" class="label-detail__delete" hidden data-i18n-aria-label="labelmap:delete-label"
             data-ps-tooltip-placement="bottom">
-      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <polyline points="3 6 5 6 21 6"/>
-        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-      </svg>
+      <span class="label-detail__trash-icon ps-mask-icon" aria-hidden="true"></span>
     </button>
     @* Own-label chip (#2575); LabelDetail sets its aria-label and tooltip. *@
     <span class="label-detail__own-badge" role="img" hidden>
@@ -61,11 +57,7 @@
      LabelDetail fills in the icon and wording, which reverse with the state  . *@
   @* Deleted-label notice (#3591); it carries the undo so the way back is where the eye lands. *@
   <div class="label-detail__deleted-notice" role="status" hidden>
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
-         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <polyline points="3 6 5 6 21 6"/>
-      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-    </svg>
+    <span class="label-detail__trash-icon ps-mask-icon" aria-hidden="true"></span>
     <span class="label-detail__deleted-notice-text"></span>
     <button type="button" class="label-detail__restore" hidden data-i18n-aria-label="labelmap:restore-label"
             data-i18n="labelmap:restore-label-brief">Restore</button>

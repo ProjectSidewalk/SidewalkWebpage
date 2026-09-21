@@ -334,7 +334,8 @@ class LabelEditServiceImpl @Inject() (
   /**
    * Updates the metadata a user can change on the Explore page after placing a label. While the label's only history
    * row is its creation row, the change is part of placing it and that row absorbs it; after that it is an edit.
-   * A delete is stamped as from Explore, so it never counts toward accuracy (#3591).
+   * A delete is stamped as from Explore, so it never counts toward accuracy (#3591). Explore resends every label with
+   * its own flag, so an un-delete from it only undoes an Explore delete, never one made from the card.
    */
   def updateLabelFromExplore(
       labelId: Int,
@@ -363,12 +364,15 @@ class LabelEditServiceImpl @Inject() (
             } else DBIO.successful(())
           }
         }
+      stillDeleted = label.deleted && !label.deletedSource.contains(UiSource.Explore)
+      nowDeleted   = deleted || stillDeleted
       rowsUpdated: Int <- labelQuery.map(l => (l.description, l.deletion)).update {
         // A resend must not move the original stamp.
-        if (label.deleted == deleted) (description, (deleted, label.deletedBy, label.deletedAt, label.deletedSource))
+        if (label.deleted == nowDeleted)
+          (description, (nowDeleted, label.deletedBy, label.deletedAt, label.deletedSource))
         else {
-          val (by, at, from) = LabelDeletion.fields(label.userId, Option.when(deleted)(UiSource.Explore))
-          (description, (deleted, by, at, from))
+          val (by, at, from) = LabelDeletion.fields(label.userId, Option.when(nowDeleted)(UiSource.Explore))
+          (description, (nowDeleted, by, at, from))
         }
       }
     } yield rowsUpdated

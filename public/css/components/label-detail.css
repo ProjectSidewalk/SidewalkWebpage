@@ -215,6 +215,14 @@ dialog.label-detail[open]::backdrop {
   color: var(--color-error-300);
 }
 
+/* The same trash glyph in the chip and in the notice, taking each one's color. */
+.label-detail__trash-icon {
+  width: 14px;
+  height: 14px;
+  -webkit-mask-image: url("../../images/icons/trash-2-feather.svg");
+  mask-image: url("../../images/icons/trash-2-feather.svg");
+}
+
 /* Inert (no imagery): greyed and no pointer, but still a hover and focus target so the tooltip can say why. */
 .label-detail__delete[aria-disabled="true"] {
   color: var(--color-neutral-400);

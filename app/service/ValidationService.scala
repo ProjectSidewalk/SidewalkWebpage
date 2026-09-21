@@ -298,58 +298,67 @@ class ValidationServiceImpl @Inject() (
       val validation: LabelValidation =
         typeChange.fold(valSubmission.validation)(t => valSubmission.validation.copy(labelType = t))
 
-      labelValidationTable.getValidation(validation.labelId, validation.userId, validation.labelType).flatMap {
-        existingVal =>
-          // The undone/redone flags cover the replacements the client knows about, but a duplicate can arrive without
-          // them: a POST retried after its original committed, or the label served again in a later mission. Removing
-          // first makes those a clean replacement (latest verdict wins) instead of a unique-constraint violation, and
-          // reuses the redo path so severity/tags, label_history, and validation counts unwind first (#4377).
-          val oldValRemoved = existingVal match {
-            case Some(oldVal) => deleteLabelValidation(oldVal, retracted = valSubmission.undone).map(_ > 0)
-            case None         => DBIO.successful(false)
+      // A vote on a deleted label is dropped (#3591): a mission batch or stale card must not hand a verdict to a label
+      // its labeler deleted before it had one. An admin's delete files its Disagree first, so that one lands.
+      val deleted: DBIO[Boolean] =
+        labelsUnfiltered.filter(_.labelId === validation.labelId).map(_.deleted).result.headOption.map(_.contains(true))
+      deleted.flatMap(
+        if (_) DBIO.successful(0)
+        else
+          labelValidationTable.getValidation(validation.labelId, validation.userId, validation.labelType).flatMap {
+            existingVal =>
+              // The undone/redone flags cover the replacements the client knows about, but a duplicate can arrive without
+              // them: a POST retried after its original committed, or the label served again in a later mission. Removing
+              // first makes those a clean replacement (latest verdict wins) instead of a unique-constraint violation, and
+              // reuses the redo path so severity/tags, label_history, and validation counts unwind first (#4377).
+              val oldValRemoved = existingVal match {
+                case Some(oldVal) => deleteLabelValidation(oldVal, retracted = valSubmission.undone).map(_ > 0)
+                case None         => DBIO.successful(false)
+              }
+
+              // Comments are keyed by (label, user) rather than by validation — one apiece, per
+              // validation_task_comment_label_id_user_id_unique (#4942) — so only clear them when this submission accounts
+              // for them: an undo/redo retracts the comment that came with
+              // the vote, and a submission carrying its own replaces it. A repeat validation carrying none must leave the
+              // user's earlier free text alone — the user said nothing about it, so nothing about it changed.
+              val oldCommentRemoved =
+                if (valSubmission.undone || valSubmission.redone || valSubmission.comment.isDefined) {
+                  // A retracted vote taking the text with it is no request to erase anything, so the history tells it apart
+                  // from an edit (#5076). An undo inserts nothing afterwards, so a comment riding along with one is
+                  // retracted rather than replaced.
+                  val changeType =
+                    if (valSubmission.comment.isDefined && !valSubmission.undone) ValidationCommentChangeType.Edit
+                    else ValidationCommentChangeType.ValidationChange
+                  validationTaskCommentTable.archive(validation.labelId, validation.userId, changeType)
+                } else DBIO.successful(0)
+
+              // If the validation is new or is an update for an undone label, save it.
+              val newValInserted = if (!valSubmission.undone) {
+                for {
+                  newValId: Int <- insert(validation)
+                  // Only an Agree applies the submitted type, severity and tags; the edit is linked to the vote so an undo
+                  // unwinds it.
+                  _ <- {
+                    if (validation.validationResult == ValidationOption.Agree && valSubmission.canEdit) {
+                      labelEditService.applyEdit(validation.labelId, validation.userId, typeChange,
+                        valSubmission.severity, valSubmission.tags, validation.source, Some(newValId))
+                    } else DBIO.successful(None)
+                  }
+                  // Insert the comment if there is one.
+                  _ <- valSubmission.comment match {
+                    case Some(comment) => validationTaskCommentTable.insert(comment)
+                    case None          => DBIO.successful(0)
+                  }
+                } yield newValId
+              } else DBIO.successful(0)
+
+              for {
+                _        <- oldCommentRemoved
+                _        <- oldValRemoved
+                newValId <- newValInserted
+              } yield newValId
           }
-
-          // Comments are keyed by (label, user) rather than by validation — one apiece, per
-          // validation_task_comment_label_id_user_id_unique (#4942) — so only clear them when this submission accounts
-          // for them: an undo/redo retracts the comment that came with
-          // the vote, and a submission carrying its own replaces it. A repeat validation carrying none must leave the
-          // user's earlier free text alone — the user said nothing about it, so nothing about it changed.
-          val oldCommentRemoved = if (valSubmission.undone || valSubmission.redone || valSubmission.comment.isDefined) {
-            // A retracted vote taking the text with it is no request to erase anything, so the history tells it apart
-            // from an edit (#5076). An undo inserts nothing afterwards, so a comment riding along with one is
-            // retracted rather than replaced.
-            val changeType =
-              if (valSubmission.comment.isDefined && !valSubmission.undone) ValidationCommentChangeType.Edit
-              else ValidationCommentChangeType.ValidationChange
-            validationTaskCommentTable.archive(validation.labelId, validation.userId, changeType)
-          } else DBIO.successful(0)
-
-          // If the validation is new or is an update for an undone label, save it.
-          val newValInserted = if (!valSubmission.undone) {
-            for {
-              newValId: Int <- insert(validation)
-              // Only an Agree applies the submitted type, severity and tags; the edit is linked to the vote so an undo
-              // unwinds it.
-              _ <- {
-                if (validation.validationResult == ValidationOption.Agree && valSubmission.canEdit) {
-                  labelEditService.applyEdit(validation.labelId, validation.userId, typeChange, valSubmission.severity,
-                    valSubmission.tags, validation.source, Some(newValId))
-                } else DBIO.successful(None)
-              }
-              // Insert the comment if there is one.
-              _ <- valSubmission.comment match {
-                case Some(comment) => validationTaskCommentTable.insert(comment)
-                case None          => DBIO.successful(0)
-              }
-            } yield newValId
-          } else DBIO.successful(0)
-
-          for {
-            _        <- oldCommentRemoved
-            _        <- oldValRemoved
-            newValId <- newValInserted
-          } yield newValId
-      }
+      )
     }
 
     // For any users whose labels have been validated, update their accuracy in the user_stat table.

@@ -25,6 +25,7 @@ import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTableDef}
 import models.user._
 import models.utils.MyPostgresProfile.api._
+import models.utils.CommonUtils.UiSource
 import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.{ConfigTableDef, LatLngBBox, MyPostgresProfile}
 import models.validation.{
@@ -361,9 +362,11 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   /** The `deleted` flag with its provenance, which the DB CHECK makes change together. */
   def deletion = (deleted, deletedBy, deletedAt, deletedSource)
 
-  def auditTask  = foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
-  def mission    = foreignKey("label_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
-  def user       = foreignKey("label_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def auditTask     = foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
+  def mission       = foreignKey("label_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
+  def user          = foreignKey("label_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def deletedByUser =
+    foreignKey("label_deleted_by_fkey", deletedBy, TableQuery[SidewalkUserTableDef])(_.userId.?)
   def streetEdge =
     foreignKey("label_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
   def panoData = foreignKey("label_pano_id_fkey", panoId, TableQuery[PanoDataTableDef])(_.panoId)
@@ -380,6 +383,11 @@ object LabelTable {
    */
   val countsTowardAccuracySql: String =
     "(NOT label.deleted OR (label.deleted_source <> 'Explore' AND label.correct = FALSE))"
+
+  /** [[countsTowardAccuracySql]] for Slick queries. */
+  def countsTowardAccuracy(label: LabelTableDef): Rep[Boolean] =
+    !label.deleted ||
+      (label.deletedSource.map(_ =!= UiSource.Explore).getOrElse(false) && !label.correct.getOrElse(true))
 
   // Define a type class for converting tuples to instances of a case class.
   trait TupleConverter[Tuple, A] {

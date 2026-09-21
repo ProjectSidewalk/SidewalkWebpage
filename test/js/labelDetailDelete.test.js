@@ -382,6 +382,53 @@ describe('deleting a label from the card (#3591)', () => {
     expect(requests()).toHaveLength(2);
   });
 
+  test('Ctrl+Z right after a delete presses Restore, not a type-change Undo still on screen', async () => {
+    await showLabel();
+    // A type-change status with its Undo, as #submitEdit leaves it.
+    const typeUndo = document.createElement('button');
+    typeUndo.className = 'label-detail__edit-status-action';
+    const undoClick = jest.fn();
+    typeUndo.addEventListener('click', undoClick);
+    typeStatus().append('changed', typeUndo);
+
+    await deleteLabel();
+    expect(typeStatus().textContent).toBe('');
+    pressCtrlZ();
+    await flush();
+    expect(undoClick).not.toHaveBeenCalled();
+    expect(requests()).toEqual(['DELETE /label/42?source=TestSource', 'POST /label/42/restore']);
+  });
+
+  test('paging away while a delete is in flight still tells the host and logs it, without touching the new card', async () => {
+    let finish;
+    request.mockImplementationOnce(() => new Promise((resolve) => {
+      finish = () => resolve({ ok: true, status: 200, json: async () => ({}) });
+    }));
+    const first = await showLabel({ label_id: 42 });
+    deleteButton().click();
+    await flush();
+    const second = await showLabel({ label_id: 43 });
+    finish();
+    await flush();
+    await flush();
+
+    expect(first.deleted).toBe(true);
+    expect(onDelete).toHaveBeenCalledWith(expect.objectContaining({ label_id: 42, deleted: true }));
+    expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=LabelDetail_action=DeleteLabel_labelId=42');
+    expect(second.deleted).toBe(false);
+    expect(card.classList.contains('label-detail--deleted')).toBe(false);
+    expect(deleteButton().hidden).toBe(false);
+  });
+
+  test('a keyboard Restore hands focus to Delete', async () => {
+    await showLabel();
+    await deleteLabel();
+    expect(document.activeElement).toBe(restoreButton());
+    pressCtrlZ();
+    await flush();
+    expect(document.activeElement).toBe(deleteButton());
+  });
+
   test('a restore from a card opened on an already-deleted label is not an undo', async () => {
     await showLabel({ deleted: true, can_restore: true });
     pointerClick(restoreButton());
