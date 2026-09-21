@@ -7,7 +7,7 @@
  * keeps the bottom-left. On a region audit the route grows street-by-street, so there's nothing to preview and
  * this stays hidden (#4639).
  *
- * It draws the route geometry the tool already has (svl.taskContainer) onto a small canvas — no second Google map — so
+ * It draws the route geometry the tool already has (svl.taskContainer) onto a small canvas — no second map — so
  * it's cheap to redraw whenever the peg moves or a street completes. Clicking it fits the minimap to the whole route
  * (the same action as the ⛶ button).
  */
@@ -189,12 +189,12 @@ class RouteOverview {
 
   /**
    * Outlines the geographic extent the main minimap currently shows, so the inset reads as a zoomed-out companion to
-   * the street-level view ("you're looking at this part of the route"). Skipped until the minimap exists.
+   * the street-level view ("you're looking at this part of the route"). Skipped while the minimap has no map.
    * @param {CanvasRenderingContext2D} ctx
    * @param {(lng: number, lat: number) => number[]} project
    */
   #drawViewportBox(ctx, project) {
-    if (!svl.minimap) return;
+    if (!svl.minimap || !svl.minimap.isAvailable()) return;
     const bounds = svl.minimap.getBounds();
     const [x1, y1] = project(bounds.west, bounds.north); // top-left corner of the viewport
     const [x2, y2] = project(bounds.east, bounds.south); // bottom-right corner

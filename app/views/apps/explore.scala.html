@@ -337,6 +337,10 @@
 
           <div id="minimap-holder">
             <div id="minimap" class="minimap-pane"></div>
+            @* Shown by Minimap.create in the map's place when the browser can't draw it (no WebGL2). *@
+            <p id="minimap-unavailable-message" role="status" hidden data-i18n="audit:right-ui.minimap.unavailable">
+              This browser can't show the map. You can keep exploring without it.
+            </p>
             <div id="minimap-overlay" class="minimap-pane"></div>
             <canvas id="minimap-fog-of-war-canvas" class="minimap-pane" height="200" width="200"></canvas>
             <canvas id="minimap-fov-canvas" class="minimap-pane" height="200" width="200"></canvas>

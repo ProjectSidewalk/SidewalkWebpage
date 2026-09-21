@@ -193,7 +193,9 @@
       "route-start-flag": "Start van de route",
       "route-finish-flag": "Einde van de route",
       "mission-start-flag": "Waar deze missie begon",
-      "mission-finish-flag": "Waar deze missie eindigt"
+      "mission-finish-flag": "Waar deze missie eindigt",
+      "map-title": "Kaart van de omgeving om je heen",
+      "unavailable": "Deze browser kan de kaart niet weergeven. Je kunt zonder kaart verder verkennen."
     },
     "stats": {
       "leaderboard-cta": "Bekijk het scorebord van de gemeenschap"

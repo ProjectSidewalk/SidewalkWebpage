@@ -193,7 +193,9 @@
       "route-start-flag": "Départ de l’itinéraire",
       "route-finish-flag": "Arrivée de l’itinéraire",
       "mission-start-flag": "Où cette mission a commencé",
-      "mission-finish-flag": "Où cette mission se termine"
+      "mission-finish-flag": "Où cette mission se termine",
+      "map-title": "Carte des environs de votre position",
+      "unavailable": "Ce navigateur ne peut pas afficher la carte. Vous pouvez continuer à explorer sans elle."
     },
     "stats": {
       "leaderboard-cta": "Voir le classement de la communauté"

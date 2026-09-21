@@ -3,9 +3,8 @@
  * place of Google's API (#5129).
  *
  * The browser suite only shows that the app runs against the stub; it can't show that the stub behaves like the
- * API in the ways the app depends on — the loader hand-off, event ordering, the pano contract that decides which
- * imagery path Validate takes, and the map's bounds/zoom math that Explore's overlays do pixel arithmetic against.
- * A stub that drifted from the API in one of those would let the suite pass on behaviour production never sees,
+ * API in the ways the app depends on — the loader hand-off, event ordering, and the pano contract that decides which
+ * imagery path Validate takes. A stub that drifted from the API in one of those would let the suite pass on behaviour production never sees,
  * which is exactly the failure a fake invites. So each of those is a test here.
  *
  * The stub is a browser IIFE that reads its callback name from `document.currentScript.src`; installing it means
@@ -41,13 +40,6 @@ async function flush() {
   await Promise.resolve();
 }
 
-/** Whether `bounds` covers both corners of `inner` — the stub's LatLngBounds deliberately has no contains(). */
-function covers(bounds, inner) {
-  const sw = bounds.getSouthWest(); const ne = bounds.getNorthEast();
-  const isw = inner.getSouthWest(); const ine = inner.getNorthEast();
-  return isw.lat() >= sw.lat() && isw.lng() >= sw.lng() && ine.lat() <= ne.lat() && ine.lng() <= ne.lng();
-}
-
 beforeEach(() => {
   jest.useFakeTimers();
 });
@@ -76,16 +68,15 @@ describe('loader hand-off', () => {
     expect(window.google.maps.version).toBe('stub');
   });
 
-  test('importLibrary resolves the four libraries the app imports and rejects any other', async () => {
+  test('importLibrary resolves the two libraries the app imports and rejects any other', async () => {
     const { maps } = install();
     await expect(maps.importLibrary('core')).resolves.toMatchObject({ LatLng: expect.any(Function) });
-    await expect(maps.importLibrary('maps')).resolves.toMatchObject({
-      Map: expect.any(Function), MapTypeId: expect.any(Object), RenderingType: expect.any(Object),
-    });
     await expect(maps.importLibrary('streetView')).resolves.toMatchObject({
       StreetViewPanorama: expect.any(Function), StreetViewService: expect.any(Function),
     });
-    await expect(maps.importLibrary('marker')).resolves.toMatchObject({ AdvancedMarkerElement: expect.any(Function) });
+    // The minimap is MapLibre (#5429): an app change that reaches for a Google map again must fail here, not bill.
+    await expect(maps.importLibrary('maps')).rejects.toThrow('no library "maps"');
+    await expect(maps.importLibrary('marker')).rejects.toThrow('no library "marker"');
     await expect(maps.importLibrary('places')).rejects.toThrow('no library "places"');
   });
 
@@ -143,134 +134,6 @@ describe('geometry', () => {
     const b = new maps.LatLng({ lat: '47.6', lng: '-122.3' });
     expect([a.lat(), a.lng()]).toEqual([47.6, -122.3]);
     expect(b.toJSON()).toEqual({ lat: 47.6, lng: -122.3 });
-  });
-
-  test('LatLngBounds grows by extend() and reports its corners and centre', () => {
-    const { maps } = install();
-    const bounds = new maps.LatLngBounds();
-    expect(bounds.isEmpty()).toBe(true);
-    expect(bounds.getCenter()).toBeNull();
-    bounds.extend(new maps.LatLng(1, 10)).extend({ lat: -1, lng: 12 });
-    expect(bounds.getSouthWest().toJSON()).toEqual({ lat: -1, lng: 10 });
-    expect(bounds.getNorthEast().toJSON()).toEqual({ lat: 1, lng: 12 });
-    expect(bounds.getCenter().toJSON()).toEqual({ lat: 0, lng: 11 });
-  });
-
-  test('the projection round-trips and puts null island at the centre of the 256px world', () => {
-    const { maps } = install();
-    const map = new maps.Map(document.createElement('div'));
-    const projection = map.getProjection();
-    expect(projection.fromLatLngToPoint(new maps.LatLng(0, 0))).toMatchObject({ x: 128, y: 128 });
-    const back = projection.fromPointToLatLng(projection.fromLatLngToPoint(new maps.LatLng(47.6, -122.3)));
-    expect(back.lat()).toBeCloseTo(47.6, 9);
-    expect(back.lng()).toBeCloseTo(-122.3, 9);
-  });
-});
-
-describe('Map', () => {
-  /** A container the stub can measure — jsdom lays nothing out, so the size is stubbed on the element. */
-  function container(width = 300, height = 200) {
-    const el = document.createElement('div');
-    Object.defineProperty(el, 'clientWidth', { value: width });
-    Object.defineProperty(el, 'clientHeight', { value: height });
-    return el;
-  }
-
-  test('mounts a labelled placeholder and settles into bounds_changed then idle', async () => {
-    const { maps } = install();
-    const el = container();
-    const order = [];
-    const map = new maps.Map(el, { center: { lat: 47.6, lng: -122.3 }, zoom: 16 });
-    maps.event.addListener(map, 'bounds_changed', () => order.push('bounds_changed'));
-    maps.event.addListener(map, 'idle', () => order.push('idle'));
-    expect(el.dataset.googleMapsStub).toBe('map');
-    await flush();
-    expect(order).toEqual(['bounds_changed', 'idle']);
-  });
-
-  test('a synchronous burst of changes settles once, not once per setter', async () => {
-    const { maps } = install();
-    const map = new maps.Map(container(), { center: { lat: 47.6, lng: -122.3 }, zoom: 16 });
-    await flush();
-    const idle = jest.fn();
-    maps.event.addListener(map, 'idle', idle);
-    map.setZoom(15);
-    map.setCenter({ lat: 47.61, lng: -122.31 });
-    map.setOptions({ minZoom: 14 });
-    await flush();
-    expect(idle).toHaveBeenCalledTimes(1);
-    expect(map.getZoom()).toBe(15);
-    expect(map.getCenter().toJSON()).toEqual({ lat: 47.61, lng: -122.31 });
-  });
-
-  test('bounds follow the container size and the zoom, and halve when the zoom goes up one', () => {
-    const { maps } = install();
-    const map = new maps.Map(container(300, 200), { center: { lat: 47.6, lng: -122.3 }, zoom: 16 });
-    const at16 = map.getBounds();
-    const width16 = at16.getNorthEast().lng() - at16.getSouthWest().lng();
-    expect(at16.getCenter().lng()).toBeCloseTo(-122.3, 9);
-    map.setZoom(17);
-    const at17 = map.getBounds();
-    expect(at17.getNorthEast().lng() - at17.getSouthWest().lng()).toBeCloseTo(width16 / 2, 9);
-    // 300px at zoom 16 on a 256px world: 300 / 2^16 of 360 degrees.
-    expect(width16).toBeCloseTo((300 / 2 ** 16 / 256) * 360, 9);
-  });
-
-  test('fitBounds recentres and picks the largest zoom at which the bounds still fit', () => {
-    const { maps } = install();
-    const map = new maps.Map(container(300, 200), { center: { lat: 0, lng: 0 }, zoom: 16 });
-    const route = new maps.LatLngBounds(new maps.LatLng(47.60, -122.34), new maps.LatLng(47.61, -122.33));
-    map.fitBounds(route);
-    const zoom = map.getZoom();
-    expect(Number.isInteger(zoom)).toBe(true);
-    expect(map.getCenter().toJSON()).toEqual(route.getCenter().toJSON());
-    expect(covers(map.getBounds(), route)).toBe(true);
-    map.setZoom(zoom + 1);
-    expect(covers(map.getBounds(), route)).toBe(false);
-  });
-
-  test('fitBounds honours padding and the map\'s own zoom range', () => {
-    const { maps } = install();
-    const route = new maps.LatLngBounds(new maps.LatLng(47.60, -122.34), new maps.LatLng(47.61, -122.33));
-    const plain = new maps.Map(container(300, 200), { zoom: 16 });
-    plain.fitBounds(route);
-    const padded = new maps.Map(container(300, 200), { zoom: 16 });
-    padded.fitBounds(route, 60);
-    expect(padded.getZoom()).toBeLessThan(plain.getZoom());
-    const clamped = new maps.Map(container(300, 200), { zoom: 16, minZoom: 12, maxZoom: 13 });
-    clamped.fitBounds(route);
-    expect(clamped.getZoom()).toBe(13);
-    clamped.fitBounds(new maps.LatLngBounds(new maps.LatLng(-60, -170), new maps.LatLng(60, 170)));
-    expect(clamped.getZoom()).toBe(12);
-  });
-
-  test('narrowing the zoom range through setOptions moves the current zoom into it', () => {
-    const { maps } = install();
-    const map = new maps.Map(container(), { zoom: 16, minZoom: 10, maxZoom: 18 });
-    map.setOptions({ minZoom: 17 });
-    expect(map.getZoom()).toBe(17);
-    map.setZoom(19);
-    expect(map.getZoom()).toBe(18);
-  });
-
-  test('a Polyline attaches to a map and an AdvancedMarkerElement carries its options and clicks', () => {
-    const { maps } = install();
-    const map = new maps.Map(container());
-    expect(() => new maps.Polyline({ path: [], strokeColor: '#fff' }).setMap(map)).not.toThrow();
-    const content = document.createElement('div');
-    const marker = new maps.marker.AdvancedMarkerElement({ map, content, position: { lat: 1, lng: 2 }, zIndex: 3 });
-    // Identity checks: a deep match would walk the map and the DOM node.
-    expect(marker.map).toBe(map);
-    expect(marker.content).toBe(content);
-    expect(marker.position).toEqual({ lat: 1, lng: 2 });
-    expect(marker.zIndex).toBe(3);
-    expect(marker.element).toBeInstanceOf(window.HTMLElement);
-    const click = jest.fn();
-    marker.addListener('gmp-click', click);
-    maps.event.trigger(marker, 'gmp-click');
-    expect(click).toHaveBeenCalledTimes(1);
-    marker.map = null;
-    expect(marker.map).toBeNull();
   });
 });
 

@@ -492,7 +492,17 @@ class Task {
    * Stops drawing this street on the minimap.
    */
   eraseFromMinimap() {
-    svl.minimap.clearStreetLines(this.getStreetEdgeId());
+    svl.minimap.clearStreetLines(this.#minimapKey());
+  }
+
+  /**
+   * What identifies this task's lines on the minimap. A route can walk a street twice (out and back), as two tasks
+   * with one street id, so on a route it's the route_street row; a region has each street once.
+   * @returns {string}
+   */
+  #minimapKey() {
+    const routeStreetId = this.getProperty('routeStreetId') ?? null;
+    return routeStreetId !== null ? `route-street-${routeStreetId}` : `street-${this.getStreetEdgeId()}`;
   }
 
   /**
@@ -534,7 +544,7 @@ class Task {
     } else {
       lines = wholeStreet('other');
     }
-    svl.minimap.setStreetLines(this.getStreetEdgeId(), lines);
+    svl.minimap.setStreetLines(this.#minimapKey(), lines);
   }
 
   /**

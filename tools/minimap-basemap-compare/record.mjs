@@ -46,7 +46,7 @@ const DEFAULT_CITIES = [
  * MapLibre = Google − 1. 'default' pairs each minimap's default zoom: develop's Google 18, the branch's MapLibre 17.
  */
 const SHOTS = [
-  { name: 'street', googleZoom: 16, maplibreZoom: 15, caption: 'Street level, same scale (G16 / ML15)' },
+  { name: 'street', googleZoom: 16, maplibreZoom: 15, caption: 'Farthest manual zoom-out, same scale (G16 / ML15)' },
   { name: 'overview', googleZoom: 13, maplibreZoom: 12, caption: 'Route overview, same scale (G13 / ML12)' },
   { name: 'default', googleZoom: 18, maplibreZoom: 17, caption: 'Default minimap zoom (G18 / ML17)' },
 ];
@@ -127,7 +127,8 @@ function prodHosts() {
 
 /**
  * Picks one point per city: its most-labeled region (that is where labelers work), else the configured city center.
- * Cached in out/cities.json so reruns compare the same places.
+ * Cached in out/cities.json so reruns compare the same places. A city-center fallback isn't cached, so a lookup that
+ * failed once (a host down, a timeout) is retried on the next run instead of pinning that city to its center.
  * @param {string[]} cityIds - Cities to resolve.
  * @param {boolean} refresh - Ignore the cache.
  * @returns {Promise<object[]>} One {cityId, name, lat, lng, source} per city, in the order given.
@@ -136,6 +137,7 @@ async function resolveCities(cityIds, refresh) {
   const cachePath = path.join(OUT_DIR, 'cities.json');
   const cache = !refresh && fs.existsSync(cachePath) ? JSON.parse(fs.readFileSync(cachePath, 'utf8')) : {};
   const missing = cityIds.filter((id) => !cache[id]);
+  const resolved = {};
   if (missing.length) {
     const all = (await (await fetch(CITIES_API)).json()).cities;
     const hosts = prodHosts();
@@ -146,18 +148,21 @@ async function resolveCities(cityIds, refresh) {
       const host = hosts[id] ?? city.url;
       if (host) {
         try {
-          const region = await (await fetch(`${host}/v3/api/regionWithMostLabels`)).json();
+          const response = await fetch(`${host}/v3/api/regionWithMostLabels`);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const region = await response.json();
           const name = region.properties?.region_name ?? region.properties?.name ?? 'unnamed';
           point = { ...regionPoint(region.geometry), source: `most-labeled region (${name})` };
         } catch (e) {
           console.warn(`${id}: regionWithMostLabels failed (${e.message}); using the city center.`);
         }
       }
-      cache[id] = { cityId: id, name: city.city_name_formatted, ...point };
+      resolved[id] = { cityId: id, name: city.city_name_formatted, ...point };
+      if (point.source !== 'city center') cache[id] = resolved[id];
     }
     fs.writeFileSync(cachePath, `${JSON.stringify(cache, null, 2)}\n`);
   }
-  return cityIds.map((id) => cache[id]);
+  return cityIds.map((id) => resolved[id] ?? cache[id]);
 }
 
 /**
@@ -172,8 +177,10 @@ async function routeFiles(context, pageHtml) {
   await context.route(`${DEV_APP_URL}${PREFIX}**`, (route) => {
     const rel = decodeURIComponent(new URL(route.request().url()).pathname).slice(PREFIX.length);
     if (rel === 'compare.html') return route.fulfill({ contentType: 'text/html', body: pageHtml });
-    const file = path.join(PUBLIC_DIR, rel);
-    if (!file.startsWith(PUBLIC_DIR) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+    const file = path.resolve(PUBLIC_DIR, rel);
+    // path.relative, not startsWith: a sibling like public-old/ shares the prefix but is outside public/.
+    const inside = path.relative(PUBLIC_DIR, file);
+    if (inside.startsWith('..') || path.isAbsolute(inside) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
       return route.fulfill({ status: 404, body: '' });
     }
     return route.fulfill({
@@ -182,8 +189,13 @@ async function routeFiles(context, pageHtml) {
   });
 }
 
+/**
+ * @param {*} s - Text for out/index.html.
+ * @returns {string} The text, safe inside HTML content and quoted attributes.
+ */
 function esc(s) {
-  return String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
+  const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  return String(s).replace(/[&<>"']/g, (ch) => entities[ch]);
 }
 
 /**

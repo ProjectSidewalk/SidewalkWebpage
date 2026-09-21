@@ -193,7 +193,9 @@
       "route-start-flag": "Routenstart",
       "route-finish-flag": "Routenziel",
       "mission-start-flag": "Wo diese Mission begann",
-      "mission-finish-flag": "Wo diese Mission endet"
+      "mission-finish-flag": "Wo diese Mission endet",
+      "map-title": "Karte der Umgebung um Sie herum",
+      "unavailable": "Dieser Browser kann die Karte nicht anzeigen. Sie können ohne sie weiter erkunden."
     },
     "stats": {
       "leaderboard-cta": "Bestenliste der Gemeinschaft ansehen"

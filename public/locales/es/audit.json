@@ -193,7 +193,9 @@
       "route-start-flag": "Inicio de la ruta",
       "route-finish-flag": "Final de la ruta",
       "mission-start-flag": "Donde empezó esta misión",
-      "mission-finish-flag": "Donde termina esta misión"
+      "mission-finish-flag": "Donde termina esta misión",
+      "map-title": "Mapa de la zona a su alrededor",
+      "unavailable": "Este navegador no puede mostrar el mapa. Puede seguir explorando sin él."
     },
     "stats": {
       "leaderboard-cta": "Ver la clasificación de la comunidad"

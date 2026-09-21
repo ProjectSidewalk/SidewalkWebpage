@@ -3,16 +3,16 @@
  * https://maps.googleapis.com/maps/api/js so that no test ever reaches Google (issue #5129).
  *
  * Why it exists: Google bills the "Dynamic Street View" SKU per `new google.maps.StreetViewPanorama(...)`, tiles or
- * no tiles, and "Dynamic Maps" per `new google.maps.Map(...)`. Explore's tutorial pano and the label-detail popup
- * that /labelMap, /gallery, /dashboard and /stories build at page load each fire one, so a run of the smoke suite
- * against the real API was ~20 billable events — and the suite's job is to catch *our* runtime errors, not Google's.
+ * no tiles. Explore's tutorial pano and the label-detail popup that /labelMap, /gallery, /dashboard and /stories
+ * build at page load each fire one, so a run of the smoke suite against the real API was ~20 billable events — and the suite's job is to catch *our* runtime errors, not Google's.
  * With this file routed in, the CI project needs no key at all and the suite is deterministic offline.
  *
  * What it implements: only the surface `public/js` touches, so a member found here is known to be load-bearing and
  * a new Google call in the app fails here first rather than "working" against a fake the real API doesn't match.
- * The inventory is `grep -rn 'google\.maps\.' public/js app/views | grep -v /build/` plus the methods called on what
- * those return (`gsvPano.*`, `getMap().*`, the marker properties); re-run it before adding anything. Events arrive
- * on the next macrotask, as the real API's do. Nothing renders; each widget mounts an empty, labelled `<div>`.
+ * The inventory is `grep -rn 'google\.maps\.' public/js app/views | grep -v /build/` plus the members destructured
+ * from `importLibrary()` and the methods called on what those return (`gsvPano.*`); re-run it before adding
+ * anything. Events arrive on the next macrotask, as the real API's do. Nothing renders; the panorama mounts an
+ * empty, labelled `<div>`.
  *
  * Pano contract — the same as Google's: a `location` search always finds a pano; a `pano` lookup succeeds only for
  * an id this stub has seen (minted by a search, or vouched for by the panorama's registered provider), and any other
@@ -34,14 +34,12 @@
   const google = (window.google = window.google || {});
   const maps = (google.maps = google.maps || {});
   const options = { serveAnyPano: false, ...(window.googleMapsStubOptions || {}) };
-  // The fake `Map` class below shadows the built-in for the rest of this scope; keep the real one reachable.
-  const NativeMap = globalThis.Map;
 
   // ── Events ──────────────────────────────────────────────────────────────────────────────────────────────────────
   // Listeners are stored per target object in a WeakMap so plain objects (and DOM nodes) can be targets too.
   const listeners = new WeakMap();
   const listenersFor = (target) => {
-    if (!listeners.has(target)) listeners.set(target, new NativeMap());
+    if (!listeners.has(target)) listeners.set(target, new Map());
     return listeners.get(target);
   };
   /** A listener handle in the shape google.maps.event.removeListener() accepts. */
@@ -84,7 +82,7 @@
 
   /** Base class with the get/set/addListener trio every Maps object exposes. */
   class MVCObject {
-    #values = new NativeMap();
+    #values = new Map();
     get(key) {
       return this.#values.get(key);
     }
@@ -119,39 +117,6 @@
       return { lat: this.#lat, lng: this.#lng };
     }
   }
-  /** Built by extend() (Minimap) and read back by corner (ObservedArea, RouteOverview). */
-  class LatLngBounds {
-    #sw = null;
-    #ne = null;
-    constructor(sw, ne) {
-      if (sw) this.extend(sw);
-      if (ne) this.extend(ne);
-    }
-    isEmpty() {
-      return this.#sw === null;
-    }
-    extend(point) {
-      const { lat, lng } = toLatLngLiteral(point);
-      if (this.isEmpty()) {
-        this.#sw = { lat, lng };
-        this.#ne = { lat, lng };
-        return this;
-      }
-      this.#sw = { lat: Math.min(this.#sw.lat, lat), lng: Math.min(this.#sw.lng, lng) };
-      this.#ne = { lat: Math.max(this.#ne.lat, lat), lng: Math.max(this.#ne.lng, lng) };
-      return this;
-    }
-    getSouthWest() {
-      return this.isEmpty() ? null : new LatLng(this.#sw);
-    }
-    getNorthEast() {
-      return this.isEmpty() ? null : new LatLng(this.#ne);
-    }
-    getCenter() {
-      if (this.isEmpty()) return null;
-      return new LatLng((this.#sw.lat + this.#ne.lat) / 2, (this.#sw.lng + this.#ne.lng) / 2);
-    }
-  }
   /** Pixel dimensions, as in GsvViewer's tutorial pano data. */
   class Size {
     constructor(width, height) {
@@ -159,32 +124,8 @@
       this.height = height;
     }
   }
-  /** A world-coordinate point. */
-  class Point {
-    constructor(x, y) {
-      this.x = x;
-      this.y = y;
-    }
-  }
 
-  // Web Mercator on the 256px world the Maps API uses at zoom 0, so pixel math against getZoom() comes out right.
-  const WORLD_PX = 256;
-  const PROJECTION = {
-    fromLatLngToPoint(latLng) {
-      const { lat, lng } = toLatLngLiteral(latLng);
-      const siny = Math.min(Math.max(Math.sin((lat * Math.PI) / 180), -0.9999), 0.9999);
-      return new Point(
-        WORLD_PX * (0.5 + lng / 360), WORLD_PX * (0.5 - Math.log((1 + siny) / (1 - siny)) / (4 * Math.PI)),
-      );
-    },
-    fromPointToLatLng(point) {
-      const lng = (point.x / WORLD_PX - 0.5) * 360;
-      const n = Math.PI - (2 * Math.PI * point.y) / WORLD_PX;
-      return new LatLng((180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n))), lng);
-    },
-  };
-
-  // ── Map ─────────────────────────────────────────────────────────────────────────────────────────────────────────
+  // ── Street View ─────────────────────────────────────────────────────────────────────────────────────────────────
   /** Mounts a labelled placeholder so tests (and humans looking at a trace) can see where a widget went. */
   const mount = (el, kind) => {
     if (!el) return el;
@@ -192,141 +133,6 @@
     el.innerHTML = '<div style="width:100%;height:100%;background:#e5e3df" aria-hidden="true"></div>';
     return el;
   };
-  // The real API's zoom range; fitBounds and setZoom clamp to it and to the map's own minZoom/maxZoom.
-  const ZOOM_MIN = 0;
-  const ZOOM_MAX = 22;
-  const DEFAULT_CONTAINER_PX = 300;
-  /** Explore's minimap. Bounds derive from center + zoom + container, never cached, so they track getZoom(). */
-  class Map extends MVCObject {
-    #div;
-    #center;
-    #zoom;
-    #options;
-    #settling = false;
-    constructor(el, options = {}) {
-      super();
-      this.#div = mount(el, 'map');
-      this.#options = { ...options };
-      this.#center = options.center ? new LatLng(options.center) : new LatLng(0, 0);
-      this.#zoom = this.#clampZoom(options.zoom ?? 8);
-      this.#settle();
-    }
-    /**
-     * Every change settles into `bounds_changed` then `idle`, which the app awaits. A synchronous burst (Minimap's
-     * `setZoom` + `setCenter` reset) settles once, as the real map does: each `idle` redraws Explore's overlays.
-     */
-    #settle() {
-      if (this.#settling) return;
-      this.#settling = true;
-      setTimeout(() => {
-        this.#settling = false;
-        event.trigger(this, 'bounds_changed');
-        event.trigger(this, 'idle');
-      }, 0);
-    }
-    #clampZoom(z) {
-      const lo = Math.max(ZOOM_MIN, this.#options.minZoom ?? ZOOM_MIN);
-      const hi = Math.min(ZOOM_MAX, this.#options.maxZoom ?? ZOOM_MAX);
-      return Math.min(hi, Math.max(lo, z));
-    }
-    #containerSize() {
-      return {
-        width: this.#div?.clientWidth || DEFAULT_CONTAINER_PX,
-        height: this.#div?.clientHeight || DEFAULT_CONTAINER_PX,
-      };
-    }
-    getCenter() {
-      return this.#center;
-    }
-    setCenter(c) {
-      this.#center = new LatLng(c);
-      emitAsync(this, 'center_changed');
-      this.#settle();
-    }
-    getZoom() {
-      return this.#zoom;
-    }
-    setZoom(z) {
-      this.#zoom = this.#clampZoom(z);
-      emitAsync(this, 'zoom_changed');
-      this.#settle();
-    }
-    /** The container's pixels at the current zoom, centred on the centre. */
-    getBounds() {
-      const scale = 2 ** this.#zoom;
-      const { width, height } = this.#containerSize();
-      const c = PROJECTION.fromLatLngToPoint(this.#center);
-      const halfW = width / scale / 2;
-      const halfH = height / scale / 2;
-      return new LatLngBounds(
-        PROJECTION.fromPointToLatLng(new Point(c.x - halfW, c.y + halfH)),
-        PROJECTION.fromPointToLatLng(new Point(c.x + halfW, c.y - halfH)),
-      );
-    }
-    /**
-     * Recentres and picks the largest integer zoom at which the bounds fit inside the padded container, clamped to
-     * the zoom range — as the real map does, so the overlays' pixel math against getZoom() stays consistent.
-     * @param {LatLngBounds} bounds The area to show.
-     * @param {number|{top?: number, right?: number, bottom?: number, left?: number}} [padding=0] Pixels to keep clear.
-     */
-    fitBounds(bounds, padding = 0) {
-      if (bounds.isEmpty()) return;
-      const pad = typeof padding === 'number'
-        ? { top: padding, right: padding, bottom: padding, left: padding }
-        : { top: 0, right: 0, bottom: 0, left: 0, ...padding };
-      const { width, height } = this.#containerSize();
-      const sw = PROJECTION.fromLatLngToPoint(bounds.getSouthWest());
-      const ne = PROJECTION.fromLatLngToPoint(bounds.getNorthEast());
-      const worldW = Math.max(ne.x - sw.x, Number.EPSILON);
-      const worldH = Math.max(sw.y - ne.y, Number.EPSILON);
-      const fit = Math.min(
-        (width - pad.left - pad.right) / worldW, (height - pad.top - pad.bottom) / worldH,
-      );
-      this.#zoom = this.#clampZoom(Math.floor(Math.log2(Math.max(fit, 1))));
-      this.#center = bounds.getCenter();
-      emitAsync(this, 'zoom_changed', 'center_changed');
-      this.#settle();
-    }
-    setOptions(o) {
-      Object.assign(this.#options, o || {});
-      // A narrowed range applies to the current zoom too, as on the real map.
-      this.#zoom = this.#clampZoom(o?.zoom ?? this.#zoom);
-      if (o?.center) this.#center = new LatLng(o.center);
-      this.#settle();
-    }
-    getProjection() {
-      return PROJECTION;
-    }
-  }
-  const MapTypeId = { ROADMAP: 'roadmap', SATELLITE: 'satellite', HYBRID: 'hybrid', TERRAIN: 'terrain' };
-  const RenderingType = { RASTER: 'RASTER', VECTOR: 'VECTOR', UNINITIALIZED: 'UNINITIALIZED' };
-
-  /** A route segment on the minimap (Task.js); only constructed and attached, never read back. */
-  class Polyline extends MVCObject {
-    #options;
-    constructor(options = {}) {
-      super();
-      this.#options = { ...options };
-    }
-    setMap(map) {
-      this.#options.map = map;
-    }
-  }
-
-  /**
-   * The `marker` library's element: a plain object with writable properties (Peg moves it by assigning `position`,
-   * `remove()` by assigning `map = null`) that also emits `gmp-click` through the shared event system.
-   */
-  class AdvancedMarkerElement extends MVCObject {
-    constructor(options = {}) {
-      super();
-      Object.assign(this, { position: null, map: null, content: null, zIndex: null }, options);
-      this.element = document.createElement('div');
-      this.element.className = 'gmp-advanced-marker-stub';
-    }
-  }
-
-  // ── Street View ─────────────────────────────────────────────────────────────────────────────────────────────────
   const StreetViewStatus = { OK: 'OK', ZERO_RESULTS: 'ZERO_RESULTS', UNKNOWN_ERROR: 'UNKNOWN_ERROR' };
   const StreetViewSource = { DEFAULT: 'default', OUTDOOR: 'outdoor', GOOGLE: 'google' };
 
@@ -334,7 +140,7 @@
    * Everything a location search has minted, keyed by an id derived from the point so the same search finds the
    * same pano and a later lookup by that id succeeds. Under `serveAnyPano` an unseen id is minted at null island.
    */
-  const panoRegistry = new NativeMap();
+  const panoRegistry = new Map();
   const mintPanoData = (latLng, id = `stub-pano-${latLng.lat().toFixed(5)}-${latLng.lng().toFixed(5)}`) => {
     if (!panoRegistry.has(id)) {
       panoRegistry.set(id, {
@@ -439,13 +245,11 @@
   }
 
   // ── Namespace + loader hand-off ─────────────────────────────────────────────────────────────────────────────────
-  const core = { event, LatLng, LatLngBounds, Size, Point, MVCObject };
-  const mapsLib = { Map, MapTypeId, RenderingType, Polyline };
+  const core = { event, LatLng, Size, MVCObject };
   const streetView = { StreetViewPanorama, StreetViewService, StreetViewStatus, StreetViewSource };
-  const marker = { AdvancedMarkerElement };
-  const libraries = { core, maps: mapsLib, streetView, marker };
+  const libraries = { core, streetView };
 
-  Object.assign(maps, core, mapsLib, streetView, { marker, version: 'stub' });
+  Object.assign(maps, core, streetView, { version: 'stub' });
   maps.importLibrary = (name) => (
     libraries[name]
       ? Promise.resolve(libraries[name])

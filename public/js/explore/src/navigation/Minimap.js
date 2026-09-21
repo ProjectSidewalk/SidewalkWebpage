@@ -46,10 +46,14 @@ class Minimap {
   // Id of the GeoJSON source holding every street line.
   static #STREETS_SOURCE = 'streets';
 
-  /** @type {maplibregl.Map} */
-  #map;
+  /** The map, or null when it couldn't be created (no WebGL2, or MapLibre failed to load); see create(). */
+  /** @type {?maplibregl.Map} */
+  #map = null;
 
-  /** Each street's lines as GeoJSON features, keyed by street edge id; together they are the streets source's data. */
+  /** The street-level zoom the map is at or animating to, so a recenter mid-animation can't strand a fraction. */
+  #targetZoom = Minimap.#DEFAULT_ZOOM;
+
+  /** Each task's lines as GeoJSON features, keyed by its caller's key; together they are the streets source's data. */
   #streetFeatures = new Map();
 
   /** Handle of the pending animation frame that will upload #streetFeatures, or null when the source is current. */
@@ -82,7 +86,11 @@ class Minimap {
       interactive: false,
       // Added by #addAttribution in its compact form; the default would cover a third of a map this small.
       attributionControl: false,
-      locale: { 'AttributionControl.ToggleAttribution': i18next.t('audit:right-ui.minimap.attribution-toggle') },
+      // MapLibre names the canvas and the credits button itself, in English unless given these.
+      locale: {
+        'Map.Title': i18next.t('audit:right-ui.minimap.map-title'),
+        'AttributionControl.ToggleAttribution': i18next.t('audit:right-ui.minimap.attribution-toggle'),
+      },
     });
     this.#addAttribution();
 
@@ -93,8 +101,9 @@ class Minimap {
     // A resize is a move too: MapLibre watches its container, so a UI-scale change or the tutorial's fixed square
     // lands here once the map has caught up with its new size.
     this.#map.on('move', () => {
+      // ObservedArea.update redraws the inset too, so the inset is drawn here only before ObservedArea exists.
       if (svl.observedArea) svl.observedArea.update();
-      if (svl.routeOverview) svl.routeOverview.render();
+      else if (svl.routeOverview) svl.routeOverview.render();
     });
 
     await new Promise((resolve) => this.#map.once('style.load', resolve));
@@ -109,7 +118,7 @@ class Minimap {
   }
 
   /**
-   * Adds the map data attribution as a collapsed "i" button that expands on click.
+   * Adds the map data attribution as a collapsed "i" button that expands on click, and logs each toggle.
    *
    * MapLibre opens a compact attribution as soon as the tile source reports its credits, and closes it on the first
    * drag of the map. This map can't be dragged, so left alone the credits would cover a third of it for the whole
@@ -128,15 +137,23 @@ class Minimap {
     corner.appendChild(new maplibregl.AttributionControl({ compact: true }).onAdd(this.#map));
     holder.appendChild(corner);
     const attribution = corner.querySelector('.maplibregl-ctrl-attrib');
-    if (!attribution) return;
+    const button = corner.querySelector('.maplibregl-ctrl-attrib-button');
+    if (!attribution || !button) return;
     const opened = 'maplibregl-compact-show';
     const observer = new MutationObserver(() => {
       if (!attribution.classList.contains(opened)) return;
       observer.disconnect();
-      // The class alone is what MapLibre's own close-on-drag removes; its `open` attribute stays set either way.
+      // Closed the way MapLibre's own toggle closes it: the class shows the credits, and the <details> `open`
+      // attribute is what the <summary> button announces as expanded to assistive tech.
       attribution.classList.remove(opened);
+      attribution.removeAttribute('open');
     });
     observer.observe(attribution, { attributes: true, attributeFilter: ['class'] });
+    // MapLibre toggles the class in its own click handler on the button, which runs before this one.
+    button.addEventListener('click', () => {
+      const isOpen = attribution.classList.contains(opened);
+      svl.tracker.push('Click_MinimapAttribution', { action: isOpen ? 'open' : 'close' });
+    });
   }
 
   /**
@@ -170,7 +187,7 @@ class Minimap {
    * @param {string} trigger - What initiated the toggle (for interaction logging).
    */
   toggleOverview(trigger) {
-    if (svl.ui.minimap.holder.hasClass('minimap-tutorial')) return;
+    if (!this.#map || svl.ui.minimap.holder.hasClass('minimap-tutorial')) return;
     if (this.#overviewMode) {
       this.exitOverview(trigger);
     } else {
@@ -184,16 +201,16 @@ class Minimap {
    * @param {number} delta - Number of zoom levels to add (positive zooms in, negative zooms out).
    */
   #changeZoom(delta) {
-    if (svl.ui.minimap.holder.hasClass('minimap-tutorial')) return;
+    if (!this.#map || svl.ui.minimap.holder.hasClass('minimap-tutorial')) return;
     // Manual zooming while fitted means the user wants street level back; the exit already resets the zoom.
     if (this.#overviewMode) {
       this.exitOverview('zoom');
       return;
     }
-    // Round first: a wheel notch landing mid-animation would otherwise step from a fractional zoom.
-    const currentZoom = Math.round(this.#map.getZoom());
-    const newZoom = Math.min(Minimap.#MAX_ZOOM, Math.max(Minimap.#MIN_ZOOM, currentZoom + delta));
-    if (newZoom !== this.#map.getZoom()) {
+    // Step from the target, not getZoom(): a wheel notch landing mid-animation would otherwise step from a fraction.
+    const newZoom = Math.min(Minimap.#MAX_ZOOM, Math.max(Minimap.#MIN_ZOOM, this.#targetZoom + delta));
+    if (newZoom !== this.#targetZoom) {
+      this.#targetZoom = newZoom;
       // Naming the center keeps the pano under the peg for the whole animation. easeTo skips the animation itself
       // under prefers-reduced-motion.
       this.#map.easeTo({ zoom: newZoom, center: Minimap.#lngLat(svl.panoViewer.getPosition()), duration: 200 });
@@ -206,6 +223,7 @@ class Minimap {
    * they only make sense at street zoom, centered on the user.
    */
   enterOverview() {
+    if (!this.#map) return;
     const bounds = this.#streetBounds();
     if (!bounds || this.#overviewMode) return;
     this.#overviewMode = true;
@@ -226,7 +244,8 @@ class Minimap {
     svl.ui.minimap.holder.removeClass('minimap-overview');
     // Zoom in before raising the floor: raising it first would make MapLibre clamp the zoom itself, firing a move at
     // the overview's center.
-    this.#map.jumpTo({ zoom: Minimap.#DEFAULT_ZOOM, center: Minimap.#lngLat(svl.panoViewer.getPosition()) });
+    this.#targetZoom = Minimap.#DEFAULT_ZOOM;
+    this.#map.jumpTo({ zoom: this.#targetZoom, center: Minimap.#lngLat(svl.panoViewer.getPosition()) });
     this.#map.setMinZoom(Minimap.#MIN_ZOOM);
     svl.tracker.push('MinimapOverview_End', { trigger });
   }
@@ -352,7 +371,7 @@ class Minimap {
    * icons, visited and forward crumbs, and the route/mission flags.
    *
    * What a marker is to assistive tech follows from what it does. One with an onClick is a button (focusable,
-   * activated by click, Enter or Space) named by its title. One with only a title is an image named by it. One with
+   * activated by click or Enter) named by its title. One with only a title is an image named by it. One with
    * neither is decoration: hidden from the accessibility tree and click-through, so it can't swallow a click meant
    * for a marker beneath it (the crumbs nearest the user sit inside the peg's box, #2561).
    * @param {{lat: number, lng: number}} latLng - Where the marker goes.
@@ -372,14 +391,15 @@ class Minimap {
     element.appendChild(content);
     if (title) element.title = title;
 
-    // MapLibre makes any marker it isn't told about a button named "Map marker", so say what each one is.
+    // MapLibre gives a marker built from our own element no role or name, so each one states what it is here.
     if (onClick) {
       element.setAttribute('role', 'button');
       element.setAttribute('tabindex', '0');
       element.setAttribute('aria-label', title || '');
       element.addEventListener('click', onClick);
+      // Enter only: Space is Explore's global "step forward" key, so a marker acting on it too would fire both.
       element.addEventListener('keydown', (e) => {
-        if (e.key !== 'Enter' && e.key !== ' ') return;
+        if (e.key !== 'Enter') return;
         e.preventDefault();
         onClick();
       });
@@ -391,6 +411,11 @@ class Minimap {
       element.setAttribute('aria-label', '');
       element.setAttribute('aria-hidden', 'true');
       element.classList.add('minimap-marker-decorative');
+    }
+
+    // Without a map the marker is kept but never shown, so its callers need no special case.
+    if (!this.#map) {
+      return { element, content, setLatLng: () => {}, setVisible: () => {}, remove: () => {} };
     }
 
     // Subpixel positioning keeps markers from jittering against the fog canvas during a zoom animation.
@@ -409,11 +434,12 @@ class Minimap {
   /**
    * Sets how one street is drawn, replacing whatever it drew before. The map is updated once per animation frame
    * however many streets change in it, so rendering a whole region's tasks on load costs a single upload.
-   * @param {number} streetEdgeId - The street.
+   * @param {string|number} key - Which drawing of a street this is. Distinct per task, not per street: a route that
+   *                              walks a street out and back draws it twice, once per direction.
    * @param {MinimapStreetLine[]} lines - Its lines. A line needs two points to be one, so shorter ones are dropped
    *                                      (turf can slice a street's half down to a single point at an endpoint).
    */
-  setStreetLines(streetEdgeId, lines) {
+  setStreetLines(key, lines) {
     const features = lines
       .filter((line) => line.coordinates.length > 1)
       .map((line) => ({
@@ -422,19 +448,19 @@ class Minimap {
         geometry: { type: 'LineString', coordinates: line.coordinates },
       }));
     if (features.length > 0) {
-      this.#streetFeatures.set(streetEdgeId, features);
+      this.#streetFeatures.set(key, features);
     } else {
-      this.#streetFeatures.delete(streetEdgeId);
+      this.#streetFeatures.delete(key);
     }
     this.#scheduleStreetFlush();
   }
 
   /**
    * Stops drawing a street.
-   * @param {number} streetEdgeId - The street.
+   * @param {string|number} key - The key it was drawn under by setStreetLines.
    */
-  clearStreetLines(streetEdgeId) {
-    if (this.#streetFeatures.delete(streetEdgeId)) this.#scheduleStreetFlush();
+  clearStreetLines(key) {
+    if (this.#streetFeatures.delete(key)) this.#scheduleStreetFlush();
   }
 
   /** @returns {object} Every street's lines as one GeoJSON FeatureCollection. */
@@ -444,11 +470,18 @@ class Minimap {
 
   /** Queues one upload of the street lines for the next animation frame, unless one is already queued. */
   #scheduleStreetFlush() {
-    if (this.#streetFlushHandle !== null) return;
+    if (!this.#map || this.#streetFlushHandle !== null) return;
     this.#streetFlushHandle = window.requestAnimationFrame(() => {
       this.#streetFlushHandle = null;
       this.#map.getSource(Minimap.#STREETS_SOURCE).setData(this.#streetFeatureCollection());
     });
+  }
+
+  /**
+   * @returns {boolean} Whether the map exists; project(), getZoom() and getBounds() need it, so overlays check first.
+   */
+  isAvailable() {
+    return this.#map !== null;
   }
 
   /**
@@ -478,6 +511,7 @@ class Minimap {
    * @param {boolean} visible
    */
   setBasemapVisible(visible) {
+    if (!this.#map) return;
     const visibility = visible ? 'visible' : 'none';
     for (const layer of this.#map.getStyle().layers) {
       if (layer.type === 'background' || layer.source === MinimapBasemapStyle.SOURCE_ID) {
@@ -491,9 +525,11 @@ class Minimap {
    * @param {{lat: number, lng: number}} latLng
    */
   setMinimapLocation(latLng) {
+    if (!this.#map) return;
     // Reaching a new pano while fitted means the user is exploring again — drop back to street level first.
     if (this.#overviewMode) this.exitOverview('pano-changed');
-    this.#map.setCenter(Minimap.#lngLat(latLng));
+    // Naming the zoom finishes any zoom animation this jump cuts short, instead of leaving it at a fraction.
+    this.#map.jumpTo({ center: Minimap.#lngLat(latLng), zoom: this.#targetZoom });
   }
 
   /**
@@ -599,14 +635,43 @@ class Minimap {
   }
 
   /**
+   * Takes down whatever #init built and says in the minimap's place that the map can't be shown.
+   * @param {Error} error - Why the map couldn't be created.
+   */
+  #showUnavailable(error) {
+    console.error('Minimap: the map could not be created, so Explore continues without it.', error);
+    if (this.#map) {
+      try {
+        this.#map.remove();
+      } catch (removeError) {
+        console.error(removeError);
+      }
+    }
+    this.#map = null;
+    document.getElementById('minimap-attribution')?.remove();
+    svl.ui.minimap.holder.addClass('minimap-unavailable');
+    const message = document.getElementById('minimap-unavailable-message');
+    if (message) message.hidden = false;
+    svl.tracker.push('Minimap_Unavailable', { error: String(error && error.message ? error.message : error) });
+  }
+
+  /**
    * Factory function that creates the minimap in the bottom-right of the UI.
+   *
+   * Never rejects. MapLibre needs WebGL2 and throws without it (hardware acceleration off, a GPU the browser
+   * blocklists, some remote desktops); a minimap that can't draw must not stop the rest of Explore from starting, so
+   * that and any failure to load the library leave a minimap that draws nothing and says so.
    * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
    * @returns {Promise<Minimap>} The minimap instance.
    */
   static async create(initialLocation) {
-    await Minimap.#loadLibrary();
     const newMinimap = new Minimap();
-    await newMinimap.#init(initialLocation);
+    try {
+      await Minimap.#loadLibrary();
+      await newMinimap.#init(initialLocation);
+    } catch (error) {
+      newMinimap.#showUnavailable(error);
+    }
     return newMinimap;
   }
 }

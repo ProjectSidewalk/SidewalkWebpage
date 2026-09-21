@@ -40,13 +40,14 @@ class MinimapBasemapStyle {
 
   /**
    * A line width that grows with zoom the way a real road does, so streets keep their relative weight from the
-   * route overview (z12) to the closest street view (z20).
-   * @param {number} atZoom13 - Width in px at zoom 13.
-   * @param {number} atZoom20 - Width in px at zoom 20.
+   * route overview (z11) to the closest street view (z19, Minimap's maximum). The widths were judged by eye at the
+   * default zoom, 17, and are still well under Google's at that scale, whose roads are drawn near true width.
+   * @param {number} atZoom12 - Width in px at zoom 12 and below.
+   * @param {number} atZoom19 - Width in px at zoom 19.
    * @returns {Array} A MapLibre interpolate expression.
    */
-  static #roadWidth(atZoom13, atZoom20) {
-    return ['interpolate', ['exponential', 1.5], ['zoom'], 13, atZoom13, 20, atZoom20];
+  static #roadWidth(atZoom12, atZoom19) {
+    return ['interpolate', ['exponential', 1.5], ['zoom'], 12, atZoom12, 19, atZoom19];
   }
 
   /**

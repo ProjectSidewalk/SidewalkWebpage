@@ -128,7 +128,7 @@ describe('label icon sizing across the UI scale', () => {
                 labelTypeHasSeverity: () => true };
             util.pano = { centeredPovToCanvasCoord: () => ({ x: 100, y: 100 }) };
             window.labelIconCache = { 'CurbRamp.svg': {} };
-            window.svl = { LABEL_ICON_RADIUS: 17, minimap: { getMap: () => null } };
+            window.svl = { LABEL_ICON_RADIUS: 17 };
             window.eval(`${LABEL_SRC}\nwindow.Label = Label;`);
             Label = window.Label;
         });
@@ -240,7 +240,6 @@ describe('label icon sizing across the UI scale', () => {
             window.svl = {
                 LABEL_ICON_RADIUS: util.labelIconRadius(1),
                 LABEL_HIT_MARGIN: util.labelHitMargin(1),
-                minimap: { getMap: () => null },
             };
             window.eval(`${LABEL_SRC}\nwindow.Label = Label;`);
             window.eval(`${CANVAS_SRC}\nwindow.Canvas = Canvas;`);

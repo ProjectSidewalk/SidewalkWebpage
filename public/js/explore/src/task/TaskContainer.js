@@ -515,8 +515,7 @@ class TaskContainer {
   }
 
   /**
-   * This method is called from Map.handlerPositionUpdate() to update the color of audited and unaudited street
-   * segments of the current task on Google Maps.
+   * Called on each position update to redraw the current task's explored and remaining parts on the minimap.
    * TODO This should be done somewhere else.
    */
   updateCurrentTask() {

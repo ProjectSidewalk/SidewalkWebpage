@@ -48,7 +48,6 @@ describe('Label lat/lng estimation', () => {
     beforeEach(() => {
         Label = loadLabel();
         window.svl = {
-            minimap: { getMap: () => null },
             latLngEstimation: {
                 blendDeg: 11.25,
                 maxDistanceM: 50.0,

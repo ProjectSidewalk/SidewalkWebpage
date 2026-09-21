@@ -78,7 +78,6 @@ describe('Label render fade while the context menu is open', () => {
         window.svl = {
             LABEL_ICON_RADIUS: util.labelIconRadius(1),
             isOnboarding: () => false,
-            minimap: { getMap: () => null },
         };
         util.pano = { centeredPovToCanvasCoord: () => ({ x: 360, y: 240 }) };
         util.misc = {

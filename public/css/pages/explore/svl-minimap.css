@@ -49,6 +49,32 @@
   isolation: isolate;
 }
 
+/* No map (Minimap.create: the browser has no WebGL2). The panes drawn to the map's scale go, and a note takes the
+   map's place; the mission progress bar and percent-looked-around chip still work without it. */
+#minimap-holder.minimap-unavailable #minimap,
+#minimap-holder.minimap-unavailable #minimap-fog-of-war-canvas,
+#minimap-holder.minimap-unavailable #minimap-fov-canvas,
+#minimap-holder.minimap-unavailable #minimap-zoom-controls,
+#minimap-holder.minimap-unavailable #minimap-legend-toggle,
+#minimap-holder.minimap-unavailable #minimap-legend-card,
+#minimap-holder.minimap-unavailable #minimap-coach {
+  display: none;
+}
+
+#minimap-unavailable-message {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: calc(12px * var(--ui-scale));
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-800);
+  font: var(--text-tiny-regular);
+  text-align: center;
+}
+
 #minimap-overlay {
   z-index: 2;
 }
@@ -567,9 +593,11 @@
 }
 
 /* Breadcrumbs are map-positioned markers, not canvas panes, so the rule above doesn't reach them; hide them explicitly
-   in the fitted whole-route overview so the visited trail doesn't clutter the zoomed-out view (#4639). */
-#minimap-holder.minimap-overview .minimap-breadcrumb,
-#minimap-holder.minimap-overview .minimap-crumb {
+   in the fitted whole-route overview so the visited trail doesn't clutter the zoomed-out view (#4639). The marker
+   wrapper is what goes: it holds the tab stop, so hiding only the crumb inside would leave an invisible focus
+   target. */
+#minimap-holder.minimap-overview .minimap-marker:has(> .minimap-breadcrumb),
+#minimap-holder.minimap-overview .minimap-marker:has(> .minimap-crumb) {
   display: none;
 }
 
@@ -624,9 +652,10 @@
    sits at the foot of the zoom buttons' column, just to their left. It lives outside #minimap's isolated stacking
    context (Minimap.js #addAttribution) so the expanded credits open above the legend and coach, not under them.
    MapLibre's glyph fills only the middle 12/20 of its 18px box, so the box sits ~4px below the zoom buttons' 10px
-   to put the drawn circle, not its invisible box, on their bottom edge. */
+   to put the drawn circle, not its invisible box, on their bottom edge. 28px from the right puts its center 24px
+   from the zoom-out button's, the spacing WCAG 2.5.8 asks of two targets smaller than 24px. */
 #minimap-attribution {
-  right: calc(26px * var(--ui-scale));
+  right: calc(28px * var(--ui-scale));
   bottom: calc(6px * var(--ui-scale));
   z-index: 6;
 }
@@ -652,16 +681,30 @@
 }
 
 #minimap-attribution .maplibregl-ctrl-attrib-button:hover,
+#minimap-attribution .maplibregl-ctrl-attrib-button:focus-visible,
 #minimap-attribution .maplibregl-compact-show .maplibregl-ctrl-attrib-button {
   opacity: 1;
+}
+
+/* The button's 0.6 opacity would carry into its outline, leaving a focus ring too faint to see (WCAG 2.4.7/1.4.11),
+   so it goes fully opaque on focus above and takes the route-overview button's outline. It replaces MapLibre's own
+   ring, a box-shadow on every :focus, which also lingered after a mouse click. */
+#minimap-attribution .maplibregl-ctrl-attrib-button:focus {
+  box-shadow: none;
+}
+
+#minimap-attribution .maplibregl-ctrl-attrib-button:focus-visible {
+  outline: calc(2px * var(--ui-scale)) solid var(--color-pine-600);
+  outline-offset: calc(1px * var(--ui-scale));
 }
 
 #minimap-attribution .maplibregl-ctrl-attrib.maplibregl-compact-show {
   padding: calc(3px * var(--ui-scale)) calc(22px * var(--ui-scale)) calc(3px * var(--ui-scale))
     calc(8px * var(--ui-scale));
   border-radius: calc(8px * var(--ui-scale));
-  background: rgb(255 255 255 / 95%);
-  box-shadow: 0 calc(2px * var(--ui-scale)) calc(10px * var(--ui-scale)) rgb(0 0 0 / 30%);
+  background: color-mix(in srgb, var(--color-neutral-white) 95%, transparent);
+  box-shadow: 0 calc(2px * var(--ui-scale)) calc(10px * var(--ui-scale))
+    color-mix(in srgb, var(--color-neutral-black) 30%, transparent);
 }
 
 /* The +/- buttons take their look from the shared .zoom-button styling, with some minor tweaks. */

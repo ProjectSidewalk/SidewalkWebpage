@@ -39,7 +39,6 @@ describe('Label lat/lng estimation parity with the server and the SQL backfill (
     beforeEach(() => {
         Label = loadLabel();
         window.svl = {
-            minimap: { getMap: () => null },
             latLngEstimation: {
                 blendDeg: FIXTURE.constants.blend_deg,
                 maxDistanceM: FIXTURE.constants.max_distance_m,

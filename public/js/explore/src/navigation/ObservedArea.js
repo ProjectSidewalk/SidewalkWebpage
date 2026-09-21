@@ -382,14 +382,15 @@ class ObservedArea {
       if (!svl.navigationService || !svl.navigationService.getStatus('headingSettling')) {
         this.#updateAngles();
       }
-      this.#renderFogOfWar();
-      this.#renderFov();
+      // The fog and cone are drawn to the map's scale; with no map (Minimap.create) there is nothing to align them to.
+      if (svl.minimap && svl.minimap.isAvailable()) {
+        this.#renderFogOfWar();
+        this.#renderFov();
+      }
       this.#renderProgressCircle();
       // Point the peg's heading triangle where the user is looking. #angle is unwrapped (continuous), so the CSS
       // rotation transitions the short way across the 0/360 boundary.
       if (svl.peg && this.#angle !== null) svl.peg.setHeading(this.#angle);
-      // Redraw the route-overview inset so its "you are here" wedge rotates in lockstep with the peg (#4639).
-      if (svl.routeOverview) svl.routeOverview.render();
       // "100%" is one glyph wider than "NN%", so shrink the font a touch only at full to keep it inside the chip.
       this.#uiMinimap.percentObserved
         .text(`${Math.floor(100 * this.#fractionObserved)}%`)
@@ -400,5 +401,7 @@ class ObservedArea {
         this.#maybeCelebrate();
       }
     }
+    // The inset's "you are here" wedge turns with the peg (#4639) and its viewport box follows Minimap's moves.
+    if (svl.routeOverview) svl.routeOverview.render();
   }
 }
