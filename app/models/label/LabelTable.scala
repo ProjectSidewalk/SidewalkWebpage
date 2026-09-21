@@ -239,7 +239,9 @@ case class LabelMetadata(
     expired: Boolean,
     fromCurrentUser: Boolean,
     panoMetadata: Option[PanoViewerMetadata],
-    panoSource: PanoSource
+    panoSource: PanoSource,
+    deleted: Boolean,
+    deletedBy: Option[String]
 )
 
 /**
@@ -917,7 +919,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           r.nextStringOption()  // address
         )
       ),
-      PanoSource.withName(r.nextString())
+      PanoSource.withName(r.nextString()),
+      r.nextBoolean(),
+      r.nextStringOption()
     )
   }
 
@@ -1325,7 +1329,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              pano_data.copyright,
              pano_data.license,
              pano_data.address,
-             pano_data.source
+             pano_data.source,
+             lb1.deleted,
+             lb1.deleted_by
       FROM label AS lb1
       INNER JOIN pano_data ON lb1.pano_id = pano_data.pano_id
       INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id

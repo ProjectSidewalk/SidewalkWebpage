@@ -91,7 +91,7 @@
   "edit-failed": "Votre modification n'a pas pu être enregistrée. Veuillez réessayer.",
   "edit-failed-short": "Non enregistré",
   "no-imagery-disabled": "Vous ne pouvez pas valider ni commenter quand aucune image n'est disponible pour cette étiquette",
-  "no-imagery-edit-disabled": "Vous ne pouvez pas évaluer cette étiquette ni modifier ses tags quand aucune image n'est disponible",
+  "no-imagery-edit-disabled": "Vous ne pouvez pas évaluer, modifier ni supprimer cette étiquette quand aucune image n'est disponible",
   "admin-only": "Réservé aux administrateurs",
   "not-admin-validated": "Non validée par un administrateur",
   "download": {
@@ -182,5 +182,15 @@
   "edit-type-changed": "Changé en {{labelType}}",
   "edit-undo": "Annuler",
   "edit-conflict-short": "Type d'étiquette modifié ailleurs",
-  "edit-conflict": "Le type de cette étiquette a été modifié ailleurs, la carte affiche donc son état actuel."
+  "edit-conflict": "Le type de cette étiquette a été modifié ailleurs, la carte affiche donc son état actuel.",
+  "delete-label": "Supprimer l'étiquette",
+  "delete-label-confirm": "Supprimer cette étiquette ? Elle disparaîtra de la carte ; vous pourrez la restaurer plus tard depuis cette fiche.",
+  "delete-label-confirm-admin": "Supprimer cette étiquette ? Elle disparaîtra de la carte, et votre vote « Pas d'accord » y sera enregistré.",
+  "delete-label-failed": "L'étiquette n'a pas pu être supprimée. Veuillez réessayer.",
+  "restore-label": "Restaurer l'étiquette",
+  "restore-label-brief": "Restaurer",
+  "restore-label-failed": "L'étiquette n'a pas pu être restaurée. Veuillez réessayer.",
+  "you-deleted-label": "Vous avez supprimé cette étiquette",
+  "label-was-deleted": "Cette étiquette a été supprimée",
+  "deleted-label-disabled": "Cette étiquette a été supprimée ; elle ne peut être ni validée ni modifiée tant qu'elle n'est pas restaurée"
 }

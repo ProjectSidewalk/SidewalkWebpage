@@ -166,6 +166,10 @@
             // The navigator keeps its own label-to-type lookup, which the beacon reads its color from.
             self.nearbyNav?.refresh();
             spotlight.refreshBeacon(meta.label_id);
+          },
+          onDelete: (meta) => {
+            self.mapData?.setLabelDeleted?.(meta.label_id, meta.deleted);
+            self.nearbyNav?.refresh();
           }
         }),
         navigationControlPosition: 'top-right',

@@ -91,7 +91,7 @@
   "edit-failed": "Die Änderung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
   "edit-failed-short": "Nicht gespeichert",
   "no-imagery-disabled": "Sie können nicht validieren oder kommentieren, wenn für diese Beschriftung keine Bilddaten verfügbar sind",
-  "no-imagery-edit-disabled": "Sie können diese Beschriftung nicht bewerten und ihre Tags nicht bearbeiten, wenn keine Bilddaten verfügbar sind",
+  "no-imagery-edit-disabled": "Sie können diese Beschriftung nicht bewerten, bearbeiten oder löschen, wenn keine Bilddaten verfügbar sind",
   "admin-only": "Nur Admin",
   "not-admin-validated": "Nicht von einem Administrator validiert",
   "download": {
@@ -182,5 +182,15 @@
   "edit-type-changed": "Geändert zu {{labelType}}",
   "edit-undo": "Rückgängig",
   "edit-conflict-short": "Etikettentyp anderswo geändert",
-  "edit-conflict": "Der Typ dieses Etiketts wurde anderswo geändert, daher zeigt die Karte jetzt seinen aktuellen Stand."
+  "edit-conflict": "Der Typ dieses Etiketts wurde anderswo geändert, daher zeigt die Karte jetzt seinen aktuellen Stand.",
+  "delete-label": "Beschriftung löschen",
+  "delete-label-confirm": "Diese Beschriftung löschen? Sie verschwindet von der Karte; Sie können sie später über diese Karte wiederherstellen.",
+  "delete-label-confirm-admin": "Diese Beschriftung löschen? Sie verschwindet von der Karte, und Ihre Bewertung „Nicht einverstanden“ wird dazu gespeichert.",
+  "delete-label-failed": "Die Beschriftung konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+  "restore-label": "Beschriftung wiederherstellen",
+  "restore-label-brief": "Wiederherstellen",
+  "restore-label-failed": "Die Beschriftung konnte nicht wiederhergestellt werden. Bitte versuchen Sie es erneut.",
+  "you-deleted-label": "Sie haben diese Beschriftung gelöscht",
+  "label-was-deleted": "Diese Beschriftung wurde gelöscht",
+  "deleted-label-disabled": "Diese Beschriftung wurde gelöscht und kann erst nach der Wiederherstellung validiert oder bearbeitet werden"
 }

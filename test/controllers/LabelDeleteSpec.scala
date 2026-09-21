@@ -177,6 +177,22 @@ class LabelDeleteSpec
       deletionOf(labelId) mustBe ((false, None, false, None))
     }
 
+    "tell the card whether the label is deleted and whether the viewer may restore it" in {
+      val (ownerId, _, ownerSession)                      = signUpFreshUser()
+      val (otherId, _, otherSession)                      = signUpFreshUser()
+      val labelId                                         = adoptLabel(ownerId)
+      def flags(session: Seq[Cookie]): (Boolean, Boolean) = {
+        val json = contentAsJson(route(app, FakeRequest(GET, s"/label/id/$labelId").withCookies(session: _*)).get)
+        ((json \ "deleted").as[Boolean], (json \ "can_restore").as[Boolean])
+      }
+      flags(ownerSession) mustBe ((false, false))
+      status(delete(ownerSession, labelId)) mustBe OK
+      flags(ownerSession) mustBe ((true, true))
+      flags(otherSession) mustBe ((true, false))
+      grantAdmin(otherId)
+      flags(otherSession) mustBe ((true, true))
+    }
+
     "keep an incorrect verdict in the labeler's accuracy but drop a correct one" in {
       val (userId, _, session) = signUpFreshUser()
       val labelId              = adoptLabel(userId)

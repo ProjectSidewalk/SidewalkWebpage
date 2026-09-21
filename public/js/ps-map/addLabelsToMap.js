@@ -98,6 +98,7 @@ function addLabelsToMap(map, labelData, params) {
   }
 
   mapData.updateLabelType = (labelId, labelType) => updateLabelType(map, mapData, labelId, labelType);
+  mapData.setLabelDeleted = (labelId, deleted) => setLabelDeleted(map, mapData, labelId, deleted);
 
   // addSource/addLayer are synchronous, so every layer already exists here. 'sourcedataloading' can't be the
   // readiness signal: it refires on every setData, for the life of a viewport-refreshed map.
@@ -129,6 +130,43 @@ function updateLabelType(map, mapData, labelId, labelType) {
     }
     return;
   }
+}
+
+/**
+ * Takes a label off the map after a delete from the card (#3591), or puts it back after a restore. The feature is
+ * kept aside so a restore needs no refetch; a label the map hasn't loaded, or one a viewport refresh has since
+ * brought back, is left to the next fetch.
+ * @param {mapboxgl.Map} map - The Mapbox map object.
+ * @param {MapLayerTracker} mapData - The layer tracker from CreateMapLayerTracker.
+ * @param {number} labelId
+ * @param {boolean} deleted
+ */
+function setLabelDeleted(map, mapData, labelId, deleted) {
+  mapData.deletedFeatures ??= new Map();
+  const redraw = (type) => {
+    const layerName = mapData.layerNames[type];
+    if (layerName) {
+      map.getSource(layerName)?.setData({ type: 'FeatureCollection', features: mapData.sortedLabels[type] });
+    }
+  };
+  if (deleted) {
+    for (const [type, features] of Object.entries(mapData.sortedLabels)) {
+      const i = features.findIndex((f) => f.properties.label_id === labelId);
+      if (i === -1) continue;
+      const [feature] = features.splice(i, 1);
+      mapData.deletedFeatures.set(labelId, feature);
+      redraw(type);
+      return;
+    }
+    return;
+  }
+  const feature = mapData.deletedFeatures.get(labelId);
+  mapData.deletedFeatures.delete(labelId);
+  const type = feature?.properties.label_type;
+  const features = type && mapData.sortedLabels[type];
+  if (!features || features.some((f) => f.properties.label_id === labelId)) return;
+  features.push(feature);
+  redraw(type);
 }
 
 /**

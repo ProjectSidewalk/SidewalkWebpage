@@ -82,7 +82,11 @@ class LabelController @Inject() (
                 "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
                 "crop_marker"      -> marker,
                 "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
-                "can_edit"         -> (metadata.fromCurrentUser || isAdmin(request.identity))
+                "can_edit"         -> (metadata.fromCurrentUser || isAdmin(request.identity)),
+                "deleted"          -> metadata.deleted,
+                // Who may undo a delete (#3591): whoever did it, or an admin.
+                "can_restore" -> (metadata.deleted && (metadata.deletedBy
+                  .contains(userId) || isAdmin(request.identity)))
               )
           )
         }
