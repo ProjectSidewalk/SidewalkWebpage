@@ -5,77 +5,12 @@
  * the token went black at the hour mark with nothing logged. The viewer now reads the expiry from the token, fetches
  * a fresh one from /imageryAccessToken five minutes ahead, and hands it to the SDK via manager.setTokens(). This suite
  * pins the schedule, the SDK call's shape, the retry ladder, and what gets logged when it all fails.
- *
- * Infra3dViewer is a top-level `class` written for the Grunt-concatenation world, so we eval the source in the jsdom
- * global scope over the real PanoViewer base (for _fireDiagnostic and _moveToInitialLocation) and the real
- * panoUtilities (for jwtExpiryMs), with stubs for the SDK and the globals the viewer closes over.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
-
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src');
-const NO_IMAGERY_ERROR_SRC = fs.readFileSync(path.join(SRC_DIR, 'NoImageryError.js'), 'utf8');
-const PANO_VIEWER_SRC = fs.readFileSync(path.join(SRC_DIR, 'PanoViewer.js'), 'utf8');
-const INFRA3D_SRC = fs.readFileSync(path.join(SRC_DIR, 'Infra3dViewer.js'), 'utf8');
-
-// utilities.js builds a Bowser parser at load time; nothing here consults it.
-window.bowser = {
-    getParser: () => ({
-        getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-        getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-    }),
-};
-loadGlobalScript('public/js/common/utilities.js');
-loadGlobalScript('public/js/common/utilitiesMath.js');
-loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
-
-function loadInfra3dViewer() {
-    window.eval(`
-        class GsvViewer {}
-        class MapillaryViewer {}
-        class PannellumViewer {}
-        class PanoramaxViewer {}
-        class PanoData {
-            constructor(params) { this.params = params; }
-            getPanoId() { return this.params.panoId; }
-            getProperty(key) { return this.params[key]; }
-        }
-        const proj4 = () => [0, 0];
-        const moment = (timestamp) => timestamp;
-        ${NO_IMAGERY_ERROR_SRC}
-        ${PANO_VIEWER_SRC}
-        ${INFRA3D_SRC}
-        window.Infra3dViewer = Infra3dViewer;
-    `);
-    return window.Infra3dViewer;
-}
+const { loadInfra3dViewer, jwtExpiringAt, nodeFor } = require('./infra3dViewerHarness');
 
 const MINUTE_MS = 60 * 1000;
 const T0 = Date.parse('2026-09-16T12:00:00Z');
-
-/** A JWT-shaped token whose payload carries only the expiry (base64url, unpadded, like Cognito's). */
-const jwtExpiringAt = (expiryMs) => {
-    const payload = btoa(JSON.stringify({ exp: Math.floor(expiryMs / 1000) }))
-        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    return `hdr.${payload}.sig`;
-};
-
-/** An Infra3d node with the fields #finishRecordingMetadata reads. */
-const nodeFor = (id) => ({
-    cameraType: 'cubemap',
-    frame: {
-        id,
-        timestamp: 0,
-        framedatameta: { imagewidth: 1, imageheight: 1, tilesize: 1 },
-        latitude: 47.413137835,
-        longitude: 8.4747970537,
-        omega: 0,
-        phi: 0,
-    },
-    spatialEdges: { cached: true, edges: [] },
-});
 
 /** The SDK surface initialize() touches: a Manager whose initViewer yields a viewer that can load a seed pano. */
 function fakeSdk({ initViewerResolves = true } = {}) {

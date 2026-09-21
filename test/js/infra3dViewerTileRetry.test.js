@@ -3,58 +3,9 @@
  * per download, and the batched TileRetries diagnostic.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadInfra3dViewer, jwtExpiringAt, nodeFor } = require('./infra3dViewerHarness');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src');
-const NO_IMAGERY_ERROR_SRC = fs.readFileSync(path.join(SRC_DIR, 'NoImageryError.js'), 'utf8');
-const PANO_VIEWER_SRC = fs.readFileSync(path.join(SRC_DIR, 'PanoViewer.js'), 'utf8');
-const INFRA3D_SRC = fs.readFileSync(path.join(SRC_DIR, 'Infra3dViewer.js'), 'utf8');
-
-// utilities.js builds a Bowser parser at load time; nothing here consults it.
-window.bowser = {
-  getParser: () => ({
-    getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-    getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-  }),
-};
-loadGlobalScript('public/js/common/utilities.js');
-loadGlobalScript('public/js/common/utilitiesMath.js');
-loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
-
-window.eval(`
-  class GsvViewer {}
-  class MapillaryViewer {}
-  class PannellumViewer {}
-  class PanoramaxViewer {}
-  class PanoData {
-    constructor(params) { this.params = params; }
-    getPanoId() { return this.params.panoId; }
-    getProperty(key) { return this.params[key]; }
-  }
-  const proj4 = () => [0, 0];
-  const moment = (timestamp) => timestamp;
-  ${NO_IMAGERY_ERROR_SRC}
-  ${PANO_VIEWER_SRC}
-  ${INFRA3D_SRC}
-  window.Infra3dViewer = Infra3dViewer;
-`);
-const { Infra3dViewer } = window;
-
-/** A token two hours from expiry, so no renewal runs during a test. */
-const freshToken = () => `hdr.${btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 2 * 60 * 60 }))
-  .replace(/=+$/, '')}.sig`;
-
-/** An Infra3d node with the fields #finishRecordingMetadata reads. */
-const nodeFor = (id) => ({
-  cameraType: 'cubemap',
-  frame: {
-    id, timestamp: 0, framedatameta: { imagewidth: 1, imageheight: 1, tilesize: 1 }, latitude: 47.4, longitude: 8.5,
-    omega: 0, phi: 0,
-  },
-  spatialEdges: { cached: true, edges: [] },
-});
+const Infra3dViewer = loadInfra3dViewer();
 
 /**
  * Stubs the SDK with an engine whose downloads answer from `outcomes`, one entry per call: true loads, false fails.
@@ -102,7 +53,7 @@ describe('Infra3dViewer image download retries', () => {
   });
 
   async function createViewer() {
-    const viewer = await Infra3dViewer.create(mount, { accessToken: freshToken(), startPanoId: 'SEED' });
+    const viewer = await Infra3dViewer.create(mount, { accessToken: jwtExpiringAt(Date.now() + 2 * 60 * 60 * 1000), startPanoId: 'SEED' });
     viewer.addListener('diagnostic', diagnostics);
     return viewer;
   }
