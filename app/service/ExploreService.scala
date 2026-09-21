@@ -211,12 +211,13 @@ class ExploreServiceImpl @Inject() (
       // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
       // routeId was supplied, then the function should return None and the user is not sent on a specific route. A
       // routeId naming no live route is dropped and flagged for the page (#5156). Region or street id params take
-      // precedence over all of it.
+      // precedence over all of it, and pause any active route: the page strips those params from the URL, so a
+      // still-active route would otherwise pull the user into its region on their next reload (#5437).
       routeSetup: RouteWalkSetup <-
         if (regionId.isEmpty && streetEdgeId.isEmpty) {
           setUpPossibleUserRoute(routeId, userId, resumeRoute)
         } else {
-          DBIO.successful(RouteWalkSetup(None, resumed = false))
+          setUpPossibleUserRoute(routeId = None, userId, resumeRoute = false)
         }
       userRoute = routeSetup.walk
       routeOption: Option[Route] <- userRoute
