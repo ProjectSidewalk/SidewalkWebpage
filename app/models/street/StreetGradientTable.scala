@@ -16,7 +16,7 @@ import scala.concurrent.ExecutionContext
  * elevations and no grade; a `Suspect` row's statistics come from a straight line between its ends, or are absent;
  * `NoData` rows carry nothing. docs/street-gradient.md has the rules.
  *
- * NOTE: if changing these values, update the `street_gradient_quality` Postgres enum type as well (see 398.sql).
+ * NOTE: if changing these values, update the `street_gradient_quality` Postgres enum type as well (see 399.sql).
  */
 object StreetGradientQuality extends Enumeration {
   type StreetGradientQuality = Value
@@ -30,7 +30,7 @@ object StreetGradientQuality extends Enumeration {
  * How far a street's grade can be trusted, a function of the elevation model's grid size, backing the
  * `street_gradient_confidence` Postgres enum type (#5223).
  *
- * NOTE: if changing these values, update the `street_gradient_confidence` Postgres enum type as well (see 398.sql).
+ * NOTE: if changing these values, update the `street_gradient_confidence` Postgres enum type as well (see 399.sql).
  */
 object StreetGradientConfidence extends Enumeration {
   type StreetGradientConfidence = Value
@@ -43,7 +43,7 @@ object StreetGradientConfidence extends Enumeration {
  * A street's slope statistics without its elevation profile: what a city-wide payload carries per street (#5223).
  *
  * Grades are fractions (0.05 is a 5% grade). Every statistic is optional because a `structure` or `no_data` row has
- * none, and a coarse-model row has `netGrade` alone (the CHECK constraints in 398.sql say which go together).
+ * none, and a coarse-model row has `netGrade` alone (the CHECK constraints in 399.sql say which go together).
  *
  * @param streetEdgeId        The street.
  * @param quality             How the profile was obtained.
@@ -115,7 +115,7 @@ object StreetGradientStats {
  *                      the full-resolution samples, which `profileCm` is too coarse to reproduce. None where no
  *                      stretch set `maxGrade` (a suspect row's straight line, a maximum floored at the mean).
  * @param maxGradeToM   Where that baseline ends; None exactly when `maxGradeFromM` is, and never before it (a CHECK
- *                      in 398.sql holds both, and holds them to rows that have a `maxGrade`).
+ *                      in 399.sql holds both, and holds them to rows that have a `maxGrade`).
  */
 case class StreetGradient(
     stats: StreetGradientStats,

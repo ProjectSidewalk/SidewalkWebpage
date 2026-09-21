@@ -2,9 +2,9 @@
 
 Every street gets a running slope, a climb and an elevation profile, sampled along its centerline from a bare-earth
 elevation model (#5223). It needs no labeling, so it exists for unaudited streets too. The numbers live in the
-`street_gradient` table (398.sql), filled offline by [`scripts/street_gradient.py`](../scripts/street_gradient.py).
-The app reads it and never writes it ([Where it shows up](#where-it-shows-up)). Slope can be weighed into the
-AccessScore, at an engine weight of 0 ([Slope in the score](#slope-in-the-score)).
+`street_gradient` table (399.sql), filled offline by [`scripts/street_gradient.py`](../scripts/street_gradient.py).
+The app reads it and never writes it ([Where it shows up](#where-it-shows-up)). Grade is weighed into the
+AccessScore by default, on each street's steepest stretch ([Slope in the score](#slope-in-the-score)).
 
 ## Filling or topping up a city
 
