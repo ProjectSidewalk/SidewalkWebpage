@@ -195,10 +195,11 @@ a pasted copy for the one-time population of existing cities, the nightly rebuil
 into a temp table and touches only the rows that changed, and a spec (`IntersectionTableSpec`,
 `SidewalkPresenceTableSpec`) runs the evolution's statement and then the rebuild to prove the two copies still agree.
 
-`street_gradient` (399.sql, #5223) is per-street too but is not one of these: its elevations come from rasters the
-database never sees, so there is no SQL derivation and no nightly rebuild. An offline script samples a bare-earth
-elevation model and a db script upserts the CSV, the way the imagery scan feeds `street_imagery`. Staleness is a
-`geom_md5` comparison the export script makes. See [`street-gradient.md`](street-gradient.md).
+`street_gradient` (399.sql, #5223; read through `StreetGradientTable`) is per-street too but is not one of these: its
+elevations come from rasters the database never sees, so there is no SQL derivation and no nightly rebuild. An offline
+script samples a bare-earth elevation model and a db script upserts the CSV, the way the imagery scan feeds
+`street_imagery`. Staleness is a `geom_md5` comparison the export script makes. See
+[`street-gradient.md`](street-gradient.md).
 
 A job that both the scheduler and an admin can trigger has exactly one definition of its counts — a `runDetails` on
 the job's result type, or next to the actor's `Name` when the result is a bare count — which both call sites pass to

@@ -12,6 +12,7 @@ package models.api
 
 import models.label.LabelTypeEnum
 import models.place.PlaceCategory
+import models.street.StreetGradientStats
 import models.utils.LatLngBBox
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.{LineString, MultiPolygon, Point}
@@ -132,6 +133,8 @@ object AccessScoreApiModels {
  *                               different weights.
  * @param tagAdjustments         Per-label-type summed active tag adjustment (the part of `subScores` no weight
  *                               scales, before length normalization).
+ * @param gradient               The street's slope statistics (#5223), or None if it has not been sampled. Slope
+ *                               needs no labeling, so an unaudited street carries it too.
  * @param geometry               The LineString geometry of the street.
  */
 case class StreetAccessScoreForApi(
@@ -152,6 +155,7 @@ case class StreetAccessScoreForApi(
     subScores: Map[String, Double],
     severityCounts: Map[String, Map[String, Int]],
     tagAdjustments: Map[String, Double],
+    gradient: Option[StreetGradientStats],
     geometry: LineString
 ) extends StreamingApiType {
 
@@ -184,9 +188,10 @@ object StreetAccessScoreForApi extends ApiFields[StreetAccessScoreForApi] {
     field("audit_count")(_.auditCount),
     field("length_meters")(_.lengthMeters),
     field("label_count")(_.labelCount)
-  ) ++ AccessScoreApiModels.perTypeFields[StreetAccessScoreForApi](
-    AccessScoreApiModels.orderedTypes, _.clusterCounts, _.subScores, _.severityCounts, _.tagAdjustments
-  )
+  ) ++ StreetGradientApiFields.statFields.map(_.on[StreetAccessScoreForApi](_.gradient)) ++
+    AccessScoreApiModels.perTypeFields[StreetAccessScoreForApi](
+      AccessScoreApiModels.orderedTypes, _.clusterCounts, _.subScores, _.severityCounts, _.tagAdjustments
+    )
 
   override val csvOnlyFields: Seq[ApiField[StreetAccessScoreForApi]] = Seq(
     field("start_point")(s => s"${s.geometry.getStartPoint.getX},${s.geometry.getStartPoint.getY}"),

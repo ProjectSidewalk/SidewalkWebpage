@@ -113,6 +113,14 @@
               <span data-i18n="accessscore:show-unaudited">Show unaudited streets</span>
             </label>
           </div>
+          @* Hidden until the config says the city's streets have been sampled for slope (#5223). *@
+          <div id="acs-grade-option" class="acs-check-row" hidden>
+            <label class="acs-check" for="acs-show-grade">
+              <input type="checkbox" id="acs-show-grade">
+              <span data-i18n="accessscore:show-grade">Color streets by slope</span>
+            </label>
+            @info("show-grade-help")
+          </div>
           <div class="acs-check-row">
             <label class="acs-check" for="acs-dark-map">
               <input type="checkbox" id="acs-dark-map">

@@ -116,6 +116,12 @@
   margin-top: 0;
 }
 
+/* A toggle that currently decides nothing (#5223): still there, so the panel does not reflow, and visibly off. */
+.acs-check-row--disabled .acs-check {
+  color: var(--color-neutral-600);
+  cursor: not-allowed;
+}
+
 /* display: flex would otherwise beat the user-agent's [hidden] rule when the row is the streets-only toggle. */
 .acs-check-row[hidden] {
   display: none;
@@ -605,6 +611,66 @@
   margin-top: var(--space-sm);
 }
 
+/* The popup's slope block (#5223). The note says why a number is missing or approximate, and the credit is the
+   elevation model's licence condition, so both are text-sized rather than fine print. */
+.acs-popup__note,
+.acs-popup__credit {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.acs-popup__profile {
+  min-height: calc(20px * var(--ui-scale, 1));
+  margin-top: var(--space-xxs);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* The elevation profile: the scale's two ends beside the chart, the street's two ends beneath it. */
+.acs-profile {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px var(--space-xxs);
+  margin: 0;
+  font: var(--text-tiny-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-profile__scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: right;
+}
+
+.acs-profile__chart {
+  display: block;
+  width: 100%;
+  height: calc(72px * var(--ui-scale, 1));
+  border-bottom: 1px solid var(--color-neutral-400);
+}
+
+.acs-profile__area {
+  fill: var(--color-blue-400);
+  stroke: none;
+}
+
+/* non-scaling-stroke: the chart stretches to the popup's width, and the line should not stretch with it. */
+.acs-profile__line {
+  fill: none;
+  stroke: var(--color-link-200);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.acs-profile__ends {
+  display: flex;
+  grid-column: 2;
+  justify-content: space-between;
+}
+
 /* ---- Map legend: a card beside the zoom buttons ---- */
 
 /* Mapbox floats its corner controls into a column; a reversed flex row puts the legend beside the zoom buttons
@@ -676,13 +742,50 @@
   border-radius: 4px;
 }
 
-.acs-map-legend__swatch--unaudited {
+/* A street with no grade is drawn as an unaudited one is under the score: thin and grey. */
+.acs-map-legend__swatch--unaudited,
+.acs-map-legend__swatch--no-grade {
   height: 3px;
   background: var(--color-neutral-400);
 }
 
 .acs-map-legend__swatch--hatch {
   background: repeating-linear-gradient(135deg, var(--color-neutral-600) 0 1px, var(--color-neutral-100) 1px 4px);
+}
+
+/* The slope classes that stand in for the ramp while the streets are colored by slope (#5223): one row per class,
+   since a classed scale is read swatch by swatch, not along a bar. */
+.acs-map-legend__title {
+  margin-bottom: 2px;
+  font: var(--text-tiny-medium);
+}
+
+.acs-map-legend__classes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acs-map-legend__class {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  font: var(--text-tiny-regular);
+}
+
+.acs-map-legend__class-swatch {
+  flex: none;
+  width: 18px;
+  height: 6px;
+  border-radius: 3px;
+}
+
+/* On the dark basemap steeper means lighter, up to white, so each swatch sits on a chip of the basemap's own dark:
+   the color is then seen against what it is painted on, and the white class is visible at all. */
+.acs-map-legend__grade--dark .acs-map-legend__class-swatch {
+  margin: 3px;
+  width: 12px;
+  box-shadow: 0 0 0 3px var(--color-neutral-900);
 }
 
 /* ---- Insights dock: a band along the bottom of the map ---- */

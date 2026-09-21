@@ -701,3 +701,18 @@ def test_the_import_script_expects_exactly_the_columns_the_sampler_writes():
     assert header.split(',') == list(sg.OUTPUT_FIELDS)
     staging = re.search(r'CREATE TEMP TABLE street_gradient_import \((.*?)\) ON COMMIT DROP;', script, re.S).group(1)
     assert [line.split()[0] for line in staging.strip().splitlines()] == list(sg.OUTPUT_FIELDS)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# The app's credit registry
+# ----------------------------------------------------------------------------------------------------------------------
+
+def test_every_remote_source_has_a_credit_registered_in_the_app():
+    """The app credits an elevation model by its stored name, and an unregistered one only by that bare name.
+
+    Most of these models are attribution-only, so a source the sampler can write without a credit in
+    ``app/models/street/DemSource.scala`` would put under-credited grades on a public map.
+    """
+    registry = (Path(__file__).resolve().parents[2] / 'app/models/street/DemSource.scala').read_text()
+    uncredited = [name for name in sg.REMOTE_SOURCES if f'name = "{name}"' not in registry]
+    assert uncredited == []

@@ -64,6 +64,7 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
     subScores = Map.empty,
     severityCounts = Map.empty,
     tagAdjustments = Map.empty,
+    gradient = None,
     geometry = line
   )
 

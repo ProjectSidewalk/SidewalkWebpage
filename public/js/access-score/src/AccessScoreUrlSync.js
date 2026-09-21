@@ -5,14 +5,15 @@
  * preserved. The viewport params (`lat`, `lng`, `zoom`) are the LabelMap's, so a link's camera reads the same way
  * on both maps.
  *
- * Params: `unit` (streets|regions), `w` (per-type magnitudes, `CurbRamp:0.75,…`, present only when they differ
- * from the engine's defaults), `unaudited` (0|1), `clusters` (0|1, the evidence layer), `sel` (selected street or
- * region id, read with `unit`), `dark` (1 for the dark basemap); and the insights dock's `dock` (0 when collapsed,
- * 1 to open it on a narrow window, where it otherwise starts collapsed)
- * `b` (the brushed score range as `from-to` in whole percent, on the histogram's 10-point bin edges) and `focus`
- * (the region a rank-list click scoped the band to). The places layer (#5311) adds `pc` (the enabled category ids,
- * or `all`; absent when none are on, the default), and the selected place as `place` (`lat,lng`) with
- * `placeName` — the same pair the searched place will use (#5340), so a link means one thing by "place".
+ * Params: `unit` (streets|regions), `w` (per-type magnitudes, `CurbRamp:0.75,…`, present only when they differ from the
+ * engine's defaults), `unaudited` (0|1), `clusters` (0|1, the evidence layer), `grade` (1 while the streets are colored
+ * by slope, #5223; dropped on reading in a city whose streets have not been sampled), `sel` (selected street or region
+ * id, read with `unit`), `dark` (1 for the dark basemap); and the insights dock's `dock` (0 when collapsed, 1 to open
+ * it on a narrow window, where it otherwise starts collapsed) `b` (the brushed score range as `from-to` in whole
+ * percent, on the histogram's 10-point bin edges) and `focus` (the region a rank-list click scoped the band to). The
+ * places layer (#5311) adds `pc` (the enabled category ids, or `all`; absent when none are on, the default), and the
+ * selected place as `place` (`lat,lng`) with `placeName` — the same pair the searched place will use (#5340), so a link
+ * means one thing by "place".
  */
 class AccessScoreUrlSync {
   /** The `pc` value for every place category: the full list spelled out would break the moment one is added. */
@@ -62,6 +63,8 @@ class AccessScoreUrlSync {
 
     if (params.get('unaudited') === '0') state.showUnaudited = false;
     if (params.get('clusters') === '0') state.showClusters = false;
+    // A link from a sampled city opened in one that is not: there is no slope to color by, so the score stays.
+    if (params.get('grade') === '1' && (config.gradient?.sources ?? []).length > 0) state.showGrade = true;
 
     // Absent means none, the default. `pc=all` is "Select all"; a list naming every category reads the same. A
     // list naming nothing the catalog knows is dropped whole, since "none" is not what it asked for either.
@@ -183,6 +186,7 @@ class AccessScoreUrlSync {
     set('w', weights, this.#model.weightsAreDefault);
     set('unaudited', state.showUnaudited ? '1' : '0', state.showUnaudited === defaults.showUnaudited);
     set('clusters', state.showClusters ? '1' : '0', state.showClusters === defaults.showClusters);
+    set('grade', '1', state.showGrade === defaults.showGrade);
     const categories = state.placeCategories;
     set('pc', categories === null ? AccessScoreUrlSync.#ALL_CATEGORIES : (categories ?? []).join(','),
       categories !== null && categories.length === 0);
