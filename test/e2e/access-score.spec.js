@@ -496,7 +496,9 @@ test.describe('/accessScore', () => {
       // The classes are a named list, not an image: a screen reader reaches each row's grades.
       const classes = page.getByRole('group', {name: 'Street grade'}).getByRole('listitem');
       await expect(classes).toHaveCount(6);
-      await expect(classes.first()).toHaveText(/Under 2\.1%/);
+      // Steepest first: the class a reader is looking for leads.
+      await expect(classes.first()).toHaveText(/Over 12\.5%/);
+      await expect(classes.nth(4)).toHaveText(/Under 2\.1%/);
       // Slope is drawn for every street, so the toggle that would decide nothing is off until the score returns.
       await expect(page.locator('#acs-show-unaudited')).toBeDisabled();
       await expect.poll(() => urlParam(page, 'grade')).toBe('1');
@@ -622,24 +624,27 @@ test.describe('/accessScore', () => {
       await expect(page.locator('.acs-map-legend__grade')).toBeHidden();
       await page.locator('#acs-show-grade').check();
       await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
-      // Five classes from four breaks, plus the row for a street with no slope at all.
+      // Five classes from four breaks, steepest first, plus the row for a street with no slope at all.
       await expect(classes).toHaveCount(6);
+      await expect(classes.first()).toContainText('Over 12.5%');
+      // Rows are found by the class they stand for (gentlest = 0, as `gc` names them), not where they are listed.
+      const byClass = (k) => page.locator(`.acs-map-legend__class[data-class="${k}"]`);
       // The title names the statistic the score is on, so the colors cannot claim a grade the score is not using.
       await expect(page.locator('.acs-map-legend__title')).toHaveText('Street grade · Steepest stretch');
 
       // Street 1's steepest stretch is 12%, in the 8.3%–12.5% class; clicking it brushes the map on that class.
-      const steep = classes.nth(3);
+      const steep = byClass(3);
       await steep.click();
       await expect(steep).toHaveAttribute('aria-pressed', 'true');
-      await expect(classes.nth(0)).toHaveClass(/acs-map-legend__class--out/);
+      await expect(byClass(0)).toHaveClass(/acs-map-legend__class--out/);
       await expect(page.locator('#acs-dock-brush')).toBeVisible();
       await expect(page.locator('#acs-dock-brush-text')).toContainText('8.3% – 12.5%');
       await expect(page.locator('#acs-dock-brush-text')).toContainText('1 street');
       await expect.poll(() => urlParam(page, 'gc')).toBe('3');
 
       // Ctrl-click adds the no-slope class without dropping the first.
-      await classes.nth(5).click({modifiers: ['Control']});
-      await expect(classes.nth(5)).toHaveAttribute('aria-pressed', 'true');
+      await byClass(-1).click({modifiers: ['Control']});
+      await expect(byClass(-1)).toHaveAttribute('aria-pressed', 'true');
       await expect(steep).toHaveAttribute('aria-pressed', 'true');
       await expect.poll(() => urlParam(page, 'gc')).toBe('n,3');
       await expect(page.locator('#acs-dock-brush-text')).toContainText('3 streets');
@@ -653,9 +658,9 @@ test.describe('/accessScore', () => {
       await page.goto('/accessScore?grade=1&gc=3');
       await waitForAppReady(page);
       await waitForTool(page);
-      await expect(page.locator('.acs-map-legend__class').nth(3)).toHaveAttribute('aria-pressed', 'true');
+      await expect(byClass(3)).toHaveAttribute('aria-pressed', 'true');
       await page.locator('.acs-histogram__bin').nth(8).click();
-      await expect(page.locator('.acs-map-legend__class').nth(3)).toHaveAttribute('aria-pressed', 'false');
+      await expect(byClass(3)).toHaveAttribute('aria-pressed', 'false');
       await expect.poll(() => urlParam(page, 'gc')).toBeNull();
       await expect.poll(() => urlParam(page, 'b')).toBe('80-90');
       expect(consoleErrors).toEqual([]);

@@ -248,14 +248,23 @@ describe('street slope in the AccessScore tool', () => {
         let legend;
         let selected;
 
-        /** Adds a legend to the document and shows its slope classes, as the map view does. */
+        /** The class rows in display order: steepest first, the no-slope row last. */
+        const rowsInOrder = () => [...document.querySelectorAll('.acs-map-legend__class')];
+
+        /**
+         * Adds a legend to the document and shows its slope classes, as the map view does.
+         * @returns {HTMLButtonElement[]} The rows indexed by class (gentlest first, as selections name them), the
+         *   no-slope row last, whatever order they are displayed in.
+         */
         function mount() {
             selected = [];
             legend = new window.AccessScoreMapLegend({ gradeBreaks: breaks, onGradeClasses: (c) => selected.push(c) });
             document.body.innerHTML = '';
             document.body.appendChild(legend.onAdd());
             legend.setGrade(true, 'max_grade');
-            return [...document.querySelectorAll('.acs-map-legend__class')];
+            const rows = rowsInOrder();
+            const byClass = (k) => rows.find((b) => Number(b.dataset.class) === k);
+            return [...breaks.map((_, k) => byClass(k)), byClass(breaks.length), byClass(AccessScoreGradeRamp.NO_GRADE)];
         }
 
         /** A click carrying the modifiers a pointer would. */
@@ -265,8 +274,20 @@ describe('street slope in the AccessScore tool', () => {
         test('offers one button per class plus the no-slope one, and names the statistic it is classing', () => {
             const buttons = mount();
             expect(buttons).toHaveLength(breaks.length + 2);
-            expect(buttons.map((b) => Number(b.dataset.class)))
-                .toEqual([0, 1, 2, 3, 4, AccessScoreGradeRamp.NO_GRADE]);
+            // Steepest first, the class a reader is looking for, then the street with no slope.
+            expect(rowsInOrder().map((b) => Number(b.dataset.class)))
+                .toEqual([4, 3, 2, 1, 0, AccessScoreGradeRamp.NO_GRADE]);
+            // Each swatch wears its own class's color, not the color of the position it happens to sit in.
+            // The DOM normalizes a color it is handed, so the expectation goes through the same door.
+            const asStyled = (color) => {
+                const probe = document.createElement('span');
+                probe.style.background = color;
+                return probe.style.background;
+            };
+            const swatches = rowsInOrder().slice(0, -1).map((b) =>
+                /** @type {HTMLElement} */ (b.querySelector('.acs-map-legend__class-swatch')).style.background);
+            expect(swatches).toEqual([...AccessScoreGradeRamp.colors(breaks.length + 1)].reverse().map(asStyled));
+            expect(new Set(swatches).size).toBe(breaks.length + 1);
             expect(buttons.every((b) => b.getAttribute('aria-pressed') === 'false')).toBe(true);
             const title = document.querySelector('.acs-map-legend__title').textContent;
             expect(title).toContain('accessscore:slope-statistic-max-grade');
@@ -314,12 +335,14 @@ describe('street slope in the AccessScore tool', () => {
 
         test('takes the keyboard with one tab stop, and reflects a selection it was handed', () => {
             const buttons = mount();
-            expect(buttons.filter((b) => b.tabIndex === 0)).toHaveLength(1);
-            buttons[0].dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
-            expect(buttons[1].tabIndex).toBe(0);
-            expect(document.activeElement).toBe(buttons[1]);
-            buttons[1].dispatchEvent(new window.KeyboardEvent('keydown', { key: 'End', bubbles: true }));
-            expect(document.activeElement).toBe(buttons[buttons.length - 1]);
+            // The arrow keys walk the rows as displayed.
+            const shown = rowsInOrder();
+            expect(shown.filter((b) => b.tabIndex === 0)).toHaveLength(1);
+            shown[0].dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+            expect(shown[1].tabIndex).toBe(0);
+            expect(document.activeElement).toBe(shown[1]);
+            shown[1].dispatchEvent(new window.KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+            expect(document.activeElement).toBe(shown[shown.length - 1]);
             // Told, not asked: a selection from a link or from the dock's Clear emits nothing back.
             legend.setSelection([2, 4]);
             expect(selected).toEqual([]);
@@ -333,9 +356,9 @@ describe('street slope in the AccessScore tool', () => {
             const buttons = mount();
             click(buttons[3]);
             legend.setDark(true);
-            const rebuilt = [...document.querySelectorAll('.acs-map-legend__class')];
-            expect(rebuilt[3].getAttribute('aria-pressed')).toBe('true');
-            expect(rebuilt[0].classList.contains('acs-map-legend__class--out')).toBe(true);
+            const rebuilt = (k) => rowsInOrder().find((b) => Number(b.dataset.class) === k);
+            expect(rebuilt(3).getAttribute('aria-pressed')).toBe('true');
+            expect(rebuilt(0).classList.contains('acs-map-legend__class--out')).toBe(true);
         });
     });
 

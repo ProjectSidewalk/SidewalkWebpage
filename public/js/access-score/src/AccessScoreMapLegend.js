@@ -131,7 +131,10 @@ class AccessScoreMapLegend {
     this.#gradeBlock.hidden = !grade;
   }
 
-  /** Builds the slope classes' rows: a swatch and the grades it spans, gentlest first, then the no-data row. */
+  /**
+   * Builds the slope classes' rows: a swatch and the grades it spans, steepest first (the rows a reader looks for,
+   * and the order the popup's profile legend lists them in), then the no-data row.
+   */
   #renderGrade() {
     if (!this.#gradeBlock || this.#gradeBreaks === null) return;
     const percent = AccessScoreGradeRamp.percent;
@@ -148,7 +151,7 @@ class AccessScoreMapLegend {
           <span class="${swatchClass}" aria-hidden="true"></span><span>${label}</span>
         </button>
       </li>`;
-    const rows = classes.map((c, i) => row(i, 'acs-map-legend__class-swatch', range(c))).join('');
+    const rows = classes.map((c, i) => row(i, 'acs-map-legend__class-swatch', range(c))).reverse().join('');
     const statisticKey = `accessscore:slope-statistic-${this.#gradeStatistic.replaceAll('_', '-')}`;
     const title = i18next.exists(statisticKey)
       ? i18next.t('accessscore:grade-legend-title-by',
@@ -166,8 +169,9 @@ class AccessScoreMapLegend {
     // The dark basemap's steepest classes are near-white, which the legend's white card would swallow.
     this.#gradeBlock.classList.toggle('acs-map-legend__grade--dark', this.#mode === 'dark');
     // The colors are data read from the tokens, set as properties like the score bar's gradient above.
-    this.#gradeBlock.querySelectorAll('.acs-map-legend__class-swatch').forEach((swatch, i) => {
-      /** @type {HTMLElement} */ (swatch).style.background = classes[i].color;
+    this.#gradeBlock.querySelectorAll('.acs-map-legend__class-swatch').forEach((swatch) => {
+      const index = Number(/** @type {HTMLElement} */ (swatch.closest('[data-class]')).dataset.class);
+      /** @type {HTMLElement} */ (swatch).style.background = classes[index].color;
     });
     this.#bindGrade();
     this.#reflectSelection();
@@ -199,7 +203,7 @@ class AccessScoreMapLegend {
     }
   }
 
-  /** @returns {HTMLButtonElement[]} The class rows in order, the no-grade row last. */
+  /** @returns {HTMLButtonElement[]} The class rows in display order (steepest first), the no-grade row last. */
   #classButtons() {
     return /** @type {HTMLButtonElement[]} */ ([...this.#gradeBlock.querySelectorAll('.acs-map-legend__class')]);
   }
