@@ -61,6 +61,11 @@
   display: none;
 }
 
+/* Its display would otherwise override the hidden attribute it starts with, covering a working map. */
+#minimap-unavailable-message[hidden] {
+  display: none;
+}
+
 #minimap-unavailable-message {
   position: absolute;
   inset: 0;
