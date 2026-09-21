@@ -444,7 +444,7 @@ describe('mobile Validate mission screens', () => {
                 .toBe(false);
             expect(document.getElementById('mission-complete-badge-name').textContent).toContain('II');
             expect(document.getElementById('mission-complete-badge-icon').style.backgroundImage)
-                .toContain('badge_validation_badge2.png');
+                .toContain('badge_validation_badge2.svg');
         });
 
         test('the top badge fills the bar and says so, instead of counting down to nothing', () => {
