@@ -12,7 +12,7 @@ import play.api.test.Helpers._
 import util.{RolledBackDb, StreetFixtures}
 
 /**
- * The 200s of GET /v3/api/streetGradientProfile (#5223), which `AccessScoreApiSpec` cannot reach: CI's schema holds
+ * The 200s of GET /v3/api/streetGrade (#5223), which `AccessScoreApiSpec` cannot reach: CI's schema holds
  * no `street_gradient` rows, so without rows of its own a spec can only ever see the 404.
  *
  * A request runs in its own transaction, so these rows are committed, not rolled back: two streets seeded in
@@ -21,7 +21,7 @@ import util.{RolledBackDb, StreetFixtures}
  *
  * `BeforeAndAfterAll` is mixed in before `GuiceOneAppPerSuite` so that `afterAll` runs while the app is still up.
  */
-class StreetGradientProfileApiSpec
+class StreetGradeApiSpec
     extends PlaySpec
     with BeforeAndAfterAll
     with GuiceOneAppPerSuite
@@ -59,13 +59,13 @@ class StreetGradientProfileApiSpec
   }
 
   private def profileOf(streetEdgeId: Int): JsObject = {
-    val resp = route(app, FakeRequest(GET, s"/v3/api/streetGradientProfile?streetEdgeId=$streetEdgeId")).get
+    val resp = route(app, FakeRequest(GET, s"/v3/api/streetGrade?streetEdgeId=$streetEdgeId")).get
     status(resp) mustBe OK
     contentType(resp) mustBe Some("application/json")
     contentAsJson(resp).as[JsObject]
   }
 
-  "GET /v3/api/streetGradientProfile" should {
+  "GET /v3/api/streetGrade" should {
     "serve a measured street's statistics, its profile in meters at the spacing its length implies, and its credit" in {
       val json = profileOf(measuredStreet)
 
@@ -98,7 +98,7 @@ class StreetGradientProfileApiSpec
     "answer 404 for a street that exists and has not been sampled" in {
       val unsampled = run(insertStreet())
       try {
-        val resp = route(app, FakeRequest(GET, s"/v3/api/streetGradientProfile?streetEdgeId=$unsampled")).get
+        val resp = route(app, FakeRequest(GET, s"/v3/api/streetGrade?streetEdgeId=$unsampled")).get
         status(resp) mustBe NOT_FOUND
         (contentAsJson(resp) \ "detail").as[String] must include("has no gradient data")
       } finally { val _ = run(sqlu"DELETE FROM street_edge WHERE street_edge_id = $unsampled") }

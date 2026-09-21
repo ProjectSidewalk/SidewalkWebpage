@@ -929,7 +929,7 @@ window.AccessScoreApp = (function () {
      * stretch that set its `max_grade`, which only the backend can place (the profile is too coarse to find it). A
      * stale street's stretch is left out: it was placed along the line the street used to follow.
      * @param {HTMLElement} slot - The popup's profile slot.
-     * @param {AccessScoreProfileResponse} response - The street's `/v3/api/streetGradientProfile` answer.
+     * @param {AccessScoreProfileResponse} response - The street's `/v3/api/streetGrade` answer.
      */
     function drawProfile(slot, response) {
       const { profile } = response;
@@ -971,7 +971,7 @@ window.AccessScoreApp = (function () {
       slot.textContent = i18next.t('accessscore:profile-loading');
       try {
         const response = /** @type {AccessScoreProfileResponse} */ (
-          await fetchJson(`/v3/api/streetGradientProfile?streetEdgeId=${streetId}`));
+          await fetchJson(`/v3/api/streetGrade?streetEdgeId=${streetId}`));
         if (popup !== forPopup) return;
         // The slot is a live region that has just said "loading", so every ending but a drawn chart is said in it
         // too: removing it would leave a screen-reader user waiting on a profile that is not coming.

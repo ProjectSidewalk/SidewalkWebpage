@@ -101,17 +101,17 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
-  "GET /v3/api/streetGradientProfile" should {
+  "GET /v3/api/streetGrade" should {
     "answer 404 NOT_FOUND for a street that does not exist" in {
-      val resp = route(app, FakeRequest(GET, "/v3/api/streetGradientProfile?streetEdgeId=2147483647")).get
+      val resp = route(app, FakeRequest(GET, "/v3/api/streetGrade?streetEdgeId=2147483647")).get
       status(resp) mustBe NOT_FOUND
       (contentAsJson(resp) \ "code").as[String] mustBe "NOT_FOUND"
       (contentAsJson(resp) \ "detail").as[String] must include("No street with id")
     }
 
     "answer 400 when streetEdgeId is missing or not an integer" in {
-      status(route(app, FakeRequest(GET, "/v3/api/streetGradientProfile")).get) mustBe BAD_REQUEST
-      status(route(app, FakeRequest(GET, "/v3/api/streetGradientProfile?streetEdgeId=abc")).get) mustBe BAD_REQUEST
+      status(route(app, FakeRequest(GET, "/v3/api/streetGrade")).get) mustBe BAD_REQUEST
+      status(route(app, FakeRequest(GET, "/v3/api/streetGrade?streetEdgeId=abc")).get) mustBe BAD_REQUEST
     }
   }
 

@@ -35,7 +35,7 @@ class StreetGradientApiModelsSpec extends PlaySpec {
 
   private val sampledAt = OffsetDateTime.parse("2026-09-19T12:00:00Z")
 
-  "StreetGradientProfileForApi.toJson" should {
+  "StreetGradeForApi.toJson" should {
     "serve the profile in meters with the spacing its length implies" in {
       val row = StreetGradient(
         stats(StreetGradientQuality.Measured, measured = true),
@@ -45,7 +45,7 @@ class StreetGradientApiModelsSpec extends PlaySpec {
         maxGradeFromM = Some(20.0),
         maxGradeToM = Some(50.0)
       )
-      val json = StreetGradientProfileForApi(row, lengthMeters = 100.0).toJson
+      val json = StreetGradeForApi(row, lengthMeters = 100.0).toJson
 
       (json \ "street_edge_id").as[Int] mustBe 7
       (json \ "length_meters").as[Double] mustBe 100.0
@@ -68,7 +68,7 @@ class StreetGradientApiModelsSpec extends PlaySpec {
 
     "say profile: null, and null grades, for a structure" in {
       val row  = StreetGradient(stats(StreetGradientQuality.Structure, measured = false), None, "0" * 32, sampledAt)
-      val json = StreetGradientProfileForApi(row, lengthMeters = 80.0).toJson
+      val json = StreetGradeForApi(row, lengthMeters = 80.0).toJson
 
       (json \ "profile").get mustBe JsNull
       (json \ "mean_grade").get mustBe JsNull
@@ -80,7 +80,7 @@ class StreetGradientApiModelsSpec extends PlaySpec {
     "leave out a one-sample profile, which has no spacing to state" in {
       val row =
         StreetGradient(stats(StreetGradientQuality.Measured, measured = true), Some(List(10400)), "0" * 32, sampledAt)
-      (StreetGradientProfileForApi(row, lengthMeters = 5.0).toJson \ "profile").get mustBe JsNull
+      (StreetGradeForApi(row, lengthMeters = 5.0).toJson \ "profile").get mustBe JsNull
     }
   }
 
@@ -92,8 +92,8 @@ class StreetGradientApiModelsSpec extends PlaySpec {
         "0" * 32,
         sampledAt
       )
-      (StreetGradientProfileForApi(row, 100.0).toJson \ "stale").as[Boolean] mustBe false
-      (StreetGradientProfileForApi(row, 100.0, stale = true).toJson \ "stale").as[Boolean] mustBe true
+      (StreetGradeForApi(row, 100.0).toJson \ "stale").as[Boolean] mustBe false
+      (StreetGradeForApi(row, 100.0, stale = true).toJson \ "stale").as[Boolean] mustBe true
     }
   }
 

@@ -20,7 +20,7 @@
  * @property {number} spacing_meters - Distance between consecutive samples.
  * @property {number[]} elevations_meters - Elevations from the street's first vertex to its last.
  *
- * @typedef {object} AccessScoreProfileResponse - A street's `/v3/api/streetGradientProfile` answer, as far as the
+ * @typedef {object} AccessScoreProfileResponse - A street's `/v3/api/streetGrade` answer, as far as the
  *   chart reads it.
  * @property {?AccessScoreProfile} profile - The profile; null where the street has none.
  * @property {?number} max_grade - The street's steepest grade.

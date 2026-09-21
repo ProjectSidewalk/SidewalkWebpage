@@ -186,7 +186,7 @@ The test for a new country is the one used here: an open bare-earth model at 10 
   `grade_confidence`, `grade_quality`, `dem_source`), null on a street that has not been sampled. They are declared
   once, in `StreetGradientApiFields`. The statistics are read without `profile_cm`, so a city-wide request never
   pulls the arrays. The full-city cache holds them, so an import shows up within its ten-minute freshness window.
-- **`/v3/api/streetGradientProfile?streetEdgeId=`** serves one street's statistics and its profile, in meters at a
+- **`/v3/api/streetGrade?streetEdgeId=`** serves one street's statistics and its profile, in meters at a
   stated spacing. A sampled street with no profile (a structure, a gap, a coarse-model row) answers 200 with
   `profile: null`; only a street with no row is a 404. `stale: true` marks a street whose geometry has changed since
   it was sampled (the export script's own `geom_md5` test, asked for one street): its numbers describe the old line
@@ -271,7 +271,7 @@ that a transformation be disclosed. `dem_source` on every row is what makes that
 
 `DemSource` (app/models/street) holds the credit line, licence and publisher page for each model, and is the one
 place they are written. It is shown in four places: the "Elevation model credits" table on the `accessScoreStreets`
-api-docs page, `gradient.sources` on `accessScoreConfig`, the `attribution` object of a `streetGradientProfile`
+api-docs page, `gradient.sources` on `accessScoreConfig`, the `attribution` object of a `streetGrade`
 response, and the AccessScore tool, where the credit sits in the map's attribution line (it rides on the street
 source, so a basemap swap cannot drop it) and under the popup's Slope block. **A new adapter in the script needs a
 `DemSource` entry**: `test_street_gradient.py` fails until every `REMOTE_SOURCES` name has one. A city sampled with

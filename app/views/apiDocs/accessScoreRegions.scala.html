@@ -57,6 +57,7 @@
   <div class="page-section" id="scoring-model-section">
     <h2 class="page-heading" id="scoring-model">How the score is computed<a href="#scoring-model" class="permalink">#</a></h2>
     <p>Each of the region's audited streets is scored as described in the <a href="@routes.ApiDocsController.accessScoreStreets">AccessScore: Streets API</a>. The region's <code>score</code> is the mean of those street scores weighted by street length: <code>Σ(score × length) / Σ(length)</code>. Unaudited streets are excluded. When a region has no audited streets, its <code>score</code> is <code>null</code>.</p>
+    <p>Because a street's score includes its <a href="@routes.ApiDocsController.accessScoreStreets#street-grade">grade</a> where the city has been sampled, so does its region's: a hilly neighborhood scores lower than a flat one with the same labels. Grade never makes an unaudited street count.</p>
     <p><code>intersection_score</code> is the unweighted mean of the scores of the region's intersections that have one (any street meeting them audited); grade-separated crossings are neither counted nor scored. <code>intersection_count</code> and <code>scored_intersection_count</code> say how many that is.</p>
     <p><code>coverage</code> reports the fraction of the region's streets that have been audited, so you can judge how complete a region's score is.</p>
   </div>

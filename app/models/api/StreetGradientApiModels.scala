@@ -2,7 +2,7 @@
  * Models for the street gradient (slope) fields of the Project Sidewalk API (#5223).
  *
  * The statistics ride on `/v3/api/accessScoreStreets` for every street; a street's elevation profile is served one
- * street at a time by `/v3/api/streetGradientProfile`, since it is the one part too heavy for a city-wide payload.
+ * street at a time by `/v3/api/streetGrade`, since it is the one part too heavy for a city-wide payload.
  */
 package models.api
 
@@ -74,7 +74,7 @@ case class StreetGradientConfigForApi(sources: Seq[DemSourceForApi]) {
  *                     the street used to follow, and `spacing_meters` (today's length over yesterday's sample count)
  *                     is only approximate, so the response says so instead of passing the numbers off as current.
  */
-case class StreetGradientProfileForApi(gradient: StreetGradient, lengthMeters: Double, stale: Boolean = false) {
+case class StreetGradeForApi(gradient: StreetGradient, lengthMeters: Double, stale: Boolean = false) {
 
   /**
    * The profile as meters at a stated spacing, or None where the row has no profile (a structure, a coarse-model row,

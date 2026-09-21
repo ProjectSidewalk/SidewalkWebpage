@@ -8,7 +8,7 @@ import models.api.{
   SidewalkPresenceForApi,
   StreetDataForApi,
   StreetFiltersForApi,
-  StreetGradientProfileForApi
+  StreetGradeForApi
 }
 import models.street.{SidewalkPresenceStatus, StreetEdgeStatus, WayType}
 import org.apache.pekko.stream.scaladsl.Source
@@ -259,7 +259,7 @@ class StreetsApiController @Inject() (
    * @param streetEdgeId The street to look up.
    * @return The street's gradient as JSON, or a 404 if the street is unknown or has not been sampled.
    */
-  def getStreetGradientProfile(streetEdgeId: Int) = silhouette.UserAwareAction.async { implicit request =>
+  def getStreetGrade(streetEdgeId: Int) = silhouette.UserAwareAction.async { implicit request =>
     cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
     val gradientFuture = apiService.getStreetGradient(streetEdgeId)
     val lengthFuture   = apiService.getStreetLengths(Seq(streetEdgeId)).map(_.get(streetEdgeId))
@@ -267,7 +267,7 @@ class StreetsApiController @Inject() (
       gradient <- gradientFuture
       length   <- lengthFuture
     } yield (gradient, length) match {
-      case (Some((g, stale)), Some(lengthMeters)) => Ok(StreetGradientProfileForApi(g, lengthMeters, stale).toJson)
+      case (Some((g, stale)), Some(lengthMeters)) => Ok(StreetGradeForApi(g, lengthMeters, stale).toJson)
       case (_, None) => ApiError.toResult(ApiError.notFound(s"No street with id $streetEdgeId"))
       case (None, _) =>
         ApiError.toResult(ApiError.notFound(s"Street $streetEdgeId has no gradient data"))

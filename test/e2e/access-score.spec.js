@@ -148,7 +148,7 @@ async function stubGradient(context) {
     });
     return route.fulfill({json: streets});
   });
-  await context.route('**/v3/api/streetGradientProfile*', (route) => route.fulfill({json: {
+  await context.route('**/v3/api/streetGrade*', (route) => route.fulfill({json: {
     street_edge_id: 1, profile: {spacing_meters: 50, elevations_meters: [100, 105, 110]},
   }}));
 }
@@ -476,7 +476,7 @@ test.describe('/accessScore', () => {
         Object.assign(streets.features[2].properties, slope(0.01, 0.015));
         return route.fulfill({json: streets});
       });
-      await context.route('**/v3/api/streetGradientProfile*', (route) => route.fulfill({json: {
+      await context.route('**/v3/api/streetGrade*', (route) => route.fulfill({json: {
         street_edge_id: 1, max_grade: 0.081, max_grade_from_meters: 50, max_grade_to_meters: 100,
         profile: {spacing_meters: 50, elevations_meters: [104, 101.5, 98]},
       }}));
