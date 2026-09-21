@@ -40,6 +40,8 @@ import scala.concurrent.duration._
  *   - An explicit `/explore?routeId=X` visit resumes the *same* paused walk (same user_route row, progress intact).
  *   - `/explore?routeId=X&resumeRoute=false` is the one destructive path: it discards the old walk and starts fresh.
  *   - Entering a different route pauses (not discards) the walk being left behind.
+ *   - A `?regionId=` or `?streetEdgeId=` visit pauses the active walk too, so a later bare reload stays out of it
+ *     (#5437).
  *   - `routeResumed` (which drives the resume toast) is set only once a street of the walk has been submitted, which
  *     is what separates a walk in progress from one entered and abandoned before anything was recorded.
  *
@@ -126,14 +128,16 @@ class ExploreRoutePauseSpec
     routeId
   }
 
-  /** The `/explore` visit with the params under test; no region/street params. */
+  /** The `/explore` visit with the params under test. */
   private def pageData(
       userId: String,
       routeId: Option[Int] = None,
-      resumeRoute: Boolean = true
+      resumeRoute: Boolean = true,
+      regionId: Option[Int] = None,
+      streetEdgeId: Option[Int] = None
   ): ExplorePageData = await(
     exploreService.getDataForExplorePage(userId, retakingTutorial = false, newRegion = false, routeId = routeId,
-      resumeRoute = resumeRoute, regionId = None, streetEdgeId = None)
+      resumeRoute = resumeRoute, regionId = regionId, streetEdgeId = streetEdgeId)
   )
 
   private def walksFor(userId: String): Seq[UserRoute] =
@@ -303,6 +307,39 @@ class ExploreRoutePauseSpec
           val walkA = walksFor(user.userId).find(_.routeId == routeIdA).value
           walkA.paused mustBe true
           walkA.discarded mustBe false
+      }
+    }
+
+    "pause the active walk on a ?regionId= visit, so a later bare reload doesn't resume it" in {
+      seedStreet match {
+        case None                           => cancel("No street/region rows in the connected DB; nothing to exercise.")
+        case Some((streetEdgeId, regionId)) =>
+          val user = newTutorialGraduate()
+          seedActiveRouteWalk(user.userId, streetEdgeId, regionId)
+
+          val regionData = pageData(user.userId, regionId = Some(regionId))
+          regionData.userRoute mustBe None
+          val walk = walksFor(user.userId).loneElement
+          walk.paused mustBe true
+          walk.discarded mustBe false
+
+          // Main#updateURL strips ?regionId= from the address bar, so the reload arrives bare.
+          val reloadData = pageData(user.userId)
+          reloadData.userRoute mustBe None
+          reloadData.region.regionId mustBe regionId
+      }
+    }
+
+    "pause the active walk on a ?streetEdgeId= visit" in {
+      seedStreet match {
+        case None                           => cancel("No street/region rows in the connected DB; nothing to exercise.")
+        case Some((streetEdgeId, regionId)) =>
+          val user = newTutorialGraduate()
+          seedActiveRouteWalk(user.userId, streetEdgeId, regionId)
+
+          pageData(user.userId, streetEdgeId = Some(streetEdgeId)).userRoute mustBe None
+          walksFor(user.userId).loneElement.paused mustBe true
+          pageData(user.userId).userRoute mustBe None
       }
     }
   }
