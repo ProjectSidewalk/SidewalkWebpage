@@ -883,8 +883,8 @@ window.AccessScoreApp = (function () {
     }
 
     /**
-     * The popup's slope block (#5223): the grades, the climb, how much of the street is over the walking-surface
-     * limit, a slot the elevation profile loads into, and why the numbers are missing or approximate when they are.
+     * The popup's slope block (#5223): one line of grades and climb, a slot the elevation profile loads into (its
+     * legend says how much of the street is how steep), and why the numbers are missing or approximate when they are.
      * Empty for a street that has not been sampled, so a city with no slope data shows no sign of the feature.
      * @param {AccessScoreStreetExplanation} s - The street.
      * @returns {string}
@@ -926,7 +926,8 @@ window.AccessScoreApp = (function () {
 
     /**
      * Draws a street's elevation profile into its slot, with its accessible name in the reader's units and the
-     * stretch that set its `max_grade`, which only the backend can place (the profile is too coarse to find it).
+     * stretch that set its `max_grade`, which only the backend can place (the profile is too coarse to find it). A
+     * stale street's stretch is left out: it was placed along the line the street used to follow.
      * @param {HTMLElement} slot - The popup's profile slot.
      * @param {AccessScoreProfileResponse} response - The street's `/v3/api/streetGradientProfile` answer.
      */
@@ -934,10 +935,8 @@ window.AccessScoreApp = (function () {
       const { profile } = response;
       const plain = { escape: false };
       const elevations = profile.elevations_meters;
-      // A stretch of no length (a street a few millimeters long) has nothing to bracket.
-      const hasStretch = typeof response.max_grade_from_meters === 'number'
-        && typeof response.max_grade_to_meters === 'number' && typeof response.max_grade === 'number'
-        && response.max_grade_to_meters > response.max_grade_from_meters;
+      const hasStretch = !response.stale && typeof response.max_grade_from_meters === 'number'
+        && typeof response.max_grade_to_meters === 'number' && typeof response.max_grade === 'number';
       const label = i18next.t('accessscore:profile-label', {
         start: formatElevation(elevations[0], plain),
         end: formatElevation(elevations[elevations.length - 1], plain),
@@ -945,12 +944,15 @@ window.AccessScoreApp = (function () {
         high: formatElevation(Math.max(...elevations), plain),
         interpolation: { escapeValue: false },
       });
+      // The slot announced "loading"; the chart itself is not read out whole, legend and all, the moment it lands.
+      slot.removeAttribute('aria-live');
       new AccessScoreElevationProfile(slot, profile, {
-        breaks: config.gradient?.map_class_breaks ?? [],
+        // Present whenever a street has a profile: slope fields only exist in a city whose config has a gradient.
+        breaks: config.gradient.map_class_breaks,
         steepest: hasStretch
           ? { from: response.max_grade_from_meters, to: response.max_grade_to_meters, grade: response.max_grade }
           : null,
-        label: `${label} ${i18next.t('accessscore:profile-keys')}`,
+        label,
         onLog: log,
       });
     }
@@ -971,8 +973,8 @@ window.AccessScoreApp = (function () {
         const response = /** @type {AccessScoreProfileResponse} */ (
           await fetchJson(`/v3/api/streetGradientProfile?streetEdgeId=${streetId}`));
         if (popup !== forPopup) return;
-        // The slot is a live region that has just said "loading", so every ending is said in it too: removing it
-        // would leave a screen-reader user waiting on a profile that is not coming.
+        // The slot is a live region that has just said "loading", so every ending but a drawn chart is said in it
+        // too: removing it would leave a screen-reader user waiting on a profile that is not coming.
         if (AccessScoreElevationProfile.canDraw(response.profile)) drawProfile(slot, response);
         else slot.textContent = i18next.t('accessscore:profile-none');
       } catch (e) {

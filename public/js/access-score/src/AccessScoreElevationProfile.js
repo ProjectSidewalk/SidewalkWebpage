@@ -1,14 +1,17 @@
 /**
  * A street's elevation profile, colored by how steep each stretch is (#5223): distance along the street across,
- * elevation up, each ~10 m stretch of the line and the ground beneath it in the slope map's color for its grade, so
- * the popup's chart and the street on the map say the same thing about the same stretch.
+ * elevation up, each ~10 m stretch of the line and the ground beneath it in the slope map's class for its grade, so
+ * the popup's chart and the street on the map put a stretch in the same class. The popup is always a light surface,
+ * so the chart takes the light ramp even while the map wears the dark one.
  *
  * The stretch the score reads, `max_grade`'s steepest baseline, is bracketed and labeled with its length and grade. Its
  * place comes from the backend (`max_grade_from_meters`), since the ~10 m profile is too coarse to find it again. A
  * legend under the chart lists how much of the street falls in each slope class, steepest first, as toggle buttons:
  * hovering or focusing a row previews its stretches on the chart, pressing pins it, and several can be pinned. Going
- * the other way, pointing at the chart (or arrowing along it) lights the legend row of the stretch under the pointer
- * and states that stretch's grade and direction in a live readout.
+ * the other way, pointing at the chart lights the legend row of the stretch under the pointer and states that
+ * stretch's grade and direction beneath it. For the keyboard the chart is a slider over the stretches, not an image:
+ * an image is a leaf a screen reader's browse mode steps past without passing it a key, where a slider switches it to
+ * focus mode and announces each stretch's `aria-valuetext` as the arrow keys move.
  *
  * The vertical scale is exaggerated to fit, as every elevation profile is, but never beyond a minimum span, so a
  * gentle street reads as gentle; the colors and the legend carry the grade the shape cannot.
@@ -23,6 +26,8 @@
  * @property {?number} max_grade - The street's steepest grade.
  * @property {?number} max_grade_from_meters - Where the stretch that set it starts, along the street.
  * @property {?number} max_grade_to_meters - Where it ends.
+ * @property {boolean} [stale] - Whether the street has moved since it was sampled, which leaves those two positions
+ *   along the line it used to follow.
  *
  * @typedef {object} AccessScoreProfileStretch
  * @property {number} grade - Signed grade over the stretch, positive uphill in the street's digitized direction.
@@ -40,6 +45,8 @@ class AccessScoreElevationProfile {
   static #MIN_SPAN_METERS = 8;
   /** A crest or dip is labeled only when it stands this far beyond both ends; smaller ones are sample noise. */
   static #EXTREME_METERS = 1;
+  /** Numbers each chart's legend title, so its list can be labeled by it while two popups' charts coexist. */
+  static #nextId = 0;
 
   /** @type {HTMLElement} */ #root;
   /** @type {SVGSVGElement} */ #svg;
@@ -52,10 +59,16 @@ class AccessScoreElevationProfile {
   /** @type {(kind: string, value?: string) => void} */ #onLog;
   /** Classes pinned by pressing their legend rows. */
   #pinned = new Set();
-  /** The class a hovered or focused legend row previews, over whatever is pinned; null for none. */
-  #preview = null;
+  /**
+   * The classes the hovered and the focused legend rows preview, over whatever is pinned; null for none. Kept apart
+   * so tabbing between rows never wipes the preview of the row still under the pointer, which wins while there.
+   */
+  #hovered = null;
+  #focused = null;
   /** The stretch under the pointer or the arrow keys; -1 for none. */
   #cursor = -1;
+  /** The slider's own value, which a passing pointer borrows the cursor from and hands back when it leaves. */
+  #keyCursor = 0;
   /** The chart is scrubbed in a continuous sweep, so it is logged once per popup, not per stretch. */
   #scrubLogged = false;
 
@@ -66,7 +79,8 @@ class AccessScoreElevationProfile {
    * @param {object} options - What the chart needs besides the samples.
    * @param {number[]} options.breaks - The slope classes' breaks, `gradient.map_class_breaks` from the config.
    * @param {?{from: number, to: number, grade: number}} options.steepest - The stretch that set `max_grade`, in
-   *   meters along the street, with that grade; null where the backend reports none.
+   *   meters along the street, with that grade; null where the backend reports none. A stretch of no length, or one
+   *   reaching past the drawn street (whose geometry has changed since it was sampled), is not drawn.
    * @param {string} options.label - The chart's accessible name, as plain text.
    * @param {(kind: string, value?: string) => void} [options.onLog] - Records an interaction.
    */
@@ -75,7 +89,10 @@ class AccessScoreElevationProfile {
     this.#onLog = onLog;
     this.#analysis = AccessScoreElevationProfile.analyze(profile, breaks);
     const colors = AccessScoreGradeRamp.colors(breaks.length + 1);
-    slot.innerHTML = this.#html(breaks, steepest, label);
+    const { length } = this.#analysis;
+    const drawable = steepest && steepest.to > steepest.from && steepest.from >= 0
+      && steepest.to <= length + profile.spacing_meters;
+    slot.innerHTML = this.#html(breaks, drawable ? steepest : null, label);
     this.#root = /** @type {HTMLElement} */ (slot.querySelector('.acs-profile'));
     this.#svg = /** @type {SVGSVGElement} */ (this.#root.querySelector('.acs-profile__chart'));
     this.#cursorLine = this.#root.querySelector('.acs-profile__cursor');
@@ -151,26 +168,29 @@ class AccessScoreElevationProfile {
     const text = (x, y, content, anchor = 'start', kind = 'end') => `<text class="acs-profile__${kind}"
         x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}">${content}</text>`;
     const [x0, xn] = [pts[0][0], pts[n][0]];
-    const spacing = self.#elevationValue(this.#profile.spacing_meters);
+    const spacing = self.#lengthValue(this.#profile.spacing_meters);
     const legendTitle = self.#t('profile-legend-title', { spacing });
+    const titleId = `acs-profile-legend-${self.#nextId++}`;
+    const casing = `<path class="acs-profile__casing" d="M${pts.map(at).join(' L')}"></path>`;
     return `<figure class="acs-profile">
-        <svg class="acs-profile__chart" viewBox="0 0 ${self.#WIDTH} ${self.#HEIGHT}" role="img" tabindex="0"
-             aria-label="${util.escapeHTML(label)}">
+        <svg class="acs-profile__chart" viewBox="0 0 ${self.#WIDTH} ${self.#HEIGHT}" role="slider" tabindex="0"
+             aria-label="${util.escapeHTML(label)}" aria-valuemin="0" aria-valuemax="${n - 1}" aria-valuenow="0"
+             aria-valuetext="${util.escapeHTML(this.#stretchText(0))}" aria-orientation="horizontal">
           <g aria-hidden="true">
-            ${ground}${line}
+            ${ground}${casing}${line}
             <line class="acs-profile__axis" x1="${x0.toFixed(1)}" x2="${xn.toFixed(1)}" y1="${base}" y2="${base}">
             </line>
-            ${text(x0 - 6, pts[0][1] + 4, self.#elevation(z[0]), 'end')}
-            ${text(xn + 6, pts[n][1] + 4, self.#elevation(z[n]))}
+            ${text(x0 - 6, pts[0][1] + 4, self.#length(z[0]), 'end')}
+            ${text(xn + 6, pts[n][1] + 4, self.#length(z[n]))}
             ${this.#extremesHtml(pts, steepest)}${this.#bracketHtml(steepest, pts, top)}
-            ${text(x0, base + 14, self.#elevation(0), 'start', 'tick')}
-            ${text(xn, base + 14, self.#elevation(this.#analysis.length), 'end', 'tick')}
+            ${text(x0, base + 14, self.#length(0), 'start', 'tick')}
+            ${text(xn, base + 14, self.#length(this.#analysis.length), 'end', 'tick')}
             <line class="acs-profile__cursor" x1="0" x2="0" y1="${top - 6}" y2="${base}" visibility="hidden"></line>
           </g>
         </svg>
-        <figcaption class="acs-profile__legend-title">${legendTitle}</figcaption>
-        <ul class="acs-profile__legend">${this.#legendHtml(breaks)}</ul>
-        <p class="acs-profile__readout" aria-live="polite"></p>
+        <p class="acs-profile__legend-title" id="${titleId}">${legendTitle}</p>
+        <ul class="acs-profile__legend" aria-labelledby="${titleId}">${this.#legendHtml(breaks)}</ul>
+        <p class="acs-profile__readout"></p>
       </figure>`;
   }
 
@@ -200,7 +220,7 @@ class AccessScoreElevationProfile {
           <span>${AccessScoreElevationProfile.#classLabel(classIndex, breaks)}</span>
           <span class="acs-profile__share" aria-hidden="true"><span class="acs-profile__share-fill"
             data-share="${share}"></span></span>
-          <span class="acs-profile__length">${AccessScoreElevationProfile.#elevation(meters)}</span>
+          <span class="acs-profile__length">${AccessScoreElevationProfile.#length(meters)}</span>
         </button></li>`;
     }).join('');
   }
@@ -216,22 +236,36 @@ class AccessScoreElevationProfile {
     if (!steepest) return '';
     const self = AccessScoreElevationProfile;
     const { x } = this.#scales();
-    const spacing = this.#profile.spacing_meters;
     const [x1, x2] = [x(steepest.from), x(steepest.to)];
     const { left, right } = self.#PAD;
     const cx = Math.min(Math.max((x1 + x2) / 2, left + 50), self.#WIDTH - right - 50);
-    // Above the highest sample under the bracket or under its label, which is wider than a 30 m stretch, so the
-    // text clears the line where the street is higher beside the stretch than on it. At worst it sits in the top pad.
-    const [from, to] = [Math.min(x1, cx - 55), Math.max(x2, cx + 55)];
-    const under = pts.filter(([px], i) => (px >= from && px <= to)
-      || (i * spacing >= steepest.from && i * spacing <= steepest.to));
-    const y = Math.max(top - 8, Math.min(...under.map((p) => p[1])) - 8);
+    // Above the line's highest point under the bracket or under its label, which is wider than a 30 m stretch, so
+    // the text clears the line where the street is higher beside the stretch than on it. The line is read at the
+    // span's two edges as well as at the samples inside it: a fine model's 10 m stretch can fall between two
+    // samples of a short street's profile, leaving none inside. At worst it sits in the top pad.
+    const from = Math.max(pts[0][0], Math.min(x1, cx - 55));
+    const to = Math.min(pts[pts.length - 1][0], Math.max(x2, cx + 55));
+    const inside = pts.filter(([px]) => px >= from && px <= to).map((p) => p[1]);
+    const lineY = [self.#lineYAt(pts, from), self.#lineYAt(pts, to), ...inside];
+    const y = Math.max(top - 8, Math.min(...lineY) - 8);
     const text = self.#t('profile-steepest', {
-      length: self.#elevationValue(steepest.to - steepest.from), grade: AccessScoreGradeRamp.percent(steepest.grade),
+      length: self.#lengthValue(steepest.to - steepest.from), grade: AccessScoreGradeRamp.percent(steepest.grade),
     });
     const f = (v) => v.toFixed(1);
     return `<path class="acs-profile__bracket" d="M${f(x1)},${f(y + 5)} V${f(y)} H${f(x2)} V${f(y + 5)}"></path>
         <text class="acs-profile__callout" x="${f(cx)}" y="${f(y - 5)}" text-anchor="middle">${text}</text>`;
+  }
+
+  /**
+   * The line's height at any x, between the samples either side of it.
+   * @param {Array<[number, number]>} pts - Each sample's x and y, as drawn, in x order.
+   * @param {number} x - A point across the chart, within the line's extent.
+   * @returns {number} The line's y there.
+   */
+  static #lineYAt(pts, x) {
+    const i = Math.max(1, pts.findIndex(([px]) => px >= x));
+    const [[xa, ya], [xb, yb]] = [pts[i - 1], pts[i] ?? pts[i - 1]];
+    return xb === xa ? ya : ya + ((yb - ya) * (x - xa)) / (xb - xa);
   }
 
   /**
@@ -252,7 +286,7 @@ class AccessScoreElevationProfile {
       && pts[i][0] > x(steepest.from) - 45 && pts[i][0] < x(steepest.to) + 45;
     const mark = (i, dy, key) => {
       const [px, py] = pts[i].map((v) => v.toFixed(1));
-      const words = self.#t(key, { elevation: self.#elevationValue(z[i]) });
+      const words = self.#t(key, { elevation: self.#lengthValue(z[i]) });
       return `<circle class="acs-profile__extreme" cx="${px}" cy="${py}" r="2.5"></circle>
         <text class="acs-profile__end" x="${px}" y="${(pts[i][1] + dy).toFixed(1)}"
           text-anchor="middle">${words}</text>`;
@@ -295,18 +329,27 @@ class AccessScoreElevationProfile {
       row.addEventListener('click', () => {
         if (this.#pinned.has(classIndex)) this.#pinned.delete(classIndex);
         else this.#pinned.add(classIndex);
-        this.#preview = null;
+        this.#hovered = null;
+        this.#focused = null;
         this.#paint();
         this.#onLog('ProfileClass', `${classIndex}_value=${this.#pinned.has(classIndex)}`);
       });
-      const preview = (on) => () => {
-        this.#preview = on ? classIndex : null;
+      row.addEventListener('pointerenter', () => {
+        this.#hovered = classIndex;
         this.#paint();
-      };
-      row.addEventListener('pointerenter', preview(true));
-      row.addEventListener('pointerleave', preview(false));
-      row.addEventListener('focus', preview(true));
-      row.addEventListener('blur', preview(false));
+      });
+      row.addEventListener('pointerleave', () => {
+        this.#hovered = null;
+        this.#paint();
+      });
+      row.addEventListener('focus', () => {
+        this.#focused = classIndex;
+        this.#paint();
+      });
+      row.addEventListener('blur', () => {
+        this.#focused = null;
+        this.#paint();
+      });
     }
     this.#svg.addEventListener('pointermove', (e) => {
       const box = this.#svg.getBoundingClientRect();
@@ -314,18 +357,54 @@ class AccessScoreElevationProfile {
       const width = AccessScoreElevationProfile.#WIDTH;
       const vx = ((e.clientX - box.left) / box.width) * width;
       const along = (vx - left) / (width - left - right);
-      this.#point(Math.floor(along * this.#analysis.stretches.length));
+      // Clamped at both ends alike, so the pads either side of the line hold the nearest stretch.
+      const last = this.#analysis.stretches.length - 1;
+      this.#point(Math.max(0, Math.min(last, Math.floor(along * (last + 1)))));
+      this.#logScrub();
     });
-    this.#svg.addEventListener('pointerleave', () => this.#point(-1));
+    // A pointer passing over a focused slider borrows its cursor and hands it back.
+    const rest = () => this.#point(document.activeElement === this.#svg ? this.#keyCursor : -1);
+    this.#svg.addEventListener('pointerleave', rest);
     this.#svg.addEventListener('blur', () => this.#point(-1));
-    this.#svg.addEventListener('focus', () => this.#point(0));
+    this.#svg.addEventListener('focus', () => this.#point(this.#keyCursor));
     this.#svg.addEventListener('keydown', (e) => {
       const last = this.#analysis.stretches.length - 1;
-      const next = { ArrowRight: this.#cursor + 1, ArrowLeft: this.#cursor - 1, Home: 0, End: last }[e.key];
+      const at = this.#keyCursor;
+      const next = {
+        ArrowRight: at + 1, ArrowUp: at + 1, ArrowLeft: at - 1, ArrowDown: at - 1, Home: 0, End: last,
+      }[e.key];
       if (next === undefined) return;
       e.preventDefault();
-      this.#point(Math.max(0, Math.min(last, next)));
+      this.#keyCursor = Math.max(0, Math.min(last, next));
+      this.#point(this.#keyCursor);
+      this.#logScrub();
     });
+  }
+
+  /** Logs the chart's first scrub by pointer or key; a focus alone, as a Tab passes through, is not one. */
+  #logScrub() {
+    if (this.#scrubLogged) return;
+    this.#scrubLogged = true;
+    this.#onLog('ProfileScrub');
+  }
+
+  /**
+   * One stretch as a sentence: how far along it is, its grade and direction, and its elevation.
+   * @param {number} index - The stretch.
+   * @returns {string} Plain text.
+   */
+  #stretchText(index) {
+    const self = AccessScoreElevationProfile;
+    const stretch = this.#analysis.stretches[index];
+    const z = this.#profile.elevations_meters;
+    const along = (index + 0.5) * this.#profile.spacing_meters;
+    const percent = AccessScoreGradeRamp.percent(Math.abs(stretch.grade));
+    // Centimeter rounding leaves many stretches exactly level, and "0% uphill" would name a direction there is not.
+    const level = percent === AccessScoreGradeRamp.percent(0);
+    const key = level ? 'profile-readout-level' : `profile-readout-${stretch.grade > 0 ? 'up' : 'down'}`;
+    return self.#t(key, {
+      along: self.#lengthValue(along), grade: percent, elevation: self.#lengthValue((z[index] + z[index + 1]) / 2),
+    }, false);
   }
 
   /**
@@ -334,7 +413,10 @@ class AccessScoreElevationProfile {
    */
   #point(index) {
     const stretches = this.#analysis.stretches;
-    this.#cursor = index < 0 ? -1 : Math.min(index, stretches.length - 1);
+    const cursor = index < 0 ? -1 : Math.min(index, stretches.length - 1);
+    // A pointer fires far more often than it crosses a stretch.
+    if (cursor === this.#cursor) return;
+    this.#cursor = cursor;
     const stretch = stretches[this.#cursor];
     for (const row of this.#rows) {
       row.classList.toggle('acs-profile__class--at', Number(row.dataset.class) === stretch?.classIndex);
@@ -344,26 +426,14 @@ class AccessScoreElevationProfile {
       this.#paint();
       return;
     }
-    if (!this.#scrubLogged) {
-      this.#scrubLogged = true;
-      this.#onLog('ProfileScrub');
-    }
-    const spacing = this.#profile.spacing_meters;
-    const along = (this.#cursor + 0.5) * spacing;
-    const x = this.#scales().x(along).toFixed(1);
+    const x = this.#scales().x((this.#cursor + 0.5) * this.#profile.spacing_meters).toFixed(1);
     this.#cursorLine.setAttribute('x1', x);
     this.#cursorLine.setAttribute('x2', x);
     this.#cursorLine.setAttribute('visibility', 'visible');
-    const z = this.#profile.elevations_meters;
-    this.#readout.textContent = AccessScoreElevationProfile.#t(
-      stretch.grade >= 0 ? 'profile-readout-up' : 'profile-readout-down',
-      {
-        along: AccessScoreElevationProfile.#elevationValue(along),
-        grade: AccessScoreGradeRamp.percent(Math.abs(stretch.grade)),
-        elevation: AccessScoreElevationProfile.#elevationValue((z[this.#cursor] + z[this.#cursor + 1]) / 2),
-      },
-      false,
-    );
+    const sentence = this.#stretchText(this.#cursor);
+    this.#readout.textContent = sentence;
+    this.#svg.setAttribute('aria-valuenow', String(this.#cursor));
+    this.#svg.setAttribute('aria-valuetext', sentence);
   }
 
   /**
@@ -371,7 +441,8 @@ class AccessScoreElevationProfile {
    * cursor, says in the readout how much of the street the highlight covers.
    */
   #paint() {
-    const active = this.#preview !== null ? new Set([this.#preview]) : this.#pinned;
+    const preview = this.#hovered ?? this.#focused;
+    const active = preview !== null ? new Set([preview]) : this.#pinned;
     this.#root.classList.toggle('acs-profile--filtered', active.size > 0);
     for (const mark of this.#marks) {
       const classIndex = Number(/** @type {HTMLElement} */ (mark).dataset.class);
@@ -389,8 +460,8 @@ class AccessScoreElevationProfile {
     const count = stretches.filter((s, i) => active.has(s.classIndex)
       && !(i > 0 && active.has(stretches[i - 1].classIndex))).length;
     this.#readout.textContent = AccessScoreElevationProfile.#t('profile-highlight', {
-      length: AccessScoreElevationProfile.#elevationValue(meters),
-      total: AccessScoreElevationProfile.#elevationValue(length),
+      length: AccessScoreElevationProfile.#lengthValue(meters),
+      total: AccessScoreElevationProfile.#lengthValue(length),
       count,
     }, false);
   }
@@ -422,13 +493,22 @@ class AccessScoreElevationProfile {
     return i18next.t(`accessscore:${key}`, { ...values, interpolation: { escapeValue: escape } });
   }
 
-  /** A length or elevation in the reader's units, escaped for markup. */
-  static #elevation(meters) {
+  /**
+   * A length along the street or an elevation, in the reader's units to the whole meter or foot (the tool's
+   * `elevation` format, which does not round a short stretch away as the street-length format would).
+   * @param {number} meters - The length or elevation in meters.
+   * @returns {string} Escaped for markup.
+   */
+  static #length(meters) {
     return i18next.t('accessscore:elevation', { meters, interpolation: { escapeValue: true } });
   }
 
-  /** The same as plain text, for use as a value that `#t` escapes (or not) itself. */
-  static #elevationValue(meters) {
+  /**
+   * The same as plain text, for use as a value that `#t` escapes (or not) itself.
+   * @param {number} meters - The length or elevation in meters.
+   * @returns {string}
+   */
+  static #lengthValue(meters) {
     return i18next.t('accessscore:elevation', { meters, interpolation: { escapeValue: false } });
   }
 }

@@ -521,7 +521,7 @@ test.describe('/accessScore', () => {
       await expect(popup.locator('svg.acs-profile__chart')).toBeVisible();
       // The bracket marks the stretch the backend placed; the legend's rows are toggles that highlight the chart.
       await expect(popup.locator('.acs-profile__callout')).toContainText('8.1%');
-      const rows = popup.getByRole('button', {name: /%/});
+      const rows = popup.locator('.acs-profile__legend').getByRole('button');
       await expect(rows).toHaveCount(2);
       // By keyboard: a legend row is a real button, reachable and pressable without a pointer.
       await rows.first().press('Enter');

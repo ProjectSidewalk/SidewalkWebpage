@@ -799,6 +799,16 @@
   stroke: none;
 }
 
+/* The gentlest class's blue is under 3:1 against the white popup (WCAG 1.4.11), so the colored line rides on a darker
+   casing a half stroke wider each side, which carries the shape's contrast whatever the class colors are. */
+.acs-profile__casing {
+  fill: none;
+  stroke: var(--color-neutral-700);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .acs-profile__stroke {
   fill: none;
   stroke-width: 3.5;
@@ -810,7 +820,7 @@
   transition: opacity 120ms;
 }
 
-/* A highlighted class keeps its color; every other stretch fades back, so the shape stays readable around it. */
+/* A highlighted class keeps its color; every other stretch fades back, while the casing keeps the line's shape. */
 .acs-profile--filtered [data-class]:not(.acs-profile__mark--on, .acs-profile__class) {
   opacity: 0.15;
 }
@@ -836,6 +846,8 @@
   fill: var(--color-neutral-900);
 }
 
+/* Sizes in the chart's own viewBox units, not the page's: the SVG scales as a whole to the popup's width, so a
+   --ui-scale token would be applied twice. */
 .acs-profile__end,
 .acs-profile__tick,
 .acs-profile__callout {
@@ -859,7 +871,7 @@
 }
 
 .acs-profile__legend-title {
-  margin-top: var(--space-xs);
+  margin: var(--space-xs) 0 0;
   font: var(--text-caption-semibold);
   color: var(--color-neutral-900);
 }
@@ -913,20 +925,20 @@
 .acs-profile__swatch {
   width: calc(12px * var(--ui-scale, 1));
   height: calc(12px * var(--ui-scale, 1));
-  border-radius: 2px;
+  border-radius: var(--border-radius-sm);
 }
 
 .acs-profile__share {
   height: calc(6px * var(--ui-scale, 1));
   overflow: hidden;
-  border-radius: 3px;
+  border-radius: var(--border-radius-sm);
   background: var(--color-neutral-200);
 }
 
 .acs-profile__share-fill {
   display: block;
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--border-radius-sm);
 }
 
 .acs-profile__length {

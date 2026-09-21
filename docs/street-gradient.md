@@ -205,8 +205,10 @@ The test for a new country is the one used here: an open bare-earth model at 10 
   stretch that set `max_grade` where `max_grade_from_meters` places it; its legend lists the length in each class,
   steepest first, recomputed from the same stretches the chart colors, so the two always agree (and can differ by a
   stretch from the stored `meters_over_5pct`, measured on the full-resolution samples). Legend rows are toggles that
-  highlight their stretches on the chart, and pointing along the chart (or arrowing, once it has focus) lights the
-  row of the stretch under the cursor and reads its grade and direction into a live region. A street is drawn by its mean grade, or by the size of its `net_grade` where a coarse
+  highlight their stretches on the chart, and pointing along the chart lights the row of the stretch under the
+  pointer and states its grade and direction. To the keyboard and a screen reader the chart is a slider over the
+  stretches, each announced by its `aria-valuetext`. A stale street's stretch is not bracketed, since it was placed
+  along the old line. A street is drawn by its mean grade, or by the size of its `net_grade` where a coarse
   model supports nothing else (`AccessScoreModel.displayGrade`). Which statistic it draws follows the one the score is
 using, so the map cannot paint a street gentle while the score penalizes it for a pitch the other statistic hid; the
 legend names the statistic in its title. Each of the legend's classes is a button that brushes the map on it
