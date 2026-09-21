@@ -289,7 +289,7 @@ GET     /v3/api/aggregateStatsByDay                     controllers.api.StatsApi
 GET     /v3/api/labelClusters                           controllers.api.LabelClustersApiController.getLabelClustersV3(bbox: Option[String], labelType: Option[String], regionId: Option[Int], regionName: Option[String], includeRawLabels: Option[Boolean], clusterSize: Option[Int], avgImageCaptureDate: Option[String], avgLabelDate: Option[String], minSeverity: Option[Int], maxSeverity: Option[Int], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streets                                 controllers.api.StreetsApiController.getStreets(bbox: Option[String], regionId: Option[Int], regionName: Option[String], minLabelCount: Option[Int], minAuditCount: Option[Int], minUserCount: Option[Int], wayType: Option[String], status: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streetTypes                             controllers.api.StreetsApiController.getStreetTypes
-GET     /v3/api/streetGrade                   controllers.api.StreetsApiController.getStreetGrade(streetEdgeId: Int)
+GET     /v3/api/streetGrade                             controllers.api.StreetsApiController.getStreetGrade(streetEdgeId: Int)
 GET     /v3/api/sidewalkPresence                        controllers.api.StreetsApiController.getSidewalkPresence(bbox: Option[String], regionId: Option[Int], regionName: Option[String], presence: Option[String], minNoSidewalkLabels: Option[Int], minValidatedNoSidewalkLabels: Option[Int], minAuditCount: Option[Int], wayType: Option[String], status: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/places                                  controllers.api.PlacesApiController.getPlaces(bbox: Option[String], regionId: Option[Int], regionName: Option[String], category: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/regions                                 controllers.api.RegionApiController.getRegions(bbox: Option[String], regionId: Option[Int], regionName: Option[String], minLabelCount: Option[Int], filetype: Option[String], inline: Option[Boolean])
@@ -314,7 +314,7 @@ GET     /v3/api-docs/streetTypes                        controllers.ApiDocsContr
 GET     /v3/api-docs/sidewalkPresence                   controllers.ApiDocsController.sidewalkPresence
 GET     /v3/api-docs/places                             controllers.ApiDocsController.places
 GET     /v3/api-docs/regions                            controllers.ApiDocsController.regions
-GET     /v3/api-docs/streetGrade              controllers.ApiDocsController.streetGrade
+GET     /v3/api-docs/streetGrade                        controllers.ApiDocsController.streetGrade
 GET     /v3/api-docs/accessScoreStreets                 controllers.ApiDocsController.accessScoreStreets
 GET     /v3/api-docs/accessScoreIntersections           controllers.ApiDocsController.accessScoreIntersections
 GET     /v3/api-docs/accessScoreRegions                 controllers.ApiDocsController.accessScoreRegions

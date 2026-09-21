@@ -27,6 +27,22 @@
   width: 100%;
 }
 
+/* Taller than the other previews: a pinned street's popup carries an elevation chart about 300px tall, which has
+   to fit on one side of the street or the other. */
+#street-grade-preview {
+  height: 620px;
+}
+
+/* The keyboard's way to a street's profile, under the map it opens popups on. */
+.street-grade-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+  font: var(--text-small-regular);
+}
+
 /* ---- Feature Popup ---- */
 
 /* The score is the popup's headline number, so it's set well above the surrounding text. */

@@ -28,6 +28,7 @@ class StreetGradientTableSpec
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val table: StreetGradientTable = app.injector.instanceOf[StreetGradientTable]
+  private lazy val served                     = app.injector.instanceOf[StreetEdgeTable].streets.map(_.streetEdgeId)
 
   private val Md5 = "0123456789abcdef0123456789abcdef"
 
@@ -150,18 +151,21 @@ class StreetGradientTableSpec
     "count streets per elevation model, the most-used model first" in {
       // Deltas against whatever the connected city already holds, so the case reads the same on a sampled dev DB.
       val (before, after) = runRolledBack(for {
-        before <- table.sourceCounts
+        before <- table.sourceCounts(served)
         a      <- insertStreet()
         b      <- insertStreet()
         c      <- insertStreet()
+        hidden <- insertStreet(status = "no_imagery")
         _      <- insertMeasured(a, "spec-dem-major")
         _      <- insertMeasured(b, "spec-dem-major")
         _      <- insertMeasured(c, "spec-dem-minor")
-        after  <- table.sourceCounts
+        _      <- insertMeasured(hidden, "spec-dem-minor")
+        after  <- table.sourceCounts(served)
       } yield (before.toMap, after))
 
       before.get("spec-dem-major") mustBe None
       after.toMap.apply("spec-dem-major") mustBe 2
+      // The no_imagery street's row is left out: no street API serves that street.
       after.toMap.apply("spec-dem-minor") mustBe 1
       after.map(_._1).indexOf("spec-dem-major") must be < after.map(_._1).indexOf("spec-dem-minor")
       after.map(_._2) mustBe after.map(_._2).sorted.reverse

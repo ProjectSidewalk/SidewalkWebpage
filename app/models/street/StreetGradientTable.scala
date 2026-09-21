@@ -226,12 +226,17 @@ class StreetGradientTable @Inject() (protected val dbConfigProvider: DatabaseCon
           WHERE street_gradient.street_edge_id = $streetEdgeId""".as[Boolean].headOption
 
   /**
-   * The elevation models this city's rows were sampled from, with how many streets each covers.
+   * The elevation models this city's served streets were sampled from, with how many streets each covers.
    *
+   * @param servedStreetIds The streets to count, the set the public street APIs serve (`StreetEdgeTable.streets`),
+   *                        so a count never includes a hidden street no API returns.
    * @return (dem_source, street count) pairs, most streets first, so the city's main source leads a credit line.
    */
-  def sourceCounts: DBIO[Seq[(String, Int)]] =
-    streetGradients.groupBy(_.demSource).map { case (source, rows) => (source, rows.length) }.result.map {
-      _.sortBy { case (source, count) => (-count, source) }
-    }
+  def sourceCounts(servedStreetIds: Query[Rep[Int], Int, Seq]): DBIO[Seq[(String, Int)]] =
+    streetGradients
+      .filter(_.streetEdgeId in servedStreetIds)
+      .groupBy(_.demSource)
+      .map { case (source, rows) => (source, rows.length) }
+      .result
+      .map(_.sortBy { case (source, count) => (-count, source) })
 }

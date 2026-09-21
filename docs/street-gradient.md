@@ -181,13 +181,14 @@ The test for a new country is the one used here: an open bare-earth model at 10 
 
 **Terminology.** The English UI and the API say *grade* (*gradient* in the `en-NZ` overlay): a street's steepness
 along its centerline. *Slope* is avoided because accessibility standards also use it for a sidewalk's cross slope,
-which a centerline sample cannot measure; the tool's help text says so. Other languages keep their own word, which
-already reads as along-the-street. Code identifiers (`AccessScoreSlopePanel`, `SlopeSettings`, the `slope-*` locale
+which a centerline sample cannot measure; the tool's help text says so. Other languages keep their own word. Only
+German's (*Steigung*) is specifically along-the-street; es, fr, pt-BR and zh-TW use a general word for slope, so there
+the translated cross-slope sentence carries the distinction. Code identifiers (`AccessScoreSlopePanel`, `SlopeSettings`, the `slope-*` locale
 keys, `#acs-slope-*`) keep the older word: renaming them would change nothing a reader or an API client sees.
 
 `StreetGradientTable` is the read-only Slick model; nothing in the app writes the table.
 
-- **`/v3/api/accessScoreStreets`** carries ten slope fields per street in every format (`mean_grade`, `max_grade`,
+- **`/v3/api/accessScoreStreets`** carries ten grade fields per street in every format (`mean_grade`, `max_grade`,
   `net_grade`, `total_climb_meters`, `total_descent_meters`, `meters_over_5pct`, `meters_over_8pct`,
   `grade_confidence`, `grade_quality`, `dem_source`), null on a street that has not been sampled. They are declared
   once, in `StreetGradientApiFields`. The statistics are read without `profile_cm`, so a city-wide request never
@@ -208,7 +209,7 @@ keys, `#acs-slope-*`) keep the older word: renaming them would change nothing a 
   unsampled city. It recolors the street lines through `AccessScoreGradeRamp` (classed, from the
   `--color-grade-ramp-*` tokens; every street with a grade is drawn at full strength, audited or not), swaps the map
   legend for the class list, and rides in the URL as `grade=1`. While it is on, "Show unaudited streets" is
-  disabled, since slope is drawn for every street. The popup of a sampled street shows a Grade block: one line of
+  disabled, since grade is drawn for every street. The popup of a sampled street shows a Grade block: one line of
   steepest and mean grade, climb and drop, then the elevation profile (`AccessScoreElevationProfile`, fetched per
   street), and a sentence saying why when the numbers are missing (`structure`, `no_data`) or approximate
   (`suspect`, a coarse model). The profile colors each ~10 m stretch by the slope map's classes and brackets the

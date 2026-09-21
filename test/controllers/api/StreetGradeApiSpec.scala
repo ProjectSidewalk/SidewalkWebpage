@@ -102,8 +102,22 @@ class StreetGradeApiSpec
       try {
         val resp = route(app, FakeRequest(GET, s"/v3/api/streetGrade?streetEdgeId=$unsampled")).get
         status(resp) mustBe NOT_FOUND
-        (contentAsJson(resp) \ "detail").as[String] must include("has no gradient data")
+        (contentAsJson(resp) \ "detail").as[String] must include("has no grade data")
       } finally { val _ = run(sqlu"DELETE FROM street_edge WHERE street_edge_id = $unsampled") }
+    }
+
+    "answer 404 for a sampled street that the other street APIs hide" in {
+      // A no_imagery street is in neither /v3/api/streets nor accessScoreStreets, so it is not in this API either.
+      val hidden = run(insertStreet(status = "no_imagery"))
+      try {
+        val _ = run(sqlu"""INSERT INTO street_gradient (street_edge_id, quality, confidence, elev_start_m, elev_end_m,
+                                                dem_source, dem_resolution_m, geom_md5)
+                   VALUES ($hidden, 'structure', 'high', 12.0, 12.5, 'usgs-3dep-10m', 10,
+                           '0123456789abcdef0123456789abcdef')""")
+        val resp = route(app, FakeRequest(GET, s"/v3/api/streetGrade?streetEdgeId=$hidden")).get
+        status(resp) mustBe NOT_FOUND
+        (contentAsJson(resp) \ "detail").as[String] must include(s"No street with id $hidden")
+      } finally { val _ = run(sqlu"DELETE FROM street_edge WHERE street_edge_id = $hidden") }
     }
   }
 }

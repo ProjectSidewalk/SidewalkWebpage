@@ -53,6 +53,9 @@ trait ApiService {
   /** Returns the length in meters of each given street edge, used to length-weight region AccessScores (#3855). */
   def getStreetLengths(streetEdgeIds: Seq[Int]): Future[Map[Int, Double]]
 
+  /** One street's length in meters, if the public street APIs serve it (open, not the tutorial's); None otherwise. */
+  def getServedStreetLength(streetEdgeId: Int): Future[Option[Double]]
+
   /** The OSM name of each given street edge, for the AccessScore API's `street_name`; unnamed streets are absent. */
   def getStreetNames(streetEdgeIds: Seq[Int]): Future[Map[Int, String]]
 
@@ -65,7 +68,7 @@ trait ApiService {
    */
   def getStreetGradient(streetEdgeId: Int): Future[Option[(StreetGradient, Boolean)]]
 
-  /** The elevation models this city's gradients came from, as (dem_source, street count), most streets first. */
+  /** The elevation models this city's served streets were sampled from, as (dem_source, street count), most first. */
   def getStreetGradientSourceCounts: Future[Seq[(String, Int)]]
 
   /** The intersections at the ends of the streets the filter selects, with what AccessScore needs to score them (#5095). */
@@ -359,6 +362,9 @@ class ApiServiceImpl @Inject() (
   def getStreetLengths(streetEdgeIds: Seq[Int]): Future[Map[Int, Double]] =
     db.run(streetEdgeTable.getStreetLengths(streetEdgeIds))
 
+  def getServedStreetLength(streetEdgeId: Int): Future[Option[Double]] =
+    db.run(streetEdgeTable.getServedStreetLength(streetEdgeId))
+
   def getStreetNames(streetEdgeIds: Seq[Int]): Future[Map[Int, String]] =
     db.run(osmWayTable.getStreetNames(streetEdgeIds))
 
@@ -370,7 +376,8 @@ class ApiServiceImpl @Inject() (
     stale    <- streetGradientTable.isStale(streetEdgeId)
   } yield gradient.map(g => (g, stale.getOrElse(false))))
 
-  def getStreetGradientSourceCounts: Future[Seq[(String, Int)]] = db.run(streetGradientTable.sourceCounts)
+  def getStreetGradientSourceCounts: Future[Seq[(String, Int)]] =
+    db.run(streetGradientTable.sourceCounts(streetEdgeTable.streets.map(_.streetEdgeId)))
 
   /** Derives a lat/lng bounding box from a region's MultiPolygon envelope (geometry is stored in EPSG:4326). */
   private def regionToBBox(region: Region): LatLngBBox = {

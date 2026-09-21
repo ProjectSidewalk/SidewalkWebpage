@@ -14,6 +14,19 @@
  *   namespace (the chart's strings)
  */
 
+/**
+ * @typedef {object} StreetGradeProperties - The fields of an /v3/api/accessScoreStreets feature this preview reads.
+ * @property {number} street_edge_id - The street.
+ * @property {?string} street_name - Its OSM name; null for an unnamed way.
+ * @property {?number} max_grade - Its steepest grade; null where it has none.
+ * @property {?number} mean_grade - Its mean grade; null where it has none.
+ * @property {?string} grade_quality - How its profile was obtained; null where it has not been sampled.
+ *
+ * @typedef {object} StreetGradeFeature
+ * @property {{coordinates: Array<Array<number>>}} geometry - The street's LineString.
+ * @property {StreetGradeProperties} properties - Its fields.
+ */
+
 (function () {
   const STREET_SOURCE = 'street-grade-streets';
   const STREET_LAYER = 'street-grade-lines';
@@ -170,7 +183,8 @@
         },
       });
       ApiDocsMap.addHoverState(map, STREET_LAYER, STREET_SOURCE);
-      this.addStreetPopups(map, breaks);
+      const pin = this.addStreetPopups(map, breaks);
+      this.addStreetPicker(container, features, pin);
 
       const countChip = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
       countChip.textContent = `${features.length} street${features.length === 1 ? '' : 's'}`;
@@ -182,7 +196,7 @@
       items.push({ color: NONE_COLOR, label: 'No grade (bridge, tunnel, or no data)' });
       const legend = ApiDocsMap.addOverlay(map, 'bottom-left', 'map-legend');
       ApiDocsMap.renderSwatchLegend(legend, 'Steepest grade (max_grade)', items,
-        'Hover a street for its elevation profile; click to pin it.');
+        'Point at a street for its elevation profile; click or tap to pin it, or pick one below the map.');
     },
 
     /**
@@ -202,6 +216,9 @@
      * closed or another street is clicked, so the chart inside it can be used.
      * @param {mapboxgl.Map} map - The map.
      * @param {number[]} breaks - The slope classes' breaks.
+     * @returns {(feature: {id: number, properties: StreetGradeProperties}, lngLat: Array<number>) => void} Pins a
+     *   street's popup
+     *   from outside the map, moving focus into it, for a reader with no pointer.
      */
     addStreetPopups(map, breaks) {
       let popup = null;
@@ -214,7 +231,7 @@
         popup = null;
         shownId = null;
       };
-      const show = (feature, lngLat, pin) => {
+      const show = (feature, lngLat, pin, focus = false) => {
         close();
         pinned = pin;
         shownId = feature.id;
@@ -223,6 +240,8 @@
           closeButton: pin,
           // A hover preview closes as the pointer leaves the street; a pinned one on a click anywhere else.
           closeOnClick: pin,
+          // Opened from the keyboard, focus follows it in, as it would into a dialog.
+          focusAfterOpen: focus,
         });
         opened.on('close', () => {
           if (popup !== opened) return;
@@ -231,7 +250,11 @@
           pinned = false;
         });
         popup = opened;
-        this.loadProfile(feature.properties.street_edge_id, opened, breaks, () => popup === opened);
+        const isCurrent = () => popup === opened;
+        this.loadProfile(feature.properties.street_edge_id, opened, breaks, isCurrent)
+          .then(() => {
+            if (isCurrent()) this.settle(map, opened, pin);
+          });
       };
 
       map.on('mousemove', STREET_LAYER, (e) => {
@@ -249,6 +272,77 @@
         clearTimeout(timer);
         if (e.features.length) show(e.features[0], e.lngLat, true);
       });
+      return (feature, lngLat) => {
+        clearTimeout(timer);
+        show(feature, lngLat, true, true);
+      };
+    },
+
+    /**
+     * A select under the map listing the region's graded streets, steepest first, that pins the chosen street's
+     * popup. The map answers only a pointer, so this is how a keyboard or screen-reader user reaches a profile.
+     * @param {HTMLElement} container - The preview's container, which the picker follows.
+     * @param {StreetGradeFeature[]} features - The streets.
+     * @param {(feature: {id: number, properties: StreetGradeProperties}, lngLat: Array<number>) => void} pin - Pins
+     *   a street's popup.
+     */
+    addStreetPicker(container, features, pin) {
+      const graded = features.filter((f) => typeof f.properties.max_grade === 'number')
+        .sort((a, b) => b.properties.max_grade - a.properties.max_grade);
+      const options = graded.map((f) => {
+        const p = f.properties;
+        // The name is the OSM way's `name` tag, which anyone can edit, so it is never trusted into markup.
+        const name = p.street_name ? util.escapeHTML(p.street_name) : 'Unnamed street';
+        const label = `${name} · ${percent(p.max_grade)} (street ${p.street_edge_id})`;
+        return `<option value="${p.street_edge_id}">${label}</option>`;
+      }).join('');
+      const picker = document.createElement('div');
+      picker.className = 'street-grade-picker';
+      picker.innerHTML = `
+        <label for="street-grade-picker-select">Show a street's elevation profile</label>
+        <select id="street-grade-picker-select" class="ps-select">
+          <option value="">Steepest first…</option>
+          ${options}
+        </select>`;
+      container.after(picker);
+      const byId = new Map(graded.map((f) => [f.properties.street_edge_id, f]));
+      picker.querySelector('select').addEventListener('change', (e) => {
+        const feature = byId.get(Number(/** @type {HTMLSelectElement} */ (e.target).value));
+        if (!feature) return;
+        // The popup sits at the street's middle vertex, which lies on the street, unlike a centroid on a curve.
+        const coordinates = feature.geometry.coordinates;
+        pin({ id: feature.properties.street_edge_id, properties: feature.properties },
+          coordinates[Math.floor(coordinates.length / 2)]);
+      });
+    },
+
+    /**
+     * Re-seats a popup once its content has its final size. Mapbox picks a popup's side of the street from its size
+     * when placed and looks again only when the map moves, so a popup opened above the street with one loading line
+     * would grow off the top of the frame as the chart arrived, then flip below it on the next repaint.
+     *
+     * A pinned popup is also panned fully into the frame: it is there to be used, and its close button would
+     * otherwise be focusable while clipped out of sight. A hover preview is not, since moving the map under the
+     * pointer would take the street away from it; it keeps whichever side has more room.
+     * @param {mapboxgl.Map} map - The map.
+     * @param {mapboxgl.Popup} popup - The popup, still open.
+     * @param {boolean} pinned - Whether it was opened by a click.
+     */
+    settle(map, popup, pinned) {
+      popup.setLngLat(popup.getLngLat());
+      if (!pinned) return;
+      const frame = map.getContainer().getBoundingClientRect();
+      const box = popup.getElement().getBoundingClientRect();
+      const margin = 8;
+      // How far the popup overhangs one axis of the frame: negative past the start, positive past the end.
+      const overhang = (start, end, min, max) => {
+        if (start < min + margin) return start - min - margin;
+        return end > max - margin ? end - max + margin : 0;
+      };
+      const dx = overhang(box.left, box.right, frame.left, frame.right);
+      const dy = overhang(box.top, box.bottom, frame.top, frame.bottom);
+      const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (dx || dy) map.panBy([dx, dy], { duration: still ? 0 : 300 });
     },
 
     /**
@@ -300,6 +394,7 @@
      * @param {mapboxgl.Popup} forPopup - The popup it belongs in.
      * @param {number[]} breaks - The slope classes' breaks.
      * @param {() => boolean} isCurrent - Whether that popup is still the one open, so a late answer is dropped.
+     * @returns {Promise<void>} Settles once the popup holds its final content (or was replaced), never rejecting.
      */
     async loadProfile(streetId, forPopup, breaks, isCurrent) {
       const slot = forPopup.getElement()?.querySelector('.map-popup__profile');

@@ -598,7 +598,7 @@ pre > code.language-csv {
     font: var(--text-caption-semibold);
   }
 
-  .map-popup p {
+  .map-popup p:not(.elevation-profile p) {
     font: var(--text-tiny-regular);
   }
 
