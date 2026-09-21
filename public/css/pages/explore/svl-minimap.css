@@ -691,12 +691,13 @@
   z-index: 4;
 }
 
-/* Recenter: a lone button just above the zoom column, so it rounds on all corners. .zoom-button's display: flex would
-   override its hidden attribute, hence the explicit rule. */
+/* Recenter: a lone button 6px above the zoom column (3 x 18px buttons, 2px gaps, 10px up), so it reads as its own
+   control and rounds on all corners. .zoom-button's display: flex would override its hidden attribute, hence the
+   explicit rule. */
 #minimap-recenter {
   position: absolute;
   right: calc(4px * var(--ui-scale));
-  bottom: calc(68px * var(--ui-scale));
+  bottom: calc(74px * var(--ui-scale));
   z-index: 4;
   width: calc(18px * var(--ui-scale, 1));
   height: calc(18px * var(--ui-scale, 1));
