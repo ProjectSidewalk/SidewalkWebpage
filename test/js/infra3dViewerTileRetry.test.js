@@ -15,7 +15,8 @@ const INFRA3D_SRC = fs.readFileSync(path.join(SRC_DIR, 'Infra3dViewer.js'), 'utf
 // utilities.js builds a Bowser parser at load time; nothing here consults it.
 window.bowser = {
   getParser: () => ({
-    getBrowserName: () => 'Test', getBrowserVersion: () => '1', getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
+    getBrowserName: () => 'Test', getBrowserVersion: () => '1',
+    getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
   }),
 };
 loadGlobalScript('public/js/common/utilities.js');
@@ -84,6 +85,7 @@ describe('Infra3dViewer image download retries', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(Math, 'random').mockReturnValue(0.5); // No jitter, so the waits are exactly TILE_RETRY_MS.
     window.logWebpageActivity = jest.fn();
     mount = document.createElement('div');
     mount.id = 'pano-mount';
@@ -140,7 +142,7 @@ describe('Infra3dViewer image download retries', () => {
     expect(onError).not.toHaveBeenCalled();
 
     await jest.advanceTimersByTimeAsync(Infra3dViewer.TILE_RETRY_LOG_DELAY_MS);
-    expect(diagnostics).toHaveBeenCalledWith('TileRetries', { recovered: '1', failed: '0', panoId: 'SEED' });
+    expect(diagnostics).toHaveBeenCalledWith('TileRetries', { recovered: '1', failed: '0' });
   });
 
   it('passes the failure on once the retries run out, and logs a pano of bad tiles as one line', async () => {
@@ -158,7 +160,7 @@ describe('Infra3dViewer image download retries', () => {
 
     await jest.advanceTimersByTimeAsync(Infra3dViewer.TILE_RETRY_LOG_DELAY_MS);
     expect(diagnostics).toHaveBeenCalledTimes(1);
-    expect(diagnostics).toHaveBeenCalledWith('TileRetries', { recovered: '0', failed: '2', panoId: 'SEED' });
+    expect(diagnostics).toHaveBeenCalledWith('TileRetries', { recovered: '0', failed: '2' });
   });
 
   it('stops retrying once the viewer is off the page', async () => {
@@ -170,8 +172,37 @@ describe('Infra3dViewer image download retries', () => {
     mount.remove();
     await jest.advanceTimersByTimeAsync(500);
 
-    expect(requestTexture).toHaveBeenCalledTimes(2);
+    expect(requestTexture).toHaveBeenCalledTimes(1);
     expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets the SDK's own re-request of a URL that's waiting on a retry through once, without a second chain", async () => {
+    const { requestTexture, engine } = fakeSdk({ outcomes: [] });
+    await createViewer();
+    const onError = jest.fn();
+
+    engine.requestTexture('tile-url', 300, jest.fn(), jest.fn(), false);
+    engine.requestTexture('tile-url', 300, jest.fn(), onError, false);
+    expect(onError).toHaveBeenCalledTimes(1);
+
+    await jest.advanceTimersByTimeAsync(500 + 1500 + 4000);
+    expect(requestTexture).toHaveBeenCalledTimes(5); // The first chain's four tries, plus the one pass-through.
+  });
+
+  it('logs a batch within the window even while failures keep coming', async () => {
+    const { engine } = fakeSdk({ outcomes: [] });
+    await createViewer();
+
+    // tile-a gives up at 6 s, which opens the window; tile-b gives up at 10 s, inside it. The batch still goes at
+    // 11 s rather than waiting for failures to stop.
+    engine.requestTexture('tile-a', 300, jest.fn(), jest.fn(), false);
+    await jest.advanceTimersByTimeAsync(4000);
+    engine.requestTexture('tile-b', 300, jest.fn(), jest.fn(), false);
+    await jest.advanceTimersByTimeAsync(6999);
+    expect(diagnostics).not.toHaveBeenCalled();
+    await jest.advanceTimersByTimeAsync(1);
+
+    expect(diagnostics).toHaveBeenCalledWith('TileRetries', { recovered: '0', failed: '2' });
   });
 
   it('logs when the SDK has no engine to wrap', async () => {

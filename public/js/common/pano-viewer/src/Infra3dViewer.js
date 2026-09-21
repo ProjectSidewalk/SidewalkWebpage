@@ -15,10 +15,10 @@ class Infra3dViewer extends PanoViewer {
   /** Waits between failed renewal attempts; the last one repeats until the token expires. */
   static TOKEN_REFRESH_RETRY_MS = [30 * 1000, 60 * 1000, 120 * 1000];
 
-  /** Waits before each retry of a failed image download; once they run out, the SDK is told it failed. */
+  /** Waits before each retry of a failed image download (±50% random, so retries don't all land at once). */
   static TILE_RETRY_MS = [500, 1500, 4000];
 
-  /** Quiet period after the last retry outcome before the batch is logged, so one bad pano logs one line. */
+  /** How long retry outcomes are gathered before being logged together, so one bad pano logs one line. */
   static TILE_RETRY_LOG_DELAY_MS = 5000;
 
   /** sessionStorage flag: this tab already used its one reload for an initViewer timeout. */
@@ -36,6 +36,9 @@ class Infra3dViewer extends PanoViewer {
   #tileRetryCounts = { recovered: 0, failed: 0 };
 
   #tileRetryLogTimer;
+
+  /** URLs with a retry pending. The SDK forgets a failed URL, so without this it could start a second chain. */
+  #retryingUrls = new Set();
 
   constructor() {
     super();
@@ -266,32 +269,45 @@ class Infra3dViewer extends PanoViewer {
     }
     const requestTexture = engine.requestTexture.bind(engine);
     engine.requestTexture = (url, priority, onLoad, onError, skipCache) => {
+      if (this.#retryingUrls.has(url)) return requestTexture(url, priority, onLoad, onError, skipCache);
       const attempt = (retryCount) => requestTexture(url, priority, (...loaded) => {
+        this.#retryingUrls.delete(url);
         if (retryCount > 0) this.#countTileRetry('recovered');
         onLoad(...loaded);
       }, (err) => {
         const wait = Infra3dViewer.TILE_RETRY_MS[retryCount];
         if (wait === undefined || !this.canvasElem?.isConnected) {
+          this.#retryingUrls.delete(url);
           if (retryCount > 0) this.#countTileRetry('failed');
           onError(err);
           return;
         }
-        setTimeout(() => attempt(retryCount + 1), wait);
+        this.#retryingUrls.add(url);
+        setTimeout(() => {
+          if (this.canvasElem?.isConnected) {
+            attempt(retryCount + 1);
+          } else {
+            this.#retryingUrls.delete(url);
+            onError(err);
+          }
+        }, wait * (0.5 + Math.random()));
       }, skipCache);
       return attempt(0);
     };
   }
 
   /**
-   * Tallies a retried download, logged once downloads go quiet so a pano full of bad tiles is one line.
+   * Tallies a retried download, logged in batches so a pano full of bad tiles is one line.
    * @param {'recovered'|'failed'} outcome - Whether the download came through on a retry or never did.
    */
   #countTileRetry(outcome) {
     this.#tileRetryCounts[outcome] += 1;
-    clearTimeout(this.#tileRetryLogTimer);
+    if (this.#tileRetryLogTimer) return;
     this.#tileRetryLogTimer = setTimeout(() => {
-      this._fireDiagnostic('TileRetries', { ...this.#tileRetryCounts, panoId: this.currPanoData?.getPanoId() });
+      const counts = this.#tileRetryCounts;
       this.#tileRetryCounts = { recovered: 0, failed: 0 };
+      this.#tileRetryLogTimer = undefined;
+      this._fireDiagnostic('TileRetries', counts);
     }, Infra3dViewer.TILE_RETRY_LOG_DELAY_MS);
   }
 
