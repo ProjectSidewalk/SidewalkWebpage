@@ -9,7 +9,7 @@ class ObservedArea {
   // Zoom the minimap was tuned at; BASE_RADIUS is correct here. As the user zooms the minimap, the observed-area
   // radius is scaled by 2^(zoom - REFERENCE_ZOOM) so the fog/FOV keep covering the same geographic area. Must match
   // Minimap's default zoom.
-  static #REFERENCE_ZOOM = 18;
+  static #REFERENCE_ZOOM = 17;
 
   #uiMinimap;
 

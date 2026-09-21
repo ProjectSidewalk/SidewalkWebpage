@@ -19,17 +19,18 @@
  * @property {number[][]} coordinates - The line as [lng, lat] pairs, in walking order (chevrons point along it).
  */
 class Minimap {
-  // Zoom bounds for the minimap. ObservedArea's REFERENCE_ZOOM must match DEFAULT.
+  // Zoom bounds for the minimap. ObservedArea's REFERENCE_ZOOM must match DEFAULT. MapLibre's zoom z shows the scale
+  // of Google's raster z + 1 (a 512px world tile, not 256px), so these are one below the Google minimap's 16/20/18/12.
   /** @type {number} */
-  static #MIN_ZOOM = 16;
+  static #MIN_ZOOM = 15;
   /** @type {number} */
-  static #MAX_ZOOM = 20;
+  static #MAX_ZOOM = 19;
   /** @type {number} */
-  static #DEFAULT_ZOOM = 18;
+  static #DEFAULT_ZOOM = 17;
 
   // Zoom floor while fitted to the whole route/region; far below MIN_ZOOM, which only bounds manual zooming.
   /** @type {number} */
-  static #OVERVIEW_MIN_ZOOM = 12;
+  static #OVERVIEW_MIN_ZOOM = 11;
 
   // Route start/finish flags reuse RouteBuilder's flag icons at its rasterized size, planted at the pole base.
   static #ROUTE_FLAG_SIZE_PX = 27;
