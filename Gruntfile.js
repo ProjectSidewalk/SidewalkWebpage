@@ -102,6 +102,7 @@ module.exports = function (grunt) {
         src: [
           // The score ramp is a shared helper (the api-docs load it on its own); the tool's modules follow it.
           'public/js/common/scoreRamp.js',
+          'public/js/access-score/src/AccessScoreFetch.js',
           'public/js/access-score/src/AccessScoreModel.js',
           'public/js/access-score/src/AccessScoreUrlSync.js',
           'public/js/access-score/src/AccessScoreGradeRamp.js',

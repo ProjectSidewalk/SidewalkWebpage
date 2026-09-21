@@ -12,7 +12,7 @@ import util.{RolledBackDb, StreetFixtures}
  * Reads `street_gradient` rows back through the Slick model (#5223).
  *
  * The app never writes this table (an offline script does), so nothing else would notice the model drifting from
- * 398.sql: a renamed column, an enum label the Scala side cannot parse, or the `INTEGER[]` profile failing to map.
+ * 399.sql: a renamed column, an enum label the Scala side cannot parse, or the `INTEGER[]` profile failing to map.
  * Every case seeds its own rows inside a rolled-back transaction; CI's schema starts with none.
  *
  * Requires a Postgres database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
@@ -39,7 +39,7 @@ class StreetGradientTableSpec
            VALUES ($streetEdgeId, 'measured', 'high', -0.04, 0.06, 0.09, 40, 10, 1.5, 5.5, 104.0, 100.0,
                    ARRAY[10400, 10150, 10000], $demSource, 10, $Md5)"""
 
-  /** Seeds a `structure` row: endpoint elevations and no grade, as 398.sql's CHECK requires. */
+  /** Seeds a `structure` row: endpoint elevations and no grade, as 399.sql's CHECK requires. */
   private def insertStructure(streetEdgeId: Int): DBIO[Int] =
     sqlu"""INSERT INTO street_gradient (street_edge_id, quality, confidence, elev_start_m, elev_end_m, dem_source,
                                         dem_resolution_m, geom_md5)
