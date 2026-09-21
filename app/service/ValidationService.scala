@@ -235,8 +235,8 @@ class ValidationServiceImpl @Inject() (
   /**
    * Deletes a label from the label popup (#3591). The labeler just deletes. An admin deleting someone else's label
    * first files a Disagree from the label's own viewpoint, so the delete counts against the labeler the way a vote
-   * would rather than quietly improving their accuracy; a label the crowd already agreed with keeps that verdict.
-   * Anyone else is refused, and a label already deleted is left as it is.
+   * would rather than quietly improving their accuracy. Anyone else is refused, and a label already deleted is left
+   * as it is.
    */
   def deleteLabel(labelId: Int, editor: SidewalkUserWithRole, source: UiSource): Future[LabelEditOutcome] = {
     val isAdmin: Boolean = Role.ADMIN_ROLES.contains(editor.role)
