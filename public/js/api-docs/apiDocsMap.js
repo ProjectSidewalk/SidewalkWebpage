@@ -146,13 +146,22 @@ window.ApiDocsMap = (function () {
   /**
    * Fetches JSON from one of our API endpoints, tagging the request as coming from the docs.
    *
+   * A failure carries the status and, when the body is an API problem detail, its `code`, so a preview can tell a
+   * "not yet" (`STILL_COMPUTING`, #5418) from a real error without parsing the message.
+   *
    * @param {string} url - Endpoint URL, without the utm_source marker.
    * @returns {Promise<object>} The parsed response body.
+   * @throws {Error & {status: number, code: ?string}} On a non-2xx response.
    */
   async function fetchJson(url) {
     const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}utm_source=apiDocs`);
     if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
+      // A proxy's own error page is not JSON; the code is then simply unknown.
+      const problem = await response.json().catch(() => null);
+      throw Object.assign(new Error(`HTTP error! Status: ${response.status}`), {
+        status: response.status,
+        code: problem?.code ?? null,
+      });
     }
     return response.json();
   }
