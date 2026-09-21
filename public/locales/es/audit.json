@@ -191,7 +191,8 @@
       "mission-start-flag": "Donde empezó esta misión",
       "mission-finish-flag": "Donde termina esta misión",
       "map-title": "Mapa de la zona a su alrededor",
-      "unavailable": "Este navegador no puede mostrar el mapa. Puede seguir explorando sin él."
+      "unavailable": "Este navegador no puede mostrar el mapa. Puede seguir explorando sin él.",
+      "recenter": "Volver a su ubicación"
     },
     "stats": {
       "leaderboard-cta": "Ver la clasificación de la comunidad"

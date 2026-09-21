@@ -80,10 +80,18 @@ class Minimap {
       zoom: Minimap.#DEFAULT_ZOOM,
       minZoom: Minimap.#MIN_ZOOM,
       maxZoom: Minimap.#MAX_ZOOM,
-      // No panning, and no tab stop on the canvas: the map must stay centered on the user's pano so the FOV cone
-      // lines up, and everything it shows is also conveyed as text. Zooming is driven by #setupZoomControls instead,
-      // so the center is preserved.
-      interactive: false,
+      // Drag to pan and nothing else. Zooming is #setupZoomControls' (whole levels, recentered on the pano), rotation
+      // would break north-up, and keyboard panning would take the arrow keys Explore walks with. The next pano, zoom
+      // step, or overview recenters a panned map.
+      interactive: true,
+      dragPan: true,
+      scrollZoom: false,
+      boxZoom: false,
+      doubleClickZoom: false,
+      dragRotate: false,
+      keyboard: false,
+      touchZoomRotate: false,
+      touchPitch: false,
       // Added by #addAttribution in its compact form; the default would cover a third of a map this small.
       attributionControl: false,
       // MapLibre names the canvas and the credits button itself, in English unless given these.
@@ -100,7 +108,12 @@ class Minimap {
     // just at its end; the route overview inset tracks the same moves so its "current extent" box follows along.
     // A resize is a move too: MapLibre watches its container, so a UI-scale change or the tutorial's fixed square
     // lands here once the map has caught up with its new size.
+    // MapLibre gives an interactive canvas a tab stop; it would focus a map the keyboard can't do anything with.
+    this.#map.getCanvas().setAttribute('tabindex', '-1');
+    this.#map.on('dragend', () => svl.tracker.push('Minimap_Pan'));
+
     this.#map.on('move', () => {
+      this.#updateRecenterButton();
       // ObservedArea.update redraws the inset too, so the inset is drawn here only before ObservedArea exists.
       if (svl.observedArea) svl.observedArea.update();
       else if (svl.routeOverview) svl.routeOverview.render();
@@ -195,6 +208,33 @@ class Minimap {
     if (fitButton) {
       fitButton.addEventListener('click', () => this.toggleOverview('fit-button'));
     }
+
+    const recenterButton = document.getElementById('minimap-recenter');
+    if (recenterButton) {
+      recenterButton.addEventListener('click', () => {
+        this.#targetZoom = Minimap.#DEFAULT_ZOOM;
+        this.#map.easeTo({ center: Minimap.#lngLat(svl.panoViewer.getPosition()), zoom: this.#targetZoom });
+        svl.tracker.push('Click_MinimapRecenter');
+      });
+    }
+  }
+
+  /**
+   * Shows the recenter button only while the map is panned away from the user, so it doubles as the sign that the
+   * view is off-center. Not in the overview, whose own button already leads back.
+   */
+  #updateRecenterButton() {
+    const button = document.getElementById('minimap-recenter');
+    if (!button || !svl.panoViewer) return;
+    const container = this.#map.getContainer();
+    const pano = this.project(svl.panoViewer.getPosition());
+    const offBy = Math.hypot(pano.x - container.clientWidth / 2, pano.y - container.clientHeight / 2);
+    // A few px of slack: a pano change recenters, but the easing and subpixel positions never land exactly.
+    const panned = !this.#overviewMode && offBy > 8;
+    if (button.hidden === !panned) return;
+    // Leaving focus on a button that's about to vanish would drop keyboard focus to the page.
+    if (!panned && document.activeElement === button) document.getElementById('minimap-zoom-in')?.focus();
+    button.hidden = !panned;
   }
 
   /**
@@ -528,6 +568,9 @@ class Minimap {
    */
   setBasemapVisible(visible) {
     if (!this.#map) return;
+    // A hidden basemap means the tutorial's fixed screenshot is the backdrop, and panning would slide the map off it.
+    if (visible) this.#map.dragPan.enable();
+    else this.#map.dragPan.disable();
     const visibility = visible ? 'visible' : 'none';
     for (const layer of this.#map.getStyle().layers) {
       if (layer.type === 'background' || layer.source === MinimapBasemapStyle.SOURCE_ID) {

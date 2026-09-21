@@ -426,6 +426,10 @@
             <button id="minimap-route-overview" type="button" aria-label="Route overview: tap to see the whole route" data-i18n-aria-label="audit:right-ui.minimap.route-overview" title="Route overview: tap to see the whole route" data-i18n-title="audit:right-ui.minimap.route-overview">
               <canvas id="minimap-route-overview-canvas"></canvas>
             </button>
+            @* Appears once the map is panned off the user (Minimap.#updateRecenterButton). *@
+            <button id="minimap-recenter" class="zoom-button" type="button" hidden aria-label="Back to your location" data-i18n-aria-label="audit:right-ui.minimap.recenter" title="Back to your location" data-i18n-title="audit:right-ui.minimap.recenter">
+              <img class="zoom-button-icon" src='@assets.path("images/icons/recenter-white.svg")' alt="">
+            </button>
             <div id="minimap-zoom-controls" class="zoom-buttons-holder">
               <button id="minimap-zoom-fit" class="zoom-button" type="button" aria-label="Show whole mission" data-i18n-aria-label="audit:right-ui.minimap.fit-mission" title="Show whole mission" data-i18n-title="audit:right-ui.minimap.fit-mission">
                 <img class="zoom-button-icon" src='@assets.path("images/icons/route-fit-white-material.svg")' alt="">

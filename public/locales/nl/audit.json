@@ -191,7 +191,8 @@
       "mission-start-flag": "Waar deze missie begon",
       "mission-finish-flag": "Waar deze missie eindigt",
       "map-title": "Kaart van de omgeving om je heen",
-      "unavailable": "Deze browser kan de kaart niet weergeven. Je kunt zonder kaart verder verkennen."
+      "unavailable": "Deze browser kan de kaart niet weergeven. Je kunt zonder kaart verder verkennen.",
+      "recenter": "Terug naar uw locatie"
     },
     "stats": {
       "leaderboard-cta": "Bekijk het scorebord van de gemeenschap"

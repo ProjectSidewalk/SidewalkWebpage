@@ -173,6 +173,14 @@ class ObservedArea {
   }
 
   /**
+   * Where the peg is on the overlay canvases. The pano is the map's center until the user pans the map away from it.
+   * @returns {{x: number, y: number}} CSS px from the map's top-left corner.
+   */
+  #pegPoint() {
+    return svl.minimap.project(svl.panoViewer.getPosition());
+  }
+
+  /**
    * Renders the fog of war.
    */
   #renderFogOfWar() {
@@ -191,7 +199,8 @@ class ObservedArea {
     }
     // Always keep the peg fully clear of fog, no matter how far the user has turned.
     this.#fogOfWarCtx.beginPath();
-    this.#fogOfWarCtx.arc(this.#width / 2, this.#height / 2, 8 * this.#scaleFactor, 0, 2 * Math.PI);
+    const peg = this.#pegPoint();
+    this.#fogOfWarCtx.arc(peg.x, peg.y, 8 * this.#scaleFactor, 0, 2 * Math.PI);
     this.#fogOfWarCtx.fill();
     this.#fogOfWarCtx.globalCompositeOperation = 'source-over';
   }
@@ -200,8 +209,7 @@ class ObservedArea {
    * Renders the user's FOV as a cone with a radial falloff, so panning feels like sweeping a beam across the map.
    */
   #renderFov() {
-    const centerX = this.#width / 2;
-    const centerY = this.#height / 2;
+    const { x: centerX, y: centerY } = this.#pegPoint();
     const radius = this.#currentRadius();
     const { r, g, b } = MinimapStyle.coneRgb();
     const gradient = this.#fovCtx.createRadialGradient(centerX, centerY, radius * 0.1, centerX, centerY, radius);
@@ -216,7 +224,7 @@ class ObservedArea {
       ObservedArea.#toRadians(this.#leftAngle - 90), ObservedArea.#toRadians(this.#rightAngle - 90));
     this.#fovCtx.fill();
 
-    // Clear a hole at the peg (canvas center, since the map stays centered on the pano) so the cone can't occlude it.
+    // Clear a hole at the peg so the cone can't occlude it.
     this.#fovCtx.save();
     this.#fovCtx.globalCompositeOperation = 'destination-out';
     this.#fovCtx.beginPath();

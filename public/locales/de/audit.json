@@ -191,7 +191,8 @@
       "mission-start-flag": "Wo diese Mission begann",
       "mission-finish-flag": "Wo diese Mission endet",
       "map-title": "Karte der Umgebung um Sie herum",
-      "unavailable": "Dieser Browser kann die Karte nicht anzeigen. Sie können ohne sie weiter erkunden."
+      "unavailable": "Dieser Browser kann die Karte nicht anzeigen. Sie können ohne sie weiter erkunden.",
+      "recenter": "Zurück zu Ihrem Standort"
     },
     "stats": {
       "leaderboard-cta": "Bestenliste der Gemeinschaft ansehen"

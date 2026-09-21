@@ -191,7 +191,8 @@
       "mission-start-flag": "Où cette mission a commencé",
       "mission-finish-flag": "Où cette mission se termine",
       "map-title": "Carte des environs de votre position",
-      "unavailable": "Ce navigateur ne peut pas afficher la carte. Vous pouvez continuer à explorer sans elle."
+      "unavailable": "Ce navigateur ne peut pas afficher la carte. Vous pouvez continuer à explorer sans elle.",
+      "recenter": "Revenir à votre position"
     },
     "stats": {
       "leaderboard-cta": "Voir le classement de la communauté"

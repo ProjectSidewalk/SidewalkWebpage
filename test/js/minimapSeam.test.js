@@ -47,7 +47,32 @@ class FakeMap {
     this.zoom = options.zoom;
     this.source = { setData: jest.fn() };
     this.handlers = {};
+    this.canvas = document.createElement('canvas');
+    this.dragPan = {
+      enabled: true,
+      enable: () => { this.dragPan.enabled = true; },
+      disable: () => { this.dragPan.enabled = false; },
+    };
+    // Where project() puts the pano; a test moves it to simulate a pan.
+    this.panoPoint = { x: 100, y: 100 };
     FakeMap.instances.push(this);
+  }
+
+  getCanvas() {
+    return this.canvas;
+  }
+
+  getContainer() {
+    return document.getElementById(this.options.container);
+  }
+
+  project() {
+    return this.panoPoint;
+  }
+
+  /** Fires a map event at every handler registered for it. */
+  fire(name) {
+    (this.handlers[name] ?? []).forEach((handler) => handler());
   }
 
   addImage() {}
@@ -182,9 +207,10 @@ class FakeAttributionControl {
 function buildDom() {
   document.body.innerHTML = `
     <div id="minimap-holder">
-      <div id="minimap"></div>
+      <div id="minimap" style="width: 200px; height: 200px"></div>
       <p id="minimap-unavailable-message" role="status" hidden></p>
     </div>
+    <button id="minimap-recenter" type="button" hidden></button>
     <button id="minimap-zoom-fit" type="button"></button>
     <button id="minimap-zoom-in" type="button"></button>
     <button id="minimap-zoom-out" type="button"></button>`;
@@ -249,8 +275,67 @@ describe('Minimap seam', () => {
   test('creation resolves once the style is ready, without waiting for basemap tiles', () => {
     // Reaching this line is the assertion: FakeMap never fires 'load' or 'idle'.
     expect(map.options.center).toEqual([PANO.lng, PANO.lat]);
-    expect(map.options.interactive).toBe(false);
     expect(minimap.isAvailable()).toBe(true);
+  });
+
+  describe('panning', () => {
+    // jsdom lays nothing out, so the container reports the size the map's CSS would give it.
+    beforeEach(() => {
+      const container = document.getElementById('minimap');
+      Object.defineProperty(container, 'clientWidth', { value: 200 });
+      Object.defineProperty(container, 'clientHeight', { value: 200 });
+    });
+    const recenter = () => document.getElementById('minimap-recenter');
+
+    test('drag pans; nothing else moves the map, and the canvas is not a tab stop', () => {
+      expect(map.options).toMatchObject({
+        interactive: true, dragPan: true, scrollZoom: false, boxZoom: false, doubleClickZoom: false,
+        dragRotate: false, keyboard: false, touchZoomRotate: false, touchPitch: false,
+      });
+      expect(map.getCanvas().getAttribute('tabindex')).toBe('-1');
+    });
+
+    test('a finished drag is logged', () => {
+      map.fire('dragend');
+      expect(tracked('Minimap_Pan')).toHaveLength(1);
+    });
+
+    test('the recenter button shows only while the pano is off the map\'s center, and returns to it', () => {
+      map.fire('move');
+      expect(recenter().hidden).toBe(true);
+
+      map.panoPoint = { x: 150, y: 60 };
+      map.fire('move');
+      expect(recenter().hidden).toBe(false);
+
+      click('minimap-zoom-in');
+      map.calls.length = 0;
+      click('minimap-recenter');
+      expect(map.callsTo('easeTo')).toEqual([['easeTo', { center: [PANO.lng, PANO.lat], zoom: 17 }]]);
+      expect(tracked('Click_MinimapRecenter')).toHaveLength(1);
+
+      map.panoPoint = { x: 102, y: 99 };
+      map.fire('move');
+      expect(recenter().hidden).toBe(true);
+    });
+
+    test('the recenter button stays hidden in the overview, whose own button leads back', () => {
+      window.svl.regionModel = { isRoute: true };
+      window.svl.taskContainer = {
+        getTasks: () => [{ getGeoJSON: () => ({ geometry: { coordinates: [[-122.3, 47.6], [-122.31, 47.61]] } }) }],
+      };
+      map.panoPoint = { x: 10, y: 10 };
+      minimap.enterOverview();
+      map.fire('move');
+      expect(recenter().hidden).toBe(true);
+    });
+
+    test('the tutorial\'s hidden basemap also stops panning, which would slide the map off its screenshot', () => {
+      minimap.setBasemapVisible(false);
+      expect(map.dragPan.enabled).toBe(false);
+      minimap.setBasemapVisible(true);
+      expect(map.dragPan.enabled).toBe(true);
+    });
   });
 
   test('the map names its canvas and credits button in the user\'s language', () => {

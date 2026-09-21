@@ -191,7 +191,8 @@
       "mission-start-flag": "Where this mission started",
       "mission-finish-flag": "Where this mission ends",
       "map-title": "Map of the area around you",
-      "unavailable": "This browser can't show the map. You can keep exploring without it."
+      "unavailable": "This browser can't show the map. You can keep exploring without it.",
+      "recenter": "Back to your location"
     },
     "stats": {
       "leaderboard-cta": "See the community leaderboard"

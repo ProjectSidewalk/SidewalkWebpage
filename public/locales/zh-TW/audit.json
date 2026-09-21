@@ -191,7 +191,8 @@
       "mission-start-flag": "本次任務的起點",
       "mission-finish-flag": "本次任務的終點",
       "map-title": "您周圍區域的地圖",
-      "unavailable": "此瀏覽器無法顯示地圖。您仍可繼續探索。"
+      "unavailable": "此瀏覽器無法顯示地圖。您仍可繼續探索。",
+      "recenter": "回到您的位置"
     },
     "stats": {
       "leaderboard-cta": "查看社群排行榜"

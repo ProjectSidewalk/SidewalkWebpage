@@ -37,6 +37,10 @@ class FakeMap {
 
     on() {}
 
+    getCanvas() {
+        return document.createElement('canvas');
+    }
+
     once(name, handler) {
         if (name === 'style.load') setTimeout(handler, 0);
     }

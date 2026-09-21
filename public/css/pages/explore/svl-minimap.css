@@ -55,6 +55,7 @@
 #minimap-holder.minimap-unavailable #minimap-fog-of-war-canvas,
 #minimap-holder.minimap-unavailable #minimap-fov-canvas,
 #minimap-holder.minimap-unavailable #minimap-zoom-controls,
+#minimap-holder.minimap-unavailable #minimap-recenter,
 #minimap-holder.minimap-unavailable #minimap-legend-toggle,
 #minimap-holder.minimap-unavailable #minimap-legend-card,
 #minimap-holder.minimap-unavailable #minimap-coach {
@@ -688,6 +689,32 @@
   right: calc(4px * var(--ui-scale));
   bottom: calc(10px * var(--ui-scale));
   z-index: 4;
+}
+
+/* Recenter: a lone button just above the zoom column, so it rounds on all corners. .zoom-button's display: flex would
+   override its hidden attribute, hence the explicit rule. */
+#minimap-recenter {
+  position: absolute;
+  right: calc(4px * var(--ui-scale));
+  bottom: calc(68px * var(--ui-scale));
+  z-index: 4;
+  width: calc(18px * var(--ui-scale, 1));
+  height: calc(18px * var(--ui-scale, 1));
+  border-radius: calc(7px * var(--ui-scale, 1));
+}
+
+#minimap-recenter[hidden] {
+  display: none;
+}
+
+#minimap-recenter .zoom-button-icon {
+  width: calc(14px * var(--ui-scale, 1));
+  height: calc(14px * var(--ui-scale, 1));
+}
+
+#minimap-recenter:focus-visible {
+  outline: calc(2px * var(--ui-scale)) solid var(--color-pine-600);
+  outline-offset: calc(1px * var(--ui-scale));
 }
 
 #minimap-zoom-controls .zoom-button {
