@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Minimap basemap comparison page (#5429). record.mjs serves it, and public/ beside it, under /__compare/ on the dev
+  app's origin through Playwright routing: the origin is what the Maps key's referrer allowlist accepts, and the files
+  come from this checkout, not from whatever branch the dev app runs. Relative URLs keep every request under that
+  prefix. Never linked from the app; not part of any bundle or test suite.
+
+  The Maps bootstrap is copied from app/views/common/main.scala.html; record.mjs fills in the key placeholder.
+-->
+<head>
+  <meta charset="utf-8">
+  <title>Minimap basemap comparison</title>
+  <link rel="icon" href="data:,">
+  <!-- main.css first: MinimapStyle.token caches the design tokens on first read, and build() reads them. -->
+  <link id="main-css" rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="vendor/maplibre-gl/maplibre-gl-6.10.0.css">
+  <style>
+    body { margin: 0; padding: 10px; background: #fff; }
+    .pane {
+      position: relative; display: inline-block; width: 250px; height: 250px; margin-right: 10px; overflow: hidden;
+    }
+  </style>
+  <script>
+    (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
+      key: "__GMAPS_KEY__",
+      v: "weekly"
+    });
+  </script>
+  <script src="js/explore/src/navigation/MinimapStyle.js"></script>
+  <script src="js/explore/src/navigation/MinimapBasemapStyle.js"></script>
+</head>
+<body>
+  <div id="google" class="pane"></div><div id="maplibre" class="pane"></div>
+  <script>
+    'use strict';
+
+    /**
+     * Drives the two panes for record.mjs. Each pane holds one map for the whole run and is re-centered per shot,
+     * so a run costs one Google map load, not one per city.
+     */
+    window.__compare = (() => {
+      let googleMap = null;
+      let maplibreMap = null;
+      const tileErrors = [];
+
+      /**
+       * Creates both maps, with develop's Google minimap options and the branch's MapLibre style.
+       * @param {{mapId: string}} cfg - The Google Cloud map style to apply.
+       * @returns {Promise<void>}
+       */
+      async function init(cfg) {
+        const { Map, MapTypeId, RenderingType } = await google.maps.importLibrary('maps');
+        googleMap = new Map(document.getElementById('google'), {
+          backgroundColor: 'none',
+          cameraControl: false,
+          center: { lat: 0, lng: 0 },
+          clickableIcons: false,
+          disableDefaultUI: true,
+          fullscreenControl: false,
+          streetViewControl: false,
+          gestureHandling: 'none',
+          keyboardShortcuts: false,
+          mapId: cfg.mapId,
+          mapTypeControl: false,
+          mapTypeId: MapTypeId.ROADMAP,
+          renderingType: RenderingType.RASTER,
+          zoom: 2,
+        });
+        // A recenter issued before the first view settles is drawn at a stale center.
+        await googleIdle();
+
+        const moduleUrl = new URL('vendor/maplibre-gl/maplibre-gl-6.10.0/maplibre-gl.mjs', document.baseURI);
+        window.maplibregl = await import(moduleUrl.href);
+        maplibreMap = new maplibregl.Map({
+          container: 'maplibre',
+          style: MinimapBasemapStyle.build(),
+          center: [0, 0],
+          zoom: 2,
+          interactive: false,
+          attributionControl: false,
+          fadeDuration: 0,
+        });
+        maplibreMap.on('error', (e) => tileErrors.push(String(e.error?.message ?? e.error ?? e)));
+        await new Promise((resolve) => maplibreMap.once('load', resolve));
+      }
+
+      /**
+       * Waits for the Google map to finish drawing the current view. 'idle' fires once no tile is outstanding;
+       * the short settle covers raster tiles painting after it.
+       * @returns {Promise<void>}
+       */
+      function googleIdle() {
+        return new Promise((resolve) => {
+          google.maps.event.addListenerOnce(googleMap, 'idle', () => setTimeout(resolve, 800));
+        });
+      }
+
+      /**
+       * Centers both maps on one point and resolves once both have drawn it.
+       * @param {{lat: number, lng: number, googleZoom: number, maplibreZoom: number}} shot - Where and how close.
+       * @returns {Promise<{tileErrors: string[], centers: object}>} Errors raised while drawing, and where each map
+       *   actually settled, so a misaligned pair is caught by numbers rather than by eye.
+       */
+      async function render(shot) {
+        tileErrors.length = 0;
+        const googleDone = googleIdle();
+        googleMap.setCenter({ lat: shot.lat, lng: shot.lng });
+        googleMap.setZoom(shot.googleZoom);
+        const maplibreDone = new Promise((resolve) => maplibreMap.once('idle', resolve));
+        maplibreMap.jumpTo({ center: [shot.lng, shot.lat], zoom: shot.maplibreZoom });
+        // A pane that never settles still gets its shot, flagged, rather than stalling the whole run.
+        const stalled = [];
+        const settle = (done, name) => Promise.race([
+          done, new Promise((resolve) => setTimeout(() => { stalled.push(name); resolve(); }, 20000)),
+        ]);
+        await Promise.all([settle(googleDone, 'google'), settle(maplibreDone, 'maplibre')]);
+        const g = googleMap.getCenter();
+        const m = maplibreMap.getCenter();
+        return {
+          tileErrors: [...tileErrors, ...stalled.map((name) => `${name} did not settle in 20 s`)],
+          centers: { google: { lat: g.lat(), lng: g.lng() }, maplibre: { lat: m.lat, lng: m.lng } },
+        };
+      }
+
+      return { init, render };
+    })();
+  </script>
+</body>
+</html>
