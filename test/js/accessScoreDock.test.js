@@ -55,6 +55,7 @@ describe('AccessScoreDock', () => {
         // The map starts zoomed out over nothing, so the strip's city rule applies until a test moves it.
         mapView = {
             setBrush: jest.fn(),
+            setGradeSelection: jest.fn(),
             visibleRegionIds: jest.fn(() => new Set()),
             regionBoundsOf: (id) => ({getCenter: () => ({lng: id, lat: 0})}),
         };
@@ -172,6 +173,73 @@ describe('AccessScoreDock', () => {
         expect(document.getElementById('acs-dock-brush').hidden).toBe(true);
     });
 
+    test('the map legend\'s slope classes are the same brush, and the two kinds displace each other', () => {
+        // One street over the ramp limit and one under the walking-surface limit, so the legend's classes really
+        // do split the city.
+        const gradient = (max) => ({
+            mean_grade: 0.02, max_grade: max, net_grade: 0.02, meters_over_5pct: 0, meters_over_8pct: 0,
+            grade_confidence: 'high', grade_quality: 'measured', dem_source: 'fixture',
+        });
+        const features = FIXTURE.streets.map((c, i) => feature(c, i, {
+            region_id: i >= FIXTURE.streets.length - 3 ? 2 : 1, ...(i < 2 ? gradient([0.3, 0.01][i]) : {}),
+        }));
+        model = new window.AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features},
+            {type: 'FeatureCollection', features: []}, REGIONS);
+        const breaks = [1 / 48, 0.05, 1 / 12, 0.125];
+        dock = new window.AccessScoreDock(document.getElementById('acs-dock'), {
+            cityName: 'Fixture City', model, mapView, map, gradeBreaks: breaks, ...callbacks});
+        flush();
+
+        dock.setBrush({kind: 'grade', classes: [4]});
+        flush();
+        // Only the street whose steepest stretch is over 12.5%; the legend is told so its rows stay in step.
+        expect(lastBrush()).toEqual(new Set([1]));
+        expect(mapView.setGradeSelection).toHaveBeenLastCalledWith([4]);
+        expect(dock.state.brush).toEqual({kind: 'grade', classes: [4]});
+        expect(callbacks.log).toHaveBeenCalledWith('Brush', 'grade=4');
+        expect(document.getElementById('acs-dock-brush').hidden).toBe(false);
+        expect(document.getElementById('acs-dock-brush-text').textContent).toContain('count=1');
+        // The histogram marks no bins under a slope brush: it is not a range over that axis.
+        expect(document.querySelectorAll('.acs-histogram__bin--out')).toHaveLength(0);
+        // The rank list still mutes: region 2 holds none of the brushed streets.
+        const outRows = [...document.querySelectorAll('.acs-rank__row--out')];
+        expect(outRows).toHaveLength(1);
+
+        // Duplicate classes collapse, and a selection of nothing is no brush at all.
+        dock.setBrush({kind: 'grade', classes: [0, 4, 4]});
+        flush();
+        expect(dock.state.brush).toEqual({kind: 'grade', classes: [0, 4]});
+        dock.setBrush({kind: 'grade', classes: []});
+        flush();
+        expect(dock.state.brush).toBeNull();
+        expect(lastBrush()).toBeNull();
+
+        // A score range takes over, and the legend's rows are released with it.
+        dock.setBrush({kind: 'grade', classes: [4]});
+        dock.setBrush({from: 5, to: 10});
+        flush();
+        expect(dock.state.brush).toEqual({kind: 'score', from: 5, to: 10});
+        expect(mapView.setGradeSelection).toHaveBeenLastCalledWith([]);
+    });
+
+    test('a slope brush is dropped where its classes stop describing the map', () => {
+        const breaks = [1 / 48, 0.05, 1 / 12, 0.125];
+        dock = new window.AccessScoreDock(document.getElementById('acs-dock'), {
+            cityName: 'Fixture City', model, mapView, map, gradeBreaks: breaks, ...callbacks});
+        flush();
+        for (const kind of ['Unit', 'SlopeStat', 'ResetAll']) {
+            dock.setBrush({kind: 'grade', classes: [4]}, {log: false});
+            dock.applyChange({kind, final: true});
+            flush();
+            expect(dock.state.brush).toBeNull();
+        }
+        // A score brush is the histogram's and survives a statistic change, which says nothing about score bins.
+        dock.setBrush({from: 5, to: 10}, {log: false});
+        dock.applyChange({kind: 'SlopeStat', final: true});
+        flush();
+        expect(dock.state.brush).toEqual({kind: 'score', from: 5, to: 10});
+    });
+
     test('a hover in a view outranks the brush on the map and never drops it', () => {
         dock.setBrush({from: 5, to: 10});
         flush();
@@ -182,7 +250,7 @@ describe('AccessScoreDock', () => {
         document.querySelector('.acs-histogram__bars').dispatchEvent(new MouseEvent('pointerleave'));
         flush();
         expect(lastBrush()).toEqual(idsInBins(5, 10));
-        expect(dock.state.brush).toEqual({from: 5, to: 10});
+        expect(dock.state.brush).toEqual({kind: 'score', from: 5, to: 10});
 
         // A rank row's hover dims to its streets and marks the row.
         const rows = document.querySelectorAll('.acs-rank__row');
@@ -271,7 +339,7 @@ describe('AccessScoreDock', () => {
     test('carries a URL state and reports state changes for the URL', () => {
         dock.applyUrlState({open: false, brush: {from: 2, to: 4}});
         flush();
-        expect(dock.state).toEqual({open: false, brush: {from: 2, to: 4}, focus: null});
+        expect(dock.state).toEqual({open: false, brush: {kind: 'score', from: 2, to: 4}, focus: null});
         expect(document.getElementById('acs-dock').classList.contains('acs-dock--collapsed')).toBe(true);
         expect(document.getElementById('acs-dock-body').hidden).toBe(true);
         expect(document.getElementById('acs-dock-toggle').getAttribute('aria-expanded')).toBe('false');

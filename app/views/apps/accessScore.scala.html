@@ -75,11 +75,15 @@
             @info("weights-help")
           </div>
           <div id="acs-weights" class="acs-weights" hidden></div>
+          @* The map repaints instantly and without motion, so this is the only sign a reader gets that the slider
+             drove a recomputation (#5223). *@
+          <p class="acs-flash" id="acs-weights-flash" aria-live="polite"></p>
         </section>
 
         @* How street slope enters the score (#5223). Hidden until AccessScoreSlopePanel.js finds both the engine's
-           slope settings and a sampled city in the config; folded like the weights, since its weight starts at 0. The
-           statistic's options, the slider's range and the thresholds' bounds are filled in from the config. *@
+           slope settings and a sampled city in the config; folded like the weights, so the panel reads as map
+           controls first. The statistic's options, the slider's range and the thresholds' bounds come from the
+           config. *@
         <section class="filter-sidebar__section acs-section" id="acs-slope-section" aria-labelledby="acs-slope-section-heading" hidden>
           <div class="filter-sidebar__heading-row">
             <h3 class="filter-sidebar__heading acs-disclosure__heading" id="acs-slope-section-heading">
@@ -93,13 +97,15 @@
             @info("slope-help")
           </div>
           <div id="acs-slope" class="acs-slope" hidden>
-            <div class="acs-weight">
+            <div class="acs-weight" id="acs-slope-weight-row">
               <div class="acs-weight__head">
                 <label class="acs-weight__label" for="acs-slope-weight" data-i18n="accessscore:slope-weight">Slope weight</label>
                 <span class="acs-weight__role acs-weight__role--problem" data-i18n="accessscore:row-hurts">hurts</span>
                 <output class="acs-weight__value" id="acs-slope-weight-value" for="acs-slope-weight"></output>
               </div>
-              <input type="range" class="acs-range" id="acs-slope-weight" min="0" step="0.05">
+              <input type="range" class="acs-range" id="acs-slope-weight" min="0" step="0.05" aria-describedby="acs-slope-impact">
+              @* What a barely-moving map cannot say: a weight of 0 and a threshold no street passes look alike on it. *@
+              <p class="acs-field__note" id="acs-slope-impact" role="status"></p>
             </div>
             <div class="acs-field">
               <label class="acs-field__label" for="acs-slope-statistic" data-i18n="accessscore:slope-statistic">Measured by</label>
@@ -137,6 +143,7 @@
               @info("slope-approximate-include-help")
             </div>
           </div>
+          <p class="acs-flash" id="acs-slope-flash" aria-live="polite"></p>
         </section>
 
         @* Category rows are rendered by AccessScoreSidebar.js from the backend's catalog; the icons are the legend.
@@ -231,7 +238,7 @@
           <div id="acs-dock-kpis" class="acs-dock__kpis"></div>
           <div id="acs-dock-brush" class="acs-dock__brush" hidden>
             <span id="acs-dock-brush-text"></span>
-            <button type="button" id="acs-dock-brush-clear" class="button-ps button--small button--secondary" data-i18n="accessscore:brush-clear">Clear range</button>
+            <button type="button" id="acs-dock-brush-clear" class="button-ps button--small button--secondary" data-i18n="accessscore:brush-clear">Clear highlight</button>
           </div>
           <div id="acs-dock-status" class="sr-only" role="status" aria-live="polite"></div>
         </div>

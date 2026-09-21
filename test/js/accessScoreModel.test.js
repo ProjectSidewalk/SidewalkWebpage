@@ -112,26 +112,71 @@ describe('AccessScoreModel', () => {
         }
     });
 
-    test('starts on the engine\'s slope settings, under which a steep street scores as its labels alone do', () => {
-        const steep = {
-            mean_grade: 0.2, max_grade: 0.3, net_grade: 0.2, meters_over_5pct: 100, meters_over_8pct: 100,
-            grade_confidence: 'high', grade_quality: 'measured', dem_source: 'fixture',
-        };
-        const sloped = {
-            type: 'FeatureCollection', features: FIXTURE.streets.map((c, i) => feature(c, i, steep)),
-        };
-        const model = new AccessScoreModel(FIXTURE.config, sloped, NO_INTERSECTIONS, [REGION]);
+    test('a street with no sampled slope scores from its labels alone, whatever the settings say', () => {
+        // The fixture's scores are label-only, which is the promise a nonzero default weight has to keep for a
+        // city whose gradients have not been imported.
+        const streets = { type: 'FeatureCollection', features: FIXTURE.streets.map((c, i) => feature(c, i)) };
+        const model = new AccessScoreModel(FIXTURE.config, streets, NO_INTERSECTIONS, [REGION]);
         expect(model.slopeIsDefault).toBe(true);
-        expect(model.state.slope.weight).toBe(0);
+        expect(model.state.slope.weight).toBe(FIXTURE.config.slope.defaults.weight);
         FIXTURE.streets.forEach((c, i) => {
             expect(model.explainStreet(i + 1).slopeTerm).toBe(0);
             expect(Math.abs(model.streetScores[i] - c.score)).toBeLessThan(tol);
         });
-        model.setState({ slope: { weight: 1 } });
+        model.setState({ slope: { weight: 3, barrierEnabled: true } });
+        expect(model.explainStreet(1).slopeTerm).toBe(0);
+        expect(model.explainStreet(1).barrier).toBe(false);
+    });
+
+    test('the engine\'s own settings weigh a steep street down, and a gentle one not at all', () => {
+        const gradient = (mean, max) => ({
+            mean_grade: mean, max_grade: max, net_grade: mean, meters_over_5pct: 100, meters_over_8pct: 100,
+            grade_confidence: 'high', grade_quality: 'measured', dem_source: 'fixture',
+        });
+        // The engine reads the steepest stretch, so the first street is steep on the statistic that counts while
+        // the second shares its mean and is flat on that one.
+        const features = FIXTURE.streets.map((c, i) =>
+            feature(c, i, i === 0 ? gradient(0.02, 0.3) : gradient(0.02, 0.03)));
+        const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features },
+            NO_INTERSECTIONS, [REGION]);
+        expect(model.state.slope.statistic).toBe('max_grade');
+        expect(model.explainStreet(1).slopeTerm).toBe(-FIXTURE.config.slope.defaults.weight);
+        expect(model.explainStreet(2).slopeTerm).toBe(0);
+        // A weight of 0 is the way out of the term, and leaves the labels' own score behind.
+        model.setState({ slope: { weight: 0 } });
         expect(model.slopeIsDefault).toBe(false);
+        expect(model.explainStreet(1).slopeTerm).toBe(0);
+        expect(Math.abs(model.streetScores[0] - FIXTURE.streets[0].score)).toBeLessThan(tol);
         // A partial slope merges: the statistic and thresholds stayed the engine's.
         expect(model.state.slope.statistic).toBe(FIXTURE.config.slope.defaults.statistic);
-        expect(model.explainStreet(1).slopeTerm).toBe(-1);
+    });
+
+    test('reports what the slope settings reach and how many streets a change moved', () => {
+        const gradient = (max) => ({
+            mean_grade: 0.02, max_grade: max, net_grade: 0.02, meters_over_5pct: 0, meters_over_8pct: 0,
+            grade_confidence: 'high', grade_quality: 'measured', dem_source: 'fixture',
+        });
+        // One street over the ramp limit (the full penalty), one between the limits, the rest below both.
+        const features = FIXTURE.streets.map((c, i) => feature(c, i, gradient([0.3, 0.065][i] ?? 0.01)));
+        const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features },
+            NO_INTERSECTIONS, [REGION]);
+        const audited = FIXTURE.streets.filter((_, i) => model.streetAudited[i] === 1).length;
+        expect(model.slopeImpact()).toEqual({ reached: 2, full: 1, barriers: 0, scored: audited });
+        // The counts ignore the weight, so a reader at 0 can still tell "reaches nothing" from "costs nothing".
+        model.setState({ slope: { weight: 0 } });
+        expect(model.slopeImpact()).toEqual({ reached: 2, full: 1, barriers: 0, scored: audited });
+        // The count is against the last settled state, so a drag's ticks add up to what the drag did rather than
+        // to what its final tick did — which, settling on a value, is nothing.
+        expect(model.changedCount).toBe(2);
+        model.setState({ slope: { weight: 0 } });
+        expect(model.changedCount).toBe(2);
+        model.markSettled();
+        expect(model.changedCount).toBe(0);
+        // Nothing moved since: the line says so rather than saying nothing.
+        model.setState({ slope: { weight: 0 } });
+        expect(model.changedCount).toBe(0);
+        model.setState({ slope: { weight: 1, barrierEnabled: true } });
+        expect(model.slopeImpact().barriers).toBe(1);
     });
 
     test('a barrier zeroes the segment, and the headline still averages it with the crossings', () => {

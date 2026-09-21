@@ -55,8 +55,9 @@ function loadSources() {
     RAMP.forEach((hex, i) => document.documentElement.style.setProperty(`--color-score-ramp-${i + 1}`, hex));
     window.eval(read('public/js/common/scoreRamp.js'));
     window.eval(`${read('public/js/common/LabelMiniCard.js')}\nwindow.LabelMiniCard = LabelMiniCard;`);
-    const classes = ['AccessScoreModel', 'AccessScoreChart', 'AccessScoreHistogram', 'AccessScoreWhatsHere',
-        'AccessScoreRankBars', 'AccessScoreClusterSheet', 'AccessScorePhotoStrip', 'AccessScoreDock'];
+    const classes = ['AccessScoreModel', 'AccessScoreGradeRamp', 'AccessScoreChart', 'AccessScoreHistogram',
+        'AccessScoreWhatsHere', 'AccessScoreRankBars', 'AccessScoreClusterSheet', 'AccessScorePhotoStrip',
+        'AccessScoreDock'];
     for (const name of classes) window.eval(`${read(`public/js/access-score/src/${name}.js`)}\nwindow.${name} = ${name};`);
 }
 

@@ -25,10 +25,10 @@ import models.street.StreetGradientStats
  *     SurfaceProblem) are scaled to a per-100 m density by [[lengthFactor]], so a long street is not penalized for
  *     having more room for problems; NoSidewalk's pooled term is already length-free.
  *   - A unit's score is `sigmoid(sum)`, mapped to (0, 1).
- *   - A segment's sum can also take a **slope** term ([[slopeTerm]], #5223), which is not a label type and so not
- *     one of the per-type terms: it comes from an elevation model, not from clusters. Its weight is 0 in
- *     [[defaultSlopeSettings]], so the scores the API serves do not move; the term exists so the AccessScore tool can
- *     re-run it under a reader's own settings and the two implementations can be held to one fixture.
+ *   - A segment's sum also takes a **slope** term ([[slopeTerm]], #5223), which is not a label type and so not one of
+ *     the per-type terms: it comes from an elevation model, not from clusters. [[defaultSlopeSettings]] is what the
+ *     API serves; the AccessScore tool re-runs the same arithmetic under a reader's own settings, and the two
+ *     implementations are held to one fixture. A street with no sampled slope takes no term at all.
  *   - A street's headline score is the mean of its segment score and its end intersections' scores
  *     ([[headlineScore]]): a trip along a street includes getting on and off it.
  *   - A region's score is the street-length-weighted mean of its audited streets' scores (the paper's normalization),
@@ -531,16 +531,20 @@ object AccessScoreCalculator {
       includeApproximate: Boolean
   )
 
-  // --- TUNABLE: how slope enters the score. The weight is 0 until a calibration pass says what a steep block should
-  // cost next to a missing curb ramp, so today's scores are exactly the label-only ones. The thresholds default to
-  // the two ADA / PROWAG limits; a reader moves them because people's limits differ (a manual and a power wheelchair
-  // user do not share one), which is why they are settings and not constants. The barrier's grade is not the ramp
-  // limit: `maxGrade` is a street's steepest 30 m, and 8.33% there is an ordinary block in a hilly city, where a
-  // switch labeled "very steep" would zero a large share of the map. It is 1:8 (12.5%), the steepest ramp the ADA
-  // tolerates anywhere, which is also where the slope map's steepest class begins, so the streets the barrier zeroes
-  // are the ones the map already paints as its worst. ---
+  // --- TUNABLE: how slope enters the score. The weight of 1 is a missing curb ramp's, so the claim it makes is one a
+  // reader can check: a block whose steepest stretch passes the ramp limit is about as hard to travel as one whose
+  // corner has no ramp. [[MaxGrade]] over [[MeanGrade]] because the worst pitch is what turns a traveler back, and a
+  // mean hides the otherwise flat block with one brutal pitch in it. The thresholds are settings rather than
+  // constants because people's limits differ (a manual and a power wheelchair user do not share one). The barrier is
+  // off: scoring a street 0 outright is a stronger claim than a weight, and it is the reader's to make. Its grade is
+  // 1:8 and not the ramp limit, because 8.33% over 30 m is an ordinary block in a hilly city, where a switch labeled
+  // "very steep" would zero a large share of the map; 12.5% is also where the slope map's steepest class begins.
+  //
+  // The cost of a nonzero weight: a sampled city scores below an unsampled one, since an unsampled street takes no
+  // term. That closes as cities are imported; until then it is a reason not to rank two cities against each other,
+  // which was never a claim these scores supported. ---
   val defaultSlopeSettings: SlopeSettings = SlopeSettings(
-    weight = 0.0, statistic = MeanGrade, lowThreshold = StreetGradientStats.WalkingSurfaceLimit,
+    weight = 1.0, statistic = MaxGrade, lowThreshold = StreetGradientStats.WalkingSurfaceLimit,
     highThreshold = StreetGradientStats.RampLimit, barrierEnabled = false,
     barrierThreshold = StreetGradientStats.MapClassBreaks.last, includeApproximate = false
   )
@@ -643,7 +647,7 @@ object AccessScoreCalculator {
 
   /**
    * A segment's score with slope taken into account: 0 for a barrier, otherwise the sigmoid of the per-type terms
-   * plus the slope term. With [[defaultSlopeSettings]] this is [[scoreFromSubScores]] exactly.
+   * plus the slope term. With no sampled slope this is [[scoreFromSubScores]] exactly, whatever the settings say.
    *
    * @param subScores    The segment's contribution per scored label type.
    * @param slope        The street's slope, if it has one.

@@ -186,8 +186,8 @@
     "place_categories" : [ "school", "health", "library", "grocery", "transit", "park", "community" ],
     "slope" : {
       "defaults" : {
-        "weight" : 0,
-        "statistic" : "mean_grade",
+        "weight" : 1,
+        "statistic" : "max_grade",
         "low_threshold" : 0.05,
         "high_threshold" : 0.08333333333333333,
         "barrier_enabled" : false,
@@ -13722,7 +13722,7 @@
     "score" : null
   } ],
   "slope_cases" : [ {
-    "name" : "the default settings ignore a steep street",
+    "name" : "the default settings take the whole weight off a steep street",
     "street" : "problems on a 300 m street",
     "slope" : {
       "mean_grade" : 0.12,
@@ -13734,8 +13734,8 @@
       "grade_quality" : "measured"
     },
     "settings" : {
-      "weight" : 0,
-      "statistic" : "mean_grade",
+      "weight" : 1,
+      "statistic" : "max_grade",
       "low_threshold" : 0.05,
       "high_threshold" : 0.08333333333333333,
       "barrier_enabled" : false,
@@ -13743,6 +13743,31 @@
       "include_approximate" : false
     },
     "units" : 1,
+    "slope_term" : -1,
+    "barrier" : false,
+    "segment_score" : 0.18643649234355056
+  }, {
+    "name" : "the default settings leave a gentle street alone",
+    "street" : "problems on a 300 m street",
+    "slope" : {
+      "mean_grade" : 0.02,
+      "max_grade" : 0.04,
+      "net_grade" : 0.02,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "max_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 0,
     "slope_term" : 0,
     "barrier" : false,
     "segment_score" : 0.3838275923683222
@@ -14010,14 +14035,14 @@
     },
     "settings" : {
       "weight" : 0,
-      "statistic" : "mean_grade",
+      "statistic" : "max_grade",
       "low_threshold" : 0.05,
       "high_threshold" : 0.08333333333333333,
       "barrier_enabled" : true,
       "barrier_threshold" : 0.125,
       "include_approximate" : false
     },
-    "units" : 0.6000000000000002,
+    "units" : 1,
     "slope_term" : 0,
     "barrier" : true,
     "segment_score" : 0

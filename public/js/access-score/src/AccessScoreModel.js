@@ -247,6 +247,10 @@ class AccessScoreModel {
   /** Each street's slope term and barrier flag under the current state, parallel to `streetIds`. */
   #slopeTerms;
   #barriers;
+  /** Per street: whether the slope settings reach it at all, and in full. Filled whatever the weight, so the Slope
+   *  section can say what a setting would touch while the weight is still 0. */
+  #slopeReached;
+  #slopeReachedFull;
   #audited;
   /** Cluster counts per (street, type, bucket): index (i * T + t) * B + b. */
   #counts;
@@ -286,6 +290,12 @@ class AccessScoreModel {
   #intScores;
   /** Histogram bin per street, filled alongside the scores; `UNBINNED` for an unaudited street. */
   #bins;
+  /**
+   * The headline scores as of the last settled state, the baseline [[changedCount]] counts from (#5223). Not the
+   * previous pass's: a drag settles on a tick that moves nothing more, which would report the whole drag as zero.
+   */
+  #settledScores;
+  #changedCount = 0;
   /** @type {AccessScoreRegionStats[]} */
   #regionStats = [];
   #cityContributions = null;
@@ -326,6 +336,9 @@ class AccessScoreModel {
     this.#state.slope = { ...AccessScoreModel.slopeDefaults(config), ...this.#state.slope };
     this.#slopeTerms = new Float64Array(this.#n);
     this.#barriers = new Uint8Array(this.#n);
+    this.#slopeReached = new Uint8Array(this.#n);
+    this.#slopeReachedFull = new Uint8Array(this.#n);
+    this.#settledScores = new Float64Array(this.#n);
     this.#units = new Float64Array(this.#n * this.#types.length);
     this.#terms = new Float64Array(this.#n * this.#types.length);
     this.#segmentScores = new Float64Array(this.#n);
@@ -336,6 +349,7 @@ class AccessScoreModel {
     this.#intScores = new Float64Array(this.#m);
     this.#recomputeUnits();
     this.#recompute();
+    this.markSettled();
   }
 
   /**
@@ -393,18 +407,95 @@ class AccessScoreModel {
   }
 
   /**
-   * The grade a street is drawn and described by: its mean grade, or the magnitude of its end-to-end grade where a
-   * coarse elevation model supports nothing finer. One definition, so the map's color, the legend's classes and the
-   * tooltip's number cannot disagree about which statistic they show.
+   * The grade a street is drawn and described by: whichever of the mean and the steepest stretch the slope settings
+   * are scoring on, or the magnitude of its end-to-end grade where a coarse elevation model supports nothing finer.
+   * One definition, so the map's color, the legend's classes and the tooltip cannot disagree — and, since it follows
+   * the settings, so the map cannot paint a street gentle while the score penalizes a pitch the mean hid. The
+   * over-limit statistic is a length, not a grade, so the map falls back to the steepest stretch there.
    * @param {number} streetId - The street's `street_edge_id`.
    * @returns {?number} A non-negative grade as a fraction, or null for an unknown, unsampled or profile-less street.
    */
   displayGrade(streetId) {
     const i = this.#indexById.get(streetId);
-    const g = i === undefined ? null : this.#gradients[i];
+    return i === undefined ? null : this.#gradeAt(i, this.displayGradeStatistic);
+  }
+
+  /**
+   * A street's grade under a named statistic, in force or not: the map carries both, so switching statistics is a
+   * repaint rather than a rewrite of every feature.
+   * @param {number} streetId - The street's `street_edge_id`.
+   * @param {string} statistic - 'mean_grade' or 'max_grade'.
+   * @returns {?number} A non-negative grade as a fraction, or null where the street has none.
+   */
+  gradeBy(streetId, statistic) {
+    const i = this.#indexById.get(streetId);
+    return i === undefined ? null : this.#gradeAt(i, statistic);
+  }
+
+  /** [[displayGrade]] by position, for the passes that already have one and should not pay for a map lookup. */
+  #gradeAt(i, statistic) {
+    const g = this.#gradients[i];
     if (!g) return null;
-    if (g.meanGrade !== null) return g.meanGrade;
+    const grade = statistic === 'mean_grade' ? g.meanGrade : g.maxGrade;
+    if (grade !== null) return grade;
     return g.netGrade === null ? null : Math.abs(g.netGrade);
+  }
+
+  /** The id of the statistic `displayGrade` is reading, so the legend can name what its classes are classing. */
+  get displayGradeStatistic() {
+    return this.#state.slope.statistic === 'mean_grade' ? 'mean_grade' : 'max_grade';
+  }
+
+  /**
+   * The street ids whose `displayGrade` falls in any of a set of slope classes, as `classIndexOf` indexes them
+   * (its no-grade sentinel included).
+   * @param {Iterable<number>} classes - The class indices to keep.
+   * @param {number[]} breaks - The ascending class breaks the legend was built from.
+   * @returns {Set<number>} Street ids, empty where no street falls in any of them.
+   */
+  streetIdsInGradeClasses(classes, breaks) {
+    const wanted = new Set(classes);
+    const ids = new Set();
+    for (let i = 0; i < this.#n; i++) {
+      const cls = AccessScoreGradeRamp.classIndexOf(this.#gradeAt(i, this.displayGradeStatistic), breaks);
+      if (wanted.has(cls)) ids.add(this.#ids[i]);
+    }
+    return ids;
+  }
+
+  /**
+   * What the slope settings reach, whatever the weight, so a reader who sees nothing move can tell a setting that
+   * costs nothing from one that touches no street at all (#5223).
+   * @returns {{reached: number, full: number, barriers: number, scored: number}} Scored (audited) streets only,
+   *   since slope never creates a score.
+   */
+  slopeImpact() {
+    let reached = 0;
+    let full = 0;
+    let barriers = 0;
+    let scored = 0;
+    for (let i = 0; i < this.#n; i++) {
+      if (this.#audited[i] !== 1) continue;
+      scored += 1;
+      if (this.#slopeReached[i] === 1) reached += 1;
+      if (this.#slopeReachedFull[i] === 1) full += 1;
+      if (this.#barriers[i] === 1) barriers += 1;
+    }
+    return { reached, full, barriers, scored };
+  }
+
+  /** How many scored streets have moved since the last settled state, for the sidebar's "Updated" line (#5223). */
+  get changedCount() {
+    return this.#changedCount;
+  }
+
+  /**
+   * Takes the scores now in force as [[changedCount]]'s baseline. The page calls this once it has reported a
+   * settled change, so the next report is about the next thing the reader does.
+   */
+  markSettled() {
+    this.#settledScores.set(this.#scores);
+    this.#changedCount = 0;
   }
 
   /**
@@ -1235,6 +1326,7 @@ class AccessScoreModel {
   #recompute() {
     const T = this.#types.length;
     const slope = this.#state.slope;
+    let changed = 0;
     const weights = this.#types.map((type) => this.signedWeight(type));
     const TI = this.#intTypeIdx.length;
     for (let j = 0; j < this.#m; j++) {
@@ -1262,10 +1354,12 @@ class AccessScoreModel {
         this.#terms[base] = term;
         x += term;
       }
-      // Slope joins the sum as its own term (#5223). A zero weight adds a literal 0, so the engine's defaults score
-      // a street exactly as its labels do; a barrier overrides the sum altogether.
-      const units = slope.weight === 0 ? 0 : AccessScoreModel.slopeUnits(this.#gradients[i], this.#lengths[i], slope);
-      this.#slopeTerms[i] = units === 0 ? 0 : -slope.weight * units;
+      // Slope joins the sum as its own term (#5223); a barrier overrides the sum altogether. The units are computed
+      // whatever the weight, so the Slope section can report what the settings reach even at a weight of 0.
+      const units = AccessScoreModel.slopeUnits(this.#gradients[i], this.#lengths[i], slope);
+      this.#slopeReached[i] = units > 0 ? 1 : 0;
+      this.#slopeReachedFull[i] = units >= 1 ? 1 : 0;
+      this.#slopeTerms[i] = units === 0 || slope.weight === 0 ? 0 : -slope.weight * units;
       this.#barriers[i] = AccessScoreModel.slopeIsBarrier(this.#gradients[i], slope) ? 1 : 0;
       x += this.#slopeTerms[i];
       if (this.#audited[i] === 1) {
@@ -1282,12 +1376,16 @@ class AccessScoreModel {
         }
         this.#scores[i] = sum / count;
         this.#bins[i] = AccessScoreModel.binOf(this.#scores[i]);
+        // Half a point is the finest difference the tool ever shows; counting anything smaller as a change would
+        // make the sidebar's report of it a lie.
+        if (Math.abs(this.#scores[i] - this.#settledScores[i]) > 0.005) changed += 1;
       } else {
         this.#segmentScores[i] = NaN;
         this.#scores[i] = NaN;
         this.#bins[i] = AccessScoreModel.UNBINNED;
       }
     }
+    this.#changedCount = changed;
     this.#rollUpRegions();
     this.#cityContributions = this.contributions();
   }

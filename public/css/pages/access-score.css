@@ -353,6 +353,50 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* At a weight of 0 the factor is out of the score, so the row fades like a street outside a brush. The slider keeps
+   full contrast: it is the control that turns the factor back on. */
+.acs-weight--off .acs-weight__head {
+  opacity: 0.55;
+}
+
+.acs-weight--off .acs-weight__value {
+  font: var(--text-small-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* "Updated · 12 streets changed" (#5223). It fades itself out and collapses, so it never takes room in the resting
+   panel. */
+.acs-flash {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-tiny-medium);
+  color: var(--color-jade-800);
+  opacity: 0;
+}
+
+.acs-flash:empty {
+  display: none;
+}
+
+.acs-flash--on {
+  animation: acs-flash-fade 1.6s ease-out forwards;
+}
+
+@keyframes acs-flash-fade {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* The message is information, not decoration, so reduced motion keeps it and drops only the fade. */
+@media (prefers-reduced-motion: reduce) {
+  .acs-flash--on {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 /* The average contribution under each slider: a thin bar whose length is relative to the largest type's. */
 .acs-weight__contrib {
   display: flex;
@@ -850,11 +894,45 @@
   list-style: none;
 }
 
+/* Each class brushes the map on itself, so the whole row is the target. */
 .acs-map-legend__class {
   display: flex;
   align-items: center;
   gap: var(--space-xxs);
+  width: 100%;
+  padding: 1px 3px;
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  background: none;
   font: var(--text-tiny-regular);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.acs-map-legend__class:hover {
+  background: var(--color-neutral-200);
+}
+
+.acs-map-legend__class:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 1px;
+}
+
+.acs-map-legend__class[aria-pressed="true"] {
+  background: var(--color-neutral-300);
+  font: var(--text-tiny-semibold);
+}
+
+/* Muted, not hidden: a reader has to be able to read the color they just turned off in order to turn it back on. */
+.acs-map-legend__class--out {
+  opacity: 0.45;
+}
+
+.acs-map-legend__hint {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
 }
 
 .acs-map-legend__class-swatch {
@@ -870,6 +948,10 @@
   margin: 3px;
   width: 12px;
   box-shadow: 0 0 0 3px var(--color-neutral-900);
+}
+
+.acs-map-legend__classes li {
+  margin: 0;
 }
 
 /* ---- Insights dock: a band along the bottom of the map ---- */

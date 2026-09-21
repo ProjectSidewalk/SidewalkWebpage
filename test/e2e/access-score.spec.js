@@ -123,6 +123,36 @@ async function waitForTool(page) {
   await page.waitForFunction(() => Boolean(window.accessScore && window.accessScore.model));
 }
 
+/**
+ * Makes the fixture city a sampled one (#5223): the slope controls and the map's legend classes exist only where
+ * the config carries a gradient block. Only street 1 gets a slope, a 12% steepest stretch — past the 8.3% ramp
+ * limit, so the engine's own settings take the whole weight off it.
+ * @param {import('@playwright/test').BrowserContext} context - The test's context, whose routes are added to.
+ */
+async function stubGradient(context) {
+  await context.route('**/v3/api/accessScoreConfig', async (route) => {
+    const config = await (await route.fetch()).json();
+    config.gradient = {
+      walking_surface_limit: 0.05, ramp_limit: 1 / 12, map_class_breaks: [1 / 48, 0.05, 1 / 12, 0.125],
+      sources: [{dem_source: 'fixture-dem', title: 'Fixture DEM', credit: 'Elevation: Fixture Survey',
+        licence: 'Public domain', url: 'https://example.org/dem', street_count: 1}],
+    };
+    return route.fulfill({json: config});
+  });
+  await context.route('**/v3/api/accessScoreStreets*', (route) => {
+    const streets = streetsFixture();
+    Object.assign(streets.features[0].properties, {
+      mean_grade: 0.1, max_grade: 0.12, net_grade: 0.1, total_climb_meters: 10, total_descent_meters: 0,
+      meters_over_5pct: 100, meters_over_8pct: 100, grade_confidence: 'high', grade_quality: 'measured',
+      dem_source: 'fixture-dem', slope_term: -1,
+    });
+    return route.fulfill({json: streets});
+  });
+  await context.route('**/v3/api/streetGradientProfile*', (route) => route.fulfill({json: {
+    street_edge_id: 1, profile: {spacing_meters: 50, elevations_meters: [100, 105, 110]},
+  }}));
+}
+
 const scoreOf = (page, id) => page.evaluate((streetId) => {
   const s = window.accessScore.model.explainStreet(streetId);
   return s.score;
@@ -449,7 +479,7 @@ test.describe('/accessScore', () => {
       await page.locator('#acs-show-grade').check();
       expect(JSON.stringify(await lineColor())).toContain('step');
       await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
-      await expect(page.locator('.acs-map-legend__class')).toHaveCount(5);
+      await expect(page.locator('.acs-map-legend__class')).toHaveCount(6);
       await expect(page.locator('.acs-map-legend__score')).toBeHidden();
       // The classes are a named list, not an image: a screen reader reaches each row's grades.
       const classes = page.getByRole('group', {name: 'Street slope'}).getByRole('listitem');
@@ -488,74 +518,65 @@ test.describe('/accessScore', () => {
 
   test('the Slope section weighs slope into the score, makes a steep street a barrier, and rides in the URL (#5223)',
     async ({page, context, consoleErrors}) => {
-      // The section only exists in a sampled city, so the live config (which carries the engine's slope settings)
-      // gains a gradient block, and street 1 gains a slope steep enough for every control to bite.
-      await context.route('**/v3/api/accessScoreConfig', async (route) => {
-        const config = await (await route.fetch()).json();
-        config.gradient = {
-          walking_surface_limit: 0.05, ramp_limit: 1 / 12, map_class_breaks: [1 / 48, 0.05, 1 / 12, 0.125],
-          sources: [{dem_source: 'fixture-dem', title: 'Fixture DEM', credit: 'Elevation: Fixture Survey',
-            licence: 'Public domain', url: 'https://example.org/dem', street_count: 1}],
-        };
-        return route.fulfill({json: config});
-      });
-      await context.route('**/v3/api/accessScoreStreets*', (route) => {
-        const streets = streetsFixture();
-        Object.assign(streets.features[0].properties, {
-          mean_grade: 0.1, max_grade: 0.12, net_grade: 0.1, total_climb_meters: 10, total_descent_meters: 0,
-          meters_over_5pct: 100, meters_over_8pct: 100, grade_confidence: 'high', grade_quality: 'measured',
-          dem_source: 'fixture-dem', slope_term: 0,
-        });
-        return route.fulfill({json: streets});
-      });
-      await context.route('**/v3/api/streetGradientProfile*', (route) => route.fulfill({json: {
-        street_edge_id: 1, profile: {spacing_meters: 50, elevations_meters: [100, 105, 110]},
-      }}));
-
+      await stubGradient(context);
       await page.goto('/accessScore');
       await waitForAppReady(page);
       await waitForTool(page);
-      const flat = await scoreOf(page, 1);
-      expect(flat).toBeCloseTo(0.818, 2);
 
-      // Folded, at the engine's zero weight, and with nothing to reset.
+      // Folded, at the engine's own settings, and with nothing to reset. Street 1 already carries the whole weight
+      // before anything is touched.
       await expect(page.locator('#acs-slope-section')).toBeVisible();
       await expect(page.locator('#acs-slope')).toBeHidden();
       await page.locator('#acs-slope-toggle').click();
-      await expect(page.locator('#acs-slope-weight')).toHaveValue('0');
+      await expect(page.locator('#acs-slope-weight')).toHaveValue('1');
+      await expect(page.locator('#acs-slope-weight-value')).toHaveText('×1.00');
+      await expect(page.locator('#acs-slope-statistic')).toHaveValue('max_grade');
       await expect(page.locator('#acs-slope-reset')).toBeHidden();
-
-      // A 10% mean grade is past the 8.3% threshold, so a weight of 1 takes a whole point off the sum.
-      await page.locator('#acs-slope-weight').fill('1');
-      await expect.poll(() => scoreOf(page, 1)).toBeCloseTo(1 / (1 + Math.exp(-(Math.log(flat / (1 - flat)) - 1))), 6);
-      await expect(page.locator('#acs-slope-summary')).not.toBeEmpty();
-      await expect.poll(() => urlParam(page, 'slope')).toBe('w:1');
-      // Street 2 has no slope, so its score never moved.
+      await expect(page.locator('#acs-slope-impact')).toHaveText('Affects 1 of 2 scored streets · 1 at the full penalty');
+      const weighed = await scoreOf(page, 1);
+      // Street 2 has no slope at all, so it is scored from its labels whatever the settings say.
       expect(await scoreOf(page, 2)).toBeCloseTo(0.119, 2);
+
+      // A weight of 0 is how slope leaves the score, and the control says "Off" rather than "×0.00".
+      await page.locator('#acs-slope-weight').fill('0');
+      await expect(page.locator('#acs-slope-weight-value')).toHaveText('Off');
+      await expect(page.locator('#acs-slope-weight-row')).toHaveClass(/acs-weight--off/);
+      const flat = await scoreOf(page, 1);
+      expect(flat).toBeCloseTo(0.818, 2);
+      expect(weighed).toBeCloseTo(1 / (1 + Math.exp(-(Math.log(flat / (1 - flat)) - 1))), 6);
+      await expect(page.locator('#acs-slope-summary')).not.toBeEmpty();
+      await expect.poll(() => urlParam(page, 'slope')).toBe('w:0');
+      // The counts describe what the settings reach, the same street whether or not it costs anything.
+      await expect(page.locator('#acs-slope-impact')).toHaveText('Affects 1 of 2 scored streets · 1 at the full penalty');
+      // And a settled change says how many streets it moved, since the map repaints with no motion of its own.
+      await expect(page.locator('#acs-slope-flash')).toHaveText('Updated · 1 street changed');
+      await page.locator('#acs-slope-weight').fill('1');
 
       // The over-limit measure uses fixed limits, so the thresholds switch off and say why.
       await page.locator('#acs-slope-statistic').selectOption('meters_over_limit');
       await expect(page.locator('#acs-slope-low')).toBeDisabled();
       await expect(page.getByRole('status').filter({hasText: 'accessibility limits of 5% and 8.3%'})).toBeVisible();
-      await page.locator('#acs-slope-statistic').selectOption('mean_grade');
+      await page.locator('#acs-slope-statistic').selectOption('max_grade');
 
-      // The table that explains the score now has a row for what slope took off it.
-      await page.goto(`/accessScore?slope=w:1&sel=1`);
+      // The table that explains the score has a row for what slope took off it.
+      await page.goto('/accessScore?sel=1');
       await waitForAppReady(page);
       await waitForTool(page);
       await expect(page.locator('.acs-popup__table')).toContainText(/Slope\s*—\s*−1\.00/);
 
       // A barrier at the default 12.5% leaves a street whose steepest stretch is 12% alone; at 10% it scores 0.
+      await page.locator('#acs-slope-toggle').click();
       await page.locator('#acs-slope-barrier').check();
-      await expect.poll(() => urlParam(page, 'slope')).toBe('w:1,b:0.125');
+      await expect.poll(() => urlParam(page, 'slope')).toBe('b:0.125');
       expect(await scoreOf(page, 1)).toBeGreaterThan(0);
       await page.locator('#acs-slope-barrier-threshold').fill('10');
       await page.locator('#acs-slope-barrier-threshold').blur();
       await expect.poll(() => scoreOf(page, 1)).toBe(0);
-      await expect.poll(() => urlParam(page, 'slope')).toBe('w:1,b:0.1');
+      await expect.poll(() => urlParam(page, 'slope')).toBe('b:0.1');
+      await expect(page.locator('#acs-slope-impact')).toContainText('1 scored 0');
 
       // The link restores the settings, opens the fold, and the popup says what slope did.
-      await page.goto('/accessScore?slope=w:1,b:0.1&sel=1');
+      await page.goto('/accessScore?slope=b:0.1&sel=1');
       await waitForAppReady(page);
       await waitForTool(page);
       await expect(page.locator('#acs-slope')).toBeVisible();
@@ -564,8 +585,59 @@ test.describe('/accessScore', () => {
       await expect(page.locator('.acs-popup__table')).toContainText('barrier: 0');
 
       await page.locator('#acs-slope-reset').click();
-      await expect.poll(() => scoreOf(page, 1)).toBeCloseTo(flat, 9);
+      await expect.poll(() => scoreOf(page, 1)).toBeCloseTo(weighed, 9);
       await expect.poll(() => urlParam(page, 'slope')).toBeNull();
+      expect(consoleErrors).toEqual([]);
+    });
+
+  test('the map legend\'s slope classes brush the map, with ctrl-click for more, and ride in the URL (#5223)',
+    async ({page, context, consoleErrors}) => {
+      await stubGradient(context);
+      await page.goto('/accessScore');
+      await waitForAppReady(page);
+      await waitForTool(page);
+
+      // The classes only stand in for the score ramp while the streets are colored by slope.
+      const classes = page.locator('.acs-map-legend__class');
+      await expect(page.locator('.acs-map-legend__grade')).toBeHidden();
+      await page.locator('#acs-show-grade').check();
+      await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
+      // Five classes from four breaks, plus the row for a street with no slope at all.
+      await expect(classes).toHaveCount(6);
+      // The title names the statistic the score is on, so the colors cannot claim a grade the score is not using.
+      await expect(page.locator('.acs-map-legend__title')).toHaveText('Street slope · Steepest stretch');
+
+      // Street 1's steepest stretch is 12%, in the 8.3%–12.5% class; clicking it brushes the map on that class.
+      const steep = classes.nth(3);
+      await steep.click();
+      await expect(steep).toHaveAttribute('aria-pressed', 'true');
+      await expect(classes.nth(0)).toHaveClass(/acs-map-legend__class--out/);
+      await expect(page.locator('#acs-dock-brush')).toBeVisible();
+      await expect(page.locator('#acs-dock-brush-text')).toContainText('8.3% – 12.5%');
+      await expect(page.locator('#acs-dock-brush-text')).toContainText('1 street');
+      await expect.poll(() => urlParam(page, 'gc')).toBe('3');
+
+      // Ctrl-click adds the no-slope class without dropping the first.
+      await classes.nth(5).click({modifiers: ['Control']});
+      await expect(classes.nth(5)).toHaveAttribute('aria-pressed', 'true');
+      await expect(steep).toHaveAttribute('aria-pressed', 'true');
+      await expect.poll(() => urlParam(page, 'gc')).toBe('n,3');
+      await expect(page.locator('#acs-dock-brush-text')).toContainText('3 streets');
+
+      // The dock's own Clear lifts it, and the legend's rows follow.
+      await page.locator('#acs-dock-brush-clear').click();
+      await expect(steep).toHaveAttribute('aria-pressed', 'false');
+      await expect.poll(() => urlParam(page, 'gc')).toBeNull();
+
+      // A shared link restores the selection; brushing a score range then takes the brush over.
+      await page.goto('/accessScore?grade=1&gc=3');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      await expect(page.locator('.acs-map-legend__class').nth(3)).toHaveAttribute('aria-pressed', 'true');
+      await page.locator('.acs-histogram__bin').nth(8).click();
+      await expect(page.locator('.acs-map-legend__class').nth(3)).toHaveAttribute('aria-pressed', 'false');
+      await expect.poll(() => urlParam(page, 'gc')).toBeNull();
+      await expect.poll(() => urlParam(page, 'b')).toBe('80-90');
       expect(consoleErrors).toEqual([]);
     });
 
@@ -701,7 +773,7 @@ test.describe('/accessScore', () => {
     await expect(page.locator('#acs-dock')).toHaveClass(/acs-dock--collapsed/);
     await expect(page.locator('#acs-dock-toggle')).toHaveAttribute('aria-expanded', 'false');
     expect(await page.evaluate(() => window.accessScore.dock.state))
-      .toEqual({open: false, brush: {from: 8, to: 9}, focus: null});
+      .toEqual({open: false, brush: {kind: 'score', from: 8, to: 9}, focus: null});
 
     await page.locator('#acs-dock-toggle').click();
     await expect(page.locator('#acs-dock-body')).toBeVisible();

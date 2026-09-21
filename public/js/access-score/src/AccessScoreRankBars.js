@@ -3,7 +3,8 @@
  * @typedef {object} AccessScoreRankBarsData
  * @property {string} shapeKey - The roster's region ids: the rows are rebuilt when it changes.
  * @property {AccessScoreRegionStats[]} rows - From `AccessScoreModel#rankedRegions`, best first.
- * @property {?{from: number, to: number}} brush - Bin indices, `to` exclusive, or null with no brush.
+ * @property {?Set<number>} outRegionIds - The regions a brush leaves out, muted in place; null with no brush. The
+ *   owner decides what "out" means, since a brush can be a score range or a set of slope classes (#5223).
  * @property {?number} selectedId - The region to mark, or null.
  * @property {number} floored - How many regions the completion floor left out.
  */
@@ -71,9 +72,7 @@ class AccessScoreRankBars extends AccessScoreChart {
       row.bar.style.width = `${r.score * 100}%`;
       row.bar.style.backgroundColor = ScoreRamp.at(r.score);
       row.score.textContent = AccessScoreChart.score(r.score);
-      const bin = AccessScoreModel.binOf(r.score);
-      row.button.classList.toggle('acs-rank__row--out', Boolean(data.brush) && (bin < data.brush.from
-        || bin >= data.brush.to));
+      row.button.classList.toggle('acs-rank__row--out', Boolean(data.outRegionIds?.has(r.regionId)));
       // A name like "Al 'Ummah Community Center" reaches the accessible name as written, and the tooltip (an HTML
       // sink) escaped exactly once.
       const label = i18next.t('accessscore:rank-row', {

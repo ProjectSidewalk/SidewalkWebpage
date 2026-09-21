@@ -466,21 +466,30 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
   }
   // ---- Slope (#5223). Hand-computed, so the fixture (which the engine itself writes) is not the only witness. ----
 
-  private val slopeOn = AccessScoreCalculator.defaultSlopeSettings.copy(weight = 2.0)
+  /** A double weight on the mean grade: the statistic the ramp cases below name their grades against. */
+  private val slopeOn =
+    AccessScoreCalculator.defaultSlopeSettings.copy(weight = 2.0, statistic = AccessScoreCalculator.MeanGrade)
 
   private def measured(mean: Double, max: Double, over5: Double = 0.0, over8: Double = 0.0) =
     Some(AccessScoreCalculator.SlopeInput(Some(mean), Some(max), Some(mean), Some(over5), Some(over8), false))
 
-  test("the default slope settings are a zero weight between the two ADA limits, with no barrier") {
+  test("the default slope settings weigh the steepest stretch between the two ADA limits, with no barrier") {
     val d = AccessScoreCalculator.defaultSlopeSettings
-    d.weight shouldBe 0.0
-    d.statistic shouldBe AccessScoreCalculator.MeanGrade
+    d.weight shouldBe 1.0
+    d.statistic shouldBe AccessScoreCalculator.MaxGrade
     d.lowThreshold shouldBe 0.05
     d.highThreshold shouldBe (1.0 / 12.0)
     d.barrierEnabled shouldBe false
     // Not the ramp limit: a street's steepest 30 m at 8.33% is an ordinary block, not a "very steep" one.
     d.barrierThreshold shouldBe 0.125
     d.includeApproximate shouldBe false
+  }
+
+  test("the default settings read the steepest stretch, not the mean, so one pitch is enough") {
+    // The point of MaxGrade over MeanGrade: a street that is flat on the whole but has one impassable pitch in it.
+    val d = AccessScoreCalculator.defaultSlopeSettings
+    AccessScoreCalculator.slopeTerm(measured(0.02, 0.15), 100, d) shouldBe (-1.0 +- eps)
+    AccessScoreCalculator.slopeTerm(measured(0.02, 0.04), 100, d) shouldBe 0.0
   }
 
   test("the slope term ramps from nothing at the low threshold to the whole weight at the high one") {
@@ -493,7 +502,8 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
   }
 
   test("a zero weight yields exactly 0.0, never -0.0, so a sum is untouched bit for bit") {
-    val term = AccessScoreCalculator.slopeTerm(measured(0.3, 0.3), 100, AccessScoreCalculator.defaultSlopeSettings)
+    val off  = AccessScoreCalculator.defaultSlopeSettings.copy(weight = 0.0)
+    val term = AccessScoreCalculator.slopeTerm(measured(0.3, 0.3), 100, off)
     (1.0 / term) shouldBe Double.PositiveInfinity
   }
 

@@ -137,7 +137,9 @@ link's `place` param is not logged); the card's one hop is the shared `ExploreHe
 cluster dot also opens the shared label card, whose actions log as `Click_module=LabelDetail_…` (above). The insights
 dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`,
 `AccessScore_Brush_value=<from>-<to>` (the brushed score range in whole percent, logged once on release, never per
-sweep tick) / `AccessScore_Brush_value=clear`, `AccessScore_PhotoStrip_labelId_value=<id>` (a photo-strip thumbnail opening the full
+sweep tick) / `AccessScore_Brush_value=grade=<class indices>` (the map legend's slope classes brushed instead,
+gentlest first, `-1` for "no slope data"; #5223 — the two kinds displace each other, so only one is ever in force) /
+`AccessScore_Brush_value=clear`, `AccessScore_PhotoStrip_labelId_value=<id>` (a photo-strip thumbnail opening the full
 label card), and `AccessScore_RankSelect_regionId_value=<id>` (a rank row clicked: the band scopes to that neighborhood in
 either unit, and in the neighborhoods unit the map selection it also makes logs `AccessScore_Select_regionId`). The drawer's `MapSidebar_Open` /
 `MapSidebar_Close` fire here too (shared chrome); the server logs `Visit_AccessScore` per page load, or `Visit_AccessScore_RedirectMobileLanding` when a mobile UA is bounced to `/mobileLanding` instead (the tool is desktop-only, like the Route Builder, and its Tools-menu entry is not rendered on a phone).

@@ -134,9 +134,11 @@ window.AccessScoreApp = (function () {
     // The elevation models the city's slopes came from (#5223); empty in a city that has not been sampled, which is
     // what keeps every slope control and credit off the page there.
     const gradeSources = config.gradient?.sources ?? [];
+    /** The slope classes the map colors and the legend brushes by; null where the city has no slope at all. */
+    const gradeBreaks = gradeSources.length > 0 ? config.gradient.map_class_breaks : null;
     const urlState = AccessScoreUrlSync.read(config);
     const model = new AccessScoreModel(config, streets, intersections, completion, urlState.state);
-    const sidebar = new AccessScoreSidebar(sidebarEl, config);
+    const sidebar = new AccessScoreSidebar(sidebarEl, config, () => model.slopeImpact());
     const urlSync = new AccessScoreUrlSync(model, map);
     /** @type {?mapboxgl.Popup} */
     let popup = null;
@@ -195,8 +197,10 @@ window.AccessScoreApp = (function () {
       clickClaimed: (e) => evidence?.layer.claims(e) === true || places?.layer.claims(e) === true,
       hoverClaimed: (e) => evidence?.layer.claims(e) === true || places?.layer.claims(e) === true,
       dark,
-      gradeBreaks: gradeSources.length > 0 ? config.gradient.map_class_breaks : null,
+      gradeBreaks,
       gradeAttribution: gradeAttributionHtml(),
+      // The legend's classes are a brush like the histogram's range, so the dock owns them; an empty list clears.
+      onGradeClasses: (classes) => dock?.setBrush(classes.length > 0 ? { kind: 'grade', classes } : null),
     });
     evidence = await mountClusterEvidence();
     places = mountPlaces();
@@ -221,6 +225,7 @@ window.AccessScoreApp = (function () {
       onOpenLabel: (labelId, ids) => evidence.openLabel(labelId, ids),
       onStateChange: () => urlSync.setDock(dock.state),
       log,
+      gradeBreaks,
     });
 
     /** Applies a state change everywhere it shows: map, sidebar bars, dock, URL, and the panel's listeners. */
@@ -233,6 +238,8 @@ window.AccessScoreApp = (function () {
       if (meta.kind === 'Unit') mapView.setUnit(state.unit);
       if (meta.kind === 'ShowUnaudited') mapView.setShowUnaudited(state.showUnaudited);
       if (meta.kind === 'ShowGrade') mapView.setShowGrade(state.showGrade);
+      // Or the map would paint a street gentle while the score penalizes it for a pitch the other statistic hid.
+      if (meta.kind === 'SlopeStat' || meta.kind === 'SlopeReset') mapView.setGradeStatistic();
       if (meta.kind === 'ShowClusters') evidence.setVisible(state.showClusters);
       if (PLACE_CHANGE_KINDS.has(meta.kind)) places?.apply(state);
       mapView.applyScores();
@@ -245,6 +252,9 @@ window.AccessScoreApp = (function () {
       places?.refreshCard();
       places?.layer.rescore();
       dock.applyChange(meta);
+      // The count is against the last settled state, so a drag reports what the whole drag moved.
+      sidebar.afterRecompute(meta, model.changedCount);
+      if (meta.final !== false) model.markSettled();
       urlSync.scheduleWrite();
       if (meta.final) log(meta.kind, meta.value);
       document.dispatchEvent(new CustomEvent('accessscore:change', { detail: { state, meta } }));

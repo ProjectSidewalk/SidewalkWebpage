@@ -441,7 +441,7 @@ object SlopeConfigForApi {
  *                                      tool renders its controls from, rather than re-declared in the frontend.
  * @param slope                         How slope enters a segment's score (#5223): the engine's default settings,
  *                                      the statistics a reader may choose between, and the range a threshold may
- *                                      take. The default weight is 0, so the scores served are label-only.
+ *                                      take. The defaults are what the served scores were computed under.
  */
 case class AccessScoreConfigForApi(
     scoredTypes: Seq[String],

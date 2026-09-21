@@ -1,4 +1,17 @@
 /**
+ * A brush over a score range, in histogram bin indices with `to` exclusive.
+ * @typedef {{kind: 'score', from: number, to: number}} AccessScoreScoreBrush
+ */
+
+/**
+ * A brush over slope classes (#5223), as indices into the map legend's, gentlest first, with
+ * `AccessScoreGradeRamp.NO_GRADE` for the streets that have no slope at all.
+ * @typedef {{kind: 'grade', classes: number[]}} AccessScoreGradeBrush
+ */
+
+/** @typedef {AccessScoreScoreBrush|AccessScoreGradeBrush} AccessScoreBrush */
+
+/**
  * The AccessScore insights dock (#5217): the collapsible band along the bottom of the map that holds the KPI
  * strip and four linked views — the score histogram (which doubles as the score legend), what's here, the ranked
  * regions, and the photo strip — and coordinates them with the map.
@@ -9,7 +22,9 @@
  *    brush (a histogram of the brush would collapse to the bins just brushed).
  * 2. **A brush emphasizes in the overview views and filters the detail views.** The histogram marks brushed bins
  *    and mutes the rest, the rank list mutes non-matching rows, and what's here is counted over the brush. On
- *    the map, everything outside the brush dims.
+ *    the map, everything outside the brush dims. There are two kinds — a score range from the histogram and a set of
+ *    slope classes from the map's legend (#5223) — and only ever one in force, since two would dim each other's
+ *    streets. A slope brush says nothing about score bins, so the histogram marks none while one is in force.
  * 3. **A selection marks the overview views and scopes the detail views.** Selecting a region leaves the
  *    histogram city-wide and drops a caret at that region's score — the point of the view is to place it
  *    among the others — while what's here and the photo strip narrow to it, and the map fades every other
@@ -54,8 +69,10 @@ class AccessScoreDock {
   static PHOTO_MOVE_DEBOUNCE_MS = 500;
 
   #open = true;
-  /** `{from, to}` in histogram bin indices, `to` exclusive; null with none. */
+  /** @type {?AccessScoreBrush} The brush in force, of either kind; null with none. */
   #brush = null;
+  /** The ascending slope-class breaks, for reading a grade brush back into streets; null in an unsampled city. */
+  #gradeBreaks = null;
   #selection = null;
   /** Ids of the active unit hovered in a view, or null. */
   #hover = null;
@@ -86,10 +103,14 @@ class AccessScoreDock {
    *   chosen, with the strip's label ids for the card's arrows to page through.
    * @param {() => void} options.onStateChange - Called after any change the URL should carry.
    * @param {(kind: string, value?: string|number) => void} [options.log] - Called for an interaction worth logging.
+   * @param {?number[]} [options.gradeBreaks] - The slope-class breaks a grade brush is read against (#5223); null
+   *   in a city whose streets have no slope.
    */
   constructor(root, {
     model, mapView, map, cityName = '', onRankSelect, onOpenLabel = () => {}, onStateChange, log = () => {},
+    gradeBreaks = null,
   }) {
+    this.#gradeBreaks = gradeBreaks;
     this.#root = root;
     this.#model = model;
     this.#mapView = mapView;
@@ -142,9 +163,17 @@ class AccessScoreDock {
     this.#schedule({ dim: false });
   }
 
-  /** The dock's own state, for the URL: `{open, brush, focus}`. */
+  /**
+   * The dock's own state, for the URL.
+   * @returns {{open: boolean, brush: ?AccessScoreBrush, focus: ?number}}
+   */
   get state() {
-    return { open: this.#open, brush: this.#brush ? { ...this.#brush } : null, focus: this.#focusRegionId };
+    const held = this.#brush;
+    /** @type {?AccessScoreBrush} */
+    let brush = null;
+    if (held?.kind === 'grade') brush = { kind: 'grade', classes: [...held.classes] };
+    else if (held) brush = { ...held };
+    return { open: this.#open, brush, focus: this.#focusRegionId };
   }
 
   /**
@@ -162,8 +191,8 @@ class AccessScoreDock {
 
   /**
    * Applies the state a URL carried.
-   * @param {{open?: boolean, brush?: ?{from: number, to: number}, focus?: ?number}} [state] - Whether the dock is
-   *   open, the brush in bin indices, and the focused region's id; each left out when the URL didn't say.
+   * @param {{open?: boolean, brush?: ?AccessScoreBrush, focus?: ?number}} [state] - Each left out when the URL
+   *   didn't say.
    */
   applyUrlState({ open, brush, focus } = {}) {
     if (open === false) this.setOpen(false, { log: false });
@@ -178,6 +207,11 @@ class AccessScoreDock {
   applyChange(meta) {
     // A focused region belongs to the unit it was chosen in; the reset puts the band back to the city.
     if (meta.kind === 'Unit' || meta.kind === 'ResetAll') this.setFocusRegion(null);
+    // A slope brush goes wherever its classes stop describing what is on screen — the regions unit has no slope, a
+    // statistic change re-classes every street — or it would stand for a different set than the reader picked.
+    if (this.#brush?.kind === 'grade' && ['Unit', 'ResetAll', 'SlopeStat', 'SlopeReset'].includes(meta.kind)) {
+      this.setBrush(null, { log: false, announce: false });
+    }
     const settled = !(meta.kind === 'Weight' && !meta.final);
     this.#schedule({ dim: settled, photos: settled });
   }
@@ -221,20 +255,49 @@ class AccessScoreDock {
   }
 
   /**
-   * Sets or clears the brush.
-   * @param {?{from: number, to: number}} range - Bin indices, `to` exclusive, or null to clear.
+   * Sets or clears the brush. The two kinds displace each other, since only one thing is ever emphasized; either
+   * way the legend is told, so its pressed classes match what the map is dimming.
+   * @param {?(AccessScoreBrush|{from: number, to: number})} range - A brush of either kind, a bare score range as
+   *   the histogram reports one, or null to clear.
    * @param {{final?: boolean, log?: boolean, announce?: boolean}} [options] - `final` false mid-sweep, so nothing
    *   is logged or announced until release; `log` false for a programmatic change; `announce` false for a change
    *   the live region should not read out, such as the brush a shared link carried in.
    */
   setBrush(range, { final = true, log = true, announce = true } = {}) {
-    this.#brush = range ? { from: range.from, to: range.to } : null;
+    const brush = AccessScoreDock.#normalizeBrush(range);
+    this.#brush = brush;
+    this.#mapView.setGradeSelection(brush?.kind === 'grade' ? brush.classes : []);
     this.#schedule({ dim: true });
     if (!final) return;
-    const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
-    if (log) this.#callbacks.log('Brush', range ? `${range.from * step}-${range.to * step}` : 'clear');
+    if (log) this.#callbacks.log('Brush', AccessScoreDock.#brushLogValue(brush));
     if (announce) this.#announce = true;
     this.#callbacks.onStateChange();
+  }
+
+  /**
+   * A brush argument in the one internal shape; a bare `{from, to}` is the score range the histogram reports.
+   * @param {?(AccessScoreBrush|{from: number, to: number})} range - What a caller passed.
+   * @returns {?AccessScoreBrush} Null where it selects nothing.
+   */
+  static #normalizeBrush(range) {
+    if (!range) return null;
+    if ('kind' in range && range.kind === 'grade') {
+      const classes = [...new Set(range.classes)].sort((a, b) => a - b);
+      return classes.length > 0 ? { kind: 'grade', classes } : null;
+    }
+    return { kind: 'score', from: range.from, to: range.to };
+  }
+
+  /**
+   * What a brush change logs: the score range in whole percent, or the slope classes, or a clear.
+   * @param {?AccessScoreBrush} brush - The brush now in force.
+   * @returns {string}
+   */
+  static #brushLogValue(brush) {
+    if (!brush) return 'clear';
+    if (brush.kind === 'grade') return `grade=${brush.classes.join(',')}`;
+    const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
+    return `${brush.from * step}-${brush.to * step}`;
   }
 
   /** Coalesces every change into one animation frame; the flags accumulate until it runs. */
@@ -273,7 +336,8 @@ class AccessScoreDock {
             label: i18next.t('accessscore:histogram-city',
               { city: this.#cityName, score: AccessScoreChart.score(cityScore) }),
           },
-      brush: this.#brush,
+      // Only a score brush marks bins; a slope brush is not a range over this axis and marking nothing is honest.
+      brush: this.#brush?.kind === 'score' ? this.#brush : null,
       selection: this.#selectionScore(),
       hover: this.#mapHover?.score ?? null,
     });
@@ -296,7 +360,7 @@ class AccessScoreDock {
     this.#rank.draw({
       shapeKey: rows.map((r) => r.regionId).sort((a, b) => a - b).join(','),
       rows,
-      brush: this.#brush,
+      outRegionIds: this.#outRegionIds(rows, brushStreets),
       selectedId: this.#selection ? this.#regionOf(this.#selection) : this.#focusRegionId,
       floored: this.#model.regionStats.length - rows.length,
     });
@@ -412,10 +476,16 @@ class AccessScoreDock {
     } else {
       text = i18next.t('accessscore:scope-city');
     }
-    if (brushStreets) {
-      const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
-      const range = { from: this.#brush.from * step, to: this.#brush.to * step };
-      text += ` · ${i18next.t('accessscore:scope-brush', range)}`;
+    const brush = this.#brush;
+    if (brushStreets && brush) {
+      if (brush.kind === 'grade') {
+        const classes = this.#gradeClassNames(brush.classes).join(i18next.t('accessscore:list-separator'));
+        text += ` · ${i18next.t('accessscore:scope-brush-grade', { classes })}`;
+      } else {
+        const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
+        text += ` · ${i18next.t('accessscore:scope-brush',
+          { from: brush.from * step, to: brush.to * step })}`;
+      }
     }
     return text;
   }
@@ -478,18 +548,60 @@ class AccessScoreDock {
    * @returns {?Set<number>} Street ids, or null with no brush.
    */
   #brushStreetIds() {
-    if (!this.#brush) return null;
-    const { from, to } = this.#brush;
-    if (this.#model.state.unit === 'streets') return this.#model.streetIdsInBins(from, to);
-    return this.#model.streetIdsInRegions(this.#model.regionIdsInBins(from, to));
+    const brush = this.#brush;
+    if (!brush) return null;
+    if (brush.kind === 'grade') return this.#gradeBrushStreetIds(brush.classes);
+    if (this.#model.state.unit === 'streets') return this.#model.streetIdsInBins(brush.from, brush.to);
+    return this.#model.streetIdsInRegions(this.#model.regionIdsInBins(brush.from, brush.to));
   }
 
   /** The ids of the active unit the brush keeps, for the map. */
   #brushUnitIds() {
-    if (!this.#brush) return null;
-    const { from, to } = this.#brush;
-    if (this.#model.state.unit === 'streets') return this.#model.streetIdsInBins(from, to);
-    return this.#model.regionIdsInBins(from, to);
+    const brush = this.#brush;
+    if (!brush) return null;
+    const streets = this.#model.state.unit === 'streets';
+    if (brush.kind === 'grade') return streets ? this.#gradeBrushStreetIds(brush.classes) : null;
+    if (streets) return this.#model.streetIdsInBins(brush.from, brush.to);
+    return this.#model.regionIdsInBins(brush.from, brush.to);
+  }
+
+  /**
+   * The ranked regions a brush leaves out, muted in the rank list: for a score brush the ones scoring outside it,
+   * for a slope brush the ones holding none of its streets, since grades say nothing about where a score sits.
+   * @param {AccessScoreRegionStats[]} rows - The ranked regions.
+   * @param {?Set<number>} brushStreets - The streets the brush keeps, or null with no brush.
+   * @returns {?Set<number>} Region ids to mute, or null with no brush.
+   */
+  #outRegionIds(rows, brushStreets) {
+    const brush = this.#brush;
+    if (!brush) return null;
+    if (brush.kind === 'score') {
+      const { from, to } = brush;
+      return new Set(rows.filter((r) => {
+        const bin = AccessScoreModel.binOf(r.score);
+        return bin < from || bin >= to;
+      }).map((r) => r.regionId));
+    }
+    const kept = new Set();
+    for (const r of rows) {
+      for (const id of this.#model.regionStreetIds(r.regionId)) {
+        if (brushStreets.has(id)) {
+          kept.add(r.regionId);
+          break;
+        }
+      }
+    }
+    return new Set(rows.filter((r) => !kept.has(r.regionId)).map((r) => r.regionId));
+  }
+
+  /**
+   * The streets a slope-class brush keeps; empty where the city publishes no classes to have brushed on.
+   * @param {number[]} classes - The brushed class indices.
+   * @returns {Set<number>}
+   */
+  #gradeBrushStreetIds(classes) {
+    if (this.#gradeBreaks === null) return new Set();
+    return this.#model.streetIdsInGradeClasses(classes, this.#gradeBreaks);
   }
 
   /** The ids of the active unit a selection keeps bright: its region, as regions or as streets. */
@@ -595,16 +707,26 @@ class AccessScoreDock {
 
   #renderBrushBar(brushStreets) {
     const bar = this.#els.brush;
-    if (!this.#brush) {
+    const brush = this.#brush;
+    if (!brush) {
       bar.hidden = true;
       return;
     }
     bar.hidden = false;
+    if (brush.kind === 'grade') {
+      const meters = this.#model.totalLengthM(brushStreets);
+      this.#els.brushText.textContent = i18next.t('accessscore:brush-grade', {
+        classes: this.#gradeClassNames(brush.classes).join(i18next.t('accessscore:list-separator')),
+        count: brushStreets.size,
+        length: i18next.t('accessscore:length-large', { km: meters / 1000 }),
+      });
+      return;
+    }
     const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
-    const range = { from: this.#brush.from * step, to: this.#brush.to * step };
+    const range = { from: brush.from * step, to: brush.to * step };
     let text;
     if (this.#model.state.unit === 'regions') {
-      const n = this.#model.regionIdsInBins(this.#brush.from, this.#brush.to).size;
+      const n = this.#model.regionIdsInBins(brush.from, brush.to).size;
       text = i18next.t('accessscore:brush-regions', { ...range, count: n });
     } else {
       const meters = this.#model.totalLengthM(brushStreets);
@@ -613,6 +735,24 @@ class AccessScoreDock {
       });
     }
     this.#els.brushText.textContent = text;
+  }
+
+  /**
+   * A grade brush's classes as the legend words them, so the two say the same thing. Built here rather than read
+   * off the legend's DOM, which belongs to a Mapbox control the dock does not own.
+   * @param {number[]} selected - The brushed class indices.
+   * @returns {string[]} Gentlest first, the no-grade class last.
+   */
+  #gradeClassNames(selected) {
+    const percent = AccessScoreGradeRamp.percent;
+    const classes = AccessScoreGradeRamp.classes(this.#gradeBreaks ?? []);
+    return selected.map((index) => {
+      if (index === AccessScoreGradeRamp.NO_GRADE) return i18next.t('accessscore:grade-legend-none');
+      const { from, to } = classes[index] ?? { from: null, to: null };
+      if (from === null) return i18next.t('accessscore:grade-class-under', { to: percent(to) });
+      if (to === null) return i18next.t('accessscore:grade-class-over', { from: percent(from) });
+      return i18next.t('accessscore:grade-class-between', { from: percent(from), to: percent(to) });
+    });
   }
 
   #bind() {

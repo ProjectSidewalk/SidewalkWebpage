@@ -22,8 +22,8 @@ import java.nio.file.{Files, Paths}
  * plus a seeded random spread, so the JS port is exercised on inputs it will meet in the wild. Streets are scored
  * as segments with a length (#5095), so the length normalization is exercised too; intersections are scored from
  * their pooled corner features with no length; and the headline cases pin how a street combines the three. The slope
- * cases (#5223) re-score a few of those streets with a slope and non-default slope settings, the one part of the
- * model the API never exercises, since the engine's own slope weight is 0.
+ * cases (#5223) re-score a few of those streets with a slope, mostly under settings the engine's own defaults do not
+ * reach — the statistics and the barrier a reader can choose in the tool but the API never serves.
  */
 object AccessScoreParityFixtureGen {
 
@@ -210,7 +210,9 @@ object AccessScoreParityFixtureGen {
   /** What a bridge or a gap in the model yields: a row with no grade at all. */
   private val noGrade: SlopeInput = SlopeInput(None, None, None, None, None, approximate = false)
 
-  private val weighted: SlopeSettings = AccessScoreCalculator.defaultSlopeSettings.copy(weight = 1.0)
+  /** The engine's weight on the mean grade: the statistic most of these cases are written against. */
+  private val weighted: SlopeSettings =
+    AccessScoreCalculator.defaultSlopeSettings.copy(weight = 1.0, statistic = AccessScoreCalculator.MeanGrade)
 
   /**
    * The slope cases: a base street from the cases above (by name, so its clusters and length are not repeated), a
@@ -222,9 +224,15 @@ object AccessScoreParityFixtureGen {
     val ramp  = "one good curb ramp"
     Seq(
       (
-        "the default settings ignore a steep street",
+        "the default settings take the whole weight off a steep street",
         hilly,
         Some(slope(0.12, 0.2, 0.12, 300, 250)),
+        AccessScoreCalculator.defaultSlopeSettings
+      ),
+      (
+        "the default settings leave a gentle street alone",
+        hilly,
+        Some(slope(0.02, 0.04, 0.02)),
         AccessScoreCalculator.defaultSlopeSettings
       ),
       (
@@ -286,7 +294,7 @@ object AccessScoreParityFixtureGen {
         "a barrier needs no weight",
         hilly,
         Some(slope(0.07, 0.15, 0.07)),
-        AccessScoreCalculator.defaultSlopeSettings.copy(barrierEnabled = true)
+        AccessScoreCalculator.defaultSlopeSettings.copy(weight = 0.0, barrierEnabled = true)
       ),
       (
         "a coarse-model grade sits out by default, barrier included",

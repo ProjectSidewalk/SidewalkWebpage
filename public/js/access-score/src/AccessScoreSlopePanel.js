@@ -4,9 +4,12 @@
  * approximate slopes (a coarse elevation model's, or a profile the sampler distrusted) take part.
  *
  * Every default, the list of statistics and the range a threshold may take come from `/v3/api/accessScoreConfig`
- * (`slope`), so nothing here knows a grade. The engine's own weight is 0: the section changes nothing until a reader
- * moves the slider, and the hint beside its folded heading says "Custom" once one has. The section stays hidden in a
- * city whose streets have not been sampled, where its controls would move nothing.
+ * (`slope`), so nothing here knows a grade. The hint beside the folded heading says "Custom" once a control has
+ * moved off the engine's own settings. The section stays hidden in a city whose streets have not been sampled,
+ * where its controls would move nothing.
+ *
+ * Under the slider it reports what the settings reach, which is what a barely-moving map cannot say: a weight of 0
+ * and a threshold no street passes look identical on screen, and only one of them is about the weight.
  *
  * Thresholds are edited as percentages, the way a grade is spoken, and held as fractions, the way the API states it.
  */
@@ -20,16 +23,21 @@ class AccessScoreSlopePanel {
   #els;
   /** @type {AccessScoreSlopeSettings} */
   #settings;
+  /** Reports what the settings in force reach, for the line under the slider. */
+  #impact;
 
   /**
    * @param {HTMLElement} root - The sidebar element carrying the `#acs-slope-section` markup.
    * @param {AccessScoreConfig} config - The `/v3/api/accessScoreConfig` response.
    * @param {(partial: ?Partial<AccessScoreState>, meta: AccessScoreChangeMeta) => void} emit - Reports a change, as
    *   the sidebar's other controls do.
+   * @param {() => {reached: number, full: number, barriers: number, scored: number}} impact - The model's
+   *   `slopeImpact`.
    */
-  constructor(root, config, emit) {
+  constructor(root, config, emit, impact = () => null) {
     this.#config = config;
     this.#emit = emit;
+    this.#impact = impact;
     this.#settings = AccessScoreModel.slopeDefaults(config);
     const q = (selector) => root.querySelector(selector);
     this.#els = {
@@ -38,6 +46,7 @@ class AccessScoreSlopePanel {
       weightOutput: q('#acs-slope-weight-value'), statistic: q('#acs-slope-statistic'), low: q('#acs-slope-low'),
       high: q('#acs-slope-high'), fixedNote: q('#acs-slope-fixed-note'), barrier: q('#acs-slope-barrier'),
       barrierThreshold: q('#acs-slope-barrier-threshold'), approximate: q('#acs-slope-approximate'),
+      impact: q('#acs-slope-impact'), flash: q('#acs-slope-flash'), weightRow: q('#acs-slope-weight-row'),
     };
     this.#els.section.hidden = !this.available;
     if (!this.available) return;
@@ -78,7 +87,7 @@ class AccessScoreSlopePanel {
     const e = this.#els;
     const s = this.#settings;
     e.weight.value = String(s.weight);
-    e.weightOutput.textContent = AccessScoreSlopePanel.#formatWeight(s.weight);
+    this.#showWeight(s.weight);
     e.statistic.value = s.statistic;
     e.low.value = AccessScoreSlopePanel.#toPercent(s.lowThreshold);
     e.high.value = AccessScoreSlopePanel.#toPercent(s.highThreshold);
@@ -86,6 +95,7 @@ class AccessScoreSlopePanel {
     e.barrierThreshold.value = AccessScoreSlopePanel.#toPercent(s.barrierThreshold);
     e.approximate.checked = s.includeApproximate;
     this.#reflect();
+    this.#showImpact();
   }
 
   /** Fills in what the config decides: the slider's range, the statistics on offer, the thresholds' bounds. */
@@ -113,7 +123,7 @@ class AccessScoreSlopePanel {
     };
     e.weight.addEventListener('input', () => {
       const weight = Number.parseFloat(e.weight.value);
-      e.weightOutput.textContent = AccessScoreSlopePanel.#formatWeight(weight);
+      this.#showWeight(weight);
       change({ weight }, 'SlopeWeight', weight, false);
     });
     e.weight.addEventListener('change', () => {
@@ -203,6 +213,39 @@ class AccessScoreSlopePanel {
     const atDefault = AccessScoreModel.slopeMatchesDefaults(this.#config, this.#settings);
     e.reset.hidden = atDefault;
     e.summary.textContent = atDefault ? '' : i18next.t('accessscore:weights-custom');
+  }
+
+  /**
+   * Re-reads what the settings reach. Called by the sidebar once the model has recomputed, not from the handlers
+   * above, which run before it.
+   */
+  refreshImpact() {
+    if (this.available) this.#showImpact();
+  }
+
+  /**
+   * The line under the slider. A barrier count joins it only while the barrier is on, where "scores 0 outright" is
+   * a different claim from "takes the whole weight".
+   */
+  #showImpact() {
+    const impact = this.#impact();
+    if (!this.#els.impact || !impact) return;
+    const key = this.#settings.barrierEnabled ? 'slope-impact-barriers' : 'slope-impact';
+    this.#els.impact.textContent = i18next.t(`accessscore:${key}`, impact);
+  }
+
+  /** The section's "Updated" line, which the sidebar fills so both sections say it the same way. */
+  get flashElement() {
+    return this.#els.flash;
+  }
+
+  /** The weight as the output shows it, with the row muted at 0, where the term is off rather than merely small. */
+  #showWeight(value) {
+    const off = Number(value) === 0;
+    this.#els.weightOutput.textContent = off
+      ? i18next.t('accessscore:weight-off')
+      : AccessScoreSlopePanel.#formatWeight(value);
+    this.#els.weightRow?.classList.toggle('acs-weight--off', off);
   }
 
   /** A grade as the percentage an input holds, to one decimal ("8.3"). */

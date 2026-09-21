@@ -1,9 +1,10 @@
 /**
  * Tests for the street-slope side of the AccessScore tool (#5223): the slope fields the model carries per street,
- * the classed grade ramp the map and legend share, the elevation profile's SVG, and the `grade` URL param.
+ * the classed grade ramp the map and legend share, the legend's classes as a brush, the elevation profile's SVG,
+ * and the `grade` URL param.
  *
- * Slope is not part of the score here, so none of this touches the parity fixture's numbers; the fixture supplies
- * only a real engine config to build a model around.
+ * How slope enters the score is pinned by accessScoreModel.test.js against the parity fixture; the fixture supplies
+ * only a real engine config here.
  */
 
 const fs = require('fs');
@@ -56,9 +57,16 @@ describe('street slope in the AccessScore tool', () => {
     let AccessScoreUrlSync;
 
     beforeAll(() => {
-        window.i18next = { language: 'en' };
+        // The legend's copy comes through i18next, so `t` echoes the key and whatever was interpolated into it.
+        window.i18next = {
+            language: 'en',
+            exists: (key) => key.startsWith('accessscore:slope-statistic-'),
+            t: (key, values = {}) => [key, ...Object.entries(values)
+                .filter(([k]) => k !== 'interpolation').map(([k, v]) => `${k}=${v}`)].join(' '),
+        };
         window.util = { escapeHTML: (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') };
-        for (const name of ['Model', 'GradeRamp', 'ElevationProfile', 'UrlSync']) {
+        window.eval(read('public/js/common/scoreRamp.js'));
+        for (const name of ['Model', 'GradeRamp', 'ElevationProfile', 'MapLegend', 'UrlSync']) {
             if (name === 'UrlSync') window.eval(read('public/js/common/urlQuery.js'));
             window.eval(`${read(`public/js/access-score/src/AccessScore${name}.js`)}
                 window.AccessScore${name} = AccessScore${name};`);
@@ -93,12 +101,39 @@ describe('street slope in the AccessScore tool', () => {
             expect(model.displayGrade(999)).toBeNull();
         });
 
-        test('draws a street by its mean grade, by the size of its net grade where that is all there is', () => {
-            expect(model.displayGrade(1)).toBe(0.062);
+        test('draws a street by the statistic the score is on, by its net grade where that is all there is', () => {
+            // The engine's own statistic is the steepest stretch, so that is what the map paints.
+            expect(model.displayGradeStatistic).toBe('max_grade');
+            expect(model.displayGrade(1)).toBe(0.091);
+            expect(model.gradeBy(1, 'mean_grade')).toBe(0.062);
             expect(model.displayGrade(3)).toBe(0.03);
             // A bridge has a row and no grade: known to the model, blank on the map.
             expect(model.explainStreet(2).gradient.quality).toBe('structure');
             expect(model.displayGrade(2)).toBeNull();
+            // Switching the scoring statistic moves the coloring with it, so the map cannot paint a street gentle
+            // while the score penalizes it for a pitch the mean hid.
+            model.setState({ slope: { statistic: 'mean_grade' } });
+            expect(model.displayGrade(1)).toBe(0.062);
+            // The over-limit statistic is a length, not a grade, so the map falls back to the steepest stretch.
+            model.setState({ slope: { statistic: 'meters_over_limit' } });
+            expect(model.displayGradeStatistic).toBe('max_grade');
+            expect(model.displayGrade(1)).toBe(0.091);
+            model.setState({ slope: { statistic: CONFIG.slope.defaults.statistic } });
+        });
+
+        test('reads the legend\'s classes back into streets, the no-grade ones included', () => {
+            const breaks = CONFIG.gradient.map_class_breaks;
+            // Street 1's steepest stretch (9.1%) is over the ramp limit; street 3 stands in its 3% net grade.
+            expect(AccessScoreGradeRamp.classIndexOf(model.displayGrade(1), breaks)).toBe(3);
+            expect(AccessScoreGradeRamp.classIndexOf(model.displayGrade(3), breaks)).toBe(1);
+            // A street at a break is within the gentler class: "not steeper than 1:20" means 5% is class 1.
+            expect(AccessScoreGradeRamp.classIndexOf(0.05, breaks)).toBe(1);
+            expect(AccessScoreGradeRamp.classIndexOf(null, breaks)).toBe(AccessScoreGradeRamp.NO_GRADE);
+            expect(model.streetIdsInGradeClasses([3], breaks)).toEqual(new Set([1]));
+            expect(model.streetIdsInGradeClasses([1, 3], breaks)).toEqual(new Set([1, 3]));
+            // The bridge and the unsampled street are the no-grade class, which the legend offers like any other.
+            expect(model.streetIdsInGradeClasses([AccessScoreGradeRamp.NO_GRADE], breaks)).toEqual(new Set([2, 4]));
+            expect(model.streetIdsInGradeClasses([], breaks)).toEqual(new Set());
         });
 
         test('an unaudited street keeps its slope while it has no score', () => {
@@ -192,6 +227,113 @@ describe('street slope in the AccessScore tool', () => {
         test('formats a grade as the percentage people read', () => {
             expect(AccessScoreGradeRamp.percent(0.05)).toBe('5%');
             expect(AccessScoreGradeRamp.percent(1 / 12)).toBe('8.3%');
+        });
+
+        test('classIndexOf agrees with the coloring expression on every break and on a missing grade', () => {
+            const expr = AccessScoreGradeRamp.expression(['get', 'grade'], breaks, { noneColor: '#999999' });
+            for (const grade of [0, 0.01, ...breaks.flatMap((b) => [b - 1e-9, b, b + 1e-9]), 0.5]) {
+                const index = AccessScoreGradeRamp.classIndexOf(grade, breaks);
+                expect(colorOf(expr, grade)).toBe(AccessScoreGradeRamp.colors(breaks.length + 1)[index]);
+            }
+            for (const none of [null, undefined, -1, NaN]) {
+                expect(AccessScoreGradeRamp.classIndexOf(none, breaks)).toBe(AccessScoreGradeRamp.NO_GRADE);
+            }
+        });
+    });
+
+    describe('AccessScoreMapLegend', () => {
+        const breaks = GRADIENT.map_class_breaks;
+        let legend;
+        let selected;
+
+        /** Adds a legend to the document and shows its slope classes, as the map view does. */
+        function mount() {
+            selected = [];
+            legend = new window.AccessScoreMapLegend({ gradeBreaks: breaks, onGradeClasses: (c) => selected.push(c) });
+            document.body.innerHTML = '';
+            document.body.appendChild(legend.onAdd());
+            legend.setGrade(true, 'max_grade');
+            return [...document.querySelectorAll('.acs-map-legend__class')];
+        }
+
+        /** A click carrying the modifiers a pointer would. */
+        const click = (button, modifiers = {}) =>
+            button.dispatchEvent(new window.MouseEvent('click', { bubbles: true, ...modifiers }));
+
+        test('offers one button per class plus the no-slope one, and names the statistic it is classing', () => {
+            const buttons = mount();
+            expect(buttons).toHaveLength(breaks.length + 2);
+            expect(buttons.map((b) => Number(b.dataset.class)))
+                .toEqual([0, 1, 2, 3, 4, AccessScoreGradeRamp.NO_GRADE]);
+            expect(buttons.every((b) => b.getAttribute('aria-pressed') === 'false')).toBe(true);
+            const title = document.querySelector('.acs-map-legend__title').textContent;
+            expect(title).toContain('accessscore:slope-statistic-max-grade');
+            legend.setGrade(true, 'mean_grade');
+            expect(document.querySelector('.acs-map-legend__title').textContent)
+                .toContain('accessscore:slope-statistic-mean-grade');
+        });
+
+        test('a click selects one class, and the same click again clears it', () => {
+            const buttons = mount();
+            click(buttons[3]);
+            expect(selected).toEqual([[3]]);
+            expect(buttons[3].getAttribute('aria-pressed')).toBe('true');
+            // Everything outside the selection is muted rather than hidden: it is still the legend.
+            expect(buttons[0].classList.contains('acs-map-legend__class--out')).toBe(true);
+            click(buttons[3]);
+            expect(selected[1]).toEqual([]);
+            expect(buttons.some((b) => b.classList.contains('acs-map-legend__class--out'))).toBe(false);
+        });
+
+        test('ctrl or cmd click adds a class and takes one away, and a plain click starts over', () => {
+            const buttons = mount();
+            click(buttons[1]);
+            click(buttons[4], { ctrlKey: true });
+            expect(selected[1]).toEqual([1, 4]);
+            click(buttons[5], { metaKey: true });
+            expect(selected[2]).toEqual([AccessScoreGradeRamp.NO_GRADE, 1, 4]);
+            click(buttons[1], { ctrlKey: true });
+            expect(selected[3]).toEqual([AccessScoreGradeRamp.NO_GRADE, 4]);
+            click(buttons[2]);
+            expect(selected[4]).toEqual([2]);
+        });
+
+        test('shift click extends a run over the scale, and Escape clears', () => {
+            const buttons = mount();
+            click(buttons[1]);
+            click(buttons[4], { shiftKey: true });
+            expect(selected[1]).toEqual([1, 2, 3, 4]);
+            // The no-slope class is not on the scale, so it joins one at a time rather than filling a run.
+            click(buttons[5], { shiftKey: true });
+            expect(selected[2]).toEqual([AccessScoreGradeRamp.NO_GRADE, 1, 2, 3, 4]);
+            buttons[2].dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            expect(selected[3]).toEqual([]);
+        });
+
+        test('takes the keyboard with one tab stop, and reflects a selection it was handed', () => {
+            const buttons = mount();
+            expect(buttons.filter((b) => b.tabIndex === 0)).toHaveLength(1);
+            buttons[0].dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+            expect(buttons[1].tabIndex).toBe(0);
+            expect(document.activeElement).toBe(buttons[1]);
+            buttons[1].dispatchEvent(new window.KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+            expect(document.activeElement).toBe(buttons[buttons.length - 1]);
+            // Told, not asked: a selection from a link or from the dock's Clear emits nothing back.
+            legend.setSelection([2, 4]);
+            expect(selected).toEqual([]);
+            expect(buttons[2].getAttribute('aria-pressed')).toBe('true');
+            expect(buttons[4].getAttribute('aria-pressed')).toBe('true');
+            legend.setSelection([]);
+            expect(buttons.some((b) => b.classList.contains('acs-map-legend__class--out'))).toBe(false);
+        });
+
+        test('a basemap swap rebuilds the rows and keeps the selection pressed', () => {
+            const buttons = mount();
+            click(buttons[3]);
+            legend.setDark(true);
+            const rebuilt = [...document.querySelectorAll('.acs-map-legend__class')];
+            expect(rebuilt[3].getAttribute('aria-pressed')).toBe('true');
+            expect(rebuilt[0].classList.contains('acs-map-legend__class--out')).toBe(true);
         });
     });
 

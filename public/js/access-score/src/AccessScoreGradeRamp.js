@@ -62,6 +62,23 @@ class AccessScoreGradeRamp {
     }));
   }
 
+  /** The class index for a street the ramp has no grade for, so a legend can offer it as a class too. */
+  static NO_GRADE = -1;
+
+  /**
+   * Which class a grade falls in, matching [[expression]]'s coloring exactly: a street at a break is *within* the
+   * gentler class ("not steeper than 1:20"), which is what the same `Number.EPSILON` nudge buys there.
+   * @param {?number} grade - A grade as a fraction, or null/negative where the street has none.
+   * @param {number[]} breaks - The ascending class breaks.
+   * @returns {number} An index into [[classes]], or [[NO_GRADE]].
+   */
+  static classIndexOf(grade, breaks) {
+    if (typeof grade !== 'number' || !Number.isFinite(grade) || grade < 0) return AccessScoreGradeRamp.NO_GRADE;
+    let i = 0;
+    while (i < breaks.length && grade >= breaks[i] + Number.EPSILON) i += 1;
+    return i;
+  }
+
   /**
    * A grade as the percentage people read, to one decimal where it has one ("8.3%", "5%").
    * @param {number} grade - A grade as a fraction.

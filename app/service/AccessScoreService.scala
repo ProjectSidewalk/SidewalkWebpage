@@ -164,8 +164,8 @@ class AccessScoreService @Inject() (
     // The score is squashed from the same per-type terms the API reports, so `sub_scores` always explains
     // `segment_score`.
     val subScores: Map[String, Double] = AccessScoreCalculator.scoreByType(inputs, Some(lengthMeters))
-    // Slope joins the sum under the engine's default settings, whose weight is 0 (#5223): the term is published so
-    // the identity `logit(segment_score) = sum(sub_scores) + slope_term` stays true the day the weight is not.
+    // Slope is its own field rather than folded into `sub_scores`, which are per label type (#5223), so that
+    // `logit(segment_score) = sum(sub_scores) + slope_term` holds and subtracting it recovers the label-only score.
     val slope: Option[AccessScoreCalculator.SlopeInput] = gradient.map(toSlopeInput)
     val slopeTerm: Double                               =
       AccessScoreCalculator.slopeTerm(slope, lengthMeters, AccessScoreCalculator.defaultSlopeSettings)
@@ -260,7 +260,9 @@ class AccessScoreService @Inject() (
    */
   def getFullCityScores(batchSize: Int): Future[AccessScores] =
     swrCache.staleWhileRevalidate[AccessScores](
-      "accessScore:full-city:v3",
+      // Bump the version whenever the engine's numbers change, not only its shape: a cached value from the release
+      // before is well-formed and wrong, and nothing else would evict it.
+      "accessScore:full-city:v4",
       AccessScoreService.FullCityFreshFor,
       AccessScoreService.FullCityMaxAge
     )(cityBbox.flatMap(bbox => computeAccessScoresV3(SpatialQueryType.Street, bbox, batchSize)))

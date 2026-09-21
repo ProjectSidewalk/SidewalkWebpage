@@ -10,7 +10,9 @@
  * by slope, #5223; dropped on reading in a city whose streets have not been sampled), `sel` (selected street or region
  * id, read with `unit`), `dark` (1 for the dark basemap); and the insights dock's `dock` (0 when collapsed, 1 to open
  * it on a narrow window, where it otherwise starts collapsed) `b` (the brushed score range as `from-to` in whole
- * percent, on the histogram's 10-point bin edges) and `focus` (the region a rank-list click scoped the band to). The
+ * percent, on the histogram's 10-point bin edges), `gc` (the brushed slope classes as comma-separated indices from
+ * the map's legend, gentlest first, `n` for "no slope data"; mutually exclusive with `b`, since one brush is in
+ * force at a time) and `focus` (the region a rank-list click scoped the band to). The
  * places layer (#5311) adds `pc` (the enabled category ids, or `all`; absent when none are on, the default), and the
  * selected place as `place` (`lat,lng`) with `placeName` — the same pair the searched place will use (#5340), so a link
  * means one thing by "place". The slope settings (#5223) ride in `slope` as `key:value` tokens, each present only
@@ -34,6 +36,7 @@ class AccessScoreUrlSync {
   #map;
   #writeTimer = null;
   #selection = null;
+  /** @type {{open: boolean, brush: ?AccessScoreBrush, focus: ?number}} */
   #dock = { open: true, brush: null, focus: null };
   #dark = false;
   #place = null;
@@ -45,9 +48,10 @@ class AccessScoreUrlSync {
    * @param {AccessScoreConfig} config - The `/v3/api/accessScoreConfig` response.
    * @param {string} [search=window.location.search] - The query string to read.
    * @returns {{state: Partial<AccessScoreState>, selection: ?number, dark: boolean,
-   *   dock: {open: boolean, brush: ?{from: number, to: number}, focus: ?number},
+   *   dock: {open: boolean, brush: ?AccessScoreBrush, focus: ?number},
    *   place: ?{lat: number, lng: number, name: ?string}}} A partial `AccessScoreModel` state, the selected id if
-   *   any, whether the dark basemap is asked for, the dock's state in bin indices, and the place the link names.
+   *   any, whether the dark basemap is asked for, the dock's state (its brush a score range in bin indices or a set
+   *   of slope classes), and the place the link names.
    */
   static read(config, search = window.location.search) {
     const params = new URLSearchParams(search);
@@ -103,6 +107,7 @@ class AccessScoreUrlSync {
     // Open by default on a wide window; below the drawer's breakpoint the band's four stacked panels would cover
     // the whole map, so it starts collapsed there like the drawer does, unless the link says `dock=1`.
     const narrow = typeof window.matchMedia === 'function' && window.matchMedia(MapSidebarDrawer.NARROW_QUERY).matches;
+    /** @type {{open: boolean, brush: ?AccessScoreBrush, focus: ?number}} */
     const dock = {
       open: params.has('dock') ? params.get('dock') !== '0' : !narrow,
       brush: null,
@@ -116,8 +121,14 @@ class AccessScoreUrlSync {
       const from = Number(b[1]);
       const to = Number(b[2]);
       if (from < to && to <= 100 && from % step === 0 && to % step === 0) {
-        dock.brush = { from: from / step, to: to / step };
+        dock.brush = { kind: 'score', from: from / step, to: to / step };
       }
+    }
+    // A slope-class brush (#5223) rides only where a score range did not: one thing is brushed at a time, and a
+    // link carrying both was not written by this page.
+    if (!dock.brush) {
+      const classes = AccessScoreUrlSync.#readGradeClasses(config, params.get('gc'));
+      if (classes) dock.brush = { kind: 'grade', classes };
     }
     return {
       state, selection: Number.isFinite(sel) && sel > 0 ? sel : null, dark: params.get('dark') === '1', dock, place,
@@ -148,8 +159,8 @@ class AccessScoreUrlSync {
   }
 
   /**
-   * Records the insights dock's state for the URL's `dock` and `b` params.
-   * @param {{open: boolean, brush: ?{from: number, to: number}, focus: ?number}} dock - The dock's state.
+   * Records the insights dock's state for the URL's `dock`, `b` and `gc` params.
+   * @param {{open: boolean, brush: ?AccessScoreBrush, focus: ?number}} dock - The dock's state.
    */
   setDock(dock) {
     this.#dock = dock;
@@ -210,7 +221,10 @@ class AccessScoreUrlSync {
     set('dock', '0', this.#dock.open);
     const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
     const brush = this.#dock.brush;
-    set('b', brush ? `${brush.from * step}-${brush.to * step}` : '', brush === null);
+    const score = brush?.kind === 'grade' ? null : brush;
+    set('b', score ? `${score.from * step}-${score.to * step}` : '', score === null);
+    set('gc', brush?.kind === 'grade' ? AccessScoreUrlSync.#gradeClassesParam(brush.classes) : '',
+      brush?.kind !== 'grade');
     set('focus', String(this.#dock.focus), !this.#dock.focus);
 
     const center = this.#map.getCenter();
@@ -218,6 +232,34 @@ class AccessScoreUrlSync {
     url.searchParams.set('lng', center.lng.toFixed(5));
     url.searchParams.set('zoom', this.#map.getZoom().toFixed(2));
     util.url.replaceQuery(url);
+  }
+
+  /**
+   * The `gc` param as a list of slope-class indices, or null where the link names none the city has. Tokens are
+   * checked against the class count the config implies, so a link from a city with different breaks (or a
+   * hand-edited one) brushes nothing rather than an arbitrary class.
+   * @param {AccessScoreConfig} config - The engine config.
+   * @param {?string} raw - The param's value: comma-separated indices, `n` for "no slope data".
+   * @returns {?number[]} Ascending class indices, or null.
+   */
+  static #readGradeClasses(config, raw) {
+    const breaks = config.gradient?.map_class_breaks;
+    if (!raw || !breaks || (config.gradient?.sources ?? []).length === 0) return null;
+    const count = breaks.length + 1;
+    const classes = new Set();
+    for (const token of raw.split(',')) {
+      if (token === 'n') {
+        classes.add(AccessScoreGradeRamp.NO_GRADE);
+      } else if (/^\d{1,2}$/.test(token) && Number(token) < count) {
+        classes.add(Number(token));
+      }
+    }
+    return classes.size > 0 ? [...classes].sort((a, b) => a - b) : null;
+  }
+
+  /** The `gc` param for a set of classes, the no-grade one written `n` so it cannot read as an index. */
+  static #gradeClassesParam(classes) {
+    return classes.map((c) => (c === AccessScoreGradeRamp.NO_GRADE ? 'n' : String(c))).join(',');
   }
 
   /**

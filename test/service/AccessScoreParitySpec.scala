@@ -157,17 +157,29 @@ class AccessScoreParitySpec extends AnyFunSuite with Matchers {
     }
   }
 
-  test("at the engine's own slope settings a slope changes no score") {
-    // The promise #5223's phase 3 makes: the headline the API serves is the label-only one until the weight moves.
-    AccessScoreCalculator.defaultSlopeSettings.weight shouldBe 0.0
-    AccessScoreCalculator.defaultSlopeSettings.barrierEnabled shouldBe false
-    val steep = Some(AccessScoreCalculator.SlopeInput(Some(0.2), Some(0.3), Some(0.2), Some(500), Some(500), false))
+  test("a street with no sampled slope scores from its labels alone") {
+    // The promise that survives a nonzero default weight (#5223): with no grade there is nothing for the weight to
+    // multiply, so a city whose gradients have not been imported is scored from its labels alone. A bridge or a gap
+    // in the elevation model has a row and no grade, and is in the same position.
+    val noRow   = None
+    val noGrade = Some(AccessScoreCalculator.SlopeInput(None, None, None, None, None, approximate = false))
     streets.foreach { s =>
       val length    = (s \ "length_meters").as[Double]
       val subScores = AccessScoreCalculator.scoreByType((s \ "clusters").as[Seq[JsValue]].map(cluster), Some(length))
-      AccessScoreCalculator.segmentScoreWithSlope(subScores, steep, length) shouldBe
-        AccessScoreCalculator.scoreFromSubScores(subScores)
+      val labelOnly = AccessScoreCalculator.scoreFromSubScores(subScores)
+      AccessScoreCalculator.segmentScoreWithSlope(subScores, noRow, length) shouldBe labelOnly
+      AccessScoreCalculator.segmentScoreWithSlope(subScores, noGrade, length) shouldBe labelOnly
     }
+  }
+
+  test("the engine's published slope defaults are the ones the tool and the API docs describe") {
+    // These four are quoted in `/api-docs`, in `docs/street-gradient.md` and in the tool's copy, and moving any of
+    // them moves every served score — so a change here should be deliberate, not a merge artifact.
+    val defaults = AccessScoreCalculator.defaultSlopeSettings
+    defaults.weight shouldBe 1.0
+    defaults.statistic shouldBe AccessScoreCalculator.MaxGrade
+    defaults.barrierEnabled shouldBe false
+    defaults.includeApproximate shouldBe false
   }
 
   test("every region case reproduces through scoreRegion and scoreRegionIntersections") {

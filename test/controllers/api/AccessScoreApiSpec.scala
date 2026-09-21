@@ -165,12 +165,12 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       }
     }
 
-    "publish the engine's slope settings, whose zero weight is what keeps the served scores label-only" in {
+    "publish the engine's slope settings, which are the ones the served scores were computed under" in {
       val slope = contentAsJson(route(app, FakeRequest(GET, "/v3/api/accessScoreConfig")).get) \ "slope"
-      (slope \ "defaults" \ "weight").as[Double] mustBe 0.0
+      (slope \ "defaults" \ "weight").as[Double] mustBe 1.0
       (slope \ "defaults" \ "barrier_enabled").as[Boolean] mustBe false
       (slope \ "defaults" \ "include_approximate").as[Boolean] mustBe false
-      (slope \ "defaults" \ "statistic").as[String] mustBe "mean_grade"
+      (slope \ "defaults" \ "statistic").as[String] mustBe "max_grade"
       (slope \ "defaults" \ "low_threshold").as[Double] mustBe 0.05
       (slope \ "defaults" \ "high_threshold").as[Double] mustBe (1.0 / 12.0)
       (slope \ "defaults" \ "barrier_threshold").as[Double] mustBe 0.125

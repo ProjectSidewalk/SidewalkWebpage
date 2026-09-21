@@ -202,7 +202,10 @@ The test for a new country is the one used here: an open bare-earth model at 10 
   steepest grade, climb and drop, the length over 5%, the elevation profile (`AccessScoreElevationProfile`, fetched
   per street), and a sentence saying why when the numbers are missing (`structure`, `no_data`) or approximate
   (`suspect`, a coarse model). A street is drawn by its mean grade, or by the size of its `net_grade` where a coarse
-  model supports nothing else (`AccessScoreModel.displayGrade`).
+  model supports nothing else (`AccessScoreModel.displayGrade`). Which statistic it draws follows the one the score is
+using, so the map cannot paint a street gentle while the score penalizes it for a pitch the other statistic hid; the
+legend names the statistic in its title. Each of the legend's classes is a button that brushes the map on it
+(Ctrl-click to add more), through the same brush the dock's histogram sets, so only one of the two is ever in force.
 
 ## Slope in the score
 
@@ -212,9 +215,14 @@ label type), so it joins a segment's pre-sigmoid sum as its own **modifier term*
 `slopeIsBarrier`, `segmentScoreWithSlope`), and `AccessScoreModel.js` mirrors it, both held to the `slope_cases` of
 `test/fixtures/accessScoreParity.json`.
 
-- **The engine's weight is 0** (`defaultSlopeSettings`), so every served score is bit-for-bit the label-only one.
-  `AccessScoreTeaneckSnapshotSpec` and a parity test hold to that. What a steep block should cost next to a missing
-  curb ramp is a calibration question nobody has answered yet; until then the term exists for the tool.
+- **The engine's weight is 1 on the steepest stretch** (`defaultSlopeSettings`), so a street whose worst 30 m is at
+  or over the ramp limit loses exactly what one missing curb ramp or one severe obstacle costs it. `max_grade` over
+  `mean_grade` because the worst pitch is what turns a traveler back, and an average hides the otherwise flat block
+  with one brutal pitch in it.
+- **A sampled city therefore scores below an unsampled one**, since a street with no gradient row takes no term at
+  all. The gap closes as cities are imported; until then it is a reason not to rank two cities against each other,
+  which these scores never supported anyway. The same follows for the nightly Spotlight snapshot (#5215): a sampled
+  city's series steps down on the first run after the release that raised the weight.
 - `slope_term = −weight × units`, never positive. Under **mean grade** or **max grade**, `units` ramps from 0 at the
   low threshold (default 5%) to 1 at the high one (8.33%). Under **meters over the limits**, `units` is the share of
   the street over 5% plus the share over 8.33%, halved. That statistic ignores the thresholds: the two lengths are
@@ -239,8 +247,12 @@ label type), so it joins a segment's pre-sigmoid sum as its own **modifier term*
   headline keeps meaning "assessed by people". Such a street still shows its slope on the grade layer and in its
   popup.
 
+Raising the weight changes every served score, so `AccessScoreService`'s full-city cache key carries a version
+(`accessScore:full-city:v4`) that is bumped whenever the engine's numbers move and not only when its shape does: a
+cached value from the release before is well-formed and wrong, and nothing else would evict it.
+
 `/v3/api/accessScoreConfig` publishes the settings under `slope` (`defaults`, the statistic ids, and the ranges a
-weight and a threshold may take), and `/v3/api/accessScoreStreets` publishes each street's `slope_term` (0 today). The tool's
+weight and a threshold may take), and `/v3/api/accessScoreStreets` publishes each street's `slope_term`. The tool's
 **Street slope** sidebar section (`AccessScoreSlopePanel.js`) edits them, hidden in an unsampled city; the settings
 ride in the URL as `slope=`, the street popup's "What drives this score" table gains a Slope row once slope is
 weighed in, and its Slope block says when a barrier has zeroed the segment.
