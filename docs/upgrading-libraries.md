@@ -232,6 +232,14 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Changelog](https://developers.infra3d.com/javascript-api/reference/index.html#md:changelog)
 - **kinetic: 4.4.3** — **note:** only used for the hand animation in the Explore tutorial;
   [no longer maintained](https://github.com/ericdrowell/KineticJS). Could bump to 5.1.0 and leave it.
+- **maplibre-gl (js & css): 5.24.0** — draws the Explore minimap (#5429); check with `maplibregl.getVersion()`.
+  **Note:** frozen on the 5.x line on purpose. From 6.0.0 the package ships ES modules only (no `maplibre-gl.js`
+  global build, and the library splits into a main module, a shared chunk, and a worker module that import each
+  other by relative URL), and this frontend loads plain `<script>` files with no module system. Taking 6.x means a
+  `type="module"` shim that assigns `window.maplibregl`, and checking that the chunks' relative imports still resolve
+  under asset fingerprinting. 5.24.0 is the last 5.x release, so there is nothing newer to take without that work.
+  [Download](https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/) ·
+  [Changelog](https://github.com/maplibre/maplibre-gl-js/blob/main/CHANGELOG.md)
 - **mapbox-gl (js & css): 3.24.1** — check with `mapboxgl.version`. **Note:** held below 3.25 on purpose. From 3.25.0 a
   symbol layer that shares a source with feature-state paint (Route Builder's region labels, AccessScore's) crashes
   the map with `Cannot read properties of undefined (reading 'paint')` once that state changes
