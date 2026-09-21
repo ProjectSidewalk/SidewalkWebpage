@@ -338,53 +338,157 @@ describe('street slope in the AccessScore tool', () => {
     });
 
     describe('AccessScoreElevationProfile', () => {
-        const text = { label: 'Profile label', low: '100 m', high: '104 m', start: 'Start', end: 'End' };
+        // Four 10 m stretches: level, 10% up (8.33–12.5%), 15% up (over 12.5%), 1% up.
+        const PROFILE = { spacing_meters: 10, elevations_meters: [100, 100, 101, 102.5, 102.6] };
+        const BREAKS = GRADIENT.map_class_breaks;
 
-        test('draws a line and a filled area with the accessible name and both scales', () => {
-            const profile = { spacing_meters: 50, elevations_meters: [104, 101.5, 100] };
-            document.body.innerHTML = AccessScoreElevationProfile.html(profile, text);
-            const svg = document.querySelector('svg.acs-profile__chart');
-            expect(svg.getAttribute('role')).toBe('img');
-            expect(svg.getAttribute('aria-label')).toBe('Profile label');
-            const line = document.querySelector('.acs-profile__line').getAttribute('d');
-            expect(line.match(/[ML]/g)).toEqual(['M', 'L', 'L']);
-            expect(document.querySelector('.acs-profile__area').getAttribute('d').endsWith('Z')).toBe(true);
-            expect(document.querySelector('.acs-profile__scale').textContent).toContain('104 m');
-            expect(document.querySelector('.acs-profile__ends').textContent).toContain('Start');
-            // Downhill in the digitized direction: the first sample is drawn above the last (smaller y).
-            const ys = line.split(' ').map((p) => Number(p.split(',')[1]));
-            expect(ys[0]).toBeLessThan(ys[2]);
+        /** Draws PROFILE into a fresh slot and returns it with the log calls it makes. */
+        function mount({ steepest = { from: 10, to: 30, grade: 0.125 }, label = 'Profile label' } = {}) {
+            document.body.innerHTML = '<div id="slot"></div>';
+            const logged = [];
+            const slot = document.getElementById('slot');
+            new AccessScoreElevationProfile(slot, PROFILE, {
+                breaks: BREAKS, steepest, label, onLog: (kind, value) => logged.push([kind, value]),
+            });
+            return { slot, logged, rows: [...slot.querySelectorAll('.acs-profile__class')] };
+        }
+
+        test('analyzes each stretch into a signed grade and a slope class, and sums the length per class', () => {
+            const { stretches, lengths, length } = AccessScoreElevationProfile.analyze(PROFILE, BREAKS);
+            expect(stretches.map((s) => s.classIndex)).toEqual([0, 3, 4, 0]);
+            expect(stretches[1].grade).toBeCloseTo(0.1);
+            expect(AccessScoreElevationProfile.analyze(
+                { spacing_meters: 10, elevations_meters: [101, 100] }, BREAKS).stretches[0].grade).toBeCloseTo(-0.1);
+            expect([...lengths.entries()]).toEqual([[0, 20], [3, 10], [4, 10]]);
+            expect(length).toBe(40);
         });
 
-        test('escapes every word it is given, so a quote in a translation cannot close the accessible name', () => {
-            const profile = { spacing_meters: 50, elevations_meters: [10, 12] };
-            document.body.innerHTML = AccessScoreElevationProfile.html(profile, {
-                ...text, label: 'Profile "start" to <end>', start: 'A&B',
-            });
-            const svg = document.querySelector('svg.acs-profile__chart');
+        test('draws one colored stretch of line and ground per pair of samples, under an accessible name', () => {
+            const { slot } = mount();
+            const svg = slot.querySelector('svg.acs-profile__chart');
+            expect(svg.getAttribute('role')).toBe('img');
+            expect(svg.getAttribute('tabindex')).toBe('0');
+            expect(svg.getAttribute('aria-label')).toBe('Profile label');
+            expect(slot.querySelectorAll('.acs-profile__stroke')).toHaveLength(4);
+            expect([...slot.querySelectorAll('.acs-profile__ground')].map((g) => g.dataset.class))
+                .toEqual(['0', '3', '4', '0']);
+        });
+
+        test('lists the classes the street has, steepest first, each with its length', () => {
+            const { rows } = mount();
+            expect(rows.map((r) => r.dataset.class)).toEqual(['4', '3', '0']);
+            expect(rows[0].textContent).toContain('accessscore:grade-class-over');
+            expect(rows[0].querySelector('.acs-profile__length').textContent).toContain('meters=10');
+            expect(rows[2].querySelector('.acs-profile__length').textContent).toContain('meters=20');
+            expect(rows[0].querySelector('.acs-profile__share-fill').style.width).toBe('25%');
+            expect(rows.every((r) => r.getAttribute('aria-pressed') === 'false')).toBe(true);
+        });
+
+        test("brackets the backend's steepest stretch where it says, with its length and grade", () => {
+            const { slot } = mount();
+            const callout = slot.querySelector('.acs-profile__callout').textContent;
+            expect(callout).toContain('accessscore:profile-steepest');
+            expect(callout).toContain('meters=20');
+            expect(callout).toContain('grade=12.5%');
+            // The bracket starts where the second stretch's ground does and ends where the third's does.
+            const bracket = slot.querySelector('.acs-profile__bracket').getAttribute('d').match(/[\d.]+/g).map(Number);
+            const groundX = (i) => Number(slot.querySelectorAll('.acs-profile__ground')[i].getAttribute('d')
+                .match(/M([\d.]+)/)[1]);
+            expect(bracket[0]).toBeCloseTo(groundX(1), 0);
+            expect(bracket[3]).toBeCloseTo(groundX(3), 0);
+        });
+
+        test('draws no bracket where the backend placed no steepest stretch', () => {
+            const { slot } = mount({ steepest: null });
+            expect(slot.querySelector('.acs-profile__bracket')).toBeNull();
+            expect(slot.querySelector('.acs-profile__callout')).toBeNull();
+        });
+
+        test('a legend row previews its stretches on hover and pins them on press, several at a time', () => {
+            const { slot, logged, rows } = mount();
+            const figure = slot.querySelector('.acs-profile');
+            const lit = () => [...slot.querySelectorAll('.acs-profile__ground')]
+                .map((g) => g.classList.contains('acs-profile__mark--on'));
+
+            rows[2].dispatchEvent(new Event('pointerenter'));
+            expect(figure.classList.contains('acs-profile--filtered')).toBe(true);
+            expect(lit()).toEqual([true, false, false, true]);
+            rows[2].dispatchEvent(new Event('pointerleave'));
+            expect(figure.classList.contains('acs-profile--filtered')).toBe(false);
+
+            rows[0].click();
+            rows[1].click();
+            expect(lit()).toEqual([false, true, true, false]);
+            expect(rows[0].getAttribute('aria-pressed')).toBe('true');
+            // Two adjacent pinned stretches make one run of steep street, not two.
+            const readout = slot.querySelector('.acs-profile__readout').textContent;
+            expect(readout).toContain('accessscore:profile-highlight');
+            expect(readout).toContain('count=1');
+            expect(readout).toContain('meters=20');
+            expect(logged).toEqual([['ProfileClass', '4_value=true'], ['ProfileClass', '3_value=true']]);
+
+            rows[0].click();
+            expect(rows[0].getAttribute('aria-pressed')).toBe('false');
+            expect(lit()).toEqual([false, true, false, false]);
+        });
+
+        test('stepping along the chart lights the legend row of the stretch under the cursor and reads its grade', () => {
+            const { slot, logged, rows } = mount();
+            const svg = slot.querySelector('svg.acs-profile__chart');
+            const readout = slot.querySelector('.acs-profile__readout');
+            const at = () => rows.filter((r) => r.classList.contains('acs-profile__class--at')).map((r) => r.dataset.class);
+
+            svg.dispatchEvent(new Event('focus'));
+            expect(at()).toEqual(['0']);
+            svg.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+            svg.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+            expect(at()).toEqual(['4']);
+            expect(readout.textContent).toContain('accessscore:profile-readout-up');
+            expect(readout.textContent).toContain('grade=15%');
+            expect(slot.querySelector('.acs-profile__cursor').getAttribute('visibility')).toBe('visible');
+            svg.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }));
+            svg.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+            expect(at()).toEqual(['0']);
+
+            svg.dispatchEvent(new Event('blur'));
+            expect(at()).toEqual([]);
+            expect(readout.textContent).toBe('');
+            expect(slot.querySelector('.acs-profile__cursor').getAttribute('visibility')).toBe('hidden');
+            // A sweep along the chart is one interaction, logged once.
+            expect(logged).toEqual([['ProfileScrub', undefined]]);
+        });
+
+        test('labels a crest partway along, but not a rise that tops out at an end', () => {
+            document.body.innerHTML = '<div id="slot"></div>';
+            const slot = document.getElementById('slot');
+            const crest = { spacing_meters: 10, elevations_meters: [100, 101, 103, 104, 103, 101, 100] };
+            new AccessScoreElevationProfile(slot, crest, { breaks: BREAKS, steepest: null, label: 'x' });
+            expect(slot.querySelector('svg').textContent).toContain('accessscore:profile-high');
+            expect(mount().slot.querySelector('svg').textContent).not.toContain('accessscore:profile-high');
+        });
+
+        test('escapes the accessible name, so a quote in a translation cannot close its attribute', () => {
+            const { slot } = mount({ label: 'Profile "start" to <end>' });
+            const svg = slot.querySelector('svg.acs-profile__chart');
             expect(svg.getAttribute('aria-label')).toBe('Profile "start" to <end>');
             expect(svg.attributes).toHaveLength(5);
-            expect(document.querySelector('.acs-profile__ends').textContent).toContain('A&B');
         });
 
         test('keeps a near-level street a flat line through the middle instead of magnifying its noise', () => {
-            const html = AccessScoreElevationProfile.html({ spacing_meters: 10, elevations_meters: [50, 50.02, 50] }, text);
-            document.body.innerHTML = html;
-            const ys = document.querySelector('.acs-profile__line').getAttribute('d').split(' ')
-                .map((p) => Number(p.split(',')[1]));
-            expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(2);
-            expect(ys[0]).toBeGreaterThan(30);
-            expect(ys[0]).toBeLessThan(66);
+            document.body.innerHTML = '<div id="slot"></div>';
+            const slot = document.getElementById('slot');
+            const level = { spacing_meters: 10, elevations_meters: [50, 50.02, 50] };
+            new AccessScoreElevationProfile(slot, level, { breaks: BREAKS, steepest: null, label: 'x' });
+            const ys = [...slot.querySelectorAll('.acs-profile__stroke')]
+                .flatMap((p) => p.getAttribute('d').match(/,([\d.]+)/g).map((m) => Number(m.slice(1))));
+            expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(1);
         });
 
-        test('draws nothing for a profile too short to have a shape', () => {
-            expect(AccessScoreElevationProfile.html({ spacing_meters: 0, elevations_meters: [12] }, text)).toBe('');
-            expect(AccessScoreElevationProfile.html(null, text)).toBe('');
-        });
-
-        test('reports the range the scale is labeled with', () => {
-            expect(AccessScoreElevationProfile.range({ spacing_meters: 5, elevations_meters: [3, 9, 1] }))
-                .toEqual({ low: 1, high: 9 });
+        test('says a profile too short to have a shape cannot be drawn', () => {
+            expect(AccessScoreElevationProfile.canDraw(PROFILE)).toBe(true);
+            expect(AccessScoreElevationProfile.canDraw({ spacing_meters: 0, elevations_meters: [12] })).toBe(false);
+            expect(AccessScoreElevationProfile.canDraw({ spacing_meters: 0, elevations_meters: [12, 13] })).toBe(false);
+            expect(AccessScoreElevationProfile.canDraw(null)).toBe(false);
         });
     });
 

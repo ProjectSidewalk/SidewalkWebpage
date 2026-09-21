@@ -97,6 +97,8 @@ case class StreetGradientProfileForApi(gradient: StreetGradient, lengthMeters: D
         "dem_resolution_meters" -> stats.demResolutionM,
         "sampled_at"            -> gradient.sampledAt,
         "stale"                 -> stale,
+        "max_grade_from_meters" -> gradient.maxGradeFromM,
+        "max_grade_to_meters"   -> gradient.maxGradeToM,
         "profile"               -> profileJson.getOrElse[JsValue](JsNull),
         "attribution"           -> DemSourceForApi(DemSource.forName(stats.demSource)).toJson
       )

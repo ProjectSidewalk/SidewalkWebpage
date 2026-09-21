@@ -59,6 +59,8 @@
   "dem_resolution_meters": 10.0,
   "sampled_at": "2026-09-19T17:04:11.482Z",
   "stale": false,
+  "max_grade_from_meters": 30.0,
+  "max_grade_to_meters": 60.0,
   "profile": {
     "spacing_meters": 10.19,
     "elevations_meters": [31.42, 31.35, 31.1, 30.62, 30.01, 29.4, 28.77, 28.1, 27.52, 27.0, 26.61, 26.3, 26.05, 25.86, 25.74]
@@ -87,6 +89,8 @@
           <tr><td><code>dem_resolution_meters</code></td><td><code>number</code></td><td>The elevation model's grid size in meters, which <code>grade_confidence</code> is a function of.</td></tr>
           <tr><td><code>sampled_at</code></td><td><code>string</code></td><td>When the street was sampled (ISO&nbsp;8601).</td></tr>
           <tr><td><code>stale</code></td><td><code>boolean</code></td><td><code>true</code> when the street's geometry has been edited since <code>sampled_at</code>. Every slope field and the profile then describe the line the street used to follow, and <code>spacing_meters</code>, which divides today's <code>length_meters</code> by the stored sample count, is only approximate. It clears the next time the city's gradients are topped up.</td></tr>
+          <tr><td><code>max_grade_from_meters</code></td><td><code>number</code></td><td>Where along the street the stretch that set <code>max_grade</code> starts, in meters from the first coordinate of its geometry. The stretch is 30&nbsp;m long, or 10&nbsp;m on a street under 30&nbsp;m, and it is located on the full-resolution samples, so it can differ slightly from what the coarser <code>profile</code> would suggest. <code>null</code> wherever <code>max_grade</code> is, and also where no one stretch set it: a <code>suspect</code> street (a straight line is equally steep everywhere), a bumpy street whose <code>max_grade</code> is its <code>mean_grade</code>, and a street not yet resampled since this field was added.</td></tr>
+          <tr><td><code>max_grade_to_meters</code></td><td><code>number</code></td><td>Where that stretch ends; <code>null</code> exactly when <code>max_grade_from_meters</code> is.</td></tr>
           <tr><td><code>profile</code></td><td><code>object</code></td><td><code>null</code> for a street with no profile: a bridge, tunnel, or covered way (<code>grade_quality: "structure"</code>), a street the model has no data under, or one sampled from a model too coarse to support one. The response is still a <code>200</code>, since <code>grade_quality</code> is itself the answer.</td></tr>
           <tr><td><code>profile.spacing_meters</code></td><td><code>number</code></td><td>Distance along the street between consecutive elevations, about 10&nbsp;m: <code>length_meters</code> over one less than the number of elevations.</td></tr>
           <tr><td><code>profile.elevations_meters</code></td><td><code>array[number]</code></td><td>Ground elevations to the centimeter, from the first coordinate of the street's geometry to the last, both ends included.</td></tr>

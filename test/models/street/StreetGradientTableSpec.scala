@@ -35,9 +35,10 @@ class StreetGradientTableSpec
   private def insertMeasured(streetEdgeId: Int, demSource: String = "usgs-3dep-10m"): DBIO[Int] =
     sqlu"""INSERT INTO street_gradient (street_edge_id, quality, confidence, net_grade, mean_grade, max_grade,
                                         meters_over_5pct_grade, meters_over_8pct_grade, climb_m, descent_m,
-                                        elev_start_m, elev_end_m, profile_cm, dem_source, dem_resolution_m, geom_md5)
+                                        elev_start_m, elev_end_m, profile_cm, dem_source, dem_resolution_m, geom_md5,
+                                        max_grade_from_m, max_grade_to_m)
            VALUES ($streetEdgeId, 'measured', 'high', -0.04, 0.06, 0.09, 40, 10, 1.5, 5.5, 104.0, 100.0,
-                   ARRAY[10400, 10150, 10000], $demSource, 10, $Md5)"""
+                   ARRAY[10400, 10150, 10000], $demSource, 10, $Md5, 20, 50)"""
 
   /** Seeds a `structure` row: endpoint elevations and no grade, as 398.sql's CHECK requires. */
   private def insertStructure(streetEdgeId: Int): DBIO[Int] =
@@ -67,6 +68,8 @@ class StreetGradientTableSpec
       row.stats.demSource mustBe "usgs-3dep-10m"
       row.stats.demResolutionM mustBe 10.0
       row.profileCm.value mustBe List(10400, 10150, 10000)
+      row.maxGradeFromM.value mustBe 20.0
+      row.maxGradeToM.value mustBe 50.0
       row.geomMd5 mustBe Md5
     }
 
@@ -82,6 +85,7 @@ class StreetGradientTableSpec
       row.stats.netGrade mustBe None
       row.stats.elevStartM.value mustBe 12.0
       row.profileCm mustBe None
+      row.maxGradeFromM mustBe None
     }
 
     "return None for a street that has not been sampled" in {

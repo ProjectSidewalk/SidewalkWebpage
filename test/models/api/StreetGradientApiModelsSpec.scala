@@ -41,7 +41,9 @@ class StreetGradientApiModelsSpec extends PlaySpec {
         stats(StreetGradientQuality.Measured, measured = true),
         Some(List(10400, 10150, 10000)),
         "0" * 32,
-        sampledAt
+        sampledAt,
+        maxGradeFromM = Some(20.0),
+        maxGradeToM = Some(50.0)
       )
       val json = StreetGradientProfileForApi(row, lengthMeters = 100.0).toJson
 
@@ -58,6 +60,8 @@ class StreetGradientApiModelsSpec extends PlaySpec {
       (json \ "dem_resolution_meters").as[Double] mustBe 10.0
       (json \ "profile" \ "spacing_meters").as[Double] mustBe 50.0
       (json \ "profile" \ "elevations_meters").as[Seq[Double]] mustBe Seq(104.0, 101.5, 100.0)
+      (json \ "max_grade_from_meters").as[Double] mustBe 20.0
+      (json \ "max_grade_to_meters").as[Double] mustBe 50.0
       (json \ "attribution" \ "dem_source").as[String] mustBe "usgs-3dep-10m"
       (json \ "attribution" \ "credit").as[String] must include("U.S. Geological Survey")
     }
@@ -68,6 +72,7 @@ class StreetGradientApiModelsSpec extends PlaySpec {
 
       (json \ "profile").get mustBe JsNull
       (json \ "mean_grade").get mustBe JsNull
+      (json \ "max_grade_from_meters").get mustBe JsNull
       (json \ "grade_quality").as[String] mustBe "structure"
       (json \ "elev_end_meters").as[Double] mustBe 100.0
     }

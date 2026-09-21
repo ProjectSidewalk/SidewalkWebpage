@@ -896,15 +896,12 @@ window.AccessScoreApp = (function () {
         ...values, interpolation: { escapeValue: false },
       });
       const lines = [];
+      // One line of figures: how much of the street is how steep is the chart's legend, where its colors explain it.
       if (g.meanGrade !== null && g.maxGrade !== null) {
-        lines.push(t('slope-summary', { mean: percentHtml(g.meanGrade), max: percentHtml(g.maxGrade) }));
-        lines.push(t('slope-climb', {
+        lines.push(t('slope-headline', {
+          max: percentHtml(g.maxGrade), mean: percentHtml(g.meanGrade),
           climb: formatElevation(g.climbM ?? 0), descent: formatElevation(g.descentM ?? 0),
         }));
-        const limit = config.gradient?.walking_surface_limit;
-        if ((g.metersOver5pct ?? 0) > 0 && typeof limit === 'number') {
-          lines.push(t('slope-over-limit', { length: formatElevation(g.metersOver5pct), limit: percentHtml(limit) }));
-        }
       } else if (g.netGrade !== null) {
         lines.push(t('slope-net-only', { grade: percentHtml(Math.abs(g.netGrade)) }));
       }
@@ -928,26 +925,33 @@ window.AccessScoreApp = (function () {
     }
 
     /**
-     * The elevation profile's chart, with its scale and its accessible name in the reader's units. Everything is
-     * handed over as plain text: `AccessScoreElevationProfile` escapes it where it meets the markup.
-     * @param {AccessScoreProfile} profile - A street's profile, from `/v3/api/streetGradientProfile`.
-     * @returns {string} The chart's markup; empty for a profile too short to draw.
+     * Draws a street's elevation profile into its slot, with its accessible name in the reader's units and the
+     * stretch that set its `max_grade`, which only the backend can place (the profile is too coarse to find it).
+     * @param {HTMLElement} slot - The popup's profile slot.
+     * @param {AccessScoreProfileResponse} response - The street's `/v3/api/streetGradientProfile` answer.
      */
-    function profileHtml(profile) {
+    function drawProfile(slot, response) {
+      const { profile } = response;
       const plain = { escape: false };
       const elevations = profile.elevations_meters;
-      const { low, high } = AccessScoreElevationProfile.range(profile);
-      const text = { low: formatElevation(low, plain), high: formatElevation(high, plain) };
-      return AccessScoreElevationProfile.html(profile, {
-        ...text,
-        start: i18next.t('accessscore:profile-start'),
-        end: i18next.t('accessscore:profile-end'),
-        label: i18next.t('accessscore:profile-label', {
-          ...text,
-          start: formatElevation(elevations[0], plain),
-          end: formatElevation(elevations[elevations.length - 1], plain),
-          interpolation: { escapeValue: false },
-        }),
+      // A stretch of no length (a street a few millimeters long) has nothing to bracket.
+      const hasStretch = typeof response.max_grade_from_meters === 'number'
+        && typeof response.max_grade_to_meters === 'number' && typeof response.max_grade === 'number'
+        && response.max_grade_to_meters > response.max_grade_from_meters;
+      const label = i18next.t('accessscore:profile-label', {
+        start: formatElevation(elevations[0], plain),
+        end: formatElevation(elevations[elevations.length - 1], plain),
+        low: formatElevation(Math.min(...elevations), plain),
+        high: formatElevation(Math.max(...elevations), plain),
+        interpolation: { escapeValue: false },
+      });
+      new AccessScoreElevationProfile(slot, profile, {
+        breaks: config.gradient?.map_class_breaks ?? [],
+        steepest: hasStretch
+          ? { from: response.max_grade_from_meters, to: response.max_grade_to_meters, grade: response.max_grade }
+          : null,
+        label: `${label} ${i18next.t('accessscore:profile-keys')}`,
+        onLog: log,
       });
     }
 
@@ -964,12 +968,12 @@ window.AccessScoreApp = (function () {
       if (!slot) return;
       slot.textContent = i18next.t('accessscore:profile-loading');
       try {
-        const { profile } = await fetchJson(`/v3/api/streetGradientProfile?streetEdgeId=${streetId}`);
+        const response = /** @type {AccessScoreProfileResponse} */ (
+          await fetchJson(`/v3/api/streetGradientProfile?streetEdgeId=${streetId}`));
         if (popup !== forPopup) return;
         // The slot is a live region that has just said "loading", so every ending is said in it too: removing it
         // would leave a screen-reader user waiting on a profile that is not coming.
-        const html = profile ? profileHtml(profile) : '';
-        if (html) slot.innerHTML = html;
+        if (AccessScoreElevationProfile.canDraw(response.profile)) drawProfile(slot, response);
         else slot.textContent = i18next.t('accessscore:profile-none');
       } catch (e) {
         console.warn('AccessScore elevation profile failed to load', e);

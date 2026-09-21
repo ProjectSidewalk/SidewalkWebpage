@@ -111,12 +111,20 @@ object StreetGradientStats {
  *                  is the street's length over one less than the list's length. None wherever `meanGrade` is.
  * @param geomMd5   `md5(ST_AsBinary(geom))` of the street when it was sampled, for the staleness test.
  * @param sampledAt When the row was sampled.
+ * @param maxGradeFromM Where the baseline that set `maxGrade` starts, in meters from the first vertex. It is read off
+ *                      the full-resolution samples, which `profileCm` is too coarse to reproduce. None where no
+ *                      stretch set `maxGrade` (a suspect row's straight line, a maximum floored at the mean), and on
+ *                      rows sampled before 399.sql.
+ * @param maxGradeToM   Where that baseline ends; None exactly when `maxGradeFromM` is, and never before it (a CHECK
+ *                      in 399.sql holds both, and holds them to rows that have a `maxGrade`).
  */
 case class StreetGradient(
     stats: StreetGradientStats,
     profileCm: Option[List[Int]],
     geomMd5: String,
-    sampledAt: OffsetDateTime
+    sampledAt: OffsetDateTime,
+    maxGradeFromM: Option[Double] = None,
+    maxGradeToM: Option[Double] = None
 )
 
 class StreetGradientTableDef(tag: Tag) extends Table[StreetGradient](tag, "street_gradient") {
@@ -137,6 +145,8 @@ class StreetGradientTableDef(tag: Tag) extends Table[StreetGradient](tag, "stree
   def demResolutionM: Rep[Double]                     = column[Double]("dem_resolution_m")
   def geomMd5: Rep[String]                            = column[String]("geom_md5")
   def sampledAt: Rep[OffsetDateTime]                  = column[OffsetDateTime]("sampled_at")
+  def maxGradeFromM: Rep[Option[Double]]              = column[Option[Double]]("max_grade_from_m")
+  def maxGradeToM: Rep[Option[Double]]                = column[Option[Double]]("max_grade_to_m")
 
   /** The statistics alone, so a city-wide read never pulls every street's profile array across the wire. */
   def stats = (
@@ -144,7 +154,10 @@ class StreetGradientTableDef(tag: Tag) extends Table[StreetGradient](tag, "stree
     descentM, elevStartM, elevEndM, demSource, demResolutionM
   ) <> ((StreetGradientStats.apply _).tupled, StreetGradientStats.unapply)
 
-  def * = (stats, profileCm, geomMd5, sampledAt) <> ((StreetGradient.apply _).tupled, StreetGradient.unapply)
+  def * = (stats, profileCm, geomMd5, sampledAt, maxGradeFromM, maxGradeToM) <> (
+    (StreetGradient.apply _).tupled,
+    StreetGradient.unapply
+  )
 
   def streetEdge =
     foreignKey("street_gradient_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)

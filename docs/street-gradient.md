@@ -198,10 +198,15 @@ The test for a new country is the one used here: an open bare-earth model at 10 
   unsampled city. It recolors the street lines through `AccessScoreGradeRamp` (classed, from the
   `--color-grade-ramp-*` tokens; every street with a grade is drawn at full strength, audited or not), swaps the map
   legend for the class list, and rides in the URL as `grade=1`. While it is on, "Show unaudited streets" is
-  disabled, since slope is drawn for every street. The popup of a sampled street shows a Slope block: mean and
-  steepest grade, climb and drop, the length over 5%, the elevation profile (`AccessScoreElevationProfile`, fetched
-  per street), and a sentence saying why when the numbers are missing (`structure`, `no_data`) or approximate
-  (`suspect`, a coarse model). A street is drawn by its mean grade, or by the size of its `net_grade` where a coarse
+  disabled, since slope is drawn for every street. The popup of a sampled street shows a Slope block: one line of
+  steepest and mean grade, climb and drop, then the elevation profile (`AccessScoreElevationProfile`, fetched per
+  street), and a sentence saying why when the numbers are missing (`structure`, `no_data`) or approximate
+  (`suspect`, a coarse model). The profile colors each ~10 m stretch by the slope map's classes and brackets the
+  stretch that set `max_grade` where `max_grade_from_meters` places it; its legend lists the length in each class,
+  steepest first, recomputed from the same stretches the chart colors, so the two always agree (and can differ by a
+  stretch from the stored `meters_over_5pct`, measured on the full-resolution samples). Legend rows are toggles that
+  highlight their stretches on the chart, and pointing along the chart (or arrowing, once it has focus) lights the
+  row of the stretch under the cursor and reads its grade and direction into a live region. A street is drawn by its mean grade, or by the size of its `net_grade` where a coarse
   model supports nothing else (`AccessScoreModel.displayGrade`). Which statistic it draws follows the one the score is
 using, so the map cannot paint a street gentle while the score penalizes it for a pitch the other statistic hid; the
 legend names the statistic in its title. Each of the legend's classes is a button that brushes the map on it

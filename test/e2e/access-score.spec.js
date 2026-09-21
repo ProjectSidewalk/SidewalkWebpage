@@ -477,7 +477,8 @@ test.describe('/accessScore', () => {
         return route.fulfill({json: streets});
       });
       await context.route('**/v3/api/streetGradientProfile*', (route) => route.fulfill({json: {
-        street_edge_id: 1, profile: {spacing_meters: 50, elevations_meters: [104, 101.5, 98]},
+        street_edge_id: 1, max_grade: 0.081, max_grade_from_meters: 50, max_grade_to_meters: 100,
+        profile: {spacing_meters: 50, elevations_meters: [104, 101.5, 98]},
       }}));
 
       await page.goto('/accessScore');
@@ -516,8 +517,16 @@ test.describe('/accessScore', () => {
       await expect(page.locator('#acs-show-grade')).toBeChecked();
       await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
       const popup = page.locator('.acs-popup');
-      await expect(popup).toContainText('Average 6.2% · steepest stretch 8.1%');
+      await expect(popup).toContainText('Steepest 8.1% · average 6.2%');
       await expect(popup.locator('svg.acs-profile__chart')).toBeVisible();
+      // The bracket marks the stretch the backend placed; the legend's rows are toggles that highlight the chart.
+      await expect(popup.locator('.acs-profile__callout')).toContainText('8.1%');
+      const rows = popup.getByRole('button', {name: /%/});
+      await expect(rows).toHaveCount(2);
+      // By keyboard: a legend row is a real button, reachable and pressable without a pointer.
+      await rows.first().press('Enter');
+      await expect(rows.first()).toHaveAttribute('aria-pressed', 'true');
+      await expect(popup.locator('.acs-profile')).toHaveClass(/acs-profile--filtered/);
       await expect(popup.locator('.acs-popup__credit')).toHaveText('Elevation: Fixture Survey');
 
       await page.locator('#acs-show-grade').uncheck();
