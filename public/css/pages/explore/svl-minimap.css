@@ -621,10 +621,45 @@
 }
 
 /* Map data attribution (MapLibre's compact control: an "i" that expands). Every corner of the minimap is taken, so it
-   sits at the foot of the zoom buttons' column, just to their left. */
-#minimap .maplibregl-ctrl-bottom-right {
-  right: calc(24px * var(--ui-scale));
-  bottom: calc(6px * var(--ui-scale));
+   sits at the foot of the zoom buttons' column, just to their left. It lives outside #minimap's isolated stacking
+   context (Minimap.js #addAttribution) so the expanded credits open above the legend and coach, not under them. */
+#minimap-attribution {
+  right: calc(26px * var(--ui-scale));
+  bottom: calc(10px * var(--ui-scale));
+  z-index: 6;
+}
+
+/* Collapsed: just the icon, sized to the zoom buttons. MapLibre's default white disc draws the eye away from the
+   pano, and outside .maplibregl-map none of its 12px map font applies, so both are set here. */
+#minimap-attribution .maplibregl-ctrl-attrib.maplibregl-compact {
+  min-height: calc(18px * var(--ui-scale));
+  max-width: calc(200px * var(--ui-scale));
+  margin: 0;
+  padding: 0 calc(18px * var(--ui-scale)) 0 0;
+  background: transparent;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-900);
+}
+
+#minimap-attribution .maplibregl-ctrl-attrib-button {
+  width: calc(18px * var(--ui-scale));
+  height: calc(18px * var(--ui-scale));
+  background-color: transparent;
+  background-size: contain;
+  opacity: 0.6;
+}
+
+#minimap-attribution .maplibregl-ctrl-attrib-button:hover,
+#minimap-attribution .maplibregl-compact-show .maplibregl-ctrl-attrib-button {
+  opacity: 1;
+}
+
+#minimap-attribution .maplibregl-ctrl-attrib.maplibregl-compact-show {
+  padding: calc(3px * var(--ui-scale)) calc(22px * var(--ui-scale)) calc(3px * var(--ui-scale))
+    calc(8px * var(--ui-scale));
+  border-radius: calc(8px * var(--ui-scale));
+  background: rgb(255 255 255 / 95%);
+  box-shadow: 0 calc(2px * var(--ui-scale)) calc(10px * var(--ui-scale)) rgb(0 0 0 / 30%);
 }
 
 /* The +/- buttons take their look from the shared .zoom-button styling, with some minor tweaks. */

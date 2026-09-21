@@ -113,10 +113,20 @@ class Minimap {
    * MapLibre opens a compact attribution as soon as the tile source reports its credits, and closes it on the first
    * drag of the map. This map can't be dragged, so left alone the credits would cover a third of it for the whole
    * session. Closing them the moment they first open leaves the button, which still toggles them.
+   *
+   * Mounted in the holder, not via addControl: inside the map's isolated stacking context (#minimap in
+   * svl-minimap.css) the expanded credits would open under the legend.
    */
   #addAttribution() {
-    this.#map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
-    const attribution = this.#map.getContainer().querySelector('.maplibregl-ctrl-attrib');
+    const holder = document.getElementById('minimap-holder');
+    if (!holder) return;
+    // The bottom-right class keeps MapLibre's own compact-attribution styling, which keys on the control's corner.
+    const corner = document.createElement('div');
+    corner.id = 'minimap-attribution';
+    corner.className = 'maplibregl-ctrl-bottom-right';
+    corner.appendChild(new maplibregl.AttributionControl({ compact: true }).onAdd(this.#map));
+    holder.appendChild(corner);
+    const attribution = corner.querySelector('.maplibregl-ctrl-attrib');
     if (!attribution) return;
     const opened = 'maplibregl-compact-show';
     const observer = new MutationObserver(() => {
