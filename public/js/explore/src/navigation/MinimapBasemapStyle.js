@@ -26,6 +26,23 @@ class MinimapBasemapStyle {
   static #MAJOR_ROADS = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'];
   static #MINOR_ROADS = ['minor', 'service', 'track'];
 
+  // Typical curb-to-curb widths in meters by OpenMapTiles class. The tiles carry a class but no width (OSM's `width`
+  // tag is sparse and not in the schema), so roads are drawn at their class's typical width, as Google's are.
+  static #ROAD_METERS = {
+    motorway: 22, trunk: 18, primary: 15, secondary: 13, tertiary: 11, minor: 9, service: 5, track: 4, path: 2,
+  };
+
+  // Real width holds up to the default zoom; above it a road doubles only once over the next two levels, so at the
+  // closest zoom a residential street doesn't fill a ~200px map.
+  static #TRUE_WIDTH_UNTIL_ZOOM = 17;
+  static #MAX_ZOOM = 19;
+  static #MIN_ZOOM = 12;
+  // Floor for a residential street where true width would be under a pixel, scaled by class width for the others,
+  // so the road hierarchy survives at the overview zoom.
+  static #MIN_MINOR_PX = 1;
+  // The casing's gray border on each side, in px at any zoom.
+  static #CASING_PX = 1.2;
+
   /**
    * A filter matching line features of the transportation layer in the given classes.
    * @param {string[]} classes - OpenMapTiles transportation classes.
@@ -39,15 +56,31 @@ class MinimapBasemapStyle {
   }
 
   /**
-   * A line width that grows with zoom the way a real road does, so streets keep their relative weight from the
-   * route overview (z11) to the closest street view (z19, Minimap's maximum). The widths were judged by eye at the
-   * default zoom, 17, and are still well under Google's at that scale, whose roads are drawn near true width.
-   * @param {number} atZoom12 - Width in px at zoom 12 and below.
-   * @param {number} atZoom19 - Width in px at zoom 19.
+   * A road line width at real-world scale for each road's class, as a zoom- and class-driven MapLibre expression.
+   * A 512px-tile map shows 40,075 km · cos(lat) / (512 · 2^z) meters per pixel, so width depends on latitude; the
+   * minimap stays within one city, so the latitude is fixed when the style is built.
+   * @param {string[]} classes - The OpenMapTiles classes the layer draws.
+   * @param {number} latitude - Latitude the map is centered near, in degrees.
+   * @param {number} [extraPx=0] - Added at every zoom (a casing's border on both sides).
    * @returns {Array} A MapLibre interpolate expression.
    */
-  static #roadWidth(atZoom12, atZoom19) {
-    return ['interpolate', ['exponential', 1.5], ['zoom'], 12, atZoom12, 19, atZoom19];
+  static #roadWidth(classes, latitude, extraPx = 0) {
+    const S = MinimapBasemapStyle;
+    const metersPerPx = (zoom) => (40075016.686 * Math.cos((latitude * Math.PI) / 180)) / (512 * 2 ** zoom);
+    const widthAt = (zoom, meters) => {
+      const trueZoom = Math.min(zoom, S.#TRUE_WIDTH_UNTIL_ZOOM);
+      // Above TRUE_WIDTH_UNTIL_ZOOM, grow by half a doubling per level instead of a full one.
+      const px = (meters / metersPerPx(trueZoom)) * 2 ** ((zoom - trueZoom) / 2);
+      const floor = Math.max(0.8, (S.#MIN_MINOR_PX * meters) / S.#ROAD_METERS.minor);
+      return Math.max(px, floor) + extraPx;
+    };
+    const byClass = (zoom) => [
+      'match', ['get', 'class'],
+      ...classes.flatMap((cls) => [cls, Number(widthAt(zoom, S.#ROAD_METERS[cls]).toFixed(2))]),
+      Number(widthAt(zoom, S.#ROAD_METERS.minor).toFixed(2)),
+    ];
+    const zooms = [S.#MIN_ZOOM, 14, 16, S.#TRUE_WIDTH_UNTIL_ZOOM, S.#MAX_ZOOM];
+    return ['interpolate', ['exponential', 2], ['zoom'], ...zooms.flatMap((zoom) => [zoom, byClass(zoom)])];
   }
 
   /**
@@ -95,13 +128,17 @@ class MinimapBasemapStyle {
 
   /**
    * Builds the style. Called once, at minimap creation, after main.css has loaded (the tokens are read here).
+   * @param {number} latitude - Latitude the map opens at, for drawing roads at real width (see #roadWidth).
    * @returns {object} A MapLibre style specification.
    */
-  static build() {
+  static build(latitude) {
     const token = MinimapStyle.token;
     const layer = MinimapBasemapStyle.#layer;
     const roadFilter = MinimapBasemapStyle.#roadFilter;
-    const roadWidth = MinimapBasemapStyle.#roadWidth;
+    const S = MinimapBasemapStyle;
+    const major = S.#MAJOR_ROADS;
+    const minor = S.#MINOR_ROADS;
+    const roadWidth = (classes, extraPx) => S.#roadWidth(classes, latitude, extraPx);
     const roadNameLayer = MinimapBasemapStyle.#roadNameLayer;
     const white = token('--color-neutral-white', '#FFFFFF');
     const roadCasing = token('--color-neutral-400', '#C2C2C2');
@@ -141,28 +178,28 @@ class MinimapBasemapStyle {
         layer('path', 'line', 'transportation', {
           filter: roadFilter(['path']),
           layout: roundLine,
-          paint: { 'line-color': white, 'line-width': roadWidth(0.8, 5) },
+          paint: { 'line-color': white, 'line-width': roadWidth(['path']) },
         }),
         // Casings first, then fills, so a minor road's casing never draws over the major road it meets.
         layer('road-minor-casing', 'line', 'transportation', {
           filter: roadFilter(MinimapBasemapStyle.#MINOR_ROADS),
           layout: roundLine,
-          paint: { 'line-color': roadCasing, 'line-width': roadWidth(2.4, 24) },
+          paint: { 'line-color': roadCasing, 'line-width': roadWidth(minor, 2 * S.#CASING_PX) },
         }),
         layer('road-major-casing', 'line', 'transportation', {
           filter: roadFilter(MinimapBasemapStyle.#MAJOR_ROADS),
           layout: roundLine,
-          paint: { 'line-color': roadCasing, 'line-width': roadWidth(3.6, 32) },
+          paint: { 'line-color': roadCasing, 'line-width': roadWidth(major, 2 * S.#CASING_PX) },
         }),
         layer('road-minor', 'line', 'transportation', {
           filter: roadFilter(MinimapBasemapStyle.#MINOR_ROADS),
           layout: roundLine,
-          paint: { 'line-color': white, 'line-width': roadWidth(1.6, 21) },
+          paint: { 'line-color': white, 'line-width': roadWidth(minor) },
         }),
         layer('road-major', 'line', 'transportation', {
           filter: roadFilter(MinimapBasemapStyle.#MAJOR_ROADS),
           layout: roundLine,
-          paint: { 'line-color': white, 'line-width': roadWidth(2.8, 29) },
+          paint: { 'line-color': white, 'line-width': roadWidth(major) },
         }),
         roadNameLayer(MinimapBasemapStyle.FIRST_LABEL_LAYER_ID, MinimapBasemapStyle.#MINOR_ROADS, 10),
         roadNameLayer('road-name-major', MinimapBasemapStyle.#MAJOR_ROADS, 11),

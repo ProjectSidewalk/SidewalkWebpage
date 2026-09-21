@@ -75,7 +75,7 @@ class Minimap {
   async #init(initialLocation) {
     this.#map = new maplibregl.Map({
       container: 'minimap',
-      style: MinimapBasemapStyle.build(),
+      style: MinimapBasemapStyle.build(initialLocation.lat),
       center: Minimap.#lngLat(initialLocation),
       zoom: Minimap.#DEFAULT_ZOOM,
       minZoom: Minimap.#MIN_ZOOM,

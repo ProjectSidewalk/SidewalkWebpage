@@ -42,6 +42,7 @@
     window.__compare = (() => {
       let googleMap = null;
       let maplibreMap = null;
+      let styledLatitude = 0;
       const tileErrors = [];
 
       /**
@@ -74,7 +75,7 @@
         window.maplibregl = await import(moduleUrl.href);
         maplibreMap = new maplibregl.Map({
           container: 'maplibre',
-          style: MinimapBasemapStyle.build(),
+          style: MinimapBasemapStyle.build(0),
           center: [0, 0],
           zoom: 2,
           interactive: false,
@@ -107,6 +108,11 @@
         const googleDone = googleIdle();
         googleMap.setCenter({ lat: shot.lat, lng: shot.lng });
         googleMap.setZoom(shot.googleZoom);
+        // Road widths are real-world, so the style depends on latitude, as Minimap builds it per city.
+        if (shot.lat !== styledLatitude) {
+          maplibreMap.setStyle(MinimapBasemapStyle.build(shot.lat));
+          styledLatitude = shot.lat;
+        }
         const maplibreDone = new Promise((resolve) => maplibreMap.once('idle', resolve));
         maplibreMap.jumpTo({ center: [shot.lng, shot.lat], zoom: shot.maplibreZoom });
         // A pane that never settles still gets its shot, flagged, rather than stalling the whole run.
