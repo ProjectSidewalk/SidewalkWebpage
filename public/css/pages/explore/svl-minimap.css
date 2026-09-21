@@ -622,10 +622,12 @@
 
 /* Map data attribution (MapLibre's compact control: an "i" that expands). Every corner of the minimap is taken, so it
    sits at the foot of the zoom buttons' column, just to their left. It lives outside #minimap's isolated stacking
-   context (Minimap.js #addAttribution) so the expanded credits open above the legend and coach, not under them. */
+   context (Minimap.js #addAttribution) so the expanded credits open above the legend and coach, not under them.
+   MapLibre's glyph fills only the middle 12/20 of its 18px box, so the box sits ~4px below the zoom buttons' 10px
+   to put the drawn circle, not its invisible box, on their bottom edge. */
 #minimap-attribution {
   right: calc(26px * var(--ui-scale));
-  bottom: calc(10px * var(--ui-scale));
+  bottom: calc(6px * var(--ui-scale));
   z-index: 6;
 }
 
