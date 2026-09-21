@@ -642,6 +642,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* A numeric column's header sits over its own figures: the element selector above would otherwise keep the header
+   at the left edge while the values it names are at the right. */
+.acs-popup__table th.acs-popup__num {
+  text-align: right;
+}
+
 .acs-popup__term--feature {
   color: var(--color-jade-700);
 }

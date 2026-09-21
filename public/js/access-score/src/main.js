@@ -829,8 +829,8 @@ window.AccessScoreApp = (function () {
       return `<table class="acs-popup__table">
         <thead><tr>
           <th>${i18next.t('accessscore:popup-type')}</th>
-          <th>${clustersHeading}</th>
-          <th>${i18next.t('accessscore:popup-term')}</th>
+          <th class="acs-popup__num">${clustersHeading}</th>
+          <th class="acs-popup__num">${i18next.t('accessscore:popup-term')}</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
