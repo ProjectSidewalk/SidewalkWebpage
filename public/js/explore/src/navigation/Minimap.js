@@ -111,10 +111,9 @@ class Minimap {
     const pixelRatio = window.devicePixelRatio || 1;
     this.#map.addImage(MinimapStyle.CHEVRON_IMAGE_ID, MinimapStyle.chevronImage(pixelRatio), { pixelRatio });
     this.#map.addSource(Minimap.#STREETS_SOURCE, { type: 'geojson', data: this.#streetFeatureCollection() });
-    // Under the road names, so the name of the street being walked stays readable on top of its route line.
-    for (const layer of MinimapStyle.streetLayers(Minimap.#STREETS_SOURCE)) {
-      this.#map.addLayer(layer, MinimapBasemapStyle.FIRST_LABEL_LAYER_ID);
-    }
+    // Over the road names: with roads at real width a name runs down the middle of its street, where it would hide
+    // the route line. The route matters more than the name, which shows wherever the street isn't on the route.
+    for (const layer of MinimapStyle.streetLayers(Minimap.#STREETS_SOURCE)) this.#map.addLayer(layer);
   }
 
   /**

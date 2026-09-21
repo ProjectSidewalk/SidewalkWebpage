@@ -196,8 +196,8 @@ class MinimapStyle {
    * @returns {ImageData} The chevron bitmap, for map.addImage(..., { pixelRatio }).
    */
   static chevronImage(pixelRatio) {
-    const length = 6;
-    const halfWidth = 3.5;
+    const length = 8;
+    const halfWidth = 4.5;
     const pad = 1; // Keeps the antialiased edge inside the bitmap.
     const canvas = document.createElement('canvas');
     canvas.width = Math.ceil((length + 2 * pad) * pixelRatio);

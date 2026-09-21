@@ -20,9 +20,6 @@ class MinimapBasemapStyle {
   /** Id of the vector source; also how Minimap tells basemap layers from its own. */
   static SOURCE_ID = 'basemap';
 
-  /** Id of the lowest label layer. Minimap inserts its street lines beneath it, so road names draw over them. */
-  static FIRST_LABEL_LAYER_ID = 'road-name-minor';
-
   static #MAJOR_ROADS = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'];
   static #MINOR_ROADS = ['minor', 'service', 'track'];
 
@@ -201,7 +198,7 @@ class MinimapBasemapStyle {
           layout: roundLine,
           paint: { 'line-color': white, 'line-width': roadWidth(major) },
         }),
-        roadNameLayer(MinimapBasemapStyle.FIRST_LABEL_LAYER_ID, MinimapBasemapStyle.#MINOR_ROADS, 10),
+        roadNameLayer('road-name-minor', MinimapBasemapStyle.#MINOR_ROADS, 10),
         roadNameLayer('road-name-major', MinimapBasemapStyle.#MAJOR_ROADS, 11),
       ],
     };

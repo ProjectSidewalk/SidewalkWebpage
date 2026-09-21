@@ -260,9 +260,9 @@ describe('Minimap seam', () => {
     });
   });
 
-  test('street lines go under the road names, so a street\'s name stays readable over its route line', () => {
+  test('street lines go over the whole basemap, road names included, so a name never hides the route', () => {
     expect(map.layers.length).toBeGreaterThan(0);
-    map.layers.forEach((layer) => expect(layer.beforeId).toBe(window.MinimapBasemapStyle.FIRST_LABEL_LAYER_ID));
+    map.layers.forEach((layer) => expect(layer.beforeId).toBeUndefined());
     // Bottom to top: context streets, then the route's casing, its lines, and the chevrons over everything.
     expect(map.layers.map((layer) => layer.id)).toEqual([
       'street-other', 'street-completed', 'street-casing', 'street-audited', 'street-remaining',
