@@ -217,7 +217,7 @@ class ExploreServiceImpl @Inject() (
         if (regionId.isEmpty && streetEdgeId.isEmpty) {
           setUpPossibleUserRoute(routeId, userId, resumeRoute)
         } else {
-          userRouteTable.pauseAllActiveRoutes(userId).map(_ => RouteWalkSetup(None, resumed = false))
+          setUpPossibleUserRoute(routeId = None, userId, resumeRoute = false)
         }
       userRoute = routeSetup.walk
       routeOption: Option[Route] <- userRoute

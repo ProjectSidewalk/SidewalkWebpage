@@ -104,6 +104,19 @@ class ExploreRoutePauseSpec
       .headOption
   )
 
+  /** A second routable region, different from seedStreet's, for tests that need a route and a link in two places. */
+  private def otherRegion(regionId: Int): Option[Int] = run(
+    TableQuery[StreetEdgeRegionTableDef]
+      .join(streetEdgeTable.streets)
+      .on(_.streetEdgeId === _.streetEdgeId)
+      .join(TableQuery[RegionTableDef].filterNot(_.deleted))
+      .on(_._1.regionId === _.regionId)
+      .map(_._1._1.regionId)
+      .filter(_ =!= regionId)
+      .result
+      .headOption
+  )
+
   /** Seeds a one-street route and an in-progress (active) walk of it for the given user; returns the route id. */
   private def seedActiveRouteWalk(userId: String, streetEdgeId: Int, regionId: Int): Int = {
     val n       = slugCounter.incrementAndGet()
@@ -310,15 +323,17 @@ class ExploreRoutePauseSpec
       }
     }
 
-    "pause the active walk on a ?regionId= visit, so a later bare reload doesn't resume it" in {
-      seedStreet match {
-        case None                           => cancel("No street/region rows in the connected DB; nothing to exercise.")
-        case Some((streetEdgeId, regionId)) =>
+    "pause the active walk on a ?regionId= visit, so a later bare reload stays in the linked region" in {
+      val seeds = seedStreet.flatMap { case (streetId, regionId) => otherRegion(regionId).map((streetId, regionId, _)) }
+      seeds match {
+        case None => cancel("Needs streets in two regions; none to exercise.")
+        case Some((streetEdgeId, routeRegionId, linkRegionId)) =>
           val user = newTutorialGraduate()
-          seedActiveRouteWalk(user.userId, streetEdgeId, regionId)
+          seedActiveRouteWalk(user.userId, streetEdgeId, routeRegionId)
 
-          val regionData = pageData(user.userId, regionId = Some(regionId))
+          val regionData = pageData(user.userId, regionId = Some(linkRegionId))
           regionData.userRoute mustBe None
+          regionData.region.regionId mustBe linkRegionId
           val walk = walksFor(user.userId).loneElement
           walk.paused mustBe true
           walk.discarded mustBe false
@@ -326,20 +341,25 @@ class ExploreRoutePauseSpec
           // Main#updateURL strips ?regionId= from the address bar, so the reload arrives bare.
           val reloadData = pageData(user.userId)
           reloadData.userRoute mustBe None
-          reloadData.region.regionId mustBe regionId
+          reloadData.region.regionId mustBe linkRegionId
       }
     }
 
-    "pause the active walk on a ?streetEdgeId= visit" in {
+    "pause the active walk on a ?streetEdgeId= visit, leaving it resumable via ?routeId=" in {
       seedStreet match {
         case None                           => cancel("No street/region rows in the connected DB; nothing to exercise.")
         case Some((streetEdgeId, regionId)) =>
-          val user = newTutorialGraduate()
-          seedActiveRouteWalk(user.userId, streetEdgeId, regionId)
+          val user    = newTutorialGraduate()
+          val routeId = seedActiveRouteWalk(user.userId, streetEdgeId, regionId)
+          val walkId  = walksFor(user.userId).loneElement.userRouteId
 
           pageData(user.userId, streetEdgeId = Some(streetEdgeId)).userRoute mustBe None
-          walksFor(user.userId).loneElement.paused mustBe true
+          val walk = walksFor(user.userId).loneElement
+          walk.paused mustBe true
+          walk.discarded mustBe false
           pageData(user.userId).userRoute mustBe None
+
+          pageData(user.userId, routeId = Some(routeId)).userRoute.value.userRouteId mustBe walkId
       }
     }
   }
