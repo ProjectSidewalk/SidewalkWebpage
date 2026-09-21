@@ -146,8 +146,8 @@ The dev DB is small enough that any SQL looks fast; prod tables are not (`label`
   app starts, so every city's server waits on them. `audit_task_interaction` and `validation_task_interaction` hold
   hundreds of millions of rows in the big cities, indexed only by task id and action, and even a well-planned pass
   over them takes minutes per city. Keep the evolution to the cheap part (add the column, nullable) and put the
-  backfill in a `scratchpad/*.sql` for the every-city runner (`CLAUDE.local.md` → "Running a query on every
-  prod/test city"), run after the deploy. The dev DB omits these tables in most schemas, so it can't tell you the
+  backfill in a `scratchpad/*.sql` for `run-query-in-every-city.sh` (in the `sidewalk-server-tools` repo), run by a
+  maintainer after the deploy. The dev DB omits these tables in most schemas, so it can't tell you the
   cost either way.
 
 ## Cached distance columns
