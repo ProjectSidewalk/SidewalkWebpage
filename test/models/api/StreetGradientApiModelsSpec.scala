@@ -64,6 +64,7 @@ class StreetGradientApiModelsSpec extends PlaySpec {
       (json \ "max_grade_to_meters").as[Double] mustBe 50.0
       (json \ "attribution" \ "dem_source").as[String] mustBe "usgs-3dep-10m"
       (json \ "attribution" \ "credit").as[String] must include("U.S. Geological Survey")
+      (json \ "attribution" \ "citation").as[String] must startWith("U.S. Geological Survey, 2024, 1/3rd arc-second")
     }
 
     "say profile: null, and null grades, for a structure" in {

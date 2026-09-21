@@ -38,6 +38,24 @@
     </script>
   </div>
 
+  <div class="page-section" id="data-source-section">
+    <h2 class="page-heading" id="data-source">Data Source and Method <a href="#data-source" class="permalink">#</a></h2>
+    <p><strong>The elevation data.</strong> Grades are sampled from a <em>bare-earth</em> digital elevation model: a grid of ground elevations with buildings, trees, and vehicles removed, so it describes the ground a street is built on rather than what stands on it. Each city is sampled from one model chosen for its country. Every US city uses the <a href="https://www.usgs.gov/3d-elevation-program">U.S. Geological Survey's 3D Elevation Program (3DEP)</a> seamless model at 1/3 arc-second, a grid of about 10&nbsp;m compiled from the best source data available for each area, now mostly lidar, which covers the whole country without gaps and is in the public domain. Each street's <code>dem_source</code> names the model it was sampled from.</p>
+    <p><strong>How a street is sampled.</strong> Points are read every 5&nbsp;m along the street's centerline (every 1&nbsp;m, then lightly smoothed, from a model of 5&nbsp;m or finer), each interpolated bilinearly from the four surrounding grid cells. From those samples, <code>mean_grade</code> averages the grade over every 10&nbsp;m baseline and <code>max_grade</code> takes the steepest 30&nbsp;m one (10&nbsp;m on a street shorter than 30&nbsp;m); the longer baseline keeps one noisy sample from setting a street's maximum. The <code>profile</code> keeps an elevation about every 10&nbsp;m. A street whose geometry is edited is resampled, and until it is, <code>stale</code> says so.</p>
+    <p><strong>How accurate it is.</strong> Measured against 1&nbsp;m lidar ground models in six US cities, grades from the 10&nbsp;m 3DEP model came within 0.08 to 0.59 percentage points of <code>mean_grade</code> on average, and found the streets steeper than 5% with precision and recall near 0.95. A finer model is more accurate still, and <code>grade_confidence</code> records how fine each street's model was. The method, the sources compared, and every measurement are in the project's <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/blob/develop/docs/street-gradient.md">street gradient documentation</a>.</p>
+    <p><strong>What it cannot see.</strong></p>
+    <ul>
+      <li>It measures the <strong>street's centerline</strong>, not the sidewalk beside it. The two usually agree, since a sidewalk follows its street, but a sidewalk on a terrace or a ramp can differ.</li>
+      <li><strong>Cross slope</strong>, the tilt across a sidewalk, is not measured.</li>
+      <li>A bridge, tunnel, or covered way has <strong>no grade</strong>: a bare-earth model sees the ground beneath it, not its deck (<code>grade_quality: "structure"</code>).</li>
+      <li>A 10&nbsp;m grid <strong>smooths short pitches</strong>, such as a driveway dip, which need a field survey or finer lidar to see.</li>
+    </ul>
+
+    <h3 class="page-heading" id="how-to-cite">How to cite the elevation data <a href="#how-to-cite" class="permalink">#</a></h3>
+    <p>If you publish the grades or a profile, carry the model's <strong>credit</strong> line with them (the API returns it as <code>attribution.credit</code>). In a paper or report, cite the model as its publisher suggests (<code>attribution.citation</code>), alongside <a href="#data-licensing-terms-of-use">Project Sidewalk itself</a>.</p>
+    @apiDocs.elevationCredits("how-to-cite")
+  </div>
+
   <div class="page-section" id="endpoint-section">
     <h2 class="page-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
     <p><code>GET /v3/api/streetGrade</code></p>
@@ -96,7 +114,8 @@
     "title": "USGS 3DEP 1/3 arc-second seamless DEM",
     "credit": "Elevation: U.S. Geological Survey, 3D Elevation Program",
     "licence": "Public domain",
-    "url": "https://www.usgs.gov/3d-elevation-program"
+    "url": "https://www.usgs.gov/3d-elevation-program",
+    "citation": "U.S. Geological Survey, 2024, 1/3rd arc-second Digital Elevation Models (DEMs) - USGS National Map 3DEP Downloadable Data Collection: U.S. Geological Survey."
   }
 }</code></pre>
 
@@ -120,7 +139,7 @@
           <tr><td><code>profile</code></td><td><code>object</code></td><td><code>null</code> for a street with no profile: a bridge, tunnel, or covered way (<code>grade_quality: "structure"</code>), a street the model has no data under, or one sampled from a model too coarse to support one. The response is still a <code>200</code>, since <code>grade_quality</code> is itself the answer.</td></tr>
           <tr><td><code>profile.spacing_meters</code></td><td><code>number</code></td><td>Distance along the street between consecutive elevations, about 10&nbsp;m: <code>length_meters</code> over one less than the number of elevations.</td></tr>
           <tr><td><code>profile.elevations_meters</code></td><td><code>array[number]</code></td><td>Ground elevations to the centimeter, from the first coordinate of the street's geometry to the last, both ends included.</td></tr>
-          <tr><td><code>attribution</code></td><td><code>object</code></td><td>The elevation model's credit line, licence, and publisher page. If you publish the profile, carry the <code>credit</code> with it; the <a href="@routes.ApiDocsController.accessScoreStreets#street-grade-credits">full list of models</a> is on the AccessScore: Streets page.</td></tr>
+          <tr><td><code>attribution</code></td><td><code>object</code></td><td>The elevation model's credit line, licence, publisher page, and <code>citation</code>, the reference its publisher suggests for citing it (<code>null</code> where it suggests none). If you publish the profile, carry the <code>credit</code> with it; <a href="#how-to-cite">How to cite</a> lists every model.</td></tr>
         </tbody>
       </table>
     </div>

@@ -91,6 +91,8 @@ class StreetGradeApiSpec
       (json \ "mean_grade").get mustBe JsNull
       (json \ "elev_start_meters").as[Double] mustBe 12.0
       (json \ "attribution" \ "credit").as[String] mustBe "Elevation: spec-unregistered-dem"
+      // No publisher to take a citation from, so none is made up.
+      (json \ "attribution" \ "citation").get mustBe JsNull
       // A hash that was never the street's: what a row left behind by an edited street looks like.
       (json \ "stale").as[Boolean] mustBe true
     }

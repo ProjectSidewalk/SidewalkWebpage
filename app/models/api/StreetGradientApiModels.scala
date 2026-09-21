@@ -45,7 +45,8 @@ case class DemSourceForApi(source: DemSource, streetCount: Option[Int] = None) {
     "title"      -> source.title,
     "credit"     -> source.credit,
     "licence"    -> source.licence,
-    "url"        -> source.url
+    "url"        -> source.url,
+    "citation"   -> source.citation
   ) ++ streetCount.map(n => Json.obj("street_count" -> n)).getOrElse(Json.obj())
 }
 

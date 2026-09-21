@@ -72,10 +72,10 @@
 
       try {
         // One region keeps the preview legible and the response small, as on the AccessScore: Streets page.
-        const [regionId, breaks] = await Promise.all([this.fetchSampleRegionId(), this.fetchClassBreaks()]);
+        const [regionId, grade] = await Promise.all([this.fetchSampleRegionId(), this.fetchGradeConfig()]);
         const streets = await this.fetchStreets(regionId);
         container.innerHTML = '';
-        await this.renderMap(container, streets, breaks);
+        await this.renderMap(container, streets, grade);
       } catch (error) {
         console.error('Error rendering street grade preview:', error);
         container.innerHTML = '<div class="map-message" role="alert">Unable to load street grade data '
@@ -91,12 +91,30 @@
     },
 
     /**
-     * The grades the slope classes break at, from the backend.
-     * @returns {Promise<number[]>} Ascending breaks; empty in a city with no grade configured.
+     * The grades the slope classes break at and the elevation models to credit, from the backend.
+     * @returns {Promise<{breaks: number[], sources: Array<{credit: string, url: ?string}>}>} Ascending breaks, and
+     *   the city's models most streets first; both empty in a city with no grades.
      */
-    fetchClassBreaks() {
+    fetchGradeConfig() {
       return ApiDocsMap.fetchJson(`${config.apiBaseUrl}/accessScoreConfig`)
-        .then((cfg) => cfg.grade?.map_class_breaks ?? []);
+        .then((cfg) => ({ breaks: cfg.grade?.map_class_breaks ?? [], sources: cfg.grade?.sources ?? [] }));
+    },
+
+    /**
+     * The elevation models' credit line for the map's attribution control, each linked to its publisher where it has
+     * a page, as the AccessScore tool's map credits them. The names and URLs are the backend's, and text all the same,
+     * so they are escaped.
+     * @param {Array<{credit: string, url: ?string}>} sources - The city's elevation models.
+     * @returns {string} Markup; empty where there is nothing to credit.
+     */
+    attributionHtml(sources) {
+      return sources.map((source) => {
+        const credit = util.escapeHTML(source.credit);
+        // Escaping keeps a URL inside its attribute; only the scheme keeps it from being a `javascript:` one.
+        return /^https:\/\//i.test(source.url ?? '')
+          ? `<a href="${util.escapeHTML(source.url)}" target="_blank" rel="noopener">${credit}</a>`
+          : credit;
+      }).join(' | ');
     },
 
     /** Fetch the streets (optionally scoped to a region) with their grade fields, as a GeoJSON FeatureCollection. */
@@ -109,9 +127,10 @@
      * Build the map, draw the streets in their grade classes, and add the legend.
      * @param {HTMLElement} container - The preview's container.
      * @param {{features?: Array<{properties: {max_grade: ?number}}>}} streets - The streets, as GeoJSON.
-     * @param {number[]} breaks - The slope classes' breaks.
+     * @param {{breaks: number[], sources: Array<{credit: string, url: ?string}>}} grade - The classes' breaks, and
+     *   the elevation models to credit.
      */
-    async renderMap(container, streets, breaks) {
+    async renderMap(container, streets, { breaks, sources }) {
       const features = streets.features || [];
 
       const mapElement = document.createElement('div');
@@ -134,7 +153,11 @@
       }
 
       // promoteId lifts street_edge_id into the feature id that setFeatureState needs for the hover styling below.
-      map.addSource(STREET_SOURCE, { type: 'geojson', data: streets, promoteId: 'street_edge_id' });
+      // The credit rides on the source, so Mapbox's attribution control shows it beside the basemap's own.
+      const attribution = this.attributionHtml(sources);
+      map.addSource(STREET_SOURCE, {
+        type: 'geojson', data: streets, promoteId: 'street_edge_id', ...(attribution ? { attribution } : {}),
+      });
       map.addLayer({
         id: STREET_LAYER,
         type: 'line',

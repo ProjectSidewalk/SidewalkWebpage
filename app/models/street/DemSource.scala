@@ -8,8 +8,17 @@ package models.street
  * @param credit  The attribution line shown wherever the grades are shown.
  * @param licence The licence the model is published under.
  * @param url     The publisher's page for the product.
+ * @param citation The reference the publisher suggests for citing the product in a paper, verbatim; None where it
+ *                 suggests none.
  */
-case class DemSource(name: String, title: String, credit: String, licence: String, url: Option[String])
+case class DemSource(
+    name: String,
+    title: String,
+    credit: String,
+    licence: String,
+    url: Option[String],
+    citation: Option[String]
+)
 
 /**
  * The elevation models the app knows how to credit.
@@ -22,9 +31,17 @@ case class DemSource(name: String, title: String, credit: String, licence: Strin
 object DemSource {
   val registered: Seq[DemSource] = Seq(
     DemSource(
-      name = "usgs-3dep-10m", title = "USGS 3DEP 1/3 arc-second seamless DEM",
-      credit = "Elevation: U.S. Geological Survey, 3D Elevation Program", licence = "Public domain",
-      url = Some("https://www.usgs.gov/3d-elevation-program")
+      name = "usgs-3dep-10m",
+      title = "USGS 3DEP 1/3 arc-second seamless DEM",
+      credit = "Elevation: U.S. Geological Survey, 3D Elevation Program",
+      licence = "Public domain",
+      url = Some("https://www.usgs.gov/3d-elevation-program"),
+      // USGS's own suggested citation, from the collection's ScienceBase entry (item 4f70aa9fe4b058caae3f8de5). It
+      // asks for no particular format, so this is the one to reproduce rather than a style of our choosing.
+      citation = Some(
+        "U.S. Geological Survey, 2024, 1/3rd arc-second Digital Elevation Models (DEMs) - USGS National Map 3DEP " +
+          "Downloadable Data Collection: U.S. Geological Survey."
+      )
     )
   )
 
@@ -40,5 +57,5 @@ object DemSource {
    * @return The registered source, or one that credits the name itself.
    */
   def forName(name: String): DemSource =
-    byName.getOrElse(name, DemSource(name, name, s"Elevation: $name", "See the publisher's terms", None))
+    byName.getOrElse(name, DemSource(name, name, s"Elevation: $name", "See the publisher's terms", None, None))
 }

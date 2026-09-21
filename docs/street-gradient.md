@@ -279,10 +279,11 @@ weighed in, and its Grade block says when a barrier has zeroed the segment.
 Most of these models are attribution-only (public domain, CC0, CC BY, or a national open licence), and INEGI also asks
 that a transformation be disclosed. `dem_source` on every row is what makes that answerable per street.
 
-`DemSource` (app/models/street) holds the credit line, licence and publisher page for each model, and is the one
-place they are written. It is shown in four places: the "Elevation model credits" table on the `accessScoreStreets`
-api-docs page, `grade.sources` on `accessScoreConfig`, the `attribution` object of a `streetGrade`
-response, and the AccessScore tool, where the credit sits in the map's attribution line (it rides on the street
-source, so a basemap swap cannot drop it) and under the popup's Grade block. **A new adapter in the script needs a
+`DemSource` (app/models/street) holds the credit line, licence, publisher page and the publisher's own suggested
+citation (verbatim, or none; never one we compose) for each model, and is the one place they are written. It is
+shown in five places: the credits table (`apiDocs/elevationCredits.scala.html`) on the `accessScoreStreets` and
+`streetGrade` api-docs pages, `grade.sources` on `accessScoreConfig`, the `attribution` object of a `streetGrade`
+response, and the attribution line of both the AccessScore tool's map and the Street Grade docs preview (it rides on
+the street source, so a basemap swap cannot drop it), plus under the tool popup's Grade block. **A new adapter in the script needs a
 `DemSource` entry**: `test_street_gradient.py` fails until every `REMOTE_SOURCES` name has one. A city sampled with
 `--dem-dir --dem-name` from a model nobody has registered is credited by that bare name, so register it too.

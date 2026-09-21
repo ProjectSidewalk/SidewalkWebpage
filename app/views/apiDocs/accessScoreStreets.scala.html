@@ -1,7 +1,7 @@
 @import models.utils.SeoUtils
 @import service.CommonPageData
 @import service.AccessScoreCalculator
-@import models.street.{DemSource, StreetGradientStats}
+@import models.street.StreetGradientStats
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
@@ -161,24 +161,8 @@
     <p>A bare-earth model removes bridges and knows nothing of tunnels, so a street on a structure reports <code>grade_quality: "structure"</code> and no grade, not the grade of the ravine beneath it. The grade <em>of</em> a bridge deck is out of reach of any such model. One street's elevation profile, the one grade field too heavy for a city-wide file, is served by the <a href="@routes.ApiDocsController.streetGrade">Street Grade API</a>.</p>
 
     <h3 class="page-heading" id="street-grade-credits">Elevation model credits<a href="#street-grade-credits" class="permalink">#</a></h3>
-    <p>Each street names the model it was sampled from in <code>dem_source</code>. If you publish the grade fields, credit the model as below; <a href="#scoring-config"><code>/v3/api/accessScoreConfig</code></a> lists the ones this city uses under <code>gradient.sources</code>, with the same credit lines. A city sampled from rasters that are not in this table yet is credited by its <code>dem_source</code> alone.</p>
-    <div class="ps-table-wrapper" tabindex="0" role="region" aria-labelledby="street-grade-credits">
-      <table class="ps-table">
-        <thead>
-          <tr><th><code>dem_source</code></th><th>Elevation model</th><th>Credit</th><th>Licence</th></tr>
-        </thead>
-        <tbody>
-          @for(source <- DemSource.registered) {
-            <tr>
-              <td><code>@source.name</code></td>
-              <td>@source.url.map { url => <a href="@url">@source.title</a> }.getOrElse { @source.title }</td>
-              <td>@source.credit</td>
-              <td>@source.licence</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+    <p>Each street names the model it was sampled from in <code>dem_source</code>. If you publish the grade fields, credit the model as below, and cite it where you would cite data; <a href="#scoring-config"><code>/v3/api/accessScoreConfig</code></a> lists the ones this city uses under <code>grade.sources</code>, with the same credit lines and citations. How the grades are sampled from the model, and how accurate they are, is on the <a href="@routes.ApiDocsController.streetGrade#data-source">Street Grade API</a> page. A city sampled from rasters that are not in this table yet is credited by its <code>dem_source</code> alone.</p>
+    @apiDocs.elevationCredits("street-grade-credits")
   </div>
 
   <div class="page-section" id="quick-download-section">
