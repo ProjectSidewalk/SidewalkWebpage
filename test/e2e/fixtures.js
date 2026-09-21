@@ -84,6 +84,31 @@ async function stubMapbox(context) {
   await context.route(/https:\/\/api\.mapbox\.com\/styles\/v1\/.*/, (route) => route.fulfill({json: STUB_STYLE}));
 }
 
+// TileJSON for the Explore minimap's basemap (MinimapBasemapStyle.js). The tiles template stays on the stubbed host so
+// the catch-all below answers every tile with a 204, which MapLibre treats as a valid empty tile.
+const STUB_MINIMAP_TILEJSON = {
+  tilejson: '2.2.0',
+  tiles: ['https://tiles.openfreemap.org/planet/ci-stub/{z}/{x}/{y}.pbf'],
+  minzoom: 0,
+  maxzoom: 14,
+};
+
+/**
+ * Stubs the Explore minimap's basemap traffic (MapLibre GL over OpenFreeMap vector tiles, #5429), so `/explore`
+ * neither depends on a third-party host being up nor sends it traffic from CI. The minimap itself is real: only its
+ * tiles are empty.
+ *
+ * @param {import('@playwright/test').BrowserContext} context - The context whose requests to intercept.
+ */
+async function stubMinimapBasemap(context) {
+  // Catch-all first: Playwright matches the MOST RECENTLY registered route, so the specific routes below win.
+  await context.route(/https:\/\/tiles\.openfreemap\.org\/.*/, (route) => route.fulfill({status: 204, body: ''}));
+  await context.route(/https:\/\/tiles\.openfreemap\.org\/planet$/, (route) =>
+    route.fulfill({json: STUB_MINIMAP_TILEJSON}));
+  await context.route(/https:\/\/tiles\.openfreemap\.org\/fonts\/.*/, (route) =>
+    route.fulfill({body: STUB_GLYPH_PBF, contentType: 'application/x-protobuf'}));
+}
+
 // The fake Google Maps JS API (test/e2e/fixtures/google-maps-stub.js), read once per worker.
 const GOOGLE_MAPS_STUB = fs.readFileSync(path.join(__dirname, 'fixtures', 'google-maps-stub.js'), 'utf8');
 
@@ -348,6 +373,7 @@ module.exports = {
   test,
   expect: base.expect,
   stubMapbox,
+  stubMinimapBasemap,
   stubGoogleMaps,
   serveAnyPano,
   stubMakeabilityLab,

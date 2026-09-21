@@ -166,6 +166,7 @@
       "message-others-no-dates": "Ein anderer Nutzer hat diese Straße schon einmal kartiert, aber die Bilder wurden seitdem erneuert. Schauen wir, was sich verändert hat!"
     },
     "minimap": {
+      "attribution-toggle": "Quellenangaben der Kartendaten",
       "coach-dismiss": "Verstanden",
       "distance-left": "Noch {{distance}}",
       "explore-current-location": "Drehen Sie sich um 360 Grad, um sicherzustellen, dass nichts übersehen wird.",

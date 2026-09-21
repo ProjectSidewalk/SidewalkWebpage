@@ -1,5 +1,22 @@
 /**
- * Handles the Google Maps minimap in the bottom-right corner of the UI.
+ * The minimap in the bottom-right corner of the UI: a small north-up map that stays centered on the current pano.
+ *
+ * This class is the only place that names the map library (MapLibre GL, #5429). Everything else draws on the minimap
+ * through the methods here, in plain {lat, lng} and DOM elements: addMarker() for the peg, label icons, crumbs and
+ * flags; setStreetLines() for a Task's streets; project()/getZoom()/getBounds() for the canvas overlays that
+ * ObservedArea and RouteOverview align to the map. Keeping the library behind this seam is what lets the basemap
+ * change without touching its callers, so don't hand the map object out.
+ *
+ * @typedef {object} MinimapMarker
+ * @property {HTMLElement} element - The marker's wrapper: what receives focus and the tooltip.
+ * @property {HTMLElement} content - The visual the marker was created with, for restyling it in place.
+ * @property {(latLng: {lat: number, lng: number}) => void} setLatLng - Moves the marker.
+ * @property {(visible: boolean) => void} setVisible - Shows or hides the marker without destroying it.
+ * @property {() => void} remove - Takes the marker off the map for good.
+ *
+ * @typedef {object} MinimapStreetLine
+ * @property {'audited'|'remaining'|'completed'|'other'} kind - How to draw it; see MinimapStyle.streetLayers.
+ * @property {number[][]} coordinates - The line as [lng, lat] pairs, in walking order (chevrons point along it).
  */
 class Minimap {
   // Zoom bounds for the minimap. ObservedArea's REFERENCE_ZOOM must match DEFAULT.
@@ -21,12 +38,21 @@ class Minimap {
 
   /**
    * A neighborhood mission's start and finish flags, planted on first use and moved after; see updateMissionFlags().
-   * @type {{start: ?google.maps.marker.AdvancedMarkerElement, finish: ?google.maps.marker.AdvancedMarkerElement}}
+   * @type {{start: ?MinimapMarker, finish: ?MinimapMarker}}
    */
   #missionFlags = { start: null, finish: null };
 
-  /** @type {google.maps.Map} */
+  // Id of the GeoJSON source holding every street line.
+  static #STREETS_SOURCE = 'streets';
+
+  /** @type {maplibregl.Map} */
   #map;
+
+  /** Each street's lines as GeoJSON features, keyed by street edge id; together they are the streets source's data. */
+  #streetFeatures = new Map();
+
+  /** Handle of the pending animation frame that will upload #streetFeatures, or null when the source is current. */
+  #streetFlushHandle = null;
 
   /** @type {number} */
   #minimapPaneBlinkInterval;
@@ -35,55 +61,71 @@ class Minimap {
   #overviewMode = false;
 
   /**
-   * Imports necessary libraries and creates the map. Resolves once the map has finished loading.
+   * Creates the map and its street layers. Resolves as soon as the style is ready to draw on — deliberately not when
+   * the basemap tiles have arrived: the tile host is a third party, and Explore must start (streets, peg, labels and
+   * fog over a blank background) even if it never answers.
    * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
-   * @returns {Promise<google.maps.Map>}
+   * @returns {Promise<void>}
    */
   async #init(initialLocation) {
-    const { LatLng } = await google.maps.importLibrary('core');
-    const { Map, MapTypeId, RenderingType } = await google.maps.importLibrary('maps');
-
-    // Create the minimap.
-    const mapOptions = {
-      backgroundColor: 'none',
-      cameraControl: false,
-      center: new LatLng(initialLocation.lat, initialLocation.lng),
-      clickableIcons: false,
-      disableDefaultUI: true,
-      fullscreenControl: false,
-      // No Street View pegman on the minimap — dropping it would open a "no imagery" panorama over the map.
-      streetViewControl: false,
-      // Panning is disabled (the map must stay centered on the user's pano so the FOV cone lines up); zooming is
-      // instead driven manually by #setupZoomControls so the center is preserved.
-      gestureHandling: 'none',
-      keyboardShortcuts: false,
-      // Map style is changed via cloud-based maps styling in the Google Cloud Console.
-      mapId: '9c9a85114c815aa4d4dbd5d3',
-      mapTypeControl: false,
-      mapTypeId: MapTypeId.ROADMAP, // HYBRID is another option
-      maxZoom: Minimap.#MAX_ZOOM,
-      minZoom: Minimap.#MIN_ZOOM,
-      renderingType: RenderingType.RASTER,
+    this.#map = new maplibregl.Map({
+      container: 'minimap',
+      style: MinimapBasemapStyle.build(),
+      center: Minimap.#lngLat(initialLocation),
       zoom: Minimap.#DEFAULT_ZOOM,
-    };
-    this.#map = new Map(document.getElementById('minimap'), mapOptions);
+      minZoom: Minimap.#MIN_ZOOM,
+      maxZoom: Minimap.#MAX_ZOOM,
+      // No panning, and no tab stop on the canvas: the map must stay centered on the user's pano so the FOV cone
+      // lines up, and everything it shows is also conveyed as text. Zooming is driven by #setupZoomControls instead,
+      // so the center is preserved.
+      interactive: false,
+      // Added by #addAttribution in its compact form; the default would cover a third of a map this small.
+      attributionControl: false,
+      locale: { 'AttributionControl.ToggleAttribution': i18next.t('audit:right-ui.minimap.attribution-toggle') },
+    });
+    this.#addAttribution();
 
     this.#setupZoomControls();
 
-    // Redraw the observed-area overlay whenever the map settles (e.g. after a zoom) so the fog/FOV stay aligned; the
-    // route overview inset tracks the same settle so its "current extent" box follows any zoom/recenter.
-    google.maps.event.addListener(this.#map, 'idle', () => {
+    // Redraw the observed-area overlay as the map moves, so the fog/FOV stay aligned through a zoom animation and not
+    // just at its end; the route overview inset tracks the same moves so its "current extent" box follows along.
+    // A resize is a move too: MapLibre watches its container, so a UI-scale change or the tutorial's fixed square
+    // lands here once the map has caught up with its new size.
+    this.#map.on('move', () => {
       if (svl.observedArea) svl.observedArea.update();
       if (svl.routeOverview) svl.routeOverview.render();
     });
 
-    // Return a promise that resolves once the map is idle (and therefore fully initialized).
-    return new Promise((resolve) => {
-      const listener = google.maps.event.addListener(this.#map, 'idle', () => {
-        google.maps.event.removeListener(listener);
-        resolve(this.#map);
-      });
+    await new Promise((resolve) => this.#map.once('style.load', resolve));
+
+    const pixelRatio = window.devicePixelRatio || 1;
+    this.#map.addImage(MinimapStyle.CHEVRON_IMAGE_ID, MinimapStyle.chevronImage(pixelRatio), { pixelRatio });
+    this.#map.addSource(Minimap.#STREETS_SOURCE, { type: 'geojson', data: this.#streetFeatureCollection() });
+    // Under the road names, so the name of the street being walked stays readable on top of its route line.
+    for (const layer of MinimapStyle.streetLayers(Minimap.#STREETS_SOURCE)) {
+      this.#map.addLayer(layer, MinimapBasemapStyle.FIRST_LABEL_LAYER_ID);
+    }
+  }
+
+  /**
+   * Adds the map data attribution as a collapsed "i" button that expands on click.
+   *
+   * MapLibre opens a compact attribution as soon as the tile source reports its credits, and closes it on the first
+   * drag of the map. This map can't be dragged, so left alone the credits would cover a third of it for the whole
+   * session. Closing them the moment they first open leaves the button, which still toggles them.
+   */
+  #addAttribution() {
+    this.#map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+    const attribution = this.#map.getContainer().querySelector('.maplibregl-ctrl-attrib');
+    if (!attribution) return;
+    const opened = 'maplibregl-compact-show';
+    const observer = new MutationObserver(() => {
+      if (!attribution.classList.contains(opened)) return;
+      observer.disconnect();
+      // The class alone is what MapLibre's own close-on-drag removes; its `open` attribute stays set either way.
+      attribution.classList.remove(opened);
     });
+    observer.observe(attribution, { attributes: true, attributeFilter: ['class'] });
   }
 
   /**
@@ -137,9 +179,13 @@ class Minimap {
       this.exitOverview('zoom');
       return;
     }
-    const newZoom = Math.min(Minimap.#MAX_ZOOM, Math.max(Minimap.#MIN_ZOOM, this.#map.getZoom() + delta));
+    // Round first: a wheel notch landing mid-animation would otherwise step from a fractional zoom.
+    const currentZoom = Math.round(this.#map.getZoom());
+    const newZoom = Math.min(Minimap.#MAX_ZOOM, Math.max(Minimap.#MIN_ZOOM, currentZoom + delta));
     if (newZoom !== this.#map.getZoom()) {
-      this.#map.setZoom(newZoom);
+      // Naming the center keeps the pano under the peg for the whole animation. easeTo skips the animation itself
+      // under prefers-reduced-motion.
+      this.#map.easeTo({ zoom: newZoom, center: Minimap.#lngLat(svl.panoViewer.getPosition()), duration: 200 });
     }
   }
 
@@ -154,8 +200,8 @@ class Minimap {
     this.#overviewMode = true;
     this.#updateFitButtonLabel();
     svl.ui.minimap.holder.addClass('minimap-overview');
-    this.#map.setOptions({ minZoom: Minimap.#OVERVIEW_MIN_ZOOM });
-    this.#map.fitBounds(bounds, 12);
+    this.#map.setMinZoom(Minimap.#OVERVIEW_MIN_ZOOM);
+    this.#map.fitBounds(bounds, { padding: 12, animate: false });
   }
 
   /**
@@ -167,9 +213,10 @@ class Minimap {
     this.#overviewMode = false;
     this.#updateFitButtonLabel();
     svl.ui.minimap.holder.removeClass('minimap-overview');
-    this.#map.setOptions({ minZoom: Minimap.#MIN_ZOOM });
-    this.#map.setZoom(Minimap.#DEFAULT_ZOOM);
-    this.#map.setCenter(svl.panoViewer.getPosition());
+    // Zoom in before raising the floor: raising it first would make MapLibre clamp the zoom itself, firing a move at
+    // the overview's center.
+    this.#map.jumpTo({ zoom: Minimap.#DEFAULT_ZOOM, center: Minimap.#lngLat(svl.panoViewer.getPosition()) });
+    this.#map.setMinZoom(Minimap.#MIN_ZOOM);
     svl.tracker.push('MinimapOverview_End', { trigger });
   }
 
@@ -189,7 +236,7 @@ class Minimap {
   /**
    * Bounds framing "your route": on a designated route, every loaded street; on a region audit, the current
    * mission's streets plus the one you're on (the region as a whole would zoom out far past the route — #4639).
-   * @returns {google.maps.LatLngBounds|null} Null if no street geometry is available yet.
+   * @returns {?maplibregl.LngLatBounds} Null if no street geometry is available yet.
    */
   #streetBounds() {
     if (!svl.taskContainer) return null;
@@ -205,10 +252,10 @@ class Minimap {
       const current = svl.taskContainer.getCurrentTask();
       if (current && !tasks.includes(current)) tasks.push(current);
     }
-    const bounds = new google.maps.LatLngBounds();
+    const bounds = new maplibregl.LngLatBounds();
     for (const task of tasks) {
       for (const coord of task.getGeoJSON().geometry.coordinates) {
-        bounds.extend({ lat: coord[1], lng: coord[0] });
+        bounds.extend(coord);
       }
     }
     return bounds.isEmpty() ? null : bounds;
@@ -282,11 +329,150 @@ class Minimap {
   }
 
   /**
-   * Get the Google map.
-   * @returns {google.maps.Map}
+   * @param {{lat: number, lng: number}} latLng
+   * @returns {[number, number]} The same point in MapLibre's [lng, lat] order.
    */
-  getMap() {
-    return this.#map;
+  static #lngLat(latLng) {
+    return [latLng.lng, latLng.lat];
+  }
+
+  /**
+   * Puts a DOM element on the map at a location. Every marker on the minimap comes through here: the peg, label
+   * icons, visited and forward crumbs, and the route/mission flags.
+   *
+   * What a marker is to assistive tech follows from what it does. One with an onClick is a button (focusable,
+   * activated by click, Enter or Space) named by its title. One with only a title is an image named by it. One with
+   * neither is decoration: hidden from the accessibility tree and click-through, so it can't swallow a click meant
+   * for a marker beneath it (the crumbs nearest the user sit inside the peg's box, #2561).
+   * @param {{lat: number, lng: number}} latLng - Where the marker goes.
+   * @param {HTMLElement} content - The marker's visual. It may carry its own CSS transform (the peg rotates): the
+   *                                map positions a wrapper around it, never the element itself.
+   * @param {object} [options]
+   * @param {'center'|'bottom'} [options.anchor='center'] - Which part of the content sits on the location.
+   * @param {?(() => void)} [options.onClick] - Makes the marker a button that calls this.
+   * @param {?string} [options.title] - Hover tooltip and accessible name.
+   * @param {number} [options.zIndex=0] - Stacking order among markers.
+   * @returns {MinimapMarker}
+   */
+  addMarker(latLng, content, { anchor = 'center', onClick = null, title = null, zIndex = 0 } = {}) {
+    const element = document.createElement('div');
+    element.className = 'minimap-marker';
+    element.style.zIndex = String(zIndex);
+    element.appendChild(content);
+    if (title) element.title = title;
+
+    // MapLibre makes any marker it isn't told about a button named "Map marker", so say what each one is.
+    if (onClick) {
+      element.setAttribute('role', 'button');
+      element.setAttribute('tabindex', '0');
+      element.setAttribute('aria-label', title || '');
+      element.addEventListener('click', onClick);
+      element.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        onClick();
+      });
+    } else if (title) {
+      element.setAttribute('role', 'img');
+      element.setAttribute('aria-label', title);
+    } else {
+      element.setAttribute('role', 'presentation');
+      element.setAttribute('aria-label', '');
+      element.setAttribute('aria-hidden', 'true');
+      element.classList.add('minimap-marker-decorative');
+    }
+
+    // Subpixel positioning keeps markers from jittering against the fog canvas during a zoom animation.
+    const marker = new maplibregl.Marker({ element, anchor, subpixelPositioning: true })
+      .setLngLat(Minimap.#lngLat(latLng))
+      .addTo(this.#map);
+    return {
+      element,
+      content,
+      setLatLng: (newLatLng) => marker.setLngLat(Minimap.#lngLat(newLatLng)),
+      setVisible: (visible) => element.toggleAttribute('hidden', !visible),
+      remove: () => marker.remove(),
+    };
+  }
+
+  /**
+   * Sets how one street is drawn, replacing whatever it drew before. The map is updated once per animation frame
+   * however many streets change in it, so rendering a whole region's tasks on load costs a single upload.
+   * @param {number} streetEdgeId - The street.
+   * @param {MinimapStreetLine[]} lines - Its lines. A line needs two points to be one, so shorter ones are dropped
+   *                                      (turf can slice a street's half down to a single point at an endpoint).
+   */
+  setStreetLines(streetEdgeId, lines) {
+    const features = lines
+      .filter((line) => line.coordinates.length > 1)
+      .map((line) => ({
+        type: 'Feature',
+        properties: { kind: line.kind },
+        geometry: { type: 'LineString', coordinates: line.coordinates },
+      }));
+    if (features.length > 0) {
+      this.#streetFeatures.set(streetEdgeId, features);
+    } else {
+      this.#streetFeatures.delete(streetEdgeId);
+    }
+    this.#scheduleStreetFlush();
+  }
+
+  /**
+   * Stops drawing a street.
+   * @param {number} streetEdgeId - The street.
+   */
+  clearStreetLines(streetEdgeId) {
+    if (this.#streetFeatures.delete(streetEdgeId)) this.#scheduleStreetFlush();
+  }
+
+  /** @returns {object} Every street's lines as one GeoJSON FeatureCollection. */
+  #streetFeatureCollection() {
+    return { type: 'FeatureCollection', features: [...this.#streetFeatures.values()].flat() };
+  }
+
+  /** Queues one upload of the street lines for the next animation frame, unless one is already queued. */
+  #scheduleStreetFlush() {
+    if (this.#streetFlushHandle !== null) return;
+    this.#streetFlushHandle = window.requestAnimationFrame(() => {
+      this.#streetFlushHandle = null;
+      this.#map.getSource(Minimap.#STREETS_SOURCE).setData(this.#streetFeatureCollection());
+    });
+  }
+
+  /**
+   * Where a location falls on the minimap, for overlays drawn on the canvases stacked over the map.
+   * @param {{lat: number, lng: number}} latLng
+   * @returns {{x: number, y: number}} CSS px from the map's top-left corner.
+   */
+  project(latLng) {
+    const point = this.#map.project(Minimap.#lngLat(latLng));
+    return { x: point.x, y: point.y };
+  }
+
+  /** @returns {number} The current zoom level; fractional while a zoom is animating. */
+  getZoom() {
+    return this.#map.getZoom();
+  }
+
+  /** @returns {{north: number, south: number, east: number, west: number}} The geographic extent now on screen. */
+  getBounds() {
+    const bounds = this.#map.getBounds();
+    return { north: bounds.getNorth(), south: bounds.getSouth(), east: bounds.getEast(), west: bounds.getWest() };
+  }
+
+  /**
+   * Shows or hides the basemap, leaving the streets and markers drawn over it. The tutorial hides it: its minimap is
+   * a fixed screenshot, set as the holder's background, that the markers and fog are aligned to.
+   * @param {boolean} visible
+   */
+  setBasemapVisible(visible) {
+    const visibility = visible ? 'visible' : 'none';
+    for (const layer of this.#map.getStyle().layers) {
+      if (layer.type === 'background' || layer.source === MinimapBasemapStyle.SOURCE_ID) {
+        this.#map.setLayoutProperty(layer.id, 'visibility', visibility);
+      }
+    }
   }
 
   /**
@@ -296,7 +482,7 @@ class Minimap {
   setMinimapLocation(latLng) {
     // Reaching a new pano while fitted means the user is exploring again — drop back to street level first.
     if (this.#overviewMode) this.exitOverview('pano-changed');
-    this.#map.setCenter(new google.maps.LatLng(latLng.lat, latLng.lng));
+    this.#map.setCenter(Minimap.#lngLat(latLng));
   }
 
   /**
@@ -359,40 +545,34 @@ class Minimap {
   #placeFlag(which, latLng, src, i18nKey) {
     const flag = this.#missionFlags[which];
     if (!latLng) {
-      if (flag) flag.map = null;
+      if (flag) flag.setVisible(false);
       return;
     }
     if (!flag) {
       this.#missionFlags[which] = this.#plantFlag(latLng, src, i18next.t(`audit:right-ui.minimap.${i18nKey}`));
       return;
     }
-    flag.position = new google.maps.LatLng(latLng.lat, latLng.lng);
-    flag.map = this.#map;
+    flag.setLatLng(latLng);
+    flag.setVisible(true);
   }
 
   /**
-   * One flag marker, planted with its pole base on the point (AdvancedMarkerElement's default bottom-center anchor
-   * matches RouteBuilder's icon-anchor).
+   * One flag marker, planted with its pole base on the point (the bottom anchor matches RouteBuilder's icon-anchor).
    * @param {{lat: number, lng: number}} latLng - Where to plant it.
    * @param {string} src - The flag image.
    * @param {string} title - Hover tooltip and accessible name.
-   * @returns {google.maps.marker.AdvancedMarkerElement}
+   * @returns {MinimapMarker}
    */
   #plantFlag(latLng, src, title) {
     const content = document.createElement('img');
     content.src = src;
     content.alt = title;
     content.style.width = `${Minimap.#ROUTE_FLAG_SIZE_PX}px`;
-    return new google.maps.marker.AdvancedMarkerElement({
-      position: new google.maps.LatLng(latLng.lat, latLng.lng),
-      map: this.#map,
-      content,
-      title,
-    });
+    return this.addMarker(latLng, content, { anchor: 'bottom', title });
   }
 
   /**
-   * Factory function that creates a Google Maps minimap in the bottom-right of the UI.
+   * Factory function that creates the minimap in the bottom-right of the UI.
    * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
    * @returns {Promise<Minimap>} The minimap instance.
    */

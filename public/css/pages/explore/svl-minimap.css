@@ -22,7 +22,7 @@
 /* During the tutorial the minimap shows a fixed-size square screenshot, so everything inside renders at its native
    (unscaled) square size and the whole holder is scaled (transform) to fill the column. Onboarding's
    sizeTutorialMinimap() sets a non-uniform scale at runtime — full width, but height capped to what fits the sidebar —
-   so the screenshot, Google markers, peg, and fog all stretch together (staying aligned) and the holder isn't clipped.
+   so the screenshot, markers, peg, and fog all stretch together (staying aligned) and the holder isn't clipped.
    The transform-origin keeps it anchored top-left; the scale() here is just the pre-script default. */
 #minimap-holder.minimap-tutorial {
   flex: 0 0 auto;
@@ -41,6 +41,12 @@
    twice (once here and again by the holder's zoom). */
 #minimap-holder.minimap-tutorial .minimap-pane {
   --ui-scale: 1;
+}
+
+/* The map's markers carry their own z-indexes (the peg's is 1000). Isolating the map keeps those inside it, so a
+   marker stacks against other markers and never above the panes laid over the map (fog, legend card, coach). */
+#minimap {
+  isolation: isolate;
 }
 
 #minimap-overlay {
@@ -63,7 +69,7 @@
 }
 
 /* These full-cover panes are purely visual (the highlight-flash overlay + the fog/FOV/progress canvases). They must not
-   intercept pointer events, or the Google map's markers stacked below them never receive clicks (e.g. click a label to
+   intercept pointer events, or the map's markers stacked below them never receive clicks (e.g. click a label to
    return to it, #2561). Interactive children appended into the overlay re-enable pointer events. */
 #minimap-overlay,
 #minimap-fog-of-war-canvas,
@@ -382,8 +388,7 @@
 
 /* Breadcrumb trail (ObservedArea): a small faded ring, in the peg's hue, at each visited pano; click to return there
    (#2561). The element itself is a larger transparent hit area so the tiny ring is comfortably clickable (WCAG 2.5.8);
-   the visible ring is drawn by ::before, centered inside it. AdvancedMarkerElement anchors content bottom-center, so
-   the hit area shifts down half its height to center the ring on the pano. */
+   the visible ring is drawn by ::before, centered inside it, and the marker centers the hit area on the pano. */
 .minimap-breadcrumb {
   display: flex;
   align-items: center;
@@ -391,7 +396,6 @@
   width: calc(20px * var(--ui-scale, 1));
   height: calc(20px * var(--ui-scale, 1));
   cursor: pointer;
-  transform: translateY(50%);
 }
 
 .minimap-breadcrumb::before {
@@ -407,8 +411,8 @@
 /* Minimap crumbs (ForwardCrumbs.js): where the current pano's arrows lead and where the route continues (#4669,
    #4655). Every crumb is a ring until the user faces it; the faced one fills in, so a filled disc has one meaning on
    the whole map: the forward arrow / up key takes you here. Route stops are deep blue (the forward arrow's family,
-   darker than the peg), other directions gold, visited panos pine rings (.minimap-breadcrumb). Same anchoring as the
-   breadcrumbs: a roomy hit area, shifted down half its height to center on the pano. */
+   darker than the peg), other directions gold, visited panos pine rings (.minimap-breadcrumb). Same shape as the
+   breadcrumbs: a roomy hit area centered on the pano. */
 .minimap-crumb {
   --crumb-color: var(--color-link-200);
   --crumb-fill: var(--color-link-200);
@@ -419,7 +423,6 @@
   width: calc(20px * var(--ui-scale, 1));
   height: calc(20px * var(--ui-scale, 1));
   cursor: pointer;
-  transform: translateY(50%);
 }
 
 .minimap-crumb-link {
@@ -504,21 +507,26 @@
 }
 
 
-/* GSV-style "you are here" puck (Peg.js): a blue dot with a triangle pointing in the heading direction. Markers anchor
-   bottom-center, so the wrapper shifts down half its height to center on the location, then rotates about that center
-   so the dot stays planted while the triangle swings to --peg-heading (#4639). */
+/* GSV-style "you are here" puck (Peg.js): a blue dot with a triangle pointing in the heading direction. The marker
+   centers it on the location and it rotates about that center, so the dot stays planted while the triangle swings to
+   --peg-heading (#4639). */
 .minimap-peg {
   width: calc(28px * var(--ui-scale, 1));
   height: calc(28px * var(--ui-scale, 1));
-  transform: translateY(50%) rotate(var(--peg-heading, 0deg));
+  transform: rotate(var(--peg-heading, 0deg));
   transform-origin: center;
 }
 
-/* The peg is decorative (no handlers), but the AdvancedMarkerElement wrapper Google generates keeps pointer-events:auto
-   even when its content is set to none — so at zIndex 1000 it still swallows clicks meant for a breadcrumb beneath it
-   (the crumbs nearest you sit inside the peg's box). Null the wrapper so the whole peg is click-through (#2561). */
-gmp-advanced-marker:has(> .minimap-peg) {
+/* A marker with no click handler and no tooltip (Minimap.addMarker) is decoration, and must be click-through: the peg
+   sits at z-index 1000 and would otherwise swallow clicks meant for a breadcrumb beneath it (the crumbs nearest you
+   sit inside the peg's box, #2561). */
+.minimap-marker-decorative {
   pointer-events: none;
+}
+
+/* An <img> marker is inline by default, which leaves descender space under it and pushes it off its anchor. */
+.minimap-marker > img {
+  display: block;
 }
 
 .minimap-peg svg {
@@ -612,8 +620,11 @@ gmp-advanced-marker:has(> .minimap-peg) {
   left: calc(4px * var(--ui-scale));
 }
 
-.gm-svpc {
-  display: none;
+/* Map data attribution (MapLibre's compact control: an "i" that expands). Every corner of the minimap is taken, so it
+   sits at the foot of the zoom buttons' column, just to their left. */
+#minimap .maplibregl-ctrl-bottom-right {
+  right: calc(24px * var(--ui-scale));
+  bottom: calc(6px * var(--ui-scale));
 }
 
 /* The +/- buttons take their look from the shared .zoom-button styling, with some minor tweaks. */
@@ -640,7 +651,8 @@ gmp-advanced-marker:has(> .minimap-peg) {
 #minimap-holder.minimap-tutorial #minimap-mission-progress,
 #minimap-holder.minimap-tutorial #minimap-legend-toggle,
 #minimap-holder.minimap-tutorial #minimap-legend-card,
-#minimap-holder.minimap-tutorial #minimap-coach {
+#minimap-holder.minimap-tutorial #minimap-coach,
+#minimap-holder.minimap-tutorial .maplibregl-ctrl-attrib {
   display: none;
 }
 

@@ -17,7 +17,6 @@ class Task {
   /* @type {turf.Point} */
   #furthestPoint;
 
-  #paths;
   #missionStarts = {};
   #status = {
     isComplete: false,
@@ -117,8 +116,6 @@ class Task {
     } else {
       this.#furthestPoint = turf.point(this.#geojson.geometry.coordinates[0]);
     }
-
-    this.#paths = null;
   }
 
   reverseStreetDirection() {
@@ -146,34 +143,14 @@ class Task {
   }
 
   /**
-   * This method creates Google Maps Polyline objects to render on the Google Maps minimap.
-   * @returns {Array|*[]}
+   * The current street as the minimap draws it: the audited half and the walk-this-way half (#4639).
+   * @returns {MinimapStreetLine[]}
    */
-  getGooglePolylines() {
-    const auditedCoordinates = this.#getPointsOnAuditedSegments();
-    const unauditedCoordinates = this.#getPointsOnUnauditedSegments();
-    const completedPath = [];
-    const incompletePath = [];
-
-    for (let i = 0, len = auditedCoordinates.length; i < len; i++) {
-      completedPath.push(new google.maps.LatLng(auditedCoordinates[i][1], auditedCoordinates[i][0]));
-    }
-
-    for (let i = 0, len = unauditedCoordinates.length; i < len; i++) {
-      incompletePath.push(new google.maps.LatLng(unauditedCoordinates[i][1], unauditedCoordinates[i][0]));
-    }
-
-    // Each half is a casing + line pair; see MinimapStyle for the encoding rationale (#4639).
-    const polylines = [];
-    if (completedPath.length > 1) {
-      polylines.push(new google.maps.Polyline(MinimapStyle.routeCasing(completedPath)));
-      polylines.push(new google.maps.Polyline(MinimapStyle.auditedRoute(completedPath)));
-    }
-    if (incompletePath.length > 1) {
-      polylines.push(new google.maps.Polyline(MinimapStyle.routeCasing(incompletePath)));
-      polylines.push(new google.maps.Polyline(MinimapStyle.remainingRoute(incompletePath)));
-    }
-    return polylines;
+  #currentStreetLines() {
+    return [
+      { kind: 'audited', coordinates: this.#getPointsOnAuditedSegments() },
+      { kind: 'remaining', coordinates: this.#getPointsOnUnauditedSegments() },
+    ];
   }
 
   #coordinatesToSegments(coordinates) {
@@ -512,74 +489,52 @@ class Task {
   }
 
   /**
-   * TODO This should go to the Minimap.
+   * Stops drawing this street on the minimap.
    */
   eraseFromMinimap() {
-    if (this.#paths) {
-      for (let i = 0; i < this.#paths.length; i++) {
-        this.#paths[i].setMap(null);
-      }
-    }
+    svl.minimap.clearStreetLines(this.getStreetEdgeId());
   }
 
   /**
-   * Render the task path on the Google Maps pane.
-   * TODO This should go to the Minimap.
-   * Reference:
-   * https://developers.google.com/maps/documentation/javascript/shapes#polyline_add
-   * https://developers.google.com/maps/documentation/javascript/examples/polyline-remove
+   * Draws this street on the minimap, in the encoding that fits its state (see MinimapStyle.streetLayers). A half
+   * that turf slices down to a single point, when the furthest point sits on an endpoint, is dropped by the minimap.
    */
   render() {
-    this.eraseFromMinimap();
-
     // Free exploration draws no street lines at all (#4451). The red/green split reads as progress being scored, and
     // the surrounding green/gray coverage is noise for someone who dropped in at a single address — the minimap is
     // there to show where they are.
-    if (svl.isExploreAddressMode()) return;
+    if (svl.isExploreAddressMode()) {
+      this.eraseFromMinimap();
+      return;
+    }
 
-    // If the task has been completed already, or if it has not been completed and is not the current task,
-    // render it as a whole street rather than the audited/remaining split used for the current street.
+    const wholeStreet = (kind) => [{ kind, coordinates: this.#geojson.geometry.coordinates }];
     // A street this session gave up on for lack of imagery draws as walked: the labeler did everything the tool let
     // them, and a grey gap in an otherwise finished route reads as their omission.
     const drawAsWalked = this.isComplete() || this.wasGivenUpOnImagery();
-    if (drawAsWalked || this.getStreetEdgeId() !== svl.taskContainer.getCurrentTaskStreetEdgeId()) {
-      const gCoordinates = this.#geojson.geometry.coordinates
-        .map((coord) => new google.maps.LatLng(coord[1], coord[0]));
-      if (drawAsWalked) {
-        this.#paths = [new google.maps.Polyline(MinimapStyle.completedTask(gCoordinates))];
-      } else if (this.isResumed() && this.getAuditedDistance() > 0) {
-        // Part-walked and not the street being walked right now: show the split, so the labeler can see at a glance
-        // which of the streets they left behind still have something on them (#5370). Once it becomes the current
-        // street the getGooglePolylines() branch below draws the same split with the route styling.
-        // Each half is drawn only if it is really a line: turf can slice a half down to a single point when the
-        // furthest point sits on an endpoint, and a one-point Polyline renders as nothing (same guard as
-        // getGooglePolylines).
-        const toLatLngs = (coords) => coords.map((coord) => new google.maps.LatLng(coord[1], coord[0]));
-        const walked = toLatLngs(this.#getPointsOnAuditedSegments());
-        const remaining = toLatLngs(this.#getPointsOnUnauditedSegments());
-        this.#paths = [];
-        if (walked.length > 1) this.#paths.push(new google.maps.Polyline(MinimapStyle.completedTask(walked)));
-        if (remaining.length > 1) this.#paths.push(new google.maps.Polyline(MinimapStyle.otherTask(remaining)));
-      } else if (svl.regionModel.isRoute) {
-        // On a designated route every street ahead is part of the planned path, so paint it as the route-to-walk: a
-        // dashed line with direction chevrons over a white casing — the same encoding as the current street's
-        // remaining half (and RouteBuilder's own rendering) — so the whole route reads as a dotted, arrowed path when
-        // zoomed out. A free region audit has no planned path, so its non-current streets stay quiet context.
-        this.#paths = [
-          new google.maps.Polyline(MinimapStyle.routeCasing(gCoordinates)),
-          new google.maps.Polyline(MinimapStyle.remainingRoute(gCoordinates)),
-        ];
-      } else {
-        this.#paths = [new google.maps.Polyline(MinimapStyle.otherTask(gCoordinates))];
-      }
-      // If the task is incomplete and is the current task, render its audited and remaining halves separately.
+    let lines;
+    if (drawAsWalked) {
+      lines = wholeStreet('completed');
+    } else if (this.getStreetEdgeId() === svl.taskContainer.getCurrentTaskStreetEdgeId()) {
+      lines = this.#currentStreetLines();
+    } else if (this.isResumed() && this.getAuditedDistance() > 0) {
+      // Part-walked and not the street being walked right now: show the split, so the labeler can see at a glance
+      // which of the streets they left behind still have something on them (#5370). Once it becomes the current
+      // street the branch above draws the same split with the route styling.
+      lines = [
+        { kind: 'completed', coordinates: this.#getPointsOnAuditedSegments() },
+        { kind: 'other', coordinates: this.#getPointsOnUnauditedSegments() },
+      ];
+    } else if (svl.regionModel.isRoute) {
+      // On a designated route every street ahead is part of the planned path, so paint it as the route-to-walk: a
+      // dashed line with direction chevrons over a white casing — the same encoding as the current street's
+      // remaining half (and RouteBuilder's own rendering) — so the whole route reads as a dotted, arrowed path when
+      // zoomed out. A free region audit has no planned path, so its non-current streets stay quiet context.
+      lines = wholeStreet('remaining');
     } else {
-      this.#paths = this.getGooglePolylines();
+      lines = wholeStreet('other');
     }
-
-    for (let i = 0, len = this.#paths.length; i < len; i++) {
-      this.#paths[i].setMap(svl.minimap.getMap());
-    }
+    svl.minimap.setStreetLines(this.getStreetEdgeId(), lines);
   }
 
   /**

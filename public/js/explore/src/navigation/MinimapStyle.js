@@ -1,6 +1,6 @@
 /**
- * Centralized styling for everything drawn on the Explore minimap: route polylines, fog of war, FOV cone, and the
- * 360°-observed progress ring.
+ * Centralized styling for everything Project Sidewalk draws on the Explore minimap: street lines, fog of war, FOV
+ * cone, and the 360°-observed progress ring. (The basemap under them is MinimapBasemapStyle.)
  *
  * Colors are read from the design-token CSS custom properties defined in main.css :root rather than re-declared here,
  * so the minimap stays in sync with the design system. The route encoding is deliberately redundant (#4639): the
@@ -95,112 +95,126 @@ class MinimapStyle {
     };
   }
 
-  /**
-   * White casing drawn under both halves of the current street, separating the route from the basemap. This is what
-   * lets the 4px lines stay legible over parks/roads regardless of hue (the old 2px lines had 1.07:1 contrast).
-   * @param {google.maps.LatLng[]} path - The polyline path.
-   * @returns {google.maps.PolylineOptions}
-   */
-  static routeCasing(path) {
-    return {
-      path,
-      geodesic: true,
-      strokeColor: '#ffffff',
-      strokeOpacity: 0.9,
-      strokeWeight: MinimapStyle.#CASING_WEIGHT,
-      zIndex: 10,
-    };
-  }
+  /** Id of the chevron image Minimap registers with the map (see chevronImage) for the route-ahead layer to draw. */
+  static CHEVRON_IMAGE_ID = 'minimap-route-chevron';
 
   /**
-   * The audited (already explored) half of the current street: a solid line.
-   * @param {google.maps.LatLng[]} path - The polyline path.
-   * @returns {google.maps.PolylineOptions}
+   * How a street is drawn, by the `kind` a Task gives each of its lines (see Minimap.setStreetLines):
+   *  - `audited`: the explored half of the current street, a solid line over a white casing.
+   *  - `remaining`: the walk-this-way half (and, on a designated route, every street ahead): light-blue dashes with
+   *    direction chevrons over the same casing. 5px dashes with 7px gaps: the rhythm, not the hue, separates this line
+   *    from the pine one.
+   *  - `completed`: a street, or part of one, already walked that isn't the current street.
+   *  - `other`: a street in the region that isn't part of the current task: quiet context.
+   *
+   * The white casing is what keeps the route legible over parks and roads regardless of hue. Layers are listed bottom
+   * to top, so context streets sit under the route and the chevrons sit over everything.
+   * @param {string} source - Id of the GeoJSON source holding the street lines.
+   * @returns {object[]} MapLibre layer specifications, in drawing order.
    */
-  static auditedRoute(path) {
-    return {
-      path,
-      geodesic: true,
-      strokeColor: MinimapStyle.auditedColor(),
-      strokeOpacity: 1.0,
-      strokeWeight: MinimapStyle.#ROUTE_WEIGHT,
-      zIndex: 11,
-    };
-  }
-
-  /**
-   * The remaining (walk this way) half of the current street: a light-blue dashed line with direction chevrons.
-   * Dashes are drawn via repeated symbols (the standard Google Maps dashed-polyline technique, since strokes can't
-   * dash). The chevrons are white with a deep-blue outline so they read on both the dashes and the white casing
-   * between them.
-   * @param {google.maps.LatLng[]} path - The polyline path.
-   * @returns {google.maps.PolylineOptions}
-   */
-  static remainingRoute(path) {
-    const color = MinimapStyle.remainingColor();
-    return {
-      path,
-      geodesic: true,
-      strokeOpacity: 0,
-      zIndex: 12,
-      icons: [
-        {
-          icon: {
-            path: 'M 0,-1 0,1',
-            strokeColor: color,
-            strokeOpacity: 1.0,
-            strokeWeight: MinimapStyle.#ROUTE_WEIGHT,
-            scale: 2.5, // 5px dashes with 7px gaps: the rhythm, not the hue, separates this line from the pine one.
-          },
-          offset: '0',
-          repeat: '12px',
+  static streetLayers(source) {
+    const kindIs = (...kinds) => ['match', ['get', 'kind'], kinds, true, false];
+    const round = { 'line-cap': 'round', 'line-join': 'round' };
+    return [
+      {
+        id: 'street-other',
+        type: 'line',
+        source,
+        filter: kindIs('other'),
+        layout: round,
+        paint: {
+          'line-color': MinimapStyle.token('--color-neutral-600', '#8F8F8F'),
+          'line-opacity': 0.75,
+          'line-width': 2.5,
         },
-        {
-          icon: {
-            path: 'M -2.2,2 L 0,-1.8 L 2.2,2 Z',
-            fillColor: '#ffffff',
-            fillOpacity: 1.0,
-            strokeColor: MinimapStyle.chevronOutlineColor(),
-            strokeOpacity: 1.0,
-            strokeWeight: 1.4,
-            scale: 2.4,
-          },
-          offset: '28px',
-          repeat: '55px',
+      },
+      {
+        id: 'street-completed',
+        type: 'line',
+        source,
+        filter: kindIs('completed'),
+        layout: round,
+        paint: { 'line-color': MinimapStyle.auditedColor(), 'line-opacity': 0.95, 'line-width': 3 },
+      },
+      {
+        id: 'street-casing',
+        type: 'line',
+        source,
+        filter: kindIs('audited', 'remaining'),
+        layout: round,
+        paint: {
+          'line-color': MinimapStyle.token('--color-neutral-white', '#FFFFFF'),
+          'line-opacity': 0.9,
+          'line-width': MinimapStyle.#CASING_WEIGHT,
         },
-      ],
-    };
+      },
+      {
+        id: 'street-audited',
+        type: 'line',
+        source,
+        filter: kindIs('audited'),
+        layout: round,
+        paint: { 'line-color': MinimapStyle.auditedColor(), 'line-width': MinimapStyle.#ROUTE_WEIGHT },
+      },
+      {
+        id: 'street-remaining',
+        type: 'line',
+        source,
+        filter: kindIs('remaining'),
+        // Butt caps: round ones would eat into the gaps and blur the dash rhythm.
+        layout: { 'line-cap': 'butt', 'line-join': 'round' },
+        paint: {
+          'line-color': MinimapStyle.remainingColor(),
+          'line-width': MinimapStyle.#ROUTE_WEIGHT,
+          // In units of the line width: 5px on, 7px off.
+          'line-dasharray': [5 / MinimapStyle.#ROUTE_WEIGHT, 7 / MinimapStyle.#ROUTE_WEIGHT],
+        },
+      },
+      {
+        id: 'street-remaining-chevrons',
+        type: 'symbol',
+        source,
+        filter: kindIs('remaining'),
+        layout: {
+          'symbol-placement': 'line',
+          'symbol-spacing': 55,
+          'icon-image': MinimapStyle.CHEVRON_IMAGE_ID,
+          'icon-rotation-alignment': 'map',
+          // A chevron is part of the line, not a label: it must never be dropped to make room for a road name.
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+        },
+      },
+    ];
   }
 
   /**
-   * A street the user has already completed (not the current one).
-   * @param {google.maps.LatLng[]} path - The polyline path.
-   * @returns {google.maps.PolylineOptions}
+   * The direction chevron repeated along the route ahead: white with a deep-blue outline, so it reads on both the
+   * dashes and the white casing between them. Drawn pointing right (+x), which a line-placed symbol aligns with the
+   * line's direction, so chevrons point the way the street's coordinates run.
+   * @param {number} pixelRatio - Device pixel ratio to rasterize at, so the chevron stays crisp on dense displays.
+   * @returns {ImageData} The chevron bitmap, for map.addImage(..., { pixelRatio }).
    */
-  static completedTask(path) {
-    return {
-      path,
-      geodesic: true,
-      strokeColor: MinimapStyle.auditedColor(),
-      strokeOpacity: 0.95,
-      strokeWeight: 3,
-      zIndex: 6,
-    };
-  }
-
-  /**
-   * A street in the region that isn't part of the current task: quiet context.
-   * @param {google.maps.LatLng[]} path - The polyline path.
-   * @returns {google.maps.PolylineOptions}
-   */
-  static otherTask(path) {
-    return {
-      path,
-      geodesic: true,
-      strokeColor: MinimapStyle.token('--color-neutral-600', '#8F8F8F'),
-      strokeOpacity: 0.75,
-      strokeWeight: 2.5,
-      zIndex: 5,
-    };
+  static chevronImage(pixelRatio) {
+    const length = 10;
+    const halfWidth = 5.5;
+    const pad = 2; // Room for the outline.
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.ceil((length + 2 * pad) * pixelRatio);
+    canvas.height = Math.ceil((2 * halfWidth + 2 * pad) * pixelRatio);
+    const ctx = canvas.getContext('2d');
+    ctx.scale(pixelRatio, pixelRatio);
+    ctx.beginPath();
+    ctx.moveTo(pad, pad);
+    ctx.lineTo(pad + length, pad + halfWidth);
+    ctx.lineTo(pad, pad + 2 * halfWidth);
+    ctx.closePath();
+    ctx.fillStyle = MinimapStyle.token('--color-neutral-white', '#FFFFFF');
+    ctx.fill();
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 1.4;
+    ctx.strokeStyle = MinimapStyle.chevronOutlineColor();
+    ctx.stroke();
+    return ctx.getImageData(0, 0, canvas.width, canvas.height);
   }
 }

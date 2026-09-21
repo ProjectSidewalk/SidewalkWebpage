@@ -24,11 +24,15 @@
  *
  * Both are landing-state checks: the page reaches its ready state and the console, no pano interaction.
  */
-const {test, expect, stubMapbox, serveAnyPano, waitForAppReady, PHONE_DEVICE} = require('./fixtures');
+const {
+  test, expect, stubMapbox, stubMinimapBasemap, serveAnyPano, waitForAppReady, PHONE_DEVICE,
+} = require('./fixtures');
 
 test('/explore loads the tutorial without console errors', async ({page, context, consoleErrors}) => {
   // Explore's mission-complete map is Mapbox, built at init — stubbed like every other map page.
   await stubMapbox(context);
+  // Its minimap is MapLibre over third-party vector tiles; the map is real, the tiles are stubbed empty.
+  await stubMinimapBasemap(context);
   // Explore reacts to pano-viewer creation failure by navigating back to /explore, which fails the same
   // way — an unbounded reload loop that would otherwise just burn the whole test timeout. Counting full
   // document loads makes that failure mode fast and self-describing.

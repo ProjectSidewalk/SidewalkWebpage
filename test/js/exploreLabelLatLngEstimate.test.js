@@ -55,7 +55,7 @@ describe('Label lat/lng estimation', () => {
                 cameraHeightM: 2.341219672825709,
             },
         };
-        Label.createMinimapMarker = () => ({ addListener: () => {} });
+        Label.createMinimapMarker = () => ({ setVisible: () => {} });
         window.turf = {
             point: (coords) => ({ geometry: { coordinates: coords } }),
             destination: jest.fn((_start, _distKm, _bearing) => ({ geometry: { coordinates: [-122.303, 47.656] } })),

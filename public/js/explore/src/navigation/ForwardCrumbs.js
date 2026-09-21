@@ -58,7 +58,7 @@ class ForwardCrumbs {
 
   #navigationService;
   #tracker;
-  #markers = new Map(); // panoId -> { marker: AdvancedMarkerElement, kind, clickable, visited, rank }.
+  #markers = new Map(); // panoId -> { marker: MinimapMarker, kind, clickable, visited, rank }.
   #links = []; // The current pano's positioned links, kept for setFacing().
   #walkNextPanoId = null; // The stop the route walk (moveForward) would land on: the first ahead of the furthest point.
   #facedPanoId = null;
@@ -162,7 +162,7 @@ class ForwardCrumbs {
    */
   clear() {
     this.#generation++;
-    for (const { marker } of this.#markers.values()) marker.map = null;
+    for (const { marker } of this.#markers.values()) marker.remove();
     this.#markers.clear();
     this.#links = [];
     this.#walkNextPanoId = null;
@@ -569,7 +569,7 @@ class ForwardCrumbs {
       const changed = !want || want.kind !== entry.kind || want.clickable !== entry.clickable
         || want.visited !== entry.visited || want.rank !== entry.rank;
       if (changed) {
-        entry.marker.map = null;
+        entry.marker.remove();
         this.#markers.delete(panoId);
         if (this.#facedPanoId === panoId) this.#facedPanoId = null;
         if (this.#nextStepPanoId === panoId) this.#nextStepPanoId = null;
@@ -592,7 +592,7 @@ class ForwardCrumbs {
   /**
    * One crumb marker. Map-positioned, like the visited breadcrumbs, so it tracks zoom without manual projection.
    * @param {Crumb} crumb
-   * @returns {google.maps.marker.AdvancedMarkerElement}
+   * @returns {MinimapMarker}
    */
   #createMarker(crumb) {
     const content = document.createElement('div');
@@ -618,32 +618,30 @@ class ForwardCrumbs {
     } else {
       title = i18next.t('audit:right-ui.minimap.route-stop-title', { rank: crumb.rank });
     }
-    const marker = new google.maps.marker.AdvancedMarkerElement({
-      position: new google.maps.LatLng(crumb.lat, crumb.lng),
-      map: svl.minimap.getMap(),
-      content,
-      gmpClickable: crumb.clickable || peeks,
+    let onClick = null;
+    if (peeks) {
+      onClick = () => {
+        this.#tracker.push('Click_MinimapBreadcrumb', { panoId: crumb.panoId });
+        this.#navigationService.returnToPano(crumb.panoId);
+      };
+    } else if (crumb.clickable) {
+      onClick = () => this.#moveTo(crumb);
+    }
+    const marker = svl.minimap.addMarker({ lat: crumb.lat, lng: crumb.lng }, content, {
+      onClick,
       // Above the visited breadcrumbs and label icons, well below the peg (1000), which is click-through anyway.
       zIndex: crumb.clickable ? (crumb.kind === 'route' ? 30 : 25) : 20,
       title, // Hover tooltip and accessible name: every mark on the minimap says what it is.
     });
-    if (peeks) {
-      marker.addListener('gmp-click', () => {
-        this.#tracker.push('Click_MinimapBreadcrumb', { panoId: crumb.panoId });
-        this.#navigationService.returnToPano(crumb.panoId);
-      });
-    } else if (crumb.clickable) {
-      marker.addListener('gmp-click', () => this.#moveTo(crumb));
+    if (crumb.clickable) {
       // Hovering or focusing a crumb lights the on-pano arrow that leads to it, the reverse of hovering the arrow
       // (#4682). Focus lands on the marker's wrapper element, which is what the keyboard reaches.
       const light = () => svl.panoManager && svl.panoManager.highlightArrowTo(crumb.panoId);
       const unlight = () => svl.panoManager && svl.panoManager.clearArrowHighlight();
       content.addEventListener('mouseenter', light);
       content.addEventListener('mouseleave', unlight);
-      if (marker.element) {
-        marker.element.addEventListener('focus', light);
-        marker.element.addEventListener('blur', unlight);
-      }
+      marker.element.addEventListener('focus', light);
+      marker.element.addEventListener('blur', unlight);
     }
     return marker;
   }

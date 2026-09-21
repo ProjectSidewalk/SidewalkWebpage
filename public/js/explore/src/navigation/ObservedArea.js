@@ -18,7 +18,7 @@ class ObservedArea {
   #rightAngle = null;       // Right-most angle of the user's FOV.
   #observedAreas = [];     // List of observed areas (panoId, latLng, minAngle, maxAngle).
   #currArea = {};             // Current observed area (panoId, latLng, minAngle, maxAngle).
-  #breadcrumbMarkers = new Map(); // panoId -> AdvancedMarkerElement: a clickable breadcrumb per visited pano.
+  #breadcrumbMarkers = new Map(); // panoId -> MinimapMarker: a clickable breadcrumb per visited pano.
   #fractionObserved = 0; // User's current fraction of 360 degrees observed.
   #coachVisible = false; // Whether the first-run "turn 360°" coach mark is currently showing.
 
@@ -163,30 +163,12 @@ class ObservedArea {
   }
 
   /**
-   * Converts a latitude and longitude to pixel xy-coordinates.
-   * @param {{lat: number, lng: number}} latLng
-   * @returns {{x: number, y: number}}
-   */
-  #latLngToPixel(latLng) {
-    const projection = svl.minimap.getMap().getProjection();
-    const bounds = svl.minimap.getMap().getBounds();
-    const topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
-    const bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
-    const scale = Math.pow(2, svl.minimap.getMap().getZoom());
-    const worldPoint = projection.fromLatLngToPoint(latLng);
-    return {
-      x: Math.floor((worldPoint.x - bottomLeft.x) * scale),
-      y: Math.floor((worldPoint.y - topRight.y) * scale),
-    };
-  }
-
-  /**
    * Returns the FOV/observed-area radius in pixels for the minimap's current zoom. Scales BASE_RADIUS by the UI scale
    * and by the zoom relative to REFERENCE_ZOOM so the fog/FOV cover a constant geographic area as the user zooms.
    * @returns {number}
    */
   #currentRadius() {
-    const zoom = svl.minimap.getMap().getZoom();
+    const zoom = svl.minimap.getZoom();
     return ObservedArea.#BASE_RADIUS * this.#scaleFactor * Math.pow(2, zoom - ObservedArea.#REFERENCE_ZOOM);
   }
 
@@ -198,7 +180,7 @@ class ObservedArea {
     this.#fogOfWarCtx.fillRect(0, 0, this.#width, this.#height);
     this.#fogOfWarCtx.globalCompositeOperation = 'destination-out';
     for (const observedArea of this.#observedAreas) {
-      const center = this.#latLngToPixel(observedArea.latLng);
+      const center = svl.minimap.project(observedArea.latLng);
       this.#fogOfWarCtx.beginPath();
       if (observedArea.maxAngle - observedArea.minAngle < 360) {
         this.#fogOfWarCtx.moveTo(center.x, center.y);
@@ -253,7 +235,7 @@ class ObservedArea {
       const marker = this.#breadcrumbMarkers.get(area.panoId);
       if (area === this.#currArea) {
         if (marker) {
-          marker.map = null;
+          marker.remove();
           this.#breadcrumbMarkers.delete(area.panoId);
         }
       } else if (!marker) {
@@ -266,23 +248,18 @@ class ObservedArea {
    * Creates one clickable breadcrumb marker — a faded ring in the peg's hue — at a visited pano. Clicking it returns
    * the user to that pano (#2561).
    * @param {{panoId: string, latLng: {lat: number, lng: number}}} area - The visited observed area.
-   * @returns {google.maps.marker.AdvancedMarkerElement}
+   * @returns {MinimapMarker}
    */
   #createBreadcrumbMarker(area) {
     const content = document.createElement('div');
     content.className = 'minimap-breadcrumb';
-    const marker = new google.maps.marker.AdvancedMarkerElement({
-      position: new google.maps.LatLng(area.latLng.lat, area.latLng.lng),
-      map: svl.minimap.getMap(),
-      content,
-      gmpClickable: true,
-      title: i18next.t('audit:right-ui.minimap.breadcrumb-title'), // Hover tooltip and accessible name.
+    return svl.minimap.addMarker(area.latLng, content, {
+      title: i18next.t('audit:right-ui.minimap.breadcrumb-title'),
+      onClick: () => {
+        svl.tracker.push('Click_MinimapBreadcrumb', { panoId: area.panoId });
+        svl.navigationService.returnToPano(area.panoId);
+      },
     });
-    marker.addListener('gmp-click', () => {
-      svl.tracker.push('Click_MinimapBreadcrumb', { panoId: area.panoId });
-      svl.navigationService.returnToPano(area.panoId);
-    });
-    return marker;
   }
 
   /**

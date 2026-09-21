@@ -6,7 +6,8 @@
 class Label {
   className = 'Label'; // Read by Canvas.js for type dispatch (`item.className === 'Label'`).
 
-  #googleMarker;
+  /** @type {MinimapMarker} This label's icon on the minimap. */
+  #minimapMarker;
 
   // Size the label-type icons are rasterized to before being drawn (see preloadIcons). The label canvas renders at
   // its on-screen size times the device pixel ratio, so the icon tops out around 76 device pixels on a HiDPI
@@ -84,11 +85,10 @@ class Label {
 
     // Create the marker on the minimap.
     const latlng = this.toLatLng();
-    this.#googleMarker = Label.createMinimapMarker(this.#properties.labelType, latlng);
-    this.#googleMarker.map = svl.minimap.getMap();
-    // Click the marker to return to this label's pano (#2561). gmpClickable (set in createMinimapMarker) is what makes
-    // the AdvancedMarkerElement emit gmp-click.
-    this.#googleMarker.addListener('gmp-click', () => this.#returnToLabelFromMinimap());
+    // Click the marker to return to this label's pano (#2561).
+    this.#minimapMarker = Label.createMinimapMarker(
+      this.#properties.labelType, latlng, () => this.#returnToLabelFromMinimap(),
+    );
   }
 
   /**
@@ -262,14 +262,8 @@ class Label {
       }
     }
 
-    // Show the label on the Google Maps pane.
-    if (!this.isDeleted()) {
-      if (this.#googleMarker && !this.#googleMarker.map) {
-        this.#googleMarker.map = svl.minimap.getMap();
-      }
-    } else if (this.#googleMarker && this.#googleMarker.map) {
-      this.#googleMarker.map = null;
-    }
+    // A deleted label leaves the minimap too; the marker is hidden rather than removed since a delete can be undone.
+    if (this.#minimapMarker) this.#minimapMarker.setVisible(!this.isDeleted());
     return this;
   }
 
@@ -580,30 +574,23 @@ class Label {
   }
 
   /**
-   * Creates the marker shown for this label on the minimap using Google Maps AdvancedMarkerElement.
+   * Creates the marker shown for a label on the minimap.
    * @param {string} labelType
    * @param {{lat: number, lng: number}} latLng
-   * @returns {google.maps.marker.AdvancedMarkerElement}
+   * @param {?(() => void)} [onClick] - What clicking the marker does. The tutorial's example labels pass nothing,
+   *                                        since there is nowhere to return to.
+   * @returns {MinimapMarker}
    */
-  static createMinimapMarker(labelType, latLng) {
+  static createMinimapMarker(labelType, latLng, onClick = null) {
     const content = document.createElement('img');
     // Sizing is set in .minimap-label-icon.
     content.src = util.misc.getIconImagePaths(labelType).iconImagePath;
     content.className = 'minimap-label-icon';
-    // AdvancedMarkerElement anchors content by its bottom-center; shift it down half its height to center it.
-    content.style.transform = 'translateY(50%)';
     // Hover tooltip and accessible name, named the way the rest of the tool names the label type.
     const labelTypeName = i18next.t(`common:${util.camelToKebab(labelType)}`).replaceAll('&shy;', '');
     const title = i18next.t('audit:right-ui.minimap.label-marker-title', { labelType: labelTypeName });
     content.alt = title;
-    return new google.maps.marker.AdvancedMarkerElement({
-      position: new google.maps.LatLng(latLng.lat, latLng.lng),
-      map: svl.minimap.getMap(),
-      content,
-      // Interactive so it emits gmp-click; the click handler is wired in the Label constructor (#2561).
-      gmpClickable: true,
-      title,
-    });
+    return svl.minimap.addMarker(latLng, content, { onClick, title });
   }
 }
 

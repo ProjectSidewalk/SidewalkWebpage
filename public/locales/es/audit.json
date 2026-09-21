@@ -166,6 +166,7 @@
       "message-others-no-dates": "Otro usuario ya mapeó esta calle antes, pero las imágenes se han renovado desde entonces. ¡Veamos qué ha cambiado!"
     },
     "minimap": {
+      "attribution-toggle": "Créditos de los datos del mapa",
       "coach-dismiss": "Entendido",
       "distance-left": "Quedan {{distance}}",
       "explore-current-location": "Gire 360 grados para asegurarse de que no se pierda nada.",

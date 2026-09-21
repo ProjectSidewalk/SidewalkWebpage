@@ -189,18 +189,15 @@ class RouteOverview {
 
   /**
    * Outlines the geographic extent the main minimap currently shows, so the inset reads as a zoomed-out companion to
-   * the street-level view ("you're looking at this part of the route"). Skipped until the map's bounds are ready.
+   * the street-level view ("you're looking at this part of the route"). Skipped until the minimap exists.
    * @param {CanvasRenderingContext2D} ctx
    * @param {(lng: number, lat: number) => number[]} project
    */
   #drawViewportBox(ctx, project) {
-    const map = svl.minimap && svl.minimap.getMap();
-    const bounds = map && map.getBounds();
-    if (!bounds) return;
-    const ne = bounds.getNorthEast();
-    const sw = bounds.getSouthWest();
-    const [x1, y1] = project(sw.lng(), ne.lat()); // top-left corner of the viewport
-    const [x2, y2] = project(ne.lng(), sw.lat()); // bottom-right corner
+    if (!svl.minimap) return;
+    const bounds = svl.minimap.getBounds();
+    const [x1, y1] = project(bounds.west, bounds.north); // top-left corner of the viewport
+    const [x2, y2] = project(bounds.east, bounds.south); // bottom-right corner
     ctx.save();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
     ctx.lineWidth = 1.5;

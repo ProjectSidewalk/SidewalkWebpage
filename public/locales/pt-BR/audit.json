@@ -166,6 +166,7 @@
       "message-others-no-dates": "Outro usuário já mapeou esta rua antes, mas as imagens foram renovadas desde então. Vamos ver o que mudou!"
     },
     "minimap": {
+      "attribution-toggle": "Créditos dos dados do mapa",
       "coach-dismiss": "Entendi",
       "distance-left": "Faltam {{distance}}",
       "explore-current-location": "Vire 360 graus para garantir que nada seja perdido.",

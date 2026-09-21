@@ -86,7 +86,7 @@ describe('Label render fade while the context menu is open', () => {
             getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
         };
         window.labelIconCache = { 'CurbRamp.svg': {} }; // Truthy, so renderLabelIcon reaches its drawImage.
-        Label.createMinimapMarker = () => ({ addListener: () => {} });
+        Label.createMinimapMarker = () => ({ setVisible: () => {} });
     });
 
     afterEach(() => {

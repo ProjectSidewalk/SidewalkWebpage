@@ -166,6 +166,7 @@
       "message-others-no-dates": "Another user mapped this street before, but the imagery has been refreshed since then. Let's see what's changed!"
     },
     "minimap": {
+      "attribution-toggle": "Map data credits",
       "coach-dismiss": "Got it",
       "distance-left": "{{distance}} left",
       "explore-current-location": "Turn 360 degrees to make sure nothing is missed.",

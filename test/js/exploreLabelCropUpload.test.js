@@ -50,7 +50,7 @@ describe('Label crop upload', () => {
         window.svl = { minimap: { getMap: () => null } };
         // The real one builds a google.maps AdvancedMarkerElement; all the constructor does with it is assign a map
         // and add a click listener.
-        Label.createMinimapMarker = () => ({ addListener: () => {} });
+        Label.createMinimapMarker = () => ({ setVisible: () => {} });
         global.fetch = jest.fn().mockResolvedValue({ ok: true });
         jest.spyOn(console, 'log').mockImplementation(() => {});
     });

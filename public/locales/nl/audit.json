@@ -166,6 +166,7 @@
       "message-others-no-dates": "Een andere gebruiker heeft deze straat eerder in kaart gebracht, maar de beelden zijn sindsdien vernieuwd. Laten we kijken wat er veranderd is!"
     },
     "minimap": {
+      "attribution-toggle": "Bronvermelding kaartgegevens",
       "coach-dismiss": "Begrepen",
       "distance-left": "Nog {{distance}}",
       "explore-current-location": "Draai 360 graden om er zeker van te zijn dat u niets mist.",
