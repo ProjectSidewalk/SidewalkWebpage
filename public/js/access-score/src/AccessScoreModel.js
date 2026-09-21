@@ -162,6 +162,16 @@
  */
 
 /**
+ * One street's place in the rank list, from `rankedStreets` (#5223).
+ * @typedef {object} AccessScoreStreetRank
+ * @property {number} streetId
+ * @property {?string} name - The street's OSM name, or null for an unnamed way.
+ * @property {number} regionId
+ * @property {number} score - The street's headline score; only audited streets are ranked, so never null.
+ * @property {number} lengthM
+ */
+
+/**
  * The AccessScore tool's scoring model: the engine's math, re-run in the browser (#5217).
  *
  * Holds one city's streets and intersections as the count-based inputs `/v3/api/accessScoreStreets` and
@@ -209,6 +219,9 @@ class AccessScoreModel {
 
   /** Histogram resolution over the 0–1 score range. */
   static HISTOGRAM_BINS = 10;
+
+  /** How many streets either end of the rank list holds: a leaderboard, not the city's whole street table. */
+  static RANK_LIMIT = 20;
 
   /** @type {AccessScoreConfig} */
   #config;
@@ -890,6 +903,46 @@ class AccessScoreModel {
   rankedRegions() {
     return this.#regionStats.filter((r) => r.score !== null && !r.belowFloor)
       .sort((a, b) => b.score - a.score || b.auditedLengthM - a.auditedLengthM);
+  }
+
+  /**
+   * The best- or worst-scoring streets under the current state (#5223).
+   *
+   * A city has thousands of streets and a reader wants the ends of that list, so this keeps a bounded leaderboard
+   * rather than sorting the city on every slider tick: one pass, and a candidate is compared against the cutoff
+   * before anything is inserted. A tie goes to the longer street — at a given score a 20 m stub says less about a
+   * neighborhood than a block does, and it makes the order stable while a drag rewrites the scores underneath.
+   *
+   * There is no completion floor to apply, unlike `rankedRegions`: a street is audited or it has no score at all.
+   *
+   * @param {object} [options] - How much of which end.
+   * @param {boolean} [options.worst] - True for the worst-scoring streets, worst first; else the best, best first.
+   * @param {number} [options.limit] - How many rows at most.
+   * @returns {AccessScoreStreetRank[]} The rows, in the order they should be shown.
+   */
+  rankedStreets({ worst = false, limit = AccessScoreModel.RANK_LIMIT } = {}) {
+    if (limit <= 0) return [];
+    const sign = worst ? -1 : 1;
+    /** Whether `i` outranks the row at `j`, under the end being asked for. */
+    const outranks = (i, j) => sign * (this.#scores[i] - this.#scores[j]) > 0
+      || (this.#scores[i] === this.#scores[j] && this.#lengths[i] > this.#lengths[j]);
+    /** @type {number[]} Street indices, best of the asked-for end first. */
+    const top = [];
+    for (let i = 0; i < this.#n; i++) {
+      if (this.#audited[i] !== 1) continue;
+      if (top.length === limit && !outranks(i, top[top.length - 1])) continue;
+      let at = top.length;
+      while (at > 0 && outranks(i, top[at - 1])) at -= 1;
+      top.splice(at, 0, i);
+      if (top.length > limit) top.pop();
+    }
+    return top.map((i) => ({
+      streetId: this.#ids[i],
+      name: this.#names[i],
+      regionId: this.#regionIds[i],
+      score: this.#scores[i],
+      lengthM: this.#lengths[i],
+    }));
   }
 
   /**

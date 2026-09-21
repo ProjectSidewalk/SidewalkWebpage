@@ -140,8 +140,11 @@ dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`,
 sweep tick) / `AccessScore_Brush_value=grade=<class indices>` (the map legend's slope classes brushed instead,
 gentlest first, `-1` for "no slope data"; #5223 — the two kinds displace each other, so only one is ever in force) /
 `AccessScore_Brush_value=clear`, `AccessScore_PhotoStrip_labelId_value=<id>` (a photo-strip thumbnail opening the full
-label card), and `AccessScore_RankSelect_regionId_value=<id>` (a rank row clicked: the band scopes to that neighborhood in
-either unit, and in the neighborhoods unit the map selection it also makes logs `AccessScore_Select_regionId`). The drawer's `MapSidebar_Open` /
+label card), `AccessScore_RankSelect_regionId_value=<id>` (a neighborhood rank row clicked: the band scopes to that
+neighborhood, and the map selection it also makes logs `AccessScore_Select_regionId`),
+`AccessScore_RankSelect_streetId_value=<id>` (a street rank row clicked, in the streets unit, where the list is the
+street leaderboard; it selects the street, so `AccessScore_Select_streetId` follows; #5223) and
+`AccessScore_RankOrder_value=<best|worst>` (which end of that leaderboard is on show). The drawer's `MapSidebar_Open` /
 `MapSidebar_Close` fire here too (shared chrome); the server logs `Visit_AccessScore` per page load, or `Visit_AccessScore_RedirectMobileLanding` when a mobile UA is bounced to `/mobileLanding` instead (the tool is desktop-only, like the Route Builder, and its Tools-menu entry is not rendered on a phone).
 
 The Gallery renders the same sidebar (`gallery/src/filter/GalleryFilter.js`) and logs to `gallery_task_interaction`

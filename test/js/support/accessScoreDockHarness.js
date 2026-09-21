@@ -98,7 +98,14 @@ const DOCK_HTML = `
       <div id="acs-dock-body">
         <div id="acs-histogram"></div>
         <div id="acs-whats-here"></div>
-        <div id="acs-rank-bars"></div>
+        <section class="acs-dock__panel acs-dock__panel--rank">
+          <div class="acs-dock__panel-head">
+            <h3 id="acs-dock-rank-title">Neighborhoods ranked</h3>
+            <button type="button" class="acs-info" aria-label="More information">i</button>
+            <button type="button" id="acs-rank-order" hidden>Show worst 20</button>
+          </div>
+          <div id="acs-rank-bars"></div>
+        </section>
         <div id="acs-photos"></div>
       </div>
     </aside>

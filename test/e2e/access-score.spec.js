@@ -369,29 +369,40 @@ test.describe('/accessScore', () => {
       expect(await dimOf(page, 'acs-regions', 1)).toBe(false);
     });
 
-  test('in the streets unit a rank click scopes the band to the region without selecting it on the map', async ({page}) => {
-    await page.goto('/accessScore');
-    await waitForAppReady(page);
-    await waitForTool(page);
-    const row = page.locator('.acs-rank__row').first();
-    await expect(row).toContainText('Fixture');
-    const zoomBefore = await page.evaluate(() => window.accessScore.map.getZoom());
-    await row.click();
-    await expect(row).toHaveAttribute('aria-current', 'true');
-    await expect(page.locator('.acs-whats-here__caption')).toHaveText('in Fixture');
-    await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from Fixture');
-    await expect.poll(() => urlParam(page, 'focus')).toBe('1');
-    await expect.poll(() => page.evaluate(() => window.accessScore.map.getZoom())).not.toBe(zoomBefore);
-    // No region was selected on the streets map: no popup, and the URL carries no selection.
-    await expect(page.locator('.acs-popup')).toHaveCount(0);
-    expect(await urlParam(page, 'sel')).toBeNull();
-    // The rows in What's here only read now: nothing in them is a button.
-    await expect(page.locator('.acs-whats-here__row button')).toHaveCount(0);
-    // A street selection is the newer scope and drops the focus.
-    await page.evaluate(() => window.accessScore.dock.setSelection({unit: 'streets', id: 1}));
-    await expect(page.locator('.acs-whats-here__caption')).toHaveText('on Cedar Lane');
-    await expect.poll(() => urlParam(page, 'focus')).toBeNull();
-  });
+  test('in the streets unit the rank list is the street leaderboard, and a click selects that street (#5223)',
+    async ({page}) => {
+      await page.goto('/accessScore');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      await expect(page.locator('#acs-dock-rank-title')).toHaveText('Streets ranked');
+      const order = page.locator('#acs-rank-order');
+      await expect(order).toBeVisible();
+      await expect(order).toHaveText('Show worst 20');
+
+      // Best first: the top row outscores the bottom one, and the toggle turns the list around.
+      const scores = () => page.locator('.acs-rank__score').allTextContents();
+      const asNumbers = (texts) => texts.map((t) => Number.parseFloat(t));
+      const best = asNumbers(await scores());
+      expect(best).toEqual([...best].sort((a, b) => b - a));
+      await order.click();
+      await expect(order).toHaveText('Show best 20');
+      const worst = asNumbers(await scores());
+      expect(worst).toEqual([...worst].sort((a, b) => a - b));
+      expect(worst[0]).toBeLessThanOrEqual(best[0]);
+      await order.click();
+
+      // A row is the street: clicking it selects that street on the map, popup and URL included.
+      const row = page.locator('.acs-rank__row').first();
+      const zoomBefore = await page.evaluate(() => window.accessScore.map.getZoom());
+      const streetId = await row.getAttribute('data-row-id');
+      await row.click();
+      await expect(row).toHaveAttribute('aria-current', 'true');
+      await expect(page.locator('.acs-popup')).toBeVisible();
+      await expect.poll(() => urlParam(page, 'sel')).toBe(streetId);
+      await expect.poll(() => page.evaluate(() => window.accessScore.map.getZoom())).not.toBe(zoomBefore);
+      // The rows in What's here only read: nothing in them is a button.
+      await expect(page.locator('.acs-whats-here__row button')).toHaveCount(0);
+    });
 
   test('selecting a street fades the streets outside its region, and the collapsed band keeps the legend',
     async ({page}) => {

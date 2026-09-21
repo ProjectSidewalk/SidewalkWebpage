@@ -627,6 +627,33 @@ describe('AccessScoreModel', () => {
         expect(model.histogram({ regionIds: new Set([2]) }).total).toBe(1);
     });
 
+    test('rankedStreets takes either end of the leaderboard, on scores alone (#5223)', () => {
+        const regions = [{ region_id: 1, name: 'Whole', rate: 1, total_distance_m: 600, completed_distance_m: 600 }];
+        const features = [
+            feature(FIXTURE.streets[1], 0, { region_id: 1, length_meters: 100 }), // one good curb ramp
+            feature(FIXTURE.streets[2], 1, { region_id: 1, length_meters: 300 }), // a bad one: the lower score
+            // The same inputs as street 1 at twice the length: the tie-break, and a street with no name.
+            feature(FIXTURE.streets[1], 2, { region_id: 1, length_meters: 200, street_name: null }),
+            feature(FIXTURE.streets[1], 3, { region_id: 1, length_meters: 50, audit_count: 0 }),
+        ];
+        const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features },
+            NO_INTERSECTIONS, regions);
+        // An unaudited street has no score to rank, and a tie goes to the longer street.
+        expect(model.rankedStreets().map((s) => s.streetId)).toEqual([3, 1, 2]);
+        expect(model.rankedStreets({ worst: true }).map((s) => s.streetId)).toEqual([2, 3, 1]);
+        // The two ends of the same list: either end of a limit, and the rows carry what the list draws.
+        expect(model.rankedStreets({ limit: 1 })[0].streetId).toBe(3);
+        expect(model.rankedStreets({ worst: true, limit: 1 })[0].streetId).toBe(2);
+        expect(model.rankedStreets({ limit: 0 })).toEqual([]);
+        const top = model.rankedStreets({ limit: 1 })[0];
+        expect(top).toEqual({ streetId: 3, name: null, regionId: 1, score: model.explainStreet(3).score,
+            lengthM: 200 });
+        // The order follows the weights, not the data's order: drop curb ramps and the bad one stops being worst.
+        model.setState({ weights: { CurbRamp: 0 } });
+        expect(model.rankedStreets().map((s) => s.score))
+            .toEqual([...model.rankedStreets().map((s) => s.score)].sort((a, b) => b - a));
+    });
+
     test('an empty city yields no NaN anywhere', () => {
         const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features: [] },
             NO_INTERSECTIONS, []);
@@ -635,6 +662,7 @@ describe('AccessScoreModel', () => {
         expect(k.auditedKm).toBe(0);
         expect(model.histogram().total).toBe(0);
         expect(model.rankedRegions()).toEqual([]);
+        expect(model.rankedStreets()).toEqual([]);
         expect(model.contributions().streets).toBe(0);
         expect(Object.values(model.contributions().clusterMeans).every((v) => v === 0)).toBe(true);
         expect(Object.values(model.contributions().means).every((v) => v === 0)).toBe(true);

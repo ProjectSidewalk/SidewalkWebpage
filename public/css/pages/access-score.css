@@ -448,6 +448,10 @@
 .acs-disclosure {
   display: flex;
   align-items: center;
+
+  /* Folded, a long heading plus its hint can outgrow a narrow sidebar: the hint drops to a second line rather
+     than run under the "Reset weights" beside it. */
+  flex-wrap: wrap;
   gap: var(--space-xxs);
   width: 100%;
   padding: 0;
@@ -485,6 +489,12 @@
 }
 
 .acs-disclosure__hint:empty {
+  display: none;
+}
+
+/* Open, the sliders themselves say the weights are custom, and the word would only crowd the row's "Reset
+   weights" — in a narrow sidebar the two collide outright. */
+.acs-disclosure[aria-expanded="true"] .acs-disclosure__hint {
   display: none;
 }
 
@@ -1148,6 +1158,30 @@
   color: var(--color-neutral-800);
 }
 
+/* A panel head's action, at the far end of the row: the rank list's "Show worst 20". Quiet, like the sidebar's
+   "Reset weights", since it is a way to look at the same panel rather than a change to the scores. */
+.acs-dock__panel-action {
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  font: var(--text-tiny-regular);
+  color: var(--color-asphalt-400);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.acs-dock__panel-action:hover {
+  color: var(--color-asphalt-500);
+  text-decoration: underline;
+}
+
+.acs-dock__panel-action:focus-visible {
+  outline: 2px solid var(--color-asphalt-400);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 /* ---- Histogram (and legend) ---- */
 
 /* No gutter: the value labels ride their gridlines inside the plot, so the bars get the panel's full width. The
@@ -1568,7 +1602,10 @@
 
 .acs-rank__row {
   display: grid;
-  grid-template-columns: auto minmax(72px, 1.5fr) minmax(40px, 1fr) auto; /* Digits take only their own width. */
+
+  /* Digits take only their own width. The name gets the larger share: a street name ("New Bridge Road") runs longer
+     than a neighborhood's, and the bar reads as well at 40px as at 60. */
+  grid-template-columns: auto minmax(72px, 2fr) minmax(40px, 1fr) auto;
   align-items: center;
   gap: var(--space-xs);
   width: 100%;

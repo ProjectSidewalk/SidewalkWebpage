@@ -261,6 +261,10 @@
             <div class="acs-dock__panel-head">
               <h3 class="acs-dock__panel-title" id="acs-dock-rank-title" data-i18n="accessscore:chart-rank">Neighborhoods ranked</h3>
               @info("chart-rank-help")
+              @* A city has tens of neighborhoods and thousands of streets, so the streets list is one end of a
+                 leaderboard and this button is the way to the other end (#5223). The dock writes its wording and
+                 hides it in the neighborhoods unit, which has no ends to swap. *@
+              <button type="button" id="acs-rank-order" class="acs-dock__panel-action" hidden>Show worst 20</button>
             </div>
             <div id="acs-rank-bars" class="acs-rank"></div>
           </section>

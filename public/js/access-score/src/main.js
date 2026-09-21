@@ -18,6 +18,8 @@ window.AccessScoreApp = (function () {
   ]);
   /** The sliders: mid-drag, the sidebar must not be re-synced from the model (the thumb is under a finger). */
   const DRAG_KINDS = new Set(['Weight', 'SlopeWeight']);
+  /** Close enough to read one block and its neighbors, where a rank row's street lands (#5223). */
+  const STREET_ZOOM = 15;
   const EMPTY_COLLECTION = { type: 'FeatureCollection', features: [] };
 
   /** Fetches JSON, treating a non-2xx status as a failure so the overlay's error card shows. */
@@ -211,16 +213,20 @@ window.AccessScoreApp = (function () {
       model,
       mapView,
       map,
-      // A rank row goes to the region; in the regions unit it selects it too, in the streets unit the
-      // regions aren't selectable, so the fly-to is the whole answer.
-      // In the regions unit a rank click is a map selection; in the streets unit the dock's own focus scopes
-      // the band to the region without a region ever being "selected" on a streets map.
-      onRankSelect: (regionId) => {
-        mapView.flyToRegion(regionId);
-        if (model.state.unit === 'regions') {
-          const lngLat = regionCenter(regionId);
-          if (lngLat) select({ unit: 'regions', id: regionId, lngLat });
+      // A rank row goes to what it ranks: a street row selects the street and opens its card, exactly as a click
+      // on the map would; a neighborhood row selects the region in the regions unit, where the map has regions to
+      // select, and in the streets unit the fly-to plus the dock's own focus is the whole answer.
+      onRankSelect: ({ unit, id }) => {
+        if (unit === 'streets') {
+          const lngLat = streetCenter(id);
+          if (!lngLat) return;
+          map.flyTo({ center: lngLat, zoom: Math.max(map.getZoom(), STREET_ZOOM) });
+          select({ unit, id, lngLat });
+          return;
         }
+        mapView.flyToRegion(id);
+        const lngLat = regionCenter(id);
+        if (lngLat) select({ unit: 'regions', id, lngLat });
       },
       onOpenLabel: (labelId, ids) => evidence.openLabel(labelId, ids),
       onStateChange: () => urlSync.setDock(dock.state),
