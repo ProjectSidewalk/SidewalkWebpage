@@ -25,6 +25,28 @@ window.AccessScoreApp = (function () {
     return response.json();
   }
 
+  /**
+   * Fetches one of the whole-city score feeds, waiting out a server that is not ready to answer yet (#5418) and
+   * telling the overlay so the wait reads as progress rather than a hang.
+   *
+   * The wording never claims the server is computing: the same retry path covers the proxy's own `503` while the
+   * backend is down mid-deploy, when nothing is being computed at all.
+   *
+   * @param {string} url - The feed's URL.
+   * @param {MapLoadingOverlay} overlay - Where the wait is announced.
+   * @returns {Promise<GeoJSON.FeatureCollection>} The feed.
+   */
+  function fetchScores(url, overlay) {
+    return AccessScoreFetch.fetchJsonWithRetry(url, {
+      // The first attempt is the ordinary page load, which the overlay's own spinner and clock already cover. A retry
+      // can sit for up to the server's 45 s cold wait with no countdown running, so it needs its own line.
+      onAttempt: (attempt) => {
+        if (attempt >= 2) overlay.setStatus(i18next.t('labelmap:waiting-for-scores'));
+      },
+      onWait: (_attempt, seconds) => overlay.setStatus(i18next.t('labelmap:waiting-for-scores-retry', { seconds })),
+    });
+  }
+
   /** A score in [0, 1] as the 0–100 figure people see, to one decimal. */
   function formatScore(score) {
     return (score * 100).toFixed(1);
@@ -69,10 +91,11 @@ window.AccessScoreApp = (function () {
 
     const dataPromise = Promise.all([
       fetchJson('/v3/api/accessScoreConfig'),
-      fetchJson(SCORE_ENDPOINT),
+      fetchScores(SCORE_ENDPOINT, overlay),
       // Without the crossings the page still works, every street just keeps its segment score — better than a
-      // dead page for one feed's outage, and the console says which half is missing.
-      fetchJson(INTERSECTIONS_ENDPOINT).catch((e) => {
+      // dead page for one feed's outage, and the console says which half is missing. The retry comes first: the two
+      // feeds share one cache, so a cold start fails both, and without it the page would quietly load segment-only.
+      fetchScores(INTERSECTIONS_ENDPOINT, overlay).catch((e) => {
         console.warn('AccessScore intersections failed to load; scores are segment-only', e);
         return EMPTY_COLLECTION;
       }),
