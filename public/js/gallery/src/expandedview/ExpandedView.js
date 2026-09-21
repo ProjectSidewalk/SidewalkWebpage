@@ -185,8 +185,7 @@ class ExpandedView {
   };
 
   /**
-   * Called by LabelDetail after a delete or restore (#3591); syncs the small card, including the Disagree an admin's
-   * delete files.
+   * Called by LabelDetail after a delete or restore (#3591); syncs the small card, incl. an admin delete's Disagree.
    * @param {{deleted: boolean, user_validation: ?string}} meta - The label's metadata as it now stands.
    */
   #handleDelete = (meta) => {

@@ -316,11 +316,9 @@ class ValidationServiceImpl @Inject() (
                 case None         => DBIO.successful(false)
               }
 
-              // Comments are keyed by (label, user) rather than by validation — one apiece, per
-              // validation_task_comment_label_id_user_id_unique (#4942) — so only clear them when this submission accounts
-              // for them: an undo/redo retracts the comment that came with
-              // the vote, and a submission carrying its own replaces it. A repeat validation carrying none must leave the
-              // user's earlier free text alone — the user said nothing about it, so nothing about it changed.
+              // Comments are keyed by (label, user), one apiece (#4942), so only clear one when this submission
+              // accounts for it: an undo/redo retracts the comment that came with the vote, and a submission carrying
+              // its own replaces it. A repeat validation carrying none leaves the user's earlier text alone.
               val oldCommentRemoved =
                 if (valSubmission.undone || valSubmission.redone || valSubmission.comment.isDefined) {
                   // A retracted vote taking the text with it is no request to erase anything, so the history tells it apart

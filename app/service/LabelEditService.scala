@@ -289,10 +289,7 @@ class LabelEditServiceImpl @Inject() (
       case Some(label) => setDeleted(label, deleterId, Some(source))
     }
 
-  /**
-   * Undoes a delete. The labeler can undo their own delete and an admin can undo any; an admin's delete carries their
-   * Disagree, which stays on the record.
-   */
+  /** Undoes a delete: the labeler their own, an admin any. An admin's delete leaves its Disagree on the record. */
   def restoreLabel(labelId: Int, editor: SidewalkUserWithRole): Future[LabelEditOutcome] = {
     val isAdmin: Boolean = Role.ADMIN_ROLES.contains(editor.role)
     db.run(
