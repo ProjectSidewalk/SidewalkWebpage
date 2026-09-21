@@ -2,7 +2,7 @@
 
 Every street gets a running slope, a climb and an elevation profile, sampled along its centerline from a bare-earth
 elevation model (#5223). It needs no labeling, so it exists for unaudited streets too. The numbers live in the
-`street_gradient` table (398.sql), filled offline by [`scripts/street_gradient.py`](../scripts/street_gradient.py).
+`street_gradient` table (399.sql), filled offline by [`scripts/street_gradient.py`](../scripts/street_gradient.py).
 Nothing in the app reads the table yet: the API fields, the AccessScore tool layer and the scoring term are later
 phases of #5223.
 

@@ -94,14 +94,14 @@ class UserRouteTable @Inject() (
    * where it left off when the user explicitly re-enters the route via ?routeId= (#4833).
    */
   def pauseAllActiveRoutes(userId: String): DBIO[Int] = {
-    activeRoutes.filter(_.userId === userId).map(_.paused).update(true)
+    activeRoutes.filter(ur => ur.userId === userId && !ur.paused).map(_.paused).update(true)
   }
 
   /**
    * Pause any active route walks for the given user that don't match the given routeId.
    */
   def pauseOtherActiveRoutes(routeId: Int, userId: String): DBIO[Int] = {
-    activeRoutes.filter(x => x.routeId =!= routeId && x.userId === userId).map(_.paused).update(true)
+    activeRoutes.filter(x => x.routeId =!= routeId && x.userId === userId && !x.paused).map(_.paused).update(true)
   }
 
   /**
