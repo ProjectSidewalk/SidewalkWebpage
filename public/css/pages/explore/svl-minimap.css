@@ -354,39 +354,10 @@
   fill: none;
 }
 
-.minimap-legend-sample-visited {
-  fill: none;
-  stroke: var(--color-pine-700);
-  stroke-width: 2;
-}
-
-.minimap-legend-sample-next-stop {
+.minimap-legend-sample-crumb {
   fill: var(--color-neutral-white);
   stroke: var(--color-link-200);
   stroke-width: 1.8;
-}
-
-.minimap-legend-sample-other-link {
-  fill: var(--color-neutral-white);
-  stroke: var(--color-banana-900);
-  stroke-width: 1.8;
-}
-
-.minimap-legend-sample-next-step {
-  fill: var(--color-route-ahead);
-  stroke: var(--color-link-200);
-  stroke-width: 1.8;
-}
-
-.minimap-legend-sample-faced {
-  fill: var(--color-banana-700);
-  stroke: var(--color-neutral-white);
-  stroke-width: 1.5;
-}
-
-.minimap-legend-sample-faced-halo {
-  fill: var(--color-banana-700);
-  opacity: 0.25;
 }
 
 .minimap-legend-sample-dashed {
@@ -394,9 +365,7 @@
 }
 
 .minimap-legend-sample-chevron {
-  fill: var(--color-neutral-white);
-  stroke: var(--color-link-200);
-  stroke-width: 1;
+  fill: var(--color-link-200);
 }
 
 .minimap-legend-sample-peg {
@@ -661,7 +630,7 @@
    from the zoom-out button's, the spacing WCAG 2.5.8 asks of two targets smaller than 24px. */
 #minimap-attribution {
   right: calc(28px * var(--ui-scale));
-  bottom: calc(6px * var(--ui-scale));
+  bottom: calc(7px * var(--ui-scale));
   z-index: 6;
 }
 

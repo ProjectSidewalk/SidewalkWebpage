@@ -140,19 +140,36 @@ class Minimap {
     const button = corner.querySelector('.maplibregl-ctrl-attrib-button');
     if (!attribution || !button) return;
     const opened = 'maplibregl-compact-show';
+    // Closed the way MapLibre's own toggle closes it: the class shows the credits, and the <details> `open`
+    // attribute is what the <summary> button announces as expanded to assistive tech.
+    const close = () => {
+      attribution.classList.remove(opened);
+      attribution.removeAttribute('open');
+    };
     const observer = new MutationObserver(() => {
       if (!attribution.classList.contains(opened)) return;
       observer.disconnect();
-      // Closed the way MapLibre's own toggle closes it: the class shows the credits, and the <details> `open`
-      // attribute is what the <summary> button announces as expanded to assistive tech.
-      attribution.classList.remove(opened);
-      attribution.removeAttribute('open');
+      close();
     });
     observer.observe(attribution, { attributes: true, attributeFilter: ['class'] });
     // MapLibre toggles the class in its own click handler on the button, which runs before this one.
     button.addEventListener('click', () => {
       const isOpen = attribution.classList.contains(opened);
-      svl.tracker.push('Click_MinimapAttribution', { action: isOpen ? 'open' : 'close' });
+      svl.tracker.push('Click_MinimapAttribution', { action: isOpen ? 'open' : 'close', trigger: 'button' });
+    });
+    // Like the legend card, the open credits are a popover: a click elsewhere or Esc dismisses them.
+    const dismiss = (trigger) => {
+      if (!attribution.classList.contains(opened)) return;
+      close();
+      svl.tracker.push('Click_MinimapAttribution', { action: 'close', trigger });
+    };
+    document.addEventListener('pointerdown', (e) => {
+      if (!corner.contains(/** @type {Node} */ (e.target))) dismiss('outside');
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      dismiss('escape');
+      if (corner.contains(document.activeElement)) button.focus();
     });
   }
 

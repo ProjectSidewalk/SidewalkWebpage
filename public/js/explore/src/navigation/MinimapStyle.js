@@ -45,8 +45,8 @@ class MinimapStyle {
     return MinimapStyle.token('--color-route-ahead', '#95BFEA');
   }
 
-  /** @returns {string} Outline of the route-ahead chevrons: deep blue, so they read on the white casing too. */
-  static chevronOutlineColor() {
+  /** @returns {string} Fill of the route-ahead chevrons: deep blue, so they read on the dashes and the casing alike. */
+  static chevronColor() {
     return MinimapStyle.token('--color-link-200', '#0A58CA');
   }
 
@@ -102,8 +102,8 @@ class MinimapStyle {
    * How a street is drawn, by the `kind` a Task gives each of its lines (see Minimap.setStreetLines):
    *  - `audited`: the explored half of the current street, a solid line over a white casing.
    *  - `remaining`: the walk-this-way half (and, on a designated route, every street ahead): light-blue dashes with
-   *    direction chevrons over the same casing. 5px dashes with 7px gaps: the rhythm, not the hue, separates this line
-   *    from the pine one.
+   *    small deep-blue direction chevrons over the same casing. 5px dashes with 7px gaps: the rhythm, not the hue,
+   *    separates this line from the pine one.
    *  - `completed`: a street, or part of one, already walked that isn't the current street.
    *  - `other`: a street in the region that isn't part of the current task: quiet context.
    *
@@ -189,16 +189,16 @@ class MinimapStyle {
   }
 
   /**
-   * The direction chevron repeated along the route ahead: white with a deep-blue outline, so it reads on both the
-   * dashes and the white casing between them. Drawn pointing right (+x), which a line-placed symbol aligns with the
-   * line's direction, so chevrons point the way the street's coordinates run.
+   * The direction chevron repeated along the route ahead: small and solid, because an outlined one reads as a button.
+   * Drawn pointing right (+x), which a line-placed symbol aligns with the line's direction, so chevrons point the way
+   * the street's coordinates run.
    * @param {number} pixelRatio - Device pixel ratio to rasterize at, so the chevron stays crisp on dense displays.
    * @returns {ImageData} The chevron bitmap, for map.addImage(..., { pixelRatio }).
    */
   static chevronImage(pixelRatio) {
-    const length = 10;
-    const halfWidth = 5.5;
-    const pad = 2; // Room for the outline.
+    const length = 6;
+    const halfWidth = 3.5;
+    const pad = 1; // Keeps the antialiased edge inside the bitmap.
     const canvas = document.createElement('canvas');
     canvas.width = Math.ceil((length + 2 * pad) * pixelRatio);
     canvas.height = Math.ceil((2 * halfWidth + 2 * pad) * pixelRatio);
@@ -209,12 +209,8 @@ class MinimapStyle {
     ctx.lineTo(pad + length, pad + halfWidth);
     ctx.lineTo(pad, pad + 2 * halfWidth);
     ctx.closePath();
-    ctx.fillStyle = MinimapStyle.token('--color-neutral-white', '#FFFFFF');
+    ctx.fillStyle = MinimapStyle.chevronColor();
     ctx.fill();
-    ctx.lineJoin = 'round';
-    ctx.lineWidth = 1.4;
-    ctx.strokeStyle = MinimapStyle.chevronOutlineColor();
-    ctx.stroke();
     return ctx.getImageData(0, 0, canvas.width, canvas.height);
   }
 }

@@ -429,8 +429,38 @@ describe('Minimap seam', () => {
       expect(isShown()).toBe(false);
 
       expect(tracked('Click_MinimapAttribution')).toEqual([
-        ['Click_MinimapAttribution', { action: 'open' }],
-        ['Click_MinimapAttribution', { action: 'close' }],
+        ['Click_MinimapAttribution', { action: 'open', trigger: 'button' }],
+        ['Click_MinimapAttribution', { action: 'close', trigger: 'button' }],
+      ]);
+    });
+
+    test('open credits close on a press elsewhere or on Esc, but not on a press inside them', async () => {
+      autoOpen();
+      await observed();
+      const openByUser = async () => {
+        creditsButton().click();
+        await observed();
+      };
+      const press = (el) => el.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+
+      await openByUser();
+      press(creditsButton());
+      expect(isShown()).toBe(true);
+      press(document.body);
+      expect(isShown()).toBe(false);
+      expect(credits().hasAttribute('open')).toBe(false);
+
+      await openByUser();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      expect(isShown()).toBe(false);
+
+      // Already closed: another outside press is not a second close.
+      press(document.body);
+      expect(tracked('Click_MinimapAttribution').map(([, note]) => note)).toEqual([
+        { action: 'open', trigger: 'button' },
+        { action: 'close', trigger: 'outside' },
+        { action: 'open', trigger: 'button' },
+        { action: 'close', trigger: 'escape' },
       ]);
     });
   });
