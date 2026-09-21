@@ -82,6 +82,10 @@ MEAN_WINDOW_M = 10.0
 MAX_WINDOW_M = 30.0
 PROFILE_SPACING_M = 10.0
 GRADE_THRESHOLDS = (1 / 20, 1 / 12)  # ADA / PROWAG: walking surface 1:20, ramp 1:12.
+# Two grades closer than this are the same grade. Windows over a uniform slope differ by float rounding alone, which
+# would otherwise decide which of them is "steepest" and whether the mean "exceeds" the maximum. A millionth of a
+# percent is far below the centimeter the elevations are stored to.
+GRADE_TOLERANCE = 1e-9
 
 # A street with more than this share of its samples on no-data has no usable profile. Below it the gaps (AHN blanks
 # every building and canal, for one) are bridged along the street. Its two end samples are the exception: nothing lies
@@ -223,13 +227,15 @@ def steepest_window(z: np.ndarray, length_m: float, window_m: float) -> tuple[fl
     the stretch ``max_grade`` describes instead of re-deriving it from the coarser stored profile.
 
     Returns:
-        Its start and end in meters from the first vertex; the whole street when it is shorter than the baseline.
+        Its start and end in meters from the first vertex; the whole street when it is shorter than the baseline. Of
+        baselines equally steep (within ``GRADE_TOLERANCE``), the first, so a uniform slope reports its start.
     """
     step = length_m / (len(z) - 1)
     w = max(1, round(window_m / step))
     if len(z) - 1 < w:
         return 0.0, float(length_m)
-    i = int(np.argmax(window_grades(z, length_m, window_m)))
+    grades = window_grades(z, length_m, window_m)
+    i = int(np.flatnonzero(grades >= grades.max() - GRADE_TOLERANCE)[0])
     return float(i * step), float((i + w) * step)
 
 
@@ -245,9 +251,9 @@ def grade_metrics(z: np.ndarray, length_m: float) -> dict:
         ``net_grade`` (signed, digitized direction), ``mean_grade`` and ``max_grade`` (absolute, see the window
         constants), ``max_grade_from_m`` / ``max_grade_to_m`` (where along the street the baseline that set
         ``max_grade`` lies, absent where the mean floored it), ``meters_over_5pct_grade`` /
-        ``meters_over_8pct_grade`` (the share of 10 m baselines over each of ``GRADE_THRESHOLDS``, as a length; the second is the 1:12 ramp limit, 8.33%), ``climb_m`` / ``descent_m``
-        (summed over 10 m steps so sample noise does not accumulate), and ``profile_cm`` (elevations every ~10 m,
-        endpoints included, in whole centimeters).
+        ``meters_over_8pct_grade`` (the share of 10 m baselines over each of ``GRADE_THRESHOLDS``, as a length; the
+        second is the 1:12 ramp limit, 8.33%), ``climb_m`` / ``descent_m`` (summed over 10 m steps so sample noise
+        does not accumulate), and ``profile_cm`` (elevations every ~10 m, endpoints included, in whole centimeters).
     """
     g_mean = window_grades(z, length_m, MEAN_WINDOW_M)
     # A street shorter than the 30 m baseline has no such window. Its steepest 10 m pitch is the best maximum it has,
@@ -262,8 +268,9 @@ def grade_metrics(z: np.ndarray, length_m: float) -> dict:
     profile = np.interp(np.linspace(0, length_m, n_profile + 1), np.linspace(0, length_m, len(z)), z)
     # Floored at the mean: on a bumpy street the 10 m baselines can average more than any 30 m one reaches, and a
     # maximum below the mean reads as a bug to whoever consumes the pair. A floored maximum was set by no stretch of
-    # the street, so it has no place along it to report.
-    floored = g_mean.mean() > g_max.max()
+    # the street, so it has no place along it to report. Only a 30 m maximum can be floored (under 30 m the maximum is
+    # the steepest of the very baselines the mean averages), and only by more than float rounding.
+    floored = length_m >= MAX_WINDOW_M and g_mean.mean() > g_max.max() + GRADE_TOLERANCE
     return {
         'net_grade': float(z[-1] - z[0]) / length_m,
         'mean_grade': float(g_mean.mean()),
@@ -317,7 +324,9 @@ def edge_gradient(z: np.ndarray, length_m: float, is_structure: bool, smooth_sam
     out_of_line = steepest > SUSPECT_GRADE and steepest > SUSPECT_RATIO * net
     if out_of_line or steepest > MAX_PLAUSIBLE_GRADE:
         # Every stretch of a straight line is equally steep, so the line has no steepest stretch to point at.
-        line = {k: v for k, v in grade_metrics(straight, length_m).items() if not k.startswith('max_grade_')}
+        line = grade_metrics(straight, length_m)
+        line.pop('max_grade_from_m', None)
+        line.pop('max_grade_to_m', None)
         return {'quality': QUALITY_SUSPECT, **ends, **line}
     return {'quality': QUALITY_MEASURED, **ends, **grade_metrics(profile, length_m)}
 

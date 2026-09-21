@@ -82,6 +82,8 @@ CREATE TABLE street_gradient (
     CONSTRAINT street_gradient_steepest_stretch_check CHECK (
         (max_grade_from_m IS NULL) = (max_grade_to_m IS NULL)
         AND (max_grade_from_m IS NULL OR (max_grade IS NOT NULL AND max_grade_to_m >= max_grade_from_m))
+        -- Only a sampled profile has a steepest stretch: a suspect row's straight line is equally steep throughout.
+        AND (max_grade_from_m IS NULL OR quality = 'measured')
     ),
     CONSTRAINT street_gradient_threshold_ordering_check CHECK (meters_over_8pct_grade <= meters_over_5pct_grade),
     CONSTRAINT street_gradient_confidence_matches_resolution_check CHECK (

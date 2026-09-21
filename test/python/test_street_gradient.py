@@ -10,6 +10,7 @@ expected grade is arithmetic rather than a recorded number. See test/python/READ
 
 import argparse
 import csv
+import re
 from pathlib import Path
 
 import numpy as np
@@ -172,7 +173,7 @@ def test_grade_metrics_of_a_hill_counts_both_sides_and_signs_net_by_direction():
     assert m['net_grade'] == pytest.approx(-0.5 / length)
     assert m['climb_m'] == pytest.approx(5.0) and m['descent_m'] == pytest.approx(5.5)
     assert m['max_grade'] == pytest.approx(0.10)
-    # Every 30 m baseline on either side of the crest is 10%; the first of them is the one reported.
+    # Every 30 m baseline on either side of the crest is 10%; of equally steep baselines the first is reported.
     assert (m['max_grade_from_m'], m['max_grade_to_m']) == pytest.approx((0.0, 30.0))
     assert 0 < m['meters_over_8pct_grade'] < length  # The baselines straddling the crest read under 8%.
     assert m['meters_over_8pct_grade'] <= m['meters_over_5pct_grade']
@@ -192,6 +193,19 @@ def test_steepest_window_finds_the_steep_baseline_and_covers_a_street_shorter_th
     assert sg.steepest_window(z, 50.0, 10.0) == pytest.approx((25.0, 35.0))
     assert sg.steepest_window(z, 50.0, 30.0) == pytest.approx((10.0, 40.0))
     assert sg.steepest_window(np.array([0.0, 1.0]), 8.0, 30.0) == (0.0, 8.0)
+
+
+@pytest.mark.parametrize('length', [12.0, 29.9, 30.0, 100.0, 237.0])
+@pytest.mark.parametrize('grade', [0.0, 0.01, 0.05, 0.06, 0.1])
+@pytest.mark.parametrize('step', [1.0, 5.0])
+def test_grade_metrics_of_a_uniform_slope_reports_its_first_stretch_whatever_the_rounding(length, grade, step):
+    # Every baseline of a uniform slope is equally steep, so float rounding alone separates them. It must neither
+    # "floor" the maximum (dropping the stretch) nor move the stretch off the street's start.
+    n = max(1, round(length / step))
+    m = sg.grade_metrics(grade * np.linspace(0, length, n + 1), length)
+    window = sg.MAX_WINDOW_M if length >= sg.MAX_WINDOW_M else sg.MEAN_WINDOW_M
+    expected_to = min(length, round(window / (length / n)) * (length / n))
+    assert (m['max_grade_from_m'], m['max_grade_to_m']) == pytest.approx((0.0, expected_to))
 
 
 def test_grade_metrics_of_a_street_under_30_m_takes_its_steepest_10_m_pitch_as_the_maximum():
@@ -264,7 +278,11 @@ def test_edge_gradient_flags_an_untagged_artifact_but_not_a_uniformly_steep_hill
     row = sg.format_row(_street(5, [], False), got, 'usgs-3dep-10m', 10.0)
     assert (row['max_grade'], row['max_grade_from_m'], row['max_grade_to_m']) == ('0.00000', '', '')
     hill = 0.25 * np.linspace(0, 100, 21)  # 25% end to end: steep, and the pitch agrees with the net grade.
-    assert sg.edge_gradient(hill, 100.0, False)['quality'] == sg.QUALITY_MEASURED
+    measured = sg.edge_gradient(hill, 100.0, False)
+    assert measured['quality'] == sg.QUALITY_MEASURED
+    # A measured street carries its steepest stretch through to the CSV, in the same two-decimal meters as the rest.
+    row = sg.format_row(_street(6, [], False), measured, 'usgs-3dep-10m', 10.0)
+    assert (row['max_grade_from_m'], row['max_grade_to_m']) == ('0.00', '30.00')
     # Over the ratio but under SUSPECT_GRADE: a 12% pitch on a level street is a driveway dip, not an artifact.
     dip = np.array([10.0, 10.0, 8.8, 10.0, 10.0, 10.0, 10.0])
     assert sg.edge_gradient(dip, 60.0, False)['quality'] == sg.QUALITY_MEASURED
@@ -673,3 +691,13 @@ def test_main_points_at_the_export_when_there_is_no_input(city):
     (city / sg.INPUT_NAME).unlink()
     with pytest.raises(SystemExit, match='make export-street-gradient-input'):
         sg.main(_DEM_ARGS)
+
+
+def test_the_import_script_expects_exactly_the_columns_the_sampler_writes():
+    # COPY maps by position, so the import's header check and its staging table must list OUTPUT_FIELDS in order. A
+    # field added to the sampler alone would otherwise have every fresh CSV rejected as "another version".
+    script = (sg.REPO_ROOT / 'db' / 'scripts' / 'import-street-gradient.sh').read_text()
+    header = re.search(r'EXPECTED_HEADER="((?:[^"\\]|\\\n)*)"', script).group(1).replace('\\\n', '')
+    assert header.split(',') == list(sg.OUTPUT_FIELDS)
+    staging = re.search(r'CREATE TEMP TABLE street_gradient_import \((.*?)\) ON COMMIT DROP;', script, re.S).group(1)
+    assert [line.split()[0] for line in staging.strip().splitlines()] == list(sg.OUTPUT_FIELDS)

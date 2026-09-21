@@ -31,11 +31,14 @@ fi
 EXPECTED_HEADER="street_edge_id,quality,confidence,net_grade,mean_grade,max_grade,max_grade_from_m,max_grade_to_m,\
 meters_over_5pct_grade,meters_over_8pct_grade,climb_m,descent_m,elev_start_m,elev_end_m,profile_cm,dem_source,\
 dem_resolution_m,geom_md5"
-ACTUAL_HEADER=$(head -n 1 "$CSV_FILENAME" | tr -d '\r')
+# A byte-order mark (a CSV re-saved from a spreadsheet) is dropped here; COPY skips the header row, so it is harmless
+# there. The error prints both headers, since an empty or wrong file fails this test too.
+ACTUAL_HEADER=$(head -n 1 "$CSV_FILENAME" | tr -d '\r' | sed $'1s/^\xef\xbb\xbf//')
 if [[ "$ACTUAL_HEADER" != "$EXPECTED_HEADER" ]]; then
-    echo "Error: $CSV_FILENAME has the columns of another version of scripts/street_gradient.py." >&2
-    echo "Resample the city with the current script, which writes these columns:" >&2
-    echo "$EXPECTED_HEADER" >&2
+    echo "Error: $CSV_FILENAME does not have the columns scripts/street_gradient.py writes." >&2
+    echo "Expected: $EXPECTED_HEADER" >&2
+    echo "Found:    $ACTUAL_HEADER" >&2
+    echo "Resample the city with the current script." >&2
     exit 1
 fi
 
