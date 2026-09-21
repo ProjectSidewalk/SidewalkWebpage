@@ -339,7 +339,10 @@ corresponding Twirl view:
   any other change; its tile host must also be in the CSP's `connect-src`. *A dead tile host degrades, never
   breaks*: `Minimap.create` resolves when the style is ready, not when tiles arrive, so streets, markers and fog
   draw over a blank background. What Project Sidewalk itself draws on the map (street-line encodings, fog, cone) is
-  `MinimapStyle.js`. The mission-complete map on the same page is still Mapbox, so Explore loads both libraries.
+  `MinimapStyle.js`. MapLibre 6 ships only as ES modules, and this frontend has no module system, so there is no
+  `<script>` tag for it: `Minimap.create` loads it with a dynamic `import()` of the URL on the view's
+  `#maplibre-module` preload link, which is also what fingerprints it and starts the download early. The mission-complete map on the same page is still Mapbox, so Explore loads
+  both libraries.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is
   built for the first label shown, never for a visit that opens none: Google bills every `StreetViewPanorama`

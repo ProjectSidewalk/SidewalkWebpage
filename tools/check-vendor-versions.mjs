@@ -17,15 +17,16 @@
 // of npm names and freeze reasons — a second copy of the doc — and would nag monthly about decisions already made.
 
 import { readFileSync, readdirSync } from 'node:fs';
-import { basename, dirname, join, relative, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const VENDOR_DIR = join(ROOT, 'public', 'vendor');
 const DOC = 'docs/upgrading-libraries.md';
 
-// A version in a filename ('turf-7.3.4.min.js', 'kinetic-v4.4.3.min.js'). The leading separator is what keeps this
-// from reading the '2' out of a '.min.js' or off the end of a library name.
+// A version in a file's path within its library folder ('turf-7.3.4.min.js', 'kinetic-v4.4.3.min.js',
+// 'maplibre-gl-6.10.0/maplibre-gl.mjs'). The leading separator is what keeps this from reading the '2' out of a
+// '.min.js' or off the end of a library name.
 const VERSION_IN_FILENAME = /[-_.]v?(\d+(?:\.\d+)+)/g;
 
 // Where a doc entry starts: '- **turf.js: 7.3.4** — …', with the bolded head captured.
@@ -40,15 +41,15 @@ function normalize(name) {
 
 /**
  * @param {string} dir - Directory to walk.
- * @returns {string[]} Every .js/.css file under it, relative to public/vendor/. Skips build/ directories, which hold
- *                     the recipe for a bundle we build ourselves rather than a shipped library.
+ * @returns {string[]} Every .js/.mjs/.css file under it, relative to public/vendor/. Skips build/ directories, which
+ *                     hold the recipe for a bundle we build ourselves rather than a shipped library.
  */
 function walkVendor(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     if (entry.name === 'build') return [];
     const full = join(dir, entry.name);
     if (entry.isDirectory()) return walkVendor(full);
-    return /\.(js|css)$/.test(entry.name) ? [relative(VENDOR_DIR, full)] : [];
+    return /\.(m?js|css)$/.test(entry.name) ? [relative(VENDOR_DIR, full)] : [];
   });
 }
 
@@ -116,7 +117,9 @@ for (const entry of entries) {
 
 // --- What's on disk -----------------------------------------------------------------------------------------------
 
-// A file carrying no version in its name can't be checked either way, so it's reported rather than failed.
+// A file carrying no version in its path can't be checked either way, so it's reported rather than failed. The
+// path, not just the name, because an ES-module build's chunks import each other by fixed names
+// ('./maplibre-gl-shared.mjs'), so its version can only live on the folder.
 const versionsByDir = new Map(dirs.map((dir) => [dir, new Set()]));
 const unversioned = [];
 for (const file of files) {
@@ -126,7 +129,7 @@ for (const file of files) {
       + 'loose file belongs to none, so nothing here can tell whether the doc covers it');
     continue;
   }
-  const found = [...basename(file).matchAll(VERSION_IN_FILENAME)].map(([, version]) => version);
+  const found = [...rest.join('/').matchAll(VERSION_IN_FILENAME)].map(([, version]) => version);
   if (found.length === 0) unversioned.push(file);
   for (const version of found) versionsByDir.get(dir).add(version);
 }

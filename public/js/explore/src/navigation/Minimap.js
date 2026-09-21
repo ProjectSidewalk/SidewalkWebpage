@@ -582,11 +582,28 @@ class Minimap {
   }
 
   /**
+   * Makes MapLibre available as the `maplibregl` global the rest of this class names.
+   *
+   * MapLibre 6 ships only as ES modules, which this classic-script bundle can load only through import(). The URL is
+   * the view's #maplibre-module preload link, the one place that can fingerprint a vendor file; the library's chunks
+   * resolve relative to it, so they stay beside it under their own names. A global already present (the jsdom tests'
+   * stand-in) is kept.
+   * @returns {Promise<void>}
+   */
+  static async #loadLibrary() {
+    if (typeof maplibregl !== 'undefined') return;
+    const link = /** @type {?HTMLLinkElement} */ (document.getElementById('maplibre-module'));
+    if (!link) throw new Error('Minimap: no #maplibre-module link on the page to load MapLibre from');
+    window.maplibregl = await import(link.href);
+  }
+
+  /**
    * Factory function that creates the minimap in the bottom-right of the UI.
    * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
    * @returns {Promise<Minimap>} The minimap instance.
    */
   static async create(initialLocation) {
+    await Minimap.#loadLibrary();
     const newMinimap = new Minimap();
     await newMinimap.#init(initialLocation);
     return newMinimap;

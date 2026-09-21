@@ -165,6 +165,8 @@ interface Window {
   localizeElement: (el: Element) => void;
   localizeSubtree: (root: ParentNode) => void;
   logWebpageActivity: (activity: string, async?: boolean) => void;
+  // Assigned by Minimap.create from a dynamic import(): MapLibre 6 is an ES module, not a script-tag global.
+  maplibregl: any;
   panoramaxLicenses: Record<string, { name: string; url: string }>;
   psAuthModal: AuthModal;
   PsModal: typeof Modal;

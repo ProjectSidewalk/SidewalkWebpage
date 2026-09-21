@@ -115,6 +115,11 @@ describe('Minimap seam', () => {
         expect(map.options.interactive).toBe(false);
     });
 
+    test('with no MapLibre loaded and no preload link to import it from, creation fails naming the link', async () => {
+        delete window.maplibregl;
+        await expect(window.Minimap.create({ lat: 47.6, lng: -122.33 })).rejects.toThrow('#maplibre-module');
+    });
+
     test('street lines go under the road names, so a street\'s name stays readable over its route line', () => {
         expect(map.layers.length).toBeGreaterThan(0);
         map.layers.forEach((layer) => expect(layer.beforeId).toBe(window.MinimapBasemapStyle.FIRST_LABEL_LAYER_ID));
