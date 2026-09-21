@@ -113,10 +113,9 @@ object StreetGradientStats {
  * @param sampledAt When the row was sampled.
  * @param maxGradeFromM Where the baseline that set `maxGrade` starts, in meters from the first vertex. It is read off
  *                      the full-resolution samples, which `profileCm` is too coarse to reproduce. None where no
- *                      stretch set `maxGrade` (a suspect row's straight line, a maximum floored at the mean), and on
- *                      rows sampled before 399.sql.
+ *                      stretch set `maxGrade` (a suspect row's straight line, a maximum floored at the mean).
  * @param maxGradeToM   Where that baseline ends; None exactly when `maxGradeFromM` is, and never before it (a CHECK
- *                      in 399.sql holds both, and holds them to rows that have a `maxGrade`).
+ *                      in 398.sql holds both, and holds them to rows that have a `maxGrade`).
  */
 case class StreetGradient(
     stats: StreetGradientStats,
