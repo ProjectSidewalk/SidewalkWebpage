@@ -145,9 +145,8 @@ class LabelController @Inject() (
   }
 
   /**
-   * Soft-deletes a label, as its labeler or as an admin (#3591). `source` is the `UiSource` name of the host page.
-   * Explore is refused: its deletes arrive with the session's labels, and an Explore delete is the one kind that
-   * takes a label out of its labeler's accuracy, so it can't be had for the asking.
+   * Soft-deletes a label, as its labeler or as an admin (#3591). `source` names the host page; Explore is refused,
+   * since an Explore delete is the one kind that leaves the labeler's accuracy.
    */
   def deleteLabel(labelId: Int, source: String) = cc.securityService.SecuredAction { implicit request =>
     Try(UiSource.withName(source)).toOption.filter(_ != UiSource.Explore) match {
@@ -165,9 +164,8 @@ class LabelController @Inject() (
   }
 
   /**
-   * The reply to a delete or restore, carrying the label's state as it now stands. `can_restore` comes from the
-   * server rather than being assumed by the card: a delete that finds the label already deleted by an admin succeeds
-   * without handing the labeler an undo they can't use.
+   * The label's state after a delete or restore. `can_restore` is the server's say, since a delete can find that an
+   * admin got there first.
    */
   private def deletionResponse(labelId: Int, user: SidewalkUserWithRole)(outcome: LabelEditOutcome): Result =
     outcome match {

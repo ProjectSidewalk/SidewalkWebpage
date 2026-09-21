@@ -134,8 +134,7 @@ function updateLabelType(map, mapData, labelId, labelType) {
 
 /**
  * Takes a label off the map after a delete from the card (#3591), or puts it back after a restore. The feature is
- * kept aside so a restore needs no refetch; a label the map hasn't loaded, or one a viewport refresh has since
- * brought back, is left to the next fetch.
+ * kept aside so a restore needs no refetch.
  * @param {mapboxgl.Map} map - The Mapbox map object.
  * @param {MapLayerTracker} mapData - The layer tracker from CreateMapLayerTracker.
  * @param {number} labelId

@@ -188,8 +188,7 @@ dialog.label-detail[open]::backdrop {
   height: 14px;
 }
 
-/* Delete (#3591) sits with the type picker, the other whole-label edit, not among the footer's hops; grey at rest
-   and a muted red only on hover so it's findable without shouting. The [hidden] rule beats display: inline-flex. */
+/* Delete (#3591): grey at rest, a muted red only on hover. The [hidden] rule beats display: inline-flex. */
 .label-detail__delete {
   display: inline-flex;
   align-items: center;
@@ -234,8 +233,8 @@ dialog.label-detail[open]::backdrop {
   outline-offset: 2px;
 }
 
-/* A deleted label's imagery greys out but keeps its marker, so what was deleted is still there to judge a Restore
-   by. The notice takes the pan hint's spot, near the Delete just pressed and clear of the bottom controls. */
+/* The imagery greys out but keeps its marker, so there's something to judge a Restore by; the notice takes the pan
+   hint's spot. */
 .label-detail--deleted .label-detail__pano {
   filter: grayscale(1) brightness(0.8);
 }

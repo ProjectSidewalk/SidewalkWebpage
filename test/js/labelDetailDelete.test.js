@@ -1,9 +1,8 @@
 /**
  * Tests for deleting a label from the label card (public/js/common/label-detail/LabelDetail.js, issue #3591).
  *
- * Delete sits in the title row for whoever the server says may edit, behind a confirm that tells an admin their
- * Disagree goes with it. The card stays open on a delete with Restore in the notice; Ctrl+Z presses that Restore for
- * a delete made in the same card, and only then. A deleted label locks validating and editing with its own reason.
+ * Covers who sees Delete, the confirm, the card staying open with Restore, Ctrl+Z as undo only for a delete made in
+ * the same card, and the lock a deleted label puts on validating and editing.
  *
  * Built the way labelDetailTypeEdit.test.js is: the sources are eval'd into the jsdom global scope with the
  * collaborators LabelDetail reaches for as bare globals stubbed on `window` first.

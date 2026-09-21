@@ -431,8 +431,8 @@ class Card {
   }
 
   /**
-   * Fades the card after a delete from the expanded view (#3591) rather than removing it, so paging and the grid's
-   * layout hold until the next load. Remembered in the properties, which the expanded view is rebuilt from.
+   * Fades the card after a delete from the expanded view (#3591) rather than removing it, so paging and the grid hold
+   * until the next load. Remembered in the properties the expanded view is rebuilt from.
    * @param {boolean} deleted
    * @param {boolean} canRestore - Whether the viewer may undo it, as the server said.
    */

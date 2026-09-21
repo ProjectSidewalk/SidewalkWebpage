@@ -1583,10 +1583,7 @@ class LabelDetail {
     this.#applyDeletedState();
   }
 
-  /**
-   * Draws the deleted state (#3591). The card stays open on a delete rather than closing, so the undo is right
-   * where the eye lands.
-   */
+  /** Draws the deleted state (#3591); the card stays open so the undo is right where the eye lands. */
   #applyDeletedState() {
     const els = this.#els;
     const deleted = this.#deleted;
@@ -1597,8 +1594,7 @@ class LabelDetail {
       const key = this.#deletedHere ? 'labelmap:you-deleted-label' : 'labelmap:label-was-deleted';
       if (text) text.textContent = deleted ? i18next.t(key) : '';
     }
-    // Delete follows the edit lock: without imagery there's nothing to judge the label by, so it stays put but inert,
-    // with the reason on hover, like the severity faces and Tags control (#5047).
+    // Delete follows the edit lock: inert without imagery, with the reason on hover, like the other edit controls.
     if (els.deleteButton) {
       els.deleteButton.hidden = !this.#canEdit || deleted;
       els.deleteButton.setAttribute('aria-disabled', String(!this.#editingAllowed));
@@ -1671,12 +1667,10 @@ class LabelDetail {
   }
 
   /**
-   * Records the deleted state and tells the host, then redraws the card if that label is still the one on screen
-   * (paging isn't blocked while the request is in flight).
+   * Records the deleted state and tells the host, then redraws the card if that label is still the one on screen.
    * @param {Record<string, any>} meta - Updated in place.
    * @param {boolean} deleted
-   * @param {boolean} canRestore - The server's say: a delete that found the label already deleted by an admin
-   *     succeeds, but the labeler gets no undo for it.
+   * @param {boolean} canRestore - The server's say; a delete can find that an admin got there first.
    * @param {boolean} viaThisCard - A delete just made here is what Ctrl+Z may undo.
    * @returns {boolean} Whether the card was redrawn.
    */

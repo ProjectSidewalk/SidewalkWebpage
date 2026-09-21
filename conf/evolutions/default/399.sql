@@ -1,12 +1,9 @@
 # --- !Ups
--- Who deleted a label, when, and from which page (#3591). Users can now delete their own labels from the label popup
--- long after placing them, so a delete needs an author and a source to be undoable and to be told apart from an
--- Explore-session delete: a label deleted in Explore drops out of its labeler's accuracy, one deleted anywhere else
--- keeps an "incorrect" verdict, so deleting can never raise accuracy (LabelTable.countsTowardAccuracySql).
---
--- Every label deleted so far was deleted by its labeler in Explore, the only place that could, so those two columns
--- are backfilled. When it happened was never recorded, so deleted_at stays NULL for them and the CHECK doesn't require
--- it. The FK and CHECK each scan `label` once, and the partial index keeps a sidewalk_user delete from scanning it.
+-- Who deleted a label, when, and from which page (#3591), so a delete from the label popup is undoable and can be
+-- told apart from an Explore-session delete, the one kind that leaves the labeler's accuracy
+-- (LabelTable.countsTowardAccuracySql). Every label deleted so far was deleted by its labeler in Explore, the only
+-- place that could, so those two columns are backfilled. When it happened was never recorded, so deleted_at stays NULL
+-- and the CHECK doesn't require it. The partial index keeps a sidewalk_user delete from scanning `label`.
 ALTER TABLE label
   ADD COLUMN deleted_by TEXT,
   ADD COLUMN deleted_at TIMESTAMPTZ,
