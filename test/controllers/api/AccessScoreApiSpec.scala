@@ -55,7 +55,7 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
         "street_edge_id,osm_way_id,street_name,region_id,score,segment_score,start_intersection_id,end_intersection_id," +
           "start_intersection_score,end_intersection_score,audit_count,length_meters,label_count," +
           "mean_grade,max_grade,net_grade,total_climb_meters,total_descent_meters,meters_over_5pct," +
-          "meters_over_8pct,grade_confidence,grade_quality,dem_source,slope_term,cluster_counts.CurbRamp"
+          "meters_over_8pct,grade_confidence,grade_quality,dem_source,grade_term,cluster_counts.CurbRamp"
       )
       body must include(
         "sub_scores.NoSidewalk,severity_counts.CurbRamp.1,severity_counts.CurbRamp.2,severity_counts.CurbRamp.3," +
@@ -153,11 +153,11 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       // The grade layer's breaks and the map's credit line both read these (#5223); a city that has not been sampled
       // still publishes the limits, with no sources to credit.
       val json = contentAsJson(route(app, FakeRequest(GET, "/v3/api/accessScoreConfig")).get)
-      (json \ "gradient" \ "walking_surface_limit").as[Double] mustBe 0.05
-      (json \ "gradient" \ "ramp_limit").as[Double] mustBe (1.0 / 12.0)
+      (json \ "grade" \ "walking_surface_limit").as[Double] mustBe 0.05
+      (json \ "grade" \ "ramp_limit").as[Double] mustBe (1.0 / 12.0)
       // Empty on a schema with no gradient rows (CI's), so the array itself is what every run asserts; the shape
       // of its entries is pinned without a database by StreetGradientApiModelsSpec.
-      val sources = (json \ "gradient" \ "sources").as[Seq[JsObject]]
+      val sources = (json \ "grade" \ "sources").as[Seq[JsObject]]
       sources.foreach { source =>
         (source \ "dem_source").as[String] must not be empty
         (source \ "credit").as[String] must not be empty
@@ -166,7 +166,7 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "publish the engine's slope settings, which are the ones the served scores were computed under" in {
-      val slope = contentAsJson(route(app, FakeRequest(GET, "/v3/api/accessScoreConfig")).get) \ "slope"
+      val slope = contentAsJson(route(app, FakeRequest(GET, "/v3/api/accessScoreConfig")).get) \ "grade_scoring"
       (slope \ "defaults" \ "weight").as[Double] mustBe 1.0
       (slope \ "defaults" \ "barrier_enabled").as[Boolean] mustBe false
       (slope \ "defaults" \ "include_approximate").as[Boolean] mustBe false

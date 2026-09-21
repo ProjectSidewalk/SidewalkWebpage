@@ -222,7 +222,7 @@ class AccessScoreDock {
     if (meta.kind === 'Unit' || meta.kind === 'ResetAll') this.setFocusRegion(null);
     // A slope brush goes wherever its classes stop describing what is on screen — the regions unit has no slope, a
     // statistic change re-classes every street — or it would stand for a different set than the reader picked.
-    if (this.#brush?.kind === 'grade' && ['Unit', 'ResetAll', 'SlopeStat', 'SlopeReset'].includes(meta.kind)) {
+    if (this.#brush?.kind === 'grade' && ['Unit', 'ResetAll', 'GradeStat', 'GradeReset'].includes(meta.kind)) {
       this.setBrush(null, { log: false, announce: false });
     }
     const settled = !(meta.kind === 'Weight' && !meta.final);

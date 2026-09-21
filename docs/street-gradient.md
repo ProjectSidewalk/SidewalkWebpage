@@ -179,6 +179,12 @@ The test for a new country is the one used here: an open bare-earth model at 10 
 
 ## Where it shows up
 
+**Terminology.** The English UI and the API say *grade* (*gradient* in the `en-NZ` overlay): a street's steepness
+along its centerline. *Slope* is avoided because accessibility standards also use it for a sidewalk's cross slope,
+which a centerline sample cannot measure; the tool's help text says so. Other languages keep their own word, which
+already reads as along-the-street. Code identifiers (`AccessScoreSlopePanel`, `SlopeSettings`, the `slope-*` locale
+keys, `#acs-slope-*`) keep the older word: renaming them would change nothing a reader or an API client sees.
+
 `StreetGradientTable` is the read-only Slick model; nothing in the app writes the table.
 
 - **`/v3/api/accessScoreStreets`** carries ten slope fields per street in every format (`mean_grade`, `max_grade`,
@@ -191,14 +197,14 @@ The test for a new country is the one used here: an open bare-earth model at 10 
   `profile: null`; only a street with no row is a 404. `stale: true` marks a street whose geometry has changed since
   it was sampled (the export script's own `geom_md5` test, asked for one street): its numbers describe the old line
   until the next top-up. The city-wide payload does not carry the flag, since the hash is computed per row.
-- **`/v3/api/accessScoreConfig`** publishes, under `gradient`, the two limits (`StreetGradientStats`), the grades a
+- **`/v3/api/accessScoreConfig`** publishes, under `grade`, the two limits (`StreetGradientStats`), the grades a
   slope map is classed at (`MapClassBreaks`: 1:48, 1:20, 1:12, 1:8), and the credit for each elevation model the
   city's rows came from. An empty `sources` is how a client knows the city has not been sampled.
-- **The AccessScore tool** (`/accessScore`) gets an Options checkbox, "Color streets by slope", hidden in an
+- **The AccessScore tool** (`/accessScore`) gets an Options checkbox, "Color streets by grade", hidden in an
   unsampled city. It recolors the street lines through `AccessScoreGradeRamp` (classed, from the
   `--color-grade-ramp-*` tokens; every street with a grade is drawn at full strength, audited or not), swaps the map
   legend for the class list, and rides in the URL as `grade=1`. While it is on, "Show unaudited streets" is
-  disabled, since slope is drawn for every street. The popup of a sampled street shows a Slope block: one line of
+  disabled, since slope is drawn for every street. The popup of a sampled street shows a Grade block: one line of
   steepest and mean grade, climb and drop, then the elevation profile (`AccessScoreElevationProfile`, fetched per
   street), and a sentence saying why when the numbers are missing (`structure`, `no_data`) or approximate
   (`suspect`, a coarse model). The profile colors each ~10 m stretch by the slope map's classes and brackets the
@@ -218,7 +224,7 @@ legend names the statistic in its title. Each of the legend's classes is a butto
 
 Slope does not fit the AccessScore's per-label-type sum (it is not a label type, and `sub_scores` stays keyed by
 label type), so it joins a segment's pre-sigmoid sum as its own **modifier term**: `logit(segment_score) =
-Σ sub_scores + slope_term`. `AccessScoreCalculator` owns it (`SlopeSettings`, `slopeUnits`, `slopeTerm`,
+Σ sub_scores + grade_term`. `AccessScoreCalculator` owns it (`SlopeSettings`, `slopeUnits`, `slopeTerm`,
 `slopeIsBarrier`, `segmentScoreWithSlope`), and `AccessScoreModel.js` mirrors it, both held to the `slope_cases` of
 `test/fixtures/accessScoreParity.json`.
 
@@ -230,7 +236,7 @@ label type), so it joins a segment's pre-sigmoid sum as its own **modifier term*
   all. The gap closes as cities are imported; until then it is a reason not to rank two cities against each other,
   which these scores never supported anyway. The same follows for the nightly Spotlight snapshot (#5215): a sampled
   city's series steps down on the first run after the release that raised the weight.
-- `slope_term = −weight × units`, never positive. Under **mean grade** or **max grade**, `units` ramps from 0 at the
+- `grade_term = −weight × units`, never positive. Under **mean grade** or **max grade**, `units` ramps from 0 at the
   low threshold (default 5%) to 1 at the high one (8.33%). Under **meters over the limits**, `units` is the share of
   the street over 5% plus the share over 8.33%, halved. That statistic ignores the thresholds: the two lengths are
   measured against the fixed limits when the street is sampled, and recomputing them for other thresholds would put
@@ -258,11 +264,11 @@ Raising the weight changes every served score, so `AccessScoreService`'s full-ci
 (`accessScore:full-city:v4`) that is bumped whenever the engine's numbers move and not only when its shape does: a
 cached value from the release before is well-formed and wrong, and nothing else would evict it.
 
-`/v3/api/accessScoreConfig` publishes the settings under `slope` (`defaults`, the statistic ids, and the ranges a
-weight and a threshold may take), and `/v3/api/accessScoreStreets` publishes each street's `slope_term`. The tool's
-**Street slope** sidebar section (`AccessScoreSlopePanel.js`) edits them, hidden in an unsampled city; the settings
-ride in the URL as `slope=`, the street popup's "What drives this score" table gains a Slope row once slope is
-weighed in, and its Slope block says when a barrier has zeroed the segment.
+`/v3/api/accessScoreConfig` publishes the settings under `grade_scoring` (`defaults`, the statistic ids, and the ranges a
+weight and a threshold may take), and `/v3/api/accessScoreStreets` publishes each street's `grade_term`. The tool's
+**Street grade** sidebar section (`AccessScoreSlopePanel.js`) edits them, hidden in an unsampled city; the settings
+ride in the URL as `gs=`, the street popup's "What drives this score" table gains a Grade row once grade is
+weighed in, and its Grade block says when a barrier has zeroed the segment.
 
 ## Attribution
 
@@ -271,8 +277,8 @@ that a transformation be disclosed. `dem_source` on every row is what makes that
 
 `DemSource` (app/models/street) holds the credit line, licence and publisher page for each model, and is the one
 place they are written. It is shown in four places: the "Elevation model credits" table on the `accessScoreStreets`
-api-docs page, `gradient.sources` on `accessScoreConfig`, the `attribution` object of a `streetGrade`
+api-docs page, `grade.sources` on `accessScoreConfig`, the `attribution` object of a `streetGrade`
 response, and the AccessScore tool, where the credit sits in the map's attribution line (it rides on the street
-source, so a basemap swap cannot drop it) and under the popup's Slope block. **A new adapter in the script needs a
+source, so a basemap swap cannot drop it) and under the popup's Grade block. **A new adapter in the script needs a
 `DemSource` entry**: `test_street_gradient.py` fails until every `REMOTE_SOURCES` name has one. A city sampled with
 `--dem-dir --dem-name` from a model nobody has registered is credited by that bare name, so register it too.

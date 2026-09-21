@@ -20,9 +20,9 @@
  *     holds the engine's own weights, the ones every reset returns to.
  * @property {?string} clusters_updated_at - When the clusters were last rebuilt (ISO 8601), or null for never.
  * @property {string[]} place_categories - The place categories the map can show (#5311), in display order.
- * @property {AccessScoreSlopeConfig} [slope] - How slope enters a segment's score (#5223): the engine's default
+ * @property {AccessScoreSlopeConfig} [grade_scoring] - How grade enters a segment's score (#5223): the engine's default
  *     settings and what a control may offer. Optional so a config from before it scores exactly as it always did.
- * @property {AccessScoreGradientConfig} [gradient] - How to read and credit the streets' slope fields (#5223);
+ * @property {AccessScoreGradientConfig} [grade] - How to read and credit the streets' grade fields (#5223);
  *     optional so a config from before it draws no grade layer rather than one classed at numbers this file invents.
  */
 
@@ -78,7 +78,7 @@
  * @property {?number} metersOver8pct - Meters steeper than the ramp limit.
  * @property {string} confidence - 'high', 'medium' or 'low', from the elevation model's grid size.
  * @property {string} quality - 'measured', 'structure', 'suspect' or 'no_data'.
- * @property {string} demSource - The elevation model's name, which `gradient.sources` credits.
+ * @property {string} demSource - The elevation model's name, which `grade.sources` credits.
  */
 
 /**
@@ -570,7 +570,7 @@ class AccessScoreModel {
    * @returns {AccessScoreSlopeSettings}
    */
   static slopeDefaults(config) {
-    const d = config.slope?.defaults;
+    const d = config.grade_scoring?.defaults;
     return {
       weight: d?.weight ?? 0,
       statistic: d?.statistic ?? 'mean_grade',

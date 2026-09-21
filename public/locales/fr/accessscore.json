@@ -191,7 +191,7 @@
   "profile-none": "Aucun profil d'élévation n'est disponible pour cette rue.",
   "slope-section": "Pente de la rue",
   "slope-reset": "Réinitialiser la pente",
-  "slope-help": "De combien une rue en pente fait baisser son score. Entre les deux seuils, la pénalité croît de zéro jusqu'au poids complet ; mettez le poids à 0 pour laisser la pente hors du score. Seules les rues qui ont déjà un score sont concernées.",
+  "slope-help": "De combien une rue en pente fait baisser son score. Entre les deux seuils, la pénalité croît de zéro jusqu'au poids complet ; mettez le poids à 0 pour laisser la pente hors du score. Seules les rues qui ont déjà un score sont concernées. La pente est mesurée le long de l'axe de chaque rue ; le dévers, l'inclinaison en travers du trottoir, n'est pas mesuré.",
   "slope-weight": "Poids de la pente",
   "slope-impact": "Concerne {{reached, number}} des {{scored, number}} rues notées · {{full, number}} avec la pénalité complète",
   "slope-impact-barriers": "Concerne {{reached, number}} des {{scored, number}} rues notées · {{full, number}} avec la pénalité complète · {{barriers, number}} à 0",

@@ -118,7 +118,7 @@ describe('AccessScoreModel', () => {
         const streets = { type: 'FeatureCollection', features: FIXTURE.streets.map((c, i) => feature(c, i)) };
         const model = new AccessScoreModel(FIXTURE.config, streets, NO_INTERSECTIONS, [REGION]);
         expect(model.slopeIsDefault).toBe(true);
-        expect(model.state.slope.weight).toBe(FIXTURE.config.slope.defaults.weight);
+        expect(model.state.slope.weight).toBe(FIXTURE.config.grade_scoring.defaults.weight);
         FIXTURE.streets.forEach((c, i) => {
             expect(model.explainStreet(i + 1).slopeTerm).toBe(0);
             expect(Math.abs(model.streetScores[i] - c.score)).toBeLessThan(tol);
@@ -140,7 +140,7 @@ describe('AccessScoreModel', () => {
         const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features },
             NO_INTERSECTIONS, [REGION]);
         expect(model.state.slope.statistic).toBe('max_grade');
-        expect(model.explainStreet(1).slopeTerm).toBe(-FIXTURE.config.slope.defaults.weight);
+        expect(model.explainStreet(1).slopeTerm).toBe(-FIXTURE.config.grade_scoring.defaults.weight);
         expect(model.explainStreet(2).slopeTerm).toBe(0);
         // A weight of 0 is the way out of the term, and leaves the labels' own score behind.
         model.setState({ slope: { weight: 0 } });
@@ -148,7 +148,7 @@ describe('AccessScoreModel', () => {
         expect(model.explainStreet(1).slopeTerm).toBe(0);
         expect(Math.abs(model.streetScores[0] - FIXTURE.streets[0].score)).toBeLessThan(tol);
         // A partial slope merges: the statistic and thresholds stayed the engine's.
-        expect(model.state.slope.statistic).toBe(FIXTURE.config.slope.defaults.statistic);
+        expect(model.state.slope.statistic).toBe(FIXTURE.config.grade_scoring.defaults.statistic);
     });
 
     test('reports what the slope settings reach and how many streets a change moved', () => {
@@ -200,8 +200,8 @@ describe('AccessScoreModel', () => {
     });
 
     test('a config from before the slope settings scores exactly as before and offers no slope', () => {
-        const { slope, ...older } = FIXTURE.config;
-        expect(slope).toBeDefined();
+        const { grade_scoring: gradeScoring, ...older } = FIXTURE.config;
+        expect(gradeScoring).toBeDefined();
         const model = new AccessScoreModel(older, streets, NO_INTERSECTIONS, [REGION]);
         expect(model.state.slope.weight).toBe(0);
         expect(model.state.slope.barrierEnabled).toBe(false);

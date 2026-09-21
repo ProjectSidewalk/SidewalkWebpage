@@ -184,7 +184,7 @@
     },
     "min_region_completion" : 0.8,
     "place_categories" : [ "school", "health", "library", "grocery", "transit", "park", "community" ],
-    "slope" : {
+    "grade_scoring" : {
       "defaults" : {
         "weight" : 1,
         "statistic" : "max_grade",

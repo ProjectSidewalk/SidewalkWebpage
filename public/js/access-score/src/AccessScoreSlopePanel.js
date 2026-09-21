@@ -4,7 +4,7 @@
  * approximate slopes (a coarse elevation model's, or a profile the sampler distrusted) take part.
  *
  * Every default, the list of statistics and the range a threshold may take come from `/v3/api/accessScoreConfig`
- * (`slope`), so nothing here knows a grade. The hint beside the folded heading says "Custom" once a control has
+ * (`grade_scoring`), so nothing here knows a grade. The hint beside the folded heading says "Custom" once a control has
  * moved off the engine's own settings. The section stays hidden in a city whose streets have not been sampled,
  * where its controls would move nothing.
  *
@@ -56,7 +56,7 @@ class AccessScoreSlopePanel {
 
   /** Whether the section has anything to control: the engine publishes slope settings and the city has slopes. */
   get available() {
-    return Boolean(this.#config.slope) && (this.#config.gradient?.sources ?? []).length > 0;
+    return Boolean(this.#config.grade_scoring) && (this.#config.grade?.sources ?? []).length > 0;
   }
 
   /** @returns {boolean} Whether the section is unfolded. */
@@ -101,13 +101,13 @@ class AccessScoreSlopePanel {
   /** Fills in what the config decides: the slider's range, the statistics on offer, the thresholds' bounds. */
   #render() {
     const e = this.#els;
-    e.weight.max = String(this.#config.slope.weight_range.max);
-    e.statistic.innerHTML = this.#config.slope.statistics.map((id) => {
+    e.weight.max = String(this.#config.grade_scoring.weight_range.max);
+    e.statistic.innerHTML = this.#config.grade_scoring.statistics.map((id) => {
       const key = `accessscore:slope-statistic-${id.replaceAll('_', '-')}`;
       const name = i18next.exists(key) ? i18next.t(key) : id;
       return `<option value="${util.escapeHTML(id)}">${util.escapeHTML(name)}</option>`;
     }).join('');
-    const { min, max } = this.#config.slope.threshold_range;
+    const { min, max } = this.#config.grade_scoring.threshold_range;
     for (const input of [e.low, e.high, e.barrierThreshold]) {
       input.min = AccessScoreSlopePanel.#toPercent(min);
       input.max = AccessScoreSlopePanel.#toPercent(max);
@@ -124,13 +124,13 @@ class AccessScoreSlopePanel {
     e.weight.addEventListener('input', () => {
       const weight = Number.parseFloat(e.weight.value);
       this.#showWeight(weight);
-      change({ weight }, 'SlopeWeight', weight, false);
+      change({ weight }, 'GradeWeight', weight, false);
     });
     e.weight.addEventListener('change', () => {
       const weight = Number.parseFloat(e.weight.value);
-      change({ weight }, 'SlopeWeight', weight);
+      change({ weight }, 'GradeWeight', weight);
     });
-    e.statistic.addEventListener('change', () => change({ statistic: e.statistic.value }, 'SlopeStat',
+    e.statistic.addEventListener('change', () => change({ statistic: e.statistic.value }, 'GradeStat',
       e.statistic.value));
     // A threshold settles on `change` (blur, Enter, a spinner click), so a half-typed "1" on the way to "12" never
     // reaches the map. An entry that is empty, out of range, or would cross the other threshold snaps back to the
@@ -146,7 +146,7 @@ class AccessScoreSlopePanel {
         return;
       }
       input.value = AccessScoreSlopePanel.#toPercent(grade);
-      change({ [key]: grade }, 'SlopeThreshold', `${label}_value=${input.value}`);
+      change({ [key]: grade }, 'GradeThreshold', `${label}_value=${input.value}`);
     });
     threshold(e.low, 'lowThreshold', 'low');
     threshold(e.high, 'highThreshold', 'high');
@@ -159,18 +159,18 @@ class AccessScoreSlopePanel {
         patch.barrierThreshold = AccessScoreModel.slopeDefaults(this.#config).barrierThreshold;
         e.barrierThreshold.value = AccessScoreSlopePanel.#toPercent(patch.barrierThreshold);
       }
-      change(patch, 'SlopeBarrier', e.barrier.checked);
+      change(patch, 'GradeBarrier', e.barrier.checked);
     });
     e.approximate.addEventListener('change', () => change({ includeApproximate: e.approximate.checked },
-      'SlopeApproximate', e.approximate.checked));
+      'GradeApproximate', e.approximate.checked));
     e.reset.addEventListener('click', () => {
       const defaults = AccessScoreModel.slopeDefaults(this.#config);
       this.setState(/** @type {AccessScoreState} */ ({ slope: defaults }));
-      this.#emit({ slope: defaults }, { kind: 'SlopeReset', final: true });
+      this.#emit({ slope: defaults }, { kind: 'GradeReset', final: true });
     });
     e.toggle.addEventListener('click', () => {
       const open = this.setOpen(!this.open);
-      this.#emit(null, { kind: 'Section', value: `slope_open=${open}`, final: true });
+      this.#emit(null, { kind: 'Section', value: `grade_open=${open}`, final: true });
     });
   }
 
@@ -185,7 +185,7 @@ class AccessScoreSlopePanel {
     const percent = Number.parseFloat(input.value);
     if (!Number.isFinite(percent)) return null;
     const grade = Math.round(percent * 10) / 1000;
-    const { min, max } = this.#config.slope.threshold_range;
+    const { min, max } = this.#config.grade_scoring.threshold_range;
     return grade >= min && grade <= max ? grade : null;
   }
 
@@ -202,7 +202,7 @@ class AccessScoreSlopePanel {
     const fixed = this.#settings.statistic === AccessScoreSlopePanel.#FIXED_LIMITS_STATISTIC;
     e.low.disabled = fixed;
     e.high.disabled = fixed;
-    const limits = this.#config.gradient;
+    const limits = this.#config.grade;
     e.fixedNote.textContent = fixed
       ? i18next.t('accessscore:slope-fixed-note', {
           low: AccessScoreGradeRamp.percent(limits.walking_surface_limit),

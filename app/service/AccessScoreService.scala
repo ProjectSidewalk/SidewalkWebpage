@@ -165,7 +165,7 @@ class AccessScoreService @Inject() (
     // `segment_score`.
     val subScores: Map[String, Double] = AccessScoreCalculator.scoreByType(inputs, Some(lengthMeters))
     // Slope is its own field rather than folded into `sub_scores`, which are per label type (#5223), so that
-    // `logit(segment_score) = sum(sub_scores) + slope_term` holds and subtracting it recovers the label-only score.
+    // `logit(segment_score) = sum(sub_scores) + grade_term` holds and subtracting it recovers the label-only score.
     val slope: Option[AccessScoreCalculator.SlopeInput] = gradient.map(toSlopeInput)
     val slopeTerm: Double                               =
       AccessScoreCalculator.slopeTerm(slope, lengthMeters, AccessScoreCalculator.defaultSlopeSettings)

@@ -191,7 +191,7 @@
   "profile-none": "Não há perfil de elevação disponível para esta rua.",
   "slope-section": "Inclinação da rua",
   "slope-reset": "Redefinir inclinação",
-  "slope-help": "Quanto uma rua íngreme reduz a sua pontuação. Entre os dois limiares, a penalidade cresce de zero até o peso total; defina o peso como 0 para deixar a inclinação fora da pontuação. Apenas as ruas que já têm pontuação são afetadas.",
+  "slope-help": "Quanto uma rua íngreme reduz a sua pontuação. Entre os dois limiares, a penalidade cresce de zero até o peso total; defina o peso como 0 para deixar a inclinação fora da pontuação. Apenas as ruas que já têm pontuação são afetadas. A inclinação é medida ao longo do eixo de cada rua; a inclinação transversal, a inclinação de um lado ao outro da calçada, não é medida.",
   "slope-weight": "Peso da inclinação",
   "slope-impact": "Afeta {{reached, number}} de {{scored, number}} ruas com pontuação · {{full, number}} com a penalidade total",
   "slope-impact-barriers": "Afeta {{reached, number}} de {{scored, number}} ruas com pontuação · {{full, number}} com a penalidade total · {{barriers, number}} com pontuação 0",

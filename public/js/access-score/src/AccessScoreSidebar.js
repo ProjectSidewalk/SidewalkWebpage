@@ -3,7 +3,7 @@
  * @typedef {object} AccessScoreChangeMeta
  * @property {string} kind - `Unit`, `Weight`, `ShowUnaudited`, `ShowClusters`, `ShowGrade`, `PlaceCategory`,
  *   `PlaceCategoryOnly`, `PlaceCategorySelectAll`, `PlaceCategoryDeselectAll`, `Section` or `Reset`; the slope panel's
- *   `SlopeWeight`, `SlopeStat`, `SlopeThreshold`, `SlopeBarrier`, `SlopeApproximate` and `SlopeReset`; and the
+ *   `GradeWeight`, `GradeStat`, `GradeThreshold`, `GradeBarrier`, `GradeApproximate` and `GradeReset`; and the
  *   page adds `ResetAll`.
  * @property {boolean} final - False for a slider mid-drag, true for a settled value (the one to log).
  * @property {string|boolean} [value] - What the change set, for the log.
@@ -39,8 +39,8 @@ class AccessScoreSidebar {
 
   /** The change kinds each section's "Updated" line answers for. */
   static #WEIGHT_KINDS = ['Weight', 'Preset', 'ResetAll'];
-  static #SLOPE_KINDS = ['SlopeWeight', 'SlopeStat', 'SlopeThreshold', 'SlopeBarrier', 'SlopeApproximate',
-    'SlopeReset', 'ResetAll'];
+  static #SLOPE_KINDS = ['GradeWeight', 'GradeStat', 'GradeThreshold', 'GradeBarrier', 'GradeApproximate',
+    'GradeReset', 'ResetAll'];
 
   /**
    * @param {HTMLElement} root - The `#filter-sidebar` element carrying the tool's section markup.
@@ -378,7 +378,7 @@ class AccessScoreSidebar {
    */
   #showUnitOptions(unit) {
     this.#els.streetOptions.hidden = unit !== 'streets';
-    const gradient = this.#config.gradient;
+    const gradient = this.#config.grade;
     const sampled = Boolean(gradient && gradient.sources.length > 0 && gradient.map_class_breaks.length > 0);
     this.#els.gradeOption.hidden = unit !== 'streets' || !sampled;
   }

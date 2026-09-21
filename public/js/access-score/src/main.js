@@ -17,7 +17,7 @@ window.AccessScoreApp = (function () {
     'PlaceCategory', 'PlaceCategoryOnly', 'PlaceCategorySelectAll', 'PlaceCategoryDeselectAll',
   ]);
   /** The sliders: mid-drag, the sidebar must not be re-synced from the model (the thumb is under a finger). */
-  const DRAG_KINDS = new Set(['Weight', 'SlopeWeight']);
+  const DRAG_KINDS = new Set(['Weight', 'GradeWeight']);
   /** Close enough to read one block and its neighbors, where a rank row's street lands (#5223). */
   const STREET_ZOOM = 15;
   const EMPTY_COLLECTION = { type: 'FeatureCollection', features: [] };
@@ -135,9 +135,9 @@ window.AccessScoreApp = (function () {
 
     // The elevation models the city's slopes came from (#5223); empty in a city that has not been sampled, which is
     // what keeps every slope control and credit off the page there.
-    const gradeSources = config.gradient?.sources ?? [];
+    const gradeSources = config.grade?.sources ?? [];
     /** The slope classes the map colors and the legend brushes by; null where the city has no slope at all. */
-    const gradeBreaks = gradeSources.length > 0 ? config.gradient.map_class_breaks : null;
+    const gradeBreaks = gradeSources.length > 0 ? config.grade.map_class_breaks : null;
     const urlState = AccessScoreUrlSync.read(config);
     const model = new AccessScoreModel(config, streets, intersections, completion, urlState.state);
     const sidebar = new AccessScoreSidebar(sidebarEl, config, () => model.slopeImpact());
@@ -245,7 +245,7 @@ window.AccessScoreApp = (function () {
       if (meta.kind === 'ShowUnaudited') mapView.setShowUnaudited(state.showUnaudited);
       if (meta.kind === 'ShowGrade') mapView.setShowGrade(state.showGrade);
       // Or the map would paint a street gentle while the score penalizes it for a pitch the other statistic hid.
-      if (meta.kind === 'SlopeStat' || meta.kind === 'SlopeReset') mapView.setGradeStatistic();
+      if (meta.kind === 'GradeStat' || meta.kind === 'GradeReset') mapView.setGradeStatistic();
       if (meta.kind === 'ShowClusters') evidence.setVisible(state.showClusters);
       if (PLACE_CHANGE_KINDS.has(meta.kind)) places?.apply(state);
       mapView.applyScores();
@@ -948,7 +948,7 @@ window.AccessScoreApp = (function () {
       slot.removeAttribute('aria-live');
       new AccessScoreElevationProfile(slot, profile, {
         // Present whenever a street has a profile: slope fields only exist in a city whose config has a gradient.
-        breaks: config.gradient.map_class_breaks,
+        breaks: config.grade.map_class_breaks,
         steepest: hasStretch
           ? { from: response.max_grade_from_meters, to: response.max_grade_to_meters, grade: response.max_grade }
           : null,

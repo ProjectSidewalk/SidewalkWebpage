@@ -16,7 +16,7 @@ const GRADIENT = {
     sources: [{ dem_source: 'usgs-3dep-10m', title: 'USGS', credit: 'Elevation: USGS', licence: 'PD', url: null,
         street_count: 3 }],
 };
-const CONFIG = { ...FIXTURE.config, gradient: GRADIENT };
+const CONFIG = { ...FIXTURE.config, grade: GRADIENT };
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
 /** The section's markup, reduced to the elements the panel reads (the view's ids, none of its copy). */
@@ -79,11 +79,11 @@ describe('slope in the AccessScore scoring controls', () => {
 
     describe('AccessScoreSlopePanel', () => {
         test('stays hidden where the engine publishes no slope settings or the city has no slopes', () => {
-            const { slope, ...older } = CONFIG;
-            expect(slope).toBeDefined();
+            const { grade_scoring: gradeScoring, ...older } = CONFIG;
+            expect(gradeScoring).toBeDefined();
             expect(mount(older).panel.available).toBe(false);
             expect(document.getElementById('acs-slope-section').hidden).toBe(true);
-            const unsampled = { ...CONFIG, gradient: { ...GRADIENT, sources: [] } };
+            const unsampled = { ...CONFIG, grade: { ...GRADIENT, sources: [] } };
             expect(mount(unsampled).panel.available).toBe(false);
             expect(mount().panel.available).toBe(true);
             expect(document.getElementById('acs-slope-section').hidden).toBe(false);
@@ -91,15 +91,15 @@ describe('slope in the AccessScore scoring controls', () => {
 
         test('shows the engine defaults as percentages, offers its statistics, and has nothing to reset', () => {
             const { el } = mount();
-            expect(el('acs-slope-weight').value).toBe(String(CONFIG.slope.defaults.weight));
+            expect(el('acs-slope-weight').value).toBe(String(CONFIG.grade_scoring.defaults.weight));
             expect(el('acs-slope-weight-value').textContent).toBe('×1.00');
             expect(el('acs-slope-statistic').value).toBe('max_grade');
-            expect(el('acs-slope-weight').max).toBe(String(CONFIG.slope.weight_range.max));
+            expect(el('acs-slope-weight').max).toBe(String(CONFIG.grade_scoring.weight_range.max));
             expect(el('acs-slope-low').value).toBe('5');
             expect(el('acs-slope-high').value).toBe('8.3');
             expect(el('acs-slope-low').min).toBe('1');
             expect(el('acs-slope-low').max).toBe('40');
-            expect([...el('acs-slope-statistic').options].map((o) => o.value)).toEqual(CONFIG.slope.statistics);
+            expect([...el('acs-slope-statistic').options].map((o) => o.value)).toEqual(CONFIG.grade_scoring.statistics);
             expect(el('acs-slope-reset').hidden).toBe(true);
             expect(el('acs-slope-summary').textContent).toBe('');
             expect(el('acs-slope-barrier-threshold').disabled).toBe(true);
@@ -113,7 +113,7 @@ describe('slope in the AccessScore scoring controls', () => {
             edit(el('acs-slope-weight'), 1.25, 'change');
             expect(emitted.map((e) => e.meta.final)).toEqual([false, true]);
             expect(emitted[1]).toEqual({
-                partial: { slope: { weight: 1.25 } }, meta: { kind: 'SlopeWeight', value: 1.25, final: true },
+                partial: { slope: { weight: 1.25 } }, meta: { kind: 'GradeWeight', value: 1.25, final: true },
             });
             expect(el('acs-slope-weight-value').textContent).toBe('×1.25');
             expect(el('acs-slope-reset').hidden).toBe(false);
@@ -125,7 +125,7 @@ describe('slope in the AccessScore scoring controls', () => {
             edit(el('acs-slope-low'), 8);
             expect(emitted).toHaveLength(1);
             expect(emitted[0].partial.slope.lowThreshold).toBeCloseTo(0.08, 12);
-            expect(emitted[0].meta).toEqual({ kind: 'SlopeThreshold', value: 'low_value=8', final: true });
+            expect(emitted[0].meta).toEqual({ kind: 'GradeThreshold', value: 'low_value=8', final: true });
             // Empty, not a number, outside the config's range, and past the other threshold (8.33%).
             for (const bad of ['', 'abc', '0.5', '41', '8.4', '9']) {
                 edit(el('acs-slope-low'), bad);
@@ -161,13 +161,13 @@ describe('slope in the AccessScore scoring controls', () => {
             const { emitted, el } = mount();
             edit(el('acs-slope-barrier'), true);
             expect(emitted[0]).toEqual({
-                partial: { slope: { barrierEnabled: true } }, meta: { kind: 'SlopeBarrier', value: true, final: true },
+                partial: { slope: { barrierEnabled: true } }, meta: { kind: 'GradeBarrier', value: true, final: true },
             });
             expect(el('acs-slope-barrier-threshold').disabled).toBe(false);
             edit(el('acs-slope-approximate'), true);
             expect(emitted[1]).toEqual({
                 partial: { slope: { includeApproximate: true } },
-                meta: { kind: 'SlopeApproximate', value: true, final: true },
+                meta: { kind: 'GradeApproximate', value: true, final: true },
             });
         });
 
@@ -178,7 +178,7 @@ describe('slope in the AccessScore scoring controls', () => {
             expect(el('acs-slope-reset').hidden).toBe(false);
             edit(el('acs-slope-barrier'), false);
             expect(emitted[emitted.length - 1].partial.slope).toEqual({
-                barrierEnabled: false, barrierThreshold: CONFIG.slope.defaults.barrier_threshold,
+                barrierEnabled: false, barrierThreshold: CONFIG.grade_scoring.defaults.barrier_threshold,
             });
             expect(el('acs-slope-barrier-threshold').value).toBe('12.5');
             expect(el('acs-slope-reset').hidden).toBe(true);
@@ -190,9 +190,9 @@ describe('slope in the AccessScore scoring controls', () => {
             edit(el('acs-slope-barrier'), true);
             el('acs-slope-reset').click();
             expect(emitted[emitted.length - 1]).toEqual({
-                partial: { slope: AccessScoreModel.slopeDefaults(CONFIG) }, meta: { kind: 'SlopeReset', final: true },
+                partial: { slope: AccessScoreModel.slopeDefaults(CONFIG) }, meta: { kind: 'GradeReset', final: true },
             });
-            expect(el('acs-slope-weight').value).toBe(String(CONFIG.slope.defaults.weight));
+            expect(el('acs-slope-weight').value).toBe(String(CONFIG.grade_scoring.defaults.weight));
             expect(el('acs-slope-barrier').checked).toBe(false);
             expect(el('acs-slope-reset').hidden).toBe(true);
         });
@@ -228,35 +228,35 @@ describe('slope in the AccessScore scoring controls', () => {
             expect(panel.open).toBe(true);
             expect(el('acs-slope').hidden).toBe(false);
             expect(el('acs-slope-toggle').querySelector('img').getAttribute('src')).toBe('up.svg');
-            expect(emitted[0]).toEqual({ partial: null, meta: { kind: 'Section', value: 'slope_open=true', final: true } });
+            expect(emitted[0]).toEqual({ partial: null, meta: { kind: 'Section', value: 'grade_open=true', final: true } });
         });
     });
 
     describe('the slope URL param', () => {
         test('reads each token against the config and drops what it does not allow', () => {
-            const { state } = AccessScoreUrlSync.read(CONFIG, '?slope=w:1.5,s:max_grade,lo:0.08,hi:0.1,b:0.15,ap:1');
+            const { state } = AccessScoreUrlSync.read(CONFIG, '?gs=w:1.5,s:max_grade,lo:0.08,hi:0.1,b:0.15,ap:1');
             expect(state.slope).toEqual({
                 weight: 1.5, statistic: 'max_grade', lowThreshold: 0.08, highThreshold: 0.1, barrierEnabled: true,
                 barrierThreshold: 0.15, includeApproximate: true,
             });
-            expect(AccessScoreUrlSync.read(CONFIG, '?slope=w:-1,s:steepness,lo:0.9,hi:abc,b:0,ap:0,zz:1,nocolon')
+            expect(AccessScoreUrlSync.read(CONFIG, '?gs=w:-1,s:steepness,lo:0.9,hi:abc,b:0,ap:0,zz:1,nocolon')
                 .state.slope).toBeUndefined();
-            expect(AccessScoreUrlSync.read(CONFIG, '?slope=w:2,s:steepness').state.slope).toEqual({ weight: 2 });
-            const { slope, ...older } = CONFIG;
-            expect(slope).toBeDefined();
-            expect(AccessScoreUrlSync.read(older, '?slope=w:2').state.slope).toBeUndefined();
+            expect(AccessScoreUrlSync.read(CONFIG, '?gs=w:2,s:steepness').state.slope).toEqual({ weight: 2 });
+            const { grade_scoring: gradeScoring, ...older } = CONFIG;
+            expect(gradeScoring).toBeDefined();
+            expect(AccessScoreUrlSync.read(older, '?gs=w:2').state.slope).toBeUndefined();
         });
 
         test('holds a weight to the slider\'s range, so the control and the map cannot disagree', () => {
-            expect(AccessScoreUrlSync.read(CONFIG, '?slope=w:50').state.slope)
-                .toEqual({ weight: CONFIG.slope.weight_range.max });
+            expect(AccessScoreUrlSync.read(CONFIG, '?gs=w:50').state.slope)
+                .toEqual({ weight: CONFIG.grade_scoring.weight_range.max });
         });
 
         test('drops thresholds that cross, as a pair, whether one came from the link or both', () => {
-            expect(AccessScoreUrlSync.read(CONFIG, '?slope=w:1,lo:0.2,hi:0.1').state.slope).toEqual({ weight: 1 });
+            expect(AccessScoreUrlSync.read(CONFIG, '?gs=w:1,lo:0.2,hi:0.1').state.slope).toEqual({ weight: 1 });
             // 0.2 alone crosses the default high threshold of 8.33%.
-            expect(AccessScoreUrlSync.read(CONFIG, '?slope=w:1,lo:0.2').state.slope).toEqual({ weight: 1 });
-            expect(AccessScoreUrlSync.read(CONFIG, '?slope=lo:0.06').state.slope).toEqual({ lowThreshold: 0.06 });
+            expect(AccessScoreUrlSync.read(CONFIG, '?gs=w:1,lo:0.2').state.slope).toEqual({ weight: 1 });
+            expect(AccessScoreUrlSync.read(CONFIG, '?gs=lo:0.06').state.slope).toEqual({ lowThreshold: 0.06 });
         });
 
         test('carries a slope-class brush in `gc`, and never beside a score range', () => {
@@ -271,7 +271,7 @@ describe('slope in the AccessScore scoring controls', () => {
             for (const gc of ['5', '9', 'abc', '', ',']) {
                 expect(AccessScoreUrlSync.read(CONFIG, `?gc=${gc}`).dock.brush).toBeNull();
             }
-            const unsampled = { ...CONFIG, gradient: { ...GRADIENT, sources: [] } };
+            const unsampled = { ...CONFIG, grade: { ...GRADIENT, sources: [] } };
             expect(AccessScoreUrlSync.read(unsampled, '?gc=2').dock.brush).toBeNull();
         });
 
@@ -295,15 +295,15 @@ describe('slope in the AccessScore scoring controls', () => {
         });
 
         test('reads nothing in a city with no slopes, where no section exists to show or undo it', () => {
-            const unsampled = { ...CONFIG, gradient: { ...GRADIENT, sources: [] } };
-            expect(AccessScoreUrlSync.read(unsampled, '?slope=w:2,b:0.05').state.slope).toBeUndefined();
+            const unsampled = { ...CONFIG, grade: { ...GRADIENT, sources: [] } };
+            expect(AccessScoreUrlSync.read(unsampled, '?gs=w:2,b:0.05').state.slope).toBeUndefined();
         });
 
         test('a partial from a link merges over the engine defaults in the model', () => {
-            const { state } = AccessScoreUrlSync.read(CONFIG, '?slope=w:2');
+            const { state } = AccessScoreUrlSync.read(CONFIG, '?gs=w:2');
             const model = new AccessScoreModel(CONFIG, EMPTY, EMPTY, [], state);
             expect(model.state.slope.weight).toBe(2);
-            expect(model.state.slope.highThreshold).toBe(CONFIG.slope.defaults.high_threshold);
+            expect(model.state.slope.highThreshold).toBe(CONFIG.grade_scoring.defaults.high_threshold);
         });
 
         test('writes only the settings that differ, and nothing at the defaults', () => {
@@ -311,7 +311,7 @@ describe('slope in the AccessScore scoring controls', () => {
             const model = new AccessScoreModel(CONFIG, EMPTY, EMPTY, []);
             const map = { on: () => {}, getCenter: () => ({ lat: 40.88, lng: -74.01 }), getZoom: () => 13 };
             const sync = new AccessScoreUrlSync(model, map);
-            const param = () => new URLSearchParams(window.location.search).get('slope');
+            const param = () => new URLSearchParams(window.location.search).get('gs');
             sync.writeNow();
             expect(param()).toBeNull();
             model.setState({ slope: { weight: 1.5, statistic: 'mean_grade', barrierEnabled: true } });
@@ -327,7 +327,7 @@ describe('slope in the AccessScore scoring controls', () => {
             expect(param()).toBe('w:1.5,s:mean_grade,lo:0.02,hi:0.0765,b:0.08333');
             const snapped = AccessScoreUrlSync.read(CONFIG, window.location.search).state.slope;
             expect(snapped.barrierThreshold).toBe(0.08333);
-            expect(AccessScoreUrlSync.read(CONFIG, '?slope=hi:0.08333,lo:0.06').state.slope.highThreshold).toBe(1 / 12);
+            expect(AccessScoreUrlSync.read(CONFIG, '?gs=hi:0.08333,lo:0.06').state.slope.highThreshold).toBe(1 / 12);
             model.setState({ slope: AccessScoreModel.slopeDefaults(CONFIG) });
             sync.writeNow();
             expect(param()).toBeNull();

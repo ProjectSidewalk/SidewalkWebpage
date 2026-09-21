@@ -469,7 +469,7 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         features(951).getAttribute("meters_over_8pct") mustBe 10.0
         features(951).getAttribute("grade_quality") mustBe "measured"
         features(951).getAttribute("dem_source") mustBe "usgs-3dep-10m"
-        features(951).getAttribute("slope_term") mustBe -0.25
+        features(951).getAttribute("grade_term") mustBe -0.25
         declaredSrsId(gpkg, "access_score_streets") mustBe 4326
       }
       // The shapefile has its own hand-written columns, so the name is checked there too.
@@ -485,7 +485,7 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         names.take(25) mustBe Seq(
           "the_geom", "streetId", "osmWayId", "streetName", "regionId", "score", "segScore", "sIntId", "eIntId",
           "sIntScore", "eIntScore", "auditCount", "lengthM", "labelCount", "meanGrade", "maxGrade", "netGrade",
-          "climbM", "descentM", "mOver5pct", "mOver8pct", "gradeConf", "gradeQual", "demSource", "slopeTerm"
+          "climbM", "descentM", "mOver5pct", "mOver8pct", "gradeConf", "gradeQual", "demSource", "gradeTerm"
         )
         features(951).getAttribute("meanGrade") mustBe 0.06
         features(951).getAttribute("maxGrade") mustBe 0.09
@@ -497,7 +497,7 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         features(951).getAttribute("gradeConf") mustBe "high"
         features(951).getAttribute("gradeQual") mustBe "measured"
         features(951).getAttribute("demSource") mustBe "usgs-3dep-10m"
-        features(951).getAttribute("slopeTerm") mustBe -0.25
+        features(951).getAttribute("gradeTerm") mustBe -0.25
       }
     }
   }

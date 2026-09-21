@@ -15,10 +15,10 @@
  * force at a time) and `focus` (the region a rank-list click scoped the band to). The
  * places layer (#5311) adds `pc` (the enabled category ids, or `all`; absent when none are on, the default), and the
  * selected place as `place` (`lat,lng`) with `placeName` — the same pair the searched place will use (#5340), so a link
- * means one thing by "place". The slope settings (#5223) ride in `slope` as `key:value` tokens, each present only
- * where it differs from the engine's default: `w` (weight), `s` (statistic id), `lo` / `hi` (the thresholds, as
- * fractions), `b` (the barrier threshold, whose presence is what turns the barrier on) and `ap` (1 to admit
- * approximate slopes).
+ * means one thing by "place". The grade scoring settings (#5223) ride in `gs` (`grade` is taken by the grade layer)
+ * as `key:value` tokens, each present only where it differs from the engine's default: `w` (weight), `s` (statistic
+ * id), `lo` / `hi` (the thresholds, as fractions), `b` (the barrier threshold, whose presence is what turns the
+ * barrier on) and `ap` (1 to admit approximate grades).
  */
 class AccessScoreUrlSync {
   /** The `pc` value for every place category: the full list spelled out would break the moment one is added. */
@@ -75,10 +75,10 @@ class AccessScoreUrlSync {
     if (params.get('unaudited') === '0') state.showUnaudited = false;
     if (params.get('clusters') === '0') state.showClusters = false;
     // A partial: the model's constructor merges it over the engine's defaults, as `setState` does.
-    const slope = AccessScoreUrlSync.#readSlope(config, params.get('slope'));
+    const slope = AccessScoreUrlSync.#readSlope(config, params.get('gs'));
     if (slope) state.slope = /** @type {AccessScoreSlopeSettings} */ (slope);
     // A link from a sampled city opened in one that is not: there is no slope to color by, so the score stays.
-    if (params.get('grade') === '1' && (config.gradient?.sources ?? []).length > 0) state.showGrade = true;
+    if (params.get('grade') === '1' && (config.grade?.sources ?? []).length > 0) state.showGrade = true;
 
     // Absent means none, the default. `pc=all` is "Select all"; a list naming every category reads the same. A
     // list naming nothing the catalog knows is dropped whole, since "none" is not what it asked for either.
@@ -210,7 +210,7 @@ class AccessScoreUrlSync {
     set('grade', '1', state.showGrade === defaults.showGrade);
     // Empty for the defaults, and also for a barrier grade edited while the barrier is off, which a link cannot say.
     const slope = this.#slopeParam(state.slope);
-    set('slope', slope, slope === '');
+    set('gs', slope, slope === '');
     const categories = state.placeCategories;
     set('pc', categories === null ? AccessScoreUrlSync.#ALL_CATEGORIES : (categories ?? []).join(','),
       categories !== null && categories.length === 0);
@@ -243,8 +243,8 @@ class AccessScoreUrlSync {
    * @returns {?number[]} Ascending class indices, or null.
    */
   static #readGradeClasses(config, raw) {
-    const breaks = config.gradient?.map_class_breaks;
-    if (!raw || !breaks || (config.gradient?.sources ?? []).length === 0) return null;
+    const breaks = config.grade?.map_class_breaks;
+    if (!raw || !breaks || (config.grade?.sources ?? []).length === 0) return null;
     const count = breaks.length + 1;
     const classes = new Set();
     for (const token of raw.split(',')) {
@@ -263,7 +263,7 @@ class AccessScoreUrlSync {
   }
 
   /**
-   * The `slope` param's tokens as a partial of the slope settings, each checked against what the config allows so a
+   * The `gs` param's tokens as a partial of the slope settings, each checked against what the config allows so a
    * stale or hand-edited link degrades to the engine's defaults token by token.
    *
    * Nothing is read in a city with no slope to weigh (no settings published, or no street sampled): its Slope
@@ -277,9 +277,9 @@ class AccessScoreUrlSync {
    * @returns {?Partial<AccessScoreSlopeSettings>} The settings the link names, or null for none.
    */
   static #readSlope(config, raw) {
-    if (!raw || !config.slope || (config.gradient?.sources ?? []).length === 0) return null;
+    if (!raw || !config.grade_scoring || (config.grade?.sources ?? []).length === 0) return null;
     const defaults = AccessScoreModel.slopeDefaults(config);
-    const { min, max } = config.slope.threshold_range;
+    const { min, max } = config.grade_scoring.threshold_range;
     // A grade is written to five decimals, so one that was a default (1/12, 1/8) comes back a hair off it. Snapping
     // it home keeps a round trip from moving a street sitting between 0.08333 and 1/12 across a threshold.
     const grade = (text, fallback) => {
@@ -294,8 +294,9 @@ class AccessScoreUrlSync {
       const [key, text] = [token.slice(0, colon), token.slice(colon + 1)];
       if (key === 'w') {
         const weight = Number.parseFloat(text);
-        if (Number.isFinite(weight) && weight >= 0) slope.weight = Math.min(weight, config.slope.weight_range.max);
-      } else if (key === 's' && config.slope.statistics.includes(text)) {
+        const cap = config.grade_scoring.weight_range.max;
+        if (Number.isFinite(weight) && weight >= 0) slope.weight = Math.min(weight, cap);
+      } else if (key === 's' && config.grade_scoring.statistics.includes(text)) {
         slope.statistic = text;
       } else if (key === 'lo' && grade(text, defaults.lowThreshold) !== null) {
         slope.lowThreshold = grade(text, defaults.lowThreshold);
@@ -316,7 +317,7 @@ class AccessScoreUrlSync {
   }
 
   /**
-   * The `slope` param for the settings in force: only the tokens that differ from the engine's defaults. A barrier
+   * The `gs` param for the settings in force: only the tokens that differ from the engine's defaults. A barrier
    * threshold is written only while the barrier is on, since its presence is what a reader of the link takes as "on".
    * @param {AccessScoreSlopeSettings} slope - The model's slope settings.
    * @returns {string}

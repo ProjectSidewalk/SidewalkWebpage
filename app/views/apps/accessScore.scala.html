@@ -89,17 +89,17 @@
             <h3 class="filter-sidebar__heading acs-disclosure__heading" id="acs-slope-section-heading">
               <button type="button" id="acs-slope-toggle" class="acs-disclosure" aria-expanded="false" aria-controls="acs-slope">
                 <img class="acs-disclosure__chevron" src='@assets.path("images/icons/chevron-right-feather.svg")' alt="" data-down-src='@assets.path("images/icons/chevron-right-feather.svg")' data-up-src='@assets.path("images/icons/chevron-down-feather.svg")'>
-                <span data-i18n="accessscore:slope-section">Street slope</span>
+                <span data-i18n="accessscore:slope-section">Street grade</span>
                 <span class="acs-disclosure__hint" id="acs-slope-summary"></span>
               </button>
             </h3>
-            <button type="button" id="acs-slope-reset" class="filter-sidebar__deselect-all acs-heading-action" data-i18n="accessscore:slope-reset" hidden>Reset slope</button>
+            <button type="button" id="acs-slope-reset" class="filter-sidebar__deselect-all acs-heading-action" data-i18n="accessscore:slope-reset" hidden>Reset grade</button>
             @info("slope-help")
           </div>
           <div id="acs-slope" class="acs-slope" hidden>
             <div class="acs-weight" id="acs-slope-weight-row">
               <div class="acs-weight__head">
-                <label class="acs-weight__label" for="acs-slope-weight" data-i18n="accessscore:slope-weight">Slope weight</label>
+                <label class="acs-weight__label" for="acs-slope-weight" data-i18n="accessscore:slope-weight">Grade weight</label>
                 <span class="acs-weight__role acs-weight__role--problem" data-i18n="accessscore:row-hurts">hurts</span>
                 <output class="acs-weight__value" id="acs-slope-weight-value" for="acs-slope-weight"></output>
               </div>
@@ -138,7 +138,7 @@
             <div class="acs-check-row">
               <label class="acs-check" for="acs-slope-approximate">
                 <input type="checkbox" id="acs-slope-approximate">
-                <span data-i18n="accessscore:slope-approximate-include">Include approximate slopes</span>
+                <span data-i18n="accessscore:slope-approximate-include">Include approximate grades</span>
               </label>
               @info("slope-approximate-include-help")
             </div>
@@ -186,7 +186,7 @@
           <div id="acs-grade-option" class="acs-check-row" hidden>
             <label class="acs-check" for="acs-show-grade">
               <input type="checkbox" id="acs-show-grade">
-              <span data-i18n="accessscore:show-grade">Color streets by slope</span>
+              <span data-i18n="accessscore:show-grade">Color streets by grade</span>
             </label>
             @info("show-grade-help")
           </div>

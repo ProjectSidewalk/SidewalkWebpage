@@ -178,7 +178,7 @@
   "profile-none": "這條街道沒有可用的高程剖面。",
   "slope-section": "街道坡度",
   "slope-reset": "重設坡度",
-  "slope-help": "陡峭的街道會使分數降低多少。在兩個門檻之間，扣分會從零逐漸增加到完整權重；將權重設為 0 即可讓坡度不計入分數。只有已有分數的街道會受到影響。",
+  "slope-help": "陡峭的街道會使分數降低多少。在兩個門檻之間，扣分會從零逐漸增加到完整權重；將權重設為 0 即可讓坡度不計入分數。只有已有分數的街道會受到影響。坡度是沿每條街道的中心線測量的；人行道的橫向坡度（橫跨人行道的傾斜）則無法測量。",
   "slope-weight": "坡度權重",
   "slope-impact": "影響 {{scored, number}} 條有分數街道中的 {{reached, number}} 條 · {{full, number}} 條扣滿權重",
   "slope-impact-barriers": "影響 {{scored, number}} 條有分數街道中的 {{reached, number}} 條 · {{full, number}} 條扣滿權重 · {{barriers, number}} 條得 0 分",

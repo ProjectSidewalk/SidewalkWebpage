@@ -191,7 +191,7 @@
   "profile-none": "No hay perfil de elevación disponible para esta calle.",
   "slope-section": "Pendiente de la calle",
   "slope-reset": "Restablecer pendiente",
-  "slope-help": "Cuánto reduce una calle empinada su puntuación. Entre los dos umbrales la penalización crece desde cero hasta el peso completo; ponga el peso en 0 para dejar la pendiente fuera de la puntuación. Solo afecta a las calles que ya tienen puntuación.",
+  "slope-help": "Cuánto reduce una calle empinada su puntuación. Entre los dos umbrales la penalización crece desde cero hasta el peso completo; ponga el peso en 0 para dejar la pendiente fuera de la puntuación. Solo afecta a las calles que ya tienen puntuación. La pendiente se mide a lo largo del eje de cada calle; la pendiente transversal, la inclinación a lo ancho de la acera, no se mide.",
   "slope-weight": "Peso de la pendiente",
   "slope-impact": "Afecta a {{reached, number}} de {{scored, number}} calles con puntuación · {{full, number}} con la penalización completa",
   "slope-impact-barriers": "Afecta a {{reached, number}} de {{scored, number}} calles con puntuación · {{full, number}} con la penalización completa · {{barriers, number}} con puntuación 0",

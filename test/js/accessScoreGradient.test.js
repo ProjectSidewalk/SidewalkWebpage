@@ -23,7 +23,7 @@ const GRADIENT = {
         url: 'https://www.usgs.gov/3d-elevation-program', street_count: 3,
     }],
 };
-const CONFIG = { ...FIXTURE.config, gradient: GRADIENT };
+const CONFIG = { ...FIXTURE.config, grade: GRADIENT };
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
 /** A street feature with whatever slope fields a case names. */
@@ -118,11 +118,11 @@ describe('street slope in the AccessScore tool', () => {
             model.setState({ slope: { statistic: 'meters_over_limit' } });
             expect(model.displayGradeStatistic).toBe('max_grade');
             expect(model.displayGrade(1)).toBe(0.091);
-            model.setState({ slope: { statistic: CONFIG.slope.defaults.statistic } });
+            model.setState({ slope: { statistic: CONFIG.grade_scoring.defaults.statistic } });
         });
 
         test('reads the legend\'s classes back into streets, the no-grade ones included', () => {
-            const breaks = CONFIG.gradient.map_class_breaks;
+            const breaks = CONFIG.grade.map_class_breaks;
             // Street 1's steepest stretch (9.1%) is over the ramp limit; street 3 stands in its 3% net grade.
             expect(AccessScoreGradeRamp.classIndexOf(model.displayGrade(1), breaks)).toBe(3);
             expect(AccessScoreGradeRamp.classIndexOf(model.displayGrade(3), breaks)).toBe(1);
@@ -584,7 +584,7 @@ describe('street slope in the AccessScore tool', () => {
             expect(AccessScoreUrlSync.read(CONFIG, '?grade=1').state.showGrade).toBe(true);
             expect(AccessScoreUrlSync.read(CONFIG, '?grade=0').state.showGrade).toBeUndefined();
             expect(AccessScoreUrlSync.read(CONFIG, '').state.showGrade).toBeUndefined();
-            const unsampled = { ...FIXTURE.config, gradient: { ...GRADIENT, sources: [] } };
+            const unsampled = { ...FIXTURE.config, grade: { ...GRADIENT, sources: [] } };
             expect(AccessScoreUrlSync.read(unsampled, '?grade=1').state.showGrade).toBeUndefined();
             expect(AccessScoreUrlSync.read(FIXTURE.config, '?grade=1').state.showGrade).toBeUndefined();
         });

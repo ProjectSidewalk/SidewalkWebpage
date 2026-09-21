@@ -192,7 +192,7 @@ object StreetAccessScoreForApi extends ApiFields[StreetAccessScoreForApi] {
     field("length_meters")(_.lengthMeters),
     field("label_count")(_.labelCount)
   ) ++ StreetGradientApiFields.statFields.map(_.on[StreetAccessScoreForApi](_.gradient)) ++
-    Seq[ApiField[StreetAccessScoreForApi]](field("slope_term")(_.slopeTerm)) ++
+    Seq[ApiField[StreetAccessScoreForApi]](field("grade_term")(_.slopeTerm)) ++
     AccessScoreApiModels.perTypeFields[StreetAccessScoreForApi](
       AccessScoreApiModels.orderedTypes, _.clusterCounts, _.subScores, _.severityCounts, _.tagAdjustments
     )
@@ -502,7 +502,7 @@ case class AccessScoreConfigForApi(
       "presets"               -> JsObject(presetOrder.map(id => id -> orderedWeights(presets(id)))),
       "min_region_completion" -> minRegionCompletion,
       "place_categories"      -> placeCategories,
-      "slope"                 -> slope.toJson
+      "grade_scoring"         -> slope.toJson
     )
   }
 }

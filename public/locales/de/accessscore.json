@@ -191,7 +191,7 @@
   "profile-none": "Für diese Straße ist kein Höhenprofil verfügbar.",
   "slope-section": "Straßensteigung",
   "slope-reset": "Steigung zurücksetzen",
-  "slope-help": "Wie stark eine steile Straße ihre Bewertung senkt. Zwischen den beiden Schwellenwerten wächst der Abzug von null bis zum vollen Gewicht; setzen Sie das Gewicht auf 0, um die Steigung aus der Bewertung herauszulassen. Betroffen sind nur Straßen, die bereits eine Bewertung haben.",
+  "slope-help": "Wie stark eine steile Straße ihre Bewertung senkt. Zwischen den beiden Schwellenwerten wächst der Abzug von null bis zum vollen Gewicht; setzen Sie das Gewicht auf 0, um die Steigung aus der Bewertung herauszulassen. Betroffen sind nur Straßen, die bereits eine Bewertung haben. Die Steigung wird entlang der Mittellinie jeder Straße gemessen; die Querneigung eines Gehwegs wird nicht gemessen.",
   "slope-weight": "Gewicht der Steigung",
   "slope-impact": "Betrifft {{reached, number}} von {{scored, number}} bewerteten Straßen · {{full, number}} mit vollem Abzug",
   "slope-impact-barriers": "Betrifft {{reached, number}} von {{scored, number}} bewerteten Straßen · {{full, number}} mit vollem Abzug · {{barriers, number}} auf 0",

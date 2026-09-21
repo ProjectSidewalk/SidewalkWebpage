@@ -238,7 +238,7 @@ class AccessScoreApiController @Inject() (
       })
       Ok(
         AccessScoreConfigForApi.current.toJson +
-          ("clusters_updated_at" -> Json.toJson(updatedAt)) + ("gradient" -> gradient.toJson)
+          ("clusters_updated_at" -> Json.toJson(updatedAt)) + ("grade" -> gradient.toJson)
       )
     }
   }

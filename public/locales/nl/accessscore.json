@@ -191,7 +191,7 @@
   "profile-none": "Voor deze straat is geen hoogteprofiel beschikbaar.",
   "slope-section": "Straathelling",
   "slope-reset": "Helling herstellen",
-  "slope-help": "Hoeveel een steile straat de score verlaagt. Tussen de twee drempels groeit de aftrek van niets tot het volle gewicht; zet het gewicht op 0 om de helling buiten de score te laten. Alleen straten die al een score hebben, worden beïnvloed.",
+  "slope-help": "Hoeveel een steile straat de score verlaagt. Tussen de twee drempels groeit de aftrek van niets tot het volle gewicht; zet het gewicht op 0 om de helling buiten de score te laten. Alleen straten die al een score hebben, worden beïnvloed. De helling wordt gemeten langs de middenlijn van elke straat; de dwarshelling van een stoep wordt niet gemeten.",
   "slope-weight": "Gewicht van de helling",
   "slope-impact": "Raakt {{reached, number}} van {{scored, number}} straten met een score · {{full, number}} met de volle aftrek",
   "slope-impact-barriers": "Raakt {{reached, number}} van {{scored, number}} straten met een score · {{full, number}} met de volle aftrek · {{barriers, number}} op 0",

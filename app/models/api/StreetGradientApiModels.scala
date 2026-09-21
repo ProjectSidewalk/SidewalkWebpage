@@ -50,7 +50,7 @@ case class DemSourceForApi(source: DemSource, streetCount: Option[Int] = None) {
 }
 
 /**
- * What a client needs to read and credit the slope fields, published under `gradient` on `/v3/api/accessScoreConfig`
+ * What a client needs to read and credit the slope fields, published under `grade` on `/v3/api/accessScoreConfig`
  * so no client re-declares a limit, a class break, or a credit line.
  *
  * @param sources The elevation models this city's streets were sampled from, most streets first; empty in a city

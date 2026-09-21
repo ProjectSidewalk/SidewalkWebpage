@@ -230,7 +230,7 @@ describe('AccessScoreDock', () => {
         dock = new window.AccessScoreDock(document.getElementById('acs-dock'), {
             cityName: 'Fixture City', model, mapView, map, gradeBreaks: breaks, ...callbacks});
         flush();
-        for (const kind of ['Unit', 'SlopeStat', 'ResetAll']) {
+        for (const kind of ['Unit', 'GradeStat', 'ResetAll']) {
             dock.setBrush({kind: 'grade', classes: [4]}, {log: false});
             dock.applyChange({kind, final: true});
             flush();
@@ -238,7 +238,7 @@ describe('AccessScoreDock', () => {
         }
         // A score brush is the histogram's and survives a statistic change, which says nothing about score bins.
         dock.setBrush({from: 5, to: 10}, {log: false});
-        dock.applyChange({kind: 'SlopeStat', final: true});
+        dock.applyChange({kind: 'GradeStat', final: true});
         flush();
         expect(dock.state.brush).toEqual({kind: 'score', from: 5, to: 10});
     });
