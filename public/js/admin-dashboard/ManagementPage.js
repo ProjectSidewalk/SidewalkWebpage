@@ -395,6 +395,8 @@ class ManagementPage {
       'Started: generate crops. It runs in the background — the Health panel reports how it ended.');
     run('mgmt-rebuild-sidewalk-presence', this.#urls.rebuildSidewalkPresenceUrl, 'POST',
       'rebuild sidewalk presence');
+    run('mgmt-refresh-places', this.#urls.refreshPlacesUrl, 'POST', 'refresh places',
+      'Started: refresh places. It runs in the background — the Health panel reports how it ended.');
     run('mgmt-clear-cache', this.#urls.clearCacheUrl, 'PUT', 'clear server cache');
   }
 

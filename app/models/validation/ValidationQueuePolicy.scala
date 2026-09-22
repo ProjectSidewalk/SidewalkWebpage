@@ -95,6 +95,8 @@ object ValidationQueuePolicy {
     val expertCascade: Seq[ValidationQueue] = Seq(Triage, NeedsVotes, Any)
   }
 
+  private val now: Rep[OffsetDateTime] = SimpleLiteral[OffsetDateTime]("current_timestamp")
+
   /** Every vote cast on the label, Unsure included: an Unsure vote costs a validator the same minute an Agree does. */
   def totalVotes(l: LabelTableDef): Rep[Int] = l.agreeCount + l.disagreeCount + l.unsureCount
 
@@ -175,9 +177,8 @@ object ValidationQueuePolicy {
     val consensusNeed: Rep[Double] = ConsensusNeedMax.bind /
       (1d.bind + (consensusMargin * consensusMargin + l.unsureCount).asColumnOf[Double])
 
-    val now: Rep[OffsetDateTime] = SimpleLiteral[OffsetDateTime]("current_timestamp")
-    val window: Rep[Duration]    = SimpleLiteral[Duration](s"interval '$RecencyWindowDays days'")
-    val recency: Rep[Double]     = Case.If(l.timeCreated > now --- window).Then(RecencyBonus.bind).Else(0d.bind)
+    val window: Rep[Duration] = SimpleLiteral[Duration](s"interval '$RecencyWindowDays days'")
+    val recency: Rep[Double]  = Case.If(l.timeCreated > now --- window).Then(RecencyBonus.bind).Else(0d.bind)
 
     newLabeler + highQuality + consensusNeed + recency
   }
@@ -192,14 +193,9 @@ object ValidationQueuePolicy {
    */
   case class FaceEvidenceRep(labelerCount: Rep[Option[Int]], support: Rep[Option[Int]])
 
-  /** Seconds since the label was placed; `extract(epoch from …)` is the portable way to read an interval as a number. */
-  private val ageSeconds = SimpleExpression.unary[OffsetDateTime, Double] { (timeCreated, qb) =>
-    qb.sqlBuilder += "extract(epoch from (current_timestamp - "
-    qb.expr(timeCreated)
-    qb.sqlBuilder += "))"
-    ()
-  }
-  private val SecondsPerYear: Double = 365.25 * 24 * 3600
+  /** Subtraction, not `age()`: an epoch read off `age()`'s symbolic interval counts every month as 30 days. */
+  private def ageSeconds(timeCreated: Rep[OffsetDateTime]): Rep[Double] = (now - timeCreated).part("epoch")
+  private val SecondsPerYear: Double                                    = 365.25 * 24 * 3600
 
   /**
    * NoSidewalk's priority, `(priorityScore + face evidence need + age bonus) × 1 / (1 + face support)` (#5285).

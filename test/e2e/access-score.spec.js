@@ -66,6 +66,9 @@ async function stubFeeds(context) {
   await context.route((url) => url.pathname === '/regions/completionRates',
     (route) => route.fulfill({json: COMPLETION}));
   await context.route('**/v3/api/labelClusters*', (route) => route.fulfill({json: clustersFixture()}));
+  // Stubbed for every test, not only the places ones: the live server has whatever its last refresh fetched, and the
+  // sidebar's rows and counts would otherwise depend on it.
+  await context.route('**/v3/api/places*', (route) => route.fulfill({json: placesFixture()}));
   await context.route('**/label/id/*', (route) => {
     const id = Number(route.request().url().split('/').pop());
     // Label 11 carries a (stubbed) crop so its chips are live; the rest have no picture to judge by. 12 and 13 are
@@ -94,9 +97,60 @@ function clustersFixture() {
   };
 }
 
+/** Three places: a school on street 1, a library with no street near it, and a bus stop on the unaudited street 3. */
+function placesFixture() {
+  const place = (id, category, name, lng, lat, streetId, distance) => ({
+    type: 'Feature',
+    geometry: {type: 'Point', coordinates: [lng, lat]},
+    properties: {
+      place_id: id, category, name, source: 'osm', osm_type: 'node', osm_id: 1000 + id,
+      osm_url: `https://www.openstreetmap.org/node/${1000 + id}`, region_id: 1, region_name: 'Fixture',
+      nearest_street_edge_id: streetId, nearest_street_distance_m: distance, fetched_at: '2026-09-17T09:00:00Z',
+    },
+  });
+  return {
+    type: 'FeatureCollection',
+    features: [
+      place(1, 'school', 'Fixture High School', -74.0089, 40.8805, 1, 12.5),
+      place(2, 'library', 'Fixture Library', -74.015, 40.885, null, null),
+      place(3, 'transit', null, -74.0069, 40.8805, 3, 4.2),
+    ],
+  };
+}
+
 /** Waits for the page to expose its model and map. */
 async function waitForTool(page) {
   await page.waitForFunction(() => Boolean(window.accessScore && window.accessScore.model));
+}
+
+/**
+ * Makes the fixture city a sampled one (#5223): the slope controls and the map's legend classes exist only where
+ * the config carries a gradient block. Only street 1 gets a slope, a 12% steepest stretch — past the 8.3% ramp
+ * limit, so the engine's own settings take the whole weight off it.
+ * @param {import('@playwright/test').BrowserContext} context - The test's context, whose routes are added to.
+ */
+async function stubGradient(context) {
+  await context.route('**/v3/api/accessScoreConfig', async (route) => {
+    const config = await (await route.fetch()).json();
+    config.grade = {
+      walking_surface_limit: 0.05, ramp_limit: 1 / 12, map_class_breaks: [1 / 48, 0.05, 1 / 12, 0.125],
+      sources: [{dem_source: 'fixture-dem', title: 'Fixture DEM', credit: 'Elevation: Fixture Survey',
+        licence: 'Public domain', url: 'https://example.org/dem', street_count: 1}],
+    };
+    return route.fulfill({json: config});
+  });
+  await context.route('**/v3/api/accessScoreStreets*', (route) => {
+    const streets = streetsFixture();
+    Object.assign(streets.features[0].properties, {
+      mean_grade: 0.1, max_grade: 0.12, net_grade: 0.1, total_climb_meters: 10, total_descent_meters: 0,
+      meters_over_5pct: 100, meters_over_8pct: 100, grade_confidence: 'high', grade_quality: 'measured',
+      dem_source: 'fixture-dem', grade_term: -1,
+    });
+    return route.fulfill({json: streets});
+  });
+  await context.route('**/v3/api/streetGrade*', (route) => route.fulfill({json: {
+    street_edge_id: 1, profile: {spacing_meters: 50, elevations_meters: [100, 105, 110]},
+  }}));
 }
 
 const scoreOf = (page, id) => page.evaluate((streetId) => {
@@ -164,7 +218,7 @@ test.describe('/accessScore', () => {
     await expect(page.locator('#filter-sidebar')).not.toHaveClass(/filter-sidebar--loading/);
   });
 
-  test('a weight slider re-scores in the browser and marks the weights custom', async ({page, context}) => {
+  test('a weight slider re-scores in the browser and marks the weights custom', async ({page, context, consoleErrors}) => {
     const scoreRequests = [];
     await context.route('**/v3/api/accessScoreStreets*', (route) => {
       scoreRequests.push(route.request().url());
@@ -175,12 +229,20 @@ test.describe('/accessScore', () => {
     await waitForTool(page);
     const requestsAfterLoad = scoreRequests.length;
 
+    // The sliders start folded away; a link with custom weights opens the fold itself (checked below).
+    const fold = page.locator('#acs-weights-toggle');
+    await expect(fold).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('#acs-weights')).toBeHidden();
+    await fold.click();
+    await expect(fold).toHaveAttribute('aria-expanded', 'true');
+
     // Zero the curb-ramp weight: street 1 falls to the neutral 0.5.
     await page.locator('#acs-weight-CurbRamp').fill('0');
     await page.locator('#acs-weight-CurbRamp').dispatchEvent('input');
     await page.locator('#acs-weight-CurbRamp').dispatchEvent('change');
     expect(await scoreOf(page, 1)).toBeCloseTo(0.5, 6);
     await expect(page.locator('#acs-reset')).toBeVisible();
+    await expect(page.locator('#acs-weights-summary')).toHaveText('Custom');
     expect(scoreRequests.length).toBe(requestsAfterLoad);
 
     // The URL carries the custom weights, so the view is shareable.
@@ -191,7 +253,16 @@ test.describe('/accessScore', () => {
     await page.locator('#acs-reset').click();
     expect(await scoreOf(page, 1)).toBeCloseTo(0.8176, 3);
     await expect(page.locator('#acs-reset')).toBeHidden();
+    await expect(page.locator('#acs-weights-summary')).toBeEmpty();
     await expect.poll(() => page.evaluate(() => new URL(window.location.href).searchParams.has('w'))).toBe(false);
+
+    await page.goto('/accessScore?w=CurbRamp:0');
+    await waitForAppReady(page);
+    await waitForTool(page);
+    await expect(page.locator('#acs-weights-toggle')).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#acs-weights')).toBeVisible();
+    // The fold's click reports no state; the page must not try to apply one.
+    expect(consoleErrors).toEqual([]);
   });
 
   test('switching to regions shows the choropleth and rolls the streets up', async ({page}) => {
@@ -298,29 +369,40 @@ test.describe('/accessScore', () => {
       expect(await dimOf(page, 'acs-regions', 1)).toBe(false);
     });
 
-  test('in the streets unit a rank click scopes the band to the region without selecting it on the map', async ({page}) => {
-    await page.goto('/accessScore');
-    await waitForAppReady(page);
-    await waitForTool(page);
-    const row = page.locator('.acs-rank__row').first();
-    await expect(row).toContainText('Fixture');
-    const zoomBefore = await page.evaluate(() => window.accessScore.map.getZoom());
-    await row.click();
-    await expect(row).toHaveAttribute('aria-current', 'true');
-    await expect(page.locator('.acs-whats-here__caption')).toHaveText('in Fixture');
-    await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from Fixture');
-    await expect.poll(() => urlParam(page, 'focus')).toBe('1');
-    await expect.poll(() => page.evaluate(() => window.accessScore.map.getZoom())).not.toBe(zoomBefore);
-    // No region was selected on the streets map: no popup, and the URL carries no selection.
-    await expect(page.locator('.acs-popup')).toHaveCount(0);
-    expect(await urlParam(page, 'sel')).toBeNull();
-    // The rows in What's here only read now: nothing in them is a button.
-    await expect(page.locator('.acs-whats-here__row button')).toHaveCount(0);
-    // A street selection is the newer scope and drops the focus.
-    await page.evaluate(() => window.accessScore.dock.setSelection({unit: 'streets', id: 1}));
-    await expect(page.locator('.acs-whats-here__caption')).toHaveText('on Cedar Lane');
-    await expect.poll(() => urlParam(page, 'focus')).toBeNull();
-  });
+  test('in the streets unit the rank list is the street leaderboard, and a click selects that street (#5223)',
+    async ({page}) => {
+      await page.goto('/accessScore');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      await expect(page.locator('#acs-dock-rank-title')).toHaveText('Streets ranked');
+      const order = page.locator('#acs-rank-order');
+      await expect(order).toBeVisible();
+      await expect(order).toHaveText('Show worst 20');
+
+      // Best first: the top row outscores the bottom one, and the toggle turns the list around.
+      const scores = () => page.locator('.acs-rank__score').allTextContents();
+      const asNumbers = (texts) => texts.map((t) => Number.parseFloat(t));
+      const best = asNumbers(await scores());
+      expect(best).toEqual([...best].sort((a, b) => b - a));
+      await order.click();
+      await expect(order).toHaveText('Show best 20');
+      const worst = asNumbers(await scores());
+      expect(worst).toEqual([...worst].sort((a, b) => a - b));
+      expect(worst[0]).toBeLessThanOrEqual(best[0]);
+      await order.click();
+
+      // A row is the street: clicking it selects that street on the map, popup and URL included.
+      const row = page.locator('.acs-rank__row').first();
+      const zoomBefore = await page.evaluate(() => window.accessScore.map.getZoom());
+      const streetId = await row.getAttribute('data-row-id');
+      await row.click();
+      await expect(row).toHaveAttribute('aria-current', 'true');
+      await expect(page.locator('.acs-popup')).toBeVisible();
+      await expect.poll(() => urlParam(page, 'sel')).toBe(streetId);
+      await expect.poll(() => page.evaluate(() => window.accessScore.map.getZoom())).not.toBe(zoomBefore);
+      // The rows in What's here only read: nothing in them is a button.
+      await expect(page.locator('.acs-whats-here__row button')).toHaveCount(0);
+    });
 
   test('selecting a street fades the streets outside its region, and the collapsed band keeps the legend',
     async ({page}) => {
@@ -369,6 +451,220 @@ test.describe('/accessScore', () => {
     await expect(popup.locator('.acs-popup__components'))
       .toHaveText(/Segment 81\.8 · Start crossing — · End crossing —/);
   });
+
+  test('coloring by slope swaps the paint and the legend, reaches the URL, and the popup draws the profile (#5223)',
+    async ({page, context, consoleErrors}) => {
+      // The slope controls only exist in a sampled city, so the live config gains a gradient block, streets 1 and 3
+      // gain slope fields (3 is unaudited: slope needs no labels), and the per-street profile is stubbed.
+      await context.route('**/v3/api/accessScoreConfig', async (route) => {
+        const config = await (await route.fetch()).json();
+        config.grade = {
+          walking_surface_limit: 0.05, ramp_limit: 1 / 12, map_class_breaks: [1 / 48, 0.05, 1 / 12, 0.125],
+          sources: [{dem_source: 'fixture-dem', title: 'Fixture DEM', credit: 'Elevation: Fixture Survey',
+            licence: 'Public domain', url: 'https://example.org/dem', street_count: 2}],
+        };
+        return route.fulfill({json: config});
+      });
+      const slope = (mean, max) => ({
+        mean_grade: mean, max_grade: max, net_grade: -mean, total_climb_meters: 0.5, total_descent_meters: 6.5,
+        meters_over_5pct: 40, meters_over_8pct: 0, grade_confidence: 'high', grade_quality: 'measured',
+        dem_source: 'fixture-dem',
+      });
+      await context.route('**/v3/api/accessScoreStreets*', (route) => {
+        const streets = streetsFixture();
+        Object.assign(streets.features[0].properties, slope(0.062, 0.081));
+        Object.assign(streets.features[2].properties, slope(0.01, 0.015));
+        return route.fulfill({json: streets});
+      });
+      await context.route('**/v3/api/streetGrade*', (route) => route.fulfill({json: {
+        street_edge_id: 1, max_grade: 0.081, max_grade_from_meters: 50, max_grade_to_meters: 100,
+        profile: {spacing_meters: 50, elevations_meters: [104, 101.5, 98]},
+      }}));
+
+      await page.goto('/accessScore');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      const lineColor = () => page.evaluate(() => window.accessScore.map.getPaintProperty('acs-streets', 'line-color'));
+      expect(JSON.stringify(await lineColor())).toContain('interpolate');
+      await expect(page.locator('.acs-map-legend__grade')).toBeHidden();
+
+      await page.locator('#acs-show-grade').check();
+      expect(JSON.stringify(await lineColor())).toContain('step');
+      await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
+      await expect(page.locator('.acs-map-legend__class')).toHaveCount(6);
+      await expect(page.locator('.acs-map-legend__score')).toBeHidden();
+      // The classes are a named list, not an image: a screen reader reaches each row's grades.
+      const classes = page.getByRole('group', {name: 'Street grade'}).getByRole('listitem');
+      await expect(classes).toHaveCount(6);
+      // Steepest first: the class a reader is looking for leads.
+      await expect(classes.first()).toHaveText(/Over 12\.5%/);
+      await expect(classes.nth(4)).toHaveText(/Under 2\.1%/);
+      // Slope is drawn for every street, so the toggle that would decide nothing is off until the score returns.
+      await expect(page.locator('#acs-show-unaudited')).toBeDisabled();
+      await expect.poll(() => urlParam(page, 'grade')).toBe('1');
+      // The credit rides on the street source, so Mapbox's own attribution control carries it.
+      await expect(page.locator('.mapboxgl-ctrl-attrib')).toContainText('Elevation: Fixture Survey');
+
+      // Regions have no slope: the ramp comes back with the unit, and the toggle leaves with it.
+      await page.locator('label[for="acs-unit-regions"]').click();
+      await expect(page.locator('.acs-map-legend__score')).toBeVisible();
+      await expect(page.locator('#acs-grade-option')).toBeHidden();
+      await page.locator('label[for="acs-unit-streets"]').click();
+      await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
+
+      // A shared link opens on the slope coloring with the street's card up, profile and credit included.
+      await page.goto('/accessScore?grade=1&sel=1');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      await expect(page.locator('#acs-show-grade')).toBeChecked();
+      await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
+      const popup = page.locator('.acs-popup');
+      await expect(popup).toContainText('Steepest 8.1% · average 6.2%');
+      await expect(popup.locator('svg.elevation-profile__chart')).toBeVisible();
+      // The bracket marks the stretch the backend placed; the legend's rows are toggles that highlight the chart.
+      await expect(popup.locator('.elevation-profile__callout')).toContainText('8.1%');
+      const rows = popup.locator('.elevation-profile__legend').getByRole('button');
+      await expect(rows).toHaveCount(2);
+      // By keyboard: a legend row is a real button, reachable and pressable without a pointer.
+      await rows.first().press('Enter');
+      await expect(rows.first()).toHaveAttribute('aria-pressed', 'true');
+      await expect(popup.locator('.elevation-profile')).toHaveClass(/elevation-profile--filtered/);
+      await expect(popup.locator('.acs-popup__credit')).toHaveText('Elevation: Fixture Survey');
+
+      await page.locator('#acs-show-grade').uncheck();
+      await expect(page.locator('#acs-show-unaudited')).toBeEnabled();
+      expect(JSON.stringify(await lineColor())).toContain('interpolate');
+      await expect.poll(() => urlParam(page, 'grade')).toBeNull();
+      expect(consoleErrors).toEqual([]);
+    });
+
+  test('the Slope section weighs slope into the score, makes a steep street a barrier, and rides in the URL (#5223)',
+    async ({page, context, consoleErrors}) => {
+      await stubGradient(context);
+      await page.goto('/accessScore');
+      await waitForAppReady(page);
+      await waitForTool(page);
+
+      // Folded, at the engine's own settings, and with nothing to reset. Street 1 already carries the whole weight
+      // before anything is touched.
+      await expect(page.locator('#acs-slope-section')).toBeVisible();
+      await expect(page.locator('#acs-slope')).toBeHidden();
+      await page.locator('#acs-slope-toggle').click();
+      await expect(page.locator('#acs-slope-weight')).toHaveValue('1');
+      await expect(page.locator('#acs-slope-weight-value')).toHaveText('×1.00');
+      await expect(page.locator('#acs-slope-statistic')).toHaveValue('max_grade');
+      await expect(page.locator('#acs-slope-reset')).toBeHidden();
+      await expect(page.locator('#acs-slope-impact')).toHaveText('Affects 1 of 2 scored streets · 1 at the full penalty');
+      const weighed = await scoreOf(page, 1);
+      // Street 2 has no slope at all, so it is scored from its labels whatever the settings say.
+      expect(await scoreOf(page, 2)).toBeCloseTo(0.119, 2);
+
+      // A weight of 0 is how slope leaves the score, and the control says "Off" rather than "×0.00".
+      await page.locator('#acs-slope-weight').fill('0');
+      await expect(page.locator('#acs-slope-weight-value')).toHaveText('Off');
+      await expect(page.locator('#acs-slope-weight-row')).toHaveClass(/acs-weight--off/);
+      const flat = await scoreOf(page, 1);
+      expect(flat).toBeCloseTo(0.818, 2);
+      expect(weighed).toBeCloseTo(1 / (1 + Math.exp(-(Math.log(flat / (1 - flat)) - 1))), 6);
+      await expect(page.locator('#acs-slope-summary')).not.toBeEmpty();
+      await expect.poll(() => urlParam(page, 'gs')).toBe('w:0');
+      // The counts describe what the settings reach, the same street whether or not it costs anything.
+      await expect(page.locator('#acs-slope-impact')).toHaveText('Affects 1 of 2 scored streets · 1 at the full penalty');
+      // And a settled change says how many streets it moved, since the map repaints with no motion of its own.
+      await expect(page.locator('#acs-slope-flash')).toHaveText('Updated · 1 street changed');
+      await page.locator('#acs-slope-weight').fill('1');
+
+      // The over-limit measure uses fixed limits, so the thresholds switch off and say why.
+      await page.locator('#acs-slope-statistic').selectOption('meters_over_limit');
+      await expect(page.locator('#acs-slope-low')).toBeDisabled();
+      await expect(page.getByRole('status').filter({hasText: 'accessibility limits of 5% and 8.3%'})).toBeVisible();
+      await page.locator('#acs-slope-statistic').selectOption('max_grade');
+
+      // The table that explains the score has a row for what slope took off it.
+      await page.goto('/accessScore?sel=1');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      await expect(page.locator('.acs-popup__table')).toContainText(/Grade\s*—\s*−1\.00/);
+
+      // A barrier at the default 12.5% leaves a street whose steepest stretch is 12% alone; at 10% it scores 0.
+      await page.locator('#acs-slope-toggle').click();
+      await page.locator('#acs-slope-barrier').check();
+      await expect.poll(() => urlParam(page, 'gs')).toBe('b:0.125');
+      expect(await scoreOf(page, 1)).toBeGreaterThan(0);
+      await page.locator('#acs-slope-barrier-threshold').fill('10');
+      await page.locator('#acs-slope-barrier-threshold').blur();
+      await expect.poll(() => scoreOf(page, 1)).toBe(0);
+      await expect.poll(() => urlParam(page, 'gs')).toBe('b:0.1');
+      await expect(page.locator('#acs-slope-impact')).toContainText('1 scored 0');
+
+      // The link restores the settings, opens the fold, and the popup says what slope did.
+      await page.goto('/accessScore?gs=b:0.1&sel=1');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      await expect(page.locator('#acs-slope')).toBeVisible();
+      await expect(page.locator('#acs-slope-barrier')).toBeChecked();
+      await expect(page.locator('.acs-popup')).toContainText('The segment scores 0: steeper than the 10% barrier.');
+      await expect(page.locator('.acs-popup__table')).toContainText('barrier: 0');
+
+      await page.locator('#acs-slope-reset').click();
+      await expect.poll(() => scoreOf(page, 1)).toBeCloseTo(weighed, 9);
+      await expect.poll(() => urlParam(page, 'gs')).toBeNull();
+      expect(consoleErrors).toEqual([]);
+    });
+
+  test('the map legend\'s slope classes brush the map, with ctrl-click for more, and ride in the URL (#5223)',
+    async ({page, context, consoleErrors}) => {
+      await stubGradient(context);
+      await page.goto('/accessScore');
+      await waitForAppReady(page);
+      await waitForTool(page);
+
+      // The classes only stand in for the score ramp while the streets are colored by slope.
+      const classes = page.locator('.acs-map-legend__class');
+      await expect(page.locator('.acs-map-legend__grade')).toBeHidden();
+      await page.locator('#acs-show-grade').check();
+      await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
+      // Five classes from four breaks, steepest first, plus the row for a street with no slope at all.
+      await expect(classes).toHaveCount(6);
+      await expect(classes.first()).toContainText('Over 12.5%');
+      // Rows are found by the class they stand for (gentlest = 0, as `gc` names them), not where they are listed.
+      const byClass = (k) => page.locator(`.acs-map-legend__class[data-class="${k}"]`);
+      // The title names the statistic the score is on, so the colors cannot claim a grade the score is not using.
+      await expect(page.locator('.acs-map-legend__title')).toHaveText('Street grade · Steepest stretch');
+
+      // Street 1's steepest stretch is 12%, in the 8.3%–12.5% class; clicking it brushes the map on that class.
+      const steep = byClass(3);
+      await steep.click();
+      await expect(steep).toHaveAttribute('aria-pressed', 'true');
+      await expect(byClass(0)).toHaveClass(/acs-map-legend__class--out/);
+      await expect(page.locator('#acs-dock-brush')).toBeVisible();
+      await expect(page.locator('#acs-dock-brush-text')).toContainText('8.3% – 12.5%');
+      await expect(page.locator('#acs-dock-brush-text')).toContainText('1 street');
+      await expect.poll(() => urlParam(page, 'gc')).toBe('3');
+
+      // Ctrl-click adds the no-slope class without dropping the first.
+      await byClass(-1).click({modifiers: ['Control']});
+      await expect(byClass(-1)).toHaveAttribute('aria-pressed', 'true');
+      await expect(steep).toHaveAttribute('aria-pressed', 'true');
+      await expect.poll(() => urlParam(page, 'gc')).toBe('n,3');
+      await expect(page.locator('#acs-dock-brush-text')).toContainText('3 streets');
+
+      // The dock's own Clear lifts it, and the legend's rows follow.
+      await page.locator('#acs-dock-brush-clear').click();
+      await expect(steep).toHaveAttribute('aria-pressed', 'false');
+      await expect.poll(() => urlParam(page, 'gc')).toBeNull();
+
+      // A shared link restores the selection; brushing a score range then takes the brush over.
+      await page.goto('/accessScore?grade=1&gc=3');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      await expect(byClass(3)).toHaveAttribute('aria-pressed', 'true');
+      await page.locator('.acs-histogram__bin').nth(8).click();
+      await expect(byClass(3)).toHaveAttribute('aria-pressed', 'false');
+      await expect.poll(() => urlParam(page, 'gc')).toBeNull();
+      await expect.poll(() => urlParam(page, 'b')).toBe('80-90');
+      expect(consoleErrors).toEqual([]);
+    });
 
   test('what\'s here counts the whole city, and the photo strip shows the worst clusters of the scope', async ({page}) => {
     await page.goto('/accessScore');
@@ -424,6 +720,7 @@ test.describe('/accessScore', () => {
     await page.goto('/accessScore');
     await waitForAppReady(page);
     await waitForTool(page);
+    await page.locator('#acs-weights-toggle').click();
     await page.locator('#acs-weight-CurbRamp').fill('0');
     await page.locator('#acs-weight-CurbRamp').dispatchEvent('input');
     await page.locator('#acs-weight-CurbRamp').dispatchEvent('change');
@@ -501,7 +798,7 @@ test.describe('/accessScore', () => {
     await expect(page.locator('#acs-dock')).toHaveClass(/acs-dock--collapsed/);
     await expect(page.locator('#acs-dock-toggle')).toHaveAttribute('aria-expanded', 'false');
     expect(await page.evaluate(() => window.accessScore.dock.state))
-      .toEqual({open: false, brush: {from: 8, to: 9}, focus: null});
+      .toEqual({open: false, brush: {kind: 'score', from: 8, to: 9}, focus: null});
 
     await page.locator('#acs-dock-toggle').click();
     await expect(page.locator('#acs-dock-body')).toBeVisible();
@@ -593,4 +890,118 @@ test.describe('/accessScore', () => {
     await page.keyboard.press('Escape');
     await expect(pin).toHaveCount(0);
   });
+
+  test('the places layer starts folded and off, and its toggles reach the map and the URL (#5311)', async ({page, consoleErrors}) => {
+    await page.goto('/accessScore');
+    await waitForAppReady(page);
+    await waitForTool(page);
+    await page.waitForFunction(() => document.querySelector('.acs-place-row[data-category="transit"] .acs-place__count')?.textContent === '1');
+
+    // Folded like the weights, and nothing on: the scores are the map until a reader adds places.
+    const fold = page.locator('#acs-places-toggle');
+    await expect(fold).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('#acs-place-categories')).toBeHidden();
+    await expect(page.locator('#acs-places-summary')).toHaveText('');
+    const visibility = () => page.evaluate(() => ({
+      school: window.accessScore.map.getLayoutProperty('acs-places-school', 'visibility'),
+      transit: window.accessScore.map.getLayoutProperty('acs-places-transit', 'visibility'),
+    }));
+    expect(await visibility()).toEqual({school: 'none', transit: 'none'});
+    expect(await urlParam(page, 'pc')).toBeNull();
+
+    await fold.click();
+    await expect(fold).toHaveAttribute('aria-expanded', 'true');
+    const rows = page.locator('.acs-place-row');
+    await expect(rows).toHaveCount(7);
+    await expect(rows.first()).toHaveAttribute('data-category', 'school');
+    await expect(rows.first().locator('.acs-place__count')).toHaveText('1');
+    await expect(rows.nth(1).locator('.acs-place__count')).toHaveText('0');
+    await expect(page.locator('#acs-place-transit')).not.toBeChecked();
+
+    // A ticked category shows at whatever zoom the map is at: the tool opens at city scale, and a reader who asks
+    // for transit stops there should see them.
+    await page.locator('#acs-place-transit').check();
+    expect(await visibility()).toEqual({school: 'none', transit: 'visible'});
+    await expect.poll(() => urlParam(page, 'pc')).toBe('transit');
+    await expect(page.locator('#acs-places-summary')).toHaveText('1 of 7');
+
+    // "Only" turns every other row off in one click; the heading's action reads "Select all" until every row is
+    // on, and "Deselect all" then.
+    const toggleAll = page.locator('#acs-places-toggle-all');
+    await expect(toggleAll).toHaveText('Select all');
+    await page.locator('.acs-place-row[data-category="school"]').hover();
+    await page.locator('.acs-place-row[data-category="school"] .filter-sidebar__only').click();
+    expect(await visibility()).toEqual({school: 'visible', transit: 'none'});
+    await expect.poll(() => urlParam(page, 'pc')).toBe('school');
+    await toggleAll.click();
+    expect(await visibility()).toEqual({school: 'visible', transit: 'visible'});
+    await expect.poll(() => urlParam(page, 'pc')).toBe('all');
+    await expect(toggleAll).toHaveText('Deselect all');
+    await expect(page.locator('#acs-places-summary')).toHaveText('7 of 7');
+
+    await toggleAll.click();
+    expect(await visibility()).toEqual({school: 'none', transit: 'none'});
+    await expect(page.locator('#acs-place-school')).not.toBeChecked();
+    await expect.poll(() => urlParam(page, 'pc')).toBeNull();
+    await expect(toggleAll).toHaveText('Select all');
+
+    // A link with places on opens the fold, as one with custom weights opens the sliders.
+    await page.goto('/accessScore?pc=school,transit');
+    await waitForAppReady(page);
+    await waitForTool(page);
+    await expect(fold).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#acs-place-transit')).toBeChecked();
+    await expect.poll(visibility).toEqual({school: 'visible', transit: 'visible'});
+    await page.locator('#acs-reset-all').click();
+    await expect.poll(visibility).toEqual({school: 'none', transit: 'none'});
+    await expect.poll(() => urlParam(page, 'pc')).toBeNull();
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('a place card is its nearest street\'s card headed by the place, and round-trips through the URL (#5311)',
+    async ({page, consoleErrors}) => {
+      await page.goto('/accessScore');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      await page.waitForFunction(() => window.accessScore.placesLayer.place(1) !== null);
+
+      await page.evaluate(() => window.accessScore.selectPlace(1));
+      const card = page.locator('.acs-popup');
+      await expect(card.locator('.acs-popup__title')).toHaveText('Fixture High School');
+      // The street card's shape, headed by the place: the street, the score, and what drives it.
+      await expect(card.locator('.acs-popup__subtitle').first()).toHaveText('Cedar Lane · Street 1');
+      await expect(card.locator('.acs-popup__score')).toHaveText('81.8');
+      await expect(card.locator('.acs-popup__subtitle').nth(1)).toHaveText('What drives this score');
+      await expect(card.locator('table')).toBeVisible();
+      await expect(card.locator('[data-acs-hop="ExploreHere"]')).toHaveAttribute('href', '/explore?lat=40.88050&lng=-74.00890');
+      // A place is not a street selection: it never lands in `sel`, and the dock keeps its city scope.
+      await expect.poll(() => urlParam(page, 'place')).toBe('40.88050,-74.00890');
+      await expect.poll(() => urlParam(page, 'placeName')).toBe('Fixture High School');
+      expect(await urlParam(page, 'sel')).toBeNull();
+
+      await page.locator('#acs-weights-toggle').click();
+      await page.locator('#acs-weight-CurbRamp').fill('0');
+      await expect(card.locator('.acs-popup__score')).toHaveText('50.0');
+      expect(await urlParam(page, 'sel')).toBeNull();
+
+      // A place with no street near it says so; an unnamed one is titled by its category, and one on an unaudited
+      // street has no score and no table.
+      await page.evaluate(() => window.accessScore.selectPlace(3));
+      await expect(page.locator('.acs-popup .acs-popup__title')).toHaveText('Transit stops');
+      await expect(page.locator('.acs-popup .acs-popup__meta').first()).toHaveText('Fixture');
+      await expect(page.locator('.acs-popup .acs-popup__score')).toHaveText('Not yet audited');
+      await expect(page.locator('.acs-popup table')).toHaveCount(0);
+      await page.evaluate(() => window.accessScore.selectPlace(2));
+      await expect(page.locator('.acs-popup')).toContainText('No street within 250 m.');
+      await expect(page.locator('.acs-popup .acs-popup__score')).toHaveCount(0);
+
+      // A shared link reopens the marker's card without a click, and draws its category so the card sits on a marker.
+      await page.goto('/accessScore?place=40.88050,-74.00890&placeName=Fixture+High+School');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      await expect(page.locator('.acs-popup .acs-popup__title')).toHaveText('Fixture High School');
+      await expect(page.locator('#acs-place-school')).toBeChecked();
+      await expect.poll(() => urlParam(page, 'pc')).toBe('school');
+      expect(consoleErrors).toEqual([]);
+    });
 });

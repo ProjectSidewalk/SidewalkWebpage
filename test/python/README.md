@@ -1,8 +1,9 @@
 # Python utility tests
 
-Unit tests for the three standalone Python scripts in [`scripts/`](../../scripts) — `label_clustering.py`,
-`check_streets_for_imagery.py`, and `onboard_city.py`. This is the **first** Python test layer for Project Sidewalk.
-See [`docs/testing-and-ci.md`](../../docs/testing-and-ci.md) for where it fits in the overall testing plan.
+Unit tests for the four standalone Python scripts in [`scripts/`](../../scripts) — `label_clustering.py`,
+`check_streets_for_imagery.py`, `onboard_city.py`, and `street_gradient.py`. This is the **first** Python test layer
+for Project Sidewalk. See [`docs/testing-and-ci.md`](../../docs/testing-and-ci.md) for where it fits in the overall
+testing plan.
 
 ## What is covered
 
@@ -20,6 +21,11 @@ functions — no network, no live Google/Mapillary/OSM or app calls.
   region prep/merging/validation, COPY/EWKB serialization, and the I/O layer — fetch wrappers (osmnx and the TIGERweb
   API mocked), the GeoPackage/SQL/report writers (`tmp_path`), the CLI, and `main` end-to-end including the region
   source fallback chain and the `--from-gpkg` re-export mode.
+- `test_street_gradient.py` — the street-gradient sampler (#5223): point spacing along a street, the bilinear lookup,
+  gap filling and smoothing, the windowed grade statistics, the structure / suspect / no-data verdicts, USGS tile
+  naming, the hand-downloaded-directory locator, the raster sampler, and `main` with `--resume`. Rasters are synthetic
+  planes written to `tmp_path`, so expected grades are arithmetic and nothing touches the network. 3.13-only
+  (rasterio).
 - `test_verify_latlng_backfill.py` — the one-off checker in [`tools/`](../../tools), which is stdlib-only.
 - `test_setup_new_city.py` — `make onboard-city`'s orchestrator in [`tools/`](../../tools) (#4291): the id/URL/date
   derivations, the cityparams/messages/docs edits (run against copies of the real files so a structural change there
@@ -97,9 +103,9 @@ branch`, justified inline).
 Scoping is a bare `--cov` plus `source = ["scripts"]`. `source` is what reports a file nothing imported as 0%, so a
 script arriving with no tests fails the gate rather than going unmeasured — the arm `include` would drop. It applies
 to the scripts the running interpreter *cannot* import too, so each half omits those files via **`COVERAGE_OMIT`**
-(plus **`COVERAGE_OMIT2`** on the 3.8 half, which can't import either offline tool) — `cov-omit-*` in the
-[`Makefile`](../../Makefile), `coverage-omit`/`coverage-omit-2` in the CI matrix; unset, a hand-run fails loudly
-instead. (`tools/` is outside `source`: one-off utilities, not held to 100%.)
+(plus **`COVERAGE_OMIT2`** and **`COVERAGE_OMIT3`** on the 3.8 half, which can't import any of the three offline
+scripts) — `cov-omit-*` in the [`Makefile`](../../Makefile), `coverage-omit`/`-2`/`-3` in the CI matrix; unset, a
+hand-run fails loudly instead. (`tools/` is outside `source`: one-off utilities, not held to 100%.)
 
 If you add logic, add a test — keep new code pure where possible (or hide I/O behind a thin wrapper and mock it) so the
 100% gate stays meaningful rather than something to lower.

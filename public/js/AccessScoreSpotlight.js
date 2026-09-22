@@ -217,20 +217,6 @@ class AccessScoreSpotlight {
   }
 
   /**
-   * A translated string bound for a plain-text sink (textContent, an aria-label).
-   *
-   * i18next HTML-escapes interpolated values by default, which is right for markup and wrong for text: a neighborhood
-   * named Al 'Ummah would print as Al &#39;Ummah. Every value here reaches the page as a text node, so escaping is
-   * turned off; the one markup sink, the subtitle, calls i18next.t directly and keeps it.
-   * @param {string} key - The translation key.
-   * @param {object} [vars] - Interpolation values.
-   * @returns {string}
-   */
-  #t(key, vars = {}) {
-    return i18next.t(key, { ...vars, interpolation: { escapeValue: false } });
-  }
-
-  /**
    * Writes the section subtitle: one sentence saying what a score is, with "AccessScore" linking to how it is
    * computed. The rules for who is ranked belong to the footnote, not here.
    * @param {SpotlightFeed} feed - The unit's feed.
@@ -242,9 +228,11 @@ class AccessScoreSpotlight {
     const key = oneRegion
       ? 'common:access-score-spotlight.subtitle-one-region'
       : `common:access-score-spotlight.subtitle-${this.#unit}`;
-    // Markup sink: the translation carries the <a> so its position can move with the language, and i18next's
-    // escaping stays on. The only value interpolated is our own docs path.
-    subtitle.innerHTML = i18next.t(key, { href: AccessScoreSpotlight.#METHOD_HREF });
+    // Markup sink: the translation carries the <a> so its position can move with the language, and the one value
+    // interpolated into it is escaped.
+    subtitle.innerHTML = i18next.t(key, {
+      href: AccessScoreSpotlight.#METHOD_HREF, interpolation: { escapeValue: true },
+    });
   }
 
   /**
@@ -297,7 +285,7 @@ class AccessScoreSpotlight {
     heading.appendChild(dot);
     heading.appendChild(document.createTextNode(score === undefined
       ? i18next.t(`common:access-score-spotlight.${key}`)
-      : this.#t(`common:access-score-spotlight.${key}`, { score })));
+      : i18next.t(`common:access-score-spotlight.${key}`, { score })));
     column.appendChild(heading);
 
     const list = document.createElement('ol');
@@ -307,7 +295,7 @@ class AccessScoreSpotlight {
       // Nothing clears this list's bar: say so, rather than filling the column from the middle of the range.
       const empty = document.createElement('li');
       empty.className = 'spotlight-row spotlight-row--empty';
-      empty.textContent = this.#t(`common:access-score-spotlight.empty-${key}-${this.#unit}`, { score });
+      empty.textContent = i18next.t(`common:access-score-spotlight.empty-${key}-${this.#unit}`, { score });
       list.appendChild(empty);
     }
     column.appendChild(list);
@@ -402,7 +390,7 @@ class AccessScoreSpotlight {
       link.className = 'spotlight-sub-link';
       link.href = row.city_url;
       link.textContent = this.#unit === 'streets'
-        ? this.#t('common:access-score-spotlight.street-in-city', { region: row.region_name, city: row.city_name })
+        ? i18next.t('common:access-score-spotlight.street-in-city', { region: row.region_name, city: row.city_name })
         : row.city_name;
       return link;
     }
@@ -410,17 +398,17 @@ class AccessScoreSpotlight {
     sub.className = 'spotlight-sub';
     if (this.#unit === 'streets') {
       // Length says how much sidewalk the score speaks for.
-      sub.textContent = this.#t('common:access-score-spotlight.street-sub',
+      sub.textContent = i18next.t('common:access-score-spotlight.street-sub',
         { region: row.region_name, length: util.longDistanceToString(row.length_m / 1000, 1) });
     } else if (kind === 'pending') {
-      sub.textContent = this.#t('common:access-score-spotlight.region-sub-pending', {
+      sub.textContent = i18next.t('common:access-score-spotlight.region-sub-pending', {
         length: util.longDistanceToString(row.total_distance_m / 1000, 1),
         percent: Math.round(row.completion_rate * 100),
       });
     } else {
       // How big the neighborhood is and how much was found in it: a 74 over nine miles and hundreds of clusters is a
       // different claim from a 74 over half a mile.
-      sub.textContent = this.#t('common:access-score-spotlight.region-sub', {
+      sub.textContent = i18next.t('common:access-score-spotlight.region-sub', {
         length: util.longDistanceToString(row.total_distance_m / 1000, 1),
         clusters: row.cluster_count.toLocaleString(i18next.language),
       });
@@ -458,7 +446,7 @@ class AccessScoreSpotlight {
     link.className = 'spotlight-explore';
     link.href = `/explore?regionId=${row.region_id}`;
     link.textContent = i18next.t('common:access-score-spotlight.explore');
-    link.setAttribute('aria-label', this.#t('common:access-score-spotlight.explore-region', { name: row.name }));
+    link.setAttribute('aria-label', i18next.t('common:access-score-spotlight.explore-region', { name: row.name }));
     link.addEventListener('click', () => {
       window.logWebpageActivity(`Click_module=AccessScoreSpotlightExplore_regionId=${row.region_id}`);
     });
@@ -476,7 +464,7 @@ class AccessScoreSpotlight {
     const counts = document.createElement('span');
     // Both floors come from the feed: they are the backend's rules, and a copy here could disagree with the ranking
     // the very same response was built by.
-    counts.textContent = this.#t(`common:access-score-spotlight.count-${this.#unit}`, {
+    counts.textContent = i18next.t(`common:access-score-spotlight.count-${this.#unit}`, {
       qualifying: feed.qualifying,
       total: feed.total,
       percent: Math.round(feed.min_completion * 100),
@@ -495,7 +483,7 @@ class AccessScoreSpotlight {
     tip.hidden = true;
     // Minute precision: the run's seconds say nothing a reader wants.
     const when = feed.computed_at
-      ? ` ${this.#t('common:access-score-spotlight.updated-last', {
+      ? ` ${i18next.t('common:access-score-spotlight.updated-last', {
         date: new Date(feed.computed_at).toLocaleString(i18next.language, { dateStyle: 'medium', timeStyle: 'short' }),
       })}`
       : '';

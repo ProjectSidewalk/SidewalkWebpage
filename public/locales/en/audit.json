@@ -158,6 +158,13 @@
     "route-unavailable": {
       "message": "That route isn't available. It may have been deleted."
     },
+    "reaudit": {
+      "title": "This street has newer imagery",
+      "message-you": "You last mapped this street in {{lastMapped}} but the imagery has been refreshed since then (in {{newImagery}}). Let's see what's changed!",
+      "message-you-no-dates": "You mapped this street before, but the imagery has been refreshed since then. Let's see what's changed!",
+      "message-others": "Another user mapped this street in {{lastMapped}} but the imagery has been refreshed since then (in {{newImagery}}). Let's see what's changed!",
+      "message-others-no-dates": "Another user mapped this street before, but the imagery has been refreshed since then. Let's see what's changed!"
+    },
     "minimap": {
       "coach-dismiss": "Got it",
       "distance-left": "{{distance}} left",

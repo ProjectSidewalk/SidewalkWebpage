@@ -147,9 +147,9 @@ class LabelDetail {
    * @param {typeof PanoViewer} opts.viewerType - The type of pano viewer to initialize.
    * @param {string} opts.viewerAccessToken - An access token for requesting pano viewer images.
    * @param {string} [opts.currUsername] - Username of the current viewer; identifies comments from this user.
-   * @param {(action: ?('Agree'|'Disagree'|'Unsure'), meta: object) => void} [opts.onVote] - Fired after a vote is
-   *      successfully submitted, with null when the user cleared their vote (#4653). Hosts use this to sync upstream
-   *      UI (e.g. recolor a Gallery card).
+   * @param {(action: ?('Agree'|'Disagree'|'Unsure'), meta: Record<string, any>) => void} [opts.onVote] - Fired after
+   *      a vote is successfully submitted, with null when the user cleared their vote (#4653). Hosts use this to sync
+   *      upstream UI (e.g. recolor a Gallery card).
    * @param {(meta: Record<string, any>) => void} [opts.onEdit] - Fired with the updated metadata after an edit to
    *      the label's type, severity or tags is saved (#2575, #3671), so hosts that cache label data (Gallery's
    *      cards, the LabelMap's layers) can stay in sync.
@@ -920,10 +920,7 @@ class LabelDetail {
     // spotlight page and serves the og:image crawlers embed in the share card.
     if (this.#shareWidget) {
       // The title feeds the native sheet and the email subject, so it carries the descriptive text, not "Share".
-      // escapeValue off: plain-text sinks only, and a type name can carry an apostrophe (Can't See the Sidewalk).
-      const shareText = i18next.t('common:share.text', {
-        labelType: labelTypeName, interpolation: { escapeValue: false },
-      });
+      const shareText = i18next.t('common:share.text', { labelType: labelTypeName });
       this.#shareWidget.setTarget({
         url: `${window.location.origin}/label/${meta.label_id}`,
         title: shareText,
@@ -1645,10 +1642,14 @@ class LabelDetail {
           // `_zero` key covers "nobody else" without a second key and a branch here — it resolves whenever count is
           // 0, even in languages (zh-TW) whose CLDR rules have no zero category, so those carry only _zero/_other.
           const others = Math.max(0, (this.#validationCounts[action] ?? 1) - 1);
-          tip = i18next.t(`labelmap:vote-tooltip-voted-${action.toLowerCase()}`, { count: others });
+          tip = i18next.t(`labelmap:vote-tooltip-voted-${action.toLowerCase()}`, {
+            count: others, interpolation: { escapeValue: true },
+          });
         } else {
           const count = this.#validationCounts[action] ?? 0;
-          tip = i18next.t(`labelmap:vote-tooltip-${action.toLowerCase()}`, { count });
+          tip = i18next.t(`labelmap:vote-tooltip-${action.toLowerCase()}`, {
+            count, interpolation: { escapeValue: true },
+          });
         }
         // The AI's vote is folded into this option's count, so flag it where it applies. Sentences are appended in
         // order of usefulness, so what clicking *does* lands last rather than trailing off into a footnote.

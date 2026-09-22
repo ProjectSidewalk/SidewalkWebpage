@@ -189,9 +189,12 @@ class ModalMission {
    */
   setMissionMessage(mission) {
     const labelType = mission.getProperty('labelType');
+    // The screen renders its title as HTML. The type name is written `{{- labelType}}` in every locale, since the
+    // German names carry a soft hyphen, so escaping applies to the count alone.
     const title = i18next.t('validate:mission-start-tutorial.mst-instruction-2', {
       nLabels: mission.getProperty('labelsValidated'),
       labelType: svv.labelTypeNames[labelType],
+      interpolation: { escapeValue: true },
     });
     // Desktop reaches here too — MissionContainer starts every mission the same way — but shows this screen only to
     // announce a dead end (ModalNoNewMission). Building the briefing there would cost a tutorial photo fetched per

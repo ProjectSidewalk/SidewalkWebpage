@@ -272,10 +272,7 @@ class LandingValidationGrid {
 
     const widget = new ShareWidget(trigger, { host: wrap });
     // The title feeds the native sheet and the email subject, so it carries the descriptive text, not "Share".
-    // escapeValue off: plain-text sinks only, and a type name can carry an apostrophe (Can't See the Sidewalk).
-    const shareText = i18next.t('common:share.text', {
-      labelType: i18next.t(`common:${typeKebab}`), interpolation: { escapeValue: false },
-    });
+    const shareText = i18next.t('common:share.text', { labelType: i18next.t(`common:${typeKebab}`) });
     widget.setTarget({
       url: `${window.location.origin}/label/${label.label_id}`,
       title: shareText,

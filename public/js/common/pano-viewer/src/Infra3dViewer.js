@@ -15,6 +15,12 @@ class Infra3dViewer extends PanoViewer {
   /** Waits between failed renewal attempts; the last one repeats until the token expires. */
   static TOKEN_REFRESH_RETRY_MS = [30 * 1000, 60 * 1000, 120 * 1000];
 
+  /** Waits before each retry of a failed image download (±50% random, so retries don't all land at once). */
+  static TILE_RETRY_MS = [500, 1500, 4000];
+
+  /** How long retry outcomes are gathered before being logged together, so one bad pano logs one line. */
+  static TILE_RETRY_LOG_DELAY_MS = 5000;
+
   /** sessionStorage flag: this tab already used its one reload for an initViewer timeout. */
   static #INIT_RELOADED_KEY = 'infra3dViewerInitReloaded';
 
@@ -25,6 +31,14 @@ class Infra3dViewer extends PanoViewer {
 
   /** Expiry of the token the SDK holds, in epoch ms; null when unreadable. */
   #tokenExpiryMs = null;
+
+  /** Retried downloads not yet logged: ones that came through on a retry, and ones that never did. */
+  #tileRetryCounts = { recovered: 0, failed: 0 };
+
+  #tileRetryLogTimer;
+
+  /** URLs with a retry pending. The SDK forgets a failed URL, so without this it could start a second chain. */
+  #retryingUrls = new Set();
 
   constructor() {
     super();
@@ -90,6 +104,9 @@ class Infra3dViewer extends PanoViewer {
     // Scheduled before the initial move rather than after: a viewer that took long to find its first pano still has
     // to outlive its token.
     this.#scheduleTokenRefresh(panoOptions.accessToken);
+
+    // Before the initial move, so the first pano's images get retries too.
+    this.#retryFailedImageDownloads();
 
     // Handle a few other configs that need to be handled after initialization.
     if (panoOpts.defaultNavigation === false) {
@@ -236,6 +253,62 @@ class Infra3dViewer extends PanoViewer {
       const wait = retries[Math.min(this.#refreshAttempts, retries.length) - 1];
       this.#refreshTimer = setTimeout(() => this.#refreshToken(), Math.min(wait, this.#tokenExpiryMs - Date.now()));
     }
+  }
+
+  /**
+   * Retries failed image downloads inside the SDK's requestTexture(), which otherwise gives up for good and leaves a
+   * black patch or a black pano (#5436). To the SDK a recovered download just looks slow, and each retry builds a
+   * fresh URL, so it picks up a renewed access token.
+   */
+  #retryFailedImageDownloads() {
+    const engine = this.viewer._sdk_viewer._container?.scene?.engine;
+    if (typeof engine?.requestTexture !== 'function') {
+      // The SDK's internals moved (an upgrade), so black panos are back to going unretried; say so in the logs.
+      this._fireDiagnostic('TileRetryUnavailable');
+      return;
+    }
+    const requestTexture = engine.requestTexture.bind(engine);
+    engine.requestTexture = (url, priority, onLoad, onError, skipCache) => {
+      if (this.#retryingUrls.has(url)) return requestTexture(url, priority, onLoad, onError, skipCache);
+      const attempt = (retryCount) => requestTexture(url, priority, (...loaded) => {
+        this.#retryingUrls.delete(url);
+        if (retryCount > 0) this.#countTileRetry('recovered');
+        onLoad(...loaded);
+      }, (err) => {
+        const wait = Infra3dViewer.TILE_RETRY_MS[retryCount];
+        if (wait === undefined || !this.canvasElem?.isConnected) {
+          this.#retryingUrls.delete(url);
+          if (retryCount > 0) this.#countTileRetry('failed');
+          onError(err);
+          return;
+        }
+        this.#retryingUrls.add(url);
+        setTimeout(() => {
+          if (this.canvasElem?.isConnected) {
+            attempt(retryCount + 1);
+          } else {
+            this.#retryingUrls.delete(url);
+            onError(err);
+          }
+        }, wait * (0.5 + Math.random()));
+      }, skipCache);
+      return attempt(0);
+    };
+  }
+
+  /**
+   * Tallies a retried download, logged in batches so a pano full of bad tiles is one line.
+   * @param {'recovered'|'failed'} outcome - Whether the download came through on a retry or never did.
+   */
+  #countTileRetry(outcome) {
+    this.#tileRetryCounts[outcome] += 1;
+    if (this.#tileRetryLogTimer) return;
+    this.#tileRetryLogTimer = setTimeout(() => {
+      const counts = this.#tileRetryCounts;
+      this.#tileRetryCounts = { recovered: 0, failed: 0 };
+      this.#tileRetryLogTimer = undefined;
+      this._fireDiagnostic('TileRetries', counts);
+    }, Infra3dViewer.TILE_RETRY_LOG_DELAY_MS);
   }
 
   getPanoId = () => {

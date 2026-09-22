@@ -33,7 +33,7 @@
       <div class="ud-badge-levels">
         @for(level <- 1 to 5) {
           <img class="ud-badge" data-level="@level"
-            src="@assets.path(s"images/badges/badge_${if(badgeType == "distance" && isMetric) "distance_km" else baseStem}_badge${level}.png")"
+            src="@assets.path(s"images/badges/badge_${if(badgeType == "distance" && isMetric) "distance_km" else baseStem}_badge${level}.svg")"
             alt="@Messages("dashboard.badges.alt", Messages(nameKey), level)">
         }
       </div>

@@ -1,4 +1,15 @@
 /**
+ * What the what's-here view draws.
+ * @typedef {object} AccessScoreWhatsHereData
+ * @property {string} shapeKey - Constant while the roster of types is: the rows are only ever updated.
+ * @property {Array<{type: string, count: number, buckets: Record<string, number>, rated: boolean}>} rows - One per
+ *     scored type in the engine's order; `count` and `buckets` from `AccessScoreModel#clusterBreakdown`, `rated`
+ *     false for a type the engine counts without a rating.
+ * @property {string} caption - The scope's wording.
+ * @property {boolean} empty - True when the scope holds no audited street.
+ */
+
+/**
  * What's here, in the AccessScore insights dock (#5217): one row per scored label type — its icon, name, cluster
  * count, and a bar split by rating — over the scope in view (the city, the selected region or street, further
  * narrowed by a brush). It answers the tool's "why" in the vocabulary readers already know from Explore: how many
@@ -7,17 +18,13 @@
  * The bar's segments wear the label card's own rating colors, so a "bad" segment reads the same here as on a
  * label, and the scale runs the right way per type (a 3 is a bad curb ramp and a severe obstacle). Bar lengths are
  * relative to the largest row in view. The rows only read: the map's dots are the map's business.
+ * @augments {AccessScoreChart<AccessScoreWhatsHereData>}
  */
 class AccessScoreWhatsHere extends AccessScoreChart {
   #els = null;
   #rows = new Map();
 
-  /**
-   * @param {object} data - `{shapeKey, rows, caption, empty}`: `rows` one per scored type in the engine's order,
-   *   `{type, count, buckets, rated}` (`count` and `buckets` from `AccessScoreModel#clusterBreakdown`, `rated`
-   *   false for a type the engine counts without a rating), `caption` the scope's wording, `empty` true when the
-   *   scope holds no audited street.
-   */
+  /** @param {AccessScoreWhatsHereData} data - What to draw. */
   render(data) {
     const c = this.container;
     c.innerHTML = `
@@ -74,6 +81,7 @@ class AccessScoreWhatsHere extends AccessScoreChart {
     this.update(data);
   }
 
+  /** @param {AccessScoreWhatsHereData} data - What to draw, over the rows of the last render. */
   update(data) {
     this.#els.caption.textContent = data.caption;
     const max = Math.max(1, ...data.rows.map((r) => r.count));
@@ -101,12 +109,11 @@ class AccessScoreWhatsHere extends AccessScoreChart {
         }
       }
       const count = AccessScoreChart.number(r.count);
-      // Plain text: the accessible name takes it as is, the tooltip (an HTML sink) escaped exactly once.
-      const text = AccessScoreChart.text;
+      // The accessible name takes the line as is, the tooltip (an HTML sink) escaped exactly once.
       let label;
-      if (r.count === 0) label = text('accessscore:whats-here-row-none', { type: name });
-      else if (parts.length === 0) label = text('accessscore:whats-here-row-unrated', { type: name, count });
-      else label = text('accessscore:whats-here-row', { type: name, count, parts: parts.join(', ') });
+      if (r.count === 0) label = i18next.t('accessscore:whats-here-row-none', { type: name });
+      else if (parts.length === 0) label = i18next.t('accessscore:whats-here-row-unrated', { type: name, count });
+      else label = i18next.t('accessscore:whats-here-row', { type: name, count, parts: parts.join(', ') });
       row.track.setAttribute('aria-label', label);
       row.track.setAttribute('data-ps-tooltip', AccessScoreChart.esc(label));
     }
