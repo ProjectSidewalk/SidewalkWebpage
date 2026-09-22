@@ -332,6 +332,13 @@ def test_mapillary_pano_info_position_prefers_computed_geometry():
     assert info.pano_lat == pytest.approx(_lat_north_of_origin(2))
 
 
+def test_mapillary_pano_info_accepts_a_position_with_an_altitude():
+    # score_pano accepts [lng, lat, alt]; unpacking it as a pair here raised and aborted the whole scan.
+    image = _image(computed_geometry={'type': 'Point', 'coordinates': [_LNG, _LAT, 12.3]})
+    info = cs.mapillary_pano_info({'data': [image]}, _LAT, _LNG, _NOW_MS)
+    assert (info.pano_lat, info.pano_lng) == (_LAT, _LNG)
+
+
 # --------------------------------------------------------------------------------------------------------------------
 # cross_track_m — how far off the street the chosen pano sits
 # --------------------------------------------------------------------------------------------------------------------
@@ -374,14 +381,35 @@ def test_within_search_radius_drops_a_pano_google_returned_from_beyond_it():
     # #5114: a 25 m query answered with a photosphere in Syracuse, NY. Its date and position must not reach the street.
     info = cs.PanoInfo(True, '2014-05-01', 43.05, -76.15)
     assert cs.within_search_radius(info, _LAT, _LNG, 0.025) == cs.PanoInfo(False, None)
-    just_past = cs.PanoInfo(True, '2021-07-15', _lat_north_of_origin(26), _LNG)
-    assert cs.within_search_radius(just_past, _LAT, _LNG, 0.025).has_imagery is False
+    past_the_slack = cs.PanoInfo(True, '2021-07-15', _lat_north_of_origin(31), _LNG)
+    assert cs.within_search_radius(past_the_slack, _LAT, _LNG, 0.025).has_imagery is False
+
+
+def test_within_search_radius_allows_slack_at_the_radius_edge():
+    # Google doesn't say what it measures its radius from, so an answer just past 25 m must not flip an endpoint.
+    for meters in (25.02, 29.5):
+        info = cs.PanoInfo(True, '2021-07-15', _lat_north_of_origin(meters), _LNG)
+        assert cs.within_search_radius(info, _LAT, _LNG, 0.025) == info
 
 
 @pytest.mark.parametrize('info', [cs.PanoInfo(False, None), cs.PanoInfo(True, '2019-01-01'),
                                   cs.PanoInfo(True, None, 43.05, None)])
 def test_within_search_radius_passes_through_what_it_cannot_check(info):
     assert cs.within_search_radius(info, _LAT, _LNG, 0.025) == info
+
+
+def test_process_street_reuses_the_endpoint_answers_instead_of_requerying_them():
+    # The walk starts and ends on the endpoints; asking again at the same radius costs requests and double-counts dates.
+    urls = []
+
+    def fetch(url):
+        urls.append(url)
+        return _gsv_pano_north_of_query(url)
+
+    result = _run_process(_LINE_60, 'GSV', fetch)
+    assert result.outcome == cs.HAS_IMAGERY
+    assert len(urls) == len(set(urls))
+    assert result.n_panos == len(urls)
 
 
 def test_process_street_ignores_gsv_panos_from_beyond_the_radius():
@@ -769,10 +797,11 @@ def test_rate_limiter_throttles_when_depleted():
 
 
 def _street(line, street_edge_id=100, region_id=1):
+    """A street row as main builds it: endpoints from the line, geom redistributed so the walk has interior points."""
     x1, y1 = line.coords[0]
     x2, y2 = line.coords[-1]
     return pd.Series({'street_edge_id': street_edge_id, 'region_id': region_id,
-                      'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'geom': line})
+                      'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'geom': cs.redistribute_vertices(line)})
 
 
 def _run_process(line, api, fetch):
@@ -964,27 +993,53 @@ def test_process_street_point_error_is_failed():
 # --------------------------------------------------------------------------------------------------------------------
 
 
+def _checkpoint_at(path, outcomes, radius_m=25.0):
+    """Writes a current-schema checkpoint holding one row per outcome, every row checked at ``radius_m``."""
+    for street_edge_id, outcome in enumerate(outcomes, start=1):
+        cs.append_checkpoint(cs.StreetResult(street_edge_id, 1, outcome, None, None, 0, None, radius_m), str(path))
+
+
 def test_load_processed_no_file(tmp_path):
-    assert cs.load_processed(str(tmp_path / 'missing.csv')) == set()
+    assert cs.load_processed(str(tmp_path / 'missing.csv'), 25) == set()
 
 
 def test_load_processed_excludes_failed(tmp_path):
     checkpoint = tmp_path / 'cp.csv'
-    pd.DataFrame({'street_edge_id': [1, 2, 3], 'region_id': [1, 1, 1],
-                  'outcome': [cs.NO_IMAGERY, cs.HAS_IMAGERY, cs.FAILED]}).to_csv(checkpoint, index=False)
-    assert cs.load_processed(str(checkpoint)) == {1, 2}
+    _checkpoint_at(checkpoint, [cs.NO_IMAGERY, cs.HAS_IMAGERY, cs.FAILED])
+    assert cs.load_processed(str(checkpoint), 25) == {1, 2}
+
+
+def test_load_processed_refuses_a_checkpoint_from_an_older_scan(tmp_path):
+    # Appending 8-field rows under an older header made the file unparseable for finalize_outputs and every later run.
+    checkpoint = tmp_path / 'cp.csv'
+    pd.DataFrame({'street_edge_id': [1], 'region_id': [1], 'outcome': [cs.HAS_IMAGERY]}).to_csv(checkpoint,
+                                                                                               index=False)
+    with pytest.raises(cs.CheckpointMismatchError, match='older version'):
+        cs.load_processed(str(checkpoint), 25)
+
+
+@pytest.mark.parametrize('radii', [[15.0], [25.0, 15.0], [None]])
+def test_load_processed_refuses_a_checkpoint_from_another_radius(tmp_path, radii):
+    # Resuming across a radius change would mix two definitions of "has imagery" into one set of outputs.
+    checkpoint = tmp_path / 'cp.csv'
+    for street_edge_id, radius in enumerate(radii, start=1):
+        cs.append_checkpoint(cs.StreetResult(street_edge_id, 1, cs.HAS_IMAGERY, None, None, 0, None, radius),
+                             str(checkpoint))
+    with pytest.raises(cs.CheckpointMismatchError, match='search radius'):
+        cs.load_processed(str(checkpoint), 25)
 
 
 def test_append_checkpoint_writes_header_then_appends(tmp_path):
     checkpoint = str(tmp_path / 'cp.csv')
-    cs.append_checkpoint(cs.StreetResult(1, 10, cs.NO_IMAGERY, None, None, 0, None), checkpoint)
-    cs.append_checkpoint(cs.StreetResult(2, 20, cs.HAS_IMAGERY, '2019-06-01', '2020-01-01', 5, 3.4), checkpoint)
+    cs.append_checkpoint(cs.StreetResult(1, 10, cs.NO_IMAGERY, None, None, 0, None, 25.0), checkpoint)
+    cs.append_checkpoint(cs.StreetResult(2, 20, cs.HAS_IMAGERY, '2019-06-01', '2020-01-01', 5, 3.4, 25.0), checkpoint)
     written = pd.read_csv(checkpoint)
     assert list(written.columns) == cs.CHECKPOINT_COLUMNS
     assert written['street_edge_id'].tolist() == [1, 2]
     assert written['outcome'].tolist() == [cs.NO_IMAGERY, cs.HAS_IMAGERY]
     assert written['n_panos'].tolist() == [0, 5]
     assert written['max_cross_track_m'].tolist() == [pytest.approx(float('nan'), nan_ok=True), 3.4]
+    assert written['search_radius_m'].tolist() == [25.0, 25.0]
 
 
 def test_write_ids_csv_coerces_to_int(tmp_path):
@@ -996,8 +1051,8 @@ def test_write_ids_csv_coerces_to_int(tmp_path):
 
 
 def _settled_checkpoint(rows):
-    """Build a checkpoint DataFrame from row tuples, padding any trailing columns a row omits with None."""
-    padded = [tuple(row) + (None,) * (len(cs.CHECKPOINT_COLUMNS) - len(row)) for row in rows]
+    """Build a checkpoint DataFrame from row tuples, padding omitted columns with None and the radius with 25 m."""
+    padded = [tuple(row) + (None,) * (len(cs.CHECKPOINT_COLUMNS) - 1 - len(row)) + (25.0,) for row in rows]
     return pd.DataFrame(padded, columns=cs.CHECKPOINT_COLUMNS)
 
 
@@ -1345,14 +1400,22 @@ def test_main_records_street_offsets_in_the_summary(monkeypatch, tmp_path):
     assert _summary(tmp_path).loc[200, 'max_cross_track_m'] == pytest.approx(10, abs=1)
 
 
-def test_load_processed_warns_when_the_checkpoint_predates_the_current_radius(tmp_path, caplog):
-    # Resuming across a radius change would mix two definitions of "has imagery" into one set of outputs.
-    checkpoint = tmp_path / 'cp.csv'
-    pd.DataFrame({'street_edge_id': [1], 'region_id': [1], 'outcome': [cs.HAS_IMAGERY]}).to_csv(checkpoint,
-                                                                                               index=False)
-    with caplog.at_level('WARNING'):
-        assert cs.load_processed(str(checkpoint)) == {1}
-    assert 'predates the current search radius' in caplog.text
+def test_main_refuses_to_resume_another_radius_and_leaves_the_checkpoint_intact(monkeypatch, tmp_path, capsys):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)])
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'OK'})
+    assert cs.main(['--city-id', _CITY, '--gsv', '--search-radius-m', '15']) == 0
+    checkpoint = tmp_path / cs.CHECKPOINT_FILE.format(_CITY, 'gsv')
+    before = checkpoint.read_text()
+    assert cs.main(['--city-id', _CITY, '--gsv']) == 1
+    assert 'search radius of 15 m, not 25 m' in capsys.readouterr().out
+    assert checkpoint.read_text() == before
+
+
+@pytest.mark.parametrize('radius', ['12.5', '0', '-25'])
+def test_main_rejects_a_radius_gsv_cannot_be_asked_for(monkeypatch, tmp_path, radius):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)])
+    with pytest.raises(SystemExit):
+        cs.main(['--city-id', _CITY, '--gsv', '--search-radius-m', radius])
 
 
 def test_main_keyboard_interrupt_finalizes_and_returns_1(monkeypatch, tmp_path):
