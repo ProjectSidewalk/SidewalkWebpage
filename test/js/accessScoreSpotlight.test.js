@@ -253,6 +253,7 @@ describe('the AccessScore Spotlight', () => {
             expect(columnHeadings().map((h) => h.split('|')[0])).toEqual([
                 'common:access-score-spotlight.highest', 'common:access-score-spotlight.lowest',
             ]);
+            expect(document.querySelector('.spotlight-cols').classList).not.toContain('spotlight-cols--single');
             expect(rowNames()).toContain('South Park');
         });
 
@@ -285,30 +286,11 @@ describe('the AccessScore Spotlight', () => {
             });
 
             expect(columnHeadings()).toEqual(['common:access-score-spotlight.ranked-so-far']);
+            expect(document.querySelector('.spotlight-cols').classList).toContain('spotlight-cols--single');
             expect(document.querySelectorAll('.spotlight-explore')).toHaveLength(0);
         });
 
-        it('leads with the ask alone in a city that has nothing ranked but a neighborhood near the floor', async () => {
-            const section = await mount({
-                regions: feed('regions', {
-                    qualifying: 0,
-                    total: 9,
-                    nearest: [regionRow(3, 'Riverside', null, 0.67), regionRow(4, 'Soldier Hill', null, 0.41)],
-                }),
-                streets: feed('streets', { qualifying: 0, total: 900 }),
-            });
-
-            // The young city the ask was written for: no ranking to show, so "Ranked so far" is dropped rather than
-            // drawn as a bare heading, and the section is the call to action.
-            expect(section.hidden).toBe(false);
-            expect(columnHeadings()).toEqual(['common:access-score-spotlight.closest']);
-            expect(document.querySelector('.spotlight-cols').classList).toContain('spotlight-cols--single');
-            expect(document.querySelectorAll('.spotlight-explore')).toHaveLength(2);
-            // One offerable unit is no switch: streets rank nothing and never carry the ask.
-            expect(document.querySelector('.spotlight-units')).toBeNull();
-        });
-
-        it('drops the empty "ranked so far" heading when the reader switches to a unit that ranks nothing', async () => {
+        it('drops the empty "ranked so far" heading on a unit that ranks nothing', async () => {
             await mount({
                 regions: feed('regions', {
                     qualifying: 0,
@@ -323,9 +305,10 @@ describe('the AccessScore Spotlight', () => {
             document.querySelector('.spotlight-unit[aria-pressed="false"]').click();
 
             expect(columnHeadings()).toEqual(['common:access-score-spotlight.closest']);
+            expect(document.querySelector('.spotlight-cols').classList).toContain('spotlight-cols--single');
         });
 
-        it('hides itself when neither unit has anything ranked and no neighborhood is near the floor', async () => {
+        it('hides itself when neither unit has anything ranked', async () => {
             const section = await mount({
                 regions: feed('regions', { qualifying: 0, total: 9 }),
                 streets: feed('streets', { qualifying: 0, total: 900 }),
@@ -334,17 +317,16 @@ describe('the AccessScore Spotlight', () => {
             expect(section.hidden).toBe(true);
         });
 
-        it('hides itself in a one-neighborhood city with nothing ranked, where the ask names the whole city',
-            async () => {
-                const section = await mount({
-                    regions: feed('regions', {
-                        qualifying: 0, total: 1, nearest: [regionRow(1, 'Laurens', null, 0.42)],
-                    }),
-                    streets: feed('streets', { qualifying: 0, total: 40 }),
-                });
-
-                expect(section.hidden).toBe(true);
+        it('hides itself rather than drawing an empty band when a feed counts rows it cannot list', async () => {
+            // `qualifying` and the ranked list come from two queries that can disagree: StreetAccessScoreTable's
+            // count has no `region` join, so a street in a soft-deleted region is counted and never listed.
+            const section = await mount({
+                regions: feed('regions', { qualifying: 0, total: 9 }),
+                streets: feed('streets', { qualifying: 3, total: 900 }),
             });
+
+            expect(section.hidden).toBe(true);
+        });
 
         it('hides itself when the feed cannot be loaded at all', async () => {
             const section = await mount({ regions: null, streets: null });

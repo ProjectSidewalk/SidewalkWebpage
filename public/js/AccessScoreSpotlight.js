@@ -51,9 +51,8 @@
  * Most Project Sidewalk cities do not have enough explored ground to rank five neighborhoods, so the sparse case is
  * the common one and is treated as the ask rather than as an error: the columns become "Ranked so far" and "Closest
  * to being ranked", the latter listing the neighborhoods nearest the completion floor with a button that starts a
- * mission in one. With nothing ranked at all the ask stands alone as the only column, since a young city is
- * precisely who it is for; the section hides only when there is no ask either — no neighborhood near the floor, or
- * a city of one neighborhood, where the only one it could name is the whole city.
+ * mission in one, and "Ranked so far" dropped entirely when it has no rows rather than drawn as a bare heading.
+ * With nothing ranked at all in either unit the section hides itself.
  *
  * Nothing is fetched during page load; the module fills itself once the visitor shows a sign of engagement.
  */
@@ -115,11 +114,15 @@ class AccessScoreSpotlight {
   /**
    * Whether a unit has a column to draw: it ranks something, or it can ask for the neighborhood nearest the floor.
    *
-   * This is the module's one answer to "is there anything here", so it gates the section, the unit switch and the
-   * opening unit alike. It has to agree with what `#render` actually draws, which is why both conditions on the
-   * `nearest` clause are here: the ask is a neighborhood to explore, so a streets feed never carries one, and a
-   * city of one neighborhood has no "closest to being ranked" to offer either — the one it would name is the whole
-   * city, which is the same degenerate comparison the ranking itself would be (#5419).
+   * This decides which units are offered, so it has to agree with what `#render` draws for one: both conditions on
+   * the `nearest` clause are the ones `#render` applies. The ask is a neighborhood to explore, so a streets feed
+   * never carries one, and a city of one neighborhood has none to offer either — the one it would name is the
+   * whole city, the same degenerate comparison the ranking itself would be (#5419).
+   *
+   * It deliberately does NOT gate whether the section appears: `nearest` is every unranked neighborhood, not the
+   * ones near the floor (`AccessScoreSpotlightService.nearest` sorts and takes, with no proximity test), so a city
+   * with no scores at all would qualify and the section's server-rendered "Where … Score Highest and Lowest"
+   * heading would sit over a list of neighborhoods at 0% explored.
    *
    * The unit is read from the feed rather than inferred from `nearest` being empty. The backend does send `[]` for
    * streets, but two reviewers read the older wording as "streets have no `nearest` key" and reported a crash that
@@ -139,11 +142,8 @@ class AccessScoreSpotlight {
     const [regions, streets] = await Promise.all([this.#fetchUnit('regions'), this.#fetchUnit('streets')]);
     this.#feeds = { regions, streets };
 
-    // A city with nothing ranked yet still has something to say if a neighborhood is near the floor: the "closest
-    // to being ranked" ask is the whole point for a young city, and hiding the section withheld it from exactly
-    // the cities it was written for.
     const ranked = (feed) => (feed ? feed.qualifying : 0);
-    if (!AccessScoreSpotlight.#hasContent(regions) && !AccessScoreSpotlight.#hasContent(streets)) {
+    if (ranked(regions) === 0 && ranked(streets) === 0) {
       this.#section.hidden = true;
       return;
     }
@@ -216,7 +216,6 @@ class AccessScoreSpotlight {
     const cols = document.createElement('div');
     cols.className = 'spotlight-cols';
     const ranked = feed.qualifying >= AccessScoreSpotlight.#LIST_SIZE;
-    const oneRegion = this.#unit === 'regions' && feed.total === 1;
 
     // With a full set of ranked units the lists are a top and a bottom; below that there is only one list worth
     // showing, so the second column becomes the "help the next one across the line" ask.
@@ -235,8 +234,12 @@ class AccessScoreSpotlight {
     }
     if (ranked) {
       cols.appendChild(this.#buildColumn('lowest', 0, feed.bottom, 'ranked', feed));
-    } else if (!oneRegion && feed.nearest.length > 0) {
+    } else if (feed.unit === 'regions' && feed.total > 1 && feed.nearest.length > 0) {
       cols.appendChild(this.#buildColumn('closest', 2, feed.nearest, 'pending', feed));
+    }
+    if (cols.children.length === 0) {
+      this.#section.hidden = true;
+      return;
     }
     if (cols.children.length < 2) cols.classList.add('spotlight-cols--single');
     this.#root.appendChild(cols);
