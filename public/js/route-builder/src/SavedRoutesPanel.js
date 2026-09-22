@@ -62,7 +62,8 @@ class SavedRoutesPanel {
           name: r.name,
           slug: r.slug,
           description: r.description,
-          regionName: SavedRoutesPanel.regionLabel(r.region_name, r.region_count),
+          regionName: r.region_name,
+          regionCount: r.region_count,
           distanceMeters: r.distance_meters,
           savedAt: r.created_at,
           startedCount: r.started_count,
@@ -90,7 +91,8 @@ class SavedRoutesPanel {
   /**
    * Prepends a guest-saved route to the device-local list (capped, newest first).
    *
-   * @param {Record<string, any>} route - {routeId, name, regionName, url, distanceMeters}.
+   * @param {Record<string, any>} route - {routeId, name, regionName, regionCount, url, distanceMeters}. The region
+   *   is stored raw and labeled at render time, so a guest's cards follow a later change of language.
    */
   recordGuestRoute(route) {
     const routes = this.#readGuestRoutes().filter((r) => r.routeId !== route.routeId);
@@ -121,7 +123,8 @@ class SavedRoutesPanel {
   /**
    * Renders the newest few routes as cards (the section hides itself when there are none).
    *
-   * @param {Array<Record<string, any>>} routes - {routeId, name, regionName, distanceMeters, savedAt, [url]}.
+   * @param {Array<Record<string, any>>} routes - {routeId, name, regionName, [regionCount], distanceMeters, savedAt,
+   *   [url]}.
    * @param {number|null} highlightRouteId
    */
   #render(routes, highlightRouteId) {
@@ -178,9 +181,10 @@ class SavedRoutesPanel {
       const descEl = card.querySelector('.saved-route-desc');
       descEl.textContent = route.description ?? '';
       descEl.hidden = !route.description;
+      const regionText = route.regionName ? SavedRoutesPanel.regionLabel(route.regionName, route.regionCount) : '';
       card.querySelector('.saved-route-meta').textContent = typeof route.distanceMeters === 'number'
-        ? this.#formatMeta(route.distanceMeters, route.regionName)
-        : (route.regionName ?? '');
+        ? this.#formatMeta(route.distanceMeters, regionText)
+        : regionText;
       // The copy button builds its URL from the slug; kept in a data attribute so user text can't inject markup.
       if (route.slug) card.querySelector('.saved-route-copy').dataset.slug = route.slug;
     });

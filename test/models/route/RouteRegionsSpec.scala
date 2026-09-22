@@ -113,6 +113,14 @@ class RouteRegionsSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBack
       run(routeTable.getRegionIdOfStreet(streetA)) mustBe Some(regionA)
       run(routeTable.getRegionIdOfStreet(Int.MaxValue)) mustBe None
     }
+
+    "count only the real streets among a submitted list" in {
+      val picked = streetsInTwoRegions()
+      assume(picked.isDefined, "the connected DB has routable streets in fewer than two regions")
+      val ((streetA, _), (streetB, _)) = picked.get
+      run(routeTable.countKnownStreets(Set(streetA, streetB))) mustBe 2
+      run(routeTable.countKnownStreets(Set(streetA, Int.MaxValue))) mustBe 1
+    }
   }
 
   "getLabelsFromUserInRegions" should {

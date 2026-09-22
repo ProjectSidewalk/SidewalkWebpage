@@ -23,6 +23,8 @@ class RouteGraph {
   static M_PER_DEG_LAT = (Math.PI / 180) * RouteGraph.EARTH_RADIUS_M;
 
   #nodes = new Map(); // key -> { lng, lat, edges: [{ streetId, weightM, otherKey }] }
+  #cells = new Map(); // "cellLng,cellLat" -> keys of the nodes whose coordinate falls in that quantized cell
+  #streetEnds = new Map(); // streetId -> [key, key] of the nodes its two endpoints merged into at build time
   #features = new Map(); // streetId -> live GeoJSON feature (geometry may be reversed in place by editing)
   #featureLengths = new Map(); // streetId -> geometry length in meters (for the snap prefilter)
 
@@ -40,6 +42,7 @@ class RouteGraph {
 
       const keyA = this.#nodeKeyFor(coords[0]);
       const keyB = this.#nodeKeyFor(coords[coords.length - 1]);
+      this.#streetEnds.set(streetId, [keyA, keyB]);
       if (keyA === keyB) return; // Degenerate loop/stub: no usable connectivity.
       const edge = { streetId, weightM: lengthM };
       this.#nodes.get(keyA).edges.push({ ...edge, otherKey: keyB });
@@ -92,29 +95,58 @@ class RouteGraph {
   }
 
   /**
-   * Returns the node key for a coordinate, merging with any existing node within NODE_TOLERANCE_M
-   * (scans the neighboring quantized cells so near-boundary endpoints still merge).
+   * Returns the node key for a coordinate, merging with any existing node within NODE_TOLERANCE_M and creating a
+   * node otherwise.
+   *
+   * A cell is ~11 m across, wider than the tolerance, so two endpoints 10–13 m apart can share a cell without
+   * merging. Each cell therefore holds a list of nodes rather than one, or the second would replace the first and
+   * silently cut every street already attached to it out of the graph.
    *
    * @param {Array<number>} coord - [lng, lat].
    * @returns {string} The (possibly newly created) node's key.
    */
   #nodeKeyFor(coord) {
+    const existing = this.#findNodeKey(coord);
+    if (existing !== null) return existing;
+    const cellKey = RouteGraph.#cellKey(coord);
+    const cell = this.#cells.get(cellKey) ?? [];
+    const key = cell.length === 0 ? cellKey : `${cellKey}#${cell.length}`;
+    cell.push(key);
+    this.#cells.set(cellKey, cell);
+    this.#nodes.set(key, { lng: coord[0], lat: coord[1], edges: [] });
+    return key;
+  }
+
+  /**
+   * Finds the node within NODE_TOLERANCE_M of a coordinate, without ever creating one.
+   *
+   * @param {Array<number>} coord - [lng, lat].
+   * @returns {?string} The node's key, or null when no node is that close.
+   */
+  #findNodeKey(coord) {
     // Cells are ~11 m N-S, but longitude cells shrink with latitude (~7.6 m at 47°N), so the scan reaches
     // ±2 cells east-west to keep covering the 10 m tolerance away from the equator.
     const cellLng = Math.round(coord[0] * 10000);
     const cellLat = Math.round(coord[1] * 10000);
     for (let dx = -2; dx <= 2; dx++) {
       for (let dy = -1; dy <= 1; dy++) {
-        const key = `${cellLng + dx},${cellLat + dy}`;
-        const node = this.#nodes.get(key);
-        if (node && RouteGraph.distanceM(coord, [node.lng, node.lat]) < RouteGraph.NODE_TOLERANCE_M) {
-          return key;
+        for (const key of this.#cells.get(`${cellLng + dx},${cellLat + dy}`) ?? []) {
+          const node = this.#nodes.get(key);
+          if (RouteGraph.distanceM(coord, [node.lng, node.lat]) < RouteGraph.NODE_TOLERANCE_M) return key;
         }
       }
     }
-    const key = `${cellLng},${cellLat}`;
-    this.#nodes.set(key, { lng: coord[0], lat: coord[1], edges: [] });
-    return key;
+    return null;
+  }
+
+  /**
+   * The quantized ~11 m cell a coordinate falls in.
+   *
+   * @param {Array<number>} coord - [lng, lat].
+   * @returns {string}
+   */
+  static #cellKey(coord) {
+    return `${Math.round(coord[0] * 10000)},${Math.round(coord[1] * 10000)}`;
   }
 
   /**
@@ -151,7 +183,7 @@ class RouteGraph {
         const nearerEnd = dStart <= dEnd ? coords[0] : coords[coords.length - 1];
         best = {
           streetId,
-          nodeKey: this.#findExistingNodeKey(nearerEnd),
+          nodeKey: this.#endNodeKey(streetId, nearerEnd),
           nodeLngLat: nearerEnd,
           distanceM: minD,
         };
@@ -160,9 +192,22 @@ class RouteGraph {
     return best !== null && best.distanceM <= maxDistanceM ? best : null;
   }
 
-  /** Returns the existing node key for a coordinate (which was inserted during construction). */
-  #findExistingNodeKey(coord) {
-    return this.#nodeKeyFor(coord); // Always merges with the node created at build time.
+  /**
+   * The node one of a street's endpoints merged into at build time. Looked up from the street itself rather than
+   * by position, since another node can sit within tolerance of the same endpoint, and read-only, since this runs
+   * on every pointer move.
+   *
+   * @param {number} streetId
+   * @param {Array<number>} endCoord - [lng, lat] of one of the street's endpoints, in either orientation.
+   * @returns {string}
+   */
+  #endNodeKey(streetId, endCoord) {
+    const [keyA, keyB] = this.#streetEnds.get(streetId);
+    const nodeA = this.#nodes.get(keyA);
+    const nodeB = this.#nodes.get(keyB);
+    const dA = RouteGraph.distanceM(endCoord, [nodeA.lng, nodeA.lat]);
+    const dB = RouteGraph.distanceM(endCoord, [nodeB.lng, nodeB.lat]);
+    return dA <= dB ? keyA : keyB;
   }
 
   /**
@@ -181,8 +226,11 @@ class RouteGraph {
     if (!from || !to) return { error: 'no-path' };
     if (from.nodeKey === to.nodeKey) return { error: 'no-path' }; // Start and end at the same intersection.
 
-    // A*: g = meters walked, h = straight-line meters to the goal. The heuristic is consistent, so a node's first
-    // pop is final and stale heap entries (left behind when a cheaper path re-queues a node) are simply skipped.
+    // A*: g = meters walked, h = straight-line meters to the goal. A node's first pop is taken as final and stale
+    // heap entries (left behind when a cheaper path re-queues a node) are skipped. That is exact for a consistent
+    // heuristic; h is measured from merged node positions while edge weights follow real geometry, so it can be off
+    // by up to 2 × NODE_TOLERANCE_M per edge, and in rare cases the path found is a few meters longer than the
+    // shortest — an accepted trade for never reopening a node.
     const goal = this.#nodes.get(to.nodeKey);
     const goalCoord = [goal.lng, goal.lat];
     const g = new Map([[from.nodeKey, 0]]);

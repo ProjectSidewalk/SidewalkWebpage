@@ -131,7 +131,7 @@ class RouteServiceImpl @Inject() (
    *
    * The route is filed under the region of its first street. Its other streets may be in any region (#3488).
    *
-   * @return The new route's id, saved name, and slug, or Left if the name or description was rejected or the first
+   * @return The new route's id, saved name, and slug, or Left if the name or description was rejected or a
    *         street doesn't exist.
    */
   def saveRoute(route: NewRoute, userId: String): Future[Either[RouteRejection, SavedRoute]] =
@@ -139,8 +139,12 @@ class RouteServiceImpl @Inject() (
       case Some(rejection) => Future.successful(Left(rejection))
       case None            =>
         // The reads guarantee at least one street.
-        db.run(routeTable.getRegionIdOfStreet(route.streets.head.streetId)).flatMap {
-          case None                => Future.successful(Left(RouteRejection("routebuilder.streets.error.unknown")))
+        val startRegion: Future[Option[Int]] = allStreetsKnown(route.streets).flatMap {
+          case false => Future.successful(None)
+          case true  => db.run(routeTable.getRegionIdOfStreet(route.streets.head.streetId))
+        }
+        startRegion.flatMap {
+          case None                => Future.successful(Left(UnknownStreetRejection))
           case Some(startRegionId) =>
             saveRouteAction(route, startRegionId, userId).flatMap { case (routeId, name, slug) =>
               describeSavedRoute(routeId, name, slug).map(Right(_))
@@ -290,7 +294,7 @@ class RouteServiceImpl @Inject() (
    * keeps its id, stats, and share links).
    *
    * @return The route's resulting (name, slug); Right(None) if the route doesn't exist, is deleted, or isn't
-   *         owned by userId; Left if the name or description was rejected.
+   *         owned by userId; Left if the name or description was rejected or a street doesn't exist.
    */
   def updateRoute(
       routeId: Int,
@@ -300,11 +304,23 @@ class RouteServiceImpl @Inject() (
     contentRejection(update.name, update.description) match {
       case Some(rejection) => Future.successful(Left(rejection))
       case None            =>
-        updateRouteAction(routeId, userId, update).flatMap {
-          case Some((name, slug)) => describeSavedRoute(routeId, name, slug).map(r => Right(Some(r)))
-          case None               => Future.successful(Right(None))
+        update.streets.map(allStreetsKnown).getOrElse(Future.successful(true)).flatMap {
+          case false => Future.successful(Left(UnknownStreetRejection))
+          case true  =>
+            updateRouteAction(routeId, userId, update).flatMap {
+              case Some((name, slug)) => describeSavedRoute(routeId, name, slug).map(r => Right(Some(r)))
+              case None               => Future.successful(Right(None))
+            }
         }
     }
+
+  private val UnknownStreetRejection: RouteRejection = RouteRejection("routebuilder.streets.error.unknown")
+
+  /** Whether every submitted street exists, so a stale or forged id is a localized 400 rather than an FK 500. */
+  private def allStreetsKnown(streets: Seq[NewRouteStreet]): Future[Boolean] = {
+    val ids: Set[Int] = streets.map(_.streetId).toSet
+    db.run(routeTable.countKnownStreets(ids)).map(_ == ids.size)
+  }
 
   private def updateRouteAction(routeId: Int, userId: String, update: RouteUpdate): Future[Option[(String, String)]] =
     withSlugRetry {

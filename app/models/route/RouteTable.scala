@@ -169,6 +169,14 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Counts how many of the given street ids are real streets, i.e. filed under a region. A route submitted with any
+   * id this doesn't count would otherwise fail its route_street foreign key as a 500.
+   */
+  def countKnownStreets(streetEdgeIds: Set[Int]): DBIO[Int] = {
+    streetEdgeRegions.filter(_.streetEdgeId inSet streetEdgeIds).length.result
+  }
+
+  /**
    * Counts, per route, the distinct regions its streets run through. Routes with no streets are absent from the map.
    */
   def getRegionCounts(routeIds: Seq[Int]): DBIO[Map[Int, Int]] = {

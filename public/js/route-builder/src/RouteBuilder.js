@@ -79,6 +79,7 @@ class RouteBuilder {
   // the drawn streets, endpoint flags, and stats are derived from those.
   #regionData = null;
   #overviewShown = null; // Which stage the region layers are painted for (null until they exist). See #syncStage.
+  #hoveredRegion = null; // Region id carrying the overview's hover feature-state, or null.
   #streetData = null;
   #streetsInRoute = null; // The 'streets-chosen' GeoJSON source: cloned, oriented street features for the route.
   #waypoints = []; // Ordered [{ lng, lat }] snapped points the user clicked/seeded.
@@ -415,10 +416,21 @@ class RouteBuilder {
     map.setPaintProperty('regions-fill', 'fill-opacity', paint.fillOpacity);
     map.setPaintProperty('regions-outline', 'line-opacity', paint.lineOpacity);
     // What the pointer was showing belongs to the stage just left; the next mouse move redraws it for this one.
+    this.#clearRegionHover();
     this.#clearGhostStart();
     this.#setCursorGuide(null);
     map.getCanvas().style.cursor = '';
     this.#updateCta();
+  }
+
+  /**
+   * Drops the overview's hover tint. The hover handler stops listening outside the overview, so a tint left on
+   * when the stage flips would otherwise reappear, stale, on the next zoom back out.
+   */
+  #clearRegionHover() {
+    if (this.#hoveredRegion === null) return;
+    this.#map.setFeatureState({ source: 'regions', id: this.#hoveredRegion }, { hover: false });
+    this.#hoveredRegion = null;
   }
 
   /**
@@ -519,22 +531,18 @@ class RouteBuilder {
     });
 
     // In the overview, where a region is what a click acts on, regions highlight on hover.
-    let hoveredRegion = null;
     map.on('mousemove', 'regions-fill', (event) => {
       if (!this.#inOverview()) return;
       const regionId = event.features[0].properties.region_id;
-      if (regionId !== hoveredRegion) {
-        if (hoveredRegion !== null) {
-          map.setFeatureState({ source: 'regions', id: hoveredRegion }, { hover: false });
-        }
-        hoveredRegion = regionId;
-        map.setFeatureState({ source: 'regions', id: hoveredRegion }, { hover: true });
+      if (regionId !== this.#hoveredRegion) {
+        this.#clearRegionHover();
+        this.#hoveredRegion = regionId;
+        map.setFeatureState({ source: 'regions', id: regionId }, { hover: true });
       }
       map.getCanvas().style.cursor = 'pointer';
     });
     map.on('mouseleave', 'regions-fill', () => {
-      if (hoveredRegion !== null) map.setFeatureState({ source: 'regions', id: hoveredRegion }, { hover: false });
-      hoveredRegion = null;
+      this.#clearRegionHover();
       map.getCanvas().style.cursor = '';
     });
 
@@ -1802,7 +1810,8 @@ class RouteBuilder {
       routeId: saved.route_id,
       name: saved.name,
       slug: saved.slug,
-      regionName: SavedRoutesPanel.regionLabel(saved.region_name, saved.region_count),
+      regionName: saved.region_name,
+      regionCount: saved.region_count,
       url: `${window.location.origin}/r/${saved.slug}`,
       distanceMeters: saved.distance_meters,
       thumbnailUrl: saved.thumbnail_url,

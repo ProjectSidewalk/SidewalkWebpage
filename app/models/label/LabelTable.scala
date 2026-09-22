@@ -2356,27 +2356,29 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param userId    User to find labels for.
    */
   def getLabelsFromUserInRegions(regionIds: Seq[Int], userId: String): DBIO[Seq[ResumeLabelMetadata]] = {
-    labels
+    // Two index-driven branches under a UNION: a single join with an OR across mission and street region can't use an
+    // index on either side, so Postgres would scan the whole mission table on every Explore load.
+    val byMission = labels
       .join(missions)
       .on(_.missionId === _.missionId)
-      .join(labelPoints)
-      .on { case ((_label, _), _labelPoint) => _label.labelId === _labelPoint.labelId }
-      .join(panoData)
-      .on { case (((_label, _), _), _panoData) => _label.panoId === _panoData.panoId }
-      .joinLeft(streetEdgeRegions)
-      .on { case ((((_label, _), _), _), _streetRegion) => _label.streetEdgeId === _streetRegion.streetEdgeId }
-      .filter { case ((((_label, _mission), _labelPoint), _), _streetRegion) =>
-        // Tutorial labels sit on the tutorial street, which is filed under a real region like any other street.
-        _label.userId === userId && !_label.tutorial &&
-        _labelPoint.lat.isDefined && _labelPoint.lng.isDefined &&
-        ((_mission.regionId inSet regionIds) || (_streetRegion.map(_.regionId) inSet regionIds)).getOrElse(false)
-      }
-      .map { case ((((_label, _), _labelPoint), _panoData), _) =>
-        (_label, _label.labelTypeName, _labelPoint, _panoData.lat, _panoData.lng, _panoData.cameraHeading,
-          _panoData.cameraPitch, _panoData.width, _panoData.height)
-      }
-      .result
-      .map(_.map(ResumeLabelMetadata.tupled))
+      .filter { case (_, _mission) => _mission.userId === userId && (_mission.regionId inSet regionIds) }
+      .map(_._1.labelId)
+    val byStreet = labels
+      .join(streetEdgeRegions)
+      .on(_.streetEdgeId === _.streetEdgeId)
+      .filter { case (_label, _streetRegion) => _label.userId === userId && (_streetRegion.regionId inSet regionIds) }
+      .map(_._1.labelId)
+    val labelIds = byMission.union(byStreet)
+
+    (for {
+      _label      <- labels if _label.labelId in labelIds
+      _labelPoint <- labelPoints if _label.labelId === _labelPoint.labelId
+      _panoData   <- panoData if _label.panoId === _panoData.panoId
+      // Tutorial labels sit on the tutorial street, which is filed under a real region like any other street.
+      if _label.userId === userId && !_label.tutorial
+      if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
+    } yield (_label, _label.labelTypeName, _labelPoint, _panoData.lat, _panoData.lng, _panoData.cameraHeading,
+      _panoData.cameraPitch, _panoData.width, _panoData.height)).result.map(_.map(ResumeLabelMetadata.tupled))
   }
 
   /**
