@@ -318,11 +318,12 @@ corresponding Twirl view:
   cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
   coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
   drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and
-  intersections (`AccessScoreWhatsHere.js`); the rank list, which ranks whichever unit is in force — every
-  neighborhood above the completion floor, or, in the streets unit, the 20 best-scoring streets with a toggle to
-  the 20 worst (`AccessScoreModel#rankedStreets`, #5223); and a photo strip of label crops from the
-  scope's neighborhood feed, ranked worst first with confirmed labels ahead of unchecked ones
-  (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
+  intersections (`AccessScoreWhatsHere.js`); the rank list, which ranks whichever unit is in force — every neighborhood
+  above the completion floor, or, in the streets unit, the 20 best-scoring streets with a toggle to the 20 worst
+  (`AccessScoreModel#rankedStreets`, #5223) — and which steps out of the band above 1100px, the other three panels
+  closing over its column, while a city mapped as one neighborhood is in the neighborhoods unit (#5419); and a photo
+  strip of label crops from the scope's neighborhood feed, ranked worst first with confirmed labels ahead of unchecked
+  ones (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
   the whole city is the population, a brush emphasizes in the overview views, narrows what's here and dims the
   map, and a selection marks the overview views, scopes what's here and the photos, and fades the rest of the
   map). An optional dark basemap (`?dark=1`, or the sidebar toggle, which is a live `map.setStyle` followed by a
@@ -334,10 +335,13 @@ corresponding Twirl view:
   landing page and `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked
   lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which
   answers from the nightly snapshot tables; nothing is fetched until the visitor's first interaction, and the
-  section hides itself when the city has nothing ranked. Hovering or focusing a row lights that neighborhood on the
-  landing choropleth — or that city's circle on `/cities` — through the same `hover` feature-state the maps' own
-  pointer handlers use, and the map never moves. The completion floor below which a neighborhood is not ranked is
-  the backend's `min_region_completion`, the same number the AccessScore tool hatches by.
+  section hides itself when the city has nothing ranked. A city mapped as one neighborhood has no neighborhood ranking
+  to give, so that unit is dropped in favor of its street list — unless no street is ranked either, where the one score
+  is still better than an empty section — and the unit switch is only drawn when both units have something to show.
+  Hovering or focusing a row lights that neighborhood on the landing choropleth — or that city's circle on `/cities` —
+  through the same `hover` feature-state the maps' own pointer handlers use, and the map never moves. The completion
+  floor below which a neighborhood is not ranked is the backend's `min_region_completion`, the same number the
+  AccessScore tool hatches by.
 - **`ps-map/`** — shared map component used across pages.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is

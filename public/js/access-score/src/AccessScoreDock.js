@@ -141,6 +141,7 @@ class AccessScoreDock {
       rankTitle: root.querySelector('#acs-dock-rank-title'),
       rankInfo: root.querySelector('.acs-dock__panel--rank .acs-info'),
       rankOrder: root.querySelector('#acs-rank-order'),
+      rankPanel: root.querySelector('.acs-dock__panel--rank'),
     };
     // The collapsed band keeps a slim ramp, so the legend is never off screen. The ramp is data, not styling.
     if (this.#els.stripBar) this.#els.stripBar.style.background = ScoreRamp.cssGradient();
@@ -387,17 +388,45 @@ class AccessScoreDock {
   }
 
   /**
+   * Shows or hides the rank panel, closing the band's grid over its column when it goes.
+   *
+   * A city mapped as one neighborhood has nothing to rank it against (#5419), so the panel is out only while the
+   * neighborhoods unit is in force: the streets leaderboard is a real list in such a city, and comes back with the
+   * unit switch.
+   *
+   * Nothing else is written while the panel is out: the caller returns on a false, leaving the title, the info
+   * tooltip and the order button holding the values they had. All three are rewritten when it comes back. The one
+   * thing that is cleared is the hover mark, since the rows outlive the suppression — the map and the histogram
+   * both keep calling `highlight` while the panel is hidden, and a mark left on a row would still be on it when
+   * the unit switch brings the same rows back.
+   *
+   * @param {boolean} streets - Whether the streets unit is in force.
+   * @returns {boolean} Whether the panel is showing, and so whether there is a list to draw into it.
+   */
+  #showRank(streets) {
+    const show = streets || this.#model.regionStats.length > 1;
+    if (this.#els.rankPanel) this.#els.rankPanel.hidden = !show;
+    this.#els.body.classList.toggle('acs-dock__body--no-rank', !show);
+    if (!show) this.#rank.clearHighlight();
+    return show;
+  }
+
+  /**
    * Draws the rank list for whichever unit is in force, and the panel's title and order toggle with it.
    *
    * The neighborhoods list is the whole city, best first, since a city has tens of them. Streets run to
    * thousands, so that list is a leaderboard: one end of it at a time, with the toggle for the other end
    * (#5223). Both are drawn from the same view, so a brush mutes and a selection marks the same way.
    *
+   * A city mapped as one neighborhood has no neighborhoods list to give, so the panel steps out of the band
+   * there (#5419) and `#showRank` says nothing more is drawn.
+   *
    * @param {?Set<number>} brushStreets - The streets a brush keeps, or null with none.
    * @param {number} auditedStreets - How many streets the city has a score for, for the list's note.
    */
   #drawRank(brushStreets, auditedStreets) {
     const streets = this.#model.state.unit === 'streets';
+    if (!this.#showRank(streets)) return;
     const limit = AccessScoreModel.RANK_LIMIT;
     const titleKey = `accessscore:chart-rank${streets ? '-streets' : ''}`;
     if (this.#els.rankTitle) this.#els.rankTitle.textContent = i18next.t(titleKey);
@@ -638,7 +667,10 @@ class AccessScoreDock {
       request = lowest
         ? {
             caption: i18next.t('accessscore:photos-from', {
-              scope: i18next.t('accessscore:photos-lowest', { name: lowest.name }),
+              // "(lowest scoring)" is a comparison, so a city with one region is captioned by its name alone.
+              scope: this.#model.regionStats.length > 1
+                ? i18next.t('accessscore:photos-lowest', { name: lowest.name })
+                : lowest.name,
             }),
             regionId: lowest.regionId,
           }

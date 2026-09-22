@@ -1097,6 +1097,13 @@
   display: none;
 }
 
+/* A city mapped as one neighborhood has no neighborhoods to rank, so the panel steps out while that unit is in
+   force (AccessScoreDock.js) and the remaining three share its width. Only above 1100px: the breakpoints below
+   re-declare this grid, and three panels wrap into the same rows four do, so there is nothing to reclaim there. */
+.acs-dock__body--no-rank {
+  grid-template-columns: minmax(200px, 1fr) minmax(215px, 1fr) minmax(320px, 2.2fr);
+}
+
 /* Every panel is a column of one fixed height — the photos' — so the charts stretch to it and the rank list
    scrolls within it, rather than the longest list setting the band's height. */
 .acs-dock__panel {
@@ -1105,6 +1112,10 @@
   height: calc(176px * var(--ui-scale, 1));
   min-width: 0;
   overflow: hidden;
+}
+
+.acs-dock__panel[hidden] {
+  display: none;
 }
 
 .acs-dock__panel-head {
