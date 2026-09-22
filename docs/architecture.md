@@ -229,7 +229,9 @@ The `/v3` API is the canonical public surface (handlers in `app/controllers/api/
 - **One file download per URL at a time.** While a file is being built and streamed, a repeat of the same URL gets a
   429 with `Retry-After`, so an impatient retry can't double minutes of work (#4161). Plain CSV/GeoJSON streams are
   not guarded, since the site's own pages fetch the same URLs in parallel. A `HEAD` request gets the same 429 without
-  building anything, which is how the Label Map and API docs download buttons warn before they start.
+  building anything, which is how the Label Map's download button warns before it starts; the API docs buttons fetch
+  the file themselves, so they read the 429 off the download. A built file also carries its uncompressed size in
+  `X-File-Size`, for clients showing download progress, since gzip strips `Content-Length`.
 - v3 is a **preview** surface: breaking changes are made in place rather than minting a new version (precedent: #4223).
 
 **Data structures (DTOs).** The response/filter types live in **`app/models/api/`** (`package models.api`), in

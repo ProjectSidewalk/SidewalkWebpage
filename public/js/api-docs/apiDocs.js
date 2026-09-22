@@ -514,25 +514,24 @@ function setupDownloadButtons() {
     if (statusMessage.textContent !== message) statusMessage.textContent = message;
     statusDetail.textContent = detail;
     statusBar.classList.toggle('ps-hidden', percent === null);
-    if (percent !== null) {
-      statusBarFill.style.width = `${percent}%`;
-      statusBar.setAttribute('aria-valuenow', String(percent));
-    }
+    // Reset rather than leave the last download's width, which the next one would animate backwards from.
+    statusBarFill.style.width = `${percent ?? 0}%`;
+    statusBar.setAttribute('aria-valuenow', String(percent ?? 0));
   }
 
-  /** Enables or disables every download button. */
-  function setButtonsDisabled(disabled) {
+  /**
+   * Marks every button busy during a download. `aria-disabled` rather than `disabled`, which would drop the keyboard
+   * focus to the body mid-download.
+   */
+  function setButtonsBusy(busy) {
     downloadButtons.forEach((btn) => {
-      btn.disabled = disabled;
-      btn.classList.toggle('disabled', disabled);
+      btn.setAttribute('aria-disabled', String(busy));
+      btn.classList.toggle('disabled', busy);
     });
   }
 
-  // The file is lost if the page closes mid-download, which a plain browser download would have survived.
-  let downloading = false;
-  window.addEventListener('beforeunload', (event) => {
-    if (downloading) event.preventDefault();
-  });
+  /** The file is lost if the page closes mid-download, which a plain browser download would have survived. */
+  const warnBeforeLeaving = (event) => event.preventDefault();
 
   downloadButtons.forEach((button) => {
     const format = button.getAttribute('data-format');
@@ -543,18 +542,23 @@ function setupDownloadButtons() {
 
     button.addEventListener('click', async (event) => {
       event.preventDefault();
+      if (button.getAttribute('aria-disabled') === 'true') return;
       const apiBaseUrl = document.documentElement.getAttribute('data-api-base-url') || '/v3/api';
       const currentPage = document.documentElement.getAttribute('data-api-endpoint')
         || 'NEEDS_TO_BE_SET_BY_API_DOC_PAGE';
       const downloadUrl = `${apiBaseUrl}/${currentPage}?filetype=${format}`;
 
-      setButtonsDisabled(true);
-      downloading = true;
+      setButtonsBusy(true);
+      // Only while a download is running: a listener left in place would keep the page out of the back/forward cache.
+      window.addEventListener('beforeunload', warnBeforeLeaving);
       try {
-        await downloadFile(downloadUrl, formatName);
+        await downloadFile(downloadUrl, format, formatName);
+      } catch (error) {
+        showStatus('error', 'Something went wrong with the download. Please try again.');
+        console.error('Download failed', error);
       } finally {
-        downloading = false;
-        setButtonsDisabled(false);
+        window.removeEventListener('beforeunload', warnBeforeLeaving);
+        setButtonsBusy(false);
       }
     });
   });
@@ -563,20 +567,20 @@ function setupDownloadButtons() {
    * Fetches a file, reporting each stage, and saves it once it has fully arrived.
    *
    * @param {string} url - The file's API URL.
+   * @param {string} format - The `filetype` value, which names the saved file when the server doesn't.
    * @param {string} formatName - The format, as shown to the user.
    * @returns {Promise<void>}
    */
-  async function downloadFile(url, formatName) {
+  async function downloadFile(url, format, formatName) {
     showStatus('working', `Preparing the ${formatName} file`);
 
     let response;
     try {
-      // Chrome makes a request wait 20s while another tab fetches the same URL; no-store skips that wait, and the
-      // HEAD answers without building anything.
-      const probe = await fetch(url, { method: 'HEAD', cache: 'no-store' });
-      response = probe.status === 429 ? probe : await fetch(url, { cache: 'no-store' });
+      // no-store: a download is never worth a cache entry, and Chrome can make a request wait behind an identical
+      // one it is caching.
+      response = await fetch(url, { cache: 'no-store' });
     } catch {
-      showStatus('error', 'The download failed: could not reach the server. Please try again.');
+      showStatus('error', 'The download failed before it started. The connection may have dropped. Please try again.');
       return;
     }
 
@@ -589,14 +593,24 @@ function setupDownloadButtons() {
       return;
     }
     if (!response.ok) {
-      showStatus('error', `The download failed (error ${response.status}). Please try again.`);
+      // API errors carry an RFC 7807 body, whose `detail` says more than the status number does.
+      const problem = await response.json().catch(() => null);
+      const detail = problem?.detail || problem?.title || '';
+      showStatus('error', `The download failed (error ${response.status}). ${detail || 'Please try again.'}`);
       return;
     }
 
-    // Streamed CSV/GeoJSON can't know their size until the last row; a built file's is in X-File-Size once gzip has
-    // dropped Content-Length.
-    const totalBytes = Number(response.headers.get('X-File-Size') || response.headers.get('Content-Length')) || 0;
-    const chunks = [];
+    // Streamed CSV/GeoJSON can't know their size until the last row. A built file's is in X-File-Size, which survives
+    // the gzip that drops Content-Length; a compressed Content-Length would undercount what arrives here.
+    const encoded = !!response.headers.get('Content-Encoding');
+    const declaredSize = response.headers.get('X-File-Size') || (encoded ? '' : response.headers.get('Content-Length'));
+    const totalBytes = Number(declaredSize) || 0;
+
+    // Whole chunks are folded into a Blob as they pile up, since the browser can page a Blob out to disk but not an
+    // array of buffers, and a city-wide file runs to hundreds of MB.
+    let blob = new Blob([], { type: response.headers.get('Content-Type') || '' });
+    let chunks = [];
+    let pending = 0;
     let receivedBytes = 0;
     let lastPaint = 0;
     try {
@@ -605,32 +619,41 @@ function setupDownloadButtons() {
         const { done, value } = await reader.read();
         if (done) break;
         chunks.push(value);
+        pending += value.length;
         receivedBytes += value.length;
+        if (pending > BLOB_FOLD_BYTES) {
+          blob = new Blob([blob, ...chunks], { type: blob.type });
+          chunks = [];
+          pending = 0;
+        }
         // Chunks arrive thousands of times a second on a fast connection; repainting on each one stalls the page.
         if (Date.now() - lastPaint < 250) continue;
         lastPaint = Date.now();
+        const message = `Downloading the ${formatName} file`;
         if (totalBytes) {
-          const detail = `${formatBytes(receivedBytes)} of ${formatBytes(totalBytes)}`;
-          const percent = Math.floor((receivedBytes / totalBytes) * 100);
-          showStatus('working', `Downloading the ${formatName} file`, detail, percent);
+          const percent = Math.min(100, Math.floor((receivedBytes / totalBytes) * 100));
+          showStatus('working', message, `${formatBytes(receivedBytes)} of ${formatBytes(totalBytes)}`, percent);
         } else {
-          showStatus('working', `Downloading the ${formatName} file`, formatBytes(receivedBytes));
+          showStatus('working', message, formatBytes(receivedBytes));
         }
       }
+      blob = new Blob([blob, ...chunks], { type: blob.type });
     } catch {
       showStatus('error', 'The download stopped before it finished. Please try again.');
       return;
     }
 
-    // A stream that ends early but tidily raises no error, so only the count catches a half-written file.
-    if (totalBytes && receivedBytes < totalBytes) {
+    // A stream that ends early but tidily raises no error, so a short file is only caught by counting. JSON and
+    // GeoJSON have a closing bracket to check instead; a truncated CSV is indistinguishable from a complete one.
+    const short = totalBytes ? receivedBytes < totalBytes : !(await endsCompletely(blob));
+    if (short) {
       showStatus('error', 'The download stopped before it finished. Please try again.');
       return;
     }
 
     const filename = filenameFromDisposition(response.headers.get('Content-Disposition'))
-      || `${document.documentElement.getAttribute('data-api-endpoint')}.${formatName.toLowerCase()}`;
-    const blobUrl = URL.createObjectURL(new Blob(chunks, { type: response.headers.get('Content-Type') || '' }));
+      || `${document.documentElement.getAttribute('data-api-endpoint')}.${FILE_EXTENSIONS[format] || format}`;
+    const blobUrl = URL.createObjectURL(blob);
     const saveLink = document.createElement('a');
     saveLink.href = blobUrl;
     saveLink.download = filename;
@@ -641,6 +664,31 @@ function setupDownloadButtons() {
     setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
     showStatus('done', `Downloaded ${filename}`, formatBytes(receivedBytes));
   }
+}
+
+/** How much is held as loose buffers before being folded into the Blob. */
+const BLOB_FOLD_BYTES = 32 * 1024 * 1024;
+
+/** Extensions for a file the server didn't name, keyed by the `filetype` the button asks for. */
+const FILE_EXTENSIONS = {
+  csv: 'csv',
+  json: 'json',
+  geojson: 'geojson',
+  shapefile: 'zip',
+  geopackage: 'gpkg',
+};
+
+/**
+ * A JSON or GeoJSON body that ends before its closing bracket was cut off mid-flight (#4161). Any other format is
+ * taken at face value, since nothing in it says where the end should be.
+ *
+ * @param {Blob} blob - The downloaded file.
+ * @returns {Promise<boolean>} False only when the file is provably incomplete.
+ */
+async function endsCompletely(blob) {
+  if (!blob.type.includes('json')) return true;
+  const tail = (await blob.slice(-16).text()).trimEnd();
+  return tail.endsWith('}') || tail.endsWith(']');
 }
 
 /**
@@ -658,7 +706,13 @@ function formatBytes(bytes) {
  */
 function filenameFromDisposition(disposition) {
   const match = disposition?.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
-  return match ? decodeURIComponent(match[1]) : null;
+  if (!match) return null;
+  // A stray % is not an escape, and decoding it throws.
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return match[1];
+  }
 }
 
 /**

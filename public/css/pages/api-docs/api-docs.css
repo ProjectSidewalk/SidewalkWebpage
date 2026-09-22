@@ -284,9 +284,19 @@ pre > code.language-csv {
   margin: 0;
 }
 
+.download-status:not([data-state]) .download-status-icon {
+  display: none;
+}
+
 .download-status-icon {
   width: 20px;
   height: 20px;
+}
+
+/* Takes the rest of the row, so a long message wraps beside its icon rather than below it. */
+.download-status-message {
+  flex: 1 1 200px;
+  min-width: 0;
 }
 
 .download-status-icon.loading-spinner {

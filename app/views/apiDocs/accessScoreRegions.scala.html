@@ -201,6 +201,10 @@
       <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
       <li><strong><code>503 Service Unavailable</code>:</strong> A whole-city request (no <code>bbox</code> or region filter) found the city's scores not yet cached — after a deploy, or in a long-idle city — and they are still being computed. Wait <code>Retry-After</code> seconds (30) and repeat the request; the body's <code>code</code> is <code>STILL_COMPUTING</code>.</li>
     </ul>
+    <h3 class="page-heading" id="response-headers">Response Headers<a href="#response-headers" class="permalink">#</a></h3>
+    <ul>
+      <li><strong><code>X-File-Size</code>:</strong> On a Shapefile, GeoPackage or zipped-CSV download, the file's size in bytes. Sent alongside <code>Content-Length</code>, and still present when the response is gzipped, which drops it — use it to show download progress.</li>
+    </ul>
     @apiDocs.errorResponseBody()
   </div>
 
