@@ -353,6 +353,18 @@ class PanoManager {
   async setPanorama(panoId, backupImage = null) {
     this.setProperty('panoLoaded', false);
 
+    // The fallback's invariant from #showPannellumPano, applied the other way round (#5453). While the fallback or an
+    // empty pano area is up, the primary canvas is out of the layout and holds whatever it last drew: the last live
+    // label's pano, however many labels back. Revealing it only after the load would put that on screen until the
+    // provider repainted, and the provider resolves setPano on position_changed, not on a paint. So it rejoins the
+    // layout unpainted and loads underneath the outgoing pano; #teardownPannellum reveals it. This also keeps the
+    // provider from being resized up from 0×0 at the moment it is shown, the black-pano trigger of #2468.
+    const primaryWasHidden = this.#panoCanvas.style.display === 'none';
+    if (primaryWasHidden) {
+      this.#panoCanvas.style.visibility = 'hidden';
+      this.#panoCanvas.style.display = '';
+    }
+
     // Try the primary viewer first.
     try {
       const panoData = await this.#primaryViewer.setPano(panoId);
@@ -362,6 +374,8 @@ class PanoManager {
       svv.tracker.push('PanoId_Changed');
       return panoData;
     } catch {
+      // Put the primary canvas back the way this call found it, so it can't sit laid out under the fallback.
+      if (primaryWasHidden) this.#hidePrimaryCanvas();
       // Primary viewer failed — try Pannellum if we have local pano data.
       if (backupImage) {
         try {
@@ -390,7 +404,7 @@ class PanoManager {
    */
   #clearViewer() {
     this.setProperty('panoLoaded', false);
-    this.#panoCanvas.style.display = 'none';
+    this.#hidePrimaryCanvas();
     this.#hidePannellumCanvas();
     if (this.labelMarker) {
       this.labelMarker.removeMarker();
@@ -401,10 +415,15 @@ class PanoManager {
 
   /**
    * Shows the primary viewer canvas and hides the Pannellum canvas; resets svv.panoViewer to the primary viewer.
+   *
+   * Only called once the primary viewer has loaded the current label's pano, which is what makes it safe to paint.
+   * Both properties are restated, as #showPannellumPano does for its own canvas, so an overlapping load's cleanup
+   * can't leave this one laid out but hidden.
    */
   #teardownPannellum() {
     this.#hidePannellumCanvas();
     this.#panoCanvas.style.display = '';
+    this.#panoCanvas.style.visibility = '';
     svv.panoViewer = this.#primaryViewer;
     svv.panoViewer.resize();
     svv.tracker.push('Viewer_Primary');
@@ -471,13 +490,21 @@ class PanoManager {
     // path, load-bearing when two loads overlap: the other one's cleanup can have taken this canvas out of the
     // layout while this load was in flight, and reinstating only `visibility` would leave both canvases hidden —
     // an empty pano area that still reports panoLoaded and gets a marker drawn over it.
-    this.#panoCanvas.style.display = 'none';
+    this.#hidePrimaryCanvas();
     this.#pannellumCanvas.style.display = '';
     this.#pannellumCanvas.style.visibility = '';
     svv.tracker.push('Viewer_Pannellum');
     this.#logo.showSourceLogo();
     this.#attribution.show(backupImage.attribution || null);
     return svv.panoViewer.currPanoData;
+  }
+
+  /**
+   * Takes the primary canvas out of sight and out of the layout, clearing any unpainted-load state setPanorama left.
+   */
+  #hidePrimaryCanvas() {
+    this.#panoCanvas.style.display = 'none';
+    this.#panoCanvas.style.visibility = '';
   }
 
   /**
