@@ -2682,13 +2682,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              #$validationSelectCols,
              #${topLevelCols("ai_stats", aiStatCols)}
       FROM (
-          -- Every finished tutorial logs a completed audit of the tutorial street, so it's left out of all km figures.
           SELECT SUM(ST_Length(geom::geography)) / 1000 AS km_audited
           FROM street_edge
           INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
           WHERE completed = TRUE AND #$userFilter
-              AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
       ) AS km_audited, (
           -- Unique street km with at least one completed audit, regardless of imagery age (#4384): the metric is
           -- monotonic, so it never dips when newer imagery lands on an audited street. km_needs_reaudit below carries
@@ -2700,7 +2698,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
               INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
               WHERE completed = TRUE AND #$userFilter
-                  AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
           ) distinct_streets
       ) AS km_audited_no_overlap, (
           -- Redundant-coverage km: streets with completed audits by ≥2 distinct (non-excluded) users. Mirrors the
@@ -2714,7 +2711,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
               INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
               WHERE completed = TRUE AND #$userFilter
-                  AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
               GROUP BY street_edge.street_edge_id, geom
               HAVING COUNT(DISTINCT audit_task.user_id) >= 2
           ) multi_user_streets
@@ -2729,7 +2725,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
               INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
               WHERE completed = TRUE AND #$userFilter
-                  AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
               GROUP BY street_edge.street_edge_id, geom
               HAVING BOOL_AND(audit_task.outdated_imagery)
           ) outdated_streets
