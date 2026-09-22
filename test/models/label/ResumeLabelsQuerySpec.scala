@@ -23,23 +23,33 @@ class ResumeLabelsQuerySpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
 
   private lazy val labelTable = app.injector.instanceOf[LabelTable]
 
+  // The query's filters as raw SQL, shared by the fixture pickers and the count check so a picked (region, user) pair
+  // is one the query really returns rows for (an excluded user, say, would otherwise be picked and come back empty).
+  private val resumableLabelsFromWhere =
+    """FROM label
+       INNER JOIN mission ON label.mission_id = mission.mission_id
+       INNER JOIN label_point ON label.label_id = label_point.label_id
+       INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
+       INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+       INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
+       WHERE label.deleted = FALSE AND label.tutorial = FALSE AND user_stat.excluded = FALSE
+         AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+         AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+         AND label_point.lat IS NOT NULL AND label_point.lng IS NOT NULL"""
+
   /**
-   * A (region, user) pair with the most resumable labels, so the assertions have rows to work on. Cancels rather than
-   * passing vacuously when the database has none, so an empty fixture shows up in the report.
+   * The (region, user) pair ranked first by `orderBy` among those with resumable labels. Cancels rather than passing
+   * vacuously when the database has none, so a thin fixture shows up in the report.
    */
-  private def busiestRegionUser: (Int, String) =
+  private def pickRegionUser(orderBy: String, having: String, missing: String): (Int, String) =
     run(
       sql"""SELECT mission.region_id, mission.user_id
-            FROM label
-            INNER JOIN mission ON label.mission_id = mission.mission_id
-            INNER JOIN label_point ON label.label_id = label_point.label_id
-            WHERE label.deleted = FALSE AND label.tutorial = FALSE
-              AND label_point.lat IS NOT NULL AND label_point.lng IS NOT NULL
-              AND mission.region_id IS NOT NULL
+            #$resumableLabelsFromWhere AND mission.region_id IS NOT NULL
             GROUP BY mission.region_id, mission.user_id
-            ORDER BY count(*) DESC
+            HAVING #$having
+            ORDER BY #$orderBy
             LIMIT 1""".as[(Int, String)].headOption
-    ).getOrElse(cancel("no user has a positioned, non-tutorial label in any region of this database"))
+    ).getOrElse(cancel(missing))
 
   "getLabelsFromUserInRegion" should {
     "be a query Postgres accepts" in {
@@ -47,9 +57,15 @@ class ResumeLabelsQuerySpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
     }
 
     "carry each label's own audit task's outdated_imagery flag" in {
-      val (regionId, userId) = busiestRegionUser
-      val rows               = run(labelTable.getLabelsFromUserInRegion(regionId, userId))
-      rows must not be empty
+      // A pair with both flagged and unflagged labels, so both values of the flag are exercised: with only one, a
+      // query returning a constant would pass.
+      val (regionId, userId) = pickRegionUser(
+        orderBy = "count(*) DESC",
+        having = "bool_or(audit_task.outdated_imagery) AND NOT bool_and(audit_task.outdated_imagery)",
+        missing = "no user in this database has both outdated-imagery and current labels in one region"
+      )
+      val rows = run(labelTable.getLabelsFromUserInRegion(regionId, userId))
+      rows.map(_.fromOutdatedImagery).toSet mustBe Set(true, false)
       val flaggedTasks: Set[Int] = run(
         sql"""SELECT audit_task_id FROM audit_task WHERE outdated_imagery AND user_id = $userId""".as[Int]
       ).toSet
@@ -61,21 +77,17 @@ class ResumeLabelsQuerySpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
     }
 
     "return every non-deleted, non-tutorial, positioned label the user placed in the region" in {
-      val (regionId, userId) = busiestRegionUser
-      val expected           = run(
-        sql"""SELECT count(*)
-              FROM label
-              INNER JOIN mission ON label.mission_id = mission.mission_id
-              INNER JOIN label_point ON label.label_id = label_point.label_id
-              INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
-              INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
-              INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
-              WHERE mission.region_id = $regionId AND mission.user_id = $userId
-                AND label.deleted = FALSE AND label.tutorial = FALSE AND user_stat.excluded = FALSE
-                AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-                AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-                AND label_point.lat IS NOT NULL AND label_point.lng IS NOT NULL""".as[Int].head
+      val (regionId, userId) = pickRegionUser(
+        orderBy = "count(*) DESC",
+        having = "count(*) > 0",
+        missing = "no user has a resumable label in any region of this database"
       )
+      val expected = run(
+        sql"""SELECT count(*)
+              #$resumableLabelsFromWhere
+                AND mission.region_id = $regionId AND mission.user_id = $userId""".as[Int].head
+      )
+      expected must be > 0
       run(labelTable.getLabelsFromUserInRegion(regionId, userId)).size mustBe expected
     }
   }
