@@ -128,7 +128,7 @@ describe('label icon sizing across the UI scale', () => {
                 labelTypeHasSeverity: () => true };
             util.pano = { centeredPovToCanvasCoord: () => ({ x: 100, y: 100 }) };
             window.labelIconCache = { 'CurbRamp.svg': {} };
-            window.svl = { LABEL_ICON_RADIUS: 17, minimap: { getMap: () => null } };
+            window.svl = { LABEL_ICON_RADIUS: 17 };
             window.eval(`${LABEL_SRC}\nwindow.Label = Label;`);
             Label = window.Label;
         });
@@ -194,7 +194,7 @@ describe('label icon sizing across the UI scale', () => {
                 label.render(ctx, { heading: 90, pitch: -20, zoom: 1 });
                 return ctx;
             };
-            Label.createMinimapMarker = () => ({ addListener: () => {} });
+            Label.createMinimapMarker = () => ({ setVisible: () => {} });
 
             const base = render(util.LABEL_ICON_BASE_RADIUS).ellipses[0];
             const capped = render(util.labelIconRadius(1.8)).ellipses[0];
@@ -240,13 +240,12 @@ describe('label icon sizing across the UI scale', () => {
             window.svl = {
                 LABEL_ICON_RADIUS: util.labelIconRadius(1),
                 LABEL_HIT_MARGIN: util.labelHitMargin(1),
-                minimap: { getMap: () => null },
             };
             window.eval(`${LABEL_SRC}\nwindow.Label = Label;`);
             window.eval(`${CANVAS_SRC}\nwindow.Canvas = Canvas;`);
             Label = window.Label;
             Canvas = window.Canvas;
-            Label.createMinimapMarker = () => ({ addListener: () => {} });
+            Label.createMinimapMarker = () => ({ setVisible: () => {} });
         });
 
         test('Label.isOn covers the whole drawn icon', () => {

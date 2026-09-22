@@ -75,7 +75,7 @@ Also covered, beyond the api-docs previews:
   turf), the viewer's current pano is untouched, "nothing here" resolves null while an unanswered search rejects
   (#4918), prefetched searches are reused, and a hung lookup is given up on.
 - `explore/src/navigation/ForwardCrumbs.js` → `forwardCrumbsLifecycle.test.js` — the stateful half, driven through
-  `refresh()`/`clear()`/click with a stubbed `AdvancedMarkerElement` and a scripted provider: a stop that renumbers gets
+  `refresh()`/`clear()`/click with a stubbed `Minimap.addMarker` and a scripted provider: a stop that renumbers gets
   a marker with the new rank in its tooltip, `clear()` disowns a refresh still waiting on lookups, lookups queued for a
   street the user has left are skipped, and a far crumb over a visited pano peeks back on click.
 - `explore/src/navigation/ForwardCrumbs.js` → `forwardCrumbsWindowing.test.js` — the geometry behind the

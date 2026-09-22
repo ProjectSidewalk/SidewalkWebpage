@@ -26,7 +26,6 @@ class Onboarding {
   #savedAnnotations = [];
   #currentState = null;
   #mouseDownCanvasDrawingHandler;
-  #map;
   #currentLabelId;
   #tutorialMinimapResizeObserver = null;
 
@@ -67,7 +66,6 @@ class Onboarding {
 
     this.#states = onboardingStates.get();
     this.#statesWithProgress = this.#states.filter((state) => state.progression);
-    this.#map = svl.minimap.getMap();
   }
 
   start() {
@@ -123,12 +121,12 @@ class Onboarding {
   }
 
   /**
-   * Sets the mini map to be transparent for everything except for yellow pin.
+   * Swaps the live minimap for the tutorial's fixed screenshot, keeping the markers and fog drawn over it.
    */
   #adjustMap() {
     const svl = this.#svl;
     // Render the minimap at its native square size and zoom the whole holder uniformly (see .minimap-tutorial) so
-    // the static screenshot, the Google label markers, and the fog all share one coordinate frame and stay aligned.
+    // the static screenshot, the label markers, and the fog all share one coordinate frame and stay aligned.
     svl.ui.minimap.holder.addClass('minimap-tutorial');
     svl.ui.minimap.holder.css({
       backgroundImage: `url('${util.assetPath('images/explore/onboarding/TutorialMiniMap.jpg')}')`,
@@ -144,21 +142,15 @@ class Onboarding {
       this.#tutorialMinimapResizeObserver.observe(svl.ui.minimap.holder[0].parentElement);
     }
 
-    // TODO use cloud-based maps styling for this potentially as well..? Hiding something in dom as workaround.
-    // map.setOptions({styles: [{ featureType: 'all', stylers: [{ visibility: 'off' }] }]});
-    setTimeout(() => {
-      // TODO extra hacky to set a timeout because the div wasn't ready even though map theoretically loaded.
-      const mapDiv = /** @type {Element} */ (document.querySelector('#minimap')?.firstChild);
-      const mapToHide = /** @type {HTMLElement} */ (mapDiv?.children[2]?.firstChild?.firstChild);
-      mapToHide.style.display = 'none';
-    }, 1000);
+    // The screenshot is the tutorial's map; the live basemap would show through it, offset and at another scale.
+    svl.minimap.setBasemapVisible(false);
   }
 
   /**
    * Sizes the tutorial minimap to the largest square that fits the sidebar space below the region heading.
    *
-   * The minimap renders at a native square size and is zoomed up uniformly, which keeps the screenshot, Google
-   * markers, and fog aligned. We cap that zoom at the available height so the whole rounded square stays visible and
+   * The minimap renders at a native square size and is zoomed up uniformly, which keeps the screenshot, markers,
+   * and fog aligned. We cap that zoom at the available height so the whole rounded square stays visible and
    * the peg stays centered, rather than overflowing the sidebar and getting clipped.
    */
   #sizeTutorialMinimap() {
@@ -435,10 +427,7 @@ class Onboarding {
         }
         // Create the minimap marker when the label's entrance slot arrives, so the map echoes the sequence.
         if (!annotation.firstDraw && progress > 0) {
-          const googleMarker = Label.createMinimapMarker(
-            annotation.labelType, { lat: annotation.lat, lng: annotation.lng },
-          );
-          googleMarker.map = svl.minimap.getMap();
+          Label.createMinimapMarker(annotation.labelType, { lat: annotation.lat, lng: annotation.lng });
           annotation.firstDraw = true;
         }
       }
@@ -738,28 +727,6 @@ class Onboarding {
 
   #endTheOnboarding(skip) {
     const svl = this.#svl;
-    const mapStyleOptions = [
-      {
-        featureType: 'all',
-        stylers: [
-          { visibility: 'off' },
-        ],
-      },
-      {
-        featureType: 'road',
-        stylers: [
-          { visibility: 'on' },
-        ],
-      },
-      {
-        elementType: 'labels',
-        stylers: [
-          { visibility: 'off' },
-        ],
-      },
-    ];
-    if (this.#map) this.#map.setOptions({ styles: mapStyleOptions });
-    this.#map.setOptions({ styles: mapStyleOptions });
     if (skip) {
       this.#tracker.push('Onboarding_Skip');
       this.#missionContainer.getCurrentMission().setProperty('skipped', true);

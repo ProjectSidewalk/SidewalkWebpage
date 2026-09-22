@@ -232,6 +232,16 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Changelog](https://developers.infra3d.com/javascript-api/reference/index.html#md:changelog)
 - **kinetic: 4.4.3** — **note:** only used for the hand animation in the Explore tutorial;
   [no longer maintained](https://github.com/ericdrowell/KineticJS). Could bump to 5.1.0 and leave it.
+- **maplibre-gl (js & css): 6.10.0** — draws the Explore minimap (#5429); check with `maplibregl.getVersion()`.
+  **Note:** ES modules only since 6.0.0: a main module, a shared chunk and a worker module, which import each other
+  by fixed relative names. That is why they live in a version-named folder (`maplibre-gl-6.10.0/`) rather than
+  carrying the version in their own names, and an upgrade copies all three `.mjs` files from `dist/` unrenamed (not
+  the `-dev` builds). There is no `<script>` tag: `Minimap.create` loads the main module with a dynamic `import()` of
+  the fingerprinted URL on `explore.scala.html`'s `#maplibre-module` preload link, and assigns `window.maplibregl`. The
+  chunks resolve relative to it (plain URLs, which Play still serves with a content ETag), and a version bump edits
+  that link's path. The worker is a same-origin module worker, so CSP `worker-src 'self'` covers it.
+  [Download](https://cdn.jsdelivr.net/npm/maplibre-gl@6.10.0/dist/) ·
+  [Changelog](https://github.com/maplibre/maplibre-gl-js/blob/main/CHANGELOG.md)
 - **mapbox-gl (js & css): 3.24.1** — check with `mapboxgl.version`. **Note:** held below 3.25 on purpose. From 3.25.0 a
   symbol layer that shares a source with feature-state paint (Route Builder's region labels, AccessScore's) crashes
   the map with `Cannot read properties of undefined (reading 'paint')` once that state changes

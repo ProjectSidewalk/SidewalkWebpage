@@ -9,7 +9,7 @@ class ObservedArea {
   // Zoom the minimap was tuned at; BASE_RADIUS is correct here. As the user zooms the minimap, the observed-area
   // radius is scaled by 2^(zoom - REFERENCE_ZOOM) so the fog/FOV keep covering the same geographic area. Must match
   // Minimap's default zoom.
-  static #REFERENCE_ZOOM = 18;
+  static #REFERENCE_ZOOM = 17;
 
   #uiMinimap;
 
@@ -18,7 +18,7 @@ class ObservedArea {
   #rightAngle = null;       // Right-most angle of the user's FOV.
   #observedAreas = [];     // List of observed areas (panoId, latLng, minAngle, maxAngle).
   #currArea = {};             // Current observed area (panoId, latLng, minAngle, maxAngle).
-  #breadcrumbMarkers = new Map(); // panoId -> AdvancedMarkerElement: a clickable breadcrumb per visited pano.
+  #breadcrumbMarkers = new Map(); // panoId -> MinimapMarker: a clickable breadcrumb per visited pano.
   #fractionObserved = 0; // User's current fraction of 360 degrees observed.
   #coachVisible = false; // Whether the first-run "turn 360°" coach mark is currently showing.
 
@@ -163,31 +163,21 @@ class ObservedArea {
   }
 
   /**
-   * Converts a latitude and longitude to pixel xy-coordinates.
-   * @param {{lat: number, lng: number}} latLng
-   * @returns {{x: number, y: number}}
-   */
-  #latLngToPixel(latLng) {
-    const projection = svl.minimap.getMap().getProjection();
-    const bounds = svl.minimap.getMap().getBounds();
-    const topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
-    const bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
-    const scale = Math.pow(2, svl.minimap.getMap().getZoom());
-    const worldPoint = projection.fromLatLngToPoint(latLng);
-    return {
-      x: Math.floor((worldPoint.x - bottomLeft.x) * scale),
-      y: Math.floor((worldPoint.y - topRight.y) * scale),
-    };
-  }
-
-  /**
    * Returns the FOV/observed-area radius in pixels for the minimap's current zoom. Scales BASE_RADIUS by the UI scale
    * and by the zoom relative to REFERENCE_ZOOM so the fog/FOV cover a constant geographic area as the user zooms.
    * @returns {number}
    */
   #currentRadius() {
-    const zoom = svl.minimap.getMap().getZoom();
+    const zoom = svl.minimap.getZoom();
     return ObservedArea.#BASE_RADIUS * this.#scaleFactor * Math.pow(2, zoom - ObservedArea.#REFERENCE_ZOOM);
+  }
+
+  /**
+   * Where the peg is on the overlay canvases. The pano is the map's center until the user pans the map away from it.
+   * @returns {{x: number, y: number}} CSS px from the map's top-left corner.
+   */
+  #pegPoint() {
+    return svl.minimap.project(svl.panoViewer.getPosition());
   }
 
   /**
@@ -198,7 +188,7 @@ class ObservedArea {
     this.#fogOfWarCtx.fillRect(0, 0, this.#width, this.#height);
     this.#fogOfWarCtx.globalCompositeOperation = 'destination-out';
     for (const observedArea of this.#observedAreas) {
-      const center = this.#latLngToPixel(observedArea.latLng);
+      const center = svl.minimap.project(observedArea.latLng);
       this.#fogOfWarCtx.beginPath();
       if (observedArea.maxAngle - observedArea.minAngle < 360) {
         this.#fogOfWarCtx.moveTo(center.x, center.y);
@@ -209,7 +199,8 @@ class ObservedArea {
     }
     // Always keep the peg fully clear of fog, no matter how far the user has turned.
     this.#fogOfWarCtx.beginPath();
-    this.#fogOfWarCtx.arc(this.#width / 2, this.#height / 2, 8 * this.#scaleFactor, 0, 2 * Math.PI);
+    const peg = this.#pegPoint();
+    this.#fogOfWarCtx.arc(peg.x, peg.y, 8 * this.#scaleFactor, 0, 2 * Math.PI);
     this.#fogOfWarCtx.fill();
     this.#fogOfWarCtx.globalCompositeOperation = 'source-over';
   }
@@ -218,8 +209,7 @@ class ObservedArea {
    * Renders the user's FOV as a cone with a radial falloff, so panning feels like sweeping a beam across the map.
    */
   #renderFov() {
-    const centerX = this.#width / 2;
-    const centerY = this.#height / 2;
+    const { x: centerX, y: centerY } = this.#pegPoint();
     const radius = this.#currentRadius();
     const { r, g, b } = MinimapStyle.coneRgb();
     const gradient = this.#fovCtx.createRadialGradient(centerX, centerY, radius * 0.1, centerX, centerY, radius);
@@ -234,7 +224,7 @@ class ObservedArea {
       ObservedArea.#toRadians(this.#leftAngle - 90), ObservedArea.#toRadians(this.#rightAngle - 90));
     this.#fovCtx.fill();
 
-    // Clear a hole at the peg (canvas center, since the map stays centered on the pano) so the cone can't occlude it.
+    // Clear a hole at the peg so the cone can't occlude it.
     this.#fovCtx.save();
     this.#fovCtx.globalCompositeOperation = 'destination-out';
     this.#fovCtx.beginPath();
@@ -253,7 +243,7 @@ class ObservedArea {
       const marker = this.#breadcrumbMarkers.get(area.panoId);
       if (area === this.#currArea) {
         if (marker) {
-          marker.map = null;
+          marker.remove();
           this.#breadcrumbMarkers.delete(area.panoId);
         }
       } else if (!marker) {
@@ -266,23 +256,18 @@ class ObservedArea {
    * Creates one clickable breadcrumb marker — a faded ring in the peg's hue — at a visited pano. Clicking it returns
    * the user to that pano (#2561).
    * @param {{panoId: string, latLng: {lat: number, lng: number}}} area - The visited observed area.
-   * @returns {google.maps.marker.AdvancedMarkerElement}
+   * @returns {MinimapMarker}
    */
   #createBreadcrumbMarker(area) {
     const content = document.createElement('div');
     content.className = 'minimap-breadcrumb';
-    const marker = new google.maps.marker.AdvancedMarkerElement({
-      position: new google.maps.LatLng(area.latLng.lat, area.latLng.lng),
-      map: svl.minimap.getMap(),
-      content,
-      gmpClickable: true,
-      title: i18next.t('audit:right-ui.minimap.breadcrumb-title'), // Hover tooltip and accessible name.
+    return svl.minimap.addMarker(area.latLng, content, {
+      title: i18next.t('audit:right-ui.minimap.breadcrumb-title'),
+      onClick: () => {
+        svl.tracker.push('Click_MinimapBreadcrumb', { panoId: area.panoId });
+        svl.navigationService.returnToPano(area.panoId);
+      },
     });
-    marker.addListener('gmp-click', () => {
-      svl.tracker.push('Click_MinimapBreadcrumb', { panoId: area.panoId });
-      svl.navigationService.returnToPano(area.panoId);
-    });
-    return marker;
   }
 
   /**
@@ -405,14 +390,15 @@ class ObservedArea {
       if (!svl.navigationService || !svl.navigationService.getStatus('headingSettling')) {
         this.#updateAngles();
       }
-      this.#renderFogOfWar();
-      this.#renderFov();
+      // The fog and cone are drawn to the map's scale; with no map (Minimap.create) there is nothing to align them to.
+      if (svl.minimap && svl.minimap.isAvailable()) {
+        this.#renderFogOfWar();
+        this.#renderFov();
+      }
       this.#renderProgressCircle();
       // Point the peg's heading triangle where the user is looking. #angle is unwrapped (continuous), so the CSS
       // rotation transitions the short way across the 0/360 boundary.
       if (svl.peg && this.#angle !== null) svl.peg.setHeading(this.#angle);
-      // Redraw the route-overview inset so its "you are here" wedge rotates in lockstep with the peg (#4639).
-      if (svl.routeOverview) svl.routeOverview.render();
       // "100%" is one glyph wider than "NN%", so shrink the font a touch only at full to keep it inside the chip.
       this.#uiMinimap.percentObserved
         .text(`${Math.floor(100 * this.#fractionObserved)}%`)
@@ -423,5 +409,7 @@ class ObservedArea {
         this.#maybeCelebrate();
       }
     }
+    // The inset's "you are here" wedge turns with the peg (#4639) and its viewport box follows Minimap's moves.
+    if (svl.routeOverview) svl.routeOverview.render();
   }
 }

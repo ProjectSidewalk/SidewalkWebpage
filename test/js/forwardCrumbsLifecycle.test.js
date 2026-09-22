@@ -1,6 +1,6 @@
 /**
  * The stateful half of the minimap's crumbs (#4669): what ForwardCrumbs does with its markers over time, driven
- * through refresh()/clear()/click with a stubbed AdvancedMarkerElement and a scripted provider.
+ * through refresh()/clear()/click with a stubbed Minimap.addMarker and a scripted provider.
  *
  * Four behaviours the pure-static suite (forwardCrumbsWindowing) cannot reach:
  *   - a route stop that renumbers as the user advances gets a marker with the new rank in its tooltip;
@@ -23,23 +23,19 @@ const SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/explore/src/navigati
 window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
 const { turf } = window;
 
-/** Stands in for google.maps.marker.AdvancedMarkerElement: records its options, its listeners, and its map. */
+/** Stands in for a marker made by Minimap.addMarker: records where it is, its options, and whether it was removed. */
 class FakeMarker {
     static created = [];
 
-    constructor(options) {
-        Object.assign(this, options);
+    constructor(latLng, content, options) {
+        Object.assign(this, options, { latLng, content });
         this.element = document.createElement('div');
-        this.listeners = {};
+        this.removed = false;
         FakeMarker.created.push(this);
     }
 
-    addListener(name, handler) {
-        (this.listeners[name] ??= []).push(handler);
-    }
-
-    click() {
-        (this.listeners['gmp-click'] ?? []).forEach((handler) => handler());
+    remove() {
+        this.removed = true;
     }
 }
 
@@ -109,29 +105,18 @@ describe('ForwardCrumbs marker lifecycle', () => {
                 getPov: () => ({ heading: 0 }),
             },
             observedArea: { hasVisited: (panoId) => visited.has(panoId) },
-            minimap: { getMap: () => ({}) },
+            minimap: { addMarker: (latLng, content, options) => new FakeMarker(latLng, content, options) },
             compass: { isEnRoute: () => true, getTargetAngle: () => 90 },
             panoManager: { highlightArrowTo: jest.fn(), clearArrowHighlight: jest.fn() },
         };
         window.svl = svl;
         window.i18next = { t: (key, options) => (options && 'rank' in options ? `${key}#${options.rank}` : key) };
         window.NavigationService = { DIST_INCREMENT: 0.01 };
-        window.google = {
-            maps: {
-                marker: { AdvancedMarkerElement: FakeMarker },
-                LatLng: class {
-                    constructor(lat, lng) {
-                        this.lat = lat;
-                        this.lng = lng;
-                    }
-                },
-            },
-        };
         window.eval(`${SRC}; window.ForwardCrumbs = ForwardCrumbs;`);
         crumbs = new window.ForwardCrumbs(nav, tracker);
     });
 
-    const onMap = () => FakeMarker.created.filter((marker) => marker.map);
+    const onMap = () => FakeMarker.created.filter((marker) => !marker.removed);
 
     /** Releases deferred lookups until the queue stops producing new ones (each batch released lets more start). */
     const releaseAll = async (pending) => {
@@ -140,7 +125,7 @@ describe('ForwardCrumbs marker lifecycle', () => {
             await new Promise((resolve) => setTimeout(resolve, 0));
         }
     };
-    const titleOf = (lng) => onMap().find((marker) => Math.abs(marker.position.lng - lng) < 1e-9)?.title;
+    const titleOf = (lng) => onMap().find((marker) => Math.abs(marker.latLng.lng - lng) < 1e-9)?.title;
 
     test('a stop that renumbers as the user advances gets a marker with the new rank in its tooltip', async () => {
         await crumbs.refresh();
@@ -208,10 +193,10 @@ describe('ForwardCrumbs marker lifecycle', () => {
         visited.add('p100'); // Rank 5: beyond the clickable window, and already stood on.
         await crumbs.refresh();
 
-        const far = onMap().find((marker) => Math.abs(marker.position.lng - lngAt(100)) < 1e-9);
-        expect(far.gmpClickable).toBe(true);
+        const far = onMap().find((marker) => Math.abs(marker.latLng.lng - lngAt(100)) < 1e-9);
+        expect(far.onClick).toEqual(expect.any(Function));
         expect(far.title).toBe('audit:right-ui.minimap.breadcrumb-title');
-        far.click();
+        far.onClick();
         expect(nav.returnToPano).toHaveBeenCalledWith('p100');
         expect(nav.moveToPano).not.toHaveBeenCalled();
         expect(tracker.push).toHaveBeenCalledWith('Click_MinimapBreadcrumb', { panoId: 'p100' });
@@ -219,8 +204,8 @@ describe('ForwardCrumbs marker lifecycle', () => {
 
     test('a clickable crumb steps forward on click and reports its kind and rank', async () => {
         await crumbs.refresh();
-        const second = onMap().find((marker) => Math.abs(marker.position.lng - lngAt(40)) < 1e-9);
-        second.click();
+        const second = onMap().find((marker) => Math.abs(marker.latLng.lng - lngAt(40)) < 1e-9);
+        second.onClick();
         await Promise.resolve();
         expect(nav.moveToPano).toHaveBeenCalledWith('p40', false, { alertOnFailure: false });
         expect(tracker.push).toHaveBeenCalledWith('Click_MinimapForwardCrumb', { panoId: 'p40', kind: 'route', rank: 2 });

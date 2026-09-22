@@ -10,8 +10,8 @@
  * up front and the upload proceeds on its own terms, failures included.
  *
  * Label's constructor reaches for the minimap and the pano store, so the fixtures below hand it enough state to skip
- * both (a cached labelLat/labelLng short-circuits toLatLng; panoXY skips the pano-data branch) and stub the one
- * static that builds a Google marker.
+ * the pano store (a cached labelLat/labelLng short-circuits toLatLng; panoXY skips the pano-data branch) and stub the
+ * one static that puts a marker on the minimap.
  */
 
 const fs = require('fs');
@@ -47,10 +47,8 @@ describe('Label crop upload', () => {
 
     beforeEach(() => {
         Label = loadLabel();
-        window.svl = { minimap: { getMap: () => null } };
-        // The real one builds a google.maps AdvancedMarkerElement; all the constructor does with it is assign a map
-        // and add a click listener.
-        Label.createMinimapMarker = () => ({ addListener: () => {} });
+        // The real one goes through svl.minimap.addMarker; nothing under test reads the marker back.
+        Label.createMinimapMarker = () => ({ setVisible: () => {} });
         global.fetch = jest.fn().mockResolvedValue({ ok: true });
         jest.spyOn(console, 'log').mockImplementation(() => {});
     });

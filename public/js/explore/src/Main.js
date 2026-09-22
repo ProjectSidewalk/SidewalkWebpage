@@ -105,7 +105,7 @@ class Main {
     newTask.updateTheFurthestPointReached(currLatLng);
 
     svl.minimap = await Minimap.create(currLatLng);
-    svl.peg = await Peg.create(svl.minimap.getMap(), currLatLng);
+    svl.peg = new Peg(svl.minimap, currLatLng);
 
     svl.ribbon = new RibbonMenu(svl.tracker);
     svl.canvas = new Canvas(svl.ribbon);
@@ -551,11 +551,9 @@ class Main {
       // The canvas was rasterized at scale 1 during init; re-raster it at the chosen scale.
       if (svl.canvas) svl.canvas.resize();
       if (svl.onboarding) svl.onboarding.resize();
+      // The minimap resizes itself a moment later and redraws the fog of war again once it has (see Minimap's move
+      // handler); this pass keeps the overlay from sitting at the wrong size in between.
       if (svl.observedArea) svl.observedArea.update();
-      // Redraw fog of war after the rescale. Minimap does this async, so we have to listen on this event.
-      if (svl.observedArea && svl.minimap) {
-        google.maps.event.addListenerOnce(svl.minimap.getMap(), 'bounds_changed', () => svl.observedArea.update());
-      }
       window.dispatchEvent(new Event('resize'));
 
       // Attached below the synthetic resize above, so page load never logs one: nothing was resized there, and the

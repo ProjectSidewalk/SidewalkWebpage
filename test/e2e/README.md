@@ -195,7 +195,8 @@ read, not a second city dump to maintain. Three things about it shape this suite
   `test/js/googleMapsStub.test.js` pins the stub's own contract. `/explore` asserts the audit tutorial loads: it's
   deterministic for every fresh anonymous user, its panos are custom (`registerPanoProvider`) with local tiles,
   and CI seeds the one region it requires (`fixtures/ci-seed.sql` — with zero regions `/explore` is a server
-  error). A reload counter turns Explore's viewer-failure reload loop into a fast, named failure.
+  error). Explore's minimap is a real MapLibre map whose third-party tile host is stubbed empty
+  (`stubMinimapBasemap`, #5429), so the suite neither depends on that host nor sends it CI traffic. A reload counter turns Explore's viewer-failure reload loop into a fast, named failure.
   `/validate` accepts either legitimate terminal state error-free: a mission or the "no new mission" modal.
   CI takes the mission branch — the seed carries the ≥ 10 validatable labels of one type a mission needs, and
   the server resolves their imagery from the committed backups rather than a provider (#5115) — and on it asserts
@@ -222,7 +223,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 |---|---|
 | `../../playwright.config.js` | Config: `testDir`, retries, reporters, the `setup` → `chromium` projects |
 | `../../docker/e2e/Dockerfile` | The runner image `make test-e2e` builds and runs (Chromium + the pinned runner) |
-| `fixtures.js` | `consoleErrors` + `googleMapsLeaks` fixtures, Mapbox / Google Maps / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `horizontalOverflowReport`, allowlist |
+| `fixtures.js` | `consoleErrors` + `googleMapsLeaks` fixtures, Mapbox / minimap-basemap / Google Maps / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `horizontalOverflowReport`, allowlist |
 | `fixtures/ci-seed.sql` | The CI test city: region, streets, users, labels, missions, panos. Applied by both CI jobs |
 | `fixtures/install-media.sh` | Copies `fixtures/media/` into the app's pano and crop directories |
 | `fixtures/media/` | The seeded labels' real imagery, downscaled: backup panoramas and label crops |

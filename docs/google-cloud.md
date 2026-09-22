@@ -26,7 +26,7 @@ Google bills per SKU with a monthly free cap per SKU, then a per-1,000 rate (pri
 | SKU | Fired by | Free / month | Then |
 |---|---|---|---|
 | **Dynamic Street View** | Instantiating a `google.maps.StreetViewPanorama` — `GsvViewer.initialize()`, i.e. every Explore, Validate, mobile-Validate, Gallery card, LabelMap popup and admin pano. **The tutorial's custom, locally tiled panos count too**; the SKU is per panorama object, not per tile. | 5,000 | $14 |
-| **Dynamic Maps** | Instantiating a `google.maps.Map` — Explore's minimap (`Minimap.js`). Every other map in the app is Mapbox. | 10,000 | $7 |
+| **Dynamic Maps** | Instantiating a `google.maps.Map`. **Nothing in the app does**: the Explore minimap was the only one, and it is MapLibre GL over OpenStreetMap tiles since #5429; every other map is Mapbox. A non-zero line here means something new is building a Google map. | 10,000 | $7 |
 | **Street View Static** | The server-side `PanoDataService.getImageUrl` crops behind share images, story cards, and the admin/user-profile label previews. | 10,000 | $7 |
 | **Street View Metadata** | `PanoDataService` / `ImageryFreshnessService` polling; the frontend's `StreetViewService.getPanorama` | unlimited | free |
 
@@ -74,7 +74,7 @@ None, since #5129 — but the month before that (August 2026), when the `e2e-smo
 
 - **`/explore`'s tutorial** instantiates a `StreetViewPanorama` even though its tiles are local assets and the
   pano id does not exist at Google. One Dynamic Street View event plus one Dynamic Maps event per load — measured,
-  not inferred.
+  not inferred. (The Dynamic Maps half was the minimap, which has not been a Google map since #5429.)
 - **The label-detail popup builds its pano viewer at page load** (`LabelPopup` → `LabelDetail` →
   `PopupPanoManager.create`; Gallery's `ExpandedView` likewise), so every load of `/labelMap`, `/gallery`,
   `/dashboard`, `/stories`, the public profile, or an admin page is a billable panorama whether or not a label is

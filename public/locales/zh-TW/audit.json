@@ -166,6 +166,7 @@
       "message-others-no-dates": "另一位使用者先前標註過這條街道，但影像之後已更新。一起來看看有什麼改變吧！"
     },
     "minimap": {
+      "attribution-toggle": "地圖資料來源",
       "coach-dismiss": "知道了",
       "distance-left": "剩餘 {{distance}}",
       "explore-current-location": "旋轉 360 度以確保沒有遺漏任何內容。",
@@ -178,21 +179,20 @@
       "legend-explored": "已探索",
       "legend-ahead": "剩餘路線",
       "legend-you": "你的位置與視角方向",
-      "legend-visited": "已造訪的位置",
+      "legend-crumbs": "圓圈：可點選前往的位置",
       "legend-unseen": "尚未查看",
-      "legend-next-stops": "路線上的站點",
       "forward-crumb-title": "前往第 {{rank}} 站",
-      "legend-other-links": "其他方向",
-      "legend-faced": "實心：向前會到達的位置",
       "link-crumb-title": "前往此全景",
-      "legend-next-step": "淺藍：下一步（空白鍵）",
       "route-stop-title": "路線上的第 {{rank}} 站",
       "breadcrumb-title": "已造訪：點擊返回此處",
       "label-marker-title": "{{labelType}} 標記：點擊查看",
       "route-start-flag": "路線起點",
       "route-finish-flag": "路線終點",
       "mission-start-flag": "本次任務的起點",
-      "mission-finish-flag": "本次任務的終點"
+      "mission-finish-flag": "本次任務的終點",
+      "map-title": "您周圍區域的地圖",
+      "unavailable": "此瀏覽器無法顯示地圖。您仍可繼續探索。",
+      "recenter": "回到您的位置"
     },
     "stats": {
       "leaderboard-cta": "查看社群排行榜"

@@ -337,6 +337,10 @@
 
           <div id="minimap-holder">
             <div id="minimap" class="minimap-pane"></div>
+            @* Shown by Minimap.create in the map's place when the browser can't draw it (no WebGL2). *@
+            <p id="minimap-unavailable-message" role="status" hidden data-i18n="audit:right-ui.minimap.unavailable">
+              This browser can't show the map. You can keep exploring without it.
+            </p>
             <div id="minimap-overlay" class="minimap-pane"></div>
             <canvas id="minimap-fog-of-war-canvas" class="minimap-pane" height="200" width="200"></canvas>
             <canvas id="minimap-fov-canvas" class="minimap-pane" height="200" width="200"></canvas>
@@ -373,7 +377,7 @@
               <span class="minimap-legend-mini-item">
                 <svg class="minimap-legend-mini-icon" viewBox="0 0 22 8" aria-hidden="true">
                   <path class="minimap-legend-sample-remaining minimap-legend-sample-dashed" d="M2 4H20"></path>
-                  <path class="minimap-legend-sample-chevron" d="M7 0.75L14 4L7 7.25Z"></path>
+                  <path class="minimap-legend-sample-chevron" d="M8.5 1L13.5 4L8.5 7Z"></path>
                 </svg>
                 <span data-i18n="audit:right-ui.minimap.legend-ahead">Route ahead</span>
               </span>
@@ -400,7 +404,7 @@
               <div class="minimap-legend-row">
                 <svg viewBox="0 0 30 12" aria-hidden="true">
                   <path class="minimap-legend-sample-remaining minimap-legend-sample-dashed" d="M2 6H28"></path>
-                  <path class="minimap-legend-sample-chevron" d="M12 2L18 6L12 10Z"></path>
+                  <path class="minimap-legend-sample-chevron" d="M12 3L17 6L12 9Z"></path>
                 </svg>
                 <span data-i18n="audit:right-ui.minimap.legend-ahead">Route ahead</span>
               </div>
@@ -413,39 +417,18 @@
               </div>
               <div class="minimap-legend-row">
                 <svg viewBox="0 0 30 12" aria-hidden="true">
-                  <circle class="minimap-legend-sample-visited" cx="15" cy="6" r="3.5"></circle>
+                  <circle class="minimap-legend-sample-crumb" cx="15" cy="6" r="3.5"></circle>
                 </svg>
-                <span data-i18n="audit:right-ui.minimap.legend-visited">Visited</span>
-              </div>
-              <div class="minimap-legend-row">
-                <svg viewBox="0 0 30 12" aria-hidden="true">
-                  <circle class="minimap-legend-sample-next-stop" cx="15" cy="6" r="3.5"></circle>
-                </svg>
-                <span data-i18n="audit:right-ui.minimap.legend-next-stops">Stops on your route</span>
-              </div>
-              <div class="minimap-legend-row">
-                <svg viewBox="0 0 30 12" aria-hidden="true">
-                  <circle class="minimap-legend-sample-other-link" cx="15" cy="6" r="3.5"></circle>
-                </svg>
-                <span data-i18n="audit:right-ui.minimap.legend-other-links">Other directions</span>
-              </div>
-              <div class="minimap-legend-row">
-                <svg viewBox="0 0 30 12" aria-hidden="true">
-                  <circle class="minimap-legend-sample-next-step" cx="15" cy="6" r="3.5"></circle>
-                </svg>
-                <span data-i18n="audit:right-ui.minimap.legend-next-step">Light blue: next step (spacebar)</span>
-              </div>
-              <div class="minimap-legend-row">
-                <svg viewBox="0 0 30 12" aria-hidden="true">
-                  <circle class="minimap-legend-sample-faced-halo" cx="15" cy="6" r="6"></circle>
-                  <circle class="minimap-legend-sample-faced" cx="15" cy="6" r="3.5"></circle>
-                </svg>
-                <span data-i18n="audit:right-ui.minimap.legend-faced">Filled: where forward takes you</span>
+                <span data-i18n="audit:right-ui.minimap.legend-crumbs">Circles: places you can click to go</span>
               </div>
             </div>
             @* Whole-route overview inset — shown only on designated routes (RouteOverview toggles the holder class). *@
             <button id="minimap-route-overview" type="button" aria-label="Route overview: tap to see the whole route" data-i18n-aria-label="audit:right-ui.minimap.route-overview" title="Route overview: tap to see the whole route" data-i18n-title="audit:right-ui.minimap.route-overview">
               <canvas id="minimap-route-overview-canvas"></canvas>
+            </button>
+            @* Appears once the map is panned off the user (Minimap.#updateRecenterButton). *@
+            <button id="minimap-recenter" class="zoom-button" type="button" hidden aria-label="Back to your location" data-i18n-aria-label="audit:right-ui.minimap.recenter" title="Back to your location" data-i18n-title="audit:right-ui.minimap.recenter">
+              <img class="zoom-button-icon" src='@assets.path("images/icons/recenter-white.svg")' alt="">
             </button>
             <div id="minimap-zoom-controls" class="zoom-buttons-holder">
               <button id="minimap-zoom-fit" class="zoom-button" type="button" aria-label="Show whole mission" data-i18n-aria-label="audit:right-ui.minimap.fit-mission" title="Show whole mission" data-i18n-title="audit:right-ui.minimap.fit-mission">
@@ -907,6 +890,12 @@
   <script src='@assets.path("vendor/turf/turf-7.4.0.min.js")'></script>
   <script src='@assets.path("vendor/async-lock/async-lock-1.4.1.min.js")'></script>
   <script src='@assets.path("vendor/betterknown/betterknown-1.2.0.js")'></script>
+  @* The minimap's map library (#5429), an ES module: Minimap.create imports it from this link's href, which is how JS
+     gets its fingerprinted URL (vendor/ isn't in util.assetPath's manifest). Mapbox GL below still draws the
+     mission-complete map. *@
+  <link id="maplibre-module" rel="modulepreload"
+        href='@assets.path("vendor/maplibre-gl/maplibre-gl-6.10.0/maplibre-gl.mjs")'>
+  <link href='@assets.path("vendor/maplibre-gl/maplibre-gl-6.10.0.css")' rel="stylesheet">
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'></script>
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
   <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">

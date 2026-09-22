@@ -166,6 +166,7 @@
       "message-others-no-dates": "Un autre utilisateur a déjà cartographié cette rue, mais les images ont été actualisées depuis. Voyons ce qui a changé !"
     },
     "minimap": {
+      "attribution-toggle": "Crédits des données cartographiques",
       "coach-dismiss": "Compris",
       "distance-left": "{{distance}} restants",
       "explore-current-location": "Tournez à 360 degrés pour ne rien manquer.",
@@ -178,21 +179,20 @@
       "legend-explored": "Exploré",
       "legend-ahead": "Itinéraire à venir",
       "legend-you": "Vous + direction du regard",
-      "legend-visited": "Lieu visité",
+      "legend-crumbs": "Cercles : lieux où aller d’un clic",
       "legend-unseen": "Pas encore vu",
-      "legend-next-stops": "Arrêts sur votre itinéraire",
       "forward-crumb-title": "Avancer jusqu'à l'arrêt {{rank}}",
-      "legend-other-links": "Autres directions",
-      "legend-faced": "Rempli : où mène avancer",
       "link-crumb-title": "Aller à ce panorama",
-      "legend-next-step": "Bleu clair : prochaine étape (barre d’espace)",
       "route-stop-title": "Arrêt {{rank}} sur votre itinéraire",
       "breadcrumb-title": "Visité : cliquez pour y revenir",
       "label-marker-title": "Étiquette {{labelType}} : cliquez pour la revoir",
       "route-start-flag": "Départ de l’itinéraire",
       "route-finish-flag": "Arrivée de l’itinéraire",
       "mission-start-flag": "Où cette mission a commencé",
-      "mission-finish-flag": "Où cette mission se termine"
+      "mission-finish-flag": "Où cette mission se termine",
+      "map-title": "Carte des environs de votre position",
+      "unavailable": "Ce navigateur ne peut pas afficher la carte. Vous pouvez continuer à explorer sans elle.",
+      "recenter": "Revenir à votre position"
     },
     "stats": {
       "leaderboard-cta": "Voir le classement de la communauté"

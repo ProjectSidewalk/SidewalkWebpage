@@ -166,6 +166,7 @@
       "message-others-no-dates": "Outro usuário já mapeou esta rua antes, mas as imagens foram renovadas desde então. Vamos ver o que mudou!"
     },
     "minimap": {
+      "attribution-toggle": "Créditos dos dados do mapa",
       "coach-dismiss": "Entendi",
       "distance-left": "Faltam {{distance}}",
       "explore-current-location": "Vire 360 graus para garantir que nada seja perdido.",
@@ -178,21 +179,20 @@
       "legend-explored": "Explorado",
       "legend-ahead": "Rota restante",
       "legend-you": "Você + direção da vista",
-      "legend-visited": "Local visitado",
+      "legend-crumbs": "Círculos: lugares aonde você pode ir com um clique",
       "legend-unseen": "Ainda não visto",
-      "legend-next-stops": "Paradas na sua rota",
       "forward-crumb-title": "Avançar para a parada {{rank}}",
-      "legend-other-links": "Outras direções",
-      "legend-faced": "Preenchido: para onde avançar leva",
       "link-crumb-title": "Ir para este panorama",
-      "legend-next-step": "Azul claro: próximo passo (barra de espaço)",
       "route-stop-title": "Parada {{rank}} da sua rota",
       "breadcrumb-title": "Visitado: clique para voltar aqui",
       "label-marker-title": "Rótulo {{labelType}}: clique para revisar",
       "route-start-flag": "Início da rota",
       "route-finish-flag": "Fim da rota",
       "mission-start-flag": "Onde esta missão começou",
-      "mission-finish-flag": "Onde esta missão termina"
+      "mission-finish-flag": "Onde esta missão termina",
+      "map-title": "Mapa da área ao seu redor",
+      "unavailable": "Este navegador não consegue exibir o mapa. Você pode continuar explorando sem ele.",
+      "recenter": "Voltar à sua localização"
     },
     "stats": {
       "leaderboard-cta": "Ver a classificação da comunidade"

@@ -39,14 +39,13 @@ describe('Label lat/lng estimation parity with the server and the SQL backfill (
     beforeEach(() => {
         Label = loadLabel();
         window.svl = {
-            minimap: { getMap: () => null },
             latLngEstimation: {
                 blendDeg: FIXTURE.constants.blend_deg,
                 maxDistanceM: FIXTURE.constants.max_distance_m,
                 cameraHeightM: FIXTURE.constants.camera_height_m,
             },
         };
-        Label.createMinimapMarker = () => ({ addListener: () => {} });
+        Label.createMinimapMarker = () => ({ setVisible: () => {} });
         // The real vendored turf (UMD), not a stub: the destination step is part of what is being pinned.
         window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
     });

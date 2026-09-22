@@ -7,8 +7,9 @@
  * start flag straight away, not after their next step re-runs the per-move progress update.
  *
  * Minimap and NavigationService are top-level `class` declarations written for the Grunt-concatenation world, so the
- * sources are eval'd into the jsdom global scope with the map, marker, and UI collaborators stubbed. Real turf: the
- * along-street math that places the finish flag is part of what is being exercised.
+ * sources are eval'd into the jsdom global scope with MapLibre's Map and Marker and the UI collaborators stubbed, so
+ * the flags go through the real Minimap.addMarker. Real turf: the along-street math that places the finish flag is
+ * part of what is being exercised.
  */
 
 const fs = require('fs');
@@ -18,25 +19,57 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const readSrc = (relativePath) => fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8');
 
 const NAVIGATION_SERVICE_SRC = readSrc('public/js/explore/src/navigation/NavigationService.js');
-const MINIMAP_SRC = readSrc('public/js/explore/src/navigation/Minimap.js');
+const MINIMAP_SOURCES = ['MinimapStyle', 'MinimapBasemapStyle', 'Minimap'];
 
 window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
 const { turf } = window;
 
-/** Stands in for google.maps.marker.AdvancedMarkerElement: records its options and the map it is on. */
-class FakeMarker {
-    static created = [];
+/**
+ * Stands in for maplibregl.Map, just far enough for Minimap.create to finish: a minimap without a map keeps its
+ * markers off it, and so would plant no flags here.
+ */
+class FakeMap {
+    addImage() {}
 
-    constructor(options) {
-        Object.assign(this, options);
-        FakeMarker.created.push(this);
+    addSource() {}
+
+    addLayer() {}
+
+    on() {}
+
+    getCanvas() {
+        return document.createElement('canvas');
+    }
+
+    once(name, handler) {
+        if (name === 'style.load') setTimeout(handler, 0);
     }
 }
 
-class FakeLatLng {
-    constructor(lat, lng) {
-        this.lat = lat;
-        this.lng = lng;
+/** Stands in for maplibregl.Marker: records its element and where it was last put. */
+class FakeMarker {
+    static created = [];
+
+    constructor({ element }) {
+        this.element = element;
+        FakeMarker.created.push(this);
+    }
+
+    setLngLat([lng, lat]) {
+        this.position = { lat, lng };
+        return this;
+    }
+
+    addTo() {
+        return this;
+    }
+
+    get title() {
+        return this.element.title;
+    }
+
+    get hidden() {
+        return this.element.hidden;
     }
 }
 
@@ -76,13 +109,11 @@ describe('Minimap mission flags across a mission boundary', () => {
 
     const flagByTitle = (title) => FakeMarker.created.filter((marker) => marker.title === title).at(-1);
 
-    beforeEach(() => {
+    beforeEach(async () => {
         FakeMarker.created = [];
         window.util = { assetPath: (logicalPath) => logicalPath };
         window.i18next = { t: (key) => key };
-        window.google = {
-            maps: { LatLng: FakeLatLng, marker: { AdvancedMarkerElement: FakeMarker } },
-        };
+        window.maplibregl = { Map: FakeMap, Marker: FakeMarker };
         window.svl = {
             regionModel: { isRoute: false },
             isOnboarding: () => false,
@@ -100,9 +131,12 @@ describe('Minimap mission flags across a mission boundary', () => {
         };
 
         window.eval(`${NAVIGATION_SERVICE_SRC}; window.NavigationService = NavigationService;`);
-        window.eval(`${MINIMAP_SRC}; window.Minimap = Minimap;`);
-        // The constructor is inert (the map is only built by the async factory), which is all the flags need.
-        minimap = new window.Minimap();
+        for (const name of MINIMAP_SOURCES) {
+            window.eval(`${readSrc(`public/js/explore/src/navigation/${name}.js`)}; window.${name} = ${name};`);
+        }
+        // jsdom has no 2D canvas; the chevron's pixels aren't under test.
+        window.MinimapStyle.chevronImage = () => ({ width: 1, height: 1, data: new Uint8ClampedArray(4) });
+        minimap = await window.Minimap.create({ lat: LAT, lng: START_LNG });
     });
 
     test('closing the modal turns the reached finish flag into the next mission\'s start flag', () => {
@@ -126,7 +160,7 @@ describe('Minimap mission flags across a mission boundary', () => {
 
         expect(FakeMarker.created).toHaveLength(2); // Moved, not re-planted.
         expect(metersAt(start.position.lng)).toBeCloseTo(300, 0);
-        expect(finish.map).toBeNull();
+        expect(finish.hidden).toBe(true);
     });
 
     test('a short next mission gets its finish flag re-planted on the same street at once', () => {
@@ -147,6 +181,6 @@ describe('Minimap mission flags across a mission boundary', () => {
         minimap.resetMissionProgress();
 
         expect(FakeMarker.created).toHaveLength(2);
-        expect(finish.map).not.toBeNull();
+        expect(finish.hidden).toBe(false);
     });
 });
