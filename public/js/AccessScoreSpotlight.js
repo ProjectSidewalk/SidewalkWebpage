@@ -51,7 +51,8 @@
  * Most Project Sidewalk cities do not have enough explored ground to rank five neighborhoods, so the sparse case is
  * the common one and is treated as the ask rather than as an error: the columns become "Ranked so far" and "Closest
  * to being ranked", the latter listing the neighborhoods nearest the completion floor with a button that starts a
- * mission in one. With nothing ranked at all in either unit the section hides itself.
+ * mission in one, and "Ranked so far" dropped entirely when it has no rows rather than drawn as a bare heading.
+ * With nothing ranked at all in either unit the section hides itself.
  *
  * Nothing is fetched during page load; the module fills itself once the visitor shows a sign of engagement.
  */
@@ -110,6 +111,32 @@ class AccessScoreSpotlight {
     util.onFirstInteractionOrIdle(() => this.#start());
   }
 
+  /**
+   * Whether a unit has a column to draw: it ranks something, or it can ask for the neighborhood nearest the floor.
+   *
+   * This decides which units are offered, so it has to agree with what `#render` draws for one: both conditions on
+   * the `nearest` clause are the ones `#render` applies. The ask is a neighborhood to explore, so a streets feed
+   * never carries one, and a city of one neighborhood has none to offer either — the one it would name is the
+   * whole city, the same degenerate comparison the ranking itself would be (#5419).
+   *
+   * It deliberately does NOT gate whether the section appears: `nearest` is every unranked neighborhood, not the
+   * ones near the floor (`AccessScoreSpotlightService.nearest` sorts and takes, with no proximity test), so a city
+   * with no scores at all would qualify and the section's server-rendered "Where … Score Highest and Lowest"
+   * heading would sit over a list of neighborhoods at 0% explored.
+   *
+   * The unit is read from the feed rather than inferred from `nearest` being empty. The backend does send `[]` for
+   * streets, but two reviewers read the older wording as "streets have no `nearest` key" and reported a crash that
+   * cannot happen; naming the unit says which list this is for.
+   *
+   * @param {?SpotlightFeed} feed - The unit's feed, or null if it failed to load, which is never offerable.
+   * @returns {boolean}
+   */
+  static #hasContent(feed) {
+    if (!feed) return false;
+    if (feed.qualifying > 0) return true;
+    return feed.unit === 'regions' && feed.total > 1 && feed.nearest.length > 0;
+  }
+
   /** Fetches both units, picks the one to open on, and renders — or hides the section if nothing is ranked. */
   async #start() {
     const [regions, streets] = await Promise.all([this.#fetchUnit('regions'), this.#fetchUnit('streets')]);
@@ -121,10 +148,11 @@ class AccessScoreSpotlight {
       return;
     }
 
-    // Streets qualify almost as soon as a city starts, so a young city opens on streets and switches to
-    // neighborhoods once enough of them clear the completion floor. A city mapped as one neighborhood has no
-    // interesting neighborhood list at all, so it opens on streets too.
-    const neighborhoodsWorthOpening = ranked(regions) >= AccessScoreSpotlight.#LIST_SIZE && regions.total > 1;
+    // One neighborhood is nothing to rank against — unless no street is ranked either, when one score beats none.
+    if (!this.#crossCity && regions && regions.total === 1 && ranked(streets) > 0) this.#feeds.regions = null;
+
+    // Streets qualify early, so a young city opens on streets until enough neighborhoods clear the completion floor.
+    const neighborhoodsWorthOpening = this.#feeds.regions && ranked(regions) >= AccessScoreSpotlight.#LIST_SIZE;
     this.#unit = neighborhoodsWorthOpening || ranked(streets) === 0 ? 'regions' : 'streets';
     this.#render();
   }
@@ -177,32 +205,43 @@ class AccessScoreSpotlight {
 
     this.#renderSubtitle(feed);
 
-    const head = document.createElement('div');
-    head.className = 'spotlight-head';
-    head.appendChild(this.#buildUnitSwitch());
-    this.#root.appendChild(head);
+    const units = this.#buildUnitSwitch();
+    if (units) {
+      const head = document.createElement('div');
+      head.className = 'spotlight-head';
+      head.appendChild(units);
+      this.#root.appendChild(head);
+    }
 
     const cols = document.createElement('div');
     cols.className = 'spotlight-cols';
     const ranked = feed.qualifying >= AccessScoreSpotlight.#LIST_SIZE;
-    const oneRegion = this.#unit === 'regions' && feed.total === 1;
 
     // With a full set of ranked units the lists are a top and a bottom; below that there is only one list worth
     // showing, so the second column becomes the "help the next one across the line" ask.
-    cols.appendChild(this.#buildColumn(
-      ranked ? 'highest' : 'ranked-so-far',
-      ranked ? 4 : 3,
-      feed.top,
-      'ranked',
-      feed,
-    ));
+    //
+    // "Ranked so far" is dropped when it has nothing in it, rather than drawn as a bare heading: it is the one
+    // heading with no empty-state string, because a city in that state has the ask to lead with instead. The
+    // highest/lowest pair keeps its empty list, since "no neighborhood scores 70 or above yet" is the answer there.
+    if (ranked || feed.top.length > 0) {
+      cols.appendChild(this.#buildColumn(
+        ranked ? 'highest' : 'ranked-so-far',
+        ranked ? 4 : 3,
+        feed.top,
+        'ranked',
+        feed,
+      ));
+    }
     if (ranked) {
       cols.appendChild(this.#buildColumn('lowest', 0, feed.bottom, 'ranked', feed));
-    } else if (!oneRegion && feed.nearest.length > 0) {
+    } else if (feed.unit === 'regions' && feed.total > 1 && feed.nearest.length > 0) {
       cols.appendChild(this.#buildColumn('closest', 2, feed.nearest, 'pending', feed));
-    } else {
-      cols.classList.add('spotlight-cols--single');
     }
+    if (cols.children.length === 0) {
+      this.#section.hidden = true;
+      return;
+    }
+    if (cols.children.length < 2) cols.classList.add('spotlight-cols--single');
     this.#root.appendChild(cols);
 
     if (!this.#crossCity) this.#root.appendChild(this.#buildCta());
@@ -217,20 +256,6 @@ class AccessScoreSpotlight {
   }
 
   /**
-   * A translated string bound for a plain-text sink (textContent, an aria-label).
-   *
-   * i18next HTML-escapes interpolated values by default, which is right for markup and wrong for text: a neighborhood
-   * named Al 'Ummah would print as Al &#39;Ummah. Every value here reaches the page as a text node, so escaping is
-   * turned off; the one markup sink, the subtitle, calls i18next.t directly and keeps it.
-   * @param {string} key - The translation key.
-   * @param {object} [vars] - Interpolation values.
-   * @returns {string}
-   */
-  #t(key, vars = {}) {
-    return i18next.t(key, { ...vars, interpolation: { escapeValue: false } });
-  }
-
-  /**
    * Writes the section subtitle: one sentence saying what a score is, with "AccessScore" linking to how it is
    * computed. The rules for who is ranked belong to the footnote, not here.
    * @param {SpotlightFeed} feed - The unit's feed.
@@ -242,21 +267,26 @@ class AccessScoreSpotlight {
     const key = oneRegion
       ? 'common:access-score-spotlight.subtitle-one-region'
       : `common:access-score-spotlight.subtitle-${this.#unit}`;
-    // Markup sink: the translation carries the <a> so its position can move with the language, and i18next's
-    // escaping stays on. The only value interpolated is our own docs path.
-    subtitle.innerHTML = i18next.t(key, { href: AccessScoreSpotlight.#METHOD_HREF });
+    // Markup sink: the translation carries the <a> so its position can move with the language, and the one value
+    // interpolated into it is escaped.
+    subtitle.innerHTML = i18next.t(key, {
+      href: AccessScoreSpotlight.#METHOD_HREF, interpolation: { escapeValue: true },
+    });
   }
 
   /**
-   * The Neighborhoods / Streets switch, as two toggle buttons rather than tabs: each redraws this same region. A unit
-   * whose feed failed to load is not offered, since switching to it would have nothing to draw.
+   * The Neighborhoods / Streets switch: toggle buttons, not tabs, since each redraws this same region.
+   * @returns {?HTMLElement} The group, or null below two offerable units: a control whose only destination is the
+   *   view you are already on is not a switch.
    */
   #buildUnitSwitch() {
+    const offered = ['regions', 'streets'].filter((u) => AccessScoreSpotlight.#hasContent(this.#feeds[u]));
+    if (offered.length < 2) return null;
     const group = document.createElement('div');
     group.className = 'spotlight-units';
     group.setAttribute('role', 'group');
     group.setAttribute('aria-label', i18next.t('common:access-score-spotlight.units-label'));
-    for (const unit of ['regions', 'streets'].filter((u) => this.#feeds[u])) {
+    for (const unit of offered) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'spotlight-unit';
@@ -297,7 +327,7 @@ class AccessScoreSpotlight {
     heading.appendChild(dot);
     heading.appendChild(document.createTextNode(score === undefined
       ? i18next.t(`common:access-score-spotlight.${key}`)
-      : this.#t(`common:access-score-spotlight.${key}`, { score })));
+      : i18next.t(`common:access-score-spotlight.${key}`, { score })));
     column.appendChild(heading);
 
     const list = document.createElement('ol');
@@ -307,7 +337,7 @@ class AccessScoreSpotlight {
       // Nothing clears this list's bar: say so, rather than filling the column from the middle of the range.
       const empty = document.createElement('li');
       empty.className = 'spotlight-row spotlight-row--empty';
-      empty.textContent = this.#t(`common:access-score-spotlight.empty-${key}-${this.#unit}`, { score });
+      empty.textContent = i18next.t(`common:access-score-spotlight.empty-${key}-${this.#unit}`, { score });
       list.appendChild(empty);
     }
     column.appendChild(list);
@@ -402,7 +432,7 @@ class AccessScoreSpotlight {
       link.className = 'spotlight-sub-link';
       link.href = row.city_url;
       link.textContent = this.#unit === 'streets'
-        ? this.#t('common:access-score-spotlight.street-in-city', { region: row.region_name, city: row.city_name })
+        ? i18next.t('common:access-score-spotlight.street-in-city', { region: row.region_name, city: row.city_name })
         : row.city_name;
       return link;
     }
@@ -410,17 +440,17 @@ class AccessScoreSpotlight {
     sub.className = 'spotlight-sub';
     if (this.#unit === 'streets') {
       // Length says how much sidewalk the score speaks for.
-      sub.textContent = this.#t('common:access-score-spotlight.street-sub',
+      sub.textContent = i18next.t('common:access-score-spotlight.street-sub',
         { region: row.region_name, length: util.longDistanceToString(row.length_m / 1000, 1) });
     } else if (kind === 'pending') {
-      sub.textContent = this.#t('common:access-score-spotlight.region-sub-pending', {
+      sub.textContent = i18next.t('common:access-score-spotlight.region-sub-pending', {
         length: util.longDistanceToString(row.total_distance_m / 1000, 1),
         percent: Math.round(row.completion_rate * 100),
       });
     } else {
       // How big the neighborhood is and how much was found in it: a 74 over nine miles and hundreds of clusters is a
       // different claim from a 74 over half a mile.
-      sub.textContent = this.#t('common:access-score-spotlight.region-sub', {
+      sub.textContent = i18next.t('common:access-score-spotlight.region-sub', {
         length: util.longDistanceToString(row.total_distance_m / 1000, 1),
         clusters: row.cluster_count.toLocaleString(i18next.language),
       });
@@ -458,7 +488,7 @@ class AccessScoreSpotlight {
     link.className = 'spotlight-explore';
     link.href = `/explore?regionId=${row.region_id}`;
     link.textContent = i18next.t('common:access-score-spotlight.explore');
-    link.setAttribute('aria-label', this.#t('common:access-score-spotlight.explore-region', { name: row.name }));
+    link.setAttribute('aria-label', i18next.t('common:access-score-spotlight.explore-region', { name: row.name }));
     link.addEventListener('click', () => {
       window.logWebpageActivity(`Click_module=AccessScoreSpotlightExplore_regionId=${row.region_id}`);
     });
@@ -476,7 +506,7 @@ class AccessScoreSpotlight {
     const counts = document.createElement('span');
     // Both floors come from the feed: they are the backend's rules, and a copy here could disagree with the ranking
     // the very same response was built by.
-    counts.textContent = this.#t(`common:access-score-spotlight.count-${this.#unit}`, {
+    counts.textContent = i18next.t(`common:access-score-spotlight.count-${this.#unit}`, {
       qualifying: feed.qualifying,
       total: feed.total,
       percent: Math.round(feed.min_completion * 100),
@@ -495,7 +525,7 @@ class AccessScoreSpotlight {
     tip.hidden = true;
     // Minute precision: the run's seconds say nothing a reader wants.
     const when = feed.computed_at
-      ? ` ${this.#t('common:access-score-spotlight.updated-last', {
+      ? ` ${i18next.t('common:access-score-spotlight.updated-last', {
         date: new Date(feed.computed_at).toLocaleString(i18next.language, { dateStyle: 'medium', timeStyle: 'short' }),
       })}`
       : '';

@@ -1,23 +1,49 @@
 # --- !Ups
--- #5407: nothing can restrict a Mapillary deployment to imagery from particular contributors. The pano viewer's
--- location search, the street imagery scan and the nightly imagery-age poll all take every public 360 image in a
--- bounding box, so a deployment cannot run on imagery we collected ourselves.
-
--- The Mapillary sources this deployment is restricted to, managed from /admin/imagery. An empty table means
--- unfiltered, which is every deployment's state until an admin adds a source, so the restriction is opt-in per city.
--- One row or more turns the restriction on: only imagery from a listed source is discovered.
-CREATE TABLE mapillary_allowed_source (
-  -- What kind of thing source_value names. Only 'creator' (a Mapillary username) exists so far. A plain CHECK
-  -- rather than an enum type, per docs/evolutions.md: this is a tiny admin-seeded config table.
-  source_type TEXT NOT NULL CHECK (source_type IN ('creator')),
-  -- The Mapillary username, exactly as Mapillary spells it (its creator filters are case-sensitive).
-  source_value TEXT NOT NULL CHECK (source_value <> '' AND source_value = btrim(source_value)),
-  -- The admin who added the source. NULL when the onboarding tooling seeded it, before any user exists.
-  added_by TEXT REFERENCES sidewalk_login.sidewalk_user (user_id),
-  added_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  PRIMARY KEY (source_type, source_value)
+-- Places (#5311): the destinations that matter most to people with disabilities and to the city staff who plan for
+-- them -- schools, health care, libraries, grocery stores, transit stops, parks, community centers -- so the
+-- AccessScore map can show a red block as the block between a bus stop and a clinic. One row per place, as a point.
+--
+-- Rows come from OpenStreetMap: a weekly job (PlacesRefreshActor) queries Overpass for the city's bounds and replaces
+-- the `source = 'osm'` rows, keeping each place's `place_id` across refreshes so a shared link or a logged event keeps
+-- pointing at the same place. The catalog of categories and the OSM tags behind each is PlaceCategory (Scala), which
+-- PlaceTableSpec checks against the CHECK below. A city may also load its own list as `source = 'city'` rows, which
+-- the refresh never touches. Those carry no OSM reference, which the place_osm_ref_matches_source_check constraint pins.
+--
+-- The nearest street (within 250 m) and the containing region are computed at refresh time, so the map's place card
+-- can show the score of the street a place sits on without any geometry work in the browser, and #5312 (a score for
+-- a place) starts from a stored street rather than a search. `tags` keeps the object's whole OSM tag map for the
+-- features that will want opening hours, wheelchair tags, or operator names without a second fetch.
+--
+-- `category` and `source` are text under a CHECK rather than enum types: the catalog is expected to grow (pharmacies
+-- and playgrounds were added while it was being designed), and a new enum label cannot be used by an INSERT in the
+-- same evolution that ADDs it (Postgres 55P04), while a CHECK list is one DROP CONSTRAINT / ADD CONSTRAINT.
+--
+-- Nothing is populated here: the first nightly tick after this evolution lands fills the table (an empty table is
+-- always stale), and Admin > Management has a "Refresh places" button for sooner.
+CREATE TABLE place (
+    place_id SERIAL PRIMARY KEY,
+    category TEXT NOT NULL CHECK (category IN ('school', 'health', 'library', 'grocery', 'transit', 'park', 'community')),
+    name TEXT,
+    source TEXT NOT NULL CHECK (source IN ('osm', 'city')),
+    osm_type TEXT CHECK (osm_type IN ('node', 'way', 'relation')),
+    osm_id BIGINT,
+    tags JSONB NOT NULL DEFAULT '{}' CHECK (jsonb_typeof(tags) = 'object'),
+    geom geometry(Point, 4326) NOT NULL,
+    region_id INTEGER REFERENCES region(region_id),
+    -- No ON DELETE action: SET NULL would null the id alone and trip the paired-NULL check below. Streets are
+    -- status-flagged rather than deleted, and the weekly refresh recomputes both columns anyway.
+    nearest_street_edge_id INTEGER REFERENCES street_edge(street_edge_id),
+    nearest_street_distance_m DOUBLE PRECISION CHECK (nearest_street_distance_m >= 0),
+    fetched_at TIMESTAMPTZ NOT NULL,
+    -- An OSM place has an OSM reference and a city-supplied one has none. Named, since Postgres takes place_osm_type_check
+    -- for the inline check above.
+    CONSTRAINT place_osm_ref_matches_source_check CHECK ((source = 'osm') = (osm_type IS NOT NULL AND osm_id IS NOT NULL)),
+    -- The street distance is known exactly when the street is.
+    CONSTRAINT place_street_distance_matches_street_check CHECK ((nearest_street_edge_id IS NULL) = (nearest_street_distance_m IS NULL)),
+    CONSTRAINT place_osm_key UNIQUE (osm_type, osm_id)
 );
-ALTER TABLE mapillary_allowed_source OWNER TO sidewalk;
+CREATE INDEX place_geom_idx ON place USING gist (geom);
+ALTER TABLE place OWNER TO sidewalk;
 
 # --- !Downs
-DROP TABLE mapillary_allowed_source;
+DROP TABLE IF EXISTS place;

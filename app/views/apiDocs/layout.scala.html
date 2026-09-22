@@ -1,6 +1,7 @@
 @(activePage: String)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder)
 
 <link rel="stylesheet" href="@assets.path("css/components/page-shell.css")">
+<link rel="stylesheet" href="@assets.path("css/components/progress-bar.css")">
 <link rel="stylesheet" href="@assets.path("css/pages/api-docs/api-docs.css")">
 <!-- Loaded ahead of the page content, whose embedded preview scripts call these as soon as their data arrives. -->
 <script src="@assets.path("js/api-docs/apiTableWrapper.js")"></script>

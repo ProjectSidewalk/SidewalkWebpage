@@ -44,7 +44,10 @@ object ScheduledJobs {
     label = "Imagery freshness sync"
   )
 
-  val OsmWayRefresh: ScheduledJob    = ScheduledJob(OsmWayRefreshActor.Name, "OSM way refresh", 2, 0)
+  val OsmWayRefresh: ScheduledJob = ScheduledJob(OsmWayRefreshActor.Name, "OSM way refresh", 2, 0)
+
+  /** Ticks nightly but fetches weekly (#5311); the tick is recorded either way so the panel can tell fresh from stuck. */
+  val PlacesRefresh: ScheduledJob    = ScheduledJob(PlacesRefreshActor.Name, "Places refresh", 2, 15)
   val AuthTokenCleaner: ScheduledJob = ScheduledJob(AuthTokenCleanerActor.Name, "Auth token cleanup", 2, 30)
   val FunnelStats: ScheduledJob      = ScheduledJob(FunnelStatActor.Name, "Engagement funnel stats", 3, 15)
 
@@ -70,7 +73,7 @@ object ScheduledJobs {
 
   /** Every job the Health panel expects to see a recent run of, in the order they run. */
   val All: Seq[ScheduledJob] = Seq(CheckImageExpiry, GetAiValidations, CheckImageryAge, UserStats, ImageryFreshnessSync,
-    RecalculateStreetPriority, OsmWayRefresh, AuthTokenCleaner, FunnelStats, SidewalkPresenceRebuild,
+    RecalculateStreetPriority, OsmWayRefresh, PlacesRefresh, AuthTokenCleaner, FunnelStats, SidewalkPresenceRebuild,
     IntersectionRebuild, Clustering, AccessScoreSnapshot, CropGeneration)
 
   /**

@@ -158,6 +158,13 @@
     "route-unavailable": {
       "message": "Essa rota não está disponível. Ela pode ter sido excluída."
     },
+    "reaudit": {
+      "title": "Esta rua tem imagens mais recentes",
+      "message-you": "Você mapeou esta rua pela última vez em {{lastMapped}}, mas as imagens foram renovadas desde então (em {{newImagery}}). Vamos ver o que mudou!",
+      "message-you-no-dates": "Você já mapeou esta rua antes, mas as imagens foram renovadas desde então. Vamos ver o que mudou!",
+      "message-others": "Outro usuário mapeou esta rua em {{lastMapped}}, mas as imagens foram renovadas desde então (em {{newImagery}}). Vamos ver o que mudou!",
+      "message-others-no-dates": "Outro usuário já mapeou esta rua antes, mas as imagens foram renovadas desde então. Vamos ver o que mudou!"
+    },
     "minimap": {
       "coach-dismiss": "Entendi",
       "distance-left": "Faltam {{distance}}",

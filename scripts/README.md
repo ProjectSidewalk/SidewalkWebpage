@@ -1,9 +1,9 @@
 # Python utility scripts
 
-Three standalone Python utilities for Project Sidewalk. They are **not** part of the running web app's request path
-(except as noted below) — they are run out-of-band. `check_streets_for_imagery.py` and `onboard_city.py` resolve their
-data/output paths relative to the repo root, so they can be launched from any working directory. Unit tests for all
-three live in [`test/python/`](../test/python).
+Four standalone Python utilities for Project Sidewalk. They are **not** part of the running web app's request path
+(except as noted below) — they are run out-of-band. `check_streets_for_imagery.py`, `onboard_city.py` and
+`street_gradient.py` resolve their data/output paths relative to the repo root, so they can be launched from any
+working directory. Unit tests for all four live in [`test/python/`](../test/python).
 
 ## Which interpreter to use
 
@@ -15,6 +15,7 @@ a current one):
 | `label_clustering.py` | `python3` (3.8) | [`requirements.txt`](../requirements.txt) |
 | `check_streets_for_imagery.py` | `python3.13` | [`requirements-offline-tools.txt`](../requirements-offline-tools.txt) |
 | `onboard_city.py` | `python3.13` | [`requirements-offline-tools.txt`](../requirements-offline-tools.txt) |
+| `street_gradient.py` | `python3.13` | [`requirements-offline-tools.txt`](../requirements-offline-tools.txt) |
 
 `label_clustering.py` is shelled out to by the running app, so it must work on whatever `python3` the server has —
 currently 3.8, which is EOL (#4396). Offline tooling has no such tie and runs on `python3.13`; host-side, ≥ 3.11.
@@ -231,6 +232,34 @@ and boundary coverage. The QA loop: rerun with tweaked flags — `--merge-region
 boundaries, and `--rename-regions` applies `db/onboarding/<city-id>/region_renames.csv` — or hand-edit the
 GeoPackage in QGIS and regenerate the SQL with `make build-city-data id=<city-id> args="--from-gpkg"`, which
 validates the layers first (a hand-built layer with a single `osm_id` column is accepted).
+
+## `street_gradient.py`
+
+Samples a bare-earth elevation model along every street's centerline and writes each street's running slope, climb
+and elevation profile to `db/onboarding/<city-id>/street_gradient.csv`, which `make import-street-gradient` loads into
+the `street_gradient` table (#5223). The method, the measurements behind its constants, and the per-country source
+table are in [`docs/street-gradient.md`](../docs/street-gradient.md).
+
+```bash
+make export-street-gradient-input      # streets with no row yet, or whose geometry changed
+make street-gradient id=seattle-wa     # US cities: USGS 3DEP 10 m, picked from the city's country-id
+make street-gradient id=cdmx args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"
+make import-street-gradient
+```
+
+- **Sources.** A registered source is chosen from the city's `country-id` in `conf/cityparams.conf` (only the USA so
+  far). Anything else goes through `--dem-dir`: a directory of hand-downloaded GeoTIFFs in any mix of coordinate
+  systems, elevations in meters.
+- **Bridges and tunnels.** A bare-earth model has the ground under a bridge, so streets the export marks
+  `is_structure` (from `osm_way.tags`) get their endpoint elevations and no grade (`quality = structure`), and an
+  untagged street whose profile holds an implausible pitch is drawn as a straight line between its endpoints
+  (`quality = suspect`).
+- **An empty `osm_way` stops the export**, since every bridge would then be sampled as the ground beneath it. Pass
+  `args=--allow-empty-osm-way` for a city that really has none, and `args=--all` to resample every street.
+- **Resume.** Rows are flushed a grid cell at a time; `--resume` keeps the ones that answer the current export (same
+  street, same `geom_md5`) and samples the rest.
+- **No network in tests.** `test/python/test_street_gradient.py` writes small GeoTIFFs whose elevation is a known
+  plane, so every expected grade is arithmetic.
 
 ## Testing
 

@@ -299,7 +299,7 @@ make dev
 ### Checking that backend changes compile
 
 The quickest pass/fail on a Scala change is a compile. The sbt **thin client** hands the command to a background
-sbt server, so it won't collide with a running `sbt ~ run` over build locks:
+sbt server rather than starting its own:
 
 ```bash
 make compile
@@ -311,6 +311,12 @@ sets `-Xfatal-warnings`, so a `[success]` is also warning-clean.
 Use `--jvm-client`, not `--client`: the native client (`sbtn`) needs a newer glibc than the container's focal base,
 so it dies on startup, though `sbt --client --version` still prints happily (#5268). A server belongs to one project
 directory, so each worktree gets its own; `sbt shutdownall` stops every one of them, the running `~ run` included.
+An idle one stops itself after an hour (`serverIdleTimeout`) instead of holding ~1GB until you reboot.
+
+That server serves one command at a time, so **it will not run anything while `~ run` is up in the same
+checkout** — `run` holds the task for as long as the app lives, and your command queues behind it forever with
+nothing on screen. (A `~ compile` is fine; a watch loop yields between runs.) So run the app and compile it from
+different checkouts. [`tools/sbt-run.sh`](../tools/sbt-run.sh) refuses with an explanation rather than hanging.
 
 ### Running the backend tests
 
@@ -321,6 +327,11 @@ specs. They boot the real app against Postgres+PostGIS, so the `db` container ha
 make test-scala
 make test-scala only=controllers.api.PublicApiSpec
 ```
+
+Only one checkout tests at a time. They share one `db` container and one city schema, and most specs commit rather
+than roll back, so simultaneous runs overwrite each other's rows and stack two multi-GB JVMs — which is how
+`earlyoom` comes to kill one mid-run. A second `make test-scala` says it's waiting, then starts when the first
+finishes.
 
 The `backend-tests` CI job is a required check and runs **all of `test/`** (`sbt coverage test`, since #5042), so a
 new spec file is picked up with nothing to enroll it in. Still run the suite locally before you trust it — and read
@@ -388,8 +399,17 @@ container can't see (one outside the main checkout). This takes the worktree's o
 - `make build-city-data` and `make check-imagery` always run in the main checkout, whose `db/` the db container reads.
 - A hand-typed `docker exec … "cd /home && …"` always runs in the main checkout.
 
-The sbt server that `make compile`, `make test-scala`, or `make scalafmt` starts for a worktree stays up until
-`make qa-worktree-stop wt=<name>` or `make worktree-remove wt=<name>` stops it.
+The sbt server that `make compile`, `make test-scala`, or `make scalafmt` starts for a worktree stays up until it
+idles out after an hour, or until `make qa-worktree-stop wt=<name>` or `make worktree-remove wt=<name>` stops it.
+
+Each checkout has its own `target/`. What grows without bound there is packaged build output: every `sbt
+dist`/`stage` writes ~1GB of jars named after the current version and removes none of the older ones. Clear just
+those, keeping compiled classes so the next `make compile` is still incremental:
+
+```bash
+make clean-dist              # this checkout
+make clean-dist wt=<name>    # a worktree's
+```
 
 When you're done with a worktree for good, remove it with:
 

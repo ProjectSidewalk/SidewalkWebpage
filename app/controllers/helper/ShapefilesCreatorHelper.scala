@@ -6,6 +6,7 @@ import models.api.{
   IntersectionAccessScoreForApi,
   LabelClusterForApi,
   LabelDataForApi,
+  PlaceForApi,
   RawLabelInClusterDataForApi,
   RegionAccessScoreForApi,
   RegionDataForApi,
@@ -300,6 +301,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
   )
   private lazy val regionsLayer =
     new GeoPackageLayer[RegionDataForApi]("regions", classOf[MultiPolygon], RegionDataForApi, _.geometry)
+  private lazy val placesLayer = new GeoPackageLayer[PlaceForApi]("places", classOf[Point], PlaceForApi, _.geometry)
   private lazy val accessScoreStreetsLayer = new GeoPackageLayer[StreetAccessScoreForApi](
     "access_score_streets",
     classOf[LineString],
@@ -387,6 +389,13 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = createGeneralGeoPackage(source, outputFile, batchSize, sidewalkPresenceLayer)
+
+  /** Creates a GeoPackage of places (`/v3/api/places`, #5311), in a `places` layer. */
+  def createPlacesGeopackage(
+      source: Source[PlaceForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = createGeneralGeoPackage(source, outputFile, batchSize, placesLayer)
 
   /** Creates a GeoPackage of regions (`/v3/api/regions`), in a `regions` layer. */
   def createRegionDataGeopackage(
@@ -952,6 +961,52 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
   }
 
   /**
+   * Writes places (#5311) as a Shapefile: one Point per place. Field names are camelCase and abbreviated to the DBF
+   * format's 10-character limit; the GeoPackage carries the canonical snake_case names.
+   */
+  def createPlacesShapefile(
+      source: Source[PlaceForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "Place",
+      "the_geom:Point:srid=4326,"
+        + "placeId:Integer,"
+        + "category:String,"
+        + "name:String,"
+        + "source:String,"
+        + "osmType:String,"
+        + "osmId:String," // OSM id as String (shapefiles don't handle Long well)
+        + "osmUrl:String,"
+        + "regionId:Integer,"
+        + "regionName:String,"
+        + "streetId:Integer," // nearest_street_edge_id
+        + "distM:Double,"     // nearest_street_distance_m
+        + "fetchedAt:String"
+    )
+
+    def buildFeature(place: PlaceForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+      featureBuilder.add(place.geometry)
+      featureBuilder.add(place.placeId)
+      featureBuilder.add(place.category)
+      featureBuilder.add(place.name.orNull)
+      featureBuilder.add(place.source)
+      featureBuilder.add(place.osmType.orNull)
+      featureBuilder.add(place.osmId.map(_.toString).orNull)
+      featureBuilder.add(place.osmUrl.orNull)
+      featureBuilder.add(place.regionId.map(Integer.valueOf).orNull)
+      featureBuilder.add(place.regionName.orNull)
+      featureBuilder.add(place.nearestStreetEdgeId.map(Integer.valueOf).orNull)
+      featureBuilder.add(place.nearestStreetDistanceM.map(Double.box).orNull)
+      featureBuilder.add(place.fetchedAt.toString)
+      featureBuilder.buildFeature(null)
+    }
+
+    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /**
    * Creates a shapefile from RegionDataForApi objects.
    *
    * Column names are kept to 10 characters because the DBF format cuts anything longer short (`streetCnt`,
@@ -1046,6 +1101,17 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         + "auditCount:Integer,"        // Number of completed audits
         + "lengthM:Double,"            // Street length in meters
         + "labelCount:Integer,"        // Number of labels contributing to the score
+        + "meanGrade:Double,"          // Mean absolute grade as a fraction (null if unsampled or a structure)
+        + "maxGrade:Double,"           // Steepest grade over a 30 m baseline
+        + "netGrade:Double,"           // End-to-end grade, signed in the digitized direction
+        + "climbM:Double,"             // Summed rise in meters
+        + "descentM:Double,"           // Summed fall in meters
+        + "mOver5pct:Double,"          // Meters steeper than 1:20
+        + "mOver8pct:Double,"          // Meters steeper than 1:12 (8.33%)
+        + "gradeConf:String,"          // high / medium / low, from the elevation model's grid size
+        + "gradeQual:String,"          // measured / structure / suspect / no_data
+        + "demSource:String,"          // The elevation model, for attribution
+        + "gradeTerm:Double,"          // What grade adds to the segment's pre-sigmoid sum (never positive)
         + perTypeSpec + ","            // Per-type cluster count (n<code>) and sub-score (s<code>)
         + perBucketSpec + ","          // Per-type cluster count per rating bucket (n1..n3<code>, n0<code> unrated)
         + perTagSpec                   // Per-type summed tag adjustment (t<code>)
@@ -1066,6 +1132,17 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       fb.add(s.auditCount)
       fb.add(s.lengthMeters)
       fb.add(s.labelCount)
+      fb.add(s.gradient.flatMap(_.meanGrade).map(Double.box).orNull)
+      fb.add(s.gradient.flatMap(_.maxGrade).map(Double.box).orNull)
+      fb.add(s.gradient.flatMap(_.netGrade).map(Double.box).orNull)
+      fb.add(s.gradient.flatMap(_.climbM).map(Double.box).orNull)
+      fb.add(s.gradient.flatMap(_.descentM).map(Double.box).orNull)
+      fb.add(s.gradient.flatMap(_.metersOver5pctGrade).map(Double.box).orNull)
+      fb.add(s.gradient.flatMap(_.metersOver8pctGrade).map(Double.box).orNull)
+      fb.add(s.gradient.map(_.confidence.toString).orNull)
+      fb.add(s.gradient.map(_.quality.toString).orNull)
+      fb.add(s.gradient.map(_.demSource).orNull)
+      fb.add(s.slopeTerm)
       AccessScoreApiModels.orderedTypes.foreach { t =>
         fb.add(s.clusterCounts.getOrElse(t, 0))
         fb.add(s.subScores.getOrElse(t, 0.0))

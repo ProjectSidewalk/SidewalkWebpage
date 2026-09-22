@@ -17,6 +17,7 @@ import models.auth.WithAdmin
 import models.label.{LabelTypeEnum, Tag}
 import models.mission.MissionType
 import models.user._
+import models.utils.IpAddress
 import models.validation.{
   LabelValidation,
   ValidationOption,
@@ -24,7 +25,7 @@ import models.validation.{
   ValidationTaskEnvironment,
   ValidationTaskInteraction
 }
-import play.api.Configuration
+import play.api.{Configuration, Logger}
 import play.api.i18n.Messages
 import play.api.libs.json._
 import play.api.mvc.Result
@@ -64,6 +65,7 @@ class ValidateController @Inject() (
 )(implicit assets: AssetsFinder)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
+  private val logger                         = Logger(this.getClass)
 
   /**
    * Returns the validation page.
@@ -356,7 +358,7 @@ class ValidateController @Inject() (
    */
   private def processValidationTaskSubmissions(
       data: ValidationTaskSubmission,
-      ipAddress: String,
+      ipAddress: IpAddress,
       user: SidewalkUserWithRole
   ): Future[Result] = {
     val currTime: OffsetDateTime = data.timestamp
@@ -377,7 +379,7 @@ class ValidateController @Inject() (
         ValidationSubmission(
           LabelValidation(0, newVal.labelId, labelTypeSeen(newVal), newVal.validationResult, user.userId,
             newVal.missionId, newVal.canvasX, newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom,
-            newVal.canvasHeight, newVal.canvasWidth, newVal.startTimestamp, newVal.endTimestamp, newVal.source,
+            newVal.canvasWidth, newVal.canvasHeight, newVal.startTimestamp, newVal.endTimestamp, newVal.source,
             newVal.viewerType),
           newVal.newLabelType,
           newVal.severity,
@@ -443,11 +445,14 @@ class ValidateController @Inject() (
 
     // Insert Environment async.
     val env: EnvironmentSubmission = data.environment
-    validationService.insertEnvironment(
-      ValidationTaskEnvironment(0, env.missionId, env.browser, env.browserVersion, env.browserWidth, env.browserHeight,
-        env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem, Some(ipAddress),
-        env.language, env.cssZoom, Some(currTime))
-    )
+    validationService
+      .insertEnvironment(
+        ValidationTaskEnvironment(0, env.missionId, env.browser, env.browserVersion, env.browserWidth,
+          env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem,
+          ipAddress, env.language, env.cssZoom, Some(currTime))
+      )
+      .failed
+      .foreach(e => logger.error("Error saving validation environment data.", e))
 
     // Adding the new panorama information to the pano_history table async.
     panoDataService.insertPanoHistories(data.panoHistories)
@@ -579,7 +584,7 @@ class ValidateController @Inject() (
                   ValidationSubmission(
                     LabelValidation(0, newVal.labelId, newVal.labelType, newVal.validationResult, userId,
                       mission.get.missionId, newVal.canvasX, newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom,
-                      newVal.canvasHeight, newVal.canvasWidth, newVal.startTimestamp, newVal.endTimestamp,
+                      newVal.canvasWidth, newVal.canvasHeight, newVal.startTimestamp, newVal.endTimestamp,
                       newVal.source, newVal.viewerType),
                     newVal.newLabelType,
                     newVal.severity,

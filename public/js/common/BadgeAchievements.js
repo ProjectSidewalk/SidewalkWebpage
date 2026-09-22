@@ -109,7 +109,7 @@ class BadgeAchievements {
       level,
       roman: BadgeAchievements.ROMAN[level - 1],
       name: i18next.t(BadgeAchievements.#NAME_KEYS[type]),
-      iconSrc: util.assetPath(`images/badges/badge_${stem}_badge${level}.png`),
+      iconSrc: util.assetPath(`images/badges/badge_${stem}_badge${level}.svg`),
     };
   }
 

@@ -19,7 +19,9 @@ Read `docs/evolutions.md` before writing or editing one. The rules that have cau
 - **Renaming a column or table renames nothing else.** Rename its constraints and indexes back to
   `<table>_<column>_{fkey,key,pkey,check}` and update the name strings in the Slick model.
 - **Write for prod scale.** Joins/`EXISTS` over correlated subqueries and `NOT IN`; name the index behind every
-  join/filter on a big table before you're done. The evolution runs on 54 schemas in sequence.
+  join/filter on a big table before you're done. The evolution runs on 54 schemas in sequence, while the app waits.
+- **A backfill that reads an `_interaction` table is a one-off script, never an evolution.** Those tables run to
+  hundreds of millions of rows; the evolution adds the nullable column, the every-city runner fills it after deploy.
 - Cached distance columns must match their runtime recompute; changing a distance query recomputes its caches in the
   same evolution.
 - `make lint-evolutions` before pushing. No `;` inside a `--` comment. 2-space indent, no table aliases.

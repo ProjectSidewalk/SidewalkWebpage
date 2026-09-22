@@ -113,6 +113,75 @@ class AccessScoreParitySpec extends AnyFunSuite with Matchers {
     }
   }
 
+  test("every slope case reproduces from the fixture's own slope and settings (#5223)") {
+    val statisticByName =
+      AccessScoreCalculator.slopeStatistics.map(st => AccessScoreCalculator.slopeStatisticName(st) -> st).toMap
+    val streetByName = streets.map(st => (st \ "name").as[String] -> st).toMap
+    val cases        = (fixture \ "slope_cases").as[Seq[JsValue]]
+    cases.size should be >= 20
+
+    cases.foreach { c =>
+      // Read back from the JSON, not from the generator's case list: the JS side only ever sees the JSON, so this
+      // is what proves the file alone carries the case.
+      val settings = AccessScoreCalculator.SlopeSettings(
+        weight = (c \ "settings" \ "weight").as[Double],
+        statistic = statisticByName((c \ "settings" \ "statistic").as[String]),
+        lowThreshold = (c \ "settings" \ "low_threshold").as[Double],
+        highThreshold = (c \ "settings" \ "high_threshold").as[Double],
+        barrierEnabled = (c \ "settings" \ "barrier_enabled").as[Boolean],
+        barrierThreshold = (c \ "settings" \ "barrier_threshold").as[Double],
+        includeApproximate = (c \ "settings" \ "include_approximate").as[Boolean]
+      )
+      val slope = (c \ "slope").asOpt[JsObject].map { g =>
+        AccessScoreCalculator.SlopeInput(
+          (g \ "mean_grade").asOpt[Double],
+          (g \ "max_grade").asOpt[Double],
+          (g \ "net_grade").asOpt[Double],
+          (g \ "meters_over_5pct").asOpt[Double],
+          (g \ "meters_over_8pct").asOpt[Double],
+          approximate = (g \ "grade_confidence").as[String] == "low" || (g \ "grade_quality").as[String] == "suspect"
+        )
+      }
+      val street    = streetByName((c \ "street").as[String])
+      val length    = (street \ "length_meters").as[Double]
+      val subScores =
+        AccessScoreCalculator.scoreByType((street \ "clusters").as[Seq[JsValue]].map(cluster), Some(length))
+
+      withClue(s"slope case '${(c \ "name").as[String]}': ") {
+        AccessScoreCalculator.slopeUnits(slope, length, settings) shouldBe ((c \ "units").as[Double] +- tolerance)
+        AccessScoreCalculator.slopeTerm(slope, length, settings) shouldBe ((c \ "slope_term").as[Double] +- tolerance)
+        AccessScoreCalculator.slopeIsBarrier(slope, settings) shouldBe (c \ "barrier").as[Boolean]
+        AccessScoreCalculator.segmentScoreWithSlope(subScores, slope, length, settings) shouldBe
+          ((c \ "segment_score").as[Double] +- tolerance)
+      }
+    }
+  }
+
+  test("a street with no sampled slope scores from its labels alone") {
+    // The promise that survives a nonzero default weight (#5223): with no grade there is nothing for the weight to
+    // multiply, so a city whose gradients have not been imported is scored from its labels alone. A bridge or a gap
+    // in the elevation model has a row and no grade, and is in the same position.
+    val noRow   = None
+    val noGrade = Some(AccessScoreCalculator.SlopeInput(None, None, None, None, None, approximate = false))
+    streets.foreach { s =>
+      val length    = (s \ "length_meters").as[Double]
+      val subScores = AccessScoreCalculator.scoreByType((s \ "clusters").as[Seq[JsValue]].map(cluster), Some(length))
+      val labelOnly = AccessScoreCalculator.scoreFromSubScores(subScores)
+      AccessScoreCalculator.segmentScoreWithSlope(subScores, noRow, length) shouldBe labelOnly
+      AccessScoreCalculator.segmentScoreWithSlope(subScores, noGrade, length) shouldBe labelOnly
+    }
+  }
+
+  test("the engine's published slope defaults are the ones the tool and the API docs describe") {
+    // These four are quoted in `/api-docs`, in `docs/street-gradient.md` and in the tool's copy, and moving any of
+    // them moves every served score — so a change here should be deliberate, not a merge artifact.
+    val defaults = AccessScoreCalculator.defaultSlopeSettings
+    defaults.weight shouldBe 1.0
+    defaults.statistic shouldBe AccessScoreCalculator.MaxGrade
+    defaults.barrierEnabled shouldBe false
+    defaults.includeApproximate shouldBe false
+  }
+
   test("every region case reproduces through scoreRegion and scoreRegionIntersections") {
     (fixture \ "regions").as[Seq[JsValue]].foreach { r =>
       val pairs =

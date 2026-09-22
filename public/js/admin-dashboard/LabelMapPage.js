@@ -35,6 +35,7 @@ class LabelMapPage {
         showExploreHereLink: true,
         // A type edited from the card (#3671) recolors the dot at once; the map data is read late, as it loads after.
         onEdit: (meta) => this.#mapData?.updateLabelType?.(meta.label_id, meta.label_type),
+        onDelete: (meta) => this.#mapData?.setLabelDeleted?.(meta.label_id, meta.deleted),
       });
     } catch (err) {
       console.error('Label Map: label popup failed to initialize; clicks/search will navigate instead.', err);

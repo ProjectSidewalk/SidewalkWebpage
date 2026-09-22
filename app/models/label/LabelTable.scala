@@ -25,6 +25,8 @@ import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTableDef}
 import models.user._
 import models.utils.MyPostgresProfile.api._
+import models.utils.CommonUtils.UiSource
+import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.{ConfigTableDef, LatLngBBox, MyPostgresProfile}
 import models.validation.{
   LabelValidationTableDef,
@@ -63,8 +65,26 @@ case class Label(
     correct: Option[Boolean],
     severity: Option[Int],
     description: Option[String],
-    tags: List[String]
+    tags: List[String],
+    deletedBy: Option[String] = None,
+    deletedAt: Option[OffsetDateTime] = None,
+    deletedSource: Option[UiSource] = None
 )
+
+/** Who deleted a label, when, and from which page; the DB CHECK ties all three to `deleted` (#3591). */
+object LabelDeletion {
+
+  /** The provenance values for a delete happening now, or all empty for a live label. */
+  def fields(userId: String, deleteFrom: Option[UiSource]): (Option[String], Option[OffsetDateTime], Option[UiSource]) =
+    deleteFrom match {
+      case Some(source) => (Some(userId), Some(OffsetDateTime.now), Some(source))
+      case None         => (None, None, None)
+    }
+
+  /** Who may undo a delete: whoever did it, or an admin. One rule for the endpoints, the card, and the DB write. */
+  def canRestore(deleted: Boolean, deletedBy: Option[String], user: Option[SidewalkUserWithRole]): Boolean =
+    deleted && user.exists(u => Role.ADMIN_ROLES.contains(u.role) || deletedBy.contains(u.userId))
+}
 
 case class LabelValidationInfo(
     agreeCount: Int,
@@ -224,7 +244,9 @@ case class LabelMetadata(
     expired: Boolean,
     fromCurrentUser: Boolean,
     panoMetadata: Option[PanoViewerMetadata],
-    panoSource: PanoSource
+    panoSource: PanoSource,
+    deleted: Boolean,
+    deletedBy: Option[String]
 )
 
 /**
@@ -320,26 +342,35 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def deleted: Rep[Boolean]      = column[Boolean]("deleted", O.Default(false))
   def temporaryLabelId: Rep[Int] = column[Int]("temporary_label_id")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
-  def timeCreated: Rep[OffsetDateTime] = column[OffsetDateTime]("time_created")
-  def tutorial: Rep[Boolean]           = column[Boolean]("tutorial", O.Default(false))
-  def streetEdgeId: Rep[Int]           = column[Int]("street_edge_id")
-  def agreeCount: Rep[Int]             = column[Int]("agree_count", O.Default(0))
-  def disagreeCount: Rep[Int]          = column[Int]("disagree_count", O.Default(0))
-  def unsureCount: Rep[Int]            = column[Int]("unsure_count", O.Default(0))
-  def correct: Rep[Option[Boolean]]    = column[Option[Boolean]]("correct")
-  def severity: Rep[Option[Int]]       = column[Option[Int]]("severity")
-  def description: Rep[Option[String]] = column[Option[String]]("description")
-  def tags: Rep[List[String]]          = column[List[String]]("tags", O.Default(List()))
+  def timeCreated: Rep[OffsetDateTime]       = column[OffsetDateTime]("time_created")
+  def tutorial: Rep[Boolean]                 = column[Boolean]("tutorial", O.Default(false))
+  def streetEdgeId: Rep[Int]                 = column[Int]("street_edge_id")
+  def agreeCount: Rep[Int]                   = column[Int]("agree_count", O.Default(0))
+  def disagreeCount: Rep[Int]                = column[Int]("disagree_count", O.Default(0))
+  def unsureCount: Rep[Int]                  = column[Int]("unsure_count", O.Default(0))
+  def correct: Rep[Option[Boolean]]          = column[Option[Boolean]]("correct")
+  def severity: Rep[Option[Int]]             = column[Option[Int]]("severity")
+  def description: Rep[Option[String]]       = column[Option[String]]("description")
+  def tags: Rep[List[String]]                = column[List[String]]("tags", O.Default(List()))
+  def deletedBy: Rep[Option[String]]         = column[Option[String]]("deleted_by")
+  def deletedAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("deleted_at")
+  def deletedSource: Rep[Option[UiSource]]   = column[Option[UiSource]]("deleted_source")
 
   def * = (labelId, auditTaskId, missionId, userId, panoId, labelType, deleted, temporaryLabelId, timeCreated, tutorial,
-    streetEdgeId, agreeCount, disagreeCount, unsureCount, correct, severity, description, tags) <> (
+    streetEdgeId, agreeCount, disagreeCount, unsureCount, correct, severity, description, tags, deletedBy, deletedAt,
+    deletedSource) <> (
     (Label.apply _).tupled,
     Label.unapply
   )
 
-  def auditTask  = foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
-  def mission    = foreignKey("label_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
-  def user       = foreignKey("label_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  /** The `deleted` flag with its provenance, which the DB CHECK makes change together. */
+  def deletion = (deleted, deletedBy, deletedAt, deletedSource)
+
+  def auditTask     = foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
+  def mission       = foreignKey("label_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
+  def user          = foreignKey("label_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def deletedByUser =
+    foreignKey("label_deleted_by_fkey", deletedBy, TableQuery[SidewalkUserTableDef])(_.userId.?)
   def streetEdge =
     foreignKey("label_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
   def panoData = foreignKey("label_pano_id_fkey", panoId, TableQuery[PanoDataTableDef])(_.panoId)
@@ -349,6 +380,19 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
  * Companion object with constants and types that are shared throughout codebase.
  */
 object LabelTable {
+
+  /**
+   * Whether a `label` row counts toward its labeler's accuracy (#3591). A deleted label counts only when it was deleted
+   * outside Explore (where the user never saw a verdict) and judged incorrect, so deleting can never raise accuracy.
+   */
+  val countsTowardAccuracySql: String =
+    "(NOT label.deleted OR (label.deleted_source <> 'Explore' AND label.correct = FALSE))"
+
+  /** [[countsTowardAccuracySql]] for Slick queries. */
+  def countsTowardAccuracy(label: LabelTableDef): Rep[Boolean] =
+    !label.deleted ||
+      (label.deletedSource.map(_ =!= UiSource.Explore).getOrElse(false) && !label.correct.getOrElse(true))
+
   // Define a type class for converting tuples to instances of a case class.
   trait TupleConverter[Tuple, A] {
     def fromTuple(tuple: Tuple): A
@@ -585,6 +629,17 @@ object LabelTable {
     }
   }
 
+  /** @return The votes in one label's `validations` aggregate, each as the Raw Labels API reports it. */
+  private def parseValidationsJson(json: String): Seq[LabelValidationSummaryForApi] = {
+    play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
+      LabelValidationSummaryForApi(
+        (obj \ "user_id").as[String],
+        (obj \ "result").as[String],
+        ValidatorType.fromIsAi((obj \ "is_ai").as[Boolean])
+      )
+    }
+  }
+
   // Define an implicit conversion from the tuple representation to the case class.
   implicit val labelValidationMetadataConverter: TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] =
     new TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] {
@@ -666,10 +721,7 @@ object LabelTable {
       panoSource = PanoSource.withName(r.nextString()),
       labelType = r.nextString(),
       severity = r.nextIntOption(),
-      tags = {
-        val tagsStr = r.nextString()
-        if (tagsStr != null && tagsStr.nonEmpty) tagsStr.split(",").filter(_.nonEmpty).toList else List.empty
-      },
+      tags = r.nextArray[String]().toList,
       description = r.nextStringOption(),
       timeCreated = {
         val timestamp = r.nextTimestamp()
@@ -691,23 +743,7 @@ object LabelTable {
       agreeCount = r.nextInt(),
       disagreeCount = r.nextInt(),
       unsureCount = r.nextInt(),
-      validations = {
-        val validationsStr = r.nextStringOption().getOrElse("")
-        if (validationsStr.isEmpty) {
-          List.empty[LabelValidationSummaryForApi]
-        } else {
-          validationsStr
-            .split(",")
-            .map { v =>
-              v.split(":") match {
-                case Array(userId, result, isAi) =>
-                  LabelValidationSummaryForApi(userId, result, ValidatorType.fromIsAi(isAi == "t"))
-                case _ => LabelValidationSummaryForApi("unknown", "unknown", "unknown")
-              }
-            }
-            .toList
-        }
-      },
+      validations = r.nextStringOption().map(parseValidationsJson).getOrElse(Seq.empty),
       auditTaskId = r.nextIntOption(),
       missionId = r.nextIntOption(),
       imageCaptureDate = r.nextStringOption(),
@@ -866,8 +902,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextStringOption(),
       r.nextStringOption().map(ValidationOption.withName), // userValidation
       r.nextStringOption().map(ValidationOption.withName), // aiValidation
-      r.nextString().split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
-      r.nextString().split(",").filter(_.nonEmpty).toList,
+      Map("agree" -> r.nextInt(), "disagree" -> r.nextInt(), "unsure" -> r.nextInt()),
+      r.nextArray[String]().toList,
       (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
       r.nextStringOption().map(LabelTable.parseCommentsJson).getOrElse(Seq.empty),
       (r.nextDoubleOption(), r.nextDoubleOption()) match {
@@ -895,7 +931,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           r.nextStringOption()  // address
         )
       ),
-      PanoSource.withName(r.nextString())
+      PanoSource.withName(r.nextString()),
+      r.nextBoolean(),
+      r.nextStringOption()
     )
   }
 
@@ -1278,8 +1316,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              lb_big.description,
              lb_big.validation_result, -- userValidation
              ai_val.validation_result, -- aiValidation
-             val.val_counts,
-             array_to_string(lb_big.tags, ','),
+             lb1.agree_count,
+             lb1.disagree_count,
+             lb1.unsure_count,
+             lb_big.tags,
              at.low_quality,
              at.incomplete,
              at.stale,
@@ -1301,7 +1341,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              pano_data.copyright,
              pano_data.license,
              pano_data.address,
-             pano_data.source
+             pano_data.source,
+             lb1.deleted,
+             lb1.deleted_by
       FROM label AS lb1
       INNER JOIN pano_data ON lb1.pano_id = pano_data.pano_id
       INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
@@ -1320,13 +1362,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           FROM label AS lb
           #$validatorJoin
       ) AS lb_big ON lb1.label_id = lb_big.label_id
-      INNER JOIN (
-          SELECT label_id,
-                 CONCAT('agree:', CAST(agree_count AS TEXT),
-                        ',disagree:', CAST(disagree_count AS TEXT),
-                        ',unsure:', CAST(unsure_count AS TEXT)) AS val_counts
-          FROM label
-      ) AS val ON lb1.label_id = val.label_id
       LEFT JOIN (
           SELECT label_validation.label_id, label_validation.validation_result, label_validation.label_type
           FROM label_validation
@@ -2426,7 +2461,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              pano_data.source::text,
              label.label_type::text,
              label.severity,
-             array_to_string(label.tags, ','),
+             label.tags,
              label.description,
              label.time_created,
              user_stat.high_quality,
@@ -2467,18 +2502,18 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
       INNER JOIN user_stat ON label.user_id = user_stat.user_id
       LEFT JOIN (
-          -- EXISTS, not a join, so it can never repeat a vote and the parser below reads it as t/f. Skips the same votes
-          -- the counts skip (self-votes, excluded users, votes cast on an earlier label type), so the list adds up to
-          -- agree/disagree/unsure_count.
+          -- EXISTS, not a join, so it can never repeat a vote. Skips the same votes the counts skip (self-votes,
+          -- excluded users, votes cast on an earlier label type), so the list adds up to agree/disagree/unsure_count.
           SELECT label.label_id,
-                 array_to_string(array_agg(CONCAT(
-                   label_validation.user_id, ':', label_validation.validation_result, ':',
-                   EXISTS (
+                 json_agg(json_build_object(
+                   'user_id', label_validation.user_id,
+                   'result', label_validation.validation_result,
+                   'is_ai', EXISTS (
                      SELECT 1
                      FROM sidewalk_login.user_role
                      WHERE user_role.user_id = label_validation.user_id AND user_role.role = 'AI'
                    )
-                 )), ',') AS validations
+                 ))::text AS validations
           FROM label
           INNER JOIN label_validation ON label.label_id = label_validation.label_id
           WHERE label_validation.label_type = label.label_type

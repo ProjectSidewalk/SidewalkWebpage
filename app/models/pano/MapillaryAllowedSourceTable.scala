@@ -26,13 +26,13 @@ case class MapillaryAllowedSource(
 
 object MapillaryAllowedSource {
 
-  /** A Mapillary username. The only source type so far, and the DB CHECK (396.sql) admits no other. */
+  /** A Mapillary username. The only source type so far, and the DB CHECK (402.sql) admits no other. */
   val Creator: String = "creator"
 }
 
 class MapillaryAllowedSourceTableDef(tag: Tag) extends Table[MapillaryAllowedSource](tag, "mapillary_allowed_source") {
-  def sourceType: Rep[String]      = column[String]("source_type")      // DB CHECK (396.sql): IN ('creator').
-  def sourceValue: Rep[String]     = column[String]("source_value")     // DB CHECK (396.sql): non-empty, trimmed.
+  def sourceType: Rep[String]      = column[String]("source_type")      // DB CHECK (402.sql): IN ('creator').
+  def sourceValue: Rep[String]     = column[String]("source_value")     // DB CHECK (402.sql): non-empty, trimmed.
   def addedBy: Rep[Option[String]] = column[Option[String]]("added_by")
   def addedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("added_at") // DEFAULT now() in the DB.
 

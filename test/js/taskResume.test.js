@@ -163,6 +163,7 @@ describe('TaskContainer handing out a part-walked street', () => {
         wasGivenUpOnImagery: () => false,
         isResumed: () => resumed,
         cameFromTaskList: () => fromTaskList,
+        getProperty: () => null,
         claimSavedProgress: jest.fn()
             .mockImplementationOnce(() => prewalkedKm)
             .mockImplementation(() => 0),

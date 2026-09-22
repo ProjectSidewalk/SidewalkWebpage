@@ -215,7 +215,9 @@ its default either way.
   total street distance behind the completion percentage is cached too.
 - **What the nightly jobs still owe.** Onboarding fills only what no scheduled job can produce, so a new city's
   `intersection` table (with each street's corner links, #5095), its `cluster` table, its `sidewalk_presence`
-  table, and its `osm_way` tag cache are all empty — in the dump you hand the server, too — until each job's first
+  table, its `place` table (the schools, clinics, and transit stops the AccessScore map shows, fetched from
+  OpenStreetMap on the first nightly tick or from Admin > Management > "Refresh places", #5311), and its `osm_way`
+  tag cache are all empty — in the dump you hand the server, too — until each job's first
   nightly run (`app/actor/ScheduledJobs.scala`, shifted by the city's `update_offset_hours`). AccessScore reads
   zero until then. An admin can force the intersections and clusters early from `/clustering` — on the launched
   site; a local run's rows stay local, since the dump leaves those tables' data out. The `osm_way` tags come from

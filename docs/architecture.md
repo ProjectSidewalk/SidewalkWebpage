@@ -166,7 +166,21 @@ and `street_access_score` from the clusters that run just built: one row per reg
 a score history) and one row per OSM way per region, replaced each run. The landing page and `/cities` read only
 those two tables, which is what makes a ranked AccessScore safe to put on a page nobody waits for. Like the
 intersection rebuild it records its own run and is recovered rather than propagated, so a clustering success never
-stands in for a snapshot nobody wrote.
+stands in for a snapshot nobody wrote. The snapshot's computation is the very value `/v3/api/accessScoreStreets` and
+its siblings cache per JVM, so it also seeds that cache (`SwrCache.put`, #5418): on a large city the whole-city
+computation takes longer than the reverse proxy allows a request, so a cold cache — after a deploy, or a city nobody
+opened in two days — would otherwise cost the first visitor a `502`. When the cache is cold anyway, the full-city
+endpoints wait at most 45 s and then answer `503` with `Retry-After: 30` while the computation finishes in the
+background; the AccessScore tool retries on that header and says so under its spinner.
+
+The **places refresh** (#5311) keeps the per-city `place` table current from OpenStreetMap: one Overpass query per
+run over the city's bounds for every tag in the `PlaceCategory` catalog (schools, health care, libraries, grocery,
+transit, parks, community centers), merged by `PlaceTable.replaceOsmPlaces` so a place keeps its `place_id` across
+refreshes, with the containing region and the nearest open street within 250 m computed in SQL as it lands. It ticks
+nightly like every job but fetches only when the newest place is more than a week old, or the table is empty, which
+is how a city gets its places with nothing done at onboarding; the skipped ticks are recorded too, so the Health
+panel can tell "fresh" from "stuck". `/v3/api/places` serves the table (the whole-city read cached with `SwrCache`,
+cleared by a refresh), the AccessScore map draws it, and Admin > Management can run the fetch on demand.
 
 Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
 and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one
@@ -180,6 +194,12 @@ table — or the latest one to change the derivation, with a real Down that re-d
 a pasted copy for the one-time population of existing cities, the nightly rebuild re-runs the DAO's copy
 into a temp table and touches only the rows that changed, and a spec (`IntersectionTableSpec`,
 `SidewalkPresenceTableSpec`) runs the evolution's statement and then the rebuild to prove the two copies still agree.
+
+`street_gradient` (399.sql, #5223; read through `StreetGradientTable`) is per-street too but is not one of these: its
+elevations come from rasters the database never sees, so there is no SQL derivation and no nightly rebuild. An offline
+script samples a bare-earth elevation model and a db script upserts the CSV, the way the imagery scan feeds
+`street_imagery`. Staleness is a `geom_md5` comparison the export script makes. See
+[`street-gradient.md`](street-gradient.md).
 
 A job that both the scheduler and an admin can trigger has exactly one definition of its counts — a `runDetails` on
 the job's result type, or next to the actor's `Name` when the result is a bare count — which both call sites pass to
@@ -209,7 +229,9 @@ The `/v3` API is the canonical public surface (handlers in `app/controllers/api/
 - **One file download per URL at a time.** While a file is being built and streamed, a repeat of the same URL gets a
   429 with `Retry-After`, so an impatient retry can't double minutes of work (#4161). Plain CSV/GeoJSON streams are
   not guarded, since the site's own pages fetch the same URLs in parallel. A `HEAD` request gets the same 429 without
-  building anything, which is how the Label Map and API docs download buttons warn before they start.
+  building anything, which is how the Label Map's download button warns before it starts; the API docs buttons fetch
+  the file themselves, so they read the 429 off the download. A built file also carries its uncompressed size in
+  `X-File-Size`, for clients showing download progress, since gzip strips `Content-Length`.
 - v3 is a **preview** surface: breaking changes are made in place rather than minting a new version (precedent: #4223).
 
 **Data structures (DTOs).** The response/filter types live in **`app/models/api/`** (`package models.api`), in
@@ -290,13 +312,18 @@ corresponding Twirl view:
   the map view (streets and a neighborhood choropleth colored from feature-state, with a ramp legend beside the
   zoom buttons, `AccessScoreMapLegend.js`), the cluster evidence layer
   (`AccessScoreClusterLayer.js`, fed by `/v3/api/labelClusters` — the clusters the engine actually scores, not the
-  raw labels), the cluster sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop
+  raw labels), the places layer (`AccessScorePlacesLayer.js`, fed by `/v3/api/places`: one symbol layer per category,
+  every category off until a reader ticks it, each marker's disc in the score color of its nearest street — drawn
+  per histogram bin, since a symbol's image can't read feature-state — and the place card, #5311), the cluster sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop
   cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
   coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
   drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and
-  intersections (`AccessScoreWhatsHere.js`); the ranked neighborhoods; and a photo strip of label crops from the
-  scope's neighborhood feed, ranked worst first with confirmed labels ahead of unchecked ones
-  (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
+  intersections (`AccessScoreWhatsHere.js`); the rank list, which ranks whichever unit is in force — every neighborhood
+  above the completion floor, or, in the streets unit, the 20 best-scoring streets with a toggle to the 20 worst
+  (`AccessScoreModel#rankedStreets`, #5223) — and which steps out of the band above 1100px, the other three panels
+  closing over its column, while a city mapped as one neighborhood is in the neighborhoods unit (#5419); and a photo
+  strip of label crops from the scope's neighborhood feed, ranked worst first with confirmed labels ahead of unchecked
+  ones (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
   the whole city is the population, a brush emphasizes in the overview views, narrows what's here and dims the
   map, and a selection marks the overview views, scopes what's here and the photos, and fades the rest of the
   map). An optional dark basemap (`?dark=1`, or the sidebar toggle, which is a live `map.setStyle` followed by a
@@ -308,10 +335,13 @@ corresponding Twirl view:
   landing page and `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked
   lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which
   answers from the nightly snapshot tables; nothing is fetched until the visitor's first interaction, and the
-  section hides itself when the city has nothing ranked. Hovering or focusing a row lights that neighborhood on the
-  landing choropleth — or that city's circle on `/cities` — through the same `hover` feature-state the maps' own
-  pointer handlers use, and the map never moves. The completion floor below which a neighborhood is not ranked is
-  the backend's `min_region_completion`, the same number the AccessScore tool hatches by.
+  section hides itself when the city has nothing ranked. A city mapped as one neighborhood has no neighborhood ranking
+  to give, so that unit is dropped in favor of its street list — unless no street is ranked either, where the one score
+  is still better than an empty section — and the unit switch is only drawn when both units have something to show.
+  Hovering or focusing a row lights that neighborhood on the landing choropleth — or that city's circle on `/cities` —
+  through the same `hover` feature-state the maps' own pointer handlers use, and the map never moves. The completion
+  floor below which a neighborhood is not ranked is the backend's `min_region_completion`, the same number the
+  AccessScore tool hatches by.
 - **`ps-map/`** — shared map component used across pages.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is

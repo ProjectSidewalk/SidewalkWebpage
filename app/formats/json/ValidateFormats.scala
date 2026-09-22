@@ -62,8 +62,8 @@ object ValidateFormats {
       heading: Double,
       pitch: Double,
       zoom: Double,
-      canvasHeight: Int,
       canvasWidth: Int,
+      canvasHeight: Int,
       startTimestamp: OffsetDateTime,
       endTimestamp: OffsetDateTime,
       source: UiSource,
@@ -122,8 +122,8 @@ object ValidateFormats {
       heading: Double,
       pitch: Double,
       zoom: Double,
-      canvasHeight: Int,
       canvasWidth: Int,
+      canvasHeight: Int,
       startTimestamp: OffsetDateTime,
       endTimestamp: OffsetDateTime,
       source: UiSource,
@@ -221,8 +221,8 @@ object ValidateFormats {
       (JsPath \ "heading").read[Double] and
       (JsPath \ "pitch").read[Double] and
       (JsPath \ "zoom").read[Double] and
-      (JsPath \ "canvas_height").read[Int] and
       (JsPath \ "canvas_width").read[Int] and
+      (JsPath \ "canvas_height").read[Int] and
       (JsPath \ "start_timestamp").read[OffsetDateTime] and
       (JsPath \ "end_timestamp").read[OffsetDateTime] and
       (JsPath \ "source").read[UiSource.Value] and
@@ -282,8 +282,8 @@ object ValidateFormats {
       (JsPath \ "heading").read[Double] and
       (JsPath \ "pitch").read[Double] and
       (JsPath \ "zoom").read[Double] and
-      (JsPath \ "canvas_height").read[Int] and
       (JsPath \ "canvas_width").read[Int] and
+      (JsPath \ "canvas_height").read[Int] and
       (JsPath \ "start_timestamp").read[OffsetDateTime] and
       (JsPath \ "end_timestamp").read[OffsetDateTime] and
       (JsPath \ "source").read[UiSource.Value] and

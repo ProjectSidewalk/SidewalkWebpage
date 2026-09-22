@@ -9,6 +9,16 @@ impact, add a dated, version-tagged entry here (newest first) so future analysts
 
 ## Data caveats by release
 
+### `ip_address` columns became `inet` (#5398)
+
+Every `ip_address` column is now Postgres `inet` instead of `text`. What changes for analysis:
+
+- The same address written two ways (`01.02.03.04` vs `1.2.3.4`) now counts once, so `COUNT(DISTINCT ip_address)`
+  can be a little lower than before.
+- `ip_address::text` gives `1.2.3.4/32`. Use `host(ip_address)` for just the address.
+- Rows whose IP wasn't a real IP were deleted: about 380 `webpage_activity` rows from bots faking the header (all
+  before v11.8.0), and 43 DC `audit_task_environment` rows from 2016–17 holding `''` or `'unknown'`.
+
 ### Washington, DC re-launch (#4700) — the 2015–2021 pilot data migrated into a normal city schema
 
 DC's original deployment (2015-10-17 → 2021-04-08) ran on a mid-2018 fork of the schema and was frozen. It has been

@@ -7,7 +7,8 @@ import models.api.{
   SidewalkPresenceFiltersForApi,
   SidewalkPresenceForApi,
   StreetDataForApi,
-  StreetFiltersForApi
+  StreetFiltersForApi,
+  StreetGradeForApi
 }
 import models.street.{SidewalkPresenceStatus, StreetEdgeStatus, WayType}
 import org.apache.pekko.stream.scaladsl.Source
@@ -245,5 +246,34 @@ class StreetsApiController @Inject() (
       .recover { case e: Exception =>
         ApiError.toResult(ApiError.internalServerError(s"Failed to retrieve street types: ${e.getMessage}"))
       }
+  }
+
+  /**
+   * One street's slope statistics and elevation profile (v3, #5223).
+   *
+   * The statistics also ride on `/v3/api/accessScoreStreets` for every street; the profile is served here, a street
+   * at a time, because it is the one part too heavy for a city-wide payload. A sampled street with no profile (a
+   * bridge or tunnel, a street the model had no data under) answers 200 with `profile: null`, since its
+   * `grade_quality` is itself the answer; only a street with no gradient row at all is a 404.
+   *
+   * @param streetEdgeId The street to look up.
+   * @return The street's gradient as JSON, or a 404 if the street is unknown or has not been sampled.
+   */
+  def getStreetGrade(streetEdgeId: Int) = silhouette.UserAwareAction.async { implicit request =>
+    cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+    val gradientFuture = apiService.getStreetGradient(streetEdgeId)
+    // Only a street the other street APIs serve is answered, so an id from them is the whole of this API's domain.
+    val lengthFuture = apiService.getServedStreetLength(streetEdgeId)
+    (for {
+      gradient <- gradientFuture
+      length   <- lengthFuture
+    } yield (gradient, length) match {
+      case (Some((g, stale)), Some(lengthMeters)) => Ok(StreetGradeForApi(g, lengthMeters, stale).toJson)
+      case (_, None) => ApiError.toResult(ApiError.notFound(s"No street with id $streetEdgeId"))
+      case (None, _) =>
+        ApiError.toResult(ApiError.notFound(s"Street $streetEdgeId has no grade data"))
+    }).recover { case e: Exception =>
+      ApiError.toResult(ApiError.internalServerError(s"Failed to retrieve the street's grade: ${e.getMessage}"))
+    }
   }
 }

@@ -85,6 +85,129 @@ describe('AccessScoreModel', () => {
         });
     });
 
+    test('reproduces every slope case: units, term, barrier and segment score (#5223)', () => {
+        expect(FIXTURE.slope_cases.length).toBeGreaterThanOrEqual(20);
+        const byName = new Map(FIXTURE.streets.map((c) => [c.name, c]));
+        for (const c of FIXTURE.slope_cases) {
+            // The slope as `accessScoreStreets` reports it; `dem_source` is what marks a street as sampled at all.
+            const slope = c.slope === null ? {} : { ...c.slope, dem_source: 'fixture' };
+            const one = { type: 'FeatureCollection', features: [feature(byName.get(c.street), 0, slope)] };
+            const model = new AccessScoreModel(FIXTURE.config, one, NO_INTERSECTIONS, [REGION]);
+            const s = c.settings;
+            model.setState({
+                slope: {
+                    weight: s.weight, statistic: s.statistic, lowThreshold: s.low_threshold,
+                    highThreshold: s.high_threshold, barrierEnabled: s.barrier_enabled,
+                    barrierThreshold: s.barrier_threshold, includeApproximate: s.include_approximate,
+                },
+            });
+            const explained = model.explainStreet(1);
+            const clue = `slope case '${c.name}'`;
+            expect([clue, Math.abs(explained.slopeUnits - c.units) < tol]).toEqual([clue, true]);
+            expect([clue, Math.abs(explained.slopeTerm - c.slope_term) < tol]).toEqual([clue, true]);
+            expect([clue, explained.barrier]).toEqual([clue, c.barrier]);
+            // No intersections, so the headline is the segment alone.
+            expect([clue, Math.abs(explained.segmentScore - c.segment_score) < tol]).toEqual([clue, true]);
+            expect([clue, Math.abs(explained.score - c.segment_score) < tol]).toEqual([clue, true]);
+        }
+    });
+
+    test('a street with no sampled slope scores from its labels alone, whatever the settings say', () => {
+        // The fixture's scores are label-only, which is the promise a nonzero default weight has to keep for a
+        // city whose gradients have not been imported.
+        const streets = { type: 'FeatureCollection', features: FIXTURE.streets.map((c, i) => feature(c, i)) };
+        const model = new AccessScoreModel(FIXTURE.config, streets, NO_INTERSECTIONS, [REGION]);
+        expect(model.slopeIsDefault).toBe(true);
+        expect(model.state.slope.weight).toBe(FIXTURE.config.grade_scoring.defaults.weight);
+        FIXTURE.streets.forEach((c, i) => {
+            expect(model.explainStreet(i + 1).slopeTerm).toBe(0);
+            expect(Math.abs(model.streetScores[i] - c.score)).toBeLessThan(tol);
+        });
+        model.setState({ slope: { weight: 3, barrierEnabled: true } });
+        expect(model.explainStreet(1).slopeTerm).toBe(0);
+        expect(model.explainStreet(1).barrier).toBe(false);
+    });
+
+    test('the engine\'s own settings weigh a steep street down, and a gentle one not at all', () => {
+        const gradient = (mean, max) => ({
+            mean_grade: mean, max_grade: max, net_grade: mean, meters_over_5pct: 100, meters_over_8pct: 100,
+            grade_confidence: 'high', grade_quality: 'measured', dem_source: 'fixture',
+        });
+        // The engine reads the steepest stretch, so the first street is steep on the statistic that counts while
+        // the second shares its mean and is flat on that one.
+        const features = FIXTURE.streets.map((c, i) =>
+            feature(c, i, i === 0 ? gradient(0.02, 0.3) : gradient(0.02, 0.03)));
+        const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features },
+            NO_INTERSECTIONS, [REGION]);
+        expect(model.state.slope.statistic).toBe('max_grade');
+        expect(model.explainStreet(1).slopeTerm).toBe(-FIXTURE.config.grade_scoring.defaults.weight);
+        expect(model.explainStreet(2).slopeTerm).toBe(0);
+        // A weight of 0 is the way out of the term, and leaves the labels' own score behind.
+        model.setState({ slope: { weight: 0 } });
+        expect(model.slopeIsDefault).toBe(false);
+        expect(model.explainStreet(1).slopeTerm).toBe(0);
+        expect(Math.abs(model.streetScores[0] - FIXTURE.streets[0].score)).toBeLessThan(tol);
+        // A partial slope merges: the statistic and thresholds stayed the engine's.
+        expect(model.state.slope.statistic).toBe(FIXTURE.config.grade_scoring.defaults.statistic);
+    });
+
+    test('reports what the slope settings reach and how many streets a change moved', () => {
+        const gradient = (max) => ({
+            mean_grade: 0.02, max_grade: max, net_grade: 0.02, meters_over_5pct: 0, meters_over_8pct: 0,
+            grade_confidence: 'high', grade_quality: 'measured', dem_source: 'fixture',
+        });
+        // One street over the ramp limit (the full penalty), one between the limits, the rest below both.
+        const features = FIXTURE.streets.map((c, i) => feature(c, i, gradient([0.3, 0.065][i] ?? 0.01)));
+        const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features },
+            NO_INTERSECTIONS, [REGION]);
+        const audited = FIXTURE.streets.filter((_, i) => model.streetAudited[i] === 1).length;
+        expect(model.slopeImpact()).toEqual({ reached: 2, full: 1, barriers: 0, scored: audited });
+        // The counts ignore the weight, so a reader at 0 can still tell "reaches nothing" from "costs nothing".
+        model.setState({ slope: { weight: 0 } });
+        expect(model.slopeImpact()).toEqual({ reached: 2, full: 1, barriers: 0, scored: audited });
+        // The count is against the last settled state, so a drag's ticks add up to what the drag did rather than
+        // to what its final tick did — which, settling on a value, is nothing.
+        expect(model.changedCount).toBe(2);
+        model.setState({ slope: { weight: 0 } });
+        expect(model.changedCount).toBe(2);
+        model.markSettled();
+        expect(model.changedCount).toBe(0);
+        // Nothing moved since: the line says so rather than saying nothing.
+        model.setState({ slope: { weight: 0 } });
+        expect(model.changedCount).toBe(0);
+        model.setState({ slope: { weight: 1, barrierEnabled: true } });
+        expect(model.slopeImpact().barriers).toBe(1);
+    });
+
+    test('a barrier zeroes the segment, and the headline still averages it with the crossings', () => {
+        // The case the popup has to describe honestly: the block scores 0 while the street's headline does not.
+        const crossing = FIXTURE.intersections.find((c) => c.score > 0.6);
+        const ramp = FIXTURE.streets.find((c) => c.name === 'one good curb ramp');
+        const one = {
+            type: 'FeatureCollection',
+            features: [feature(ramp, 0, {
+                start_intersection_id: 7, mean_grade: 0.1, max_grade: 0.2, net_grade: 0.1, meters_over_5pct: 100,
+                meters_over_8pct: 100, grade_confidence: 'high', grade_quality: 'measured', dem_source: 'fixture',
+            })],
+        };
+        const crossings = { type: 'FeatureCollection', features: [intersectionFeature(crossing, 7)] };
+        const model = new AccessScoreModel(FIXTURE.config, one, crossings, [REGION]);
+        model.setState({ slope: { barrierEnabled: true } });
+        const s = model.explainStreet(1);
+        expect(s.barrier).toBe(true);
+        expect(s.segmentScore).toBe(0);
+        expect(Math.abs(s.score - crossing.score / 2)).toBeLessThan(tol);
+    });
+
+    test('a config from before the slope settings scores exactly as before and offers no slope', () => {
+        const { grade_scoring: gradeScoring, ...older } = FIXTURE.config;
+        expect(gradeScoring).toBeDefined();
+        const model = new AccessScoreModel(older, streets, NO_INTERSECTIONS, [REGION]);
+        expect(model.state.slope.weight).toBe(0);
+        expect(model.state.slope.barrierEnabled).toBe(false);
+        FIXTURE.streets.forEach((c, i) => expect(Math.abs(model.streetScores[i] - c.score)).toBeLessThan(tol));
+    });
+
     test('reproduces every fixture street under each reweighting the fixture carries', () => {
         const model = new AccessScoreModel(FIXTURE.config, streets, NO_INTERSECTIONS, [REGION]);
         for (const preset of FIXTURE.config.preset_order.filter((id) => id !== 'default')) {
@@ -504,6 +627,33 @@ describe('AccessScoreModel', () => {
         expect(model.histogram({ regionIds: new Set([2]) }).total).toBe(1);
     });
 
+    test('rankedStreets takes either end of the leaderboard, on scores alone (#5223)', () => {
+        const regions = [{ region_id: 1, name: 'Whole', rate: 1, total_distance_m: 600, completed_distance_m: 600 }];
+        const features = [
+            feature(FIXTURE.streets[1], 0, { region_id: 1, length_meters: 100 }), // one good curb ramp
+            feature(FIXTURE.streets[2], 1, { region_id: 1, length_meters: 300 }), // a bad one: the lower score
+            // The same inputs as street 1 at twice the length: the tie-break, and a street with no name.
+            feature(FIXTURE.streets[1], 2, { region_id: 1, length_meters: 200, street_name: null }),
+            feature(FIXTURE.streets[1], 3, { region_id: 1, length_meters: 50, audit_count: 0 }),
+        ];
+        const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features },
+            NO_INTERSECTIONS, regions);
+        // An unaudited street has no score to rank, and a tie goes to the longer street.
+        expect(model.rankedStreets().map((s) => s.streetId)).toEqual([3, 1, 2]);
+        expect(model.rankedStreets({ worst: true }).map((s) => s.streetId)).toEqual([2, 3, 1]);
+        // The two ends of the same list: either end of a limit, and the rows carry what the list draws.
+        expect(model.rankedStreets({ limit: 1 })[0].streetId).toBe(3);
+        expect(model.rankedStreets({ worst: true, limit: 1 })[0].streetId).toBe(2);
+        expect(model.rankedStreets({ limit: 0 })).toEqual([]);
+        const top = model.rankedStreets({ limit: 1 })[0];
+        expect(top).toEqual({ streetId: 3, name: null, regionId: 1, score: model.explainStreet(3).score,
+            lengthM: 200 });
+        // The order follows the weights, not the data's order: drop curb ramps and the bad one stops being worst.
+        model.setState({ weights: { CurbRamp: 0 } });
+        expect(model.rankedStreets().map((s) => s.score))
+            .toEqual([...model.rankedStreets().map((s) => s.score)].sort((a, b) => b - a));
+    });
+
     test('an empty city yields no NaN anywhere', () => {
         const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features: [] },
             NO_INTERSECTIONS, []);
@@ -512,8 +662,21 @@ describe('AccessScoreModel', () => {
         expect(k.auditedKm).toBe(0);
         expect(model.histogram().total).toBe(0);
         expect(model.rankedRegions()).toEqual([]);
+        expect(model.rankedStreets()).toEqual([]);
         expect(model.contributions().streets).toBe(0);
         expect(Object.values(model.contributions().clusterMeans).every((v) => v === 0)).toBe(true);
         expect(Object.values(model.contributions().means).every((v) => v === 0)).toBe(true);
+    });
+
+    test('starts with every place category drawn, and hands out its own copy of a restriction', () => {
+        const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features: [] },
+            { type: 'FeatureCollection', features: [] }, []);
+        // Places start off: the score map comes first.
+        expect(AccessScoreModel.DEFAULT_STATE.placeCategories).toEqual([]);
+        expect(model.state.placeCategories).toEqual([]);
+        const state = model.setState({ placeCategories: ['school'] });
+        expect(state.placeCategories).toEqual(['school']);
+        state.placeCategories.push('transit');
+        expect(model.state.placeCategories).toEqual(['school']);
     });
 });
