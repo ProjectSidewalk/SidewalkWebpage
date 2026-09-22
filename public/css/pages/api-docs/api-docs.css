@@ -440,7 +440,8 @@ pre > code.language-csv {
   font: var(--text-small-bold);
 }
 
-.map-popup p {
+/* Not the elevation chart's own paragraphs, which its component styles and this rule would otherwise outrank. */
+.map-popup p:not(.elevation-profile p) {
   margin: 4px 0;
   font: var(--text-caption-regular);
 }
@@ -597,7 +598,7 @@ pre > code.language-csv {
     font: var(--text-caption-semibold);
   }
 
-  .map-popup p {
+  .map-popup p:not(.elevation-profile p) {
     font: var(--text-tiny-regular);
   }
 

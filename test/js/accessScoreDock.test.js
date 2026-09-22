@@ -55,6 +55,7 @@ describe('AccessScoreDock', () => {
         // The map starts zoomed out over nothing, so the strip's city rule applies until a test moves it.
         mapView = {
             setBrush: jest.fn(),
+            setGradeSelection: jest.fn(),
             visibleRegionIds: jest.fn(() => new Set()),
             regionBoundsOf: (id) => ({getCenter: () => ({lng: id, lat: 0})}),
         };
@@ -111,7 +112,8 @@ describe('AccessScoreDock', () => {
         expect(document.querySelectorAll('.acs-histogram__bin')).toHaveLength(10);
         expect(document.querySelectorAll('.acs-whats-here__row')).toHaveLength(FIXTURE.config.scored_types.length);
         expect(document.querySelector('.acs-whats-here__caption').textContent).toBe('scope-city');
-        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(2);
+        // The streets unit ranks streets, and 66 fixture streets is more than the leaderboard holds.
+        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(window.AccessScoreModel.RANK_LIMIT);
         expect(document.getElementById('acs-dock-body').classList).not.toContain('acs-dock__body--no-rank');
         // With nothing selected the strip reads the lowest-ranked region and says so.
         const ranked = model.rankedRegions();
@@ -173,6 +175,75 @@ describe('AccessScoreDock', () => {
         expect(document.getElementById('acs-dock-brush').hidden).toBe(true);
     });
 
+    test('the map legend\'s slope classes are the same brush, and the two kinds displace each other', () => {
+        // One street over the ramp limit and one under the walking-surface limit, so the legend's classes really
+        // do split the city.
+        const gradient = (max) => ({
+            mean_grade: 0.02, max_grade: max, net_grade: 0.02, meters_over_5pct: 0, meters_over_8pct: 0,
+            grade_confidence: 'high', grade_quality: 'measured', dem_source: 'fixture',
+        });
+        const features = FIXTURE.streets.map((c, i) => feature(c, i, {
+            region_id: i >= FIXTURE.streets.length - 3 ? 2 : 1, ...(i < 2 ? gradient([0.3, 0.01][i]) : {}),
+        }));
+        model = new window.AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features},
+            {type: 'FeatureCollection', features: []}, REGIONS);
+        const breaks = [1 / 48, 0.05, 1 / 12, 0.125];
+        dock = new window.AccessScoreDock(document.getElementById('acs-dock'), {
+            cityName: 'Fixture City', model, mapView, map, gradeBreaks: breaks, ...callbacks});
+        flush();
+
+        dock.setBrush({kind: 'grade', classes: [4]});
+        flush();
+        // Only the street whose steepest stretch is over 12.5%; the legend is told so its rows stay in step.
+        expect(lastBrush()).toEqual(new Set([1]));
+        expect(mapView.setGradeSelection).toHaveBeenLastCalledWith([4]);
+        expect(dock.state.brush).toEqual({kind: 'grade', classes: [4]});
+        expect(callbacks.log).toHaveBeenCalledWith('Brush', 'grade=4');
+        expect(document.getElementById('acs-dock-brush').hidden).toBe(false);
+        expect(document.getElementById('acs-dock-brush-text').textContent).toContain('count=1');
+        // The histogram marks no bins under a slope brush: it is not a range over that axis.
+        expect(document.querySelectorAll('.acs-histogram__bin--out')).toHaveLength(0);
+        // The rank list still mutes: every ranked street but the brushed one is outside the brush.
+        const rankRows = [...document.querySelectorAll('.acs-rank__row')];
+        const brushedRows = rankRows.filter((r) => r.dataset.rowId === '1');
+        expect(rankRows.filter((r) => r.classList.contains('acs-rank__row--out')))
+            .toHaveLength(rankRows.length - brushedRows.length);
+
+        // Duplicate classes collapse, and a selection of nothing is no brush at all.
+        dock.setBrush({kind: 'grade', classes: [0, 4, 4]});
+        flush();
+        expect(dock.state.brush).toEqual({kind: 'grade', classes: [0, 4]});
+        dock.setBrush({kind: 'grade', classes: []});
+        flush();
+        expect(dock.state.brush).toBeNull();
+        expect(lastBrush()).toBeNull();
+
+        // A score range takes over, and the legend's rows are released with it.
+        dock.setBrush({kind: 'grade', classes: [4]});
+        dock.setBrush({from: 5, to: 10});
+        flush();
+        expect(dock.state.brush).toEqual({kind: 'score', from: 5, to: 10});
+        expect(mapView.setGradeSelection).toHaveBeenLastCalledWith([]);
+    });
+
+    test('a slope brush is dropped where its classes stop describing the map', () => {
+        const breaks = [1 / 48, 0.05, 1 / 12, 0.125];
+        dock = new window.AccessScoreDock(document.getElementById('acs-dock'), {
+            cityName: 'Fixture City', model, mapView, map, gradeBreaks: breaks, ...callbacks});
+        flush();
+        for (const kind of ['Unit', 'GradeStat', 'ResetAll']) {
+            dock.setBrush({kind: 'grade', classes: [4]}, {log: false});
+            dock.applyChange({kind, final: true});
+            flush();
+            expect(dock.state.brush).toBeNull();
+        }
+        // A score brush is the histogram's and survives a statistic change, which says nothing about score bins.
+        dock.setBrush({from: 5, to: 10}, {log: false});
+        dock.applyChange({kind: 'GradeStat', final: true});
+        flush();
+        expect(dock.state.brush).toEqual({kind: 'score', from: 5, to: 10});
+    });
+
     test('a hover in a view outranks the brush on the map and never drops it', () => {
         dock.setBrush({from: 5, to: 10});
         flush();
@@ -183,14 +254,13 @@ describe('AccessScoreDock', () => {
         document.querySelector('.acs-histogram__bars').dispatchEvent(new MouseEvent('pointerleave'));
         flush();
         expect(lastBrush()).toEqual(idsInBins(5, 10));
-        expect(dock.state.brush).toEqual({from: 5, to: 10});
+        expect(dock.state.brush).toEqual({kind: 'score', from: 5, to: 10});
 
-        // A rank row's hover dims to its streets and marks the row.
-        const rows = document.querySelectorAll('.acs-rank__row');
-        const other = Array.from(rows).find((r) => r.dataset.regionId === '2');
-        other.dispatchEvent(new MouseEvent('pointerover', {bubbles: true}));
+        // A rank row's hover dims to what the row is — here a street — and marks the row.
+        const row = document.querySelectorAll('.acs-rank__row')[1];
+        row.dispatchEvent(new MouseEvent('pointerover', {bubbles: true}));
         flush();
-        expect(lastBrush()).toEqual(model.regionStreetIds(2));
+        expect(lastBrush()).toEqual([Number(row.dataset.rowId)]);
         expect(document.querySelector('.acs-histogram__caret--hover').hidden).toBe(false);
     });
 
@@ -216,7 +286,6 @@ describe('AccessScoreDock', () => {
         fetchMock.mockClear();
         dock.setSelection({unit: 'streets', id: lastId});
         flush();
-        expect(document.querySelector('.acs-rank__row[aria-current="true"]').dataset.regionId).toBe('2');
         // What's here narrows to the street; the strip reads its region's feed, filtered to the street.
         expect(document.querySelector('.acs-whats-here__caption').textContent).toBe(`scope-street id=${lastId}`);
         const counted = model.clusterBreakdown({streetIds: new Set([lastId])});
@@ -239,8 +308,8 @@ describe('AccessScoreDock', () => {
         expect(document.querySelector('.acs-dock__strip-caret').hidden).toBe(false);
         // The map fades everything outside the selected street's region.
         expect(lastBrush()).toEqual(model.regionStreetIds(2));
-        // The rank list is never reduced to the selection: it is where the region sits among the others.
-        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(2);
+        // The rank list is never reduced to the selection: it is where a street sits among the others.
+        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(window.AccessScoreModel.RANK_LIMIT);
 
         // A brush outranks the selection on the map; clearing it hands the map back to the selection.
         dock.setBrush({from: 5, to: 10});
@@ -272,7 +341,7 @@ describe('AccessScoreDock', () => {
     test('carries a URL state and reports state changes for the URL', () => {
         dock.applyUrlState({open: false, brush: {from: 2, to: 4}});
         flush();
-        expect(dock.state).toEqual({open: false, brush: {from: 2, to: 4}, focus: null});
+        expect(dock.state).toEqual({open: false, brush: {kind: 'score', from: 2, to: 4}, focus: null});
         expect(document.getElementById('acs-dock').classList.contains('acs-dock--collapsed')).toBe(true);
         expect(document.getElementById('acs-dock-body').hidden).toBe(true);
         expect(document.getElementById('acs-dock-toggle').getAttribute('aria-expanded')).toBe('false');
@@ -284,20 +353,24 @@ describe('AccessScoreDock', () => {
         expect(callbacks.log).toHaveBeenCalledWith('Dock', 'open');
     });
 
-    test('a rank row focuses its region as the band\'s scope in the streets unit, until the map or a reset says otherwise', async () => {
+    test('a rank row focuses its region as the band\'s scope, until the map or a reset says otherwise', async () => {
         // The rows only read: no type is a switch for the map's dots.
         expect(document.querySelector('.acs-whats-here__row button')).toBeNull();
+        // The neighborhoods unit is where a rank row is a region; the streets unit ranks streets (#5223).
+        model.setState({unit: 'regions'});
+        dock.applyChange({kind: 'Unit', final: true});
+        flush();
         const second = document.querySelectorAll('.acs-rank__row')[1];
-        const regionId = Number(second.dataset.regionId);
+        const regionId = Number(second.dataset.rowId);
         const name = REGIONS.find((r) => r.region_id === regionId).name;
         second.click();
         flush();
         await settle();
         expect(callbacks.log).toHaveBeenCalledWith('RankSelect_regionId', regionId);
-        expect(callbacks.onRankSelect).toHaveBeenCalledWith(regionId);
+        expect(callbacks.onRankSelect).toHaveBeenCalledWith({unit: 'regions', id: regionId});
         expect(dock.state.focus).toBe(regionId);
         expect(callbacks.onStateChange).toHaveBeenCalled();
-        expect(document.querySelector('.acs-rank__row[aria-current="true"]').dataset.regionId).toBe(String(regionId));
+        expect(document.querySelector('.acs-rank__row[aria-current="true"]').dataset.rowId).toBe(String(regionId));
         expect(document.querySelector('.acs-whats-here__caption').textContent).toBe(`scope-region name=${name}`);
         expect(document.querySelector('.acs-photos__caption').textContent).toBe(`photos-from scope=${name}`);
         expect(fetchMock.mock.calls.some(([u]) => String(u).includes(`regionId=${regionId}`))).toBe(true);
@@ -319,6 +392,57 @@ describe('AccessScoreDock', () => {
         dock.applyChange({kind: 'ResetAll', final: true});
         flush();
         expect(dock.state.focus).toBeNull();
+    });
+
+    test('the streets unit ranks one end of the street leaderboard, with a toggle to the other (#5223)', () => {
+        const limit = window.AccessScoreModel.RANK_LIMIT;
+        const order = document.getElementById('acs-rank-order');
+        const scores = () => [...document.querySelectorAll('.acs-rank__row')]
+            .map((r) => model.explainStreet(Number(r.dataset.rowId)).score);
+
+        expect(document.getElementById('acs-dock-rank-title').textContent).toBe('chart-rank-streets');
+        expect(order.hidden).toBe(false);
+        expect(order.textContent).toBe(`rank-show-worst n=${limit}`);
+        // Best first, and the whole list is the best of the city: no street outside it outscores one inside it.
+        const best = scores();
+        expect(best).toEqual([...best].sort((a, b) => b - a));
+        const ranked = new Set([...document.querySelectorAll('.acs-rank__row')].map((r) => Number(r.dataset.rowId)));
+        const outside = model.streetIds.filter((id) => !ranked.has(id)).map((id) => model.explainStreet(id).score);
+        expect(Math.max(...outside)).toBeLessThanOrEqual(Math.min(...best));
+        expect(document.querySelector('.acs-rank__note').textContent)
+            .toBe(`rank-streets-best shown=${limit} total=${model.streetCount}`);
+
+        // The toggle turns the list around: the worst streets, worst first, and the wording swaps with it.
+        order.click();
+        flush();
+        expect(callbacks.log).toHaveBeenCalledWith('RankOrder', 'worst');
+        expect(order.textContent).toBe(`rank-show-best n=${limit}`);
+        const worst = scores();
+        expect(worst).toEqual([...worst].sort((a, b) => a - b));
+        expect(worst[0]).toBeLessThan(best[0]);
+        expect(document.querySelector('.acs-rank__note').textContent)
+            .toBe(`rank-streets-worst shown=${limit} total=${model.streetCount}`);
+
+        // A row is the street itself: it logs as one, hands the page the street to select, and is marked when the
+        // selection comes back from the map.
+        const row = document.querySelectorAll('.acs-rank__row')[0];
+        const streetId = Number(row.dataset.rowId);
+        row.click();
+        expect(callbacks.log).toHaveBeenCalledWith('RankSelect_streetId', streetId);
+        expect(callbacks.onRankSelect).toHaveBeenCalledWith({unit: 'streets', id: streetId});
+        // A street row is a map selection, not the band's own focus, so nothing is focused before the map answers.
+        expect(dock.state.focus).toBeNull();
+        dock.setSelection({unit: 'streets', id: streetId});
+        flush();
+        expect(document.querySelector('.acs-rank__row[aria-current="true"]').dataset.rowId).toBe(String(streetId));
+
+        // The neighborhoods unit has tens of rows, not a leaderboard, so the toggle goes away with them.
+        model.setState({unit: 'regions'});
+        dock.applyChange({kind: 'Unit', final: true});
+        flush();
+        expect(order.hidden).toBe(true);
+        expect(document.getElementById('acs-dock-rank-title').textContent).toBe('chart-rank');
+        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(REGIONS.length);
     });
 
     test('the photo strip shows the region\'s worst clusters first, opens the label card, and ignores a late feed', async () => {
@@ -530,7 +654,7 @@ describe('AccessScoreDock', () => {
             .toBe('photos-from scope=popup-street-named name=Cedar Lane id=1');
     });
 
-    test('a city with one neighborhood drops the rank panel, and the views that talk to it still work', async () => {
+    test('a city with one neighborhood ranks its streets but drops the neighborhoods list', async () => {
         const oneRegion = [REGIONS[0]];
         const features = FIXTURE.streets.map((c, i) => feature(c, i, {region_id: 1}));
         model = new window.AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features},
@@ -539,21 +663,42 @@ describe('AccessScoreDock', () => {
         dock = new window.AccessScoreDock(document.getElementById('acs-dock'), {model, mapView, map,
             config: FIXTURE.config, ...callbacks});
         flush();
-        expect(document.querySelector('.acs-dock__panel--rank')).toBeNull();
-        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(0);
-        expect(document.getElementById('acs-dock-body').classList).toContain('acs-dock__body--no-rank');
+        const panel = document.querySelector('.acs-dock__panel--rank');
+        const body = document.getElementById('acs-dock-body');
+        // The streets leaderboard is a real list in such a city, so the panel opens exactly as anywhere else.
+        expect(panel.hidden).toBe(false);
+        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(window.AccessScoreModel.RANK_LIMIT);
+        expect(body.classList).not.toContain('acs-dock__body--no-rank');
+
+        model.setState({unit: 'regions'});
+        dock.applyChange({kind: 'Unit', final: true});
+        flush();
+        expect(panel.hidden).toBe(true);
+        expect(body.classList).toContain('acs-dock__body--no-rank');
+        // The rest of the band is untouched by the missing column.
         expect(document.querySelectorAll('.acs-histogram__bin')).toHaveLength(10);
         expect(document.querySelectorAll('.acs-whats-here__row')).toHaveLength(FIXTURE.config.scored_types.length);
-        // Every path that marks or clears a rank row, the brushed redraw included, is a no-op rather than a throw.
+        // Every path that marks or clears a rank row, the brushed redraw included, still runs.
         expect(() => {
-            dock.markHover({unit: 'streets', id: 1, score: 0.5});
+            dock.markHover({unit: 'regions', id: 1, score: 0.5});
             dock.markHover(null);
             dock.setBrush({from: 2, to: 5}, {final: true});
             flush();
             dock.setBrush(null, {final: true});
             flush();
         }).not.toThrow();
+        expect(panel.hidden).toBe(true);
+
+        // The panel is out for the unit, not for the city, so the switch back brings it and its list.
+        model.setState({unit: 'streets'});
+        dock.applyChange({kind: 'Unit', final: true});
+        flush();
+        expect(panel.hidden).toBe(false);
+        expect(body.classList).not.toContain('acs-dock__body--no-rank');
+        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(window.AccessScoreModel.RANK_LIMIT);
+
         await settle();
+        // "(lowest scoring)" is a comparison, so one neighborhood is captioned by its name alone.
         expect(document.querySelector('.acs-photos__caption').textContent).toBe('photos-from scope=Fixture');
     });
 });

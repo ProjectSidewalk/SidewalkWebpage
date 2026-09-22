@@ -19,3 +19,8 @@ geopandas==1.1.4
 pyogrio==0.13.0
 # osmnx imports scipy unconditionally; pinned so pip can't resolve to a build mismatched with the numpy it picks.
 scipy==1.17.1
+
+# street_gradient.py's raster stack. The rasterio wheel bundles its own GDAL, so nothing is needed from the OS. pyproj
+# already arrives with geopandas and is pinned here because the script imports it directly.
+rasterio==1.5.1
+pyproj==3.8.0

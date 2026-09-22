@@ -13,7 +13,8 @@
 //      we only flag keys that don't exist in the reference at all (typos / stale keys), never missing keys.
 //
 // The `en` locale is the reference. Full locales are compared for exact key parity; override-only files are compared
-// as subsets. Every file, reference included, is also checked for values that aren't a non-empty string. Exits
+// as subsets. Every file, reference included, is also checked for values that aren't a non-empty string, and every
+// translated value for `{{placeholders}}` its reference key never supplies, which i18next would print raw. Exits
 // non-zero (and prints the offending files/keys) if anything is found, so it can gate CI.
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -70,6 +71,48 @@ function normalizedKeySet(parsed) {
 
 // The reference's key sets are compared against once per locale file, so parse each namespace once rather than 63x.
 const referenceKeysByNamespace = new Map();
+const referencePlaceholdersByNamespace = new Map();
+
+// `{{name}}` or `{{name, format(...)}}`; the name is what the caller passes, so it is all that has to match.
+const PLACEHOLDER = /\{\{\s*([\w.]+)/g;
+
+/**
+ * Every leaf value of a translation object, keyed by its dotted path.
+ *
+ * @param {object} obj - Parsed translation JSON (or a nested sub-object).
+ * @param {string} [prefix] - Accumulated dotted path prefix for recursion.
+ * @returns {Array<[string, string]>} [path, value] pairs for every string leaf.
+ */
+function leafEntries(obj, prefix = '') {
+    return Object.entries(obj).flatMap(([key, value]) => {
+        if (value && typeof value === 'object' && !Array.isArray(value)) return leafEntries(value, `${prefix}${key}.`);
+        return typeof value === 'string' ? [[`${prefix}${key}`, value]] : [];
+    });
+}
+
+/** @returns {Set<string>} The placeholder names a translation string interpolates. */
+function placeholders(value) {
+    return new Set([...value.matchAll(PLACEHOLDER)].map(match => match[1]));
+}
+
+/**
+ * The placeholders the reference supplies for each normalized key of a base namespace: the union over its plural
+ * forms, since `_one` may leave out a `{{count}}` that `_other` uses and a translation may use either.
+ *
+ * @returns {Map<string, Set<string>>} Normalized key to placeholder names.
+ */
+function referencePlaceholders(baseNamespace) {
+    if (!referencePlaceholdersByNamespace.has(baseNamespace)) {
+        const parsed = readTranslations(join(LOCALES_DIR, REFERENCE_LOCALE, `${baseNamespace}.json`));
+        const byKey = new Map();
+        for (const [path, value] of parsed ? leafEntries(parsed) : []) {
+            const key = path.replace(PLURAL_SUFFIX, '');
+            byKey.set(key, new Set([...(byKey.get(key) ?? []), ...placeholders(value)]));
+        }
+        referencePlaceholdersByNamespace.set(baseNamespace, byKey);
+    }
+    return referencePlaceholdersByNamespace.get(baseNamespace);
+}
 
 /** @returns {Set<string>} The reference locale's normalized keys for a base namespace. */
 function referenceKeySet(baseNamespace) {
@@ -142,13 +185,21 @@ for (const locale of locales) {
             const localeKeys = normalizedKeySet(parsed);
 
             problem.unknown = [...localeKeys].filter(key => !referenceKeys.has(key));
+            // A placeholder the caller never passes: i18next leaves it as literal `{{name}}` text on screen.
+            const supplied = referencePlaceholders(baseNamespace);
+            problem.strayPlaceholders = (parsed ? leafEntries(parsed) : []).flatMap(([path, value]) => {
+                const allowed = supplied.get(path.replace(PLURAL_SUFFIX, ''));
+                return allowed ? [...placeholders(value)].filter(name => !allowed.has(name)).map(name => `${path} {{${name}}}`)
+                    : [];
+            });
             // Override-only: only unknown/typo'd keys are errors; missing keys are the intended fallback behavior.
             if (!isOverrideOnlyLocale && !isCityOverlay) {
                 problem.missing = [...referenceKeys].filter(key => !localeKeys.has(key));
             }
         }
 
-        if (problem.unusable?.length || problem.missing?.length || problem.unknown?.length) problems.push(problem);
+        if (problem.unusable?.length || problem.missing?.length || problem.unknown?.length
+            || problem.strayPlaceholders?.length) problems.push(problem);
     }
 
     // Full locales must carry every base namespace file; a whole missing file is drift the per-file loop can't see.
@@ -167,7 +218,7 @@ if (problems.length === 0) {
 }
 
 console.error(`Locale checks failed (${problems.length} problem(s), reference locale '${REFERENCE_LOCALE}'):\n`);
-for (const { file, missingFile, missing, unknown, unusable } of problems) {
+for (const { file, missingFile, missing, unknown, unusable, strayPlaceholders } of problems) {
     if (missingFile) {
         console.error(`  ${file}\n    - entire namespace file is missing`);
         continue;
@@ -185,6 +236,11 @@ for (const { file, missingFile, missing, unknown, unusable } of problems) {
         const shown = unknown.slice(0, 10).join(', ');
         const more = unknown.length > 10 ? ', ...' : '';
         console.error(`    - ${unknown.length} unknown key(s) not in reference: ${shown}${more}`);
+    }
+    if (strayPlaceholders?.length) {
+        const shown = strayPlaceholders.slice(0, 10).join(', ');
+        const more = strayPlaceholders.length > 10 ? ', ...' : '';
+        console.error(`    - ${strayPlaceholders.length} placeholder(s) the reference never supplies: ${shown}${more}`);
     }
 }
 process.exit(1);

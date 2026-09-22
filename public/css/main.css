@@ -164,6 +164,25 @@
   --color-score-ramp-dark-4: var(--color-jade-500);
   --color-score-ramp-dark-5: var(--color-jade-300);
 
+  /* Street slope classes, gentlest → steepest (#5223), read through AccessScoreGradeRamp. A single blue hue that only
+     darkens, so it cannot be taken for the score ramp it replaces on the map, and so the order survives any color
+     vision deficiency on lightness alone. Step 1 is 2.1:1 on the basemap on purpose: a level street should recede.
+     The top two steps are close (asphalt-400 / -600), which is why every class also travels as text (legend rows,
+     tooltip, popup). */
+  --color-grade-ramp-1: var(--color-blue-500);
+  --color-grade-ramp-2: var(--color-link-100);
+  --color-grade-ramp-3: var(--color-link-200);
+  --color-grade-ramp-4: var(--color-asphalt-400);
+  --color-grade-ramp-5: var(--color-asphalt-600);
+
+  /* The same classes on the dark basemap (land #292929), where steeper has to mean lighter: every step is >= 4:1
+     there, from link-100 (4.1:1) up to white. */
+  --color-grade-ramp-dark-1: var(--color-link-100);
+  --color-grade-ramp-dark-2: var(--color-blue-500);
+  --color-grade-ramp-dark-3: var(--color-blue-400);
+  --color-grade-ramp-dark-4: var(--color-blue-300);
+  --color-grade-ramp-dark-5: var(--color-neutral-white);
+
   /* Street audit-state colors. The map layer and the legend swatch both read these, so a swatch can't drift from
      the line it stands for. Unaudited is warm rather than grey: the greys it used to sit in are already spoken for
      by the region outline, the region fill and the basemap's own roads, so the streets most in need of a mapper

@@ -54,7 +54,8 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       body must include(
         "street_edge_id,osm_way_id,street_name,region_id,score,segment_score,start_intersection_id,end_intersection_id," +
           "start_intersection_score,end_intersection_score,audit_count,length_meters,label_count," +
-          "cluster_counts.CurbRamp"
+          "mean_grade,max_grade,net_grade,total_climb_meters,total_descent_meters,meters_over_5pct," +
+          "meters_over_8pct,grade_confidence,grade_quality,dem_source,grade_term,cluster_counts.CurbRamp"
       )
       body must include(
         "sub_scores.NoSidewalk,severity_counts.CurbRamp.1,severity_counts.CurbRamp.2,severity_counts.CurbRamp.3," +
@@ -100,6 +101,20 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
+  "GET /v3/api/streetGrade" should {
+    "answer 404 NOT_FOUND for a street that does not exist" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/streetGrade?streetEdgeId=2147483647")).get
+      status(resp) mustBe NOT_FOUND
+      (contentAsJson(resp) \ "code").as[String] mustBe "NOT_FOUND"
+      (contentAsJson(resp) \ "detail").as[String] must include("No street with id")
+    }
+
+    "answer 400 when streetEdgeId is missing or not an integer" in {
+      status(route(app, FakeRequest(GET, "/v3/api/streetGrade")).get) mustBe BAD_REQUEST
+      status(route(app, FakeRequest(GET, "/v3/api/streetGrade?streetEdgeId=abc")).get) mustBe BAD_REQUEST
+    }
+  }
+
   "GET /v3/api/accessScoreConfig" should {
     "return the engine's configuration with snake_case keys, types in canonical order, and named presets" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/accessScoreConfig")).get
@@ -132,6 +147,36 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val body = contentAsString(resp)
       body must not include "baseWeight"
       body must not include "scoredTypes"
+    }
+
+    "publish the slope limits and the city's elevation-model credits under gradient" in {
+      // The grade layer's breaks and the map's credit line both read these (#5223); a city that has not been sampled
+      // still publishes the limits, with no sources to credit.
+      val json = contentAsJson(route(app, FakeRequest(GET, "/v3/api/accessScoreConfig")).get)
+      (json \ "grade" \ "walking_surface_limit").as[Double] mustBe 0.05
+      (json \ "grade" \ "ramp_limit").as[Double] mustBe (1.0 / 12.0)
+      // Empty on a schema with no gradient rows (CI's), so the array itself is what every run asserts; the shape
+      // of its entries is pinned without a database by StreetGradientApiModelsSpec.
+      val sources = (json \ "grade" \ "sources").as[Seq[JsObject]]
+      sources.foreach { source =>
+        (source \ "dem_source").as[String] must not be empty
+        (source \ "credit").as[String] must not be empty
+        (source \ "street_count").as[Int] must be > 0
+      }
+    }
+
+    "publish the engine's slope settings, which are the ones the served scores were computed under" in {
+      val slope = contentAsJson(route(app, FakeRequest(GET, "/v3/api/accessScoreConfig")).get) \ "grade_scoring"
+      (slope \ "defaults" \ "weight").as[Double] mustBe 1.0
+      (slope \ "defaults" \ "barrier_enabled").as[Boolean] mustBe false
+      (slope \ "defaults" \ "include_approximate").as[Boolean] mustBe false
+      (slope \ "defaults" \ "statistic").as[String] mustBe "max_grade"
+      (slope \ "defaults" \ "low_threshold").as[Double] mustBe 0.05
+      (slope \ "defaults" \ "high_threshold").as[Double] mustBe (1.0 / 12.0)
+      (slope \ "defaults" \ "barrier_threshold").as[Double] mustBe 0.125
+      (slope \ "statistics").as[Seq[String]] mustBe Seq("mean_grade", "max_grade", "meters_over_limit")
+      (slope \ "weight_range" \ "max").as[Double] must be > 0.0
+      (slope \ "threshold_range" \ "min").as[Double] must be < (slope \ "threshold_range" \ "max").as[Double]
     }
 
     "publish the completion floor the Spotlight and the AccessScore tool both apply" in {

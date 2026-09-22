@@ -166,7 +166,12 @@ and `street_access_score` from the clusters that run just built: one row per reg
 a score history) and one row per OSM way per region, replaced each run. The landing page and `/cities` read only
 those two tables, which is what makes a ranked AccessScore safe to put on a page nobody waits for. Like the
 intersection rebuild it records its own run and is recovered rather than propagated, so a clustering success never
-stands in for a snapshot nobody wrote.
+stands in for a snapshot nobody wrote. The snapshot's computation is the very value `/v3/api/accessScoreStreets` and
+its siblings cache per JVM, so it also seeds that cache (`SwrCache.put`, #5418): on a large city the whole-city
+computation takes longer than the reverse proxy allows a request, so a cold cache — after a deploy, or a city nobody
+opened in two days — would otherwise cost the first visitor a `502`. When the cache is cold anyway, the full-city
+endpoints wait at most 45 s and then answer `503` with `Retry-After: 30` while the computation finishes in the
+background; the AccessScore tool retries on that header and says so under its spinner.
 
 The **places refresh** (#5311) keeps the per-city `place` table current from OpenStreetMap: one Overpass query per
 run over the city's bounds for every tag in the `PlaceCategory` catalog (schools, health care, libraries, grocery,
@@ -189,6 +194,12 @@ table — or the latest one to change the derivation, with a real Down that re-d
 a pasted copy for the one-time population of existing cities, the nightly rebuild re-runs the DAO's copy
 into a temp table and touches only the rows that changed, and a spec (`IntersectionTableSpec`,
 `SidewalkPresenceTableSpec`) runs the evolution's statement and then the rebuild to prove the two copies still agree.
+
+`street_gradient` (399.sql, #5223; read through `StreetGradientTable`) is per-street too but is not one of these: its
+elevations come from rasters the database never sees, so there is no SQL derivation and no nightly rebuild. An offline
+script samples a bare-earth elevation model and a db script upserts the CSV, the way the imagery scan feeds
+`street_imagery`. Staleness is a `geom_md5` comparison the export script makes. See
+[`street-gradient.md`](street-gradient.md).
 
 A job that both the scheduler and an admin can trigger has exactly one definition of its counts — a `runDetails` on
 the job's result type, or next to the actor's `Name` when the result is a bare count — which both call sites pass to
@@ -305,9 +316,12 @@ corresponding Twirl view:
   cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
   coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
   drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and
-  intersections (`AccessScoreWhatsHere.js`); the ranked neighborhoods, dropped altogether in a city that has only one
-  neighborhood, since there is nothing to rank it against; and a photo strip of label crops from the
-  scope's neighborhood feed, ranked worst first with confirmed labels ahead of unchecked ones
+  intersections (`AccessScoreWhatsHere.js`); the rank list, which ranks whichever unit is in force — every
+  neighborhood above the completion floor, or, in the streets unit, the 20 best-scoring streets with a toggle to
+  the 20 worst (`AccessScoreModel#rankedStreets`, #5223) — and which steps out of the band, the other three panels
+  closing over its column, while a city mapped as one neighborhood is in the neighborhoods unit (#5419); and a photo
+  strip of label crops from the scope's neighborhood feed, ranked worst first with confirmed labels ahead of unchecked
+  ones
   (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
   the whole city is the population, a brush emphasizes in the overview views, narrows what's here and dims the
   map, and a selection marks the overview views, scopes what's here and the photos, and fades the rest of the

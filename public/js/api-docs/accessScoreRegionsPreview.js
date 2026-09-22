@@ -59,6 +59,12 @@
         container.innerHTML = '';
         await this.renderMap(container, regions);
       } catch (error) {
+        // The whole-city request is the one that can find a cold cache (#5418); that is a wait, not a failure.
+        if (error.code === 'STILL_COMPUTING') {
+          container.innerHTML = `<div class="map-message" role="status">This city's AccessScores are still being
+            computed on the server. Reload the page in a moment to see the preview.</div>`;
+          return;
+        }
         console.error('Error rendering AccessScore regions preview:', error);
         container.innerHTML = '<div class="map-message" role="alert">Unable to load AccessScore data '
           + 'for the preview.</div>';

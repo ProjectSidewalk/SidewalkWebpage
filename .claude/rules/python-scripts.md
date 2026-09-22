@@ -23,3 +23,5 @@ Full details: `scripts/README.md` and `test/python/README.md`.
   preflight) are the onboarding pair; `tools/setup_new_city.py` orchestrates them with the db scripts. Runbook:
   `docs/onboarding-a-city.md`. Their test files are 3.13-only, so the 3.8 half `--ignore`s them (Makefile + CI matrix
   must agree).
+- `street_gradient.py` fills the `street_gradient` table from a bare-earth elevation model (`docs/street-gradient.md`).
+  Also 3.13-only (rasterio), so it takes the same `--ignore` plus the 3.8 half's third `COVERAGE_OMIT3` slot.
