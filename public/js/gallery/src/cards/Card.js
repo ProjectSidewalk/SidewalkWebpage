@@ -48,6 +48,8 @@ class Card {
     comments: [],
     from_current_user: false,
     can_edit: false,
+    deleted: false,
+    can_restore: false,
   };
 
   // Status to determine if static imagery has been loaded.
@@ -426,6 +428,18 @@ class Card {
   setProperty(key, value) {
     this.#properties[key] = value;
     return this;
+  }
+
+  /**
+   * Fades the card after a delete from the expanded view (#3591) rather than removing it, so paging and the grid hold
+   * until the next load. Remembered in the properties the expanded view is rebuilt from.
+   * @param {boolean} deleted
+   * @param {boolean} canRestore - Whether the viewer may undo it, as the server said.
+   */
+  setDeleted(deleted, canRestore) {
+    this.#properties.deleted = deleted;
+    this.#properties.can_restore = canRestore;
+    this.#card.classList.toggle('gallery-card--deleted', deleted);
   }
 
   /**

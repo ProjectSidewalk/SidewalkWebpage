@@ -4,6 +4,7 @@ import com.google.inject.ImplementedBy
 import formats.json.ExploreFormats._
 import models.audit._
 import models.label.{Tag, _}
+import models.utils.CommonUtils.UiSource
 import models.mission.{Mission, MissionTable, MissionType}
 import models.pano.PanoSource.PanoSource
 import models.pano._
@@ -14,7 +15,7 @@ import models.survey.{SurveyQuestionTable, SurveyQuestionWithOptions}
 import models.user.SidewalkUserTable.aiUserId
 import models.user._
 import models.utils.MyPostgresProfile.api._
-import models.utils.{ConfigTable, MyPostgresProfile, WebpageActivityTable}
+import models.utils.{ConfigTable, IpAddress, MyPostgresProfile, WebpageActivityTable}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point, PrecisionModel}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.{Configuration, Logger}
@@ -154,7 +155,7 @@ trait ExploreService {
    * @param ipAddress IP address of the user submitting the survey.
    * @param data Data submitted from the survey.
    */
-  def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]]
+  def submitSurvey(userId: String, ipAddress: IpAddress, data: Seq[SurveySingleSubmission]): Future[Seq[Int]]
 }
 
 @Singleton
@@ -694,7 +695,8 @@ class ExploreServiceImpl @Inject() (
 
       // Add the new entry to the label table.
       allTags: Seq[Tag] <- labelService.selectAllTags
-      newLabelId: Int   <- labelService.insertLabel(
+      (deletedBy, deletedAt, deletedSource) = LabelDeletion.fields(userId, Option.when(label.deleted)(UiSource.Explore))
+      newLabelId: Int <- labelService.insertLabel(
         Label(
           labelId = 0,
           auditTaskId = auditTaskId,
@@ -713,7 +715,11 @@ class ExploreServiceImpl @Inject() (
           correct = None,
           severity = label.severity,
           description = label.description,
-          tags = label.tagIds.distinct.flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption).toList
+          tags = label.tagIds.distinct.flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption).toList,
+          // A label removed before its first save arrives already deleted.
+          deletedBy = deletedBy,
+          deletedAt = deletedAt,
+          deletedSource = deletedSource
         )
       )
 
@@ -1064,7 +1070,7 @@ class ExploreServiceImpl @Inject() (
     })
   }
 
-  def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]] = {
+  def submitSurvey(userId: String, ipAddress: IpAddress, data: Seq[SurveySingleSubmission]): Future[Seq[Int]] = {
     db.run((for {
       numMissionsCompleted: Int <- missionTable
         .countCompletedMissions(userId, includeOnboarding = false, includeSkipped = true)

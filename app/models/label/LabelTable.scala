@@ -25,6 +25,8 @@ import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTableDef}
 import models.user._
 import models.utils.MyPostgresProfile.api._
+import models.utils.CommonUtils.UiSource
+import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.{ConfigTableDef, LatLngBBox, MyPostgresProfile}
 import models.validation.{
   LabelValidationTableDef,
@@ -63,8 +65,26 @@ case class Label(
     correct: Option[Boolean],
     severity: Option[Int],
     description: Option[String],
-    tags: List[String]
+    tags: List[String],
+    deletedBy: Option[String] = None,
+    deletedAt: Option[OffsetDateTime] = None,
+    deletedSource: Option[UiSource] = None
 )
+
+/** Who deleted a label, when, and from which page; the DB CHECK ties all three to `deleted` (#3591). */
+object LabelDeletion {
+
+  /** The provenance values for a delete happening now, or all empty for a live label. */
+  def fields(userId: String, deleteFrom: Option[UiSource]): (Option[String], Option[OffsetDateTime], Option[UiSource]) =
+    deleteFrom match {
+      case Some(source) => (Some(userId), Some(OffsetDateTime.now), Some(source))
+      case None         => (None, None, None)
+    }
+
+  /** Who may undo a delete: whoever did it, or an admin. One rule for the endpoints, the card, and the DB write. */
+  def canRestore(deleted: Boolean, deletedBy: Option[String], user: Option[SidewalkUserWithRole]): Boolean =
+    deleted && user.exists(u => Role.ADMIN_ROLES.contains(u.role) || deletedBy.contains(u.userId))
+}
 
 case class LabelValidationInfo(
     agreeCount: Int,
@@ -224,7 +244,9 @@ case class LabelMetadata(
     expired: Boolean,
     fromCurrentUser: Boolean,
     panoMetadata: Option[PanoViewerMetadata],
-    panoSource: PanoSource
+    panoSource: PanoSource,
+    deleted: Boolean,
+    deletedBy: Option[String]
 )
 
 /**
@@ -320,26 +342,35 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def deleted: Rep[Boolean]      = column[Boolean]("deleted", O.Default(false))
   def temporaryLabelId: Rep[Int] = column[Int]("temporary_label_id")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
-  def timeCreated: Rep[OffsetDateTime] = column[OffsetDateTime]("time_created")
-  def tutorial: Rep[Boolean]           = column[Boolean]("tutorial", O.Default(false))
-  def streetEdgeId: Rep[Int]           = column[Int]("street_edge_id")
-  def agreeCount: Rep[Int]             = column[Int]("agree_count", O.Default(0))
-  def disagreeCount: Rep[Int]          = column[Int]("disagree_count", O.Default(0))
-  def unsureCount: Rep[Int]            = column[Int]("unsure_count", O.Default(0))
-  def correct: Rep[Option[Boolean]]    = column[Option[Boolean]]("correct")
-  def severity: Rep[Option[Int]]       = column[Option[Int]]("severity")
-  def description: Rep[Option[String]] = column[Option[String]]("description")
-  def tags: Rep[List[String]]          = column[List[String]]("tags", O.Default(List()))
+  def timeCreated: Rep[OffsetDateTime]       = column[OffsetDateTime]("time_created")
+  def tutorial: Rep[Boolean]                 = column[Boolean]("tutorial", O.Default(false))
+  def streetEdgeId: Rep[Int]                 = column[Int]("street_edge_id")
+  def agreeCount: Rep[Int]                   = column[Int]("agree_count", O.Default(0))
+  def disagreeCount: Rep[Int]                = column[Int]("disagree_count", O.Default(0))
+  def unsureCount: Rep[Int]                  = column[Int]("unsure_count", O.Default(0))
+  def correct: Rep[Option[Boolean]]          = column[Option[Boolean]]("correct")
+  def severity: Rep[Option[Int]]             = column[Option[Int]]("severity")
+  def description: Rep[Option[String]]       = column[Option[String]]("description")
+  def tags: Rep[List[String]]                = column[List[String]]("tags", O.Default(List()))
+  def deletedBy: Rep[Option[String]]         = column[Option[String]]("deleted_by")
+  def deletedAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("deleted_at")
+  def deletedSource: Rep[Option[UiSource]]   = column[Option[UiSource]]("deleted_source")
 
   def * = (labelId, auditTaskId, missionId, userId, panoId, labelType, deleted, temporaryLabelId, timeCreated, tutorial,
-    streetEdgeId, agreeCount, disagreeCount, unsureCount, correct, severity, description, tags) <> (
+    streetEdgeId, agreeCount, disagreeCount, unsureCount, correct, severity, description, tags, deletedBy, deletedAt,
+    deletedSource) <> (
     (Label.apply _).tupled,
     Label.unapply
   )
 
-  def auditTask  = foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
-  def mission    = foreignKey("label_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
-  def user       = foreignKey("label_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  /** The `deleted` flag with its provenance, which the DB CHECK makes change together. */
+  def deletion = (deleted, deletedBy, deletedAt, deletedSource)
+
+  def auditTask     = foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
+  def mission       = foreignKey("label_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
+  def user          = foreignKey("label_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def deletedByUser =
+    foreignKey("label_deleted_by_fkey", deletedBy, TableQuery[SidewalkUserTableDef])(_.userId.?)
   def streetEdge =
     foreignKey("label_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
   def panoData = foreignKey("label_pano_id_fkey", panoId, TableQuery[PanoDataTableDef])(_.panoId)
@@ -349,6 +380,19 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
  * Companion object with constants and types that are shared throughout codebase.
  */
 object LabelTable {
+
+  /**
+   * Whether a `label` row counts toward its labeler's accuracy (#3591). A deleted label counts only when it was deleted
+   * outside Explore (where the user never saw a verdict) and judged incorrect, so deleting can never raise accuracy.
+   */
+  val countsTowardAccuracySql: String =
+    "(NOT label.deleted OR (label.deleted_source <> 'Explore' AND label.correct = FALSE))"
+
+  /** [[countsTowardAccuracySql]] for Slick queries. */
+  def countsTowardAccuracy(label: LabelTableDef): Rep[Boolean] =
+    !label.deleted ||
+      (label.deletedSource.map(_ =!= UiSource.Explore).getOrElse(false) && !label.correct.getOrElse(true))
+
   // Define a type class for converting tuples to instances of a case class.
   trait TupleConverter[Tuple, A] {
     def fromTuple(tuple: Tuple): A
@@ -887,7 +931,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           r.nextStringOption()  // address
         )
       ),
-      PanoSource.withName(r.nextString())
+      PanoSource.withName(r.nextString()),
+      r.nextBoolean(),
+      r.nextStringOption()
     )
   }
 
@@ -1295,7 +1341,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              pano_data.copyright,
              pano_data.license,
              pano_data.address,
-             pano_data.source
+             pano_data.source,
+             lb1.deleted,
+             lb1.deleted_by
       FROM label AS lb1
       INNER JOIN pano_data ON lb1.pano_id = pano_data.pano_id
       INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id

@@ -78,6 +78,7 @@ class LabelDetail {
   #currUsername;
   #onVote;
   #onEdit;
+  #onDelete;
   #panoOverlaySource;
   #voteColumnSource;
   #showLabelMapLink;
@@ -96,6 +97,9 @@ class LabelDetail {
   #source = undefined;      // Set in showLabel().
   #readonly = false;        // Set per-label in #handleData() based on meta.from_current_user.
   #canEdit = false;         // Set per-label in #handleData() from meta.can_edit (#2575).
+  #deleted = false;         // Set per-label in #handleData() from meta.deleted (#3591).
+  #canRestore = false;      // Set per-label in #handleData() from meta.can_restore (#3591).
+  #deletedHere = false;     // A delete made from this card, until another label shows: what Ctrl+Z undoes.
   #tagEditor;
   /** @type {?LabelTypePicker} Null on a host whose markup has no picker. */
   #typePicker = null;
@@ -153,6 +157,8 @@ class LabelDetail {
    * @param {(meta: Record<string, any>) => void} [opts.onEdit] - Fired with the updated metadata after an edit to
    *      the label's type, severity or tags is saved (#2575, #3671), so hosts that cache label data (Gallery's
    *      cards, the LabelMap's layers) can stay in sync.
+   * @param {(meta: Record<string, any>) => void} [opts.onDelete] - Fired after a delete or restore from the card
+   *      (#3591), `meta.deleted` saying which, so a host that draws the label itself can sync its marker.
    * @param {string} [opts.panoOverlaySource] - Source recorded when voting via the pano overlay buttons.
    * @param {string} [opts.voteColumnSource] - Source recorded when voting via the column vote buttons.
    * @param {boolean} [opts.showLabelMapLink] - Show a footer link to this label on /labelMap (for hosts that
@@ -174,6 +180,7 @@ class LabelDetail {
     this.#currUsername = opts.currUsername;
     this.#onVote = opts.onVote;
     this.#onEdit = opts.onEdit;
+    this.#onDelete = opts.onDelete;
     this.#panoOverlaySource = opts.panoOverlaySource;
     this.#voteColumnSource = opts.voteColumnSource;
     this.#showLabelMapLink = !!opts.showLabelMapLink;
@@ -355,8 +362,7 @@ class LabelDetail {
    *     paths are logged under different event names (`KeyboardShortcut_…` vs `Click_…`) so they stay countable
    *     apart, which is the convention every other tool's tracker follows.
    */
-  #logAction(action, viaKeyboard = false) {
-    const labelId = this.#currentLabelMeta?.label_id;
+  #logAction(action, viaKeyboard = false, labelId = this.#currentLabelMeta?.label_id) {
     window.logWebpageActivity(
       `${viaKeyboard ? 'KeyboardShortcut' : 'Click'}_module=LabelDetail_action=${action}_labelId=${labelId}`,
     );
@@ -408,6 +414,9 @@ class LabelDetail {
     els.hideLabelButton = this.#q('.label-detail__hide-label');
     els.labelMapLink = this.#q('.label-detail__labelmap-link');
     els.exploreHereLink = this.#q('.label-detail__explore-link');
+    els.deleteButton = this.#q('.label-detail__delete');
+    els.restoreButton = this.#q('.label-detail__restore');
+    els.deletedNotice = this.#q('.label-detail__deleted-notice');
     els.commentRow = this.#q('.label-detail__comment-row');
     els.commentLabel = this.#q('.label-detail__comment-row label');
     els.commentInput = this.#q('.label-detail__comment-input');
@@ -478,6 +487,9 @@ class LabelDetail {
     if (els.exploreHereLink) {
       els.exploreHereLink.addEventListener('click', () => this.#logAction('ExploreHere'));
     }
+    if (els.deleteButton) els.deleteButton.addEventListener('click', () => this.#deleteLabel());
+    // `detail` 0 is the keyboard (Ctrl+Z, or Enter/Space on the button), logged apart from a click.
+    if (els.restoreButton) els.restoreButton.addEventListener('click', (e) => this.#restoreLabel(e.detail === 0));
     // The three vote controls are toggles: clicking the one you already picked clears your vote (#4653). There's no
     // separate "clear" affordance — a dedicated control would cost card space for a rare action (Mikey, #4653).
     // buttonSource overrides #source for this specific button group; falls back to #source if null.
@@ -630,7 +642,7 @@ class LabelDetail {
    */
   #handleShortcut(e) {
     if (LabelDetail.#isUndoChord(e)) {
-      this.#pressTypeUndo(e);
+      this.#pressUndo(e);
       return;
     }
     if (!this.#ownsKeyboard(e)) return;
@@ -670,11 +682,15 @@ class LabelDetail {
   }
 
   /**
-   * Presses the status line's Undo while it is up (#3671). Otherwise the chord is the page's, and a text field's.
+   * Presses the Undo on screen: the type-change status line's (#3671), else Restore for a delete made from this
+   * card (#3591). Otherwise the chord is the page's, and a text field's.
    * @param {KeyboardEvent} e
    */
-  #pressTypeUndo(e) {
-    const undo = this.#els.editStatus?.type?.querySelector('.label-detail__edit-status-action');
+  #pressUndo(e) {
+    const typeUndo = this.#els.editStatus?.type?.querySelector('.label-detail__edit-status-action');
+    const restore = this.#els.restoreButton;
+    const restoreUp = this.#deletedHere && restore && !restore.hidden;
+    const undo = restoreUp ? restore : typeUndo;
     const target = e.target instanceof Element ? e.target : null;
     if (!undo || !this.#isShowing || target?.closest('input, textarea, [contenteditable]')) return;
     e.preventDefault();
@@ -795,6 +811,9 @@ class LabelDetail {
     // The server decides who may edit (the labeler and admins, #2575); the card only mirrors its answer. Settled
     // before the lock is applied, since #applyEditLock() reads it.
     this.#canEdit = !!meta.can_edit;
+    this.#deleted = !!meta.deleted;
+    this.#canRestore = !!meta.can_restore;
+    this.#deletedHere = false;
     if (this.#tagEditor.isOpen) this.#tagEditor.close(); // Paging away abandons an unfinished tag pick.
     this.#applyInteractionLock();
 
@@ -1450,12 +1469,12 @@ class LabelDetail {
   }
 
   /**
-   * Whether validating/commenting is blocked for the current label — the viewer's own label or no available imagery.
-   * navigable imagery is available for it.
+   * Whether validating/commenting is blocked for the current label: the viewer's own label, no available imagery,
+   * or a label that has been deleted (#3591).
    * @returns {boolean}
    */
   get #locked() {
-    return this.#readonly || this.#noImagery;
+    return this.#readonly || this.#noImagery || this.#deleted;
   }
 
   /**
@@ -1480,6 +1499,7 @@ class LabelDetail {
    * @returns {?string}
    */
   #lockReason() {
+    if (this.#deleted) return i18next.t('labelmap:deleted-label-disabled');
     if (this.#readonly) return i18next.t('labelmap:own-label-disabled');
     if (this.#noImagery) return i18next.t('labelmap:no-imagery-disabled');
     return null;
@@ -1492,11 +1512,12 @@ class LabelDetail {
    * The imagery half is deliberately not #locked, because the two locks don't line up (#5047). On the viewer's own
    * label validating is off but editing stays on — they're its labeler, and re-rating your own label is the point.
    * No imagery blocks both: rating a label or picking tags for it from nothing is the same problem as validating it
-   * from nothing. The static-crop fallback counts as imagery, so this only bites when nothing loaded at all.
+   * from nothing. The static-crop fallback counts as imagery, so this only bites when nothing loaded at all. A
+   * deleted label is off limits too, until it is restored (#3591).
    * @returns {boolean}
    */
   get #editingAllowed() {
-    return this.#canEdit && !this.#noImagery;
+    return this.#canEdit && !this.#noImagery && !this.#deleted;
   }
 
   /**
@@ -1519,7 +1540,9 @@ class LabelDetail {
    * @returns {?string}
    */
   #editLockReason() {
-    return this.#canEdit && this.#noImagery ? i18next.t('labelmap:no-imagery-edit-disabled') : null;
+    if (!this.#canEdit) return null;
+    if (this.#deleted) return i18next.t('labelmap:deleted-label-disabled');
+    return this.#noImagery ? i18next.t('labelmap:no-imagery-edit-disabled') : null;
   }
 
   /**
@@ -1539,7 +1562,7 @@ class LabelDetail {
     // Your own label is never going to be validatable by you, so the overlay goes away rather than sitting there
     // greyed across the imagery (#5047). Every other lock keeps the buttons: those are states that pass, and a
     // disabled control that explains itself is the thing that tells you to come back.
-    if (els.panoOverlay) els.panoOverlay.hidden = this.#readonly;
+    if (els.panoOverlay) els.panoOverlay.hidden = this.#readonly || this.#deleted;
     for (const btn of Object.values(els.panoOverlayButtons)) btn.disabled = blocked;
     for (const btn of Object.values(els.voteButtons)) btn.disabled = blocked;
 
@@ -1557,6 +1580,112 @@ class LabelDetail {
     // leaves it in place and just disables it, since it's about to be usable again.
     this.#updateCommentRow();
     this.#applyEditLock(); // Imagery availability drives both locks, so they always settle together.
+    this.#applyDeletedState();
+  }
+
+  /** Draws the deleted state (#3591); the card stays open so the undo is right where the eye lands. */
+  #applyDeletedState() {
+    const els = this.#els;
+    const deleted = this.#deleted;
+    this.#root.classList.toggle('label-detail--deleted', deleted);
+    if (els.deletedNotice) {
+      els.deletedNotice.hidden = !deleted;
+      const text = els.deletedNotice.querySelector('.label-detail__deleted-notice-text');
+      const key = this.#deletedHere ? 'labelmap:you-deleted-label' : 'labelmap:label-was-deleted';
+      if (text) text.textContent = deleted ? i18next.t(key) : '';
+    }
+    // Delete follows the edit lock: inert without imagery, with the reason on hover, like the other edit controls.
+    if (els.deleteButton) {
+      els.deleteButton.hidden = !this.#canEdit || deleted;
+      els.deleteButton.setAttribute('aria-disabled', String(!this.#editingAllowed));
+      LabelDetail.#setTooltip(els.deleteButton, this.#editLockReason() ?? i18next.t('labelmap:delete-label'));
+    }
+    if (els.restoreButton) els.restoreButton.hidden = !deleted || !this.#canRestore;
+  }
+
+  /**
+   * Deletes the label after a confirm (#3591); an admin deleting someone else's is told their Disagree goes with it.
+   */
+  async #deleteLabel() {
+    const meta = this.#currentLabelMeta;
+    if (!meta || !this.#editingEnabled) return;
+    const asAdmin = !meta.from_current_user;
+    const confirmed = await ConfirmDialog.confirm({
+      message: i18next.t(asAdmin ? 'labelmap:delete-label-confirm-admin' : 'labelmap:delete-label-confirm'),
+      confirmText: i18next.t('labelmap:delete-label'),
+      cancelText: i18next.t('common:cancel'),
+      danger: true,
+      confirmIconSrc: util.assetPath('images/icons/trash-2-white-feather.svg'),
+    });
+    // Paging isn't blocked by the confirm; a newer label's card must not be told this one was deleted.
+    if (!confirmed || this.#currentLabelMeta !== meta) return;
+    try {
+      const url = `/label/${meta.label_id}?source=${encodeURIComponent(this.#source)}`;
+      const res = await util.lazyIdentityFetch(url, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const state = await res.json();
+      // An admin's delete files their Disagree with it, which only the server can count.
+      if (asAdmin && this.#currentLabelMeta === meta) await this.#refreshVotes(meta);
+      this.#logAction('DeleteLabel', false, meta.label_id);
+      if (!this.#setDeleted(meta, true, !!state.can_restore, true)) return;
+      // Delete had focus and just hid; Restore is where the next move is.
+      this.#els.restoreButton?.focus();
+    } catch (err) {
+      console.error(err);
+      if (this.#currentLabelMeta !== meta) return;
+      // They confirmed a destructive action in a modal; silence here is indistinguishable from it having worked.
+      this.#showEditStatus(i18next.t('labelmap:edit-failed-short'), {
+        columns: ['type'], error: true, detail: i18next.t('labelmap:delete-label-failed'),
+      });
+    }
+  }
+
+  /**
+   * Undoes a delete (#3591).
+   * @param {boolean} [viaKeyboard=false] - Logged apart from a click.
+   */
+  async #restoreLabel(viaKeyboard = false) {
+    const meta = this.#currentLabelMeta;
+    if (!meta || !this.#deleted || !this.#canRestore) return;
+    const undo = this.#deletedHere;
+    try {
+      const res = await util.lazyIdentityFetch(`/label/${meta.label_id}/restore`, { method: 'POST' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      this.#logAction(`RestoreLabel${undo ? '_undo=true' : ''}`, viaKeyboard, meta.label_id);
+      // Read before Restore hides: the browser only moves focus off a hidden element at its next render.
+      const hadFocus = document.activeElement === this.#els.restoreButton;
+      if (!this.#setDeleted(meta, false, false, false)) return;
+      // Only a Restore that had focus hands it to Delete; a Ctrl+Z from elsewhere leaves focus alone.
+      if (hadFocus) this.#els.deleteButton?.focus();
+    } catch (err) {
+      console.error(err);
+      if (this.#currentLabelMeta !== meta) return;
+      this.#showEditStatus(i18next.t('labelmap:edit-failed-short'), {
+        columns: ['type'], error: true, detail: i18next.t('labelmap:restore-label-failed'),
+      });
+    }
+  }
+
+  /**
+   * Records the deleted state and tells the host, then redraws the card if that label is still the one on screen.
+   * @param {Record<string, any>} meta - Updated in place.
+   * @param {boolean} deleted
+   * @param {boolean} canRestore - The server's say; a delete can find that an admin got there first.
+   * @param {boolean} viaThisCard - A delete just made here is what Ctrl+Z may undo.
+   * @returns {boolean} Whether the card was redrawn.
+   */
+  #setDeleted(meta, deleted, canRestore, viaThisCard) {
+    meta.deleted = deleted;
+    meta.can_restore = canRestore;
+    if (typeof this.#onDelete === 'function') this.#onDelete(meta);
+    if (this.#currentLabelMeta !== meta) return false;
+    this.#deleted = deleted;
+    this.#canRestore = canRestore;
+    this.#deletedHere = deleted && viaThisCard;
+    // A type-change Undo still on screen would now edit a deleted label, which the server refuses.
+    if (deleted) this.#showEditStatus('');
+    this.#applyInteractionLock();
+    return true;
   }
 
   /**
@@ -2261,8 +2390,8 @@ class LabelDetail {
   }
 
   /**
-   * Re-reads the vote counts after a type change: votes on the old type stop counting, which only the server knows.
-   * A failure leaves the counts as they were.
+   * Re-reads the vote counts after a change only the server can count: a type change (votes on the old type stop
+   * counting) or an admin's delete (which files their Disagree, #3591). A failure leaves them as they were.
    * @param {Record<string, any>} meta - The metadata of the label that changed.
    */
   async #refreshVotes(meta) {
@@ -2283,7 +2412,7 @@ class LabelDetail {
       this.#renderVoteCounts();
       this.#renderVoteIcons();
     } catch (err) {
-      console.error('Could not refresh the vote counts after the type change:', err);
+      console.error('Could not refresh the vote counts:', err);
     }
   }
 

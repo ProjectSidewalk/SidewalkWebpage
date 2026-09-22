@@ -5,6 +5,7 @@ import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import models.auth.{DefaultEnv, WithSignedIn}
 import models.user.{SidewalkUserWithRole, UserUtm}
+import models.utils.IpAddress
 import play.api.Configuration
 import play.api.i18n.{Lang, Messages}
 import play.api.mvc._
@@ -34,7 +35,7 @@ class ApplicationController @Inject() (
   def index = cc.securityService.UserAwareAction { implicit request =>
     val user: Option[SidewalkUserWithRole] = request.identity
     val timestamp: OffsetDateTime          = OffsetDateTime.now
-    val ipAddress: String                  = request.ipAddress
+    val ipAddress: IpAddress               = request.ipAddress
     val isMobile: Boolean                  = ControllerUtils.isMobile(request)
     val qString: Map[String, String]       = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
 

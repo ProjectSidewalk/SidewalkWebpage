@@ -5,6 +5,7 @@ import org.apache.pekko.stream.scaladsl.Source
 import play.api.Logger
 import play.api.http.ContentTypes
 import controllers.AssetsFinder
+import models.utils.IpAddress
 import play.api.i18n.{I18nSupport, Messages}
 import play.api.libs.json.JsObject
 import play.api.mvc._
@@ -39,8 +40,10 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
      * from 127.0.0.1 and appends the true client IP) and yields the first untrusted hop. Unlike taking the header's
      * first value, a client-supplied X-Forwarded-For cannot spoof this, so it is safe to key rate limits on (#1102).
      * With no proxy in front (dev/Docker), it is simply the TCP peer address.
+     *
+     * Drops an IPv6 zone suffix like `%eth0` (rare), because the database won't accept it as an IP.
      */
-    def ipAddress: String = request.remoteAddress
+    def ipAddress: IpAddress = IpAddress(request.remoteAddress.takeWhile(_ != '%'))
   }
 
   /**

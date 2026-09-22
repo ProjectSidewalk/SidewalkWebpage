@@ -3,6 +3,7 @@ package models.validation
 import com.google.inject.ImplementedBy
 import models.mission.MissionTableDef
 import models.utils.MyPostgresProfile
+import models.utils.IpAddress
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -21,7 +22,7 @@ case class ValidationTaskEnvironment(
     screenWidth: Option[Int],
     screenHeight: Option[Int],
     operatingSystem: Option[String],
-    ipAddress: Option[String],
+    ipAddress: IpAddress,
     language: String,
     cssZoom: Int,
     timestamp: Option[OffsetDateTime]
@@ -40,7 +41,7 @@ class ValidationTaskEnvironmentTableDef(tag: Tag)
   def screenWidth: Rep[Option[Int]]          = column[Option[Int]]("screen_width")
   def screenHeight: Rep[Option[Int]]         = column[Option[Int]]("screen_height")
   def operatingSystem: Rep[Option[String]]   = column[Option[String]]("operating_system")
-  def ipAddress: Rep[Option[String]]         = column[Option[String]]("ip_address")
+  def ipAddress: Rep[IpAddress]              = column[IpAddress]("ip_address")
   def language: Rep[String]                  = column[String]("language")
   def cssZoom: Rep[Int]                      = column[Int]("css_zoom", O.Default(100))
   def timestamp: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("timestamp")
