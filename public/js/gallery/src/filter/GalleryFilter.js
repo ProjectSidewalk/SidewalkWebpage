@@ -118,7 +118,9 @@ class GalleryFilter {
   /** Rewrites the address bar to match the filters, so the view can be linked and reloaded. */
   #updateURL() {
     const url = this.#buildCurrentURL();
-    this.#clearButton.hidden = url === '/gallery';
+    // Nothing to reset in review-list mode — the sections aren't rendered — so the reset stays hidden there even
+    // though the URL carries a parameter.
+    this.#clearButton.hidden = this.#listLabelIds().length > 0 || url === '/gallery';
 
     const fullUrl = `${window.location.protocol}//${window.location.host}${url}`;
     if (fullUrl !== window.location.href) window.history.pushState({}, '', fullUrl);
@@ -130,6 +132,16 @@ class GalleryFilter {
    */
   #buildCurrentURL() {
     const params = new URLSearchParams();
+
+    // Review-list mode (#5444): the list is the whole selection and no filter controls are rendered, so reading the
+    // sidebar here would write `severities=&validationOptions=` — claiming filters that aren't being applied — and
+    // leaving the list out would scrub it from the address bar on the constructor's first pass.
+    const listLabelIds = this.#listLabelIds();
+    if (listLabelIds.length > 0) {
+      params.set('labelIds', listLabelIds.join());
+      return `/gallery?${util.url.serialize(params)}`;
+    }
+
     const severities = this.getAppliedSeverities();
     const valOptions = this.getAppliedValidationOptions().sort();
 
@@ -192,6 +204,11 @@ class GalleryFilter {
   static #eventPrefix(section) {
     if (section === FilterSidebar.SEVERITY) return 'Severity';
     return section === 'label-type' ? 'LabelType' : 'ValidationOption';
+  }
+
+  /** @returns {number[]} The review list the page was opened with, or an empty list outside list mode (#5444). */
+  #listLabelIds() {
+    return this.#initialFilters.labelIds ?? [];
   }
 
   /** @returns {{currentLabelTypes: string[]}} The label types the cards are being fetched for. */

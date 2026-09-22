@@ -2,6 +2,13 @@
   "card-image-alt": "Foto do Street View de uma etiqueta de {{labelType}}",
   "clear-filters": "Limpar filtros",
   "filter-by": "Filtrar por",
+  "list-count_one": "Mostrando {{count}} rótulo, na ordem indicada.",
+  "list-count_other": "Mostrando {{count}} rótulos, na ordem indicada.",
+  "list-heading": "Lista de rótulos",
+  "list-hint": "Para registrar uma revisão, edite o rótulo se necessário e depois vote «Concordo». Um rótulo sem alterações não deixa registro por si só.",
+  "list-position": "{{k}} de {{n}}",
+  "list-show-all": "Mostrar todos os rótulos",
+  "list-unavailable": "Rótulos indisponíveis",
   "none": "nenhuma",
   "not-applicable": "não aplicável"
 }

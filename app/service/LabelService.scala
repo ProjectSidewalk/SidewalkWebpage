@@ -64,7 +64,8 @@ trait LabelService {
       aiValOptions: Set[String],
       userId: String,
       recentFirst: Boolean = false,
-      staticImageryOnly: Boolean = false
+      staticImageryOnly: Boolean = false,
+      labelIds: Seq[Int] = Seq.empty
   ): Future[Seq[LabelValidationMetadata]]
   def retrieveLabelListForValidation(
       userId: String,
@@ -316,6 +317,9 @@ class LabelServiceImpl @Inject() (
    * @param aiValOptions      Set of AI validations to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param userId            User ID of the user requesting the labels.
    * @param recentFirst       If true, draw from the most recent labels (shuffled) instead of sampling all labels.
+   * @param staticImageryOnly If true, only label types a static (non-pannable) image can carry are returned.
+   * @param labelIds          A review list (#5444). Non-empty switches to list mode: exactly these labels, in this
+   *                          order, with every other argument above ignored. See the branch below for why.
    * @return Seq[LabelValidationMetadata]
    */
   def getGalleryLabels(
@@ -329,7 +333,8 @@ class LabelServiceImpl @Inject() (
       aiValOptions: Set[String],
       userId: String,
       recentFirst: Boolean = false,
-      staticImageryOnly: Boolean = false
+      staticImageryOnly: Boolean = false,
+      labelIds: Seq[Int] = Seq.empty
   ): Future[Seq[LabelValidationMetadata]] = {
     val viewer: PanoSource = configService.getPanoSource
 
@@ -350,7 +355,19 @@ class LabelServiceImpl @Inject() (
         labelTypes
       }
 
-    if (typesToSpread.isEmpty) {
+    if (labelIds.nonEmpty) {
+      // Review-list mode (#5444): the caller named the labels, so there is nothing to sample, spread across types or
+      // shuffle, and none of the filters above apply — a list that mixes types, or includes already-validated labels,
+      // still shows every item. One query, then the same imagery/crop check the filtered path runs, then back into
+      // the requested order (the query does not order). Labels this city doesn't have, and labels whose imagery is
+      // gone with no crop to fall back on, are simply absent; the controller reports those ids as unavailable so the
+      // reviewer can tell a short list from a complete one.
+      val requestedOrder: Map[Int, Int] = labelIds.zipWithIndex.toMap
+      db.run(labelTable.getGalleryLabelsByIdQuery(viewer, labelIds, userId).result)
+        .map(_.map(labelValidationMetadataConverter.fromTuple))
+        .flatMap(labels => checkImageryBatch(labels, useCrops = true))
+        .map(_.sortBy(label => requestedOrder(label.labelId)))
+    } else if (typesToSpread.isEmpty) {
       Future.successful(Seq())
     } else {
       // Split the request across the types so no one type crowds out the rest of a mixed selection.

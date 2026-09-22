@@ -2,6 +2,13 @@
   "card-image-alt": "Street view photo of a {{labelType}} label",
   "clear-filters": "Clear Filters",
   "filter-by": "Filter By",
+  "list-count_one": "Showing {{count}} label, in the order given.",
+  "list-count_other": "Showing {{count}} labels, in the order given.",
+  "list-heading": "Label List",
+  "list-hint": "To record a review, edit the label if needed, then vote Agree. An unchanged label leaves no record on its own.",
+  "list-position": "{{k}} of {{n}}",
+  "list-show-all": "Show all labels",
+  "list-unavailable": "Unavailable labels",
   "none": "none",
   "not-applicable": "not applicable"
 }

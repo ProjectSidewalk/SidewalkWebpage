@@ -2,6 +2,13 @@
   "card-image-alt": "Street View-foto van een {{labelType}}-label",
   "clear-filters": "Filters Wissen",
   "filter-by": "Filteren op",
+  "list-count_one": "{{count}} label wordt getoond, in de opgegeven volgorde.",
+  "list-count_other": "{{count}} labels worden getoond, in de opgegeven volgorde.",
+  "list-heading": "Labellijst",
+  "list-hint": "Om een beoordeling vast te leggen, pas het label zo nodig aan en stem daarna „Mee eens zijn”. Een ongewijzigd label laat uit zichzelf geen spoor na.",
+  "list-position": "{{k}} van {{n}}",
+  "list-show-all": "Alle labels tonen",
+  "list-unavailable": "Niet-beschikbare labels",
   "none": "geen",
   "not-applicable": "niet toepasbaar"
 }

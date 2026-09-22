@@ -557,6 +557,11 @@ gallery.all = Todos os tipos de rótulos
 gallery.labels.not.found = Nenhum resultado encontrado. <a href="/explore">Comece a explorar</a> para contribuir com mais dados!
 gallery.cards = Os rótulos são ordenadas aleatoriamente com base nos filtros selecionados
 gallery.clear.filters = Limpar filtros
+gallery.list.heading = Lista de rótulos
+gallery.list.count = Mostrando {0} rótulos, na ordem indicada.
+gallery.list.hint = Para registrar uma revisão, edite o rótulo se necessário e depois vote «Concordo». Um rótulo sem alterações não deixa registro por si só.
+gallery.list.unavailable = Rótulos indisponíveis
+gallery.list.show.all = Mostrar todos os rótulos
 
 routebuilder.name = RouteBuilder
 routebuilder.welcome = Bem-vindo ao RouteBuilder

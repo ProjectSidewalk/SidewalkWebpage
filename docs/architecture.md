@@ -290,7 +290,15 @@ corresponding Twirl view:
 - **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
-- **`gallery/`** — browsable, filterable gallery of labels.
+- **`gallery/`** — browsable, filterable gallery of labels. `?labelIds=1,2,3` puts it in **review-list mode**
+  (#5444): the page shows exactly those labels, in that order, as a review queue. The list replaces the filters
+  rather than intersecting with them — the sidebar's sections aren't rendered at all — and it also skips the
+  quality gates the filtered query applies (contributor quality, the disagree ratio, already-loaded ids), since the
+  rater asked for these ids by name. `LabelService.getGalleryLabels` takes the branch, `LabelTable
+  .getGalleryLabelsByIdQuery` is the query, and both share the row projection with the filtered query. Ids the city
+  doesn't have, or whose imagery is gone with no crop to fall back on, come back in the card query's
+  `unavailableLabelIds` and are listed on the page, so a short list never reads as a complete one. The list is
+  capped at `GalleryController.MaxLabelIds` (500) on both the page request and the card query.
 - **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one
   `<PageName>Page.js` per route, loaded by that page's Twirl template. `AdminShell.js` loads on every one of those
   pages (and the user dashboard's) and holds the shared shell behaviors — the "On this page" list and its

@@ -2,6 +2,12 @@
   "card-image-alt": "{{labelType}}標記的街景照片",
   "clear-filters": "清除過濾器",
   "filter-by": "篩選",
+  "list-count_other": "依指定順序顯示 {{count}} 個標記。",
+  "list-heading": "標記清單",
+  "list-hint": "若要留下審核紀錄，請視需要編輯標記，然後投「同意」一票；未修改的標記本身不會留下任何紀錄。",
+  "list-position": "第 {{k}} 個，共 {{n}} 個",
+  "list-show-all": "顯示所有標記",
+  "list-unavailable": "無法顯示的標記",
   "none": "無",
   "not-applicable": "不適用"
 }

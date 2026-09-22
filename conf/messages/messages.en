@@ -560,6 +560,11 @@ gallery.all = All Label Types
 gallery.labels.not.found = No matches. <a href="/explore">Start exploring</a> to contribute more data!
 gallery.cards = Labels are sorted randomly based on selected filters
 gallery.clear.filters = Clear Filters
+gallery.list.heading = Label List
+gallery.list.count = Showing {0} labels, in the order given.
+gallery.list.hint = To record a review, edit the label if needed, then vote Agree. An unchanged label leaves no record on its own.
+gallery.list.unavailable = Unavailable labels
+gallery.list.show.all = Show all labels
 
 routebuilder.name = RouteBuilder
 routebuilder.welcome = Welcome to RouteBuilder

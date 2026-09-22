@@ -53,9 +53,14 @@
     margin-bottom: 0;
   }
 
-  /* The toggle button carries the same "Filter By" text, so the heading would duplicate it. */
+  /* The toggle button carries the same "Filter By" text, so the heading would duplicate it. There is no toggle in
+     review-list mode (nothing to disclose), so there the heading is the only thing naming the panel. */
   #filter-header {
     display: none;
+  }
+
+  .gallery-filter-header--list #filter-header {
+    display: block;
   }
 
   .gallery-filter-toggle {
@@ -102,4 +107,44 @@
   .gallery-filter-toggle__icon {
     transition: none;
   }
+}
+
+/* Review-list mode (#5444): `?labelIds=` stands in for the filter sections, so this panel occupies the same column
+   and says what the list is, how to record a review, and which ids could not be shown. */
+.gallery-list-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 0 5px;
+}
+
+.gallery-list-panel__count {
+  margin: 0;
+  font: var(--text-body-medium);
+  color: var(--color-neutral-black);
+}
+
+.gallery-list-panel__hint {
+  margin: 0;
+  font: var(--text-small-regular);
+  color: var(--color-asphalt-500);
+}
+
+.gallery-list-panel__subheading {
+  margin: 0 0 4px;
+  font: var(--text-small-bold);
+  color: var(--color-neutral-black);
+}
+
+.gallery-list-panel__ids {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: var(--text-small-regular);
+  color: var(--color-asphalt-500);
+
+  /* A long list of unavailable ids must not push the "Show all labels" action out of reach. */
+  max-height: 160px;
+  overflow-y: auto;
 }

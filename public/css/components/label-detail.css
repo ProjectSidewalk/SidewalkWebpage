@@ -1264,6 +1264,22 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__paging--prev { left: 10px; }
 .label-detail__paging--next { right: 10px; }
 
+/* "k of N" position in the Gallery's review-list mode (#5444). Unlike the arrows it is always visible: knowing how
+   far through a fixed review list you are is the point of the mode, and a hover-revealed counter would not say. */
+.label-detail__position {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  z-index: 11;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  border-radius: var(--border-radius-lg);
+  background: rgb(255 255 255 / 85%);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 25%);
+  font: var(--text-caption-medium);
+  color: var(--color-asphalt-500);
+}
+
 /* ─── Touch and narrow viewports ──────────────────────────────────────── */
 
 /* Hover can't reveal controls on a touch-primary device, so the pano's hover-revealed controls stay visible

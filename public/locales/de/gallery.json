@@ -2,6 +2,13 @@
   "card-image-alt": "Street-View-Foto einer {{labelType}}-Markierung",
   "clear-filters": "Filter löschen",
   "filter-by": "Filtern nach",
+  "list-count_one": "{{count}} Beschriftung wird in der angegebenen Reihenfolge angezeigt.",
+  "list-count_other": "{{count}} Beschriftungen werden in der angegebenen Reihenfolge angezeigt.",
+  "list-heading": "Beschriftungsliste",
+  "list-hint": "Um eine Überprüfung festzuhalten, bearbeite die Beschriftung bei Bedarf und stimme dann mit „Einverstanden“ ab. Eine unveränderte Beschriftung hinterlässt von selbst keinen Eintrag.",
+  "list-position": "{{k}} von {{n}}",
+  "list-show-all": "Alle Beschriftungen anzeigen",
+  "list-unavailable": "Nicht verfügbare Beschriftungen",
   "none": "keine",
   "not-applicable": "nicht zutreffend"
 }

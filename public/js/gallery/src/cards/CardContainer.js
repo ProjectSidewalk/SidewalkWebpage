@@ -41,6 +41,12 @@ class CardContainer {
   // Current labels being displayed of current type based off filters.
   #currentCards = new CardBucket();
 
+  // Review-list mode (#5444): the page was opened with ?labelIds=, so these exact labels are shown in this order and
+  // the filter sidebar isn't rendered at all. Nothing is fetched after the first query — the list is the whole set.
+  /** @type {number[]} */
+  #listLabelIds = [];
+  #listMode = false;
+
   /**
    * @param {*} uiCardContainer - UI element tied with this CardContainer.
    * @param {Record<string, any>} initialFilters - Object containing initial set of filters in sidebar.
@@ -54,6 +60,9 @@ class CardContainer {
     this.#panoViewerType = panoViewerType;
     this.#viewerAccessToken = viewerAccessToken;
     this.#currUsername = currUsername;
+
+    this.#listLabelIds = initialFilters.labelIds ?? [];
+    this.#listMode = this.#listLabelIds.length > 0;
 
     // The sidebar is built first and owns the filter state, so the initial selection comes from it, not the page.
     this.#currentLabelTypes = sg.cardFilter.getStatus().currentLabelTypes;
@@ -97,22 +106,37 @@ class CardContainer {
     sg.ui.cardContainer.prevPage.prop('disabled', true);
 
     // Grab first batch of labels to show.
-    const filters = this.#currentFilters();
-    this.fetchLabels(
-      filters.types,
-      CardContainer.#initialLoad,
-      filters.valOptions,
-      Array.from(this.#loadedLabelIds),
-      initialFilters.regionIds,
-      filters.severities,
-      filters.tagsByType,
-      initialFilters.aiValidationOptions,
-      () => {
-        this.#currentCards = this.#collectCurrentCards(filters);
-        this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * CardContainer.#cardsPerPage;
-        this.render();
-      },
-    );
+    if (this.#listMode) {
+      // The server already applied the only selection there is (the id list) and returned it in order, so the cards
+      // go straight into the bucket — #collectCurrentCards would re-apply the sidebar's filters and regroup by type,
+      // which is exactly the ordering the list exists to avoid.
+      this.fetchLabels([], this.#listLabelIds.length, [], [], undefined, undefined, undefined, undefined,
+        this.#listLabelIds, (newCards, unavailableLabelIds) => {
+          this.#currentCards = new CardBucket(newCards);
+          this.#lastPage = this.#currentCards.getSize() <= this.#currentPage * CardContainer.#cardsPerPage;
+          CardContainer.#renderListCount(this.#currentCards.getSize());
+          CardContainer.#renderUnavailableIds(unavailableLabelIds);
+          this.render();
+        });
+    } else {
+      const filters = this.#currentFilters();
+      this.fetchLabels(
+        filters.types,
+        CardContainer.#initialLoad,
+        filters.valOptions,
+        Array.from(this.#loadedLabelIds),
+        initialFilters.regionIds,
+        filters.severities,
+        filters.tagsByType,
+        initialFilters.aiValidationOptions,
+        undefined,
+        () => {
+          this.#currentCards = this.#collectCurrentCards(filters);
+          this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * CardContainer.#cardsPerPage;
+          this.render();
+        },
+      );
+    }
     // Creates the ExpandedView object in the DOM element currently present.
     sg.panoStore = new PanoStore();
     this.#expandedView = await ExpandedView.create(
@@ -235,11 +259,15 @@ class CardContainer {
    * @param {*} severities - Severities the labels to be grabbed can have (Set to undefined if N/A).
    * @param {object} tagsByLabelType - Tags each label type is narrowed to, keyed by type name.
    * @param {string[]|undefined} aiValidationOptions - AI validation options: correct, incorrect, and/or unvalidated.
-   * @param {Function} [callback] - Called when labels arrive (or the request fails).
+   * @param {number[]|undefined} labelIds - A review list (#5444). When non-empty the server ignores every filter
+   *      above and returns exactly these labels in this order.
+   * @param {(cards: Card[], unavailableLabelIds: (number[]|undefined)) => void} [callback] - Called when labels
+   *      arrive (or the request fails, with nothing), given the new cards in the order the server returned them
+   *      and, for a review list, the requested ids the server could not serve.
    */
   fetchLabels(
     labelTypes, n, validationOptions, loadedLabels, regionIds, severities, tagsByLabelType, aiValidationOptions,
-    callback,
+    labelIds, callback,
   ) {
     const url = '/label/labels';
     const data = {
@@ -250,6 +278,7 @@ class CardContainer {
       ...(severities !== undefined && { severities }),
       ...(tagsByLabelType !== undefined && { tags_by_label_type: tagsByLabelType }),
       ...(aiValidationOptions !== undefined && { ai_validation_options: aiValidationOptions }),
+      ...(labelIds !== undefined && labelIds.length > 0 && { label_ids: labelIds }),
       loaded_labels: loadedLabels,
     };
     $.ajax({
@@ -262,19 +291,21 @@ class CardContainer {
       success: (response) => {
         if ('labelsOfType' in response) {
           const labels = response.labelsOfType;
+          const newCards = [];
           for (let i = 0; i < labels.length; i++) {
             const labelProp = labels[i];
             const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl, labelProp.cropMarker);
             this.push(card);
+            newCards.push(card);
             this.#loadedLabelIds.add(card.getLabelId());
           }
-          if (callback) callback();
+          if (callback) callback(newCards, response.unavailableLabelIds);
         }
       },
       // Still run the callback on failure: it is what releases the sidebar's loading state, so skipping it leaves
       // the filters greyed and unusable for the rest of the page's life.
       error: () => {
-        if (callback) callback();
+        if (callback) callback([], undefined);
       },
     });
   }
@@ -348,6 +379,13 @@ class CardContainer {
   updateCardsNewPage() {
     this.#refreshUI();
 
+    // The list is fully loaded, so paging within it is pure arithmetic — never another query.
+    if (this.#listMode) {
+      this.#lastPage = this.#currentCards.getSize() <= this.#currentPage * CardContainer.#cardsPerPage;
+      this.render();
+      return;
+    }
+
     const filters = this.#currentFilters();
 
     // With no label type selected there is nothing to ask the server for, and nothing to show.
@@ -371,6 +409,7 @@ class CardContainer {
         filters.severities,
         filters.tagsByType,
         this.#initialFilters.aiValidationOptions,
+        undefined,
         () => {
           this.#currentCards = this.#collectCurrentCards(filters);
           this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * CardContainer.#cardsPerPage;
@@ -387,6 +426,10 @@ class CardContainer {
    * When a filter is updated; update which Cards are shown.
    */
   updateCardsByFilter() {
+    // List mode renders no filter controls, so nothing should reach this; guard anyway, since applying the sidebar's
+    // empty state would silently throw the list away.
+    if (this.#listMode) return;
+
     const newLabelTypes = sg.cardFilter.getStatus().currentLabelTypes;
     // Only need to refresh UI if the label types changed, since the tags are swapped out.
     if (newLabelTypes.join() !== this.#currentLabelTypes.join()) {
@@ -505,5 +548,75 @@ class CardContainer {
 
   getExpandedView() {
     return this.#expandedView;
+  }
+
+  /** @returns {boolean} Whether the page is showing an explicit `?labelIds=` review list (#5444). */
+  isListMode() {
+    return this.#listMode;
+  }
+
+  /** @returns {number} How many labels the review list actually holds; 0 when not in list mode. */
+  getListSize() {
+    return this.#listMode ? this.#currentCards.getSize() : 0;
+  }
+
+  /**
+   * Opens a review list's card for a label by its position in the list, paging to it first if it's on another page.
+   *
+   * This is what a `?labelId=` deep link uses in list mode: opening the label by id instead would leave the expanded
+   * view with no reference card, so prev/next would restart from the top of the list and the position indicator
+   * would have nothing to count from.
+   *
+   * @param {number} labelId - The label to open.
+   * @returns {boolean} True if the list holds that label and it is being opened.
+   */
+  jumpToLabel(labelId) {
+    if (!this.#listMode) return false;
+    const index = this.#currentCards.getCards().findIndex((card) => card.getLabelId() === labelId);
+    if (index < 0) return false;
+
+    this.#expandedView.pendingCardIndex = index;
+    const page = Math.floor(index / CardContainer.#cardsPerPage) + 1;
+    if (page === this.#currentPage) {
+      // This page's cards are already rendered (render() is what calls restoreFromUrl), so open it right away.
+      this.#expandedView.onPageCardsRendered();
+    } else {
+      this.#setPage(page);
+      this.updateCardsNewPage();
+    }
+    return true;
+  }
+
+  /**
+   * Writes the review list's size into the sidebar panel, replacing the count the page was rendered with.
+   *
+   * The server-rendered number is how many ids were *asked for*; this is how many came back, which is lower when the
+   * city doesn't have one of them or its imagery is gone.
+   *
+   * @param {number} shown - How many labels the list is showing.
+   */
+  static #renderListCount(shown) {
+    const countEl = document.getElementById('gallery-list-count');
+    if (countEl) countEl.textContent = i18next.t('gallery:list-count', { count: shown });
+  }
+
+  /**
+   * Lists the requested ids the server could not serve, so a short list reads as explained rather than broken.
+   * @param {number[]|undefined} labelIds - The unavailable ids, in the order they were requested.
+   */
+  static #renderUnavailableIds(labelIds) {
+    const container = document.getElementById('gallery-list-unavailable');
+    if (!container) return;
+    const list = container.querySelector('.gallery-list-panel__ids');
+    if (!list || !labelIds || labelIds.length === 0) {
+      container.hidden = true;
+      return;
+    }
+    list.replaceChildren(...labelIds.map((labelId) => {
+      const item = document.createElement('li');
+      item.textContent = `#${labelId}`;
+      return item;
+    }));
+    container.hidden = false;
   }
 }

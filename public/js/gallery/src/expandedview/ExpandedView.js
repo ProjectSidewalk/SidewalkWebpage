@@ -105,12 +105,18 @@ class ExpandedView {
     if (!this.initialUrlLabelId) return;
     const labelId = this.initialUrlLabelId;
     this.initialUrlLabelId = null; // One shot; later renders (paging, filters) shouldn't reopen it.
+    LabelDetail.syncUrlLabelId(labelId); // refreshUI's close scrubbed the param; put it back for refresh/re-share.
+
+    // A review list (#5444) knows where the label sits, so open it by index: prev/next then walk the list from
+    // there and the position indicator has something to count. A ?labelId= naming a label outside the list still
+    // falls through to the by-id path below.
+    if (sg.cardContainer.isListMode() && sg.cardContainer.jumpToLabel(labelId)) return;
+
     this.#uiModal.css('visibility', 'visible');
     this.open = true;
     // With no reference card, paging picks up from the first card (Next), so there is nothing to page back to;
     // an enabled Prev here would drive cardIndex below -1 and break the paging state machine.
     if (this.leftArrow) this.leftArrow.disabled = true;
-    LabelDetail.syncUrlLabelId(labelId); // refreshUI's close scrubbed the param; put it back for refresh/re-share.
     this.labelDetail.showLabel(labelId, 'GalleryExpanded')
       .catch(() => this.closeExpandedViewAndRemoveCardTransparency());
   }
@@ -269,6 +275,7 @@ class ExpandedView {
     }
 
     this.#openExpandedView();
+    this.#updatePosition(index);
 
     if (this.cardIndex === 0 && this.leftArrow) this.leftArrow.disabled = true;
 
@@ -277,6 +284,23 @@ class ExpandedView {
       const lastCardIndex = (page - 1) * ExpandedView.#cardsPerPage + sg.cardContainer.getCurrentPageCards().length - 1;
       if (this.cardIndex === lastCardIndex && this.rightArrow) this.rightArrow.disabled = true;
     }
+  }
+
+  /**
+   * Shows how far through a review list the current card is ("k of N"), or hides the indicator outside list mode.
+   *
+   * Only a `?labelIds=` list has an N: everywhere else the card set grows as the user pages, so a total would be
+   * whatever happened to be loaded rather than how much there is to review.
+   *
+   * @param {number} index - The current card's index in the list.
+   */
+  #updatePosition(index) {
+    const positionEl = this.#root.querySelector('.label-detail__position');
+    if (!positionEl) return;
+
+    const total = sg.cardContainer.isListMode() ? sg.cardContainer.getListSize() : 0;
+    positionEl.hidden = total === 0;
+    positionEl.textContent = total === 0 ? '' : i18next.t('gallery:list-position', { k: index + 1, n: total });
   }
 
   /**

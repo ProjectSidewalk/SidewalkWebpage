@@ -2,6 +2,13 @@
   "card-image-alt": "Foto de Street View de una etiqueta de {{labelType}}",
   "clear-filters": "Borrar Filtros",
   "filter-by": "Filtrar por",
+  "list-count_one": "Mostrando {{count}} etiqueta, en el orden indicado.",
+  "list-count_other": "Mostrando {{count}} etiquetas, en el orden indicado.",
+  "list-heading": "Lista de etiquetas",
+  "list-hint": "Para dejar constancia de una revisión, edita la etiqueta si hace falta y luego vota «Aceptar». Una etiqueta sin cambios no deja ningún registro por sí sola.",
+  "list-position": "{{k}} de {{n}}",
+  "list-show-all": "Mostrar todas las etiquetas",
+  "list-unavailable": "Etiquetas no disponibles",
   "none": "ninguna",
   "not-applicable": "no aplicable"
 }

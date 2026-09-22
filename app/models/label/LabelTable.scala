@@ -1836,7 +1836,72 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
     } yield (_lb, _lp, _pd, _lb.labelTypeName, _ser.regionId, _ur.role === Role.Ai)
 
-    val _labelInfoWithAIValidation = _labelInfo
+    // Remove duplicates if needed, then order newest-first or randomized. Callers that batch through this query
+    // (findValidLabelsForType) shuffle each batch themselves, so recentFirst yields a shuffled recent pool.
+    val _galleryLabels = galleryProjection(_labelInfo, aiValOptions, userId)
+    val _uniqueLabels  = if (tags.nonEmpty) _galleryLabels.groupBy(x => x).map(_._1) else _galleryLabels
+    if (recentFirst) _uniqueLabels.sortBy(_._7.desc) else _uniqueLabels.sortBy(_ => random)
+  }
+
+  /**
+   * Retrieves exactly the labels named by `labelIds`, for the Gallery's review-list mode (#5444).
+   *
+   * A review list is explicit: the rater asked for these ids and has to be shown every one of them, so this applies
+   * none of the quality gates `getGalleryLabelsQuery` does (contributor quality, the disagree ratio, the label type,
+   * severity, tags, region, validation status, already-loaded ids). Only the filters that decide whether a label can
+   * be *rendered* in this city survive: `labels` already drops deleted, tutorial, and excluded-contributor labels,
+   * and the pano has to be from this deployment's viewer with a located label point. Callers order the result; the
+   * query does not, so the list keeps the order it was asked for.
+   *
+   * @param viewer   The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
+   * @param labelIds The requested label ids. Ids this city does not have simply do not come back.
+   * @param userId   User ID of the user requesting the labels, for their own vote on each label.
+   * @return         Query object to get the labels.
+   */
+  def getGalleryLabelsByIdQuery(
+      viewer: PanoSource,
+      labelIds: Seq[Int],
+      userId: String
+  ): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
+    val _labelInfo = for {
+      _lb  <- labels if _lb.labelId inSetBind labelIds
+      _lp  <- labelPoints if _lb.labelId === _lp.labelId
+      _pd  <- panoData if _lb.panoId === _pd.panoId
+      _us  <- userStats if _lb.userId === _us.userId
+      _ser <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
+      _ur  <- userRoles if _us.userId === _ur.userId
+      if _pd.source === viewer
+      if _lp.lat.isDefined && _lp.lng.isDefined
+    } yield (_lb, _lp, _pd, _lb.labelTypeName, _ser.regionId, _ur.role === Role.Ai)
+
+    galleryProjection(_labelInfo, Set.empty, userId)
+  }
+
+  // The label and its joins that every Gallery query starts from, before galleryProjection adds the rest: the label,
+  // its point and pano data, its type name, the region it sits in, and whether an AI placed it.
+  private type GalleryLabelInfoRep =
+    (LabelTableDef, LabelPointTableDef, PanoDataTableDef, Rep[String], Rep[Int], Rep[Boolean])
+  private type GalleryLabelInfo = (Label, LabelPoint, PanoData, String, Int, Boolean)
+
+  /**
+   * Turns a Gallery base query into the 22-column tuple the Gallery's label metadata is read from.
+   *
+   * Shared by the filtered query and the by-id review-list query (#5444) so the two can never drift into returning
+   * differently-shaped rows. The AI validation is joined in either way — the Gallery shows it — while filtering on
+   * it is the caller's business, and an empty `aiValOptions` means no filtering at all.
+   *
+   * @param labelInfo    The label and its point/pano/region/AI-author joins.
+   * @param aiValOptions Set of AI validations to filter for: correct, incorrect, unsure, and/or unvalidated. Empty
+   *                     applies no AI-validation filtering.
+   * @param userId       User ID of the user requesting the labels, for their own vote on each label.
+   * @return             Query object yielding LabelValidationMetadataTuple rows, unordered.
+   */
+  private def galleryProjection(
+      labelInfo: Query[GalleryLabelInfoRep, GalleryLabelInfo, Seq],
+      aiValOptions: Set[String],
+      userId: String
+  ): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
+    val _labelInfoWithAIValidation = labelInfo
       .joinLeft(aiValidations)
       .on(_._1.labelId === _.map(_.labelId))
       .map { case ((lb, lp, pd, labelType, regionId, isAiUser), aiv) =>
@@ -1898,10 +1963,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         pd.license, pd.address)
     )
 
-    // Remove duplicates if needed, then order newest-first or randomized. Callers that batch through this query
-    // (findValidLabelsForType) shuffle each batch themselves, so recentFirst yields a shuffled recent pool.
-    val _uniqueLabels = if (tags.nonEmpty) _labelInfoWithUserVals.groupBy(x => x).map(_._1) else _labelInfoWithUserVals
-    if (recentFirst) _uniqueLabels.sortBy(_._7.desc) else _uniqueLabels.sortBy(_ => random)
+    _labelInfoWithUserVals
   }
 
   /**

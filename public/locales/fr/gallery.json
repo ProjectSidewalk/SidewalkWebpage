@@ -2,6 +2,13 @@
   "card-image-alt": "Photo de rue d'une étiquette {{labelType}}",
   "clear-filters": "Effacer les filtres",
   "filter-by": "Filtrer par",
+  "list-count_one": "Affichage de {{count}} étiquette, dans l’ordre indiqué.",
+  "list-count_other": "Affichage de {{count}} étiquettes, dans l’ordre indiqué.",
+  "list-heading": "Liste d’étiquettes",
+  "list-hint": "Pour enregistrer une relecture, modifiez l’étiquette si nécessaire, puis votez « D’accord ». Une étiquette inchangée ne laisse aucune trace par elle-même.",
+  "list-position": "{{k}} sur {{n}}",
+  "list-show-all": "Afficher toutes les étiquettes",
+  "list-unavailable": "Étiquettes indisponibles",
   "none": "aucun",
   "not-applicable": "non applicable"
 }

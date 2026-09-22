@@ -6,9 +6,12 @@
 @import play.api.libs.json.Json
 @(commonData: service.CommonPageData, title: String, user: Option[models.user.SidewalkUserWithRole], labelTypes: Seq[String],
   allTags: Seq[Tag], regionIds: Seq[Int], regionNames: Map[Int, String], severities: Seq[String], tags: List[String],
-  valOptions: Seq[String], aiValOptions: Seq[String]
+  valOptions: Seq[String], aiValOptions: Seq[String], labelIds: Seq[Int]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
+@* The sidebar names whichever mode the page is in; one element either way, so the id stays unique. *@
+@sidebarHeadingKey = @{if(labelIds.isEmpty) "gallery:filter-by" else "gallery:list-heading"}
+@sidebarHeading = @{if(labelIds.isEmpty) Messages("gallery.filter.by") else Messages("gallery.list.heading")}
 
 @common.main(commonData, title, i18Namespaces = Seq("common", "gallery", "labelmap"),
   pageMeta = service.PageMeta(description = Some(Messages("seo.description.gallery", currentCity.cityNameShort)))) {
@@ -38,14 +41,19 @@
     <div class="sidebar">
       @* Sits outside #card-filter, which wears filter-sidebar--loading while a page of cards loads: the disclosure
          is the only way to reach the filters on a phone, so it has to stay live through the load that greys them. *@
-      <div class="gallery-filter-header">
-        <h4 id="filter-header" data-i18n="gallery:filter-by">@Messages("gallery.filter.by")</h4>
-        @* Narrow-layout stand-in for the heading: disclosure toggle for the filter sections (see filter.css). *@
-        <button type="button" id="gallery-filter-toggle" class="gallery-filter-toggle" aria-expanded="false" aria-controls="gallery-filter-sections">
-          <span data-i18n="gallery:filter-by">@Messages("gallery.filter.by")</span>
-          <img class="gallery-filter-toggle__icon" src='@assets.path("images/icons/chevron-down-feather.svg")' alt="">
-        </button>
-        @* The global reset, distinct from the per-section "Deselect all" text actions beside it. *@
+      @* Review-list mode (#5444) replaces the filters rather than sitting beside them: the URL named the exact cards
+         to show, in order, so there is nothing here left to filter. The heading says which mode the page is in. *@
+      <div class="gallery-filter-header @if(labelIds.nonEmpty){gallery-filter-header--list}">
+        <h4 id="filter-header" data-i18n="@sidebarHeadingKey">@sidebarHeading</h4>
+        @if(labelIds.isEmpty) {
+          @* Narrow-layout stand-in for the heading: disclosure toggle for the filter sections (see filter.css). *@
+          <button type="button" id="gallery-filter-toggle" class="gallery-filter-toggle" aria-expanded="false" aria-controls="gallery-filter-sections">
+            <span data-i18n="gallery:filter-by">@Messages("gallery.filter.by")</span>
+            <img class="gallery-filter-toggle__icon" src='@assets.path("images/icons/chevron-down-feather.svg")' alt="">
+          </button>
+        }
+        @* The global reset, distinct from the per-section "Deselect all" text actions beside it. Rendered in both
+           modes because GalleryFilter takes it in its constructor; list mode leaves it hidden (nothing to reset). *@
         <button type="button" id="clear-filters" class="button-ps button--tiny button--secondary" hidden>
           <span aria-hidden="true">&#10006;</span>
           <span data-i18n="gallery:clear-filters">@Messages("gallery.clear.filters")</span>
@@ -55,19 +63,37 @@
          Label types are single-select here: a card query fetches one type at a time, so the selected type's tag
          drawer is the only one open. *@
       <div id="card-filter" class="filter-sidebar--loading">
-        @* The sections render as bare sibling <section>s (withMapChrome = false), so the disclosure needs one
-           wrapper to toggle and point aria-controls at. *@
-        <div id="gallery-filter-sections">
-          @common.filterSidebar(
-            tags = allTags,
-            sections = Seq("severity", "label-type", "validations"),
-            withMapChrome = false,
-            checkedLabelTypes = labelTypes,
-            checkedValidations = valOptions,
-            checkedSeverities = severities.map(s => if(s == "null") "0" else s),
-            activeTags = tags
-          )
-        </div>
+        @if(labelIds.isEmpty) {
+          @* The sections render as bare sibling <section>s (withMapChrome = false), so the disclosure needs one
+             wrapper to toggle and point aria-controls at. *@
+          <div id="gallery-filter-sections">
+            @common.filterSidebar(
+              tags = allTags,
+              sections = Seq("severity", "label-type", "validations"),
+              withMapChrome = false,
+              checkedLabelTypes = labelTypes,
+              checkedValidations = valOptions,
+              checkedSeverities = severities.map(s => if(s == "null") "0" else s),
+              activeTags = tags
+            )
+          </div>
+        } else {
+          <div class="gallery-list-panel">
+            @* Server-rendered so the count is right on first paint; CardContainer rewrites it with the number that
+               actually came back, which is lower when an id in the list isn't available here. *@
+            <p class="gallery-list-panel__count" id="gallery-list-count">@Messages("gallery.list.count", labelIds.size)</p>
+            @* An unchanged label leaves no record: /label/edit writes nothing when the values match, and never
+               writes a validation. Agreeing is what makes "reviewed and correct" auditable. *@
+            <p class="gallery-list-panel__hint" data-i18n="gallery:list-hint">@Messages("gallery.list.hint")</p>
+            <div class="gallery-list-panel__unavailable" aria-live="polite">
+              <div id="gallery-list-unavailable" hidden>
+                <h5 class="gallery-list-panel__subheading" data-i18n="gallery:list-unavailable">@Messages("gallery.list.unavailable")</h5>
+                <ul class="gallery-list-panel__ids"></ul>
+              </div>
+            </div>
+            <a class="button-ps button--tiny button--secondary" href="@routes.GalleryController.gallery()" data-i18n="gallery:list-show-all">@Messages("gallery.list.show.all")</a>
+          </div>
+        }
       </div>
     </div>
     <div id="labels-not-found-text">@Html(Messages("gallery.labels.not.found"))</div>
@@ -97,7 +123,9 @@
          page carries them through for the card query and the URL. *@
       params.initialFilters = {
         regionIds: @{regionIds.mkString("[", ",", "]")},
-        aiValidationOptions: @{if (aiValOptions.isEmpty) "[]" else Html(aiValOptions.mkString("['", "','", "']"))}
+        aiValidationOptions: @{if (aiValOptions.isEmpty) "[]" else Html(aiValOptions.mkString("['", "','", "']"))},
+        @* A non-empty list puts the Gallery in review-list mode: these labels, in this order, filters ignored. *@
+        labelIds: @{labelIds.mkString("[", ",", "]")}
       }
 
       @* Region names, keyed by the region id each label carries, for the location line on a card. *@

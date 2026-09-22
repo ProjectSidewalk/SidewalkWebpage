@@ -562,6 +562,11 @@ gallery.all = Todos los tipos de etiquetas
 gallery.labels.not.found = No hay resultados. ¡<a href="/explore">Comienza a explorar</a> para aportar más datos!
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados
 gallery.clear.filters = Borrar Filtros
+gallery.list.heading = Lista de etiquetas
+gallery.list.count = Mostrando {0} etiquetas, en el orden indicado.
+gallery.list.hint = Para dejar constancia de una revisión, edita la etiqueta si hace falta y luego vota «Aceptar». Una etiqueta sin cambios no deja ningún registro por sí sola.
+gallery.list.unavailable = Etiquetas no disponibles
+gallery.list.show.all = Mostrar todas las etiquetas
 
 routebuilder.name = Constructor de rutas
 routebuilder.welcome = Bienvenido a RouteBuilder

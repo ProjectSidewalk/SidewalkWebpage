@@ -552,6 +552,11 @@ gallery.all = Alle Beschriftungskategorien
 gallery.labels.not.found = Keine Treffer. <a href="/explore">Erkundung starten</a>, um mehr Daten beizutragen!
 gallery.cards = Beschriftungen werden zufällig sortiert, basierend auf gewählten Filtern
 gallery.clear.filters = Filter löschen
+gallery.list.heading = Beschriftungsliste
+gallery.list.count = {0} Beschriftungen werden in der angegebenen Reihenfolge angezeigt.
+gallery.list.hint = Um eine Überprüfung festzuhalten, bearbeite die Beschriftung bei Bedarf und stimme dann mit „Einverstanden“ ab. Eine unveränderte Beschriftung hinterlässt von selbst keinen Eintrag.
+gallery.list.unavailable = Nicht verfügbare Beschriftungen
+gallery.list.show.all = Alle Beschriftungen anzeigen
 
 routebuilder.name = RouteBuilder
 routebuilder.welcome = Willkommen bei RouteBuilder

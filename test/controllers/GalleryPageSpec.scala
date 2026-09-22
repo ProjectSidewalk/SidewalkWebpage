@@ -4,6 +4,7 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import util.UserAgents
@@ -17,6 +18,9 @@ import java.net.URLEncoder
  * The filter is invisible when it breaks — an unrecognized tag is dropped rather than reported, so the page renders
  * a perfectly normal grid of unfiltered cards. That is how a comma-joined `tags` param hid the fact that it was
  * shredding "yellow box, accessibility features not visible" into two names that matched nothing.
+ *
+ * Also locks the review-list contract of `?labelIds=` (#5444): the page carries the list through in the order it was
+ * given, and the card query behind it returns exactly those labels and names the ones it could not serve.
  *
  * Reads the tag vocabulary off the page itself rather than hardcoding one, since which tags exist depends on the
  * city the connected database holds.
@@ -47,6 +51,23 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
     tagPillElement.findAllMatchIn(body).filter(_.matched.contains("tag-pill--active")).map(_.group(1)).toSet
 
   private def encode(tag: String): String = URLEncoder.encode(tag, "UTF-8")
+
+  /** An id no city's `label` serial has reached, so a review list naming it is always short one label. */
+  private val missingLabelId: Int = Int.MaxValue
+
+  /** The `labelIds: [...]` array the page carries into its card query, as rendered. */
+  private val renderedLabelIds                     = """labelIds: \[([^\]]*)\]""".r
+  private def pageLabelIds(body: String): Seq[Int] =
+    renderedLabelIds.findFirstMatchIn(body).map(_.group(1)).filter(_.nonEmpty).toSeq.flatMap(_.split(",").map(_.toInt))
+
+  /** POSTs a card query and returns its JSON body. */
+  private def labelsFor(request: JsObject): JsValue = {
+    val resp = route(app, FakeRequest(POST, "/label/labels").withJsonBody(request)).get
+    status(resp) mustBe OK
+    contentAsJson(resp)
+  }
+
+  private def labelIdsIn(json: JsValue): Seq[Int] = (json \ "labelsOfType" \\ "label_id").map(_.as[Int]).toSeq
 
   "GET /gallery" should {
     "render with no tags selected by default" in {
@@ -88,9 +109,82 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
       galleryPage(s"?neighborhoods=$regionId") must include(s"regionIds: [$regionId]")
     }
 
+    "carry a label list to the page in the order it was given, deduped" in {
+      pageLabelIds(galleryPage("?labelIds=8,3,3,5")) mustBe Seq(8, 3, 5)
+    }
+
+    "drop a token of a label list that isn't an integer" in {
+      pageLabelIds(galleryPage("?labelIds=7,x,7,8")) mustBe Seq(7, 8)
+    }
+
+    "leave the label list empty when the parameter is absent" in {
+      pageLabelIds(galleryPage()) mustBe empty
+    }
+
+    "replace the filter sidebar with the list panel, rather than rendering both" in {
+      val listPage = galleryPage("?labelIds=8,3")
+      listPage must include("gallery-list-panel")
+      listPage must not include "gallery-filter-sections"
+
+      val filteredPage = galleryPage()
+      filteredPage must include("gallery-filter-sections")
+      filteredPage must not include "gallery-list-panel"
+    }
+
+    "cap a label list at MaxLabelIds rather than trusting its length" in {
+      val ids = (1 to GalleryController.MaxLabelIds + 100).mkString(",")
+      pageLabelIds(galleryPage(s"?labelIds=$ids")) must have size GalleryController.MaxLabelIds.toLong
+    }
+
     "serve the page to a mobile visitor instead of redirecting to /mobileLanding" in {
       val resp = route(app, FakeRequest(GET, "/gallery").withHeaders(UserAgents.mobile)).get
       status(resp) mustBe OK
+    }
+  }
+
+  /**
+   * The review-list half of the card query (#5444). A list is explicit, so the contract is that every id asked for
+   * either comes back as a card or is named as unavailable — a silently shorter grid would read as "these are all
+   * the labels there were", which is exactly the wrong thing to tell someone building ground truth.
+   */
+  "POST /label/labels with a label list" should {
+    // Ids the ordinary card query already served, so they are known to be renderable in the connected city. Every
+    // correctness option is named because an empty set means "none of them", which serves nothing at all.
+    val allValOptions          = Json.arr("correct", "incorrect", "unsure", "unvalidated")
+    lazy val seedIds: Seq[Int] =
+      labelIdsIn(labelsFor(Json.obj("n" -> 10, "loaded_labels" -> Json.arr(), "validation_options" -> allValOptions)))
+
+    "return exactly the requested labels, in the requested order, ignoring the other filters" in {
+      assume(seedIds.size >= 2, "connected database served fewer than two gallery labels")
+      val requested = Seq(seedIds(1), seedIds.head, missingLabelId)
+
+      val json = labelsFor(
+        Json.obj(
+          "n"             -> requested.size,
+          "loaded_labels" -> Json.arr(),
+          "label_ids"     -> requested,
+          // Filters that between them match nothing: list mode has to ignore them rather than intersect with them.
+          "label_types"        -> Json.arr("Signal"),
+          "region_ids"         -> Json.arr(-1),
+          "validation_options" -> Json.arr("incorrect")
+        )
+      )
+
+      labelIdsIn(json) mustBe Seq(seedIds(1), seedIds.head)
+      (json \ "unavailableLabelIds").as[Seq[Int]] mustBe Seq(missingLabelId)
+    }
+
+    "say nothing about unavailable ids when no list was asked for" in {
+      val json = labelsFor(Json.obj("n" -> 1, "loaded_labels" -> Json.arr(), "validation_options" -> allValOptions))
+      (json \ "unavailableLabelIds").toOption mustBe None
+    }
+
+    "report every id of a list that served nothing" in {
+      val json = labelsFor(
+        Json.obj("n" -> 1, "loaded_labels" -> Json.arr(), "label_ids" -> Json.arr(missingLabelId))
+      )
+      labelIdsIn(json) mustBe empty
+      (json \ "unavailableLabelIds").as[Seq[Int]] mustBe Seq(missingLabelId)
     }
   }
 }
