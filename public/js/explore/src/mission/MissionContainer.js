@@ -13,6 +13,11 @@ class MissionContainer extends EventEmitter {
    */
   #tasksMissionsOffset = null;
 
+  // The mission id the minimap's label eras were last derived against (#4945). setCurrentMission runs after every
+  // successful data submission, not only when the mission changes, so this is what keeps the re-derivation (a pass over
+  // every label in the region) to actual mission boundaries.
+  #minimapEraMissionId = null;
+
   /**
    * @param {MissionPanel} missionPanel - Renders the current mission's header and description in the sidebar.
    * @param {MissionModel} missionModel - Mission model object.
@@ -93,9 +98,11 @@ class MissionContainer extends EventEmitter {
     const currTask = svl.taskContainer.getCurrentTask();
     const missionId = mission.getProperty('missionId');
     currTask.setProperty('currentMissionId', missionId);
-    // The mission boundary is what separates this pass's minimap markers from earlier ones (#4945). No-op at page
-    // load, before any labels are fetched.
-    svl.labelContainer?.refreshMinimapEras();
+    // The mission boundary is what separates this pass's minimap markers from earlier ones (#4945).
+    if (missionId !== this.#minimapEraMissionId) {
+      this.#minimapEraMissionId = missionId;
+      svl.labelContainer?.refreshMinimapEras();
+    }
 
     // If this is the start of a new mission, mark the location along the street that the user is at when the
     // mission starts. This will be used later to draw their route on the mission complete map.

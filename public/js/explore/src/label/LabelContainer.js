@@ -113,7 +113,7 @@ class LabelContainer {
 
       // Honor the remembered legend toggle for the markers just created, and record how much of what came back is
       // an earlier era -- the first measure of how often mappers land on a re-audit (#4945).
-      if (!LabelContainer.earlierLabelsShownPreference()) this.setEarlierLabelsShown(false);
+      if (!LabelContainer.earlierLabelsShownPreference()) this.#applyEarlierLabelsShown(false);
       svl.tracker.push('MinimapEarlierLabels_Loaded', this.countLabelsByMinimapEra());
 
       if (callback) callback(result);
@@ -180,11 +180,18 @@ class LabelContainer {
 
   /**
    * Whether the user wants earlier passes' labels shown on the minimap (#4945). Unset means shown: the toggle exists
-   * to declutter on request, not to hide history by default.
+   * to declutter on request, not to hide history by default. Also shown if storage can't be read (blocked, or a stored
+   * value that isn't valid JSON): this runs ahead of the first canvas paint, which a storage error must not take out.
    * @returns {boolean}
    */
   static earlierLabelsShownPreference() {
-    const stored = svl.storage?.get(LabelContainer.EARLIER_LABELS_STORAGE_KEY);
+    let stored;
+    try {
+      stored = svl.storage?.get(LabelContainer.EARLIER_LABELS_STORAGE_KEY);
+    } catch (e) {
+      console.warn('Could not read the minimap earlier-labels preference; showing them.', e);
+      return true;
+    }
     return stored === null || stored === undefined ? true : Boolean(stored);
   }
 
@@ -201,31 +208,46 @@ class LabelContainer {
   }
 
   /**
-   * Re-derives every label's minimap era. Called when the current mission changes, so the mission just finished
-   * reads as the previous pass and a resumed mission's labels come back as current work.
+   * Re-derives every label's minimap era, then re-applies the legend toggle to the result. Called when the current
+   * mission changes, so the mission just finished reads as the previous pass and a resumed mission's labels come back
+   * as current work, markers included.
    */
   refreshMinimapEras() {
     this.getAllLabels().forEach((l) => l.refreshMinimapEra());
-    this.setEarlierLabelsShown(LabelContainer.earlierLabelsShownPreference());
+    this.#applyEarlierLabelsShown(LabelContainer.earlierLabelsShownPreference());
   }
 
   /**
-   * Shows or hides the minimap markers of labels from earlier passes ('prior' and 'outdated' eras); this mission's
-   * markers are never touched. The preference is stored so it survives reloads and the next street.
+   * The "My earlier labels" legend toggle: shows or hides the minimap markers of labels from earlier passes, logs the
+   * change, and remembers it so it survives reloads and the next street. The markers move first and the preference is
+   * saved second, so a storage failure (quota, blocked storage) costs only the memory of the choice, never the choice.
    * @param {boolean} shown
-   * @param {boolean} [userInitiated=false] - True from the legend toggle, which is when the change is logged.
    */
-  setEarlierLabelsShown(shown, userInitiated = false) {
-    svl.storage?.set(LabelContainer.EARLIER_LABELS_STORAGE_KEY, shown);
-    this.getAllLabels().forEach((l) => {
-      if (l.getMinimapEra() !== 'current') l.setMinimapMarkerSuppressed(!shown);
+  setEarlierLabelsShown(shown) {
+    this.#applyEarlierLabelsShown(shown);
+    const counts = this.countLabelsByMinimapEra();
+    svl.tracker.push(shown ? 'Click_MinimapEarlierLabels_Show' : 'Click_MinimapEarlierLabels_Hide', {
+      prior: counts.prior, outdated: counts.outdated,
     });
-    if (userInitiated) {
-      const counts = this.countLabelsByMinimapEra();
-      svl.tracker.push(shown ? 'Click_MinimapEarlierLabels_Show' : 'Click_MinimapEarlierLabels_Hide', {
-        prior: counts.prior, outdated: counts.outdated,
-      });
+    try {
+      svl.storage?.set(LabelContainer.EARLIER_LABELS_STORAGE_KEY, shown);
+    } catch (e) {
+      console.warn('Could not save the minimap earlier-labels preference.', e);
     }
+  }
+
+  /**
+   * Puts each label's minimap marker in the state the toggle asks for: earlier eras ('prior', 'outdated') hidden when
+   * `shown` is false, everything else shown. Current markers are set too, not skipped, because a label whose era just
+   * went back to current (a resumed mission) may still be suppressed from when it was earlier. Keeps the legend
+   * checkbox in step, since this is also reached from the stored preference, not only from the checkbox.
+   * @param {boolean} shown
+   */
+  #applyEarlierLabelsShown(shown) {
+    this.getAllLabels().forEach((l) => {
+      l.setMinimapMarkerSuppressed(!shown && l.getMinimapEra() !== 'current');
+    });
+    svl.ui?.minimap?.legendEarlierLabels?.prop('checked', shown);
   }
 
   /**

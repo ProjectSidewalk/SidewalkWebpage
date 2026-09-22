@@ -383,7 +383,8 @@
 /* Markers from an earlier mission in this region (#4945; Label.styleMinimapMarker) recede so this pass's markers, the
    route, and the explored line read first. Faded but still fully saturated, so the icon's type color stays
    recognizable; the marker is informational, not a control, so it has no contrast floor to meet, but 60% keeps it
-   clearly discernible on the basemap. They are not clickable (the click only returns to current-mission labels). */
+   clearly discernible on the basemap. Not clickable: styleMinimapMarker sets gmpClickable only for current markers,
+   since the click only returns to current-mission labels, so the default cursor matches. */
 .minimap-label-icon--prior {
   opacity: 0.6;
   cursor: default;

@@ -28,7 +28,7 @@ class MinimapLegend {
     // (LabelContainer.fetchLabelsToResumeMission applies the same preference to them).
     uiMinimap.legendEarlierLabels.prop('checked', LabelContainer.earlierLabelsShownPreference());
     uiMinimap.legendEarlierLabels.on('change', (e) => {
-      svl.labelContainer.setEarlierLabelsShown(/** @type {HTMLInputElement} */ (e.target).checked, true);
+      svl.labelContainer.setEarlierLabelsShown(/** @type {HTMLInputElement} */ (e.target).checked);
     });
   }
 
