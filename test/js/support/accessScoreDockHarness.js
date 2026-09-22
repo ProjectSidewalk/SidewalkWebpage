@@ -98,9 +98,9 @@ const DOCK_HTML = `
         </div>
         <div id="acs-dock-status" role="status"></div>
       </div>
-      <div id="acs-dock-body">
-        <div id="acs-histogram"></div>
-        <div id="acs-whats-here"></div>
+      <div id="acs-dock-body" class="acs-dock__body">
+        <section class="acs-dock__panel acs-dock__panel--histogram"><div id="acs-histogram"></div></section>
+        <section class="acs-dock__panel acs-dock__panel--whats-here"><div id="acs-whats-here"></div></section>
         <section class="acs-dock__panel acs-dock__panel--rank">
           <div class="acs-dock__panel-head">
             <h3 id="acs-dock-rank-title">Neighborhoods ranked</h3>
@@ -109,7 +109,7 @@ const DOCK_HTML = `
           </div>
           <div id="acs-rank-bars"></div>
         </section>
-        <div id="acs-photos"></div>
+        <section class="acs-dock__panel acs-dock__panel--photos"><div id="acs-photos"></div></section>
       </div>
     </aside>
   </div>`;

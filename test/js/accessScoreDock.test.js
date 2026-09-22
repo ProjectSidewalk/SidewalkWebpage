@@ -114,6 +114,7 @@ describe('AccessScoreDock', () => {
         expect(document.querySelector('.acs-whats-here__caption').textContent).toBe('scope-city');
         // The streets unit ranks streets, and 66 fixture streets is more than the leaderboard holds.
         expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(window.AccessScoreModel.RANK_LIMIT);
+        expect(document.getElementById('acs-dock-body').classList).not.toContain('acs-dock__body--no-rank');
         // With nothing selected the strip reads the lowest-ranked region and says so.
         const ranked = model.rankedRegions();
         const lowest = ranked[ranked.length - 1];
@@ -651,5 +652,60 @@ describe('AccessScoreDock', () => {
         expect(document.querySelector('.acs-whats-here__caption').textContent).toBe('scope-street-named name=Cedar Lane');
         expect(document.querySelector('.acs-photos__caption').textContent)
             .toBe('photos-from scope=popup-street-named name=Cedar Lane id=1');
+    });
+
+    test('a city with one neighborhood ranks its streets but drops the neighborhoods list', async () => {
+        const oneRegion = [REGIONS[0]];
+        const features = FIXTURE.streets.map((c, i) => feature(c, i, {region_id: 1}));
+        model = new window.AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features},
+            {type: 'FeatureCollection', features: []}, oneRegion);
+        document.body.innerHTML = DOCK_HTML;
+        dock = new window.AccessScoreDock(document.getElementById('acs-dock'), {model, mapView, map,
+            config: FIXTURE.config, ...callbacks});
+        flush();
+        const panel = document.querySelector('.acs-dock__panel--rank');
+        const body = document.getElementById('acs-dock-body');
+        // The streets leaderboard is a real list in such a city, so the panel opens exactly as anywhere else.
+        expect(panel.hidden).toBe(false);
+        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(window.AccessScoreModel.RANK_LIMIT);
+        expect(body.classList).not.toContain('acs-dock__body--no-rank');
+
+        // The rows outlive the suppression, so a mark left on one would still be there when the panel comes back.
+        const hovered = Number(document.querySelector('.acs-rank__row').dataset.rowId);
+        dock.markHover({unit: 'streets', id: hovered, score: 0.5});
+        expect(document.querySelectorAll('.acs-rank__row--hover')).toHaveLength(1);
+
+        model.setState({unit: 'regions'});
+        dock.applyChange({kind: 'Unit', final: true});
+        flush();
+        expect(panel.hidden).toBe(true);
+        expect(body.classList).toContain('acs-dock__body--no-rank');
+        expect(document.querySelectorAll('.acs-rank__row--hover')).toHaveLength(0);
+        // The rest of the band is untouched by the missing column.
+        expect(document.querySelectorAll('.acs-histogram__bin')).toHaveLength(10);
+        expect(document.querySelectorAll('.acs-whats-here__row')).toHaveLength(FIXTURE.config.scored_types.length);
+        // Every path that marks or clears a rank row, the brushed redraw included, still runs against a hidden panel.
+        expect(() => {
+            dock.markHover({unit: 'regions', id: 1, score: 0.5});
+            dock.markHover(null);
+            dock.setBrush({from: 2, to: 5}, {final: true});
+            flush();
+            dock.setBrush(null, {final: true});
+            flush();
+        }).not.toThrow();
+        expect(panel.hidden).toBe(true);
+
+        // The panel is out for the unit, not for the city, so the switch back brings it and its list.
+        model.setState({unit: 'streets'});
+        dock.applyChange({kind: 'Unit', final: true});
+        flush();
+        expect(panel.hidden).toBe(false);
+        expect(body.classList).not.toContain('acs-dock__body--no-rank');
+        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(window.AccessScoreModel.RANK_LIMIT);
+        expect(document.querySelectorAll('.acs-rank__row--hover')).toHaveLength(0);
+
+        await settle();
+        // "(lowest scoring)" is a comparison, so one neighborhood is captioned by its name alone.
+        expect(document.querySelector('.acs-photos__caption').textContent).toBe('photos-from scope=Fixture');
     });
 });
