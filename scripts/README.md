@@ -144,9 +144,10 @@ GSV's `radius` parameter is a search hint, not a bound. A 25 m query has returne
 user photosphere in another state (#5114); a 15 m scan accepted the same far panos. So the scan checks the position each
 GSV response reports, and treats a pano as no imagery at that point when it lies beyond the search radius of both the
 point and the street's own centerline. The street half matters: a pano more than 25 m further down the same street is
-still imagery of it, and a point-only check hid six Teaneck streets that way. Explore's own viewer does not yet make
-that check, so it can still open such a pano (#5114). Mapillary and Panoramax already filter to the box server-side, and
-Infra3d applies its radius client-side.
+still imagery of it, and a point-only check hid six Teaneck streets that way. Explore's viewer makes the point half of
+that check (#5114) and gets the street half from sampling the street every 10 m, so the two agree on what counts as
+imagery of a street. Mapillary and Panoramax already filter to the box server-side, and Infra3d applies its radius
+client-side.
 
 `--search-radius-m` (whole metres) turns that knob, which is how the two radii get compared on a real city. Changing
 it changes which streets count as having imagery, so every checkpoint row records the radius it was checked at, and

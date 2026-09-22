@@ -1,5 +1,6 @@
 package service
 
+import models.street.StreetImageryTable
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -55,6 +56,19 @@ class ImageryFreshnessPollSpec extends AnyFunSuite with Matchers {
     metersToStreet(0.0, 0.002, street) shouldBe 111.32 +- 0.5
     // A pano ~30 m down a cross street from an endpoint: outside PanoStreetToleranceMeters, so it must filter out.
     metersToStreet(0.00027, 0.001, street) should be > 15.0
+  }
+
+  test("a GSV answer far outside the search radius never reaches a street (#5114)") {
+    // Google's metadata `radius` is a hint: a 25 m query at a Seattle street endpoint came back with a user photosphere
+    // in Syracuse, NY. The poll sends that same query, so this pins that its street filter, not the radius, is what
+    // keeps such an answer's capture date off the street, and that it does so however far away the answer is.
+    val geometryFactory = new GeometryFactory()
+    val street          = geometryFactory.createLineString(
+      Array(new Coordinate(-122.3100703, 47.6196811), new Coordinate(-122.3100703, 47.6208411))
+    )
+    metersToStreet(43.0917906, -76.1720131, street) should be > StreetImageryTable.PanoStreetToleranceMeters
+    // The milder form: a pano 77 m off a 25 m query.
+    metersToStreet(47.6196811, -122.3090500, street) should be > StreetImageryTable.PanoStreetToleranceMeters
   }
 
   test("bboxHalfWidths approximates the radius and widens longitude away from the equator") {
