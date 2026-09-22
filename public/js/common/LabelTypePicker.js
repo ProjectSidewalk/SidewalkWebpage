@@ -149,3 +149,165 @@ class LabelTypePicker {
     this.#pick(to);
   };
 }
+
+/**
+ * A label's type as a title that opens a LabelTypePicker, over components/labelTypeTrigger plus
+ * components/labelTypePopover (#3671, #5409). A native popover where there is one, so the chips can spill past the
+ * card they open from; an inline block where there isn't.
+ */
+class LabelTypeDropdown {
+  static #popoverSupported = typeof HTMLElement !== 'undefined' && 'popover' in HTMLElement.prototype;
+
+  #static;
+  #button;
+  #names;
+  #icons;
+  #popover;
+  #picker;
+  #onOpen;
+  #onClose;
+
+  /**
+   * @param {HTMLElement} triggerHost - The element holding the components/labelTypeTrigger markup.
+   * @param {HTMLElement} popover - The components/labelTypePopover element.
+   * @param {object} opts
+   * @param {() => boolean} opts.onOpen - Runs before opening; draw the chips with `picker.render` here, and return
+   *   false to keep it shut.
+   * @param {(labelType: string) => void} opts.onPick - A type was picked; the popover has already closed.
+   * @param {() => void} [opts.onClose] - The popover closed, however that happened.
+   * @param {?string} [opts.hint] - A line shown above the chips.
+   */
+  constructor(triggerHost, popover, { onOpen, onPick, onClose = () => {}, hint = null }) {
+    this.#static = triggerHost.querySelector('.label-type-trigger--static');
+    this.#button = /** @type {HTMLButtonElement} */ (triggerHost.querySelector('.label-type-trigger__button'));
+    this.#names = triggerHost.querySelectorAll('.label-type-trigger__name');
+    this.#icons = /** @type {NodeListOf<HTMLImageElement>} */ (
+      triggerHost.querySelectorAll('.label-type-trigger__icon'));
+    this.#popover = popover;
+    this.#onOpen = onOpen;
+    this.#onClose = onClose;
+
+    const hintEl = /** @type {HTMLElement} */ (popover.querySelector('.label-type-popover__hint'));
+    if (hint) {
+      hintEl.textContent = hint;
+      hintEl.hidden = false;
+    }
+    this.#picker = new LabelTypePicker(popover.querySelector('.label-type-popover__chips'), {
+      onPick: (labelType) => {
+        this.setOpen(false);
+        onPick(labelType);
+      },
+    });
+
+    if (LabelTypeDropdown.#popoverSupported) {
+      // Native toggling, so a click on the open button closes it instead of racing its own light dismiss.
+      popover.hidden = false;
+      this.#button.popoverTargetElement = popover;
+      popover.addEventListener('beforetoggle', (e) => {
+        const opening = /** @type {ToggleEvent} */ (e).newState === 'open';
+        if (!opening) return;
+        if (!this.#mayOpen()) e.preventDefault();
+        // Placed before the browser's first paint of it; placing it on `toggle` alone shows one frame of the
+        // popover's default position — the corner of the window — every time it opens fresh.
+        else this.#place();
+      });
+      popover.addEventListener('toggle', (e) => {
+        const open = /** @type {ToggleEvent} */ (e).newState === 'open';
+        this.#button.setAttribute('aria-expanded', String(open));
+        if (open) this.#place();
+        else this.#onClose();
+      });
+    } else {
+      this.#button.addEventListener('click', () => this.setOpen(!this.isOpen()));
+    }
+  }
+
+  /** @returns {LabelTypePicker} The chips, for the host to draw in `onOpen`. */
+  get picker() {
+    return this.#picker;
+  }
+
+  /** @returns {HTMLButtonElement} The button, for a host that puts a tooltip on it. */
+  get button() {
+    return this.#button;
+  }
+
+  /** @param {string} labelType - The type to draw into both the plain title and the button. */
+  setType(labelType) {
+    const name = i18next.t(`common:${util.camelToKebab(labelType)}`).replaceAll('&shy;', '­');
+    for (const el of this.#names) el.textContent = name;
+    for (const el of this.#icons) el.src = util.misc.getIconImagePaths(labelType).iconImagePath;
+    // The visible name leads the accessible name (WCAG 2.5.3), then what pressing does. A screen reader is read the
+    // name without the hyphenation hint, which it would otherwise pronounce as a break.
+    const spoken = name.replaceAll('­', '');
+    this.#button.setAttribute('aria-label', `${spoken}: ${i18next.t('common:label-type-picker.change-type')}`);
+  }
+
+  /** @param {boolean} editable - True shows the button, false the plain title. */
+  setEditable(editable) {
+    this.#button.hidden = !editable;
+    if (this.#static) this.#static.hidden = editable;
+    if (!editable) this.setOpen(false);
+  }
+
+  /** @param {boolean} disabled - Keeps the button on screen but inert, for a change that can't be made right now. */
+  setDisabled(disabled) {
+    this.#button.setAttribute('aria-disabled', String(disabled));
+    if (disabled) this.setOpen(false);
+  }
+
+  /** @returns {boolean} */
+  isOpen() {
+    if (LabelTypeDropdown.#popoverSupported) return this.#popover.matches(':popover-open');
+    return !this.#popover.hidden;
+  }
+
+  /** @param {boolean} open */
+  setOpen(open) {
+    if (open === this.isOpen()) return;
+    if (LabelTypeDropdown.#popoverSupported) {
+      if (open) this.#popover.showPopover(); // beforetoggle asks #mayOpen, which may refuse.
+      else this.#popover.hidePopover();
+      return;
+    }
+    if (open && !this.#mayOpen()) return;
+    this.#popover.hidden = !open;
+    this.#button.setAttribute('aria-expanded', String(open));
+    if (!open) this.#onClose();
+  }
+
+  /**
+   * @param {?Element} el
+   * @returns {boolean} Whether `el` is inside the popover, for a host keeping its key shortcuts off the chips.
+   */
+  contains(el) {
+    return Boolean(el && this.#popover.contains(el));
+  }
+
+  /** @returns {boolean} */
+  #mayOpen() {
+    return this.#button.getAttribute('aria-disabled') !== 'true' && this.#onOpen();
+  }
+
+  /** A popover is centered in the window by default; this parks it under the button. */
+  #place() {
+    const anchor = this.#button.getBoundingClientRect();
+    const left = Math.max(8, Math.min(anchor.left, window.innerWidth - this.#width() - 8));
+    this.#popover.style.left = `${left}px`;
+    this.#popover.style.top = `${anchor.bottom + 6}px`;
+  }
+
+  /**
+   * A closed popover has no size to measure, so it is laid out off to the side for an instant; nothing paints
+   * mid-handler, so none of that reaches the screen.
+   * @returns {number} The popover's width in px.
+   */
+  #width() {
+    if (this.#popover.offsetWidth) return this.#popover.offsetWidth;
+    const style = this.#popover.style;
+    Object.assign(style, { display: 'block', visibility: 'hidden', left: '0px', top: '0px' });
+    const width = this.#popover.offsetWidth;
+    Object.assign(style, { display: '', visibility: '' });
+    return width;
+  }
+}

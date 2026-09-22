@@ -64,7 +64,7 @@ class KeyboardManager {
     const validationMenuUi = this.#validationMenuUi;
     if (validationMenuUi.yesButton.hasClass('chosen')) {
       if (svv.adminVersion) this.#clickSeverity(n);
-    } else if (validationMenuUi.wrongTypeButton.hasClass('chosen')) {
+    } else if (this.#inWrongTypeView()) {
       // Severity only once its section is showing, or a rating typed before a type is picked rides along unseen.
       if (document.getElementById('validate-severity-section')?.style.display === 'block') this.#clickSeverity(n);
     } else if (validationMenuUi.noButton.hasClass('chosen')) {
@@ -88,6 +88,13 @@ class KeyboardManager {
     }
   }
 
+  /** @returns {boolean} Whether the "wrong label type" disagree is showing, where the type picker and the picked
+   *     type's editors stand in for the reasons (#5409). */
+  #inWrongTypeView() {
+    return this.#validationMenuUi.noButton.hasClass('chosen')
+      && this.#validationMenuUi.labelTypeMenu?.css('display') === 'block';
+  }
+
   /**
    * Clicks the radio, not its label: a label click focuses the radio, which opens the tooltip (#5298).
    * @param {number} n - The severity to pick, 1-3.
@@ -104,7 +111,7 @@ class KeyboardManager {
   #handleCommentBoxShortcut(e) {
     const validationMenuUi = this.#validationMenuUi;
     e.preventDefault();
-    if (validationMenuUi.yesButton.hasClass('chosen') || validationMenuUi.wrongTypeButton.hasClass('chosen')) {
+    if (validationMenuUi.yesButton.hasClass('chosen') || this.#inWrongTypeView()) {
       validationMenuUi.optionalCommentTextBox.click();
     } else if (validationMenuUi.noButton.hasClass('chosen')) {
       validationMenuUi.disagreeReasonTextBox.click();
@@ -129,7 +136,9 @@ class KeyboardManager {
     const marker = document.getElementById('validate-pano-marker');
     const card = document.getElementById('label-card');
     if (e.target === marker || (card && card.contains(/** @type {Node} */ (e.target)))) {
-      if (e.code === 'Escape') {
+      if (e.code === 'Escape' && svv.labelCard?.closeTypeDropdown()) {
+        // An open type dropdown takes the first Escape, as a menu would, rather than the whole card going with it.
+      } else if (e.code === 'Escape') {
         // Guarded, not unconditional: Escape on a focused marker with the card already closed is a common reflex,
         // and logging a dismissal for it would pad the event with no-ops. Focus still returns to the marker.
         if (svv.labelVisibilityControl.isCardVisible()) {
@@ -154,6 +163,13 @@ class KeyboardManager {
       validationMenuUi.submitButton.click();
     }
 
+    // Skipped while a comment box has focus, where Ctrl+Z is the browser's undo of what was typed (#5409).
+    if (!this.#disableKeyboard && !this.#addingComment && (e.ctrlKey || e.metaKey) && e.code === 'KeyZ') {
+      e.preventDefault();
+      if (svv.undoValidation.canUndo()) svv.ui.undoValidation.undoButton.click();
+      return;
+    }
+
     if (!this.#disableKeyboard && !this.#addingComment && !e.ctrlKey) {
       svv.labelVisibilityControl.hideLabelCard();
       switch (e.code) {
@@ -170,10 +186,6 @@ class KeyboardManager {
           // Validate unsure.
         case 'KeyU':
           validationMenuUi.unsureButton.click();
-          break;
-          // Wrong label type; an empty jQuery set on regular Validate, so a no-op there.
-        case 'KeyT':
-          validationMenuUi.wrongTypeButton.click();
           break;
           // Hide/Unhide the label.
         case 'KeyH':

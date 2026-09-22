@@ -358,7 +358,9 @@
   "download-already-preparing": "This file is already being prepared for another request. Please try again shortly.",
   "label-type-picker": {
     "current": "{{labelType}} (current type)",
-    "change": "change"
+    "change": "change",
+    "change-type": "Change label type",
+    "change-type-hint": "Tags that don't fit the new type are removed. A rating carries over only between types rated the same way."
   },
   "access-score-spotlight": {
     "subtitle-regions": "Each neighborhood's sidewalks are scored from 0 to 100 by our <a href=\"{{href}}\">AccessScore</a> algorithm (100 is best).",

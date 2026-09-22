@@ -35,6 +35,29 @@
   white-space: nowrap;
 }
 
+/* The type as a dropdown (components/labelTypeTrigger, Expert Validate), sized to match the plain title above. */
+.label-hover-card__type-dropdown {
+  flex: 1;
+  min-width: 0;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-black);
+  white-space: nowrap;
+}
+
+.label-hover-card__type-dropdown .label-type-trigger {
+  gap: calc(7px * var(--ui-scale));
+}
+
+.label-hover-card__type-dropdown .label-type-trigger__icon {
+  width: calc(20px * var(--ui-scale));
+  height: calc(20px * var(--ui-scale));
+}
+
+.label-hover-card__type-dropdown .label-type-trigger__chevron {
+  width: calc(14px * var(--ui-scale));
+  height: calc(14px * var(--ui-scale));
+}
+
 /* Share, in the header rather than the footer: the footer is where a panel's actions on *this* label live (Explore's
    Delete/Edit, Validate's Hide), and at the card's 240px width a third button there would leave all three too narrow
    to read. Icon-only for the same reason — the label beside it would double the header's width. Its accessible name

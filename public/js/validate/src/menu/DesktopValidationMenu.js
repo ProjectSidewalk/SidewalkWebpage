@@ -48,14 +48,6 @@ class DesktopValidationMenu {
       this.#setUnsureView();
       svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Unsure');
     });
-    // Stored as an Agree on the picked type, the only vote that can carry an edit.
-    menuUI.wrongTypeButton.click((e) => {
-      if (svv.labelContainer.dropInputWhileLoading('WrongType')) return;
-      const action = e.isTrigger ? 'ValidationKeyboardShortcut_WrongType' : 'ValidationButtonClick_WrongType';
-      svv.tracker.push(action);
-      this.#setWrongTypeView();
-      svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Agree');
-    });
 
     // Tag and severity sections only available with Expert Validate.
     if (svv.adminVersion) {
@@ -63,7 +55,7 @@ class DesktopValidationMenu {
         onPick: (labelType) => this.#setNewLabelType(labelType),
         // The full set of chips plus the editors would overflow the menu column, so only one shows at a time.
         onToggle: (expanded) => {
-          if (expanded) this.#showVerdict(menuUI.wrongTypeButton, ['labelTypeMenu']);
+          if (expanded) this.#showVerdict(menuUI.noButton, ['labelTypeMenu']);
           else this.#setWrongTypeView();
         },
       });
@@ -85,6 +77,7 @@ class DesktopValidationMenu {
           svv.tracker.push(`Click=Severity_Old=${oldSeverity}_New=${newSeverity}`);
           currLabel.setProperty('newSeverity', newSeverity);
           this.#renderSeverity();
+          svv.labelCard?.render(currLabel);
         }
       });
 
@@ -211,7 +204,6 @@ class DesktopValidationMenu {
       menuUI.yesButton.removeClass('chosen');
       menuUI.noButton.removeClass('chosen');
       menuUI.unsureButton.removeClass('chosen');
-      menuUI.wrongTypeButton.removeClass('chosen');
       menuUI.labelTypeMenu.css('display', 'none');
       menuUI.tagsMenu.css('display', 'none');
       menuUI.severityMenu.css('display', 'none');
@@ -252,7 +244,7 @@ class DesktopValidationMenu {
         menuUI.unsureReasonOptions.find(`#${unsureOption}`).addClass('chosen');
       }
 
-      // An Agree carrying a new type is the "Wrong type" verdict.
+      // An Agree carrying a new type is a "wrong label type" disagree.
       if (prevValResult === 'Agree' && this.#typeChanged(label)) this.#setWrongTypeView();
       else if (prevValResult === 'Agree') this.#setYesView();
       else if (prevValResult === 'Disagree') this.#setNoView();
@@ -307,7 +299,7 @@ class DesktopValidationMenu {
    */
   #showVerdict(chosenButton, sections) {
     const menuUI = this.#menuUI;
-    for (const button of [menuUI.yesButton, menuUI.noButton, menuUI.unsureButton, menuUI.wrongTypeButton]) {
+    for (const button of [menuUI.yesButton, menuUI.noButton, menuUI.unsureButton]) {
       button.toggleClass('chosen', button === chosenButton);
     }
     const all = ['labelTypeMenu', 'tagsMenu', 'severityMenu', 'optionalCommentSection', 'noMenu', 'unsureMenu'];
@@ -333,7 +325,7 @@ class DesktopValidationMenu {
     this.#menuUI.submitButton.prop('disabled', false);
   }
 
-  /** Puts the label back on its own type, for a verdict that isn't "Wrong type" and so can't carry a new one. */
+  /** Puts the label back on its own type, for a verdict that isn't "wrong label type" and so can't carry a new one. */
   #dropPickedType() {
     const currLabel = svv.labelContainer.getCurrentLabel();
     if (this.#typeChanged(currLabel)) this.#setNewLabelType(currLabel.getProperty('oldLabelType'), false);
@@ -351,14 +343,17 @@ class DesktopValidationMenu {
     this.#menuUI.submitButton.prop('disabled', false);
   }
 
-  /** The "Wrong type" verdict (#3671). Submit stays off until a type is picked; without one there is nothing to say. */
+  /**
+   * The "wrong label type" disagree (#3671, #5409): the reasons give way to the type picker, and then to the editors
+   * for the picked type. Submit stays off until a type is picked; without one there is nothing to say.
+   */
   #setWrongTypeView() {
     const currLabel = svv.labelContainer.getCurrentLabel();
     const picked = this.#typeChanged(currLabel) ? currLabel.getProperty('newLabelType') : null;
     this.#labelTypePicker.render({ current: currLabel.getProperty('oldLabelType'), selected: picked });
     this.#labelTypePicker.collapse(); // Keeps the editors below within the menu column; a no-op before a pick.
     const sections = picked ? [...this.#editSections(), 'optionalCommentSection'] : [];
-    this.#showVerdict(this.#menuUI.wrongTypeButton, ['labelTypeMenu', ...sections]);
+    this.#showVerdict(this.#menuUI.noButton, ['labelTypeMenu', ...sections]);
     this.#menuUI.submitButton.prop('disabled', picked === null);
   }
 
@@ -376,7 +371,31 @@ class DesktopValidationMenu {
     currLabel.setNewLabelType(labelType);
     this.#tagsAddedByUser = [];
     svv.panoManager.styleMarkerForLabel(currLabel);
+    svv.labelCard?.render(currLabel);
     if (redraw) this.#setWrongTypeView();
+  }
+
+  /**
+   * Switches to the "wrong label type" disagree. It is submitted as an Agree on the picked type, since only an
+   * admin's Agree can carry an edit.
+   */
+  #startWrongType() {
+    const currLabel = svv.labelContainer.getCurrentLabel();
+    this.#disagreeReasonButtons.removeClass('chosen');
+    this.#menuUI.disagreeReasonTextBox.removeClass('chosen');
+    currLabel.setProperty('disagreeOption', null);
+    this.#setWrongTypeView();
+    currLabel.setProperty('validationResult', 'Agree');
+  }
+
+  /**
+   * A type picked from the label card's dropdown (#5409): the same as the "wrong label type" reason plus a pick.
+   * @param {string} labelType
+   */
+  pickNewLabelType(labelType) {
+    if (svv.labelContainer.dropInputWhileLoading('LabelType')) return;
+    this.#startWrongType();
+    this.#setNewLabelType(labelType);
   }
 
   /**
@@ -417,6 +436,7 @@ class DesktopValidationMenu {
     this.#tagSelect[0].selectize.clear();
     this.#tagSelect[0].selectize.removeOption(tagName);
     this.#renderTags();
+    svv.labelCard?.render(currLabel);
   }
 
   #removeTag(tagName, label, fromAiSuggestion = false) {
@@ -426,6 +446,7 @@ class DesktopValidationMenu {
     svv.tracker.push(`Click=TagRemove_Tag="${tagName}"_FromAiSuggestion=${fromAiSuggestion}`);
     label.setProperty('newTags', label.getProperty('newTags').filter((t) => t !== tagName));
     this.#renderTags();
+    svv.labelCard?.render(label);
   }
 
   #removeTagListener(e, label) {
@@ -615,16 +636,10 @@ class DesktopValidationMenu {
     const menuUI = this.#menuUI;
     const currLabel = svv.labelContainer.getCurrentLabel();
     const reasonInfo = svv.reasonButtonInfo[util.camelToKebab(currLabel.getAuditProperty('labelType'))]?.[id];
-    // Where the type can actually be changed, a canned "should be a X label" reason is the same wish as the "Wrong
-    // type" verdict, so it jumps there instead of becoming a comment nobody acts on (#3671).
-    if (svv.adminVersion && reasonInfo && 'newLabelType' in reasonInfo) {
-      svv.tracker.push(`DisagreeReason_ToWrongType_Option=${id}`);
-      this.#disagreeReasonButtons.removeClass('chosen');
-      menuUI.disagreeReasonTextBox.removeClass('chosen');
-      currLabel.setProperty('disagreeOption', null);
-      this.#setWrongTypeView();
-      currLabel.setProperty('validationResult', 'Agree');
-      if (reasonInfo.newLabelType) this.#setNewLabelType(reasonInfo.newLabelType);
+    // Where the type can actually be changed, "wrong label type" opens the type picker instead of becoming a comment
+    // nobody acts on (#3671, #5409).
+    if (svv.adminVersion && reasonInfo?.wrongType) {
+      this.#startWrongType();
       return;
     }
     this.#disagreeReasonButtons.removeClass('chosen');
@@ -694,7 +709,6 @@ class DesktopValidationMenu {
     menuUI.yesButton.removeClass('validate');
     menuUI.noButton.removeClass('validate');
     menuUI.unsureButton.removeClass('validate');
-    menuUI.wrongTypeButton.removeClass('validate');
 
     // Save anything they typed in either text box so that it's there again if they undo their validation.
     this.saveValidationState();

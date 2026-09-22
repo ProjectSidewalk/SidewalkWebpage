@@ -1,0 +1,11 @@
+@*
+* The popover of label-type chips that components/labelTypeTrigger's button opens. Kept out of the trigger so a host
+* can place it outside a heading, where its chips would otherwise be read as part of the heading's text.
+* LabelTypeDropdown fills in the hint (when the host gives one) and the chips.
+*@
+@()
+
+<div class="label-type-popover" popover hidden>
+  <p class="label-type-popover__hint" hidden></p>
+  <div class="label-type-popover__chips"></div>
+</div>

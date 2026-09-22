@@ -68,8 +68,7 @@
     "add-note": "💬 Agregar una nota",
     "note-placeholder": "Agrega una nota sobre esta etiqueta (opcional)…",
     "save-note": "Guardar nota",
-    "popup-heading": "Tu etiqueta fue validada como incorrecta. ¿Estás de acuerdo en que fue un error?",
-    "your-label": "Tu etiqueta: {{type}}"
+    "popup-heading": "Tu etiqueta fue validada como incorrecta. ¿Estás de acuerdo en que fue un error?"
   },
   "settings-form": {
     "saving": "Guardando…",

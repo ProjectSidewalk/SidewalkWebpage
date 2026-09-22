@@ -65,8 +65,7 @@
     "add-note": "💬 新增附註",
     "note-placeholder": "為這個標記新增附註（選填）…",
     "save-note": "儲存附註",
-    "popup-heading": "您的標記被檢核為錯誤。您同意這是一個錯誤嗎？",
-    "your-label": "您的標記：{{type}}"
+    "popup-heading": "您的標記被檢核為錯誤。您同意這是一個錯誤嗎？"
   },
   "settings-form": {
     "saving": "儲存中…",

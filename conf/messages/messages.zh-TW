@@ -55,7 +55,6 @@ no.caps = 否
 no.caps.shortcut = <u>N</u>否
 unsure.caps = 不確定
 unsure.caps.shortcut = <u>U</u>不確定
-wrong.type.shortcut = <u>T</u>類型錯誤
 thanks = 謝謝！
 username = 使用者名稱
 loading = 讀取中...

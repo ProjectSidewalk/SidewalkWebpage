@@ -92,9 +92,9 @@ class LabelVisibilityControl {
    */
   hideLabelCard() {
     this.cancelScheduledCardHide();
-    // The share popover hangs off the card, so it goes too. Left open it would be invisible but still armed, and
-    // every later scheduleHideLabelCard would defer to it forever.
-    svv.labelCard?.closeSharePopover();
+    // The card's popovers hang off it, so they go too. Left open one would be invisible but still armed, and every
+    // later scheduleHideLabelCard would defer to it forever.
+    svv.labelCard?.closePopovers();
     this.#cardVisible = false;
     this.#card[0].style.visibility = 'hidden';
     this.#setMarkerExpanded(false);
@@ -106,10 +106,10 @@ class LabelVisibilityControl {
    * the pointer first left.
    */
   scheduleHideLabelCard() {
-    // An open share popover extends past the card, so the pointer leaving the card doesn't mean the user is done
-    // with it. Taking the card down here would take the popover with it, mid-choice — handleSharePopoverDismissed
-    // re-arms the hide once the popover closes.
-    if (this.#hideCardTimer !== null || svv.labelCard?.isSharePopoverOpen()) return;
+    // An open share popover or type dropdown extends past the card, so the pointer leaving the card doesn't mean the
+    // user is done with it. Taking the card down here would take the popover with it, mid-choice —
+    // handlePopoverDismissed re-arms the hide once the popover closes.
+    if (this.#hideCardTimer !== null || svv.labelCard?.isPopoverOpen()) return;
     this.#hideCardTimer = setTimeout(() => {
       this.#hideCardTimer = null;
       this.hideLabelCard();
@@ -117,16 +117,17 @@ class LabelVisibilityControl {
   }
 
   /**
-   * Re-arms the card's hide once the share popover that had been holding it open goes away.
+   * Re-arms the card's hide once the share popover or type dropdown that had been holding it open goes away.
    *
    * scheduleHideLabelCard is only ever reached from the card's own mouseleave, and while the popover was up it
    * declined to schedule anything. The pointer left the card back then and no second mouseleave is coming, so
    * without this the card would stay up until a pan, the H key, or the next label took it down. Copy link is the
    * common way in: it leaves the popover open behind its "Copied!" state, so the pointer usually wanders off well
-   * before the popover closes. Skipped when the pointer is back on the card, where it is meant to stay.
+   * before the popover closes. Skipped when the pointer is back on the card, where it is meant to stay, and when the
+   * card is already gone, since hiding it is one of the things that closes a popover.
    */
-  handleSharePopoverDismissed() {
-    if (!this.#card[0].matches(':hover')) this.scheduleHideLabelCard();
+  handlePopoverDismissed() {
+    if (this.#cardVisible && !this.#card[0].matches(':hover')) this.scheduleHideLabelCard();
   }
 
   /**

@@ -1,11 +1,13 @@
 /**
- * Tests for Expert Validate's "Wrong type" verdict (#3671), across public/js/common/LabelTypePicker.js,
- * public/js/validate/src/label/Label.js and public/js/validate/src/label/LabelContainer.js.
+ * Tests for changing a label's type on Expert Validate (#3671, #5409), across public/js/common/LabelTypePicker.js,
+ * public/js/validate/src/label/Label.js, public/js/validate/src/label/LabelContainer.js,
+ * public/js/validate/src/util/ConstantsValidate.js and public/js/validate/src/menu/DesktopValidationMenu.js.
  *
- * The verdict is stored as an Agree on the type the expert picks, so the two things that must hold are: the label's
- * editable severity and tags follow the picked type by the same rules the server applies (a rating survives only on the
- * same scale, a tag only if the new type offers it), and the submission names both the type the validator saw and the
- * one they picked. The picker itself is checked as the radio group it claims to be.
+ * The way in is the "wrong label type" disagree reason, first for every type, or the type dropdown in the label card.
+ * Either is stored as an Agree on the type the expert picks, so the things that must hold are: the label's editable
+ * severity and tags follow the picked type by the same rules the server applies (a rating survives only on the same
+ * scale, a tag only if the new type offers it), and the submission names both the type the validator saw and the one
+ * they picked. The picker is checked as the radio group it claims to be, and the dropdown as the disclosure it is.
  */
 
 const fs = require('fs');
@@ -14,13 +16,13 @@ const path = require('path');
 const { assetPathStub, installUtilitiesMisc, REPO_ROOT } = require('./loadGlobalScript');
 
 /**
- * Loads a bare `class` declaration out of a production file into window scope.
+ * Loads bare top-level declarations out of a production file into window scope.
  * @param {string} relPath - Path under the repo root.
- * @param {string} name - The class the file declares.
+ * @param {...string} names - The classes or functions the file declares.
  */
-function loadClass(relPath, name) {
+function loadClass(relPath, ...names) {
   const src = fs.readFileSync(path.join(REPO_ROOT, relPath), 'utf8');
-  window.eval(`${src}\nwindow.${name} = ${name};`);
+  window.eval(`${src}\n${names.map((n) => `window.${n} = ${n};`).join('\n')}`);
 }
 
 const TAGS_BY_TYPE = {
@@ -39,7 +41,7 @@ beforeAll(() => {
   // i18next echoes its key so assertions can name the key they expect rather than an English string.
   window.i18next = { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) };
   window.moment = (v) => v;
-  loadClass('public/js/common/LabelTypePicker.js', 'LabelTypePicker');
+  loadClass('public/js/common/LabelTypePicker.js', 'LabelTypePicker', 'LabelTypeDropdown');
   loadClass('public/js/validate/src/label/Label.js', 'Label');
   loadClass('public/js/validate/src/label/LabelContainer.js', 'LabelContainer');
 });
@@ -245,5 +247,288 @@ describe('LabelTypePicker', () => {
 
     expect(picks).toEqual([]);
     expect(root.querySelector('[aria-checked="true"]').dataset.labelType).toBe('Signal');
+  });
+});
+
+describe('LabelTypeDropdown', () => {
+  let opens;
+  let picks;
+  let closes;
+  let allowOpen;
+
+  /** @returns {LabelTypeDropdown} A dropdown over the markup components/labelTypeTrigger and labelTypePopover render. */
+  function build({ hint = null } = {}) {
+    document.body.innerHTML = `
+      <h2 id="title">
+        <span class="label-type-trigger label-type-trigger--static">
+          <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+        </span>
+        <button type="button" class="label-type-trigger label-type-trigger__button" hidden aria-expanded="false">
+          <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+        </button>
+      </h2>
+      <div class="label-type-popover" popover hidden>
+        <p class="label-type-popover__hint" hidden></p>
+        <div class="label-type-popover__chips"></div>
+      </div>`;
+    const dropdown = new window.LabelTypeDropdown(
+      document.getElementById('title'), document.querySelector('.label-type-popover'), {
+        onOpen: () => {
+          opens += 1;
+          if (allowOpen) dropdown.picker.render({ current: 'Obstacle' });
+          return allowOpen;
+        },
+        onPick: (t) => picks.push(t),
+        onClose: () => { closes += 1; },
+        hint,
+      },
+    );
+    return dropdown;
+  }
+
+  const button = () => document.querySelector('.label-type-trigger__button');
+  const popover = () => document.querySelector('.label-type-popover');
+  const chip = (t) => popover().querySelector(`[data-label-type="${t}"]`);
+
+  beforeEach(() => {
+    opens = 0;
+    picks = [];
+    closes = 0;
+    allowOpen = true;
+  });
+
+  it('draws the type into both titles and names the button for what it does', () => {
+    const dropdown = build();
+    dropdown.setType('Obstacle');
+
+    const names = [...document.querySelectorAll('.label-type-trigger__name')].map((n) => n.textContent);
+    expect(names).toEqual(['common:obstacle', 'common:obstacle']);
+    expect(button().getAttribute('aria-label')).toBe('common:obstacle: common:label-type-picker.change-type');
+    expect(button().querySelector('img').getAttribute('src')).toContain('Obstacle_small.svg');
+  });
+
+  it('shows the button only when editable', () => {
+    const dropdown = build();
+    const plain = document.querySelector('.label-type-trigger--static');
+    expect(button().hidden).toBe(true);
+
+    dropdown.setEditable(true);
+    expect(button().hidden).toBe(false);
+    expect(plain.hidden).toBe(true);
+
+    dropdown.setEditable(false);
+    expect(button().hidden).toBe(true);
+    expect(plain.hidden).toBe(false);
+  });
+
+  it('opens on click, draws through onOpen, and a pick closes it before onPick runs', () => {
+    const dropdown = build();
+    dropdown.setEditable(true);
+
+    button().click();
+    expect(dropdown.isOpen()).toBe(true);
+    expect(button().getAttribute('aria-expanded')).toBe('true');
+    expect(opens).toBe(1);
+    expect(dropdown.contains(chip('Signal'))).toBe(true);
+
+    chip('Signal').click();
+    expect(picks).toEqual(['Signal']);
+    expect(dropdown.isOpen()).toBe(false);
+    expect(button().getAttribute('aria-expanded')).toBe('false');
+    expect(closes).toBe(1);
+  });
+
+  it('stays shut when onOpen refuses, or while disabled', () => {
+    const dropdown = build();
+    dropdown.setEditable(true);
+    allowOpen = false;
+    button().click();
+    expect(dropdown.isOpen()).toBe(false);
+
+    allowOpen = true;
+    dropdown.setDisabled(true);
+    button().click();
+    expect(dropdown.isOpen()).toBe(false);
+    expect(opens).toBe(1); // A disabled button never asks.
+  });
+
+  it('shows the hint only for a host that gives one', () => {
+    build();
+    expect(document.querySelector('.label-type-popover__hint').hidden).toBe(true);
+
+    build({ hint: 'Tags may be removed.' });
+    const hint = document.querySelector('.label-type-popover__hint');
+    expect(hint.hidden).toBe(false);
+    expect(hint.textContent).toBe('Tags may be removed.');
+  });
+});
+
+describe('the disagree reasons (#5409)', () => {
+  const EN = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'public/locales/en/validate.json'), 'utf8'));
+
+  /** @returns {?string} The English string an i18next key resolves to, or null when the key is missing. */
+  function resolve(key) {
+    const [ns, rest] = key.split(':');
+    if (ns !== 'validate') return 'not checked here';
+    return rest.split('.').reduce((node, part) => (node && typeof node === 'object' ? node[part] : null), EN) ?? null;
+  }
+
+  beforeAll(() => {
+    loadClass('public/js/validate/src/util/ConstantsValidate.js', 'defineValidateConstants');
+  });
+
+  beforeEach(() => {
+    window.defineValidateConstants();
+  });
+
+  it('every type leads with "wrong label type", and no reason names a type of its own any more', () => {
+    for (const [type, reasons] of Object.entries(window.svv.reasonButtonInfo)) {
+      expect([type, reasons['no-button-1'].wrongType]).toEqual([type, true]);
+      for (const info of Object.values(reasons)) expect(info).not.toHaveProperty('newLabelType');
+    }
+  });
+
+  it('every reason still points at a string that exists, so the renumbering left nothing dangling', () => {
+    const missing = [];
+    for (const [type, reasons] of Object.entries(window.svv.reasonButtonInfo)) {
+      for (const [id, info] of Object.entries(reasons)) {
+        // The tooltip carries its shortcut number, once.
+        const tooltipKey = info.tooltipText.replace(/ \(\d\)$/, '');
+        for (const key of [info.buttonText, tooltipKey]) {
+          if (resolve(key) === null) missing.push(`${type}.${id}: ${key}`);
+        }
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+
+  it('there are never more disagree reasons than the four buttons the menu has', () => {
+    for (const reasons of Object.values(window.svv.reasonButtonInfo)) {
+      const ids = Object.keys(reasons).filter((id) => id.startsWith('no-button-'));
+      expect(ids.every((id) => Number(id.split('-')[2]) <= 4)).toBe(true);
+    }
+  });
+});
+
+describe('DesktopValidationMenu on Expert Validate', () => {
+  let menu;
+  let label;
+
+  beforeAll(() => {
+    window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/jquery/jquery-1.12.2.min.js'), 'utf8'));
+    window.$.fn.tooltip = function tooltip() { return this; };
+    window.$.fn.selectize = function selectize() {
+      this[0].selectize = { clearOptions() {}, addOption() {}, clear() {}, removeOption() {} };
+      return this;
+    };
+    window.util.getImage = () => Promise.resolve('img');
+    window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
+    loadClass('public/js/validate/src/util/ConstantsValidate.js', 'defineValidateConstants');
+    loadClass('public/js/validate/src/menu/DesktopValidationMenu.js', 'DesktopValidationMenu');
+  });
+
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <button id="validate-yes-button"></button>
+      <button id="validate-no-button"></button>
+      <button id="validate-unsure-button"></button>
+      <div id="validate-label-type-section"><div id="label-type-picker"></div></div>
+      <div id="validate-tags-section">
+        <div id="current-tags-list"></div>
+        <div id="sidewalk-ai-suggestions-block"><div class="sidewalk-ai-suggested-tag template"></div></div>
+        <select id="select-tag"></select>
+      </div>
+      <div id="validate-severity-section"></div>
+      <div id="validate-optional-comment-section"><input id="add-optional-comment"></div>
+      <div id="validate-why-no-section"><div id="no-reason-options">
+        ${[1, 2, 3, 4].map((n) => `<button id="no-button-${n}" class="validation-reason-button"></button>`).join('')}
+        <input id="add-disagree-comment">
+      </div></div>
+      <div id="validate-why-unsure-section"><div id="unsure-reason-options">
+        ${[1, 2, 3].map((n) => `<button id="unsure-button-${n}" class="validation-reason-button"></button>`).join('')}
+        <input id="add-unsure-comment">
+      </div></div>
+      <button id="validate-submit-button" disabled></button>`;
+
+    label = makeLabel({ ai_tags: null, ai_tags_not_present: null });
+    Object.assign(window.svv, {
+      adminVersion: true,
+      labelContainer: { getCurrentLabel: () => label, dropInputWhileLoading: () => false },
+      panoManager: { styleMarkerForLabel: jest.fn() },
+      labelCard: { render: jest.fn() },
+    });
+    window.defineValidateConstants();
+
+    const $ = window.$;
+    menu = new window.DesktopValidationMenu({
+      yesButton: $('#validate-yes-button'),
+      noButton: $('#validate-no-button'),
+      unsureButton: $('#validate-unsure-button'),
+      labelTypeMenu: $('#validate-label-type-section'),
+      labelTypePicker: $('#label-type-picker'),
+      tagsMenu: $('#validate-tags-section'),
+      severityMenu: $('#validate-severity-section'),
+      optionalCommentSection: $('#validate-optional-comment-section'),
+      optionalCommentTextBox: $('#add-optional-comment'),
+      noMenu: $('#validate-why-no-section'),
+      disagreeReasonOptions: $('#no-reason-options'),
+      disagreeReasonTextBox: $('#add-disagree-comment'),
+      unsureMenu: $('#validate-why-unsure-section'),
+      unsureReasonOptions: $('#unsure-reason-options'),
+      unsureReasonTextBox: $('#add-unsure-comment'),
+      submitButton: $('#validate-submit-button'),
+      currentTags: $('#current-tags-list'),
+      aiSuggestionSection: $('#sidewalk-ai-suggestions-block'),
+      aiSuggestedTagTemplate: $('.sidewalk-ai-suggested-tag.template'),
+    });
+    menu.resetMenu(label);
+  });
+
+  const shown = (id) => document.getElementById(id).style.display === 'block';
+  const submitDisabled = () => document.getElementById('validate-submit-button').disabled;
+
+  it('the "wrong label type" reason swaps the reasons for the type picker under a chosen Disagree', () => {
+    window.$('#validate-no-button').click();
+    document.getElementById('no-button-1').click();
+
+    expect(document.getElementById('validate-no-button').classList.contains('chosen')).toBe(true);
+    expect(shown('validate-label-type-section')).toBe(true);
+    expect(shown('validate-why-no-section')).toBe(false);
+    expect(label.getProperty('validationResult')).toBe('Agree');
+    expect(label.getProperty('disagreeOption')).toBeNull();
+    expect(submitDisabled()).toBe(true); // Nothing to submit until a type is picked.
+  });
+
+  it('a pick from the label card lands as the same disagree with the type already picked', () => {
+    menu.pickNewLabelType('SurfaceProblem');
+
+    expect(label.getProperty('newLabelType')).toBe('SurfaceProblem');
+    expect(label.getProperty('validationResult')).toBe('Agree');
+    expect(document.getElementById('validate-no-button').classList.contains('chosen')).toBe(true);
+    expect(shown('validate-tags-section')).toBe(true);
+    expect(submitDisabled()).toBe(false);
+    expect(window.svv.panoManager.styleMarkerForLabel).toHaveBeenCalledWith(label);
+    expect(window.svv.labelCard.render).toHaveBeenCalledWith(label);
+  });
+
+  it('going back to Disagree puts the label back on its own type and brings the reasons back', () => {
+    menu.pickNewLabelType('SurfaceProblem');
+    window.$('#validate-no-button').click();
+
+    expect(label.getProperty('newLabelType')).toBe('Obstacle');
+    expect(label.getProperty('validationResult')).toBe('Disagree');
+    expect(shown('validate-why-no-section')).toBe(true);
+    expect(shown('validate-label-type-section')).toBe(false);
+    expect(window.svv.labelCard.render).toHaveBeenLastCalledWith(label);
+  });
+
+  it('on regular Validate the reason is a plain disagree reason', () => {
+    window.svv.adminVersion = false;
+    window.$('#validate-no-button').click();
+    document.getElementById('no-button-1').click();
+
+    expect(label.getProperty('disagreeOption')).toBe('no-button-1');
+    expect(label.getProperty('validationResult')).toBe('Disagree');
+    expect(shown('validate-why-no-section')).toBe(true);
   });
 });

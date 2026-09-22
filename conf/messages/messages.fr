@@ -55,7 +55,6 @@ no.caps = Non
 no.caps.shortcut = <u>N</u>on
 unsure.caps = Incertain
 unsure.caps.shortcut = Incertain (<u>U</u>)
-wrong.type.shortcut = Mauvais <u>t</u>ype
 thanks = Merci !
 username = Nom d''utilisateur
 loading = Chargement...
