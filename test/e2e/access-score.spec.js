@@ -49,6 +49,20 @@ const REGIONS = {
 };
 const COMPLETION = [{region_id: 1, name: 'Fixture', rate: 1, total_distance_m: 300, completed_distance_m: 200, outdated_distance_m: 0}];
 
+/**
+ * A second neighborhood, for the tests that need region rows to click: one neighborhood is nothing to rank against,
+ * so the rank panel is out while that unit is in force (#5419).
+ * @param {import('@playwright/test').Page} page - Routed on, overriding the context route in stubFeeds.
+ * @returns {Promise<void>}
+ */
+async function stubTwoRegions(page) {
+  await page.route((url) => url.pathname === '/regions/completionRates', (route) => route.fulfill({
+    json: [...COMPLETION,
+      {region_id: 2, name: 'Second', rate: 1, total_distance_m: 300, completed_distance_m: 300,
+        outdated_distance_m: 0}],
+  }));
+}
+
 /** Every validation the stubbed `/labelmap/validate` received in the current test, as parsed JSON bodies. */
 const VALIDATIONS = [];
 
@@ -339,6 +353,7 @@ test.describe('/accessScore', () => {
 
   test('in the regions unit the brush dims regions, a rank click selects and flies, and the selection marks the histogram',
     async ({page}) => {
+      await stubTwoRegions(page);
       await page.goto('/accessScore');
       await waitForAppReady(page);
       await waitForTool(page);
@@ -365,7 +380,7 @@ test.describe('/accessScore', () => {
       await expect(caret).toBeVisible();
       expect(Number.parseFloat(await caret.evaluate((el) => el.style.left))).toBeCloseTo(46.8, 0);
       await expect(page.locator('.acs-histogram__bin[aria-pressed="true"]')).toHaveCount(0);
-      // The selected region stays bright; with one region in the fixture, nothing else is there to fade.
+      // The second region carries no streets, so nothing is left to fade against the selected one.
       expect(await dimOf(page, 'acs-regions', 1)).toBe(false);
     });
 
@@ -678,8 +693,8 @@ test.describe('/accessScore', () => {
     await expect(page.locator('.acs-whats-here__row[data-type="Obstacle"] .acs-whats-here__count')).toHaveText('2');
     await expect(page.locator('.acs-whats-here__row[data-type="Obstacle"] .acs-whats-here__segment[data-bucket="3"]'))
       .toBeVisible();
-    // Nothing selected: the strip reads the lowest-scoring region — the fixture's only one — and says so.
-    await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from Fixture (lowest scoring)');
+    // "(lowest scoring)" is a comparison, so the fixture's one neighborhood is captioned by its name alone (#5419).
+    await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from Fixture');
     const items = page.locator('.acs-photos__item');
     await expect(items).toHaveCount(2);
     // Worst first: the severity-3 obstacle cluster, shown by its newest label, ahead of the good curb ramps; no
@@ -748,7 +763,7 @@ test.describe('/accessScore', () => {
     await page.goto('/accessScore');
     await waitForAppReady(page);
     await waitForTool(page);
-    await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from Fixture (lowest scoring)');
+    await expect(page.locator('.acs-photos__caption')).toHaveText('Photos from Fixture');
     // A reader's own move (eventData stands in for the pointer event) over the fixture region, zoomed to street level.
     await page.evaluate(() => window.accessScore.map.jumpTo(
       {center: [-74.009, 40.8805], zoom: 15}, {originalEvent: {type: 'test'}}));
