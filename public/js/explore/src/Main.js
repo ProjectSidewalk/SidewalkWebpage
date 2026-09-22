@@ -649,6 +649,7 @@ class Main {
     svl.ui.minimap.legendToggle = $('#minimap-legend-toggle');
     svl.ui.minimap.legendCard = $('#minimap-legend-card');
     svl.ui.minimap.legendClose = $('#minimap-legend-close');
+    svl.ui.minimap.legendEarlierLabels = $('#minimap-legend-earlier-labels');
     svl.ui.minimap.routeOverview = $('#minimap-route-overview');
     svl.ui.minimap.routeOverviewCanvas = $('#minimap-route-overview-canvas');
 

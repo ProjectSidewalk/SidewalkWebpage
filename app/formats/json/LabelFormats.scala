@@ -379,7 +379,9 @@ object LabelFormats {
       "auditTaskId"      -> label.labelData.auditTaskId,
       "missionId"        -> label.labelData.missionId,
       "labelLat"         -> label.pointData.lat,
-      "labelLng"         -> label.pointData.lng
+      "labelLng"         -> label.pointData.lng,
+      // With missionId, what lets the minimap tell this pass's labels from an earlier era's (#4945).
+      "fromOutdatedImagery" -> label.fromOutdatedImagery
     )
   }
 
