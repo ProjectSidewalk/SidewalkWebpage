@@ -183,6 +183,36 @@ describe('LabelTypePicker', () => {
     expect(picker.getSelected()).toBe('Obstacle');
   });
 
+  it('arrows survive a pano viewer, which stops them dead at window', () => {
+    // Every viewer registers a window-capture listener that stopPropagation()s the arrows so they don't steer the
+    // imagery, and every page with this picker has a viewer. A listener on the group itself never sees the key.
+    const viewer = (e) => { if (e.key.startsWith('Arrow')) e.stopPropagation(); };
+    window.addEventListener('keydown', viewer, { capture: true });
+    try {
+      const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+      picker.render({ current: 'NoCurbRamp', selected: 'CurbRamp' });
+      const chip = (t) => root.querySelector(`[data-label-type="${t}"]`);
+      chip('CurbRamp').focus();
+
+      chip('CurbRamp').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+
+      expect(document.activeElement).toBe(chip('Obstacle'));
+    } finally {
+      window.removeEventListener('keydown', viewer, { capture: true });
+    }
+  });
+
+  it('leaves the keys alone while focus is outside the group, since it listens window-wide', () => {
+    const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+    picker.render({ current: 'NoCurbRamp', selected: 'CurbRamp' });
+    document.body.focus();
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+
+    expect(picks).toEqual([]);
+    expect(picker.getSelected()).toBe('CurbRamp');
+  });
+
   it('keeps focus through a host that redraws on every pick, so arrowing carries on', () => {
     // What Expert Validate does: picking re-renders the whole group, which used to destroy the focused chip and drop
     // focus to the body, leaving the next arrow key with nothing to move from.

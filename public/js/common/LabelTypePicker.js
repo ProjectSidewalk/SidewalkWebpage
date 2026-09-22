@@ -33,7 +33,11 @@ class LabelTypePicker {
     root.classList.add('label-type-picker');
     root.setAttribute('role', 'radiogroup');
     root.addEventListener('click', this.#handleClick);
-    root.addEventListener('keydown', this.#handleKeydown);
+    // On window in the capture phase, because every pano viewer registers a window-capture listener that
+    // stopPropagation()s the arrow keys to keep them from steering the imagery (GsvViewer and friends). That ends
+    // the dispatch, so a listener on the group itself never sees an arrow on any page with a viewer — which is
+    // every page this picker lives on. Listeners on the same node still run, so this one does.
+    window.addEventListener('keydown', this.#handleKeydown, { capture: true });
   }
 
   /**
@@ -142,6 +146,7 @@ class LabelTypePicker {
    * @param {KeyboardEvent} e
    */
   #handleKeydown = (e) => {
+    if (!this.#root.contains(document.activeElement)) return; // The price of listening window-wide.
     const isNext = LabelTypePicker.#KEY_NEXT.has(e.key);
     if (!isNext && !LabelTypePicker.#KEY_PREV.has(e.key)) return;
     // Folded down, only the picked chip is on screen, so there is nothing to move between yet: the press opens the
