@@ -353,6 +353,50 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* At a weight of 0 the factor is out of the score, so the row fades like a street outside a brush. The slider keeps
+   full contrast: it is the control that turns the factor back on. */
+.acs-weight--off .acs-weight__head {
+  opacity: 0.55;
+}
+
+.acs-weight--off .acs-weight__value {
+  font: var(--text-small-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* "Updated · 12 streets changed" (#5223). It fades itself out and collapses, so it never takes room in the resting
+   panel. */
+.acs-flash {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-tiny-medium);
+  color: var(--color-jade-800);
+  opacity: 0;
+}
+
+.acs-flash:empty {
+  display: none;
+}
+
+.acs-flash--on {
+  animation: acs-flash-fade 1.6s ease-out forwards;
+}
+
+@keyframes acs-flash-fade {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* The message is information, not decoration, so reduced motion keeps it and drops only the fade. */
+@media (prefers-reduced-motion: reduce) {
+  .acs-flash--on {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 /* The average contribution under each slider: a thin bar whose length is relative to the largest type's. */
 .acs-weight__contrib {
   display: flex;
@@ -404,6 +448,10 @@
 .acs-disclosure {
   display: flex;
   align-items: center;
+
+  /* Folded, a long heading plus its hint can outgrow a narrow sidebar: the hint drops to a second line rather
+     than run under the "Reset weights" beside it. */
+  flex-wrap: wrap;
   gap: var(--space-xxs);
   width: 100%;
   padding: 0;
@@ -441,6 +489,12 @@
 }
 
 .acs-disclosure__hint:empty {
+  display: none;
+}
+
+/* Open, the sliders themselves say the weights are custom, and the word would only crowd the row's "Reset
+   weights" — in a narrow sidebar the two collide outright. */
+.acs-disclosure[aria-expanded="true"] .acs-disclosure__hint {
   display: none;
 }
 
@@ -588,6 +642,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* A numeric column's header sits over its own figures: the element selector above would otherwise keep the header
+   at the left edge while the values it names are at the right. */
+.acs-popup__table th.acs-popup__num {
+  text-align: right;
+}
+
 .acs-popup__term--feature {
   color: var(--color-jade-700);
 }
@@ -611,6 +671,90 @@
   margin-top: var(--space-sm);
 }
 
+/* ---- The Slope section's form controls (#5223): a labeled select, and grade inputs with their unit ---- */
+
+.acs-slope {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* display: flex would otherwise beat the user-agent's [hidden] rule, and the fold would never close. */
+.acs-slope[hidden] {
+  display: none;
+}
+
+/* The page's base label style is bold with a bottom margin; these labels sit beside their control as plain text. */
+.acs-field label {
+  margin: 0;
+  font: var(--text-caption-regular);
+}
+
+.acs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font: var(--text-caption-regular);
+}
+
+/* A short label with its grade beside it, on one line. */
+.acs-field--inline {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
+.acs-field .acs-field__label,
+.acs-field__label {
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-900);
+}
+
+.acs-field__note {
+  margin: 0;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+/* An empty status region takes no room: it holds a sentence only while the thresholds are switched off. */
+.acs-field__note:empty {
+  display: none;
+}
+
+.acs-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.acs-fieldset legend {
+  padding: 0;
+  margin-bottom: 2px;
+}
+
+.acs-percent {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.acs-percent__input {
+  width: calc(72px * var(--ui-scale, 1));
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Slope's row in the terms table has no label type to take a color from; it takes the slope map's mid blue. */
+.acs-popup__swatch--slope {
+  background-color: var(--color-grade-ramp-3);
+}
+
 /* The popup's slope block (#5223). The note says why a number is missing or approximate, and the credit is the
    elevation model's licence condition, so both are text-sized rather than fine print. */
 .acs-popup__note,
@@ -625,50 +769,6 @@
   margin-top: var(--space-xxs);
   font: var(--text-caption-regular);
   color: var(--color-neutral-700);
-}
-
-/* The elevation profile: the scale's two ends beside the chart, the street's two ends beneath it. */
-.acs-profile {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 2px var(--space-xxs);
-  margin: 0;
-  font: var(--text-tiny-regular);
-  font-variant-numeric: tabular-nums;
-}
-
-.acs-profile__scale {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  text-align: right;
-}
-
-.acs-profile__chart {
-  display: block;
-  width: 100%;
-  height: calc(72px * var(--ui-scale, 1));
-  border-bottom: 1px solid var(--color-neutral-400);
-}
-
-.acs-profile__area {
-  fill: var(--color-blue-400);
-  stroke: none;
-}
-
-/* non-scaling-stroke: the chart stretches to the popup's width, and the line should not stretch with it. */
-.acs-profile__line {
-  fill: none;
-  stroke: var(--color-link-200);
-  stroke-width: 2;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-}
-
-.acs-profile__ends {
-  display: flex;
-  grid-column: 2;
-  justify-content: space-between;
 }
 
 /* ---- Map legend: a card beside the zoom buttons ---- */
@@ -766,11 +866,45 @@
   list-style: none;
 }
 
+/* Each class brushes the map on itself, so the whole row is the target. */
 .acs-map-legend__class {
   display: flex;
   align-items: center;
   gap: var(--space-xxs);
+  width: 100%;
+  padding: 1px 3px;
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  background: none;
   font: var(--text-tiny-regular);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.acs-map-legend__class:hover {
+  background: var(--color-neutral-200);
+}
+
+.acs-map-legend__class:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 1px;
+}
+
+.acs-map-legend__class[aria-pressed="true"] {
+  background: var(--color-neutral-300);
+  font: var(--text-tiny-semibold);
+}
+
+/* Muted, not hidden: a reader has to be able to read the color they just turned off in order to turn it back on. */
+.acs-map-legend__class--out {
+  opacity: 0.45;
+}
+
+.acs-map-legend__hint {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
 }
 
 .acs-map-legend__class-swatch {
@@ -786,6 +920,10 @@
   margin: 3px;
   width: 12px;
   box-shadow: 0 0 0 3px var(--color-neutral-900);
+}
+
+.acs-map-legend__classes li {
+  margin: 0;
 }
 
 /* ---- Insights dock: a band along the bottom of the map ---- */
@@ -980,6 +1118,30 @@
   margin: 0;
   font: var(--text-caption-semibold);
   color: var(--color-neutral-800);
+}
+
+/* A panel head's action, at the far end of the row: the rank list's "Show worst 20". Quiet, like the sidebar's
+   "Reset weights", since it is a way to look at the same panel rather than a change to the scores. */
+.acs-dock__panel-action {
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  font: var(--text-tiny-regular);
+  color: var(--color-asphalt-400);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.acs-dock__panel-action:hover {
+  color: var(--color-asphalt-500);
+  text-decoration: underline;
+}
+
+.acs-dock__panel-action:focus-visible {
+  outline: 2px solid var(--color-asphalt-400);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 /* ---- Histogram (and legend) ---- */
@@ -1402,7 +1564,10 @@
 
 .acs-rank__row {
   display: grid;
-  grid-template-columns: auto minmax(72px, 1.5fr) minmax(40px, 1fr) auto; /* Digits take only their own width. */
+
+  /* Digits take only their own width. The name gets the larger share: a street name ("New Bridge Road") runs longer
+     than a neighborhood's, and the bar reads as well at 40px as at 60. */
+  grid-template-columns: auto minmax(72px, 2fr) minmax(40px, 1fr) auto;
   align-items: center;
   gap: var(--space-xs);
   width: 100%;

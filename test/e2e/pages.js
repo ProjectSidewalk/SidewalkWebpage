@@ -46,7 +46,7 @@ const PAGES = [
   {path: '/v3/api-docs/regions', mapbox: true},
   {path: '/v3/api-docs/places', mapbox: true},
   {path: '/v3/api-docs/accessScoreStreets', mapbox: true},
-  {path: '/v3/api-docs/streetGradientProfile'},
+  {path: '/v3/api-docs/streetGrade', mapbox: true},
   {path: '/v3/api-docs/accessScoreIntersections', mapbox: true},
   {path: '/v3/api-docs/accessScoreRegions', mapbox: true},
   {path: '/v3/api-docs/validations'},

@@ -28,6 +28,7 @@ class StreetGradientTableSpec
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val table: StreetGradientTable = app.injector.instanceOf[StreetGradientTable]
+  private lazy val served                     = app.injector.instanceOf[StreetEdgeTable].streets.map(_.streetEdgeId)
 
   private val Md5 = "0123456789abcdef0123456789abcdef"
 
@@ -35,9 +36,10 @@ class StreetGradientTableSpec
   private def insertMeasured(streetEdgeId: Int, demSource: String = "usgs-3dep-10m"): DBIO[Int] =
     sqlu"""INSERT INTO street_gradient (street_edge_id, quality, confidence, net_grade, mean_grade, max_grade,
                                         meters_over_5pct_grade, meters_over_8pct_grade, climb_m, descent_m,
-                                        elev_start_m, elev_end_m, profile_cm, dem_source, dem_resolution_m, geom_md5)
+                                        elev_start_m, elev_end_m, profile_cm, dem_source, dem_resolution_m, geom_md5,
+                                        max_grade_from_m, max_grade_to_m)
            VALUES ($streetEdgeId, 'measured', 'high', -0.04, 0.06, 0.09, 40, 10, 1.5, 5.5, 104.0, 100.0,
-                   ARRAY[10400, 10150, 10000], $demSource, 10, $Md5)"""
+                   ARRAY[10400, 10150, 10000], $demSource, 10, $Md5, 20, 50)"""
 
   /** Seeds a `structure` row: endpoint elevations and no grade, as 399.sql's CHECK requires. */
   private def insertStructure(streetEdgeId: Int): DBIO[Int] =
@@ -67,6 +69,8 @@ class StreetGradientTableSpec
       row.stats.demSource mustBe "usgs-3dep-10m"
       row.stats.demResolutionM mustBe 10.0
       row.profileCm.value mustBe List(10400, 10150, 10000)
+      row.maxGradeFromM.value mustBe 20.0
+      row.maxGradeToM.value mustBe 50.0
       row.geomMd5 mustBe Md5
     }
 
@@ -82,6 +86,7 @@ class StreetGradientTableSpec
       row.stats.netGrade mustBe None
       row.stats.elevStartM.value mustBe 12.0
       row.profileCm mustBe None
+      row.maxGradeFromM mustBe None
     }
 
     "return None for a street that has not been sampled" in {
@@ -146,18 +151,21 @@ class StreetGradientTableSpec
     "count streets per elevation model, the most-used model first" in {
       // Deltas against whatever the connected city already holds, so the case reads the same on a sampled dev DB.
       val (before, after) = runRolledBack(for {
-        before <- table.sourceCounts
+        before <- table.sourceCounts(served)
         a      <- insertStreet()
         b      <- insertStreet()
         c      <- insertStreet()
+        hidden <- insertStreet(status = "no_imagery")
         _      <- insertMeasured(a, "spec-dem-major")
         _      <- insertMeasured(b, "spec-dem-major")
         _      <- insertMeasured(c, "spec-dem-minor")
-        after  <- table.sourceCounts
+        _      <- insertMeasured(hidden, "spec-dem-minor")
+        after  <- table.sourceCounts(served)
       } yield (before.toMap, after))
 
       before.get("spec-dem-major") mustBe None
       after.toMap.apply("spec-dem-major") mustBe 2
+      // The no_imagery street's row is left out: no street API serves that street.
       after.toMap.apply("spec-dem-minor") mustBe 1
       after.map(_._1).indexOf("spec-dem-major") must be < after.map(_._1).indexOf("spec-dem-minor")
       after.map(_._2) mustBe after.map(_._2).sorted.reverse

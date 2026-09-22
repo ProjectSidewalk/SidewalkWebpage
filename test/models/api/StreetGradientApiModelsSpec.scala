@@ -35,15 +35,17 @@ class StreetGradientApiModelsSpec extends PlaySpec {
 
   private val sampledAt = OffsetDateTime.parse("2026-09-19T12:00:00Z")
 
-  "StreetGradientProfileForApi.toJson" should {
+  "StreetGradeForApi.toJson" should {
     "serve the profile in meters with the spacing its length implies" in {
       val row = StreetGradient(
         stats(StreetGradientQuality.Measured, measured = true),
         Some(List(10400, 10150, 10000)),
         "0" * 32,
-        sampledAt
+        sampledAt,
+        maxGradeFromM = Some(20.0),
+        maxGradeToM = Some(50.0)
       )
-      val json = StreetGradientProfileForApi(row, lengthMeters = 100.0).toJson
+      val json = StreetGradeForApi(row, lengthMeters = 100.0).toJson
 
       (json \ "street_edge_id").as[Int] mustBe 7
       (json \ "length_meters").as[Double] mustBe 100.0
@@ -58,16 +60,20 @@ class StreetGradientApiModelsSpec extends PlaySpec {
       (json \ "dem_resolution_meters").as[Double] mustBe 10.0
       (json \ "profile" \ "spacing_meters").as[Double] mustBe 50.0
       (json \ "profile" \ "elevations_meters").as[Seq[Double]] mustBe Seq(104.0, 101.5, 100.0)
+      (json \ "max_grade_from_meters").as[Double] mustBe 20.0
+      (json \ "max_grade_to_meters").as[Double] mustBe 50.0
       (json \ "attribution" \ "dem_source").as[String] mustBe "usgs-3dep-10m"
       (json \ "attribution" \ "credit").as[String] must include("U.S. Geological Survey")
+      (json \ "attribution" \ "citation").as[String] must startWith("U.S. Geological Survey, 2024, 1/3rd arc-second")
     }
 
     "say profile: null, and null grades, for a structure" in {
       val row  = StreetGradient(stats(StreetGradientQuality.Structure, measured = false), None, "0" * 32, sampledAt)
-      val json = StreetGradientProfileForApi(row, lengthMeters = 80.0).toJson
+      val json = StreetGradeForApi(row, lengthMeters = 80.0).toJson
 
       (json \ "profile").get mustBe JsNull
       (json \ "mean_grade").get mustBe JsNull
+      (json \ "max_grade_from_meters").get mustBe JsNull
       (json \ "grade_quality").as[String] mustBe "structure"
       (json \ "elev_end_meters").as[Double] mustBe 100.0
     }
@@ -75,7 +81,7 @@ class StreetGradientApiModelsSpec extends PlaySpec {
     "leave out a one-sample profile, which has no spacing to state" in {
       val row =
         StreetGradient(stats(StreetGradientQuality.Measured, measured = true), Some(List(10400)), "0" * 32, sampledAt)
-      (StreetGradientProfileForApi(row, lengthMeters = 5.0).toJson \ "profile").get mustBe JsNull
+      (StreetGradeForApi(row, lengthMeters = 5.0).toJson \ "profile").get mustBe JsNull
     }
   }
 
@@ -87,8 +93,8 @@ class StreetGradientApiModelsSpec extends PlaySpec {
         "0" * 32,
         sampledAt
       )
-      (StreetGradientProfileForApi(row, 100.0).toJson \ "stale").as[Boolean] mustBe false
-      (StreetGradientProfileForApi(row, 100.0, stale = true).toJson \ "stale").as[Boolean] mustBe true
+      (StreetGradeForApi(row, 100.0).toJson \ "stale").as[Boolean] mustBe false
+      (StreetGradeForApi(row, 100.0, stale = true).toJson \ "stale").as[Boolean] mustBe true
     }
   }
 

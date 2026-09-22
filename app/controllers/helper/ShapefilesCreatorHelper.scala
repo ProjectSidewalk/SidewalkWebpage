@@ -1111,6 +1111,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         + "gradeConf:String,"          // high / medium / low, from the elevation model's grid size
         + "gradeQual:String,"          // measured / structure / suspect / no_data
         + "demSource:String,"          // The elevation model, for attribution
+        + "gradeTerm:Double,"          // What grade adds to the segment's pre-sigmoid sum (never positive)
         + perTypeSpec + ","            // Per-type cluster count (n<code>) and sub-score (s<code>)
         + perBucketSpec + ","          // Per-type cluster count per rating bucket (n1..n3<code>, n0<code> unrated)
         + perTagSpec                   // Per-type summed tag adjustment (t<code>)
@@ -1141,6 +1142,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       fb.add(s.gradient.map(_.confidence.toString).orNull)
       fb.add(s.gradient.map(_.quality.toString).orNull)
       fb.add(s.gradient.map(_.demSource).orNull)
+      fb.add(s.slopeTerm)
       AccessScoreApiModels.orderedTypes.foreach { t =>
         fb.add(s.clusterCounts.getOrElse(t, 0))
         fb.add(s.subScores.getOrElse(t, 0.0))

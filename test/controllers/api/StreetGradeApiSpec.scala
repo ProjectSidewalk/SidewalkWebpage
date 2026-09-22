@@ -12,7 +12,7 @@ import play.api.test.Helpers._
 import util.{RolledBackDb, StreetFixtures}
 
 /**
- * The 200s of GET /v3/api/streetGradientProfile (#5223), which `AccessScoreApiSpec` cannot reach: CI's schema holds
+ * The 200s of GET /v3/api/streetGrade (#5223), which `AccessScoreApiSpec` cannot reach: CI's schema holds
  * no `street_gradient` rows, so without rows of its own a spec can only ever see the 404.
  *
  * A request runs in its own transaction, so these rows are committed, not rolled back: two streets seeded in
@@ -21,7 +21,7 @@ import util.{RolledBackDb, StreetFixtures}
  *
  * `BeforeAndAfterAll` is mixed in before `GuiceOneAppPerSuite` so that `afterAll` runs while the app is still up.
  */
-class StreetGradientProfileApiSpec
+class StreetGradeApiSpec
     extends PlaySpec
     with BeforeAndAfterAll
     with GuiceOneAppPerSuite
@@ -59,13 +59,13 @@ class StreetGradientProfileApiSpec
   }
 
   private def profileOf(streetEdgeId: Int): JsObject = {
-    val resp = route(app, FakeRequest(GET, s"/v3/api/streetGradientProfile?streetEdgeId=$streetEdgeId")).get
+    val resp = route(app, FakeRequest(GET, s"/v3/api/streetGrade?streetEdgeId=$streetEdgeId")).get
     status(resp) mustBe OK
     contentType(resp) mustBe Some("application/json")
     contentAsJson(resp).as[JsObject]
   }
 
-  "GET /v3/api/streetGradientProfile" should {
+  "GET /v3/api/streetGrade" should {
     "serve a measured street's statistics, its profile in meters at the spacing its length implies, and its credit" in {
       val json = profileOf(measuredStreet)
 
@@ -91,6 +91,8 @@ class StreetGradientProfileApiSpec
       (json \ "mean_grade").get mustBe JsNull
       (json \ "elev_start_meters").as[Double] mustBe 12.0
       (json \ "attribution" \ "credit").as[String] mustBe "Elevation: spec-unregistered-dem"
+      // No publisher to take a citation from, so none is made up.
+      (json \ "attribution" \ "citation").get mustBe JsNull
       // A hash that was never the street's: what a row left behind by an edited street looks like.
       (json \ "stale").as[Boolean] mustBe true
     }
@@ -98,10 +100,24 @@ class StreetGradientProfileApiSpec
     "answer 404 for a street that exists and has not been sampled" in {
       val unsampled = run(insertStreet())
       try {
-        val resp = route(app, FakeRequest(GET, s"/v3/api/streetGradientProfile?streetEdgeId=$unsampled")).get
+        val resp = route(app, FakeRequest(GET, s"/v3/api/streetGrade?streetEdgeId=$unsampled")).get
         status(resp) mustBe NOT_FOUND
-        (contentAsJson(resp) \ "detail").as[String] must include("has no gradient data")
+        (contentAsJson(resp) \ "detail").as[String] must include("has no grade data")
       } finally { val _ = run(sqlu"DELETE FROM street_edge WHERE street_edge_id = $unsampled") }
+    }
+
+    "answer 404 for a sampled street that the other street APIs hide" in {
+      // A no_imagery street is in neither /v3/api/streets nor accessScoreStreets, so it is not in this API either.
+      val hidden = run(insertStreet(status = "no_imagery"))
+      try {
+        val _ = run(sqlu"""INSERT INTO street_gradient (street_edge_id, quality, confidence, elev_start_m, elev_end_m,
+                                                dem_source, dem_resolution_m, geom_md5)
+                   VALUES ($hidden, 'structure', 'high', 12.0, 12.5, 'usgs-3dep-10m', 10,
+                           '0123456789abcdef0123456789abcdef')""")
+        val resp = route(app, FakeRequest(GET, s"/v3/api/streetGrade?streetEdgeId=$hidden")).get
+        status(resp) mustBe NOT_FOUND
+        (contentAsJson(resp) \ "detail").as[String] must include(s"No street with id $hidden")
+      } finally { val _ = run(sqlu"DELETE FROM street_edge WHERE street_edge_id = $hidden") }
     }
   }
 }

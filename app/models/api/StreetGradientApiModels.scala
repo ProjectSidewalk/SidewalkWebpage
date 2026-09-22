@@ -2,7 +2,7 @@
  * Models for the street gradient (slope) fields of the Project Sidewalk API (#5223).
  *
  * The statistics ride on `/v3/api/accessScoreStreets` for every street; a street's elevation profile is served one
- * street at a time by `/v3/api/streetGradientProfile`, since it is the one part too heavy for a city-wide payload.
+ * street at a time by `/v3/api/streetGrade`, since it is the one part too heavy for a city-wide payload.
  */
 package models.api
 
@@ -45,12 +45,13 @@ case class DemSourceForApi(source: DemSource, streetCount: Option[Int] = None) {
     "title"      -> source.title,
     "credit"     -> source.credit,
     "licence"    -> source.licence,
-    "url"        -> source.url
+    "url"        -> source.url,
+    "citation"   -> source.citation
   ) ++ streetCount.map(n => Json.obj("street_count" -> n)).getOrElse(Json.obj())
 }
 
 /**
- * What a client needs to read and credit the slope fields, published under `gradient` on `/v3/api/accessScoreConfig`
+ * What a client needs to read and credit the slope fields, published under `grade` on `/v3/api/accessScoreConfig`
  * so no client re-declares a limit, a class break, or a credit line.
  *
  * @param sources The elevation models this city's streets were sampled from, most streets first; empty in a city
@@ -74,7 +75,7 @@ case class StreetGradientConfigForApi(sources: Seq[DemSourceForApi]) {
  *                     the street used to follow, and `spacing_meters` (today's length over yesterday's sample count)
  *                     is only approximate, so the response says so instead of passing the numbers off as current.
  */
-case class StreetGradientProfileForApi(gradient: StreetGradient, lengthMeters: Double, stale: Boolean = false) {
+case class StreetGradeForApi(gradient: StreetGradient, lengthMeters: Double, stale: Boolean = false) {
 
   /**
    * The profile as meters at a stated spacing, or None where the row has no profile (a structure, a coarse-model row,
@@ -97,6 +98,8 @@ case class StreetGradientProfileForApi(gradient: StreetGradient, lengthMeters: D
         "dem_resolution_meters" -> stats.demResolutionM,
         "sampled_at"            -> gradient.sampledAt,
         "stale"                 -> stale,
+        "max_grade_from_meters" -> gradient.maxGradeFromM,
+        "max_grade_to_meters"   -> gradient.maxGradeToM,
         "profile"               -> profileJson.getOrElse[JsValue](JsNull),
         "attribution"           -> DemSourceForApi(DemSource.forName(stats.demSource)).toJson
       )

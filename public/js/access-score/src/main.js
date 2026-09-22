@@ -16,6 +16,10 @@ window.AccessScoreApp = (function () {
   const PLACE_CHANGE_KINDS = new Set([
     'PlaceCategory', 'PlaceCategoryOnly', 'PlaceCategorySelectAll', 'PlaceCategoryDeselectAll',
   ]);
+  /** The sliders: mid-drag, the sidebar must not be re-synced from the model (the thumb is under a finger). */
+  const DRAG_KINDS = new Set(['Weight', 'GradeWeight']);
+  /** Close enough to read one block and its neighbors, where a rank row's street lands (#5223). */
+  const STREET_ZOOM = 15;
   const EMPTY_COLLECTION = { type: 'FeatureCollection', features: [] };
 
   /** Fetches JSON, treating a non-2xx status as a failure so the overlay's error card shows. */
@@ -154,10 +158,12 @@ window.AccessScoreApp = (function () {
 
     // The elevation models the city's slopes came from (#5223); empty in a city that has not been sampled, which is
     // what keeps every slope control and credit off the page there.
-    const gradeSources = config.gradient?.sources ?? [];
+    const gradeSources = config.grade?.sources ?? [];
+    /** The slope classes the map colors and the legend brushes by; null where the city has no slope at all. */
+    const gradeBreaks = gradeSources.length > 0 ? config.grade.map_class_breaks : null;
     const urlState = AccessScoreUrlSync.read(config);
     const model = new AccessScoreModel(config, streets, intersections, completion, urlState.state);
-    const sidebar = new AccessScoreSidebar(sidebarEl, config);
+    const sidebar = new AccessScoreSidebar(sidebarEl, config, () => model.slopeImpact());
     const urlSync = new AccessScoreUrlSync(model, map);
     /** @type {?mapboxgl.Popup} */
     let popup = null;
@@ -216,8 +222,10 @@ window.AccessScoreApp = (function () {
       clickClaimed: (e) => evidence?.layer.claims(e) === true || places?.layer.claims(e) === true,
       hoverClaimed: (e) => evidence?.layer.claims(e) === true || places?.layer.claims(e) === true,
       dark,
-      gradeBreaks: gradeSources.length > 0 ? config.gradient.map_class_breaks : null,
+      gradeBreaks,
       gradeAttribution: gradeAttributionHtml(),
+      // The legend's classes are a brush like the histogram's range, so the dock owns them; an empty list clears.
+      onGradeClasses: (classes) => dock?.setBrush(classes.length > 0 ? { kind: 'grade', classes } : null),
     });
     evidence = await mountClusterEvidence();
     places = mountPlaces();
@@ -228,20 +236,25 @@ window.AccessScoreApp = (function () {
       model,
       mapView,
       map,
-      // A rank row goes to the region; in the regions unit it selects it too, in the streets unit the
-      // regions aren't selectable, so the fly-to is the whole answer.
-      // In the regions unit a rank click is a map selection; in the streets unit the dock's own focus scopes
-      // the band to the region without a region ever being "selected" on a streets map.
-      onRankSelect: (regionId) => {
-        mapView.flyToRegion(regionId);
-        if (model.state.unit === 'regions') {
-          const lngLat = regionCenter(regionId);
-          if (lngLat) select({ unit: 'regions', id: regionId, lngLat });
+      // A rank row goes to what it ranks: a street row selects the street and opens its card, exactly as a click
+      // on the map would; a neighborhood row selects the region in the regions unit, where the map has regions to
+      // select, and in the streets unit the fly-to plus the dock's own focus is the whole answer.
+      onRankSelect: ({ unit, id }) => {
+        if (unit === 'streets') {
+          const lngLat = streetCenter(id);
+          if (!lngLat) return;
+          map.flyTo({ center: lngLat, zoom: Math.max(map.getZoom(), STREET_ZOOM) });
+          select({ unit, id, lngLat });
+          return;
         }
+        mapView.flyToRegion(id);
+        const lngLat = regionCenter(id);
+        if (lngLat) select({ unit: 'regions', id, lngLat });
       },
       onOpenLabel: (labelId, ids) => evidence.openLabel(labelId, ids),
       onStateChange: () => urlSync.setDock(dock.state),
       log,
+      gradeBreaks,
     });
 
     /** Applies a state change everywhere it shows: map, sidebar bars, dock, URL, and the panel's listeners. */
@@ -254,11 +267,13 @@ window.AccessScoreApp = (function () {
       if (meta.kind === 'Unit') mapView.setUnit(state.unit);
       if (meta.kind === 'ShowUnaudited') mapView.setShowUnaudited(state.showUnaudited);
       if (meta.kind === 'ShowGrade') mapView.setShowGrade(state.showGrade);
+      // Or the map would paint a street gentle while the score penalizes it for a pitch the other statistic hid.
+      if (meta.kind === 'GradeStat' || meta.kind === 'GradeReset') mapView.setGradeStatistic();
       if (meta.kind === 'ShowClusters') evidence.setVisible(state.showClusters);
       if (PLACE_CHANGE_KINDS.has(meta.kind)) places?.apply(state);
       mapView.applyScores();
       // A reset moves every slider; a slider mid-drag already shows its own value.
-      if (meta.kind !== 'Weight' || meta.final) sidebar.setState(model.state);
+      if (meta.final || !DRAG_KINDS.has(meta.kind)) sidebar.setState(model.state);
       sidebar.setContributions(model.contributions().means);
       if (popup) select(null);
       // The place card stays open across a reweighting; its nearest-street score follows the sliders, as do the
@@ -266,6 +281,9 @@ window.AccessScoreApp = (function () {
       places?.refreshCard();
       places?.layer.rescore();
       dock.applyChange(meta);
+      // The count is against the last settled state, so a drag reports what the whole drag moved.
+      sidebar.afterRecompute(meta, model.changedCount);
+      if (meta.final !== false) model.markSettled();
       urlSync.scheduleWrite();
       if (meta.final) log(meta.kind, meta.value);
       document.dispatchEvent(new CustomEvent('accessscore:change', { detail: { state, meta } }));
@@ -288,6 +306,7 @@ window.AccessScoreApp = (function () {
     // A link that carries custom weights, or places, opens that fold, so what it shares is in view rather than a
     // hint beside a heading.
     if (!model.weightsAreDefault) sidebar.setWeightsOpen(true);
+    if (!model.slopeIsDefault && sidebar.slope.available) sidebar.slope.setOpen(true);
     if (model.state.placeCategories === null || model.state.placeCategories.length > 0) sidebar.setPlacesOpen(true);
     renderUpdatedAt(config.clusters_updated_at);
     // A live `setStyle` drops everything the tool added, so the map view and the cluster layer remount once the new
@@ -324,7 +343,10 @@ window.AccessScoreApp = (function () {
       select(null);
       places?.select(null);
       placeSearch?.clear();
-      model.setState({ ...AccessScoreModel.DEFAULT_STATE, weights: { ...config.presets.default } });
+      model.setState({
+        ...AccessScoreModel.DEFAULT_STATE, weights: { ...config.presets.default },
+        slope: AccessScoreModel.slopeDefaults(config),
+      });
       const state = model.state;
       mapView.setUnit(state.unit);
       mapView.setShowUnaudited(state.showUnaudited);
@@ -596,7 +618,7 @@ window.AccessScoreApp = (function () {
         const drivers = street.audited
           ? `${componentsHtml(street)}
           <h4 class="acs-popup__subtitle">${i18next.t('accessscore:popup-terms')}</h4>
-          ${termsTableHtml(street.terms)}`
+          ${termsTableHtml(street.terms, undefined, street)}`
           : '';
         streetHtml = `<h4 class="acs-popup__subtitle">${streetTitle(street)}</h4>
           <div class="acs-popup__meta">${i18next.t('accessscore:popup-nearest-street')} · ${distance}</div>
@@ -791,8 +813,29 @@ window.AccessScoreApp = (function () {
      * The per-type breakdown shared by both popups: cluster count (a per-street average for a region, hence
      * the decimal) and signed term per type that has any clusters.
      */
-    function termsTableHtml(terms, clustersHeading = i18next.t('accessscore:popup-clusters')) {
-      const rows = config.scored_types.filter((type) => terms[type].clusterCount > 0).map((type) => {
+    /**
+     * The slope's row in a street's terms table (#5223): slope is part of what drives the score once a reader has
+     * weighed it in, so a table headed "What drives this score" that left it out would not add up to the score
+     * beside it. Under a barrier the row says so in place of a term, since the rows above it then explain a sum the
+     * segment's 0 did not come from. Empty at the engine's own settings, where slope drives nothing.
+     * @param {?AccessScoreStreetExplanation} street - The street the table explains, or null for a unit with no slope.
+     * @returns {string} A table row, or ''.
+     */
+    function slopeRowHtml(street) {
+      if (!street || (!street.barrier && street.slopeTerm === 0)) return '';
+      const effect = street.barrier
+        ? i18next.t('accessscore:popup-slope-barrier')
+        : `−${Math.abs(street.slopeTerm).toFixed(2)}`;
+      return `<tr>
+          <td><span class="acs-popup__swatch acs-popup__swatch--slope"></span>${
+  i18next.t('accessscore:popup-slope')}</td>
+          <td class="acs-popup__num">—</td>
+          <td class="acs-popup__num acs-popup__term--problem">${effect}</td>
+        </tr>`;
+    }
+
+    function termsTableHtml(terms, clustersHeading = i18next.t('accessscore:popup-clusters'), street = null) {
+      const typeRows = config.scored_types.filter((type) => terms[type].clusterCount > 0).map((type) => {
         const t = terms[type];
         const sign = t.term >= 0 ? '+' : '−';
         const count = Number.isInteger(t.clusterCount) ? t.clusterCount : t.clusterCount.toFixed(1);
@@ -804,12 +847,13 @@ window.AccessScoreApp = (function () {
     Math.abs(t.term).toFixed(2)}</td>
         </tr>`;
       }).join('');
+      const rows = `${typeRows}${slopeRowHtml(street)}`;
       if (!rows) return `<p class="acs-popup__empty">${i18next.t('accessscore:popup-no-clusters')}</p>`;
       return `<table class="acs-popup__table">
         <thead><tr>
           <th>${i18next.t('accessscore:popup-type')}</th>
-          <th>${clustersHeading}</th>
-          <th>${i18next.t('accessscore:popup-term')}</th>
+          <th class="acs-popup__num">${clustersHeading}</th>
+          <th class="acs-popup__num">${i18next.t('accessscore:popup-term')}</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
@@ -837,7 +881,7 @@ window.AccessScoreApp = (function () {
         <div class="acs-popup__meta">${region ? `${util.escapeHTML(region.name)} · ` : ''}${
     formatLength(s.lengthM)}</div>
         <h4 class="acs-popup__subtitle">${i18next.t('accessscore:popup-terms')}</h4>
-        ${termsTableHtml(s.terms)}
+        ${termsTableHtml(s.terms, undefined, s)}
         ${slopeHtml(s)}
         ${hopLinksHtml(lngLat)}`;
     }
@@ -862,8 +906,8 @@ window.AccessScoreApp = (function () {
     }
 
     /**
-     * The popup's slope block (#5223): the grades, the climb, how much of the street is over the walking-surface
-     * limit, a slot the elevation profile loads into, and why the numbers are missing or approximate when they are.
+     * The popup's slope block (#5223): one line of grades and climb, a slot the elevation profile loads into (its
+     * legend says how much of the street is how steep), and why the numbers are missing or approximate when they are.
      * Empty for a street that has not been sampled, so a city with no slope data shows no sign of the feature.
      * @param {AccessScoreStreetExplanation} s - The street.
      * @returns {string}
@@ -875,17 +919,22 @@ window.AccessScoreApp = (function () {
         ...values, interpolation: { escapeValue: false },
       });
       const lines = [];
+      // One line of figures: how much of the street is how steep is the chart's legend, where its colors explain it.
       if (g.meanGrade !== null && g.maxGrade !== null) {
-        lines.push(t('slope-summary', { mean: percentHtml(g.meanGrade), max: percentHtml(g.maxGrade) }));
-        lines.push(t('slope-climb', {
+        lines.push(t('slope-headline', {
+          max: percentHtml(g.maxGrade), mean: percentHtml(g.meanGrade),
           climb: formatElevation(g.climbM ?? 0), descent: formatElevation(g.descentM ?? 0),
         }));
-        const limit = config.gradient?.walking_surface_limit;
-        if ((g.metersOver5pct ?? 0) > 0 && typeof limit === 'number') {
-          lines.push(t('slope-over-limit', { length: formatElevation(g.metersOver5pct), limit: percentHtml(limit) }));
-        }
       } else if (g.netGrade !== null) {
         lines.push(t('slope-net-only', { grade: percentHtml(Math.abs(g.netGrade)) }));
+      }
+      // A barrier zeroes the segment, not the street: the headline above still averages that 0 with the crossings
+      // at either end, so the sentence names the segment, in the word the components line uses for it. The term
+      // itself is a row of the table above.
+      if (s.audited && s.barrier) {
+        lines.push(`<strong>${t('slope-barrier-effect', {
+          limit: percentHtml(model.state.slope.barrierThreshold),
+        })}</strong>`);
       }
       const notes = [];
       if (g.quality !== 'measured') notes.push(t(`slope-quality-${g.quality.replace('_', '-')}`));
@@ -899,26 +948,35 @@ window.AccessScoreApp = (function () {
     }
 
     /**
-     * The elevation profile's chart, with its scale and its accessible name in the reader's units. Everything is
-     * handed over as plain text: `AccessScoreElevationProfile` escapes it where it meets the markup.
-     * @param {AccessScoreProfile} profile - A street's profile, from `/v3/api/streetGradientProfile`.
-     * @returns {string} The chart's markup; empty for a profile too short to draw.
+     * Draws a street's elevation profile into its slot, with its accessible name in the reader's units and the
+     * stretch that set its `max_grade`, which only the backend can place (the profile is too coarse to find it). A
+     * stale street's stretch is left out: it was placed along the line the street used to follow.
+     * @param {HTMLElement} slot - The popup's profile slot.
+     * @param {AccessScoreProfileResponse} response - The street's `/v3/api/streetGrade` answer.
      */
-    function profileHtml(profile) {
+    function drawProfile(slot, response) {
+      const { profile } = response;
       const plain = { escape: false };
       const elevations = profile.elevations_meters;
-      const { low, high } = AccessScoreElevationProfile.range(profile);
-      const text = { low: formatElevation(low, plain), high: formatElevation(high, plain) };
-      return AccessScoreElevationProfile.html(profile, {
-        ...text,
-        start: i18next.t('accessscore:profile-start'),
-        end: i18next.t('accessscore:profile-end'),
-        label: i18next.t('accessscore:profile-label', {
-          ...text,
-          start: formatElevation(elevations[0], plain),
-          end: formatElevation(elevations[elevations.length - 1], plain),
-          interpolation: { escapeValue: false },
-        }),
+      const hasStretch = !response.stale && typeof response.max_grade_from_meters === 'number'
+        && typeof response.max_grade_to_meters === 'number' && typeof response.max_grade === 'number';
+      const label = i18next.t('accessscore:profile-label', {
+        start: formatElevation(elevations[0], plain),
+        end: formatElevation(elevations[elevations.length - 1], plain),
+        low: formatElevation(Math.min(...elevations), plain),
+        high: formatElevation(Math.max(...elevations), plain),
+        interpolation: { escapeValue: false },
+      });
+      // The slot announced "loading"; the chart itself is not read out whole, legend and all, the moment it lands.
+      slot.removeAttribute('aria-live');
+      new AccessScoreElevationProfile(slot, profile, {
+        // Present whenever a street has a profile: slope fields only exist in a city whose config has a gradient.
+        breaks: config.grade.map_class_breaks,
+        steepest: hasStretch
+          ? { from: response.max_grade_from_meters, to: response.max_grade_to_meters, grade: response.max_grade }
+          : null,
+        label,
+        onLog: log,
       });
     }
 
@@ -935,12 +993,12 @@ window.AccessScoreApp = (function () {
       if (!slot) return;
       slot.textContent = i18next.t('accessscore:profile-loading');
       try {
-        const { profile } = await fetchJson(`/v3/api/streetGradientProfile?streetEdgeId=${streetId}`);
+        const response = /** @type {AccessScoreProfileResponse} */ (
+          await fetchJson(`/v3/api/streetGrade?streetEdgeId=${streetId}`));
         if (popup !== forPopup) return;
-        // The slot is a live region that has just said "loading", so every ending is said in it too: removing it
-        // would leave a screen-reader user waiting on a profile that is not coming.
-        const html = profile ? profileHtml(profile) : '';
-        if (html) slot.innerHTML = html;
+        // The slot is a live region that has just said "loading", so every ending but a drawn chart is said in it
+        // too: removing it would leave a screen-reader user waiting on a profile that is not coming.
+        if (AccessScoreElevationProfile.canDraw(response.profile)) drawProfile(slot, response);
         else slot.textContent = i18next.t('accessscore:profile-none');
       } catch (e) {
         console.warn('AccessScore elevation profile failed to load', e);

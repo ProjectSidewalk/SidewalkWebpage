@@ -20,7 +20,9 @@
  *     holds the engine's own weights, the ones every reset returns to.
  * @property {?string} clusters_updated_at - When the clusters were last rebuilt (ISO 8601), or null for never.
  * @property {string[]} place_categories - The place categories the map can show (#5311), in display order.
- * @property {AccessScoreGradientConfig} [gradient] - How to read and credit the streets' slope fields (#5223);
+ * @property {AccessScoreSlopeConfig} [grade_scoring] - How grade enters a segment's score (#5223): the engine's default
+ *     settings and what a control may offer. Optional so a config from before it scores exactly as it always did.
+ * @property {AccessScoreGradientConfig} [grade] - How to read and credit the streets' grade fields (#5223);
  *     optional so a config from before it draws no grade layer rather than one classed at numbers this file invents.
  */
 
@@ -33,6 +35,33 @@
  * @property {number[]} map_class_breaks - Ascending grades dividing the map's slope classes.
  * @property {Array<{dem_source: string, title: string, credit: string, licence: string, url: ?string,
  *     street_count: number}>} sources - The city's elevation models, most streets first; empty where none is sampled.
+ */
+
+/**
+ * The slope half of the scoring config, in the API's names: the engine's default settings, and what a control may
+ * offer beside them.
+ * @typedef {object} AccessScoreSlopeConfig
+ * @property {{weight: number, statistic: string, low_threshold: number, high_threshold: number,
+ *     barrier_enabled: boolean, barrier_threshold: number, include_approximate: boolean}} defaults - The engine's own
+ *     settings, the ones every reset returns to.
+ * @property {string[]} statistics - The statistic ids a reader may choose between, in display order.
+ * @property {{min: number, max: number}} weight_range - The weights a control may set.
+ * @property {{min: number, max: number}} threshold_range - The grades a threshold may be set between.
+ */
+
+/**
+ * How slope enters a segment's score under the current state: the mirror of the engine's `SlopeSettings`. Grades are
+ * fractions (0.05 is 5%).
+ * @typedef {object} AccessScoreSlopeSettings
+ * @property {number} weight - Magnitude of the term at full strength; the term only ever lowers a score.
+ * @property {string} statistic - 'mean_grade', 'max_grade' or 'meters_over_limit'.
+ * @property {number} lowThreshold - The grade at or under which slope costs nothing (mean and max grade only).
+ * @property {number} highThreshold - The grade at or over which the term is at full strength.
+ * @property {boolean} barrierEnabled - Whether a street steeper than `barrierThreshold` scores 0 outright.
+ * @property {number} barrierThreshold - The steepest-stretch grade over which a street is a barrier.
+ * @property {boolean} includeApproximate - Whether an approximate grade takes part at all: one from a coarse
+ *     elevation model (`low` confidence), or a straight line drawn where the sampler distrusted the profile it read
+ *     (`suspect` quality). Either is an end-to-end line that says nothing of the pitches along the street.
  */
 
 /**
@@ -49,7 +78,7 @@
  * @property {?number} metersOver8pct - Meters steeper than the ramp limit.
  * @property {string} confidence - 'high', 'medium' or 'low', from the elevation model's grid size.
  * @property {string} quality - 'measured', 'structure', 'suspect' or 'no_data'.
- * @property {string} demSource - The elevation model's name, which `gradient.sources` credits.
+ * @property {string} demSource - The elevation model's name, which `grade.sources` credits.
  */
 
 /**
@@ -66,6 +95,8 @@
  * @property {boolean} showUnaudited - Whether unaudited streets are drawn faintly rather than left off the map.
  * @property {boolean} showClusters - Whether the cluster evidence layer is drawn.
  * @property {boolean} showGrade - Whether streets are colored by slope instead of by score (#5223).
+ * @property {?AccessScoreSlopeSettings} slope - How slope enters the score. Null only in `DEFAULT_STATE`, meaning
+ *     the engine's defaults; the model fills it in at construction, as it does `weights`.
  * @property {?string[]} placeCategories - The place categories drawn: null for every one the config lists, an
  *     empty list for none (#5311).
  */
@@ -96,7 +127,10 @@
  * @property {?{id: number, score: ?number}} startIntersection - The crossing at the start, its `score` null where
  *     the crossing is unscored; null where the street has no crossing at that end.
  * @property {?{id: number, score: ?number}} endIntersection - Likewise at the end.
- * @property {number} preSigmoid - The sum of the segment's terms.
+ * @property {number} preSigmoid - The sum of the segment's terms, the slope term included.
+ * @property {number} slopeUnits - How much of the slope weight the street takes, in [0, 1].
+ * @property {number} slopeTerm - What slope adds to `preSigmoid`: never positive, 0 at a zero weight.
+ * @property {boolean} barrier - Whether the slope settings score the street 0 outright.
  * @property {Record<string, AccessScoreTerm>} terms - The segment's term per scored type.
  * @property {?AccessScoreStreetGradient} gradient - The street's slope, or null where it has not been sampled.
  */
@@ -125,6 +159,16 @@
  * @property {number} auditedStreetCount
  * @property {number} totalLengthM
  * @property {number} auditedLengthM
+ */
+
+/**
+ * One street's place in the rank list, from `rankedStreets` (#5223).
+ * @typedef {object} AccessScoreStreetRank
+ * @property {number} streetId
+ * @property {?string} name - The street's OSM name, or null for an unnamed way.
+ * @property {number} regionId
+ * @property {number} score - The street's headline score; only audited streets are ranked, so never null.
+ * @property {number} lengthM
  */
 
 /**
@@ -169,11 +213,15 @@ class AccessScoreModel {
     showUnaudited: true,
     showClusters: true,
     showGrade: false,
+    slope: null,
     placeCategories: [],
   });
 
   /** Histogram resolution over the 0–1 score range. */
   static HISTOGRAM_BINS = 10;
+
+  /** How many streets either end of the rank list holds: a leaderboard, not the city's whole street table. */
+  static RANK_LIMIT = 20;
 
   /** @type {AccessScoreConfig} */
   #config;
@@ -209,6 +257,13 @@ class AccessScoreModel {
   #lengthFactors;
   /** @type {Array<?AccessScoreStreetGradient>} Each street's slope, parallel to `streetIds`; null where unsampled. */
   #gradients;
+  /** Each street's slope term and barrier flag under the current state, parallel to `streetIds`. */
+  #slopeTerms;
+  #barriers;
+  /** Per street: whether the slope settings reach it at all, and in full. Filled whatever the weight, so the Slope
+   *  section can say what a setting would touch while the weight is still 0. */
+  #slopeReached;
+  #slopeReachedFull;
   #audited;
   /** Cluster counts per (street, type, bucket): index (i * T + t) * B + b. */
   #counts;
@@ -248,6 +303,12 @@ class AccessScoreModel {
   #intScores;
   /** Histogram bin per street, filled alongside the scores; `UNBINNED` for an unaudited street. */
   #bins;
+  /**
+   * The headline scores as of the last settled state, the baseline [[changedCount]] counts from (#5223). Not the
+   * previous pass's: a drag settles on a tick that moves nothing more, which would report the whole drag as zero.
+   */
+  #settledScores;
+  #changedCount = 0;
   /** @type {AccessScoreRegionStats[]} */
   #regionStats = [];
   #cityContributions = null;
@@ -285,6 +346,12 @@ class AccessScoreModel {
 
     this.#state = { ...AccessScoreModel.DEFAULT_STATE, ...initialState };
     if (!this.#state.weights) this.#state.weights = { ...config.presets.default };
+    this.#state.slope = { ...AccessScoreModel.slopeDefaults(config), ...this.#state.slope };
+    this.#slopeTerms = new Float64Array(this.#n);
+    this.#barriers = new Uint8Array(this.#n);
+    this.#slopeReached = new Uint8Array(this.#n);
+    this.#slopeReachedFull = new Uint8Array(this.#n);
+    this.#settledScores = new Float64Array(this.#n);
     this.#units = new Float64Array(this.#n * this.#types.length);
     this.#terms = new Float64Array(this.#n * this.#types.length);
     this.#segmentScores = new Float64Array(this.#n);
@@ -295,6 +362,7 @@ class AccessScoreModel {
     this.#intScores = new Float64Array(this.#m);
     this.#recomputeUnits();
     this.#recompute();
+    this.markSettled();
   }
 
   /**
@@ -318,6 +386,7 @@ class AccessScoreModel {
     return {
       ...this.#state,
       weights: { ...this.#state.weights },
+      slope: { ...this.#state.slope },
       placeCategories: this.#state.placeCategories === null ? null : [...this.#state.placeCategories],
     };
   }
@@ -351,18 +420,95 @@ class AccessScoreModel {
   }
 
   /**
-   * The grade a street is drawn and described by: its mean grade, or the magnitude of its end-to-end grade where a
-   * coarse elevation model supports nothing finer. One definition, so the map's color, the legend's classes and the
-   * tooltip's number cannot disagree about which statistic they show.
+   * The grade a street is drawn and described by: whichever of the mean and the steepest stretch the slope settings
+   * are scoring on, or the magnitude of its end-to-end grade where a coarse elevation model supports nothing finer.
+   * One definition, so the map's color, the legend's classes and the tooltip cannot disagree — and, since it follows
+   * the settings, so the map cannot paint a street gentle while the score penalizes a pitch the mean hid. The
+   * over-limit statistic is a length, not a grade, so the map falls back to the steepest stretch there.
    * @param {number} streetId - The street's `street_edge_id`.
    * @returns {?number} A non-negative grade as a fraction, or null for an unknown, unsampled or profile-less street.
    */
   displayGrade(streetId) {
     const i = this.#indexById.get(streetId);
-    const g = i === undefined ? null : this.#gradients[i];
+    return i === undefined ? null : this.#gradeAt(i, this.displayGradeStatistic);
+  }
+
+  /**
+   * A street's grade under a named statistic, in force or not: the map carries both, so switching statistics is a
+   * repaint rather than a rewrite of every feature.
+   * @param {number} streetId - The street's `street_edge_id`.
+   * @param {string} statistic - 'mean_grade' or 'max_grade'.
+   * @returns {?number} A non-negative grade as a fraction, or null where the street has none.
+   */
+  gradeBy(streetId, statistic) {
+    const i = this.#indexById.get(streetId);
+    return i === undefined ? null : this.#gradeAt(i, statistic);
+  }
+
+  /** [[displayGrade]] by position, for the passes that already have one and should not pay for a map lookup. */
+  #gradeAt(i, statistic) {
+    const g = this.#gradients[i];
     if (!g) return null;
-    if (g.meanGrade !== null) return g.meanGrade;
+    const grade = statistic === 'mean_grade' ? g.meanGrade : g.maxGrade;
+    if (grade !== null) return grade;
     return g.netGrade === null ? null : Math.abs(g.netGrade);
+  }
+
+  /** The id of the statistic `displayGrade` is reading, so the legend can name what its classes are classing. */
+  get displayGradeStatistic() {
+    return this.#state.slope.statistic === 'mean_grade' ? 'mean_grade' : 'max_grade';
+  }
+
+  /**
+   * The street ids whose `displayGrade` falls in any of a set of slope classes, as `classIndexOf` indexes them
+   * (its no-grade sentinel included).
+   * @param {Iterable<number>} classes - The class indices to keep.
+   * @param {number[]} breaks - The ascending class breaks the legend was built from.
+   * @returns {Set<number>} Street ids, empty where no street falls in any of them.
+   */
+  streetIdsInGradeClasses(classes, breaks) {
+    const wanted = new Set(classes);
+    const ids = new Set();
+    for (let i = 0; i < this.#n; i++) {
+      const cls = AccessScoreGradeRamp.classIndexOf(this.#gradeAt(i, this.displayGradeStatistic), breaks);
+      if (wanted.has(cls)) ids.add(this.#ids[i]);
+    }
+    return ids;
+  }
+
+  /**
+   * What the slope settings reach, whatever the weight, so a reader who sees nothing move can tell a setting that
+   * costs nothing from one that touches no street at all (#5223).
+   * @returns {{reached: number, full: number, barriers: number, scored: number}} Scored (audited) streets only,
+   *   since slope never creates a score.
+   */
+  slopeImpact() {
+    let reached = 0;
+    let full = 0;
+    let barriers = 0;
+    let scored = 0;
+    for (let i = 0; i < this.#n; i++) {
+      if (this.#audited[i] !== 1) continue;
+      scored += 1;
+      if (this.#slopeReached[i] === 1) reached += 1;
+      if (this.#slopeReachedFull[i] === 1) full += 1;
+      if (this.#barriers[i] === 1) barriers += 1;
+    }
+    return { reached, full, barriers, scored };
+  }
+
+  /** How many scored streets have moved since the last settled state, for the sidebar's "Updated" line (#5223). */
+  get changedCount() {
+    return this.#changedCount;
+  }
+
+  /**
+   * Takes the scores now in force as [[changedCount]]'s baseline. The page calls this once it has reported a
+   * settled change, so the next report is about the next thing the reader does.
+   */
+  markSettled() {
+    this.#settledScores.set(this.#scores);
+    this.#changedCount = 0;
   }
 
   /**
@@ -418,7 +564,97 @@ class AccessScoreModel {
   }
 
   /**
-   * Applies a partial state and recomputes. A partial `weights` merges over the current magnitudes.
+   * The engine's default slope settings, in the model's names. A config from before #5223 publishes none, and gets
+   * the settings that do nothing: a zero weight and no barrier.
+   * @param {AccessScoreConfig} config - The `/v3/api/accessScoreConfig` response.
+   * @returns {AccessScoreSlopeSettings}
+   */
+  static slopeDefaults(config) {
+    const d = config.grade_scoring?.defaults;
+    return {
+      weight: d?.weight ?? 0,
+      statistic: d?.statistic ?? 'mean_grade',
+      lowThreshold: d?.low_threshold ?? 0,
+      highThreshold: d?.high_threshold ?? 0,
+      barrierEnabled: d?.barrier_enabled ?? false,
+      barrierThreshold: d?.barrier_threshold ?? 0,
+      includeApproximate: d?.include_approximate ?? false,
+    };
+  }
+
+  /**
+   * Whether slope settings equal the engine's defaults. The one definition, for the model's own state and for the
+   * panel, whose controls can be ahead of the model mid-edit.
+   * @param {AccessScoreConfig} config - The `/v3/api/accessScoreConfig` response.
+   * @param {AccessScoreSlopeSettings} settings - The settings to compare.
+   * @returns {boolean}
+   */
+  static slopeMatchesDefaults(config, settings) {
+    const defaults = AccessScoreModel.slopeDefaults(config);
+    return Object.keys(defaults).every((k) => {
+      const [a, b] = [defaults[k], settings[k]];
+      return typeof a === 'number' ? Math.abs(a - b) < 1e-9 : a === b;
+    });
+  }
+
+  /** Whether every slope setting equals the engine's default, so the panel can say "default" or "custom". */
+  get slopeIsDefault() {
+    return AccessScoreModel.slopeMatchesDefaults(this.#config, this.#state.slope);
+  }
+
+  /**
+   * How much of the slope weight a street takes, in [0, 1]: the engine's `slopeUnits`. Mean and max grade ramp from
+   * 0 at the low threshold to 1 at the high one (a coarse-model row stands in the size of its end-to-end grade for
+   * either); the over-limit statistic is the share of the street over 5% plus the share over 8.33%, halved, and is
+   * the one a reader's thresholds do not move, since those lengths were measured when the street was sampled.
+   * @param {?AccessScoreStreetGradient} gradient - The street's slope, or null where it has none.
+   * @param {number} lengthM - The street's length in meters.
+   * @param {AccessScoreSlopeSettings} settings - How slope enters the score.
+   * @returns {number}
+   */
+  static slopeUnits(gradient, lengthM, settings) {
+    const g = AccessScoreModel.#slopeCounts(gradient, settings);
+    if (!g) return 0;
+    if (settings.statistic === 'meters_over_limit') {
+      if (!(lengthM > 0)) return 0;
+      const over = (g.metersOver5pct ?? 0) + (g.metersOver8pct ?? 0);
+      return Math.min(1, Math.max(0, over / (2 * lengthM)));
+    }
+    const endToEnd = g.netGrade === null ? null : Math.abs(g.netGrade);
+    const grade = (settings.statistic === 'max_grade' ? g.maxGrade : g.meanGrade) ?? endToEnd;
+    if (grade === null) return 0;
+    const span = settings.highThreshold - settings.lowThreshold;
+    // Thresholds that have met or crossed leave no ramp between them, so the low one acts as a step.
+    if (span <= 0) return grade > settings.lowThreshold ? 1 : 0;
+    return Math.min(1, Math.max(0, (grade - settings.lowThreshold) / span));
+  }
+
+  /**
+   * Whether the settings treat a street as impassable: the engine's `slopeIsBarrier`.
+   * @param {?AccessScoreStreetGradient} gradient - The street's slope, or null where it has none.
+   * @param {AccessScoreSlopeSettings} settings - How slope enters the score.
+   * @returns {boolean}
+   */
+  static slopeIsBarrier(gradient, settings) {
+    if (!settings.barrierEnabled) return false;
+    const g = AccessScoreModel.#slopeCounts(gradient, settings);
+    if (!g) return false;
+    const steepest = g.maxGrade ?? (g.netGrade === null ? null : Math.abs(g.netGrade));
+    return steepest !== null && steepest > settings.barrierThreshold;
+  }
+
+  /**
+   * A street's slope where it takes part under the settings, else null: it has one, and it is a sampled profile or
+   * the settings admit approximate ones (the engine's `SlopeInput.approximate`: `low` confidence or `suspect`).
+   */
+  static #slopeCounts(gradient, settings) {
+    if (!gradient) return null;
+    const approximate = gradient.confidence === 'low' || gradient.quality === 'suspect';
+    return settings.includeApproximate || !approximate ? gradient : null;
+  }
+
+  /**
+   * Applies a partial state and recomputes. A partial `weights` or `slope` merges over the current values.
    *
    * @param {Partial<AccessScoreState>} partial - Any of the `DEFAULT_STATE` keys.
    * @returns {AccessScoreState} The resulting state (a copy).
@@ -426,6 +662,7 @@ class AccessScoreModel {
   setState(partial) {
     const next = { ...this.#state, ...partial };
     if (partial.weights) next.weights = { ...this.#state.weights, ...partial.weights };
+    if (partial.slope) next.slope = { ...this.#state.slope, ...partial.slope };
     this.#state = next;
     this.#recompute();
     return this.state;
@@ -487,8 +724,11 @@ class AccessScoreModel {
       segmentScore: this.#audited[i] === 1 ? this.#segmentScores[i] : null,
       startIntersection: end(this.#startInt[i]),
       endIntersection: end(this.#endInt[i]),
-      preSigmoid,
+      preSigmoid: preSigmoid + this.#slopeTerms[i],
       terms,
+      slopeUnits: AccessScoreModel.slopeUnits(this.#gradients[i], this.#lengths[i], this.#state.slope),
+      slopeTerm: this.#slopeTerms[i],
+      barrier: this.#barriers[i] === 1,
       gradient: this.#gradients[i] ? { ...this.#gradients[i] } : null,
     };
   }
@@ -663,6 +903,46 @@ class AccessScoreModel {
   rankedRegions() {
     return this.#regionStats.filter((r) => r.score !== null && !r.belowFloor)
       .sort((a, b) => b.score - a.score || b.auditedLengthM - a.auditedLengthM);
+  }
+
+  /**
+   * The best- or worst-scoring streets under the current state (#5223).
+   *
+   * A city has thousands of streets and a reader wants the ends of that list, so this keeps a bounded leaderboard
+   * rather than sorting the city on every slider tick: one pass, and a candidate is compared against the cutoff
+   * before anything is inserted. A tie goes to the longer street — at a given score a 20 m stub says less about a
+   * neighborhood than a block does, and it makes the order stable while a drag rewrites the scores underneath.
+   *
+   * There is no completion floor to apply, unlike `rankedRegions`: a street is audited or it has no score at all.
+   *
+   * @param {object} [options] - How much of which end.
+   * @param {boolean} [options.worst] - True for the worst-scoring streets, worst first; else the best, best first.
+   * @param {number} [options.limit] - How many rows at most.
+   * @returns {AccessScoreStreetRank[]} The rows, in the order they should be shown.
+   */
+  rankedStreets({ worst = false, limit = AccessScoreModel.RANK_LIMIT } = {}) {
+    if (limit <= 0) return [];
+    const sign = worst ? -1 : 1;
+    /** Whether `i` outranks the row at `j`, under the end being asked for. */
+    const outranks = (i, j) => sign * (this.#scores[i] - this.#scores[j]) > 0
+      || (this.#scores[i] === this.#scores[j] && this.#lengths[i] > this.#lengths[j]);
+    /** @type {number[]} Street indices, best of the asked-for end first. */
+    const top = [];
+    for (let i = 0; i < this.#n; i++) {
+      if (this.#audited[i] !== 1) continue;
+      if (top.length === limit && !outranks(i, top[top.length - 1])) continue;
+      let at = top.length;
+      while (at > 0 && outranks(i, top[at - 1])) at -= 1;
+      top.splice(at, 0, i);
+      if (top.length > limit) top.pop();
+    }
+    return top.map((i) => ({
+      streetId: this.#ids[i],
+      name: this.#names[i],
+      regionId: this.#regionIds[i],
+      score: this.#scores[i],
+      lengthM: this.#lengths[i],
+    }));
   }
 
   /**
@@ -1098,6 +1378,8 @@ class AccessScoreModel {
   /** One pass over the intersections, one over the streets (segment, then headline), then the region roll-up. */
   #recompute() {
     const T = this.#types.length;
+    const slope = this.#state.slope;
+    let changed = 0;
     const weights = this.#types.map((type) => this.signedWeight(type));
     const TI = this.#intTypeIdx.length;
     for (let j = 0; j < this.#m; j++) {
@@ -1125,8 +1407,16 @@ class AccessScoreModel {
         this.#terms[base] = term;
         x += term;
       }
+      // Slope joins the sum as its own term (#5223); a barrier overrides the sum altogether. The units are computed
+      // whatever the weight, so the Slope section can report what the settings reach even at a weight of 0.
+      const units = AccessScoreModel.slopeUnits(this.#gradients[i], this.#lengths[i], slope);
+      this.#slopeReached[i] = units > 0 ? 1 : 0;
+      this.#slopeReachedFull[i] = units >= 1 ? 1 : 0;
+      this.#slopeTerms[i] = units === 0 || slope.weight === 0 ? 0 : -slope.weight * units;
+      this.#barriers[i] = AccessScoreModel.slopeIsBarrier(this.#gradients[i], slope) ? 1 : 0;
+      x += this.#slopeTerms[i];
       if (this.#audited[i] === 1) {
-        const segment = 1 / (1 + Math.exp(-x));
+        const segment = this.#barriers[i] === 1 ? 0 : 1 / (1 + Math.exp(-x));
         this.#segmentScores[i] = segment;
         // The headline averages the segment with whichever end crossings carry a score.
         let sum = segment;
@@ -1139,12 +1429,16 @@ class AccessScoreModel {
         }
         this.#scores[i] = sum / count;
         this.#bins[i] = AccessScoreModel.binOf(this.#scores[i]);
+        // Half a point is the finest difference the tool ever shows; counting anything smaller as a change would
+        // make the sidebar's report of it a lie.
+        if (Math.abs(this.#scores[i] - this.#settledScores[i]) > 0.005) changed += 1;
       } else {
         this.#segmentScores[i] = NaN;
         this.#scores[i] = NaN;
         this.#bins[i] = AccessScoreModel.UNBINNED;
       }
     }
+    this.#changedCount = changed;
     this.#rollUpRegions();
     this.#cityContributions = this.contributions();
   }

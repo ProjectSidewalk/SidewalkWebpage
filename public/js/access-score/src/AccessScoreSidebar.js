@@ -2,8 +2,9 @@
  * What the sidebar reports with a change, which the page applies, logs, and hands the dock.
  * @typedef {object} AccessScoreChangeMeta
  * @property {string} kind - `Unit`, `Weight`, `ShowUnaudited`, `ShowClusters`, `ShowGrade`, `PlaceCategory`,
- *   `PlaceCategoryOnly`, `PlaceCategorySelectAll`, `PlaceCategoryDeselectAll`, `Section` or `Reset`; the page adds
- *   `ResetAll`.
+ *   `PlaceCategoryOnly`, `PlaceCategorySelectAll`, `PlaceCategoryDeselectAll`, `Section` or `Reset`; the slope panel's
+ *   `GradeWeight`, `GradeStat`, `GradeThreshold`, `GradeBarrier`, `GradeApproximate` and `GradeReset`; and the
+ *   page adds `ResetAll`.
  * @property {boolean} final - False for a slider mid-drag, true for a settled value (the one to log).
  * @property {string|boolean} [value] - What the change set, for the log.
  */
@@ -33,16 +34,62 @@ class AccessScoreSidebar {
   /** @type {Array<(partial: ?Partial<AccessScoreState>, meta: AccessScoreChangeMeta) => void>} */
   #listeners = [];
   #els = {};
+  /** @type {AccessScoreSlopePanel} */
+  #slope;
+
+  /** The change kinds each section's "Updated" line answers for. */
+  static #WEIGHT_KINDS = ['Weight', 'Preset', 'ResetAll'];
+  static #SLOPE_KINDS = ['GradeWeight', 'GradeStat', 'GradeThreshold', 'GradeBarrier', 'GradeApproximate',
+    'GradeReset', 'ResetAll'];
 
   /**
    * @param {HTMLElement} root - The `#filter-sidebar` element carrying the tool's section markup.
    * @param {AccessScoreConfig} config - The `/v3/api/accessScoreConfig` response.
+   * @param {() => {reached: number, full: number, barriers: number, scored: number}} [slopeImpact] - The model's
+   *   `slopeImpact`, for the line under the slope slider.
    */
-  constructor(root, config) {
+  constructor(root, config, slopeImpact = () => null) {
     this.#root = root;
     this.#config = config;
     this.#render();
     this.#bind();
+    // The slope section keeps its own controls and reports through the same channel as everything else here.
+    this.#slope = new AccessScoreSlopePanel(root, config, (partial, meta) => this.#emit(partial, meta), slopeImpact);
+  }
+
+  /**
+   * Says that the map has answered a control, once the model has recomputed. The recompute and the repaint carry no
+   * motion, so without this a reader adjusting a weight has nothing telling them the map is live.
+   * @param {AccessScoreChangeMeta} meta - The change; a drag's intermediate ticks do not flash.
+   * @param {number} changed - How many scored streets the recompute moved.
+   */
+  afterRecompute(meta, changed) {
+    if (AccessScoreSidebar.#SLOPE_KINDS.includes(meta.kind)) {
+      this.#slope.refreshImpact();
+      if (meta.final !== false) this.#flash(this.#slope.flashElement, changed);
+    }
+    if (AccessScoreSidebar.#WEIGHT_KINDS.includes(meta.kind) && meta.final !== false) {
+      this.#flash(this.#els.weightsFlash, changed);
+    }
+  }
+
+  /**
+   * Fills a section's "Updated" line and restarts its fade.
+   * @param {?HTMLElement} el - The line, absent in a layout that has none.
+   * @param {number} changed - How many scored streets moved.
+   */
+  #flash(el, changed) {
+    if (!el) return;
+    el.textContent = i18next.t('accessscore:recalculated', { count: changed });
+    el.classList.remove('acs-flash--on');
+    // Reading back the layout restarts the animation on a change that lands while the last one is still fading.
+    void el.offsetWidth;
+    el.classList.add('acs-flash--on');
+  }
+
+  /** The Slope section, for the page to fold open when a link carries custom slope settings. */
+  get slope() {
+    return this.#slope;
   }
 
   /**
@@ -66,7 +113,7 @@ class AccessScoreSidebar {
     for (const type of this.#config.scored_types) {
       const row = e.weightRows[type];
       row.input.value = state.weights[type];
-      row.output.textContent = AccessScoreSidebar.#format(state.weights[type]);
+      AccessScoreSidebar.#showWeight(row, state.weights[type]);
     }
     e.showUnaudited.checked = state.showUnaudited;
     e.showGrade.checked = state.showGrade;
@@ -75,6 +122,7 @@ class AccessScoreSidebar {
     for (const [category, row] of Object.entries(e.placeRows)) {
       row.input.checked = state.placeCategories === null || state.placeCategories.includes(category);
     }
+    this.#slope.setState(state);
     this.#showUnitOptions(state.unit);
     this.#updateWeightsSummary();
     this.#updatePlacesAction();
@@ -167,12 +215,14 @@ class AccessScoreSidebar {
       weightRows: Object.fromEntries(this.#config.scored_types.map((type) => {
         const row = weights.querySelector(`.acs-weight[data-type="${type}"]`);
         return [type, {
+          root: row,
           input: row.querySelector('input'),
           output: row.querySelector('output'),
           bar: row.querySelector('.acs-weight__bar'),
           barLabel: row.querySelector('.acs-weight__bar-label'),
         }];
       })),
+      weightsFlash: root.querySelector('#acs-weights-flash'),
       showUnaudited: root.querySelector('#acs-show-unaudited'),
       showGrade: root.querySelector('#acs-show-grade'),
       gradeOption: root.querySelector('#acs-grade-option'),
@@ -210,7 +260,7 @@ class AccessScoreSidebar {
       const emitWeight = (final) =>
         this.#emit({ weights: { [type]: value() } }, { kind: 'Weight', value: `${type}_value=${value()}`, final });
       row.input.addEventListener('input', () => {
-        row.output.textContent = AccessScoreSidebar.#format(value());
+        AccessScoreSidebar.#showWeight(row, value());
         this.#updateWeightsSummary();
         emitWeight(false);
       });
@@ -328,7 +378,7 @@ class AccessScoreSidebar {
    */
   #showUnitOptions(unit) {
     this.#els.streetOptions.hidden = unit !== 'streets';
-    const gradient = this.#config.gradient;
+    const gradient = this.#config.grade;
     const sampled = Boolean(gradient && gradient.sources.length > 0 && gradient.map_class_breaks.length > 0);
     this.#els.gradeOption.hidden = unit !== 'streets' || !sampled;
   }
@@ -358,6 +408,18 @@ class AccessScoreSidebar {
 
   static #format(value) {
     return `×${Number(value).toFixed(2)}`;
+  }
+
+  /**
+   * Writes a weight into its row's output. At 0 the type is out of the score entirely, which "×0.00" states only
+   * to a reader who does the arithmetic, so the row says "Off" and mutes.
+   * @param {{root: HTMLElement, output: HTMLElement}} row - The weight row.
+   * @param {number} value - The weight in force.
+   */
+  static #showWeight(row, value) {
+    const off = Number(value) === 0;
+    row.output.textContent = off ? i18next.t('accessscore:weight-off') : AccessScoreSidebar.#format(value);
+    row.root.classList.toggle('acs-weight--off', off);
   }
 
   /**

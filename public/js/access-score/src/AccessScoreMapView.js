@@ -84,9 +84,12 @@ class AccessScoreMapView {
    * @param {string} [options.gradeAttribution=''] - The elevation models' credit, as markup. It rides on the street
    *                                       source, so Mapbox's own attribution control shows it and a basemap swap
    *                                       cannot lose it.
+   * @param {Function} [options.onGradeClasses] - Called with an array of slope-class indices when the legend's
+   *                                       classes are clicked (empty to clear), so the owner can brush on them.
    */
   constructor(map, { model, streets, regions, onSelect, onHover = () => {}, tooltipHtml, clickClaimed = () => false,
-    hoverClaimed = () => false, dark = false, gradeBreaks = null, gradeAttribution = '' }) {
+    hoverClaimed = () => false, dark = false, gradeBreaks = null, gradeAttribution = '',
+    onGradeClasses = () => {} }) {
     this.#map = map;
     this.#model = model;
     this.#onSelect = onSelect;
@@ -110,10 +113,10 @@ class AccessScoreMapView {
     this.#addStreetLayers(streets);
     this.#addInteractions();
     // After the navigation control: the corner's reversed flex row keeps the first control at the edge.
-    this.#legend = new AccessScoreMapLegend({ gradeBreaks: this.#gradeBreaks });
+    this.#legend = new AccessScoreMapLegend({ gradeBreaks: this.#gradeBreaks, onGradeClasses });
     this.#map.addControl(this.#legend, 'top-right');
     this.#legend.setDark(dark);
-    this.#legend.setGrade(this.#showGrade);
+    this.#legend.setGrade(this.#showGrade, model.displayGradeStatistic);
     this.setUnit(this.#unit);
     this.applyScores();
   }
@@ -259,11 +262,33 @@ class AccessScoreMapView {
    */
   setShowGrade(show) {
     this.#showGrade = show && this.#gradeBreaks !== null;
+    this.#repaintStreets();
+    this.#legend.setGrade(this.#showGrade, this.#model.displayGradeStatistic);
+    this.#markSelectionOnLegend();
+  }
+
+  /**
+   * Repaints the streets for the slope statistic now in force (#5223). Nothing is re-uploaded: both statistics are
+   * already on every feature.
+   */
+  setGradeStatistic() {
+    this.#repaintStreets();
+    this.#legend.setGrade(this.#showGrade, this.#model.displayGradeStatistic);
+  }
+
+  /**
+   * Marks the slope classes a brush is on, so the legend reflects a selection it did not make itself.
+   * @param {number[]} classes - Class indices, empty for none.
+   */
+  setGradeSelection(classes) {
+    this.#legend.setSelection(classes);
+  }
+
+  /** The three paint properties that depend on which grade, or whether a grade, the streets are colored by. */
+  #repaintStreets() {
     this.#map.setPaintProperty(AccessScoreMapView.STREET_LAYER, 'line-color', this.#streetColor());
     this.#map.setPaintProperty(AccessScoreMapView.STREET_LAYER, 'line-width', this.#streetWidth());
     this.#map.setPaintProperty(AccessScoreMapView.STREET_LAYER, 'line-opacity', this.#streetOpacity());
-    this.#legend.setGrade(this.#showGrade);
-    this.#markSelectionOnLegend();
   }
 
   /**
@@ -422,8 +447,11 @@ class AccessScoreMapView {
           street_edge_id: f.properties.street_edge_id,
           region_id: f.properties.region_id,
           audited: f.properties.audit_count > 0 ? 1 : 0,
-          // Negative for "no grade": the step expression cannot take a null.
-          grade: this.#model.displayGrade(f.properties.street_edge_id) ?? -1,
+          // Both statistics travel: the slope coloring follows whichever one the score is using, and with a single
+          // baked-in `grade` that switch would rewrite every feature where two properties make it a repaint.
+          // Negative for "no grade", since the step expression cannot take a null.
+          grade_mean: this.#model.gradeBy(f.properties.street_edge_id, 'mean_grade') ?? -1,
+          grade_max: this.#model.gradeBy(f.properties.street_edge_id, 'max_grade') ?? -1,
         },
       })),
     };
@@ -462,14 +490,19 @@ class AccessScoreMapView {
    * @returns {Array} A boolean Mapbox expression.
    */
   #streetIsBlank() {
-    return this.#showGrade ? ['<', ['get', 'grade'], 0] : ['==', ['get', 'audited'], 0];
+    return this.#showGrade ? ['<', this.#gradeExpr(), 0] : ['==', ['get', 'audited'], 0];
+  }
+
+  /** Which of the two grade properties the slope coloring reads: whichever statistic the score is using. */
+  #gradeExpr() {
+    return ['get', this.#model.displayGradeStatistic === 'mean_grade' ? 'grade_mean' : 'grade_max'];
   }
 
   /** The street color expression: the slope classes, or the score ramp over feature-state. */
   #streetColor() {
     const noneColor = AccessScoreMapView.#token(this.#palette.streetNone);
     if (this.#showGrade) {
-      return AccessScoreGradeRamp.expression(['get', 'grade'], this.#gradeBreaks, { noneColor, mode: this.#mode });
+      return AccessScoreGradeRamp.expression(this.#gradeExpr(), this.#gradeBreaks, { noneColor, mode: this.#mode });
     }
     return ScoreRamp.expression(['coalesce', ['feature-state', 'score'], -1], { noneColor, mode: this.#mode });
   }
