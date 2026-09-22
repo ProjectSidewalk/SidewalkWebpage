@@ -126,8 +126,13 @@ class KeyboardManager {
             this.#navigationService.moveToLinkedPano(180);
             break;
           case ' ':
+            // A focused checkbox or radio button (e.g. the minimap key's "My earlier labels", #4945) has no key but
+            // Space to toggle it, so it keeps Space; cancelling it here would leave the control mouse-only.
+            if (e.target instanceof HTMLInputElement && (e.target.type === 'checkbox' || e.target.type === 'radio')) {
+              break;
+            }
             // preventDefault stops the page from scrolling and stops space from re-activating a
-            // focused button (e.g. the Stuck/ribbon button right after a mouse click).
+            // focused button (e.g. the Stuck/ribbon button right after a mouse click), which Enter still activates.
             e.preventDefault();
             this.#advanceForwardAlongRoute();
             break;
