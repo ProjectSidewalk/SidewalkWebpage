@@ -60,11 +60,13 @@ class SidewalkPresenceTableSpec
     val tagsLiteral = tags.map(t => s"'${t.replace("'", "''")}'").mkString("ARRAY[", ", ", "]::text[]")
     for {
       labelId <- sql"""INSERT INTO label (label_id, audit_task_id, mission_id, user_id, pano_id, label_type, deleted,
-                                          temporary_label_id, time_created, tutorial, street_edge_id, tags, correct)
+                                          temporary_label_id, time_created, tutorial, street_edge_id, tags, correct,
+                                          deleted_by, deleted_source)
                        SELECT (SELECT COALESCE(MAX(label_id), 0) + 1 FROM label), audit_task_id, mission_id, $userId,
                               pano_id, CAST($labelType AS label_type), $deleted, 0,
                               now() - make_interval(days => $daysAgo), $tutorial, $streetEdgeId, #$tagsLiteral,
-                              $correct
+                              $correct, CASE WHEN $deleted THEN $userId END,
+                              CASE WHEN $deleted THEN 'Explore'::ui_source END
                        FROM label
                        LIMIT 1
                        RETURNING label_id""".as[Int].headOption

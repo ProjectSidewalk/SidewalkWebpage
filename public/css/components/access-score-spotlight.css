@@ -65,7 +65,8 @@
   }
 }
 
-/* A single-neighborhood city has one score and no second list to put beside it. */
+/* One column, wherever the second has nothing in it: a single-neighborhood city, a sparse city whose only list is
+   "Ranked so far", or one whose only list is the "Closest to being ranked" ask. */
 .spotlight-cols.spotlight-cols--single {
   grid-template-columns: 1fr;
 }

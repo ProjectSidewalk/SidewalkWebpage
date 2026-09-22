@@ -6,7 +6,7 @@ import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
-import models.label.LabelTypeEnum
+import models.label.{LabelDeletion, LabelTypeEnum}
 import models.user.Role
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
@@ -120,7 +120,10 @@ class AdminController @Inject() (
                   "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
                   "crop_marker"      -> marker,
                   "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
-                  "can_edit"         -> true
+                  "can_edit"         -> true,
+                  "deleted"          -> metadata.deleted,
+                  "can_restore"      -> LabelDeletion
+                    .canRestore(metadata.deleted, metadata.deletedBy, Some(request.identity))
                 )
             )
         }

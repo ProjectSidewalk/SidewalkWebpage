@@ -166,7 +166,9 @@
             // The navigator keeps its own label-to-type lookup, which the beacon reads its color from.
             self.nearbyNav?.refresh();
             spotlight.refreshBeacon(meta.label_id);
-          }
+          },
+          // The navigator isn't rebuilt: it would forget the open label, and Next needs a known label to page from.
+          onDelete: (meta) => self.mapData?.setLabelDeleted?.(meta.label_id, meta.deleted)
         }),
         navigationControlPosition: 'top-right',
         highQualityFilter: true
