@@ -459,23 +459,4 @@
       return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
     },
   };
-
-  // Set up download buttons when the DOM is ready.
-  document.addEventListener('DOMContentLoaded', () => {
-    // Set up download buttons
-    document.querySelectorAll('.download-btn').forEach((button) => {
-      button.addEventListener('click', function () {
-        const format = this.getAttribute('data-format');
-        const url = `${config.apiBaseUrl}${config.validationsEndpoint}?filetype=${format}`;
-
-        // Create a temporary link to trigger download.
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `validations.${format}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      });
-    });
-  });
 })();
