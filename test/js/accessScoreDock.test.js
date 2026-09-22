@@ -670,15 +670,21 @@ describe('AccessScoreDock', () => {
         expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(window.AccessScoreModel.RANK_LIMIT);
         expect(body.classList).not.toContain('acs-dock__body--no-rank');
 
+        // The rows outlive the suppression, so a mark left on one would still be there when the panel comes back.
+        const hovered = Number(document.querySelector('.acs-rank__row').dataset.rowId);
+        dock.markHover({unit: 'streets', id: hovered, score: 0.5});
+        expect(document.querySelectorAll('.acs-rank__row--hover')).toHaveLength(1);
+
         model.setState({unit: 'regions'});
         dock.applyChange({kind: 'Unit', final: true});
         flush();
         expect(panel.hidden).toBe(true);
         expect(body.classList).toContain('acs-dock__body--no-rank');
+        expect(document.querySelectorAll('.acs-rank__row--hover')).toHaveLength(0);
         // The rest of the band is untouched by the missing column.
         expect(document.querySelectorAll('.acs-histogram__bin')).toHaveLength(10);
         expect(document.querySelectorAll('.acs-whats-here__row')).toHaveLength(FIXTURE.config.scored_types.length);
-        // Every path that marks or clears a rank row, the brushed redraw included, still runs.
+        // Every path that marks or clears a rank row, the brushed redraw included, still runs against a hidden panel.
         expect(() => {
             dock.markHover({unit: 'regions', id: 1, score: 0.5});
             dock.markHover(null);
@@ -696,6 +702,7 @@ describe('AccessScoreDock', () => {
         expect(panel.hidden).toBe(false);
         expect(body.classList).not.toContain('acs-dock__body--no-rank');
         expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(window.AccessScoreModel.RANK_LIMIT);
+        expect(document.querySelectorAll('.acs-rank__row--hover')).toHaveLength(0);
 
         await settle();
         // "(lowest scoring)" is a comparison, so one neighborhood is captioned by its name alone.

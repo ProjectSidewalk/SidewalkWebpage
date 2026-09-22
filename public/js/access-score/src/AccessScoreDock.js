@@ -394,6 +394,12 @@ class AccessScoreDock {
    * neighborhoods unit is in force: the streets leaderboard is a real list in such a city, and comes back with the
    * unit switch.
    *
+   * Nothing else is written while the panel is out: the caller returns on a false, leaving the title, the info
+   * tooltip and the order button holding the values they had. All three are rewritten when it comes back. The one
+   * thing that is cleared is the hover mark, since the rows outlive the suppression — the map and the histogram
+   * both keep calling `highlight` while the panel is hidden, and a mark left on a row would still be on it when
+   * the unit switch brings the same rows back.
+   *
    * @param {boolean} streets - Whether the streets unit is in force.
    * @returns {boolean} Whether the panel is showing, and so whether there is a list to draw into it.
    */
@@ -401,6 +407,7 @@ class AccessScoreDock {
     const show = streets || this.#model.regionStats.length > 1;
     if (this.#els.rankPanel) this.#els.rankPanel.hidden = !show;
     this.#els.body.classList.toggle('acs-dock__body--no-rank', !show);
+    if (!show) this.#rank.clearHighlight();
     return show;
   }
 

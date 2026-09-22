@@ -111,13 +111,19 @@ class AccessScoreSpotlight {
   }
 
   /**
-   * Whether a unit is worth offering: it ranks something, or — regions only — it can ask for the neighborhood
-   * nearest the floor. A feed that failed to load is never offerable.
-   * @param {?SpotlightFeed} feed - The unit's feed.
+   * Whether a unit is worth offering: it ranks something, or it can ask for the neighborhood nearest the floor.
+   *
+   * The second clause reads the feed's own `unit` rather than trusting that `nearest` arrives empty for streets.
+   * The backend does send `[]` there — `nearest` is a plain `Seq`, populated only for `unit=regions` under the
+   * single-city scope, since a street on another city's site is nowhere to send a visitor — but two reviewers read
+   * the old wording as "streets have no `nearest` key" and called a crash that cannot happen. Naming the unit says
+   * which list this is for, instead of leaning on a value being empty.
+   *
+   * @param {?SpotlightFeed} feed - The unit's feed, or null if it failed to load, which is never offerable.
    * @returns {boolean}
    */
   static #hasContent(feed) {
-    return Boolean(feed) && (feed.qualifying > 0 || feed.nearest.length > 0);
+    return Boolean(feed) && (feed.qualifying > 0 || (feed.unit === 'regions' && feed.nearest.length > 0));
   }
 
   /** Fetches both units, picks the one to open on, and renders — or hides the section if nothing is ranked. */
@@ -251,8 +257,8 @@ class AccessScoreSpotlight {
 
   /**
    * The Neighborhoods / Streets switch: toggle buttons, not tabs, since each redraws this same region.
-   * @returns {?HTMLElement} The group, or null below two offerable units — a switch whose only destination is a
-   *   heading over an empty list is worse than no switch.
+   * @returns {?HTMLElement} The group, or null below two offerable units: a control whose only destination is the
+   *   view you are already on is not a switch.
    */
   #buildUnitSwitch() {
     const offered = ['regions', 'streets'].filter((u) => AccessScoreSpotlight.#hasContent(this.#feeds[u]));

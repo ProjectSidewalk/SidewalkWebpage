@@ -1098,7 +1098,8 @@
 }
 
 /* A city mapped as one neighborhood has no neighborhoods to rank, so the panel steps out while that unit is in
-   force (AccessScoreDock.js) and the remaining three share its width. */
+   force (AccessScoreDock.js) and the remaining three share its width. Only above 1100px: the breakpoints below
+   re-declare this grid, and three panels wrap into the same rows four do, so there is nothing to reclaim there. */
 .acs-dock__body--no-rank {
   grid-template-columns: minmax(200px, 1fr) minmax(215px, 1fr) minmax(320px, 2.2fr);
 }

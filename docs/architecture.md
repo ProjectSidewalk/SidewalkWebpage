@@ -318,10 +318,10 @@ corresponding Twirl view:
   drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and
   intersections (`AccessScoreWhatsHere.js`); the rank list, which ranks whichever unit is in force — every
   neighborhood above the completion floor, or, in the streets unit, the 20 best-scoring streets with a toggle to
-  the 20 worst (`AccessScoreModel#rankedStreets`, #5223) — and which steps out of the band, the other three panels
-  closing over its column, while a city mapped as one neighborhood is in the neighborhoods unit (#5419); and a photo
-  strip of label crops from the scope's neighborhood feed, ranked worst first with confirmed labels ahead of unchecked
-  ones
+  the 20 worst (`AccessScoreModel#rankedStreets`, #5223) — and which steps out of the band above 1100px, the other
+  three panels closing over its column, while a city mapped as one neighborhood is in the neighborhoods unit (#5419);
+  and a photo strip of label crops from the scope's neighborhood feed, ranked worst first with confirmed labels ahead
+  of unchecked ones
   (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
   the whole city is the population, a brush emphasizes in the overview views, narrows what's here and dims the
   map, and a selection marks the overview views, scopes what's here and the photos, and fades the rest of the
