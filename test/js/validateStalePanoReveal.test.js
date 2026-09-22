@@ -34,7 +34,7 @@ function loadClassFromFile(filePath, className) {
   return (0, eval)('(() => {\n' + src + '\nreturn ' + className + ';\n})()');
 }
 
-describe('Validate only paints the fallback canvas once it holds this label\'s pano (issue #5206)', () => {
+describe('Validate only paints a viewer canvas once it holds this label\'s pano (issues #5206, #5453)', () => {
   let panoManager;
   let primaryViewer;
   let pannellumViewer;
@@ -288,9 +288,10 @@ describe('Validate only paints the fallback canvas once it holds this label\'s p
       const inFlight = panoManager.setPanorama('pano3', null);
       await load.started;
 
-      // This is the bug: the primary canvas still held the last live label's pano, and it was revealed before the
-      // provider had painted over it.
+      // This is the bug: out of the layout, the primary canvas never drew this pano, so revealing it showed the last
+      // live label's instead. It has to be switching panos laid out, underneath what the validator still sees.
       expect(visibleCanvas()).toBe('pannellum');
+      expect(primaryCanvas.style.display).not.toBe('none');
       expect(logo.showPrimaryLogo).not.toHaveBeenCalled();
       expect(attribution.hide).not.toHaveBeenCalled();
 
@@ -308,6 +309,8 @@ describe('Validate only paints the fallback canvas once it holds this label\'s p
 
       expect(primaryCanvas.style.display).not.toBe('none');
       expect(primaryCanvas.style.visibility).toBe('hidden');
+      // A window resize while the fallback was up never reached the primary viewer, so it has to re-measure here.
+      expect(primaryViewer.resize).toHaveBeenCalled();
 
       load.resolve();
       await inFlight;
@@ -323,6 +326,24 @@ describe('Validate only paints the fallback canvas once it holds this label\'s p
 
       // The fallback took this label too; a primary canvas left laid out would sit under it, hidden but in the way.
       expect(visibleCanvas()).toBe('pannellum');
+      expect(primaryCanvas.style.display).toBe('none');
+      expect(primaryCanvas.style.visibility).toBe('');
+    });
+
+    test('a failed live load takes the primary canvas out of the layout before the fallback loads', async () => {
+      const live = holdPrimaryLoad();
+      const inFlight = panoManager.setPanorama('pano3', { panoId: 'backup-pano-2', cameraHeading: 12 });
+      await live.started;
+      const fallback = holdPannellumLoad();
+      live.reject();
+      await fallback.started;
+
+      // Checked mid-load: once the fallback settles, its own reveal or #clearViewer hides the primary regardless.
+      expect(primaryCanvas.style.display).toBe('none');
+      expect(primaryCanvas.style.visibility).toBe('');
+
+      fallback.reject();
+      expect(await inFlight).toBeNull();
       expect(primaryCanvas.style.display).toBe('none');
       expect(primaryCanvas.style.visibility).toBe('');
     });
@@ -345,5 +366,17 @@ describe('Validate only paints the fallback canvas once it holds this label\'s p
       await inFlight;
       expect(visibleCanvas()).toBe('primary');
     });
+  });
+
+  test('a live label after a live one keeps the outgoing pano on screen throughout (issue #5453)', async () => {
+    // The common path: the primary canvas is already showing, so nothing about it should change during the load.
+    const load = holdPrimaryLoad();
+    const inFlight = panoManager.setPanorama('pano2', null);
+    await load.started;
+    expect(visibleCanvas()).toBe('primary');
+
+    load.resolve();
+    await inFlight;
+    expect(visibleCanvas()).toBe('primary');
   });
 });

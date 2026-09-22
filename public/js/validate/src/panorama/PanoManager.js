@@ -355,14 +355,15 @@ class PanoManager {
 
     // The fallback's invariant from #showPannellumPano, applied the other way round (#5453). While the fallback or an
     // empty pano area is up, the primary canvas is out of the layout and holds whatever it last drew: the last live
-    // label's pano, however many labels back. Revealing it only after the load would put that on screen until the
-    // provider repainted, and the provider resolves setPano on position_changed, not on a paint. So it rejoins the
-    // layout unpainted and loads underneath the outgoing pano; #teardownPannellum reveals it. This also keeps the
-    // provider from being resized up from 0×0 at the moment it is shown, the black-pano trigger of #2468.
+    // label's pano, however many labels back. A provider left out of the layout doesn't render, so revealing it once
+    // setPano resolved put that frame back on screen until it caught up. It rejoins the layout unpainted instead and
+    // switches panos underneath the outgoing one; #teardownPannellum reveals it. The resize is what makes it measure
+    // the box it rejoined: a window resize while the fallback was up only reached the fallback.
     const primaryWasHidden = this.#panoCanvas.style.display === 'none';
     if (primaryWasHidden) {
       this.#panoCanvas.style.visibility = 'hidden';
       this.#panoCanvas.style.display = '';
+      this.#primaryViewer.resize();
     }
 
     // Try the primary viewer first.
