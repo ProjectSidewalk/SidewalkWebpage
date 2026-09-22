@@ -333,8 +333,9 @@ corresponding Twirl view:
 - **`AccessScoreSpotlight.js`** — the AccessScore Spotlight (#5215), a standalone module (no Grunt bundle) that the
   landing page and `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked
   lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which
-  answers from the nightly snapshot tables; nothing is fetched until the visitor's first interaction, and the
-  section hides itself when the city has nothing ranked. A city mapped as one neighborhood has no neighborhood
+  answers from the nightly snapshot tables; nothing is fetched until the visitor's first interaction. A city with
+  nothing ranked yet still gets the "closest to being ranked" ask as its only column, and the section hides itself
+  only when neither unit has even that. A city mapped as one neighborhood has no neighborhood
   ranking to give, so that unit is dropped in favor of its street list — unless no street is ranked either, where the
   one score is still better than an empty section — and the unit switch is only drawn when both units have something
   to show. Hovering or focusing a row lights that neighborhood on the
