@@ -381,15 +381,18 @@ def test_within_search_radius_drops_a_pano_google_returned_from_beyond_it():
     # #5114: a 25 m query answered with a photosphere in Syracuse, NY. Its date and position must not reach the street.
     info = cs.PanoInfo(True, '2014-05-01', 43.05, -76.15)
     assert cs.within_search_radius(info, _LAT, _LNG, 0.025) == cs.PanoInfo(False, None)
-    past_the_slack = cs.PanoInfo(True, '2021-07-15', _lat_north_of_origin(31), _LNG)
-    assert cs.within_search_radius(past_the_slack, _LAT, _LNG, 0.025).has_imagery is False
+    just_past = cs.PanoInfo(True, '2021-07-15', _lat_north_of_origin(26), _LNG)
+    assert cs.within_search_radius(just_past, _LAT, _LNG, 0.025).has_imagery is False
 
 
-def test_within_search_radius_allows_slack_at_the_radius_edge():
-    # Google doesn't say what it measures its radius from, so an answer just past 25 m must not flip an endpoint.
-    for meters in (25.02, 29.5):
-        info = cs.PanoInfo(True, '2021-07-15', _lat_north_of_origin(meters), _LNG)
-        assert cs.within_search_radius(info, _LAT, _LNG, 0.025) == info
+def test_within_search_radius_keeps_a_far_pano_that_sits_on_the_street():
+    # Teaneck: a point-only check hid streets whose dropped pano was further *along* them. Imagery of this street is
+    # imagery of this street, however far down it the capture gap put the nearest pano.
+    street = LineString([(_LNG, _LAT), (_LNG + 0.001, _LAT)])  # ~75 m due east
+    along = cs.PanoInfo(True, '2021-07-15', _LAT, _LNG + 0.0005)  # ~37.5 m down the street, on its centerline
+    assert cs.within_search_radius(along, _LAT, _LNG, 0.025, street) == along
+    beside = cs.PanoInfo(True, '2021-07-15', _lat_north_of_origin(40), _LNG + 0.0005)  # 40 m off it
+    assert cs.within_search_radius(beside, _LAT, _LNG, 0.025, street).has_imagery is False
 
 
 @pytest.mark.parametrize('info', [cs.PanoInfo(False, None), cs.PanoInfo(True, '2019-01-01'),
@@ -1461,7 +1464,8 @@ def test_preflight_summary_of_nothing():
 
 def test_collect_and_write_preflight_report(tmp_path):
     assert cs.collect_preflight_summaries(str(tmp_path)) == {}
-    for provider, rows in (('gsv', [(1, 1, True, '2020-01-01', '2020-01-01', 1, 2.5), (2, 1, False, None, None, 0, None)]),
+    for provider, rows in (('gsv', [(1, 1, True, '2020-01-01', '2020-01-01', 1, 2.5),
+                                    (2, 1, False, None, None, 0, None)]),
                            ('mapillary', [(1, 1, True, None, None, 4, 6.0), (2, 1, True, None, None, 2, 1.5)]),
                            ('panoramax', [])):
         provider_dir = tmp_path / 'preflight' / provider

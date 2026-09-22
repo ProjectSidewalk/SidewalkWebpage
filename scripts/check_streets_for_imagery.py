@@ -65,7 +65,7 @@ the street can accept a pano belonging to an adjacent carriageway or alley. Each
 ``max_cross_track_m``, the largest distance from the street centerline among the panos it saw, so the threshold for
 rejecting off-street imagery can be read off a real distribution rather than guessed (#5091). GSV's ``radius`` is only
 a hint -- it has answered a 25 m query with a photosphere in another state (#5114) -- so ``within_search_radius`` also
-drops any GSV pano reported beyond the radius, rather than trusting Google to have applied it.
+drops any GSV pano reported beyond the radius of both the query point and the street, rather than trusting Google.
 
 Infra3d has no metadata endpoint of its own; the check uses the same nearest-frame query (``framegate``'s
 ``knn/query``) that the vendored Infra3d viewer SDK issues on every ``setLocation``, authenticated with the same
@@ -225,11 +225,6 @@ MS_PER_YEAR = 365.25 * 24 * 3600 * 1000
 # interval, or the box can straddle a gap and report no imagery where there is some: Mapillary's smart spacing targets
 # 20 m on highways, and 12.6% of Budapest's consecutive captures exceed 20 m (#5091 collects the measurements).
 SEARCH_RADIUS_KM = 0.025
-# How far past the search radius a GSV pano may sit before within_search_radius rejects it. Google doesn't document
-# what it measures its radius from, so an answer at the radius's edge shouldn't flip an endpoint to "no imagery" (which
-# also tightens the street's thresholds). The answers the guard exists for are far outside it: 77 m on a 25 m query in
-# Teaneck, 3,596 km in Seattle (#5114).
-RADIUS_SLACK_KM = 0.005
 # How close, in degrees, a walked coordinate must be to a street endpoint to reuse that endpoint's answer (~1 cm). The
 # geom's vertices and the exported x1/y1 come from the same row but not always the same float formatting.
 ENDPOINT_MATCH_DEG = 1e-7
@@ -973,25 +968,32 @@ def _pano_info(api: str, response_json: dict, lat: float, lng: float) -> PanoInf
     return mapillary_pano_info(response_json, lat, lng)
 
 
-def within_search_radius(info: PanoInfo, lat: float, lng: float, radius_km: float) -> PanoInfo:
+def within_search_radius(info: PanoInfo, lat: float, lng: float, radius_km: float,
+                         street_geom: LineString | None = None) -> PanoInfo:
     """
-    Treats a pano returned from beyond the search radius as no imagery at the queried point.
+    Treats a pano returned from beyond the search radius -- of the queried point and of the street -- as no imagery.
 
     Google's metadata ``radius`` is a search hint, not a bound: a 25 m query has returned a pano 77 m away in Teaneck
     and a user photosphere 3,596 km away, in another state, for a Seattle street (#5114). Counting either as imagery
     marks a street covered on pictures of somewhere else, and choosing a smaller radius does not help -- the Seattle
-    15 m scan accepted the same far panos (#5091). So the position the response reports is checked against the radius
-    the query asked for, give or take ``RADIUS_SLACK_KM``. A pano with no reported position is kept, since there is
-    nothing to check it against.
+    15 m scan accepted the same far panos (#5091).
+
+    Distance from the query point alone is the wrong test, though. The radius has to be generous *along* the street to
+    clear capture gaps, and a pano more than 25 m further down the same street is still imagery of it -- Explore would
+    show it. On Teaneck a point-only check hid six streets whose dropped pano sat at most 18 m off their own
+    centerline, alongside two it rightly hid for panos 37 m and 52 m off it. So a pano beyond the radius of the point
+    is still kept when it lies within the radius of ``street_geom``, which is what separates those two groups. A pano
+    with no reported position is kept, since there is nothing to check it against.
 
     Args:
-        info:      The ``PanoInfo`` built from the provider's response.
-        lat:       Latitude of the queried point.
-        lng:       Longitude of the queried point.
-        radius_km: The search radius the query asked for, in km.
+        info:        The ``PanoInfo`` built from the provider's response.
+        lat:         Latitude of the queried point.
+        lng:         Longitude of the queried point.
+        radius_km:   The search radius the query asked for, in km.
+        street_geom: The centerline of the street being checked; ``None`` checks the query point alone.
 
     Returns:
-        ``info`` unchanged when its pano lies within ``radius_km`` (plus the slack) of the point, or has no position;
+        ``info`` unchanged when its pano lies within ``radius_km`` of the point or of the street, or has no position;
         else a no-imagery ``PanoInfo`` carrying neither the far pano's date nor its position.
 
     Example:
@@ -1000,27 +1002,29 @@ def within_search_radius(info: PanoInfo, lat: float, lng: float, radius_km: floa
     """
     if not info.has_imagery or info.pano_lat is None or info.pano_lng is None:
         return info
-    distance_km = geodesic((lat, lng), (info.pano_lat, info.pano_lng)).km
-    if distance_km > radius_km + RADIUS_SLACK_KM:
-        logger.debug("Rejected pano %.1f m from (%s, %s), beyond the %.0f m search radius",
-                     distance_km * 1000, lat, lng, radius_km * 1000)
-        return PanoInfo(False, None)
-    return info
+    if geodesic((lat, lng), (info.pano_lat, info.pano_lng)).km <= radius_km:
+        return info
+    if street_geom is not None and cross_track_m(street_geom, info.pano_lat, info.pano_lng) <= radius_km * 1000:
+        return info
+    logger.debug("Rejected pano at (%s, %s) for query (%s, %s): beyond %.0f m of the point and of the street",
+                 info.pano_lat, info.pano_lng, lat, lng, radius_km * 1000)
+    return PanoInfo(False, None)
 
 
 def _point_pano_info(api: str, lat: float, lng: float, fetch: Callable[..., dict], gsv_url: str,
-                     mapillary_url: str, radius_km: float, infra3d: Infra3dScan | None = None) -> PanoInfo:
+                     mapillary_url: str, radius_km: float, infra3d: Infra3dScan | None = None,
+                     street_geom: LineString | None = None) -> PanoInfo:
     """
     Queries the configured provider at one point (via ``fetch``) and returns its ``PanoInfo``.
 
     ``radius_km`` is the Mapillary/Panoramax bbox half-extent / Infra3d max frame distance. GSV bakes its radius into
-    ``gsv_url`` but treats it as a hint, so its answer is also held to ``radius_km`` here; the bbox providers filter
-    server-side and Infra3d checks its own radius. ``infra3d`` is the ``Infra3dScan`` (token holder + campaign scope),
-    needed only for that provider.
+    ``gsv_url`` but treats it as a hint, so its answer is also held to ``radius_km`` of the point or of ``street_geom``
+    here; the bbox providers filter server-side and Infra3d checks its own radius. ``infra3d`` is the ``Infra3dScan``
+    (token holder + campaign scope), needed only for that provider.
     """
     if api == 'GSV':
         info = _pano_info(api, fetch(gsv_url + '&location=' + str(lat) + ',' + str(lng)), lat, lng)
-        return within_search_radius(info, lat, lng, radius_km)
+        return within_search_radius(info, lat, lng, radius_km, street_geom)
     if api == 'Panoramax':
         return _pano_info(api, fetch(_panoramax_bbox_url(lat, lng, radius_km), headers=PANORAMAX_HEADERS), lat, lng)
     if api == 'Infra3d':
@@ -1032,8 +1036,10 @@ def _check_endpoints(street: pd.Series, api: str, fetch: Callable[..., dict], gs
                      radius_km: float = SEARCH_RADIUS_KM,
                      infra3d: Infra3dScan | None = None) -> tuple[PanoInfo, PanoInfo]:
     """Checks both of a street's endpoints; returns ``(first_pano_info, second_pano_info)``."""
-    first = _point_pano_info(api, street.y1, street.x1, fetch, gsv_url, mapillary_url, radius_km, infra3d)
-    second = _point_pano_info(api, street.y2, street.x2, fetch, gsv_url, mapillary_url, radius_km, infra3d)
+    first = _point_pano_info(api, street.y1, street.x1, fetch, gsv_url, mapillary_url, radius_km, infra3d,
+                             street['geom'])
+    second = _point_pano_info(api, street.y2, street.x2, fetch, gsv_url, mapillary_url, radius_km, infra3d,
+                              street['geom'])
     return first, second
 
 
@@ -1102,7 +1108,8 @@ def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_
                 if known is not None:
                     yield known.has_imagery
                     continue
-                info = _point_pano_info(api, coord[1], coord[0], fetch, gsv_url, mapillary_url, radius_km, infra3d)
+                info = _point_pano_info(api, coord[1], coord[0], fetch, gsv_url, mapillary_url, radius_km, infra3d,
+                                        street['geom'])
                 if info.capture_date:
                     dates.append(info.capture_date)
                 offset = cross_track_m(street['geom'], info.pano_lat, info.pano_lng)
@@ -1359,7 +1366,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.sample is not None and args.sample <= 0:
         parser.error('--sample needs a positive number of streets (bare --sample checks %d).' % DEFAULT_SAMPLE)
     # GSV takes whole metres, so the radius is held to whole metres everywhere; otherwise 12.5 would query Google at
-    # 12 m while within_search_radius accepted panos out to 12.5 m.
+    # 12 m while within_search_radius held its answers to 12.5 m.
     if args.search_radius_m < 1 or args.search_radius_m != int(args.search_radius_m):
         parser.error('--search-radius-m needs a whole number of metres, at least 1.')
     api = 'GSV' if args.gsv else 'Mapillary' if args.mapillary else 'Panoramax' if args.panoramax else 'Infra3d'
