@@ -384,6 +384,31 @@ test.describe('/accessScore', () => {
       expect(await dimOf(page, 'acs-regions', 1)).toBe(false);
     });
 
+  test('a city mapped as one neighborhood drops the rank panel in that unit, keeping the leaderboard (#5419)',
+    async ({page}) => {
+      await page.goto('/accessScore');
+      await waitForAppReady(page);
+      await waitForTool(page);
+
+      const panel = page.locator('.acs-dock__panel--rank');
+      const body = page.locator('#acs-dock-body');
+      await expect(panel).toBeVisible();
+      await expect(body).not.toHaveClass(/acs-dock__body--no-rank/);
+
+      await page.locator('input[name="acs-unit"][value="regions"]').check();
+      await expect(panel).toBeHidden();
+      await expect(body).toHaveClass(/acs-dock__body--no-rank/);
+      // The rest of the band is untouched by the missing column.
+      await expect(page.locator('#acs-histogram .acs-histogram__bin').first()).toBeVisible();
+      await expect(page.locator('#acs-whats-here')).toBeVisible();
+      await expect(page.locator('#acs-photos')).toBeVisible();
+
+      await page.locator('input[name="acs-unit"][value="streets"]').check();
+      await expect(panel).toBeVisible();
+      await expect(body).not.toHaveClass(/acs-dock__body--no-rank/);
+      await expect(page.locator('#acs-dock-rank-title')).toHaveText('Streets ranked');
+    });
+
   test('in the streets unit the rank list is the street leaderboard, and a click selects that street (#5223)',
     async ({page}) => {
       await page.goto('/accessScore');
