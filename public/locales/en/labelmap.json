@@ -91,7 +91,7 @@
   "edit-failed": "Your change couldn't be saved. Please try again.",
   "edit-failed-short": "Not saved",
   "no-imagery-disabled": "You cannot validate or comment when no imagery is available for this label",
-  "no-imagery-edit-disabled": "You cannot rate this label or edit its tags when no imagery is available for it",
+  "no-imagery-edit-disabled": "You cannot rate, edit, or delete this label when no imagery is available for it",
   "admin-only": "Admin only",
   "not-admin-validated": "Not validated by an admin",
   "download": {
@@ -182,5 +182,15 @@
   "edit-type-changed": "Changed to {{labelType}}",
   "edit-undo": "Undo",
   "edit-conflict-short": "Label type changed elsewhere",
-  "edit-conflict": "This label's type was changed elsewhere, so the card now shows its current state."
+  "edit-conflict": "This label's type was changed elsewhere, so the card now shows its current state.",
+  "delete-label": "Delete label",
+  "delete-label-confirm": "Are you sure you want to delete this label?",
+  "delete-label-confirm-admin": "Are you sure you want to delete this label? A Disagree vote from you is recorded on it.",
+  "delete-label-failed": "The label couldn't be deleted. Please try again.",
+  "restore-label": "Restore label",
+  "restore-label-brief": "Restore",
+  "restore-label-failed": "The label couldn't be restored. Please try again.",
+  "you-deleted-label": "You deleted this label",
+  "label-was-deleted": "This label was deleted",
+  "deleted-label-disabled": "This label was deleted, so it can't be validated or edited until it's restored"
 }

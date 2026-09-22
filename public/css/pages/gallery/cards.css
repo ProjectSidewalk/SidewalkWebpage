@@ -13,6 +13,11 @@
   container-type: inline-size;
 }
 
+/* A label deleted from the expanded view (#3591) stays in the grid, faded, until the next load. */
+.gallery-card--deleted {
+  opacity: 0.4;
+}
+
 .gallery-card:hover {
   box-shadow: 0 4px 8px 0 rgb(0 0 0 / 10%), 0 6px 20px 0 rgb(0 0 0 / 5%);
 

@@ -186,7 +186,7 @@ class StreetReauditSummarySpec extends PlaySpec with GuiceOneAppPerSuite with Ro
         streetId    <- insertStreet()
         auditTaskId <- audit(streetId, userId, outdated = true)
         _           <- labelStreet(streetId, userId, auditTaskId, "CurbRamp", 3)
-        _           <- sqlu"""UPDATE label SET deleted = TRUE
+        _           <- sqlu"""UPDATE label SET deleted = TRUE, deleted_by = user_id, deleted_source = 'Explore'
                               WHERE street_edge_id = $streetId AND temporary_label_id = 1"""
         result <- streetService.getReauditSummaryDBIO(streetId)
       } yield result)
@@ -200,8 +200,9 @@ class StreetReauditSummarySpec extends PlaySpec with GuiceOneAppPerSuite with Ro
         streetId    <- insertStreet()
         auditTaskId <- audit(streetId, userId, outdated = true)
         _           <- labelStreet(streetId, userId, auditTaskId, "CurbRamp", 1)
-        _           <- sqlu"UPDATE label SET deleted = TRUE WHERE street_edge_id = $streetId"
-        result      <- streetService.getReauditSummaryDBIO(streetId)
+        _           <- sqlu"""UPDATE label SET deleted = TRUE, deleted_by = user_id, deleted_source = 'Explore'
+                              WHERE street_edge_id = $streetId"""
+        result <- streetService.getReauditSummaryDBIO(streetId)
       } yield result)
 
       summary mustBe defined
