@@ -108,7 +108,8 @@ describe('GsvViewer.isWithinSearchRadius', () => {
         expect(GsvViewer.isWithinSearchRadius(SEATTLE_QUERY, SYRACUSE_PANO, 25)).toBe(false);
     });
 
-    test('rejects the 77 m pano a 25 m query returned in Teaneck', () => {
+    // The milder form of #5114 (seen in Teaneck: 77 m off a 25 m query), placed here off the Seattle point.
+    test('rejects a pano 77 m off its 25 m query', () => {
         expect(GsvViewer.isWithinSearchRadius(SEATTLE_QUERY, metersFromQuery(77), 25)).toBe(false);
     });
 

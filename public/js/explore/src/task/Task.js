@@ -9,8 +9,9 @@ class Task {
   static END_PROXIMITY_MAX_FRACTION = 0.4;
   // How far from the street's line a position may sit and still count as on the street: past it a pano can neither
   // advance the furthest point reached nor finish the street. Matches the pano search radius
-  // (svl.STREETVIEW_MAX_DISTANCE), so anything a street sweep lands on is within it by construction: GsvViewer holds
-  // Google's replies to that radius, which Google itself doesn't (#5114).
+  // (svl.STREETVIEW_MAX_DISTANCE), so on GSV anything a street sweep lands on is within it by construction: GsvViewer
+  // holds Google's replies to that radius, which Google itself doesn't (#5114). Mapillary and Panoramax search a square
+  // box of that half-width instead, whose corners reach about 35 m, so for them it bounds a landing only roughly.
   static ON_STREET_MAX_DISTANCE_M = 25;
 
   #geojson;

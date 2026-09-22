@@ -298,11 +298,13 @@ class GsvViewer extends PanoViewer {
    * position, so it costs no extra request.
    *
    * A point test, not the imagery scan's street-aware one (scripts/check_streets_for_imagery.py), because a location
-   * search here has no street attached. Explore gets the street-aware behaviour anyway from how it samples: every
-   * search that walks a street (moveForward, the start-of-street backups, the forward crumbs) steps along it every
-   * NavigationService.DIST_INCREMENT (10 m), so an on-street pano too far along from one sample point is within the
-   * radius of the next one. No slack is added at the edge for the same reason: a pano rejected at 25.1 m costs one
-   * more 10 m step, not a street.
+   * search here has no street attached. Explore gets the street-aware behaviour anyway from how it samples: the walk
+   * (moveForward) and the start-of-street backups step along the street every NavigationService.DIST_INCREMENT
+   * (10 m), and a seed off the street falls back to its projection onto it first (PanoManager.backupPointsAlongStreet),
+   * so an on-street pano too far along from one sample point is within the radius of the next one. The forward crumbs
+   * step coarser on long streets, but never wider than ForwardCrumbs.maxSampleStepKm, which is chosen so the same
+   * holds for every pano they would draw. No slack is added at the edge for the same reason: a pano rejected at
+   * 25.1 m costs one more step, not a street.
    *
    * @param {{lat: number, lng: number}} searched - The point the search was made around.
    * @param {{lat: number, lng: number}} found - The returned pano's position.

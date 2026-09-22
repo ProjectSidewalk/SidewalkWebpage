@@ -58,10 +58,11 @@ class ImageryFreshnessPollSpec extends AnyFunSuite with Matchers {
     metersToStreet(0.00027, 0.001, street) should be > 15.0
   }
 
-  test("a GSV answer far outside the search radius never reaches a street (#5114)") {
+  test("a GSV answer far outside the search radius is farther from the street than the tolerance (#5114)") {
     // Google's metadata `radius` is a hint: a 25 m query at a Seattle street endpoint came back with a user photosphere
-    // in Syracuse, NY. The poll sends that same query, so this pins that its street filter, not the radius, is what
-    // keeps such an answer's capture date off the street, and that it does so however far away the answer is.
+    // in Syracuse, NY. The poll sends that same query and relies on pollOneStreet's metersToStreet-vs-tolerance filter,
+    // not the radius, to keep such an answer off the street. This pins the measurement half of that: the distance comes
+    // out beyond the tolerance however far away the answer is, with no projection artefact letting it back in.
     val geometryFactory = new GeometryFactory()
     val street          = geometryFactory.createLineString(
       Array(new Coordinate(-122.3100703, 47.6196811), new Coordinate(-122.3100703, 47.6208411))
