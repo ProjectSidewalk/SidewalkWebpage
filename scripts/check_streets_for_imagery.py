@@ -63,13 +63,15 @@ and the tool agree on what counts as imagery at a location. A circle is not quit
 to be generous *along* the street to clear the provider's capture interval, but everything it also reaches *across*
 the street can accept a pano belonging to an adjacent carriageway or alley. Each street therefore records
 ``max_cross_track_m``, the largest distance from the street centerline among the panos it saw, so the threshold for
-rejecting off-street imagery can be read off a real distribution rather than guessed (#5091).
+rejecting off-street imagery can be read off a real distribution rather than guessed (#5091). GSV's ``radius`` is only
+a hint -- it has answered a 25 m query with a photosphere in another state (#5114) -- so ``within_search_radius`` also
+drops any GSV pano reported beyond the radius, rather than trusting Google to have applied it.
 
 Infra3d has no metadata endpoint of its own; the check uses the same nearest-frame query (``framegate``'s
 ``knn/query``) that the vendored Infra3d viewer SDK issues on every ``setLocation``, authenticated with the same
 per-city OAuth token the app fetches in ``PanoDataService.getInfra3dToken``. The query returns the single nearest
-frame with no distance cap, so "imagery here" is decided client-side: the nearest 360° frame within the same 25 m /
-15 m radius GSV bakes into its URL. Flat mono/stereo frames are filtered out server-side, matching the viewer's
+frame with no distance cap, so "imagery here" is decided client-side: the nearest 360° frame within the same 25 m
+radius GSV bakes into its URL. Flat mono/stereo frames are filtered out server-side, matching the viewer's
 ``setFilter(['in', 'cameraType', 'calotte', 'cubemap'])`` — an Infra3d street with only flat photos is unusable for
 labeling and should count as having no imagery. The viewer also scopes every frame query to its project's campaigns
 (the ``project_uid`` hardcoded in ``Infra3dViewer.js``); our M2M credentials can't read a project, so the scan scopes
@@ -87,9 +89,9 @@ derived from the checkpoint, so its schema is unchanged.
 
 The pure functions (``create_bounding_box``, ``redistribute_vertices``, ``gsv_has_imagery``, ``mapillary_has_imagery``,
 ``infra3d_pano_info``, ``infra3d_campaigns``, ``standardize_capture_date``, ``gsv_capture_date``, ``score_pano``,
-``best_pano``, ``mapillary_pano_info``, ``cross_track_m``, ``imagery_verdict``, ``street_has_no_imagery``,
-``summarize_dates``) are import-safe and unit-tested in ``test/python/test_check_streets_for_imagery.py``; network and
-file I/O live in thin wrappers and ``main``.
+``best_pano``, ``mapillary_pano_info``, ``cross_track_m``, ``within_search_radius``, ``imagery_verdict``,
+``street_has_no_imagery``, ``summarize_dates``) are import-safe and unit-tested in
+``test/python/test_check_streets_for_imagery.py``; network and file I/O live in thin wrappers and ``main``.
 
 The paths above are resolved relative to the repo root (this script's parent directory), so the tool works the same no
 matter which directory you launch it from.
@@ -956,16 +958,53 @@ def _pano_info(api: str, response_json: dict, lat: float, lng: float) -> PanoInf
     return mapillary_pano_info(response_json, lat, lng)
 
 
+def within_search_radius(info: PanoInfo, lat: float, lng: float, radius_km: float) -> PanoInfo:
+    """
+    Treats a pano returned from beyond the search radius as no imagery at the queried point.
+
+    Google's metadata ``radius`` is a search hint, not a bound: a 25 m query has returned a pano 77 m away in Teaneck
+    and a user photosphere 3,596 km away, in another state, for a Seattle street (#5114). Counting either as imagery
+    marks a street covered on pictures of somewhere else, and choosing a smaller radius does not help -- the Seattle
+    15 m scan accepted the same far panos (#5091). So the position the response reports is checked against the radius
+    the query asked for. A pano with no reported position is kept, since there is nothing to check it against.
+
+    Args:
+        info:      The ``PanoInfo`` built from the provider's response.
+        lat:       Latitude of the queried point.
+        lng:       Longitude of the queried point.
+        radius_km: The search radius the query asked for, in km.
+
+    Returns:
+        ``info`` unchanged when its pano lies within ``radius_km`` of the point (or has no position), else a
+        no-imagery ``PanoInfo`` carrying neither the far pano's date nor its position.
+
+    Example:
+        >>> within_search_radius(PanoInfo(True, '2014-05-01', 43.05, -76.15), 47.61, -122.33, 0.025)
+        PanoInfo(has_imagery=False, capture_date=None, pano_lat=None, pano_lng=None)
+    """
+    if not info.has_imagery or info.pano_lat is None or info.pano_lng is None:
+        return info
+    distance_km = geodesic((lat, lng), (info.pano_lat, info.pano_lng)).km
+    if distance_km > radius_km:
+        logger.debug("Rejected pano %.1f m from (%s, %s), beyond the %.0f m search radius",
+                     distance_km * 1000, lat, lng, radius_km * 1000)
+        return PanoInfo(False, None)
+    return info
+
+
 def _point_pano_info(api: str, lat: float, lng: float, fetch: Callable[..., dict], gsv_url: str,
                      mapillary_url: str, radius_km: float, infra3d: Infra3dScan | None = None) -> PanoInfo:
     """
     Queries the configured provider at one point (via ``fetch``) and returns its ``PanoInfo``.
 
-    ``radius_km`` is the Mapillary/Panoramax bbox half-extent / Infra3d max frame distance; GSV bakes its radius into
-    ``gsv_url``. ``infra3d`` is the ``Infra3dScan`` (token holder + campaign scope), needed only for that provider.
+    ``radius_km`` is the Mapillary/Panoramax bbox half-extent / Infra3d max frame distance. GSV bakes its radius into
+    ``gsv_url`` but treats it as a hint, so its answer is also held to ``radius_km`` here; the bbox providers filter
+    server-side and Infra3d checks its own radius. ``infra3d`` is the ``Infra3dScan`` (token holder + campaign scope),
+    needed only for that provider.
     """
     if api == 'GSV':
-        return _pano_info(api, fetch(gsv_url + '&location=' + str(lat) + ',' + str(lng)), lat, lng)
+        info = _pano_info(api, fetch(gsv_url + '&location=' + str(lat) + ',' + str(lng)), lat, lng)
+        return within_search_radius(info, lat, lng, radius_km)
     if api == 'Panoramax':
         return _pano_info(api, fetch(_panoramax_bbox_url(lat, lng, radius_km), headers=PANORAMAX_HEADERS), lat, lng)
     if api == 'Infra3d':

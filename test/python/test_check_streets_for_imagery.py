@@ -38,6 +38,13 @@ def _lat_north_of_origin(meters):
     return geodesic(meters=meters).destination(GeoPoint(_LAT, _LNG), bearing=0).latitude
 
 
+def _gsv_pano_north_of_query(url, meters=0):
+    """A GSV OK response whose pano sits `meters` due north of the point the metadata `url` queried."""
+    lat, lng = (float(v) for v in url.split('&location=')[1].split('&')[0].split(','))
+    pano = geodesic(meters=meters).destination(GeoPoint(lat, lng), bearing=0)
+    return {'status': 'OK', 'date': '2021-07-15', 'location': {'lat': pano.latitude, 'lng': pano.longitude}}
+
+
 def _image(captured_at=_JUL_2021_MS, lat=_LAT, lng=_LNG, width=8192, image_id=1, **extra):
     """A Mapillary `data` entry carrying every field score_pano ranks on. Override one field to isolate a term."""
     return {'id': image_id, 'captured_at': captured_at, 'width': width,
@@ -356,6 +363,33 @@ def test_pano_info():
     assert cs._pano_info('GSV', {'status': 'ZERO_RESULTS'}, _LAT, _LNG) == cs.PanoInfo(False, None)
     assert cs._pano_info('Mapillary', {'data': [_image()]}, _LAT, _LNG) == cs.PanoInfo(True, '2021-07-15', _LAT, _LNG)
     assert cs._pano_info('Mapillary', {'data': [{'id': 1}]}, _LAT, _LNG) == cs.PanoInfo(True, None)
+
+
+def test_within_search_radius_keeps_a_pano_inside_the_radius():
+    info = cs.PanoInfo(True, '2021-07-15', _lat_north_of_origin(24), _LNG)
+    assert cs.within_search_radius(info, _LAT, _LNG, 0.025) == info
+
+
+def test_within_search_radius_drops_a_pano_google_returned_from_beyond_it():
+    # #5114: a 25 m query answered with a photosphere in Syracuse, NY. Its date and position must not reach the street.
+    info = cs.PanoInfo(True, '2014-05-01', 43.05, -76.15)
+    assert cs.within_search_radius(info, _LAT, _LNG, 0.025) == cs.PanoInfo(False, None)
+    just_past = cs.PanoInfo(True, '2021-07-15', _lat_north_of_origin(26), _LNG)
+    assert cs.within_search_radius(just_past, _LAT, _LNG, 0.025).has_imagery is False
+
+
+@pytest.mark.parametrize('info', [cs.PanoInfo(False, None), cs.PanoInfo(True, '2019-01-01'),
+                                  cs.PanoInfo(True, None, 43.05, None)])
+def test_within_search_radius_passes_through_what_it_cannot_check(info):
+    assert cs.within_search_radius(info, _LAT, _LNG, 0.025) == info
+
+
+def test_process_street_ignores_gsv_panos_from_beyond_the_radius():
+    # Every point is "covered" by the same far-away photosphere, which is to say none of them are.
+    far = {'status': 'OK', 'date': '2014-05-01', 'location': {'lat': 43.05, 'lng': -76.15}}
+    result = _run_process(_LINE_60, 'GSV', lambda url: far)
+    assert result.outcome == cs.NO_IMAGERY
+    assert (result.newest_capture, result.max_cross_track_m) == (None, None)
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -887,8 +921,7 @@ def test_process_street_records_the_largest_street_offset():
 
     def fetch(url):
         calls['n'] += 1
-        lat = _lat_north_of_origin(12) if calls['n'] == 3 else 47.60
-        return {'status': 'OK', 'date': '2021-07-15', 'location': {'lat': lat, 'lng': -122.2995}}
+        return _gsv_pano_north_of_query(url, 12 if calls['n'] == 3 else 0)
 
     result = _run_process(_LINE_60, 'GSV', fetch)
     assert result.outcome == cs.HAS_IMAGERY
@@ -1307,8 +1340,7 @@ def test_main_search_radius_flag_reaches_every_request(monkeypatch, tmp_path):
 
 def test_main_records_street_offsets_in_the_summary(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path, [(200, 1, _LINE_61)])
-    monkeypatch.setattr(cs, '_get_json', lambda url: {
-        'status': 'OK', 'date': '2021-07-15', 'location': {'lat': 47.61 + 0.00009, 'lng': -122.3095}})
+    monkeypatch.setattr(cs, '_get_json', lambda url: _gsv_pano_north_of_query(url, 10))
     assert cs.main(['--city-id', _CITY, '--gsv', '--max-qps', '1000']) == 0
     assert _summary(tmp_path).loc[200, 'max_cross_track_m'] == pytest.approx(10, abs=1)
 

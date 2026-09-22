@@ -117,8 +117,8 @@ accumulating into it.
 
 The responses we already fetch also carry an imagery capture date, so — for **no extra API calls** — the scan records
 each street's capture-date range (oldest/newest) and pano count into `street_imagery_summary.csv`
-(`street_edge_id, region_id, has_imagery, oldest_capture, newest_capture, n_panos, max_cross_track_m`). That tells us not just whether a
-street has imagery but how old it is. GSV and Infra3d each answer with a single pano, so its date is the one recorded.
+(`street_edge_id, region_id, has_imagery, oldest_capture, newest_capture, n_panos, max_cross_track_m`). That tells us
+not just whether a street has imagery but how old it is. GSV and Infra3d each answer with a single pano, so its date is the one recorded.
 Mapillary instead returns every image in the queried box, and the date recorded belongs to the image Explore would
 actually display: `score_pano` ports the viewer's ranking (distance, resolution, recency), reading its weights from
 `conf/pano-scoring.json` so the two can't drift. Recording the *newest* image instead would let a street look
@@ -139,6 +139,11 @@ carriageway, alley or frontage road — imagery of a different street. So each s
 largest distance from its centerline among the panos it saw. Once a scan has produced that distribution, the
 threshold for rejecting off-street imagery can be read off real data rather than guessed. The measurements and the
 plan are in #5091.
+
+GSV's `radius` parameter is a search hint, not a bound. A 25 m query has returned a pano 77 m away, and in Seattle a
+user photosphere in another state (#5114); a 15 m scan accepted the same far panos. So the scan checks the position
+each GSV response reports and treats a pano beyond the search radius as no imagery at that point. Mapillary and
+Panoramax already filter to the box server-side, and Infra3d applies its radius client-side.
 
 `--search-radius-m` turns that knob, which is how the two radii get compared on a real city. Changing it changes
 which streets count as having imagery, so a checkpoint written under a different radius cannot be resumed into the
