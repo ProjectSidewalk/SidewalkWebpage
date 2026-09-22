@@ -3,6 +3,7 @@ package models.street
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
+import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -239,4 +240,29 @@ class StreetGradientTable @Inject() (protected val dbConfigProvider: DatabaseCon
       .map { case (source, rows) => (source, rows.length) }
       .result
       .map(_.sortBy { case (source, count) => (-count, source) })
+
+  private val stAsBinary = SimpleFunction.unary[LineString, Array[Byte]]("ST_AsBinary")
+  private val md5        = SimpleFunction.unary[Array[Byte], String]("md5")
+
+  /**
+   * How many served streets the export script would emit: those with no row, and those whose geometry has changed
+   * since they were sampled (the same `geom_md5` test as `isStale`, over the whole city). Counted nightly so a city
+   * that was never sampled, or that took a street import, shows up on the Health panel rather than silently scoring
+   * without grade.
+   *
+   * @param servedStreets The streets that count, the set the public street APIs serve (`StreetEdgeTable.streets`),
+   *                      so a hidden street no API returns never reads as missing.
+   * @return (unsampled, stale) counts.
+   */
+  def stalenessCounts(servedStreets: Query[StreetEdgeTableDef, StreetEdge, Seq]): DBIO[(Int, Int)] = {
+    val joined    = servedStreets.joinLeft(streetGradients).on(_.streetEdgeId === _.streetEdgeId)
+    val unsampled = joined.filter { case (_, gradient) => gradient.isEmpty }.length.result
+    val stale     = joined
+      .filter { case (street, gradient) =>
+        gradient.map(_.geomMd5) =!= md5(stAsBinary(street.geom)).?
+      }
+      .length
+      .result
+    unsampled.zip(stale)
+  }
 }

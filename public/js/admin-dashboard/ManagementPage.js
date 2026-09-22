@@ -38,7 +38,8 @@ class ManagementPage {
   /**
    * @param {{userStatsUrl: string, setRoleUrl: string, setTeamUrl: string, teamStatusUrl: string,
    *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string,
-   *          recalcValidationCountsUrl: string, generateCropsUrl: string, rebuildSidewalkPresenceUrl: string}} urls
+   *          recalcValidationCountsUrl: string, generateCropsUrl: string, rebuildSidewalkPresenceUrl: string,
+   *          refreshPlacesUrl: string, recountGradientStalenessUrl: string}} urls
    */
   constructor(urls) {
     this.#urls = urls;
@@ -397,6 +398,8 @@ class ManagementPage {
       'rebuild sidewalk presence');
     run('mgmt-refresh-places', this.#urls.refreshPlacesUrl, 'POST', 'refresh places',
       'Started: refresh places. It runs in the background — the Health panel reports how it ended.');
+    run('mgmt-recount-gradient-staleness', this.#urls.recountGradientStalenessUrl, 'POST',
+      'recount street gradient staleness', 'Done: recounted street gradient staleness; the Health panel has the counts.');
     run('mgmt-clear-cache', this.#urls.clearCacheUrl, 'PUT', 'clear server cache');
   }
 

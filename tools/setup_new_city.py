@@ -33,13 +33,18 @@ It chains every remaining setup step, pausing only where a human is required:
   7. Runs the scripts/check_streets_for_imagery.py scan for the city's imagery provider in the web container (which
      holds the API keys and the python3.13 deps) against a freshly exported endpoints CSV, hides the no-imagery
      streets, and imports the imagery-age summary into street_imagery.
-  8. Dumps the finished schema to db/<schema>-dump — the file import-dump.sh and the server both restore — with the
+  8. Samples the street gradient (#5223, docs/street-gradient.md): exports the streets with the build's
+     bridge/tunnel flags (db/onboarding/<city-id>/street_structures.csv, so it needs no nightly osm_way cache),
+     runs scripts/street_gradient.py in the web container, and imports the result into street_gradient. A country
+     with no registered elevation model gets the hand-download route printed and the run goes on.
+  9. Dumps the finished schema to db/<schema>-dump — the file import-dump.sh and the server both restore — with the
      data of every table onboarding does not write left out, so a local QA pass or a job run never rides into the
      launched city; then prints the server handoff checklist.
 
 A rerun skips whatever already happened: registered configs, an existing schema (answer "n", or pass --recreate to
-drop it without being asked), applied evolutions, a filled schema (jumping straight to the imagery scan), and a scan
-already applied. `--skip-scan` defers step 7; `--dump-only` runs step 8 alone, for a city QA'd after its first dump.
+drop it without being asked), applied evolutions, a filled schema (jumping straight to the imagery scan), a scan
+already applied, and a gradient already imported. `--skip-scan` defers step 7 and `--skip-gradient` step 8;
+`--dump-only` runs step 9 alone, for a city QA'd after its first dump.
 
 Every question takes its default with --yes (the review of the build report counts as answered), and only then:
 without a terminal, a question whose default would be a choice — the display name, the regions to open — stops the
@@ -363,8 +368,30 @@ def translation_todo(city_id, state, country, added=()):
     return lines
 
 
-def handoff_checklist(city_id, schema, prod_url, test_url):
-    """The steps outside this repo that stand between a finished local schema and a live city."""
+def handoff_checklist(city_id, schema, prod_url, test_url, gradient):
+    """
+    The steps outside this repo that stand between a finished local schema and a live city.
+
+    Args:
+        gradient: How step 8 ended — ``sampled`` (the grades ride in the dump), ``no_source`` (the country has no
+                  registered elevation model), or ``skipped`` — since each leaves the operator something different.
+    """
+    if gradient == 'sampled':
+        gradient_line = (
+            f'''  7. Street grades ride in the dump (street_gradient), so the AccessScore's grade layer and grade term work
+     from launch. Admin > Health's "Street gradient staleness" row says when a street import calls for a top-up
+     (docs/street-gradient.md).''')
+    elif gradient == 'no_source':
+        gradient_line = (
+            f'''  7. Street grades were NOT sampled: no elevation model is registered for this country. Download a bare-earth
+     model by hand (docs/street-gradient.md, "Sources by country") and rerun `make onboard-city id={city_id}` before
+     the dump, or backfill the live city later (sidewalk-server-tools, the street-gradient backfill runbook). Until
+     then the city's AccessScore carries no grade term and the tool hides its grade controls.''')
+    else:
+        gradient_line = (
+            f'''  7. Street grades were NOT sampled (step 8 was skipped): rerun `make onboard-city id={city_id}` without
+     --skip-gradient before handing the dump over, or backfill the live city later (sidewalk-server-tools, the
+     street-gradient backfill runbook). Until then the AccessScore carries no grade term.''')
     return f'''
 Server handoff for {city_id}:
   1. Copy the dump to the server, renaming it to the convention every file there follows (the local name stays
@@ -385,7 +412,8 @@ Server handoff for {city_id}:
      with their job's first nightly run (the schedule is actor/ScheduledJobs.scala, shifted by the city's
      update_offset_hours), and AccessScore reads zero until then. An admin can force the intersections and
      clusters early from /clustering; the osm_way tags have their own nightly refresh (#5297).
-  7. Round-trip check any time: make import-dump db={schema} restores db/{schema}-dump into the dev DB.
+{gradient_line}
+  8. Round-trip check any time: make import-dump db={schema} restores db/{schema}-dump into the dev DB.
 '''
 
 
@@ -868,9 +896,65 @@ def run_imagery_scan(schema, city_id, pano_type):
               f'onboarding/{city_id}/street_imagery_summary.csv', check=True)
 
 
+# The sampler's own refusal when the city's country has no registered elevation model (street_gradient.py,
+# resolve_source): the one failure the run continues past, since the fix is a download, not a rerun.
+GRADIENT_NO_SOURCE = 'no elevation source is registered'
+
+
+def run_street_gradient(schema, city_id):
+    """
+    Fills street_gradient (#5223): exports the streets with the build's structure flags, samples the elevation model
+    in the web container (which holds the python3.13 deps), and imports the result.
+
+    The build's street_structures.csv stands in for the osm_way cache, which is empty until the city's first nightly
+    refresh; without it every bridge would be sampled as the ravine beneath it, so the step is skipped rather than
+    run blind. The sampler's output is held and printed at the end: it is seconds for most cities, and reading its
+    stderr is how the "no source for this country" refusal is told from a failure.
+
+    Returns:
+        ``sampled`` when the table is filled; ``no_source`` when the city's country has no registered elevation
+        model, after printing the hand-download route; ``no_structures`` when the build wrote no
+        street_structures.csv (a build from before #5223, or a hand-built GeoPackage).
+    """
+    structures = REPO_ROOT / 'db' / 'onboarding' / city_id / 'street_structures.csv'
+    if not structures.exists():
+        print(f'  No {structures.name} beside the build artifacts (a build from before #5223, or a hand-built '
+              'GeoPackage), so bridges cannot be told from the ravines beneath them; skipping. Sample after the '
+              "city's first nightly OSM way refresh instead (docs/street-gradient.md).")
+        return 'no_structures'
+    for name in ('export-street-gradient-input.sh', 'import-street-gradient.sh'):
+        require_mounted(REPO_ROOT / 'db' / 'scripts' / name, f'/opt/scripts/{name}')
+    run_or_exit(['/opt/scripts/export-street-gradient-input.sh', schema, city_id,
+                 '--structures', f'onboarding/{city_id}/street_structures.csv'],
+                f'exporting the streets of {schema} for the gradient sampler failed',
+                'Fix the cause and rerun; the rerun comes straight back to this step.')
+    print('  Sampling the elevation model along every street (seconds for most cities, a minute or two for a '
+          'large one)...')
+    sampler = subprocess.run(docker_argv(WEB_CONTAINER, 'python3.13', 'scripts/street_gradient.py',
+                                         '--city-id', city_id, flags=('-i',)), capture_output=True, text=True)
+    print(sampler.stdout, end='')
+    print(sampler.stderr, end='', file=sys.stderr)
+    if sampler.returncode != 0:
+        if GRADIENT_NO_SOURCE in sampler.stderr:
+            print(f'''  No elevation model is registered for this country, so the grade is not sampled now. Once a
+  bare-earth model is downloaded by hand (docs/street-gradient.md, "Sources by country"), a rerun of
+  `make onboard-city id={city_id}` samples it, or by hand:
+    make street-gradient id={city_id} args="--dem-dir db/onboarding/{city_id}/dem --dem-name <product> \\
+        --dem-resolution-m <meters>"
+    make import-street-gradient args="{schema} onboarding/{city_id}/street_gradient.csv"''')
+            return 'no_source'
+        sys.exit(f'error: scripts/street_gradient.py failed (exit {sampler.returncode}); its output is above. Fix '
+                 'the cause and rerun; the rerun comes straight back to this step.')
+    run_or_exit(['/opt/scripts/import-street-gradient.sh', schema, f'onboarding/{city_id}/street_gradient.csv'],
+                f'importing the sampled grades into {schema} failed',
+                'The import runs in one transaction, so nothing was loaded: fix the cause and rerun.')
+    return 'sampled'
+
+
 # The tables onboarding itself fills, and so the only ones whose rows belong in the dump: the seed rows the clone
 # copies (create-new-schema.sh), the streets and regions the fill derives (fill-new-schema.sh), the scan's
-# imagery-age summary and the status trail of the streets it hides (import-street-imagery.sh, helpers.sh), and
+# imagery-age summary and the status trail of the streets it hides (import-street-imagery.sh, helpers.sh), the
+# sampled street grades (import-street-gradient.sh), and
 # region_completion, which the app computes from the streets on first use — and recomputes whenever the table is
 # empty, which is why the dump leaves its data out (a QA walk moves audited_distance, which the landing page's
 # completion figure is divided by). Every other table's data stays out of the dump too: a local QA pass fills some
@@ -884,7 +968,7 @@ def run_imagery_scan(schema, city_id, pano_type):
 ONBOARDING_TABLES = frozenset((
     'play_evolutions', 'version', 'tag', 'survey_question', 'survey_option', 'street_edge', 'config',
     'region', 'street_edge_region', 'street_edge_priority', 'osm_way_street_edge',
-    'street_imagery', 'street_edge_status_change', 'region_completion',
+    'street_imagery', 'street_edge_status_change', 'street_gradient', 'region_completion',
 ))
 KEPT_IN_DUMP = ONBOARDING_TABLES - {'region_completion'}
 
@@ -1087,8 +1171,10 @@ def main(argv=None):
                                           '"include:1 2 3", or "exclude:4 5".')
     parser.add_argument('--skip-scan', action='store_true',
                         help='Skip the imagery scan (step 7); a later rerun picks it up.')
+    parser.add_argument('--skip-gradient', action='store_true',
+                        help='Skip the street gradient sampling (step 8); a later rerun picks it up.')
     parser.add_argument('--dump-only', action='store_true',
-                        help='Run only step 8 — the dump and the handoff — for a city QA\'d after its first dump.')
+                        help='Run only step 9 — the dump and the handoff — for a city QA\'d after its first dump.')
     parser.add_argument('--allow-running-apps', action='store_true',
                         help="Boot for the evolutions even with a build running in the web container's checkout, "
                              'when you know it is idle. Without it, an interactive run waits for you to stop that '
@@ -1120,9 +1206,11 @@ def main(argv=None):
         if streets <= 1:
             sys.exit(f'error: {schema} is still an unfilled clone ({streets} street(s)), so there is nothing to '
                      'dump yet; run without --dump-only to fill it.')
-        print(f'Step 8/8 — dump the finished schema {schema} for the server...')
+        print(f'Step 9/9 — dump the finished schema {schema} for the server...')
         dump_schema(schema)
-        print(handoff_checklist(city_id, schema, *cityparams_landing_urls(city_id)))
+        gradient = 'sampled' if db_query(f'SELECT count(*) FROM {schema}.street_gradient') not in (None, '0') \
+            else 'skipped'
+        print(handoff_checklist(city_id, schema, *cityparams_landing_urls(city_id), gradient))
         return
 
     city_dir = REPO_ROOT / 'db' / 'onboarding' / city_id
@@ -1131,7 +1219,7 @@ def main(argv=None):
         sys.exit(f'error: {sql_file} not found — run `make build-city-data id={city_id} ...` first.')
     regions = parse_report(city_id)
 
-    print(f'Step 0/8 — what the build produced for {city_id}:')
+    print(f'Step 0/9 — what the build produced for {city_id}:')
     for line in report_headlines((city_dir / 'report.md').read_text()):
         print(f'  {line}')
     preflight_path = city_dir / 'preflight_report.md'
@@ -1163,7 +1251,7 @@ def main(argv=None):
         new_country = country
         country_name = prompt('Country display name (new to the platform)', country.replace('-', ' ').title())
 
-    print('\nStep 1/8 — register the city in conf/...')
+    print('\nStep 1/9 — register the city in conf/...')
     registered = add_cityparams_entries(city_id, [
         (['db-schema'], f'"{schema}"'),
         (['city-short-name'], 'null'),
@@ -1211,7 +1299,7 @@ def main(argv=None):
         print('\n[dry-run] stopping before the docker/db steps.')
         return
 
-    print('\nStep 2/8 — create the Google Analytics properties and add the Maps key referrers...')
+    print('\nStep 2/9 — create the Google Analytics properties and add the Maps key referrers...')
     import create_ga_properties
     if not create_ga_properties.KEY_FILE.is_file():
         print(f'  No {create_ga_properties.KEY_FILE.name} in the repo root; skipping — see '
@@ -1227,7 +1315,7 @@ def main(argv=None):
             sys.exit(f'error: the {container} container is not running (make docker-up / make dev).')
     require_mounted(sql_file, f'/opt/onboarding/{city_id}/qgis_tables.sql')
 
-    print(f'\nStep 3/8 — create the empty schema {schema} by cloning a donor city...')
+    print(f'\nStep 3/9 — create the empty schema {schema} by cloning a donor city...')
     cloned = False
     if schema_exists(schema) and not args.recreate and \
             prompt(f'Schema {schema} already exists. Drop and recreate it? (y/n)', 'n', cautious=True) != 'y':
@@ -1262,21 +1350,21 @@ def main(argv=None):
         print('  The kept schema is still an unfilled clone, so its evolutions have never been verified against this '
               'checkout; verifying now.')
 
-    print('\nStep 4/8 — apply evolutions via a one-shot app boot...')
+    print('\nStep 4/9 — apply evolutions via a one-shot app boot...')
     apply_evolutions(schema, city_id, verify=cloned or unfilled, allow_running_apps=args.allow_running_apps)
 
     # A filled schema means steps 5-6 already ran (a fresh clone holds just the tutorial street); rerunning the fill
     # would collide on street_edge ids.
     if not unfilled:
-        print(f'\nSteps 5-6/8 — skipped: {schema} already holds {streets} streets.')
+        print(f'\nSteps 5-6/9 — skipped: {schema} already holds {streets} streets.')
     else:
-        print(f'\nStep 5/8 — load the staging tables from {sql_file.name}...')
+        print(f'\nStep 5/9 — load the staging tables from {sql_file.name}...')
         run_or_exit(['psql', '-v', 'ON_ERROR_STOP=1', '-U', schema, '-d', 'sidewalk',
                      '-f', f'/opt/onboarding/{city_id}/qgis_tables.sql'],
                     f'loading {sql_file.name} into {schema} failed',
                     'Fix the file (the db container reads it from this checkout\'s db/) and rerun.')
 
-        print('\nStep 6/8 — fill the schema from the staging tables. Regions:')
+        print('\nStep 6/9 — fill the schema from the staging tables. Regions:')
         for region_id, name in regions:
             print(f'  {region_id}: {name}')
         tutorial_region = args.tutorial_region or prompt('Tutorial region id (a central region with imagery)', '1')
@@ -1297,7 +1385,7 @@ def main(argv=None):
                     'The fill runs in one transaction, so nothing was committed and the schema is still the '
                     'unfilled clone: fix the cause and rerun, and the rerun comes straight back to this step.')
 
-    print('\nStep 7/8 — imagery scan (finds streets with no street-view imagery and hides them)...')
+    print('\nStep 7/9 — imagery scan (finds streets with no street-view imagery and hides them)...')
     if args.skip_scan:
         print('  Skipped (--skip-scan); a rerun without the flag picks it up.')
     elif db_query(f"SELECT count(*) FROM {schema}.street_imagery WHERE data_source = 'imagery_scan'") not in (None,
@@ -1306,14 +1394,26 @@ def main(argv=None):
     else:
         run_imagery_scan(schema, city_id, pano_type)
 
-    print('\nStep 8/8 — dump the finished schema for the server...')
+    print('\nStep 8/9 — street gradient (samples an elevation model along every street)...')
+    if args.skip_gradient:
+        print('  Skipped (--skip-gradient); a rerun without the flag picks it up.')
+        gradient = 'skipped'
+    elif db_query(f'SELECT count(*) FROM {schema}.street_gradient') not in (None, '0'):
+        print('  The grades were already imported into street_gradient; skipping.')
+        gradient = 'sampled'
+    else:
+        gradient = run_street_gradient(schema, city_id)
+        if gradient == 'no_structures':
+            gradient = 'skipped'
+
+    print('\nStep 9/9 — dump the finished schema for the server...')
     dump_schema(schema)
 
     print(f'''
 Done — {display_name}'s schema is populated. To develop against it, set SIDEWALK_CITY_ID={city_id} and
 DATABASE_USER={schema} in docker-compose.override.yml and recreate the container (make docker-stop, then make dev) —
 a running container's environment can't be changed in place.
-{handoff_checklist(city_id, schema, prod_url, test_url)}
+{handoff_checklist(city_id, schema, prod_url, test_url, gradient)}
 Still on a human: the translations listed under step 1; the donor's values the clone carried in the city's config row
 — `excluded_tags`, `update_offset_hours`, `make_crops` (the fill printed them; `mapathon_event_link` was cleared);
 and the GA ids if step 2 was skipped. The `/onboard-city` skill walks through all of it.''')

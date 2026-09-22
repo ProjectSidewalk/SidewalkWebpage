@@ -67,6 +67,7 @@ It never touches the database. It writes, under `db/onboarding/<city-id>/`:
 | `<city-id>_qa.gpkg` | The QA GeoPackage for QGIS: `qgis_road`, `qgis_region`, `city_boundary`, plus `dropped_segments` and `rider_merges` so you can see what the rules did. |
 | `qgis_tables.sql` | The staging tables `fill-new-schema.sh` consumes (`qgis_road`: `road_id`, `osm_ids bigint[]`, `highway`, `region_id`, `geom`; `qgis_region`: `region_id`, `name`, `data_source`, `geom`). |
 | `street_edge_endpoints.csv` | The imagery scan's input, so step 2 can run before any database exists. |
+| `street_structures.csv` | Which streets lie on a bridge, in a tunnel, or under cover, from the OSM tags the build already fetched. The street-gradient export (step 8 of the setup) reads it in place of the `osm_way` cache, which is empty until the city's first nightly refresh (#5223). It also rides in the GeoPackage's `qgis_road` layer, so a `--from-gpkg` re-export rewrites it; a hand-built layer without the column gets no file, and the grade is sampled after launch instead. |
 
 **The QA loop.** Open the GeoPackage in QGIS over a basemap and look at the boundary, the dropped segments, and any
 flagged region. Two ways back:
@@ -179,8 +180,14 @@ its default either way.
 7. **Imagery scan** — exports the endpoints from the database, runs `check_streets_for_imagery.py` for the city's
    provider (resumable; an hour or so for a mid-sized city), hides the no-imagery streets, and imports the imagery-age
    summary into `street_imagery`. `--skip-scan` defers it; a rerun picks it up.
-8. **Dump** — `pg_dump -Fc` of the finished schema to `db/<schema>-dump`, the file `make import-dump` and the
-   server both restore, with the data of every table the clone, the fill and the scan do not write left out
+8. **Street gradient** — exports the streets with the build's `street_structures.csv` standing in for the `osm_way`
+   cache, samples the elevation model registered for the city's country (`scripts/street_gradient.py`, seconds for
+   most cities), and imports the result into `street_gradient`, so the grades ride into prod inside the dump
+   ([`street-gradient.md`](street-gradient.md)). A country with no registered model (every one but the USA today)
+   gets the hand-download recipe printed and the run goes on; sample later, or backfill the live city. A build
+   without `street_structures.csv` skips the step too. `--skip-gradient` defers it; a rerun picks it up.
+9. **Dump** — `pg_dump -Fc` of the finished schema to `db/<schema>-dump`, the file `make import-dump` and the
+   server both restore, with the data of every table the clone, the fill, the scan and the gradient do not write left out
    (`--exclude-table-data`, from the schema's own catalog, with those tables' sequences), `region_completion`
    included since the app recomputes it from an empty table. A local QA pass (one walk in Explore leaves an
    `audit_task`, thousands of `audit_task_interaction` rows, a moved `audited_distance`) and a job run as the city
@@ -216,8 +223,10 @@ its default either way.
   nightly run (`app/actor/ScheduledJobs.scala`, shifted by the city's `update_offset_hours`). AccessScore reads
   zero until then. An admin can force the intersections and clusters early from `/clustering` — on the launched
   site; a local run's rows stay local, since the dump leaves those tables' data out. The `osm_way` tags come from
-  their own nightly refresh, and until they land every intersection is `grade_separated = FALSE`, which is why
-  deriving them during onboarding would not help (#5297).
+  their own nightly refresh, and until they land every intersection is `grade_separated = FALSE`; deriving the
+  cache during onboarding would not help there, since the intersections are rebuilt nightly anyway (#5297). The
+  one consumer that cannot wait a night, the street-gradient export, takes its bridge/tunnel flags from the build's
+  `street_structures.csv` instead, which is why `street_gradient` is filled at onboarding and does ride in the dump.
 - **The pano scraper.** Add `<city-id>,<prod fqdn>` to `/etc/sidewalk/cities.csv` on the scraper host
   ([`sidewalk-panorama-tools`](https://github.com/ProjectSidewalk/sidewalk-panorama-tools)). The nightly queue picks
   it up that evening; `scrape_queue.py --only <city-id>` pulls the panos now.
@@ -259,6 +268,9 @@ make fill-new-schema                      # schema, tutorial region, regions to 
 make check-imagery id=<city-id> args="--<provider>"
 make hide-streets-without-imagery         # schema, onboarding/<city-id>/streets_with_no_imagery.csv
 make import-street-imagery                # schema, onboarding/<city-id>/street_imagery_summary.csv
+make export-street-gradient-input args="sidewalk_<city> <city-id> --structures onboarding/<city-id>/street_structures.csv"
+make street-gradient id=<city-id>         # or args="--dem-dir ..." for a country with no registered model
+make import-street-gradient args="sidewalk_<city> onboarding/<city-id>/street_gradient.csv"
 ```
 
 A hand-built `qgis_road` needs the canonical columns (`osm_ids = ARRAY[osm_id]`); `--from-gpkg` accepts a layer with

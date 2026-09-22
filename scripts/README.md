@@ -209,7 +209,9 @@ first source that works: `--regions-file` (any OGR format/CRS; `--region-name-co
 
 Outputs land in `db/onboarding/<city-id>/` (git-ignored; visible to the db container at `/opt/onboarding/` when run
 from the main checkout): the QA GeoPackage, `qgis_tables.sql`, `street_edge_endpoints.csv` (the scan's input, so the
-preflight below runs before any database exists), and `report.md` with the tiny-segment histogram (production
+preflight below runs before any database exists), `street_structures.csv` (which streets are on a bridge, in a
+tunnel or covered, from the OSM tags, so the street-gradient export can run before the nightly `osm_way` cache
+exists; it rides in the GeoPackage too, so a `--from-gpkg` re-export rewrites it), and `report.md` with the tiny-segment histogram (production
 averages 18% of streets under 20 m; Bayonne rebuilt at 4%), per-region km with `SPARSE`/`OVERSIZED`/`EMPTY` flags,
 and boundary coverage. The QA loop: rerun with tweaked flags — `--merge-regions
 "Census Tract 513:Census Tract 523.01"` folds regions by *name* and re-splits the streets against the merged
@@ -231,6 +233,10 @@ make street-gradient id=cdmx args="--dem-dir db/onboarding/cdmx/dem --dem-name i
 make import-street-gradient
 ```
 
+`make onboard-city` runs the three for a new city (step 8), passing the export
+`--structures onboarding/<city-id>/street_structures.csv` so it needs no `osm_way` cache; a live city is topped up
+by hand with the same three commands, and the nightly `StreetGradientStalenessActor` says when (Admin > Health).
+
 - **Sources.** A registered source is chosen from the city's `country-id` in `conf/cityparams.conf` (only the USA so
   far). Anything else goes through `--dem-dir`: a directory of hand-downloaded GeoTIFFs in any mix of coordinate
   systems, elevations in meters.
@@ -239,7 +245,9 @@ make import-street-gradient
   untagged street whose profile holds an implausible pitch is drawn as a straight line between its endpoints
   (`quality = suspect`).
 - **An empty `osm_way` stops the export**, since every bridge would then be sampled as the ground beneath it. Pass
-  `args=--allow-empty-osm-way` for a city that really has none, and `args=--all` to resample every street.
+  `args="--structures onboarding/<city-id>/street_structures.csv"` to take the flags from the street build (what
+  onboarding does), `args=--allow-empty-osm-way` for a city that really has none, and `args=--all` to resample
+  every street. The tutorial street is never exported.
 - **Resume.** Rows are flushed a grid cell at a time; `--resume` keeps the ones that answer the current export (same
   street, same `geom_md5`) and samples the rest.
 - **No network in tests.** `test/python/test_street_gradient.py` writes small GeoTIFFs whose elevation is a known

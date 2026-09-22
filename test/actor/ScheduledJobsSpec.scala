@@ -99,7 +99,8 @@ class ScheduledJobsSpec extends PlaySpec {
         service.AccessScoreSpotlightService.JobName,           // /runClustering, its last step
         ClusteringActor.Name,                                  // /runClustering
         CropGenerationActor.Name,                              // /adminapi/generateCrops
-        SidewalkPresenceActor.Name                             // /adminapi/rebuildSidewalkPresence
+        SidewalkPresenceActor.Name,                            // /adminapi/rebuildSidewalkPresence
+        StreetGradientStalenessActor.Name                      // /adminapi/recountStreetGradientStaleness
       )
       ScheduledJobs.All.map(_.name) must contain allElementsOf handTriggered
     }
@@ -110,7 +111,8 @@ class ScheduledJobsSpec extends PlaySpec {
         RecalculateStreetPriorityActor.Name, RecalculateStreetPriorityActor.FreshnessSyncJobName,
         OsmWayRefreshActor.Name, PlacesRefreshActor.Name, AuthTokenCleanerActor.Name, FunnelStatActor.Name,
         service.ClusterServiceImpl.IntersectionRebuildJobName, ClusteringActor.Name,
-        service.AccessScoreSpotlightService.JobName, CropGenerationActor.Name, SidewalkPresenceActor.Name
+        service.AccessScoreSpotlightService.JobName, CropGenerationActor.Name, SidewalkPresenceActor.Name,
+        StreetGradientStalenessActor.Name
       )
       ScheduledJobs.All.map(_.name) must contain theSameElementsAs scheduled
     }

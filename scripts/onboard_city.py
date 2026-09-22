@@ -21,7 +21,9 @@ Workflow:
 
      Besides the QA GeoPackage, SQL, and report, every run writes ``street_edge_endpoints.csv`` in the scan's input
      format, so ``check_streets_for_imagery.py --city-id <id> --sample 150 --<provider>`` can answer "does this city
-     have imagery, and how fresh?" from the build alone, before any database exists.
+     have imagery, and how fresh?" from the build alone, before any database exists, and ``street_structures.csv``
+     (which streets lie on a bridge, in a tunnel, or under cover, from the OSM tags), so the street-gradient export
+     can run during onboarding rather than after the first nightly ``osm_way`` refresh (#5223).
 
      Streets always come from OSM (fetched with osmnx). Region boundaries come from the first source that works:
        * ``--regions-file <path>`` — bring your own neighborhood dataset (any OGR-readable format, any CRS; the
@@ -122,7 +124,15 @@ def _osmnx():
     """Imports osmnx with its HTTP cache pointed into the git-ignored onboarding dir instead of CWD-relative cache/."""
     import osmnx as ox
     ox.settings.cache_folder = str(REPO_ROOT / 'db' / 'onboarding' / 'osmnx-cache')
+    # osmnx keeps bridge and tunnel on every edge by default but drops covered; is_structure needs all three.
+    tags = list(getattr(ox.settings, 'useful_tags_way', []))
+    ox.settings.useful_tags_way = tags + [tag for tag in STRUCTURE_TAGS if tag not in tags]
     return ox
+
+
+# The OSM way tags that put a street on a structure, read by is_structure_tag. The same three tags, with the same
+# readings, decide is_structure in db/scripts/export-street-gradient-input.sh once a city has its osm_way cache.
+STRUCTURE_TAGS = ('bridge', 'tunnel', 'covered')
 
 # The way types we audit — the same filter the manual QGIS flow applies (the retired QGIS runbook).
 # Every value is a label of the DB's way_type enum, so fill-new-schema.sh's ::way_type cast can't fail.
@@ -218,6 +228,34 @@ def normalize_way_type(highway, allowed=DEFAULT_WAY_TYPES):
     return highway
 
 
+def is_structure_tag(bridge, tunnel, covered):
+    """
+    Whether an edge's OSM tags put it on a bridge, in a tunnel, or under cover (#5223).
+
+    A bare-earth elevation model removes bridges and knows nothing of tunnels, so the street-gradient sampler reads
+    such a street at its ends only. The readings match ``export-street-gradient-input.sh``: any ``bridge`` or
+    ``tunnel`` value but ``no`` counts (``viaduct``, ``movable``, ``building_passage``, ``culvert``), and ``covered``
+    only when ``yes``. After simplification a tag can be a list of the merged ways' values, and a street that is a
+    structure on any part of its length is one, since the alternative is sampling the ravine under that part.
+
+    Args:
+        bridge:  The edge's ``bridge`` tag — a scalar, a list, or NaN/None when untagged.
+        tunnel:  The edge's ``tunnel`` tag, likewise.
+        covered: The edge's ``covered`` tag, likewise.
+
+    Returns:
+        True when the edge lies on a structure.
+    """
+    def values(tag):
+        if isinstance(tag, list):
+            return [str(value) for value in tag]
+        if tag is None or pd.isna(tag):
+            return []
+        return [str(tag)]
+    return (any(value != 'no' for value in values(bridge)) or any(value != 'no' for value in values(tunnel))
+            or any(value == 'yes' for value in values(covered)))
+
+
 def geodesic_length_m(geom):
     """
     Measures a geometry's length geodesically (repo convention: never measure through a projection).
@@ -257,7 +295,8 @@ def merge_tiny_same_way(streets, max_m):
     until no short piece has a same-way neighbour.
 
     Args:
-        streets: GeoDataFrame from :func:`fetch_streets` (``u``, ``v``, ``osm_ids``, ``highway``, geometry).
+        streets: GeoDataFrame from :func:`fetch_streets` (``u``, ``v``, ``osm_ids``, ``highway``, ``is_structure``,
+                 geometry).
         max_m:   Pieces shorter than this (meters) are merged; 0 disables the pass.
 
     Returns:
@@ -266,7 +305,8 @@ def merge_tiny_same_way(streets, max_m):
     if max_m <= 0 or streets.empty:
         return streets, 0
     edges = [{'u': int(row.u), 'v': int(row.v), 'osm_ids': list(row.osm_ids), 'highway': row.highway,
-              'geometry': row.geometry, 'length_m': geodesic_length_m(row.geometry)} for row in streets.itertuples()]
+              'is_structure': bool(row.is_structure), 'geometry': row.geometry,
+              'length_m': geodesic_length_m(row.geometry)} for row in streets.itertuples()]
     alive = [True] * len(edges)
     by_node = defaultdict(set)
     for i, edge in enumerate(edges):
@@ -304,6 +344,7 @@ def merge_tiny_same_way(streets, max_m):
                 by_node[old_node].discard(i)
                 by_node[old_node].discard(j)
             edges[i] = {'u': ends[0], 'v': ends[1], 'osm_ids': way_ids, 'highway': other['highway'],
+                        'is_structure': edge['is_structure'] or other['is_structure'],
                         'geometry': geometry, 'length_m': edge['length_m'] + other['length_m']}
             alive[j] = False
             by_node[ends[0]].add(i)
@@ -313,7 +354,7 @@ def merge_tiny_same_way(streets, max_m):
 
     kept = [edge for edge, keep in zip(edges, alive) if keep]
     merged = gpd.GeoDataFrame(kept, geometry='geometry', crs=streets.crs)
-    return merged[['u', 'v', 'osm_ids', 'highway', 'geometry']], n_merged
+    return merged[['u', 'v', 'osm_ids', 'highway', 'is_structure', 'geometry']], n_merged
 
 
 # Per-run tiny-segment figures (#4717): counts under 5/10/20 m, the sub-20 m share, the median street length, and
@@ -1079,7 +1120,7 @@ def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m):
     Returns:
         A GeoDataFrame of street edges: ``u``/``v`` (the OSM node ids at each end, which :func:`merge_tiny_same_way`
         uses to find touching pieces), ``osm_ids`` (every OSM way the edge spans), ``highway`` (single way-type
-        string), geometry.
+        string), ``is_structure`` (:func:`is_structure_tag`), geometry.
     """
     ox = _osmnx()
     buffer_deg = fetch_buffer_m / (111_320 * cos(radians(boundary_poly.centroid.y)))
@@ -1089,7 +1130,10 @@ def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m):
     edges = ox.convert.graph_to_gdfs(graph, nodes=False, edges=True).reset_index()
     edges['osm_ids'] = edges['osmid'].map(as_id_list)
     edges['highway'] = edges['highway'].map(normalize_way_type)
-    return edges[['u', 'v', 'osm_ids', 'highway', 'geometry']]
+    # osmnx only materializes a tag column when some edge in the graph carries the tag.
+    tags = [edges[tag] if tag in edges.columns else [None] * len(edges) for tag in STRUCTURE_TAGS]
+    edges['is_structure'] = [is_structure_tag(*values) for values in zip(*tags)]
+    return edges[['u', 'v', 'osm_ids', 'highway', 'is_structure', 'geometry']]
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1346,7 +1390,7 @@ def assign_regions(streets, regions, min_segment_m, heal_m, boundary_merge_tol_m
     slivers with nothing to merge into — is separated out for QA review.
 
     Args:
-        streets:              GeoDataFrame of street edges (``osm_ids``, ``highway``, geometry).
+        streets:              GeoDataFrame of street edges (``osm_ids``, ``highway``, ``is_structure``, geometry).
         regions:              GeoDataFrame from :func:`prepare_regions`.
         min_segment_m:        Minimum street-piece length to keep, in meters.
         heal_m:               Pieces shorter than this are absorbed into a touching neighbor piece of the same
@@ -1356,7 +1400,8 @@ def assign_regions(streets, regions, min_segment_m, heal_m, boundary_merge_tol_m
 
     Returns:
         A ``(roads, dropped, heal_stats, rider_junctions)`` tuple: ``roads`` has ``road_id`` (1..N), ``osm_ids``,
-        ``highway``, ``region_id``, ``length_m``; ``dropped`` holds the too-short fragments; ``heal_stats`` is a
+        ``highway``, ``is_structure``, ``region_id``, ``length_m``; ``dropped`` holds the too-short fragments;
+        ``heal_stats`` is a
         :data:`HealStats`; ``rider_junctions`` is a GeoDataFrame of the junction points where boundary-running
         splits were merged (for the QA layer).
     """
@@ -1397,10 +1442,10 @@ def assign_regions(streets, regions, min_segment_m, heal_m, boundary_merge_tol_m
         junction_rows += [{'osm_ids': edge['osm_ids'], 'geometry': junction} for junction in junctions]
         for piece in healed_pieces:
             healed_rows.append({'osm_ids': edge['osm_ids'], 'highway': edge['highway'],
-                                'region_id': piece.region_id, 'length_m': piece.length_m,
-                                'geometry': piece.geometry})
-    healed = gpd.GeoDataFrame(healed_rows, columns=['osm_ids', 'highway', 'region_id', 'length_m', 'geometry'],
-                              geometry='geometry', crs=streets.crs)
+                                'is_structure': bool(edge['is_structure']), 'region_id': piece.region_id,
+                                'length_m': piece.length_m, 'geometry': piece.geometry})
+    healed = gpd.GeoDataFrame(healed_rows, columns=['osm_ids', 'highway', 'is_structure', 'region_id', 'length_m',
+                                                    'geometry'], geometry='geometry', crs=streets.crs)
     rider_junctions = gpd.GeoDataFrame(junction_rows, geometry='geometry', crs=streets.crs,
                                        columns=['osm_ids', 'geometry'])
 
@@ -1410,8 +1455,8 @@ def assign_regions(streets, regions, min_segment_m, heal_m, boundary_merge_tol_m
     roads['road_id'] = roads.index + 1
     heal_stats = HealStats(n_raw_pieces - len(healed) - len(rider_junctions), n_bridged_total, restored_m_total,
                            len(rider_junctions))
-    return (roads[['road_id', 'osm_ids', 'highway', 'region_id', 'length_m', 'geometry']], dropped, heal_stats,
-            rider_junctions)
+    return (roads[['road_id', 'osm_ids', 'highway', 'is_structure', 'region_id', 'length_m', 'geometry']], dropped,
+            heal_stats, rider_junctions)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1467,6 +1512,25 @@ def write_endpoints_csv(path, roads):
         'x1': [pt[0] for pt in starts], 'y1': [pt[1] for pt in starts],
         'x2': [pt[0] for pt in ends], 'y2': [pt[1] for pt in ends],
         'geom': [shapely.to_wkb(geom, hex=True) for geom in roads.geometry],
+    }).to_csv(path, index=False)
+
+
+def write_structures_csv(path, roads):
+    """
+    Writes which streets lie on a bridge, in a tunnel, or under cover, for the street-gradient export (#5223).
+
+    A new city's ``osm_way`` cache is empty until the first nightly refresh, and the export refuses to read structure
+    flags from an empty cache, since every bridge would then be sampled as the ravine beneath it. This file lets
+    ``export-street-gradient-input.sh --structures`` take the flags from the build instead, so the city can be
+    sampled during onboarding. Booleans are written as Postgres ``t``/``f``, the spelling the sampler reads.
+
+    Args:
+        path:  Output ``.csv`` path.
+        roads: Final street GeoDataFrame, with ``road_id`` and ``is_structure``.
+    """
+    pd.DataFrame({
+        'street_edge_id': roads['road_id'].values,
+        'is_structure': ['t' if flag else 'f' for flag in roads['is_structure']],
     }).to_csv(path, index=False)
 
 
@@ -1557,6 +1621,10 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
         f'- Regions: **{len(regions)}**{coverage_note}',
         f'- Loop roads (start = end): **{street_stats.n_loops}** — kept as OSM maps them; check them in QGIS',
     ]
+    if 'is_structure' in roads.columns:
+        n_structures = int(roads['is_structure'].sum())
+        lines.append(f'- Streets on a bridge, in a tunnel, or covered (OSM tags): **{n_structures}** — the '
+                     'street-gradient sampler reads these at their ends only (`street_structures.csv`)')
     if n_tier1_merged is not None:
         lines.append(f'- Merged sub-{args.merge_tiny_m:g} m pieces into a touching piece of the same OSM way '
                      f'(#4717 tier 1): **{n_tier1_merged}**')
@@ -1743,6 +1811,17 @@ def run_from_gpkg(args):
     else:  # A hand-built layer (the QGIS runbook's shape) carries one way id per street.
         roads['osm_ids'] = (roads['osm_id'].map(lambda way_id: [] if pd.isna(way_id) else [int(way_id)])
                             if 'osm_id' in roads.columns else None)
+    if 'is_structure' in roads.columns:
+        # A street drawn by hand in QGIS has no flag; not a structure is the reading the nightly osm_way cache would
+        # give a street that maps to no tagged way, so it is the reading here.
+        untagged = roads['is_structure'].isna()
+        if untagged.any():
+            logger.info('%d street(s) carry no is_structure flag (added by hand?); treating them as not on a '
+                        'structure.', int(untagged.sum()))
+        roads['is_structure'] = roads['is_structure'].fillna(False).astype(bool)
+    else:
+        logger.warning('The qgis_road layer has no is_structure column, so street_structures.csv is not written: '
+                       'sample the street gradient after the first nightly OSM way refresh (docs/street-gradient.md).')
     roads['length_m'] = [geodesic_length_m(geom) for geom in roads.geometry]
 
     errors = validate_staging(roads, regions)
@@ -1767,6 +1846,8 @@ def run_from_gpkg(args):
     endpoints_path = out_dir / 'street_edge_endpoints.csv'
     write_sql(sql_path, roads, regions)
     write_endpoints_csv(endpoints_path, roads)
+    if 'is_structure' in roads.columns:
+        write_structures_csv(out_dir / 'street_structures.csv', roads)
     write_report(report_path, args, f'edited GeoPackage ({gpkg_path.name})', roads, regions, roads.iloc[0:0],
                  stats, coverage, None)
     logger.info('\nWrote:\n  %s\n  %s\n  %s\nThe SQL now matches the edited GeoPackage.', sql_path, endpoints_path,
@@ -1877,6 +1958,7 @@ def main(argv=None):
     write_gpkg(gpkg_path, roads, regions, boundary, dropped, rider_junctions)
     write_sql(sql_path, roads, regions)
     write_endpoints_csv(endpoints_path, roads)
+    write_structures_csv(out_dir / 'street_structures.csv', roads)
     write_report(report_path, args, region_source, roads, regions, dropped, stats, coverage, heal_stats,
                  n_tier1_merged)
     logger.info('\nWrote:\n  %s\n  %s\n  %s\n  %s\nQA the GeoPackage in QGIS before loading the SQL (see the report).',

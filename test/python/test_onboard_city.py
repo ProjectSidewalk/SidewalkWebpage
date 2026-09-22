@@ -524,10 +524,34 @@ _CITY_GDF = gpd.GeoDataFrame(geometry=[_CITY], crs='EPSG:4326')
 
 
 def _fake_osmnx(monkeypatch, **attrs):
-    """Installs a stand-in for the lazily-imported osmnx module (`settings` so _osmnx can point the cache)."""
-    fake = SimpleNamespace(settings=SimpleNamespace(), **attrs)
+    """
+    Installs a stand-in for the lazily-imported osmnx module (`settings` so _osmnx can point the cache and extend the
+    way tags; the default list carries bridge and tunnel but not covered, as the real one does).
+    """
+    fake = SimpleNamespace(settings=SimpleNamespace(useful_tags_way=['highway', 'bridge', 'tunnel']), **attrs)
     monkeypatch.setitem(sys.modules, 'osmnx', fake)
     return fake
+
+
+def test_osmnx_settings_add_the_covered_tag_once(monkeypatch):
+    fake = _fake_osmnx(monkeypatch)
+    oc._osmnx()
+    oc._osmnx()
+    assert fake.settings.useful_tags_way == ['highway', 'bridge', 'tunnel', 'covered']
+    assert fake.settings.cache_folder.endswith('osmnx-cache')
+
+
+def test_is_structure_tag_reads_the_three_tags_like_the_export():
+    assert not oc.is_structure_tag(None, float('nan'), None)
+    assert not oc.is_structure_tag('no', 'no', 'no')
+    assert oc.is_structure_tag('yes', None, None)
+    assert oc.is_structure_tag('viaduct', None, None)
+    assert oc.is_structure_tag(None, 'building_passage', None)
+    assert oc.is_structure_tag(None, None, 'yes')
+    assert not oc.is_structure_tag(None, None, 'no')
+    # Simplification merges ways into one edge with a list of their values: a structure on any part counts.
+    assert oc.is_structure_tag(['no', 'yes'], None, None)
+    assert not oc.is_structure_tag(['no', 'no'], ['no'], ['no'])
 
 
 def _empty_regions():
@@ -642,8 +666,9 @@ def test_read_regions_file_reads_a_qa_geopackages_region_layer(tmp_path):
 
 
 def test_fetch_streets_buffers_the_fetch_polygon_and_normalizes_columns(monkeypatch):
+    # No edge in this graph has a tunnel or covered tag, so osmnx materializes no column for either.
     edges = gpd.GeoDataFrame({'u': [1, 2], 'v': [2, 3], 'osmid': [[100, 101], 200],
-                              'highway': [['track', 'residential'], 'primary']},
+                              'highway': [['track', 'residential'], 'primary'], 'bridge': [['no', 'viaduct'], None]},
                              geometry=[LineString([(0, 0), (0.001, 0)]), LineString([(0.001, 0), (0.002, 0)])],
                              crs='EPSG:4326')
     seen = {}
@@ -657,9 +682,10 @@ def test_fetch_streets_buffers_the_fetch_polygon_and_normalizes_columns(monkeypa
                                         graph_to_gdfs=lambda graph, nodes, edges: edges_gdf))
     edges_gdf = edges
     streets = oc.fetch_streets(_CITY, include_alleys=False, fetch_buffer_m=50)
-    assert list(streets.columns) == ['u', 'v', 'osm_ids', 'highway', 'geometry']
+    assert list(streets.columns) == ['u', 'v', 'osm_ids', 'highway', 'is_structure', 'geometry']
     assert list(streets['osm_ids']) == [[100, 101], [200]]
     assert list(streets['highway']) == ['residential', 'primary']
+    assert list(streets['is_structure']) == [True, False]
     assert seen['poly'].contains(_CITY)
     assert seen['poly'].area > _CITY.area
 
@@ -708,10 +734,11 @@ def test_prepare_regions_warns_on_overlapping_regions(caplog):
     assert any('DUPLICATED' in record.message for record in caplog.records)
 
 
-def _streets_gdf(lines):
+def _streets_gdf(lines, structures=None):
     n = len(lines)
     return gpd.GeoDataFrame({'u': list(range(1, 2 * n, 2)), 'v': list(range(2, 2 * n + 1, 2)),
-                             'osm_ids': [[way_id] for way_id in range(100, 100 + n)], 'highway': ['residential'] * n},
+                             'osm_ids': [[way_id] for way_id in range(100, 100 + n)], 'highway': ['residential'] * n,
+                             'is_structure': structures or [False] * n},
                             geometry=[LineString(line) for line in lines], crs='EPSG:4326')
 
 
@@ -725,11 +752,16 @@ def test_assign_regions_splits_streets_and_assigns_dense_road_ids():
     streets = _streets_gdf([
         [(0.002, 0.005), (0.008, 0.005)],   # Fully inside west.
         [(0.005, 0.002), (0.015, 0.002)],   # A genuine west-east crossing: split into two long pieces.
-    ])
+    ], structures=[False, True])
     roads, dropped, heal_stats, riders = oc.assign_regions(streets, _city_regions(), min_segment_m=15, heal_m=30,
                                                            boundary_merge_tol_m=15)
     assert list(roads['road_id']) == [1, 2, 3]
     assert sorted(roads['region_id']) == [1, 1, 2]
+    # Both pieces of the split street keep its structure flag.
+    assert list(roads.columns) == ['road_id', 'osm_ids', 'highway', 'is_structure', 'region_id', 'length_m',
+                                   'geometry']
+    assert sorted(zip(roads['osm_ids'].map(tuple), roads['is_structure'])) == [((100,), False), ((101,), True),
+                                                                               ((101,), True)]
     assert dropped.empty
     assert heal_stats.n_riders == 0
     assert riders.empty
@@ -741,7 +773,7 @@ def test_assign_regions_splits_streets_and_assigns_dense_road_ids():
 
 def _staged_roads():
     return gpd.GeoDataFrame({'road_id': [1, 2], 'osm_ids': [[100], [101, 102]], 'highway': ['residential', 'primary'],
-                             'region_id': [1, 2], 'length_m': [667.9, 667.9],
+                             'is_structure': [False, True], 'region_id': [1, 2], 'length_m': [667.9, 667.9],
                              'geometry': [LineString([(0.002, 0.005), (0.008, 0.005)]),
                                           LineString([(0.012, 0.005), (0.018, 0.005)])]}, crs='EPSG:4326')
 
@@ -757,8 +789,11 @@ def test_write_gpkg_writes_qa_layers(tmp_path):
     oc.write_gpkg(path, roads, _city_regions(), _CITY_GDF, roads.iloc[0:1], riders)
     assert set(gpd.list_layers(path)['name']) == {'qgis_road', 'qgis_region', 'city_boundary', 'dropped_segments',
                                                   'rider_merges'}
-    # Way-id lists travel as text in the GeoPackage and come back as lists.
-    assert list(gpd.read_file(path, layer='qgis_road')['osm_ids']) == ['100', '101,102']
+    # Way-id lists travel as text in the GeoPackage and come back as lists; the structure flag survives the round
+    # trip too, which is what lets a --from-gpkg re-export still write street_structures.csv.
+    road_layer = gpd.read_file(path, layer='qgis_road')
+    assert list(road_layer['osm_ids']) == ['100', '101,102']
+    assert list(road_layer['is_structure']) == [False, True]
     assert list(gpd.read_file(path, layer='rider_merges')['osm_ids']) == ['100']
 
 
@@ -817,11 +852,13 @@ def test_write_report_summarizes_a_fetch_run(tmp_path):
     assert '(#4717 tier 1): **7**' in report
     assert 'make check-imagery id=testville-wa args="--sample 150 --gsv"' in report
     assert 'Loop roads (start = end): **0**' in report
+    assert 'covered (OSM tags): **1**' in report
 
 
 def test_write_report_re_export_variant_omits_healing_and_coverage(tmp_path):
     args = oc.parse_args(['--city-id', 'testville', '--from-gpkg', 'edited.gpkg'])
-    roads, regions = _staged_roads(), _city_regions()
+    # A hand-built GeoPackage carries no structure flags, so the report has no structure line either.
+    roads, regions = _staged_roads().drop(columns=['is_structure']), _city_regions()
     stats = oc.region_street_stats(roads, regions, 60)
     oc.write_report(tmp_path / 'report.md', args, 'edited GeoPackage (edited.gpkg)', roads, regions, roads.iloc[0:0],
                     stats, None, None)
@@ -829,6 +866,7 @@ def test_write_report_re_export_variant_omits_healing_and_coverage(tmp_path):
     assert 'Healed' not in report
     assert 'covering' not in report
     assert 'tier 1' not in report
+    assert 'OSM tags' not in report
 
 
 def _staging_gpkg(tmp_path, with_boundary=True):
@@ -852,16 +890,34 @@ def test_run_from_gpkg_regenerates_sql_from_edited_layers(tmp_path):
     assert 'edited GeoPackage' in report
     assert 'covering' in report
     assert (tmp_path / 'street_edge_endpoints.csv').exists()
+    assert (tmp_path / 'street_structures.csv').read_text().splitlines() == ['street_edge_id,is_structure', '1,f',
+                                                                             '2,t']
 
 
-def test_run_from_gpkg_accepts_a_hand_built_layer_with_one_way_id_per_street(tmp_path):
+def test_run_from_gpkg_reads_a_hand_added_street_as_not_a_structure(tmp_path, caplog):
+    roads = _staged_roads()
+    roads['is_structure'] = [None, True]   # A street drawn in QGIS has no flag.
+    path = tmp_path / 'edited_qa.gpkg'
+    oc.gpkg_frame(roads).to_file(path, layer='qgis_road', driver='GPKG')
+    _city_regions().to_file(path, layer='qgis_region', driver='GPKG')
+    with caplog.at_level(logging.INFO):
+        oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
+    assert any('1 street(s) carry no is_structure flag' in record.message for record in caplog.records)
+    assert (tmp_path / 'street_structures.csv').read_text().splitlines()[1:] == ['1,f', '2,t']
+
+
+def test_run_from_gpkg_accepts_a_hand_built_layer_with_one_way_id_per_street(tmp_path, caplog):
     path = tmp_path / 'hand_qa.gpkg'
-    hand_built = oc.gpkg_frame(_staged_roads()).drop(columns=['osm_ids'])
+    hand_built = oc.gpkg_frame(_staged_roads()).drop(columns=['osm_ids', 'is_structure'])
     hand_built['osm_id'] = [100, 101]
     hand_built.to_file(path, layer='qgis_road', driver='GPKG')
     _city_regions().to_file(path, layer='qgis_region', driver='GPKG')
-    oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
+    with caplog.at_level(logging.WARNING):
+        oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
     assert '\t{101}\tprimary\t' in (tmp_path / 'qgis_tables.sql').read_text()
+    # Without structure flags the gradient export has to wait for the nightly osm_way cache, and the run says so.
+    assert not (tmp_path / 'street_structures.csv').exists()
+    assert any('no is_structure column' in record.message for record in caplog.records)
 
 
 def test_run_from_gpkg_rejects_a_layer_without_any_way_ids(tmp_path):
@@ -931,6 +987,8 @@ def test_main_uses_osm_neighborhoods_and_writes_artifacts(tmp_path, monkeypatch)
     endpoints = (tmp_path / 'street_edge_endpoints.csv').read_text().splitlines()
     assert endpoints[0] == 'street_edge_id,region_id,x1,y1,x2,y2,geom'
     assert len(endpoints) == 4
+    assert (tmp_path / 'street_structures.csv').read_text().splitlines() == ['street_edge_id,is_structure', '1,f',
+                                                                             '2,f', '3,f']
 
 
 def test_main_falls_back_to_census_when_osm_is_sparse(tmp_path, monkeypatch):
@@ -1133,28 +1191,32 @@ def test_main_aborts_when_generated_data_fails_validation(tmp_path, monkeypatch)
 # --------------------------------------------------------------------------------------------------------------------
 
 def _edges(rows):
-    """Edges as (u, v, osm_ids, coords) on the equator, where 0.0001 degrees is ~11 m."""
+    """Edges as (u, v, osm_ids, coords[, is_structure]) on the equator, where 0.0001 degrees is ~11 m."""
     return gpd.GeoDataFrame({'u': [r[0] for r in rows], 'v': [r[1] for r in rows], 'osm_ids': [r[2] for r in rows],
-                             'highway': ['residential'] * len(rows)},
+                             'highway': ['residential'] * len(rows),
+                             'is_structure': [r[4] if len(r) > 4 else False for r in rows]},
                             geometry=[LineString(r[3]) for r in rows], crs='EPSG:4326')
 
 
 def test_tier1_merge_absorbs_a_short_piece_into_its_own_way():
-    # Way 100 is cut by cross street 200 into 100 m + 10 m + 100 m; the 10 m middle joins one neighbour.
+    # Way 100 is cut by cross street 200 into 100 m + 10 m + 100 m; the 10 m middle (a culvert) joins one neighbour.
     streets = _edges([
         (1, 2, [100], [(0, 0), (0.0009, 0)]),
-        (2, 3, [100], [(0.0009, 0), (0.001, 0)]),
+        (2, 3, [100], [(0.0009, 0), (0.001, 0)], True),
         (3, 4, [100], [(0.001, 0), (0.0019, 0)]),
         (2, 5, [200], [(0.0009, 0), (0.0009, 0.001)]),
     ])
     merged, n = oc.merge_tiny_same_way(streets, 20)
     assert n == 1
     assert len(merged) == 3
+    assert list(merged.columns) == ['u', 'v', 'osm_ids', 'highway', 'is_structure', 'geometry']
     lengths = sorted(oc.geodesic_length_m(g) for g in merged.geometry)
     assert lengths[0] == pytest.approx(100, rel=0.02)   # the untouched 100 m piece
     assert lengths[2] == pytest.approx(111, rel=0.02)   # 100 m + the 10 m stub
     assert lengths[1] == pytest.approx(111, rel=0.02)   # the cross street
     assert all(way_ids in ([100], [200]) for way_ids in merged['osm_ids'])
+    # The merged street is a structure on part of its length, so it is one: the sampler must not read the ravine.
+    assert sorted(merged['is_structure']) == [False, False, True]
 
 
 def test_tier1_merge_leaves_a_short_piece_of_another_way_alone():
@@ -1234,6 +1296,12 @@ def test_write_endpoints_csv_matches_the_scans_input_contract(tmp_path):
     assert rows.loc[0, 'x1'] == pytest.approx(0.002) and rows.loc[0, 'x2'] == pytest.approx(0.008)
     from shapely import wkb
     assert wkb.loads(rows.loc[1, 'geom'], hex=True).equals(LineString([(0.012, 0.005), (0.018, 0.005)]))
+
+
+def test_write_structures_csv_spells_booleans_the_way_the_sampler_reads_them(tmp_path):
+    path = tmp_path / 'street_structures.csv'
+    oc.write_structures_csv(path, _staged_roads())
+    assert path.read_text().splitlines() == ['street_edge_id,is_structure', '1,f', '2,t']
 
 
 # --------------------------------------------------------------------------------------------------------------------
