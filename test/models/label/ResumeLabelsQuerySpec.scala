@@ -23,8 +23,11 @@ class ResumeLabelsQuerySpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
 
   private lazy val labelTable = app.injector.instanceOf[LabelTable]
 
-  /** A (region, user) pair with the most resumable labels, so the assertions have rows to work on. */
-  private def busiestRegionUser: Option[(Int, String)] =
+  /**
+   * A (region, user) pair with the most resumable labels, so the assertions have rows to work on. Cancels rather than
+   * passing vacuously when the database has none, so an empty fixture shows up in the report.
+   */
+  private def busiestRegionUser: (Int, String) =
     run(
       sql"""SELECT mission.region_id, mission.user_id
             FROM label
@@ -36,7 +39,7 @@ class ResumeLabelsQuerySpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
             GROUP BY mission.region_id, mission.user_id
             ORDER BY count(*) DESC
             LIMIT 1""".as[(Int, String)].headOption
-    )
+    ).getOrElse(cancel("no user has a positioned, non-tutorial label in any region of this database"))
 
   "getLabelsFromUserInRegion" should {
     "be a query Postgres accepts" in {
@@ -44,38 +47,36 @@ class ResumeLabelsQuerySpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
     }
 
     "carry each label's own audit task's outdated_imagery flag" in {
-      busiestRegionUser.foreach { case (regionId, userId) =>
-        val rows = run(labelTable.getLabelsFromUserInRegion(regionId, userId))
-        rows must not be empty
-        val flaggedTasks: Set[Int] = run(
-          sql"""SELECT audit_task_id FROM audit_task WHERE outdated_imagery AND user_id = $userId""".as[Int]
-        ).toSet
-        rows.foreach { row =>
-          withClue(s"label ${row.labelData.labelId} (audit task ${row.labelData.auditTaskId}): ") {
-            row.fromOutdatedImagery mustBe flaggedTasks.contains(row.labelData.auditTaskId)
-          }
+      val (regionId, userId) = busiestRegionUser
+      val rows               = run(labelTable.getLabelsFromUserInRegion(regionId, userId))
+      rows must not be empty
+      val flaggedTasks: Set[Int] = run(
+        sql"""SELECT audit_task_id FROM audit_task WHERE outdated_imagery AND user_id = $userId""".as[Int]
+      ).toSet
+      rows.foreach { row =>
+        withClue(s"label ${row.labelData.labelId} (audit task ${row.labelData.auditTaskId}): ") {
+          row.fromOutdatedImagery mustBe flaggedTasks.contains(row.labelData.auditTaskId)
         }
       }
     }
 
     "return every non-deleted, non-tutorial, positioned label the user placed in the region" in {
-      busiestRegionUser.foreach { case (regionId, userId) =>
-        val expected = run(
-          sql"""SELECT count(*)
-                FROM label
-                INNER JOIN mission ON label.mission_id = mission.mission_id
-                INNER JOIN label_point ON label.label_id = label_point.label_id
-                INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
-                INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
-                INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
-                WHERE mission.region_id = $regionId AND mission.user_id = $userId
-                  AND label.deleted = FALSE AND label.tutorial = FALSE AND user_stat.excluded = FALSE
-                  AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-                  AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-                  AND label_point.lat IS NOT NULL AND label_point.lng IS NOT NULL""".as[Int].head
-        )
-        run(labelTable.getLabelsFromUserInRegion(regionId, userId)).size mustBe expected
-      }
+      val (regionId, userId) = busiestRegionUser
+      val expected           = run(
+        sql"""SELECT count(*)
+              FROM label
+              INNER JOIN mission ON label.mission_id = mission.mission_id
+              INNER JOIN label_point ON label.label_id = label_point.label_id
+              INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
+              INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+              INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
+              WHERE mission.region_id = $regionId AND mission.user_id = $userId
+                AND label.deleted = FALSE AND label.tutorial = FALSE AND user_stat.excluded = FALSE
+                AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+                AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+                AND label_point.lat IS NOT NULL AND label_point.lng IS NOT NULL""".as[Int].head
+      )
+      run(labelTable.getLabelsFromUserInRegion(regionId, userId)).size mustBe expected
     }
   }
 }

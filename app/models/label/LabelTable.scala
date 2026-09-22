@@ -2316,13 +2316,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   def getLabelsFromUserInRegion(regionId: Int, userId: String): DBIO[Seq[ResumeLabelMetadata]] = {
     (for {
-      _mission    <- missions
-      _label      <- labels if _mission.missionId === _label.missionId
-      _labelPoint <- labelPoints if _label.labelId === _labelPoint.labelId
-      _panoData   <- panoData if _label.panoId === _panoData.panoId
-      // The label's own audit task, for its outdated_imagery flag (#4945). `labels` already joins audit_task to drop
-      // tutorial streets, but that projection keeps only the label, so the flag has to be fetched here.
-      _auditTask <- auditTasks if _label.auditTaskId === _auditTask.auditTaskId
+      _mission <- missions
+      // The base query's own audit_task join carries the outdated_imagery flag (#4945); a second join to audit_task
+      // would slow a query Explore runs on every page load (see labelsWithAuditTasksAndUserStats).
+      (_label, _auditTask, _) <- labelsWithAuditTasksAndUserStats if _mission.missionId === _label.missionId
+      _labelPoint             <- labelPoints if _label.labelId === _labelPoint.labelId
+      _panoData               <- panoData if _label.panoId === _panoData.panoId
       if _mission.regionId === regionId && _mission.userId === userId
       if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
     } yield (_label, _label.labelTypeName, _labelPoint, _panoData.lat, _panoData.lng, _panoData.cameraHeading,
