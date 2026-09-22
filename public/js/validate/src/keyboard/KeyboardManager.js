@@ -88,11 +88,10 @@ class KeyboardManager {
     }
   }
 
-  /** @returns {boolean} Whether the "wrong label type" disagree is showing, where the type picker and the picked
-   *     type's editors stand in for the reasons (#5409). */
+  /** @returns {boolean} Whether the menu is on the "wrong label type" disagree, where the type picker and the
+   *     picked type's editors stand in for the reasons (#5409). */
   #inWrongTypeView() {
-    return this.#validationMenuUi.noButton.hasClass('chosen')
-      && this.#validationMenuUi.labelTypeMenu?.css('display') === 'block';
+    return svv.validationMenu?.inWrongTypeView() === true;
   }
 
   /**
@@ -133,9 +132,13 @@ class KeyboardManager {
     // None of the global shortcuts may fire from inside — Enter especially, which everywhere else submits the
     // validation and here would submit from a control that means "open". This runs on window with capture, so it
     // sees the key before the focused control does.
+    // An open popover counts as being in the card even when the key came from elsewhere: Safari and Firefox on
+    // macOS don't focus a button that was clicked, so the keys of someone who opened the dropdown with the mouse
+    // arrive with the body as their target, and the first thing the shortcuts below do is take the card down.
     const marker = document.getElementById('validate-pano-marker');
     const card = document.getElementById('label-card');
-    if (e.target === marker || (card && card.contains(/** @type {Node} */ (e.target)))) {
+    if (e.target === marker || (card && card.contains(/** @type {Node} */ (e.target)))
+      || svv.labelCard?.isPopoverOpen()) {
       if (e.code === 'Escape' && svv.labelCard?.closeTypeDropdown()) {
         // An open type dropdown takes the first Escape, as a menu would, rather than the whole card going with it.
       } else if (e.code === 'Escape') {
@@ -163,8 +166,10 @@ class KeyboardManager {
       validationMenuUi.submitButton.click();
     }
 
-    // Skipped while a comment box has focus, where Ctrl+Z is the browser's undo of what was typed (#5409).
-    if (!this.#disableKeyboard && !this.#addingComment && (e.ctrlKey || e.metaKey) && e.code === 'KeyZ') {
+    // Skipped while a comment box has focus, where Ctrl+Z is the browser's undo of what was typed, and on
+    // Ctrl+Shift+Z, which means redo and has nothing to redo here (#5409).
+    if (!this.#disableKeyboard && !this.#addingComment && (e.ctrlKey || e.metaKey) && !e.shiftKey
+      && e.code === 'KeyZ') {
       e.preventDefault();
       if (svv.undoValidation.canUndo()) svv.ui.undoValidation.undoButton.click();
       return;
@@ -235,7 +240,7 @@ class KeyboardManager {
           // The comment box is always the key one past the menu's last reason, so it moves from 4 to 5 on any label
           // type that offers a fourth reason, handled through #handleNumberKeyShortcut. Routed separately from 1-3 only
           // because of the Agree verdict, where it would reach for a severity button 4 or 5 that doesn't exist.
-          if (validationMenuUi.noButton.hasClass('chosen')) {
+          if (validationMenuUi.noButton.hasClass('chosen') && !this.#inWrongTypeView()) {
             this.#handleNumberKeyShortcut(parseInt(e.key, 10), e);
           } else {
             this.#handleCommentBoxShortcut(e);

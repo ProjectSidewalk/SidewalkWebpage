@@ -124,10 +124,15 @@ class LabelVisibilityControl {
    * without this the card would stay up until a pan, the H key, or the next label took it down. Copy link is the
    * common way in: it leaves the popover open behind its "Copied!" state, so the pointer usually wanders off well
    * before the popover closes. Skipped when the pointer is back on the card, where it is meant to stay, and when the
-   * card is already gone, since hiding it is one of the things that closes a popover.
+   * card is already gone, since hiding it is one of the things that closes a popover. Also skipped while focus is
+   * still inside the card: a keyboard user who just pressed Escape or picked a type is standing in the card, and
+   * taking it down would pull the ground out from under them — the focusout handler hides it when they leave.
    */
   handlePopoverDismissed() {
-    if (this.#cardVisible && !this.#card[0].matches(':hover')) this.scheduleHideLabelCard();
+    if (!this.#cardVisible) return;
+    const card = this.#card[0];
+    if (card.matches(':hover') || card.contains(document.activeElement)) return;
+    this.scheduleHideLabelCard();
   }
 
   /**

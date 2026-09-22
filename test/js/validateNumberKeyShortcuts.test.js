@@ -95,7 +95,7 @@ describe('KeyboardManager number-key shortcuts', () => {
         validationMenuUi.yesButton = makeControl({ chosen: verdict === 'yes' });
         validationMenuUi.noButton = makeControl({ chosen: verdict === 'no' || verdict === 'wrongType' });
         validationMenuUi.unsureButton = makeControl({ chosen: verdict === 'unsure' });
-        validationMenuUi.labelTypeMenu = { css: () => (verdict === 'wrongType' ? 'block' : 'none') };
+        window.svv.validationMenu = { inWrongTypeView: () => verdict === 'wrongType' };
     }
 
     describe('on a label type with a fourth disagree reason (Missing Curb Ramp)', () => {
@@ -183,6 +183,16 @@ describe('KeyboardManager number-key shortcuts', () => {
 
             expect(clicks).toEqual([]);
             expect(validationMenuUi.optionalCommentTextBox.click).not.toHaveBeenCalled();
+        });
+
+        it('4 and 5 reach the comment box rather than severity buttons that do not exist', () => {
+            renderSeveritySection(true);
+
+            pressDigit(4);
+            pressDigit(5);
+
+            expect(clicks).toEqual([]);
+            expect(validationMenuUi.optionalCommentTextBox.click).toHaveBeenCalledTimes(2);
         });
 
         it('C reaches the optional comment box, not the hidden disagree reason box', () => {

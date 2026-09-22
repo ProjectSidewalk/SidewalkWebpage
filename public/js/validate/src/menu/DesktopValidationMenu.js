@@ -9,6 +9,7 @@ class DesktopValidationMenu {
   #tagsAddedByUser = [];
   /** @type {LabelTypePicker|null} Expert Validate only (#3671). */
   #labelTypePicker = null;
+  #wrongTypeView = false;
 
   /**
    * @param {Record<string, JQuery>} menuUI - Validation menu UI elements.
@@ -292,6 +293,12 @@ class DesktopValidationMenu {
     return label.getProperty('newLabelType') !== label.getProperty('oldLabelType');
   }
 
+  /** @returns {boolean} Whether the menu is on the "wrong label type" disagree, where the type picker stands in
+   *     for the reasons and the digits mean a severity rather than a reason (#5409). */
+  inWrongTypeView() {
+    return this.#wrongTypeView;
+  }
+
   /**
    * Every view routes through here so a section can't be left showing from the previous verdict.
    * @param {JQuery} chosenButton
@@ -299,6 +306,7 @@ class DesktopValidationMenu {
    */
   #showVerdict(chosenButton, sections) {
     const menuUI = this.#menuUI;
+    this.#wrongTypeView = sections.includes('labelTypeMenu');
     for (const button of [menuUI.yesButton, menuUI.noButton, menuUI.unsureButton]) {
       button.toggleClass('chosen', button === chosenButton);
     }
@@ -331,14 +339,27 @@ class DesktopValidationMenu {
     if (this.#typeChanged(currLabel)) this.#setNewLabelType(currLabel.getProperty('oldLabelType'), false);
   }
 
+  /**
+   * Restores the type, rating and tags the labeler filed. Only an Agree applies an edit, so a Disagree or an Unsure
+   * must not leave one standing on the card as though Submit would save it.
+   */
+  #dropPendingEdits() {
+    const currLabel = svv.labelContainer.getCurrentLabel();
+    const hadNewType = this.#typeChanged(currLabel);
+    currLabel.setNewLabelType(currLabel.getProperty('oldLabelType'));
+    this.#tagsAddedByUser = [];
+    if (hadNewType) svv.panoManager.styleMarkerForLabel(currLabel);
+    svv.labelCard?.render(currLabel);
+  }
+
   #setNoView() {
-    this.#dropPickedType();
+    this.#dropPendingEdits();
     this.#showVerdict(this.#menuUI.noButton, ['noMenu']);
     this.#menuUI.submitButton.prop('disabled', false);
   }
 
   #setUnsureView() {
-    this.#dropPickedType();
+    this.#dropPendingEdits();
     this.#showVerdict(this.#menuUI.unsureButton, ['unsureMenu']);
     this.#menuUI.submitButton.prop('disabled', false);
   }

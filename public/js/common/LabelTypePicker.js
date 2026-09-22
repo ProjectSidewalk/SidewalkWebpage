@@ -14,17 +14,22 @@ class LabelTypePicker {
   #currentType = null;
   #selectedType = null;
   #collapsed = false;
+  #commitsOnPick = false;
 
   /**
    * @param {HTMLElement} root - The element to fill; it becomes the radio group.
-   * @param {{onPick: (labelType: string) => void, onToggle?: (expanded: boolean) => void}} opts - Both fire on user
-   *   action only, never from `render` or `collapse`, so a host can redraw from saved state without re-triggering
-   *   itself. `onToggle` reports a collapsed group being opened back up (or folded again).
+   * @param {{onPick: (labelType: string) => void, onToggle?: (expanded: boolean) => void,
+   *   commitsOnPick?: boolean}} opts - `onPick` and `onToggle` fire on user action only, never from `render` or
+   *   `collapse`, so a host can redraw from saved state without re-triggering itself. `onToggle` reports a collapsed
+   *   group being opened back up (or folded again). `commitsOnPick` is for a host where a pick takes effect at once
+   *   rather than waiting for a Submit: arrows then only move focus, since a radio group's select-follows-focus
+   *   would save a type per keypress on the way past, and there is no folding to toggle into.
    */
-  constructor(root, { onPick, onToggle = () => {} }) {
+  constructor(root, { onPick, onToggle = () => {}, commitsOnPick = false }) {
     this.#root = root;
     this.#onPick = onPick;
     this.#onToggle = onToggle;
+    this.#commitsOnPick = commitsOnPick;
     root.classList.add('label-type-picker');
     root.setAttribute('role', 'radiogroup');
     root.addEventListener('click', this.#handleClick);
@@ -110,6 +115,12 @@ class LabelTypePicker {
     if (chip.getAttribute('aria-disabled') === 'true') return;
     const labelType = chip.dataset.labelType;
     if (labelType === this.#selectedType) {
+      // Picking what is already picked is a way of saying "this one", which for a host that acts on a pick means
+      // closing up having changed nothing. Only a group that folds has anything else to do with it.
+      if (this.#commitsOnPick) {
+        this.#onPick(labelType);
+        return;
+      }
       this.#collapsed = !this.#collapsed;
       this.#syncState();
       this.#onToggle(!this.#collapsed);
@@ -126,7 +137,8 @@ class LabelTypePicker {
   };
 
   /**
-   * Arrow keys move focus and pick, as in a native radio group; the current type's chip is skipped over.
+   * Arrow keys move focus and pick, as in a native radio group; the current type's chip is skipped over. Under
+   * `commitsOnPick` they only move, and Space or Enter on the chip picks, the way a menu works.
    * @param {KeyboardEvent} e
    */
   #handleKeydown = (e) => {
@@ -146,7 +158,12 @@ class LabelTypePicker {
     e.stopPropagation(); // The pano viewer under the tool also listens for arrows and would pan the imagery.
     const to = pickable[(from + (isNext ? 1 : pickable.length - 1)) % pickable.length];
     to.focus();
-    this.#pick(to);
+    if (!this.#commitsOnPick) {
+      this.#pick(to);
+      return;
+    }
+    // Tab has to land back on wherever the arrows left off rather than on the picked chip.
+    for (const chip of this.#chips) chip.tabIndex = chip === to ? 0 : -1;
   };
 }
 
@@ -193,8 +210,13 @@ class LabelTypeDropdown {
       hintEl.hidden = false;
     }
     this.#picker = new LabelTypePicker(popover.querySelector('.label-type-popover__chips'), {
+      commitsOnPick: true,
       onPick: (labelType) => {
+        // Picking from the keyboard leaves focus on a chip that is about to go away, so it goes back where it came
+        // from; a mouse pick has nothing to put back.
+        const fromKeyboard = this.#popover.contains(document.activeElement);
         this.setOpen(false);
+        if (fromKeyboard) this.#button.focus();
         onPick(labelType);
       },
     });
@@ -214,8 +236,12 @@ class LabelTypeDropdown {
       popover.addEventListener('toggle', (e) => {
         const open = /** @type {ToggleEvent} */ (e).newState === 'open';
         this.#button.setAttribute('aria-expanded', String(open));
-        if (open) this.#place();
-        else this.#onClose();
+        if (open) {
+          this.#place();
+          this.#focusChips();
+        } else {
+          this.#onClose();
+        }
       });
     } else {
       this.#button.addEventListener('click', () => this.setOpen(!this.isOpen()));
@@ -273,7 +299,8 @@ class LabelTypeDropdown {
     if (open && !this.#mayOpen()) return;
     this.#popover.hidden = !open;
     this.#button.setAttribute('aria-expanded', String(open));
-    if (!open) this.#onClose();
+    if (open) this.#focusChips();
+    else this.#onClose();
   }
 
   /**
@@ -289,25 +316,37 @@ class LabelTypeDropdown {
     return this.#button.getAttribute('aria-disabled') !== 'true' && this.#onOpen();
   }
 
+  /** Opening a menu with the keyboard has to land in it, or the arrow keys the chips listen for go nowhere. */
+  #focusChips() {
+    /** @type {?HTMLElement} */ (this.#popover.querySelector('.label-type-picker__chip[tabindex="0"]'))?.focus();
+  }
+
   /** A popover is centered in the window by default; this parks it under the button. */
   #place() {
     const anchor = this.#button.getBoundingClientRect();
-    const left = Math.max(8, Math.min(anchor.left, window.innerWidth - this.#width() - 8));
+    const { width, height } = this.#size();
+    const left = Math.max(8, Math.min(anchor.left, window.innerWidth - width - 8));
+    // Above the button instead where there is no room below it, which on a card near the bottom of the pano is the
+    // difference between a list of types and a sliver of one.
+    const above = anchor.top - 6 - height;
+    const below = anchor.bottom + 6;
     this.#popover.style.left = `${left}px`;
-    this.#popover.style.top = `${anchor.bottom + 6}px`;
+    this.#popover.style.top = `${below + height + 8 > window.innerHeight && above >= 8 ? above : below}px`;
   }
 
   /**
    * A closed popover has no size to measure, so it is laid out off to the side for an instant; nothing paints
    * mid-handler, so none of that reaches the screen.
-   * @returns {number} The popover's width in px.
+   * @returns {{width: number, height: number}} The popover's size in px.
    */
-  #width() {
-    if (this.#popover.offsetWidth) return this.#popover.offsetWidth;
+  #size() {
+    if (this.#popover.offsetWidth) {
+      return { width: this.#popover.offsetWidth, height: this.#popover.offsetHeight };
+    }
     const style = this.#popover.style;
     Object.assign(style, { display: 'block', visibility: 'hidden', left: '0px', top: '0px' });
-    const width = this.#popover.offsetWidth;
+    const size = { width: this.#popover.offsetWidth, height: this.#popover.offsetHeight };
     Object.assign(style, { display: '', visibility: '' });
-    return width;
+    return size;
   }
 }

@@ -248,6 +248,50 @@ describe('LabelTypePicker', () => {
     expect(picks).toEqual([]);
     expect(root.querySelector('[aria-checked="true"]').dataset.labelType).toBe('Signal');
   });
+
+  describe('where a pick takes effect at once (commitsOnPick, #5409)', () => {
+    const chip = (t) => root.querySelector(`[data-label-type="${t}"]`);
+
+    /** @returns {LabelTypePicker} A picker in a host that saves on every pick, as both popovers do. */
+    function build() {
+      const picker = new window.LabelTypePicker(root, { commitsOnPick: true, onPick: (t) => picks.push(t) });
+      picker.render({ current: 'NoCurbRamp', selected: 'CurbRamp' });
+      return picker;
+    }
+
+    it('arrow keys only move, so arrowing past a type does not save it', () => {
+      const picker = build();
+      chip('CurbRamp').focus();
+
+      chip('CurbRamp').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+
+      expect(document.activeElement).toBe(chip('Obstacle'));
+      expect(picks).toEqual([]);
+      expect(picker.getSelected()).toBe('CurbRamp');
+      // Tab has to come back to where the arrows left off, not to the chip that is still checked.
+      const tabStops = [...root.querySelectorAll('[tabindex="0"]')].map((c) => c.dataset.labelType);
+      expect(tabStops).toEqual(['Obstacle']);
+    });
+
+    it('the chip the arrows land on is picked by pressing it', () => {
+      build();
+      chip('CurbRamp').focus();
+      chip('CurbRamp').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+
+      chip('Obstacle').click();
+
+      expect(picks).toEqual(['Obstacle']);
+    });
+
+    it('picking the already-picked type picks it again rather than folding the group away', () => {
+      build();
+
+      chip('CurbRamp').click();
+
+      expect(picks).toEqual(['CurbRamp']);
+      expect(root.querySelectorAll('[hidden]')).toHaveLength(0);
+    });
+  });
 });
 
 describe('LabelTypeDropdown', () => {
@@ -336,6 +380,17 @@ describe('LabelTypeDropdown', () => {
     expect(dropdown.isOpen()).toBe(false);
     expect(button().getAttribute('aria-expanded')).toBe('false');
     expect(closes).toBe(1);
+  });
+
+  it('opening lands focus on a chip, and a pick made there hands it back to the button', () => {
+    const dropdown = build();
+    dropdown.setEditable(true);
+
+    button().click();
+    expect(popover().contains(document.activeElement)).toBe(true);
+
+    /** @type {HTMLElement} */ (document.activeElement).click();
+    expect(document.activeElement).toBe(button());
   });
 
   it('stays shut when onOpen refuses, or while disabled', () => {

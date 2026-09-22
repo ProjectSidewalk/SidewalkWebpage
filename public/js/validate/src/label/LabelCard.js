@@ -116,10 +116,10 @@ class LabelCard {
     const labelType = editable ? label.getProperty('newLabelType') : label.getAuditProperty('labelType');
     const severity = editable ? label.getProperty('newSeverity') : label.getAuditProperty('severity');
     const tags = (editable ? label.getProperty('newTags') : label.getAuditProperty('tags')) ?? [];
-    this.#labelType = labelType;
+    this.#labelType = label.getAuditProperty('labelType');
 
     // Tags arrive as raw back-end strings; the card shows their localized names.
-    const typeName = this.#view.render({
+    this.#view.render({
       labelType,
       severity,
       tagNames: tags.map((tag) => i18next.t(`common:tag.${tag.replace(/:/g, '-')}`)),
@@ -128,9 +128,16 @@ class LabelCard {
     });
     this.#typeDropdown?.setType(labelType);
 
+    // The card can have grown or shrunk — a longer type name, a rating row that went away — and it is anchored to
+    // the marker by its own size, so a stale anchor leaves it covering the label it points at.
+    svv.labelVisibilityControl?.reanchorLabelCard();
+
     // Point the share control at this label's public permalink (#456). /label/:id renders the spotlight page and
-    // serves the og:image that crawlers embed in the share card.
+    // serves the og:image that crawlers embed in the share card. Named by the type the label still has, not a
+    // pending edit: the link opens the saved label, and sharing is not what saves the edit.
     if (this.#shareWidget) {
+      const sharedType = label.getAuditProperty('labelType');
+      const typeName = i18next.t(`common:${util.camelToKebab(sharedType)}`).replace('&shy;', '');
       const shareText = i18next.t('common:share.text', { labelType: typeName });
       this.#shareWidget.setTarget({
         url: `${window.location.origin}/label/${label.getAuditProperty('labelId')}`,
