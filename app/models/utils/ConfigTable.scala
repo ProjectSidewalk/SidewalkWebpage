@@ -238,6 +238,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
           WHERE completed = TRUE AND NOT user_stat.excluded
+              AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
       ) AS km_audited, (
           SELECT SUM(ST_Length(geom::geography)) / 1000 AS km_audited_no_overlap
           FROM (
@@ -246,6 +247,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
               INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
               WHERE completed = TRUE AND NOT user_stat.excluded
+                  AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
           ) distinct_streets
       ) AS km_audited_no_overlap, (
           SELECT COUNT(*) AS label_count
