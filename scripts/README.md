@@ -83,8 +83,7 @@ same per-city OAuth client credentials the app uses (`PanoDataService.getInfra3d
 differ from the other providers:
 
 - The query returns the nearest frame **with no distance cap** (a point far outside the city still gets the city's
-  closest frame), so "has imagery" is decided client-side: the nearest frame within the same 25 m (endpoints) / 15 m
-  (along-street) radius GSV uses.
+  closest frame), so "has imagery" is decided client-side: the nearest frame within the same 25 m radius GSV uses.
 - Frames are filtered server-side to 360° types (`calotte`/`cubemap`), matching the viewer's `setFilter` — Infra3d
   datasets mix in flat mono/stereo photos that Explore can't label on, so a street with only flat frames counts as
   having no imagery.
@@ -117,14 +116,43 @@ accumulating into it.
 ### Imagery age
 
 The responses we already fetch also carry an imagery capture date, so — for **no extra API calls** — the scan records
-each street's capture-date range (oldest/newest) and pano count into `street_imagery_summary.csv`
-(`street_edge_id, region_id, has_imagery, oldest_capture, newest_capture, n_panos`). That tells us not just whether a
+each street's capture-date range (oldest/newest) and pano count into `street_imagery_summary.csv` (`street_edge_id,
+region_id, has_imagery, oldest_capture, newest_capture, n_panos, max_cross_track_m`). That tells us not just whether a
 street has imagery but how old it is. GSV and Infra3d each answer with a single pano, so its date is the one recorded.
 Mapillary instead returns every image in the queried box, and the date recorded belongs to the image Explore would
 actually display: `score_pano` ports the viewer's ranking (distance, resolution, recency), reading its weights from
-`conf/pano-scoring.json` so the two can't drift. Recording the *newest* image instead would let a street look
-freshly imaged while the viewer went on serving older panos (#4411). Persisting this into the database — to power a
-"stale imagery" signal alongside the `street_edge_status` work (#3888) — is tracked as a separate follow-up (#4348).
+`conf/pano-scoring.json` so the two can't drift. Recording the *newest* image instead would let a street look freshly
+imaged while the viewer went on serving older panos (#4411). Persisting this into the database — to power a "stale
+imagery" signal alongside the `street_edge_status` work (#3888) — is tracked as a separate follow-up (#4348).
+
+### Search radius, and how far off the street a pano sits
+
+Every sampled point — street endpoints and the points between them alike — is queried at **25 m**, the radius Explore
+searches (`svl.STREETVIEW_MAX_DISTANCE`). Matching it is what makes the hide list mean "Explore has no imagery of this
+street"; and the radius has to clear each provider's capture interval anyway, or the box can straddle a gap and report
+no imagery where there is some. Mapillary's smart spacing targets 20 m on highways, and 12.6% of Budapest's
+consecutive captures exceed 20 m.
+
+A circle is not quite the right shape for the job, though: it has to be generous *along* the street to clear that
+interval, but everything it also reaches *across* the street is a chance to accept a pano belonging to an adjacent
+carriageway, alley or frontage road — imagery of a different street. So each street records `max_cross_track_m`, the
+largest distance from its centerline among the panos it saw. Once a scan has produced that distribution, the
+threshold for rejecting off-street imagery can be read off real data rather than guessed. The measurements and the
+plan are in #5091.
+
+GSV's `radius` parameter is a search hint, not a bound. A 25 m query has returned a pano 77 m away, and in Seattle a
+user photosphere in another state (#5114); a 15 m scan accepted the same far panos. So the scan checks the position each
+GSV response reports, and treats a pano as no imagery at that point when it lies beyond the search radius of both the
+point and the street's own centerline. The street half matters: a pano more than 25 m further down the same street is
+still imagery of it, and a point-only check hid six Teaneck streets that way. Explore's own viewer does not yet make
+that check, so it can still open such a pano (#5114). Mapillary and Panoramax already filter to the box server-side, and
+Infra3d applies its radius client-side.
+
+`--search-radius-m` (whole metres) turns that knob, which is how the two radii get compared on a real city. Changing
+it changes which streets count as having imagery, so every checkpoint row records the radius it was checked at, and
+the scan refuses to resume a checkpoint written at another radius or by an older version of the scan. Give each
+radius its own `--city-id` (and so its own `db/onboarding/<city-id>/` dir), or move that provider's
+`streets_imagery_checkpoint_<provider>.csv` aside between runs.
 
 ### Resilience & resume
 
