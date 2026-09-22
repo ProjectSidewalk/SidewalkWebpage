@@ -106,6 +106,8 @@ class Main {
 
     svl.minimap = await Minimap.create(currLatLng);
     svl.peg = new Peg(svl.minimap, currLatLng);
+    // Not in the tutorial, whose minimap is a fixed screenshot with its own scripted marks.
+    if (svl.minimap.isAvailable() && !svl.isOnboarding()) svl.minimapLandmarks = new MinimapLandmarks(svl.minimap);
 
     svl.ribbon = new RibbonMenu(svl.tracker);
     svl.canvas = new Canvas(svl.ribbon);

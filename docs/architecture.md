@@ -175,7 +175,7 @@ background; the AccessScore tool retries on that header and says so under its sp
 
 The **places refresh** (#5311) keeps the per-city `place` table current from OpenStreetMap: one Overpass query per
 run over the city's bounds for every tag in the `PlaceCategory` catalog (schools, health care, libraries, grocery,
-transit, parks, community centers), merged by `PlaceTable.replaceOsmPlaces` so a place keeps its `place_id` across
+transit, parks, community centers, government offices), merged by `PlaceTable.replaceOsmPlaces` so a place keeps its `place_id` across
 refreshes, with the containing region and the nearest open street within 250 m computed in SQL as it lands. It ticks
 nightly like every job but fetches only when the newest place is more than a week old, or the table is empty, which
 is how a city gets its places with nothing done at onboarding; the skipped ticks are recorded too, so the Health
@@ -340,7 +340,11 @@ corresponding Twirl view:
   breaks*: `Minimap.create` resolves when the style is ready, not when tiles arrive, so streets, markers and fog
   draw over a blank background. *No map degrades too*: MapLibre needs WebGL2 and throws without it, so `create`
   never rejects; a minimap that can't be built says so in its place and draws nothing, `isAvailable()` turns false
-  for the overlays drawn to its scale, and the rest of Explore starts (`Minimap_Unavailable` is logged). What Project Sidewalk itself draws on the map (street-line encodings, fog, cone) is
+  for the overlays drawn to its scale, and the rest of Explore starts (`Minimap_Unavailable` is logged). *Landmarks
+  come from the places table*, not the tiles: `MinimapLandmarks` asks `/v3/api/places` for schools, health care,
+  libraries, community centers, and government offices in a ~3 km box around the view, again only once the view
+  leaves its middle, so the minimap and the AccessScore map show the same places with the same glyphs
+  (`common/PlaceCategoryIcons.js`). What Project Sidewalk itself draws on the map (street-line encodings, fog, cone) is
   `MinimapStyle.js`. MapLibre 6 ships only as ES modules, and this frontend has no module system, so there is no
   `<script>` tag for it: `Minimap.create` loads it with a dynamic `import()` of the URL on the view's
   `#maplibre-module` preload link, which is also what fingerprints it and starts the download early. The mission-complete map on the same page is still Mapbox, so Explore loads

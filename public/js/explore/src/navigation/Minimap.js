@@ -46,6 +46,12 @@ class Minimap {
   // Id of the GeoJSON source holding every street line.
   static #STREETS_SOURCE = 'streets';
 
+  // Id of the GeoJSON source holding the landmarks (MinimapLandmarks).
+  static #LANDMARKS_SOURCE = 'landmarks';
+
+  /** Place categories whose landmark icon is on the map or loading, so each glyph loads once. @type {Set<string>} */
+  #landmarkIcons = new Set();
+
   /** The map, or null when it couldn't be created (no WebGL2, or MapLibre failed to load); see create(). */
   /** @type {?maplibregl.Map} */
   #map = null;
@@ -123,6 +129,10 @@ class Minimap {
 
     const pixelRatio = window.devicePixelRatio || 1;
     this.#map.addImage(MinimapStyle.CHEVRON_IMAGE_ID, MinimapStyle.chevronImage(pixelRatio), { pixelRatio });
+    const noPlaces = { type: 'FeatureCollection', features: [] };
+    this.#map.addSource(Minimap.#LANDMARKS_SOURCE, { type: 'geojson', data: noPlaces });
+    // Under the street lines, so a landmark never hides the route.
+    this.#map.addLayer(MinimapStyle.landmarkLayer(Minimap.#LANDMARKS_SOURCE));
     this.#map.addSource(Minimap.#STREETS_SOURCE, { type: 'geojson', data: this.#streetFeatureCollection() });
     // Over the road names: with roads at real width a name runs down the middle of its street, where it would hide
     // the route line. The route matters more than the name, which shows wherever the street isn't on the route.
@@ -538,6 +548,55 @@ class Minimap {
    */
   isAvailable() {
     return this.#map !== null;
+  }
+
+  /** @returns {{lat: number, lng: number}} The center of the view, which is off the user once they pan. */
+  getCenter() {
+    const center = this.#map.getCenter();
+    return { lat: center.lat, lng: center.lng };
+  }
+
+  /**
+   * Calls back once the view settles after any move: a pano change, zoom, pan, or the overview.
+   * @param {() => void} callback
+   */
+  onMoveEnd(callback) {
+    if (this.#map) this.#map.on('moveend', callback);
+  }
+
+  /**
+   * Draws landmarks, replacing the last set. Each category's icon is loaded the first time a place of it arrives; the
+   * places go on the map once every icon they need is ready, so none draws as a missing image.
+   * @param {{features: Array<{properties: {category: string}}>}} places - A GeoJSON FeatureCollection of points with
+   *   `category` and `name` properties.
+   * @returns {Promise<void>}
+   */
+  async setLandmarks(places) {
+    if (!this.#map) return;
+    const categories = new Set(places.features.map((feature) => feature.properties.category));
+    await Promise.all([...categories].map((category) => this.#addLandmarkIcon(category)));
+    this.#map.getSource(Minimap.#LANDMARKS_SOURCE).setData(places);
+  }
+
+  /**
+   * Loads a category's glyph and registers its landmark icon, once per category.
+   * @param {string} category - A place category.
+   * @returns {Promise<void>}
+   */
+  async #addLandmarkIcon(category) {
+    if (this.#landmarkIcons.has(category)) return;
+    this.#landmarkIcons.add(category);
+    const glyph = new Image();
+    glyph.src = util.assetPath(`images/icons/${PlaceCategoryIcons.file(category)}`);
+    try {
+      await glyph.decode();
+    } catch (error) {
+      // Drawn as a bare disc rather than not at all: the place is still worth marking.
+      console.error(`Minimap: no glyph for landmark category ${category}`, error);
+    }
+    const pixelRatio = window.devicePixelRatio || 1;
+    this.#map.addImage(`${MinimapStyle.LANDMARK_ICON_PREFIX}${category}`, MinimapStyle.landmarkIcon(glyph, pixelRatio),
+      { pixelRatio });
   }
 
   /**

@@ -39,7 +39,8 @@ final case class PlaceCategory(id: String, rules: Seq[OsmTagRule]) {
  * errand people with mobility impairments make most often; grocery leaves out convenience stores, most of which are
  * not food access; transit is dominated by bus stops (half of all places in Seattle), which is why it is its own
  * toggle; parks include playgrounds, which are otherwise mostly unnamed points inside them; community centers and
- * social facilities cover senior centers, which OSM files under either.
+ * social facilities cover senior centers, which OSM files under either; government covers town halls, courthouses, and
+ * government offices (a benefits office or a motor-vehicle office is a trip people can't skip).
  *
  * Order matters twice: it is the order the tool lists categories in, and the first category whose rule an object
  * satisfies wins, so a school that also sells groceries is a school.
@@ -63,9 +64,13 @@ object PlaceCategory {
   val Park: PlaceCategory      = PlaceCategory("park", Seq(OsmTagRule("leisure", Set("park", "playground"))))
   val Community: PlaceCategory =
     PlaceCategory("community", Seq(OsmTagRule("amenity", Set("community_centre", "social_facility"))))
+  val Government: PlaceCategory = PlaceCategory(
+    "government",
+    Seq(OsmTagRule("amenity", Set("townhall", "courthouse")), OsmTagRule("office", Set("government")))
+  )
 
   /** Every category, in display and precedence order. */
-  val all: Seq[PlaceCategory] = Seq(School, Health, Library, Grocery, Transit, Park, Community)
+  val all: Seq[PlaceCategory] = Seq(School, Health, Library, Grocery, Transit, Park, Community, Government)
 
   /** The category ids, in display order. */
   val ids: Seq[String] = all.map(_.id)

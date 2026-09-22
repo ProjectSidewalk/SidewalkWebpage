@@ -12,6 +12,7 @@ module.exports = function (grunt) {
           'public/js/common/ProgressBar.js',
           'public/js/common/PanoMarker.js',
           'public/js/common/LabelCardView.js',
+          'public/js/common/PlaceCategoryIcons.js',
           'public/js/common/utilitiesSidewalk.js',
           'public/js/common/SpeedLimit.js',
           'public/js/common/MissionStartTutorial.js',
@@ -109,6 +110,7 @@ module.exports = function (grunt) {
           'public/js/access-score/src/AccessScoreMapView.js',
           'public/js/access-score/src/AccessScoreSidebar.js',
           'public/js/access-score/src/AccessScoreClusterLayer.js',
+          'public/js/common/PlaceCategoryIcons.js',
           'public/js/access-score/src/AccessScorePlacesLayer.js',
           // The insights dock: the chart base class precedes the views that extend it (a subclass evaluates its
           // superclass at definition time), and the dock that owns them comes last.

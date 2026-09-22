@@ -43,6 +43,7 @@ class FakeMap {
   constructor(options) {
     this.options = options;
     this.layers = [];
+    this.images = [];
     this.calls = [];
     this.zoom = options.zoom;
     this.source = { setData: jest.fn() };
@@ -75,7 +76,9 @@ class FakeMap {
     (this.handlers[name] ?? []).forEach((handler) => handler());
   }
 
-  addImage() {}
+  addImage(id) {
+    this.images.push(id);
+  }
 
   addSource() {}
 
@@ -248,8 +251,10 @@ function setUpGlobals(frames) {
   for (const name of SOURCES) {
     window.eval(`${readSrc(`${NAVIGATION_DIR}/${name}.js`)}; window.${name} = ${name};`);
   }
-  // jsdom has no 2D canvas; the chevron's pixels aren't under test.
+  // jsdom has no 2D canvas; the icons' pixels aren't under test.
   window.MinimapStyle.chevronImage = () => ({ width: 1, height: 1, data: new Uint8ClampedArray(4) });
+  window.MinimapStyle.landmarkIcon = () => ({ width: 1, height: 1, data: new Uint8ClampedArray(4) });
+  window.eval(`${readSrc('public/js/common/PlaceCategoryIcons.js')}; window.PlaceCategoryIcons = PlaceCategoryIcons;`);
 }
 
 describe('Minimap seam', () => {
@@ -276,6 +281,20 @@ describe('Minimap seam', () => {
     // Reaching this line is the assertion: FakeMap never fires 'load' or 'idle'.
     expect(map.options.center).toEqual([PANO.lng, PANO.lat]);
     expect(minimap.isAvailable()).toBe(true);
+  });
+
+  test('landmarks load each category\'s icon once, before the places that need it are drawn', async () => {
+    // jsdom has no Image.decode; a resolved one stands in for a loaded glyph.
+    window.HTMLImageElement.prototype.decode = () => Promise.resolve();
+    const place = (category) => ({ type: 'Feature', properties: { category }, geometry: null });
+    const first = { type: 'FeatureCollection', features: [place('school'), place('school'), place('government')] };
+    await minimap.setLandmarks(first);
+    await minimap.setLandmarks({ type: 'FeatureCollection', features: [place('school')] });
+
+    expect(map.images.filter((id) => id.startsWith('minimap-place-')))
+      .toEqual(['minimap-place-school', 'minimap-place-government']);
+    delete window.HTMLImageElement.prototype.decode;
+    expect(map.source.setData).toHaveBeenLastCalledWith({ type: 'FeatureCollection', features: [place('school')] });
   });
 
   describe('panning', () => {
@@ -345,12 +364,12 @@ describe('Minimap seam', () => {
     });
   });
 
-  test('street lines go over the whole basemap, road names included, so a name never hides the route', () => {
+  test('street lines go over the whole basemap, road names and landmarks included, so nothing hides the route', () => {
     expect(map.layers.length).toBeGreaterThan(0);
     map.layers.forEach((layer) => expect(layer.beforeId).toBeUndefined());
-    // Bottom to top: context streets, then the route's casing, its lines, and the chevrons over everything.
+    // Bottom to top: landmarks, context streets, then the route's casing, its lines, and the chevrons over everything.
     expect(map.layers.map((layer) => layer.id)).toEqual([
-      'street-other', 'street-completed', 'street-casing', 'street-audited', 'street-remaining',
+      'landmarks', 'street-other', 'street-completed', 'street-casing', 'street-audited', 'street-remaining',
       'street-remaining-chevrons',
     ]);
   });

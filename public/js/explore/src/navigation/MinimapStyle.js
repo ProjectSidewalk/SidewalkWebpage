@@ -95,6 +95,70 @@ class MinimapStyle {
     };
   }
 
+  /** Prefix of the landmark icon image ids; each is this plus a place category (see landmarkIcon). */
+  static LANDMARK_ICON_PREFIX = 'minimap-place-';
+
+  // Landmark disc diameter and its glyph's size, in CSS px. Small: they orient, they aren't the task.
+  static #LANDMARK_DISC_PX = 16;
+  static #LANDMARK_GLYPH_PX = 10;
+
+  /**
+   * The landmark layer (MinimapLandmarks): a disc per place, its name beside it only from the default zoom in, where
+   * there is room for it. Names are optional and icons collide, so a crowded area thins itself out; named places win.
+   * @param {string} source - Id of the GeoJSON source holding the places.
+   * @returns {object} A MapLibre symbol layer.
+   */
+  static landmarkLayer(source) {
+    return {
+      id: 'landmarks',
+      type: 'symbol',
+      source,
+      layout: {
+        'icon-image': ['concat', MinimapStyle.LANDMARK_ICON_PREFIX, ['get', 'category']],
+        'text-field': ['step', ['zoom'], '', 17, ['coalesce', ['get', 'name'], '']],
+        'text-font': ['Noto Sans Regular'],
+        'text-size': 10,
+        'text-anchor': 'top',
+        'text-offset': [0, 0.9],
+        'text-max-width': 8,
+        'text-optional': true,
+        'symbol-sort-key': ['case', ['to-boolean', ['coalesce', ['get', 'name'], '']], 0, 1],
+      },
+      paint: {
+        'text-color': MinimapStyle.token('--color-asphalt-300', '#615E78'),
+        'text-halo-color': MinimapStyle.token('--color-neutral-white', '#FFFFFF'),
+        'text-halo-width': 1.5,
+      },
+    };
+  }
+
+  /**
+   * One category's landmark icon: its AccessScore glyph (PlaceCategoryIcons) in white on a muted disc, the road-name
+   * color, so landmarks read as part of the basemap rather than as something to act on.
+   * @param {HTMLImageElement} glyph - The loaded glyph.
+   * @param {number} pixelRatio - Device pixel ratio to rasterize at.
+   * @returns {ImageData} The icon bitmap, for map.addImage(..., { pixelRatio }).
+   */
+  static landmarkIcon(glyph, pixelRatio) {
+    const disc = MinimapStyle.#LANDMARK_DISC_PX;
+    const glyphPx = MinimapStyle.#LANDMARK_GLYPH_PX;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.ceil(disc * pixelRatio);
+    canvas.height = canvas.width;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(pixelRatio, pixelRatio);
+    ctx.beginPath();
+    ctx.arc(disc / 2, disc / 2, disc / 2 - 0.5, 0, 2 * Math.PI);
+    ctx.fillStyle = MinimapStyle.token('--color-asphalt-300', '#615E78');
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = MinimapStyle.token('--color-neutral-white', '#FFFFFF');
+    ctx.stroke();
+    // A glyph that failed to load has no size, and drawing it would throw.
+    if (glyph.naturalWidth > 0) ctx.drawImage(glyph, (disc - glyphPx) / 2, (disc - glyphPx) / 2, glyphPx, glyphPx);
+    return ctx.getImageData(0, 0, canvas.width, canvas.height);
+  }
+
   /** Id of the chevron image Minimap registers with the map (see chevronImage) for the route-ahead layer to draw. */
   static CHEVRON_IMAGE_ID = 'minimap-route-chevron';
 
