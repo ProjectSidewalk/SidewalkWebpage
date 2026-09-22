@@ -38,7 +38,8 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
      * `remoteAddress` walks X-Forwarded-For right-to-left past trusted proxies (the prod Apache reverse proxy connects
      * from 127.0.0.1 and appends the true client IP) and yields the first untrusted hop. Unlike taking the header's
      * first value, a client-supplied X-Forwarded-For cannot spoof this, so it is safe to key rate limits on (#1102).
-     * With no proxy in front (dev/Docker), it is simply the TCP peer address.
+     * With no proxy in front (dev/Docker), it is simply the TCP peer address. Either way it is always a real IP,
+     * which the `inet` ip_address columns rely on (#5398).
      */
     def ipAddress: String = request.remoteAddress
   }

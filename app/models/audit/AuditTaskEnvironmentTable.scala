@@ -22,7 +22,7 @@ case class AuditTaskEnvironment(
     screenWidth: Option[Int],
     screenHeight: Option[Int],
     operatingSystem: Option[String],
-    ipAddress: Option[String],
+    ipAddress: String,
     language: String,
     cssZoom: Int,
     timestamp: Option[OffsetDateTime]
@@ -41,7 +41,7 @@ class AuditTaskEnvironmentTableDef(tag: Tag) extends Table[AuditTaskEnvironment]
   def screenWidth: Rep[Option[Int]]          = column[Option[Int]]("screen_width")
   def screenHeight: Rep[Option[Int]]         = column[Option[Int]]("screen_height")
   def operatingSystem: Rep[Option[String]]   = column[Option[String]]("operating_system")
-  def ipAddress: Rep[Option[String]]         = column[Option[String]]("ip_address")
+  def ipAddress: Rep[String]                 = column[String]("ip_address")(inetString)
   def language: Rep[String]                  = column[String]("language", O.Default("en"))
   def cssZoom: Rep[Int]                      = column[Int]("css_zoom", O.Default(100))
   def timestamp: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("timestamp")

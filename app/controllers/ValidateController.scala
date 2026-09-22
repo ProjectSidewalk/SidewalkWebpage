@@ -445,7 +445,7 @@ class ValidateController @Inject() (
     val env: EnvironmentSubmission = data.environment
     validationService.insertEnvironment(
       ValidationTaskEnvironment(0, env.missionId, env.browser, env.browserVersion, env.browserWidth, env.browserHeight,
-        env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem, Some(ipAddress),
+        env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem, ipAddress,
         env.language, env.cssZoom, Some(currTime))
     )
 

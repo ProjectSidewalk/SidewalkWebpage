@@ -25,6 +25,7 @@ import org.n52.jackson.datatype.jts.JtsModule
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 import play.api.libs.json._
 import slick.ast.TypedType
+import slick.jdbc.JdbcType
 import slick.lifted.ExtensionMethods
 
 trait MyPostgresProfile
@@ -58,6 +59,12 @@ trait MyPostgresProfile
 
     /** Postgres's `random()`, a fresh draw in [0, 1) per row, so `sortBy(_ => random)` shuffles a query's rows. */
     val random: Rep[Double] = SimpleFunction.nullary[Double]("random")
+
+    /**
+     * Maps an `inet` column to a plain String, e.g. `column[String]("ip_address")(inetString)`. Postgres won't store
+     * an ordinary text parameter in an inet column, so this sends it untyped and lets Postgres parse it.
+     */
+    val inetString: JdbcType[String] = new GenericJdbcType[String]("inet", identity, identity)
 
     // Shared, because slick-pg looks an array's element type up by `tag.repr`: left to materialize itself, each
     // `nextArray[T]()` rebuilds the tag and re-renders that string per row, ~0.3 µs inside the `GetResult`.

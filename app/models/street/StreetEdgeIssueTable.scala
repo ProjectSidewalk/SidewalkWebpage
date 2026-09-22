@@ -46,7 +46,7 @@ class StreetEdgeIssueTableDef(tag: Tag) extends Table[StreetEdgeIssue](tag, "str
   def streetEdgeId: Rep[Int]                = column[Int]("street_edge_id")
   def issue: Rep[StreetEdgeIssueType.Value] = column[StreetEdgeIssueType.Value]("issue")
   def userId: Rep[String]                   = column[String]("user_id")
-  def ipAddress: Rep[String]                = column[String]("ip_address")
+  def ipAddress: Rep[String]                = column[String]("ip_address")(inetString)
   def timestamp: Rep[OffsetDateTime]        = column[OffsetDateTime]("timestamp")
 
   def * = (streetEdgeIssueId, streetEdgeId, issue, userId, ipAddress, timestamp) <> (

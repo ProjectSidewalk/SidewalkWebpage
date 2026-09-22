@@ -309,7 +309,7 @@ class ExploreController @Inject() (
               .insertEnvironment(
                 AuditTaskEnvironment(0, returnData.auditTaskId, missionId, env.browser, env.browserVersion,
                   env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
-                  env.screenHeight, env.operatingSystem, Some(ipAddress), env.language, env.cssZoom, Some(currTime))
+                  env.screenHeight, env.operatingSystem, ipAddress, env.language, env.cssZoom, Some(currTime))
               )
               .failed
               .foreach(e => logger.error("Error saving explore environment data.", e))

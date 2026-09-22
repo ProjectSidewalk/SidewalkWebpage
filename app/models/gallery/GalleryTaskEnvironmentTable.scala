@@ -19,7 +19,7 @@ case class GalleryTaskEnvironment(
     screenWidth: Option[Int],
     screenHeight: Option[Int],
     operatingSystem: Option[String],
-    ipAddress: Option[String],
+    ipAddress: String,
     language: String,
     userId: Option[String]
 )
@@ -35,7 +35,7 @@ class GalleryTaskEnvironmentTableDef(tag: Tag) extends Table[GalleryTaskEnvironm
   def screenWidth: Rep[Option[Int]]        = column[Option[Int]]("screen_width")
   def screenHeight: Rep[Option[Int]]       = column[Option[Int]]("screen_height")
   def operatingSystem: Rep[Option[String]] = column[Option[String]]("operating_system")
-  def ipAddress: Rep[Option[String]]       = column[Option[String]]("ip_address")
+  def ipAddress: Rep[String]               = column[String]("ip_address")(inetString)
   def language: Rep[String]                = column[String]("language")
   def userId: Rep[Option[String]]          = column[Option[String]]("user_id")
 

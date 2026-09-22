@@ -35,7 +35,7 @@ class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskCommen
   def missionId: Rep[Int]               = column[Int]("mission_id")
   def labelId: Rep[Int]                 = column[Int]("label_id")
   def userId: Rep[String]               = column[String]("user_id")
-  def ipAddress: Rep[String]            = column[String]("ip_address")
+  def ipAddress: Rep[String]            = column[String]("ip_address")(inetString)
   def panoId: Rep[String]               = column[String]("pano_id")
   def heading: Rep[Double]              = column[Double]("heading")
   def pitch: Rep[Double]                = column[Double]("pitch")

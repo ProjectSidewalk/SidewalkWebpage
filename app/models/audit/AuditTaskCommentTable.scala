@@ -46,7 +46,7 @@ class AuditTaskCommentTableDef(tag: Tag) extends Table[AuditTaskComment](tag, "a
   def missionId: Rep[Int]            = column[Int]("mission_id")
   def edgeId: Rep[Int]               = column[Int]("edge_id")
   def userId: Rep[String]            = column[String]("user_id")
-  def ipAddress: Rep[String]         = column[String]("ip_address")
+  def ipAddress: Rep[String]         = column[String]("ip_address")(inetString)
   def panoId: Rep[String]            = column[String]("pano_id")
   def heading: Rep[Double]           = column[Double]("heading")
   def pitch: Rep[Double]             = column[Double]("pitch")

@@ -49,7 +49,7 @@ class GalleryServiceImpl @Inject() (
         })
         _ <- galleryTaskEnvironmentTable.insert(
           GalleryTaskEnvironment(0, env.browser, env.browserVersion, env.browserWidth, env.browserHeight,
-            env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem, Some(ipAddress),
+            env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem, ipAddress,
             env.language, Some(userId))
         )
       } yield nInteractionSubmitted.length
