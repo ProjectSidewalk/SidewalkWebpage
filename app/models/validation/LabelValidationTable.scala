@@ -537,7 +537,8 @@ class LabelValidationTable @Inject() (
    * administratively excluded users are removed; when true, only high_quality users are included.
    *
    * validation_result is compared via ::text cast to support both integer and validation_option enum
-   * schemas across different city deployments ('Agree', 'Disagree', 'Unsure').
+   * schemas across different city deployments ('Agree', 'Disagree', 'Unsure'). Each vote is filed under the type it
+   * judged, which differs from the label's current type if the label was retyped since.
    *
    * @param startDate        Inclusive lower bound on end_timestamp (Pacific date); no bound if None.
    * @param endDate          Inclusive upper bound on end_timestamp; no bound if None.
@@ -568,7 +569,7 @@ class LabelValidationTable @Inject() (
 
     sql"""
       SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
-             label.label_type::text,
+             label_validation.label_type::text,
              COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
                         THEN 1 END) AS human_agree,
              COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Disagree'
@@ -586,8 +587,8 @@ class LabelValidationTable @Inject() (
       INNER JOIN user_stat  ON label_validation.user_id     = user_stat.user_id
       LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
       WHERE #$where
-      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, label.label_type::text
-      ORDER BY date ASC, label.label_type::text
+      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, label_validation.label_type::text
+      ORDER BY date ASC, label_validation.label_type::text
     """.as[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
   }
 }

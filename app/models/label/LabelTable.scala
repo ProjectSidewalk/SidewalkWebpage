@@ -2859,12 +2859,20 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                              > COUNT(CASE WHEN role IN ('Administrator', 'Owner') AND validation_result = 'Agree' THEN 1 END) THEN 2
                          ELSE 3
                          END AS admin_mv
+              -- Same label and voter filters as val_counts above, so both describe the same set of labels.
               FROM label
+              INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+              INNER JOIN user_stat AS labeler_stat ON label.user_id = labeler_stat.user_id
               INNER JOIN label_validation ON label.label_id = label_validation.label_id
               INNER JOIN user_stat ON label_validation.user_id = user_stat.user_id
               INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-              WHERE user_stat.excluded = FALSE
+              WHERE #$labelerFilter
+                  AND user_stat.excluded = FALSE
                   AND label.user_id <> label_validation.user_id -- Excluding times when user validated their own label.
+                  AND label.deleted = FALSE
+                  AND label.tutorial = FALSE
+                  AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+                  AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
               GROUP BY label.label_id, label.label_type::text
               HAVING COUNT(CASE WHEN user_role.role = 'AI' THEN 1 END) > 0
           ) AS majority_votes
@@ -3063,9 +3071,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // Mirrors the userFilter convention in getOverallStatsForApi.
     val userFilter   = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
     val whereClauses = scala.collection.mutable.ListBuffer(
-      "label.deleted = FALSE",
-      "label.tutorial = FALSE",
-      userFilter
+      "label.deleted = FALSE", "label.tutorial = FALSE",
+      "label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)",
+      "audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)", userFilter
     )
     startDate.foreach(d => whereClauses += s"label.time_created >= '$d'::date")
     endDate.foreach(d => whereClauses += s"label.time_created < ('$d'::date + INTERVAL '1 day')")
@@ -3080,6 +3088,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' THEN label.label_id END) AS human_labels,
              COUNT(CASE WHEN user_role.role = 'AI'               THEN label.label_id END) AS ai_labels
       FROM label
+      INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
       INNER JOIN user_stat  ON label.user_id       = user_stat.user_id
       LEFT  JOIN sidewalk_login.user_role ON label.user_id = user_role.user_id
       WHERE #$where

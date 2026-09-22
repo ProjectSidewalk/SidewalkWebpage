@@ -159,6 +159,27 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   private val schemasOnLabelTypeEnum = java.util.concurrent.ConcurrentHashMap.newKeySet[String]()
 
   /**
+   * Whether a city's schema is past evolution 395, which records on each vote the label type it judged. Like
+   * schemaHasLabelTypeEnum, it's needed while other cities' servers may still be on an older release.
+   *
+   * @param schema The database schema to probe.
+   * @return       DBIO yielding true when label_validation has a label_type column.
+   */
+  private def schemaHasValidationLabelType(schema: String): DBIO[Boolean] =
+    if (schemasWithValidationLabelType.contains(schema)) DBIO.successful(true)
+    else
+      sql"""
+        SELECT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = '#$schema' AND table_name = 'label_validation' AND column_name = 'label_type'
+        )""".as[Boolean].head.map { hasColumn =>
+        if (hasColumn) schemasWithValidationLabelType.add(schema)
+        hasColumn
+      }
+
+  private val schemasWithValidationLabelType = java.util.concurrent.ConcurrentHashMap.newKeySet[String]()
+
+  /**
    * SQL fragments for reading a label's type in another city's schema, in whichever of the two shapes it has (see
    * schemaHasLabelTypeEnum).
    *
@@ -1050,7 +1071,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       filterLowQuality: Boolean
   ): DBIO[Seq[(LocalDate, String, Int, Int)]] = {
     val userFilter = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
-    val where      = s"label.deleted = FALSE AND label.tutorial = FALSE AND $userFilter"
+    val where      = s"""label.deleted = FALSE AND label.tutorial = FALSE AND $userFilter
+      AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM "$schema".config)
+      AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM "$schema".config)"""
 
     implicit val getResult: GetResult[(LocalDate, String, Int, Int)] =
       GetResult(r => (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt()))
@@ -1064,6 +1087,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
              COUNT(CASE WHEN user_role.role = 'AI'               THEN label.label_id END) AS ai_labels
       FROM "#$schema".label
       #${labelTypeSql.join}
+      INNER JOIN "#$schema".audit_task ON label.audit_task_id = audit_task.audit_task_id
       INNER JOIN "#$schema".user_stat  ON label.user_id       = user_stat.user_id
       LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
       WHERE #$where
@@ -1100,11 +1124,14 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           r.nextInt(), r.nextInt())
       )
 
-    schemaHasLabelTypeEnum(schema).flatMap { hasLabelTypeEnum =>
-      val labelTypeSql = LabelTypeSql(schema, hasLabelTypeEnum)
-      sql"""
+    schemaHasLabelTypeEnum(schema).zip(schemaHasValidationLabelType(schema)).flatMap {
+      case (hasLabelTypeEnum, hasValidationLabelType) =>
+        val labelTypeSql = LabelTypeSql(schema, hasLabelTypeEnum)
+        // File each vote under the type it judged; older schemas only know the label's current type.
+        val typeName = if (hasValidationLabelType) "label_validation.label_type::text" else labelTypeSql.name
+        sql"""
       SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
-             #${labelTypeSql.name},
+             #$typeName,
              COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
                         THEN 1 END) AS human_agree,
              COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Disagree'
@@ -1123,8 +1150,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       INNER JOIN "#$schema".user_stat  ON label_validation.user_id     = user_stat.user_id
       LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
       WHERE #$where
-      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, #${labelTypeSql.name}
-      ORDER BY date ASC, #${labelTypeSql.name}
+      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, #$typeName
+      ORDER BY date ASC, #$typeName
       """.as[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
     }
   }

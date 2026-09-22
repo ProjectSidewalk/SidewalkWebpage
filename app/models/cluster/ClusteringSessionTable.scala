@@ -8,7 +8,7 @@ import models.region.RegionTableDef
 import models.street.StreetEdgeRegionTableDef
 import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile.api._
-import models.utils.{ClusteringThreshold, MyPostgresProfile}
+import models.utils.{ClusteringThreshold, ConfigTableDef, MyPostgresProfile}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -108,6 +108,7 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
   private val userStats          = TableQuery[UserStatTableDef]
   private val labelPoints        = TableQuery[LabelPointTableDef]
   private val streetEdgeRegions  = TableQuery[StreetEdgeRegionTableDef]
+  private val tutorialStreetId   = TableQuery[ConfigTableDef].map(_.tutorialStreetEdgeID)
 
   // Get labels that should be in the API. Labels from high quality users that haven't been explicitly marked as
   // incorrect should be included, plus labels from low quality users that have been explicitly marked as correct.
@@ -129,6 +130,7 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
     // Tutorial labels were kept out only by accident: auditOnboarding missions have a NULL region_id, so the
     // mission -> region join dropped them. That misses one flagged tutorial inside a real audit mission (#4587).
     if l.tutorial === false
+    if !(l.streetEdgeId in tutorialStreetId) && !(at.streetEdgeId in tutorialStreetId)
     if l.correct || (us.highQuality && l.correct.isEmpty && !at.lowQuality)
     if lp.lat.isDefined && lp.lng.isDefined
   } yield (ser.regionId, us.userId, l.panoId, l.labelId, l.labelTypeName, lp.lat.ifNull(-1d), lp.lng.ifNull(-1d),
