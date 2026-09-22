@@ -472,9 +472,8 @@ function setupPermalinkCopying() {
 }
 
 /**
- * Sets up the download buttons: each hands its URL to the browser and shows a short status. The browser download
- * fails silently if the server refuses it (429: the same file is already being built for someone else), so the
- * button asks first with a HEAD request, which answers without building anything, and reports that instead.
+ * Sets up the download buttons. Each one fetches the file itself instead of handing the URL to the browser, since
+ * only then can the page see the server's answer, the download's progress, and when it finishes.
  */
 function setupDownloadButtons() {
   const downloadButtonsContainer = document.querySelector('.download-buttons');
@@ -483,38 +482,42 @@ function setupDownloadButtons() {
   const downloadButtons = /** @type {NodeListOf<HTMLButtonElement>} */ (
     downloadButtonsContainer.querySelectorAll('.download-btn')
   );
-  const downloadStatus = document.getElementById('download-status');
-  if (!downloadStatus) return;
 
-  downloadStatus.className = 'status-container status-loading ps-hidden';
-  const statusMessage = downloadStatus.querySelector('.status-message');
-  const statusProgress = downloadStatus.querySelector('.status-progress');
-  let hideTimer = null;
+  // The changing numbers sit outside the live region, so screen readers aren't interrupted on every update.
+  const statusBox = document.createElement('div');
+  statusBox.className = 'download-status';
+  statusBox.innerHTML = `
+    <span class="download-status-icon" aria-hidden="true"></span>
+    <span class="download-status-message" role="status"></span>
+    <span class="download-status-detail" aria-hidden="true"></span>
+    <div class="ps-progress-bar download-status-bar ps-hidden" role="progressbar" aria-label="Download progress"
+         aria-valuemin="0" aria-valuemax="100">
+      <div class="ps-progress-bar__track"><div class="ps-progress-bar__fill"></div></div>
+    </div>`;
+  downloadButtonsContainer.after(statusBox);
+  const statusIcon = statusBox.querySelector('.download-status-icon');
+  const statusMessage = statusBox.querySelector('.download-status-message');
+  const statusDetail = statusBox.querySelector('.download-status-detail');
+  const statusBar = /** @type {HTMLElement} */ (statusBox.querySelector('.download-status-bar'));
+  const statusBarFill = /** @type {HTMLElement} */ (statusBox.querySelector('.ps-progress-bar__fill'));
 
   /**
-   * Shows the status box with the given lines.
-   * @param {string} message - The headline.
-   * @param {string} detail - The line under it.
-   * @param {?string} [tone] - A status-message modifier class for a warning or error, or null for plain.
+   * @param {'working'|'done'|'warning'|'error'} state - Picks the icon: a spinner while working, else a symbol.
+   * @param {string} message - The stage, e.g. "Downloading the CSV file".
+   * @param {string} [detail] - Progress numbers shown beside the message.
+   * @param {?number} [percent] - Fills the progress bar; null hides it, for files whose size isn't known.
    */
-  function showStatus(message, detail, tone = null) {
-    clearTimeout(hideTimer);
-    downloadStatus.classList.remove('ps-hidden');
-    if (statusMessage) {
-      statusMessage.textContent = message;
-      statusMessage.classList.remove('status-message--warning', 'status-message--error');
-      if (tone) statusMessage.classList.add(tone);
+  function showStatus(state, message, detail = '', percent = null) {
+    statusBox.dataset.state = state;
+    const iconClass = state === 'working' ? 'loading-spinner' : `ps-mask-icon download-status-icon--${state}`;
+    statusIcon.className = `download-status-icon ${iconClass}`;
+    if (statusMessage.textContent !== message) statusMessage.textContent = message;
+    statusDetail.textContent = detail;
+    statusBar.classList.toggle('ps-hidden', percent === null);
+    if (percent !== null) {
+      statusBarFill.style.width = `${percent}%`;
+      statusBar.setAttribute('aria-valuenow', String(percent));
     }
-    if (statusProgress) statusProgress.textContent = detail;
-  }
-
-  /** Hides the status box after `ms` milliseconds. */
-  function hideStatusAfter(ms) {
-    clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => {
-      downloadStatus.classList.add('ps-hidden');
-      if (statusMessage) statusMessage.classList.remove('status-message--warning', 'status-message--error');
-    }, ms);
   }
 
   /** Enables or disables every download button. */
@@ -525,8 +528,18 @@ function setupDownloadButtons() {
     });
   }
 
+  // The file is lost if the page closes mid-download, which a plain browser download would have survived.
+  let downloading = false;
+  window.addEventListener('beforeunload', (event) => {
+    if (downloading) event.preventDefault();
+  });
+
   downloadButtons.forEach((button) => {
     const format = button.getAttribute('data-format');
+    const formatName = [...button.childNodes]
+      .filter((node) => node.nodeType === Node.TEXT_NODE)
+      .map((node) => node.textContent.trim())
+      .join('') || format;
 
     button.addEventListener('click', async (event) => {
       event.preventDefault();
@@ -535,33 +548,117 @@ function setupDownloadButtons() {
         || 'NEEDS_TO_BE_SET_BY_API_DOC_PAGE';
       const downloadUrl = `${apiBaseUrl}/${currentPage}?filetype=${format}`;
 
-      showStatus(`Preparing ${format.toUpperCase()} file...`, 'Checking with the server.');
       setButtonsDisabled(true);
-
-      // A network failure answers 0, and the download then proceeds as it would have anyway.
-      const status = await fetch(downloadUrl, { method: 'HEAD' }).then((probe) => probe.status, () => 0);
-      if (status === 429) {
-        // The one translated string on this page, shared with the Label Map so the two can't drift apart.
-        const refused = typeof i18next !== 'undefined'
-          ? i18next.t('common:download-already-preparing')
-          : 'This file is already being prepared for another request. Please try again shortly.';
-        showStatus(refused, '', 'status-message--warning');
-      } else {
-        const downloadLink = document.createElement('a');
-        downloadLink.href = downloadUrl;
-        downloadLink.setAttribute('download', '');
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        downloadLink.remove();
-        showStatus(
-          'Download started.',
-          'It will appear in your downloads once the server has built the file. A city-wide file can take a while.',
-        );
+      downloading = true;
+      try {
+        await downloadFile(downloadUrl, formatName);
+      } finally {
+        downloading = false;
+        setButtonsDisabled(false);
       }
-      setButtonsDisabled(false);
-      hideStatusAfter(8000);
     });
   });
+
+  /**
+   * Fetches a file, reporting each stage, and saves it once it has fully arrived.
+   *
+   * @param {string} url - The file's API URL.
+   * @param {string} formatName - The format, as shown to the user.
+   * @returns {Promise<void>}
+   */
+  async function downloadFile(url, formatName) {
+    showStatus('working', `Preparing the ${formatName} file`);
+
+    let response;
+    try {
+      // Chrome makes a request wait 20s while another tab fetches the same URL; no-store skips that wait, and the
+      // HEAD answers without building anything.
+      const probe = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+      response = probe.status === 429 ? probe : await fetch(url, { cache: 'no-store' });
+    } catch {
+      showStatus('error', 'The download failed: could not reach the server. Please try again.');
+      return;
+    }
+
+    if (response.status === 429) {
+      // Shared with the Label Map so the two can't drift apart.
+      const refused = typeof i18next !== 'undefined'
+        ? i18next.t('common:download-already-preparing')
+        : 'This file is already being prepared for another request. Please try again shortly.';
+      showStatus('warning', refused);
+      return;
+    }
+    if (!response.ok) {
+      showStatus('error', `The download failed (error ${response.status}). Please try again.`);
+      return;
+    }
+
+    // Streamed CSV/GeoJSON can't know their size until the last row; a built file's is in X-File-Size once gzip has
+    // dropped Content-Length.
+    const totalBytes = Number(response.headers.get('X-File-Size') || response.headers.get('Content-Length')) || 0;
+    const chunks = [];
+    let receivedBytes = 0;
+    let lastPaint = 0;
+    try {
+      const reader = response.body.getReader();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        receivedBytes += value.length;
+        // Chunks arrive thousands of times a second on a fast connection; repainting on each one stalls the page.
+        if (Date.now() - lastPaint < 250) continue;
+        lastPaint = Date.now();
+        if (totalBytes) {
+          const detail = `${formatBytes(receivedBytes)} of ${formatBytes(totalBytes)}`;
+          const percent = Math.floor((receivedBytes / totalBytes) * 100);
+          showStatus('working', `Downloading the ${formatName} file`, detail, percent);
+        } else {
+          showStatus('working', `Downloading the ${formatName} file`, formatBytes(receivedBytes));
+        }
+      }
+    } catch {
+      showStatus('error', 'The download stopped before it finished. Please try again.');
+      return;
+    }
+
+    // A stream that ends early but tidily raises no error, so only the count catches a half-written file.
+    if (totalBytes && receivedBytes < totalBytes) {
+      showStatus('error', 'The download stopped before it finished. Please try again.');
+      return;
+    }
+
+    const filename = filenameFromDisposition(response.headers.get('Content-Disposition'))
+      || `${document.documentElement.getAttribute('data-api-endpoint')}.${formatName.toLowerCase()}`;
+    const blobUrl = URL.createObjectURL(new Blob(chunks, { type: response.headers.get('Content-Type') || '' }));
+    const saveLink = document.createElement('a');
+    saveLink.href = blobUrl;
+    saveLink.download = filename;
+    document.body.appendChild(saveLink);
+    saveLink.click();
+    saveLink.remove();
+    // Revoking right away can cancel the save in some browsers.
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    showStatus('done', `Downloaded ${filename}`, formatBytes(receivedBytes));
+  }
+}
+
+/**
+ * @param {number} bytes - A size in bytes.
+ * @returns {string} The size in KB or MB, like "12.3 MB".
+ */
+function formatBytes(bytes) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * @param {?string} disposition - A Content-Disposition header.
+ * @returns {?string} The filename the server gave the file, if any.
+ */
+function filenameFromDisposition(disposition) {
+  const match = disposition?.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
 /**
