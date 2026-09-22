@@ -160,10 +160,18 @@
     },
     "reaudit": {
       "title": "Cette rue a des images plus récentes",
-      "message-you": "Vous avez cartographié cette rue pour la dernière fois en {{lastMapped}}, mais les images ont été actualisées depuis (en {{newImagery}}). Voyons ce qui a changé !",
-      "message-you-no-dates": "Vous avez déjà cartographié cette rue, mais les images ont été actualisées depuis. Voyons ce qui a changé !",
-      "message-others": "Un autre utilisateur a cartographié cette rue en {{lastMapped}}, mais les images ont été actualisées depuis (en {{newImagery}}). Voyons ce qui a changé !",
-      "message-others-no-dates": "Un autre utilisateur a déjà cartographié cette rue, mais les images ont été actualisées depuis. Voyons ce qui a changé !"
+      "message-you": "Vous avez évalué cette rue pour la dernière fois en {{lastMapped}}, mais les images ont été actualisées depuis (en {{newImagery}}). Veuillez évaluer à nouveau cette rue pour nous aider à analyser ce qui a changé.",
+      "message-you-no-dates": "Vous avez déjà évalué cette rue, mais les images ont été actualisées depuis. Veuillez évaluer à nouveau cette rue pour nous aider à analyser ce qui a changé.",
+      "message-others": "Cette rue a été évaluée pour la dernière fois en {{lastMapped}}, mais les images ont été actualisées depuis (en {{newImagery}}). Veuillez évaluer à nouveau cette rue pour nous aider à analyser ce qui a changé.",
+      "message-others-no-dates": "Cette rue a déjà été évaluée, mais les images ont été actualisées depuis. Veuillez évaluer à nouveau cette rue pour nous aider à analyser ce qui a changé."
+    },
+    "pano-date-note": {
+      "image-date": "Image : {{date}}",
+      "needs-reassessment": "À réévaluer",
+      "already-assessed": "Déjà évalué",
+      "already-assessed-tip": "Vous avez évalué ce lieu pour la dernière fois en {{assessedDate}}, et les images ({{captureDate}}) n'ont pas changé depuis cette évaluation. N'hésitez pas à ajouter de nouvelles étiquettes si vous repérez quelque chose !",
+      "needs-reassessment-tip-you": "Vous avez évalué ce lieu pour la dernière fois en {{assessedDate}}, mais les images ici sont plus récentes ({{captureDate}}). Veuillez l'évaluer à nouveau pour nous aider à analyser ce qui a changé.",
+      "needs-reassessment-tip-others": "Un utilisateur a évalué ce lieu pour la dernière fois en {{assessedDate}}, mais les images ici sont plus récentes ({{captureDate}}). Veuillez l'évaluer à nouveau pour nous aider à analyser ce qui a changé."
     },
     "minimap": {
       "coach-dismiss": "Compris",
