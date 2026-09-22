@@ -29,8 +29,9 @@ const makeTask = (streetEdgeId, props = {}) => ({
 });
 
 // Teaneck street 1755, the street that motivated #5413: audited 2024-07-07, imagery now spanning 2021-10 to 2024-10.
-const MAPPED_BY_ME = { mappedByThisUser: true, lastMappedAt: '2024-07-07T12:00:00-07:00' };
-const MAPPED_BY_OTHERS = { mappedByThisUser: false, lastMappedAt: '2024-07-07T12:00:00-07:00' };
+// In the shape the task payload carries it: the server writes every OffsetDateTime in UTC.
+const MAPPED_BY_ME = { mappedByThisUser: true, lastMappedAt: '2024-07-07T19:00:00Z' };
+const MAPPED_BY_OTHERS = { mappedByThisUser: false, lastMappedAt: '2024-07-07T19:00:00Z' };
 
 describe('PanoDateNote', () => {
     let tracker;
@@ -80,38 +81,49 @@ describe('PanoDateNote', () => {
         });
 
         test('a pano with no usable capture date is left alone rather than guessed at', () => {
-            expect(PanoDateNote.stateFor(null, '2024-07-07T12:00:00-07:00')).toBe('unaudited');
-            expect(PanoDateNote.stateFor('Invalid date', '2024-07-07T12:00:00-07:00')).toBe('unaudited');
+            expect(PanoDateNote.stateFor(null, '2024-07-07T19:00:00Z')).toBe('unaudited');
+            expect(PanoDateNote.stateFor('Invalid date', '2024-07-07T19:00:00Z')).toBe('unaudited');
         });
 
         test('imagery captured after the last audit is a re-audit', () => {
-            expect(PanoDateNote.stateFor('2024-10-01', '2024-07-07T12:00:00-07:00')).toBe('reaudit');
+            expect(PanoDateNote.stateFor('2024-10-01', '2024-07-07T19:00:00Z')).toBe('reaudit');
         });
 
         test('imagery captured before the last audit is what was already mapped', () => {
-            expect(PanoDateNote.stateFor('2022-03-01', '2024-07-07T12:00:00-07:00')).toBe('already-mapped');
+            expect(PanoDateNote.stateFor('2022-03-01', '2024-07-07T19:00:00Z')).toBe('already-mapped');
         });
 
         test('the same month counts as already mapped, since a capture date carries no day', () => {
-            expect(PanoDateNote.stateFor('2024-07-01', '2024-07-07T12:00:00-07:00')).toBe('already-mapped');
+            expect(PanoDateNote.stateFor('2024-07-01', '2024-07-07T19:00:00Z')).toBe('already-mapped');
             // One month either side, to pin that the boundary is the only equal case.
-            expect(PanoDateNote.stateFor('2024-08-01', '2024-07-07T12:00:00-07:00')).toBe('reaudit');
-            expect(PanoDateNote.stateFor('2024-06-01', '2024-07-07T12:00:00-07:00')).toBe('already-mapped');
+            expect(PanoDateNote.stateFor('2024-08-01', '2024-07-07T19:00:00Z')).toBe('reaudit');
+            expect(PanoDateNote.stateFor('2024-06-01', '2024-07-07T19:00:00Z')).toBe('already-mapped');
         });
 
         test('the chip and its tooltip never disagree about which month an assessment landed in', () => {
-            // Where `stateFor` and `util.monthYear` used to part company: the comparison read November off the
-            // string, the sentence converted into the reader's zone and said October. jest.config.js pins the TZ.
-            const utcMidnight = { ...MAPPED_BY_ME, lastMappedAt: '2024-11-01T03:00:00Z' };
-            note.update('2024-11-01', makeTask(31, utcMidnight));
+            // Where `stateFor` and `util.monthYear` used to part company, one reading the month off the string and
+            // the other converting it. jest.config.js pins the TZ to Los Angeles, where this is October 31, 8 pm.
+            const octoberEvening = { ...MAPPED_BY_ME, lastMappedAt: '2024-11-01T03:00:00Z' };
+            note.update('2024-10-01', makeTask(31, octoberEvening));
             expect(corner().note).toBe('right-ui.pano-date-note.already-assessed');
-            expect(tip()).toBe('right-ui.pano-date-note.already-assessed-tip|November 2024|November 2024');
+            expect(tip()).toBe('right-ui.pano-date-note.already-assessed-tip|October 2024|October 2024');
         });
 
-        test('a timestamp is read in the offset it carries, not shifted into the local zone', () => {
-            // 2024-07-01T00:30+02:00 is still June 30 in UTC. Reading the calendar fields keeps it in July, so a July
-            // capture does not flip to a re-audit on the strength of the reader's time zone.
-            expect(PanoDateNote.stateFor('2024-07-01', '2024-07-01T00:30:00+02:00')).toBe('already-mapped');
+        test('a UTC assessment timestamp is read in the labeler\'s zone, not off the string', () => {
+            // The payload's `Z` is the server's zone, not the labeler's: this assessment was done on October 31 in
+            // Los Angeles, so November imagery postdates it. Reading `11` off the string would call that imagery
+            // already assessed and print "November 2024" at someone who did the work in October.
+            const octoberEvening = { ...MAPPED_BY_ME, lastMappedAt: '2024-11-01T03:00:00Z' };
+            expect(PanoDateNote.stateFor('2024-11-01', octoberEvening.lastMappedAt)).toBe('reaudit');
+            note.update('2024-11-01', makeTask(31, octoberEvening));
+            expect(corner().note).toBe('right-ui.pano-date-note.needs-reassessment');
+            expect(tip()).toBe('right-ui.pano-date-note.needs-reassessment-tip-you|October 2024|November 2024');
+        });
+
+        test('a capture date is read off the string, never shifted by the zone', () => {
+            // `new Date('2024-07-01')` is UTC midnight, which in Los Angeles is June 30.
+            expect(PanoDateNote.monthKey('2024-07-01')).toBe(202407);
+            expect(PanoDateNote.monthKey('2024-07')).toBe(202407);
         });
     });
 
@@ -207,7 +219,7 @@ describe('PanoDateNote', () => {
                 streetEdgeId: 1755,
                 state: 'reaudit',
                 captureDate: '2024-10-01',
-                lastMappedAt: '2024-07-07T12:00:00-07:00',
+                lastMappedAt: '2024-07-07T19:00:00Z',
                 mappedByThisUser: true,
             });
         });

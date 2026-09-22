@@ -76,6 +76,13 @@ describe('ReauditNotice.showForTask', () => {
         });
     });
 
+    test('names the month the labeler did the work in, not the UTC month the server wrote', () => {
+        // jest.config.js pins Los Angeles, where 2024-11-01T03:00Z is the evening of October 31.
+        const notice = new ReauditNotice(tracker);
+        notice.showForTask(makeTask(7, { ...REAUDIT_BY_ME, lastMappedAt: '2024-11-01T03:00:00Z' }));
+        expect(window.Toast.show.mock.calls[0][0].message).toBe('right-ui.reaudit.message-you|October 2024|March 2025');
+    });
+
     test('says "someone mapped this" when the earlier pass was not the labeler\'s', () => {
         const notice = new ReauditNotice(tracker);
         expect(notice.showForTask(makeTask(7, REAUDIT_BY_OTHERS))).toBe(true);

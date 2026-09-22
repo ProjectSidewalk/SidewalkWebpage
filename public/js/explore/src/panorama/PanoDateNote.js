@@ -61,16 +61,16 @@ class PanoDateNote {
   /**
    * The year and month of an ISO date or timestamp, as a comparable integer.
    *
-   * Read straight off the string rather than through Date: both inputs already carry the calendar month we want (the
-   * capture date is month-granular to begin with, and a timestamp's offset is the one it was recorded in), so
-   * parsing would only introduce the chance of a timezone shifting the answer by a month.
+   * Through `util.yearMonth`, the same reading `util.monthYear` prints, so the chip and its tooltip always agree on
+   * which month an assessment landed in: a capture date is read off the string, and the assessment timestamp (UTC on
+   * the wire) in the labeler's own zone.
    *
-   * @param {?string} iso - A date (`2024-10-01`) or timestamp (`2024-07-07T12:00:00-07:00`) string.
+   * @param {?string} iso - A date (`2024-10-01`) or timestamp (`2024-07-07T19:00:00Z`) string.
    * @returns {?number} e.g. 202410, or null if there is no usable year and month.
    */
   static monthKey(iso) {
-    const match = /^(\d{4})-(\d{2})/.exec(iso ?? '');
-    return match ? Number(match[1]) * 100 + Number(match[2]) : null;
+    const ym = util.yearMonth(iso);
+    return ym === null ? null : ym.year * 100 + ym.month;
   }
 
   /**

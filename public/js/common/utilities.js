@@ -366,29 +366,55 @@ util.longDistanceToString = (km, precision = 0) =>
   i18next.services.formatter.format(km, `distance(style: large; precision: ${precision})`, i18next.language, {});
 
 /**
+ * The calendar year and month of a month, date or timestamp string, as the reader would name it.
+ *
+ * The two shapes need opposite handling. A bare month or date (`2024-10`, `2024-10-01`: a capture date, or a
+ * `LocalDate` off the wire) names a calendar month in no zone at all, so it is read straight off the string --
+ * `Date` would land it on UTC midnight, which west of Greenwich is the month before for a first-of-month date. A
+ * timestamp names an instant, and the server writes every `OffsetDateTime` in UTC (`2024-11-01T03:00:00Z`), so it
+ * is converted into the reader's zone: that is the month the labeler did the work in, and reading the UTC fields
+ * would tell someone who assessed a street on an October evening in Seattle that they did it in November.
+ *
+ * `util.monthYear` and `PanoDateNote.monthKey` both go through here, so a chip can never disagree with its tooltip.
+ *
+ * @param {?string} iso - A month (`2024-10`), date (`2024-10-01`) or timestamp (`2024-10-01T03:00:00Z`) string.
+ * @returns {?{year: number, month: number}} `month` is 1-12, or null if there is no usable year and month.
+ * @example
+ * util.yearMonth('2024-10-01');            // { year: 2024, month: 10 }, in any zone
+ * util.yearMonth('2024-11-01T03:00:00Z');  // { year: 2024, month: 10 } in Los Angeles, month 11 in Berlin
+ * util.yearMonth('Invalid date');          // null
+ */
+util.yearMonth = function (iso) {
+  const calendar = /^(\d{4})-(\d{2})(?:-\d{2})?$/.exec(iso ?? '');
+  if (calendar !== null) {
+    const month = Number(calendar[2]);
+    // Checked by hand because `new Date(2024, 12, 1)` would roll into January rather than reject.
+    return month >= 1 && month <= 12 ? { year: Number(calendar[1]), month } : null;
+  }
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(iso ?? '')) return null;
+  const instant = new Date(iso);
+  if (Number.isNaN(instant.getTime())) return null;
+  return { year: instant.getFullYear(), month: instant.getMonth() + 1 };
+};
+
+/**
  * Renders a date at month precision for this reader, e.g. "October 2024" or "Oct 2024".
  *
  * Month precision because that is all an imagery capture date carries — GSV reports `2024-10` — so anything finer
  * would be inventing a day we do not have. Null for a missing or unparseable value rather than a fallback string:
  * `pano_data.capture_date` is free text holding whatever the imagery API returned, including the literal
- * "Invalid date", and callers want to drop the date from their sentence rather than print that at a labeler.
+ * "Invalid date", and callers want to drop the date from their sentence rather than print that at a labeler. Which
+ * month a string names is `util.yearMonth`'s call.
  *
- * @param {?string} iso - A month (`2024-10`), date (`2024-10-01`) or timestamp (`2024-10-01T12:00:00-07:00`) string.
+ * @param {?string} iso - A month (`2024-10`), date (`2024-10-01`) or timestamp (`2024-10-01T03:00:00Z`) string.
  * @param {object} [options]
  * @param {boolean} [options.short=false] - Abbreviate the month ("Oct" rather than "October").
  * @returns {?string} The localized month and year, or null if there is no usable date.
  */
 util.monthYear = function (iso, { short = false } = {}) {
-  // Never through `Date` parsing, which reinterprets all three shapes in the reader's zone: a bare date or month
-  // lands on UTC midnight, and a timestamp leaves the offset it was recorded in, so either can print the month
-  // before. `PanoDateNote.monthKey` reads the string the same way, and the two must agree or a note contradicts
-  // its own tooltip.
-  const parts = /^(\d{4})-(\d{2})(?:\D|$)/.exec(iso ?? '');
-  if (parts === null) return null;
-  const month = Number(parts[2]);
-  // `new Date(2024, 12, 1)` would roll into January rather than reject, quietly printing the wrong year.
-  if (month < 1 || month > 12) return null;
-  return new Date(Number(parts[1]), month - 1, 1)
+  const ym = util.yearMonth(iso);
+  if (ym === null) return null;
+  return new Date(ym.year, ym.month - 1, 1)
     .toLocaleDateString(i18next.language, { month: short ? 'short' : 'long', year: 'numeric' });
 };
 
