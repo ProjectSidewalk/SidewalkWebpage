@@ -191,7 +191,7 @@
       "breadcrumb-title": "Visitado: clic para volver aquí",
       "label-marker-title": "Etiqueta {{labelType}}: clic para revisarla",
       "label-marker-title-prior": "Etiqueta «{{labelType}}» de una misión anterior",
-      "label-marker-title-outdated": "Etiqueta «{{labelType}}» en una calle con imágenes más recientes",
+      "label-marker-title-outdated": "Etiqueta antigua «{{labelType}}» en una calle con imágenes nuevas",
       "route-start-flag": "Inicio de la ruta",
       "route-finish-flag": "Final de la ruta",
       "mission-start-flag": "Donde empezó esta misión",

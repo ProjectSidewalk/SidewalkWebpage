@@ -191,7 +191,7 @@
       "breadcrumb-title": "Visited: click to go back here",
       "label-marker-title": "{{labelType}} label: click to review it",
       "label-marker-title-prior": "“{{labelType}}” label from an earlier mission",
-      "label-marker-title-outdated": "“{{labelType}}” label on a street with newer imagery",
+      "label-marker-title-outdated": "Old “{{labelType}}” label on a street with new imagery",
       "route-start-flag": "Route start",
       "route-finish-flag": "Route finish",
       "mission-start-flag": "Where this mission started",

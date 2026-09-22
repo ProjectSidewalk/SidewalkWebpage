@@ -191,7 +191,7 @@
       "breadcrumb-title": "Besucht: klicken, um hierher zurückzukehren",
       "label-marker-title": "{{labelType}}-Markierung: klicken zum Überprüfen",
       "label-marker-title-prior": "„{{labelType}}“-Markierung aus einer früheren Mission",
-      "label-marker-title-outdated": "„{{labelType}}“-Markierung auf einer Straße mit neueren Bildern",
+      "label-marker-title-outdated": "Alte „{{labelType}}“-Markierung auf einer Straße mit neuen Bildern",
       "route-start-flag": "Routenstart",
       "route-finish-flag": "Routenziel",
       "mission-start-flag": "Wo diese Mission begann",

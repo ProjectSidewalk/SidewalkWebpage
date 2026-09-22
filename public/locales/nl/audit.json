@@ -191,7 +191,7 @@
       "breadcrumb-title": "Bezocht: klik om hierheen terug te gaan",
       "label-marker-title": "{{labelType}}-label: klik om te bekijken",
       "label-marker-title-prior": "“{{labelType}}”-label uit een eerdere missie",
-      "label-marker-title-outdated": "“{{labelType}}”-label op een straat met nieuwere beelden",
+      "label-marker-title-outdated": "Oud “{{labelType}}”-label op een straat met nieuwe beelden",
       "route-start-flag": "Start van de route",
       "route-finish-flag": "Einde van de route",
       "mission-start-flag": "Waar deze missie begon",

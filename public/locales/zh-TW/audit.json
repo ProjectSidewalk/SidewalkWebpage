@@ -191,7 +191,7 @@
       "breadcrumb-title": "已造訪：點擊返回此處",
       "label-marker-title": "{{labelType}} 標記：點擊查看",
       "label-marker-title-prior": "來自先前任務的「{{labelType}}」標記",
-      "label-marker-title-outdated": "「{{labelType}}」標記（此街道已有較新影像）",
+      "label-marker-title-outdated": "「{{labelType}}」舊標記（此街道已有新影像）",
       "route-start-flag": "路線起點",
       "route-finish-flag": "路線終點",
       "mission-start-flag": "本次任務的起點",
