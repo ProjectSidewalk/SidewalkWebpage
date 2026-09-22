@@ -3,6 +3,7 @@ package models.street
 import com.google.inject.ImplementedBy
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
+import models.utils.IpAddress
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
@@ -15,7 +16,7 @@ case class StreetEdgeIssue(
     streetEdgeId: Int,
     issue: StreetEdgeIssueType.Value,
     userId: String,
-    ipAddress: String,
+    ipAddress: IpAddress,
     timestamp: OffsetDateTime
 )
 
@@ -46,7 +47,7 @@ class StreetEdgeIssueTableDef(tag: Tag) extends Table[StreetEdgeIssue](tag, "str
   def streetEdgeId: Rep[Int]                = column[Int]("street_edge_id")
   def issue: Rep[StreetEdgeIssueType.Value] = column[StreetEdgeIssueType.Value]("issue")
   def userId: Rep[String]                   = column[String]("user_id")
-  def ipAddress: Rep[String]                = column[String]("ip_address")(inetString)
+  def ipAddress: Rep[IpAddress]             = column[IpAddress]("ip_address")
   def timestamp: Rep[OffsetDateTime]        = column[OffsetDateTime]("timestamp")
 
   def * = (streetEdgeIssueId, streetEdgeId, issue, userId, ipAddress, timestamp) <> (

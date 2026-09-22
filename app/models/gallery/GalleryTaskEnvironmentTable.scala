@@ -3,6 +3,7 @@ package models.gallery
 import com.google.inject.ImplementedBy
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
+import models.utils.IpAddress
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -19,7 +20,7 @@ case class GalleryTaskEnvironment(
     screenWidth: Option[Int],
     screenHeight: Option[Int],
     operatingSystem: Option[String],
-    ipAddress: String,
+    ipAddress: IpAddress,
     language: String,
     userId: Option[String]
 )
@@ -35,7 +36,7 @@ class GalleryTaskEnvironmentTableDef(tag: Tag) extends Table[GalleryTaskEnvironm
   def screenWidth: Rep[Option[Int]]        = column[Option[Int]]("screen_width")
   def screenHeight: Rep[Option[Int]]       = column[Option[Int]]("screen_height")
   def operatingSystem: Rep[Option[String]] = column[Option[String]]("operating_system")
-  def ipAddress: Rep[String]               = column[String]("ip_address")(inetString)
+  def ipAddress: Rep[IpAddress]            = column[IpAddress]("ip_address")
   def language: Rep[String]                = column[String]("language")
   def userId: Rep[Option[String]]          = column[Option[String]]("user_id")
 

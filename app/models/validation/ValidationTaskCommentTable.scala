@@ -7,6 +7,7 @@ import models.mission.MissionTableDef
 import models.pano.PanoDataTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
+import models.utils.IpAddress
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -19,7 +20,7 @@ case class ValidationTaskComment(
     missionId: Int,
     labelId: Int,
     userId: String,
-    ipAddress: String,
+    ipAddress: IpAddress,
     panoId: String,
     heading: Double,
     pitch: Double,
@@ -35,7 +36,7 @@ class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskCommen
   def missionId: Rep[Int]               = column[Int]("mission_id")
   def labelId: Rep[Int]                 = column[Int]("label_id")
   def userId: Rep[String]               = column[String]("user_id")
-  def ipAddress: Rep[String]            = column[String]("ip_address")(inetString)
+  def ipAddress: Rep[IpAddress]         = column[IpAddress]("ip_address")
   def panoId: Rep[String]               = column[String]("pano_id")
   def heading: Rep[Double]              = column[Double]("heading")
   def pitch: Rep[Double]                = column[Double]("pitch")

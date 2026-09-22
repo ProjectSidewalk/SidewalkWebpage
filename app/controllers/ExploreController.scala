@@ -12,6 +12,7 @@ import models.mission.MissionType
 import models.pano.PanoSource
 import models.street.{StreetEdgeIssue, StreetEdgeIssueType}
 import models.user._
+import models.utils.IpAddress
 import play.api.i18n.Messages
 import play.api.libs.json._
 import play.api.mvc.Result
@@ -277,7 +278,7 @@ class ExploreController @Inject() (
    */
   private def processAuditTaskSubmissions(
       data: AuditTaskSubmission,
-      ipAddress: String,
+      ipAddress: IpAddress,
       user: SidewalkUserWithRole
   ): Future[Result] = {
     val missionId: Int           = data.missionProgress.missionId

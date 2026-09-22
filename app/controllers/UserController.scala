@@ -6,7 +6,7 @@ import controllers.helper.ControllerUtils.{fieldErrorJson, formErrorsJson, parse
 import forms._
 import models.auth.DefaultEnv
 import models.user.{Role, SidewalkUserWithRole, UserUtm}
-import models.utils.ProfanityGuard
+import models.utils.{IpAddress, ProfanityGuard}
 import net.ceedubs.ficus.Ficus._
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, Json}
@@ -224,7 +224,7 @@ class UserController @Inject() (
    * Authenticates a user.
    */
   def authenticate() = silhouette.UserAwareAction.async { implicit request =>
-    val ipAddress: String          = request.ipAddress
+    val ipAddress: IpAddress       = request.ipAddress
     val currUserId: Option[String] = request.identity.map(_.userId)
 
     // Two per-IP bounds, both before any work happens. The per-minute one caps how *fast* one address can drive the
@@ -384,7 +384,7 @@ class UserController @Inject() (
    * Registers a new user.
    */
   def signUpPost() = silhouette.UserAwareAction.async { implicit request =>
-    val ipAddress: String         = request.ipAddress
+    val ipAddress: IpAddress      = request.ipAddress
     val oldUserId: Option[String] = request.identity.map(_.userId)
 
     // Grab the URL we want to redirect to that was passed as a hidden field in the form.
@@ -600,7 +600,7 @@ class UserController @Inject() (
    * a notice for not existing email addresses to prevent the leak of existing email addresses.
    */
   def submitForgottenPassword = silhouette.UserAwareAction.async { implicit request =>
-    val ipAddress: String      = request.ipAddress
+    val ipAddress: IpAddress   = request.ipAddress
     val userId: Option[String] = request.identity.map(_.userId)
 
     // Per-IP throttle on reset requests; the per-target-email one is post-bind, further down.
@@ -625,7 +625,7 @@ class UserController @Inject() (
   }
 
   /** Emails password reset instructions to `email` if it belongs to an account, responding identically either way. */
-  private def submitForgottenPasswordForEmail(email: String, userId: Option[String], ipAddress: String)(implicit
+  private def submitForgottenPasswordForEmail(email: String, userId: Option[String], ipAddress: IpAddress)(implicit
       request: play.silhouette.api.actions.UserAwareRequest[DefaultEnv, play.api.mvc.AnyContent]
   ): Future[play.api.mvc.Result] = {
     val result = Redirect(routes.UserController.forgotPassword)

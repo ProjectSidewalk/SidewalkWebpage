@@ -1,7 +1,7 @@
 # --- !Ups
--- IP addresses as inet (#5398), so non-IPs can't be saved and COUNT(DISTINCT) treats equal addresses as one. Play's
--- parsed client address is always a real IP, so all eight columns can be NOT NULL. The rows that won't convert are
--- pre-v11.8.0 junk from spoofed X-Forwarded-For headers (plus DC's 2016-17 '' / 'unknown'), referenced by nothing.
+-- Store IP addresses as inet so the database rejects anything that isn't an IP (#5398). The only non-IPs are old junk
+-- (faked headers from before v11.8.0, and DC's '' / 'unknown' from 2016-17). Nothing points at those rows, so they're
+-- deleted. Changing the type rewrites each table, which takes about 10s for the largest city.
 DELETE FROM webpage_activity WHERE NOT pg_input_is_valid(ip_address, 'inet');
 DELETE FROM audit_task_environment WHERE NOT pg_input_is_valid(ip_address, 'inet');
 
@@ -21,7 +21,7 @@ ALTER TABLE gallery_task_environment
   ALTER COLUMN ip_address SET NOT NULL;
 
 # --- !Downs
--- host() rather than a plain cast, which would add a /32 or /128 suffix to every address.
+-- host() gives the bare address. A plain cast would add /32 to each one.
 ALTER TABLE gallery_task_environment
   ALTER COLUMN ip_address DROP NOT NULL,
   ALTER COLUMN ip_address TYPE text USING host(ip_address);

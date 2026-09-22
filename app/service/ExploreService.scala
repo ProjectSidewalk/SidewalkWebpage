@@ -15,7 +15,7 @@ import models.survey.{SurveyQuestionTable, SurveyQuestionWithOptions}
 import models.user.SidewalkUserTable.aiUserId
 import models.user._
 import models.utils.MyPostgresProfile.api._
-import models.utils.{ConfigTable, MyPostgresProfile, WebpageActivityTable}
+import models.utils.{ConfigTable, IpAddress, MyPostgresProfile, WebpageActivityTable}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point, PrecisionModel}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.{Configuration, Logger}
@@ -155,7 +155,7 @@ trait ExploreService {
    * @param ipAddress IP address of the user submitting the survey.
    * @param data Data submitted from the survey.
    */
-  def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]]
+  def submitSurvey(userId: String, ipAddress: IpAddress, data: Seq[SurveySingleSubmission]): Future[Seq[Int]]
 }
 
 @Singleton
@@ -1070,7 +1070,7 @@ class ExploreServiceImpl @Inject() (
     })
   }
 
-  def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]] = {
+  def submitSurvey(userId: String, ipAddress: IpAddress, data: Seq[SurveySingleSubmission]): Future[Seq[Int]] = {
     db.run((for {
       numMissionsCompleted: Int <- missionTable
         .countCompletedMissions(userId, includeOnboarding = false, includeSkipped = true)
