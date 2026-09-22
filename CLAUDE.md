@@ -35,6 +35,7 @@ file, and this table says which doc to read first:
 | Onboarding a new city (streets, regions, schema, configs) | `docs/onboarding-a-city.md` (and the `onboard-city` skill) |
 | Google Maps keys, quotas, or a Google Cloud bill | `docs/google-cloud.md` |
 | The label lat/lng estimator or the labeling viewport frame | `docs/label-latlng-estimation.md` |
+| Street gradient / slope (`street_gradient`, `scripts/street_gradient.py`) | `docs/street-gradient.md` |
 
 ## Workflow
 
@@ -55,8 +56,8 @@ file, and this table says which doc to read first:
 
 ## Before a change is done
 
-- **Scala:** `make scalafmt-fix` (a blocking CI gate). Compile check without fighting the developer's `sbt ~ run`:
-  `make compile`. `-Xfatal-warnings` is on, so a success is warning-clean.
+- **Scala:** `make scalafmt-fix` (a blocking CI gate). Compile check: `make compile`. `-Xfatal-warnings` is on, so
+  a success is warning-clean. It can't run in a checkout whose app is up (`~ run` holds sbt); it says so and stops.
 - **Frontend:** `make lint` (ESLint, Stylelint, HTMLHint, locale parity, CSS layout, asset paths, vendor versions,
   JS types, evolutions lint; all blocking CI gates), or scope it with `make eslint dir=…` / `make stylelint dir=…`.
   `make lint-fix` handles the mechanical fixes. The tree is lint-clean, so any finding is from your change.

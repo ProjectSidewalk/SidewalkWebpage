@@ -88,6 +88,15 @@ object ApiError {
     ApiError(429, "DUPLICATE_REQUEST", "Too Many Requests", detail)
 
   /**
+   * Creates a 503 for a value the server is still computing (#5418): not a failure, the answer just isn't ready yet.
+   * The caller pairs it with a `Retry-After` header, and a client that waits that long gets the value.
+   *
+   * @param detail Human-readable explanation of what is being computed.
+   */
+  def stillComputing(detail: String): ApiError =
+    ApiError(503, "STILL_COMPUTING", "Service Unavailable", detail)
+
+  /**
    * Creates a 404 problem detail for a missing resource.
    *
    * @param detail Human-readable explanation of what was not found.

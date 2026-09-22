@@ -8,6 +8,10 @@
  * ramp's fallback color, at reduced width and opacity. The score legend lives in the insights dock, which also
  * receives every hover through `onHover`.
  *
+ * The same street lines can be colored by slope instead (#5223). A street's grade never changes with the sliders,
+ * so it travels as a source property rather than feature-state, and the switch is three paint properties. Slope
+ * comes from an elevation model, not from labels, so in that mode an unaudited street is drawn as boldly as any other.
+ *
  * A dark basemap takes a second chrome palette and the ramp's dark stepping. A basemap swap is `map.setStyle`,
  * which drops every source, layer, image and feature-state the tool added, so `remount` rebuilds them from the
  * kept inputs; the pointer handlers survive because Mapbox keys them by layer id, not by layer object.
@@ -52,6 +56,11 @@ class AccessScoreMapView {
   #streets;
   #regions;
   #showUnaudited;
+  #showGrade;
+  /** The ascending grades the slope classes break at, or null where the config publishes none. */
+  #gradeBreaks;
+  /** The elevation models' credit line, as markup, for the map's attribution control. */
+  #gradeAttribution;
 
   /**
    * @param {mapboxgl.Map} map - A loaded Mapbox map.
@@ -70,9 +79,17 @@ class AccessScoreMapView {
    *                                            drawn above these layers owns the hover, so its tooltip is the
    *                                            only one showing.
    * @param {boolean} [options.dark=false] - True on a dark basemap.
+   * @param {?number[]} [options.gradeBreaks=null] - The ascending grades the slope classes break at
+   *                                       (`gradient.map_class_breaks`); null leaves the slope coloring unavailable.
+   * @param {string} [options.gradeAttribution=''] - The elevation models' credit, as markup. It rides on the street
+   *                                       source, so Mapbox's own attribution control shows it and a basemap swap
+   *                                       cannot lose it.
+   * @param {Function} [options.onGradeClasses] - Called with an array of slope-class indices when the legend's
+   *                                       classes are clicked (empty to clear), so the owner can brush on them.
    */
   constructor(map, { model, streets, regions, onSelect, onHover = () => {}, tooltipHtml, clickClaimed = () => false,
-    hoverClaimed = () => false, dark = false }) {
+    hoverClaimed = () => false, dark = false, gradeBreaks = null, gradeAttribution = '',
+    onGradeClasses = () => {} }) {
     this.#map = map;
     this.#model = model;
     this.#onSelect = onSelect;
@@ -83,6 +100,9 @@ class AccessScoreMapView {
     this.#streets = streets;
     this.#regions = regions;
     this.#showUnaudited = model.state.showUnaudited;
+    this.#gradeBreaks = gradeBreaks && gradeBreaks.length > 0 ? gradeBreaks : null;
+    this.#gradeAttribution = gradeAttribution;
+    this.#showGrade = model.state.showGrade && this.#gradeBreaks !== null;
     this.#unit = model.state.unit;
     this.#applyPalette(dark);
     this.#tooltip = new mapboxgl.Popup({
@@ -93,9 +113,10 @@ class AccessScoreMapView {
     this.#addStreetLayers(streets);
     this.#addInteractions();
     // After the navigation control: the corner's reversed flex row keeps the first control at the edge.
-    this.#legend = new AccessScoreMapLegend();
+    this.#legend = new AccessScoreMapLegend({ gradeBreaks: this.#gradeBreaks, onGradeClasses });
     this.#map.addControl(this.#legend, 'top-right');
     this.#legend.setDark(dark);
+    this.#legend.setGrade(this.#showGrade, model.displayGradeStatistic);
     this.setUnit(this.#unit);
     this.applyScores();
   }
@@ -232,7 +253,42 @@ class AccessScoreMapView {
    */
   setShowUnaudited(show) {
     this.#showUnaudited = show;
-    this.#map.setPaintProperty(AccessScoreMapView.STREET_LAYER, 'line-opacity', this.#streetOpacity(show));
+    this.#map.setPaintProperty(AccessScoreMapView.STREET_LAYER, 'line-opacity', this.#streetOpacity());
+  }
+
+  /**
+   * Colors the streets by slope, or by score again.
+   * @param {boolean} show - True for slope. Ignored (score stays) where the config published no slope classes.
+   */
+  setShowGrade(show) {
+    this.#showGrade = show && this.#gradeBreaks !== null;
+    this.#repaintStreets();
+    this.#legend.setGrade(this.#showGrade, this.#model.displayGradeStatistic);
+    this.#markSelectionOnLegend();
+  }
+
+  /**
+   * Repaints the streets for the slope statistic now in force (#5223). Nothing is re-uploaded: both statistics are
+   * already on every feature.
+   */
+  setGradeStatistic() {
+    this.#repaintStreets();
+    this.#legend.setGrade(this.#showGrade, this.#model.displayGradeStatistic);
+  }
+
+  /**
+   * Marks the slope classes a brush is on, so the legend reflects a selection it did not make itself.
+   * @param {number[]} classes - Class indices, empty for none.
+   */
+  setGradeSelection(classes) {
+    this.#legend.setSelection(classes);
+  }
+
+  /** The three paint properties that depend on which grade, or whether a grade, the streets are colored by. */
+  #repaintStreets() {
+    this.#map.setPaintProperty(AccessScoreMapView.STREET_LAYER, 'line-color', this.#streetColor());
+    this.#map.setPaintProperty(AccessScoreMapView.STREET_LAYER, 'line-width', this.#streetWidth());
+    this.#map.setPaintProperty(AccessScoreMapView.STREET_LAYER, 'line-opacity', this.#streetOpacity());
   }
 
   /**
@@ -391,15 +447,18 @@ class AccessScoreMapView {
           street_edge_id: f.properties.street_edge_id,
           region_id: f.properties.region_id,
           audited: f.properties.audit_count > 0 ? 1 : 0,
+          // Both statistics travel: the slope coloring follows whichever one the score is using, and with a single
+          // baked-in `grade` that switch would rewrite every feature where two properties make it a repaint.
+          // Negative for "no grade", since the step expression cannot take a null.
+          grade_mean: this.#model.gradeBy(f.properties.street_edge_id, 'mean_grade') ?? -1,
+          grade_max: this.#model.gradeBy(f.properties.street_edge_id, 'max_grade') ?? -1,
         },
       })),
     };
     this.#map.addSource(AccessScoreMapView.STREET_SOURCE, {
       type: 'geojson', data: slim, promoteId: 'street_edge_id', tolerance: 0.5,
+      ...(this.#gradeAttribution ? { attribution: this.#gradeAttribution } : {}),
     });
-    const score = ['coalesce', ['feature-state', 'score'], -1];
-    const hovered = ['boolean', ['feature-state', 'hover'], false];
-    const unaudited = ['==', ['get', 'audited'], 0];
     this.#map.addLayer({
       id: AccessScoreMapView.STREET_SELECTED_LAYER,
       type: 'line',
@@ -418,29 +477,60 @@ class AccessScoreMapView {
       source: AccessScoreMapView.STREET_SOURCE,
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': ScoreRamp.expression(score, {
-          noneColor: AccessScoreMapView.#token(this.#palette.streetNone), mode: this.#mode,
-        }),
-        'line-width': [
-          'interpolate', ['linear'], ['zoom'],
-          10, ['case', hovered, 3, unaudited, 0.8, 1.2],
-          14, ['case', hovered, 6, unaudited, 1.5, 3],
-          17, ['case', hovered, 12, unaudited, 3, 7],
-        ],
-        'line-opacity': this.#streetOpacity(this.#showUnaudited),
+        'line-color': this.#streetColor(),
+        'line-width': this.#streetWidth(),
+        'line-opacity': this.#streetOpacity(),
       },
     });
   }
 
   /**
-   * The street opacity expression: audited full, unaudited faint or hidden, and everything outside a brush dimmed —
-   * unaudited streets included, or they would read brighter than the scored streets a brush left out.
+   * The streets the current coloring has nothing to say about, drawn thin and faint: unaudited ones under the score,
+   * ones with no usable grade under the slope.
+   * @returns {Array} A boolean Mapbox expression.
    */
-  #streetOpacity(showUnaudited) {
+  #streetIsBlank() {
+    return this.#showGrade ? ['<', this.#gradeExpr(), 0] : ['==', ['get', 'audited'], 0];
+  }
+
+  /** Which of the two grade properties the slope coloring reads: whichever statistic the score is using. */
+  #gradeExpr() {
+    return ['get', this.#model.displayGradeStatistic === 'mean_grade' ? 'grade_mean' : 'grade_max'];
+  }
+
+  /** The street color expression: the slope classes, or the score ramp over feature-state. */
+  #streetColor() {
+    const noneColor = AccessScoreMapView.#token(this.#palette.streetNone);
+    if (this.#showGrade) {
+      return AccessScoreGradeRamp.expression(this.#gradeExpr(), this.#gradeBreaks, { noneColor, mode: this.#mode });
+    }
+    return ScoreRamp.expression(['coalesce', ['feature-state', 'score'], -1], { noneColor, mode: this.#mode });
+  }
+
+  /** The street width expression: wider on hover, thinner where the coloring has nothing to say. */
+  #streetWidth() {
+    const hovered = ['boolean', ['feature-state', 'hover'], false];
+    const blank = this.#streetIsBlank();
+    return [
+      'interpolate', ['linear'], ['zoom'],
+      10, ['case', hovered, 3, blank, 0.8, 1.2],
+      14, ['case', hovered, 6, blank, 1.5, 3],
+      17, ['case', hovered, 12, blank, 3, 7],
+    ];
+  }
+
+  /**
+   * The street opacity expression: colored streets full, blank ones faint, and everything outside a brush dimmed —
+   * blank streets included, or they would read brighter than the scored streets a brush left out. "Show unaudited
+   * streets" hides the blank ones under the score only: under the slope, a street with no grade is the rare bridge
+   * or tunnel, and hiding it would punch holes in the network.
+   */
+  #streetOpacity() {
     const dim = ['boolean', ['feature-state', 'dim'], false];
+    const showBlank = this.#showGrade || this.#showUnaudited;
     return [
       'case',
-      ['==', ['get', 'audited'], 0], showUnaudited ? ['case', dim, 0.1, 0.55] : 0,
+      this.#streetIsBlank(), showBlank ? ['case', dim, 0.1, 0.55] : 0,
       dim, 0.15,
       0.92,
     ];
@@ -521,6 +611,11 @@ class AccessScoreMapView {
   #markSelectionOnLegend() {
     const { unit, id } = this.#selected;
     this.#legend.mark(id !== null && unit === this.#unit ? this.#scoreOf(unit, id) : null);
+  }
+
+  /** Whether the streets are colored by slope right now (the streets unit only; regions have no slope). */
+  get showingGrade() {
+    return this.#showGrade && this.#unit === 'streets';
   }
 
   /**

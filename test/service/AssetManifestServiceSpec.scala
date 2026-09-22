@@ -67,7 +67,7 @@ class AssetManifestServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
       // One sentinel per family that would go un-fingerprinted, and unnoticed, if a prefix stopped matching.
       Seq(
         "audio/success.mp3", "images/icons/openhand.cur", "images/icons/label_type_icons/CurbRamp_small.svg",
-        "images/badges/badge_labels_badge1.png", "images/examples/tags/placeholder.png",
+        "images/badges/badge_labels_badge1.svg", "images/examples/tags/placeholder.png",
         "images/explore/onboarding/TutorialMiniMap.jpg", "images/logos/google-logo.svg",
         "images/pano-tutorial/tutorial/1-0-0.jpg", "images/tutorials/explore-crosswalk-incorrect-1.png",
         "images/validate/ExpertValidateTooltips/CommonUnsure1.png"

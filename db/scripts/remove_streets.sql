@@ -5,6 +5,7 @@
 --
 -- Tables with a FK to street_edge:
 --   street_edge_priority, osm_way_street_edge, cluster, route_street, audit_task
+--   (street_gradient has one too, declared ON DELETE CASCADE, so a hard delete takes its row along.)
 -- Tables that reference street_edge_id without a FK constraint:
 --   street_edge_region, street_edge_issue, label
 --

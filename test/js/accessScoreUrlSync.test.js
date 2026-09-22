@@ -69,7 +69,7 @@ describe('AccessScoreUrlSync', () => {
 
     test('reads the dock params and drops a brush that is off the bin edges', () => {
         const { dock } = AccessScoreUrlSync.read(config, '?dock=0&b=40-60&focus=7');
-        expect(dock).toEqual({ open: false, brush: { from: 4, to: 6 }, focus: 7 });
+        expect(dock).toEqual({ open: false, brush: { kind: 'score', from: 4, to: 6 }, focus: 7 });
         expect(AccessScoreUrlSync.read(config, '').dock).toEqual({ open: true, brush: null, focus: null });
         expect(AccessScoreUrlSync.read(config, '?focus=0').dock.focus).toBeNull();
         expect(AccessScoreUrlSync.read(config, '?focus=abc').dock.focus).toBeNull();
@@ -146,6 +146,6 @@ describe('AccessScoreUrlSync', () => {
         sync.writeNow();
         expect(new URLSearchParams(window.location.search).has('place')).toBe(false);
         expect(back.dark).toBe(true);
-        expect(back.dock).toEqual({ open: false, brush: { from: 4, to: 6 }, focus: 3 });
+        expect(back.dock).toEqual({ open: false, brush: { kind: 'score', from: 4, to: 6 }, focus: 3 });
     });
 });

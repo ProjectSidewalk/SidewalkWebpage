@@ -256,6 +256,16 @@ class StreetEdgeTable @Inject() (
   }
 
   /**
+   * The geodesic length of one street, if it is one the public street APIs serve (`streets`: open, and not the
+   * tutorial's). A street they hide is answered as absent, so a per-street endpoint agrees with the city-wide ones.
+   *
+   * @param streetEdgeId The street to measure.
+   * @return Its length in meters, or None if there is no such served street.
+   */
+  def getServedStreetLength(streetEdgeId: Int): DBIO[Option[Double]] =
+    streets.filter(_.streetEdgeId === streetEdgeId).map(_.geom.lengthGeodesic).result.headOption
+
+  /**
    * Gets all street data for the API with filters applied, designed for streaming.
    *
    * @param filters   The filters to apply when retrieving streets.

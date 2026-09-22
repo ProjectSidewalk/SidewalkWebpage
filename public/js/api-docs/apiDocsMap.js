@@ -104,16 +104,19 @@ window.ApiDocsMap = (function () {
    * @param {mapboxgl.Map} map - The Mapbox map.
    * @param {object|Array<number>} lngLat - Where to anchor the popup.
    * @param {string} html - The popup's contents.
+   * @param {object} [options] - Extra `mapboxgl.Popup` options, e.g. `closeButton: false` for a hover preview.
+   * @param {string} [options.modifier] - A class added beside `map-popup`, for a popup styled apart from the rest.
    * @returns {mapboxgl.Popup} The opened popup.
    */
-  function popup(map, lngLat, html) {
+  function popup(map, lngLat, html, { modifier, ...options } = {}) {
     return new mapboxgl.Popup({
       // Lands on the popup root, so the stylesheet can reach Mapbox's frame and our content through the one class.
-      className: 'map-popup',
+      className: modifier ? `map-popup ${modifier}` : 'map-popup',
       // Any truthy maxWidth is written onto the frame as an inline style that no stylesheet rule can outrank — the
       // documented 'none' included. Falsy leaves the width to CSS, where the rest of the popup's styling lives.
       maxWidth: '',
       focusAfterOpen: false,
+      ...options,
     })
       .setLngLat(lngLat)
       .setHTML(html)
@@ -146,13 +149,22 @@ window.ApiDocsMap = (function () {
   /**
    * Fetches JSON from one of our API endpoints, tagging the request as coming from the docs.
    *
+   * A failure carries the status and, when the body is an API problem detail, its `code`, so a preview can tell a
+   * "not yet" (`STILL_COMPUTING`, #5418) from a real error without parsing the message.
+   *
    * @param {string} url - Endpoint URL, without the utm_source marker.
    * @returns {Promise<object>} The parsed response body.
+   * @throws {Error & {status: number, code: ?string}} On a non-2xx response.
    */
   async function fetchJson(url) {
     const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}utm_source=apiDocs`);
     if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
+      // A proxy's own error page is not JSON; the code is then simply unknown.
+      const problem = await response.json().catch(() => null);
+      throw Object.assign(new Error(`HTTP error! Status: ${response.status}`), {
+        status: response.status,
+        code: problem?.code ?? null,
+      });
     }
     return response.json();
   }

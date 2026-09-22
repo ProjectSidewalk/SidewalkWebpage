@@ -5,14 +5,18 @@ import controllers.helper.ShapefilesCreatorHelper
 import models.api.{
   AccessScoreConfigForApi,
   ApiError,
+  DemSourceForApi,
   IntersectionAccessScoreForApi,
   RegionAccessScoreForApi,
   SpotlightUnit,
-  StreetAccessScoreForApi
+  StreetAccessScoreForApi,
+  StreetGradientConfigForApi
 }
+import models.street.DemSource
 import models.utils.{LatLngBBox, SpatialQueryType}
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
+import play.api.mvc.Result
 import play.silhouette.api.Silhouette
 import service.{
   AccessScoreService,
@@ -72,29 +76,32 @@ class AccessScoreApiController @Inject() (
     resolveAccessScoreArea(bbox, regionId, regionName).flatMap {
       case Left(error)                           => Future.successful(badRequest(error))
       case Right((resolvedBbox, regionFilterId)) =>
-        streetScores(bbox, regionId, regionName, resolvedBbox).flatMap { allStreets =>
-          // A region's bbox can overlap neighbors, so restrict to the requested region when one was given.
-          val streets: Seq[StreetAccessScoreForApi] =
-            regionFilterId.fold(allStreets)(id => allStreets.filter(_.regionId == id))
-          val baseFileName: String                             = timestampedFilename("accessScoreStreets")
-          val streetStream: Source[StreetAccessScoreForApi, _] = Source.fromIterator(() => streets.iterator)
-          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+        // Logged before the still-computing branch too: a `503` a user reports has to be findable in webpage_activity.
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+        streetScores(bbox, regionId, regionName, resolvedBbox).flatMap {
+          case None             => Future.successful(scoresStillComputing)
+          case Some(allStreets) =>
+            // A region's bbox can overlap neighbors, so restrict to the requested region when one was given.
+            val streets: Seq[StreetAccessScoreForApi] =
+              regionFilterId.fold(allStreets)(id => allStreets.filter(_.regionId == id))
+            val baseFileName: String                             = timestampedFilename("accessScoreStreets")
+            val streetStream: Source[StreetAccessScoreForApi, _] = Source.fromIterator(() => streets.iterator)
 
-          filetype match {
-            case Some("csv") =>
-              outputCSV(streetStream, StreetAccessScoreForApi.csvHeader, inline, baseFileName + ".csv")
-            case Some("shapefile") =>
-              outputShapefile(
-                streetStream,
-                baseFileName,
-                shapefileCreator.createStreetAccessScoreShapefile,
-                shapefileCreator
-              )
-            case Some("geopackage") =>
-              outputGeopackage(streetStream, baseFileName, shapefileCreator.createStreetAccessScoreGeopackage, inline)
-            case _ =>
-              outputGeoJSON(streetStream, inline, baseFileName + ".geojson")
-          }
+            filetype match {
+              case Some("csv") =>
+                outputCSV(streetStream, StreetAccessScoreForApi.csvHeader, inline, baseFileName + ".csv")
+              case Some("shapefile") =>
+                outputShapefile(
+                  streetStream,
+                  baseFileName,
+                  shapefileCreator.createStreetAccessScoreShapefile,
+                  shapefileCreator
+                )
+              case Some("geopackage") =>
+                outputGeopackage(streetStream, baseFileName, shapefileCreator.createStreetAccessScoreGeopackage, inline)
+              case _ =>
+                outputGeoJSON(streetStream, inline, baseFileName + ".geojson")
+            }
         }
     }
   }
@@ -122,42 +129,44 @@ class AccessScoreApiController @Inject() (
     resolveAccessScoreArea(bbox, regionId, regionName).flatMap {
       case Left(error)                           => Future.successful(badRequest(error))
       case Right((resolvedBbox, regionFilterId)) =>
-        accessScores(bbox, regionId, regionName, resolvedBbox).flatMap { scores =>
-          // The computation scores the ends of every selected street, which can lie past the bbox or in a neighboring
-          // region; trim back to what was asked for.
-          val intersections: Seq[IntersectionAccessScoreForApi] = (bbox, regionFilterId) match {
-            case (Some(_), _) =>
-              scores.intersections.filter { i =>
-                i.geometry.getY >= resolvedBbox.minLat && i.geometry.getY <= resolvedBbox.maxLat &&
-                i.geometry.getX >= resolvedBbox.minLng && i.geometry.getX <= resolvedBbox.maxLng
-              }
-            case (None, Some(id)) => scores.intersections.filter(_.regionId.contains(id))
-            case _                => scores.intersections
-          }
-          val baseFileName: String                             = timestampedFilename("accessScoreIntersections")
-          val stream: Source[IntersectionAccessScoreForApi, _] = Source.fromIterator(() => intersections.iterator)
-          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+        accessScores(bbox, regionId, regionName, resolvedBbox).flatMap {
+          case None         => Future.successful(scoresStillComputing)
+          case Some(scores) =>
+            // The computation scores the ends of every selected street, which can lie past the bbox or in a neighboring
+            // region; trim back to what was asked for.
+            val intersections: Seq[IntersectionAccessScoreForApi] = (bbox, regionFilterId) match {
+              case (Some(_), _) =>
+                scores.intersections.filter { i =>
+                  i.geometry.getY >= resolvedBbox.minLat && i.geometry.getY <= resolvedBbox.maxLat &&
+                  i.geometry.getX >= resolvedBbox.minLng && i.geometry.getX <= resolvedBbox.maxLng
+                }
+              case (None, Some(id)) => scores.intersections.filter(_.regionId.contains(id))
+              case _                => scores.intersections
+            }
+            val baseFileName: String                             = timestampedFilename("accessScoreIntersections")
+            val stream: Source[IntersectionAccessScoreForApi, _] = Source.fromIterator(() => intersections.iterator)
 
-          filetype match {
-            case Some("csv") =>
-              outputCSV(stream, IntersectionAccessScoreForApi.csvHeader, inline, baseFileName + ".csv")
-            case Some("shapefile") =>
-              outputShapefile(
-                stream,
-                baseFileName,
-                shapefileCreator.createIntersectionAccessScoreShapefile,
-                shapefileCreator
-              )
-            case Some("geopackage") =>
-              outputGeopackage(
-                stream,
-                baseFileName,
-                shapefileCreator.createIntersectionAccessScoreGeopackage,
-                inline
-              )
-            case _ =>
-              outputGeoJSON(stream, inline, baseFileName + ".geojson")
-          }
+            filetype match {
+              case Some("csv") =>
+                outputCSV(stream, IntersectionAccessScoreForApi.csvHeader, inline, baseFileName + ".csv")
+              case Some("shapefile") =>
+                outputShapefile(
+                  stream,
+                  baseFileName,
+                  shapefileCreator.createIntersectionAccessScoreShapefile,
+                  shapefileCreator
+                )
+              case Some("geopackage") =>
+                outputGeopackage(
+                  stream,
+                  baseFileName,
+                  shapefileCreator.createIntersectionAccessScoreGeopackage,
+                  inline
+                )
+              case _ =>
+                outputGeoJSON(stream, inline, baseFileName + ".geojson")
+            }
         }
     }
   }
@@ -184,31 +193,33 @@ class AccessScoreApiController @Inject() (
     resolveAccessScoreArea(bbox, regionId, regionName).flatMap {
       case Left(error)                           => Future.successful(badRequest(error))
       case Right((resolvedBbox, regionFilterId)) =>
-        val regionScores: Future[Seq[RegionAccessScoreForApi]] =
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+        val regionScores: Future[Option[Seq[RegionAccessScoreForApi]]] =
           if (isFullCity(bbox, regionId, regionName)) accessScoreService.getFullCityRegionScores(DEFAULT_BATCH_SIZE)
-          else accessScoreService.computeRegionScoresV3(resolvedBbox, DEFAULT_BATCH_SIZE)
-        regionScores.flatMap { allRegions =>
-          val regions: Seq[RegionAccessScoreForApi] =
-            regionFilterId.fold(allRegions)(id => allRegions.filter(_.regionId == id))
-          val baseFileName: String                             = timestampedFilename("accessScoreRegions")
-          val regionStream: Source[RegionAccessScoreForApi, _] = Source.fromIterator(() => regions.iterator)
-          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+          else accessScoreService.computeRegionScoresV3(resolvedBbox, DEFAULT_BATCH_SIZE).map(Some(_))
+        regionScores.flatMap {
+          case None             => Future.successful(scoresStillComputing)
+          case Some(allRegions) =>
+            val regions: Seq[RegionAccessScoreForApi] =
+              regionFilterId.fold(allRegions)(id => allRegions.filter(_.regionId == id))
+            val baseFileName: String                             = timestampedFilename("accessScoreRegions")
+            val regionStream: Source[RegionAccessScoreForApi, _] = Source.fromIterator(() => regions.iterator)
 
-          filetype match {
-            case Some("csv") =>
-              outputCSV(regionStream, RegionAccessScoreForApi.csvHeader, inline, baseFileName + ".csv")
-            case Some("shapefile") =>
-              outputShapefile(
-                regionStream,
-                baseFileName,
-                shapefileCreator.createRegionAccessScoreShapefile,
-                shapefileCreator
-              )
-            case Some("geopackage") =>
-              outputGeopackage(regionStream, baseFileName, shapefileCreator.createRegionAccessScoreGeopackage, inline)
-            case _ =>
-              outputGeoJSON(regionStream, inline, baseFileName + ".geojson")
-          }
+            filetype match {
+              case Some("csv") =>
+                outputCSV(regionStream, RegionAccessScoreForApi.csvHeader, inline, baseFileName + ".csv")
+              case Some("shapefile") =>
+                outputShapefile(
+                  regionStream,
+                  baseFileName,
+                  shapefileCreator.createRegionAccessScoreShapefile,
+                  shapefileCreator
+                )
+              case Some("geopackage") =>
+                outputGeopackage(regionStream, baseFileName, shapefileCreator.createRegionAccessScoreGeopackage, inline)
+              case _ =>
+                outputGeoJSON(regionStream, inline, baseFileName + ".geojson")
+            }
         }
     }
   }
@@ -222,9 +233,21 @@ class AccessScoreApiController @Inject() (
    */
   def getAccessScoreConfig = silhouette.UserAwareAction.async { implicit request =>
     cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
-    // The engine's constants plus the one runtime fact a reader of the scores needs: how fresh the clusters are.
-    accessScoreService.clustersUpdatedAt.map { updatedAt =>
-      Ok(AccessScoreConfigForApi.current.toJson + ("clusters_updated_at" -> Json.toJson(updatedAt)))
+    // The engine's constants plus the runtime facts a reader needs: how fresh the clusters are, and which elevation
+    // models the city's grades came from (a per-city fact, so the credit cannot be a constant either).
+    val updatedAtFuture = accessScoreService.clustersUpdatedAt
+    val sourcesFuture   = accessScoreService.gradientSourceCounts
+    for {
+      updatedAt <- updatedAtFuture
+      sources   <- sourcesFuture
+    } yield {
+      val gradient = StreetGradientConfigForApi(sources.map { case (name, n) =>
+        DemSourceForApi(DemSource.forName(name), Some(n))
+      })
+      Ok(
+        AccessScoreConfigForApi.current.toJson +
+          ("clusters_updated_at" -> Json.toJson(updatedAt)) + ("grade" -> gradient.toJson)
+      )
     }
   }
 
@@ -281,22 +304,44 @@ class AccessScoreApiController @Inject() (
   /**
    * The street and intersection scores a request needs. An unfiltered request is the whole city, the one computation
    * worth caching; a filter keeps the live path.
+   *
+   * @return The scores, or `None` when the full-city value is not cached yet and its computation outlasted
+   *         [[AccessScoreService.FullCityColdWait]] (#5418). A filtered request is always `Some`.
    */
   private def accessScores(
       bbox: Option[String],
       regionId: Option[Int],
       regionName: Option[String],
       resolvedBbox: LatLngBBox
-  ): Future[AccessScores] =
+  ): Future[Option[AccessScores]] =
     if (isFullCity(bbox, regionId, regionName)) accessScoreService.getFullCityScores(DEFAULT_BATCH_SIZE)
-    else accessScoreService.computeAccessScoresV3(SpatialQueryType.Street, resolvedBbox, DEFAULT_BATCH_SIZE)
+    else {
+      accessScoreService.computeAccessScoresV3(SpatialQueryType.Street, resolvedBbox, DEFAULT_BATCH_SIZE).map(Some(_))
+    }
 
   private def streetScores(
       bbox: Option[String],
       regionId: Option[Int],
       regionName: Option[String],
       resolvedBbox: LatLngBBox
-  ): Future[Seq[StreetAccessScoreForApi]] = accessScores(bbox, regionId, regionName, resolvedBbox).map(_.streets)
+  ): Future[Option[Seq[StreetAccessScoreForApi]]] =
+    accessScores(bbox, regionId, regionName, resolvedBbox).map(_.map(_.streets))
+
+  /**
+   * The answer to a full-city request whose scores are still being computed (#5418): a `503` with a `Retry-After`,
+   * sent before the reverse proxy's 60-second timeout would have turned the wait into a `502`. The computation keeps
+   * running server-side, so a client that honors the header finds a warm cache; the AccessScore tool does. The detail
+   * names no cause: the cache is cold after a deploy, but also after the value aged out or a compute failed.
+   */
+  private def scoresStillComputing: Result =
+    ApiError
+      .toResult(
+        ApiError.stillComputing(
+          "This city's AccessScores are still being computed. Retry after the number of seconds in the Retry-After " +
+            "header."
+        )
+      )
+      .withHeaders(RETRY_AFTER -> AccessScoreApiController.StillComputingRetryAfterSeconds.toString)
 
   /**
    * Resolves the v3 geo-filters to a single bounding box to score within, plus the region id to post-filter results by.
@@ -348,4 +393,10 @@ object AccessScoreApiController {
 
   /** The `scope` value that turns the Spotlight into a cross-city ranking. */
   val CitiesScope: String = "cities"
+
+  /**
+   * What a `503` for a still-computing full-city score tells the client to wait (#5418). Half of the request's own
+   * cold wait, so a client that retries on the header's schedule typically arrives once the computation has landed.
+   */
+  val StillComputingRetryAfterSeconds: Int = 30
 }

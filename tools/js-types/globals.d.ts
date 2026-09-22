@@ -20,6 +20,7 @@ declare var AccessScoreIntersectionsPreview: any;
 declare var PlacesPreview: any;
 declare var AccessScoreRegionsPreview: any;
 declare var AccessScoreStreetsPreview: any;
+declare var StreetGradePreview: any;
 declare var AggregateStatsByDayPreview: any;
 declare var AggregateStatsPreview: any;
 declare var LabelClustersPreview: any;
