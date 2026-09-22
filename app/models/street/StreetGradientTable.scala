@@ -241,6 +241,7 @@ class StreetGradientTable @Inject() (protected val dbConfigProvider: DatabaseCon
       .result
       .map(_.sortBy { case (source, count) => (-count, source) })
 
+  // Neither has a Slick binding, and the hash has to be computed the way the export script writes it.
   private val stAsBinary = SimpleFunction.unary[LineString, Array[Byte]]("ST_AsBinary")
   private val md5        = SimpleFunction.unary[Array[Byte], String]("md5")
 
@@ -255,9 +256,12 @@ class StreetGradientTable @Inject() (protected val dbConfigProvider: DatabaseCon
    * @return (unsampled, stale) counts.
    */
   def stalenessCounts(servedStreets: Query[StreetEdgeTableDef, StreetEdge, Seq]): DBIO[(Int, Int)] = {
+    // Two counts over the join rather than one FILTERed aggregate, which Slick cannot express; each is a scan of the
+    // street table, once a night.
     val joined    = servedStreets.joinLeft(streetGradients).on(_.streetEdgeId === _.streetEdgeId)
     val unsampled = joined.filter { case (_, gradient) => gradient.isEmpty }.length.result
-    val stale     = joined
+    // An unsampled street's NULL hash compares to NULL, not true, so it is never counted stale as well.
+    val stale = joined
       .filter { case (street, gradient) =>
         gradient.map(_.geomMd5) =!= md5(stAsBinary(street.geom)).?
       }

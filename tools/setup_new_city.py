@@ -374,24 +374,37 @@ def handoff_checklist(city_id, schema, prod_url, test_url, gradient):
 
     Args:
         gradient: How step 8 ended — ``sampled`` (the grades ride in the dump), ``no_source`` (the country has no
-                  registered elevation model), or ``skipped`` — since each leaves the operator something different.
+                  registered elevation model), ``no_structures`` (the build wrote no street_structures.csv),
+                  ``skipped`` (--skip-gradient, or a --dump-only run of a schema with no rows), or ``unknown`` (the
+                  table could not be read) — since each leaves the operator something different to do.
     """
+    backfill = 'or backfill the live city later (sidewalk-server-tools, the street-gradient backfill runbook)'
     if gradient == 'sampled':
         gradient_line = (
-            f'''  7. Street grades ride in the dump (street_gradient), so the AccessScore's grade layer and grade term work
+            '''  7. Street grades ride in the dump (street_gradient), so the AccessScore's grade layer and grade term work
      from launch. Admin > Health's "Street gradient staleness" row says when a street import calls for a top-up
      (docs/street-gradient.md).''')
     elif gradient == 'no_source':
         gradient_line = (
             f'''  7. Street grades were NOT sampled: no elevation model is registered for this country. Download a bare-earth
      model by hand (docs/street-gradient.md, "Sources by country") and rerun `make onboard-city id={city_id}` before
-     the dump, or backfill the live city later (sidewalk-server-tools, the street-gradient backfill runbook). Until
-     then the city's AccessScore carries no grade term and the tool hides its grade controls.''')
+     the dump, {backfill}. Until then the city's AccessScore carries no grade term and the tool hides its grade
+     controls.''')
+    elif gradient == 'no_structures':
+        gradient_line = (
+            f'''  7. Street grades were NOT sampled: the build wrote no street_structures.csv, so bridges could not be told
+     from the ravines beneath them. Rebuild the city data (`make build-city-data id={city_id} ...`, then rerun
+     `make onboard-city id={city_id}`, which comes straight back to step 8), or sample the live city after its first
+     nightly OSM way refresh, {backfill}. Until then the AccessScore carries no grade term.''')
+    elif gradient == 'unknown':
+        gradient_line = (
+            '''  7. Street grades: street_gradient could not be read, so whether the dump carries them is unknown. Check
+     the table (docs/street-gradient.md) before handing the dump over.''')
     else:
         gradient_line = (
-            f'''  7. Street grades were NOT sampled (step 8 was skipped): rerun `make onboard-city id={city_id}` without
-     --skip-gradient before handing the dump over, or backfill the live city later (sidewalk-server-tools, the
-     street-gradient backfill runbook). Until then the AccessScore carries no grade term.''')
+            f'''  7. Street grades were NOT sampled: rerun `make onboard-city id={city_id}` without --skip-gradient (it comes
+     straight back to step 8) before handing the dump over, {backfill}.
+     Until then the AccessScore carries no grade term.''')
     return f'''
 Server handoff for {city_id}:
   1. Copy the dump to the server, renaming it to the convention every file there follows (the local name stays
@@ -908,8 +921,8 @@ def run_street_gradient(schema, city_id):
 
     The build's street_structures.csv stands in for the osm_way cache, which is empty until the city's first nightly
     refresh; without it every bridge would be sampled as the ravine beneath it, so the step is skipped rather than
-    run blind. The sampler's output is held and printed at the end: it is seconds for most cities, and reading its
-    stderr is how the "no source for this country" refusal is told from a failure.
+    run blind. The sampler's stderr is held and printed at the end, since reading it is how the "no source for this
+    country" refusal is told from a failure; its stdout streams as usual.
 
     Returns:
         ``sampled`` when the table is filled; ``no_source`` when the city's country has no registered elevation
@@ -931,8 +944,7 @@ def run_street_gradient(schema, city_id):
     print('  Sampling the elevation model along every street (seconds for most cities, a minute or two for a '
           'large one)...')
     sampler = subprocess.run(docker_argv(WEB_CONTAINER, 'python3.13', 'scripts/street_gradient.py',
-                                         '--city-id', city_id, flags=('-i',)), capture_output=True, text=True)
-    print(sampler.stdout, end='')
+                                         '--city-id', city_id, flags=('-i',)), stderr=subprocess.PIPE, text=True)
     print(sampler.stderr, end='', file=sys.stderr)
     if sampler.returncode != 0:
         if GRADIENT_NO_SOURCE in sampler.stderr:
@@ -1208,8 +1220,10 @@ def main(argv=None):
                      'dump yet; run without --dump-only to fill it.')
         print(f'Step 9/9 — dump the finished schema {schema} for the server...')
         dump_schema(schema)
-        gradient = 'sampled' if db_query(f'SELECT count(*) FROM {schema}.street_gradient') not in (None, '0') \
-            else 'skipped'
+        # A table that could not be read must not read as "not sampled": that advice would send the operator back
+        # through a step that may well have run.
+        gradient_rows = db_query(f'SELECT count(*) FROM {schema}.street_gradient')
+        gradient = 'unknown' if gradient_rows is None else 'skipped' if gradient_rows == '0' else 'sampled'
         print(handoff_checklist(city_id, schema, *cityparams_landing_urls(city_id), gradient))
         return
 
@@ -1403,8 +1417,6 @@ def main(argv=None):
         gradient = 'sampled'
     else:
         gradient = run_street_gradient(schema, city_id)
-        if gradient == 'no_structures':
-            gradient = 'skipped'
 
     print('\nStep 9/9 — dump the finished schema for the server...')
     dump_schema(schema)

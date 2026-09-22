@@ -552,6 +552,7 @@ def test_is_structure_tag_reads_the_three_tags_like_the_export():
     # Simplification merges ways into one edge with a list of their values: a structure on any part counts.
     assert oc.is_structure_tag(['no', 'yes'], None, None)
     assert not oc.is_structure_tag(['no', 'no'], ['no'], ['no'])
+    assert not oc.is_structure_tag(['no', float('nan'), None], None, None)
 
 
 def _empty_regions():

@@ -23,21 +23,25 @@ source /opt/scripts/helpers.sh
 # prompts. `make export-street-gradient-input args=--all` still prompts for both.
 EXPORT_ALL=FALSE
 ALLOW_EMPTY_OSM_WAY=false
+ALLOW_UNFLAGGED=FALSE
 STRUCTURES_FILE=
 POSITIONAL=()
 while (($#)); do
     case "$1" in
         --all) EXPORT_ALL=TRUE ;;
-        --allow-empty-osm-way) ALLOW_EMPTY_OSM_WAY=true ;;
+        --allow-empty-osm-way) ALLOW_EMPTY_OSM_WAY=true ;;   # Moot with --structures, which never reads osm_way.
+        --allow-unflagged-streets) ALLOW_UNFLAGGED=TRUE ;;
         --structures)
-            if (($# < 2)); then
-                echo "Error: --structures needs a path relative to the db dir, e.g." >&2
+            # The path lands inside a quoted SQL literal, so it is held to the characters a path under db/ needs.
+            if (($# < 2)) || [[ ! "$2" =~ ^[A-Za-z0-9_./-]+$ ]]; then
+                echo "Error: --structures needs a path relative to the db dir (letters, digits, . _ - /), e.g." >&2
                 echo "onboarding/seattle-wa/street_structures.csv." >&2
                 exit 1
             fi
             STRUCTURES_FILE=/opt/$2
             shift ;;
-        -*) echo "Error: unknown option \"$1\". Options: --all, --allow-empty-osm-way, --structures <path>." >&2
+        -*) echo "Error: unknown option \"$1\". Options: --all, --allow-empty-osm-way, --structures <path>," >&2
+            echo "--allow-unflagged-streets." >&2
             exit 1 ;;
         *) POSITIONAL+=("$1") ;;
     esac
@@ -79,9 +83,11 @@ SQL_FILE=$(mktemp)
 trap 'rm -f "$TMP_FILE" "$SQL_FILE"' EXIT
 
 if [[ -n "$STRUCTURES_FILE" ]]; then
-    # A street the file names that the schema lacks means the file is from another build: make build-city-data
-    # renumbers road ids on every fetch run, so loading its flags here would mark the wrong streets. A street the
-    # file lacks is only ever one added by hand after the build, and reads as not a structure.
+    # The file and the schema must name the same streets, in both directions: make build-city-data renumbers road
+    # ids on every run, so a file from another build marks the wrong streets as bridges, and a rebuild that dropped
+    # streets leaves a file whose ids are a subset of the schema's, which the one-directional check would pass.
+    # Only streets inserted by hand after the build (nothing in onboarding does) leave a street unflagged, and
+    # --allow-unflagged-streets says so; those read as not on a structure.
     cat >> "$SQL_FILE" <<EOSQL
     CREATE TEMP TABLE street_structures_import (street_edge_id INTEGER PRIMARY KEY, is_structure BOOLEAN NOT NULL);
     \\copy street_structures_import FROM '$STRUCTURES_FILE' WITH (FORMAT csv, HEADER true)
@@ -104,7 +110,12 @@ if [[ -n "$STRUCTURES_FILE" ]]; then
         LEFT JOIN street_structures_import ON street_edge.street_edge_id = street_structures_import.street_edge_id
         WHERE street_structures_import.street_edge_id IS NULL
             AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config);
-        IF unflagged_streets > 0 THEN
+        IF unflagged_streets > 0 AND NOT $ALLOW_UNFLAGGED THEN
+            RAISE EXCEPTION '% street(s) in this schema are not in the structures file.', unflagged_streets
+                USING HINT = 'A file from another build? Rebuild (or re-export with --from-gpkg) and load that SQL, '
+                             'or export without --structures after the nightly OSM way refresh. For streets added by '
+                             'hand after the build, --allow-unflagged-streets reads them as not on a structure.';
+        ELSIF unflagged_streets > 0 THEN
             RAISE NOTICE '% street(s) are not in the structures file and are taken as not on a structure.',
                 unflagged_streets;
         END IF;

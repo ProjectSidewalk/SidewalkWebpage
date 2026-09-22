@@ -211,10 +211,21 @@ def test_handoff_checklist_names_the_dump_both_urls_and_what_the_nightly_jobs_ow
     assert 'Street grades ride in the dump' in text and 'Street gradient staleness' in text
     no_source = snc.handoff_checklist('cdmx', 'sidewalk_cdmx', 'https://p', 'https://t', 'no_source')
     assert 'no elevation model is registered' in no_source and 'Sources by country' in no_source
+    no_structures = snc.handoff_checklist('cdmx', 'sidewalk_cdmx', 'https://p', 'https://t', 'no_structures')
+    assert 'wrote no street_structures.csv' in no_structures and 'make build-city-data id=cdmx' in no_structures
+    assert '--skip-gradient' not in no_structures   # The flag was never passed; rerunning without it skips again.
     skipped = snc.handoff_checklist('cdmx', 'sidewalk_cdmx', 'https://p', 'https://t', 'skipped')
-    assert 'without\n     --skip-gradient' in skipped and 'backfill runbook' in skipped
-    for text in (no_source, skipped):
+    assert 'without --skip-gradient' in skipped
+    for text in (no_source, no_structures, skipped):
         assert 'NOT sampled' in text and 'make onboard-city id=cdmx' in text and 'no grade term' in text
+        assert 'backfill runbook' in text
+    unknown = snc.handoff_checklist('cdmx', 'sidewalk_cdmx', 'https://p', 'https://t', 'unknown')
+    assert 'could not be read' in unknown and 'NOT sampled' not in unknown
+
+
+def test_the_samplers_no_source_refusal_is_the_string_setup_matches():
+    """The one sampler exit onboarding continues past is told by its wording; a reword would turn it into a stop."""
+    assert snc.GRADIENT_NO_SOURCE in (Path(snc.REPO_ROOT) / 'scripts' / 'street_gradient.py').read_text()
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -690,7 +701,9 @@ def _gradient_setup(monkeypatch, tmp_path, structures=True):
 
 def test_run_street_gradient_exports_samples_and_imports(monkeypatch, tmp_path, capsys):
     _gradient_setup(monkeypatch, tmp_path)
-    calls = _fake_run(monkeypatch, {'street_gradient.py': (0, '', 'INFO x: 2 street(s) to sample from usgs-3dep-10m\n')})
+    seen = []
+    calls = _fake_run(monkeypatch, {'street_gradient.py': (0, '', 'INFO x: 2 street(s) to sample from usgs-3dep-10m\n')},
+                      kwargs_seen=seen)
     assert snc.run_street_gradient('sidewalk_x', 'x') == 'sampled'
     joined = _joined(calls)
     # The build's flags stand in for the osm_way cache, which a city has no rows in until its first nightly refresh.
@@ -700,6 +713,9 @@ def test_run_street_gradient_exports_samples_and_imports(monkeypatch, tmp_path, 
     assert any('import-street-gradient.sh sidewalk_x onboarding/x/street_gradient.csv' in cmd for cmd in joined)
     captured = capsys.readouterr()
     assert 'Sampling the elevation model' in captured.out and 'usgs-3dep-10m' in captured.err
+    # stdout streams (a large city runs a minute or two); only stderr is held, to read the refusal off it.
+    cmd, kwargs = next((cmd, kw) for cmd, kw in seen if 'street_gradient.py' in ' '.join(map(str, cmd)))
+    assert kwargs.get('stderr') is snc.subprocess.PIPE and not kwargs.get('capture_output')
 
 
 def test_run_street_gradient_skips_without_the_builds_structure_flags(monkeypatch, tmp_path, capsys):
@@ -1358,7 +1374,15 @@ def test_main_recreates_a_schema_on_request_and_can_defer_the_scan(repo_copy, mo
     assert any(cmd[-4:] == ['sidewalk_testville_wa', 'sidewalk_seattle', '375', 'hash375'] for cmd in calls)
     assert record['evolutions'] == [('sidewalk_testville_wa', True)]
     assert 'Skipped (--skip-scan)' in out and 'scan' not in record
-    assert 'Skipped (--skip-gradient)' in out and 'gradient' not in record and 'step 8 was skipped' in out
+    assert 'Skipped (--skip-gradient)' in out and 'gradient' not in record and 'without --skip-gradient' in out
+    # A build with no structures file skips the step too, and the handoff must say to rebuild, not to drop a flag.
+    record = _stub_steps(monkeypatch, repo_copy)
+    monkeypatch.setattr(snc, 'run_street_gradient', lambda schema, city_id: 'no_structures')
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{'pg_namespace': (0, '1\n')}))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '', 'y', '1', 'all')
+    snc.main(['testville-wa', '--donor', 'sidewalk_seattle', '--skip-scan'])
+    out = capsys.readouterr().out
+    assert 'wrote no street_structures.csv' in out and '--skip-gradient' not in out.split('Server handoff')[1]
     # --recreate is that "y" for a run with nobody to type it: the question is not asked at all.
     record = _stub_steps(monkeypatch, repo_copy)
     calls = _fake_run(monkeypatch, dict(_FRESH_DB, **{'pg_namespace': (0, '1\n')}))
@@ -1513,6 +1537,11 @@ def test_main_dump_only_reruns_the_dump_step_alone(repo_copy, monkeypatch, capsy
     assert 'https://t and https://p' in out and 'Step 0/9' not in out
     # Nothing in street_gradient yet, so the handoff says the grades still have to be sampled.
     assert 'Street grades were NOT sampled' in out
+    # A table that could not be read is not "not sampled".
+    _fake_run(monkeypatch, _dump_only_db(street_gradient=(1, '')))
+    snc.main(['testville-wa', '--dump-only'])
+    out = capsys.readouterr().out
+    assert 'could not be read' in out and 'NOT sampled' not in out
     assert snc.cityparams_landing_urls('nowhere-xx') == ('<prod URL: not in cityparams.conf>',
                                                          '<test URL: not in cityparams.conf>')
     # No schema yet: nothing to dump. No database: say so, rather than "no schema".

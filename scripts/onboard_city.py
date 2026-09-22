@@ -247,11 +247,9 @@ def is_structure_tag(bridge, tunnel, covered):
         True when the edge lies on a structure.
     """
     def values(tag):
-        if isinstance(tag, list):
-            return [str(value) for value in tag]
-        if tag is None or pd.isna(tag):
-            return []
-        return [str(tag)]
+        # NaN is tested per element: a NaN inside a list would otherwise read as the string 'nan', which is not 'no'.
+        return [str(value) for value in (tag if isinstance(tag, list) else [tag])
+                if value is not None and not (pd.api.types.is_scalar(value) and pd.isna(value))]
     return (any(value != 'no' for value in values(bridge)) or any(value != 'no' for value in values(tunnel))
             or any(value == 'yes' for value in values(covered)))
 

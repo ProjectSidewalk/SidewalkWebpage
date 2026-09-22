@@ -365,7 +365,8 @@ class ManagementPage {
   // --- Maintenance ------------------------------------------------------------------------------------------------
 
   #wireMaintenance() {
-    // `done` is what the button reports on success: a trigger that answers before its job finishes can't say "Done".
+    // `done` is what the button reports on success: a trigger that answers before its job finishes can't say "Done",
+    // and one that answers with its counts hands them to a function so the admin need not open the Health panel.
     const run = (id, url, method, label, done = `Done: ${label}.`) => {
       const btn = /** @type {HTMLButtonElement} */ (document.getElementById(id));
       if (!btn) return;
@@ -379,8 +380,8 @@ class ManagementPage {
         btn.disabled = true;
         this.#maintResult(`Running: ${label}…`);
         try {
-          await AdminShell.mutate(url, method);
-          this.#maintResult(done);
+          const result = await AdminShell.mutate(url, method);
+          this.#maintResult(typeof done === 'function' ? done(result) : done);
         } catch (err) {
           this.#maintResult(`Failed: ${label} — ${err.message}`, true);
         } finally {
@@ -399,7 +400,9 @@ class ManagementPage {
     run('mgmt-refresh-places', this.#urls.refreshPlacesUrl, 'POST', 'refresh places',
       'Started: refresh places. It runs in the background — the Health panel reports how it ended.');
     run('mgmt-recount-gradient-staleness', this.#urls.recountGradientStalenessUrl, 'POST',
-      'recount street gradient staleness', 'Done: recounted street gradient staleness; the Health panel has the counts.');
+      'recount street gradient staleness',
+      (counts) => `Done: ${AdminShell.num(counts.streets_unsampled)} street(s) with no grade, `
+        + `${AdminShell.num(counts.streets_stale)} sampled on an older geometry. The Health panel shows the same.`);
     run('mgmt-clear-cache', this.#urls.clearCacheUrl, 'PUT', 'clear server cache');
   }
 

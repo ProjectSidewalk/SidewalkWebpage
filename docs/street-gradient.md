@@ -34,7 +34,8 @@ production schema, which is what the backfill runbook in the private `sidewalk-s
 `background_job_run` with `streets_unsampled` and `streets_stale`, how many served streets have no row or a row from
 an older geometry: the same set the export would emit, over the streets the public APIs serve. Admin > Health shows
 the two numbers on the job's row, and Admin > Management's "Recount street gradient staleness" refreshes them right
-after an import. A city that reads zero and zero is fully sampled; one that never was reads its whole street count.
+after an import. A city that reads zero and zero is fully sampled over the streets the APIs serve (the export also
+emits hidden and closed streets, which the count leaves out); one that never was reads its whole served count.
 
 The import loads a row only while its `geom_md5` still matches the street, and aborts when none of the file does, or
 less than half of a file of 20 rows or more, which is what a CSV pointed at the wrong city's schema looks like
@@ -51,7 +52,9 @@ Run the export after the city's first nightly OSM way refresh. Which streets are
 `osm_way.tags`, and with an empty `osm_way` every bridge would be sampled as the ravine beneath it without anything
 downstream noticing, so the export refuses to run against one. `args="--structures <path>"` reads the flags from
 the street build's `street_structures.csv` instead (the same three tags, read the same way, off the OSM data the
-build already fetched), and `args=--allow-empty-osm-way` overrides the check for a city that really has none. The
+build already fetched; the file and the schema must name the same streets, since a build renumbers them, and
+`--allow-unflagged-streets` admits streets inserted by hand after the build), and `args=--allow-empty-osm-way`
+overrides the check for a city that really has none. The
 tutorial street is never exported: it is the shared DC geometry, and no model the city is sampled from says
 anything true about it.
 
