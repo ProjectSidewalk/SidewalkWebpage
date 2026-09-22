@@ -136,6 +136,25 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
       pageLabelIds(galleryPage(s"?labelIds=$ids")) must have size GalleryController.MaxLabelIds.toLong
     }
 
+    "say how many ids the cap dropped, rather than silently serving a short list" in {
+      val ids  = (1 to GalleryController.MaxLabelIds + 100).mkString(",")
+      val page = galleryPage(s"?labelIds=$ids")
+      page must include("""data-dropped="100"""")
+      page must include(s"""data-max="${GalleryController.MaxLabelIds}"""")
+      page must include(s"100 ids were past the ${GalleryController.MaxLabelIds}-id limit")
+    }
+
+    "say nothing about the cap for a list that fits under it" in {
+      galleryPage("?labelIds=8,3") must not include "gallery-list-truncated"
+    }
+
+    // The server-rendered count is what a reviewer reads before the cards land, so its plural has to be right then
+    // — i18next only takes over once the card query returns.
+    "render the count with the plural the number calls for" in {
+      galleryPage("?labelIds=8") must include("Showing 1 label,")
+      galleryPage("?labelIds=8,3") must include("Showing 2 labels,")
+    }
+
     "serve the page to a mobile visitor instead of redirecting to /mobileLanding" in {
       val resp = route(app, FakeRequest(GET, "/gallery").withHeaders(UserAgents.mobile)).get
       status(resp) mustBe OK

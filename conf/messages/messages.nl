@@ -549,8 +549,10 @@ gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met ver
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters
 gallery.clear.filters = Filters Wissen
 gallery.list.heading = Labellijst
-gallery.list.count = {0} labels worden getoond, in de opgegeven volgorde.
+gallery.list.count = {0,choice,1#1 label wordt|1<{0} labels worden} getoond, in de opgegeven volgorde.
 gallery.list.hint = Om een beoordeling vast te leggen, pas het label zo nodig aan en stem daarna „Mee eens zijn”. Een ongewijzigd label laat uit zichzelf geen spoor na.
+gallery.list.truncated = {0,choice,1#1 id lag|1<{0} ids lagen} boven de limiet van {1} en kon niet worden geladen.
+gallery.list.error = De lijst kon niet worden geladen. Herlaad de pagina om het opnieuw te proberen.
 gallery.list.unavailable = Niet-beschikbare labels
 gallery.list.show.all = Alle labels tonen
 

@@ -1270,6 +1270,9 @@ button.label-detail__meta-cell:focus-visible {
   position: absolute;
   top: 10px;
   left: 50%;
+
+  /* The paging chips' band: above the GSV widget's own leaked layers, the validation ring (5) and the hover vote
+     bar (1), so the counter is never painted over by the imagery it sits on. */
   z-index: 11;
   transform: translateX(-50%);
   padding: 2px 8px;

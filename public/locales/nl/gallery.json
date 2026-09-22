@@ -4,10 +4,13 @@
   "filter-by": "Filteren op",
   "list-count_one": "{{count}} label wordt getoond, in de opgegeven volgorde.",
   "list-count_other": "{{count}} labels worden getoond, in de opgegeven volgorde.",
+  "list-error": "De lijst kon niet worden geladen. Herlaad de pagina om het opnieuw te proberen.",
   "list-heading": "Labellijst",
   "list-hint": "Om een beoordeling vast te leggen, pas het label zo nodig aan en stem daarna „Mee eens zijn”. Een ongewijzigd label laat uit zichzelf geen spoor na.",
   "list-position": "{{k}} van {{n}}",
   "list-show-all": "Alle labels tonen",
+  "list-truncated_one": "{{count}} id lag boven de limiet van {{max}} en kon niet worden geladen.",
+  "list-truncated_other": "{{count}} ids lagen boven de limiet van {{max}} en konden niet worden geladen.",
   "list-unavailable": "Niet-beschikbare labels",
   "none": "geen",
   "not-applicable": "niet toepasbaar"

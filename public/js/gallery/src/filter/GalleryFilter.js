@@ -117,20 +117,30 @@ class GalleryFilter {
 
   /** Rewrites the address bar to match the filters, so the view can be linked and reloaded. */
   #updateURL() {
-    const url = this.#buildCurrentURL();
-    // Nothing to reset in review-list mode — the sections aren't rendered — so the reset stays hidden there even
-    // though the URL carries a parameter.
-    this.#clearButton.hidden = this.#listLabelIds().length > 0 || url === '/gallery';
+    const params = this.#filterParams();
+    // The reset speaks for the filters alone, so the deep link below doesn't make it appear; and review-list mode
+    // renders no sections, so there is nothing to reset there whatever the URL carries.
+    this.#clearButton.hidden = this.#listLabelIds().length > 0 || [...params.keys()].length === 0;
 
+    // The open label is not a filter, but this is the page's only writer of the address bar, so it has to carry the
+    // deep link through: rebuilding the URL from the filters alone scrubbed `?labelId=` during the constructor's
+    // first pass — before ExpandedView could read it — which left every shared Gallery deep link opening the plain
+    // grid (#5446). Read fresh each time, so a filter change (which closes the expanded view and clears the param)
+    // correctly drops it.
+    const openLabelId = LabelDetail.urlLabelId();
+    if (openLabelId) params.set('labelId', String(openLabelId));
+
+    const query = util.url.serialize(params);
+    const url = query ? `/gallery?${query}` : '/gallery';
     const fullUrl = `${window.location.protocol}//${window.location.host}${url}`;
     if (fullUrl !== window.location.href) window.history.pushState({}, '', fullUrl);
   }
 
   /**
-   * Builds the `/gallery` URL for the current filters, leaving out every filter that is at its default.
-   * @returns {string} The path, with a query string when anything is filtered.
+   * The `/gallery` query params for the current filters, leaving out every filter that is at its default.
+   * @returns {URLSearchParams} The filter params; empty when nothing is filtered.
    */
-  #buildCurrentURL() {
+  #filterParams() {
     const params = new URLSearchParams();
 
     // Review-list mode (#5444): the list is the whole selection and no filter controls are rendered, so reading the
@@ -139,7 +149,7 @@ class GalleryFilter {
     const listLabelIds = this.#listLabelIds();
     if (listLabelIds.length > 0) {
       params.set('labelIds', listLabelIds.join());
-      return `/gallery?${util.url.serialize(params)}`;
+      return params;
     }
 
     const severities = this.getAppliedSeverities();
@@ -163,8 +173,7 @@ class GalleryFilter {
     // TODO once we add a UI for filtering on AI validation, have that process mirror the other filters.
     if (aiValidationOptions.length > 0) params.set('aiValidationOptions', aiValidationOptions.join());
 
-    const query = util.url.serialize(params);
-    return query ? `/gallery?${query}` : '/gallery';
+    return params;
   }
 
   /**

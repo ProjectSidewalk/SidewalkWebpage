@@ -148,6 +148,11 @@ describe('GalleryFilter', () => {
                 },
             },
         };
+        // GalleryFilter is the page's only writer of the address bar, so it reads the open label off LabelDetail to
+        // carry the ?labelId= deep link through its rewrite (#5446).
+        window.LabelDetail = {
+            urlLabelId: () => parseInt(new URLSearchParams(window.location.search).get('labelId'), 10) || null,
+        };
         window.eval(URL_QUERY_SRC); // Defines util.url, which the URL readers/writers depend on.
         window.eval(`${FILTER_SIDEBAR_SRC}\nwindow.FilterSidebar = FilterSidebar;`);
         window.eval(`${GALLERY_FILTER_SRC}\nwindow.GalleryFilter = GalleryFilter;`);
@@ -173,6 +178,24 @@ describe('GalleryFilter', () => {
             expect(filter.getStatus().currentLabelTypes).toEqual(['CurbRamp', 'Crosswalk', 'Obstacle']);
             expect(sg.cardContainer.updateCardsByFilter).toHaveBeenCalled();
             expect(clearBtn().hidden).toBe(false);
+        });
+
+        it('carries a ?labelId= deep link through the rewrite, and through a filter change', () => {
+            // The rewrite used to drop it before ExpandedView could read it, so every shared deep link opened the
+            // plain grid (#5446). The filter is constructed here with the param already in the URL, as on a load.
+            window.history.replaceState({}, '', '/gallery?labelId=123');
+            build();
+            expect(currentUrl()).toBe('/gallery?labelId=123');
+
+            typeBox('NoSidewalk').click();
+            expect(currentUrl()).toBe('/gallery?labelType=CurbRamp,Crosswalk,Obstacle&labelId=123');
+        });
+
+        it('does not treat a deep link as a filter worth offering to clear', () => {
+            window.history.replaceState({}, '', '/gallery?labelId=123');
+            build();
+
+            expect(clearBtn().hidden).toBe(true);
         });
 
         it('goes back to a bare URL when every type is checked again', () => {

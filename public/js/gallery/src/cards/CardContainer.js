@@ -112,9 +112,19 @@ class CardContainer {
       // which is exactly the ordering the list exists to avoid.
       this.fetchLabels([], this.#listLabelIds.length, [], [], undefined, undefined, undefined, undefined,
         this.#listLabelIds, (newCards, unavailableLabelIds) => {
+          // A failed request is not an empty list: rendering zero cards would show the filtered gallery's "No
+          // matches, start exploring" copy and a "Showing 0 labels" count, telling a reviewer their queue is empty
+          // when the server never answered. Say so instead, and leave the server-rendered count standing.
+          if (newCards === null) {
+            CardContainer.#showListError();
+            sg.pageLoading.hide();
+            sg.cardFilter.enable();
+            return;
+          }
           this.#currentCards = new CardBucket(newCards);
           this.#lastPage = this.#currentCards.getSize() <= this.#currentPage * CardContainer.#cardsPerPage;
           CardContainer.#renderListCount(this.#currentCards.getSize());
+          CardContainer.#renderListTruncated();
           CardContainer.#renderUnavailableIds(unavailableLabelIds);
           this.render();
         });
@@ -261,9 +271,9 @@ class CardContainer {
    * @param {string[]|undefined} aiValidationOptions - AI validation options: correct, incorrect, and/or unvalidated.
    * @param {number[]|undefined} labelIds - A review list (#5444). When non-empty the server ignores every filter
    *      above and returns exactly these labels in this order.
-   * @param {(cards: Card[], unavailableLabelIds: (number[]|undefined)) => void} [callback] - Called when labels
-   *      arrive (or the request fails, with nothing), given the new cards in the order the server returned them
-   *      and, for a review list, the requested ids the server could not serve.
+   * @param {(cards: (Card[]|null), unavailableLabelIds: (number[]|undefined)) => void} [callback] - Called when
+   *      labels arrive, given the new cards in the order the server returned them and, for a review list, the
+   *      requested ids the server could not serve. Called with `null` when the request failed.
    */
   fetchLabels(
     labelTypes, n, validationOptions, loadedLabels, regionIds, severities, tagsByLabelType, aiValidationOptions,
@@ -303,9 +313,10 @@ class CardContainer {
         }
       },
       // Still run the callback on failure: it is what releases the sidebar's loading state, so skipping it leaves
-      // the filters greyed and unusable for the rest of the page's life.
+      // the filters greyed and unusable for the rest of the page's life. `null` rather than an empty array, so a
+      // caller that must not read a failure as "there were none" can tell the two apart.
       error: () => {
-        if (callback) callback([], undefined);
+        if (callback) callback(null, undefined);
       },
     });
   }
@@ -598,6 +609,26 @@ class CardContainer {
   static #renderListCount(shown) {
     const countEl = document.getElementById('gallery-list-count');
     if (countEl) countEl.textContent = i18next.t('gallery:list-count', { count: shown });
+  }
+
+  /**
+   * Restates the truncation notice the page was rendered with, in the language the rest of the panel is now in.
+   *
+   * Both numbers come off the element the server wrote them onto — how many ids were dropped, and the cap that
+   * dropped them — so the limit is never a frontend literal. A list that fits the cap renders no such element.
+   */
+  static #renderListTruncated() {
+    const truncatedEl = document.getElementById('gallery-list-truncated');
+    if (!truncatedEl) return;
+    const dropped = Number(truncatedEl.dataset.dropped);
+    const max = Number(truncatedEl.dataset.max);
+    if (dropped > 0) truncatedEl.textContent = i18next.t('gallery:list-truncated', { count: dropped, max });
+  }
+
+  /** Tells the reviewer the list could not be loaded, rather than letting a failed request read as an empty queue. */
+  static #showListError() {
+    const errorEl = document.getElementById('gallery-list-error');
+    if (errorEl) errorEl.hidden = false;
   }
 
   /**

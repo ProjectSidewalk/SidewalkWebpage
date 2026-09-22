@@ -109,6 +109,14 @@ trait LabelService {
 object LabelServiceImpl {
 
   /**
+   * How many labels the Gallery's review list checks imagery for at a time (#5444).
+   *
+   * Sized to stay in the same order as the filtered path's per-type batches, so a 500-id list costs the provider no
+   * more concurrency than an ordinary Gallery page does.
+   */
+  val ImageryCheckChunkSize: Int = 50
+
+  /**
    * Picks the queue a mission is chosen from, and the label types that queue can fill a mission with.
    *
    * The cascade is walked in order and the first queue with at least one such type wins, so Expert Validate falls
@@ -365,8 +373,10 @@ class LabelServiceImpl @Inject() (
       val requestedOrder: Map[Int, Int] = labelIds.zipWithIndex.toMap
       db.run(labelTable.getGalleryLabelsByIdQuery(viewer, labelIds, userId).result)
         .map(_.map(labelValidationMetadataConverter.fromTuple))
-        .flatMap(labels => checkImageryBatch(labels, useCrops = true))
-        .map(_.sortBy(label => requestedOrder(label.labelId)))
+        .flatMap(labels => checkImageryInChunks(labels))
+        // getOrElse rather than apply: the sort must not be what throws if a caller ever hands this a label the id
+        // list doesn't name. Anything unnamed sorts to the end instead of 500ing the page.
+        .map(_.sortBy(label => requestedOrder.getOrElse(label.labelId, Int.MaxValue)))
     } else if (typesToSpread.isEmpty) {
       Future.successful(Seq())
     } else {
@@ -565,6 +575,25 @@ class LabelServiceImpl @Inject() (
             }
           }
         }
+    }
+  }
+
+  /**
+   * Runs the review list's imagery check a chunk at a time rather than all at once.
+   *
+   * `checkImageryBatch` fans a batch out to the provider concurrently (`Future.traverse`), which suits the filtered
+   * path's ~15-label batches and not a 500-label review list: that would open up to 500 provider lookups at once,
+   * against a quota and a latency budget shared with every other page (`docs/google-cloud.md`). Chunks run one
+   * after another, so the peak concurrency is the chunk size whatever the list length. Order is not this method's
+   * job — `checkImageryBatch` returns crop-backed labels first — and the caller sorts the result back into the
+   * order the list was given.
+   *
+   * @param labels The labels to check, already narrowed to the requested ids.
+   * @return       Those of them whose imagery (or local crop) can actually be shown.
+   */
+  private def checkImageryInChunks[A <: BasicLabelMetadata](labels: Seq[A]): Future[Seq[A]] = {
+    labels.grouped(LabelServiceImpl.ImageryCheckChunkSize).foldLeft(Future.successful(Seq.empty[A])) { (soFar, chunk) =>
+      soFar.flatMap(kept => checkImageryBatch(chunk, useCrops = true).map(kept ++ _))
     }
   }
 

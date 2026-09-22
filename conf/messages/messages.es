@@ -563,8 +563,10 @@ gallery.labels.not.found = No hay resultados. ¡<a href="/explore">Comienza a ex
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados
 gallery.clear.filters = Borrar Filtros
 gallery.list.heading = Lista de etiquetas
-gallery.list.count = Mostrando {0} etiquetas, en el orden indicado.
+gallery.list.count = Mostrando {0,choice,1#1 etiqueta|1<{0} etiquetas}, en el orden indicado.
 gallery.list.hint = Para dejar constancia de una revisión, edita la etiqueta si hace falta y luego vota «Aceptar». Una etiqueta sin cambios no deja ningún registro por sí sola.
+gallery.list.truncated = {0,choice,1#1 ID superaba|1<{0} ID superaban} el límite de {1} y no se pudieron cargar.
+gallery.list.error = No se pudo cargar la lista. Recarga la página para volver a intentarlo.
 gallery.list.unavailable = Etiquetas no disponibles
 gallery.list.show.all = Mostrar todas las etiquetas
 

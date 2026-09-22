@@ -4,9 +4,10 @@
 @import models.pano.PanoSource
 @import models.label.Tag
 @import play.api.libs.json.Json
+@import controllers.GalleryController
 @(commonData: service.CommonPageData, title: String, user: Option[models.user.SidewalkUserWithRole], labelTypes: Seq[String],
   allTags: Seq[Tag], regionIds: Seq[Int], regionNames: Map[Int, String], severities: Seq[String], tags: List[String],
-  valOptions: Seq[String], aiValOptions: Seq[String], labelIds: Seq[Int]
+  valOptions: Seq[String], aiValOptions: Seq[String], labelIds: Seq[Int], idsOverCap: Int
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 @* The sidebar names whichever mode the page is in; one element either way, so the id stays unique. *@
@@ -82,13 +83,24 @@
             @* Server-rendered so the count is right on first paint; CardContainer rewrites it with the number that
                actually came back, which is lower when an id in the list isn't available here. *@
             <p class="gallery-list-panel__count" id="gallery-list-count">@Messages("gallery.list.count", labelIds.size)</p>
+            @* The cap is part of the completeness promise, so a truncated list says so; a list that fits says
+               nothing, which is why this is absent rather than hidden. Neither number is a frontend literal: both
+               are rendered here and re-read off the data attributes when JS retranslates the panel. *@
+            @if(idsOverCap > 0) {
+              <p class="gallery-list-panel__truncated" id="gallery-list-truncated" data-dropped="@idsOverCap" data-max="@GalleryController.MaxLabelIds">@Messages("gallery.list.truncated", idsOverCap, GalleryController.MaxLabelIds)</p>
+            }
             @* An unchanged label leaves no record: /label/edit writes nothing when the values match, and never
                writes a validation. Agreeing is what makes "reviewed and correct" auditable. *@
             <p class="gallery-list-panel__hint" data-i18n="gallery:list-hint">@Messages("gallery.list.hint")</p>
+            @* A failed card query is not an empty queue, so it gets its own line rather than the grid's
+               "no matches" copy. role="alert" announces it when CardContainer unhides it. *@
+            <p class="gallery-list-panel__error" id="gallery-list-error" role="alert" hidden data-i18n="gallery:list-error">@Messages("gallery.list.error")</p>
             <div class="gallery-list-panel__unavailable" aria-live="polite">
               <div id="gallery-list-unavailable" hidden>
-                <h5 class="gallery-list-panel__subheading" data-i18n="gallery:list-unavailable">@Messages("gallery.list.unavailable")</h5>
-                <ul class="gallery-list-panel__ids"></ul>
+                <h5 class="gallery-list-panel__subheading" id="gallery-list-unavailable-heading" data-i18n="gallery:list-unavailable">@Messages("gallery.list.unavailable")</h5>
+                @* The list scrolls once it is long, so it is a focusable region: a keyboard-only reader otherwise
+                   has no way to reach the ids below the fold (WCAG 2.1.1). *@
+                <ul class="gallery-list-panel__ids" tabindex="0" aria-labelledby="gallery-list-unavailable-heading"></ul>
               </div>
             </div>
             <a class="button-ps button--tiny button--secondary" href="@routes.GalleryController.gallery()" data-i18n="gallery:list-show-all">@Messages("gallery.list.show.all")</a>

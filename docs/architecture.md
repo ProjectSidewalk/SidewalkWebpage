@@ -298,7 +298,10 @@ corresponding Twirl view:
   .getGalleryLabelsByIdQuery` is the query, and both share the row projection with the filtered query. Ids the city
   doesn't have, or whose imagery is gone with no crop to fall back on, come back in the card query's
   `unavailableLabelIds` and are listed on the page, so a short list never reads as a complete one. The list is
-  capped at `GalleryController.MaxLabelIds` (500) on both the page request and the card query.
+  capped at `GalleryController.MaxLabelIds` (500) on both the page request and the card query, and a list that hits
+  the cap says on the page how many ids were dropped — a truncated review queue that looked complete would be worse
+  than a refused one. The imagery check runs in chunks of `LabelServiceImpl.ImageryCheckChunkSize` so a 500-id list
+  can't open 500 provider lookups at once.
 - **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one
   `<PageName>Page.js` per route, loaded by that page's Twirl template. `AdminShell.js` loads on every one of those
   pages (and the user dashboard's) and holds the shared shell behaviors — the "On this page" list and its

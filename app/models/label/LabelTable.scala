@@ -1836,10 +1836,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
     } yield (_lb, _lp, _pd, _lb.labelTypeName, _ser.regionId, _ur.role === Role.Ai)
 
+    val _galleryLabels = galleryProjection(_labelInfo, aiValOptions, userId)
+
     // Remove duplicates if needed, then order newest-first or randomized. Callers that batch through this query
     // (findValidLabelsForType) shuffle each batch themselves, so recentFirst yields a shuffled recent pool.
-    val _galleryLabels = galleryProjection(_labelInfo, aiValOptions, userId)
-    val _uniqueLabels  = if (tags.nonEmpty) _galleryLabels.groupBy(x => x).map(_._1) else _galleryLabels
+    val _uniqueLabels = if (tags.nonEmpty) _galleryLabels.groupBy(x => x).map(_._1) else _galleryLabels
     if (recentFirst) _uniqueLabels.sortBy(_._7.desc) else _uniqueLabels.sortBy(_ => random)
   }
 

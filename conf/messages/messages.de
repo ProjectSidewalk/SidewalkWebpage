@@ -553,8 +553,10 @@ gallery.labels.not.found = Keine Treffer. <a href="/explore">Erkundung starten</
 gallery.cards = Beschriftungen werden zufällig sortiert, basierend auf gewählten Filtern
 gallery.clear.filters = Filter löschen
 gallery.list.heading = Beschriftungsliste
-gallery.list.count = {0} Beschriftungen werden in der angegebenen Reihenfolge angezeigt.
+gallery.list.count = {0,choice,1#1 Beschriftung wird|1<{0} Beschriftungen werden} in der angegebenen Reihenfolge angezeigt.
 gallery.list.hint = Um eine Überprüfung festzuhalten, bearbeite die Beschriftung bei Bedarf und stimme dann mit „Einverstanden“ ab. Eine unveränderte Beschriftung hinterlässt von selbst keinen Eintrag.
+gallery.list.truncated = {0,choice,1#1 ID lag|1<{0} IDs lagen} über dem Limit von {1} IDs und konnte nicht geladen werden.
+gallery.list.error = Die Liste konnte nicht geladen werden. Lade die Seite neu, um es erneut zu versuchen.
 gallery.list.unavailable = Nicht verfügbare Beschriftungen
 gallery.list.show.all = Alle Beschriftungen anzeigen
 

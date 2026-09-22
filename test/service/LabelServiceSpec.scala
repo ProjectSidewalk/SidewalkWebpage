@@ -87,7 +87,9 @@ class LabelServiceSpec extends PlaySpec with RolledBackDb with GuiceOneAppPerSui
     "return exactly the labels asked for, and each of them once" in {
       assume(servedIds.size >= 2, "connected DB serves fewer than two gallery labels")
 
-      // Reversed, to pin that the query itself imposes no order — the service is what puts the list back in order.
+      // Asked for in reverse: the query applies no ordering of its own (the service sorts the result back into the
+      // requested order), so what is pinned here is the *set* — the same labels come back whatever order is asked
+      // for, and none is dropped for being out of order.
       val returned = run(labelTable.getGalleryLabelsByIdQuery(viewer, servedIds.reverse, userId).result).map(_._1)
       returned.toSet mustBe servedIds.toSet
       // A fanned-out join would show up here as a label appearing twice, which the Gallery would page through twice.

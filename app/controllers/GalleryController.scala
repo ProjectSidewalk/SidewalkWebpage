@@ -117,7 +117,11 @@ class GalleryController @Inject() (
 
         // parseIntegerSeq drops tokens that aren't integers and dedups, preserving order. A dropped token can't be
         // reported back — the page never learns it existed — so only ids that parsed reach the unavailable list.
-        val labelIdList: Seq[Int] = parseIntegerSeq(labelIds).take(GalleryController.MaxLabelIds)
+        val requestedIds: Seq[Int] = parseIntegerSeq(labelIds)
+        val labelIdList: Seq[Int]  = requestedIds.take(GalleryController.MaxLabelIds)
+        // The cap has to be visible on the page: a review list is a completeness promise, and silently serving the
+        // first 500 of 600 tells the reviewer they have seen everything when they have not.
+        val idsOverCap: Int = requestedIds.size - labelIdList.size
 
         // Log visit to Gallery async. A review list logs its length, not its ids: it can be 500 of them, and the
         // question the log answers is how often list mode is used, not on what.
@@ -128,7 +132,7 @@ class GalleryController @Inject() (
 
         Ok(
           views.html.apps.gallery(commonData, Messages("seo.title.gallery"), request.identity, labTypes, allTags,
-            regionIdsList, regionNames, severityList, tagList, valOptions, aiValOptions, labelIdList)
+            regionIdsList, regionNames, severityList, tagList, valOptions, aiValOptions, labelIdList, idsOverCap)
         )
       }
     }

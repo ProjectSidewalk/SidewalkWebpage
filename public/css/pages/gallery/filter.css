@@ -131,6 +131,15 @@
   color: var(--color-asphalt-500);
 }
 
+/* The two lines that say the list isn't what was asked for: a list cut off at the cap, and a list that failed to
+   load at all. Both read as warnings rather than as part of the ordinary panel copy. */
+.gallery-list-panel__truncated,
+.gallery-list-panel__error {
+  margin: 0;
+  font: var(--text-small-medium);
+  color: var(--color-error-300); /* The contrast-safe error token; -200 fails AA on white. */
+}
+
 .gallery-list-panel__subheading {
   margin: 0 0 4px;
   font: var(--text-small-bold);
@@ -147,4 +156,11 @@
   /* A long list of unavailable ids must not push the "Show all labels" action out of reach. */
   max-height: 160px;
   overflow-y: auto;
+}
+
+/* The list is a focusable scroll region (see gallery.scala.html), so it needs a focus ring of its own — it is not a
+   control, so it inherits none. */
+.gallery-list-panel__ids:focus-visible {
+  outline: 2px solid var(--color-asphalt-400);
+  outline-offset: 2px;
 }

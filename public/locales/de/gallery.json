@@ -4,10 +4,13 @@
   "filter-by": "Filtern nach",
   "list-count_one": "{{count}} Beschriftung wird in der angegebenen Reihenfolge angezeigt.",
   "list-count_other": "{{count}} Beschriftungen werden in der angegebenen Reihenfolge angezeigt.",
+  "list-error": "Die Liste konnte nicht geladen werden. Lade die Seite neu, um es erneut zu versuchen.",
   "list-heading": "Beschriftungsliste",
   "list-hint": "Um eine Überprüfung festzuhalten, bearbeite die Beschriftung bei Bedarf und stimme dann mit „Einverstanden“ ab. Eine unveränderte Beschriftung hinterlässt von selbst keinen Eintrag.",
   "list-position": "{{k}} von {{n}}",
   "list-show-all": "Alle Beschriftungen anzeigen",
+  "list-truncated_one": "{{count}} ID lag über dem Limit von {{max}} IDs und konnte nicht geladen werden.",
+  "list-truncated_other": "{{count}} IDs lagen über dem Limit von {{max}} IDs und konnten nicht geladen werden.",
   "list-unavailable": "Nicht verfügbare Beschriftungen",
   "none": "keine",
   "not-applicable": "nicht zutreffend"
