@@ -168,7 +168,7 @@ class PlacesApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/v3/api/accessScoreConfig")).get
       status(resp) mustBe OK
       (contentAsJson(resp) \ "place_categories").as[Seq[String]] mustBe
-        Seq("school", "health", "library", "grocery", "transit", "park", "community")
+        Seq("school", "health", "library", "grocery", "transit", "park", "community", "government")
     }
   }
 
@@ -177,6 +177,14 @@ class PlacesApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/v3/api-docs/places")).get
       status(resp) mustBe OK
       contentAsString(resp) must include("Places API")
+    }
+
+    // A rule's qualifier is the difference between a passport office and a maintenance yard, so the tag table has to
+    // print it; without this the page would promise every office=government object.
+    "spell out a qualified rule's second tag in the category table" in {
+      val page = contentAsString(route(app, FakeRequest(GET, "/v3/api-docs/places")).get)
+      page must include("<code>office=government</code> with <code>government</code> one of")
+      page must include("<code>public_service</code>")
     }
   }
 }

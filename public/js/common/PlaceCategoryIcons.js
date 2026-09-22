@@ -1,8 +1,8 @@
 /**
- * The glyph each place category (#5311) wears, shared by every map that draws places: the AccessScore map and the
- * Explore minimap's landmarks. The categories themselves come from the backend (`place_categories` on
- * `/v3/api/accessScoreConfig`); this is presentation only, so a category the backend adds before this file learns
- * it still draws, as a plain pin.
+ * The glyph each place category (#5311) wears, its own file so every map that draws places shares one set (the
+ * AccessScore map today, the Explore minimap next). The categories themselves come from the backend
+ * (`place_categories` on `/v3/api/accessScoreConfig`); this is presentation only, so a category the backend adds
+ * before this file learns it still draws, as a plain pin.
  */
 class PlaceCategoryIcons {
   /** Per category: a white Lucide glyph under `images/icons/`, drawn over a colored disc. */

@@ -67,7 +67,7 @@
           @for(category <- PlaceCategory.all) {
           <tr>
             <td><code>@category.id</code></td>
-            <td>@for((rule, i) <- category.rules.zipWithIndex) {@if(i > 0){; }@for((v, j) <- rule.values.toSeq.sorted.zipWithIndex) {@if(j > 0){, }<code>@rule.key=@v</code>}}</td>
+            <td>@for((rule, i) <- category.rules.zipWithIndex) {@if(i > 0){; }@for((v, j) <- rule.values.toSeq.sorted.zipWithIndex) {@if(j > 0){, }<code>@rule.key=@v</code>}@for(qualifier <- rule.qualifier) { with <code>@qualifier.key</code> one of @for((v, j) <- qualifier.values.toSeq.sorted.zipWithIndex) {@if(j > 0){, }<code>@v</code>}}}</td>
           </tr>
           }
         </tbody>

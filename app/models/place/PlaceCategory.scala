@@ -45,7 +45,7 @@ final case class PlaceCategory(id: String, rules: Seq[OsmTagRule]) {
  * not food access; transit is dominated by bus stops (half of all places in Seattle), which is why it is its own
  * toggle; parks include playgrounds, which are otherwise mostly unnamed points inside them; community centers and
  * social facilities cover senior centers, which OSM files under either; government covers town halls, courthouses, and
- * the government offices the public visits (a benefits office or a motor-vehicle office is a trip people can't skip).
+ * the government offices the public visits (a benefits or tax office is a trip people can't skip).
  *
  * Order matters twice: it is the order the tool lists categories in, and the first category whose rule an object
  * satisfies wins, so a school that also sells groceries is a school.
@@ -80,6 +80,7 @@ object PlaceCategory {
   /**
    * The `government=*` values of offices people visit in person. Bare `office=government` in Seattle's OSM (2026-09-22)
    * also tagged a radar site, a detention center, and maintenance yards, so untagged offices are dropped with them.
+   * `transportation` is left out for the same reason, though it costs us the motor-vehicle offices tagged with it.
    */
   private lazy val PublicFacingGovernment: Set[String] = Set(
     "administrative", "cadaster", "housing", "legislative", "migration", "passport", "pension_fund", "public_service",
