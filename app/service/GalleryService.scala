@@ -3,7 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import formats.json.GalleryFormats.GalleryTaskSubmission
 import models.gallery._
-import models.utils.MyPostgresProfile
+import models.utils.{IpAddress, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -14,7 +14,7 @@ import scala.concurrent.{ExecutionContext, Future}
 trait GalleryService {
   def submitGalleryTasks(
       submissions: Seq[GalleryTaskSubmission],
-      ipAddress: String,
+      ipAddress: IpAddress,
       userId: String
   ): Future[Seq[Int]]
 }
@@ -38,7 +38,7 @@ class GalleryServiceImpl @Inject() (
    */
   def submitGalleryTasks(
       submissions: Seq[GalleryTaskSubmission],
-      ipAddress: String,
+      ipAddress: IpAddress,
       userId: String
   ): Future[Seq[Int]] = {
     val submissionActions: Seq[DBIO[Int]] = submissions.map { data =>
@@ -49,7 +49,7 @@ class GalleryServiceImpl @Inject() (
         })
         _ <- galleryTaskEnvironmentTable.insert(
           GalleryTaskEnvironment(0, env.browser, env.browserVersion, env.browserWidth, env.browserHeight,
-            env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem, Some(ipAddress),
+            env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem, ipAddress,
             env.language, Some(userId))
         )
       } yield nInteractionSubmitted.length

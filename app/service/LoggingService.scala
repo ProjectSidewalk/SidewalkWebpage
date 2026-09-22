@@ -1,7 +1,7 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.utils.{MyPostgresProfile, WebpageActivity, WebpageActivityTable}
+import models.utils.{IpAddress, MyPostgresProfile, WebpageActivity, WebpageActivityTable}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -10,10 +10,10 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[LoggingServiceImpl])
 trait LoggingService {
-  def insert(userId: String, ipAddress: String, activity: String, timestamp: OffsetDateTime): Future[Int]
-  def insert(userId: String, ipAddress: String, activity: String): Future[Int]
-  def insert(userId: Option[String], ipAddress: String, activity: String): Future[Int]
-  def insert(userId: Option[String], ipAddress: String, activity: String, timestamp: OffsetDateTime): Future[Int]
+  def insert(userId: String, ipAddress: IpAddress, activity: String, timestamp: OffsetDateTime): Future[Int]
+  def insert(userId: String, ipAddress: IpAddress, activity: String): Future[Int]
+  def insert(userId: Option[String], ipAddress: IpAddress, activity: String): Future[Int]
+  def insert(userId: Option[String], ipAddress: IpAddress, activity: String, timestamp: OffsetDateTime): Future[Int]
 }
 
 @Singleton
@@ -25,16 +25,16 @@ class LoggingServiceImpl @Inject() (
 ) extends LoggingService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  def insert(userId: String, ipAddress: String, activity: String, timestamp: OffsetDateTime): Future[Int] =
+  def insert(userId: String, ipAddress: IpAddress, activity: String, timestamp: OffsetDateTime): Future[Int] =
     _insert(Some(userId), ipAddress, activity, Some(timestamp))
 
-  def insert(userId: String, ipAddress: String, activity: String): Future[Int] =
+  def insert(userId: String, ipAddress: IpAddress, activity: String): Future[Int] =
     _insert(Some(userId), ipAddress, activity, None)
 
-  def insert(userId: Option[String], ipAddress: String, activity: String): Future[Int] =
+  def insert(userId: Option[String], ipAddress: IpAddress, activity: String): Future[Int] =
     _insert(userId, ipAddress, activity, None)
 
-  def insert(userId: Option[String], ipAddress: String, activity: String, timestamp: OffsetDateTime): Future[Int] =
+  def insert(userId: Option[String], ipAddress: IpAddress, activity: String, timestamp: OffsetDateTime): Future[Int] =
     _insert(userId, ipAddress, activity, Some(timestamp))
 
   /**
@@ -47,7 +47,7 @@ class LoggingServiceImpl @Inject() (
    */
   private def _insert(
       userId: Option[String],
-      ipAddress: String,
+      ipAddress: IpAddress,
       activity: String,
       timestamp: Option[OffsetDateTime]
   ): Future[Int] = {
@@ -57,10 +57,7 @@ class LoggingServiceImpl @Inject() (
       case None      => authenticationService.getDefaultAnonUser.map(_.userId)
     }
 
-    // If the IP address is comma-separated, take the first part (the rest should be proxies).
-    val mainIpAddress = ipAddress.split(",").head.trim
-
     val time: OffsetDateTime = timestamp.getOrElse(OffsetDateTime.now)
-    user.flatMap { uId => db.run(webpageActivityTable.insert(WebpageActivity(0, uId, mainIpAddress, activity, time))) }
+    user.flatMap { uId => db.run(webpageActivityTable.insert(WebpageActivity(0, uId, ipAddress, activity, time))) }
   }
 }
