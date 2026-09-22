@@ -10,11 +10,11 @@ function defineValidateConstants() {
   };
 
   /**
-   * Every type's first disagree reason. On Expert Validate it opens the label type picker instead of being saved as a
-   * comment (#5409). A fresh object per type, since the tooltip gets its key number appended below.
+   * Every type's first disagree reason. On Expert Validate it opens the label type picker instead of being saved as
+   * a comment (#5409). A fresh object per type, since the tooltip gets its key number appended below.
    *
-   * @param {string} [type] - The label type, for one whose tooltip names the mix-up it is usually mistaken for. The
-   *     button itself stays generic: the tooltip suggests the likely type without picking it for the validator.
+   * @param {string} [type] - The label type, where its tooltip names the type it is usually mistaken for. The button
+   *     stays generic either way: the tooltip suggests, it doesn't pick for the validator.
    * @param {string} [tooltipImage] - Example image for that tooltip, by file name under the tooltip image folder.
    * @returns {object} The reason, in the shape the menu renders.
    */

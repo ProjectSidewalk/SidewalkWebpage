@@ -125,8 +125,8 @@ class LabelVisibilityControl {
    * common way in: it leaves the popover open behind its "Copied!" state, so the pointer usually wanders off well
    * before the popover closes. Skipped when the pointer is back on the card, where it is meant to stay, and when the
    * card is already gone, since hiding it is one of the things that closes a popover. Also skipped while focus is
-   * still inside the card: a keyboard user who just pressed Escape or picked a type is standing in the card, and
-   * taking it down would pull the ground out from under them — the focusout handler hides it when they leave.
+   * still in the card, where someone who just pressed Escape or picked a type is standing: the focusout handler
+   * hides it once they leave.
    */
   handlePopoverDismissed() {
     if (!this.#cardVisible) return;

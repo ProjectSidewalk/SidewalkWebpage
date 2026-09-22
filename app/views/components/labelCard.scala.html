@@ -23,8 +23,8 @@
 * @param showNotRated Include the not-rated nudge, for tools where the labeler can still add the missing rating.
 * @param noInfoKey    i18n key for the line shown when the label has no rating, tags, or description. Left out,
 *                     LabelCardView collapses the empty body instead.
-* @param typeEditable Make the header's type a dropdown for changing it (#5409); the caller's LabelTypeDropdown
-*                     then draws the type, not LabelCardView.
+* @param typeEditable Make the header's type a dropdown for changing it (#5409); LabelTypeDropdown then
+*                     draws the type, not LabelCardView.
 * @param actions      The card's action buttons, supplied by the caller.
 *@
 @(idPrefix: String, showNotRated: Boolean = false, noInfoKey: Option[String] = None,

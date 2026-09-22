@@ -294,7 +294,7 @@ class DesktopValidationMenu {
   }
 
   /** @returns {boolean} Whether the menu is on the "wrong label type" disagree, where the type picker stands in
-   *     for the reasons and the digits mean a severity rather than a reason (#5409). */
+   *     for the reasons (#5409). */
   inWrongTypeView() {
     return this.#wrongTypeView;
   }
@@ -340,8 +340,8 @@ class DesktopValidationMenu {
   }
 
   /**
-   * Restores the type, rating and tags the labeler filed. Only an Agree applies an edit, so a Disagree or an Unsure
-   * must not leave one standing on the card as though Submit would save it.
+   * Puts back the type, rating and tags the labeler filed. Only an Agree saves an edit, so a Disagree or an Unsure
+   * must not leave one showing on the card as though Submit would keep it.
    */
   #dropPendingEdits() {
     const currLabel = svv.labelContainer.getCurrentLabel();

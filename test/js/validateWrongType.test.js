@@ -1,13 +1,11 @@
 /**
- * Tests for changing a label's type on Expert Validate (#3671, #5409), across public/js/common/LabelTypePicker.js,
- * public/js/validate/src/label/Label.js, public/js/validate/src/label/LabelContainer.js,
- * public/js/validate/src/util/ConstantsValidate.js and public/js/validate/src/menu/DesktopValidationMenu.js.
+ * Tests for changing a label's type on Expert Validate (#3671, #5409), across the files loaded below.
  *
  * The way in is the "wrong label type" disagree reason, first for every type, or the type dropdown in the label card.
- * Either is stored as an Agree on the type the expert picks, so the things that must hold are: the label's editable
- * severity and tags follow the picked type by the same rules the server applies (a rating survives only on the same
- * scale, a tag only if the new type offers it), and the submission names both the type the validator saw and the one
- * they picked. The picker is checked as the radio group it claims to be, and the dropdown as the disclosure it is.
+ * Either is stored as an Agree on the type the expert picks, so what must hold is: the label's editable severity and
+ * tags follow the picked type by the same rules the server applies (a rating survives only on the same scale, a tag
+ * only if the new type offers it), and the submission names both the type the validator saw and the one they picked.
+ * The picker is checked as the radio group it claims to be, and the dropdown as the disclosure it is.
  */
 
 const fs = require('fs');

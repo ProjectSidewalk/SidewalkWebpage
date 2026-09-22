@@ -116,7 +116,7 @@
   transform: rotate(180deg);
 }
 
-/* The chips' popover (components/labelTypePopover), parked under the trigger, or inline where popovers don't exist. */
+/* The chips' popover (components/labelTypePopover), parked under the trigger, or inline where there are no popovers. */
 .label-type-popover {
   margin: 0;
   padding: calc(12px * var(--ui-scale, 1));

@@ -7,9 +7,9 @@
  * onto the raw label color, which failed WCAG AA for every label type (1.68:1 to 2.75:1); the label color now lives
  * in the type icon and the surface is white.
  *
- * A validator judges a label rather than changing it, so there is no Delete or Edit here and the card is not itself a
- * click target the way Explore's is. The one exception is Expert Validate's type dropdown in the header, whose pick
- * is handed to the menu as if it came from the menu's own picker (#5409). LabelVisibilityControl owns showing,
+ * A validator judges a label rather than changing it, so there is no Delete or Edit here and the card is not itself
+ * a click target the way Explore's is. The exception is Expert Validate's type dropdown in the header, whose pick
+ * goes to the menu as though it came from the menu's own picker (#5409). LabelVisibilityControl owns showing,
  * hiding, and anchoring the card, and hosts the Hide-label toggle.
  *
  * For an AI-generated label the card also carries the "AI can make mistakes" disclaimer (#5359). It is here rather
@@ -73,8 +73,7 @@ class LabelCard {
   }
 
   /**
-   * The card's hide timer waits on this: taking the card down under an open popover would take the choice away
-   * mid-click.
+   * The card's hide timer waits on this, since taking the card down would take an open popover with it, mid-choice.
    * @returns {boolean} Whether the share popover or the type dropdown is open.
    */
   isPopoverOpen() {
@@ -82,9 +81,9 @@ class LabelCard {
   }
 
   /**
-   * Closes the card's popovers. Called when something takes the card away outright — the H key, a pan, a move to
-   * the next label — since each popover is a child of the card and would otherwise be left invisible but still
-   * open, which permanently blocks the hide timer that waits on isPopoverOpen().
+   * Closes the card's popovers, for when something takes the card away outright — the H key, a pan, the next label.
+   * Each popover lives inside the card, so one left open would be invisible but still open, and the hide timer that
+   * waits on isPopoverOpen() would never fire again.
    */
   closePopovers() {
     this.#shareWidget?.close();
@@ -108,10 +107,10 @@ class LabelCard {
    * @param {Label} label - The label whose information the card should show.
    */
   render(label) {
-    // Where the type, rating, and tags can be edited, the card shows what Submit would save rather than what the
-    // labeler filed: a rating only means something under its own type, so an edit that leaves the two disagreeing
-    // puts a reading on the card that cannot be true — "Quality: Good" on a Signal, which has no rating at all
-    // (#5409). The menu's editors are drawn from these same properties, and an Undo restores them.
+    // Where the type, rating and tags can be edited, the card shows what Submit would save rather than what the
+    // labeler filed: a rating only means something under its own type, so leaving the two out of step puts
+    // something on the card that cannot be true — "Quality: Good" on a Signal, which has no rating at all (#5409).
+    // The menu's editors read the same values, and an Undo puts them back.
     const editable = Boolean(this.#typeDropdown);
     const labelType = editable ? label.getProperty('newLabelType') : label.getAuditProperty('labelType');
     const severity = editable ? label.getProperty('newSeverity') : label.getAuditProperty('severity');
@@ -128,13 +127,13 @@ class LabelCard {
     });
     this.#typeDropdown?.setType(labelType);
 
-    // The card can have grown or shrunk — a longer type name, a rating row that went away — and it is anchored to
-    // the marker by its own size, so a stale anchor leaves it covering the label it points at.
+    // The card is anchored to the marker by its own size, which an edit changes, so without this it can end up
+    // sitting on top of the label it points at.
     svv.labelVisibilityControl?.reanchorLabelCard();
 
     // Point the share control at this label's public permalink (#456). /label/:id renders the spotlight page and
-    // serves the og:image that crawlers embed in the share card. Named by the type the label still has, not a
-    // pending edit: the link opens the saved label, and sharing is not what saves the edit.
+    // serves the og:image that crawlers embed in the share card. Named by the type the label still has: the link
+    // opens the saved label, and sharing isn't what saves an edit.
     if (this.#shareWidget) {
       const sharedType = label.getAuditProperty('labelType');
       const typeName = i18next.t(`common:${util.camelToKebab(sharedType)}`).replace('&shy;', '');

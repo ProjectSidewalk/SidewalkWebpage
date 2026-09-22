@@ -20,10 +20,9 @@ class LabelTypePicker {
    * @param {HTMLElement} root - The element to fill; it becomes the radio group.
    * @param {{onPick: (labelType: string) => void, onToggle?: (expanded: boolean) => void,
    *   commitsOnPick?: boolean}} opts - `onPick` and `onToggle` fire on user action only, never from `render` or
-   *   `collapse`, so a host can redraw from saved state without re-triggering itself. `onToggle` reports a collapsed
-   *   group being opened back up (or folded again). `commitsOnPick` is for a host where a pick takes effect at once
-   *   rather than waiting for a Submit: arrows then only move focus, since a radio group's select-follows-focus
-   *   would save a type per keypress on the way past, and there is no folding to toggle into.
+   *   `collapse`, so a host can redraw saved state without re-triggering itself. `onToggle` reports a folded group
+   *   being opened back up (or folded again). Set `commitsOnPick` where a pick saves straight away: the arrows then
+   *   only move, since picking as they go would save a type per keypress, and there is nothing to fold.
    */
   constructor(root, { onPick, onToggle = () => {}, commitsOnPick = false }) {
     this.#root = root;
@@ -33,10 +32,9 @@ class LabelTypePicker {
     root.classList.add('label-type-picker');
     root.setAttribute('role', 'radiogroup');
     root.addEventListener('click', this.#handleClick);
-    // On window in the capture phase, because every pano viewer registers a window-capture listener that
-    // stopPropagation()s the arrow keys to keep them from steering the imagery (GsvViewer and friends). That ends
-    // the dispatch, so a listener on the group itself never sees an arrow on any page with a viewer — which is
-    // every page this picker lives on. Listeners on the same node still run, so this one does.
+    // On window, where the pano viewers stop the arrow keys so they can't steer the imagery. That ends the event
+    // early, so a listener on the chips themselves never sees an arrow on any page with a viewer — which is every
+    // page this picker appears on. Other listeners on window still run, so this one does.
     window.addEventListener('keydown', this.#handleKeydown, { capture: true });
   }
 
@@ -119,8 +117,7 @@ class LabelTypePicker {
     if (chip.getAttribute('aria-disabled') === 'true') return;
     const labelType = chip.dataset.labelType;
     if (labelType === this.#selectedType) {
-      // Picking what is already picked is a way of saying "this one", which for a host that acts on a pick means
-      // closing up having changed nothing. Only a group that folds has anything else to do with it.
+      // Picking what is already picked means "this one", so a host that acts on a pick just closes up.
       if (this.#commitsOnPick) {
         this.#onPick(labelType);
         return;
@@ -146,7 +143,7 @@ class LabelTypePicker {
    * @param {KeyboardEvent} e
    */
   #handleKeydown = (e) => {
-    if (!this.#root.contains(document.activeElement)) return; // The price of listening window-wide.
+    if (!this.#root.contains(document.activeElement)) return;
     const isNext = LabelTypePicker.#KEY_NEXT.has(e.key);
     if (!isNext && !LabelTypePicker.#KEY_PREV.has(e.key)) return;
     // Folded down, only the picked chip is on screen, so there is nothing to move between yet: the press opens the
@@ -173,9 +170,9 @@ class LabelTypePicker {
 }
 
 /**
- * A label's type as a title that opens a LabelTypePicker, over components/labelTypeTrigger plus
- * components/labelTypePopover (#3671, #5409). A native popover where there is one, so the chips can spill past the
- * card they open from; an inline block where there isn't.
+ * A label's type as a title you can click to change it (#3671, #5409), over the labelTypeTrigger and
+ * labelTypePopover templates. A real popover where the browser has them, so the chips can spill outside the card
+ * they open from, and a plain block where it doesn't.
  */
 class LabelTypeDropdown {
   static #popoverSupported = typeof HTMLElement !== 'undefined' && 'popover' in HTMLElement.prototype;
@@ -196,7 +193,7 @@ class LabelTypeDropdown {
    * @param {() => boolean} opts.onOpen - Runs before opening; draw the chips with `picker.render` here, and return
    *   false to keep it shut.
    * @param {(labelType: string) => void} opts.onPick - A type was picked; the popover has already closed.
-   * @param {() => void} [opts.onClose] - The popover closed, however that happened.
+   * @param {() => void} [opts.onClose] - The popover closed, by whatever means.
    * @param {?string} [opts.hint] - A line shown above the chips.
    */
   constructor(triggerHost, popover, { onOpen, onPick, onClose = () => {}, hint = null }) {
@@ -217,8 +214,7 @@ class LabelTypeDropdown {
     this.#picker = new LabelTypePicker(popover.querySelector('.label-type-popover__chips'), {
       commitsOnPick: true,
       onPick: (labelType) => {
-        // Picking from the keyboard leaves focus on a chip that is about to go away, so it goes back where it came
-        // from; a mouse pick has nothing to put back.
+        // A keyboard pick leaves focus on a chip that is about to go away, so it goes back to the button.
         const fromKeyboard = this.#popover.contains(document.activeElement);
         this.setOpen(false);
         if (fromKeyboard) this.#button.focus();
@@ -234,8 +230,8 @@ class LabelTypeDropdown {
         const opening = /** @type {ToggleEvent} */ (e).newState === 'open';
         if (!opening) return;
         if (!this.#mayOpen()) e.preventDefault();
-        // Placed before the browser's first paint of it; placing it on `toggle` alone shows one frame of the
-        // popover's default position — the corner of the window — every time it opens fresh.
+        // Before its first paint: `toggle` only fires once it is already up, so placing there flashes it in the
+        // corner of the window first.
         else this.#place();
       });
       popover.addEventListener('toggle', (e) => {
@@ -268,8 +264,7 @@ class LabelTypeDropdown {
     const name = i18next.t(`common:${util.camelToKebab(labelType)}`).replaceAll('&shy;', '­');
     for (const el of this.#names) el.textContent = name;
     for (const el of this.#icons) el.src = util.misc.getIconImagePaths(labelType).iconImagePath;
-    // The visible name leads the accessible name (WCAG 2.5.3), then what pressing does. A screen reader is read the
-    // name without the hyphenation hint, which it would otherwise pronounce as a break.
+    // The name first, then what pressing does (WCAG 2.5.3), minus the soft hyphen a screen reader reads as a break.
     const spoken = name.replaceAll('­', '');
     this.#button.setAttribute('aria-label', `${spoken}: ${i18next.t('common:label-type-picker.change-type')}`);
   }
@@ -287,13 +282,13 @@ class LabelTypeDropdown {
     if (disabled) this.setOpen(false);
   }
 
-  /** @returns {boolean} */
+  /** @returns {boolean} Whether the popover is showing. */
   isOpen() {
     if (LabelTypeDropdown.#popoverSupported) return this.#popover.matches(':popover-open');
     return !this.#popover.hidden;
   }
 
-  /** @param {boolean} open */
+  /** @param {boolean} open - Whether to show the popover; refused while disabled or if `onOpen` says no. */
   setOpen(open) {
     if (open === this.isOpen()) return;
     if (LabelTypeDropdown.#popoverSupported) {
@@ -316,12 +311,12 @@ class LabelTypeDropdown {
     return Boolean(el && this.#popover.contains(el));
   }
 
-  /** @returns {boolean} */
+  /** @returns {boolean} Whether the popover may open; asks the host, which also draws the chips. */
   #mayOpen() {
     return this.#button.getAttribute('aria-disabled') !== 'true' && this.#onOpen();
   }
 
-  /** Opening a menu with the keyboard has to land in it, or the arrow keys the chips listen for go nowhere. */
+  /** Opening has to land focus in the list, or the arrow keys have nothing to move from. */
   #focusChips() {
     /** @type {?HTMLElement} */ (this.#popover.querySelector('.label-type-picker__chip[tabindex="0"]'))?.focus();
   }
@@ -331,8 +326,7 @@ class LabelTypeDropdown {
     const anchor = this.#button.getBoundingClientRect();
     const { width, height } = this.#size();
     const left = Math.max(8, Math.min(anchor.left, window.innerWidth - width - 8));
-    // Above the button instead where there is no room below it, which on a card near the bottom of the pano is the
-    // difference between a list of types and a sliver of one.
+    // Above the button where there is no room below, so a card low in the pano still gets the whole list.
     const above = anchor.top - 6 - height;
     const below = anchor.bottom + 6;
     this.#popover.style.left = `${left}px`;
@@ -340,7 +334,7 @@ class LabelTypeDropdown {
   }
 
   /**
-   * A closed popover has no size to measure, so it is laid out off to the side for an instant; nothing paints
+   * A closed popover has no size, so it is laid out out of sight for an instant to measure it. Nothing paints
    * mid-handler, so none of that reaches the screen.
    * @returns {{width: number, height: number}} The popover's size in px.
    */
