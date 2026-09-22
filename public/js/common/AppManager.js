@@ -236,7 +236,8 @@ class AppManager {
    * gets all three rather than each call site repeating the metersToFeet / roundToTwentyFive / format-number dance.
    * The input is always canonical — meters for `small`, kilometers for `large` — never a pre-converted value.
    *
-   * Params: `style` (`small` → m/ft rounded to the nearest 25, our convention for mission-scale distances; `large` →
+   * Params: `style` (`small` → m/ft rounded to the nearest 25, our convention for mission-scale distances; `fine` →
+   * m/ft to the whole unit, for an elevation or a rise, which a nearest-25 would flatten to nothing; `large` →
    * km/mi), `precision` (decimal places, `large` only), and `unit: false` to emit the bare number for a string that
    * names the unit once across several values. Separate multiple params with `;`.
    *
@@ -245,9 +246,12 @@ class AppManager {
   _addDistanceFormatter() {
     i18next.services.formatter.add('distance', (value, lng, options) => {
       const metric = util.isMetric();
-      const small = options.style === 'small';
+      const fine = options.style === 'fine';
+      const small = fine || options.style === 'small';
       let amount;
-      if (small) {
+      if (fine) {
+        amount = Math.round(metric ? value : util.math.metersToFeet(value));
+      } else if (small) {
         amount = util.math.roundToTwentyFive(metric ? value : util.math.metersToFeet(value));
       } else {
         amount = metric ? value : util.math.kmsToMiles(value);

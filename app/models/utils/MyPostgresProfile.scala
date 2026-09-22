@@ -12,6 +12,8 @@ import models.street.{
   StreetEdgeIssueType,
   StreetEdgeStatus,
   StreetEdgeStatusChangeSource,
+  StreetGradientConfidence,
+  StreetGradientQuality,
   StreetImagerySource,
   WayType
 }
@@ -241,6 +243,24 @@ trait MyPostgresProfile
         "sidewalk_presence_basis",
         _.toString,
         SidewalkPresenceBasis.withName,
+        quoteName = false
+      )
+
+    // Mapper for street_gradient_quality enum type.
+    implicit val streetGradientQualityMapper: BaseColumnType[StreetGradientQuality.Value] =
+      createEnumJdbcType[StreetGradientQuality.Value](
+        "street_gradient_quality",
+        _.toString,
+        StreetGradientQuality.withName,
+        quoteName = false
+      )
+
+    // Mapper for street_gradient_confidence enum type.
+    implicit val streetGradientConfidenceMapper: BaseColumnType[StreetGradientConfidence.Value] =
+      createEnumJdbcType[StreetGradientConfidence.Value](
+        "street_gradient_confidence",
+        _.toString,
+        StreetGradientConfidence.withName,
         quoteName = false
       )
 

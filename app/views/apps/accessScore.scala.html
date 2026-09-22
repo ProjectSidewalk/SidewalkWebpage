@@ -75,6 +75,75 @@
             @info("weights-help")
           </div>
           <div id="acs-weights" class="acs-weights" hidden></div>
+          @* The map repaints instantly and without motion, so this is the only sign a reader gets that the slider
+             drove a recomputation (#5223). *@
+          <p class="acs-flash" id="acs-weights-flash" aria-live="polite"></p>
+        </section>
+
+        @* How street slope enters the score (#5223). Hidden until AccessScoreSlopePanel.js finds both the engine's
+           slope settings and a sampled city in the config; folded like the weights, so the panel reads as map
+           controls first. The statistic's options, the slider's range and the thresholds' bounds come from the
+           config. *@
+        <section class="filter-sidebar__section acs-section" id="acs-slope-section" aria-labelledby="acs-slope-section-heading" hidden>
+          <div class="filter-sidebar__heading-row">
+            <h3 class="filter-sidebar__heading acs-disclosure__heading" id="acs-slope-section-heading">
+              <button type="button" id="acs-slope-toggle" class="acs-disclosure" aria-expanded="false" aria-controls="acs-slope">
+                <img class="acs-disclosure__chevron" src='@assets.path("images/icons/chevron-right-feather.svg")' alt="" data-down-src='@assets.path("images/icons/chevron-right-feather.svg")' data-up-src='@assets.path("images/icons/chevron-down-feather.svg")'>
+                <span data-i18n="accessscore:slope-section">Street grade</span>
+                <span class="acs-disclosure__hint" id="acs-slope-summary"></span>
+              </button>
+            </h3>
+            <button type="button" id="acs-slope-reset" class="filter-sidebar__deselect-all acs-heading-action" data-i18n="accessscore:slope-reset" hidden>Reset grade</button>
+            @info("slope-help")
+          </div>
+          <div id="acs-slope" class="acs-slope" hidden>
+            <div class="acs-weight" id="acs-slope-weight-row">
+              <div class="acs-weight__head">
+                <label class="acs-weight__label" for="acs-slope-weight" data-i18n="accessscore:slope-weight">Grade weight</label>
+                <span class="acs-weight__role acs-weight__role--problem" data-i18n="accessscore:row-hurts">hurts</span>
+                <output class="acs-weight__value" id="acs-slope-weight-value" for="acs-slope-weight"></output>
+              </div>
+              <input type="range" class="acs-range" id="acs-slope-weight" min="0" step="0.05" aria-describedby="acs-slope-impact">
+              @* What a barely-moving map cannot say: a weight of 0 and a threshold no street passes look alike on it. *@
+              <p class="acs-field__note" id="acs-slope-impact" role="status"></p>
+            </div>
+            <div class="acs-field">
+              <label class="acs-field__label" for="acs-slope-statistic" data-i18n="accessscore:slope-statistic">Measured by</label>
+              <select class="ps-select" id="acs-slope-statistic"></select>
+            </div>
+            <fieldset class="acs-fieldset" aria-describedby="acs-slope-fixed-note">
+              <legend class="acs-field__label" data-i18n="accessscore:slope-thresholds">Grade thresholds</legend>
+              <div class="acs-field acs-field--inline">
+                <label for="acs-slope-low" data-i18n="accessscore:slope-low">No penalty up to</label>
+                <span class="acs-percent"><input type="number" class="ps-input acs-percent__input" id="acs-slope-low" step="0.1" inputmode="decimal" aria-describedby="acs-slope-low-unit"><span id="acs-slope-low-unit">%</span></span>
+              </div>
+              <div class="acs-field acs-field--inline">
+                <label for="acs-slope-high" data-i18n="accessscore:slope-high">Full penalty from</label>
+                <span class="acs-percent"><input type="number" class="ps-input acs-percent__input" id="acs-slope-high" step="0.1" inputmode="decimal" aria-describedby="acs-slope-high-unit"><span id="acs-slope-high-unit">%</span></span>
+              </div>
+              @* Filled in by AccessScoreSlopePanel.js, with the two limits from the config, while the thresholds are off. *@
+              <p class="acs-field__note" id="acs-slope-fixed-note" role="status"></p>
+            </fieldset>
+            <div class="acs-check-row">
+              <label class="acs-check" for="acs-slope-barrier">
+                <input type="checkbox" id="acs-slope-barrier">
+                <span data-i18n="accessscore:slope-barrier">Treat very steep segments as barriers</span>
+              </label>
+              @info("slope-barrier-help")
+            </div>
+            <div class="acs-field acs-field--inline">
+              <label for="acs-slope-barrier-threshold" data-i18n="accessscore:slope-barrier-threshold">A barrier when steeper than</label>
+              <span class="acs-percent"><input type="number" class="ps-input acs-percent__input" id="acs-slope-barrier-threshold" step="0.1" inputmode="decimal" aria-describedby="acs-slope-barrier-threshold-unit"><span id="acs-slope-barrier-threshold-unit">%</span></span>
+            </div>
+            <div class="acs-check-row">
+              <label class="acs-check" for="acs-slope-approximate">
+                <input type="checkbox" id="acs-slope-approximate">
+                <span data-i18n="accessscore:slope-approximate-include">Include approximate grades</span>
+              </label>
+              @info("slope-approximate-include-help")
+            </div>
+          </div>
+          <p class="acs-flash" id="acs-slope-flash" aria-live="polite"></p>
         </section>
 
         @* Category rows are rendered by AccessScoreSidebar.js from the backend's catalog; the icons are the legend.
@@ -112,6 +181,14 @@
               <input type="checkbox" id="acs-show-unaudited" checked>
               <span data-i18n="accessscore:show-unaudited">Show unaudited streets</span>
             </label>
+          </div>
+          @* Hidden until the config says the city's streets have been sampled for slope (#5223). *@
+          <div id="acs-grade-option" class="acs-check-row" hidden>
+            <label class="acs-check" for="acs-show-grade">
+              <input type="checkbox" id="acs-show-grade">
+              <span data-i18n="accessscore:show-grade">Color streets by grade</span>
+            </label>
+            @info("show-grade-help")
           </div>
           <div class="acs-check-row">
             <label class="acs-check" for="acs-dark-map">
@@ -161,7 +238,7 @@
           <div id="acs-dock-kpis" class="acs-dock__kpis"></div>
           <div id="acs-dock-brush" class="acs-dock__brush" hidden>
             <span id="acs-dock-brush-text"></span>
-            <button type="button" id="acs-dock-brush-clear" class="button-ps button--small button--secondary" data-i18n="accessscore:brush-clear">Clear range</button>
+            <button type="button" id="acs-dock-brush-clear" class="button-ps button--small button--secondary" data-i18n="accessscore:brush-clear">Clear highlight</button>
           </div>
           <div id="acs-dock-status" class="sr-only" role="status" aria-live="polite"></div>
         </div>
@@ -184,6 +261,10 @@
             <div class="acs-dock__panel-head">
               <h3 class="acs-dock__panel-title" id="acs-dock-rank-title" data-i18n="accessscore:chart-rank">Neighborhoods ranked</h3>
               @info("chart-rank-help")
+              @* A city has tens of neighborhoods and thousands of streets, so the streets list is one end of a
+                 leaderboard and this button is the way to the other end (#5223). The dock writes its wording and
+                 hides it in the neighborhoods unit, which has no ends to swap. *@
+              <button type="button" id="acs-rank-order" class="acs-dock__panel-action" hidden>Show worst 20</button>
             </div>
             <div id="acs-rank-bars" class="acs-rank"></div>
           </section>
@@ -212,6 +293,7 @@
   <link href='@assets.path("css/components/filter-sidebar.css")' rel="stylesheet">
   <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
   <link href='@assets.path("css/components/toast.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/elevation-profile.css")' rel="stylesheet">
   <link href='@assets.path("css/pages/access-score.css")' rel="stylesheet">
 
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'></script>

@@ -113,11 +113,19 @@ The AccessScore tool (`/accessScore`, `public/js/access-score/`, #5217) logs its
 **`Click_module=AccessScore_<Action>`** family, on a control's settled `change` (never per slider tick):
 `AccessScore_Unit_value=<streets|regions>`, `AccessScore_Weight_value=<labelType>_value=<magnitude>`,
 `AccessScore_ShowUnaudited_value=<bool>`, `AccessScore_ShowClusters_value=<bool>` (the evidence layer),
+`AccessScore_ShowGrade_value=<bool>` (the streets colored by grade instead of by score, #5223),
+the Street grade section's `AccessScore_GradeWeight_value=<magnitude>`, `AccessScore_GradeStat_value=<statistic id>`,
+`AccessScore_GradeThreshold_value=<low|high|barrier>_value=<percent>`, `AccessScore_GradeBarrier_value=<bool>`,
+`AccessScore_GradeApproximate_value=<bool>` and `AccessScore_GradeReset` (#5223; its fold logs
+`AccessScore_Section_value=grade_open=<bool>` like the other two), the street popup's elevation profile's
+`AccessScore_ProfileClass_value=<class index>_value=<bool>` (a legend row pinned or unpinned; the index counts from
+the gentlest grade class, as the map legend's do) and `AccessScore_ProfileScrub` (the chart pointed along or stepped
+through with the arrow keys, once per popup, since a sweep is one interaction; a Tab passing through is not one),
 `AccessScore_DarkMap_value=<bool>` (the dark basemap toggled), `AccessScore_Section_value=weights_open=<bool>` /
-`AccessScore_Section_value=places_open=<bool>` (a fold toggled; both start closed, so an open says the section was
-reached for), `AccessScore_Reset` (the weights),
+`AccessScore_Section_value=places_open=<bool>` (a fold toggled; every fold starts closed, so an open says the section
+was reached for), `AccessScore_Reset` (the weights),
 `AccessScore_ResetAll`
-(weights, view options, selection, brush, band, basemap and camera back to the page as first opened),
+(weights, slope settings, view options, selection, brush, band, basemap and camera back to the page as first opened),
 `AccessScore_Select_streetId_value=<id>` / `AccessScore_Select_regionId_value=<id>` (a click on a street or neighborhood;
 every AccessScore event that carries an id spells it `_<idName>_value=<id>`, the page's one `log(kind, value)` helper),
 `AccessScore_SelectCluster_labelType_value=<type>` (a click on a cluster dot, which opens the cluster sheet) and
@@ -132,9 +140,14 @@ link's `place` param is not logged); the card's one hop is the shared `ExploreHe
 cluster dot also opens the shared label card, whose actions log as `Click_module=LabelDetail_…` (above). The insights
 dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`,
 `AccessScore_Brush_value=<from>-<to>` (the brushed score range in whole percent, logged once on release, never per
-sweep tick) / `AccessScore_Brush_value=clear`, `AccessScore_PhotoStrip_labelId_value=<id>` (a photo-strip thumbnail opening the full
-label card), and `AccessScore_RankSelect_regionId_value=<id>` (a rank row clicked: the band scopes to that neighborhood in
-either unit, and in the neighborhoods unit the map selection it also makes logs `AccessScore_Select_regionId`). The drawer's `MapSidebar_Open` /
+sweep tick) / `AccessScore_Brush_value=grade=<class indices>` (the map legend's slope classes brushed instead,
+gentlest first, `-1` for "no slope data"; #5223 — the two kinds displace each other, so only one is ever in force) /
+`AccessScore_Brush_value=clear`, `AccessScore_PhotoStrip_labelId_value=<id>` (a photo-strip thumbnail opening the full
+label card), `AccessScore_RankSelect_regionId_value=<id>` (a neighborhood rank row clicked: the band scopes to that
+neighborhood, and the map selection it also makes logs `AccessScore_Select_regionId`),
+`AccessScore_RankSelect_streetId_value=<id>` (a street rank row clicked, in the streets unit, where the list is the
+street leaderboard; it selects the street, so `AccessScore_Select_streetId` follows; #5223) and
+`AccessScore_RankOrder_value=<best|worst>` (which end of that leaderboard is on show). The drawer's `MapSidebar_Open` /
 `MapSidebar_Close` fire here too (shared chrome); the server logs `Visit_AccessScore` per page load, or `Visit_AccessScore_RedirectMobileLanding` when a mobile UA is bounced to `/mobileLanding` instead (the tool is desktop-only, like the Route Builder, and its Tools-menu entry is not rendered on a phone).
 
 The Gallery renders the same sidebar (`gallery/src/filter/GalleryFilter.js`) and logs to `gallery_task_interaction`

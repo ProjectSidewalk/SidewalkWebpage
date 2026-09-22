@@ -195,6 +195,12 @@ a pasted copy for the one-time population of existing cities, the nightly rebuil
 into a temp table and touches only the rows that changed, and a spec (`IntersectionTableSpec`,
 `SidewalkPresenceTableSpec`) runs the evolution's statement and then the rebuild to prove the two copies still agree.
 
+`street_gradient` (399.sql, #5223; read through `StreetGradientTable`) is per-street too but is not one of these: its
+elevations come from rasters the database never sees, so there is no SQL derivation and no nightly rebuild. An offline
+script samples a bare-earth elevation model and a db script upserts the CSV, the way the imagery scan feeds
+`street_imagery`. Staleness is a `geom_md5` comparison the export script makes. See
+[`street-gradient.md`](street-gradient.md).
+
 A job that both the scheduler and an admin can trigger has exactly one definition of its counts — a `runDetails` on
 the job's result type, or next to the actor's `Name` when the result is a bare count — which both call sites pass to
 `record`. A details object built from a literal at each call site would let the two shapes drift, and `/admin/health`
@@ -310,7 +316,9 @@ corresponding Twirl view:
   cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
   coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
   drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and
-  intersections (`AccessScoreWhatsHere.js`); the ranked neighborhoods; and a photo strip of label crops from the
+  intersections (`AccessScoreWhatsHere.js`); the rank list, which ranks whichever unit is in force — every
+  neighborhood above the completion floor, or, in the streets unit, the 20 best-scoring streets with a toggle to
+  the 20 worst (`AccessScoreModel#rankedStreets`, #5223); and a photo strip of label crops from the
   scope's neighborhood feed, ranked worst first with confirmed labels ahead of unchecked ones
   (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
   the whole city is the population, a brush emphasizes in the overview views, narrows what's here and dims the

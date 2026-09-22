@@ -91,6 +91,16 @@ class ApiDocsController @Inject() (
   }
 
   /**
+   * Displays API documentation for one street's slope and elevation profile (#5223).
+   */
+  def streetGrade = cc.securityService.UserAwareAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_StreetGrade")
+      Ok(views.html.apiDocs.streetGrade(commonData, request.identity))
+    }
+  }
+
+  /**
    * Displays API documentation for the street-level AccessScore.
    */
   def accessScoreStreets = cc.securityService.UserAwareAction { implicit request =>
