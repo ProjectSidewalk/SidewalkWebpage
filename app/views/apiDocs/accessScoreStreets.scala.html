@@ -1,6 +1,7 @@
 @import models.utils.SeoUtils
 @import service.CommonPageData
 @import service.AccessScoreCalculator
+@import models.street.StreetGradientStats
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
@@ -136,12 +137,32 @@
         <li><strong>Per-cluster types</strong> (<code>positive_quality</code>, <code>negative_severity</code>, <code>presence_only</code>): <code>term = weight × Σ<sub>bucket</sub> severity_counts[type][bucket] × multiplier(bucket) + tag_adjustments[type]</code>, where the multiplier comes from <code>quality_multiplier</code> or <code>severity_multiplier</code> by scoring mode, and is <code>1</code> for <code>presence_only</code>.</li>
         <li><strong>Street-condition types</strong> (<code>street_condition</code>): <code>term = weight × min(1, n / street_condition_saturation_count) + tag_adjustments[type]</code>, with <code>n</code> the type's total cluster count.</li>
         <li><strong>Length-normalized types</strong> (<code>length_normalized</code> is true): multiply the whole term by <code>length_normalization.per_meters / max(length_meters, length_normalization.min_length_meters)</code>.</li>
-        <li><code>segment_score = sigmoid(Σ<sub>type</sub> term)</code>. With the engine's own <code>base_weight</code> for every <code>weight</code>, the terms equal <code>sub_scores</code> and the result equals <code>segment_score</code>.</li>
+        <li><code>segment_score = sigmoid(Σ<sub>type</sub> term + grade_term)</code>. With the engine's own <code>base_weight</code> for every <code>weight</code>, the terms equal <code>sub_scores</code> and, with the street's published <code>grade_term</code>, the result equals <code>segment_score</code>. To score the labels alone, drop the <code>grade_term</code>.</li>
         <li>An <a href="@routes.ApiDocsController.accessScoreIntersections">intersection</a> is rebuilt the same way from its own <code>severity_counts</code> and <code>tag_adjustments</code>, with no length factor; the street's headline <code>score</code> is then the mean of <code>segment_score</code> and the scores of <code>start_intersection_id</code> and <code>end_intersection_id</code>, over those that are not <code>null</code>.</li>
       </ul>
+      <p>Its <code>grade</code> object is what reads the <a href="#street-grade">grade fields</a>: the two limits (<code>walking_surface_limit</code>, <code>ramp_limit</code>), the grades a map of them is classed at (<code>map_class_breaks</code>), and under <code>sources</code> the credit for each elevation model this city's streets were sampled from, with how many streets each covers.</p>
+      <p>The <code>grade_scoring</code> object publishes the settings the served scores were computed under, as <code>defaults</code>: a <code>weight</code> of <code>@AccessScoreCalculator.defaultSlopeSettings.weight</code> on <code>@AccessScoreCalculator.slopeStatisticName(AccessScoreCalculator.defaultSlopeSettings.statistic)</code>, ramping between the two limits. That is the <code>grade_term</code> each street carries. To apply settings of your own, recompute the term and put it in that one's place in the sum above, <code>grade_term = −weight × units</code>:</p>
+      <ul class="api-list">
+        <li><strong>Which streets take part.</strong> A street with no grade at all (a bridge, a gap, an unsampled street) takes no grade term. Neither does one whose grade is approximate, meaning <code>grade_confidence</code> is <code>"low"</code> or <code>grade_quality</code> is <code>"suspect"</code> (both are a straight line between the street's ends), unless <code>include_approximate</code> is set. The same gate applies to the barrier.</li>
+        <li><strong><code>mean_grade</code> and <code>max_grade</code> statistics:</strong> <code>units = clamp((grade − low_threshold) / (high_threshold − low_threshold), 0, 1)</code>, where <code>grade</code> is that field, or <code>|net_grade|</code> on any street where the field is <code>null</code> and <code>net_grade</code> is not. If <code>high_threshold ≤ low_threshold</code> there is no ramp between them and <code>units</code> is a step: <code>1</code> when <code>grade &gt; low_threshold</code>, else <code>0</code>.</li>
+        <li><strong><code>meters_over_limit</code> statistic:</strong> <code>units = clamp((meters_over_5pct + meters_over_8pct) / (2 × length_meters), 0, 1)</code>, with a <code>null</code> length counted as <code>0</code>. The thresholds do not move it: those lengths were measured against the two fixed limits when the street was sampled.</li>
+        <li><strong>Barrier:</strong> with <code>barrier_enabled</code>, a street whose <code>max_grade</code> (or <code>|net_grade|</code> where that is <code>null</code>) is greater than <code>barrier_threshold</code> has a <code>segment_score</code> of <code>0</code> outright. Its headline <code>score</code> still averages that <code>0</code> with its end intersections.</li>
+      </ul>
+      <p><code>statistics</code> lists the statistic ids, and <code>weight_range</code> and <code>threshold_range</code> what a control may sensibly offer. An unaudited street has a grade and still has no score.</p>
       <p>The response also carries <code>clusters_updated_at</code>: when the nightly clustering run that every score is computed from last finished (ISO&nbsp;8601, or <code>null</code> before the first run). Labels added after that moment are not in any cluster yet and cannot have changed a score until the next run.</p>
       <p>The <code>presets</code> object holds named weight vectors (magnitudes; a type's sign is fixed by its base weight): <code>default</code> is the engine's own weights, <code>barriers</code> weighs problem types half again as much, <code>infrastructure</code> does the same for feature types, and <code>missing_ramps</code> doubles missing curb ramps. They are named by what they change, not by whom they are for — a weighting that claims to represent a disability community would need that community's involvement and the literature behind it — and every value is published, so a lens hides nothing.</p>
     </div>
+  </div>
+
+  <div class="page-section" id="street-grade-section">
+    <h2 class="page-heading" id="street-grade">Street grade<a href="#street-grade" class="permalink">#</a></h2>
+    <p>This API says <strong>grade</strong> for a street's steepness along its length, the running grade of its centerline, and never <em>slope</em>, which accessibility standards also use for a sidewalk's <em>cross</em> slope: that tilt across the walking surface cannot be measured from a centerline and is not reported.</p>
+    <p>Every street also carries its running grade, sampled along its centerline from a bare-earth elevation model. Grade needs no labeling, so it is there for unaudited streets too, and it is <strong>part of the score</strong>: a street steep enough to pass the walking-surface limit carries a negative <code>grade_term</code>, which is the one part of <code>segment_score</code> that <code>sub_scores</code> does not explain. A street with no sampled grade — including every street in a city whose grades have not been imported — carries a <code>grade_term</code> of <code>0</code> and is scored from its labels alone. <a href="#scoring-config">Recomputing the score</a> says how to weigh grade differently, or out. The street is the right thing to measure: PROWAG R302.4.1 caps a pedestrian route at @StreetGradientStats.percentLabel(StreetGradientStats.WalkingSurfaceLimit) <em>except</em> where the adjacent street is steeper, in which case the sidewalk may match the street. Cross slope cannot be recovered from a centerline sample and is not reported.</p>
+    <p>A bare-earth model removes bridges and knows nothing of tunnels, so a street on a structure reports <code>grade_quality: "structure"</code> and no grade, not the grade of the ravine beneath it. The grade <em>of</em> a bridge deck is out of reach of any such model. One street's elevation profile, the one grade field too heavy for a city-wide file, is served by the <a href="@routes.ApiDocsController.streetGrade">Street Grade API</a>.</p>
+
+    <h3 class="page-heading" id="street-grade-credits">Elevation model credits<a href="#street-grade-credits" class="permalink">#</a></h3>
+    <p>Each street names the model it was sampled from in <code>dem_source</code>. If you publish the grade fields, credit the model as below, and cite it where you would cite data; <a href="#scoring-config"><code>/v3/api/accessScoreConfig</code></a> lists the ones this city uses under <code>grade.sources</code>, with the same credit lines and citations. How the grades are sampled from the model, and how accurate they are, is on the <a href="@routes.ApiDocsController.streetGrade#data-source">Street Grade API</a> page. A city sampled from rasters that are not in this table yet is credited by its <code>dem_source</code> alone.</p>
+    @apiDocs.elevationCredits("street-grade-credits")
   </div>
 
   <div class="page-section" id="quick-download-section">
@@ -164,11 +185,6 @@
         <span class="format-icon">📦</span> GeoPackage
         <span class="format-hint">Open GIS format</span>
       </button>
-    </div>
-    <div id="download-status" class="status-container status-loading ps-hidden">
-      <div class="loading-spinner"></div>
-      <div class="status-message">Generating your download...</div>
-      <div class="status-progress">This may take anywhere from a few seconds to a few minutes depending on the data size.</div>
     </div>
     <p class="download-note">Note: This downloads scores for all streets. For filtered data, use the <a href="#query-parameters">API Query Parameters</a> described below.</p>
   </div>
@@ -234,8 +250,8 @@
         "street_edge_id": 766,
         "osm_way_id": 11584845,
         "region_id": 8,
-        "score": 0.6849,
-        "segment_score": 0.3846,
+        "score": 0.6444,
+        "segment_score": 0.263,
         "start_intersection_id": 412,
         "end_intersection_id": 415,
         "start_intersection_score": 0.8176,
@@ -243,6 +259,17 @@
         "audit_count": 2,
         "length_meters": 142.7,
         "label_count": 4,
+        "mean_grade": 0.0412,
+        "max_grade": 0.0687,
+        "net_grade": -0.0398,
+        "total_climb_meters": 0.2,
+        "total_descent_meters": 5.9,
+        "meters_over_5pct": 48.0,
+        "meters_over_8pct": 0.0,
+        "grade_confidence": "high",
+        "grade_quality": "measured",
+        "dem_source": "usgs-3dep-10m",
+        "grade_term": -0.561,
         "cluster_counts": {
           "CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 1,
           "Crosswalk": 1, "Signal": 0, "NoSidewalk": 0
@@ -291,8 +318,19 @@
           <tr><td><code>properties.audit_count</code></td><td><code>integer</code></td><td>Number of completed (high-quality) audits of this street.</td></tr>
           <tr><td><code>properties.length_meters</code></td><td><code>number</code></td><td>Street length in meters (geodesic). Length-weights region scores and normalizes the along-length terms.</td></tr>
           <tr><td><code>properties.label_count</code></td><td><code>integer</code></td><td>Number of labels contributing to this street's segment clusters.</td></tr>
+          <tr><td><code>properties.mean_grade</code></td><td><code>number</code></td><td>The street's mean absolute running grade over every 10&nbsp;m baseline, as a fraction (<code>0.05</code> is a 5% grade). Like every grade field it comes from an elevation model, not from labels, so an unaudited street has it too; see <a href="#street-grade">Street grade</a>. <code>null</code> where the street has not been sampled or has no usable profile (<code>grade_quality</code> says which).</td></tr>
+          <tr><td><code>properties.max_grade</code></td><td><code>number</code></td><td>The steepest absolute grade over any 30&nbsp;m baseline (any 10&nbsp;m baseline on a street shorter than 30&nbsp;m). Never below <code>mean_grade</code>.</td></tr>
+          <tr><td><code>properties.net_grade</code></td><td><code>number</code></td><td>End-to-end grade, signed in the direction of the street's geometry: negative where the street runs downhill from its first coordinate to its last. The one grade field a coarse (30&nbsp;m) elevation model supports, so it can be set while the others are <code>null</code>.</td></tr>
+          <tr><td><code>properties.total_climb_meters</code></td><td><code>number</code></td><td>Summed rise along the street in the direction of its geometry, in meters.</td></tr>
+          <tr><td><code>properties.total_descent_meters</code></td><td><code>number</code></td><td>Summed fall along the street in the same direction, in meters.</td></tr>
+          <tr><td><code>properties.meters_over_5pct</code></td><td><code>number</code></td><td>Meters of the street steeper than @StreetGradientStats.percentLabel(StreetGradientStats.WalkingSurfaceLimit) (1:20), the ADA / PROWAG running-slope limit for a walking surface.</td></tr>
+          <tr><td><code>properties.meters_over_8pct</code></td><td><code>number</code></td><td>Meters of the street steeper than @StreetGradientStats.percentLabel(StreetGradientStats.RampLimit) (1:12), the limit for a ramp; the field is named for the round figure. Never more than <code>meters_over_5pct</code>.</td></tr>
+          <tr><td><code>properties.grade_confidence</code></td><td><code>string</code></td><td><code>high</code> for an elevation model at 10&nbsp;m or finer, <code>medium</code> to 20&nbsp;m, <code>low</code> beyond. <code>null</code> where the street has not been sampled.</td></tr>
+          <tr><td><code>properties.grade_quality</code></td><td><code>string</code></td><td><code>measured</code>; <code>structure</code> (a bridge, tunnel, or covered way, which a bare-earth model cannot see, so every grade is <code>null</code>); <code>suspect</code> (the sampled profile was implausible, so the grades come from a straight line between the street's ends, or are <code>null</code>); or <code>no_data</code> (the model has nothing under the street).</td></tr>
+          <tr><td><code>properties.dem_source</code></td><td><code>string</code></td><td>The elevation model the street was sampled from, which is what its <a href="#street-grade-credits">credit</a> is keyed on. <code>null</code> where the street has not been sampled.</td></tr>
+          <tr><td><code>properties.grade_term</code></td><td><code>number</code></td><td>What the street's grade adds to the segment's pre-sigmoid total under the engine's <a href="#scoring-config">grade settings</a>; never positive, and <code>0</code> on a street with no sampled grade or one gentler than the walking-surface limit. Grade is not a label type, so it has no <code>sub_scores</code> entry; it is published separately so that <code>logit(segment_score) = Σ sub_scores + grade_term</code> holds, and so that subtracting it recovers the label-only score.</td></tr>
           <tr><td><code>properties.cluster_counts</code></td><td><code>object</code></td><td>Number of clusters of each label type scoring the segment, keyed by label-type name: the along-length types, plus any corner-type cluster not attributed to an intersection.</td></tr>
-          <tr><td><code>properties.sub_scores</code></td><td><code>object</code></td><td>Contribution of each label type to the segment's pre-sigmoid total, keyed by label-type name; the values sum to <code>logit(segment_score)</code>, so they explain how it was composed. Per-cluster types report the sum over their clusters, length-normalized where the type is; <code>NoSidewalk</code> reports the street's single pooled term (see <a href="#scoring-model">How the score is computed</a>), which does not scale with <code>cluster_counts.NoSidewalk</code>.</td></tr>
+          <tr><td><code>properties.sub_scores</code></td><td><code>object</code></td><td>Contribution of each label type to the segment's pre-sigmoid total, keyed by label-type name; with <code>grade_term</code> the values sum to <code>logit(segment_score)</code>, so they explain how it was composed. Per-cluster types report the sum over their clusters, length-normalized where the type is; <code>NoSidewalk</code> reports the street's single pooled term (see <a href="#scoring-model">How the score is computed</a>), which does not scale with <code>cluster_counts.NoSidewalk</code>.</td></tr>
           <tr><td><code>properties.severity_counts</code></td><td><code>object</code></td><td>Number of segment clusters of each label type in each rating bucket (<code>"1"</code>, <code>"2"</code>, <code>"3"</code>, or <code>"null"</code> for unrated clusters), keyed by label-type name. The buckets of a type sum to its <code>cluster_counts</code> entry.</td></tr>
           <tr><td><code>properties.tag_adjustments</code></td><td><code>object</code></td><td>The summed adjustment of the active tags of each label type, keyed by label-type name: the part of <code>sub_scores</code> that no weight scales, before length normalization. With <code>severity_counts</code>, <code>length_meters</code>, and the <a href="#scoring-config">scoring configuration</a>, enough to <a href="#scoring-config">recompute the segment score under your own weights</a>.</td></tr>
         </tbody>
@@ -301,13 +339,13 @@
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code>, the first row is the header. The per-type objects are flattened into one column per label type, each named for its path through the JSON: <code>cluster_counts.&lt;type&gt;</code>, <code>sub_scores.&lt;type&gt;</code>, <code>severity_counts.&lt;type&gt;.1</code> through <code>.3</code> plus <code>.null</code>, and <code>tag_adjustments.&lt;type&gt;</code>; the geometry is simplified to start/end points.</p>
-    <pre tabindex="0"><code class="language-csv">street_edge_id,osm_way_id,region_id,score,segment_score,start_intersection_id,end_intersection_id,start_intersection_score,end_intersection_score,audit_count,length_meters,label_count,cluster_counts.CurbRamp,…,cluster_counts.NoSidewalk,sub_scores.CurbRamp,…,sub_scores.NoSidewalk,severity_counts.CurbRamp.1,severity_counts.CurbRamp.2,severity_counts.CurbRamp.3,severity_counts.CurbRamp.null,…,severity_counts.NoSidewalk.null,tag_adjustments.CurbRamp,…,tag_adjustments.NoSidewalk,start_point,end_point
-766,11584845,8,0.6849,0.3846,412,415,0.8176,0.8525,2,142.7,4,0,…,0,0.0,…,0.0,0,0,0,0,…,0,0.0,…,0.0,"-74.0243,40.8839","-74.0245,40.8836"
+    <pre tabindex="0"><code class="language-csv">street_edge_id,osm_way_id,street_name,region_id,score,segment_score,start_intersection_id,end_intersection_id,start_intersection_score,end_intersection_score,audit_count,length_meters,label_count,mean_grade,max_grade,net_grade,total_climb_meters,total_descent_meters,meters_over_5pct,meters_over_8pct,grade_confidence,grade_quality,dem_source,grade_term,cluster_counts.CurbRamp,…,cluster_counts.NoSidewalk,sub_scores.CurbRamp,…,sub_scores.NoSidewalk,severity_counts.CurbRamp.1,severity_counts.CurbRamp.2,severity_counts.CurbRamp.3,severity_counts.CurbRamp.null,…,severity_counts.NoSidewalk.null,tag_adjustments.CurbRamp,…,tag_adjustments.NoSidewalk,start_point,end_point
+766,11584845,Queen Anne Road,8,0.6444,0.263,412,415,0.8176,0.8525,2,142.7,4,0.0412,0.0687,-0.0398,0.2,5.9,48.0,0.0,high,measured,usgs-3dep-10m,-0.561,0,…,0,0.0,…,0.0,0,0,0,0,…,0,0.0,…,0.0,"-74.0243,40.8839","-74.0245,40.8836"
 ...</code></pre>
-    <p>The full header, in order: the twelve leading columns, then <code>cluster_counts.&lt;type&gt;</code> for each of the @AccessScoreCalculator.orderedScoredTypes.size scored types, <code>sub_scores.&lt;type&gt;</code> for each, the four <code>severity_counts.&lt;type&gt;.*</code> buckets for each, <code>tag_adjustments.&lt;type&gt;</code> for each, then <code>start_point</code> and <code>end_point</code>. Types are always in the order <code>@AccessScoreCalculator.orderedScoredTypes.mkString(", ")</code>.</p>
+    <p>The full header, in order: the thirteen leading columns, the ten grade columns (<code>mean_grade</code> through <code>dem_source</code>) and <code>grade_term</code>, then <code>cluster_counts.&lt;type&gt;</code> for each of the @AccessScoreCalculator.orderedScoredTypes.size scored types, <code>sub_scores.&lt;type&gt;</code> for each, the four <code>severity_counts.&lt;type&gt;.*</code> buckets for each, <code>tag_adjustments.&lt;type&gt;</code> for each, then <code>start_point</code> and <code>end_point</code>. Types are always in the order <code>@AccessScoreCalculator.orderedScoredTypes.mkString(", ")</code>.</p>
 
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
-    <p>If <code>filetype=shapefile</code>, the response is a ZIP archive of Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated. Because the DBF format truncates column names at 10 characters, the columns use short codes: <code>segScore</code>, <code>sIntId</code> / <code>eIntId</code>, and <code>sIntScore</code> / <code>eIntScore</code> for the headline's components, and per type cluster count <code>nCRamp</code>, sub-score <code>sCRamp</code>, cluster count per rating bucket <code>n1CRamp</code>, <code>n2CRamp</code>, <code>n3CRamp</code> and <code>n0CRamp</code> (unrated), and tag adjustment <code>tCRamp</code>; the GeoJSON, CSV, and GeoPackage formats keep the full names.</p>
+    <p>If <code>filetype=shapefile</code>, the response is a ZIP archive of Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated. Because the DBF format truncates column names at 10 characters, the columns use short codes: <code>segScore</code>, <code>sIntId</code> / <code>eIntId</code>, and <code>sIntScore</code> / <code>eIntScore</code> for the headline's components, <code>meanGrade</code>, <code>maxGrade</code>, <code>netGrade</code>, <code>climbM</code>, <code>descentM</code>, <code>mOver5pct</code>, <code>mOver8pct</code>, <code>gradeConf</code>, <code>gradeQual</code>, <code>demSource</code> and <code>gradeTerm</code> for grade, and per type cluster count <code>nCRamp</code>, sub-score <code>sCRamp</code>, cluster count per rating bucket <code>n1CRamp</code>, <code>n2CRamp</code>, <code>n3CRamp</code> and <code>n0CRamp</code> (unrated), and tag adjustment <code>tCRamp</code>; the GeoJSON, CSV, and GeoPackage formats keep the full names.</p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
     <p>If <code>filetype=geopackage</code>, the response is a GeoPackage (.gpkg) file with full geometry and the same fields, in the same order, as the GeoJSON properties. The per-type columns are named as in the CSV but with each dot turned into an underscore, since ArcGIS doesn't allow dots in column names: <code>cluster_counts_CurbRamp</code>, <code>sub_scores_CurbRamp</code>, <code>severity_counts_CurbRamp_1</code> through <code>_3</code> plus <code>_null</code>, and <code>tag_adjustments_CurbRamp</code>.</p>
@@ -317,6 +355,11 @@
       <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values (e.g., malformed bounding box, non-positive or unknown region id).</li>
       <li><strong><code>429 Too Many Requests</code>:</strong> The same file is already being built for an earlier request; wait <code>Retry-After</code> seconds and try again. A <code>HEAD</code> request gets the same answer without building anything.</li>
       <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
+      <li><strong><code>503 Service Unavailable</code>:</strong> A whole-city request (no <code>bbox</code> or region filter) found the city's scores not yet cached — after a deploy, or in a long-idle city — and they are still being computed. Wait <code>Retry-After</code> seconds (30) and repeat the request; the body's <code>code</code> is <code>STILL_COMPUTING</code>.</li>
+    </ul>
+    <h3 class="page-heading" id="response-headers">Response Headers<a href="#response-headers" class="permalink">#</a></h3>
+    <ul>
+      <li><strong><code>X-File-Size</code>:</strong> On a Shapefile, GeoPackage or zipped-CSV download, the file's size in bytes. Sent alongside <code>Content-Length</code>, and still present when the response is gzipped, which drops it — use it to show download progress.</li>
     </ul>
     @apiDocs.errorResponseBody()
   </div>

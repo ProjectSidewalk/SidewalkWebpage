@@ -363,7 +363,7 @@
   "access-score-spotlight": {
     "subtitle-regions": "Las aceras de cada barrio reciben de 0 a 100 puntos con nuestro algoritmo <a href=\"{{href}}\">AccessScore</a> (100 es lo mejor).",
     "subtitle-streets": "Las aceras de cada calle reciben de 0 a 100 puntos con nuestro algoritmo <a href=\"{{href}}\">AccessScore</a> (100 es lo mejor).",
-    "subtitle-one-region": "Esta ciudad está mapeada como un solo barrio, así que hay una única puntuación. Cambia a Calles para verlo con más detalle.",
+    "subtitle-one-region": "Esta ciudad está mapeada como un solo barrio, así que hay una única puntuación.",
     "units-label": "Clasificar barrios o calles",
     "unit-regions": "Barrios",
     "unit-streets": "Calles",

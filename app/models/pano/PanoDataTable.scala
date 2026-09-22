@@ -175,6 +175,9 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    *
    * Tutorial panos are excluded: this feeds `/adminapi/panos`, the scraper's work list, and their imagery is app
    * assets with no provider to download from.
+   *
+   * `has_labels` deliberately includes deleted labels: a deleted label can be restored, so the scraper keeps any pano
+   * that ever had one. So it means "ever had a label", not "has a live label" (#5385).
    */
   def getAllPanos: DBIO[Seq[PanoDataSlim]] = {
     panoDataRecords

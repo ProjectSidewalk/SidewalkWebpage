@@ -192,6 +192,13 @@ class AppManager {
         // call site, so there is nothing a caller can forget and no metric/imperial pair of keys to keep in sync.
         // These must be plain values: a getter that called i18next.t() here would recurse through interpolation.
         defaultVariables: params.unitWords,
+        // Interpolated values reach a text node, an aria-label, a title or a confirm() far more often than they
+        // reach innerHTML, and there HTML-escaping is what the reader sees: a neighborhood called Al 'Ummah prints
+        // as "Al &#39;Ummah" and a formatted date as "9&#x2F;16&#x2F;2026" (#5389). So values are interpolated
+        // verbatim, and the far smaller set of calls that build markup says so at the call site with
+        // `interpolation: { escapeValue: true }`. The `ps/i18n-escape-in-markup` ESLint rule enforces that;
+        // docs/internationalization.md has the rule for the flows it cannot see.
+        escapeValue: false,
       },
     }, (err) => {
       // Registered before the error check: the formatter doesn't depend on any translation having loaded, and a page
@@ -229,7 +236,8 @@ class AppManager {
    * gets all three rather than each call site repeating the metersToFeet / roundToTwentyFive / format-number dance.
    * The input is always canonical — meters for `small`, kilometers for `large` — never a pre-converted value.
    *
-   * Params: `style` (`small` → m/ft rounded to the nearest 25, our convention for mission-scale distances; `large` →
+   * Params: `style` (`small` → m/ft rounded to the nearest 25, our convention for mission-scale distances; `fine` →
+   * m/ft to the whole unit, for an elevation or a rise, which a nearest-25 would flatten to nothing; `large` →
    * km/mi), `precision` (decimal places, `large` only), and `unit: false` to emit the bare number for a string that
    * names the unit once across several values. Separate multiple params with `;`.
    *
@@ -238,9 +246,12 @@ class AppManager {
   _addDistanceFormatter() {
     i18next.services.formatter.add('distance', (value, lng, options) => {
       const metric = util.isMetric();
-      const small = options.style === 'small';
+      const fine = options.style === 'fine';
+      const small = fine || options.style === 'small';
       let amount;
-      if (small) {
+      if (fine) {
+        amount = Math.round(metric ? value : util.math.metersToFeet(value));
+      } else if (small) {
         amount = util.math.roundToTwentyFive(metric ? value : util.math.metersToFeet(value));
       } else {
         amount = metric ? value : util.math.kmsToMiles(value);

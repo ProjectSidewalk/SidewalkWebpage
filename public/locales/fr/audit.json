@@ -158,6 +158,13 @@
     "route-unavailable": {
       "message": "Cet itinéraire n'est pas disponible. Il a peut-être été supprimé."
     },
+    "reaudit": {
+      "title": "Cette rue a des images plus récentes",
+      "message-you": "Vous avez cartographié cette rue pour la dernière fois en {{lastMapped}}, mais les images ont été actualisées depuis (en {{newImagery}}). Voyons ce qui a changé !",
+      "message-you-no-dates": "Vous avez déjà cartographié cette rue, mais les images ont été actualisées depuis. Voyons ce qui a changé !",
+      "message-others": "Un autre utilisateur a cartographié cette rue en {{lastMapped}}, mais les images ont été actualisées depuis (en {{newImagery}}). Voyons ce qui a changé !",
+      "message-others-no-dates": "Un autre utilisateur a déjà cartographié cette rue, mais les images ont été actualisées depuis. Voyons ce qui a changé !"
+    },
     "minimap": {
       "coach-dismiss": "Compris",
       "distance-left": "{{distance}} restants",

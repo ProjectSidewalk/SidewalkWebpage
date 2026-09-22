@@ -55,9 +55,13 @@ function loadSources() {
     RAMP.forEach((hex, i) => document.documentElement.style.setProperty(`--color-score-ramp-${i + 1}`, hex));
     window.eval(read('public/js/common/scoreRamp.js'));
     window.eval(`${read('public/js/common/LabelMiniCard.js')}\nwindow.LabelMiniCard = LabelMiniCard;`);
-    const classes = ['AccessScoreModel', 'AccessScoreChart', 'AccessScoreHistogram', 'AccessScoreWhatsHere',
-        'AccessScoreRankBars', 'AccessScoreClusterSheet', 'AccessScorePhotoStrip', 'AccessScoreDock'];
-    for (const name of classes) window.eval(`${read(`public/js/access-score/src/${name}.js`)}\nwindow.${name} = ${name};`);
+    const classes = ['AccessScoreModel', 'AccessScoreGradeRamp', 'AccessScoreChart', 'AccessScoreHistogram',
+        'AccessScoreWhatsHere', 'AccessScoreRankBars', 'AccessScoreClusterSheet', 'AccessScorePhotoStrip',
+        'AccessScoreDock'];
+    for (const name of classes) {
+        const dir = name === 'AccessScoreGradeRamp' ? 'common' : 'access-score/src';  // Shared with the API docs.
+        window.eval(`${read(`public/js/${dir}/${name}.js`)}\nwindow.${name} = ${name};`);
+    }
 }
 
 /** A street feature in the API's shape, from a fixture case. */
@@ -94,11 +98,18 @@ const DOCK_HTML = `
         </div>
         <div id="acs-dock-status" role="status"></div>
       </div>
-      <div id="acs-dock-body">
-        <div id="acs-histogram"></div>
-        <div id="acs-whats-here"></div>
-        <div id="acs-rank-bars"></div>
-        <div id="acs-photos"></div>
+      <div id="acs-dock-body" class="acs-dock__body">
+        <section class="acs-dock__panel acs-dock__panel--histogram"><div id="acs-histogram"></div></section>
+        <section class="acs-dock__panel acs-dock__panel--whats-here"><div id="acs-whats-here"></div></section>
+        <section class="acs-dock__panel acs-dock__panel--rank">
+          <div class="acs-dock__panel-head">
+            <h3 id="acs-dock-rank-title">Neighborhoods ranked</h3>
+            <button type="button" class="acs-info" aria-label="More information">i</button>
+            <button type="button" id="acs-rank-order" hidden>Show worst 20</button>
+          </div>
+          <div id="acs-rank-bars"></div>
+        </section>
+        <section class="acs-dock__panel acs-dock__panel--photos"><div id="acs-photos"></div></section>
       </div>
     </aside>
   </div>`;

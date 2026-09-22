@@ -1,6 +1,7 @@
 package service
 
 import models.label.LabelTypeEnum
+import models.street.StreetGradientStats
 
 /**
  * Pure, DB-free scoring engine for the v3 AccessScore API (#3855).
@@ -24,6 +25,10 @@ import models.label.LabelTypeEnum
  *     SurfaceProblem) are scaled to a per-100 m density by [[lengthFactor]], so a long street is not penalized for
  *     having more room for problems; NoSidewalk's pooled term is already length-free.
  *   - A unit's score is `sigmoid(sum)`, mapped to (0, 1).
+ *   - A segment's sum also takes a **slope** term ([[slopeTerm]], #5223), which is not a label type and so not one of
+ *     the per-type terms: it comes from an elevation model, not from clusters. [[defaultSlopeSettings]] is what the
+ *     API serves; the AccessScore tool re-runs the same arithmetic under a reader's own settings, and the two
+ *     implementations are held to one fixture. A street with no sampled slope takes no term at all.
  *   - A street's headline score is the mean of its segment score and its end intersections' scores
  *     ([[headlineScore]]): a trip along a street includes getting on and off it.
  *   - A region's score is the street-length-weighted mean of its audited streets' scores (the paper's normalization),
@@ -475,6 +480,189 @@ object AccessScoreCalculator {
 
   /** The logistic squashing function mapping the unbounded weighted sum to (0, 1). */
   private def sigmoid(t: Double): Double = 1.0 / (1.0 + math.exp(-t))
+
+  /** Which of a street's slope statistics drives its slope term. */
+  sealed trait SlopeStatistic
+
+  /** The mean absolute grade over 10 m baselines: how steep the street is on the whole. */
+  case object MeanGrade extends SlopeStatistic
+
+  /** The steepest 30 m stretch: the worst a traveler meets, which one short pitch can set. */
+  case object MaxGrade extends SlopeStatistic
+
+  /**
+   * The share of the street's length over the two ADA / PROWAG limits. Those lengths are measured when the street is
+   * sampled, against [[StreetGradientStats.WalkingSurfaceLimit]] and [[StreetGradientStats.RampLimit]], so this is
+   * the one statistic a reader's own thresholds do not move.
+   */
+  case object MetersOverLimit extends SlopeStatistic
+
+  /** The statistics in the order a control lists them. */
+  val slopeStatistics: Seq[SlopeStatistic] = Seq(MeanGrade, MaxGrade, MetersOverLimit)
+
+  /** The API's snake_case name for a slope statistic, the one source for both the config and the tool's URL. */
+  def slopeStatisticName(statistic: SlopeStatistic): String = statistic match {
+    case MeanGrade       => "mean_grade"
+    case MaxGrade        => "max_grade"
+    case MetersOverLimit => "meters_over_limit"
+  }
+
+  /**
+   * How slope enters a segment's score. Grades are fractions (0.05 is a 5% grade).
+   *
+   * @param weight               Magnitude of the term at full strength; the term only ever lowers a score.
+   * @param statistic            Which statistic drives the term.
+   * @param lowThreshold         The grade at or under which slope costs nothing ([[MeanGrade]] / [[MaxGrade]] only).
+   * @param highThreshold        The grade at or over which the term is at full strength.
+   * @param barrierEnabled       Whether a street steeper than `barrierThreshold` scores 0 outright.
+   * @param barrierThreshold     The `maxGrade` over which a street is a barrier, when enabled.
+   * @param includeApproximate   Whether an approximate grade takes part at all ([[SlopeInput.approximate]]). Off
+   *                             by default: such a grade is an end-to-end line, good to within about a point, and
+   *                             says nothing of the pitches along the street that the thresholds and the barrier
+   *                             are about.
+   */
+  case class SlopeSettings(
+      weight: Double,
+      statistic: SlopeStatistic,
+      lowThreshold: Double,
+      highThreshold: Double,
+      barrierEnabled: Boolean,
+      barrierThreshold: Double,
+      includeApproximate: Boolean
+  )
+
+  // --- TUNABLE: how slope enters the score. The weight of 1 is a missing curb ramp's, so the claim it makes is one a
+  // reader can check: a block whose steepest stretch passes the ramp limit is about as hard to travel as one whose
+  // corner has no ramp. [[MaxGrade]] over [[MeanGrade]] because the worst pitch is what turns a traveler back, and a
+  // mean hides the otherwise flat block with one brutal pitch in it. The thresholds are settings rather than
+  // constants because people's limits differ (a manual and a power wheelchair user do not share one). The barrier is
+  // off: scoring a street 0 outright is a stronger claim than a weight, and it is the reader's to make. Its grade is
+  // 1:8 and not the ramp limit, because 8.33% over 30 m is an ordinary block in a hilly city, where a switch labeled
+  // "very steep" would zero a large share of the map; 12.5% is also where the slope map's steepest class begins.
+  //
+  // The cost of a nonzero weight: a sampled city scores below an unsampled one, since an unsampled street takes no
+  // term. That closes as cities are imported; until then it is a reason not to rank two cities against each other,
+  // which was never a claim these scores supported. ---
+  val defaultSlopeSettings: SlopeSettings = SlopeSettings(
+    weight = 1.0, statistic = MaxGrade, lowThreshold = StreetGradientStats.WalkingSurfaceLimit,
+    highThreshold = StreetGradientStats.RampLimit, barrierEnabled = false,
+    barrierThreshold = StreetGradientStats.MapClassBreaks.last, includeApproximate = false
+  )
+
+  // --- TUNABLE: the grades a reader may set a threshold between. The floor keeps "everything is steep" off the
+  // table; the ceiling is above the steepest real streets (Canton Avenue and Baldwin Street are 35 to 37%). ---
+  val slopeThresholdMin: Double = 0.01
+  val slopeThresholdMax: Double = 0.4
+
+  // --- TUNABLE: the most a reader may weigh slope, the ceiling of the label types' own sliders: at 3 a street over
+  // the high threshold loses what three severe obstacles would cost it, and the sigmoid has little left to give. ---
+  val slopeWeightMax: Double = 3.0
+
+  /**
+   * A street's slope, as the engine needs it: `StreetGradientStats` without the database's types.
+   *
+   * @param meanGrade      Mean absolute grade, or None where the street has no windowed statistics.
+   * @param maxGrade       Steepest 30 m grade, None likewise.
+   * @param netGrade       Signed end-to-end grade, the one statistic a coarse model supports.
+   * @param metersOver5pct Meters steeper than the walking-surface limit.
+   * @param metersOver8pct Meters steeper than the ramp limit.
+   * @param approximate    Whether the grade is an end-to-end line and not a sampled profile: it came from a coarse
+   *                       elevation model (`low` confidence), or the sampler distrusted the profile it read and drew
+   *                       a straight line between the street's ends in its place (`suspect` quality), which makes
+   *                       `meanGrade` and `maxGrade` both the size of `netGrade`.
+   */
+  case class SlopeInput(
+      meanGrade: Option[Double],
+      maxGrade: Option[Double],
+      netGrade: Option[Double],
+      metersOver5pct: Option[Double],
+      metersOver8pct: Option[Double],
+      approximate: Boolean
+  )
+
+  /** Whether a street's slope takes part under the settings: it has one, and it is sampled or approximates count. */
+  private def slopeCounts(slope: Option[SlopeInput], settings: SlopeSettings): Option[SlopeInput] =
+    slope.filter(s => settings.includeApproximate || !s.approximate)
+
+  /**
+   * How far a grade sits between the two thresholds, in [0, 1]. Thresholds that have crossed or met leave no ramp
+   * between them, so the low one acts as a step.
+   */
+  private def gradeBetweenThresholds(grade: Double, settings: SlopeSettings): Double = {
+    val span = settings.highThreshold - settings.lowThreshold
+    if (span <= 0.0) { if (grade > settings.lowThreshold) 1.0 else 0.0 }
+    else math.min(1.0, math.max(0.0, (grade - settings.lowThreshold) / span))
+  }
+
+  /**
+   * How much of the slope term a street takes, in [0, 1].
+   *
+   * [[MeanGrade]] and [[MaxGrade]] ramp from 0 at the low threshold to 1 at the high one. A street with neither,
+   * whatever its confidence (in practice a coarse-model row, once admitted), stands in the size of its end-to-end
+   * grade for either.
+   * [[MetersOverLimit]] is the share of the street over the walking-surface limit, with the share over the ramp limit
+   * counted again: a street wholly between the two limits takes half the term, one wholly over both takes all of it.
+   *
+   * @param slope        The street's slope, or None where it has not been sampled. A bridge or a gap in the model
+   *                     has a row, so it arrives as Some with every grade None, and takes no units either.
+   * @param lengthMeters The street's length, the denominator of the over-limit share.
+   * @param settings     How slope enters the score.
+   * @return             The units the weight applies to; 0 for a street whose slope does not take part.
+   */
+  def slopeUnits(slope: Option[SlopeInput], lengthMeters: Double, settings: SlopeSettings): Double =
+    slopeCounts(slope, settings).fold(0.0) { s =>
+      val endToEnd: Option[Double] = s.netGrade.map(math.abs)
+      settings.statistic match {
+        case MeanGrade       => s.meanGrade.orElse(endToEnd).fold(0.0)(gradeBetweenThresholds(_, settings))
+        case MaxGrade        => s.maxGrade.orElse(endToEnd).fold(0.0)(gradeBetweenThresholds(_, settings))
+        case MetersOverLimit =>
+          if (lengthMeters <= 0.0) 0.0
+          else {
+            val over = s.metersOver5pct.getOrElse(0.0) + s.metersOver8pct.getOrElse(0.0)
+            math.min(1.0, math.max(0.0, over / (2.0 * lengthMeters)))
+          }
+      }
+    }
+
+  /**
+   * A segment's slope term: what slope adds to the pre-sigmoid sum, never positive. Exactly 0.0 at a zero weight (and
+   * not the -0.0 the product would give), so the default settings leave a sum bit-for-bit as the labels made it.
+   *
+   * @return `-weight × slopeUnits`.
+   */
+  def slopeTerm(slope: Option[SlopeInput], lengthMeters: Double, settings: SlopeSettings): Double = {
+    val units = slopeUnits(slope, lengthMeters, settings)
+    if (settings.weight == 0.0 || units == 0.0) 0.0 else -settings.weight * units
+  }
+
+  /**
+   * Whether the settings treat the street as impassable: the barrier switch is on and the street's steepest stretch
+   * (its end-to-end grade, for a row with no steepest stretch) is over the barrier threshold. An approximate grade
+   * the settings do not admit cannot make a barrier, as it cannot make a term.
+   */
+  def slopeIsBarrier(slope: Option[SlopeInput], settings: SlopeSettings): Boolean =
+    settings.barrierEnabled && slopeCounts(slope, settings).exists { s =>
+      s.maxGrade.orElse(s.netGrade.map(math.abs)).exists(_ > settings.barrierThreshold)
+    }
+
+  /**
+   * A segment's score with slope taken into account: 0 for a barrier, otherwise the sigmoid of the per-type terms
+   * plus the slope term. With no sampled slope this is [[scoreFromSubScores]] exactly, whatever the settings say.
+   *
+   * @param subScores    The segment's contribution per scored label type.
+   * @param slope        The street's slope, if it has one.
+   * @param lengthMeters The street's length.
+   * @param settings     How slope enters the score.
+   * @return             The segment's score in [0, 1): 0 only for a barrier.
+   */
+  def segmentScoreWithSlope(
+      subScores: Map[String, Double],
+      slope: Option[SlopeInput],
+      lengthMeters: Double,
+      settings: SlopeSettings = defaultSlopeSettings
+  ): Double =
+    if (slopeIsBarrier(slope, settings)) 0.0
+    else sigmoid(subScores.valuesIterator.sum + slopeTerm(slope, lengthMeters, settings))
 
   /**
    * Squashes a street's per-type contributions (from [[scoreByType]]) into its access score.

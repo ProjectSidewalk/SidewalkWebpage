@@ -147,7 +147,9 @@ class SavedRoutesPanel {
         : '';
       const usage = typeof route.startedCount === 'number'
         ? `<span class="saved-route-usage" title="${i18next.t('route-usage-tooltip')}">
-             ${i18next.t('route-usage', { started: route.startedCount, completed: route.completedCount })}
+             ${i18next.t('route-usage', {
+                started: route.startedCount, completed: route.completedCount, interpolation: { escapeValue: true },
+              })}
            </span>`
         : '';
       return `

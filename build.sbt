@@ -4,9 +4,12 @@ import com.typesafe.sbt.web.pipeline.Pipeline
 
 name := """sidewalk-webpage"""
 
-version := "11.13.0"
+version := "11.14.1"
 
 scalaVersion := "2.13.18"
+
+// An idle server sits on ~1GB, and the default keeps one alive per worktree for a week.
+Global / serverIdleTimeout := Some(scala.concurrent.duration.Duration(1, "hour"))
 
 // These lines prevent documentation from being generated. Once we clean up our Scaladoc, we can remove these lines.
 Compile / doc / sources                := Seq.empty
@@ -254,4 +257,7 @@ scalacOptions ++= Seq(
 )
 
 javacOptions ++= Seq("-source", "17", "-target", "17")
-javaOptions ++= Seq("-Xmx4096M", "-Xms2048M")
+// Heap for the forked test JVM, which is all this ever reached — prod's comes from the deploy tooling (#4564).
+// Measured: the suite uses ~160MB, peaking near 1.3GB under scoverage. A bigger ceiling isn't free, since the JVM
+// stops bothering to collect and grows into it, and -Xms is claimed up front even to run one spec.
+Test / javaOptions ++= Seq("-Xmx2048M", "-Xms512M")

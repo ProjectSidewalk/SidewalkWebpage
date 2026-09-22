@@ -170,6 +170,7 @@ class Main {
     }
     svl.popUpMessage = new PopUpMessage(svl.taskContainer, svl.tracker);
     svl.aiGuidance = new AiGuidance(svl.tracker, svl.popUpMessage);
+    svl.reauditNotice = new ReauditNotice(svl.tracker);
 
     // Logs when the page's focus changes.
     const logPageFocus = () => {
@@ -446,13 +447,14 @@ class Main {
           document.getElementById('compass-message-holder').classList.add('ps-hidden');
           svl.tracker.push('ExploreAddress_SessionStart');
           // Name the place when the search supplied one — "dropped near Teaneck High School" orients the user far
-          // better than a generic greeting. The name comes from a URL param and lands in innerHTML, so it must stay
-          // an i18next interpolation: the default escapeValue escapes it, while the <b> in the string itself renders.
+          // better than a generic greeting. The name comes from a URL param and the alert banner renders its
+          // message as HTML, so the value is escaped here while the <b> in the string itself renders.
           const placeName = this.#params.startPlaceName;
           const startMessage = placeName
-            ? i18next.t('popup.free-explore-start-named', { placeName })
+            ? i18next.t('popup.free-explore-start-named', { placeName, interpolation: { escapeValue: true } })
             : i18next.t('popup.free-explore-start');
           svl.alertController.showAlert(startMessage, 'exploreAddressStart', true);
+          svl.reauditNotice.showForTask(svl.taskContainer.getCurrentTask());
         } else {
           // Initialize explore mission screens focused on a randomized label type, though users can switch between
           // them.
@@ -472,8 +474,9 @@ class Main {
 
           // Toasts telling the user this visit resumed something in progress (#4833), or that the route the URL
           // asked for could not be opened (#5156), deferred until the mission-start screen closes so they aren't
-          // missed underneath it. At most one shows: they occupy the same spot over the pano, and the dropped-route
-          // news outranks a resume note the sidebar's route name already carries.
+          // missed underneath it. At most one of these three shows: the dropped-route news outranks a resume note the
+          // sidebar's route name already carries. The re-audit notice (#4895) is raised alongside them and `Toast`
+          // queues it behind whichever took the spot, so no duration arithmetic is needed here.
           if (this.#takeRouteUnavailableNotice()) {
             document.addEventListener('ps:mission-start-tutorial:done', () => {
               svl.tracker.push('RouteUnavailableToast_Shown');
@@ -515,6 +518,9 @@ class Main {
               });
             }, { once: true });
           }
+          document.addEventListener('ps:mission-start-tutorial:done', () => {
+            svl.reauditNotice.showForTask(svl.taskContainer.getCurrentTask());
+          }, { once: true });
         }
 
         this.#startTheMission(mission, currentRegion);

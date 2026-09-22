@@ -1,4 +1,22 @@
 /**
+ * A cluster's properties as `/v3/api/labelClusters` sends them — the fields the tool reads; the feed carries more
+ * (`region_id`, `osm_way_id`, the date averages, …).
+ * @typedef {object} AccessScoreClusterProps
+ * @property {number} label_cluster_id
+ * @property {string} label_type
+ * @property {number} street_edge_id - The street the cluster sits on.
+ * @property {?number} intersection_id - The crossing a corner-type cluster scores toward; null for a segment's.
+ * @property {?number} median_severity - The labels' median rating, 1–3, or null for an unrated type.
+ * @property {number} agree_count
+ * @property {number} disagree_count
+ * @property {number} cluster_size - How many labels the cluster holds.
+ * @property {number[]} [label_ids] - Those labels' ids. This and the two below are absent only when the layer
+ *     could not parse them back out of Mapbox's tiles (see `#props`).
+ * @property {string[]} [users] - The ids of the users who placed them.
+ * @property {Record<string, number>} [tag_counts] - Labels per tag.
+ */
+
+/**
  * The label clusters a score is computed from, drawn on the AccessScore map (#5217).
  *
  * The engine scores **clusters**, not raw labels: `AccessScoreService` streams one row per cluster and
@@ -21,7 +39,10 @@ class AccessScoreClusterLayer {
   #tooltipHtml;
   #onSelect;
   #visible = true;
-  /** The last collection drawn, kept so a basemap swap can redraw it. */
+  /**
+   * The last collection drawn, kept so a basemap swap can redraw it.
+   * @type {GeoJSON.FeatureCollection}
+   */
   #data = { type: 'FeatureCollection', features: [] };
   /** The dot under the pointer, as `{source, id}` for feature-state, or null. */
   #hovered = null;
@@ -29,9 +50,10 @@ class AccessScoreClusterLayer {
   /**
    * @param {mapboxgl.Map} map - A loaded Mapbox map.
    * @param {object} options - Data and callbacks.
-   * @param {Array<string>} options.types - The scored label types, in the engine's order (bottom layer first).
-   * @param {Function} options.tooltipHtml - Called with a cluster's `properties`; returns tooltip HTML or null.
-   * @param {Function} options.onSelect - Called with a cluster's `properties` on a click.
+   * @param {string[]} options.types - The scored label types, in the engine's order (bottom layer first).
+   * @param {(props: AccessScoreClusterProps) => ?string} options.tooltipHtml - A cluster's `properties` in, its
+   *   tooltip's HTML out, or null for no tooltip.
+   * @param {(props: AccessScoreClusterProps) => void} options.onSelect - Called on a click, with its `properties`.
    */
   constructor(map, { types, tooltipHtml, onSelect }) {
     this.#map = map;
@@ -47,7 +69,7 @@ class AccessScoreClusterLayer {
 
   /**
    * Replaces the clusters drawn, per type. Types absent from the collection are emptied rather than left stale.
-   * @param {object} featureCollection - A `/v3/api/labelClusters` GeoJSON response.
+   * @param {GeoJSON.FeatureCollection} featureCollection - A `/v3/api/labelClusters` response.
    */
   setData(featureCollection) {
     this.#data = featureCollection;
@@ -95,7 +117,7 @@ class AccessScoreClusterLayer {
   /**
    * Whether a cluster sits under a pointer event — the map's street/region tooltip yields to this one, and
    * a click on a dot must not also select the street beneath it.
-   * @param {object} e - A Mapbox pointer event.
+   * @param {mapboxgl.MapMouseEvent} e - A Mapbox pointer event.
    * @returns {boolean} True when a visible cluster is under the pointer.
    */
   claims(e) {
@@ -177,8 +199,8 @@ class AccessScoreClusterLayer {
    * `properties.label_ids[0]` gets you the character `[`, not a label id, and the failure is a broken label card
    * rather than an error.
    *
-   * @param {object} feature - A Mapbox feature from a query or a pointer event.
-   * @returns {object} The properties, with the JSON-encoded fields parsed back.
+   * @param {GeoJSON.Feature} feature - A Mapbox feature from a query or a pointer event.
+   * @returns {AccessScoreClusterProps} The properties, with the JSON-encoded fields parsed back.
    */
   static #props(feature) {
     const props = { ...feature.properties };

@@ -76,14 +76,14 @@ class CrossCityStats {
     const intro = this.#section.querySelector('#ud-cities-intro');
     if (!intro) return;
     if (cities.length >= 2) {
-      intro.textContent = CrossCityStats.#t('dashboard:cities.intro', {
+      intro.textContent = i18next.t('dashboard:cities.intro', {
         cities: CrossCityStats.#num(cities.length),
         labels: CrossCityStats.#num(data.total_labels),
       });
     } else if (cities.length === 1) {
-      intro.textContent = CrossCityStats.#t('dashboard:cities.intro-single', { city: this.#cityHereName(cities) });
+      intro.textContent = i18next.t('dashboard:cities.intro-single', { city: this.#cityHereName(cities) });
     } else {
-      intro.textContent = CrossCityStats.#t('dashboard:cities.intro-empty');
+      intro.textContent = i18next.t('dashboard:cities.intro-empty');
     }
   }
 
@@ -173,7 +173,7 @@ class CrossCityStats {
   #renderFootnote(cities) {
     const note = this.#section.querySelector('#ud-cities-footnote');
     if (!note || !cities.some((c) => !c.live_distance)) return;
-    note.textContent = CrossCityStats.#t('dashboard:cities.distance-note', { city: this.#cityHereName(cities) });
+    note.textContent = i18next.t('dashboard:cities.distance-note', { city: this.#cityHereName(cities) });
     note.hidden = false;
   }
 
@@ -318,7 +318,7 @@ class CrossCityStats {
     if (!status || !heading) return;
     // Trailing '#' is the permalink anchor, which the shell strips the same way when it builds the TOC.
     const section = heading.textContent.replace(/#$/, '').trim();
-    status.textContent = CrossCityStats.#t('dashboard:cities.section-added', { section });
+    status.textContent = i18next.t('dashboard:cities.section-added', { section });
   }
 
   // --- Helpers ----------------------------------------------------------------------------------------------------
@@ -389,29 +389,15 @@ class CrossCityStats {
   }
 
   /**
-   * Translates with i18next's HTML-escaping off.
-   *
-   * Every string in this file either lands in textContent or is escaped by #esc on its way into innerHTML, so the
-   * default escapeValue is wrong both ways: a city named "Coeur d'Alene" would show a literal `&#39;` in the first
-   * case and a double-escaped `&amp;#39;` in the second.
-   *
-   * @param {string} key - Namespaced i18next key.
-   * @param {object} [vars] - Interpolation values.
-   * @returns {string} The translated string, unescaped.
-   */
-  static #t(key, vars) {
-    return i18next.t(key, { ...vars, interpolation: { escapeValue: false } });
-  }
-
-  /**
-   * {@link CrossCityStats.#t}, escaped once for insertion into innerHTML.
+   * A translation escaped once, as a whole, for insertion into innerHTML — which is why its values are left
+   * unescaped: escaping them here as well would print a city called "Coeur d'Alene" as `&amp;#39;`.
    *
    * @param {string} key - Namespaced i18next key.
    * @param {object} [vars] - Interpolation values.
    * @returns {string} The translated string with HTML metacharacters replaced by entities.
    */
   static #tEsc(key, vars) {
-    return CrossCityStats.#esc(CrossCityStats.#t(key, vars));
+    return CrossCityStats.#esc(i18next.t(key, vars));
   }
 
   /** Thousands-separated integer in the viewer's locale. */

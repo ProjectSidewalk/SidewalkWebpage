@@ -150,9 +150,8 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     val unsureCount    = r.nextInt()
     val clusterSize    = r.nextInt()
 
-    // Parse comma-separated label IDs and user IDs.
-    val labelIds = r.nextString().split(",").map(_.toInt).toSeq
-    val userIds  = r.nextString().split(",").toSeq
+    val labelIds = r.nextArray[Int]()
+    val userIds  = r.nextArray[String]()
 
     val avgLatitude  = r.nextDouble()
     val avgLongitude = r.nextDouble()
@@ -311,8 +310,8 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
         |       SUM(label.unsure_count) AS unsure_count,
         |       TO_TIMESTAMP(AVG(extract(epoch from label.time_created))) AS avg_label_date,
         |       COUNT(label.label_id) AS label_count,
-        |       array_to_string(array_agg(label.label_id ORDER BY label.label_id), ',') AS label_ids,
-        |       array_to_string(array_agg(DISTINCT label.user_id ORDER BY label.user_id), ',') AS users_list
+        |       array_agg(label.label_id ORDER BY label.label_id) AS label_ids,
+        |       array_agg(DISTINCT label.user_id ORDER BY label.user_id) AS users_list
         |FROM cluster
         |INNER JOIN cluster_label ON cluster.cluster_id = cluster_label.cluster_id
         |INNER JOIN label ON cluster_label.label_id = label.label_id

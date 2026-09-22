@@ -4,6 +4,7 @@ import com.google.inject.ImplementedBy
 import formats.json.ExploreFormats._
 import models.audit._
 import models.label.{Tag, _}
+import models.utils.CommonUtils.UiSource
 import models.mission.{Mission, MissionTable, MissionType}
 import models.pano.PanoSource.PanoSource
 import models.pano._
@@ -14,7 +15,7 @@ import models.survey.{SurveyQuestionTable, SurveyQuestionWithOptions}
 import models.user.SidewalkUserTable.aiUserId
 import models.user._
 import models.utils.MyPostgresProfile.api._
-import models.utils.{ConfigTable, MyPostgresProfile, WebpageActivityTable}
+import models.utils.{ConfigTable, IpAddress, MyPostgresProfile, WebpageActivityTable}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point, PrecisionModel}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.{Configuration, Logger}
@@ -154,7 +155,7 @@ trait ExploreService {
    * @param ipAddress IP address of the user submitting the survey.
    * @param data Data submitted from the survey.
    */
-  def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]]
+  def submitSurvey(userId: String, ipAddress: IpAddress, data: Seq[SurveySingleSubmission]): Future[Seq[Int]]
 }
 
 @Singleton
@@ -211,12 +212,13 @@ class ExploreServiceImpl @Inject() (
       // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
       // routeId was supplied, then the function should return None and the user is not sent on a specific route. A
       // routeId naming no live route is dropped and flagged for the page (#5156). Region or street id params take
-      // precedence over all of it.
+      // precedence over all of it, and pause any active route: the page strips those params from the URL, so a
+      // still-active route would otherwise pull the user into its region on their next reload (#5437).
       routeSetup: RouteWalkSetup <-
         if (regionId.isEmpty && streetEdgeId.isEmpty) {
           setUpPossibleUserRoute(routeId, userId, resumeRoute)
         } else {
-          DBIO.successful(RouteWalkSetup(None, resumed = false))
+          setUpPossibleUserRoute(routeId = None, userId, resumeRoute = false)
         }
       userRoute = routeSetup.walk
       routeOption: Option[Route] <- userRoute
@@ -282,7 +284,7 @@ class ExploreServiceImpl @Inject() (
         if (mission.missionType == MissionType.AuditOnboarding) {
           auditTaskTable.getATutorialTask(mission.missionId).map(Some(_))
         } else if (streetEdgeId.isDefined) {
-          auditTaskTable.selectANewTask(streetEdgeId.get, mission.missionId).map(Some(_))
+          auditTaskTable.selectANewTask(streetEdgeId.get, userId, mission.missionId).map(Some(_))
         } else if (routeOption.isDefined) {
           userRouteTable.getRouteTask(userRoute.get, mission.missionId)
         } else if (mission.currentAuditTaskId.isDefined) {
@@ -293,7 +295,7 @@ class ExploreServiceImpl @Inject() (
           // declines to serve it to the labeler who just bounced off it.
           // AuditTaskTable.resumableTasksForUser holds a second copy of this same no-imagery test, for the next-street
           // pick (#5370). Nothing links them, so a change to what counts as a give-up has to be made in both places.
-          auditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get).flatMap {
+          auditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get, userId).flatMap {
             case Some(currTask) =>
               streetEdgeIssueTable.reportedNoImagerySince(currTask.edgeId, userId, currTask.taskStart).flatMap {
                 case true  => auditTaskTable.selectANewTaskInARegion(regionId, userId, mission.missionId)
@@ -372,8 +374,12 @@ class ExploreServiceImpl @Inject() (
                 _                <- missionTable.updateCurrentAuditTaskId(mission.missionId, Some(auditTaskId))
                 updatedMission: Mission <- missionTable.getMission(mission.missionId).map(_.get)
                 // includeCompleted: a drop-in street the session already finished must still load on resume (#4451).
-                task: Option[NewTask] <- auditTaskTable.selectTaskFromTaskId(auditTaskId, includeCompleted = true)
-                nextTempLabelId: Int  <- labelTable.nextTempLabelId(userId)
+                task: Option[NewTask] <- auditTaskTable.selectTaskFromTaskId(
+                  auditTaskId,
+                  userId,
+                  includeCompleted = true
+                )
+                nextTempLabelId: Int          <- labelTable.nextTempLabelId(userId)
                 hasCompletedAMission: Boolean <-
                   missionTable.countCompletedMissions(userId, missionType = MissionType.Audit).map(_ > 0)
                 surveyData: Seq[SurveyQuestionWithOptions] <- surveyQuestionTable.listAllWithOptions
@@ -692,7 +698,8 @@ class ExploreServiceImpl @Inject() (
 
       // Add the new entry to the label table.
       allTags: Seq[Tag] <- labelService.selectAllTags
-      newLabelId: Int   <- labelService.insertLabel(
+      (deletedBy, deletedAt, deletedSource) = LabelDeletion.fields(userId, Option.when(label.deleted)(UiSource.Explore))
+      newLabelId: Int <- labelService.insertLabel(
         Label(
           labelId = 0,
           auditTaskId = auditTaskId,
@@ -711,7 +718,11 @@ class ExploreServiceImpl @Inject() (
           correct = None,
           severity = label.severity,
           description = label.description,
-          tags = label.tagIds.distinct.flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption).toList
+          tags = label.tagIds.distinct.flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption).toList,
+          // A label removed before its first save arrives already deleted.
+          deletedBy = deletedBy,
+          deletedAt = deletedAt,
+          deletedSource = deletedSource
         )
       )
 
@@ -1062,7 +1073,7 @@ class ExploreServiceImpl @Inject() (
     })
   }
 
-  def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]] = {
+  def submitSurvey(userId: String, ipAddress: IpAddress, data: Seq[SurveySingleSubmission]): Future[Seq[Int]] = {
     db.run((for {
       numMissionsCompleted: Int <- missionTable
         .countCompletedMissions(userId, includeOnboarding = false, includeSkipped = true)

@@ -9,6 +9,8 @@
   "zoom-in-for-labels": "Zoomez pour voir les étiquettes de trottoir",
   "loading-elapsed": "{{seconds}} s écoulées",
   "load-failed": "Impossible de charger les données de la carte.",
+  "waiting-for-scores": "En attente des scores de cette ville…",
+  "waiting-for-scores-retry": "Les scores ne sont pas encore prêts — nouvelle tentative dans {{seconds}} s…",
   "retry": "Réessayer",
   "is-correct": "Cette étiquette est-elle correcte ?",
   "label-type": "Type d'étiquette",
@@ -89,7 +91,7 @@
   "edit-failed": "Votre modification n'a pas pu être enregistrée. Veuillez réessayer.",
   "edit-failed-short": "Non enregistré",
   "no-imagery-disabled": "Vous ne pouvez pas valider ni commenter quand aucune image n'est disponible pour cette étiquette",
-  "no-imagery-edit-disabled": "Vous ne pouvez pas évaluer cette étiquette ni modifier ses tags quand aucune image n'est disponible",
+  "no-imagery-edit-disabled": "Vous ne pouvez pas évaluer, modifier ni supprimer cette étiquette quand aucune image n'est disponible",
   "admin-only": "Réservé aux administrateurs",
   "not-admin-validated": "Non validée par un administrateur",
   "download": {
@@ -180,5 +182,15 @@
   "edit-type-changed": "Changé en {{labelType}}",
   "edit-undo": "Annuler",
   "edit-conflict-short": "Type d'étiquette modifié ailleurs",
-  "edit-conflict": "Le type de cette étiquette a été modifié ailleurs, la carte affiche donc son état actuel."
+  "edit-conflict": "Le type de cette étiquette a été modifié ailleurs, la carte affiche donc son état actuel.",
+  "delete-label": "Supprimer l'étiquette",
+  "delete-label-confirm": "Voulez-vous vraiment supprimer cette étiquette ?",
+  "delete-label-confirm-admin": "Voulez-vous vraiment supprimer cette étiquette ? Votre vote « Pas d'accord » y sera enregistré.",
+  "delete-label-failed": "L'étiquette n'a pas pu être supprimée. Veuillez réessayer.",
+  "restore-label": "Restaurer l'étiquette",
+  "restore-label-brief": "Restaurer",
+  "restore-label-failed": "L'étiquette n'a pas pu être restaurée. Veuillez réessayer.",
+  "you-deleted-label": "Vous avez supprimé cette étiquette",
+  "label-was-deleted": "Cette étiquette a été supprimée",
+  "deleted-label-disabled": "Cette étiquette a été supprimée ; elle ne peut être ni validée ni modifiée tant qu'elle n'est pas restaurée"
 }

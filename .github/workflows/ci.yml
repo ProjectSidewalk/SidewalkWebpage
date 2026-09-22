@@ -143,9 +143,8 @@ jobs:
         if: always()
         run: node tools/check-vendor-versions.mjs
 
-      # Blocking: TypeScript checks public/js/ against its JSDoc types (#5278), except the folders listed as UNCHECKED
-      # in tools/check-js-types.mjs. `if: always()` so it reports even when an earlier frontend step failed. Run
-      # locally with `make lint-js-types`.
+      # Blocking: TypeScript checks public/js/ against its JSDoc types (#5278). `if: always()` so it reports even
+      # when an earlier frontend step failed. Run locally with `make lint-js-types`.
       - name: JS types (blocking)
         if: always()
         run: node tools/check-js-types.mjs
@@ -530,9 +529,10 @@ jobs:
             requirements: -r requirements.txt -r requirements-dev.txt
             pytest-args: >-
               test/python --ignore=test/python/test_check_streets_for_imagery.py
-              --ignore=test/python/test_onboard_city.py
+              --ignore=test/python/test_onboard_city.py --ignore=test/python/test_street_gradient.py
             coverage-omit: scripts/check_streets_for_imagery.py
             coverage-omit-2: scripts/onboard_city.py
+            coverage-omit-3: scripts/street_gradient.py
           - half: offline tooling
             advisory: true
             python: '3.13'
@@ -556,3 +556,4 @@ jobs:
         env:
           COVERAGE_OMIT: ${{ matrix['coverage-omit'] }}
           COVERAGE_OMIT2: ${{ matrix['coverage-omit-2'] }}
+          COVERAGE_OMIT3: ${{ matrix['coverage-omit-3'] }}

@@ -17,8 +17,10 @@ declare var ApiDocsMap: any;
 declare var ApiDocsTheme: { color(token: string, alpha?: number): string };
 declare var createApiTableWrapper: (table: HTMLTableElement, label: string) => HTMLElement;
 declare var AccessScoreIntersectionsPreview: any;
+declare var PlacesPreview: any;
 declare var AccessScoreRegionsPreview: any;
 declare var AccessScoreStreetsPreview: any;
+declare var StreetGradePreview: any;
 declare var AggregateStatsByDayPreview: any;
 declare var AggregateStatsPreview: any;
 declare var LabelClustersPreview: any;
@@ -118,6 +120,19 @@ interface Navigator {
 
 // Values set on `window` by the site-wide layout (common/main.scala.html) or by AppManager from it.
 interface Window {
+  // The AccessScore tool (access-score/src/main.js): the bootstrap its view calls, and the running app once the map
+  // is scored, which the browser tests read. Both hold the tool's own classes as `any` because those are only
+  // declared in the run that reads access-score/.
+  AccessScoreApp: {
+    start(options: {
+      mapboxApiKey: string;
+      viewerType: typeof PanoViewer;
+      imageryAccessToken: string;
+      username?: string | null;
+    }): Promise<Record<string, any>>;
+    formatScore(score: number): string;
+  };
+  accessScore?: Record<string, any>;
   // The admin dashboard's shell. `any` because AdminShell is only declared in the run that reads admin-dashboard/.
   adminShell?: any;
   appManager: AppManager;

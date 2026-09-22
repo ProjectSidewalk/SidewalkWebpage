@@ -36,6 +36,7 @@ object CommonUtils {
     val AdminActivity                   = Value("AdminActivity")
     val StoryListPage                   = Value("StoryListPage")
     val UserDashboard                   = Value("UserDashboard")
+    val AccessScore                     = Value("AccessScore")
     val OldDataUnknownSource            = Value("Old data, unknown source")
   }
 

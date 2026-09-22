@@ -1,4 +1,17 @@
 /**
+ * What the histogram draws.
+ * @typedef {object} AccessScoreHistogramData
+ * @property {string} shapeKey - The unit: the bins are rebuilt when it changes.
+ * @property {AccessScoreUnit} unit
+ * @property {Array<{from: number, to: number, value: number}>} bins - From `AccessScoreModel#histogram`.
+ * @property {number} total - The bins' sum; zero shows the empty state.
+ * @property {?{score: number, label: string}} needle - The city's score and its label, or null with no score.
+ * @property {?{from: number, to: number}} brush - Bin indices, `to` exclusive, or null with no brush.
+ * @property {?number} selection - The selected feature's score in [0, 1], or null.
+ * @property {?number} hover - The hovered feature's score in [0, 1], or null.
+ */
+
+/**
  * The score distribution in the AccessScore insights dock (#5217): ten bins across 0–100, each bar colored by
  * the ramp at its midpoint so the chart and the map paint one score one color, with a needle at the city's score
  * and carets where the hovered and the selected feature fall.
@@ -13,6 +26,7 @@
  *
  * Callbacks: `onBrush({from, to, final})` (bin indices, `to` exclusive; null to clear), `onHover(bin)` and
  * `onHoverEnd()` for the pointer or focus resting on a bin.
+ * @augments {AccessScoreChart<AccessScoreHistogramData>}
  */
 class AccessScoreHistogram extends AccessScoreChart {
   #els = null;
@@ -23,11 +37,7 @@ class AccessScoreHistogram extends AccessScoreChart {
   /** The bin last reported through `onHover`, so a pointer resting on a bar doesn't re-report it per pixel. */
   #hoverBin = null;
 
-  /**
-   * @param {object} data - `{shapeKey, unit, bins, needle, brush, selection, hover}`: `bins` from
-   *   `AccessScoreModel#histogram`, `needle` `{score, label}` or null, `brush` `{from, to}` or null, `selection`
-   *   and `hover` scores in [0, 1] or null.
-   */
+  /** @param {AccessScoreHistogramData} data - What to draw. */
   render(data) {
     this.#unit = data.unit;
     const N = data.bins.length;
@@ -85,13 +95,14 @@ class AccessScoreHistogram extends AccessScoreChart {
     this.update(data);
   }
 
+  /** @param {AccessScoreHistogramData} data - What to draw, in the shape of the last render. */
   update(data) {
     this.#unit = data.unit;
     const max = AccessScoreHistogram.#niceMax(Math.max(...data.bins.map((b) => b.value)));
     data.bins.forEach((b, k) => {
       this.#els.fills[k].style.height = `${max > 0 ? Math.min(100, (b.value / max) * 100) : 0}%`;
       this.#els.bins[k].setAttribute('aria-label', this.#binLabel(b));
-      this.#els.bins[k].setAttribute('data-ps-tooltip', this.#binLabel(b));
+      this.#els.bins[k].setAttribute('data-ps-tooltip', AccessScoreChart.esc(this.#binLabel(b)));
     });
     this.#els.gridTop.textContent = this.#valueLabel(max);
     this.#els.gridMid.textContent = this.#valueLabel(max / 2);

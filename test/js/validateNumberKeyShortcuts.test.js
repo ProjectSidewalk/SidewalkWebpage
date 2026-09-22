@@ -156,7 +156,8 @@ describe('KeyboardManager number-key shortcuts', () => {
         function renderSeveritySection(shown) {
             document.body.innerHTML = `
                 <div id="validate-severity-section" style="display: ${shown ? 'block' : 'none'}"></div>
-                <button id="severity-button-1"></button><button id="severity-button-2"></button>`;
+                <label id="severity-button-1"><input type="radio" id="validate-severity-radio-1"></label>
+                <label id="severity-button-2"><input type="radio" id="validate-severity-radio-2"></label>`;
         }
 
         beforeEach(() => {
@@ -164,12 +165,12 @@ describe('KeyboardManager number-key shortcuts', () => {
             choose('wrongType');
         });
 
-        it('digits rate severity once a type with a rating has been picked', () => {
+        it('digits rate severity by clicking the radio once a type with a rating has been picked', () => {
             renderSeveritySection(true);
 
             pressDigit(2);
 
-            expect(clicks).toEqual(['severity-button-2']);
+            expect(clicks).toEqual(['validate-severity-radio-2']);
         });
 
         it('digits do nothing while the severity section is hidden, so no rating rides along unseen', () => {

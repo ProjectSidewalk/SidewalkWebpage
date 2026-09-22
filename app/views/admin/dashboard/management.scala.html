@@ -76,6 +76,13 @@
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
+          <b>Refresh places</b>
+          <span class="dq-sub">Fetches the city's schools, clinics, libraries, grocery stores, transit stops, parks, and community centers from OpenStreetMap for the AccessScore map. The nightly job does this weekly; this runs it now.</span>
+        </div>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-refresh-places" data-confirm="Fetch the city's places from OpenStreetMap now? It can take a few minutes for a big city.">Run</button>
+      </div>
+      <div class="mgmt-action">
+        <div class="mgmt-action-text">
           <b>Clear server cache</b>
           <span class="dq-sub">Clears Play's cached values; the next page loads rebuild them.</span>
         </div>
@@ -100,7 +107,8 @@
         recalcPriorityUrl: '/adminapi/recalculateStreetPriority',
         recalcValidationCountsUrl: '/adminapi/recalculateValidationCounts',
         generateCropsUrl: '/adminapi/generateCrops',
-        rebuildSidewalkPresenceUrl: '/adminapi/rebuildSidewalkPresence'
+        rebuildSidewalkPresenceUrl: '/adminapi/rebuildSidewalkPresence',
+        refreshPlacesUrl: '/adminapi/refreshPlaces'
       }).init();
     });
   </script>

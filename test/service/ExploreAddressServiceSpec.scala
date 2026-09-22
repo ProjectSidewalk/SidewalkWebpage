@@ -16,6 +16,7 @@ import models.street.{
   StreetEdgeTable
 }
 import models.user.SidewalkUserWithRole
+import models.utils.IpAddress
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -490,8 +491,10 @@ class ExploreAddressServiceSpec
           // The DAO split underneath: the default lookup serves flows that only ever see active tasks, while the
           // resume path opts into completed ones.
           val auditTaskId = task.auditTaskId.get
-          run(auditTaskTable.selectTaskFromTaskId(auditTaskId)) mustBe None
-          run(auditTaskTable.selectTaskFromTaskId(auditTaskId, includeCompleted = true)) mustBe defined
+          run(auditTaskTable.selectTaskFromTaskId(auditTaskId, completionUser.userId)) mustBe None
+          run(
+            auditTaskTable.selectTaskFromTaskId(auditTaskId, completionUser.userId, includeCompleted = true)
+          ) mustBe defined
       }
     }
   }
@@ -509,8 +512,8 @@ class ExploreAddressServiceSpec
           val issuesBefore   = run(streetIssues.filter(_.userId === testUser.userId).length.result)
 
           val issue =
-            StreetEdgeIssue(0, streetEdgeId, StreetEdgeIssueType.PanoNotAvailable, testUser.userId, "127.0.0.1",
-              OffsetDateTime.now)
+            StreetEdgeIssue(0, streetEdgeId, StreetEdgeIssueType.PanoNotAvailable, testUser.userId,
+              IpAddress("127.0.0.1"), OffsetDateTime.now)
           await(exploreService.insertNoImagery(issue))
 
           run(streetIssues.filter(_.userId === testUser.userId).length.result) mustBe issuesBefore + 1

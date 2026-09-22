@@ -11,6 +11,15 @@ window.AccessScoreApp = (function () {
   };
   const SCORE_ENDPOINT = '/v3/api/accessScoreStreets';
   const INTERSECTIONS_ENDPOINT = '/v3/api/accessScoreIntersections';
+  const PLACES_ENDPOINT = '/v3/api/places';
+  /** The sidebar changes that alter which places are drawn. */
+  const PLACE_CHANGE_KINDS = new Set([
+    'PlaceCategory', 'PlaceCategoryOnly', 'PlaceCategorySelectAll', 'PlaceCategoryDeselectAll',
+  ]);
+  /** The sliders: mid-drag, the sidebar must not be re-synced from the model (the thumb is under a finger). */
+  const DRAG_KINDS = new Set(['Weight', 'GradeWeight']);
+  /** Close enough to read one block and its neighbors, where a rank row's street lands (#5223). */
+  const STREET_ZOOM = 15;
   const EMPTY_COLLECTION = { type: 'FeatureCollection', features: [] };
 
   /** Fetches JSON, treating a non-2xx status as a failure so the overlay's error card shows. */
@@ -20,6 +29,28 @@ window.AccessScoreApp = (function () {
     return response.json();
   }
 
+  /**
+   * Fetches one of the whole-city score feeds, waiting out a server that is not ready to answer yet (#5418) and
+   * telling the overlay so the wait reads as progress rather than a hang.
+   *
+   * The wording never claims the server is computing: the same retry path covers the proxy's own `503` while the
+   * backend is down mid-deploy, when nothing is being computed at all.
+   *
+   * @param {string} url - The feed's URL.
+   * @param {MapLoadingOverlay} overlay - Where the wait is announced.
+   * @returns {Promise<GeoJSON.FeatureCollection>} The feed.
+   */
+  function fetchScores(url, overlay) {
+    return AccessScoreFetch.fetchJsonWithRetry(url, {
+      // The first attempt is the ordinary page load, which the overlay's own spinner and clock already cover. A retry
+      // can sit for up to the server's 45 s cold wait with no countdown running, so it needs its own line.
+      onAttempt: (attempt) => {
+        if (attempt >= 2) overlay.setStatus(i18next.t('labelmap:waiting-for-scores'));
+      },
+      onWait: (_attempt, seconds) => overlay.setStatus(i18next.t('labelmap:waiting-for-scores-retry', { seconds })),
+    });
+  }
+
   /** A score in [0, 1] as the 0–100 figure people see, to one decimal. */
   function formatScore(score) {
     return (score * 100).toFixed(1);
@@ -27,7 +58,18 @@ window.AccessScoreApp = (function () {
 
   /** A length in meters in the reader's unit system, through i18next's distance formatter. */
   function formatLength(meters) {
-    return i18next.t('accessscore:length', { meters });
+    // Markup sink: the only caller writes this into the street popup's HTML.
+    return i18next.t('accessscore:length', { meters, interpolation: { escapeValue: true } });
+  }
+
+  /**
+   * An elevation, a rise, or a short stretch of street in meters, to the whole meter or foot. Not `formatLength`: its
+   * nearest-25 rounding suits a street's length and would turn a 7 ft drop into "0 ft".
+   */
+  function formatElevation(meters, { escape = true } = {}) {
+    // Markup sink by default: most callers write this into the street popup's HTML. The elevation profile asks for
+    // plain text, since it escapes whatever it is given where that meets its own markup.
+    return i18next.t('accessscore:elevation', { meters, interpolation: { escapeValue: escape } });
   }
 
   /** The display name of a label type; one implementation for the whole tool. */
@@ -48,21 +90,26 @@ window.AccessScoreApp = (function () {
    * @param {string} options.mapboxApiKey - The Mapbox access token.
    * @param {typeof PanoViewer} options.viewerType - The pano viewer class for the city's imagery, for the label card.
    * @param {string} options.imageryAccessToken - The imagery provider's token.
-   * @param {?string} options.username - The signed-in user's name, or null.
-   * @returns {Promise<object>} Resolves with `{map, model, mapView}` once the map is scored (also exposed as
-   *   `window.accessScore` for the insights panel and the browser tests).
+   * @param {?string} [options.username] - The signed-in user's name, or null.
+   * @returns {Promise<{map: mapboxgl.Map, model: AccessScoreModel, mapView: AccessScoreMapView,
+   *   sidebar: AccessScoreSidebar, dock: AccessScoreDock, config: AccessScoreConfig,
+   *   streets: GeoJSON.FeatureCollection, regions: GeoJSON.FeatureCollection, clusterLoader: ViewportLabelLoader,
+   *   clusterLayer: AccessScoreClusterLayer, placeSearch: ?{clear: () => boolean}}>} Resolves once the map is scored
+   *   (also exposed as `window.accessScore` for the browser tests).
    */
   async function start({ mapboxApiKey, viewerType, imageryAccessToken, username = null }) {
     const overlay = new MapLoadingOverlay({ onRetry: () => window.location.reload() });
     const sidebarEl = document.getElementById('filter-sidebar');
+    /** @type {mapboxgl.Map} */
     let map = null;
 
     const dataPromise = Promise.all([
       fetchJson('/v3/api/accessScoreConfig'),
-      fetchJson(SCORE_ENDPOINT),
+      fetchScores(SCORE_ENDPOINT, overlay),
       // Without the crossings the page still works, every street just keeps its segment score — better than a
-      // dead page for one feed's outage, and the console says which half is missing.
-      fetchJson(INTERSECTIONS_ENDPOINT).catch((e) => {
+      // dead page for one feed's outage, and the console says which half is missing. The retry comes first: the two
+      // feeds share one cache, so a cold start fails both, and without it the page would quietly load segment-only.
+      fetchScores(INTERSECTIONS_ENDPOINT, overlay).catch((e) => {
         console.warn('AccessScore intersections failed to load; scores are segment-only', e);
         return EMPTY_COLLECTION;
       }),
@@ -75,7 +122,10 @@ window.AccessScoreApp = (function () {
     document.getElementById('acs-map-holder')?.classList.toggle('acs-map-holder--dark', dark);
 
     let initialCamera = null;
-    // The address-search handle, kept so the app object can hand out its `clear()` (#5321).
+    /**
+     * The address-search handle, kept so the app object can hand out its `clear()` (#5321).
+     * @type {?{clear: () => boolean}}
+     */
     let placeSearch = null;
     const mapPromise = createPSMap($, {
       mapName: 'acs-map',
@@ -106,11 +156,18 @@ window.AccessScoreApp = (function () {
       throw e;
     }
 
+    // The elevation models the city's slopes came from (#5223); empty in a city that has not been sampled, which is
+    // what keeps every slope control and credit off the page there.
+    const gradeSources = config.grade?.sources ?? [];
+    /** The slope classes the map colors and the legend brushes by; null where the city has no slope at all. */
+    const gradeBreaks = gradeSources.length > 0 ? config.grade.map_class_breaks : null;
     const urlState = AccessScoreUrlSync.read(config);
     const model = new AccessScoreModel(config, streets, intersections, completion, urlState.state);
-    const sidebar = new AccessScoreSidebar(sidebarEl, config);
+    const sidebar = new AccessScoreSidebar(sidebarEl, config, () => model.slopeImpact());
     const urlSync = new AccessScoreUrlSync(model, map);
+    /** @type {?mapboxgl.Popup} */
     let popup = null;
+    /** @type {?AccessScoreDock} */
     let dock = null;
 
     const explanationHtml = ({ unit, id }) => (unit === 'streets' ? streetPopupHtml(id) : regionPopupHtml(id));
@@ -121,6 +178,8 @@ window.AccessScoreApp = (function () {
       const previous = popup;
       popup = null;
       previous?.remove();
+      // One card at a time: a street or region takes the place card's spot.
+      if (selection) places?.select(null);
       if (!selection) {
         mapView.setSelection(null);
         urlSync.setSelection(null);
@@ -139,6 +198,7 @@ window.AccessScoreApp = (function () {
         className: 'acs-popup', maxWidth: '360px', focusAfterOpen: !fromUrl, closeOnClick: false,
       })
         .setLngLat(selection.lngLat).setHTML(html).addTo(map);
+      if (selection.unit === 'streets') loadProfile(selection.id, popup);
       popup.on('close', () => {
         if (!popup) return;
         popup = null;
@@ -147,9 +207,10 @@ window.AccessScoreApp = (function () {
       if (!fromUrl) log(`Select_${selection.unit === 'streets' ? 'street' : 'region'}Id`, selection.id);
     };
 
-    // The cluster layer is built after the map view so its dots draw above the streets, but the map view has to
-    // be able to ask about it from its own handlers, hence the late binding.
+    // The cluster and place layers are built after the map view so they draw above the streets, but the map view
+    // has to be able to ask about them from its own handlers, hence the late binding.
     let evidence = null;
+    let places = null;
     const mapView = new AccessScoreMapView(map, {
       model,
       streets,
@@ -157,12 +218,17 @@ window.AccessScoreApp = (function () {
       onSelect: (selection) => select(selection),
       onHover: (hover) => dock?.markHover(hover),
       tooltipHtml: ({ unit, id }) => (unit === 'streets' ? streetTooltipHtml(id) : regionTooltipHtml(id)),
-      // A click on a cluster dot opens the label card; the street or region under it stays unselected.
-      clickClaimed: (e) => evidence?.layer.claims(e) === true,
-      hoverClaimed: (e) => evidence?.layer.claims(e) === true,
+      // A click on a cluster dot or a place marker opens its own card, never the street or region under it.
+      clickClaimed: (e) => evidence?.layer.claims(e) === true || places?.layer.claims(e) === true,
+      hoverClaimed: (e) => evidence?.layer.claims(e) === true || places?.layer.claims(e) === true,
       dark,
+      gradeBreaks,
+      gradeAttribution: gradeAttributionHtml(),
+      // The legend's classes are a brush like the histogram's range, so the dock owns them; an empty list clears.
+      onGradeClasses: (classes) => dock?.setBrush(classes.length > 0 ? { kind: 'grade', classes } : null),
     });
     evidence = await mountClusterEvidence();
+    places = mountPlaces();
     // The view stamps the city's name on the map holder, so the needle can name the city rather than say "City".
     const cityName = document.getElementById('acs-map-holder')?.dataset.cityName ?? '';
     dock = new AccessScoreDock(document.getElementById('acs-dock'), {
@@ -170,34 +236,54 @@ window.AccessScoreApp = (function () {
       model,
       mapView,
       map,
-      // A rank row goes to the region; in the regions unit it selects it too, in the streets unit the
-      // regions aren't selectable, so the fly-to is the whole answer.
-      // In the regions unit a rank click is a map selection; in the streets unit the dock's own focus scopes
-      // the band to the region without a region ever being "selected" on a streets map.
-      onRankSelect: (regionId) => {
-        mapView.flyToRegion(regionId);
-        if (model.state.unit === 'regions') {
-          const lngLat = regionCenter(regionId);
-          if (lngLat) select({ unit: 'regions', id: regionId, lngLat });
+      // A rank row goes to what it ranks: a street row selects the street and opens its card, exactly as a click
+      // on the map would; a neighborhood row selects the region in the regions unit, where the map has regions to
+      // select, and in the streets unit the fly-to plus the dock's own focus is the whole answer.
+      onRankSelect: ({ unit, id }) => {
+        if (unit === 'streets') {
+          const lngLat = streetCenter(id);
+          if (!lngLat) return;
+          map.flyTo({ center: lngLat, zoom: Math.max(map.getZoom(), STREET_ZOOM) });
+          select({ unit, id, lngLat });
+          return;
         }
+        mapView.flyToRegion(id);
+        const lngLat = regionCenter(id);
+        if (lngLat) select({ unit: 'regions', id, lngLat });
       },
       onOpenLabel: (labelId, ids) => evidence.openLabel(labelId, ids),
       onStateChange: () => urlSync.setDock(dock.state),
       log,
+      gradeBreaks,
     });
 
     /** Applies a state change everywhere it shows: map, sidebar bars, dock, URL, and the panel's listeners. */
     const applyChange = (meta) => {
+      if (meta.kind === 'Section') {
+        log(meta.kind, meta.value);
+        return;
+      }
       const state = model.state;
       if (meta.kind === 'Unit') mapView.setUnit(state.unit);
       if (meta.kind === 'ShowUnaudited') mapView.setShowUnaudited(state.showUnaudited);
+      if (meta.kind === 'ShowGrade') mapView.setShowGrade(state.showGrade);
+      // Or the map would paint a street gentle while the score penalizes it for a pitch the other statistic hid.
+      if (meta.kind === 'GradeStat' || meta.kind === 'GradeReset') mapView.setGradeStatistic();
       if (meta.kind === 'ShowClusters') evidence.setVisible(state.showClusters);
+      if (PLACE_CHANGE_KINDS.has(meta.kind)) places?.apply(state);
       mapView.applyScores();
       // A reset moves every slider; a slider mid-drag already shows its own value.
-      if (meta.kind !== 'Weight' || meta.final) sidebar.setState(model.state);
+      if (meta.final || !DRAG_KINDS.has(meta.kind)) sidebar.setState(model.state);
       sidebar.setContributions(model.contributions().means);
       if (popup) select(null);
+      // The place card stays open across a reweighting; its nearest-street score follows the sliders, as do the
+      // markers' discs.
+      places?.refreshCard();
+      places?.layer.rescore();
       dock.applyChange(meta);
+      // The count is against the last settled state, so a drag reports what the whole drag moved.
+      sidebar.afterRecompute(meta, model.changedCount);
+      if (meta.final !== false) model.markSettled();
       urlSync.scheduleWrite();
       if (meta.final) log(meta.kind, meta.value);
       document.dispatchEvent(new CustomEvent('accessscore:change', { detail: { state, meta } }));
@@ -208,7 +294,8 @@ window.AccessScoreApp = (function () {
         // What is drawn (unit, cluster dots, unaudited streets) is the reader's view, not the weighting, and stays.
         model.setState({ weights: { ...config.presets.default } });
         sidebar.setState(model.state);
-      } else {
+      } else if (partial) {
+        // A `Section` fold changes nothing the model holds and reports null.
         model.setState(partial);
       }
       applyChange(meta);
@@ -216,17 +303,24 @@ window.AccessScoreApp = (function () {
 
     sidebar.setState(model.state);
     sidebar.setContributions(model.contributions().means);
+    // A link that carries custom weights, or places, opens that fold, so what it shares is in view rather than a
+    // hint beside a heading.
+    if (!model.weightsAreDefault) sidebar.setWeightsOpen(true);
+    if (!model.slopeIsDefault && sidebar.slope.available) sidebar.slope.setOpen(true);
+    if (model.state.placeCategories === null || model.state.placeCategories.length > 0) sidebar.setPlacesOpen(true);
     renderUpdatedAt(config.clusters_updated_at);
     // A live `setStyle` drops everything the tool added, so the map view and the cluster layer remount once the new
     // style has loaded. The band keeps the light ramp; only the map surface changes.
-    const darkInput = document.getElementById('acs-dark-map');
+    const darkInput = /** @type {HTMLInputElement} */ (document.getElementById('acs-dark-map'));
     /** Swaps the basemap; the toggle's own change logs it, a reset does not (it logs `ResetAll`). */
     const setDarkMap = (next) => {
       document.getElementById('acs-map-holder')?.classList.toggle('acs-map-holder--dark', next);
       mapView.setDark(next);
+      places?.layer.setDark(next);
       map.once('style.load', () => {
         mapView.remount();
         evidence?.layer.remount();
+        places?.layer.remount();
       });
       // Never a diffed swap: a diff would strip the tool's layers without ever firing `style.load`.
       map.setStyle(next ? MAP_STYLES.dark : MAP_STYLES.light, { diff: false });
@@ -247,13 +341,20 @@ window.AccessScoreApp = (function () {
     document.getElementById('acs-reset-all')?.addEventListener('click', () => {
       log('ResetAll');
       select(null);
+      places?.select(null);
       placeSearch?.clear();
-      model.setState({ ...AccessScoreModel.DEFAULT_STATE, weights: { ...config.presets.default } });
+      model.setState({
+        ...AccessScoreModel.DEFAULT_STATE, weights: { ...config.presets.default },
+        slope: AccessScoreModel.slopeDefaults(config),
+      });
       const state = model.state;
       mapView.setUnit(state.unit);
       mapView.setShowUnaudited(state.showUnaudited);
+      mapView.setShowGrade(state.showGrade);
       evidence.setVisible(state.showClusters);
+      places?.apply(state);
       mapView.applyScores();
+      places?.layer.rescore();
       sidebar.setState(state);
       sidebar.setContributions(model.contributions().means);
       dock.setBrush(null, { log: false });
@@ -289,7 +390,9 @@ window.AccessScoreApp = (function () {
 
     const app = {
       map, model, mapView, sidebar, dock, config, streets, regions, clusterLoader: evidence.loader,
-      clusterLayer: evidence.layer, placeSearch,
+      clusterLayer: evidence.layer, placeSearch, placesLayer: places.layer,
+      /** Opens a place's card by id, as a marker click does; the browser tests' way in. */
+      selectPlace: (placeId) => places.select(places.layer.place(placeId)),
     };
     window.accessScore = app;
     document.dispatchEvent(new CustomEvent('accessscore:ready', { detail: app }));
@@ -306,6 +409,7 @@ window.AccessScoreApp = (function () {
      * arithmetic uses, which is exactly the question a reader checking a score would trip over.
      */
     async function mountClusterEvidence() {
+      /** @type {?AccessScoreClusterSheet} */
       let sheet = null;
       const popupLabelViewer = await LabelPopup(false, viewerType, imageryAccessToken, username, {
         syncUrlSource: 'AccessScore',
@@ -369,6 +473,165 @@ window.AccessScoreApp = (function () {
     }
 
     /**
+     * The places beside the scores (#5311): one marker layer per category, fetched after the scores are on the map
+     * since nothing waits on it, plus the sidebar rows, the place card, and the URL's `place` param.
+     */
+    function mountPlaces() {
+      const categories = config.place_categories ?? [];
+      let card = null;
+      let selected = null;
+      const layer = new AccessScorePlacesLayer(map, {
+        categories,
+        tooltipHtml: placeTooltipHtml,
+        onSelect: (props) => selectPlace(props),
+        // A marker's disc is the nearest street's score, binned as the histogram bins it.
+        bins: AccessScoreModel.HISTOGRAM_BINS,
+        binOf: (props) => (props.nearest_street_edge_id === null || props.nearest_street_edge_id === undefined
+          ? null
+          : model.streetBin(props.nearest_street_edge_id)),
+        dark,
+      });
+
+      const apply = (state) => layer.setCategories(state.placeCategories);
+
+      // A place is not a `sel` — it never scopes the dock or lands in `sel=` — but one card is open at a time, so a
+      // street or region card closes, and its selection with it, when a place card opens (as `select` does the
+      // reverse).
+      const selectPlace = (props, { fromUrl = false } = {}) => {
+        const previous = card;
+        card = null;
+        previous?.remove();
+        selected = props ?? null;
+        urlSync.setPlace(props ? { lat: props.lngLat.lat, lng: props.lngLat.lng, name: props.name ?? null } : null);
+        if (!props) return;
+        if (popup) select(null);
+        mapView.hideTooltip();
+        card = new mapboxgl.Popup({
+          className: 'acs-popup', maxWidth: '360px', focusAfterOpen: !fromUrl, closeOnClick: false,
+        }).setLngLat(props.lngLat).setHTML(placePopupHtml(props)).addTo(map);
+        card.on('close', () => {
+          if (!card) return;
+          card = null;
+          selectPlace(null);
+        });
+        if (!fromUrl) log('SelectPlace_placeId', props.place_id);
+      };
+
+      const refreshCard = () => {
+        if (card && selected) card.setHTML(placePopupHtml(selected));
+      };
+
+      apply(model.state);
+      fetchJson(PLACES_ENDPOINT)
+        .then(async (featureCollection) => {
+          layer.setData(featureCollection);
+          await layer.ready;
+          sidebar.setPlaceCounts(layer.counts());
+          // A shared link's place: the marker it names, if the feed has one there (#5340 owns the search pin). Its
+          // category is drawn too, so the card sits on a marker rather than on bare map.
+          const linked = urlState.place ? layer.placeNear(urlState.place) : null;
+          if (linked) {
+            const enabled = model.state.placeCategories;
+            if (enabled !== null && !enabled.includes(linked.category)) {
+              model.setState({ placeCategories: [...enabled, linked.category] });
+              sidebar.setState(model.state);
+              sidebar.setPlacesOpen(true);
+              apply(model.state);
+              urlSync.scheduleWrite();
+            }
+            selectPlace(layer.place(linked.place_id), { fromUrl: true });
+          }
+        })
+        .catch((e) => {
+          console.warn('AccessScore places failed to load', e);
+          sidebar.setPlacesUnavailable();
+        });
+
+      return { layer, apply, select: selectPlace, refreshCard };
+    }
+
+    /**
+     * The place tooltip has the street tooltip's shape — title, score, a line of context — with the score being
+     * the nearest street's. An unnamed place (most playgrounds and bus stops) is titled by its category, which
+     * then needs no second line.
+     */
+    function placeTooltipHtml(props) {
+      const category = placeCategoryName(props.category);
+      const street = placeStreet(props);
+      const title = props.name ? util.escapeHTML(props.name) : category;
+      const scoreHtml = street?.audited
+        ? `<div class="acs-tooltip__score">${formatScore(street.score)}</div>`
+        : '';
+      return `<strong>${title}</strong>
+        ${props.name ? `<div class="acs-tooltip__meta">${category}</div>` : ''}
+        ${scoreHtml}
+        <div class="acs-tooltip__meta">${placeStreetLine(props, street)}</div>
+        ${clickHintHtml()}`;
+    }
+
+    /** The nearest street's explanation, or null when none is within reach. */
+    function placeStreet(props) {
+      return props.nearest_street_edge_id === null || props.nearest_street_edge_id === undefined
+        ? null
+        : model.explainStreet(props.nearest_street_edge_id);
+    }
+
+    /** "Street 1525 · 25 ft away", or why there is no score: no street in reach, or one not yet audited. */
+    function placeStreetLine(props, street) {
+      if (!street) return i18next.t('accessscore:popup-no-street-nearby');
+      const distance = i18next.t('accessscore:popup-street-distance', {
+        meters: Math.round(props.nearest_street_distance_m),
+      });
+      const status = street.audited ? '' : ` · ${i18next.t('accessscore:unaudited')}`;
+      return `${streetTitle(street)} · ${distance}${status}`;
+    }
+
+    /** A category's translated name, or its id for one the locale does not know yet. */
+    function placeCategoryName(category) {
+      const key = `accessscore:place-${category}`;
+      return i18next.exists(key) ? i18next.t(key) : category;
+    }
+
+    /**
+     * The place card is the street card of the nearest street, headed by the place: the "so what" of a red block
+     * next to a school is the score of the street it sits on, and what drives it. A place with no street in reach,
+     * or an unaudited one, says so where the score would be.
+     */
+    function placePopupHtml(props) {
+      const category = placeCategoryName(props.category);
+      const title = props.name ? util.escapeHTML(props.name) : category;
+      const region = props.region_id === null || props.region_id === undefined
+        ? null
+        : model.explainRegion(props.region_id);
+      // An unnamed place is already titled by its category, so the meta line does not repeat it.
+      const meta = [props.name ? category : null, region ? util.escapeHTML(region.name) : null]
+        .filter(Boolean).join(' · ');
+      const street = placeStreet(props);
+      let streetHtml;
+      if (!street) {
+        streetHtml = `<p class="acs-popup__empty">${i18next.t('accessscore:popup-no-street-nearby')}</p>`;
+      } else {
+        const distance = i18next.t('accessscore:popup-street-distance', {
+          meters: Math.round(props.nearest_street_distance_m),
+        });
+        const score = street.audited ? formatScore(street.score) : i18next.t('accessscore:unaudited');
+        const drivers = street.audited
+          ? `${componentsHtml(street)}
+          <h4 class="acs-popup__subtitle">${i18next.t('accessscore:popup-terms')}</h4>
+          ${termsTableHtml(street.terms, undefined, street)}`
+          : '';
+        streetHtml = `<h4 class="acs-popup__subtitle">${streetTitle(street)}</h4>
+          <div class="acs-popup__meta">${i18next.t('accessscore:popup-nearest-street')} · ${distance}</div>
+          <div class="acs-popup__score">${score}</div>
+          ${drivers}`;
+      }
+      return `<h3 class="acs-popup__title">${title}</h3>
+        ${meta ? `<div class="acs-popup__meta">${meta}</div>` : ''}
+        ${streetHtml}
+        ${hopLinksHtml(props.lngLat)}`;
+    }
+
+    /**
      * Prev/next over one cluster's labels, in the order the API listed them, for the label card's arrows. The
      * card's contract (see nearbyLabelNavigator.js) is a tour with a trail; a cluster is small enough to be a
      * plain list with ends.
@@ -396,7 +659,9 @@ window.AccessScoreApp = (function () {
         ? i18next.t(`common:${util.misc.getRatingLevelKeys(type)[props.median_severity]}`)
         : null;
       const meta = [
-        i18next.t('accessscore:cluster-size', { count: props.cluster_size }),
+        i18next.t('accessscore:cluster-size', {
+          count: props.cluster_size, interpolation: { escapeValue: true },
+        }),
         rating,
       ].filter(Boolean).join(' · ');
       const street = model.explainStreet(props.street_edge_id);
@@ -405,7 +670,7 @@ window.AccessScoreApp = (function () {
       // "on this street" rather than pinning the number to the dot under the pointer.
       const effect = term
         ? `<div class="acs-tooltip__meta">${i18next.t('accessscore:cluster-effect', {
-          type: typeName(type), value: signed(term.term) })}</div>`
+          type: typeName(type), value: signed(term.term), interpolation: { escapeValue: true } })}</div>`
         : '';
       return `<strong><span class="acs-popup__swatch" style="background-color: ${
         util.misc.getLabelColors(type)};"></span>${typeName(type)}</strong>
@@ -443,36 +708,59 @@ window.AccessScoreApp = (function () {
         lines.push(`<li class="acs-tooltip__standout acs-tooltip__standout--${tone}">${
           i18next.t(`accessscore:tip-standout-${kind}-${tone}`, {
             type: typeName(n.standout.type), value: signed(n.standout.value), city: signed(n.standout.cityValue),
+            interpolation: { escapeValue: true },
           })}</li>`);
       }
       if (n.helped) {
         lines.push(`<li>${i18next.t('accessscore:tip-helped', {
-          type: typeName(n.helped.type), value: signed(n.helped.value) })}</li>`);
+          type: typeName(n.helped.type), value: signed(n.helped.value),
+          interpolation: { escapeValue: true } })}</li>`);
       }
       if (n.hurt) {
         lines.push(`<li>${i18next.t('accessscore:tip-hurt', {
-          type: typeName(n.hurt.type), value: signed(n.hurt.value) })}</li>`);
+          type: typeName(n.hurt.type), value: signed(n.hurt.value),
+          interpolation: { escapeValue: true } })}</li>`);
       }
       return lines.length ? `<ul class="acs-tooltip__why">${lines.join('')}</ul>` : '';
     }
 
     /** "Tuxedo Square · Street 1932", or just the id for an unnamed way. */
     function streetTitle(s) {
+      // Markup sink, and the name is OSM's: both callers interpolate the result into a tooltip or popup.
       return s.name
-        ? i18next.t('accessscore:popup-street-named', { name: s.name, id: s.streetId })
-        : i18next.t('accessscore:popup-street', { id: s.streetId });
+        ? i18next.t('accessscore:popup-street-named', {
+            name: s.name, id: s.streetId, interpolation: { escapeValue: true },
+          })
+        : i18next.t('accessscore:popup-street', { id: s.streetId, interpolation: { escapeValue: true } });
+    }
+
+    /** The tooltip's slope line, shown only while slope is what the map is colored by. */
+    function gradeTooltipHtml(id) {
+      if (!mapView.showingGrade) return '';
+      const grade = model.displayGrade(id);
+      const text = grade === null
+        ? i18next.t('accessscore:slope-none')
+        : i18next.t('accessscore:slope-tooltip', {
+            grade: AccessScoreGradeRamp.percent(grade), interpolation: { escapeValue: true },
+          });
+      return `<div class="acs-tooltip__meta">${text}</div>`;
     }
 
     function streetTooltipHtml(id) {
       const s = model.explainStreet(id);
       if (!s) return null;
       const title = streetTitle(s);
-      if (!s.audited) return `<strong>${title}</strong><br>${i18next.t('accessscore:unaudited')}`;
+      if (!s.audited) {
+        return `<strong>${title}</strong><br>${i18next.t('accessscore:unaudited')}${gradeTooltipHtml(id)}`;
+      }
       const { problems, features } = countClusters(s);
       return `<strong>${title}</strong>
         <div class="acs-tooltip__score">${formatScore(s.score)}</div>
+        ${gradeTooltipHtml(id)}
         ${componentsHtml(s)}
-        <div class="acs-tooltip__meta">${i18next.t('accessscore:tooltip-meta', { problems, features })}</div>
+        <div class="acs-tooltip__meta">${i18next.t('accessscore:tooltip-meta', {
+    problems, features, interpolation: { escapeValue: true },
+  })}</div>
         ${notableHtml('streets', id)}
         ${clickHintHtml()}`;
     }
@@ -483,11 +771,15 @@ window.AccessScoreApp = (function () {
       if (!r) return null;
       const percent = Math.round(r.completion * 100);
       if (r.score === null || r.belowFloor) {
-        return `<strong>${util.escapeHTML(r.name)}</strong><br>${i18next.t('accessscore:insufficient', { percent })}`;
+        return `<strong>${util.escapeHTML(r.name)}</strong><br>${i18next.t('accessscore:insufficient', {
+          percent, interpolation: { escapeValue: true },
+        })}`;
       }
       return `<strong>${util.escapeHTML(r.name)}</strong>
         <div class="acs-tooltip__score">${formatScore(r.score)}</div>
-        <div class="acs-tooltip__meta">${i18next.t('accessscore:completion', { percent })}</div>
+        <div class="acs-tooltip__meta">${i18next.t('accessscore:completion', {
+    percent, interpolation: { escapeValue: true },
+  })}</div>
         ${notableHtml('regions', id)}
         ${clickHintHtml()}`;
     }
@@ -502,6 +794,7 @@ window.AccessScoreApp = (function () {
       const end = (e) => (e && e.score !== null ? formatScore(e.score) : '—');
       return `<div class="acs-popup__components">${i18next.t('accessscore:score-components', {
         segment: formatScore(s.segmentScore), start: end(s.startIntersection), end: end(s.endIntersection),
+        interpolation: { escapeValue: true },
       })}</div>`;
     }
 
@@ -520,8 +813,29 @@ window.AccessScoreApp = (function () {
      * The per-type breakdown shared by both popups: cluster count (a per-street average for a region, hence
      * the decimal) and signed term per type that has any clusters.
      */
-    function termsTableHtml(terms, clustersHeading = i18next.t('accessscore:popup-clusters')) {
-      const rows = config.scored_types.filter((type) => terms[type].clusterCount > 0).map((type) => {
+    /**
+     * The slope's row in a street's terms table (#5223): slope is part of what drives the score once a reader has
+     * weighed it in, so a table headed "What drives this score" that left it out would not add up to the score
+     * beside it. Under a barrier the row says so in place of a term, since the rows above it then explain a sum the
+     * segment's 0 did not come from. Empty at the engine's own settings, where slope drives nothing.
+     * @param {?AccessScoreStreetExplanation} street - The street the table explains, or null for a unit with no slope.
+     * @returns {string} A table row, or ''.
+     */
+    function slopeRowHtml(street) {
+      if (!street || (!street.barrier && street.slopeTerm === 0)) return '';
+      const effect = street.barrier
+        ? i18next.t('accessscore:popup-slope-barrier')
+        : `−${Math.abs(street.slopeTerm).toFixed(2)}`;
+      return `<tr>
+          <td><span class="acs-popup__swatch acs-popup__swatch--slope"></span>${
+  i18next.t('accessscore:popup-slope')}</td>
+          <td class="acs-popup__num">—</td>
+          <td class="acs-popup__num acs-popup__term--problem">${effect}</td>
+        </tr>`;
+    }
+
+    function termsTableHtml(terms, clustersHeading = i18next.t('accessscore:popup-clusters'), street = null) {
+      const typeRows = config.scored_types.filter((type) => terms[type].clusterCount > 0).map((type) => {
         const t = terms[type];
         const sign = t.term >= 0 ? '+' : '−';
         const count = Number.isInteger(t.clusterCount) ? t.clusterCount : t.clusterCount.toFixed(1);
@@ -533,12 +847,13 @@ window.AccessScoreApp = (function () {
     Math.abs(t.term).toFixed(2)}</td>
         </tr>`;
       }).join('');
+      const rows = `${typeRows}${slopeRowHtml(street)}`;
       if (!rows) return `<p class="acs-popup__empty">${i18next.t('accessscore:popup-no-clusters')}</p>`;
       return `<table class="acs-popup__table">
         <thead><tr>
           <th>${i18next.t('accessscore:popup-type')}</th>
-          <th>${clustersHeading}</th>
-          <th>${i18next.t('accessscore:popup-term')}</th>
+          <th class="acs-popup__num">${clustersHeading}</th>
+          <th class="acs-popup__num">${i18next.t('accessscore:popup-term')}</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
@@ -566,8 +881,129 @@ window.AccessScoreApp = (function () {
         <div class="acs-popup__meta">${region ? `${util.escapeHTML(region.name)} · ` : ''}${
     formatLength(s.lengthM)}</div>
         <h4 class="acs-popup__subtitle">${i18next.t('accessscore:popup-terms')}</h4>
-        ${termsTableHtml(s.terms)}
+        ${termsTableHtml(s.terms, undefined, s)}
+        ${slopeHtml(s)}
         ${hopLinksHtml(lngLat)}`;
+    }
+
+    /**
+     * The elevation models' credit line for the map's attribution control (#5223), each linked to its publisher
+     * where it has a page. The names and URLs are the backend's, and text all the same, so they are escaped.
+     */
+    function gradeAttributionHtml() {
+      return gradeSources.map((source) => {
+        const credit = util.escapeHTML(source.credit);
+        // Escaping keeps a URL inside its attribute; only the scheme keeps it from being a `javascript:` one.
+        return /^https:\/\//i.test(source.url ?? '')
+          ? `<a href="${util.escapeHTML(source.url)}" target="_blank" rel="noopener">${credit}</a>`
+          : credit;
+      }).join(' | ');
+    }
+
+    /** A grade as a percentage, escaped for markup. */
+    function percentHtml(grade) {
+      return util.escapeHTML(AccessScoreGradeRamp.percent(grade));
+    }
+
+    /**
+     * The popup's slope block (#5223): one line of grades and climb, a slot the elevation profile loads into (its
+     * legend says how much of the street is how steep), and why the numbers are missing or approximate when they are.
+     * Empty for a street that has not been sampled, so a city with no slope data shows no sign of the feature.
+     * @param {AccessScoreStreetExplanation} s - The street.
+     * @returns {string}
+     */
+    function slopeHtml(s) {
+      const g = s.gradient;
+      if (!g) return '';
+      const t = (key, values = {}) => i18next.t(`accessscore:${key}`, {
+        ...values, interpolation: { escapeValue: false },
+      });
+      const lines = [];
+      // One line of figures: how much of the street is how steep is the chart's legend, where its colors explain it.
+      if (g.meanGrade !== null && g.maxGrade !== null) {
+        lines.push(t('slope-headline', {
+          max: percentHtml(g.maxGrade), mean: percentHtml(g.meanGrade),
+          climb: formatElevation(g.climbM ?? 0), descent: formatElevation(g.descentM ?? 0),
+        }));
+      } else if (g.netGrade !== null) {
+        lines.push(t('slope-net-only', { grade: percentHtml(Math.abs(g.netGrade)) }));
+      }
+      // A barrier zeroes the segment, not the street: the headline above still averages that 0 with the crossings
+      // at either end, so the sentence names the segment, in the word the components line uses for it. The term
+      // itself is a row of the table above.
+      if (s.audited && s.barrier) {
+        lines.push(`<strong>${t('slope-barrier-effect', {
+          limit: percentHtml(model.state.slope.barrierThreshold),
+        })}</strong>`);
+      }
+      const notes = [];
+      if (g.quality !== 'measured') notes.push(t(`slope-quality-${g.quality.replace('_', '-')}`));
+      else if (g.confidence !== 'high') notes.push(t('slope-approximate'));
+      const source = gradeSources.find((d) => d.dem_source === g.demSource);
+      return `<h4 class="acs-popup__subtitle">${t('popup-slope')}</h4>
+        ${lines.map((line) => `<div class="acs-popup__meta">${line}</div>`).join('')}
+        ${g.meanGrade !== null ? '<div class="acs-popup__profile" data-acs-profile aria-live="polite"></div>' : ''}
+        ${notes.map((note) => `<p class="acs-popup__note">${note}</p>`).join('')}
+        ${source ? `<p class="acs-popup__credit">${util.escapeHTML(source.credit)}</p>` : ''}`;
+    }
+
+    /**
+     * Draws a street's elevation profile into its slot, with its accessible name in the reader's units and the
+     * stretch that set its `max_grade`, which only the backend can place (the profile is too coarse to find it). A
+     * stale street's stretch is left out: it was placed along the line the street used to follow.
+     * @param {HTMLElement} slot - The popup's profile slot.
+     * @param {AccessScoreProfileResponse} response - The street's `/v3/api/streetGrade` answer.
+     */
+    function drawProfile(slot, response) {
+      const { profile } = response;
+      const plain = { escape: false };
+      const elevations = profile.elevations_meters;
+      const hasStretch = !response.stale && typeof response.max_grade_from_meters === 'number'
+        && typeof response.max_grade_to_meters === 'number' && typeof response.max_grade === 'number';
+      const label = i18next.t('accessscore:profile-label', {
+        start: formatElevation(elevations[0], plain),
+        end: formatElevation(elevations[elevations.length - 1], plain),
+        low: formatElevation(Math.min(...elevations), plain),
+        high: formatElevation(Math.max(...elevations), plain),
+        interpolation: { escapeValue: false },
+      });
+      // The slot announced "loading"; the chart itself is not read out whole, legend and all, the moment it lands.
+      slot.removeAttribute('aria-live');
+      new AccessScoreElevationProfile(slot, profile, {
+        // Present whenever a street has a profile: slope fields only exist in a city whose config has a gradient.
+        breaks: config.grade.map_class_breaks,
+        steepest: hasStretch
+          ? { from: response.max_grade_from_meters, to: response.max_grade_to_meters, grade: response.max_grade }
+          : null,
+        label,
+        onLog: log,
+      });
+    }
+
+    /**
+     * Fetches a street's elevation profile into its open popup. The profile is the one slope field too heavy for the
+     * city-wide payload, so it is asked for a street at a time, and only where the popup made a slot for it (a
+     * street with windowed statistics, which is exactly a street with a profile).
+     * @param {number} streetId - The selected street.
+     * @param {mapboxgl.Popup} forPopup - The popup the profile belongs in; a later selection replaces it, and a
+     *                                    late answer for an earlier street is dropped.
+     */
+    async function loadProfile(streetId, forPopup) {
+      const slot = forPopup.getElement()?.querySelector('[data-acs-profile]');
+      if (!slot) return;
+      slot.textContent = i18next.t('accessscore:profile-loading');
+      try {
+        const response = /** @type {AccessScoreProfileResponse} */ (
+          await fetchJson(`/v3/api/streetGrade?streetEdgeId=${streetId}`));
+        if (popup !== forPopup) return;
+        // The slot is a live region that has just said "loading", so every ending but a drawn chart is said in it
+        // too: removing it would leave a screen-reader user waiting on a profile that is not coming.
+        if (AccessScoreElevationProfile.canDraw(response.profile)) drawProfile(slot, response);
+        else slot.textContent = i18next.t('accessscore:profile-none');
+      } catch (e) {
+        console.warn('AccessScore elevation profile failed to load', e);
+        if (popup === forPopup) slot.textContent = i18next.t('accessscore:profile-failed');
+      }
     }
 
     function regionPopupHtml(id) {
@@ -575,7 +1011,7 @@ window.AccessScoreApp = (function () {
       if (!r) return null;
       const percent = Math.round(r.completion * 100);
       const score = r.score === null || r.belowFloor
-        ? i18next.t('accessscore:insufficient', { percent })
+        ? i18next.t('accessscore:insufficient', { percent, interpolation: { escapeValue: true } })
         : formatScore(r.score);
       const lngLat = regionCenter(id) || map.getCenter();
       // A region's breakdown is the mean per audited street of its streets' and its crossings' terms and clusters.
@@ -585,8 +1021,11 @@ window.AccessScoreApp = (function () {
       }]));
       return `<h3 class="acs-popup__title">${util.escapeHTML(r.name)}</h3>
         <div class="acs-popup__score">${score}</div>
-        <div class="acs-popup__meta">${i18next.t('accessscore:completion', { percent })} · ${
-    i18next.t('accessscore:popup-streets', { audited: r.auditedStreetCount, total: r.streetCount })}</div>
+        <div class="acs-popup__meta">${i18next.t('accessscore:completion', {
+    percent, interpolation: { escapeValue: true },
+  })} · ${i18next.t('accessscore:popup-streets', {
+    audited: r.auditedStreetCount, total: r.streetCount, interpolation: { escapeValue: true },
+  })}</div>
         <h4 class="acs-popup__subtitle">${i18next.t('accessscore:popup-terms-mean')}</h4>
         ${termsTableHtml(terms, i18next.t('accessscore:popup-clusters-mean'))}
         ${hopLinksHtml(lngLat)}`;
@@ -612,7 +1051,7 @@ window.AccessScoreApp = (function () {
 
   // Hops out of a popup are logged by delegation, since the popup's DOM is rebuilt on every selection.
   document.addEventListener('click', (e) => {
-    const hop = e.target.closest?.('[data-acs-hop]');
+    const hop = e.target instanceof Element ? e.target.closest('[data-acs-hop]') : null;
     if (hop) log(hop.dataset.acsHop);
   });
 

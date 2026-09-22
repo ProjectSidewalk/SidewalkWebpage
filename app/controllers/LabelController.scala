@@ -6,14 +6,26 @@ import formats.json.LabelFormats
 import formats.json.ValidateFormats.{labelEditSubmissionReads, LabelEditSubmission}
 import models.auth.DefaultEnv
 import models.label._
+import models.user.SidewalkUserWithRole
+import models.utils.CommonUtils.UiSource
 import models.utils.LatLngBBox
 import play.api.Logger
 import play.api.libs.json._
+import play.api.mvc.Result
 import play.silhouette.api.Silhouette
-import service.{AiService, CropService, LabelEditOutcome, LabelEditService, LabelService, PanoDataService}
+import service.{
+  AiService,
+  CropService,
+  LabelEditOutcome,
+  LabelEditService,
+  LabelService,
+  PanoDataService,
+  ValidationService
+}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 @Singleton
 class LabelController @Inject() (
@@ -22,6 +34,7 @@ class LabelController @Inject() (
     implicit val ec: ExecutionContext,
     labelService: LabelService,
     labelEditService: LabelEditService,
+    validationService: ValidationService,
     aiService: AiService,
     panoDataService: PanoDataService,
     cropService: CropService
@@ -77,7 +90,9 @@ class LabelController @Inject() (
                 "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
                 "crop_marker"      -> marker,
                 "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
-                "can_edit"         -> (metadata.fromCurrentUser || isAdmin(request.identity))
+                "can_edit"         -> (metadata.fromCurrentUser || isAdmin(request.identity)),
+                "deleted"          -> metadata.deleted,
+                "can_restore"      -> LabelDeletion.canRestore(metadata.deleted, metadata.deletedBy, request.identity)
               )
           )
         }
@@ -135,6 +150,46 @@ class LabelController @Inject() (
         }
       )
   }
+
+  /**
+   * Soft-deletes a label, as its labeler or as an admin (#3591). `source` names the host page; Explore is refused,
+   * since an Explore delete is the one kind that leaves the labeler's accuracy.
+   */
+  def deleteLabel(labelId: Int, source: String) = cc.securityService.SecuredAction { implicit request =>
+    Try(UiSource.withName(source)).toOption.filter(_ != UiSource.Explore) match {
+      case None => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> s"Invalid source: $source")))
+      case Some(uiSource) =>
+        validationService
+          .deleteLabel(labelId, request.identity, uiSource)
+          .map(deletionResponse(labelId, request.identity))
+    }
+  }
+
+  /** Undoes a delete (#3591): the labeler their own, an admin any. */
+  def restoreLabel(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
+    labelEditService.restoreLabel(labelId, request.identity).map(deletionResponse(labelId, request.identity))
+  }
+
+  /**
+   * The label's state after a delete or restore. `can_restore` is the server's say, since a delete can find that an
+   * admin got there first.
+   */
+  private def deletionResponse(labelId: Int, user: SidewalkUserWithRole)(outcome: LabelEditOutcome): Result =
+    outcome match {
+      case LabelEditOutcome.Applied(label) =>
+        Ok(
+          Json.obj(
+            "status"      -> "Success",
+            "deleted"     -> label.deleted,
+            "can_restore" -> LabelDeletion.canRestore(label.deleted, label.deletedBy, Some(user))
+          )
+        )
+      case LabelEditOutcome.Forbidden =>
+        Forbidden(
+          Json.obj("status" -> "Error", "message" -> "Only the labeler or an admin can delete or restore a label")
+        )
+      case _ => NotFound(Json.obj("status" -> "Error", "message" -> s"No label found with ID: $labelId"))
+    }
 
   /**
    * Get all labels with the metadata needed for /labelMap, as a GeoJSON FeatureCollection of points.

@@ -19,9 +19,10 @@ branch = true
 # paths, not one-offs; only the two CI helpers below (their own workflow steps exercise them) are exempt.
 source = ["scripts", "tools"]
 # Each half of the interpreter-split suite omits the script(s) it cannot import (`make test-python` sets these; the
-# 3.8 half needs both slots). Unset, nothing is omitted and a hand-run fails loudly rather than measuring less than
-# it appears to.
-omit = ["${COVERAGE_OMIT-}", "${COVERAGE_OMIT2-}", "tools/check_route_reachability.py", "tools/gen_ci_seed.py"]
+# 3.8 half needs all three slots). Unset, nothing is omitted and a hand-run fails loudly rather than measuring less
+# than it appears to.
+omit = ["${COVERAGE_OMIT-}", "${COVERAGE_OMIT2-}", "${COVERAGE_OMIT3-}", "tools/check_route_reachability.py",
+        "tools/gen_ci_seed.py"]
 
 [tool.coverage.report]
 show_missing = true
