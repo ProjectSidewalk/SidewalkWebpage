@@ -45,21 +45,44 @@ describe('PanoViewer resize reports a POV change once the new box has rendered',
         due.forEach((cb) => cb());
     }
 
-    test('MapillaryViewer.resize re-measures now and reports the POV after the SDK frame and ours', () => {
+    test('MapillaryViewer reports the POV when its render camera first shows the new aspect, not on a timer', () => {
         const MapillaryViewer = loadViewers();
         const viewer = new MapillaryViewer();
         viewer.viewer = { resize: jest.fn() };
+        viewer.currCameraHeading = 180; // What getPov() reads besides the camera cache.
+        viewer.currCenter = [0.5, 0.5];
         const onPov = jest.fn();
         viewer.addListener('pov_changed', onPov);
+        const camera = (aspect) => ({ perspective: { fov: 90, aspect }, _currentImageId: 'img' });
+
+        viewer._onRenderCamera(camera(1.5)); // The viewer coming up: nothing was drawn against an older aspect.
+        expect(onPov).not.toHaveBeenCalled();
+        viewer._onRenderCamera(camera(1.5)); // An ordinary render tick.
+        expect(onPov).not.toHaveBeenCalled();
 
         viewer.resize();
         expect(viewer.viewer.resize).toHaveBeenCalledTimes(1);
-        expect(onPov).not.toHaveBeenCalled(); // The SDK has not painted the new size yet.
         paint();
-        expect(onPov).not.toHaveBeenCalled(); // That was the SDK's frame.
         paint();
-        expect(onPov).toHaveBeenCalledTimes(1); // Ours: the canvas can now be redrawn against the settled camera.
+        expect(onPov).not.toHaveBeenCalled(); // No frames are trusted; only the camera itself.
+        viewer._onRenderCamera(camera(16 / 9)); // The SDK renders the new box.
+        expect(onPov).toHaveBeenCalledTimes(1);
+        expect(viewer.getPov().zoom).toBeLessThan(1.01); // A wider box at the same vertical fov is a wider view.
+        viewer._onRenderCamera(camera(16 / 9)); // Later ticks at that aspect are quiet.
+        expect(onPov).toHaveBeenCalledTimes(1);
+    });
+
+    test('a viewer without a camera event reports the POV two frames after resize (the base helper)', () => {
+        const MapillaryViewer = loadViewers();
+        const viewer = new MapillaryViewer();
+        const onPov = jest.fn();
+        viewer.addListener('pov_changed', onPov);
+        viewer._firePovChangedAfterResize();
         paint();
-        expect(onPov).toHaveBeenCalledTimes(1); // Once per resize, not a stream.
+        expect(onPov).not.toHaveBeenCalled(); // The SDK's frame.
+        paint();
+        expect(onPov).toHaveBeenCalledTimes(1); // Ours.
+        paint();
+        expect(onPov).toHaveBeenCalledTimes(1);
     });
 });
