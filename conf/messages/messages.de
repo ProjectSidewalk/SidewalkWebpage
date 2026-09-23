@@ -552,10 +552,10 @@ gallery.all = Alle Beschriftungskategorien
 gallery.labels.not.found = Keine Treffer. <a href="/explore">Erkundung starten</a>, um mehr Daten beizutragen!
 gallery.cards = Beschriftungen werden zufällig sortiert, basierend auf gewählten Filtern
 gallery.clear.filters = Filter löschen
-gallery.list.count = {0,choice,1#1 Beschriftung|1<{0} Beschriftungen}
+gallery.list.count = {0,choice,1#1 Beschriftung|1<{0} Beschriftungen} in dieser Liste
 gallery.list.truncated = {0,choice,1#1 ID lag|1<{0} IDs lagen} über dem Limit von {1} IDs und konnte nicht geladen werden.
 gallery.list.error = Die Liste konnte nicht geladen werden. Lade die Seite neu, um es erneut zu versuchen.
-gallery.list.show.all = Alle Beschriftungen anzeigen
+gallery.list.browse.all = Alle Beschriftungen durchsuchen
 
 routebuilder.name = RouteBuilder
 routebuilder.welcome = Willkommen bei RouteBuilder

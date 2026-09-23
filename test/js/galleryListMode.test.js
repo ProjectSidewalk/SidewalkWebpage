@@ -154,7 +154,7 @@ describe('the Gallery in review-list mode', () => {
             // A bare URL: the real ExpandedView reads ?labelId= on construction, and the suite above leaves one set.
             window.history.replaceState({}, '', '/gallery');
             document.body.innerHTML = `
-              <p id="gallery-list-count" data-requested="3">3 labels</p>
+              <p id="gallery-list-count" data-requested="3">3 labels in this list</p>
               <p id="gallery-list-truncated" data-dropped="100" data-max="500">100 ids were past the limit.</p>
               <p id="gallery-list-error" hidden>The list couldn't be loaded.</p>
               <div aria-live="polite">
@@ -319,8 +319,8 @@ describe('the Gallery in review-list mode', () => {
             expect(document.getElementById('gallery-list-error').hidden).toBe(false);
             // "No matches, start exploring" is the filtered grid's copy; a failed request is not an empty list.
             expect(sg.labelsNotFound.show).not.toHaveBeenCalled();
-            // The count the server rendered still stands, rather than being rewritten to "0 labels".
-            expect(document.getElementById('gallery-list-count').textContent).toBe('3 labels');
+            // The count the server rendered still stands, rather than being rewritten to "0 labels in this list".
+            expect(document.getElementById('gallery-list-count').textContent).toBe('3 labels in this list');
         });
 
         describe('paging a list longer than one page', () => {

@@ -560,10 +560,10 @@ gallery.all = All Label Types
 gallery.labels.not.found = No matches. <a href="/explore">Start exploring</a> to contribute more data!
 gallery.cards = Labels are sorted randomly based on selected filters
 gallery.clear.filters = Clear Filters
-gallery.list.count = {0,choice,1#1 label|1<{0} labels}
+gallery.list.count = {0,choice,1#1 label|1<{0} labels} in this list
 gallery.list.truncated = {0,choice,1#1 id was|1<{0} ids were} past the {1}-id limit and could not be loaded.
 gallery.list.error = The list couldn''t be loaded. Reload the page to try again.
-gallery.list.show.all = Show all labels
+gallery.list.browse.all = Browse all labels
 
 routebuilder.name = RouteBuilder
 routebuilder.welcome = Welcome to RouteBuilder

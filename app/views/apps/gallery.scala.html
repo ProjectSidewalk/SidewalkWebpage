@@ -80,9 +80,15 @@
     <div id="gallery-content">
       @if(labelIds.nonEmpty) {
         <div class="gallery-list-bar">
+          @* A link, not a button: it leaves for the whole Gallery, and a button read as acting on the list. The arrow
+             sits in its own span so no translation carries a glyph. *@
+          <a class="gallery-list-bar__browse-all" href="@routes.GalleryController.gallery()">
+            <span class="gallery-list-bar__arrow" aria-hidden="true">&#8592;</span><span data-i18n="gallery:list-browse-all">@Messages("gallery.list.browse.all")</span>
+          </a>
           @* Server-rendered so the count is right on first paint; CardContainer rewrites it with the number that
              actually came back, which reads "N of M" once some of the asked-for labels aren't available here.
-             data-requested carries M, so the client never has to recount the URL. *@
+             data-requested carries M, so the client never has to recount the URL. The rule separating this from the
+             link is a border on this element, so the divider costs no DOM of its own. *@
           <p class="gallery-list-bar__count" id="gallery-list-count" data-requested="@labelIds.size">@Messages("gallery.list.count", labelIds.size)</p>
           @* Which ids didn't make it, behind a disclosure: the strip stays one line for the usual case where every
              id came back, and the ids are there for the reviewer who needs to chase them. The wrapper is the live
@@ -104,7 +110,6 @@
           @* A failed card query is not an empty queue, so it gets its own line rather than the grid's
              "no matches" copy. role="alert" announces it when CardContainer unhides it. *@
           <p class="gallery-list-bar__error" id="gallery-list-error" role="alert" hidden data-i18n="gallery:list-error">@Messages("gallery.list.error")</p>
-          <a class="gallery-list-bar__show-all button-ps button--tiny button--secondary" href="@routes.GalleryController.gallery()" data-i18n="gallery:list-show-all">@Messages("gallery.list.show.all")</a>
         </div>
       }
       <div id="image-card-container" class="cards"></div>

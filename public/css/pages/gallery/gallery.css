@@ -109,16 +109,41 @@
 }
 
 /* Review-list mode (#5444). With no sidebar the grid runs full width — four columns on a desktop, which is why a
-   page holds twelve — and everything the list has to say about itself sits in this one strip above it. One line
-   while there is nothing unusual to report; it wraps to more as the notices below appear. */
+   page holds twelve — and everything the list has to say about itself sits in this one strip above it. One
+   left-aligned line while there is nothing unusual to report; it wraps as the notices below appear. No left
+   padding of its own, so the strip starts on the same edge as the first card beneath it. */
 .gallery-list-bar {
   display: flex;
 
   /* flex-start, not center: an opened disclosure grows its own box instead of stretching the whole strip. */
   align-items: flex-start;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: 8px 12px;
   padding: 4px 0 12px;
+}
+
+/* Link-styled, underlined only on hover/focus: it must read as somewhere to go, not as an action on the list. */
+.gallery-list-bar__browse-all {
+  font: var(--text-body-regular);
+  line-height: 24px;
+  color: var(--color-link-200);
+  text-decoration: none;
+}
+
+.gallery-list-bar__browse-all:hover {
+  text-decoration: underline;
+}
+
+/* An underline alone is too quiet to serve as the focus indicator, so focus also draws a ring. */
+.gallery-list-bar__browse-all:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+  text-decoration: underline;
+}
+
+/* Decoration only (the link's words say where it goes), so the gap is set here rather than with markup whitespace. */
+.gallery-list-bar__arrow {
+  margin-right: 6px;
 }
 
 .gallery-list-bar__count {
@@ -126,8 +151,12 @@
   font: var(--text-body-medium);
   color: var(--color-neutral-black);
 
-  /* Matches the disclosure summary and the button beside it, so the strip reads as one line of text. */
+  /* Matches the link and the disclosure summary beside it, so the strip reads as one line of text. */
   line-height: 24px;
+
+  /* Divider drawn on the following item, so no element exists only to be a line; padding mirrors the flex gap. */
+  border-left: 1px solid var(--color-neutral-300);
+  padding-left: 12px;
 }
 
 .gallery-list-bar__summary {
@@ -171,10 +200,6 @@
   color: var(--color-error-300); /* The contrast-safe error token; -200 fails AA on white. */
 }
 
-/* Pushed to the end of the strip: it leaves the list, so it shouldn't sit among the lines describing it. */
-.gallery-list-bar__show-all {
-  margin-left: auto;
-}
 
 .cards {
   display: grid;
@@ -224,15 +249,16 @@ We should allow the pointer events to pass through and behave the same way as th
     position: static;
   }
 
-  /* Stacked, so each notice gets its own line and the action isn't pushed to a far edge nothing else reaches. */
+  /* Stacked, so each notice gets its own line rather than wrapping mid-strip. */
   .gallery-list-bar {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .gallery-list-bar__show-all {
-    margin-left: 0;
-    align-self: flex-start;
+  /* Stacked, a left rule reads as a quote bar rather than as a divider between two things on one line. */
+  .gallery-list-bar__count {
+    border-left: none;
+    padding-left: 0;
   }
 
   /* Full-screen sheet below the navbar (and test banner). dvh tracks the visible viewport under mobile

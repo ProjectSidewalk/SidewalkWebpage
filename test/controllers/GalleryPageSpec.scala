@@ -132,6 +132,15 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
       listPage must include("""id="gallery-list-count"""")
     }
 
+    // A link, since it navigates; as a button it read as acting on the list. The arrow is decoration, not name.
+    "offer the way out as a link rather than as a button" in {
+      val listPage = galleryPage("?labelIds=8,3")
+      listPage must include("""<a class="gallery-list-bar__browse-all" href="/gallery">""")
+      listPage must include("""<span class="gallery-list-bar__arrow" aria-hidden="true">""")
+      listPage must include("Browse all labels")
+      listPage must not include "gallery-list-bar__show-all"
+    }
+
     // /gallery?labelIds= is a sharing URL as much as a review queue, so the strip carries no heading and no
     // instructions about how to run a review pass.
     "leave the review hint and the mode heading off the list page" in {
@@ -167,8 +176,8 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
     // The server-rendered count is what a reviewer reads before the cards land, so its plural has to be right then
     // — i18next only takes over once the card query returns.
     "render the count with the plural the number calls for" in {
-      galleryPage("?labelIds=8") must include(">1 label<")
-      galleryPage("?labelIds=8,3") must include(">2 labels<")
+      galleryPage("?labelIds=8") must include(">1 label in this list<")
+      galleryPage("?labelIds=8,3") must include(">2 labels in this list<")
     }
 
     // The client turns this into "N of M" once it knows how many came back, so M has to reach it without the

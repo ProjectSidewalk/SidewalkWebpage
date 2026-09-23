@@ -295,8 +295,10 @@ corresponding Twirl view:
   rather than intersecting with them — **no sidebar is rendered at all**, so the grid runs the full width (four
   columns on a desktop, which is why a list page holds 12 cards where the filtered grid holds 9;
   `CardContainer.getCardsPerPage()` is the one place that knows, and `ExpandedView` reads it back rather than
-  keeping a copy). What the list has to say about itself — the count, an unavailable-ids disclosure, the over-cap
-  notice, a load error, and a "Show all labels" link — sits in a slim strip above the grid (`.gallery-list-bar`).
+  keeping a copy). What the list has to say about itself sits in one left-aligned line above the grid
+  (`.gallery-list-bar`), flush with the first card: a "← Browse all labels" link back to the plain Gallery (a link,
+  not a button — it navigates), a rule, the count ("20 labels in this list", or "18 of 20 labels in this list" once
+  some aren't available), then the unavailable-ids disclosure, the over-cap notice and any load error.
   There is deliberately no heading and no review instructions there: the URL is a sharing link as much as a queue.
   `GalleryFilter` is still constructed with `null` for the absent sidebar and reset, because it owns the address
   bar (both `?labelIds=` and the `?labelId=` deep link) and the filter state `CardContainer` reads.
