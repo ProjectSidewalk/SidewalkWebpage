@@ -41,6 +41,7 @@ body.svl-immersive #ribbon-menu-holder {
   left: 50%;
   transform: translateX(-50%);
   width: auto;
+
   /* Top-aligned rather than centred in the band, with the discs' tops on the corner controls' 7px line: the icon's
      box starts 2px down and its transparent 5px ring accounts for the rest. */
   align-items: flex-start;
