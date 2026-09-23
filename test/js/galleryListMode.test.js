@@ -85,6 +85,22 @@ describe('the Gallery in review-list mode', () => {
             }).not.toThrow();
         });
 
+        it('leaves an over-cap labelIds exactly as it arrived', () => {
+            // The page carries what the server *kept* (capped at MaxLabelIds), so writing the URL from that would
+            // shorten a 600-id link to 500 — under a strip that is at that moment reporting 100 as dropped.
+            window.history.replaceState({}, '', '/gallery?labelIds=1,2,3,4');
+            build([1, 2, 3]);
+
+            expect(window.location.pathname + window.location.search).toBe('/gallery?labelIds=1,2,3,4');
+        });
+
+        it('writes the list from the page when the URL carries none', () => {
+            window.history.replaceState({}, '', '/gallery');
+            build(LIST_IDS);
+
+            expect(window.location.pathname + window.location.search).toBe('/gallery?labelIds=42,7,19');
+        });
+
         it('keeps a ?labelId= deep link alongside the list', () => {
             // GalleryFilter is constructed before ExpandedView reads the param, so scrubbing it here is what made
             // every deep link into a list open the plain first card instead (#5446).
@@ -436,6 +452,46 @@ describe('the Gallery in review-list mode', () => {
 
             it('reports a label the list does not hold, so the caller can fall back', () => {
                 expect(container.jumpToLabel(999999)).toBe(false);
+            });
+
+            /** Makes the viewer build lose the race to the opening query, which is the ordering that broke. */
+            function slowExpandedView() {
+                const build = window.ExpandedViewClass.create.bind(window.ExpandedViewClass);
+                window.ExpandedView = {
+                    create: async (...args) => {
+                        await new Promise((resolve) => { setTimeout(resolve, 0); });
+                        return build(...args);
+                    },
+                };
+            }
+
+            it('opens a deep link whose query came back before the viewer existed', async () => {
+                // render() has no expanded view to hand the page to in that ordering, so the deep link used to be
+                // skipped outright and left pending — never opened, and waiting to ambush a later render.
+                slowExpandedView();
+                window.history.replaceState({}, '', `/gallery?labelIds=x&labelId=${LONG_LIST[13]}`);
+                const raced = await listContainer(LONG_LIST, [], LONG_LIST);
+                await flush();
+
+                const view = raced.getExpandedView();
+                expect(view.cardIndex).toBe(13);
+                expect(view.getReferenceCard().getLabelId()).toBe(LONG_LIST[13]);
+                expect(raced.getCurrentPage()).toBe(2);
+            });
+
+            it('does not let that deep link ambush the next page turn', async () => {
+                // A target on page 1 was the worst of it: the late restore ran #setPage(1) and undid the turn the
+                // user had just made, which reads as the Gallery refusing to page.
+                slowExpandedView();
+                window.history.replaceState({}, '', `/gallery?labelIds=x&labelId=${LONG_LIST[0]}`);
+                const raced = await listContainer(LONG_LIST, [], LONG_LIST);
+                await flush();
+                expect(raced.getExpandedView().cardIndex).toBe(0);
+
+                sg.ui.cardContainer.nextPage.handlers.click({});
+                await flush();
+
+                expect(raced.getCurrentPage()).toBe(2);
             });
 
             it('reopens a ?labelId= deep link by its place in the list, not just by id', async () => {

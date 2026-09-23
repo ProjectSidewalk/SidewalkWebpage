@@ -11,7 +11,8 @@
   "list-position": "{{k}} van {{n}}",
   "list-truncated_one": "{{count}} id lag boven de limiet van {{max}} en kon niet worden geladen.",
   "list-truncated_other": "{{count}} ids lagen boven de limiet van {{max}} en konden niet worden geladen.",
-  "list-unavailable": "{{count}} niet beschikbaar",
+  "list-unavailable_one": "{{count}} niet beschikbaar",
+  "list-unavailable_other": "{{count}} niet beschikbaar",
   "none": "geen",
   "not-applicable": "niet toepasbaar"
 }

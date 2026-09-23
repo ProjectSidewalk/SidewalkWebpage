@@ -87,8 +87,7 @@
           </a>
           @* Server-rendered so the count is right on first paint; CardContainer rewrites it with the number that
              actually came back, which reads "N of M" once some of the asked-for labels aren't available here.
-             data-requested carries M, so the client never has to recount the URL. The rule separating this from the
-             link is a border on this element, so the divider costs no DOM of its own. *@
+             data-requested carries M, so the client never has to recount the URL. *@
           <p class="gallery-list-bar__count" id="gallery-list-count" data-requested="@labelIds.size">@Messages("gallery.list.count", labelIds.size)</p>
           @* Which ids didn't make it, behind a disclosure: the strip stays one line for the usual case where every
              id came back, and the ids are there for the reviewer who needs to chase them. The wrapper is the live

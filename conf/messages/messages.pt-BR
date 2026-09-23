@@ -558,7 +558,7 @@ gallery.labels.not.found = Nenhum resultado encontrado. <a href="/explore">Comec
 gallery.cards = Os rótulos são ordenadas aleatoriamente com base nos filtros selecionados
 gallery.clear.filters = Limpar filtros
 gallery.list.count = {0,choice,1#1 rótulo|1<{0} rótulos} nesta lista
-gallery.list.truncated = {0,choice,1#1 ID passou|1<{0} IDs passaram} do limite de {1} e não pôde ser carregado.
+gallery.list.truncated = {0,choice,1#1 ID passou do limite de {1} e não pôde ser carregado.|1<{0} IDs passaram do limite de {1} e não puderam ser carregados.}
 gallery.list.error = Não foi possível carregar a lista. Recarregue a página para tentar de novo.
 gallery.list.browse.all = Ver todos os rótulos
 

@@ -7,8 +7,6 @@
  * Construct instances via the `static async create()` factory, which initializes LabelDetail before resolving.
  */
 class ExpandedView {
-  // The page size is the card container's, read back on every use rather than copied: it differs between the
-  // filtered grid and a review list (#5444), and a stale copy here would page past or repeat a label.
   static #unselectedCardClassName = 'expanded-view-background-card';
 
   #uiModal;
@@ -319,6 +317,8 @@ class ExpandedView {
    */
   nextLabel(keyboardShortcut) {
     sg.tracker.push(`NextLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
+    // Page size is asked of the container on every use rather than copied into this class: it differs between the
+    // filtered grid and a review list (#5444), and a stale copy would page past or repeat a label at the boundary.
     const page = sg.cardContainer.getCurrentPage();
     if (this.cardIndex < page * sg.cardContainer.getCardsPerPage() - 1) {
       this.#updateExpandedViewCardByIndex(this.cardIndex + 1);

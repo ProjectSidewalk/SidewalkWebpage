@@ -352,7 +352,8 @@ class LabelServiceImpl @Inject() (
     // labels with expired or non-Google imagery are still included if a local crop exists.
     // With recentFirst the query is ordered newest-first, so findValidLabelsForType's batching draws from the most
     // recent labels and randomize=true shuffles within that recent pool.
-    val typesToSpread: Set[LabelTypeEnum.Base] =
+    // lazy: a review list spreads across no types at all, so this is the filtered path's to compute.
+    lazy val typesToSpread: Set[LabelTypeEnum.Base] =
       if (labelTypes.isEmpty) {
         if (staticImageryOnly) LabelTypeEnum.staticValidatableLabelTypes else LabelTypeEnum.primaryLabelTypes
       } else if (staticImageryOnly) {

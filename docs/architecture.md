@@ -297,8 +297,8 @@ corresponding Twirl view:
   `CardContainer.getCardsPerPage()` is the one place that knows, and `ExpandedView` reads it back rather than
   keeping a copy). What the list has to say about itself sits in one left-aligned line above the grid
   (`.gallery-list-bar`), flush with the first card: a "← Browse all labels" link back to the plain Gallery (a link,
-  not a button — it navigates), a rule, the count ("20 labels in this list", or "18 of 20 labels in this list" once
-  some aren't available), then the unavailable-ids disclosure, the over-cap notice and any load error.
+  not a button — it navigates), then the count as a pill ("20 labels in this list", or "18 of 20 labels in this
+  list" once some aren't available), then the unavailable-ids disclosure, the over-cap notice and any load error.
   There is deliberately no heading and no review instructions there: the URL is a sharing link as much as a queue.
   `GalleryFilter` is still constructed with `null` for the absent sidebar and reset, because it owns the address
   bar (both `?labelIds=` and the `?labelId=` deep link) and the filter state `CardContainer` reads.

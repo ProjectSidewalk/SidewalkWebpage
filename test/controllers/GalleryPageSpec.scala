@@ -117,6 +117,12 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
       pageLabelIds(galleryPage("?labelIds=7,x,7,8")) mustBe Seq(7, 8)
     }
 
+    // A hand-written or copy-pasted list has spaces in it, and an unparseable token can't report itself, so every
+    // id but the first used to vanish without a word.
+    "read a label list written with spaces after the commas" in {
+      pageLabelIds(galleryPage("?labelIds=8,%209,%2010")) mustBe Seq(8, 9, 10)
+    }
+
     "leave the label list empty when the parameter is absent" in {
       pageLabelIds(galleryPage()) mustBe empty
     }
@@ -206,7 +212,11 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "return exactly the requested labels, in the requested order, ignoring the other filters" in {
       assume(seedIds.size >= 2, "connected database served fewer than two gallery labels")
-      val requested = Seq(seedIds(1), seedIds.head, missingLabelId)
+      // Sorted then reversed, so the request is always descending. The filtered query these come from is shuffled,
+      // so simply swapping its first two gave an ascending list about half the time — and an ascending list is the
+      // order a query with no ORDER BY tends to return anyway, which is the thing this is meant to rule out.
+      val descendingPair = seedIds.take(2).sorted.reverse
+      val requested      = descendingPair :+ missingLabelId
 
       val json = labelsFor(
         Json.obj(
@@ -220,7 +230,7 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
         )
       )
 
-      labelIdsIn(json) mustBe Seq(seedIds(1), seedIds.head)
+      labelIdsIn(json) mustBe descendingPair
       (json \ "unavailableLabelIds").as[Seq[Int]] mustBe Seq(missingLabelId)
     }
 

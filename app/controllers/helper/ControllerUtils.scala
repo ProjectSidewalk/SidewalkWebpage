@@ -161,8 +161,17 @@ object ControllerUtils {
   def regionsParam(regions: Option[String], neighborhoods: Option[String]): Option[String] =
     regions.filter(_.nonEmpty).orElse(neighborhoods.filter(_.nonEmpty))
 
+  /**
+   * Parses a comma-separated list of integers, dropping anything that isn't one and preserving order.
+   *
+   * Tokens are trimmed first: "8, 9, 10" is how a person writes a list, and without the trim every id but the
+   * first parsed as whitespace and was dropped — silently, since an unparseable token has no way to report itself.
+   *
+   * @param listOfInts The raw parameter value.
+   * @return           The integers it named, deduplicated, in the order given.
+   */
   def parseIntegerSeq(listOfInts: String): Seq[Int] = {
-    listOfInts.split(",").flatMap(s => Try(s.toInt).toOption).toSeq.distinct
+    listOfInts.split(",").flatMap(s => Try(s.trim.toInt).toOption).toSeq.distinct
   }
 
   def parseIntegerSeq(listOfInts: Option[String]): Seq[Int] = {

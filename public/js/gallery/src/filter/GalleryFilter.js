@@ -157,7 +157,14 @@ class GalleryFilter {
     // already covers it — but every line below here needs a sidebar, so it stays.
     const listLabelIds = this.#listLabelIds();
     if (listLabelIds.length > 0 || !this.#sidebar) {
-      if (listLabelIds.length > 0) params.set('labelIds', listLabelIds.join());
+      if (listLabelIds.length > 0) {
+        // What the page carries is what the server *kept*, capped at MaxLabelIds. Re-serializing from it would
+        // quietly rewrite a 600-id URL down to 500 — under a strip that is at that moment saying 100 were dropped,
+        // and leaving the reader a link that no longer asks for what they asked for. So the param that arrived is
+        // left exactly as it arrived, and only a URL that never had one is written from the parsed list.
+        const asGiven = new URLSearchParams(window.location.search).get('labelIds');
+        params.set('labelIds', asGiven ?? listLabelIds.join());
+      }
       return params;
     }
 

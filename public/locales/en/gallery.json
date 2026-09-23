@@ -11,7 +11,8 @@
   "list-position": "{{k}} of {{n}}",
   "list-truncated_one": "{{count}} id was past the {{max}}-id limit and could not be loaded.",
   "list-truncated_other": "{{count}} ids were past the {{max}}-id limit and could not be loaded.",
-  "list-unavailable": "{{count}} unavailable",
+  "list-unavailable_one": "{{count}} unavailable",
+  "list-unavailable_other": "{{count}} unavailable",
   "none": "none",
   "not-applicable": "not applicable"
 }

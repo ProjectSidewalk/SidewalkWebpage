@@ -52,6 +52,10 @@ class CardContainer {
   #listLabelIds = [];
   #listMode = false;
 
+  // Set when a page rendered before the expanded view existed, so #init can hand it that page once it does. The
+  // opening query is fired before the view is built and can land first; see #notifyExpandedViewRendered().
+  #expandedViewHooksDeferred = false;
+
   /**
    * @param {*} uiCardContainer - UI element tied with this CardContainer.
    * @param {Record<string, any>} initialFilters - Object containing initial set of filters in sidebar.
@@ -85,6 +89,10 @@ class CardContainer {
   static async create(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken, currUsername) {
     const cardContainer
       = new CardContainer(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken, currUsername);
+    // ExpandedView reaches back through sg.cardContainer, and #init can get as far as opening a deep link before
+    // create() returns, so the global is published here rather than waiting for Main to assign what create()
+    // hands back. Main's own assignment then just re-sets the same object.
+    sg.cardContainer = cardContainer;
     await cardContainer.#init();
     return cardContainer;
   }
@@ -124,6 +132,9 @@ class CardContainer {
             CardContainer.#showListError();
             sg.pageLoading.hide();
             sg.cardFilter.enable();
+            // No page will be rendered, so a ?labelId= deep link would sit pending forever and spring open on some
+            // later render. Hand the view the (empty) page anyway: it opens the label by id, which still works.
+            this.#notifyExpandedViewRendered();
             return;
           }
           this.#currentCards = new CardBucket(newCards);
@@ -157,6 +168,9 @@ class CardContainer {
     this.#expandedView = await ExpandedView.create(
       sg.ui.expandedView.container, this.#panoViewerType, this.#viewerAccessToken, this.#currUsername,
     );
+    // The opening query is fired above, before this await, so the request is in flight while the viewer builds —
+    // which means it can finish first, and that render found no view to hand the page to. Do it now instead.
+    if (this.#expandedViewHooksDeferred) this.#notifyExpandedViewRendered();
     // Add the click event for opening the ExpandedView when a card is clicked.
     const cardClickSelector = '.static-gallery-image, .additional-count, .ai-icon-marker-card';
     sg.ui.cardContainer.holder.on('click', cardClickSelector, (event) => {
@@ -483,10 +497,7 @@ class CardContainer {
         sg.ui.pageControl.show();
         sg.pageLoading.hide();
         sg.cardFilter.enable();
-        if (this.#expandedView) {
-          this.#expandedView.onPageCardsRendered();
-          this.#expandedView.restoreFromUrl();
-        }
+        this.#notifyExpandedViewRendered();
       });
     } else if (this.#listMode) {
       // "No matches. Start exploring to contribute more data!" answers a filtered search that found nothing; it
@@ -500,6 +511,25 @@ class CardContainer {
       sg.pageLoading.hide();
       sg.cardFilter.enable();
     }
+  }
+
+  /**
+   * Hands the expanded view the page that has just been rendered: a pending cross-page navigation first, then a
+   * `?labelId=` deep link.
+   *
+   * Whichever of the opening query and the viewer build finishes second is what runs these, exactly once. Skipping
+   * them when the view isn't up yet is what used to strand a deep link: `restoreFromUrl()` clears the pending id on
+   * entry, so never reaching it left the id set, and the next page turn popped the label open and — for a target on
+   * page 1 — paged the user straight back to where they started.
+   */
+  #notifyExpandedViewRendered() {
+    if (!this.#expandedView) {
+      this.#expandedViewHooksDeferred = true;
+      return;
+    }
+    this.#expandedViewHooksDeferred = false;
+    this.#expandedView.onPageCardsRendered();
+    this.#expandedView.restoreFromUrl();
   }
 
   /**
