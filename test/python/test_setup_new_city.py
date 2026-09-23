@@ -211,11 +211,13 @@ def test_handoff_checklist_names_the_dump_both_urls_and_what_the_nightly_jobs_ow
     assert 'Street grades ride in the dump' in text and 'Street gradient staleness' in text
     no_source = snc.handoff_checklist('cdmx', 'sidewalk_cdmx', 'https://p', 'https://t', 'no_source')
     assert 'no elevation model is registered' in no_source and 'Sources by country' in no_source
+    # A bare rerun is refused again: the sampler needs the hand-downloaded model's flags.
+    assert 'make onboard-city id=cdmx args="--dem-dir db/onboarding/cdmx/dem --dem-name <product>' in no_source
     no_structures = snc.handoff_checklist('cdmx', 'sidewalk_cdmx', 'https://p', 'https://t', 'no_structures')
     assert 'wrote no street_structures.csv' in no_structures and 'make build-city-data id=cdmx' in no_structures
     assert '--skip-gradient' not in no_structures   # The flag was never passed; rerunning without it skips again.
     skipped = snc.handoff_checklist('cdmx', 'sidewalk_cdmx', 'https://p', 'https://t', 'skipped')
-    assert 'without --skip-gradient' in skipped
+    assert 'without --skip-gradient' in skipped and '--dump-only' in skipped   # Either flag leads here.
     for text in (no_source, no_structures, skipped):
         assert 'NOT sampled' in text and 'make onboard-city id=cdmx' in text and 'no grade term' in text
         assert 'backfill runbook' in text
@@ -713,9 +715,20 @@ def test_run_street_gradient_exports_samples_and_imports(monkeypatch, tmp_path, 
     assert any('import-street-gradient.sh sidewalk_x onboarding/x/street_gradient.csv' in cmd for cmd in joined)
     captured = capsys.readouterr()
     assert 'Sampling the elevation model' in captured.out and 'usgs-3dep-10m' in captured.err
-    # stdout streams (a large city runs a minute or two); only stderr is held, to read the refusal off it.
+    # The sampler logs to stderr, so that is the stream read through (echoed as it arrives, a large city runs a
+    # minute or two) and kept, to read the refusal off it; stdout is left alone.
     cmd, kwargs = next((cmd, kw) for cmd, kw in seen if 'street_gradient.py' in ' '.join(map(str, cmd)))
     assert kwargs.get('stderr') is snc.subprocess.PIPE and not kwargs.get('capture_output')
+    assert not any('--dem-dir' in cmd for cmd in joined)
+
+
+def test_run_street_gradient_hands_the_dem_flags_to_the_sampler(monkeypatch, tmp_path):
+    """A country with no registered model is sampled from hand-downloaded rasters named on the command line."""
+    _gradient_setup(monkeypatch, tmp_path)
+    calls = _fake_run(monkeypatch, {})
+    flags = ['--dem-dir', 'db/onboarding/x/dem', '--dem-name', 'inegi-mdt-5m', '--dem-resolution-m', '5']
+    assert snc.run_street_gradient('sidewalk_x', 'x', flags) == 'sampled'
+    assert any(cmd.endswith('scripts/street_gradient.py --city-id x ' + ' '.join(flags)) for cmd in _joined(calls))
 
 
 def test_run_street_gradient_skips_without_the_builds_structure_flags(monkeypatch, tmp_path, capsys):
@@ -736,6 +749,8 @@ def test_run_street_gradient_prints_the_download_route_for_an_unregistered_count
     assert not any('import-street-gradient.sh' in cmd for cmd in _joined(calls))
     out = capsys.readouterr().out
     assert 'No elevation model is registered for this country' in out
+    # The rerun that works names the model; a bare rerun would only be refused again.
+    assert 'make onboard-city id=x args="--dem-dir db/onboarding/x/dem --dem-name <product>' in out
     assert 'make street-gradient id=x args="--dem-dir db/onboarding/x/dem' in out
     assert 'make import-street-gradient args="sidewalk_x onboarding/x/street_gradient.csv"' in out
 
@@ -1133,7 +1148,8 @@ def _stub_steps(monkeypatch, repo_copy):
     monkeypatch.setattr(snc, 'run_imagery_scan',
                         lambda schema, city_id, pano_type: record.__setitem__('scan', pano_type))
     monkeypatch.setattr(snc, 'run_street_gradient',
-                        lambda schema, city_id: record.__setitem__('gradient', schema) or 'sampled')
+                        lambda schema, city_id, sampler_args=():
+                        record.update(gradient=schema, sampler_args=list(sampler_args)) or 'sampled')
     monkeypatch.setattr(snc, 'dump_schema', lambda schema: record.__setitem__('dump', schema))
     monkeypatch.setattr(snc, 'highest_evolution', lambda: 375)
     monkeypatch.setattr(snc, 'highest_evolution_hash', lambda: 'hash375')
@@ -1377,7 +1393,7 @@ def test_main_recreates_a_schema_on_request_and_can_defer_the_scan(repo_copy, mo
     assert 'Skipped (--skip-gradient)' in out and 'gradient' not in record and 'without --skip-gradient' in out
     # A build with no structures file skips the step too, and the handoff must say to rebuild, not to drop a flag.
     record = _stub_steps(monkeypatch, repo_copy)
-    monkeypatch.setattr(snc, 'run_street_gradient', lambda schema, city_id: 'no_structures')
+    monkeypatch.setattr(snc, 'run_street_gradient', lambda schema, city_id, sampler_args=(): 'no_structures')
     _fake_run(monkeypatch, dict(_FRESH_DB, **{'pg_namespace': (0, '1\n')}))
     _answers(monkeypatch, 'y', '', '', '', '', '', '', '', 'y', '1', 'all')
     snc.main(['testville-wa', '--donor', 'sidewalk_seattle', '--skip-scan'])
@@ -1393,6 +1409,27 @@ def test_main_recreates_a_schema_on_request_and_can_defer_the_scan(repo_copy, mo
     assert record['evolutions'] == [('sidewalk_testville_wa', True)]
     with pytest.raises(SystemExit, match='2'):
         snc.main(['testville-wa', '--recreate', '--dump-only'])
+
+
+def test_main_hands_the_dem_flags_to_step_8_and_wants_all_three(repo_copy, monkeypatch, capsys):
+    """The sampler's flags for a hand-downloaded model ride through the orchestrator, as a set."""
+    _city_artifacts(repo_copy)
+    record = _stub_steps(monkeypatch, repo_copy)
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{'pg_namespace': (0, '1\n')}))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '', 'y', '1', 'all')
+    snc.main(['testville-wa', '--donor', 'sidewalk_seattle', '--skip-scan', '--dem-dir', 'db/onboarding/x/dem',
+              '--dem-name', 'inegi-mdt-5m', '--dem-resolution-m', '5'])
+    assert record['sampler_args'] == ['--dem-dir', 'db/onboarding/x/dem', '--dem-name', 'inegi-mdt-5m',
+                                      '--dem-resolution-m', '5']
+    capsys.readouterr()
+    # One flag without the other two is refused up front, since the sampler would refuse it a few minutes in.
+    with pytest.raises(SystemExit, match='2'):
+        snc.main(['testville-wa', '--donor', 'sidewalk_seattle', '--dem-dir', 'db/onboarding/x/dem'])
+    assert 'go together' in capsys.readouterr().err
+    _fake_run(monkeypatch, dict(_FRESH_DB, **{'pg_namespace': (0, '1\n')}))
+    _answers(monkeypatch, 'y', '', '', '', '', '', '', '', 'y', '1', 'all')
+    snc.main(['testville-wa', '--donor', 'sidewalk_seattle', '--skip-scan'])
+    assert record['sampler_args'] == []
 
 
 def test_main_registers_a_new_country_and_a_new_state(repo_copy, monkeypatch, capsys):

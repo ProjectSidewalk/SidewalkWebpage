@@ -67,7 +67,7 @@ It never touches the database. It writes, under `db/onboarding/<city-id>/`:
 | `<city-id>_qa.gpkg` | The QA GeoPackage for QGIS: `qgis_road`, `qgis_region`, `city_boundary`, plus `dropped_segments` and `rider_merges` so you can see what the rules did. |
 | `qgis_tables.sql` | The staging tables `fill-new-schema.sh` consumes (`qgis_road`: `road_id`, `osm_ids bigint[]`, `highway`, `region_id`, `geom`; `qgis_region`: `region_id`, `name`, `data_source`, `geom`). |
 | `street_edge_endpoints.csv` | The imagery scan's input, so step 2 can run before any database exists. |
-| `street_structures.csv` | Which streets lie on a bridge, in a tunnel, or under cover, from the OSM tags the build already fetched. The street-gradient export (step 8 of the setup) reads it in place of the `osm_way` cache, which is empty until the city's first nightly refresh (#5223). It also rides in the GeoPackage's `qgis_road` layer, so a `--from-gpkg` re-export rewrites it; a hand-built layer without the column gets no file, and the grade is sampled after launch instead. |
+| `street_structures.csv` | Which streets lie on a bridge, in a tunnel, or under cover, from the OSM tags the build already fetched. The street-gradient export (step 8 of the setup) reads it in place of the `osm_way` cache, which is empty until the city's first nightly refresh (#5223); each row carries the street's geometry hash, so the export refuses a file from another build. It also rides in the GeoPackage's `qgis_road` layer, so a `--from-gpkg` re-export rewrites it; a hand-built layer without the column gets no file, and the grade is sampled after launch instead. |
 
 **The QA loop.** Open the GeoPackage in QGIS over a basemap and look at the boundary, the dropped segments, and any
 flagged region. Two ways back:
@@ -184,8 +184,9 @@ its default either way.
    cache, samples the elevation model registered for the city's country (`scripts/street_gradient.py`, seconds for
    most cities), and imports the result into `street_gradient`, so the grades ride into prod inside the dump
    ([`street-gradient.md`](street-gradient.md)). A country with no registered model (every one but the USA today)
-   gets the hand-download recipe printed and the run goes on; sample later, or backfill the live city. A build
-   without `street_structures.csv` skips the step too. `--skip-gradient` defers it; a rerun picks it up.
+   gets the hand-download recipe printed and the run goes on; once the rasters are downloaded, rerun with
+   `args="--dem-dir … --dem-name … --dem-resolution-m …"` (the sampler's own flags), or backfill the live city. A
+   build without `street_structures.csv` skips the step too. `--skip-gradient` defers it; a rerun picks it up.
 9. **Dump** — `pg_dump -Fc` of the finished schema to `db/<schema>-dump`, the file `make import-dump` and the
    server both restore, with the data of every table the clone, the fill, the scan and the gradient do not write left out
    (`--exclude-table-data`, from the schema's own catalog, with those tables' sequences), `region_completion`

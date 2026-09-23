@@ -232,7 +232,9 @@ fill-new-schema:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/fill-new-schema.sh"
 
 # Host-side (edits conf/ and drives both containers), so no docker exec wrapper. Flags go through args=, e.g.
-# `make onboard-city id=laurens-ia args="--skip-scan"`, `args="--dump-only"`, `args="--allow-running-apps"`.
+# `make onboard-city id=laurens-ia args="--skip-scan"`, `args="--dump-only"`, `args="--allow-running-apps"`, and for
+# a country with no registered elevation model, the sampler's own flags once its rasters are downloaded:
+# `args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"`.
 onboard-city:
 	@python3 tools/setup_new_city.py $(id) $(args)
 

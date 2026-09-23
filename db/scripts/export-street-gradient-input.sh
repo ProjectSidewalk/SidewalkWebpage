@@ -83,17 +83,21 @@ SQL_FILE=$(mktemp)
 trap 'rm -f "$TMP_FILE" "$SQL_FILE"' EXIT
 
 if [[ -n "$STRUCTURES_FILE" ]]; then
-    # The file and the schema must name the same streets, in both directions: make build-city-data renumbers road
-    # ids on every run, so a file from another build marks the wrong streets as bridges, and a rebuild that dropped
-    # streets leaves a file whose ids are a subset of the schema's, which the one-directional check would pass.
-    # Only streets inserted by hand after the build (nothing in onboarding does) leave a street unflagged, and
-    # --allow-unflagged-streets says so; those read as not on a structure.
+    # The file and the schema must name the same streets, in both directions, with the same geometry: every build
+    # numbers its roads 1..N, so a file from another build marks the wrong streets as bridges while its ids look
+    # right, and a rebuild that dropped streets leaves a file whose ids are a subset of the schema's, which the
+    # one-directional check would pass. The file's geom_md5 is the hash this script computes for the export, so a
+    # street whose geometry differs from the file's came from another build. Only streets inserted by hand after
+    # the build (nothing in onboarding does) leave a street unflagged, and --allow-unflagged-streets says so; those
+    # read as not on a structure.
     cat >> "$SQL_FILE" <<EOSQL
-    CREATE TEMP TABLE street_structures_import (street_edge_id INTEGER PRIMARY KEY, is_structure BOOLEAN NOT NULL);
+    CREATE TEMP TABLE street_structures_import (
+        street_edge_id INTEGER PRIMARY KEY, is_structure BOOLEAN NOT NULL, geom_md5 TEXT NOT NULL);
     \\copy street_structures_import FROM '$STRUCTURES_FILE' WITH (FORMAT csv, HEADER true)
     DO \$\$
     DECLARE
         unknown_streets INTEGER;
+        moved_streets INTEGER;
         unflagged_streets INTEGER;
     BEGIN
         SELECT COUNT(*) INTO unknown_streets
@@ -104,6 +108,16 @@ if [[ -n "$STRUCTURES_FILE" ]]; then
             RAISE EXCEPTION '% street(s) in the structures file are not in this schema.', unknown_streets
                 USING HINT = 'A file from another build? Rebuild (or re-export with --from-gpkg) and load that SQL, '
                              'or export without --structures after the nightly OSM way refresh.';
+        END IF;
+        SELECT COUNT(*) INTO moved_streets
+        FROM street_structures_import
+        INNER JOIN street_edge ON street_structures_import.street_edge_id = street_edge.street_edge_id
+        WHERE street_structures_import.geom_md5 <> md5(ST_AsBinary(street_edge.geom));
+        IF moved_streets > 0 THEN
+            RAISE EXCEPTION '% street(s) in the structures file have a different geometry in this schema.',
+                moved_streets
+                USING HINT = 'A file from another build of the same size? Load the SQL of the build that wrote the '
+                             'file, or export without --structures after the nightly OSM way refresh.';
         END IF;
         SELECT COUNT(*) INTO unflagged_streets
         FROM street_edge

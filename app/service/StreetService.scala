@@ -59,6 +59,8 @@ trait StreetService {
   def getTotalStreetDistance(metric: Boolean): Future[Double]
   def getAuditedStreetDistance(metric: Boolean): Future[Double]
   def recalculateStreetPriority: Future[Seq[Int]]
+
+  /** Counts the served streets with no gradient row or a row from an older geometry (#5223); see `stalenessCounts`. */
   def countStreetGradientStaleness: Future[StreetGradientStaleness]
   def getPriorityWithInputs: Future[Seq[StreetPriorityForAdmin]]
   def selectStreetsWithAuditStatus(

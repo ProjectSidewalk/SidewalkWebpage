@@ -176,7 +176,8 @@ asks before adding them to the live production key; if gcloud can't edit it, `py
 <city-id>`), DNS, the pano scraper's manifest row (`<city-id>,<prod fqdn>` in `/etc/sidewalk/cities.csv` on the
 scraper host), then the PR (configs + messages + docs). The checklist's step 7 says whether the street grades are in
 the dump; when they are not (no registered elevation model, or `--skip-gradient`), the maintainer either samples
-before the dump or backfills the live city later. Point the maintainer at the QA items only a person can do:
+before the dump (for a hand-downloaded model, a rerun with `args="--dem-dir … --dem-name … --dem-resolution-m …"`)
+or backfills the live city later. Point the maintainer at the QA items only a person can do:
 open the landing page as the new city (map centered, neighborhood names right), walk one street in Explore on the
 chosen imagery, check the Explore tag lists against `excluded_tags`. That walk leaves an `audit_task`, thousands of
 interaction rows and a moved `audited_distance` in the schema, so **after local QA, dump again**: `make onboard-city

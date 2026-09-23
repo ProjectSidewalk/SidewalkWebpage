@@ -238,8 +238,9 @@ first source that works: `--regions-file` (any OGR format/CRS; `--region-name-co
 Outputs land in `db/onboarding/<city-id>/` (git-ignored; visible to the db container at `/opt/onboarding/` when run
 from the main checkout): the QA GeoPackage, `qgis_tables.sql`, `street_edge_endpoints.csv` (the scan's input, so the
 preflight below runs before any database exists), `street_structures.csv` (which streets are on a bridge, in a
-tunnel or covered, from the OSM tags, so the street-gradient export can run before the nightly `osm_way` cache
-exists; it rides in the GeoPackage too, so a `--from-gpkg` re-export rewrites it), and `report.md` with the tiny-segment histogram (production
+tunnel or covered, from the OSM tags, with each street's geometry hash, so the street-gradient export can run before
+the nightly `osm_way` cache exists and can refuse a file from another build; it rides in the GeoPackage too, so a
+`--from-gpkg` re-export rewrites it), and `report.md` with the tiny-segment histogram (production
 averages 18% of streets under 20 m; Bayonne rebuilt at 4%), per-region km with `SPARSE`/`OVERSIZED`/`EMPTY` flags,
 and boundary coverage. The QA loop: rerun with tweaked flags — `--merge-regions
 "Census Tract 513:Census Tract 523.01"` folds regions by *name* and re-splits the streets against the merged

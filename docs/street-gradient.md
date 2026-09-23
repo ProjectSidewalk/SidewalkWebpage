@@ -24,8 +24,10 @@ Both db targets take their answers positionally through `args=` instead of promp
 **A new city gets this during onboarding**: step 8 of `make onboard-city` runs the three commands, with the export
 reading the bridge/tunnel flags from the street build's `street_structures.csv` (`--structures`) rather than the
 `osm_way` cache, which is empty until the city's first nightly refresh. The rows ride into production inside the
-onboarding dump. A country with no registered source gets the `--dem-dir` recipe printed and the run continues; the
-handoff checklist says which way it went ([`onboarding-a-city.md`](onboarding-a-city.md)).
+onboarding dump. A country with no registered source gets the `--dem-dir` recipe printed and the run continues;
+once the rasters are downloaded, `make onboard-city id=<city-id> args="--dem-dir … --dem-name … --dem-resolution-m …"`
+samples them (a rerun without the flags is refused again). The handoff checklist says which way it went
+([`onboarding-a-city.md`](onboarding-a-city.md)).
 
 **An existing city** is filled by running the same three commands against it and loading the CSV into its
 production schema, which is what the backfill runbook in the private `sidewalk-server-tools` repo does, city by city.
@@ -51,9 +53,11 @@ stands in for a street whose geometry has changed since.
 Run the export after the city's first nightly OSM way refresh. Which streets are bridges or tunnels comes from
 `osm_way.tags`, and with an empty `osm_way` every bridge would be sampled as the ravine beneath it without anything
 downstream noticing, so the export refuses to run against one. `args="--structures <path>"` reads the flags from
-the street build's `street_structures.csv` instead (the same three tags, read the same way, off the OSM data the
-build already fetched; the file and the schema must name the same streets, since a build renumbers them, and
-`--allow-unflagged-streets` admits streets inserted by hand after the build), and `args=--allow-empty-osm-way`
+the street build's `street_structures.csv` instead (the same three tags with the same value readings, off the OSM
+data the build already fetched, and read off every way a street spans where `osm_way` holds only the way it starts
+on; the file and the schema must name the same streets with the same geometry, checked by id and by `geom_md5`,
+since every build numbers its streets 1..N, and `--allow-unflagged-streets` admits streets inserted by hand after
+the build), and `args=--allow-empty-osm-way`
 overrides the check for a city that really has none. The
 tutorial street is never exported: it is the shared DC geometry, and no model the city is sampled from says
 anything true about it.

@@ -99,6 +99,7 @@ pay its startup cost.
 
 import argparse
 import csv
+import hashlib
 import logging
 import re
 import sys
@@ -131,7 +132,9 @@ def _osmnx():
 
 
 # The OSM way tags that put a street on a structure, read by is_structure_tag. The same three tags, with the same
-# readings, decide is_structure in db/scripts/export-street-gradient-input.sh once a city has its osm_way cache.
+# value readings, decide is_structure in db/scripts/export-street-gradient-input.sh once a city has its osm_way
+# cache; that path sees only the way a street starts on (osm_way_street_edge holds one way per street), where the
+# build reads every way the street spans.
 STRUCTURE_TAGS = ('bridge', 'tunnel', 'covered')
 
 # The way types we audit — the same filter the manual QGIS flow applies (the retired QGIS runbook).
@@ -233,10 +236,11 @@ def is_structure_tag(bridge, tunnel, covered):
     Whether an edge's OSM tags put it on a bridge, in a tunnel, or under cover (#5223).
 
     A bare-earth elevation model removes bridges and knows nothing of tunnels, so the street-gradient sampler reads
-    such a street at its ends only. The readings match ``export-street-gradient-input.sh``: any ``bridge`` or
+    such a street at its ends only. The value readings match ``export-street-gradient-input.sh``: any ``bridge`` or
     ``tunnel`` value but ``no`` counts (``viaduct``, ``movable``, ``building_passage``, ``culvert``), and ``covered``
     only when ``yes``. After simplification a tag can be a list of the merged ways' values, and a street that is a
-    structure on any part of its length is one, since the alternative is sampling the ravine under that part.
+    structure on any part of its length is one, since the alternative is sampling the ravine under that part (the
+    export's ``osm_way`` path sees only the way a street starts on, so it can miss such a street).
 
     Args:
         bridge:  The edge's ``bridge`` tag — a scalar, a list, or NaN/None when untagged.
@@ -1520,15 +1524,19 @@ def write_structures_csv(path, roads):
     A new city's ``osm_way`` cache is empty until the first nightly refresh, and the export refuses to read structure
     flags from an empty cache, since every bridge would then be sampled as the ravine beneath it. This file lets
     ``export-street-gradient-input.sh --structures`` take the flags from the build instead, so the city can be
-    sampled during onboarding. Booleans are written as Postgres ``t``/``f``, the spelling the sampler reads.
+    sampled during onboarding. Booleans are written as Postgres ``t``/``f``, which psql's ``\\copy`` reads into a
+    boolean column. ``geom_md5`` is the hash the export computes as ``md5(ST_AsBinary(geom))``: shapely's WKB is
+    byte-identical to PostGIS's for the geometry the SQL loads, so the export can tell a file from this build apart
+    from one whose streets happen to share the ids (every build numbers them 1..N).
 
     Args:
         path:  Output ``.csv`` path.
-        roads: Final street GeoDataFrame, with ``road_id`` and ``is_structure``.
+        roads: Final street GeoDataFrame, with ``road_id``, ``is_structure`` and geometry.
     """
     pd.DataFrame({
         'street_edge_id': roads['road_id'].values,
         'is_structure': ['t' if flag else 'f' for flag in roads['is_structure']],
+        'geom_md5': [hashlib.md5(geom.wkb).hexdigest() for geom in roads.geometry],
     }).to_csv(path, index=False)
 
 
@@ -1820,6 +1828,8 @@ def run_from_gpkg(args):
     else:
         logger.warning('The qgis_road layer has no is_structure column, so street_structures.csv is not written: '
                        'sample the street gradient after the first nightly OSM way refresh (docs/street-gradient.md).')
+        # An earlier build's file would otherwise be taken for this one's by the onboarding orchestrator.
+        (out_dir / 'street_structures.csv').unlink(missing_ok=True)
     roads['length_m'] = [geodesic_length_m(geom) for geom in roads.geometry]
 
     errors = validate_staging(roads, regions)
@@ -1844,12 +1854,14 @@ def run_from_gpkg(args):
     endpoints_path = out_dir / 'street_edge_endpoints.csv'
     write_sql(sql_path, roads, regions)
     write_endpoints_csv(endpoints_path, roads)
+    written = [sql_path, endpoints_path]
     if 'is_structure' in roads.columns:
         write_structures_csv(out_dir / 'street_structures.csv', roads)
+        written.append(out_dir / 'street_structures.csv')
     write_report(report_path, args, f'edited GeoPackage ({gpkg_path.name})', roads, regions, roads.iloc[0:0],
                  stats, coverage, None)
-    logger.info('\nWrote:\n  %s\n  %s\n  %s\nThe SQL now matches the edited GeoPackage.', sql_path, endpoints_path,
-                report_path)
+    logger.info('\nWrote:\n%s\nThe SQL now matches the edited GeoPackage.',
+                '\n'.join(f'  {path}' for path in written + [report_path]))
 
 
 def main(argv=None):
@@ -1959,8 +1971,8 @@ def main(argv=None):
     write_structures_csv(out_dir / 'street_structures.csv', roads)
     write_report(report_path, args, region_source, roads, regions, dropped, stats, coverage, heal_stats,
                  n_tier1_merged)
-    logger.info('\nWrote:\n  %s\n  %s\n  %s\n  %s\nQA the GeoPackage in QGIS before loading the SQL (see the report).',
-                gpkg_path, sql_path, endpoints_path, report_path)
+    logger.info('\nWrote:\n  %s\n  %s\n  %s\n  %s\n  %s\nQA the GeoPackage in QGIS before loading the SQL (see the '
+                'report).', gpkg_path, sql_path, endpoints_path, out_dir / 'street_structures.csv', report_path)
 
 
 if __name__ == '__main__':

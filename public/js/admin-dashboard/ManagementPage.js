@@ -365,8 +365,17 @@ class ManagementPage {
   // --- Maintenance ------------------------------------------------------------------------------------------------
 
   #wireMaintenance() {
-    // `done` is what the button reports on success: a trigger that answers before its job finishes can't say "Done",
-    // and one that answers with its counts hands them to a function so the admin need not open the Health panel.
+    /**
+     * Wires one maintenance button: confirm, call the endpoint, report in the status region.
+     *
+     * @param {string} id - The button's element id.
+     * @param {string} url - The endpoint to call.
+     * @param {string} method - Its HTTP method.
+     * @param {string} label - The action, as the status line names it.
+     * @param {string | ((result: any) => string)} [done] - What the button reports on success: a trigger that
+     *   answers before its job finishes can't say "Done", and one that answers with its counts hands them to a
+     *   function so the admin need not open the Health panel.
+     */
     const run = (id, url, method, label, done = `Done: ${label}.`) => {
       const btn = /** @type {HTMLButtonElement} */ (document.getElementById(id));
       if (!btn) return;

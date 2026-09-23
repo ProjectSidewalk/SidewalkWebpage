@@ -182,8 +182,11 @@ class StreetGradientTableSpec
         moved   <- insertStreet()
         missing <- insertStreet()
         hidden  <- insertStreet(status = "no_imagery")
-        _       <- insertMeasured(current)
-        _       <- sqlu"""UPDATE street_gradient
+        // The tutorial street is never exported or served, so it is not owed a grade either; rolled back with the rest.
+        tutorial <- insertStreet()
+        _        <- sqlu"UPDATE config SET tutorial_street_edge_id = $tutorial"
+        _        <- insertMeasured(current)
+        _        <- sqlu"""UPDATE street_gradient
                            SET geom_md5 = (SELECT md5(ST_AsBinary(geom)) FROM street_edge
                                            WHERE street_edge_id = $current)
                            WHERE street_edge_id = $current"""
@@ -191,7 +194,7 @@ class StreetGradientTableSpec
         after <- table.stalenessCounts(servedStreets)
       } yield (before, after))
 
-      // The hidden street has no row either, but no API serves it, so it is not owed a grade.
+      // The hidden and tutorial streets have no row either, but no API serves them, so neither is owed a grade.
       unsampledAfter - unsampledBefore mustBe 1
       staleAfter - staleBefore mustBe 1
     }

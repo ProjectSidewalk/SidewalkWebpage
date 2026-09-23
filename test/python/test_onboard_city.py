@@ -9,7 +9,9 @@ osmnx mocked out.
 The geo stack (requirements-offline-tools.txt) needs >= 3.11, so the whole module skips on the in-band 3.8 half.
 """
 
+import hashlib
 import logging
+import re
 import sys
 from types import SimpleNamespace
 
@@ -891,8 +893,7 @@ def test_run_from_gpkg_regenerates_sql_from_edited_layers(tmp_path):
     assert 'edited GeoPackage' in report
     assert 'covering' in report
     assert (tmp_path / 'street_edge_endpoints.csv').exists()
-    assert (tmp_path / 'street_structures.csv').read_text().splitlines() == ['street_edge_id,is_structure', '1,f',
-                                                                             '2,t']
+    assert _flags(tmp_path / 'street_structures.csv') == ['1,f', '2,t']
 
 
 def test_run_from_gpkg_reads_a_hand_added_street_as_not_a_structure(tmp_path, caplog):
@@ -904,7 +905,7 @@ def test_run_from_gpkg_reads_a_hand_added_street_as_not_a_structure(tmp_path, ca
     with caplog.at_level(logging.INFO):
         oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
     assert any('1 street(s) carry no is_structure flag' in record.message for record in caplog.records)
-    assert (tmp_path / 'street_structures.csv').read_text().splitlines()[1:] == ['1,f', '2,t']
+    assert _flags(tmp_path / 'street_structures.csv') == ['1,f', '2,t']
 
 
 def test_run_from_gpkg_accepts_a_hand_built_layer_with_one_way_id_per_street(tmp_path, caplog):
@@ -913,10 +914,13 @@ def test_run_from_gpkg_accepts_a_hand_built_layer_with_one_way_id_per_street(tmp
     hand_built['osm_id'] = [100, 101]
     hand_built.to_file(path, layer='qgis_road', driver='GPKG')
     _city_regions().to_file(path, layer='qgis_region', driver='GPKG')
+    # An earlier fetch build's file, which the onboarding orchestrator would otherwise take for this build's.
+    (tmp_path / 'street_structures.csv').write_text('street_edge_id,is_structure,geom_md5\n1,t,x\n')
     with caplog.at_level(logging.WARNING):
         oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
     assert '\t{101}\tprimary\t' in (tmp_path / 'qgis_tables.sql').read_text()
-    # Without structure flags the gradient export has to wait for the nightly osm_way cache, and the run says so.
+    # Without structure flags the gradient export has to wait for the nightly osm_way cache, and the run says so;
+    # the stale file goes too.
     assert not (tmp_path / 'street_structures.csv').exists()
     assert any('no is_structure column' in record.message for record in caplog.records)
 
@@ -988,8 +992,7 @@ def test_main_uses_osm_neighborhoods_and_writes_artifacts(tmp_path, monkeypatch)
     endpoints = (tmp_path / 'street_edge_endpoints.csv').read_text().splitlines()
     assert endpoints[0] == 'street_edge_id,region_id,x1,y1,x2,y2,geom'
     assert len(endpoints) == 4
-    assert (tmp_path / 'street_structures.csv').read_text().splitlines() == ['street_edge_id,is_structure', '1,f',
-                                                                             '2,f', '3,f']
+    assert _flags(tmp_path / 'street_structures.csv') == ['1,f', '2,f', '3,f']
 
 
 def test_main_falls_back_to_census_when_osm_is_sparse(tmp_path, monkeypatch):
@@ -1299,10 +1302,27 @@ def test_write_endpoints_csv_matches_the_scans_input_contract(tmp_path):
     assert wkb.loads(rows.loc[1, 'geom'], hex=True).equals(LineString([(0.012, 0.005), (0.018, 0.005)]))
 
 
-def test_write_structures_csv_spells_booleans_the_way_the_sampler_reads_them(tmp_path):
+def _flags(path):
+    """The id and flag of each row of a street_structures.csv, checking the hash column is a hash as it goes."""
+    header, *rows = path.read_text().splitlines()
+    assert header == 'street_edge_id,is_structure,geom_md5'
+    assert all(re.fullmatch('[0-9a-f]{32}', row.rsplit(',', 1)[1]) for row in rows)
+    return [row.rsplit(',', 1)[0] for row in rows]
+
+
+def test_write_structures_csv_spells_booleans_for_psql_and_hashes_the_geometry(tmp_path):
+    """
+    t/f is what \\copy reads into a boolean column. The hash is md5 of the geometry's WKB, which is what the export
+    computes as md5(ST_AsBinary(geom)): shapely's WKB and PostGIS's were checked byte-identical for a geometry the
+    SQL loads (both NDR, 2-D, no SRID), so the export can tell this build's file from another's by geometry.
+    """
     path = tmp_path / 'street_structures.csv'
-    oc.write_structures_csv(path, _staged_roads())
-    assert path.read_text().splitlines() == ['street_edge_id,is_structure', '1,f', '2,t']
+    roads = _staged_roads()
+    oc.write_structures_csv(path, roads)
+    hashes = [hashlib.md5(geom.wkb).hexdigest() for geom in roads.geometry]
+    assert path.read_text().splitlines() == ['street_edge_id,is_structure,geom_md5', f'1,f,{hashes[0]}',
+                                             f'2,t,{hashes[1]}']
+    assert hashes[0] != hashes[1]
 
 
 # --------------------------------------------------------------------------------------------------------------------

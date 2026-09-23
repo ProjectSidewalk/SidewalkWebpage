@@ -36,7 +36,8 @@ It chains every remaining setup step, pausing only where a human is required:
   8. Samples the street gradient (#5223, docs/street-gradient.md): exports the streets with the build's
      bridge/tunnel flags (db/onboarding/<city-id>/street_structures.csv, so it needs no nightly osm_way cache),
      runs scripts/street_gradient.py in the web container, and imports the result into street_gradient. A country
-     with no registered elevation model gets the hand-download route printed and the run goes on.
+     with no registered elevation model gets the hand-download route printed and the run goes on; once the model is
+     downloaded, a rerun with --dem-dir, --dem-name and --dem-resolution-m (the sampler's own flags) samples it.
   9. Dumps the finished schema to db/<schema>-dump — the file import-dump.sh and the server both restore — with the
      data of every table onboarding does not write left out, so a local QA pass or a job run never rides into the
      launched city; then prints the server handoff checklist.
@@ -381,29 +382,30 @@ def handoff_checklist(city_id, schema, prod_url, test_url, gradient):
     backfill = 'or backfill the live city later (sidewalk-server-tools, the street-gradient backfill runbook)'
     if gradient == 'sampled':
         gradient_line = (
-            '''  7. Street grades ride in the dump (street_gradient), so the AccessScore's grade layer and grade term work
-     from launch. Admin > Health's "Street gradient staleness" row says when a street import calls for a top-up
-     (docs/street-gradient.md).''')
+            '''  7. Street grades ride in the dump (street_gradient), so the AccessScore's grade layer and grade term
+     work from launch. Admin > Health's "Street gradient staleness" row says when a street import calls for a
+     top-up (docs/street-gradient.md).''')
     elif gradient == 'no_source':
         gradient_line = (
-            f'''  7. Street grades were NOT sampled: no elevation model is registered for this country. Download a bare-earth
-     model by hand (docs/street-gradient.md, "Sources by country") and rerun `make onboard-city id={city_id}` before
-     the dump, {backfill}. Until then the city's AccessScore carries no grade term and the tool hides its grade
-     controls.''')
+            f'''  7. Street grades were NOT sampled: no elevation model is registered for this country. Download a
+     bare-earth model by hand (docs/street-gradient.md, "Sources by country") and rerun
+     `make onboard-city id={city_id} args="{DEM_FLAGS_EXAMPLE.format(city_id=city_id)}"`
+     before the dump (a rerun without those flags is refused again), {backfill}. Until then the city's AccessScore
+     carries no grade term and the tool hides its grade controls.''')
     elif gradient == 'no_structures':
         gradient_line = (
-            f'''  7. Street grades were NOT sampled: the build wrote no street_structures.csv, so bridges could not be told
-     from the ravines beneath them. Rebuild the city data (`make build-city-data id={city_id} ...`, then rerun
-     `make onboard-city id={city_id}`, which comes straight back to step 8), or sample the live city after its first
-     nightly OSM way refresh, {backfill}. Until then the AccessScore carries no grade term.''')
+            f'''  7. Street grades were NOT sampled: the build wrote no street_structures.csv, so bridges could not be
+     told from the ravines beneath them. Rebuild the city data (`make build-city-data id={city_id} ...`, then rerun
+     `make onboard-city id={city_id}`, which comes straight back to step 8), or sample the live city after its
+     first nightly OSM way refresh, {backfill}. Until then the AccessScore carries no grade term.''')
     elif gradient == 'unknown':
         gradient_line = (
             '''  7. Street grades: street_gradient could not be read, so whether the dump carries them is unknown. Check
      the table (docs/street-gradient.md) before handing the dump over.''')
     else:
         gradient_line = (
-            f'''  7. Street grades were NOT sampled: rerun `make onboard-city id={city_id}` without --skip-gradient (it comes
-     straight back to step 8) before handing the dump over, {backfill}.
+            f'''  7. Street grades were NOT sampled: rerun `make onboard-city id={city_id}` without --skip-gradient
+     (or --dump-only; either way it comes straight back to step 8) before handing the dump over, {backfill}.
      Until then the AccessScore carries no grade term.''')
     return f'''
 Server handoff for {city_id}:
@@ -913,16 +915,24 @@ def run_imagery_scan(schema, city_id, pano_type):
 # resolve_source): the one failure the run continues past, since the fix is a download, not a rerun.
 GRADIENT_NO_SOURCE = 'no elevation source is registered'
 
+# The sampler flags a rerun needs for a country with no registered model, as make onboard-city takes them (args=).
+DEM_FLAGS_EXAMPLE = '--dem-dir db/onboarding/{city_id}/dem --dem-name <product> --dem-resolution-m <meters>'
 
-def run_street_gradient(schema, city_id):
+
+def run_street_gradient(schema, city_id, sampler_args=()):
     """
     Fills street_gradient (#5223): exports the streets with the build's structure flags, samples the elevation model
     in the web container (which holds the python3.13 deps), and imports the result.
 
     The build's street_structures.csv stands in for the osm_way cache, which is empty until the city's first nightly
     refresh; without it every bridge would be sampled as the ravine beneath it, so the step is skipped rather than
-    run blind. The sampler's stderr is held and printed at the end, since reading it is how the "no source for this
-    country" refusal is told from a failure; its stdout streams as usual.
+    run blind. The sampler logs to stderr, so that stream is echoed line by line as it arrives (a large city takes a
+    minute or two) and kept, since reading it back is how the "no source for this country" refusal is told from a
+    failure.
+
+    Args:
+        sampler_args: Extra flags for scripts/street_gradient.py: --dem-dir, --dem-name and --dem-resolution-m for
+                      a country with no registered elevation model, once its rasters are downloaded by hand.
 
     Returns:
         ``sampled`` when the table is filled; ``no_source`` when the city's country has no registered elevation
@@ -943,20 +953,27 @@ def run_street_gradient(schema, city_id):
                 'Fix the cause and rerun; the rerun comes straight back to this step.')
     print('  Sampling the elevation model along every street (seconds for most cities, a minute or two for a '
           'large one)...')
-    sampler = subprocess.run(docker_argv(WEB_CONTAINER, 'python3.13', 'scripts/street_gradient.py',
-                                         '--city-id', city_id, flags=('-i',)), stderr=subprocess.PIPE, text=True)
-    print(sampler.stderr, end='', file=sys.stderr)
-    if sampler.returncode != 0:
-        if GRADIENT_NO_SOURCE in sampler.stderr:
+    sampler = subprocess.Popen(docker_argv(WEB_CONTAINER, 'python3.13', 'scripts/street_gradient.py',
+                                           '--city-id', city_id, *sampler_args, flags=('-i',)),
+                               stderr=subprocess.PIPE, text=True)
+    log = []
+    for line in sampler.stderr:
+        print(line, end='', file=sys.stderr, flush=True)
+        log.append(line)
+    status = sampler.wait()
+    if status != 0:
+        if GRADIENT_NO_SOURCE in ''.join(log):
+            dem_flags = DEM_FLAGS_EXAMPLE.format(city_id=city_id)
             print(f'''  No elevation model is registered for this country, so the grade is not sampled now. Once a
-  bare-earth model is downloaded by hand (docs/street-gradient.md, "Sources by country"), a rerun of
-  `make onboard-city id={city_id}` samples it, or by hand:
-    make street-gradient id={city_id} args="--dem-dir db/onboarding/{city_id}/dem --dem-name <product> \\
-        --dem-resolution-m <meters>"
+  bare-earth model is downloaded by hand (docs/street-gradient.md, "Sources by country"), rerun with the sampler's
+  flags (a rerun without them is refused again):
+    make onboard-city id={city_id} args="{dem_flags}"
+  or sample and import by hand:
+    make street-gradient id={city_id} args="{dem_flags}"
     make import-street-gradient args="{schema} onboarding/{city_id}/street_gradient.csv"''')
             return 'no_source'
-        sys.exit(f'error: scripts/street_gradient.py failed (exit {sampler.returncode}); its output is above. Fix '
-                 'the cause and rerun; the rerun comes straight back to this step.')
+        sys.exit(f'error: scripts/street_gradient.py failed (exit {status}); its output is above. Fix the cause '
+                 'and rerun; the rerun comes straight back to this step.')
     run_or_exit(['/opt/scripts/import-street-gradient.sh', schema, f'onboarding/{city_id}/street_gradient.csv'],
                 f'importing the sampled grades into {schema} failed',
                 'The import runs in one transaction, so nothing was loaded: fix the cause and rerun.')
@@ -1185,6 +1202,11 @@ def main(argv=None):
                         help='Skip the imagery scan (step 7); a later rerun picks it up.')
     parser.add_argument('--skip-gradient', action='store_true',
                         help='Skip the street gradient sampling (step 8); a later rerun picks it up.')
+    parser.add_argument('--dem-dir', help='Step 8, for a country with no registered elevation model: a directory of '
+                                          'hand-downloaded rasters, passed to scripts/street_gradient.py with the '
+                                          'two flags below (all three or none).')
+    parser.add_argument('--dem-name', help='With --dem-dir: the source name to record, e.g. "inegi-mdt-5m".')
+    parser.add_argument('--dem-resolution-m', help='With --dem-dir: the rasters\' resolution in meters.')
     parser.add_argument('--dump-only', action='store_true',
                         help='Run only step 9 — the dump and the handoff — for a city QA\'d after its first dump.')
     parser.add_argument('--allow-running-apps', action='store_true',
@@ -1198,6 +1220,10 @@ def main(argv=None):
     problem = regions_problem(args.tutorial_region, args.regions) if args.regions else None
     if problem:
         parser.error(f'--regions {problem}')
+    dem_flags = {'--dem-dir': args.dem_dir, '--dem-name': args.dem_name, '--dem-resolution-m': args.dem_resolution_m}
+    if any(dem_flags.values()) and not all(dem_flags.values()):
+        parser.error('--dem-dir, --dem-name and --dem-resolution-m go together (the sampler needs all three).')
+    sampler_args = [part for flag, value in dem_flags.items() if value for part in (flag, value)]
     if args.dry_run and args.dump_only:
         parser.error('--dry-run drives no container and --dump-only does nothing else; pick one')
     if args.recreate and args.dump_only:
@@ -1416,7 +1442,7 @@ def main(argv=None):
         print('  The grades were already imported into street_gradient; skipping.')
         gradient = 'sampled'
     else:
-        gradient = run_street_gradient(schema, city_id)
+        gradient = run_street_gradient(schema, city_id, sampler_args)
 
     print('\nStep 9/9 — dump the finished schema for the server...')
     dump_schema(schema)

@@ -246,10 +246,11 @@ class StreetGradientTable @Inject() (protected val dbConfigProvider: DatabaseCon
   private val md5        = SimpleFunction.unary[Array[Byte], String]("md5")
 
   /**
-   * How many served streets the export script would emit: those with no row, and those whose geometry has changed
-   * since they were sampled (the same `geom_md5` test as `isStale`, over the whole city). Counted nightly so a city
-   * that was never sampled, or that took a street import, shows up on the Health panel rather than silently scoring
-   * without grade.
+   * How many served streets have no current gradient: those with no row, and those whose geometry has changed since
+   * they were sampled (the same `geom_md5` test as `isStale`, over the whole city). Counted nightly so a city that
+   * was never sampled, or that took a street import, shows up on the Health panel rather than silently scoring
+   * without grade. The export script also emits hidden and closed streets, which no API serves, so its row count
+   * can exceed these.
    *
    * @param servedStreets The streets that count, the set the public street APIs serve (`StreetEdgeTable.streets`),
    *                      so a hidden street no API returns never reads as missing.
