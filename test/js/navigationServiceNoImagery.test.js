@@ -43,6 +43,22 @@ function kmBetween([lng1, lat1], [lng2, lat2]) {
     return Math.sqrt(x * x + y * y) * KM_PER_DEGREE;
 }
 
+/** google.maps.LatLng as GsvViewer reads it: accessor methods, not fields. */
+class FakeLatLng {
+    constructor(lat, lng) {
+        this._lat = lat;
+        this._lng = lng;
+    }
+
+    lat() {
+        return this._lat;
+    }
+
+    lng() {
+        return this._lng;
+    }
+}
+
 const lineFeature = (coordinates) => ({ type: 'Feature', geometry: { type: 'LineString', coordinates } });
 const pointFeature = (coordinates) => ({ type: 'Feature', geometry: { type: 'Point', coordinates } });
 
@@ -636,5 +652,88 @@ describe('Explore, when the imagery search runs out along a street', () => {
         // A 100 m street sampled every 10 m: the exact count is geometry's business, but a single probe would mean
         // one dead pano could condemn a whole street.
         expect(pointsSearchedOn(101)).toBeGreaterThan(3);
+    });
+
+    describe('with the real GsvViewer answering the sweep (#5114)', () => {
+        let viewer;
+        let getPanorama;
+
+        beforeEach(() => {
+            // GsvViewer measures replies with the real haversine; loading utilitiesMath swaps in the full util.math.
+            window.eval(readSrc('public/js/common/utilitiesMath.js'));
+            window.google = {
+                maps: {
+                    importLibrary: async () => ({ LatLng: FakeLatLng }),
+                    LatLng: FakeLatLng,
+                    StreetViewSource: { OUTDOOR: 'outdoor' },
+                },
+            };
+            window.moment = (value) => value;
+            window.PanoData = class {
+                constructor(params) {
+                    this.params = params;
+                }
+
+                getPanoId() {
+                    return this.params.panoId;
+                }
+
+                getProperty(key) {
+                    return this.params[key];
+                }
+            };
+            const stubs = ['MapillaryViewer', 'Infra3dViewer', 'PannellumViewer', 'PanoramaxViewer']
+                .map((name) => `class ${name} {}`).join('\n');
+            window.eval(`${stubs}
+                ${readSrc('public/js/common/pano-viewer/src/PanoViewer.js')}
+                ${readSrc('public/js/common/pano-viewer/src/GsvViewer.js')}
+                window.GsvViewer = GsvViewer;`);
+            viewer = new window.GsvViewer();
+            getPanorama = jest.fn();
+            viewer.streetViewService = { getPanorama };
+            viewer._loadPanoWithTimeout = jest.fn(async (_panoId, resolveValue) => resolveValue);
+            jest.spyOn(console, 'warn').mockImplementation(() => {}); // The FarPanoRejected diagnostic warns.
+            // The stuck set holds what panoStore returns, and the real viewer asks each of those for its id.
+            svl.panoStore.getPanoData = (panoId) => ({ panoId, getPanoId: () => panoId });
+            // The sweep's one seam, now backed by the real viewer rather than a scripted answer.
+            svl.panoManager.setLocation.mockImplementation((latLng, excludedPanos) => {
+                searches.push({ latLng, streetEdgeId: svl.taskContainer.getCurrentTask().getStreetEdgeId() });
+                return viewer.setLocation(latLng, excludedPanos);
+            });
+        });
+
+        afterEach(() => {
+            console.warn.mockRestore();
+        });
+
+        /** A getPanorama() reply for a pano at `[lng, lat]`, with the fields the viewer reads. */
+        const gsvReply = (pano, [lng, lat]) => ({
+            data: {
+                location: { pano, latLng: new FakeLatLng(lat, lng), shortDescription: '' },
+                copyright: '© Google', imageDate: '2024-05', links: [], time: [],
+                tiles: {
+                    worldSize: { width: 1, height: 1 }, tileSize: { width: 1, height: 1 },
+                    originHeading: 0, originPitch: 0,
+                },
+            },
+        });
+
+        it('a far answer at one step walks on to a near pano 10 m further, not to the end of the street', async () => {
+            assignStreets(makeTask(101, { lengthKm: 0.1 }), makeTask(102));
+            // The #5114 answer at the first point searched; a pano 3 m off the street at every later one.
+            getPanorama.mockImplementation(async ({ location }) => (getPanorama.mock.calls.length === 1
+                ? gsvReply('SYRACUSE', [-76.1720131, 43.0917906])
+                : gsvReply(`near-${getPanorama.mock.calls.length}`, [location.lng(), location.lat() + 3 / 111320])));
+
+            await nav.moveForward();
+
+            expect(searches).toHaveLength(2);
+            expect(kmBetween([searches[0].latLng.lng, searches[0].latLng.lat],
+                [searches[1].latLng.lng, searches[1].latLng.lat]) * 1000).toBeCloseTo(10, 0);
+            expect(viewer.getPanoId()).toBe('near-2');
+            expect(viewer._loadPanoWithTimeout).toHaveBeenCalledTimes(1); // Syracuse was never loaded.
+            expect(reportNoImagery).not.toHaveBeenCalled();
+            expect(svl.taskContainer.setCurrentTask).not.toHaveBeenCalled();
+        });
     });
 });

@@ -63,8 +63,9 @@ class LabelCardView {
    */
   render({ labelType, severity = null, tagNames = [], description = null, aiGenerated = false }) {
     const typeName = i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', '');
-    this.#icon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
-    this.#type.textContent = typeName;
+    // Both absent when the header is a type dropdown, which its owner draws instead.
+    if (this.#icon) this.#icon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
+    if (this.#type) this.#type.textContent = typeName;
 
     // Provenance, not a fact about the label, so it sits in its own strip above the body and stays out of the
     // empty-state test below: a label with nothing but this to say still reads "no available information".

@@ -141,15 +141,18 @@ counts toward a street's verdict:
 
 - **Along the street:** GSV's `radius` parameter is a search hint, not a bound. A 25 m query has returned a pano 77 m
   away, and in Seattle a user photosphere in another state (#5114); a 15 m scan accepted the same far panos. So the
-  scan treats a pano as no imagery when it lies beyond the search radius of both the query point and the street's own
-  centerline. The street half matters: a pano more than 25 m further down the same street is still imagery of it, and
-  a point-only check hid six Teaneck streets that way. Explore's own viewer does not yet make that check, so it can
-  still open such a pano (#5114).
+  scan checks the position each GSV response reports, and treats a pano as no imagery at that point when it lies
+  beyond the search radius of both the query point and the street's own centerline. The street half matters: a pano
+  more than 25 m further down the same street is still imagery of it, and a point-only check hid six Teaneck streets
+  that way. Explore's viewer makes the point half of that check (#5114) and gets the street half from sampling the
+  street every 10 m, so the two agree on which panos count as imagery at a point. Their street-level verdicts still
+  differ: the scan weighs endpoints and a failure fraction, while Explore needs only one point along the street to
+  work. Mapillary and Panoramax already filter to the box server-side, and Infra3d applies its radius client-side.
 - **Across the street:** the pano must sit within `--max-cross-track-m` (default **15 m**) of the centerline. The
   one exception is the answer to either of the street's two endpoint queries: it also counts if the pano lies within
   **25 m** of an endpoint. An endpoint is an intersection, and the nearest pano to one is often up the crossing street.
   The allowance is a disc around each endpoint, and only the endpoint queries get it: every point between them is held
-  to the limit, however near an end its pano is.
+  to the limit, however near an end its pano is. Explore does not apply this test; it is the scan's alone.
 
 Every distance is measured from the street's stored centerline. The walk samples points from a resampled copy, whose
 straight chords cut the corners of a bend.
@@ -298,7 +301,10 @@ first source that works: `--regions-file` (any OGR format/CRS; `--region-name-co
 
 Outputs land in `db/onboarding/<city-id>/` (git-ignored; visible to the db container at `/opt/onboarding/` when run
 from the main checkout): the QA GeoPackage, `qgis_tables.sql`, `street_edge_endpoints.csv` (the scan's input, so the
-preflight below runs before any database exists), and `report.md` with the tiny-segment histogram (production
+preflight below runs before any database exists), `street_structures.csv` (which streets are on a bridge, in a
+tunnel or covered, from the OSM tags, with each street's geometry hash, so the street-gradient export can run before
+the nightly `osm_way` cache exists and can refuse a file from another build; it rides in the GeoPackage too, so a
+`--from-gpkg` re-export rewrites it), and `report.md` with the tiny-segment histogram (production
 averages 18% of streets under 20 m; Bayonne rebuilt at 4%), per-region km with `SPARSE`/`OVERSIZED`/`EMPTY` flags,
 and boundary coverage. The QA loop: rerun with tweaked flags — `--merge-regions
 "Census Tract 513:Census Tract 523.01"` folds regions by *name* and re-splits the streets against the merged
@@ -320,6 +326,10 @@ make street-gradient id=cdmx args="--dem-dir db/onboarding/cdmx/dem --dem-name i
 make import-street-gradient
 ```
 
+`make onboard-city` runs the three for a new city (step 8), passing the export
+`--structures onboarding/<city-id>/street_structures.csv` so it needs no `osm_way` cache; a live city is topped up
+by hand with the same three commands, and the nightly `StreetGradientStalenessActor` says when (Admin > Health).
+
 - **Sources.** A registered source is chosen from the city's `country-id` in `conf/cityparams.conf` (only the USA so
   far). Anything else goes through `--dem-dir`: a directory of hand-downloaded GeoTIFFs in any mix of coordinate
   systems, elevations in meters.
@@ -328,7 +338,9 @@ make import-street-gradient
   untagged street whose profile holds an implausible pitch is drawn as a straight line between its endpoints
   (`quality = suspect`).
 - **An empty `osm_way` stops the export**, since every bridge would then be sampled as the ground beneath it. Pass
-  `args=--allow-empty-osm-way` for a city that really has none, and `args=--all` to resample every street.
+  `args="--structures onboarding/<city-id>/street_structures.csv"` to take the flags from the street build (what
+  onboarding does), `args=--allow-empty-osm-way` for a city that really has none, and `args=--all` to resample
+  every street. The tutorial street is never exported.
 - **Resume.** Rows are flushed a grid cell at a time; `--resume` keeps the ones that answer the current export (same
   street, same `geom_md5`) and samples the rest.
 - **No network in tests.** `test/python/test_street_gradient.py` writes small GeoTIFFs whose elevation is a known

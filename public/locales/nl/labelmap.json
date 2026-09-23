@@ -177,8 +177,6 @@
       "photo-invalid": "We konden dat bestand niet als afbeelding lezen (JPEG of PNG)."
     }
   },
-  "change-type": "Labeltype wijzigen",
-  "change-type-hint": "Tags die niet bij het nieuwe type passen worden verwijderd. Een beoordeling blijft alleen behouden tussen types die op dezelfde manier beoordeeld worden.",
   "edit-type-changed": "Gewijzigd naar {{labelType}}",
   "edit-undo": "Ongedaan maken",
   "edit-conflict-short": "Labeltype elders gewijzigd",

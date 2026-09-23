@@ -177,8 +177,6 @@
       "photo-invalid": "No pudimos leer ese archivo como imagen (JPEG o PNG)."
     }
   },
-  "change-type": "Cambiar el tipo de etiqueta",
-  "change-type-hint": "Las etiquetas que no correspondan al nuevo tipo se eliminan. Una calificación solo se conserva entre tipos que se califican de la misma manera.",
   "edit-type-changed": "Cambiado a {{labelType}}",
   "edit-undo": "Deshacer",
   "edit-conflict-short": "Tipo de etiqueta cambiado en otro lugar",

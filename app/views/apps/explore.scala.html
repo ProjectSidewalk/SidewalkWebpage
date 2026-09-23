@@ -486,8 +486,10 @@
               <span class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></span>
             </div>
           </div>
+          @* Never hidden: it holds PanoInfoPopover's button too, which has to survive a pano reporting no usable
+             capture date. PanoDateNote adds .svl-pano-pill, only on panos carrying an assessment note (#5413). *@
           <div id="svl-panorama-date-holder">
-            <span id="svl-panorama-date"></span>
+            <span id="svl-panorama-date-pill"><span id="svl-panorama-date"></span></span>
           </div>
           @* Stuck / sound / feedback controls at top-left of the pano. Collapsed by default. *@
           <div id="explore-control-buttons-holder" class="pano-overlay-button-group">

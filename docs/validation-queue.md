@@ -33,8 +33,9 @@ change is served the label again (their old vote stays as history). A change mad
 Agree, so the label starts again with that one vote; one made from the label detail card records no vote at all, so it
 starts with none. The same rule
 applies to the AI's vote in the AI-contested predicate below, and to the AI tag suggestions the tool shows. Expert
-Validate is where a type gets changed: its fourth verdict, "Wrong type", is submitted as an Agree on the picked type
-(`ValidationSubmission.newLabelType`), so the changer's own vote is the first one counted under the new type.
+Validate is where a type gets changed: the "wrong label type" disagree reason (or the type dropdown in the label card)
+is submitted as an Agree on the picked type (`ValidationSubmission.newLabelType`), so the changer's own vote is the
+first one counted under the new type.
 
 - **capped out** — `totalVotes >= MaxCrowdVotes`. The crowd has had its five swings and is still undecided.
 - **unsure-heavy** — `unsure_count >= UnsureHeavyMinVotes` and `unsure_count >= agree_count + disagree_count`. The

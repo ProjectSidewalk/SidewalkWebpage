@@ -232,7 +232,9 @@ fill-new-schema:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/fill-new-schema.sh"
 
 # Host-side (edits conf/ and drives both containers), so no docker exec wrapper. Flags go through args=, e.g.
-# `make onboard-city id=laurens-ia args="--skip-scan"`, `args="--dump-only"`, `args="--allow-running-apps"`.
+# `make onboard-city id=laurens-ia args="--skip-scan"`, `args="--dump-only"`, `args="--allow-running-apps"`, and for
+# a country with no registered elevation model, the sampler's own flags once its rasters are downloaded:
+# `args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"`.
 onboard-city:
 	@python3 tools/setup_new_city.py $(id) $(args)
 
@@ -260,8 +262,10 @@ import-street-imagery:
 
 # Street gradient (#5223, docs/street-gradient.md) in three steps: export the streets that need sampling, sample them
 # against a bare-earth elevation model (scripts/street_gradient.py, in the web container), load the result. The export
-# takes `args=--all` to resample every street and `args=--allow-empty-osm-way` for a city with no OSM ways. The export
-# and import prompt for the schema; the sampler takes its flags via args=, e.g.
+# takes `args=--all` to resample every street, `args=--allow-empty-osm-way` for a city with no OSM ways, and
+# `args="--structures onboarding/<city-id>/street_structures.csv"` to take the bridge/tunnel flags from the street
+# build instead of the nightly osm_way cache (what onboard-city does). The export and import prompt for the schema
+# unless the positional args ride in args=; the sampler takes its flags via args=, e.g.
 # `make street-gradient id=cdmx args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"`.
 # Main checkout only, like build-city-data: the db container sees only that checkout's db/.
 export-street-gradient-input:
@@ -271,7 +275,7 @@ street-gradient:
 	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/street_gradient.py --city-id $(id) $(args)"
 
 import-street-gradient:
-	@docker exec -it $(db-container) sh -c "/opt/scripts/import-street-gradient.sh"
+	@docker exec -it $(db-container) sh -c "/opt/scripts/import-street-gradient.sh $(args)"
 
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
 # Split by interpreter because the scripts are: label_clustering.py runs in-band on prod's `python3` (3.8), while the

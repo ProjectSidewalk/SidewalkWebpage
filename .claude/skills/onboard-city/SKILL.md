@@ -10,7 +10,7 @@ Two commands and this skill. Read `docs/onboarding-a-city.md` once; it is the ru
 ```
 make build-city-data id=<city-id> args="..."   # scripts/onboard_city.py → db/onboarding/<city-id>/ (QA gpkg, SQL, report, endpoints csv)
 make check-imagery   id=<city-id> args="--sample --<provider>"   # preflight, one row per provider in preflight_report.md
-make onboard-city    id=<city-id>              # tools/setup_new_city.py → configs, GA, schema, fill, scan, dump + handoff
+make onboard-city    id=<city-id>              # tools/setup_new_city.py → configs, GA, schema, fill, scan, gradient, dump + handoff
 ```
 
 Everything under `db/onboarding/` is git-ignored. The db container sees it at `/opt/onboarding/` **only from the main
@@ -125,9 +125,11 @@ Maps key** (skipped with a pointer when gcloud can't edit it); clones a donor sc
 (the dev container's city by default — refused, with the schemas that disagree named, if its top evolution is another
 branch's under the same number, i.e. its hash is neither the file's nor the other schemas'; pass `--donor` then);
 boots the app once to apply any missing evolutions — and, right after a clone, to let Play verify every applied
-hash; loads and fills; runs the full imagery scan for the chosen provider; checks that nothing but onboarding has
-written to the schema; dumps it to `db/<schema>-dump`; prints the handoff. Rerunning skips finished steps. The
-script's flags go through `args=` (`make onboard-city id=<city-id> args="--skip-scan"`):
+hash; loads and fills; runs the full imagery scan for the chosen provider; samples the street gradient (step 8,
+from the build's `street_structures.csv`, so it needs no nightly `osm_way` cache; a country with no registered
+elevation model gets the `--dem-dir` recipe printed and the run goes on — `docs/street-gradient.md`); checks that
+nothing but onboarding has written to the schema; dumps it to `db/<schema>-dump`; prints the handoff. Rerunning
+skips finished steps. The script's flags go through `args=` (`make onboard-city id=<city-id> args="--skip-scan"`):
 
 - `--dry-run` previews the file edits and drives no container (the one mode allowed from a checkout the
   containers do not mount — the script hashes the file each step uses against the container's copy, so a
@@ -141,7 +143,7 @@ script's flags go through `args=` (`make onboard-city id=<city-id> args="--skip-
   pid. A build in a worktree is not in the way (the caches are shared by design). `--allow-running-apps` boots
   past an idle build in the main checkout; a boot an earlier run left behind is never overridable. The nightly
   actors are off for the boot, so it writes no job rows into the new schema.
-- **The dump (step 8).** The dump leaves out the data of every table the clone, fill and scan do not write
+- **The dump (step 9).** The dump leaves out the data of every table the clone, fill, scan and gradient do not write
   (`region_completion` too, which the app recomputes), so a local QA pass or a job run as the city (from
   `/clustering`, or an app left pointed at the schema) stays local and out of the dump; the step prints what it
   left out. The one value it changes is `street_edge_priority`, which a QA walk moves: it resets them to 1 on
@@ -172,7 +174,10 @@ Follow the checklist the orchestrator prints: dump to the server (`scp` to `<net
 renamed to `<schema>-empty-dump` at the destination), the IT tooling's `setup-new.pl`, Maps-key referrers (step 2
 asks before adding them to the live production key; if gcloud can't edit it, `python3 tools/maps_key_referrers.py
 <city-id>`), DNS, the pano scraper's manifest row (`<city-id>,<prod fqdn>` in `/etc/sidewalk/cities.csv` on the
-scraper host), then the PR (configs + messages + docs). Point the maintainer at the QA items only a person can do:
+scraper host), then the PR (configs + messages + docs). The checklist's step 7 says whether the street grades are in
+the dump; when they are not (no registered elevation model, or `--skip-gradient`), the maintainer either samples
+before the dump (for a hand-downloaded model, a rerun with `args="--dem-dir … --dem-name … --dem-resolution-m …"`)
+or backfills the live city later. Point the maintainer at the QA items only a person can do:
 open the landing page as the new city (map centered, neighborhood names right), walk one street in Explore on the
 chosen imagery, check the Explore tag lists against `excluded_tags`. That walk leaves an `audit_task`, thousands of
 interaction rows and a moved `audited_distance` in the schema, so **after local QA, dump again**: `make onboard-city

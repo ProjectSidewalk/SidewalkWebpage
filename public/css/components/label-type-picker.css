@@ -63,3 +63,72 @@
 .label-type-picker--collapsed .label-type-picker__change {
   display: inline;
 }
+
+/* The type as a title (components/labelTypeTrigger); both versions take their font from the heading they sit in. */
+.label-type-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(8px * var(--ui-scale, 1));
+  min-width: 0;
+}
+
+.label-type-trigger[hidden] {
+  display: none; /* The display rule above would otherwise beat the hidden attribute. */
+}
+
+.label-type-trigger__icon {
+  width: calc(22px * var(--ui-scale, 1));
+  height: calc(22px * var(--ui-scale, 1));
+  flex-shrink: 0;
+}
+
+.label-type-trigger__button {
+  margin: calc(-2px * var(--ui-scale, 1)) calc(-6px * var(--ui-scale, 1));
+  padding: calc(2px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1));
+  border: none;
+  border-radius: calc(6px * var(--ui-scale, 1));
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.label-type-trigger__button[aria-disabled="true"] {
+  cursor: default;
+}
+
+.label-type-trigger__button:not([aria-disabled="true"]):hover {
+  background: rgb(0 0 0 / 6%);
+}
+
+.label-type-trigger__button:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+}
+
+.label-type-trigger__chevron {
+  width: calc(16px * var(--ui-scale, 1));
+  height: calc(16px * var(--ui-scale, 1));
+  transition: transform 150ms ease;
+}
+
+.label-type-trigger__button[aria-expanded="true"] .label-type-trigger__chevron {
+  transform: rotate(180deg);
+}
+
+/* The chips' popover (components/labelTypePopover), parked under the trigger, or inline where there are no popovers. */
+.label-type-popover {
+  margin: 0;
+  padding: calc(12px * var(--ui-scale, 1));
+  max-width: calc(400px * var(--ui-scale, 1));
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-neutral-white);
+  box-shadow: var(--box-shadow-lg);
+}
+
+.label-type-popover__hint {
+  margin: 0 0 calc(8px * var(--ui-scale, 1));
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
