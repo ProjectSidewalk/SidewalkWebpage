@@ -27,7 +27,7 @@ import models.user._
 import models.utils.MyPostgresProfile.api._
 import models.utils.CommonUtils.UiSource
 import models.utils.CommonUtils.UiSource.UiSource
-import models.utils.{ConfigTableDef, LatLngBBox, MyPostgresProfile}
+import models.utils.{ConfigTableDef, Contributors, FilteredTables, LatLngBBox, MyPostgresProfile}
 import models.validation.{
   LabelValidationTableDef,
   ValidationLabelFilter,
@@ -891,6 +891,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     .filterNot(x => x._1.streetEdgeId in tutorialStreetId) // Checking label.street_edge_id.
     .filterNot(_._2.streetEdgeId in tutorialStreetId)      // Checking audit_task.street_edge_id.
     .filterNot { case (_l, _at) => _l.deleted || _l.tutorial }
+    .map(_._1)
+
+  /** Slick twin of [[FilteredTables.accuracyLabels]]. */
+  val labelsForAccuracy = labelsUnfiltered
+    .join(auditTasks)
+    .on(_.auditTaskId === _.auditTaskId)
+    .filterNot(_._1.streetEdgeId in tutorialStreetId)
+    .filterNot(_._2.streetEdgeId in tutorialStreetId)
+    .filter { case (_l, _) => !_l.tutorial && LabelTable.countsTowardAccuracy(_l) }
     .map(_._1)
 
   // Subquery for labels without deleted ones, but includes tutorial labels and labels from "excluded" users. You might
@@ -2036,7 +2045,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .joinLeft(validationTaskComments)
       .on((v, c) => v.missionId === c.missionId && v.labelId === c.labelId)
       .map(x =>
-        (x._1.labelId, x._1.validationResult, x._1.userId, x._1.missionId, x._1.endTimestamp, x._2.map(_.comment))
+        (x._1.labelId, x._1.validationResult, x._1.userId, x._1.missionId, x._1.endTimestamp, x._2.map(_.comment),
+          x._1.labelType)
       )
 
     // Grab validations and associated label information for the given user's labels.
@@ -2044,7 +2054,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lb <- labelsWithExcludedUsers
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _pd <- panoData if _lb.panoId === _pd.panoId
-      _vc <- _validationsWithComments if _lb.labelId === _vc._1
+      _vc <- _validationsWithComments if _lb.labelId === _vc._1 && _vc._7 === _lb.labelType
       _us <- userStats if _vc._3 === _us.userId
       if _lb.userId === userId &&               // Only include the given user's labels.
         _vc._3 =!= userId &&                    // Exclude any cases where the user may have validated their own label.
@@ -2408,12 +2418,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       filters: RawLabelFiltersForApi
   ): SqlStreamingAction[Vector[LabelDataForApi], LabelDataForApi, Effect] = {
     // TODO convert to Slick syntax now that we can use .makeEnvelope, .within, and array aggregation.
-    // Build the base query conditions.
-    var whereConditions = Seq(
-      "label.deleted = FALSE", "label.tutorial = FALSE", "user_stat.excluded = FALSE",
-      "label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)",
-      "audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)"
-    )
+    var whereConditions = Seq.empty[String]
 
     // Apply filter precedence logic for location filters:
     // - If bbox is defined, it takes precedence over region filters
@@ -2474,10 +2479,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       whereConditions :+= s"(${statuses.toSeq.sortBy(_.id).map(conditionsByStatus).mkString(" OR ")})"
     }
 
-    if (filters.highQualityUserOnly) {
-      whereConditions :+= "user_stat.high_quality = TRUE"
-    }
-
     if (filters.startDate.isDefined) {
       whereConditions :+= s"label.time_created >= '${filters.startDate.get.toString}'"
     }
@@ -2487,7 +2488,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     }
 
     // Combine all conditions.
-    val whereClause = whereConditions.mkString(" AND ")
+    val whereClause  = ("TRUE" +: whereConditions).mkString(" AND ")
+    val contributors = Contributors(filters.highQualityUserOnly)
 
     // Create a plain SQL query as a string and execute it.
     sql"""
@@ -2512,7 +2514,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label.disagree_count,
              label.unsure_count,
              vals.validations,
-             audit_task.audit_task_id,
+             label.audit_task_id,
              label.mission_id,
              pano_data.capture_date,
              label_point.heading,
@@ -2531,18 +2533,16 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              pano_data.camera_roll,
              label_point.lat,
              label_point.lng
-      FROM label
+      FROM #${FilteredTables.labels(contributors = contributors)}
       INNER JOIN label_point ON label.label_id = label_point.label_id
       INNER JOIN osm_way_street_edge ON label.street_edge_id = osm_way_street_edge.street_edge_id
       INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
       INNER JOIN region ON street_edge_region.region_id = region.region_id
-      INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
       INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
       INNER JOIN user_stat ON label.user_id = user_stat.user_id
       LEFT JOIN (
-          -- EXISTS, not a join, so it can never repeat a vote. Skips the same votes the counts skip (self-votes,
-          -- excluded users, votes cast on an earlier label type), so the list adds up to agree/disagree/unsure_count.
-          SELECT label.label_id,
+          -- Only votes that count, so the list adds up to agree/disagree/unsure_count.
+          SELECT label_validation.label_id,
                  json_agg(json_build_object(
                    'user_id', label_validation.user_id,
                    'result', label_validation.validation_result,
@@ -2552,12 +2552,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                      WHERE user_role.user_id = label_validation.user_id AND user_role.role = 'AI'
                    )
                  ))::text AS validations
-          FROM label
-          INNER JOIN label_validation ON label.label_id = label_validation.label_id
-          WHERE label_validation.label_type = label.label_type
-            AND label_validation.user_id <> label.user_id
-            AND label_validation.user_id NOT IN (SELECT user_stat.user_id FROM user_stat WHERE user_stat.excluded)
-          GROUP BY label.label_id
+          FROM #${FilteredTables.verdictVotes()}
+          GROUP BY label_validation.label_id
       ) AS "vals" ON label.label_id = vals.label_id
       WHERE #$whereClause
       ORDER BY label.label_id;
@@ -2580,16 +2576,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       launchDate: String,
       avgRecentLabels: Option[OffsetDateTime]
   ): DBIO[ProjectSidewalkStats] = {
-    // We use a different filter in all the sub-queries, depending on whether we filter out low quality data.
-    val userFilter: String =
-      if (filterLowQuality) "user_stat.high_quality"
-      else "NOT user_stat.excluded"
-
-    // Same as `userFilter`, but applied to the LABELER's user_stat (aliased `labeler_stat`) in the per-label
-    // validation-verdict subquery. There, `user_stat` is reused for the validator, so the labeler needs its own alias.
-    val labelerFilter: String =
-      if (filterLowQuality) "labeler_stat.high_quality"
-      else "NOT labeler_stat.excluded"
+    val contributors = Contributors(filterLowQuality)
+    val userFilter   = FilteredTables.contributorFilter(contributors)
 
     // The validation stats are reported three ways: combined (all votes), human (non-AI votes), and ai (AI votes).
     // Rather than hand-write ~150 nearly-identical SQL columns (and risk drift from projectSidewalkStatsConverter), we
@@ -2722,9 +2710,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       FROM (
           SELECT SUM(ST_Length(geom::geography)) / 1000 AS km_audited
           FROM street_edge
-          INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-          INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
-          WHERE completed = TRUE AND #$userFilter
+          INNER JOIN #${FilteredTables.completedAudits(contributors = contributors)}
+              ON street_edge.street_edge_id = audit_task.street_edge_id
       ) AS km_audited, (
           -- Unique street km with at least one completed audit, regardless of imagery age (#4384): the metric is
           -- monotonic, so it never dips when newer imagery lands on an audited street. km_needs_reaudit below carries
@@ -2733,9 +2720,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           FROM (
               SELECT DISTINCT street_edge.street_edge_id, geom
               FROM street_edge
-              INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-              INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
-              WHERE completed = TRUE AND #$userFilter
+              INNER JOIN #${FilteredTables.completedAudits(contributors = contributors)}
+                  ON street_edge.street_edge_id = audit_task.street_edge_id
           ) distinct_streets
       ) AS km_audited_no_overlap, (
           -- Redundant-coverage km: streets with completed audits by ≥2 distinct (non-excluded) users. Mirrors the
@@ -2746,9 +2732,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           FROM (
               SELECT street_edge.street_edge_id, geom
               FROM street_edge
-              INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-              INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
-              WHERE completed = TRUE AND #$userFilter
+              INNER JOIN #${FilteredTables.completedAudits(contributors = contributors)}
+                  ON street_edge.street_edge_id = audit_task.street_edge_id
               GROUP BY street_edge.street_edge_id, geom
               HAVING COUNT(DISTINCT audit_task.user_id) >= 2
           ) multi_user_streets
@@ -2760,9 +2745,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           FROM (
               SELECT street_edge.street_edge_id, geom
               FROM street_edge
-              INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-              INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
-              WHERE completed = TRUE AND #$userFilter
+              INNER JOIN #${FilteredTables.completedAudits(contributors = contributors)}
+                  ON street_edge.street_edge_id = audit_task.street_edge_id
               GROUP BY street_edge.street_edge_id, geom
               HAVING BOOL_AND(audit_task.outdated_imagery)
           ) outdated_streets
@@ -2827,15 +2811,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                      ))
                  ) * INTERVAL '1 second' AS stddev_age_when_labeled,
                  #${subqueryCols(sevStatCols)}
-          FROM label
-          INNER JOIN user_stat ON label.user_id = user_stat.user_id
-          INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+          FROM #${FilteredTables.labels(contributors = contributors)}
           LEFT JOIN pano_data ON label.pano_id = pano_data.pano_id
-          WHERE #$userFilter
-              AND deleted = FALSE
-              AND tutorial = FALSE
-              AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-              AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
       ) AS label_counts_and_severity, (
           -- Work-credit totals (#4842): votes voided by the off-target-markers repair count toward the per-source
           -- totals (the archive is human-only by construction). The verdict subqueries below use live votes only.
@@ -2856,19 +2833,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               -- label_validation joined to role to separate human (role <> 'AI') from AI (role = 'AI') from combined.
               SELECT label.label_id, label.label_type::text,
                      #$validationVerdictCols
-              FROM label
-              INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
-              INNER JOIN user_stat AS labeler_stat ON label.user_id = labeler_stat.user_id
+              FROM #${FilteredTables.labels(contributors = contributors)}
               INNER JOIN label_validation ON label.label_id = label_validation.label_id
-              INNER JOIN user_stat AS validator_stat ON label_validation.user_id = validator_stat.user_id
-              INNER JOIN user_role ON validator_stat.user_id = user_role.user_id
-              WHERE #$labelerFilter
-                  AND validator_stat.excluded = FALSE
-                  AND label.user_id <> label_validation.user_id -- Exclude users validating their own labels.
-                  AND label.deleted = FALSE
-                  AND label.tutorial = FALSE
-                  AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-                  AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+                  AND #${FilteredTables.isVerdictVote()}
+              INNER JOIN user_role ON label_validation.user_id = user_role.user_id
               GROUP BY label.label_id, label.label_type::text
           ) AS label_verdicts
       ) AS val_counts, (
@@ -2897,12 +2865,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                              > COUNT(CASE WHEN role IN ('Administrator', 'Owner') AND validation_result = 'Agree' THEN 1 END) THEN 2
                          ELSE 3
                          END AS admin_mv
-              FROM label
+              -- The same labels and votes as val_counts above.
+              FROM #${FilteredTables.labels(contributors = contributors)}
               INNER JOIN label_validation ON label.label_id = label_validation.label_id
-              INNER JOIN user_stat ON label_validation.user_id = user_stat.user_id
-              INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-              WHERE user_stat.excluded = FALSE
-                  AND label.user_id <> label_validation.user_id -- Excluding times when user validated their own label.
+                  AND #${FilteredTables.isVerdictVote()}
+              INNER JOIN user_role ON label_validation.user_id = user_role.user_id
               GROUP BY label.label_id, label.label_type::text
               HAVING COUNT(CASE WHEN user_role.role = 'AI' THEN 1 END) > 0
           ) AS majority_votes
@@ -3102,13 +3069,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       endDate: Option[LocalDate],
       filterLowQuality: Boolean
   ): DBIO[Seq[(LocalDate, String, Int, Int)]] = {
-    // Mirrors the userFilter convention in getOverallStatsForApi.
-    val userFilter   = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
-    val whereClauses = scala.collection.mutable.ListBuffer(
-      "label.deleted = FALSE",
-      "label.tutorial = FALSE",
-      userFilter
-    )
+    val contributors = Contributors(filterLowQuality)
+    val whereClauses = scala.collection.mutable.ListBuffer("TRUE")
     startDate.foreach(d => whereClauses += s"label.time_created >= '$d'::date")
     endDate.foreach(d => whereClauses += s"label.time_created < ('$d'::date + INTERVAL '1 day')")
     val where = whereClauses.mkString(" AND ")
@@ -3121,9 +3083,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label.label_type::text,
              COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' THEN label.label_id END) AS human_labels,
              COUNT(CASE WHEN user_role.role = 'AI'               THEN label.label_id END) AS ai_labels
-      FROM label
-      INNER JOIN user_stat  ON label.user_id       = user_stat.user_id
-      LEFT  JOIN sidewalk_login.user_role ON label.user_id = user_role.user_id
+      FROM #${FilteredTables.labels(contributors = contributors)}
+      LEFT JOIN sidewalk_login.user_role ON label.user_id = user_role.user_id
       WHERE #$where
       GROUP BY (label.time_created AT TIME ZONE 'US/Pacific')::date, label.label_type::text
       ORDER BY date ASC, label.label_type::text
@@ -3133,9 +3094,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Recounts agree/disagree/unsure counts and `correct` on labels from their validations.
    *
-   * Must match the live counting in `ValidationService`: votes on your own label, votes from excluded users, and votes
-   * cast when the label had a different type (#3671) don't count, and a tie leaves `correct` empty. Only changed rows
-   * are written.
+   * Must match `ValidationService`: only `FilteredTables.isVerdictVote` votes count, and a tie leaves `correct` empty.
    *
    * @param validatorId Only recount the labels this user validated; recount every label if None.
    * @return The number of labels whose counts changed.
@@ -3166,12 +3125,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                      COUNT(*) FILTER (WHERE label_validation.validation_result = 'Unsure') AS n_unsure
               FROM label
               LEFT JOIN label_validation ON label.label_id = label_validation.label_id
-                  AND label_validation.label_type = label.label_type
-                  AND label_validation.user_id <> label.user_id
-                  AND NOT EXISTS (
-                      SELECT 1 FROM user_stat
-                      WHERE user_stat.user_id = label_validation.user_id AND user_stat.excluded
-                  )
+                  AND #${FilteredTables.isVerdictVote()}
       """
       .concat(scope)
       .concat(sql"""

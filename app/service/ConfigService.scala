@@ -402,10 +402,10 @@ case class CrossCityActivityWindows(byCity: Map[String, CityActivityWindow], tot
  * Counts use the same exclusions as the rest of the stats code (`NOT user_stat.excluded`, non-deleted, non-tutorial).
  *
  * @param cityId                  The city id (e.g. "seattle-wa").
- * @param totalStreets            Non-deleted streets in the city.
- * @param auditedStreets          Distinct streets with a completed audit by a non-excluded user.
+ * @param totalStreets            Open streets in the city.
+ * @param auditedStreets          Distinct open streets with a current-imagery audit by a non-excluded user.
  * @param coverage                auditedStreets / totalStreets in [0, 1]; 0.0 when the city has no streets.
- * @param totalKm                 Total length of the non-deleted street network, in km.
+ * @param totalKm                 Total length of the open street network, in km.
  * @param auditedKm               Distinct audited length (no double-counting overlapping audits), in km.
  * @param totalLabels             Non-tutorial, non-excluded labels (reconciles with the city's single-city total).
  * @param aiLabels                Subset of totalLabels authored by the AI role.
@@ -416,10 +416,10 @@ case class CrossCityActivityWindows(byCity: Map[String, CityActivityWindow], tot
  * @param labelsTagEligible       Labels whose type CAN take tags (types present in this deployment's tag table) — the
  *                                correct denominator for "% with tags".
  * @param labelsValidated         Labels that have at least one validation.
- * @param totalValidations        All validations by non-excluded users (the volume, including AI).
- * @param validationsAgree        HUMAN (non-AI) validations with an "Agree" result.
- * @param validationsDisagree     HUMAN (non-AI) validations with a "Disagree" result. (Agreement/disagreement is a
- *                                human-consensus signal; AI verdicts are reported separately via `aiValidations`.)
+ * @param totalValidations        All validations by non-excluded users, including AI and voided votes.
+ * @param validationsAgree        HUMAN (non-AI) votes that count toward a verdict, with an "Agree" result.
+ * @param validationsDisagree     HUMAN (non-AI) votes that count toward a verdict, with a "Disagree" result.
+ *                                (Agreement is a human-consensus signal; AI verdicts are in `aiValidations`.)
  * @param aiValidations           Subset of totalValidations cast by the AI role (distinct from AI-authored labels).
  * @param byLabelType             Per-label-type counts (labels, validated, agree, disagree) — the data-pattern lens.
  * @param activeContributors      Distinct non-excluded, non-AI users who placed a label or a validation.
@@ -428,8 +428,8 @@ case class CrossCityActivityWindows(byCity: Map[String, CityActivityWindow], tot
  * @param labels30d               Labels created in the last 30 days.
  * @param validations7d           Validations in the last 7 days.
  * @param validations30d          Validations in the last 30 days.
- * @param audits7d                Streets completed in the last 7 days.
- * @param audits30d               Streets completed in the last 30 days.
+ * @param audits7d                Streets completed by non-excluded users in the last 7 days.
+ * @param audits30d               Streets completed by non-excluded users in the last 30 days.
  * @param lastActivity            Most recent label/validation/audit timestamp; None if the city has no activity.
  * @param weeklyTrend             Trailing weekly label/validation volume (oldest first) for the activity sparkline.
  * @param labelsPerUserMedian     Median labels per labeler (robust to the power-law skew; mean would mislead).

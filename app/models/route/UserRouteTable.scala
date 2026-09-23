@@ -1,7 +1,7 @@
 package models.route
 
 import com.google.inject.ImplementedBy
-import models.audit.{AuditTaskTable, AuditTaskTableDef, NewTask}
+import models.audit.{AuditTaskTable, NewTask}
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
@@ -49,8 +49,6 @@ class UserRouteTable @Inject() (
   val routes              = TableQuery[RouteTableDef]
   val routeStreets        = TableQuery[RouteStreetTableDef]
   val auditTaskUserRoutes = TableQuery[AuditTaskUserRouteTableDef]
-  val auditTasks          = TableQuery[AuditTaskTableDef]
-  val completedTasks      = auditTasks.filter(_.completed)
   val activeRoutes        = userRoutes.filter(ur => !ur.completed && !ur.discarded)
 
   /**
@@ -175,7 +173,7 @@ class UserRouteTable @Inject() (
   def updateCompleteness(userRouteId: Int): DBIO[Boolean] = {
     // Get the completed audit_tasks that are a part of this user_route.
     val userAudits = auditTaskUserRoutes
-      .join(completedTasks)
+      .join(auditTaskTable.completedTasks)
       .on(_.auditTaskId === _.auditTaskId)
       .filter(_._1.userRouteId === userRouteId)
     val reportedStreets = auditTaskTable.streetsReportedNoImageryDuringRoute(userRouteId)

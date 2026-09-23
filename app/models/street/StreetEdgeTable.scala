@@ -7,7 +7,7 @@ import models.region.RegionTableDef
 import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
-import models.utils.{ConfigTableDef, LatLngBBox, MyPostgresProfile, SpatialQueryType}
+import models.utils.{ConfigTableDef, FilteredTables, LatLngBBox, MyPostgresProfile, SpatialQueryType}
 import org.locationtech.jts.geom.LineString
 import org.postgresql.jdbc.PgArray
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -119,14 +119,18 @@ class StreetEdgeTable @Inject() (
   val streetsWithTutorial = streetsUnfiltered.filter(_.status === StreetEdgeStatus.Open)
   val streets             = streetsWithTutorial.filterNot(_.streetEdgeId in tutorialStreetId)
 
-  val completedAuditTasksWithUsers = auditTasks
+  // Completed audits by non-excluded users, on any street (twin of FilteredTables.completedAudits).
+  val countedAuditTasksWithUsers = auditTasks
     .join(userStats)
     .on(_.userId === _.userId)
-    .join(streets)
-    .on(_._1.streetEdgeId === _.streetEdgeId)
-    .filter { case ((t, u), _) => t.completed && !u.excluded }
-  val completedAuditTasks       = completedAuditTasksWithUsers.map(_._1._1)
-  val highQualityCompletedTasks = completedAuditTasksWithUsers.filter(_._1._2.highQuality).map(_._1._1)
+    .filter { case (t, u) => t.completed && !u.excluded }
+  // Written as "no excluded row" so it uses the tiny index of excluded users (evolution 404), not all of user_stat.
+  val countedAuditTasks =
+    auditTasks.filter(t => t.completed && !userStats.filter(u => u.userId === t.userId && u.excluded).exists)
+
+  val completedAuditTasksWithUsers = countedAuditTasksWithUsers.join(streets).on(_._1.streetEdgeId === _.streetEdgeId)
+  val completedAuditTasks          = completedAuditTasksWithUsers.map(_._1._1)
+  val highQualityCompletedTasks    = completedAuditTasksWithUsers.filter(_._1._2.highQuality).map(_._1._1)
 
   /** When upToDateOnly, drops audits performed on since-replaced imagery (audit_task.outdated_imagery, #4384). */
   private def auditFreshnessFilter(
@@ -325,30 +329,26 @@ class StreetEdgeTable @Inject() (
       ),
       -- Get audit counts.
       audit_counts AS (
-        SELECT s.street_edge_id, COUNT(a.audit_task_id) as audit_count,
-               COUNT(a.audit_task_id) FILTER (WHERE NOT a.outdated_imagery) as up_to_date_audit_count
+        SELECT s.street_edge_id, COUNT(audit_task.audit_task_id) as audit_count,
+               COUNT(audit_task.audit_task_id) FILTER (WHERE NOT audit_task.outdated_imagery) as up_to_date_audit_count
         FROM filtered_streets s
-        LEFT JOIN audit_task a ON s.street_edge_id = a.street_edge_id AND a.completed = true
+        LEFT JOIN ${FilteredTables.completedAudits()} ON s.street_edge_id = audit_task.street_edge_id
         GROUP BY s.street_edge_id
       ),
       -- Get label counts, users, and timestamps.
       label_stats AS (
         SELECT s.street_edge_id,
-               COUNT(l.label_id) as label_count,
+               COUNT(label.label_id) as label_count,
                -- The FILTER is essential: the LEFT JOIN to `label` yields a NULL user_id for streets that have been
-               -- audited but carry no labels, and `array_agg(DISTINCT l.user_id)` over that produces `{NULL}` (a
+               -- audited but carry no labels, and `array_agg(DISTINCT label.user_id)` over that produces `{NULL}` (a
                -- one-element array containing null) rather than an empty array. Without the FILTER, such streets report
                -- `user_ids: [null]` and `user_count: 1`, and the `minUserCount` filter (which counts array_length)
                -- treats them as having one user. See #3887.
-               array_agg(DISTINCT l.user_id) FILTER (WHERE l.user_id IS NOT NULL) as user_ids,
-               MIN(l.time_created) as first_label_date,
-               MAX(l.time_created) as last_label_date
+               array_agg(DISTINCT label.user_id) FILTER (WHERE label.user_id IS NOT NULL) as user_ids,
+               MIN(label.time_created) as first_label_date,
+               MAX(label.time_created) as last_label_date
         FROM filtered_streets s
-        LEFT JOIN label l ON s.street_edge_id = l.street_edge_id
-            AND l.deleted = false
-            AND l.tutorial = false
-        LEFT JOIN user_stat u ON l.user_id = u.user_id
-            AND u.excluded = false
+        LEFT JOIN ${FilteredTables.labels()} ON s.street_edge_id = label.street_edge_id
         GROUP BY s.street_edge_id
       )
       -- Final selection with all filters applied.
