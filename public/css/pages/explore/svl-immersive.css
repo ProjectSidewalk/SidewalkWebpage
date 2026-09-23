@@ -86,7 +86,7 @@ body.svl-immersive #alert-holder {
    for ObservedArea's geometry. */
 body.svl-immersive .explore-sidebar__section:not(.explore-sidebar__section--map),
 body.svl-immersive #current-mission-header,
-body.svl-immersive #explore-sidebar__exit-route,
+body.svl-immersive .explore-sidebar__see-all--exit-route,
 body.svl-immersive #mission-guidance-status-box,
 body.svl-immersive .explore-sidebar__progress-groups {
   display: none;
