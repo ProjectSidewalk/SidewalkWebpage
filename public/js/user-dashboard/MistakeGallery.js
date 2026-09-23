@@ -192,11 +192,6 @@ class MistakeGallery {
   async #openPopup(m) {
     try {
       await this.labelPopup.showLabel(m.label_id, 'UserDashboard');
-      // These are always the viewer's own labels, so prefix the (already-localized) title with "Your label:".
-      const titleEl = document.querySelector('#label-modal .label-detail__title');
-      if (titleEl) {
-        titleEl.textContent = i18next.t('dashboard:mistake-cards.your-label', { type: titleEl.textContent });
-      }
       this.#mountPopupPanel(m);
     } catch (e) {
       console.error('Failed to open the label popup', e);

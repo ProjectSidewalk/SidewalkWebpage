@@ -177,8 +177,6 @@
       "photo-invalid": "Nous n'avons pas pu lire ce fichier comme une image (JPEG ou PNG)."
     }
   },
-  "change-type": "Changer le type d'étiquette",
-  "change-type-hint": "Les tags qui ne correspondent pas au nouveau type sont retirés. Une note n'est conservée qu'entre des types notés de la même façon.",
   "edit-type-changed": "Changé en {{labelType}}",
   "edit-undo": "Annuler",
   "edit-conflict-short": "Type d'étiquette modifié ailleurs",
