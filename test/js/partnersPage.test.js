@@ -196,3 +196,113 @@ describe('PartnersPage', () => {
     expect(calls.length).toBe(requestsBefore);
   });
 });
+
+describe('PartnersPage official-contact form (#5462)', () => {
+  const TEMPLATE = 'Project Sidewalk is a research tool. To report a problem or request a repair, contact {name} directly.';
+
+  /** The partner containers plus the official-contact form, reduced to what the class touches. */
+  function buildContactDom() {
+    buildDom({ ownerForms: false });
+    document.body.insertAdjacentHTML('afterbegin', `
+      <form id="official-contact-form">
+        <input type="text" name="name">
+        <input type="url" name="url">
+        <p id="official-contact-preview" data-template="${TEMPLATE}"></p>
+        <button type="submit">Save</button>
+        <button type="button" id="official-contact-clear">Turn off</button>
+        <p class="partners-form-error" hidden></p>
+      </form>`);
+    return /** @type {any} */ (document.getElementById('official-contact-form'));
+  }
+
+  /**
+   * Stubs fetch: the partner list is empty, the contact GET answers `saved`, and a contact PUT answers `putReply`.
+   * @returns {Array<{url: string, options: Record<string, any>}>} Every call made.
+   */
+  function stubContactFetch(saved, putReply) {
+    const calls = [];
+    global.fetch = jest.fn(async (url, options = {}) => {
+      calls.push({ url, options });
+      if (url === '/adminapi/officialContact' && options.method === 'PUT') return putReply;
+      if (url === '/adminapi/officialContact') return { ok: true, json: async () => saved };
+      return { ok: true, json: async () => ({ city_id: 'burnaby', city_partners: [], global_partners: [] }) };
+    });
+    return calls;
+  }
+
+  const burnaby = { name: 'the City of Burnaby', url: 'https://www.burnaby.ca/our-city/contact-us' };
+
+  test('loads the saved contact and previews the landing-page sentence with it', async () => {
+    const form = buildContactDom();
+    stubContactFetch(burnaby, null);
+    new PartnersPage({ isOwner: false }).init();
+    await flush();
+
+    expect(form.elements.name.value).toBe(burnaby.name);
+    expect(form.elements.url.value).toBe(burnaby.url);
+    expect(document.getElementById('official-contact-preview').textContent)
+      .toContain('contact the City of Burnaby directly.');
+  });
+
+  test('says the notice is off when no URL is saved', async () => {
+    buildContactDom();
+    stubContactFetch({ name: null, url: null }, null);
+    new PartnersPage({ isOwner: false }).init();
+    await flush();
+
+    expect(document.getElementById('official-contact-preview').textContent).toContain('Off');
+  });
+
+  test('save PUTs the fields as typed and shows what the server stored', async () => {
+    const form = buildContactDom();
+    const calls = stubContactFetch({ name: null, url: null }, {
+      ok: true, json: async () => ({ success: true, ...burnaby }),
+    });
+    new PartnersPage({ isOwner: false }).init();
+    await flush();
+
+    form.elements.name.value = ` ${burnaby.name} `;
+    form.elements.url.value = burnaby.url;
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    await flush();
+
+    const put = calls.find((c) => c.options.method === 'PUT');
+    expect(JSON.parse(put.options.body)).toEqual({ name: ` ${burnaby.name} `, url: burnaby.url });
+    expect(form.elements.name.value).toBe(burnaby.name); // The server's trimmed value comes back into the field.
+    expect(document.getElementById('partners-status').textContent).toContain('saved');
+  });
+
+  test('turn off PUTs blank fields and empties the form', async () => {
+    const form = buildContactDom();
+    const calls = stubContactFetch(burnaby, { ok: true, json: async () => ({ success: true, name: null, url: null }) });
+    new PartnersPage({ isOwner: false }).init();
+    await flush();
+
+    document.getElementById('official-contact-clear').click();
+    await flush();
+
+    const put = calls.find((c) => c.options.method === 'PUT');
+    expect(JSON.parse(put.options.body)).toEqual({ name: '', url: '' });
+    expect(form.elements.url.value).toBe('');
+    expect(document.getElementById('partners-status').textContent).toContain('turned off');
+  });
+
+  test("shows the server's rejection inline and keeps what the admin typed", async () => {
+    const form = buildContactDom();
+    stubContactFetch({ name: null, url: null }, {
+      ok: false, json: async () => ({ success: false, error: 'The URL must be a full https:// link.' }),
+    });
+    new PartnersPage({ isOwner: false }).init();
+    await flush();
+
+    form.elements.name.value = burnaby.name;
+    form.elements.url.value = 'http://www.burnaby.ca';
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    await flush();
+
+    const error = form.querySelector('.partners-form-error');
+    expect(error.hidden).toBe(false);
+    expect(error.textContent).toBe('The URL must be a full https:// link.');
+    expect(form.elements.url.value).toBe('http://www.burnaby.ca');
+  });
+});

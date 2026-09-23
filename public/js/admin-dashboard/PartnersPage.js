@@ -12,12 +12,24 @@
  */
 
 /**
+ * The official-contact form, with its two fields reachable by name.
+ * @typedef {HTMLFormElement & {elements: HTMLFormControlsCollection & OfficialContactFields}} OfficialContactForm
+ */
+
+/**
+ * @typedef {object} OfficialContactFields
+ * @property {HTMLInputElement} name - The agency's name as the landing-page sentence reads it.
+ * @property {HTMLInputElement} url - The agency's contact page.
+ */
+
+/**
  * PartnersPage — the /admin/partners manager for the landing page's community-partner logos (#4516).
  *
  * Renders two independently ordered lists from /adminapi/partners — this city's partners and the global list shown
  * on every deployment — with per-row reorder/edit/delete and one add form per editable scope. City rows are editable
  * by any admin; global rows only by Owners (the server enforces this on the /adminapi/globalPartners routes, so the
- * flag here only decides what UI to draw). Admin-only page, English-only by convention.
+ * flag here only decides what UI to draw). It also runs the page's official-contact form (#5462), the city's
+ * "contact us directly" sentence under the landing-page logos. Admin-only page, English-only by convention.
  */
 class PartnersPage {
   /** Long edge, in px, of the PNG an uploaded SVG is rasterized to: ~4x the widest the strip ever renders a logo. */
@@ -49,7 +61,90 @@ class PartnersPage {
       });
       form.querySelector('.partners-cancel-edit').addEventListener('click', () => this.#cancelEdit(form));
     }
+    this.#initOfficialContact();
     this.#load();
+  }
+
+  /** Wires the official-contact form: loads the saved values, keeps the preview live, and saves or turns it off. */
+  #initOfficialContact() {
+    const form = /** @type {?OfficialContactForm} */ (document.getElementById('official-contact-form'));
+    if (!form) return;
+    form.addEventListener('input', () => this.#renderOfficialContactPreview(form));
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.#saveOfficialContact(form, form.elements.name.value, form.elements.url.value);
+    });
+    document.getElementById('official-contact-clear')
+      .addEventListener('click', () => this.#saveOfficialContact(form, '', ''));
+    this.#loadOfficialContact(form);
+  }
+
+  /** @param {OfficialContactForm} form */
+  async #loadOfficialContact(form) {
+    try {
+      const res = await fetch('/adminapi/officialContact');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      this.#fillOfficialContact(form, await res.json());
+    } catch (err) {
+      console.error('Partners page: official contact failed to load.', err);
+      this.#showError(form, 'Failed to load the official contact — try reloading the page.');
+    }
+  }
+
+  /**
+   * Sends the fields as typed; the server trims and validates them, and its error message is shown as-is so the rules
+   * live in one place. Blank fields turn the notice off.
+   *
+   * @param {OfficialContactForm} form
+   * @param {string} name
+   * @param {string} url
+   */
+  async #saveOfficialContact(form, name, url) {
+    this.#showError(form, null);
+    try {
+      const res = await fetch('/adminapi/officialContact', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({ name, url }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        this.#showError(form, data.error || 'Something went wrong — please try again.');
+        return;
+      }
+      this.#fillOfficialContact(form, data);
+      this.#setStatus(data.url ? 'Official contact notice saved.' : 'Official contact notice turned off.');
+    } catch (err) {
+      console.error('Partners page: official contact failed to save.', err);
+      this.#showError(form, 'Something went wrong — please try again.');
+    }
+  }
+
+  /**
+   * @param {OfficialContactForm} form
+   * @param {{name: ?string, url: ?string}} contact - Both null when the notice is off.
+   */
+  #fillOfficialContact(form, contact) {
+    form.elements.name.value = contact.name || '';
+    form.elements.url.value = contact.url || '';
+    this.#renderOfficialContactPreview(form);
+  }
+
+  /**
+   * Shows the sentence the landing page will render. The template is the landing page's own translated message,
+   * rendered server-side with a {name} slot, so the wording can't drift from the real thing.
+   *
+   * @param {OfficialContactForm} form
+   */
+  #renderOfficialContactPreview(form) {
+    const preview = document.getElementById('official-contact-preview');
+    const name = form.elements.name.value.trim();
+    if (!form.elements.url.value.trim()) {
+      preview.textContent = 'Off: nothing shows on the landing page.';
+    } else {
+      // textContent, not innerHTML: the name is admin-entered free text.
+      preview.textContent = `Landing page preview: ${preview.dataset.template.replace('{name}', name || '…')}`;
+    }
   }
 
   async #load() {

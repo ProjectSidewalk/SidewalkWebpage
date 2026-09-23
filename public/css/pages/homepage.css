@@ -507,9 +507,20 @@ p#conditional-text {
   vertical-align: -0.06em;
 }
 
-/* Breathing room between the community-partners strip and the created-by section, when both render. */
-.partner-logos + #creators-title {
+/* Breathing room between the community-partners strip (or the city's contact notice under it) and the created-by
+   section, when both render. */
+.partner-logos + #creators-title,
+.partner-section-notice + #creators-title {
   margin-top: var(--space-xxl);
+}
+
+/* The city's "contact us directly" notice (#5462). Same voice as the tagline, sitting just under the city's logos. */
+.partner-section-notice {
+  margin: var(--space-xl) auto 0;
+  max-width: 640px;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  text-wrap: balance;
 }
 
 .partner-section-tagline {

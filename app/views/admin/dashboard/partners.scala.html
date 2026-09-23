@@ -1,4 +1,4 @@
-@import service.CommonPageData
+@import service.{CommonPageData, ConfigService}
 @import service.PartnerServiceImpl
 @import models.user.Role
 @import models.user.SidewalkUserWithRole
@@ -9,7 +9,8 @@
 @*
 * Admin Partners page (#4516): the community-partner logos rendered on the landing page. Any admin manages the
 * current city's list; the global list (every deployment's landing page) is shown for context but editable only by
-* Owners — enforced server-side on the /adminapi/globalPartners routes. Admin-only surface, English only.
+* Owners — enforced server-side on the /adminapi/globalPartners routes. The page also sets the city's official-contact
+* notice (#5462), which renders just under the logos. Admin-only surface, English only.
 *@
 
 @isOwner = @{user.role == Role.Owner}
@@ -54,6 +55,33 @@
     <h1 class="page-heading" id="partners">Partners <a href="#partners" class="permalink">#</a></h1>
     <p>These logos render in the "Community Partners" section of the landing page: the global list on every Project Sidewalk deployment, and the city list only on this city's page (global logos come first). Logos are re-encoded server-side — upload the highest-quality PNG (transparency preserved) or JPEG you have, ideally a wide wordmark on a transparent background. An SVG works too: this page renders it to a PNG before uploading, so its type has to be outlines rather than live text. The name doubles as the link's log label; the URL is where a click goes; alt text is what screen readers announce (defaults to "<em>name</em> logo").</p>
     <div class="partners-status" id="partners-status" role="status" aria-live="polite">Loading partners…</div>
+  </div>
+
+  <div class="page-section" id="official-contact-section">
+    <h2 class="page-heading" id="official-contact">Official contact notice <a href="#official-contact" class="permalink">#</a></h2>
+    <p>Optional. When set, this city's landing page shows a sentence under the partner logos, so residents don't expect a response to what they map here. It's off until you add a URL; clearing the URL turns it off again. The sentence is translated for every language, but the name is shown exactly as you type it, so write it the way it reads mid-sentence.</p>
+    <form class="official-contact-form" id="official-contact-form">
+      <div class="partners-form-grid">
+        <div class="partners-form-field">
+          <label class="partners-form-label" for="official-contact-name">Name, as it reads mid-sentence</label>
+          <input type="text" class="ps-input" id="official-contact-name" name="name"
+          maxlength="@ConfigService.OfficialContactMaxNameLength" placeholder="the City of Burnaby">
+        </div>
+        <div class="partners-form-field">
+          <label class="partners-form-label" for="official-contact-url">Contact page URL (https)</label>
+          <input type="url" class="ps-input" id="official-contact-url" name="url"
+          maxlength="@ConfigService.OfficialContactMaxUrlLength" placeholder="https://www.burnaby.ca/our-city/contact-us">
+        </div>
+      </div>
+      @* The preview's wording comes from the landing page's own message key, so it can't drift from what renders. *@
+      <p class="official-contact-preview" id="official-contact-preview"
+      data-template="@Messages("landing.partners.official.contact", "{name}")"></p>
+      <div class="partners-form-actions">
+        <button type="submit" class="button-ps button--primary button--medium">Save</button>
+        <button type="button" class="button-ps button--secondary button--medium" id="official-contact-clear">Turn off</button>
+      </div>
+      <p class="partners-form-error" role="alert" hidden></p>
+    </form>
   </div>
 
   <div class="page-section" id="partners-city-section">

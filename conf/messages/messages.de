@@ -283,6 +283,7 @@ landing.deployment.map.title = Erkunden Sie andere Städte
 landing.deployment.map.subtitle = Klicken Sie unten auf einen Kreis, um andere Städte des Project Sidewalk zu erkunden!
 landing.partners.title = Community-Partner in {0}
 landing.partners.tagline = Unsere Arbeit in {0} wird durch unsere großartigen Community-Partner ermöglicht, darunter:
+landing.partners.official.contact = Project Sidewalk ist ein Forschungswerkzeug. Um ein Problem zu melden oder eine Reparatur anzufordern, wenden Sie sich bitte direkt an {0}.
 landing.partners.logo.alt = Logo von {0}
 landing.partners.created.by = Project Sidewalk wurde mit {0} entwickelt von
 landing.partners.created.heart = Liebe
