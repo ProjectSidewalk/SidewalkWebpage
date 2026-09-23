@@ -18,6 +18,9 @@ import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
+/** The AI server rejected our key, so no label in this run can succeed; callers let this one fail the whole run. */
+class AiApiAuthException(message: String) extends Exception(message)
+
 /**
  * What [[AiService.ensureSeedRows]] had to insert: whether the AI's user_stat row was missing, and the label types
  * whose `aiValidation` mission was. Both empty means the schema already carried every row.
@@ -90,6 +93,11 @@ class AiServiceImpl @Inject() (
   private val AI_VALIDATIONS_ON: Boolean     = config.get[Boolean](s"city-params.ai-validation-enabled.$cityId")
   private val AI_TAG_SUGGESTIONS_ON: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$cityId")
   private val AI_VALIDATION_MIN_ACCURACY: Double = config.get[Double](s"city-params.ai-validation-min-accuracy.$cityId")
+  // The shared secret the AI server requires on every request (#4003). Blank means every call will 401, so say so
+  // once at startup instead of leaving it to the next nightly run to discover.
+  private val AI_API_KEY: String = config.getOptional[String]("sidewalk-ai-api-key").map(_.trim).getOrElse("")
+  if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON) && AI_API_KEY.isEmpty)
+    logger.error("SIDEWALK_AI_API_KEY is not set: every request to the AI server will be rejected with 401.")
 
   def validateLabelsWithAi(labelIds: Seq[Int]): Future[Seq[Option[LabelAiAssessment]]] = {
     if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON)) {
@@ -227,7 +235,6 @@ class AiServiceImpl @Inject() (
   private def callAiApi(labelData: LabelDataForAi): Future[Option[LabelAiAssessment]] = {
     val SIDEWALK_AI_API_HOSTNAME: String = config.get[String]("sidewalk-ai-api-hostname")
     val url: String                      = s"https://${SIDEWALK_AI_API_HOSTNAME}/process"
-    val apiKey: String                   = config.getOptional[String]("sidewalk-ai-api-key").getOrElse("")
     val labelId: Int                     = labelData.labelId
 
     // Create form data for the multipart request.
@@ -239,9 +246,11 @@ class AiServiceImpl @Inject() (
       "city"        -> cityId
     )
 
-    // The AI server rejects any request without the shared key as a bearer token (#4003).
+    // The AI server rejects any request without the shared key as a bearer token (#4003). Redirects are refused so
+    // the key can only ever go to the configured host.
     ws.url(url)
-      .withHttpHeaders("Authorization" -> s"Bearer $apiKey")
+      .withHttpHeaders("Authorization" -> s"Bearer $AI_API_KEY")
+      .withFollowRedirects(false)
       .post(formData)
       .flatMap { response =>
         try {
@@ -291,6 +300,12 @@ class AiServiceImpl @Inject() (
               logger.warn(s"AI API for label $labelId returned 502: $reason. Recording permanent failure.")
               db.run(labelAiFailureTable.save(labelId, reason)).map(_ => None)
             }
+          } else if (response.status == 401 || response.status == 403) {
+            // The key is wrong or missing, so every label in this run would fail the same way. Fail the whole run so the
+            // sweep stops at the first label and its job run is recorded as Failed, and skip the imagery check: the
+            // imagery is fine, we just never got to it.
+            val msg = s"AI API returned ${response.status} for label $labelId: SIDEWALK_AI_API_KEY is missing or wrong."
+            Future.failed(new AiApiAuthException(msg))
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")
             panoDataService.panoExists(labelData.panoData.panoId, labelData.panoData.source).map(_ => None)
@@ -301,9 +316,10 @@ class AiServiceImpl @Inject() (
             Future.successful(None)
         }
       }
-      .recover { case e: Exception =>
-        logger.warn(s"AI API request failed for label $labelId: ${e.getMessage}")
-        None
+      .recover {
+        case e: Exception if !e.isInstanceOf[AiApiAuthException] =>
+          logger.warn(s"AI API request failed for label $labelId: ${e.getMessage}")
+          None
       }
   }
 

@@ -62,7 +62,9 @@ for CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
   same 0.92 as `ai-validation-min-accuracy`.
 
 **Config:** `ai-enabled`, `sidewalk-ai-api-hostname`, `sidewalk-ai-api-key` (`application.conf`; the key is
-`SIDEWALK_AI_API_KEY` in the env and must match the AI server's copy, which 401s everything else);
+`SIDEWALK_AI_API_KEY` in the env and must match the AI server's copy, which 401s everything else. When rotating it,
+set the new key on every stage — test, staging, prod — *before* the AI server starts enforcing it, or every AI call
+fails until it is);
 `ai-tag-suggestions-enabled`, `ai-validation-enabled`, `ai-validation-min-accuracy`
 (`cityparams.conf`, per city).
 
