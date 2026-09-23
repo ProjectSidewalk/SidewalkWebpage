@@ -77,6 +77,17 @@ class CountedSqlSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
     }
   }
 
+  "CountedSql.accuracyLabels" should {
+    "keep exactly the labels LabelTable.labelsForAccuracy keeps" in {
+      val (slick, raw) = run(for {
+        slick <- labelTable.labelsForAccuracy.map(_.labelId).result
+        raw   <- sql"SELECT label_id FROM #${CountedSql.accuracyLabels()}".as[Int]
+      } yield (slick, raw))
+
+      differences(slick, raw) mustBe ((Seq.empty, Seq.empty))
+    }
+  }
+
   "CountedSql.completedAudits" should {
     "keep exactly the audits StreetEdgeTable.completedAuditTasks keeps, once limited to the same streets" in {
       val (slick, raw) = run(for {

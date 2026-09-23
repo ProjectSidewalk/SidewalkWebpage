@@ -872,6 +872,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     .filterNot { case (_l, _at) => _l.deleted || _l.tutorial }
     .map(_._1)
 
+  /** Slick twin of [[CountedSql.accuracyLabels]]. */
+  val labelsForAccuracy = labelsUnfiltered
+    .join(auditTasks)
+    .on(_.auditTaskId === _.auditTaskId)
+    .filterNot(_._1.streetEdgeId in tutorialStreetId)
+    .filterNot(_._2.streetEdgeId in tutorialStreetId)
+    .filter { case (_l, _) => !_l.tutorial && LabelTable.countsTowardAccuracy(_l) }
+    .map(_._1)
+
   // Subquery for labels without deleted ones, but includes tutorial labels and labels from "excluded" users. You might
   // need to include these users if you're displaying a page for one of those users (like the user dashboard).
   val labelsWithTutorialAndExcludedUsers = labelsUnfiltered.filter(_.deleted === false)

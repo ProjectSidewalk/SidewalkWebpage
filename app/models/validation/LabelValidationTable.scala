@@ -179,10 +179,8 @@ class LabelValidationTable @Inject() (
       FROM (
           SELECT CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
-          FROM label
-          WHERE #${LabelTable.countsTowardAccuracySql}
-              AND label.tutorial = FALSE
-              AND label.user_id = $userId
+          FROM #${CountedSql.accuracyLabels()}
+          WHERE label.user_id = $userId
       ) "accuracy_subquery";""".as[Option[Double]].map(_.headOption.flatten)
   }
 
@@ -213,7 +211,7 @@ class LabelValidationTable @Inject() (
       case None      => users
     }
     val _labels = for {
-      _label <- labelTable.labelsUnfiltered if !_label.tutorial && LabelTable.countsTowardAccuracy(_label)
+      _label <- labelTable.labelsForAccuracy
       _user  <- _labelers if _user.userId === _label.userId // User who placed the label.
       if _label.correct.isDefined // Filter for labels marked as either correct or incorrect.
     } yield (_user.userId, _label.correct)

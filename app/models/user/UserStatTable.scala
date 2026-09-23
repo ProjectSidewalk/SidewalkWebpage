@@ -428,9 +428,8 @@ class UserStatTable @Inject() (
           SELECT user_id,
                  CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS new_accuracy,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS new_validated_count
-          FROM label
-          WHERE #${LabelTable.countsTowardAccuracySql}
-              AND label.tutorial = FALSE"""
+          FROM #${CountedSql.accuracyLabels()}
+          WHERE TRUE"""
       .concat(scoped("label.user_id"))
       .concat(
         sql"""
@@ -717,10 +716,9 @@ class UserStatTable @Inject() (
           SELECT #$groupingColName,
                  CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy_temp,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
-          FROM label
+          FROM #${CountedSql.accuracyLabels()}
           #$joinUserTeamForAcc
-          WHERE #${LabelTable.countsTowardAccuracySql}
-              AND (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
+          WHERE (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
           GROUP BY #$groupingColName
       ) "accuracy" ON label_counts.#$groupingColName = accuracy.#$groupingColName
       ORDER BY score DESC, label_counts.label_count DESC;
@@ -1057,8 +1055,8 @@ class UserStatTable @Inject() (
       SELECT label.label_type::text,
              COUNT(*) FILTER (WHERE label.correct IS TRUE)::int AS correct,
              COUNT(*) FILTER (WHERE label.correct IS FALSE)::int AS incorrect
-      FROM label
-      WHERE label.user_id = $userId AND #${LabelTable.countsTowardAccuracySql} AND label.tutorial = FALSE
+      FROM #${CountedSql.accuracyLabels()}
+      WHERE label.user_id = $userId
       GROUP BY label.label_type::text;
     """.as[(String, Int, Int)]
   }
@@ -1257,7 +1255,7 @@ class UserStatTable @Inject() (
       -- Label and validation counts. The verdict counts follow the accuracy rule (a label deleted from the popup
       -- after being judged incorrect still counts, #3591); the plain label counts are live labels only.
       LEFT JOIN (
-          SELECT audit_task.user_id,
+          SELECT label.user_id,
                  COUNT(*) FILTER (WHERE NOT label.deleted) AS labels,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_labels,
                  SUM(agree_count) + SUM(disagree_count) + SUM(unsure_count) AS validations_received,
@@ -1265,13 +1263,8 @@ class UserStatTable @Inject() (
                  COUNT(CASE WHEN NOT correct THEN 1 END) AS labels_validated_incorrect,
                  COUNT(CASE WHEN correct IS NULL THEN 1 END) AS labels_not_validated,
                  #$labelTypeCountCols
-          FROM audit_task
-          INNER JOIN label ON audit_task.audit_task_id = label.audit_task_id
-          WHERE #${LabelTable.countsTowardAccuracySql}
-              AND tutorial = FALSE
-              AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-              AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-          GROUP BY audit_task.user_id
+          FROM #${CountedSql.accuracyLabels()}
+          GROUP BY label.user_id
       ) label_counts ON user_stat.user_id = label_counts.user_id
       WHERE user_role.role <> 'Anonymous'
           AND #$contributorSql

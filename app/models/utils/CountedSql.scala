@@ -87,6 +87,24 @@ object CountedSql {
   }
 
   /**
+   * The labels a labeler's accuracy is judged on: [[models.label.LabelTable.countsTowardAccuracySql]] (#3591), minus
+   * tutorial labels and the tutorial street. Everyone's, since accuracy describes each user, excluded or not.
+   *
+   * @param as The name the rows go by in the query.
+   * @return   A subquery for a FROM or JOIN clause.
+   */
+  def accuracyLabels(as: String = "label"): String =
+    s"""(
+         SELECT label.*
+         FROM label
+         INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+         WHERE ${models.label.LabelTable.countsTowardAccuracySql}
+             AND label.tutorial = FALSE
+             AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+             AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+       ) AS $as"""
+
+  /**
    * Completed audits by users who count. The raw SQL twin of `StreetEdgeTable.completedAuditTasks`, minus its street
    * filter: callers pick which streets they report on.
    *
