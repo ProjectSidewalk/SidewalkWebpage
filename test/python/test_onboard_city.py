@@ -722,7 +722,9 @@ def test_fetch_streets_buffers_the_fetch_polygon_and_normalizes_columns(monkeypa
 # --------------------------------------------------------------------------------------------------------------------
 
 def test_prepare_regions_clips_names_and_assigns_ids():
-    raw = gpd.GeoDataFrame({'name': ['west', None]}, geometry=[_W, _E.buffer(0.005)], crs='EPSG:4326')
+    # The unnamed polygon spills past the city boundary on three sides, but never onto its neighbor.
+    spills_out = Polygon([(0.012, -0.005), (0.025, -0.005), (0.025, 0.015), (0.012, 0.015)])
+    raw = gpd.GeoDataFrame({'name': ['west', None]}, geometry=[_W, spills_out], crs='EPSG:4326')
     regions = oc.prepare_regions(raw, _CITY_GDF, min_part_m2=10_000)
     assert list(regions['region_id']) == [1, 2]
     assert list(regions['name']) == ['Region 1', 'west']
@@ -754,25 +756,38 @@ def test_prepare_regions_absorbs_small_parts_into_longest_border_neighbor():
     assert west_area == pytest.approx(oc.geodesic_area_m2(_W) + oc.geodesic_area_m2(nib), rel=0.01)
 
 
-def test_prepare_regions_drops_a_region_duplicated_outright(caplog):
-    raw = gpd.GeoDataFrame({'name': ['a', 'b']}, geometry=[_W, _W], crs='EPSG:4326')
-    with caplog.at_level(logging.WARNING):
-        regions = oc.prepare_regions(raw, _CITY_GDF, min_part_m2=10_000)
-    assert list(regions['name']) == ['a']
-    assert any('dropped' in record.message for record in caplog.records)
+def test_prepare_regions_repairs_a_hairline_overlap(caplog):
+    # A shared border traced ~2 m apart: nobody's idea of a boundary dispute, so it is just fixed.
+    west_wide = Polygon([(0, 0), (0.01002, 0), (0.01002, 0.01), (0, 0.01)])
+    raw = gpd.GeoDataFrame({'name': ['west', 'east']}, geometry=[west_wide, _E], crs='EPSG:4326')
+    with caplog.at_level(logging.INFO):
+        regions = oc.prepare_regions(raw, _CITY_GDF, min_part_m2=1, max_sliver_width_m=5.0)
+    assert sorted(regions['name']) == ['east', 'west']
+    assert not regions.geometry.iloc[0].intersection(regions.geometry.iloc[1]).area
+    assert 'hairline' in caplog.text
+    total = sum(oc.geodesic_area_m2(geom) for geom in regions.geometry)
+    assert total == pytest.approx(oc.geodesic_area_m2(_CITY), rel=0.01)
 
 
-def test_prepare_regions_gives_an_overlap_to_the_smaller_region():
-    # A small region drawn inside a wider one: the small one keeps its ground, the wide one gets a hole.
+def test_prepare_regions_stops_on_an_overlap_too_big_to_be_a_tracing_error():
     inner = Polygon([(0.002, 0.002), (0.006, 0.002), (0.006, 0.006), (0.002, 0.006)])
     raw = gpd.GeoDataFrame({'name': ['wide', 'inner']}, geometry=[_W, inner], crs='EPSG:4326')
-    regions = oc.prepare_regions(raw, _CITY_GDF, min_part_m2=1)
-    assert sorted(regions['name']) == ['inner', 'wide']
-    by_name = dict(zip(regions['name'], regions.geometry))
-    assert oc.geodesic_area_m2(by_name['inner']) == pytest.approx(oc.geodesic_area_m2(inner), rel=0.01)
-    assert not by_name['wide'].intersection(by_name['inner']).area
-    assert (oc.geodesic_area_m2(by_name['wide'])
-            == pytest.approx(oc.geodesic_area_m2(_W) - oc.geodesic_area_m2(inner), rel=0.01))
+    with pytest.raises(SystemExit) as stopped:
+        oc.prepare_regions(raw, _CITY_GDF, min_part_m2=1, max_sliver_width_m=5.0)
+    assert '"wide" and "inner" overlap' in str(stopped.value)
+
+
+def test_prepare_regions_lists_only_the_first_ten_overlaps():
+    # 11 neighborhoods each drawn inside the same district; the message stays readable.
+    boxes = [Polygon([(x, 0.002), (x + 0.0005, 0.002), (x + 0.0005, 0.006), (x, 0.006)])
+             for x in [0.0005 * i for i in range(1, 12)]]
+    raw = gpd.GeoDataFrame({'name': ['wide'] + [f'n{i}' for i in range(11)],
+                            'geometry': [_W] + boxes}, crs='EPSG:4326')
+    with pytest.raises(SystemExit) as stopped:
+        oc.prepare_regions(raw, _CITY_GDF, min_part_m2=1, max_sliver_width_m=5.0)
+    assert '11 region overlap(s)' in str(stopped.value)
+    assert str(stopped.value).rstrip().endswith('place.')
+    assert '  - ...' in str(stopped.value)
 
 
 def test_prepare_regions_leaves_regions_that_only_touch_alone():
@@ -785,7 +800,16 @@ def test_prepare_regions_leaves_regions_that_only_touch_alone():
 
 def test_resolve_region_overlaps_keeps_one_region_untouched():
     raw = gpd.GeoDataFrame({'name': ['only']}, geometry=[_W], crs='EPSG:4326')
-    assert oc.resolve_region_overlaps(raw).geometry.iloc[0].equals(_W)
+    assert oc.resolve_region_overlaps(raw, 5.0).geometry.iloc[0].equals(_W)
+
+
+def test_overlap_width_m_reads_a_long_sliver_as_thin():
+    long_sliver = Polygon([(0, 0), (0.01, 0), (0.01, 0.00002), (0, 0.00002)])
+    chunk = Polygon([(0, 0), (0.001, 0), (0.001, 0.001), (0, 0.001)])
+    assert oc.overlap_width_m(long_sliver) < 5
+    assert oc.overlap_width_m(chunk) > 50
+    # A shape with no perimeter has no width to report.
+    assert oc.overlap_width_m(Polygon()) == 0
 
 
 def test_polygonal_parts_drops_stray_lines():

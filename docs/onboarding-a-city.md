@@ -31,9 +31,10 @@ Run the three from the **main checkout**: `db/` is the bind mount the db contain
      US census tracts, then the whole city as one region (fine for a small town).
   Whatever you use, record where it came from with `--regions-source` (a URL, or the collaborator's email); it is
   stored in `region.data_source`. **Regions must tile the city — never overlap.** Street pieces are cut out of the
-  region polygons, and a street lying in an overlap is cut once per region, so it lands in the database twice
-  (#3067). The build repairs an overlap rather than importing duplicates, giving the contested ground to the smaller
-  region and saying so loudly, but that is damage control on a broken dataset: go back to the source and fix it.
+  region polygons, so a street lying under two of them is cut twice and lands in the database twice (#3067). A
+  hairline where two borders were traced a metre apart is repaired for you, by giving that ground to the smaller
+  region (`--max-region-sliver-m`, 5 m). An overlap thicker than that is a real disagreement about where a region
+  is, so the build stops and names the pairs for you to settle in QGIS.
   A town small enough to come out as **one region** is named after the city, not after whatever source it landed in
   — Laurens, IA would otherwise be the neighbourhood "Census Tract 7801" everywhere a region name shows (missions,
   the dashboard, LabelMap's filters, the API's `region_name`). The name comes from `--place`; pass
@@ -77,7 +78,7 @@ flagged region. Two ways back:
 - *Parameters:* rerun with different flags. `--merge-regions "Census Tract 513:Census Tract 523.01"` folds a sparse
   region into its neighbour by **name** and reruns the whole assignment, so streets re-split against the merged
   boundary and ids stay dense. Thresholds: `--merge-tiny-m`, `--heal-segment-m`, `--boundary-merge-tol-m`,
-  `--min-segment-m`, `--max-region-street-km`. `--rename-regions` renames regions from
+  `--min-segment-m`, `--max-region-street-km`, `--max-region-sliver-m`. `--rename-regions` renames regions from
   `db/onboarding/<city-id>/region_renames.csv` (`current_name,new_name`); pass it on every build, since rows already
   applied are skipped. A repeated source name is kept as separate regions, `"X (2)"` (logged, not in the report).
 - *Hand edits:* delete a street, reassign its `region_id`, move a boundary — in the GeoPackage — then
