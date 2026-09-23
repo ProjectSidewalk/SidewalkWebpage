@@ -70,7 +70,7 @@ body.svl-immersive #label-type-divider-major {
    so a long name cannot push the circles apart; the shortcut letter keeps its underline from the markup. */
 body.svl-immersive .label-type-name {
   position: absolute;
-  top: calc(72px * var(--ui-scale)); /* Into the icon's 5px bottom ring, which is transparent unless selected. */
+  top: calc(69px * var(--ui-scale)); /* Into the icon's 5px bottom ring, which is transparent unless selected. */
   left: 50%;
   transform: translateX(-50%);
   width: auto;
