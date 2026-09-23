@@ -266,8 +266,8 @@ class ValidationServiceImpl @Inject() (
         Seq(
           ValidationSubmission(
             LabelValidation(0, label.labelId, label.labelType, ValidationOption.Disagree, adminId, missionId,
-              Some(point.canvasX), Some(point.canvasY), point.heading, point.pitch, point.zoom,
-              LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, now, now, source, ViewerType.Default),
+              Some(point.canvasX), Some(point.canvasY), point.heading, point.pitch, point.zoom, point.canvasWidth,
+              point.canvasHeight, now, now, source, ViewerType.Default),
             newLabelType = None,
             label.severity,
             label.tags,

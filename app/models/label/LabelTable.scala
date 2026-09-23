@@ -223,6 +223,8 @@ case class LabelMetadata(
     imageCaptureDate: String,
     pov: POV,
     canvasXY: LocationXY,
+    canvasWidth: Int,
+    canvasHeight: Int,
     auditTaskId: Int,
     streetEdgeId: Int,
     regionId: Int,
@@ -304,6 +306,8 @@ case class LabelMetadataUserDash(
     pov: POV,
     canvasX: Int,
     canvasY: Int,
+    canvasWidth: Int,
+    canvasHeight: Int,
     labelType: LabelTypeEnum.Base,
     timeValidated: OffsetDateTime,
     validatorComment: Option[String]
@@ -321,6 +325,8 @@ case class LabelValidationMetadata(
     location: LatLng,
     pov: POV,
     canvasXY: LocationXY,
+    canvasWidth: Int,
+    canvasHeight: Int,
     severity: Option[Int],
     description: Option[String],
     streetEdgeId: Int,
@@ -495,6 +501,8 @@ object LabelTable {
       (Double, Double, Double),
       Int,
       Int,
+      Int,
+      Int,
       String,
       OffsetDateTime,
       Option[String]
@@ -508,6 +516,8 @@ object LabelTable {
       (Rep[Double], Rep[Double], Rep[Double]), // pov (heading, pitch, zoom)
       Rep[Int],                                // canvasX
       Rep[Int],                                // canvasY
+      Rep[Int],                                // canvasWidth
+      Rep[Int],                                // canvasHeight
       Rep[String],                             // labelType
       Rep[OffsetDateTime],                     // timeValidated
       Rep[Option[String]]                      // validatorComment
@@ -517,8 +527,8 @@ object LabelTable {
   implicit val labelMetadataUserDashConverter: TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] =
     new TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] {
       def fromTuple(t: LabelMetadataUserDashTuple): LabelMetadataUserDash =
-        LabelMetadataUserDash(t._1, t._2, t._3, t._4, t._5, POV.tupled(t._6), t._7, t._8, LabelTypeEnum.byName(t._9),
-          t._10, t._11)
+        LabelMetadataUserDash(t._1, t._2, t._3, t._4, t._5, POV.tupled(t._6), t._7, t._8, t._9, t._10,
+          LabelTypeEnum.byName(t._11), t._12, t._13)
     }
 
   // Type alias for the tuple representation of LabelForLabelMap query results. Includes streetEdgeId (2nd element,
@@ -554,7 +564,7 @@ object LabelTable {
       OffsetDateTime,                       // 7.  timestamp
       (Option[Double], Option[Double]),     // 8.  location (lat, lng)
       (Double, Double, Double),             // 9.  pov (heading, pitch, zoom)
-      (Int, Int),                           // 10. canvasXY (x, y)
+      (Int, Int, Int, Int),                 // 10. canvasXY (x, y) and its frame (width, height)
       Option[Int],                          // 11. severity
       Option[String],                       // 12. description
       (Int, Int, Option[StreetSide.Value]), // 13. (streetEdgeId, regionId, streetSide)
@@ -589,7 +599,7 @@ object LabelTable {
       Rep[OffsetDateTime],                                 // 7.  timestamp
       (Rep[Option[Double]], Rep[Option[Double]]),          // 8.  location (lat, lng)
       (Rep[Double], Rep[Double], Rep[Double]),             // 9.  pov (heading, pitch, zoom)
-      (Rep[Int], Rep[Int]),                                // 10. canvasXY (x, y)
+      (Rep[Int], Rep[Int], Rep[Int], Rep[Int]),            // 10. canvasXY (x, y) and its frame (width, height)
       Rep[Option[Int]],                                    // 11. severity
       Rep[Option[String]],                                 // 12. description
       (Rep[Int], Rep[Int], Rep[Option[StreetSide.Value]]), // 13. (streetEdgeId, regionId, streetSide)
@@ -661,7 +671,9 @@ object LabelTable {
         timestamp = t._7,
         location = LatLng(t._8._1.get, t._8._2.get),
         pov = POV.tupled(t._9),
-        canvasXY = LocationXY.tupled(t._10),
+        canvasXY = LocationXY(t._10._1, t._10._2),
+        canvasWidth = t._10._3,
+        canvasHeight = t._10._4,
         severity = t._11,
         description = t._12,
         streetEdgeId = t._13._1,
@@ -689,9 +701,12 @@ object LabelTable {
   // width/height. Mapped to service.CropService.CropCandidate by the crop job.
   type CropCandidateTuple = (Int, LabelTypeEnum.Base, String, Int, Int, Option[Int], Option[Int])
 
-  /** (labelId, labelType, timeCreated, panoId, panoX, panoY, canvasX, canvasY, panoWidth, panoHeight, aiGenerated). */
+  /**
+   * (labelId, labelType, timeCreated, panoId, panoX, panoY, canvasX, canvasY, canvasWidth, canvasHeight, panoWidth,
+   * panoHeight, aiGenerated).
+   */
   type CropProvenanceTuple =
-    (Int, LabelTypeEnum.Base, OffsetDateTime, String, Int, Int, Int, Int, Option[Int], Option[Int], Boolean)
+    (Int, LabelTypeEnum.Base, OffsetDateTime, String, Int, Int, Int, Int, Int, Int, Option[Int], Option[Int], Boolean)
 
   // Type alias for the tuple representation of LabelCVMetadata.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
@@ -760,10 +775,8 @@ object LabelTable {
       zoom = r.nextDoubleOption(),
       canvasX = r.nextIntOption(),
       canvasY = r.nextIntOption(),
-
-      // TODO FIX THESE SO THEY ARE NOT CONSTANTS
-      canvasWidth = Some(LabelPointTable.canvasWidth),
-      canvasHeight = Some(LabelPointTable.canvasHeight),
+      canvasWidth = r.nextIntOption(),
+      canvasHeight = r.nextIntOption(),
       panoX = r.nextIntOption(),
       panoY = r.nextIntOption(),
       panoWidth = r.nextIntOption(),
@@ -899,6 +912,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextString(),
       POV(r.nextDouble(), r.nextDouble(), r.nextDouble()),
       LocationXY(r.nextInt(), r.nextInt()),
+      r.nextInt(), // canvasWidth
+      r.nextInt(), // canvasHeight
       r.nextInt(),
       r.nextInt(),
       r.nextInt(),
@@ -1313,6 +1328,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              lp.zoom,
              lp.canvas_x,
              lp.canvas_y,
+             lp.canvas_width,
+             lp.canvas_height,
              lb1.audit_task_id,
              lb1.street_edge_id,
              ser.region_id,
@@ -1773,7 +1790,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           l.timeCreated,
           (lp.lat, lp.lng),
           (lp.heading.asColumnOf[Double], lp.pitch.asColumnOf[Double], lp.zoom.asColumnOf[Double]),
-          (lp.canvasX, lp.canvasY),
+          (lp.canvasX, lp.canvasY, lp.canvasWidth, lp.canvasHeight),
           l.severity,
           l.description,
           (l.streetEdgeId, regionId, lp.streetSide),
@@ -1936,7 +1953,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       lb.timeCreated,
       (lp.lat, lp.lng),
       (lp.heading.asColumnOf[Double], lp.pitch.asColumnOf[Double], lp.zoom),
-      (lp.canvasX, lp.canvasY),
+      (lp.canvasX, lp.canvasY, lp.canvasWidth, lp.canvasHeight),
       lb.severity,
       lb.description,
       (lb.streetEdgeId, regionId, lp.streetSide),
@@ -2048,13 +2065,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       (_lp.heading.asColumnOf[Double], _lp.pitch.asColumnOf[Double], _lp.zoom.asColumnOf[Double]),
       _lp.canvasX,
       _lp.canvasY,
+      _lp.canvasWidth,
+      _lp.canvasHeight,
       _lb.labelTypeName,
       _vc._5,
       _vc._6
     )
 
     // Don't drop `.subquery`: without it the two sorts flatten into one ORDER BY that Postgres rejects.
-    _validations.sortBy(r => (r._1, r._10.desc)).distinctOn(_._1).subquery.sortBy(_._10.desc)
+    _validations.sortBy(r => (r._1, r._12.desc)).distinctOn(_._1).subquery.sortBy(_._12.desc)
   }
 
   /**
@@ -2501,6 +2520,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label_point.zoom,
              label_point.canvas_x,
              label_point.canvas_y,
+             label_point.canvas_width,
+             label_point.canvas_height,
              label_point.pano_x,
              label_point.pano_y,
              pano_data.width AS pano_width,
@@ -2966,13 +2987,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param labelIds Label ids to fetch metadata for.
    * @return Per label: (labelId, panoId, panoSource, heading, pitch, zoom).
    */
-  def getPanoMetadataForLabels(labelIds: Seq[Int]): DBIO[Seq[(Int, String, PanoSource, Double, Double, Double)]] = {
+  def getPanoMetadataForLabels(
+      labelIds: Seq[Int]
+  ): DBIO[Seq[(Int, String, PanoSource, Double, Double, Double, Int, Int)]] = {
     (for {
       _label      <- labels if _label.labelId inSet labelIds
       _labelPoint <- labelPoints if _label.labelId === _labelPoint.labelId
       _panoData   <- panoData if _label.panoId === _panoData.panoId
-    } yield (_label.labelId, _label.panoId, _panoData.source, _labelPoint.heading, _labelPoint.pitch,
-      _labelPoint.zoom)).result
+    } yield (_label.labelId, _label.panoId, _panoData.source, _labelPoint.heading, _labelPoint.pitch, _labelPoint.zoom,
+      _labelPoint.canvasWidth, _labelPoint.canvasHeight)).result
   }
 
   /**
@@ -2995,8 +3018,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _pd.height,
       _lp.panoX,
       _lp.panoY,
-      LabelPointTable.canvasWidth,
-      LabelPointTable.canvasHeight,
+      _lp.canvasWidth,
+      _lp.canvasHeight,
       _lp.canvasX,
       _lp.canvasY,
       _lp.zoom,
@@ -3050,6 +3073,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lp.panoY,
       _lp.canvasX,
       _lp.canvasY,
+      _lp.canvasWidth,
+      _lp.canvasHeight,
       _pd.width,
       _pd.height,
       _ur.map(_.role === Role.Ai).getOrElse(false)

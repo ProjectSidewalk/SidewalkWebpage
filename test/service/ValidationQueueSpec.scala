@@ -1,6 +1,13 @@
 package service
 
-import models.label.{LabelTable, LabelTypeEnum, LabelTypeValidationsLeft, LabelValidationMetadata, StreetSide}
+import models.label.{
+  LabelPointTable,
+  LabelTable,
+  LabelTypeEnum,
+  LabelTypeValidationsLeft,
+  LabelValidationMetadata,
+  StreetSide
+}
 import models.pano.PanoSource.PanoSource
 import models.utils.MyPostgresProfile.api._
 import models.validation.ValidationLabelFilter
@@ -846,6 +853,8 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
           models.label.LatLng(0, 0),
           models.label.POV(0, 0, 1),
           models.label.LocationXY(0, 0),
+          LabelPointTable.canvasWidth,
+          LabelPointTable.canvasHeight,
           None,
           None,
           street,

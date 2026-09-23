@@ -2,7 +2,7 @@ package models.utils
 
 import java.awt.image.BufferedImage
 import java.awt.{Rectangle, RenderingHints}
-import java.io.{ByteArrayOutputStream, File}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 import java.nio.file.{Files, StandardCopyOption}
 import javax.imageio.stream.{
   FileImageInputStream,
@@ -18,6 +18,25 @@ import scala.util.{Try, Using}
  * Shared AWT/ImageIO helpers for the image-producing endpoints (share previews, story photos) and the crop job.
  */
 object ImageUtils {
+
+  /**
+   * The size an encoded image declares, read from its header without decoding a pixel. What `POST /saveImage` checks
+   * an upload against before `ImageIO.read` allocates a raster for it.
+   *
+   * @param bytes The encoded image.
+   * @return      (width, height), or None when no ImageIO reader claims the bytes.
+   */
+  def encodedDimensions(bytes: Array[Byte]): Option[(Int, Int)] =
+    Option(ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))).flatMap { stream =>
+      Using.resource(stream) { s =>
+        ImageIO.getImageReaders(s).asScala.nextOption().map { reader =>
+          try {
+            reader.setInput(s, false, true)
+            (reader.getWidth(0), reader.getHeight(0))
+          } finally reader.dispose()
+        }
+      }
+    }
 
   /**
    * Opens an image for region reads, handing `f` the reader plus the dimensions from the header alone.

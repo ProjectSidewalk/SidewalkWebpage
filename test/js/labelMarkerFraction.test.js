@@ -53,4 +53,44 @@ describe('labelMarkerFraction', () => {
     it('clamps a canvas position that sits outside the frame', () => {
         expect(labelMarkerFraction('api', null, 900, -40)).toEqual({ x: 1, y: 0 });
     });
+
+    // A label placed in a 16:9 immersive viewport (#5085) has a 720x405 frame; the same canvas_y means a different
+    // fraction of it than of the boxed 720x480 frame.
+    describe('given the frame the label was placed in', () => {
+        const FRAME = { canvasWidth: 720, canvasHeight: 405 };
+
+        it('takes the canvas fraction in that frame for a crop nothing has recorded', () => {
+            expect(labelMarkerFraction('crop', null, 180, 202.5, FRAME)).toEqual({ x: 0.25, y: 0.5 });
+        });
+
+        // The still is 3:2 at the frame's width and field of view, so the 16:9 frame sits in it vertically centred:
+        // a point 1/4 of the way down the frame is 1/4 * (405/480) of the still's height above its centre.
+        it('re-places the canvas fraction in the 3:2 Street View still', () => {
+            const { x, y } = labelMarkerFraction('api', null, 180, 101.25, FRAME);
+            expect(x).toBeCloseTo(0.25, 10);
+            expect(y).toBeCloseTo(0.5 - 0.25 * (405 / 480), 10);
+        });
+
+        // A card cover-fits the 16:9 crop into its 3:2 box, which shows the middle (3/2) / (16/9) = 27/32 of the
+        // crop's width, so a point at 1/4 of the crop's width sits (0.25 - 0.5) * 32/27 from the box's centre.
+        it('re-expresses a recorded crop position in the 3:2 box the crop is cover-fitted into', () => {
+            const marker = { x: 0.25, y: 0.5, width: 1440, height: 810 };
+            const { x, y } = labelMarkerFraction('crop', marker, 180, 202.5, { ...FRAME, boxAspect: 3 / 2 });
+            expect(x).toBeCloseTo(0.5 - 0.25 * (32 / 27), 10);
+            expect(y).toBeCloseTo(0.5, 10);
+        });
+
+        it('assumes a crop with no recorded size has the frame\'s aspect', () => {
+            const recorded = labelMarkerFraction('crop', { x: 0.25, y: 0.5, width: 1440, height: 810 }, 180, 202.5,
+                { ...FRAME, boxAspect: 3 / 2 });
+            const assumed = labelMarkerFraction('crop', null, 180, 202.5, { ...FRAME, boxAspect: 3 / 2 });
+            expect(assumed.x).toBeCloseTo(recorded.x, 10);
+            expect(assumed.y).toBeCloseTo(recorded.y, 10);
+        });
+
+        it('is the identity for a 3:2 image in a 3:2 box', () => {
+            expect(labelMarkerFraction('crop', { x: 0.25, y: 0.75, width: 1440, height: 960 }, 180, 360,
+                { boxAspect: 3 / 2 })).toEqual({ x: 0.25, y: 0.75 });
+        });
+    });
 });

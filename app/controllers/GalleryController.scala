@@ -154,7 +154,8 @@ class GalleryController @Inject() (
                   "cropUrl"     -> panoDataService.cropUrl(l.labelId, l.labelType),
                   "cropMarker"  -> markers.get(l.labelId),
                   "gsvImageUrl" ->
-                    panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)
+                    panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom,
+                      l.canvasWidth, l.canvasHeight)
                 )
               }
               Ok(Json.obj("labelsOfType" -> jsonList))

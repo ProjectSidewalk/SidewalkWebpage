@@ -192,8 +192,8 @@ class AiServiceImpl @Inject() (
               validation: LabelValidation = LabelValidation(
                 0, labelId, labelData.labelType, aiValResult, SidewalkUserTable.aiUserId, aiMissionId,
                 Some(labelPoint.canvasX), Some(labelPoint.canvasY), labelPoint.heading, labelPoint.pitch,
-                labelPoint.zoom, LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, startTime,
-                aiResults.timestamp, UiSource.SidewalkAI, ViewerType.Default
+                labelPoint.zoom, labelPoint.canvasWidth, labelPoint.canvasHeight, startTime, aiResults.timestamp,
+                UiSource.SidewalkAI, ViewerType.Default
               )
               // The AI only votes, so it never edits the label.
               valId: Option[Int] <- validationService

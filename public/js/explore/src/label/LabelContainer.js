@@ -91,18 +91,31 @@ class LabelContainer {
           x: labelArr[i].canvasX,
           y: labelArr[i].canvasY,
         };
+        // The frame the click was made in (#5085): the stored point is decoded through it, and re-encoded for the
+        // frame the tool is displaying now, which may be a different shape.
+        const originalCanvasFrame = {
+          width: labelArr[i].canvasWidth ?? util.EXPLORE_CANVAS_WIDTH,
+          height: labelArr[i].canvasHeight ?? util.EXPLORE_CANVAS_HEIGHT,
+        };
 
-        // Get the canvas coordinates for the label given the current POV.
+        // The imagery the click was made on decides the fov it was projected with, and an Explore page renders one
+        // imagery source, so the page's viewer is the label's source too.
+        const viewerType = svl.panoViewer.getViewerType();
         const povOfLabelIfCentered = util.pano.canvasCoordToCenteredPov(
           labelArr[i].originalPov, originalCanvasXY.x, originalCanvasXY.y,
-          util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
+          originalCanvasFrame.width, originalCanvasFrame.height,
+          util.pano.renderedHFov(
+            labelArr[i].originalPov.zoom, originalCanvasFrame.width / originalCanvasFrame.height, viewerType,
+          ),
         );
+        const currPov = svl.panoViewer.getPov();
         labelArr[i].currCanvasXY = util.pano.centeredPovToCanvasCoord(
-          povOfLabelIfCentered, svl.panoViewer.getPov(),
-          util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
+          povOfLabelIfCentered, currPov,
+          svl.CANVAS_FRAME.width, svl.CANVAS_FRAME.height, svl.LABEL_ICON_RADIUS, svl.renderedHFov(currPov.zoom),
         );
 
         labelArr[i].originalCanvasXY = originalCanvasXY;
+        labelArr[i].originalCanvasFrame = originalCanvasFrame;
         labelArr[i].povOfLabelIfCentered = povOfLabelIfCentered;
         labelArr[i].panoXY = { x: labelArr[i].panoX, y: labelArr[i].panoY };
         const label = this.createLabel(labelArr[i], false);

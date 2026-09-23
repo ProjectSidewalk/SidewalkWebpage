@@ -112,17 +112,7 @@ class MapillaryViewer extends PanoViewer {
     povTracker(); // And run it once to start so that we have an initial heading/pitch recorded.
 
     // Track zoom level (by way of tracking the fov) by subscribing to changes to the renderCamera.
-    await this.viewer._container.renderService.renderCamera$.subscribe((rc) => {
-      const currImageId = this.currPanoData ? this.currPanoData.getPanoId() : undefined;
-      if (!currImageId || currImageId === rc._currentImageId) {
-        this.currVerticalFov = rc.perspective.fov;
-      }
-      // The aspect is container geometry, not image state, so cache it on every tick regardless of which image
-      // the camera is on; a container resize/rotation fires this subscription, keeping the cache current (#4852).
-      if (rc.perspective.aspect > 0) {
-        this.currAspect = rc.perspective.aspect;
-      }
-    });
+    await this.viewer._container.renderService.renderCamera$.subscribe((rc) => this._onRenderCamera(rc));
 
     // If defaultNavigation is enabled, we need a pano_changed listener to record the pano metadata after moving.
     if (defaultNavigation) {
@@ -660,8 +650,40 @@ class MapillaryViewer extends PanoViewer {
     return this.viewer.activateComponent('direction');
   };
 
+  /**
+   * Caches what the render camera reports, and treats a change of the container's aspect as a POV change.
+   *
+   * The camera keeps its vertical field of view across a resize, so the horizontal one, and the zoom getPov()
+   * reports, moves with the box; the SDK applies the new size in its own render loop, and this tick is the first
+   * moment the new camera exists. A page that redrew its labels when resize() returned kept the old projection until
+   * the next pan moved them (#5085), so the listeners hear about it from here, once, when the aspect has changed.
+   * @param {{perspective: {fov: number, aspect: number}, _currentImageId?: string}} rc - The SDK's render camera:
+   *   the vertical fov in degrees, the container's aspect, and the image it is on.
+   */
+  _onRenderCamera(rc) {
+    const currImageId = this.currPanoData ? this.currPanoData.getPanoId() : undefined;
+    if (!currImageId || currImageId === rc._currentImageId) {
+      this.currVerticalFov = rc.perspective.fov;
+    }
+    // The aspect is container geometry, not image state, so cache it on every tick regardless of which image the
+    // camera is on; a container resize/rotation fires this subscription, keeping the cache current (#4852).
+    if (rc.perspective.aspect > 0 && rc.perspective.aspect !== this.currAspect) {
+      const first = this.currAspect === undefined;
+      this.currAspect = rc.perspective.aspect;
+      // The first tick is the viewer coming up, not a resize; there is nothing drawn against an older aspect yet.
+      if (!first) for (const listener of this.povChangedListeners) listener();
+    }
+  }
+
   resize = () => {
     this.viewer.resize();
+    // The camera keeps its vertical fov across a resize, so the horizontal one, and the zoom getPov() reports, is
+    // set by the container's new shape, which the SDK renders on a later tick and whose render-camera stream was not
+    // seen to report until the camera next moved (#5085). The container's box is what it will render at, so getPov()
+    // reads the new aspect from there now, and a page redrawing its labels as soon as this returns gets the right
+    // projection; the render camera confirms it, or corrects it, when it ticks (_onRenderCamera).
+    this.currAspect = this._viewportAspect();
+    this._firePovChangedAfterResize();
   };
 
   /**

@@ -314,7 +314,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
                 isPositiveLabelType: () => false,
                 labelTypeHasSeverity: () => true,
             },
-            pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }) },
+            pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }), renderedHFov: () => 90 },
             url: { replaceQuery: () => {} },
         };
         window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
@@ -332,6 +332,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
                 currPanoData: null,
                 getPanoId: () => 'pano-1',
                 getPosition: () => ({ lat: 47.61, lng: -122.33 }),
+                getViewerType: () => 'gsv',
             },
             getPov: () => ({ heading: 250.5, pitch: -12, zoom: 2 }),
             getOriginalPosition: () => ({ heading: 250.5, pitch: -12 }),

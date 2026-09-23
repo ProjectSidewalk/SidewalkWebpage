@@ -134,7 +134,10 @@
     "feedback": "Avis",
     "feedback-tooltip": "Partagez vos impressions avec nous",
     "feedback-submitted": "Avis envoyé",
-    "feedback-title": "Une idée ? Quelque chose de confus ? Un bug repéré ?<br>Envoyez-nous vos commentaires !"
+    "feedback-title": "Une idée ? Quelque chose de confus ? Un bug repéré ?<br>Envoyez-nous vos commentaires !",
+    "immersive-enter": "Entrer en mode immersif",
+    "immersive-exit": "Quitter le mode immersif",
+    "immersive-exit-hint": "Mode immersif. Appuyez sur F pour quitter."
   },
   "right-ui": {
     "opens-new-tab": "(s'ouvre dans un nouvel onglet)",

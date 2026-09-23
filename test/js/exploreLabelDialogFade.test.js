@@ -76,6 +76,8 @@ describe('Label render fade while the context menu is open', () => {
         Label = loadLabel();
         const util = loadUtil();
         window.svl = {
+            CANVAS_FRAME: { width: 720, height: 480 },
+            renderedHFov: () => 90,
             LABEL_ICON_RADIUS: util.labelIconRadius(1),
             isOnboarding: () => false,
             minimap: { getMap: () => null },

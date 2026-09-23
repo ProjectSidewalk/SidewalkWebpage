@@ -98,9 +98,12 @@ Crops are the image the Gallery, the landing validation grid and label popups fa
 unavailable; they are written by the browser's `POST /saveImage` canvas snapshot at labeling time and by the job for
 every label that has none (AI submissions, failed uploads, any past city). The card surfaces (Gallery, landing grid,
 dashboard mistakes, the share preview) fall back one step further for a GSV label with no crop, to a Street View
-Static API still requested at 640×427 — Google's 640-px cap at the Explore canvas's aspect — so it is the labeling
-frame at a smaller scale and a marker at the label's canvas fraction still lands on the feature (#3095; asking for
-720×480 got a 640×480 still with extra sky and ground). Label popups never use the still: their chain is live pano →
+Static API still requested at 640×427 — Google's 640-px cap at the boxed Explore canvas's aspect — so it is the
+boxed labeling frame at a smaller scale and a marker at the label's canvas fraction still lands on the feature (#3095;
+asking for 720×480 got a 640×480 still with extra sky and ground). A label placed in immersive mode (#5085) has a frame
+of the window's aspect: its snapshot crop keeps that aspect (`ImageController.writeImageFile` normalizes the width
+only), and `util.misc.labelMarkerFraction` re-places its marker in the 3:2 still and in the 3:2 box every card
+cover-fits its image into. Label popups never use the still: their chain is live pano →
 self-hosted backup → crop → "imagery not available". The geometry — `CropSizingRule` (the
 swappable, versioned sizing rule) and `CropGeometry` (equirectangular mechanics) — is a port of panorama-tools'
 `CropRunner.py`, pinned to it by golden fixtures under `test/resources/crops/`. The two writers put the label in
@@ -292,6 +295,9 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 corresponding Twirl view:
 
 - **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
+  Its immersive mode (#5085, `src/controls/ImmersiveMode.js` + `css/pages/explore/svl-immersive.css`) fills the
+  browser window with the pano; the labeling frame it stores with every label, and why, is in
+  [`label-latlng-estimation.md`](label-latlng-estimation.md) under "The frame contract".
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
 - **`gallery/`** — browsable, filterable gallery of labels.

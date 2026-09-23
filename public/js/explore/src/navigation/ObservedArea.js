@@ -141,7 +141,8 @@ class ObservedArea {
   #updateAngles() {
     const pov = svl.panoViewer.getPov();
     let heading = pov.heading;
-    const fov = util.pano.zoomToFov(pov.zoom);
+    // What the viewer actually rendered across the frame (#5083); the curve alone under-counts a wide window at zoom 3.
+    const fov = svl.renderedHFov(pov.zoom);
     if (this.#angle) {
       if (heading - this.#angle > 180) {
         heading -= 360;
