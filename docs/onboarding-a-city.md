@@ -30,8 +30,10 @@ Run the three from the **main checkout**: `db/` is the bind mount the db contain
   3. what the tool finds on its own: OSM neighbourhood polygons (used only when they cover ≥ 75% of the city), then
      US census tracts, then the whole city as one region (fine for a small town).
   Whatever you use, record where it came from with `--regions-source` (a URL, or the collaborator's email); it is
-  stored in `region.data_source`. Overlapping polygons are fine to hand in: the build gives each overlap to the
-  smaller region and says so, which stops a street in the overlap being imported once per region (#3067).
+  stored in `region.data_source`. **Regions must tile the city — never overlap.** Street pieces are cut out of the
+  region polygons, and a street lying in an overlap is cut once per region, so it lands in the database twice
+  (#3067). The build repairs an overlap rather than importing duplicates, giving the contested ground to the smaller
+  region and saying so loudly, but that is damage control on a broken dataset: go back to the source and fix it.
   A town small enough to come out as **one region** is named after the city, not after whatever source it landed in
   — Laurens, IA would otherwise be the neighbourhood "Census Tract 7801" everywhere a region name shows (missions,
   the dashboard, LabelMap's filters, the API's `region_name`). The name comes from `--place`; pass

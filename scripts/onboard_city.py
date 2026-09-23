@@ -1304,12 +1304,14 @@ def disambiguate_names(names):
 
 def resolve_region_overlaps(regions):
     """
-    Hands every piece of ground to exactly one region, so a street sitting in an overlap isn't imported twice (#3067).
+    Repairs a region dataset whose polygons overlap, which they must never do.
 
-    Where two source polygons cover the same ground the smaller one keeps it: a neighborhood drawn inside a wider
-    district is the more useful answer to "which region is this street in", and a sliver where two census tracts were
-    traced slightly differently is too small for the choice to matter. A region a smaller one covers entirely is left
-    with nothing and dropped.
+    Regions have to tile the city: street pieces are cut out of the region polygons, so a street lying under two of
+    them is cut twice and lands in the database twice (#3067). Rather than import that, the contested ground goes to
+    the smaller region -- a neighborhood drawn inside a wider district is the more useful answer to "which region is
+    this street in", and a sliver where two census tracts were traced slightly differently is too small for the
+    choice to matter. A region a smaller one covers entirely is left with nothing and dropped. This is damage
+    control, not a supported input: the caller is told to go and fix the source data.
 
     Args:
         regions: GeoDataFrame of region polygons in EPSG:4326, already made valid, with a ``name`` column.
@@ -1337,8 +1339,9 @@ def resolve_region_overlaps(regions):
             emptied.append(regions['name'].iloc[i])
     if lost_m2 <= 0:
         return regions
-    logger.warning('Regions overlapped; gave each overlap to the smaller region (%.2f km² reassigned). Streets in '
-                   'an overlap would otherwise have been imported once per region.', lost_m2 / 1e6)
+    logger.warning('Regions must not overlap, and these do — %.2f km² was claimed twice. Gave each overlap to the '
+                   'smaller region so the streets under it are not imported once per region, but the region dataset '
+                   'is wrong: fix it at the source and rebuild.', lost_m2 / 1e6)
     if emptied:
         logger.warning('%d region(s) lay entirely inside a smaller one and were dropped: %s',
                        len(emptied), ', '.join(emptied[:10]) + (' ...' if len(emptied) > 10 else ''))
