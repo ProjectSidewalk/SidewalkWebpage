@@ -227,6 +227,7 @@ class AiServiceImpl @Inject() (
   private def callAiApi(labelData: LabelDataForAi): Future[Option[LabelAiAssessment]] = {
     val SIDEWALK_AI_API_HOSTNAME: String = config.get[String]("sidewalk-ai-api-hostname")
     val url: String                      = s"https://${SIDEWALK_AI_API_HOSTNAME}/process"
+    val apiKey: String                   = config.getOptional[String]("sidewalk-ai-api-key").getOrElse("")
     val labelId: Int                     = labelData.labelId
 
     // Create form data for the multipart request.
@@ -238,7 +239,9 @@ class AiServiceImpl @Inject() (
       "city"        -> cityId
     )
 
+    // The AI server rejects any request without the shared key as a bearer token (#4003).
     ws.url(url)
+      .withHttpHeaders("Authorization" -> s"Bearer $apiKey")
       .post(formData)
       .flatMap { response =>
         try {
