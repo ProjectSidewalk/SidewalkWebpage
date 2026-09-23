@@ -13,9 +13,13 @@ body.svl-immersive .tool-ui {
   --pano-height: 100dvh;
   --app-width: 100vw;
 
-  /* The ribbon keeps its size and floats over the pano, so the pano starts at the very top: override the derived
-     variable rather than zeroing --ribbon-height, which the ribbon and the controls under it still read. */
+  /* The ribbon floats over the pano, so the pano starts at the very top: override the derived variable rather than
+     zeroing --ribbon-height, which the ribbon and the controls under it still read. */
   --street-view-top: 0px;
+
+  /* The strip is the type circles alone (66px plus their 5px rings, and 4px above and below); the boxed 110px
+     carried the group titles and names. applyToolScale reads this too, so the fit follows. */
+  --ribbon-base-height: 84px;
 }
 
 /* The screen edge is the frame. */
@@ -27,16 +31,44 @@ body.svl-immersive #pano-border-frame {
   display: none;
 }
 
-/* The label-type ribbon floats over the top-left of the pano at its boxed size: mode switching is the core loop, so
-   it stays always-on. Its text is black on the boxed layout's white page, so over imagery it needs a surface of its
-   own. */
+/* The label-type ribbon floats over the top-centre of the pano as a strip of the type circles alone: mode switching
+   is the core loop, so it stays always-on, and the minimal version is the circles, with no group titles, names or
+   divider. The selected type still reads from its circle's coloured ring and fill, which RibbonMenu sets inline. The
+   circles sit on a surface of their own, since the boxed ribbon relied on the page's white. */
 body.svl-immersive #ribbon-menu-holder {
   top: 0;
-  width: calc(var(--pano-base-width) * var(--ui-scale));
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
   padding: 0 calc(8px * var(--ui-scale));
   background: rgb(from var(--color-neutral-white) r g b / 92%);
-  border-radius: 0 0 calc(12px * var(--ui-scale));
+  border-radius: 0 0 calc(12px * var(--ui-scale)) calc(12px * var(--ui-scale));
   z-index: 5;
+}
+
+body.svl-immersive #ribbon-menu-buttons {
+  gap: calc(4px * var(--ui-scale));
+}
+
+body.svl-immersive .ribbon-menu-title-holder,
+body.svl-immersive .label-type-name,
+body.svl-immersive #label-type-divider-major {
+  display: none;
+}
+
+/* The boxed offset lines the Explore circle up under the titles the other circles have; there are none here. */
+body.svl-immersive #mode-switch-button-walk {
+  margin-top: 0;
+}
+
+/* The boxed width made room for a two-line name under each circle. */
+body.svl-immersive .label-type-button-holder {
+  width: auto;
+}
+
+/* The Other circle's subcategory popover opened under the name it no longer has, so it clears the circle instead. */
+body.svl-immersive #ribbon-menu-other-subcategory-holder {
+  top: calc(74px * var(--ui-scale));
 }
 
 /* Everything that lives in the pano's top row in the boxed layout moves below the ribbon band, which is robust at
