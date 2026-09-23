@@ -5,7 +5,7 @@ import models.api.{RegionDataForApi, RegionFiltersForApi}
 import models.audit.AuditTaskTableDef
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
 import models.utils.MyPostgresProfile.api._
-import models.utils.{LatLngBBox, MyPostgresProfile}
+import models.utils.{CountedSql, LatLngBBox, MyPostgresProfile}
 import org.locationtech.jts.geom.MultiPolygon
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.Effect
@@ -197,21 +197,18 @@ class RegionTable @Inject() (
         JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
             AND street_edge.status = 'open'
             AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-        JOIN audit_task ON street_edge_region.street_edge_id = audit_task.street_edge_id
-            AND audit_task.completed = TRUE
-        JOIN user_stat ON audit_task.user_id = user_stat.user_id
-            AND user_stat.excluded = FALSE
+        JOIN ${CountedSql.completedAudits()} ON street_edge_region.street_edge_id = audit_task.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
       ),
       -- Get the distance of streets needing re-audit in each region: streets audited before, but whose completed
       -- audits all predate newer imagery (audit_task.outdated_imagery, #4384).
       --
-      -- This counts any completed audit, whereas audited_distance below comes from region_completion, which is
-      -- derived from street_edge_priority and so only counts completion-worthy audits. The two are therefore NOT
-      -- exact complements -- a street audited solely by a low-quality or excluded user counts here but not there --
-      -- and the API docs say so. Reproducing the priority formula here to force an exact partition would duplicate it in SQL and
-      -- guarantee drift; overallStats already exposes a strictly complementary pair over one population.
+      -- This counts every completed audit by a user who isn't excluded, whereas audited_distance below comes from
+      -- region_completion, which only counts completion-worthy audits. So the two aren't exact complements: a street
+      -- audited solely by a low-quality user counts here but not there, and the API docs say so. Reproducing the
+      -- completion formula here would duplicate it in SQL and guarantee drift; overallStats already exposes a strictly
+      -- complementary pair over one population.
       region_outdated AS (
         SELECT street_edge_region.region_id,
                SUM(ST_Length(street_edge.geom::geography)) AS outdated_distance
@@ -220,17 +217,7 @@ class RegionTable @Inject() (
             AND street_edge.status = 'open'
             AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
-            AND EXISTS (
-                SELECT FROM audit_task
-                WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
-                    AND audit_task.completed = TRUE
-            )
-            AND NOT EXISTS (
-                SELECT FROM audit_task
-                WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
-                    AND audit_task.completed = TRUE
-                    AND audit_task.outdated_imagery = FALSE
-            )
+            AND $needsReauditSql
         GROUP BY street_edge_region.region_id
       ),
       -- Get label counts, distinct user counts, and label timestamps for each region.
@@ -244,11 +231,7 @@ class RegionTable @Inject() (
         JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
             AND street_edge.status = 'open'
             AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-        JOIN label ON street_edge_region.street_edge_id = label.street_edge_id
-            AND label.deleted = FALSE
-            AND label.tutorial = FALSE
-        JOIN user_stat ON label.user_id = user_stat.user_id
-            AND user_stat.excluded = FALSE
+        JOIN ${CountedSql.labels()} ON street_edge_region.street_edge_id = label.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
       )
@@ -306,8 +289,7 @@ class RegionTable @Inject() (
    * Distance (meters) of streets needing re-audit in each region: streets audited before, but whose completed audits
    * all predate newer imagery (audit_task.outdated_imagery, #4384).
    *
-   * Mirrors the region_outdated CTE in getRegionsForApi above -- keep the two predicates in sync. Regions with no
-   * such streets are simply absent from the result.
+   * Same test as region_outdated in getRegionsForApi. Regions with no such streets are absent from the result.
    *
    * @return (region_id, outdated distance in meters) pairs.
    */
@@ -318,19 +300,24 @@ class RegionTable @Inject() (
       JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
           AND street_edge.status = 'open'
           AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-      WHERE EXISTS (
-              SELECT FROM audit_task
-              WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
-                  AND audit_task.completed = TRUE
-          )
-          AND NOT EXISTS (
-              SELECT FROM audit_task
-              WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
-                  AND audit_task.completed = TRUE
-                  AND audit_task.outdated_imagery = FALSE
-          )
+      WHERE #$needsReauditSql
       GROUP BY street_edge_region.region_id
     """.as[(Int, Double)]
   }
+
+  /**
+   * Whether the street in `street_edge_region` needs a re-audit: someone who counts audited it, but every one of those
+   * audits predates newer imagery (audit_task.outdated_imagery, #4384).
+   */
+  private val needsReauditSql: String =
+    s"""EXISTS (
+              SELECT FROM ${CountedSql.completedAudits()}
+              WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
+          )
+          AND NOT EXISTS (
+              SELECT FROM ${CountedSql.completedAudits()}
+              WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
+                  AND audit_task.outdated_imagery = FALSE
+          )"""
 
 }

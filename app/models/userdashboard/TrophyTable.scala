@@ -1,7 +1,7 @@
 package models.userdashboard
 
 import models.user.Role
-import models.utils.MyPostgresProfile
+import models.utils.{Contributors, CountedSql, MyPostgresProfile}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject._
@@ -9,7 +9,8 @@ import javax.inject._
 /**
  * Read-only queries that compute a user's trophies on the fly from label/region history — there is no stored trophy
  * table (kept real-time and simple, like the activity streak). All queries are scoped to the current city's schema
- * (unqualified table names, resolved by the connection search_path) and exclude deleted/tutorial labels.
+ * (unqualified table names, resolved by the connection search_path) and read only labels that count
+ * ([[CountedSql.labels]]).
  *
  * Two eligibility rules are used deliberately:
  *   - Weekly podiums mirror the public weekly leaderboard exactly (role IN Registered/Administrator/Researcher, not
@@ -46,11 +47,8 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           FROM sidewalk_user
           INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
           INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
-          INNER JOIN label ON sidewalk_user.user_id = label.user_id
-          WHERE label.deleted = FALSE
-              AND label.tutorial = FALSE
-              AND user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
-              AND user_stat.excluded = FALSE
+          INNER JOIN #${CountedSql.labels()} ON sidewalk_user.user_id = label.user_id
+          WHERE user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
               AND user_stat.on_leaderboard = TRUE
               AND #$labelWeek < #$nowWeek
           GROUP BY sidewalk_user.user_id, wk
@@ -78,11 +76,9 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
                  label.user_id AS uid,
                  COUNT(*)::int AS lc,
                  RANK() OVER (PARTITION BY street_edge_region.region_id ORDER BY COUNT(*) DESC)::int AS rnk
-          FROM label
+          FROM #${CountedSql.labels()}
           INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
-          INNER JOIN user_stat ON label.user_id = user_stat.user_id
-          WHERE label.deleted = FALSE AND label.tutorial = FALSE
-              AND user_stat.excluded = FALSE AND label.user_id <> $aiUserId
+          WHERE label.user_id <> $aiUserId
           GROUP BY street_edge_region.region_id, label.user_id
       )
       SELECT region.name, region.region_id, region_counts.lc
@@ -108,11 +104,9 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           SELECT DISTINCT ON (street_edge_region.region_id)
                  street_edge_region.region_id AS rid,
                  label.user_id AS uid
-          FROM label
+          FROM #${CountedSql.labels()}
           INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
-          INNER JOIN user_stat ON label.user_id = user_stat.user_id
-          WHERE label.deleted = FALSE AND label.tutorial = FALSE
-              AND user_stat.excluded = FALSE AND label.user_id <> $aiUserId
+          WHERE label.user_id <> $aiUserId
           ORDER BY street_edge_region.region_id, label.time_created ASC, label.label_id ASC
       )
       SELECT region.name, region.region_id
@@ -129,7 +123,7 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *
    * Both flags come back from one round trip because the two trophies are always rendered together. Unlike the other
    * trophies these are participation facts about the user's own history, so no cross-user ranking or eligibility
-   * filtering applies — only the usual deleted/tutorial label exclusions.
+   * filtering applies, and an excluded user's own labels still count.
    *
    * @param userId The user to check.
    * @return       (has started at least one exploreAddress mission, has at least one label from such a mission).
@@ -144,10 +138,9 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           ),
           EXISTS (
               SELECT 1
-              FROM label
+              FROM #${CountedSql.labels(contributors = Contributors.Everyone)}
               INNER JOIN mission ON label.mission_id = mission.mission_id
               WHERE label.user_id = $userId
-                  AND label.deleted = FALSE AND label.tutorial = FALSE
                   AND mission.mission_type = 'exploreAddress'
           );
     """.as[(Boolean, Boolean)].head
@@ -162,10 +155,8 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   def getCityPioneerUserId(aiUserId: String): DBIO[Option[String]] = {
     sql"""
       SELECT label.user_id
-      FROM label
-      INNER JOIN user_stat ON label.user_id = user_stat.user_id
-      WHERE label.deleted = FALSE AND label.tutorial = FALSE
-          AND user_stat.excluded = FALSE AND label.user_id <> $aiUserId
+      FROM #${CountedSql.labels()}
+      WHERE label.user_id <> $aiUserId
       ORDER BY label.time_created ASC, label.label_id ASC
       LIMIT 1;
     """.as[String].headOption

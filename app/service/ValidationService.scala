@@ -141,7 +141,7 @@ class ValidationServiceImpl @Inject() (
 
   /**
    * Whether a vote goes into the label's counts: not the labeler's own, not from an excluded user, and cast on the
-   * type the label has now (#3671). Must match `LabelTable.recalculateValidationCounts`.
+   * type the label has now (#3671). Must match `CountedSql.verdictVotes`.
    */
   private def counts(vote: LabelValidation, label: Label, excludedUser: Boolean): Boolean =
     label.userId != vote.userId && !excludedUser && vote.labelType == label.labelType

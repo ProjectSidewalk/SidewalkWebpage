@@ -89,16 +89,17 @@ class RegionCompletionTable @Inject() (
         .result
         .head
 
-      // Check if region is fully audited. Exclude the tutorial street (permanent priority=1.0) and the street
-      // currently being audited (its priority update runs separately in partiallyUpdatePriority — if we don't exclude
-      // it here, the last street in a region always appears un-audited at this point, so regionIncomplete is always
-      // true and the floating-point equalization never fires).
+      // Only streets that count toward total_distance can hold the region back: the tutorial street and closed or
+      // imagery-less streets sit at priority 1.0 forever, so counting them would block the 100% snap below. The
+      // street being audited is skipped too, since its priority update runs separately in partiallyUpdatePriority;
+      // without that, the last street in a region always looks un-audited here and the snap never fires.
       regionIncomplete: Boolean <- streetEdgeRegion
-        .join(streetEdgePriorityTable)
+        .join(streetEdgeTable.streets)
         .on(_.streetEdgeId === _.streetEdgeId)
-        .filter(x => x._1.regionId === regionId && x._2.priority === 1.0)
-        .filterNot(_._1.streetEdgeId in tutorialStreetId)
-        .filterNot(_._1.streetEdgeId === streetEdgeId)
+        .join(streetEdgePriorityTable)
+        .on(_._1.streetEdgeId === _.streetEdgeId)
+        .filter(x => x._1._1.regionId === regionId && x._2.priority === 1.0)
+        .filterNot(_._1._1.streetEdgeId === streetEdgeId)
         .exists
         .result
 

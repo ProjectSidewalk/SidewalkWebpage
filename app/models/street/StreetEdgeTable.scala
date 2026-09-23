@@ -7,7 +7,7 @@ import models.region.RegionTableDef
 import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
-import models.utils.{ConfigTableDef, LatLngBBox, MyPostgresProfile, SpatialQueryType}
+import models.utils.{ConfigTableDef, CountedSql, LatLngBBox, MyPostgresProfile, SpatialQueryType}
 import org.locationtech.jts.geom.LineString
 import org.postgresql.jdbc.PgArray
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -323,16 +323,12 @@ class StreetEdgeTable @Inject() (
             $regionNameFilter
             $statusFilter
       ),
-      -- Get audit counts. The parenthesized inner join drops excluded users' audits while the outer LEFT JOIN still
-      -- keeps streets that have no audits at all.
+      -- Get audit counts.
       audit_counts AS (
         SELECT s.street_edge_id, COUNT(a.audit_task_id) as audit_count,
                COUNT(a.audit_task_id) FILTER (WHERE NOT a.outdated_imagery) as up_to_date_audit_count
         FROM filtered_streets s
-        LEFT JOIN (
-          audit_task a
-          INNER JOIN user_stat au ON a.user_id = au.user_id AND au.excluded = false
-        ) ON s.street_edge_id = a.street_edge_id AND a.completed = true
+        LEFT JOIN ${CountedSql.completedAudits(as = "a")} ON s.street_edge_id = a.street_edge_id
         GROUP BY s.street_edge_id
       ),
       -- Get label counts, users, and timestamps.
@@ -348,13 +344,7 @@ class StreetEdgeTable @Inject() (
                MIN(l.time_created) as first_label_date,
                MAX(l.time_created) as last_label_date
         FROM filtered_streets s
-        -- Same parenthesized inner join as audit_counts, so excluded users' labels are dropped (#5287).
-        LEFT JOIN (
-          label l
-          INNER JOIN user_stat u ON l.user_id = u.user_id AND u.excluded = false
-        ) ON s.street_edge_id = l.street_edge_id
-            AND l.deleted = false
-            AND l.tutorial = false
+        LEFT JOIN ${CountedSql.labels(as = "l")} ON s.street_edge_id = l.street_edge_id
         GROUP BY s.street_edge_id
       )
       -- Final selection with all filters applied.

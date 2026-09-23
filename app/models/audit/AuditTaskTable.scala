@@ -371,16 +371,8 @@ class AuditTaskTable @Inject() (
       regionIds: Seq[Int],
       routeIds: Seq[Int]
   ): Future[Seq[StreetEdgeWithAuditStatus]] = {
-    // Optionally filter out data marked as low quality.
-    val _filteredTasks = if (filterLowQuality) {
-      completedTasks
-        .join(userStats)
-        .on(_.userId === _.userId)
-        .filter(_._2.highQuality)
-        .map(_._1)
-    } else {
-      completedTasks
-    }
+    val _filteredTasks =
+      if (filterLowQuality) streetEdgeTable.highQualityCompletedTasks else streetEdgeTable.completedAuditTasks
 
     // Distinct streets with any completed audit, and with a completed audit on current imagery (#4384).
     val _distinctEverCompleted = _filteredTasks.groupBy(_.streetEdgeId).map(_._1)
