@@ -70,8 +70,8 @@ body.svl-immersive .label-type-name {
   left: 50%;
   transform: translateX(-50%);
   width: auto;
-  padding: calc(3px * var(--ui-scale)) calc(6px * var(--ui-scale));
-  font-size: calc(8px * var(--ui-scale));
+  padding: calc(3px * var(--ui-scale)) calc(5px * var(--ui-scale));
+  font-size: calc(7.5px * var(--ui-scale));
   line-height: 1.2;
   white-space: nowrap;
   color: var(--color-neutral-900);
@@ -85,11 +85,11 @@ body.svl-immersive #mode-switch-button-walk {
   margin-top: 0;
 }
 
-/* Every circle gets the same slot, 8px wider than its 76px box, so the strip is evenly spaced whatever the names'
-   lengths and the widest pills just clear each other; the bottom padding reserves the pill's row, since the pill is
+/* Every circle gets the same slot, exactly its 76px box, so the strip is evenly spaced whatever the names' lengths
+   and the discs sit as close as their 5px rings allow; the bottom padding reserves the pill's row, since the pill is
    out of the flow. */
 body.svl-immersive .label-type-button-holder {
-  width: calc(84px * var(--ui-scale));
+  width: calc(76px * var(--ui-scale));
   padding-bottom: calc(16px * var(--ui-scale));
 }
 
