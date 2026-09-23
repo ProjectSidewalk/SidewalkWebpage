@@ -50,14 +50,16 @@ class ImageControllerSpec extends PlaySpec with AnonSession with GuiceOneAppPerS
   private val otherSyntheticLabelId = Int.MaxValue - 4727
   private val labelType             = "CurbRamp"
 
-  /** A real 2x2 PNG as the `data:` URL the canvas sends, since the controller decodes and re-encodes it. */
-  private lazy val cropDataUrl: String = {
-    val img = new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB)
+  /** A real PNG of the given size as the `data:` URL the canvas sends, since the controller decodes and re-encodes it. */
+  private def pngDataUrl(width: Int, height: Int): String = {
+    val img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
     img.setRGB(0, 0, 0x00ff00)
     val out = new ByteArrayOutputStream()
     val _   = ImageIO.write(img, "png", out)
     s"data:image/png;base64,${Base64.getEncoder.encodeToString(out.toByteArray)}"
   }
+
+  private lazy val cropDataUrl: String = pngDataUrl(2, 2)
 
   private def postCrop(session: Seq[Cookie], labelId: Int, lblType: String = labelType, b64: String = cropDataUrl) =
     route(
@@ -136,6 +138,25 @@ class ImageControllerSpec extends PlaySpec with AnonSession with GuiceOneAppPerS
 
       status(resp) mustBe BAD_REQUEST
       contentAsString(resp) must include("Invalid label type")
+    }
+
+    "store an upload at 1440 wide with its own aspect ratio, not squashed to 3:2 (#5085)" in {
+      val labelId = Int.MaxValue - 5085
+      try {
+        status(postCrop(freshAnonSession(), labelId, b64 = pngDataUrl(160, 90))) mustBe OK
+        val stored = ImageIO.read(cropFileFor(labelId))
+        (stored.getWidth, stored.getHeight) mustBe ((1440, 810))
+      } finally cleanUp(labelId)
+    }
+
+    "refuse an upload that is not the shape of a labeling frame, before decoding it" in {
+      // The stored height follows the upload's aspect, so this 1x300 file would otherwise become a 1440x432,000
+      // raster: about 1.9 GB, from a hundred bytes of base64 and any signed-in session.
+      val labelId = Int.MaxValue - 5086
+      try {
+        status(postCrop(freshAnonSession(), labelId, b64 = pngDataUrl(1, 300))) mustBe BAD_REQUEST
+        cropFileFor(labelId).exists() mustBe false
+      } finally cleanUp(labelId)
     }
 
     "reject a request with no JSON body" in {

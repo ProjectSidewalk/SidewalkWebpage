@@ -545,8 +545,8 @@ class PopupPanoManager {
   /**
    * Renders a PanoMarker (label) onto a Streetview Panorama.
    * @param {Record<string, any>} label - Plain-object label shape produced by LabelPopup.
-   *   Expected fields: labelId, label_type, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight, pov,
-   *   streetEdgeId, aiGenerated, and cropMarker ({x, y} fractions of the crop image, or null).
+   *   Expected fields: labelId, label_type, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight, panoSource,
+   *   pov, streetEdgeId, aiGenerated, and cropMarker ({x, y} fractions of the crop image, or null).
    */
   renderLabel(label) {
     const pos = this.#labelPov(label);
@@ -606,13 +606,16 @@ class PopupPanoManager {
 
   /**
    * The label's own direction: its stored click projected through the frame it was made in, with the fov that
-   * frame's aspect rendered at (#5085). The label was placed with the city's imagery, which the popup renders too.
+   * frame's aspect rendered at (#5085) on the imagery it was placed with, which is the label's own pano source
+   * rather than whatever this popup is showing: a GSV label shown on the self-hosted backup was still clicked
+   * through GSV's clamp.
    * @param {Record<string, any>} label - Plain-object label shape produced by LabelPopup (see renderLabel).
    * @returns {{heading: number, pitch: number, zoom: number}}
    */
   #labelPov(label) {
     const hFov = util.pano.renderedHFov(
-      label.pov.zoom, label.originalCanvasWidth / label.originalCanvasHeight, this.panoViewer?.getViewerType(),
+      label.pov.zoom, label.originalCanvasWidth / label.originalCanvasHeight,
+      label.panoSource ?? this.panoViewer?.getViewerType(),
     );
     return util.pano.canvasCoordToCenteredPov(
       label.pov, label.canvasX, label.canvasY, label.originalCanvasWidth, label.originalCanvasHeight, hFov,

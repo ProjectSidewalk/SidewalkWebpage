@@ -85,7 +85,7 @@ class PanoMarker {
      * @type {(
      *   centeredPov: {heading: number, pitch: number},
      *   newPov: {heading: number, pitch: number, zoom: number},
-     *   canvasWidth: number, canvasHeight: number, margin: number
+     *   canvasWidth: number, canvasHeight: number, margin: number, hFov?: number
      * ) => {x: number, y: number}|null}
      */
     this.povToPixel_ = util.pano.centeredPovToCanvasCoord2d;
@@ -279,9 +279,14 @@ class PanoMarker {
     // Calculate the position according to the viewport. Even though the marker doesn't sit directly underneath
     // the panorama container, we pass it on as the viewport because it has the actual viewport dimensions.
     if (this.marker_) {
+      const pov = this.panoViewer_.getPov();
+      const width = this.markerContainer_.offsetWidth;
+      const height = this.markerContainer_.offsetHeight;
+      // The fov the viewer renders for this container's shape, not the zoom curve alone: GSV clamps its vertical
+      // field on a tall or wide viewport (#5083), and a marker projected with the curve would sit off its feature.
       const coords = this.povToPixel_(
-        this.position_, this.panoViewer_.getPov(), this.markerContainer_.offsetWidth,
-        this.markerContainer_.offsetHeight, this.size_.width,
+        this.position_, pov, width, height, this.size_.width,
+        util.pano.renderedHFov(pov.zoom, width / height, this.panoViewer_.getViewerType?.()),
       );
       if (coords !== null) {
         this.marker_.style.left = `${coords.x - this.size_.width / 2}px`;

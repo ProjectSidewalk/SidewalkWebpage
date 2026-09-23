@@ -206,7 +206,7 @@ class Main {
     svl.panoOverlayControls = new PanoOverlayControls(svl.tracker, svl.navigationService, svl.stuckAlert,
       svl.keyboardShortcutAlert);
     // svl.relayout is assigned once the tool is laid out (below); the arrow looks it up at toggle time.
-    svl.immersiveMode = new ImmersiveMode(svl.tracker, () => svl.relayout());
+    svl.immersiveMode = new ImmersiveMode(svl.tracker, () => svl.relayout?.());
 
     // Mounted inside the date pill rather than beside it: what the button explains is the imagery, so between the
     // capture date and the audit note is the one place it would read as belonging to neither (#5413).

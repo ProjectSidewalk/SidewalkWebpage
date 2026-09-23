@@ -701,7 +701,10 @@ object LabelTable {
   // width/height. Mapped to service.CropService.CropCandidate by the crop job.
   type CropCandidateTuple = (Int, LabelTypeEnum.Base, String, Int, Int, Option[Int], Option[Int])
 
-  /** (labelId, labelType, timeCreated, panoId, panoX, panoY, canvasX, canvasY, panoWidth, panoHeight, aiGenerated). */
+  /**
+   * (labelId, labelType, timeCreated, panoId, panoX, panoY, canvasX, canvasY, canvasWidth, canvasHeight, panoWidth,
+   * panoHeight, aiGenerated).
+   */
   type CropProvenanceTuple =
     (Int, LabelTypeEnum.Base, OffsetDateTime, String, Int, Int, Int, Int, Int, Int, Option[Int], Option[Int], Boolean)
 

@@ -134,6 +134,24 @@ object CropService {
     (ExploreFrameCropWidth, math.max(1, math.round(ExploreFrameCropWidth.toDouble * canvasHeight / canvasWidth).toInt))
 
   /**
+   * The shapes a browser snapshot may have, as width:height: a phone-tall portrait window through an ultrawide one.
+   * The stored size follows the upload's aspect ratio, so `POST /saveImage` refuses an upload outside this band, or
+   * over [[SnapshotMaxSourcePixels]], on its declared size before decoding it: a 1x300 file of a hundred bytes would
+   * otherwise become a 1440x432,000 raster, and a signed-in user is all it takes to send one.
+   */
+  val SnapshotAspectRange: (Double, Double) = (0.5, 4.0)
+
+  /** Explore caps its snapshot at 1440 wide (`Canvas.CROP_MAX_WIDTH`), so a real one is under 5 megapixels. */
+  val SnapshotMaxSourcePixels: Long = 20000000L
+
+  /** Whether an upload of this declared size is worth decoding as a snapshot of a labeling frame. */
+  def acceptsSnapshot(width: Int, height: Int): Boolean = {
+    val aspect = width.toDouble / height
+    width > 0 && height > 0 && aspect >= SnapshotAspectRange._1 && aspect <= SnapshotAspectRange._2 &&
+    width.toLong * height <= SnapshotMaxSourcePixels
+  }
+
+  /**
    * An Explore-frame crop is uploaded in the labeler's session, so a crop written later than this was cut by the job.
    *
    * Read off mtime, a property of the filesystem rather than of the crop: a store restored from backup, `cp`'d, or
@@ -200,6 +218,22 @@ object CropService {
     clampFraction(canvasX.toDouble / canvasWidth),
     clampFraction(canvasY.toDouble / canvasHeight)
   )
+
+  /**
+   * Where a label is on the Street View still that stands in for a missing crop. The still is requested at the boxed
+   * frame's 3:2 (`PanoDataService.staticStillUrl`, rounded to whole pixels) at the label's horizontal field of view
+   * whatever the frame was, so a frame of another aspect sits in it vertically centered: the port of
+   * `util.misc.labelMarkerFraction`'s still case (#5085), which reads the still's aspect as the same exact 3:2. The
+   * identity for the boxed 720x480 frame.
+   */
+  def stillMarker(canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int): CropMarker = {
+    val stillAspect = LabelPointTable.canvasWidth.toDouble / LabelPointTable.canvasHeight
+    val frameAspect = canvasWidth.toDouble / canvasHeight
+    CropMarker(
+      clampFraction(canvasX.toDouble / canvasWidth),
+      clampFraction(0.5 + (canvasY.toDouble / canvasHeight - 0.5) * (stillAspect / frameAspect))
+    )
+  }
 
   private def clampFraction(f: Double): Double = math.min(1.0, math.max(0.0, f))
 }
@@ -375,9 +409,10 @@ class CropServiceImpl @Inject() (
   /**
    * Decides which writer produced a crop with no row, and where its label is (#2660).
    *
-   * Two writers share the path. The browser's snapshot is always [[ExploreFrameCropWidth]] x
-   * [[ExploreFrameCropHeight]]; the job's window is stored at the size [[storedSize]] gives its box — which is the
-   * same 1440x960 whenever the window was at least that wide, so size settles most cases and not all. Where it
+   * Two writers share the path. The browser's snapshot is [[ExploreFrameCropWidth]] wide at the aspect ratio of the
+   * label's frame ([[exploreSnapshotSize]]), give or take the pixel the browser's own rounding of its canvas can add
+   * (so a boxed snapshot is 1440x959 to 961); the job's window is stored at the size [[storedSize]] gives its box —
+   * which is the same 1440x960 whenever the window was at least that wide, so size settles most cases and not all. Where it
    * cannot, the file's age does: an Explore upload lands within [[ExploreUploadWindow]] of the label, and an AI label
    * never had a browser to upload one. A pano whose frame is recorded nowhere — not in `pano_data`, not in the store —
    * leaves the window uncomputable, so the crop is counted unresolved and left for a run that can read it.
@@ -393,7 +428,7 @@ class CropServiceImpl @Inject() (
     val file = panoDataService.cropFile(c.labelId, c.labelType.name)
     try {
       val (fileW, fileH) = ImageUtils.withReader(file)((_, w, h) => (w, h))
-      val isExploreSize  = (fileW, fileH) == exploreSnapshotSize(c.canvasWidth, c.canvasHeight)
+      val isExploreSize  = sizesAgree(exploreSnapshotSize(c.canvasWidth, c.canvasHeight), (fileW, fileH))
       val panoDims       = (c.panoWidth, c.panoHeight) match {
         case (Some(w), Some(h)) => Some((w, h))
         case _                  => storedPanoDims(c.panoId)

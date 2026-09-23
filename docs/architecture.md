@@ -298,7 +298,6 @@ corresponding Twirl view:
   Its immersive mode (#5085, `src/controls/ImmersiveMode.js` + `css/pages/explore/svl-immersive.css`) fills the
   browser window with the pano; the labeling frame it stores with every label, and why, is in
   [`label-latlng-estimation.md`](label-latlng-estimation.md) under "The frame contract".
-- **`validate/`** — the Validate tool (confirm/reject others' labels).
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
 - **`gallery/`** — browsable, filterable gallery of labels.

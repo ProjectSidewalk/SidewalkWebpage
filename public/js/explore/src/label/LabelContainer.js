@@ -93,7 +93,10 @@ class LabelContainer {
         };
         // The frame the click was made in (#5085): the stored point is decoded through it, and re-encoded for the
         // frame the tool is displaying now, which may be a different shape.
-        const originalCanvasFrame = { width: labelArr[i].canvasWidth, height: labelArr[i].canvasHeight };
+        const originalCanvasFrame = {
+          width: labelArr[i].canvasWidth ?? util.EXPLORE_CANVAS_WIDTH,
+          height: labelArr[i].canvasHeight ?? util.EXPLORE_CANVAS_HEIGHT,
+        };
 
         const viewerType = svl.panoViewer.getViewerType();
         const povOfLabelIfCentered = util.pano.canvasCoordToCenteredPov(

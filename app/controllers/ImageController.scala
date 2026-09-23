@@ -5,6 +5,7 @@ import controllers.helper.SignedMediaUtils
 import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats
 import models.label.LabelTypeEnum
+import models.utils.ImageUtils
 import play.api.libs.json._
 import play.api.mvc.{AnyContent, Request, RequestHeader}
 import play.api.{Configuration, Logger}
@@ -63,31 +64,40 @@ class ImageController @Inject() (
    * card draws on it is a fraction of the crop, so squashing it to 3:2 would move the labeled spot as well as distort
    * the picture. `CropService.exploreSnapshotSize` mirrors this rounding.
    *
-   * @return The stored image's (width, height).
+   * The upload's declared size is checked before anything is decoded (`CropService.acceptsSnapshot`): the stored
+   * height follows the upload's aspect ratio, so without the check a hundred-byte 1x300 file would have the server
+   * allocate a 1440x432,000 raster, and the resulting OutOfMemoryError is no `Exception` for the caller to recover.
+   *
+   * @return The stored image's (width, height), or the reason the upload was refused.
    */
-  def writeImageFile(filename: String, b64String: String): (Int, Int) = {
-    val imageBytes: Array[Byte]      = Base64.getDecoder.decode(b64String)
-    val inputStream                  = new ByteArrayInputStream(imageBytes)
-    val bufferedImage: BufferedImage = ImageIO.read(inputStream)
+  def writeImageFile(filename: String, b64String: String): Either[String, (Int, Int)] = {
+    val imageBytes: Array[Byte] = Base64.getDecoder.decode(b64String)
+    ImageUtils.encodedDimensions(imageBytes) match {
+      case None                                                                   => Left("The upload is not an image.")
+      case Some((srcW, srcH)) if !service.CropService.acceptsSnapshot(srcW, srcH) =>
+        Left(s"Refusing a ${srcW}x$srcH upload: not the shape of a labeling frame.")
+      case Some(_) =>
+        val inputStream                  = new ByteArrayInputStream(imageBytes)
+        val bufferedImage: BufferedImage =
+          try ImageIO.read(inputStream)
+          finally inputStream.close()
+        val (w, h) = service.CropService.exploreSnapshotSize(bufferedImage.getWidth, bufferedImage.getHeight)
+        val resizedImage: BufferedImage = resize(bufferedImage, w, h)
 
-    val (w, h) = service.CropService.exploreSnapshotSize(bufferedImage.getWidth, bufferedImage.getHeight)
-    val resizedImage: BufferedImage = resize(bufferedImage, w, h)
-
-    val f = new File(filename)
-    try {
-      val result: Boolean = ImageIO.write(resizedImage, "png", f)
-      if (!result) {
-        logger.error("Failed to write image file: " + filename)
-      }
-    } catch {
-      case e: IOException =>
-        logger.error(s"IOException while writing image file $filename: ${e.getMessage}")
-      case e: Exception =>
-        logger.error(s"Unexpected error while writing image file $filename: ${e.getMessage}")
-    } finally {
-      inputStream.close()
+        val f = new File(filename)
+        try {
+          val result: Boolean = ImageIO.write(resizedImage, "png", f)
+          if (!result) {
+            logger.error("Failed to write image file: " + filename)
+          }
+        } catch {
+          case e: IOException =>
+            logger.error(s"IOException while writing image file $filename: ${e.getMessage}")
+          case e: Exception =>
+            logger.error(s"Unexpected error while writing image file $filename: ${e.getMessage}")
+        }
+        Right((w, h))
     }
-    (w, h)
   }
 
   private def refererAllowed(request: RequestHeader): Boolean =
@@ -251,18 +261,22 @@ class ImageController @Inject() (
           // Base64 decode + ImageIO read/resize/write is CPU-bound; run it off the request EC so concurrent crop
           // uploads can't starve the HTTP dispatcher (#4415).
           Future(writeImageFile(filename, b64String))(cpuEc)
-            .flatMap { case (width, height) =>
-              // The label's social-preview image may have been built and cached before this crop existed, from a
-              // Street View still or the branded placeholder. That cache never expires, so drop it here and let the
-              // next request rebuild it from the crop we just wrote (#4726).
-              shareImageCache.invalidate(labelId)
-              // Best effort: the crop is on disk either way, and the reconcile pass records any row this misses.
-              cropService
-                .recordExploreFrameCrop(labelId, width, height)
-                .recover { case e: Exception =>
-                  logger.warn(s"Could not record crop provenance for label $labelId: $e")
-                }
-                .map(_ => Ok("Got: crop_" + labelId))
+            .flatMap {
+              case Left(reason) =>
+                logger.warn(s"Refused crop upload for label $labelId: $reason")
+                Future.successful(BadRequest(reason))
+              case Right((width, height)) =>
+                // The label's social-preview image may have been built and cached before this crop existed, from a
+                // Street View still or the branded placeholder. That cache never expires, so drop it here and let the
+                // next request rebuild it from the crop we just wrote (#4726).
+                shareImageCache.invalidate(labelId)
+                // Best effort: the crop is on disk either way, and the reconcile pass records any row this misses.
+                cropService
+                  .recordExploreFrameCrop(labelId, width, height)
+                  .recover { case e: Exception =>
+                    logger.warn(s"Could not record crop provenance for label $labelId: $e")
+                  }
+                  .map(_ => Ok("Got: crop_" + labelId))
             }
             .recover { case e: Exception =>
               logger.error("Exception when writing image file: " + filename + "\n\t" + e)

@@ -811,6 +811,8 @@ class LabelDetail {
       // The frame the click was made in (#5085); the boxed 720x480 covers payloads that predate the columns.
       originalCanvasWidth: meta.canvas_width ?? util.EXPLORE_CANVAS_WIDTH,
       originalCanvasHeight: meta.canvas_height ?? util.EXPLORE_CANVAS_HEIGHT,
+      // The imagery the click was made on decides the fov it was projected with (#5083).
+      panoSource: meta.pano_source,
       pov: labelPov,
       streetEdgeId: meta.street_edge_id,
       aiGenerated: meta.ai_generated,

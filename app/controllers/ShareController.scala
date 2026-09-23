@@ -305,14 +305,14 @@ class ShareController @Inject() (
   }
 
   /**
-   * The marker for the base image: the `label_crop` row's for a stored crop (#2660), else the canvas fraction — where
-   * the label is on a Street View still (which reproduces the Explore frame) and on a crop nothing has recorded yet.
+   * The marker for the base image: the `label_crop` row's for a stored crop (#2660), else the canvas fraction of the
+   * label's frame for a crop nothing has recorded yet, else where the frame's point lands on the 3:2 Street View
+   * still, which is only the frame itself for a boxed label (#5085).
    */
   private def markerFor(meta: LabelMetadata, onCrop: Boolean): Future[CropMarker] = {
-    val canvasFraction: CropMarker =
-      CropService.exploreFrameMarker(meta.canvasXY.x, meta.canvasXY.y, meta.canvasWidth, meta.canvasHeight)
-    if (onCrop) cropService.cropMarker(meta.labelId).map(_.getOrElse(canvasFraction))
-    else Future.successful(canvasFraction)
+    val (x, y, w, h) = (meta.canvasXY.x, meta.canvasXY.y, meta.canvasWidth, meta.canvasHeight)
+    if (onCrop) cropService.cropMarker(meta.labelId).map(_.getOrElse(CropService.exploreFrameMarker(x, y, w, h)))
+    else Future.successful(CropService.stillMarker(x, y, w, h))
   }
 
   /**

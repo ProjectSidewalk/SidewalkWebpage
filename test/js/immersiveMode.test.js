@@ -33,7 +33,7 @@ describe('ImmersiveMode', () => {
     beforeEach(() => {
         document.body.innerHTML = `
             <div id="immersive-toggle-holder" class="zoom-buttons-holder">
-              <button type="button" id="immersive-toggle-button" class="zoom-button" aria-pressed="false">
+              <button type="button" id="immersive-toggle-button" class="zoom-button">
                 <img id="immersive-toggle-icon" src="/assets/images/icons/maximize-2-white-feather.svg" alt="">
               </button>
             </div>`;
@@ -65,7 +65,7 @@ describe('ImmersiveMode', () => {
         expect(document.body.classList.contains('svl-immersive')).toBe(true);
         expect(document.documentElement.classList.contains('chromeless')).toBe(true);
         expect(relayout).toHaveBeenCalledTimes(1);
-        expect(button.getAttribute('aria-pressed')).toBe('true');
+        expect(button.getAttribute('aria-label')).toBe('controls.immersive-exit');
         expect(button.getAttribute('aria-label')).toBe('controls.immersive-exit');
         expect(document.getElementById('immersive-toggle-icon').getAttribute('src')).toContain('minimize-2');
 
@@ -74,7 +74,7 @@ describe('ImmersiveMode', () => {
         expect(document.body.classList.contains('svl-immersive')).toBe(false);
         expect(document.documentElement.classList.contains('chromeless')).toBe(false);
         expect(relayout).toHaveBeenCalledTimes(2);
-        expect(button.getAttribute('aria-pressed')).toBe('false');
+        expect(button.getAttribute('aria-label')).toBe('controls.immersive-enter');
         expect(document.getElementById('immersive-toggle-icon').getAttribute('src')).toContain('maximize-2');
     });
 
@@ -148,7 +148,7 @@ describe('ImmersiveMode', () => {
         expect(restored.isActive()).toBe(true);
         expect(document.body.classList.contains('svl-immersive')).toBe(true);
         expect(document.documentElement.classList.contains('chromeless')).toBe(true);
-        expect(document.getElementById('immersive-toggle-button').getAttribute('aria-pressed')).toBe('true');
+        expect(document.getElementById('immersive-toggle-button').getAttribute('aria-label')).toBe('controls.immersive-exit');
         expect(relayout).not.toHaveBeenCalled();
         expect(tracker.push).toHaveBeenCalledTimes(1);
         expect(tracker.push).toHaveBeenCalledWith('ImmersiveMode_Restored', expect.objectContaining({

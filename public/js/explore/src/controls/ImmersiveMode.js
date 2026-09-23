@@ -70,7 +70,7 @@ class ImmersiveMode {
    * @param {'Click'|'KeyboardShortcut'} source - Which input path asked, so the two stay distinguishable in analysis.
    */
   toggle(source) {
-    if (svl.isOnboarding()) return;
+    if (!this.#button || svl.isOnboarding()) return;
     // The hover card and context menu are anchored against the frame that is about to change shape.
     if (svl.contextMenu.isOpen()) svl.contextMenu.hide();
     svl.canvas.showLabelHoverInfo(undefined);
@@ -96,11 +96,13 @@ class ImmersiveMode {
     document.documentElement.classList.toggle(ImmersiveMode.CHROMELESS_CLASS, this.#active);
   }
 
-  /** Swaps the button's icon and accessible state to describe the action it now offers. */
+  /**
+   * Swaps the button's icon and accessible name to describe the action it now offers. The name carries the state on
+   * its own; an aria-pressed beside a name that already says "exit" would read as a contradiction.
+   */
   #renderButton() {
     const icon = this.#active ? 'minimize-2-white-feather.svg' : 'maximize-2-white-feather.svg';
     this.#icon.setAttribute('src', util.assetPath(`images/icons/${icon}`));
-    this.#button.setAttribute('aria-pressed', String(this.#active));
     this.#button.setAttribute('aria-label',
       i18next.t(this.#active ? 'controls.immersive-exit' : 'controls.immersive-enter'));
   }

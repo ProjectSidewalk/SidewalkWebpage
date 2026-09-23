@@ -152,10 +152,10 @@ where the horizontal field of view is a function of zoom alone (#5083).
 travels with the label as `label_point.canvas_width/canvas_height`, and every consumer of `canvas_x/canvas_y` reads
 it: the Scala tripwire (`calculatePovIfCentered` takes the frame), Validate's marker decode, the label-detail popup,
 resumed missions, the share image, and the card surfaces (whose crops are cover-fitted into a 3:2 box, so their
-markers go through `util.misc.markerPercentInCoverBox`). Explore's frame is *logical*: always 720 px wide
+markers go through `util.misc.labelMarkerFraction` with the box's aspect). Explore's frame is *logical*: always 720 px wide
 (`util.exploreCanvasFrame`), with a height of 720 divided by the displayed aspect ratio, 480 for the boxed tool and
 about 405 for a 16:9 immersive window. Only the aspect matters, so a 720-wide frame is exactly as good as the
-on-screen size, and the whole pre-374 corpus, which the client always normalized into 720×480, keeps that frame as
+on-screen size, and the whole pre-402 corpus, which the client always normalized into 720×480, keeps that frame as
 its default. Validate's `label_validation.canvas_width/height` is the on-screen size in CSS px; the two tables differ
 in unit but not in meaning. AI labels carry the notional 720×480 (`LabelPointTable.canvasWidth/Height`), whose
 center is the one point consistent with the POV stored beside it. Measured over 387 label directions on frames from

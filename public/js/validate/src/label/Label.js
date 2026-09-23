@@ -13,6 +13,7 @@ class Label {
     canvasX: undefined,
     canvasY: undefined,
     canvasWidth: undefined,
+    panoSource: undefined,
     canvasHeight: undefined,
     panoId: undefined,
     imageCaptureDate: undefined,
@@ -82,6 +83,7 @@ class Label {
       if ('canvas_x' in params) this.setAuditProperty('canvasX', params.canvas_x);
       if ('canvas_y' in params) this.setAuditProperty('canvasY', params.canvas_y);
       if ('canvas_width' in params) this.setAuditProperty('canvasWidth', params.canvas_width);
+      if ('pano_source' in params) this.setAuditProperty('panoSource', params.pano_source);
       if ('canvas_height' in params) this.setAuditProperty('canvasHeight', params.canvas_height);
       if ('pano_id' in params) this.setAuditProperty('panoId', params.pano_id);
       if ('image_capture_date' in params) this.setAuditProperty('imageCaptureDate', moment(params.image_capture_date));
@@ -199,8 +201,9 @@ class Label {
     };
     const frameWidth = this.getAuditProperty('canvasWidth') ?? util.EXPLORE_CANVAS_WIDTH;
     const frameHeight = this.getAuditProperty('canvasHeight') ?? util.EXPLORE_CANVAS_HEIGHT;
-    // The label was placed with the city's imagery, which is what this page renders with too.
-    const viewerType = window.svv?.panoViewer?.getViewerType() ?? 'gsv';
+    // The imagery the click was made on decides the fov it was projected with (#5083): the label's own source,
+    // with the page's viewer as the fallback for a payload that predates the field.
+    const viewerType = this.getAuditProperty('panoSource') ?? window.svv?.panoViewer?.getViewerType();
     return util.pano.canvasCoordToCenteredPov(origPov, this.getAuditProperty('canvasX'),
       this.getAuditProperty('canvasY'), frameWidth, frameHeight,
       util.pano.renderedHFov(origPov.zoom, frameWidth / frameHeight, viewerType));
