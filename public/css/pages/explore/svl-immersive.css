@@ -69,11 +69,13 @@ body.svl-immersive #ribbon-menu-other-subcategory-holder {
   top: calc(74px * var(--ui-scale));
 }
 
-/* The speed, zoom and immersive controls keep the boxed layout's top-right corner (svl-canvas.css); the centred
-   strip leaves it free on any window wider than the strip plus the controls. The Stuck button and the alerts move
-   below the strip's band. */
-body.svl-immersive #explore-control-buttons-holder {
-  top: calc(var(--ribbon-height) + 7px * var(--ui-scale));
+/* The Stuck, speed, zoom and immersive controls keep the boxed layout's top corners (svl-canvas.css); the centred
+   strip leaves them free on any window wider than the strip plus the controls. Over imagery rather than the boxed
+   layout's asphalt frame, each gets a single light stroke so it reads on a bright or dark sky alike. */
+body.svl-immersive .pano-overlay-button,
+body.svl-immersive .zoom-button,
+body.svl-immersive .speed-limit-sign {
+  box-shadow: 0 0 0 1px var(--color-neutral-300);
 }
 
 body.svl-immersive #alert-holder {

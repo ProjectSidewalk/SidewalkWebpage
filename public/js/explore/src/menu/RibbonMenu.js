@@ -66,7 +66,9 @@ class RibbonMenu {
         }));
       }
     };
-    document.querySelectorAll('.label-type-button-holder').forEach((el) => setKeyTooltip(el, 'top'));
+    // 'auto top': above the button, except where that leaves the window, as it does with the ribbon at the very top
+    // of it in immersive mode (#5085), where Bootstrap flips it below.
+    document.querySelectorAll('.label-type-button-holder').forEach((el) => setKeyTooltip(el, 'auto top'));
     document.querySelectorAll('.ribbon-menu-other-subcategory').forEach((el) => setKeyTooltip(el, 'left'));
   }
 
