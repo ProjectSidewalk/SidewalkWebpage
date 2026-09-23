@@ -107,10 +107,8 @@ class LabelCard {
    * @param {Label} label - The label whose information the card should show.
    */
   render(label) {
-    // Where the type, rating and tags can be edited, the card shows what Submit would save rather than what the
-    // labeler filed: a rating only means something under its own type, so leaving the two out of step puts
-    // something on the card that cannot be true — "Quality: Good" on a Signal, which has no rating at all (#5409).
-    // The menu's editors read the same values, and an Undo puts them back.
+    // Where these can be edited, the card shows what Submit would save rather than what the labeler filed — the
+    // same values the menu's editors read, which an Undo puts back (#5409).
     const editable = Boolean(this.#typeDropdown);
     const labelType = editable ? label.getProperty('newLabelType') : label.getAuditProperty('labelType');
     const severity = editable ? label.getProperty('newSeverity') : label.getAuditProperty('severity');
@@ -127,13 +125,12 @@ class LabelCard {
     });
     this.#typeDropdown?.setType(labelType);
 
-    // The card is anchored to the marker by its own size, which an edit changes, so without this it can end up
-    // sitting on top of the label it points at.
+    // An edit changes the card's size, and it is anchored to the marker by that size.
     svv.labelVisibilityControl?.reanchorLabelCard();
 
     // Point the share control at this label's public permalink (#456). /label/:id renders the spotlight page and
-    // serves the og:image that crawlers embed in the share card. Named by the type the label still has: the link
-    // opens the saved label, and sharing isn't what saves an edit.
+    // serves the og:image that crawlers embed in the share card. Named by the type the label still has, since
+    // that's what the link opens.
     if (this.#shareWidget) {
       const sharedType = label.getAuditProperty('labelType');
       const typeName = i18next.t(`common:${util.camelToKebab(sharedType)}`).replace('&shy;', '');

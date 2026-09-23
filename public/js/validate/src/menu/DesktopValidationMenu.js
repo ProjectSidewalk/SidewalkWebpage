@@ -657,8 +657,7 @@ class DesktopValidationMenu {
     const menuUI = this.#menuUI;
     const currLabel = svv.labelContainer.getCurrentLabel();
     const reasonInfo = svv.reasonButtonInfo[util.camelToKebab(currLabel.getAuditProperty('labelType'))]?.[id];
-    // Where the type can actually be changed, "wrong label type" opens the type picker instead of becoming a comment
-    // nobody acts on (#3671, #5409).
+    // Where the type can be changed, it opens the picker instead of becoming a comment nobody acts on (#5409).
     if (svv.adminVersion && reasonInfo?.wrongType) {
       this.#startWrongType();
       return;

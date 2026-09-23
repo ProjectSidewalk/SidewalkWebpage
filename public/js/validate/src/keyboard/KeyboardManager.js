@@ -88,8 +88,7 @@ class KeyboardManager {
     }
   }
 
-  /** @returns {boolean} Whether the menu is on the "wrong label type" disagree, where the picker and the editors
-   *     stand in for the reasons (#5409). */
+  /** @returns {boolean} Whether the menu is on the "wrong label type" disagree (#5409). */
   #inWrongTypeView() {
     return svv.validationMenu?.inWrongTypeView() === true;
   }
@@ -127,14 +126,9 @@ class KeyboardManager {
   #documentKeyDown = (e) => {
     const validationMenuUi = this.#validationMenuUi;
 
-    // The label's marker and its card form their own keyboard scope (#4729): the marker is a button that toggles
-    // the card, Tab walks through the card's controls, and Escape closes it and puts focus back on the marker.
-    // None of the global shortcuts may fire from inside — Enter especially, which everywhere else submits the
-    // validation and here would submit from a control that means "open". This runs on window with capture, so it
-    // sees the key before the focused control does.
-    // An open popover counts as being in the card wherever the key came from: Safari and Firefox on macOS don't
-    // focus a button that was clicked, so keys from a mouse-opened dropdown arrive aimed at the page instead — and
-    // the first thing the shortcuts below do is take the card down.
+    // The marker and its card are their own keyboard scope (#4729): none of the shortcuts below may fire from
+    // inside, Enter especially, which would submit from a button that means "open". An open popover counts as being
+    // in the card wherever the key came from, since Safari and Firefox on macOS don't focus a clicked button.
     const marker = document.getElementById('validate-pano-marker');
     const card = document.getElementById('label-card');
     if (e.target === marker || (card && card.contains(/** @type {Node} */ (e.target)))
@@ -166,8 +160,7 @@ class KeyboardManager {
       validationMenuUi.submitButton.click();
     }
 
-    // Not while a comment box has focus, where it undoes what was typed, and not Ctrl+Shift+Z, which means redo
-    // and has nothing to redo here (#5409).
+    // Not in a comment box, where it undoes typing, and not Ctrl+Shift+Z, which means redo (#5409).
     if (!this.#disableKeyboard && !this.#addingComment && (e.ctrlKey || e.metaKey) && !e.shiftKey
       && e.code === 'KeyZ') {
       e.preventDefault();

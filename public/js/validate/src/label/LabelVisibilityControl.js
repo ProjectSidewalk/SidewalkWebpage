@@ -117,16 +117,9 @@ class LabelVisibilityControl {
   }
 
   /**
-   * Re-arms the card's hide once the share popover or type dropdown that had been holding it open goes away.
-   *
-   * scheduleHideLabelCard is only ever reached from the card's own mouseleave, and while the popover was up it
-   * declined to schedule anything. The pointer left the card back then and no second mouseleave is coming, so
-   * without this the card would stay up until a pan, the H key, or the next label took it down. Copy link is the
-   * common way in: it leaves the popover open behind its "Copied!" state, so the pointer usually wanders off well
-   * before the popover closes. Skipped when the pointer is back on the card, where it is meant to stay, and when the
-   * card is already gone, since hiding it is one of the things that closes a popover. Also skipped while focus is
-   * still in the card, where someone who just pressed Escape or picked a type is standing: the focusout handler
-   * hides it once they leave.
+   * Re-arms the card's hide once a popover that had been holding it open goes away. The pointer left the card
+   * while the popover was up, and no second mouseleave is coming, so without this the card stays until a pan, the
+   * H key, or the next label. Left alone if the pointer or the keyboard is back in the card, or it is already gone.
    */
   handlePopoverDismissed() {
     if (!this.#cardVisible) return;

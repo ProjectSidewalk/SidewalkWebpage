@@ -19,10 +19,9 @@ class LabelTypePicker {
   /**
    * @param {HTMLElement} root - The element to fill; it becomes the radio group.
    * @param {{onPick: (labelType: string) => void, onToggle?: (expanded: boolean) => void,
-   *   commitsOnPick?: boolean}} opts - `onPick` and `onToggle` fire on user action only, never from `render` or
-   *   `collapse`, so a host can redraw saved state without re-triggering itself. `onToggle` reports a folded group
-   *   being opened back up (or folded again). Set `commitsOnPick` where a pick saves straight away: the arrows then
-   *   only move, since picking as they go would save a type per keypress, and there is nothing to fold.
+   *   commitsOnPick?: boolean}} opts - The callbacks fire on user action only, never from `render` or `collapse`,
+   *   so a host can redraw saved state without re-triggering itself. Set `commitsOnPick` where a pick saves
+   *   straight away; the arrows then only move, rather than saving a type per keypress on the way past.
    */
   constructor(root, { onPick, onToggle = () => {}, commitsOnPick = false }) {
     this.#root = root;
@@ -32,9 +31,7 @@ class LabelTypePicker {
     root.classList.add('label-type-picker');
     root.setAttribute('role', 'radiogroup');
     root.addEventListener('click', this.#handleClick);
-    // On window, where the pano viewers stop the arrow keys so they can't steer the imagery. That ends the event
-    // early, so a listener on the chips themselves never sees an arrow on any page with a viewer — which is every
-    // page this picker appears on. Other listeners on window still run, so this one does.
+    // On window, because every pano viewer stops the arrow keys there before anything deeper can see them.
     window.addEventListener('keydown', this.#handleKeydown, { capture: true });
   }
 
