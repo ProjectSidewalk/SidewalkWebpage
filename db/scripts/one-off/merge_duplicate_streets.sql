@@ -31,7 +31,7 @@
 --     part of its new street is marked not completed, so nobody is credited with distance that wasn't walked. Where
 --     the two were drawn in opposite directions, routes and paused audits are flipped and a paused audit's distance
 --     along the street is cleared. A route stop landing on a street the route already visits is dropped.
---   * Its OSM way link, priority, imagery and sidewalk-presence rows go, then the street itself.
+--   * Its OSM way link, priority and imagery rows go, then the street itself.
 -- Each kept street moves to the live region holding most of its length. The nightly jobs rebuild priority, sidewalk
 -- presence, clusters, intersections, access scores and user distance; region completion is cleared and refills.
 --
@@ -250,9 +250,12 @@ WHERE dropped_edge.street_edge_id = street_merge.drop_id AND survivor_edge.stree
 
 -- Saved routes and paused audits remember which end of a street to start from, so they have to be flipped where the
 -- two streets were drawn in opposite directions.
+-- Where each end of the dropped street falls along the survivor, as a 0-1 fraction; running the other way means the
+-- start lands further along than the end. Comparing distances between endpoints instead gets a short piece in the
+-- survivor's far half backwards, because its start is then nearer the survivor's end than its start.
 UPDATE street_merge
-SET reversed = ST_Distance(ST_StartPoint(dropped_edge.geom)::geography, ST_StartPoint(survivor_edge.geom)::geography)
-                 > ST_Distance(ST_StartPoint(dropped_edge.geom)::geography, ST_EndPoint(survivor_edge.geom)::geography)
+SET reversed = ST_LineLocatePoint(survivor_edge.geom, ST_StartPoint(dropped_edge.geom))
+                 > ST_LineLocatePoint(survivor_edge.geom, ST_EndPoint(dropped_edge.geom))
 FROM street_edge AS dropped_edge, street_edge AS survivor_edge
 WHERE dropped_edge.street_edge_id = street_merge.drop_id AND survivor_edge.street_edge_id = street_merge.survivor_id;
 
@@ -280,21 +283,32 @@ ORDER BY label.label_id,
          ST_Distance(label_point.geom::geography, survivor_edge.geom::geography),
          candidate.survivor_id;
 
--- 5. A route stop whose street merges into a street the route already visits would send the user down it twice, the
---    very bug this fixes, so the later stop goes. Positions are only a walking order, so the gap it leaves is fine.
+-- 5. A route stop whose street merges into one the route already walks the same way would send the user down it
+--    twice, the very bug this fixes, so the later stop goes. Walking a street once each way is a deliberate
+--    out-and-back (evolution 344), so direction is part of what counts as a repeat. Positions are only a walking
+--    order, so the gap a deleted stop leaves is fine.
+CREATE TEMP TABLE route_stop_after ON COMMIT DROP AS
+SELECT route_street.route_street_id, route_street.route_id, route_street.position,
+       coalesce(street_merge.survivor_id, route_street.street_edge_id) AS street_edge_id,
+       route_street.reverse <> coalesce(street_merge.reversed, FALSE) AS reverse,
+       street_merge.drop_id IS NOT NULL AS moved
+FROM route_street
+LEFT JOIN street_merge ON street_merge.drop_id = route_street.street_edge_id;
+
 CREATE TEMP TABLE route_stop_drop ON COMMIT DROP AS
 SELECT later_stop.route_street_id, first_stop.route_street_id AS kept_route_street_id
-FROM route_street AS later_stop
-JOIN street_merge AS later_merge ON later_merge.drop_id = later_stop.street_edge_id
+FROM route_stop_after AS later_stop
 JOIN LATERAL (
-  SELECT route_street.route_street_id, route_street.position
-  FROM route_street
-  LEFT JOIN street_merge ON street_merge.drop_id = route_street.street_edge_id
-  WHERE route_street.route_id = later_stop.route_id
-    AND coalesce(street_merge.survivor_id, route_street.street_edge_id) = later_merge.survivor_id
-  ORDER BY route_street.position, route_street.route_street_id
+  SELECT route_stop_after.route_street_id, route_stop_after.moved
+  FROM route_stop_after
+  WHERE route_stop_after.route_id = later_stop.route_id
+    AND route_stop_after.street_edge_id = later_stop.street_edge_id
+    AND route_stop_after.reverse = later_stop.reverse
+  ORDER BY route_stop_after.position, route_stop_after.route_street_id
   LIMIT 1
-) AS first_stop ON first_stop.route_street_id <> later_stop.route_street_id;
+) AS first_stop ON first_stop.route_street_id <> later_stop.route_street_id
+-- Only a repeat the merge itself created; two stops that already sat on this street are the route's own business.
+WHERE later_stop.moved OR first_stop.moved;
 
 -- The routes whose stops are about to change, so their cached length and street count can be redone afterwards.
 CREATE TEMP TABLE route_touched ON COMMIT DROP AS
@@ -346,13 +360,17 @@ BEGIN
   END IF;
 END $$;
 
--- A paused audit remembers which end it started from and how far it got. A street drawn the other way turns that
--- around, and the distance is measured on a road that's gone, so it restarts.
+-- A paused audit remembers which end it started from, so a street drawn the other way turns that around. An audit
+-- covering only part of its new street stops counting as finished, so the street isn't marked done for distance
+-- nobody walked. start_offset_m is left as it is: a task that has one started mid-street, and that is exactly what
+-- stops Explore handing the street back and letting someone finish ground they never covered (#4451,
+-- AuditTaskTable). It is measured from the start of the road, which the survivor shares -- except where the survivor
+-- runs the other way, where it would point at the wrong end, so that task is left finished instead of reopened.
 UPDATE audit_task
 SET street_edge_id = street_merge.survivor_id,
-    completed = audit_task.completed AND NOT street_merge.only_part,
-    start_point_reversed = audit_task.start_point_reversed <> street_merge.reversed,
-    start_offset_m = CASE WHEN street_merge.reversed THEN NULL ELSE audit_task.start_offset_m END
+    completed = CASE WHEN street_merge.reversed AND audit_task.start_offset_m IS NOT NULL THEN TRUE
+                     ELSE audit_task.completed AND NOT street_merge.only_part END,
+    start_point_reversed = audit_task.start_point_reversed <> street_merge.reversed
 FROM street_merge
 WHERE audit_task.street_edge_id = street_merge.drop_id;
 
@@ -417,20 +435,25 @@ WHERE street_edge_region.street_edge_id IN (SELECT survivor_id FROM street_merge
 UPDATE street_edge_region SET region_id = region_move.to_region_id
 FROM region_move WHERE street_edge_region.street_edge_id = region_move.street_edge_id;
 
+-- Checked here, while the dropped streets still have their regions. A street is hidden everywhere in the app while
+-- its region is deleted, so work moving off a street people can see onto one they can't would vanish from the site.
+-- It can happen when no live region covers the street being kept, which leaves nowhere for the move above to go.
+CREATE TEMP TABLE work_moved_out_of_sight ON COMMIT DROP AS
+SELECT street_merge.drop_id
+FROM street_merge
+JOIN street_edge_region AS dropped_region ON dropped_region.street_edge_id = street_merge.drop_id
+JOIN region AS dropped_in ON dropped_in.region_id = dropped_region.region_id
+JOIN street_edge_region AS survivor_region ON survivor_region.street_edge_id = street_merge.survivor_id
+JOIN region AS survivor_in ON survivor_in.region_id = survivor_region.region_id
+WHERE survivor_in.deleted AND NOT dropped_in.deleted;
+
 -- 8. Delete what belongs only to the dropped streets (one row per street each, so nothing can move), then the
---    streets. street_edge_region, street_edge_status_change, street_reopen_candidate, intersections, access scores
---    and gradients cascade. The nightly jobs rebuild intersections and access scores; a kept street's shape never
---    changes here, so its gradient stays right.
+--    streets. street_edge_region, street_edge_status_change, street_reopen_candidate, sidewalk presence,
+--    intersections, access scores and gradients cascade. The nightly jobs rebuild intersections and access scores;
+--    a kept street's shape never changes here, so its gradient stays right.
 DELETE FROM osm_way_street_edge WHERE street_edge_id IN (SELECT drop_id FROM street_merge);
 DELETE FROM street_edge_priority WHERE street_edge_id IN (SELECT drop_id FROM street_merge);
 DELETE FROM street_imagery WHERE street_edge_id IN (SELECT drop_id FROM street_merge);
--- sidewalk_presence arrived in evolution 383; skip it in a schema that doesn't have it yet.
-DO $$
-BEGIN
-  IF to_regclass('sidewalk_presence') IS NOT NULL THEN
-    EXECUTE 'DELETE FROM sidewalk_presence WHERE street_edge_id IN (SELECT drop_id FROM street_merge)';
-  END IF;
-END $$;
 DELETE FROM street_edge WHERE street_edge_id IN (SELECT drop_id FROM street_merge);
 
 -- Every route's length and street count is cached on the route row, and only redone when its streets change.
@@ -459,16 +482,13 @@ SELECT :'city' AS city,
        :apply::int = 1 AS applied,
        merge_count.*,
        (SELECT count(*) FROM region_move) AS kept_streets_region_changed,
-       -- Every route that had a stop moved, checked for the bug this is all about: the same street twice.
+       -- Every route that had a stop moved, checked for the bug this is all about: the same street walked the same
+       -- way twice. Once each way is an out-and-back, which routes are allowed to do.
        (SELECT count(*) FROM (
-          SELECT route_id, street_edge_id FROM route_street
+          SELECT route_id, street_edge_id, reverse FROM route_street
           WHERE route_id IN (SELECT route_id FROM route_touched)
-          GROUP BY route_id, street_edge_id HAVING count(*) > 1) AS repeated) AS check_routes_visiting_twice,
-       -- A deleted region hides its streets everywhere, so moving one there would take it off the site. Streets
-       -- already in one are left alone; this counts only moves.
-       (SELECT count(*) FROM region_move
-          JOIN region ON region.region_id = region_move.to_region_id
-          WHERE region.deleted) AS check_kept_streets_hidden
+          GROUP BY route_id, street_edge_id, reverse HAVING count(*) > 1) AS repeated) AS check_routes_visiting_twice,
+       (SELECT count(*) FROM work_moved_out_of_sight) AS check_work_moved_out_of_sight
 FROM merge_count;
 
 \if :apply
