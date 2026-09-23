@@ -195,6 +195,14 @@ class Toast {
     this.#mount();
   }
 
+  /**
+   * Re-places every live toast against its reference. A toast follows window resizes on its own; a page that moves
+   * its reference without one (Explore's immersive toggle re-lays the tool out in place, #5085) calls this instead.
+   */
+  static repositionAll() {
+    for (const toast of Toast.#live.values()) toast.#position();
+  }
+
   /** @returns {Element|symbol} Queue key. Anchorless toasts share one, since they share one position. */
   #anchorKey() {
     return this.#reference || Toast.#ANCHORLESS;

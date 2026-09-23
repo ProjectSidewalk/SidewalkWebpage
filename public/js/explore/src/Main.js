@@ -589,6 +589,8 @@ class Main {
        */
       svl.relayout = () => {
         applyExploreScale();
+        // A live toast is anchored to the pano's old box; nothing else tells it the box moved.
+        Toast.repositionAll();
         // The pano was painted at scale 1 and its box has just changed size, which is exactly what can leave GSV
         // black until the camera moves (#2468): tell the viewer its box moved, then have it force a frame. The
         // workaround lives in the viewer (PanoViewer.repaint()) so only the provider that needs it does anything.
