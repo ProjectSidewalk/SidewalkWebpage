@@ -526,12 +526,12 @@
           <tr>
             <td><code>properties.canvas_width</code></td>
             <td><code>integer</code></td>
-            <td>Width of the user's canvas/viewport when the label was placed (in pixels).</td>
+            <td>Width of the frame <code>canvas_x</code> is expressed in. A logical frame, not the on-screen size: always 720 for labels placed in Explore, whose height then carries the aspect ratio of the viewport (480 for the classic 3:2 tool). Only the aspect ratio matters when projecting the click, and the horizontal field of view to project with is not a function of zoom alone: on Google Street View imagery, a frame far from 3:2 at zoom 3 renders wider than the zoom curve, because the viewer clamps its vertical field. The model is documented in the repository's <code>docs/label-latlng-estimation.md</code>; <code>pano_x</code>/<code>pano_y</code> carry the same point without any projection.</td>
           </tr>
           <tr>
             <td><code>properties.canvas_height</code></td>
             <td><code>integer</code></td>
-            <td>Height of the user's canvas/viewport when the label was placed (in pixels).</td>
+            <td>Height of the frame <code>canvas_y</code> is expressed in; see <code>canvas_width</code>.</td>
           </tr>
           <tr>
             <td><code>properties.pano_x</code></td>

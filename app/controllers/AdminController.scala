@@ -472,7 +472,8 @@ class AdminController @Inject() (
         panoDataService
           .cropUrl(id, LabelTypeEnum.byName(labelType))
           .orElse(metaById.get(id).flatMap { m =>
-            panoDataService.getImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom)
+            panoDataService.getImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth,
+              m.canvasHeight)
           })
       case _ => None
     }

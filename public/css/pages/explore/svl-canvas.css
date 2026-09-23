@@ -49,6 +49,15 @@
   right: calc(7px * var(--ui-scale));
 }
 
+/* The immersive-mode toggle sits under the zoom stack (7 + 22 + 2 + 22 = 53px tall, plus a 6px gap), in the corner
+   users already scan for view controls. */
+#immersive-toggle-holder {
+  position: absolute;
+  z-index: 2;
+  top: calc(59px * var(--ui-scale));
+  right: calc(7px * var(--ui-scale));
+}
+
 /* Stuck/sound/feedback controls in the top-left. Shared pill look lives in pano-overlay-buttons.css;
    here we only position the holder and drive the expand/collapse of the optional buttons. */
 #explore-control-buttons-holder {
