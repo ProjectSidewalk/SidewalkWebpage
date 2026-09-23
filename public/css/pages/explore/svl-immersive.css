@@ -31,18 +31,16 @@ body.svl-immersive #pano-border-frame {
   display: none;
 }
 
-/* The label-type ribbon floats over the top-centre of the pano as a strip of the type circles alone: mode switching
-   is the core loop, so it stays always-on, and the minimal version is the circles, with no group titles, names or
-   divider. The selected type still reads from its circle's coloured ring and fill, which RibbonMenu sets inline. The
-   circles sit on a surface of their own, since the boxed ribbon relied on the page's white. */
+/* The label-type ribbon floats over the top-centre of the pano as a strip of the type circles alone, straight on
+   the imagery: mode switching is the core loop, so it stays always-on, and the minimal version is the circles, with
+   no group titles, names, divider or surface. The selected type still reads from its circle's coloured ring and
+   fill, which RibbonMenu sets inline. */
 body.svl-immersive #ribbon-menu-holder {
   top: 0;
   left: 50%;
   transform: translateX(-50%);
   width: auto;
   padding: 0 calc(8px * var(--ui-scale));
-  background: rgb(from var(--color-neutral-white) r g b / 92%);
-  border-radius: 0 0 calc(12px * var(--ui-scale)) calc(12px * var(--ui-scale));
   z-index: 5;
 }
 
@@ -71,38 +69,37 @@ body.svl-immersive #ribbon-menu-other-subcategory-holder {
   top: calc(74px * var(--ui-scale));
 }
 
-/* Everything that lives in the pano's top row in the boxed layout moves below the ribbon band, which is robust at
-   any window width; centring the ribbon instead only avoids collisions on windows wider than the ribbon plus the
-   buttons. */
-body.svl-immersive #explore-control-buttons-holder,
-body.svl-immersive #zoom-buttons-holder,
-body.svl-immersive .speed-limit-sign {
+/* The speed, zoom and immersive controls keep the boxed layout's top-right corner (svl-canvas.css); the centred
+   strip leaves it free on any window wider than the strip plus the controls. The Stuck button and the alerts move
+   below the strip's band. */
+body.svl-immersive #explore-control-buttons-holder {
   top: calc(var(--ribbon-height) + 7px * var(--ui-scale));
-}
-
-body.svl-immersive #immersive-toggle-holder {
-  top: calc(var(--ribbon-height) + 59px * var(--ui-scale));
 }
 
 body.svl-immersive #alert-holder {
   top: calc(var(--ribbon-height) + 8px * var(--ui-scale));
 }
 
-/* The sidebar becomes a card in the bottom-right holding only the mission section (progress + minimap): lifetime stats
-   and badges are between-bursts content and return on exit. --sidebar-width is deliberately kept, so the card is the
-   boxed sidebar's width and --minimap-base-size (svl-minimap.css) stays true for ObservedArea's geometry. */
-body.svl-immersive .explore-sidebar__section:not(.explore-sidebar__section--map) {
+/* The sidebar shrinks to the minimap alone in the bottom-right: lifetime stats, badges, the mission header, the
+   custom-route exit link and the progress bars are between-bursts content and return on exit. --sidebar-width is
+   deliberately kept, so the minimap is the boxed sidebar's width and --minimap-base-size (svl-minimap.css) stays true
+   for ObservedArea's geometry. */
+body.svl-immersive .explore-sidebar__section:not(.explore-sidebar__section--map),
+body.svl-immersive #current-mission-header,
+body.svl-immersive #explore-sidebar__exit-route,
+body.svl-immersive #mission-guidance-status-box,
+body.svl-immersive .explore-sidebar__progress-groups {
   display: none;
 }
 
 body.svl-immersive #explore-sidebar {
   inset: auto calc(12px * var(--ui-scale)) calc(12px * var(--ui-scale)) auto;
   height: auto;
-  padding: calc(8px * var(--ui-scale));
-  background: var(--color-neutral-white);
-  border-radius: calc(12px * var(--ui-scale));
-  box-shadow: var(--box-shadow-lg);
   z-index: 2;
+}
+
+body.svl-immersive #minimap-holder {
+  box-shadow: var(--box-shadow-lg);
 }
 
 /* In a height:auto column the minimap's flex: 1 1 auto; min-height: 0 would collapse it, so give it its square back. */
