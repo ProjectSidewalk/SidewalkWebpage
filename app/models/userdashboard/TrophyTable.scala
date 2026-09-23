@@ -1,7 +1,7 @@
 package models.userdashboard
 
 import models.user.Role
-import models.utils.{Contributors, CountedSql, MyPostgresProfile}
+import models.utils.{Contributors, FilteredTables, MyPostgresProfile}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject._
@@ -10,7 +10,7 @@ import javax.inject._
  * Read-only queries that compute a user's trophies on the fly from label/region history — there is no stored trophy
  * table (kept real-time and simple, like the activity streak). All queries are scoped to the current city's schema
  * (unqualified table names, resolved by the connection search_path) and read only labels that count
- * ([[CountedSql.labels]]).
+ * ([[FilteredTables.labels]]).
  *
  * Two eligibility rules are used deliberately:
  *   - Weekly podiums mirror the public weekly leaderboard exactly (role IN Registered/Administrator/Researcher, not
@@ -47,7 +47,7 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           FROM sidewalk_user
           INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
           INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
-          INNER JOIN #${CountedSql.labels()} ON sidewalk_user.user_id = label.user_id
+          INNER JOIN #${FilteredTables.labels()} ON sidewalk_user.user_id = label.user_id
           WHERE user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
               AND user_stat.on_leaderboard = TRUE
               AND #$labelWeek < #$nowWeek
@@ -76,7 +76,7 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
                  label.user_id AS uid,
                  COUNT(*)::int AS lc,
                  RANK() OVER (PARTITION BY street_edge_region.region_id ORDER BY COUNT(*) DESC)::int AS rnk
-          FROM #${CountedSql.labels()}
+          FROM #${FilteredTables.labels()}
           INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
           WHERE label.user_id <> $aiUserId
           GROUP BY street_edge_region.region_id, label.user_id
@@ -104,7 +104,7 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           SELECT DISTINCT ON (street_edge_region.region_id)
                  street_edge_region.region_id AS rid,
                  label.user_id AS uid
-          FROM #${CountedSql.labels()}
+          FROM #${FilteredTables.labels()}
           INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
           WHERE label.user_id <> $aiUserId
           ORDER BY street_edge_region.region_id, label.time_created ASC, label.label_id ASC
@@ -138,7 +138,7 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           ),
           EXISTS (
               SELECT 1
-              FROM #${CountedSql.labels(contributors = Contributors.Everyone)}
+              FROM #${FilteredTables.labels(contributors = Contributors.Everyone)}
               INNER JOIN mission ON label.mission_id = mission.mission_id
               WHERE label.user_id = $userId
                   AND mission.mission_type = 'exploreAddress'
@@ -155,7 +155,7 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   def getCityPioneerUserId(aiUserId: String): DBIO[Option[String]] = {
     sql"""
       SELECT label.user_id
-      FROM #${CountedSql.labels()}
+      FROM #${FilteredTables.labels()}
       WHERE label.user_id <> $aiUserId
       ORDER BY label.time_created ASC, label.label_id ASC
       LIMIT 1;

@@ -224,7 +224,7 @@
           <tr>
             <td><code>properties.audit_count</code></td>
             <td><code>integer</code></td>
-            <td>Number of completed audits (virtual walks) of streets within this region, including audits whose imagery has since been replaced. Leaves out excluded users.</td>
+            <td>Number of completed audits (virtual walks) of streets within this region, including audits whose imagery has since been replaced.</td>
           </tr>
           <tr>
             <td><code>properties.total_distance_m</code></td>
@@ -234,12 +234,12 @@
           <tr>
             <td><code>properties.audited_distance_m</code></td>
             <td><code>number</code></td>
-            <td>Length of the region's streets that have ever been quality-audited, in meters. This is the region's completion measure, so it counts only audits that count toward completion — audits by high-quality, non-excluded users that aren't flagged low-quality, incomplete, or stale — regardless of imagery age: a street whose audits predate newer imagery stays counted here (see <code>outdated_distance_m</code> for that signal). Recomputed nightly, so it can trail same-day auditing slightly.</td>
+            <td>Length of the region's streets that have ever been quality-audited, in meters. This is the region's completion measure, so it counts only audits that count toward completion — audits by high-quality users that aren't flagged low-quality, incomplete, or stale — regardless of imagery age: a street whose audits predate newer imagery stays counted here (see <code>outdated_distance_m</code> for that signal). Recomputed nightly, so it can trail same-day auditing slightly.</td>
           </tr>
           <tr>
             <td><code>properties.outdated_distance_m</code></td>
             <td><code>number</code></td>
-            <td>Length of the region's streets needing re-audit, in meters: streets audited before, but whose completed audits all predate newer imagery. Note that this is <em>not</em> an exact subset of <code>audited_distance_m</code> — it counts any audit by a non-excluded user, while <code>audited_distance_m</code> only counts high-quality audits. A street audited only by a low-quality user shows here but not there. For a strict subset pair over one audit population, use <code>km_explored_no_overlap</code> and <code>km_needs_reaudit</code> on <a href="/v3/api-docs/overall-stats">/v3/api/overallStats</a>.</td>
+            <td>Length of the region's streets needing re-audit, in meters: streets audited before, but whose completed audits all predate newer imagery. Note that this is <em>not</em> an exact subset of <code>audited_distance_m</code> — it counts any audit, while <code>audited_distance_m</code> only counts high-quality audits. A street audited only by a low-quality user shows here but not there. For a strict subset pair over one audit population, use <code>km_explored_no_overlap</code> and <code>km_needs_reaudit</code> on <a href="/v3/api-docs/overall-stats">/v3/api/overallStats</a>.</td>
           </tr>
           <tr>
             <td><code>properties.completion_rate</code></td>

@@ -15,7 +15,7 @@ import util.{RolledBackDb, StreetFixtures}
  * The shared "what counts" SQL (#5287) keeps exactly what its Slick twin keeps. Seeded cases are rolled back, and
  * are skipped on a database with no labels to borrow ids from (CI's).
  */
-class CountedSqlSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
+class FilteredTablesSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
@@ -63,11 +63,11 @@ class CountedSqlSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
     ((slickSet -- rawSet).toSeq.sorted.take(10), (rawSet -- slickSet).toSeq.sorted.take(10))
   }
 
-  "CountedSql.labels" should {
+  "FilteredTables.labels" should {
     "keep exactly the labels LabelTable.labels keeps" in {
       val (slick, raw) = run(for {
         slick <- labelTable.labels.map(_.labelId).result
-        raw   <- sql"SELECT label_id FROM #${CountedSql.labels()}".as[Int]
+        raw   <- sql"SELECT label_id FROM #${FilteredTables.labels()}".as[Int]
       } yield (slick, raw))
 
       differences(slick, raw) mustBe ((Seq.empty, Seq.empty))
@@ -75,22 +75,22 @@ class CountedSqlSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
     }
   }
 
-  "CountedSql.accuracyLabels" should {
+  "FilteredTables.accuracyLabels" should {
     "keep exactly the labels LabelTable.labelsForAccuracy keeps" in {
       val (slick, raw) = run(for {
         slick <- labelTable.labelsForAccuracy.map(_.labelId).result
-        raw   <- sql"SELECT label_id FROM #${CountedSql.accuracyLabels}".as[Int]
+        raw   <- sql"SELECT label_id FROM #${FilteredTables.accuracyLabels}".as[Int]
       } yield (slick, raw))
 
       differences(slick, raw) mustBe ((Seq.empty, Seq.empty))
     }
   }
 
-  "CountedSql.completedAudits" should {
+  "FilteredTables.completedAudits" should {
     "keep exactly the audits StreetEdgeTable.countedAuditTasks keeps" in {
       val (slick, raw) = run(for {
         slick <- streetEdgeTable.countedAuditTasks.map(_.auditTaskId).result
-        raw   <- sql"SELECT audit_task_id FROM #${CountedSql.completedAudits()}".as[Int]
+        raw   <- sql"SELECT audit_task_id FROM #${FilteredTables.completedAudits()}".as[Int]
       } yield (slick, raw))
 
       differences(slick, raw) mustBe ((Seq.empty, Seq.empty))
@@ -100,7 +100,7 @@ class CountedSqlSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
       val (slick, raw) = run(for {
         slick <- streetEdgeTable.completedAuditTasks.map(_.auditTaskId).result
         raw   <- sql"""SELECT audit_task.audit_task_id
-                       FROM #${CountedSql.completedAudits()}
+                       FROM #${FilteredTables.completedAudits()}
                        INNER JOIN street_edge ON audit_task.street_edge_id = street_edge.street_edge_id
                        WHERE street_edge.status = 'open'
                            AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)""".as[Int]
@@ -110,7 +110,7 @@ class CountedSqlSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
     }
   }
 
-  "CountedSql.verdictVotes" should {
+  "FilteredTables.verdictVotes" should {
     "keep only votes on the label's current type, from someone other than its author who isn't excluded" in {
       val (kept, countedVoter) = runRolledBack(for {
         streetEdgeId <- insertStreet()
@@ -126,7 +126,7 @@ class CountedSqlSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
         _            <- vote(labelId, banned, "Obstacle")
         _            <- vote(labelId, outdated, "CurbRamp")
         kept         <- sql"""SELECT label_validation.user_id
-                              FROM #${CountedSql.verdictVotes()}
+                              FROM #${FilteredTables.verdictVotes()}
                               WHERE label_validation.label_id = $labelId""".as[String]
       } yield (kept, counted))
 

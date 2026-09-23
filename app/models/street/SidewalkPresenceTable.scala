@@ -302,7 +302,7 @@ object SidewalkPresenceTable {
    * Labels *and* audits from `user_stat.excluded` contributors are dropped, the population [[models.label.LabelTable.labels]]
    * serves everywhere else. It has to be both: dropping only their labels would leave their audit behind, and an audit with no labels
    * is exactly what calls a face `present` — a banned contributor would flip the very faces they mislabeled.
-   * Hand-written, not `CountedSql`, because it must match evolution 388 exactly.
+   * Hand-written, not `FilteredTables`, because it must match evolution 388 exactly.
    */
   val derivationSql: String =
     """WITH face AS (

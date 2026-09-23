@@ -8,7 +8,7 @@ import models.mission.MissionTableDef
 import models.user._
 import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.CommonUtils.ViewerType.ViewerType
-import models.utils.{Contributors, CountedSql, MyPostgresProfile}
+import models.utils.{Contributors, FilteredTables, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
@@ -179,7 +179,7 @@ class LabelValidationTable @Inject() (
       FROM (
           SELECT CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
-          FROM #${CountedSql.accuracyLabels}
+          FROM #${FilteredTables.accuracyLabels}
           WHERE label.user_id = $userId
       ) "accuracy_subquery";""".as[Option[Double]].map(_.headOption.flatten)
   }
@@ -576,7 +576,7 @@ class LabelValidationTable @Inject() (
                         THEN 1 END) AS ai_disagree,
              COUNT(CASE WHEN user_role.role = 'AI' AND label_validation.validation_result::text = 'Unsure'
                         THEN 1 END) AS ai_unsure
-      FROM #${CountedSql.votesCast(contributors = contributors)}
+      FROM #${FilteredTables.votesCast(contributors = contributors)}
       INNER JOIN label ON label_validation.label_id = label.label_id
       LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
       WHERE #$where

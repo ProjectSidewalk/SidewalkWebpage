@@ -7,7 +7,7 @@ import models.region.RegionTableDef
 import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
-import models.utils.{ConfigTableDef, CountedSql, LatLngBBox, MyPostgresProfile, SpatialQueryType}
+import models.utils.{ConfigTableDef, FilteredTables, LatLngBBox, MyPostgresProfile, SpatialQueryType}
 import org.locationtech.jts.geom.LineString
 import org.postgresql.jdbc.PgArray
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -119,7 +119,7 @@ class StreetEdgeTable @Inject() (
   val streetsWithTutorial = streetsUnfiltered.filter(_.status === StreetEdgeStatus.Open)
   val streets             = streetsWithTutorial.filterNot(_.streetEdgeId in tutorialStreetId)
 
-  // Completed audits by non-excluded users, on any street (twin of CountedSql.completedAudits).
+  // Completed audits by non-excluded users, on any street (twin of FilteredTables.completedAudits).
   val countedAuditTasksWithUsers = auditTasks
     .join(userStats)
     .on(_.userId === _.userId)
@@ -330,7 +330,7 @@ class StreetEdgeTable @Inject() (
         SELECT s.street_edge_id, COUNT(audit_task.audit_task_id) as audit_count,
                COUNT(audit_task.audit_task_id) FILTER (WHERE NOT audit_task.outdated_imagery) as up_to_date_audit_count
         FROM filtered_streets s
-        LEFT JOIN ${CountedSql.completedAudits()} ON s.street_edge_id = audit_task.street_edge_id
+        LEFT JOIN ${FilteredTables.completedAudits()} ON s.street_edge_id = audit_task.street_edge_id
         GROUP BY s.street_edge_id
       ),
       -- Get label counts, users, and timestamps.
@@ -346,7 +346,7 @@ class StreetEdgeTable @Inject() (
                MIN(label.time_created) as first_label_date,
                MAX(label.time_created) as last_label_date
         FROM filtered_streets s
-        LEFT JOIN ${CountedSql.labels()} ON s.street_edge_id = label.street_edge_id
+        LEFT JOIN ${FilteredTables.labels()} ON s.street_edge_id = label.street_edge_id
         GROUP BY s.street_edge_id
       )
       -- Final selection with all filters applied.

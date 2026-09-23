@@ -1,6 +1,6 @@
 package models.utils
 
-/** Which contributors' work a [[CountedSql]] fragment keeps. */
+/** Which contributors' work a [[FilteredTables]] fragment keeps. */
 sealed trait Contributors
 
 object Contributors {
@@ -18,10 +18,10 @@ object Contributors {
 /**
  * The rules for which labels, audits and votes count, written once for raw SQL (#5287), so copies can't drift apart.
  *
- * Each is a subquery named after the table it replaces: swap `FROM label` for `FROM #${CountedSql.labels()}`.
- * `CountedSqlSpec` checks each against its Slick twin.
+ * Each is a subquery named after the table it replaces: swap `FROM label` for `FROM #${FilteredTables.labels()}`.
+ * `FilteredTablesSpec` checks each against its Slick twin.
  */
-object CountedSql {
+object FilteredTables {
 
   /** A table in the given city's schema, or in the current one. */
   private def table(schema: Option[String], name: String): String = schema.fold(name)(s => s""""$s".$name""")
@@ -54,8 +54,7 @@ object CountedSql {
 
   /**
    * Labels that count: not deleted, not tutorial, not by an excluded user, not on the tutorial street. Twin of
-   * `LabelTable.labels`. The tutorial street is checked on the audit too, since a tutorial label can land on a real
-   * street.
+   * `LabelTable.labels`. Also checks the audit's street, since a tutorial label can land on a real street.
    *
    * @param schema A city schema to read instead of the current one.
    * @return       A subquery for a FROM or JOIN clause.

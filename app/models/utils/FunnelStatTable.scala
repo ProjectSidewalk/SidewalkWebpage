@@ -179,7 +179,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
    *
    * @return A subquery for a FROM clause.
    */
-  private def realLabels(schema: String): String = CountedSql.labels(Some(schema), Contributors.Everyone)
+  private def realLabels(schema: String): String = FilteredTables.labels(Some(schema), Contributors.Everyone)
 
   /** Per-source window-bound SQL fragments (empty for all-time). windowDays is an Int, so it is safe to interpolate. */
   private case class Bounds(wa: String, mStart: String, mEnd: String, label: String, validation: String)

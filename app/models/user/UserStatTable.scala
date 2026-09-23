@@ -7,7 +7,7 @@ import models.label.{LabelTable, LabelTypeEnum}
 import models.mission.{MissionTableDef, MissionType}
 import models.street.StreetEdgeTable
 import models.user.Role.ROLES_RESEARCHER_COLLAPSED
-import models.utils.{Contributors, CountedSql, MyPostgresProfile}
+import models.utils.{Contributors, FilteredTables, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
 import models.validation.LabelValidationTableDef
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -428,7 +428,7 @@ class UserStatTable @Inject() (
           SELECT user_id,
                  CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS new_accuracy,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS new_validated_count
-          FROM #${CountedSql.accuracyLabels}
+          FROM #${FilteredTables.accuracyLabels}
           WHERE TRUE"""
       .concat(scoped("label.user_id"))
       .concat(
@@ -683,7 +683,7 @@ class UserStatTable @Inject() (
           FROM sidewalk_user
           INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
           INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
-          INNER JOIN #${CountedSql.labels()} ON sidewalk_user.user_id = label.user_id
+          INNER JOIN #${FilteredTables.labels()} ON sidewalk_user.user_id = label.user_id
           #$joinUserTeamTable
           WHERE user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
               #$leaderboardVisibilityFilter
@@ -706,7 +706,7 @@ class UserStatTable @Inject() (
       LEFT JOIN (
           SELECT #$groupingCol, COALESCE(SUM(ST_Length(geom::geography)), 0) AS distance_meters
           FROM street_edge
-          INNER JOIN #${CountedSql.completedAudits()} ON street_edge.street_edge_id = audit_task.street_edge_id
+          INNER JOIN #${FilteredTables.completedAudits()} ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
           #$joinUserTeamTable
           -- Same streets as the dashboard's distance, so the two numbers agree.
@@ -719,7 +719,7 @@ class UserStatTable @Inject() (
           SELECT #$groupingColName,
                  CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy_temp,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
-          FROM #${CountedSql.accuracyLabels}
+          FROM #${FilteredTables.accuracyLabels}
           #$joinUserTeamForAcc
           WHERE (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
           GROUP BY #$groupingColName
@@ -747,7 +747,7 @@ class UserStatTable @Inject() (
    *    city-relative distance term that cannot be compared across cities).
    *
    * Eligibility mirrors the per-city board — role in [[Role.LEADERBOARD_ROLES]], non-excluded, only labels that count
-   * ([[CountedSql.labels]]) — with two cross-city refinements:
+   * ([[FilteredTables.labels]]) — with two cross-city refinements:
    *  - `excluded` is per city, so a user flagged low-quality in one city loses *that city's* contribution and keeps the
    *    rest; the flag describes that city's data, not the person. It is applied as an aggregate FILTER rather than a
    *    WHERE so the row survives to carry that city's `on_leaderboard` flag into the opt-out roll-up below.
@@ -787,7 +787,7 @@ class UserStatTable @Inject() (
          COUNT(*) FILTER (WHERE NOT label.correct AND NOT user_stat.excluded)::int AS disagreed,
          MAX(user_stat.meters_audited) FILTER (WHERE NOT user_stat.excluded) AS meters,
          BOOL_OR(NOT user_stat.on_leaderboard) AS opted_out
-  FROM ${CountedSql.labels(Some(schema), Contributors.Everyone)}
+  FROM ${FilteredTables.labels(Some(schema), Contributors.Everyone)}
   INNER JOIN "$schema".user_stat ON user_stat.user_id = label.user_id
   GROUP BY label.user_id"""
         }
@@ -918,7 +918,7 @@ class UserStatTable @Inject() (
           // work still happened.
           s"""  SELECT '$schema'::text AS city_schema,
          (SELECT COUNT(*)::int
-            FROM ${CountedSql.labels(Some(schema), Contributors.Everyone)}
+            FROM ${FilteredTables.labels(Some(schema), Contributors.Everyone)}
            WHERE label.user_id = (SELECT user_id FROM me)
          ) AS labels,
          (SELECT COUNT(*)::int FROM "$schema".label_validation
@@ -987,7 +987,7 @@ class UserStatTable @Inject() (
           FROM sidewalk_user
           INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
           INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
-          INNER JOIN #${CountedSql.labels()} ON sidewalk_user.user_id = label.user_id
+          INNER JOIN #${FilteredTables.labels()} ON sidewalk_user.user_id = label.user_id
           WHERE user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
               AND user_stat.on_leaderboard = TRUE
               #$timeFilter
@@ -1022,11 +1022,11 @@ class UserStatTable @Inject() (
       WITH activity AS (
           -- Excluded users still see their own streak.
           SELECT (label.time_created AT TIME ZONE 'US/Pacific')::date AS d
-          FROM #${CountedSql.labels(contributors = Contributors.Everyone)}
+          FROM #${FilteredTables.labels(contributors = Contributors.Everyone)}
           WHERE label.user_id = $userId
           UNION ALL
           SELECT (audit_task.task_end AT TIME ZONE 'US/Pacific')::date
-          FROM #${CountedSql.completedAudits(contributors = Contributors.Everyone)}
+          FROM #${FilteredTables.completedAudits(contributors = Contributors.Everyone)}
           WHERE audit_task.user_id = $userId AND audit_task.task_end IS NOT NULL
           UNION ALL
           SELECT (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
@@ -1057,7 +1057,7 @@ class UserStatTable @Inject() (
       SELECT label.label_type::text,
              COUNT(*) FILTER (WHERE label.correct IS TRUE)::int AS correct,
              COUNT(*) FILTER (WHERE label.correct IS FALSE)::int AS incorrect
-      FROM #${CountedSql.accuracyLabels}
+      FROM #${FilteredTables.accuracyLabels}
       WHERE label.user_id = $userId
       GROUP BY label.label_type::text;
     """.as[(String, Int, Int)]
@@ -1139,7 +1139,7 @@ class UserStatTable @Inject() (
     }
 
     val contributorSql =
-      CountedSql.contributorFilter(if (highQualityOnly) Contributors.HighQualityOnly else Contributors.NotExcluded)
+      FilteredTables.contributorFilter(if (highQualityOnly) Contributors.HighQualityOnly else Contributors.NotExcluded)
 
     // Add in the task completion logic.
     val auditTaskCompletedSql  = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
@@ -1191,7 +1191,7 @@ class UserStatTable @Inject() (
     val minLabelsClause = minLabels.map(min => s"AND COALESCE(label_counts.labels, 0) >= $min").getOrElse("")
     val minMetersClause = minMetersExplored.map(min => s"AND user_stat.meters_audited >= $min").getOrElse("")
     val contributorSql  =
-      CountedSql.contributorFilter(if (highQualityOnly) Contributors.HighQualityOnly else Contributors.NotExcluded)
+      FilteredTables.contributorFilter(if (highQualityOnly) Contributors.HighQualityOnly else Contributors.NotExcluded)
     val minAccuracyClause =
       minAccuracy.map(min => s"AND user_stat.accuracy IS NOT NULL AND user_stat.accuracy >= $min").getOrElse("")
 
@@ -1265,7 +1265,7 @@ class UserStatTable @Inject() (
                  COUNT(CASE WHEN NOT correct THEN 1 END) AS labels_validated_incorrect,
                  COUNT(CASE WHEN correct IS NULL THEN 1 END) AS labels_not_validated,
                  #$labelTypeCountCols
-          FROM #${CountedSql.accuracyLabels}
+          FROM #${FilteredTables.accuracyLabels}
           GROUP BY label.user_id
       ) label_counts ON user_stat.user_id = label_counts.user_id
       WHERE user_role.role <> 'Anonymous'

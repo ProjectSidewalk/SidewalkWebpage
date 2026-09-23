@@ -3,7 +3,7 @@ package models.street
 import com.google.inject.ImplementedBy
 import models.audit.AuditTaskTableDef
 import models.user.UserStatTableDef
-import models.utils.{CountedSql, MyPostgresProfile}
+import models.utils.{FilteredTables, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsValue, Json, Writes}
@@ -159,7 +159,7 @@ class StreetEdgePriorityTable @Inject() (
       WITH completions AS (
           SELECT DISTINCT audit_task.street_edge_id, audit_task.user_id, audit_task.low_quality,
                  audit_task.incomplete, audit_task.stale, audit_task.outdated_imagery, user_stat.high_quality
-          FROM #${CountedSql.completedAudits()}
+          FROM #${FilteredTables.completedAudits()}
           INNER JOIN user_stat ON user_stat.user_id = audit_task.user_id
       ), priority_inputs AS (
           SELECT street_edge_id,
@@ -180,7 +180,7 @@ class StreetEdgePriorityTable @Inject() (
                  COUNT(*) AS audit_count,
                  COUNT(*) FILTER (WHERE NOT outdated_imagery) AS up_to_date_audit_count,
                  MAX((task_end AT TIME ZONE 'UTC')::date) AS last_audit_date
-          FROM #${CountedSql.completedAudits()}
+          FROM #${FilteredTables.completedAudits()}
           GROUP BY street_edge_id
       )
       SELECT street_edge.street_edge_id,

@@ -5,7 +5,7 @@ import models.api.{RegionDataForApi, RegionFiltersForApi}
 import models.audit.AuditTaskTableDef
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
 import models.utils.MyPostgresProfile.api._
-import models.utils.{CountedSql, LatLngBBox, MyPostgresProfile}
+import models.utils.{FilteredTables, LatLngBBox, MyPostgresProfile}
 import org.locationtech.jts.geom.MultiPolygon
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.Effect
@@ -197,7 +197,7 @@ class RegionTable @Inject() (
         JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
             AND street_edge.status = 'open'
             AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-        JOIN ${CountedSql.completedAudits()} ON street_edge_region.street_edge_id = audit_task.street_edge_id
+        JOIN ${FilteredTables.completedAudits()} ON street_edge_region.street_edge_id = audit_task.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
       ),
@@ -228,7 +228,7 @@ class RegionTable @Inject() (
         JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
             AND street_edge.status = 'open'
             AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-        JOIN ${CountedSql.labels()} ON street_edge_region.street_edge_id = label.street_edge_id
+        JOIN ${FilteredTables.labels()} ON street_edge_region.street_edge_id = label.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
       )
@@ -307,11 +307,11 @@ class RegionTable @Inject() (
    */
   private val needsReauditSql: String =
     s"""EXISTS (
-              SELECT FROM ${CountedSql.completedAudits()}
+              SELECT FROM ${FilteredTables.completedAudits()}
               WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
           )
           AND NOT EXISTS (
-              SELECT FROM ${CountedSql.completedAudits()}
+              SELECT FROM ${FilteredTables.completedAudits()}
               WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
                   AND audit_task.outdated_imagery = FALSE
           )"""
