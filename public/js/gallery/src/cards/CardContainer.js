@@ -56,6 +56,10 @@ class CardContainer {
   // opening query is fired before the view is built and can land first; see #notifyExpandedViewRendered().
   #expandedViewHooksDeferred = false;
 
+  // Whether the page just rendered has any cards on it, so the deferred handover knows whether the paging control
+  // belongs on screen.
+  #pageHasCards = false;
+
   /**
    * @param {*} uiCardContainer - UI element tied with this CardContainer.
    * @param {Record<string, any>} initialFilters - Object containing initial set of filters in sidebar.
@@ -131,9 +135,9 @@ class CardContainer {
           if (newCards === null) {
             CardContainer.#showListError();
             sg.pageLoading.hide();
-            sg.cardFilter.enable();
-            // No page will be rendered, so a ?labelId= deep link would sit pending forever and spring open on some
-            // later render. Hand the view the (empty) page anyway: it opens the label by id, which still works.
+            // render() is never reached on this path, so the handover happens here instead: it releases the
+            // filters and hands the view an empty page, where a ?labelId= still opens the label by id.
+            this.#pageHasCards = false;
             this.#notifyExpandedViewRendered();
             return;
           }
@@ -169,7 +173,7 @@ class CardContainer {
       sg.ui.expandedView.container, this.#panoViewerType, this.#viewerAccessToken, this.#currUsername,
     );
     // The opening query is fired above, before this await, so the request is in flight while the viewer builds —
-    // which means it can finish first, and that render found no view to hand the page to. Do it now instead.
+    // and can finish first. A page rendered in that window has nobody to hand itself to, so this is where it goes.
     if (this.#expandedViewHooksDeferred) this.#notifyExpandedViewRendered();
     // Add the click event for opening the ExpandedView when a card is clicked.
     const cardClickSelector = '.static-gallery-image, .additional-count, .ai-icon-marker-card';
@@ -235,13 +239,15 @@ class CardContainer {
     // This variable will be true if this is a "real" click. Otherwise, it will be false for .click() js code.
     const fromUser = typeof (e.clientX) !== 'undefined';
 
-    sg.tracker.push('NextPage', null, {
+    // Main assigns sg.tracker after CardContainer.create() resolves, so a click that beats that is untracked
+    // rather than fatal.
+    sg.tracker?.push('NextPage', null, {
       from: this.#currentPage,
       to: this.#currentPage + 1,
     });
 
     if (fromUser) {
-      sg.tracker.push('NextPageClick', null, null);
+      sg.tracker?.push('NextPageClick', null, null);
     }
 
     this.#setPage(this.#currentPage + 1);
@@ -254,13 +260,13 @@ class CardContainer {
       // This variable will be true if this is a "real" click. Otherwise, it will be false for .click() js code.
       const fromUser = typeof (e.clientX) !== 'undefined';
 
-      sg.tracker.push('PrevPage', null, {
+      sg.tracker?.push('PrevPage', null, {
         from: this.#currentPage,
         to: this.#currentPage - 1,
       });
 
       if (fromUser) {
-        sg.tracker.push('PrevPageClick', null, null);
+        sg.tracker?.push('PrevPageClick', null, null);
       }
 
       $('#next-page').prop('disabled', false);
@@ -481,6 +487,7 @@ class CardContainer {
 
     const imagesToLoad = this.getCurrentPageCards();
     const imagePromises = imagesToLoad.map((img) => img.loadImage());
+    this.#pageHasCards = imagesToLoad.length > 0;
 
     if (imagesToLoad.length > 0) {
       if (this.#lastPage) {
@@ -494,9 +501,7 @@ class CardContainer {
         imagesToLoad.forEach((card) => {
           card.render(uiCardContainer.holder);
         });
-        sg.ui.pageControl.show();
         sg.pageLoading.hide();
-        sg.cardFilter.enable();
         this.#notifyExpandedViewRendered();
       });
     } else if (this.#listMode) {
@@ -504,23 +509,25 @@ class CardContainer {
       // answers nothing about a list whose ids this city doesn't have, and with no sidebar to sit beside it, it is
       // absolutely positioned straight over the strip that does explain it.
       sg.pageLoading.hide();
-      sg.cardFilter.enable();
+      this.#notifyExpandedViewRendered();
     } else {
       // TODO: figure out how to better do the toggling of this element.
       sg.labelsNotFound.show();
       sg.pageLoading.hide();
-      sg.cardFilter.enable();
+      this.#notifyExpandedViewRendered();
     }
   }
 
   /**
-   * Hands the expanded view the page that has just been rendered: a pending cross-page navigation first, then a
-   * `?labelId=` deep link.
+   * Hands a freshly rendered page over: the controls that act on it, then the expanded view's pending cross-page
+   * navigation and any `?labelId=` deep link.
    *
-   * Whichever of the opening query and the viewer build finishes second is what runs these, exactly once. Skipping
-   * them when the view isn't up yet is what used to strand a deep link: `restoreFromUrl()` clears the pending id on
-   * entry, so never reaching it left the id set, and the next page turn popped the label open and — for a target on
-   * page 1 — paged the user straight back to where they started.
+   * This is the one place a page becomes live, and it runs exactly once per render, whichever of the opening query
+   * and the viewer build finishes second. Both halves need the view to exist. The paging handlers close the
+   * expanded view and push a tracker event, and in the query-wins ordering neither the view nor `sg.tracker` is up
+   * yet, so the controls stay hidden and the filters disabled until the handover can happen. And `restoreFromUrl()`
+   * consumes the pending deep-link id on entry, so a render that skips it leaves the id set for a later render to
+   * spring open — which is why every branch of `render()` calls this, empty pages included.
    */
   #notifyExpandedViewRendered() {
     if (!this.#expandedView) {
@@ -528,6 +535,8 @@ class CardContainer {
       return;
     }
     this.#expandedViewHooksDeferred = false;
+    if (this.#pageHasCards) sg.ui.pageControl.show();
+    sg.cardFilter.enable();
     this.#expandedView.onPageCardsRendered();
     this.#expandedView.restoreFromUrl();
   }
@@ -536,8 +545,9 @@ class CardContainer {
    * Refreshes the UI after each query made by user.
    */
   #refreshUI() {
-    // Close expanded views (if open) and empty cards from current page.
-    this.#expandedView.closeExpandedView();
+    // Close expanded views (if open) and empty cards from current page. The view is absent until the opening query
+    // and the viewer build have both finished (see #notifyExpandedViewRendered).
+    this.#expandedView?.closeExpandedView();
     this.#clearCardContainer(this.#uiCardContainer.holder);
 
     // Place user back at top of page.

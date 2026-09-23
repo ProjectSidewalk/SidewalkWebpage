@@ -158,10 +158,11 @@ class GalleryFilter {
     const listLabelIds = this.#listLabelIds();
     if (listLabelIds.length > 0 || !this.#sidebar) {
       if (listLabelIds.length > 0) {
-        // What the page carries is what the server *kept*, capped at MaxLabelIds. Re-serializing from it would
-        // quietly rewrite a 600-id URL down to 500 — under a strip that is at that moment saying 100 were dropped,
-        // and leaving the reader a link that no longer asks for what they asked for. So the param that arrived is
-        // left exactly as it arrived, and only a URL that never had one is written from the parsed list.
+        // The ids the URL asked for, not the ones the page is showing: what the page carries is what the server
+        // kept, capped at MaxLabelIds, so writing from that would rewrite a 600-id link down to 500 — under a
+        // strip that is at that moment reporting 100 as dropped. (The value is re-serialized, so an encoded space
+        // comes back as "+"; what matters is that the ids are the ones that arrived.) A URL with no labelIds at
+        // all is the only case written from the parsed list.
         const asGiven = new URLSearchParams(window.location.search).get('labelIds');
         params.set('labelIds', asGiven ?? listLabelIds.join());
       }

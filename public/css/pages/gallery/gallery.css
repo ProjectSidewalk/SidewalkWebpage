@@ -150,7 +150,7 @@
    radius as the cards' tag pills; the neutral fill keeps it quieter than those. */
 .gallery-list-bar__count {
   margin: 0;
-  padding: 0 10px; /* Plain px like its neighbours: --ui-scale is an Explore/Validate knob and is unset here. */
+  padding: 0 10px; /* Plain px like its neighbours: --ui-scale is unset on this strip, so a calc() would be inert. */
   font: var(--text-small-medium);
   line-height: 24px; /* Matches the link and the disclosure summary beside it, so the strip reads as one line. */
   color: var(--color-asphalt-500);

@@ -122,6 +122,14 @@ describe('the Gallery in review-list mode', () => {
         /** Lets the render pipeline's promise chain settle; render() opens the expanded view inside a `.then`. */
         const flush = () => new Promise((resolve) => { setTimeout(resolve, 0); });
 
+        /**
+         * Drains microtasks only, so a render completes while a macrotask-deferred viewer build is still pending —
+         * the window in which a page exists and the view backing its controls does not.
+         */
+        const flushRenderOnly = async () => {
+            for (let tick = 0; tick < 5; tick += 1) await Promise.resolve();
+        };
+
         /** A Card stand-in: the container only needs an id, a type to bucket it under, and a render pass. */
         function stubCard(labelId) {
             return {
@@ -209,10 +217,14 @@ describe('the Gallery in review-list mode', () => {
             // only the shared LabelDetail behind it is stubbed.
             window.PopupPanoManager = { DEEP_LINK_BUILD_WAIT_MS: 0 };
             window.LabelDetail = {
-                create: async () => ({
-                    panoManager: { warmUp: jest.fn() },
-                    showLabel: jest.fn(() => Promise.resolve()),
-                }),
+                // The created instance is kept so a test can assert on the by-id fallback showLabel() call.
+                create: async () => {
+                    window.LabelDetail.create.lastDetail = {
+                        panoManager: { warmUp: jest.fn() },
+                        showLabel: jest.fn(() => Promise.resolve()),
+                    };
+                    return window.LabelDetail.create.lastDetail;
+                },
                 urlLabelId: () => parseInt(new URLSearchParams(window.location.search).get('labelId'), 10) || null,
                 syncUrlLabelId: jest.fn(),
             };
@@ -348,6 +360,18 @@ describe('the Gallery in review-list mode', () => {
             expect(unavailable.parentElement.getAttribute('aria-live')).toBe('polite');
         });
 
+        it('hands the view an empty page too, so a deep link into it still opens', async () => {
+            // Nothing came back, so there is no card to open by index — but ?labelId= still names a real label,
+            // and a render that skips the handover leaves the id pending for whatever renders next.
+            window.history.replaceState({}, '', `/gallery?labelIds=x&labelId=${LIST_IDS[0]}`);
+            const empty = await listContainer([], LIST_IDS);
+            await flush();
+
+            const view = empty.getExpandedView();
+            expect(view.initialUrlLabelId).toBeNull(); // Consumed, not left pending.
+            expect(window.LabelDetail.create.lastDetail.showLabel).toHaveBeenCalledWith(LIST_IDS[0], 'GalleryExpanded');
+        });
+
         it('says the list could not be loaded, rather than showing an empty queue', async () => {
             const created = window.CardContainer.create(
                 sg.ui.cardContainer, { regionIds: [], aiValidationOptions: [], labelIds: LIST_IDS }, null, null, null,
@@ -466,8 +490,8 @@ describe('the Gallery in review-list mode', () => {
             }
 
             it('opens a deep link whose query came back before the viewer existed', async () => {
-                // render() has no expanded view to hand the page to in that ordering, so the deep link used to be
-                // skipped outright and left pending — never opened, and waiting to ambush a later render.
+                // In that ordering render() has no expanded view to hand the page to, so the handover has to wait
+                // for the view rather than being dropped: a dropped one leaves the id pending for a later render.
                 slowExpandedView();
                 window.history.replaceState({}, '', `/gallery?labelIds=x&labelId=${LONG_LIST[13]}`);
                 const raced = await listContainer(LONG_LIST, [], LONG_LIST);
@@ -477,6 +501,34 @@ describe('the Gallery in review-list mode', () => {
                 expect(view.cardIndex).toBe(13);
                 expect(view.getReferenceCard().getLabelId()).toBe(LONG_LIST[13]);
                 expect(raced.getCurrentPage()).toBe(2);
+            });
+
+            it('keeps the controls dead until the view that backs them exists', async () => {
+                // Both paging handlers close the expanded view and push a tracker event, and in this ordering
+                // neither the view nor sg.tracker is up — so showing the control and re-enabling the filters
+                // before the handover hands the user a Next button that throws.
+                slowExpandedView();
+                sg.tracker = undefined; // As on the real page: Main assigns it after CardContainer.create resolves.
+                // This block's beforeEach already built one container; only the one below is under test here.
+                sg.ui.pageControl.show.mockClear();
+                sg.cardFilter.enable.mockClear();
+                const created = window.CardContainer.create(
+                    sg.ui.cardContainer,
+                    { regionIds: [], aiValidationOptions: [], labelIds: LONG_LIST },
+                    null, null, null,
+                );
+                respond(LONG_LIST.map(stubCard), []);
+                await flushRenderOnly();
+
+                expect(sg.ui.pageControl.show).not.toHaveBeenCalled();
+                expect(sg.cardFilter.enable).not.toHaveBeenCalled();
+                // And a click that slips through anyway must not take the page down with it.
+                expect(() => sg.ui.cardContainer.nextPage.handlers.click({})).not.toThrow();
+
+                const raced = await created;
+                expect(sg.ui.pageControl.show).toHaveBeenCalled();
+                expect(sg.cardFilter.enable).toHaveBeenCalled();
+                expect(raced.getExpandedView()).toBeDefined();
             });
 
             it('does not let that deep link ambush the next page turn', async () => {

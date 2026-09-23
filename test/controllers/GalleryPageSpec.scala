@@ -4,6 +4,7 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -51,6 +52,8 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
     tagPillElement.findAllMatchIn(body).filter(_.matched.contains("tag-pill--active")).map(_.group(1)).toSet
 
   private def encode(tag: String): String = URLEncoder.encode(tag, "UTF-8")
+
+  private lazy val messagesApi: MessagesApi = app.injector.instanceOf[MessagesApi]
 
   /** An id no city's `label` serial has reached, so a review list naming it is always short one label. */
   private val missingLabelId: Int = Int.MaxValue
@@ -117,8 +120,8 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
       pageLabelIds(galleryPage("?labelIds=7,x,7,8")) mustBe Seq(7, 8)
     }
 
-    // A hand-written or copy-pasted list has spaces in it, and an unparseable token can't report itself, so every
-    // id but the first used to vanish without a word.
+    // A hand-written or copy-pasted list has spaces in it, and an unparseable token can't report itself, so an
+    // untrimmed parse keeps only the first id and says nothing about the rest.
     "read a label list written with spaces after the commas" in {
       pageLabelIds(galleryPage("?labelIds=8,%209,%2010")) mustBe Seq(8, 9, 10)
     }
@@ -212,9 +215,9 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "return exactly the requested labels, in the requested order, ignoring the other filters" in {
       assume(seedIds.size >= 2, "connected database served fewer than two gallery labels")
-      // Sorted then reversed, so the request is always descending. The filtered query these come from is shuffled,
-      // so simply swapping its first two gave an ascending list about half the time — and an ascending list is the
-      // order a query with no ORDER BY tends to return anyway, which is the thing this is meant to rule out.
+      // Sorted then reversed, so the request is always descending. The filtered query these come from is
+      // shuffled, so picking two of its ids in place would be ascending about half the time — and ascending is
+      // the order a query with no ORDER BY tends to return anyway, which is the thing this has to rule out.
       val descendingPair = seedIds.take(2).sorted.reverse
       val requested      = descendingPair :+ missingLabelId
 
@@ -232,6 +235,14 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       labelIdsIn(json) mustBe descendingPair
       (json \ "unavailableLabelIds").as[Seq[Int]] mustBe Seq(missingLabelId)
+    }
+
+    // MessageFormat unquotes a choice sub-message that contains a placeholder twice, so the apostrophe in the
+    // French string needs four of them to survive. Two renders "na pas pu", which reads as a typo in the
+    // translation rather than as the quoting rule it is — hence a test, so the doubling can't be tidied away.
+    "keep the apostrophe in the French over-cap notice" in {
+      messagesApi("gallery.list.truncated", 1, 500)(Lang("fr")) must include("n'a pas pu")
+      messagesApi("gallery.list.truncated", 2, 500)(Lang("fr")) must include("n'ont pas pu")
     }
 
     "say nothing about unavailable ids when no list was asked for" in {

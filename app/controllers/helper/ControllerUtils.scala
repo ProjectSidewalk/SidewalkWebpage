@@ -164,8 +164,8 @@ object ControllerUtils {
   /**
    * Parses a comma-separated list of integers, dropping anything that isn't one and preserving order.
    *
-   * Tokens are trimmed first: "8, 9, 10" is how a person writes a list, and without the trim every id but the
-   * first parsed as whitespace and was dropped — silently, since an unparseable token has no way to report itself.
+   * Tokens are trimmed, because "8, 9, 10" is how a person writes a list and " 9" is not an integer. An
+   * unparseable token has no way to report itself, so an untrimmed list would keep only its first id in silence.
    *
    * @param listOfInts The raw parameter value.
    * @return           The integers it named, deduplicated, in the order given.
