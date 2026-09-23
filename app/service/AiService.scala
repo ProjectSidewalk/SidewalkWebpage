@@ -18,7 +18,7 @@ import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
-/** The AI server rejected our key, so no label in this run can succeed; callers let this one fail the whole run. */
+/** The AI server rejected our password, so no request in this run can succeed. */
 class AiApiAuthException(message: String) extends Exception(message)
 
 /**
@@ -93,8 +93,7 @@ class AiServiceImpl @Inject() (
   private val AI_VALIDATIONS_ON: Boolean     = config.get[Boolean](s"city-params.ai-validation-enabled.$cityId")
   private val AI_TAG_SUGGESTIONS_ON: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$cityId")
   private val AI_VALIDATION_MIN_ACCURACY: Double = config.get[Double](s"city-params.ai-validation-min-accuracy.$cityId")
-  // The shared secret the AI server requires on every request (#4003). Blank means every call will 401, so say so
-  // once at startup instead of leaving it to the next nightly run to discover.
+  // The password the AI server checks on every request (#4003). Warn at startup if it's missing rather than at 3am.
   private val AI_API_KEY: String = config.getOptional[String]("sidewalk-ai-api-key").map(_.trim).getOrElse("")
   if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON) && AI_API_KEY.isEmpty)
     logger.error("SIDEWALK_AI_API_KEY is not set: every request to the AI server will be rejected with 401.")
@@ -246,8 +245,7 @@ class AiServiceImpl @Inject() (
       "city"        -> cityId
     )
 
-    // The AI server rejects any request without the shared key as a bearer token (#4003). Redirects are refused so
-    // the key can only ever go to the configured host.
+    // No redirects, so the password can't be forwarded to some other host.
     ws.url(url)
       .withHttpHeaders("Authorization" -> s"Bearer $AI_API_KEY")
       .withFollowRedirects(false)
@@ -301,9 +299,8 @@ class AiServiceImpl @Inject() (
               db.run(labelAiFailureTable.save(labelId, reason)).map(_ => None)
             }
           } else if (response.status == 401 || response.status == 403) {
-            // The key is wrong or missing, so every label in this run would fail the same way. Fail the whole run so the
-            // sweep stops at the first label and its job run is recorded as Failed, and skip the imagery check: the
-            // imagery is fine, we just never got to it.
+            // Wrong password means every label would fail the same way, so stop the whole run here. The imagery is
+            // fine, so no need to check it.
             val msg = s"AI API returned ${response.status} for label $labelId: SIDEWALK_AI_API_KEY is missing or wrong."
             Future.failed(new AiApiAuthException(msg))
           } else {
