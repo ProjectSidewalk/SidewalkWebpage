@@ -299,8 +299,7 @@ class AiServiceImpl @Inject() (
               db.run(labelAiFailureTable.save(labelId, reason)).map(_ => None)
             }
           } else if (response.status == 401 || response.status == 403) {
-            // Wrong password means every label would fail the same way, so stop the whole run here. The imagery is
-            // fine, so no need to check it.
+            // Wrong password means every label would fail the same way, so stop the whole run here.
             val msg = s"AI API returned ${response.status} for label $labelId: SIDEWALK_AI_API_KEY is missing or wrong."
             Future.failed(new AiApiAuthException(msg))
           } else {
