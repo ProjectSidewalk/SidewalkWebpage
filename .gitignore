@@ -168,3 +168,8 @@ test/js/gsv-fov-probe/runs/
 # The full run manifest is ~11 MB of per-capture readbacks that only mean anything alongside those
 # screenshots; analyze.mjs --copy-recorded commits manifest-extract.json instead.
 test/js/gsv-fov-probe/recorded/**/manifest.json
+
+# Street-side experiment (#2886) inputs and outputs; the figures its report embeds sit beside it in the repo.
+tools/experiments/2886-street-side/data/
+tools/experiments/2886-street-side/out/
+tools/experiments/2886-street-side/compute.log

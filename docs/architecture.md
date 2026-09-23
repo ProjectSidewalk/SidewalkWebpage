@@ -435,7 +435,7 @@ production runtime shape, see [`docs/deployment-and-stages.md`](deployment-and-s
 A script lives where its caller is: [`scripts/`](../scripts/README.md) holds only what the running app shells out
 to (`label_clustering.py`, bundled into the staged package by `build.sbt`), [`tools/`](../tools/README.md) holds
 what a person or CI runs, sorted by caller (`lint/`, `dev/`, `city/`, `validation_queue/`, and the unmaintained
-`one-off/`), and [`db/scripts/`](../db/scripts/README.md) holds what runs inside the DB container.
+`one-off/` and `experiments/`), and [`db/scripts/`](../db/scripts/README.md) holds what runs inside the DB container.
 
 `label_clustering.py` is invoked **in-band** (`ClusterService.runMultiUserClustering` shells out to it per region
 during admin-triggered `/runClustering` and the nightly `ClusteringActor` run), so the deployed app must be able to

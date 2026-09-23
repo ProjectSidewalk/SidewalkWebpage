@@ -14,14 +14,15 @@ addopts = "--cov --cov-branch --cov-report=term-missing --cov-fail-under=100"
 [tool.coverage.run]
 branch = true
 # `source`, not `include`: it also reports a file nothing imported as 0%, so a script arriving with no tests fails the
-# gate rather than going unmeasured. Exempt: tools/one-off/ (unmaintained by design, see tools/README.md) and the
+# gate rather than going unmeasured. Exempt: tools/one-off/ and tools/experiments/ (unmaintained by design, see
+# tools/README.md) and the
 # route lint, which its own CI step exercises.
 source = ["scripts", "tools"]
 # Each half of the interpreter-split suite omits the script(s) it cannot import (`make test-python` sets these; the
 # 3.8 half needs all three slots). Unset, nothing is omitted and a hand-run fails loudly rather than measuring less
 # than it appears to.
 omit = ["${COVERAGE_OMIT-}", "${COVERAGE_OMIT2-}", "${COVERAGE_OMIT3-}", "tools/lint/check_route_reachability.py",
-        "tools/one-off/*"]
+        "tools/one-off/*", "tools/experiments/*"]
 
 [tool.coverage.report]
 show_missing = true

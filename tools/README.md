@@ -9,6 +9,7 @@ Everything a person or CI runs. A script lives where its caller is:
 | [`city/`](city/README.md) | A developer setting up or updating a city's data | Onboarding, imagery scans, street gradients, GA and Maps key setup |
 | [`validation_queue/`](validation_queue) | A developer changing the queue policy | The exports and analyzer behind `docs/validation-queue.md` |
 | [`one-off/`](one-off) | A person, deliberately, against a database | Scripts we don't maintain (below) |
+| [`experiments/`](experiments) | Nobody, again | Finished experiments: the code, the figures and the report that a decision rests on (below) |
 
 What the running app itself shells out to is in [`scripts/`](../scripts/README.md); what runs inside the DB
 container is in [`db/scripts/`](../db/scripts/README.md); a script whose only output is a committed fixture sits
@@ -34,3 +35,9 @@ docker exec -i projectsidewalk-db psql "dbname=sidewalk options=--search_path=si
 
 `4181-remove-streets.sql` and `4190-remove-validations.sql` take their inputs by edit: set the id list and
 `search_path` at the top, then run inside their `BEGIN; ... COMMIT;` and read the preview before committing.
+
+## `experiments/`
+
+One folder per experiment, `<issue>-<name>/`, holding the code, the figures and the report as its `README.md`, so
+"have we already figured this out?" is answered by a directory listing. A script gets in only with a report. Same
+deal as `one-off/`: coverage and lint skip it, the report says which commit it ran at, and nothing keeps it working.

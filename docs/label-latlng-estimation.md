@@ -132,7 +132,7 @@ geometric side is right 93–96% where the two methods disagree, the heading met
 the audited street (18.5% accurate beyond 15 m, and one label in five is shot from more than 5 m off), and no hybrid
 beats it. The offset is stored rather than just the enum because accuracy is a monotone function of it alone
 (63–70% under 0.5 m, 97–98% at 1.5–2 m, 99%+ from 3 m, the same for every label type), so a consumer can pick its own
-floor. Full report: [the #2886 write-up](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2886#issuecomment-5803435082).
+floor. Full report: [`tools/experiments/2886-street-side/`](../tools/experiments/2886-street-side/README.md).
 
 **Recompute contract.** Anything that moves `label_point.geom`, changes `label.street_edge_id`, or edits
 `street_edge.geom` (a 352/366-style backfill, an estimator refit, an AI reattach, a street re-import) recomputes
