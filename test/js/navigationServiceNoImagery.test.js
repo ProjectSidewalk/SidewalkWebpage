@@ -89,14 +89,6 @@ const turfStub = {
         lineFeature([startPoint.geometry.coordinates, line.geometry.coordinates.at(-1)]),
     lineSliceAlong: (line, startKm) =>
         lineFeature([interpolate(line.geometry.coordinates, startKm), line.geometry.coordinates.at(-1)]),
-    // Works because fixture streets run due east.
-    pointToLineDistance: (point, line, options = {}) => {
-        const [lng, lat] = point.geometry.coordinates;
-        const lngs = line.geometry.coordinates.map(([lineLng]) => lineLng);
-        const nearest = [Math.min(Math.max(lng, Math.min(...lngs)), Math.max(...lngs)), line.geometry.coordinates[0][1]];
-        const km = kmBetween([lng, lat], nearest);
-        return options.units === 'meters' ? km * 1000 : km;
-    },
 };
 
 /**
@@ -584,41 +576,42 @@ describe('Explore, when the imagery search runs out along a street', () => {
         });
     });
 
-    describe('and the street is a stub shorter than one search step (#5474)', () => {
+    describe('and the user can see the whole street from where they stand (#5474)', () => {
         const standWestOfStreet = (metersAway) => {
-            svl.panoViewer.getPosition = () => ({ lat: FIXTURE_LAT, lng: -74.0 - (metersAway / 1000) * DEG_PER_KM_LNG });
+            const lng = -74.0 - (metersAway / 1000) * DEG_PER_KM_LNG;
+            svl.panoViewer.getPosition = () => ({ lat: FIXTURE_LAT, lng });
         };
 
-        it('ends the stub rather than reporting it, when the labeler can see it from where they stand', async () => {
-            const [stub, next] = [makeTask(101, { lengthKm: 0.001 }), makeTask(102)];
-            assignStreets(stub, next);
+        it('ends the street rather than reporting it', async () => {
+            const [short, next] = [makeTask(101, { lengthKm: 0.012 }), makeTask(102)];
+            assignStreets(short, next);
             standWestOfStreet(9);
             respondToSearch = emptyGround;
 
             await nav.moveForward();
 
-            expect(svl.taskContainer.endTask).toHaveBeenCalledWith(stub);
+            expect(svl.taskContainer.endTask).toHaveBeenCalledWith(short);
             expect(reportNoImagery).not.toHaveBeenCalled();
-            expect(window.NoImageryFlagGuard.count()).toBe(0);
+            expect(svl.tracker.push).toHaveBeenCalledWith('NoImagery_StreetInView');
         });
 
-        it('still reports the stub when the labeler is too far away to see it', async () => {
-            const [stub, next] = [makeTask(101, { lengthKm: 0.001 }), makeTask(102)];
-            assignStreets(stub, next);
-            standWestOfStreet(40);
-            respondToSearch = () => (svl.taskContainer.getCurrentTask() === stub ? emptyGround() : foundImagery());
+        it('still ends it when the provider stopped answering, since the user can see it', async () => {
+            const [short, next] = [makeTask(101, { lengthKm: 0.001 }), makeTask(102)];
+            assignStreets(short, next);
+            standWestOfStreet(9);
+            respondToSearch = providerFailure;
 
             await nav.moveForward();
 
-            expect(reportNoImagery).toHaveBeenCalledTimes(1);
-            expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
+            expect(svl.taskContainer.endTask).toHaveBeenCalledWith(short);
+            expect(reportNoImagery).not.toHaveBeenCalled();
         });
 
-        it('still reports a street one search step or longer, however close the labeler stands', async () => {
-            const [short, next] = [makeTask(101, { lengthKm: 0.012 }), makeTask(102)];
-            assignStreets(short, next);
-            standWestOfStreet(1);
-            respondToSearch = () => (svl.taskContainer.getCurrentTask() === short ? emptyGround() : foundImagery());
+        it('still reports a street whose far end is out of view', async () => {
+            const [long, next] = [makeTask(101, { lengthKm: 0.02 }), makeTask(102)];
+            assignStreets(long, next);
+            standWestOfStreet(9);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === long ? emptyGround() : foundImagery());
 
             await nav.moveForward();
 
