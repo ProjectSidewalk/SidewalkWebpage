@@ -108,8 +108,10 @@ in the middle — read the preview, then commit or `ROLLBACK`. Edit the candidat
 city schema) at the top before running.
 
 The duplicate-street pair takes no edits. Both read the city from `-v city=` and expect the caller to set the
-`search_path`, which is how `sidewalk-server-tools/run-query-in-every-city.sh` runs them across every city. The merge
-does all its work, prints one summary row per city and rolls back; run it again with `-v apply=1` to keep the result:
+`search_path`, which is how `sidewalk-server-tools/run-query-in-every-city.sh` runs them across every city. That
+runner can't pass psql variables, so applying across cities means sending it a copy of the script with `\set apply 1`
+in place of `\set apply 0`, not adding a flag. Run by hand, the merge does all its work, prints one summary row per
+city and rolls back; run it again with `-v apply=1` to keep the result:
 
 ```bash
 docker exec -i projectsidewalk-db psql "dbname=sidewalk options=--search_path=sidewalk_chicago,public" \
