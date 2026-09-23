@@ -662,6 +662,7 @@ class MapillaryViewer extends PanoViewer {
 
   resize = () => {
     this.viewer.resize();
+    this._firePovChangedAfterResize();
   };
 
   /**

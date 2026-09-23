@@ -255,6 +255,7 @@ class PanoramaxViewer extends PanoViewer {
     // The zoom-1 and zoom-3 field-of-view bounds are defined horizontally, so a new aspect ratio moves them.
     const fovs = this.#fovLimits();
     this.#viewer.setOptions({ minFov: fovs.min, maxFov: fovs.max });
+    this._firePovChangedAfterResize();
   };
 
   /**

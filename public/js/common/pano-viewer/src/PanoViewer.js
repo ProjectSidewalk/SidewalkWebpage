@@ -477,6 +477,20 @@ class PanoViewer {
   repaint() {}
 
   /**
+   * Reports a POV change once the frame that reflects a new container size has rendered. Subclasses call it from
+   * resize(): a viewer whose camera keeps its vertical field of view (Mapillary, Infra3D, Panoramax) changes the
+   * horizontal one, and with it the zoom getPov() reports, on every resize, and its SDK applies the new size in its
+   * own render loop, a frame after resize() returns. A page that redrew its labels as soon as resize() returned kept
+   * the old projection until the next pan moved them (#5085). Two frames: the SDK's, then ours.
+   * @returns {void}
+   */
+  _firePovChangedAfterResize() {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      for (const listener of this.povChangedListeners) listener();
+    }));
+  }
+
+  /**
    * Adds an event listener for the specified event type.
    * @param {string} event - One of ['pano_changed', 'pov_changed', 'diagnostic']
    * @param {Function} handler - The function to call when the event occurs; a 'diagnostic' one gets `(name, details)`.
