@@ -135,6 +135,39 @@ describe('ImmersiveMode', () => {
         expect(tracker.push).not.toHaveBeenCalled();
     });
 
+    it('keeps the mode across a page load in the same tab, without a relayout or a click event', () => {
+        build().toggle('Click');
+        expect(window.sessionStorage.getItem('svl-immersive-active')).toBe('1');
+
+        // The next page load: the module is built before the tool's first layout.
+        document.body.className = '';
+        document.documentElement.className = '';
+        relayout.mockClear();
+        tracker.push.mockClear();
+        const restored = build();
+        expect(restored.isActive()).toBe(true);
+        expect(document.body.classList.contains('svl-immersive')).toBe(true);
+        expect(document.documentElement.classList.contains('chromeless')).toBe(true);
+        expect(document.getElementById('immersive-toggle-button').getAttribute('aria-pressed')).toBe('true');
+        expect(relayout).not.toHaveBeenCalled();
+        expect(tracker.push).toHaveBeenCalledTimes(1);
+        expect(tracker.push).toHaveBeenCalledWith('ImmersiveMode_Restored', expect.objectContaining({
+            innerWidth: expect.any(Number), innerHeight: expect.any(Number),
+        }));
+
+        // Leaving the mode forgets it, so the next load is boxed.
+        restored.toggle('Click');
+        expect(window.sessionStorage.getItem('svl-immersive-active')).toBeNull();
+        expect(build().isActive()).toBe(false);
+    });
+
+    it('does not restore the mode into the tutorial', () => {
+        window.sessionStorage.setItem('svl-immersive-active', '1');
+        onboarding = true;
+        expect(build().isActive()).toBe(false);
+        expect(document.body.classList.contains('svl-immersive')).toBe(false);
+    });
+
     it('is inert on a page without the toggle markup', () => {
         document.body.innerHTML = '';
         expect(() => build()).not.toThrow();

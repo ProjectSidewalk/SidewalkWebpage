@@ -78,6 +78,12 @@ body.svl-immersive .speed-limit-sign {
   box-shadow: 0 0 0 1px var(--color-neutral-600);
 }
 
+/* The mission-start screen is sized to the page under the navbar, which immersive mode hides (html.chromeless), so it
+   has to cover the whole window on a page that loads straight into the mode. */
+body.svl-immersive .mission-start-tutorial-overlay {
+  height: 100%;
+}
+
 body.svl-immersive #alert-holder {
   top: calc(var(--ribbon-height) + 8px * var(--ui-scale));
 }

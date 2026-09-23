@@ -8,13 +8,18 @@
  * and Escape is load-bearing in Explore (close the context menu, back to Walk), so an API-based mode would eject the
  * user and reflow the viewport on every routine press. Browser-native fullscreen (F11, ctrl-cmd-F) stacks on top for
  * free because the layout is viewport-driven.
+ *
+ * The mode outlives a page load in its tab: finishing a route or a region sends the mission-complete modal through a
+ * fresh /explore, and a labeler who chose the immersive layout should land back in it rather than in the boxed one.
  */
 class ImmersiveMode {
   static BODY_CLASS = 'svl-immersive';
   static CHROMELESS_CLASS = 'chromeless';
-  // sessionStorage, not localStorage: the hint is about this window's exit key, and a returning user who has forgotten
-  // it deserves to see it once more.
+  // sessionStorage, not localStorage: both keys are about this tab. The hint is about this window's exit key, and a
+  // returning user who has forgotten it deserves to see it once more; the mode itself is a choice for this sitting,
+  // and a new tab starting boxed is the layout every first-time visitor sees.
   static #EXIT_HINT_SEEN_KEY = 'svl-immersive-exit-hint-seen';
+  static #ACTIVE_KEY = 'svl-immersive-active';
 
   #active = false;
   #tracker;
@@ -42,6 +47,15 @@ class ImmersiveMode {
       return;
     }
     this.#button.addEventListener('click', () => this.toggle('Click'));
+
+    // Re-enter the mode this tab was in before the page load. Only the classes and the button are set here: the tool
+    // has not been laid out yet, and the first relayout reads isActive(), so the pano is born at window size.
+    if (ImmersiveMode.#readStored(ImmersiveMode.#ACTIVE_KEY)) {
+      this.#active = true;
+      this.#applyClasses();
+      this.#renderButton();
+      this.#tracker.push('ImmersiveMode_Restored', { innerWidth: window.innerWidth, innerHeight: window.innerHeight });
+    }
   }
 
   /**
@@ -62,8 +76,8 @@ class ImmersiveMode {
     svl.canvas.showLabelHoverInfo(undefined);
 
     this.#active = !this.#active;
-    document.body.classList.toggle(ImmersiveMode.BODY_CLASS, this.#active);
-    document.documentElement.classList.toggle(ImmersiveMode.CHROMELESS_CLASS, this.#active);
+    this.#applyClasses();
+    ImmersiveMode.#writeStored(ImmersiveMode.#ACTIVE_KEY, this.#active ? '1' : null);
     this.#relayout();
     this.#renderButton();
 
@@ -74,6 +88,12 @@ class ImmersiveMode {
       canvasHeight: svl.CANVAS_FRAME.height,
     });
     if (this.#active) this.#showExitHintOnce();
+  }
+
+  /** The layout is CSS keyed on these two classes, on the body and, for the site chrome, the root. */
+  #applyClasses() {
+    document.body.classList.toggle(ImmersiveMode.BODY_CLASS, this.#active);
+    document.documentElement.classList.toggle(ImmersiveMode.CHROMELESS_CLASS, this.#active);
   }
 
   /** Swaps the button's icon and accessible state to describe the action it now offers. */
@@ -87,12 +107,35 @@ class ImmersiveMode {
 
   /** Tells a first-time user how to get back, once per browser session: the navbar they might reach for is gone. */
   #showExitHintOnce() {
-    try {
-      if (window.sessionStorage.getItem(ImmersiveMode.#EXIT_HINT_SEEN_KEY)) return;
-      window.sessionStorage.setItem(ImmersiveMode.#EXIT_HINT_SEEN_KEY, '1');
-    } catch {
-      // Storage access throws in some privacy modes; showing the hint again is the harmless outcome.
-    }
+    if (ImmersiveMode.#readStored(ImmersiveMode.#EXIT_HINT_SEEN_KEY)) return;
+    ImmersiveMode.#writeStored(ImmersiveMode.#EXIT_HINT_SEEN_KEY, '1');
     Toast.show({ message: i18next.t('controls.immersive-exit-hint'), dark: true, compact: true });
+  }
+
+  /**
+   * @param {string} key - A sessionStorage key.
+   * @returns {?string} Its value; null when unset or when storage access throws (some privacy modes), which reads as
+   *   "boxed, hint not yet seen": the harmless outcome either way.
+   */
+  static #readStored(key) {
+    try {
+      return window.sessionStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * @param {string} key - A sessionStorage key.
+   * @param {?string} value - The value to keep, or null to clear it. A storage failure is swallowed for the same
+   *   reason as in #readStored.
+   */
+  static #writeStored(key, value) {
+    try {
+      if (value === null) window.sessionStorage.removeItem(key);
+      else window.sessionStorage.setItem(key, value);
+    } catch {
+      // Nothing to do: the mode still applies to this page, it just won't survive a reload.
+    }
   }
 }
