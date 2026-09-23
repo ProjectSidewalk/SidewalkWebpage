@@ -355,7 +355,11 @@ corresponding Twirl view:
   until it nears expiry), stamped into the page once, and renewed in place by `Infra3dViewer` through
   `GET /imageryAccessToken` five minutes before it expires, since the SDK has no refresh flow of its own. Failures
   inside a viewer that no return value carries reach the logs through `PanoViewer._fireDiagnostic`
-  (`docs/logged-events.md`).
+  (`docs/logged-events.md`). A GSV search by location is held to its radius on our side: Google's `radius` is only a
+  hint and has answered a 25 m query with a photosphere in another state (#5114), so `GsvViewer` treats a reply
+  beyond `svl.STREETVIEW_MAX_DISTANCE` exactly like `ZERO_RESULTS`. Mapillary and Panoramax search a square box of
+  that half-width, so their corners reach about 35 m; Infra3d checks the radius in `findPanoNear` but not yet in
+  `setLocation`.
 
 There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
 libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`
