@@ -179,11 +179,14 @@ class AuditTaskTable @Inject() (
   val activeTasks    = auditTasks.filterNot(_.completed)
   val completedTasks = auditTasks.filter(_.completed)
 
-  // Completed audits still valid against current imagery -- the set that routing and coverage queries should use.
-  // Routing view: a street whose completed audits are all on since-replaced imagery reads as not-done here, so it is
-  // re-offered to users. Credit/stats/completion queries use completedTasks instead -- an outdated audit still counts
-  // as the user's work and as city-wide coverage (#4384).
+  // Completed audits still valid against current imagery. A street whose completed audits are all on since-replaced
+  // imagery reads as not-done, so it is re-offered to users. Credit/stats/completion queries use completedTasks
+  // instead -- an outdated audit still counts as the user's work and as city-wide coverage (#4384).
   val upToDateCompletedTasks = completedTasks.filterNot(_.outdatedImagery)
+
+  // The same, minus excluded users, for a street's status as everyone sees it. Questions about one user's own streets
+  // use upToDateCompletedTasks, since their own audits count for them either way.
+  val upToDateCountedTasks = streetEdgeTable.countedAuditTasks.filterNot(_.outdatedImagery)
 
   val regionsWithoutDeleted       = regions.filterNot(_.deleted)
   val nonDeletedStreetEdgeRegions = for {
@@ -218,10 +221,10 @@ class AuditTaskTable @Inject() (
     Seq
   ] = {
     // Presence is all that is ever read, so a distinct set beats counting (as in selectStreetsWithAuditStatus).
-    val _upToDateStreets = upToDateCompletedTasks.groupBy(_.streetEdgeId).map(_._1)
+    val _upToDateStreets = upToDateCountedTasks.groupBy(_.streetEdgeId).map(_._1)
 
     // Each aggregate doubles as its own presence test: the row exists exactly when a completed audit does.
-    val _lastAuditPerStreet = completedTasks.groupBy(_.streetEdgeId).map { case (_street, _group) =>
+    val _lastAuditPerStreet = streetEdgeTable.countedAuditTasks.groupBy(_.streetEdgeId).map { case (_street, _group) =>
       (_street, _group.map(_.taskEnd).max)
     }
     val _yourLastAuditPerStreet = completedTasks.filter(_.userId === userId).groupBy(_.streetEdgeId).map {
@@ -455,7 +458,7 @@ class AuditTaskTable @Inject() (
    * NOT IN (SELECT ...)") reads the same but builds its hash over every completed audit in the city first.
    */
   private def hasUpToDateAudit(streetEdgeId: Rep[Int]): Rep[Boolean] = {
-    upToDateCompletedTasks.filter(_.streetEdgeId === streetEdgeId).exists
+    upToDateCountedTasks.filter(_.streetEdgeId === streetEdgeId).exists
   }
 
   /**
@@ -499,7 +502,7 @@ class AuditTaskTable @Inject() (
    * The public form of [[hasUpToDateAudit]], for callers that have one street rather than a query of them.
    */
   def hasUpToDateAuditFor(streetEdgeId: Int): DBIO[Boolean] = {
-    upToDateCompletedTasks.filter(_.streetEdgeId === streetEdgeId).exists.result
+    upToDateCountedTasks.filter(_.streetEdgeId === streetEdgeId).exists.result
   }
 
   /**

@@ -428,7 +428,7 @@ class UserStatTable @Inject() (
           SELECT user_id,
                  CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS new_accuracy,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS new_validated_count
-          FROM #${CountedSql.accuracyLabels()}
+          FROM #${CountedSql.accuracyLabels}
           WHERE TRUE"""
       .concat(scoped("label.user_id"))
       .concat(
@@ -709,14 +709,17 @@ class UserStatTable @Inject() (
           INNER JOIN #${CountedSql.completedAudits()} ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
           #$joinUserTeamTable
+          -- The same streets the dashboard's distance counts (StreetEdgeTable.streets), so the two numbers agree.
           WHERE (task_end AT TIME ZONE 'US/Pacific') > #$statStartTime
+              AND street_edge.status = 'open'
+              AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
           GROUP BY #$groupingCol
       ) "distance" ON label_counts.#$groupingColName = distance.#$groupingColName
       LEFT JOIN (
           SELECT #$groupingColName,
                  CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy_temp,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
-          FROM #${CountedSql.accuracyLabels()}
+          FROM #${CountedSql.accuracyLabels}
           #$joinUserTeamForAcc
           WHERE (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
           GROUP BY #$groupingColName
@@ -1055,7 +1058,7 @@ class UserStatTable @Inject() (
       SELECT label.label_type::text,
              COUNT(*) FILTER (WHERE label.correct IS TRUE)::int AS correct,
              COUNT(*) FILTER (WHERE label.correct IS FALSE)::int AS incorrect
-      FROM #${CountedSql.accuracyLabels()}
+      FROM #${CountedSql.accuracyLabels}
       WHERE label.user_id = $userId
       GROUP BY label.label_type::text;
     """.as[(String, Int, Int)]
@@ -1263,7 +1266,7 @@ class UserStatTable @Inject() (
                  COUNT(CASE WHEN NOT correct THEN 1 END) AS labels_validated_incorrect,
                  COUNT(CASE WHEN correct IS NULL THEN 1 END) AS labels_not_validated,
                  #$labelTypeCountCols
-          FROM #${CountedSql.accuracyLabels()}
+          FROM #${CountedSql.accuracyLabels}
           GROUP BY label.user_id
       ) label_counts ON user_stat.user_id = label_counts.user_id
       WHERE user_role.role <> 'Anonymous'

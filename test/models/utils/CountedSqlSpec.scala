@@ -1,6 +1,7 @@
 package models.utils
 
 import models.api.StreetFiltersForApi
+import models.audit.AuditTaskTable
 import models.label.LabelTable
 import models.street.StreetEdgeTable
 import models.utils.MyPostgresProfile.api._
@@ -25,6 +26,7 @@ class CountedSqlSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
 
   private lazy val labelTable: LabelTable           = app.injector.instanceOf[LabelTable]
   private lazy val streetEdgeTable: StreetEdgeTable = app.injector.instanceOf[StreetEdgeTable]
+  private lazy val auditTaskTable: AuditTaskTable   = app.injector.instanceOf[AuditTaskTable]
 
   /**
    * Seeds a label on a street, filed under the given audit so the tutorial-street check sees the seeded street.
@@ -81,7 +83,7 @@ class CountedSqlSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
     "keep exactly the labels LabelTable.labelsForAccuracy keeps" in {
       val (slick, raw) = run(for {
         slick <- labelTable.labelsForAccuracy.map(_.labelId).result
-        raw   <- sql"SELECT label_id FROM #${CountedSql.accuracyLabels()}".as[Int]
+        raw   <- sql"SELECT label_id FROM #${CountedSql.accuracyLabels}".as[Int]
       } yield (slick, raw))
 
       differences(slick, raw) mustBe ((Seq.empty, Seq.empty))
@@ -89,6 +91,15 @@ class CountedSqlSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
   }
 
   "CountedSql.completedAudits" should {
+    "keep exactly the audits StreetEdgeTable.countedAuditTasks keeps" in {
+      val (slick, raw) = run(for {
+        slick <- streetEdgeTable.countedAuditTasks.map(_.auditTaskId).result
+        raw   <- sql"SELECT audit_task_id FROM #${CountedSql.completedAudits()}".as[Int]
+      } yield (slick, raw))
+
+      differences(slick, raw) mustBe ((Seq.empty, Seq.empty))
+    }
+
     "keep exactly the audits StreetEdgeTable.completedAuditTasks keeps, once limited to the same streets" in {
       val (slick, raw) = run(for {
         slick <- streetEdgeTable.completedAuditTasks.map(_.auditTaskId).result
@@ -124,6 +135,26 @@ class CountedSqlSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
       } yield (kept, counted))
 
       kept mustBe Seq(countedVoter)
+    }
+  }
+
+  "AuditTaskTable.hasUpToDateAuditFor" should {
+    "not count a street as up to date when only an excluded user has audited it" in {
+      val (bannedOnly, alsoCounted) = runRolledBack(for {
+        bannedStreet  <- insertStreet()
+        countedStreet <- insertStreet()
+        banned        <- insertUser()
+        good          <- insertUser()
+        _             <- excludeUser(banned)
+        _             <- audit(bannedStreet, banned)
+        _             <- audit(countedStreet, banned)
+        _             <- audit(countedStreet, good)
+        bannedOnly    <- auditTaskTable.hasUpToDateAuditFor(bannedStreet)
+        alsoCounted   <- auditTaskTable.hasUpToDateAuditFor(countedStreet)
+      } yield (bannedOnly, alsoCounted))
+
+      bannedOnly mustBe false
+      alsoCounted mustBe true
     }
   }
 

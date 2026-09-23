@@ -179,7 +179,7 @@ class LabelValidationTable @Inject() (
       FROM (
           SELECT CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
-          FROM #${CountedSql.accuracyLabels()}
+          FROM #${CountedSql.accuracyLabels}
           WHERE label.user_id = $userId
       ) "accuracy_subquery";""".as[Option[Double]].map(_.headOption.flatten)
   }

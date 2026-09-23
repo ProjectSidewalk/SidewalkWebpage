@@ -203,7 +203,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       if (hasEnum) s"""unnest(enum_range(NULL::"$schema".label_type)) AS lt(label_type)"""
       else s""""$schema".label_type lt"""
     val allTypesJoinOnLabel: String =
-      if (hasEnum) "lt.label_type = l.label_type" else "lt.label_type_id = l.label_type_id"
+      if (hasEnum) "lt.label_type = label.label_type" else "lt.label_type_id = label.label_type_id"
     val allTypesGroupBy: String = if (hasEnum) "lt.label_type" else "lt.label_type_id, lt.label_type"
 
     /** A predicate on `label` matching any of the given type names. */
@@ -255,10 +255,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           -- the total (#3981). Counted by the label.tutorial flag from non-excluded users.
           SELECT COUNT(*) AS tutorial_label_count
           FROM "#$schema".label
-          INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
-          WHERE NOT user_stat.excluded
-              AND deleted = FALSE
-              AND tutorial = TRUE
+          WHERE label.deleted = FALSE
+              AND label.tutorial = TRUE
+              AND #${CountedSql.userCounts(Some(schema), "label.user_id", Contributors.NotExcluded)}
       ) AS tutorial_label_counts, (
           -- Work-credit count (#4842): votes voided by the off-target-markers repair are archived in
           -- voided_label_validation, not deleted, so the "how many validations happened" total keeps counting them.
@@ -267,8 +266,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           ) + (
               SELECT COUNT(*)
               FROM "#$schema".voided_label_validation
-              INNER JOIN "#$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
-              WHERE NOT user_stat.excluded
+              WHERE #${CountedSql.userCounts(Some(schema), "voided_label_validation.user_id", Contributors.NotExcluded)}
           ) AS validation_count
       ) AS total_val_count;
     """
@@ -314,8 +312,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       UNION
       SELECT voided_label_validation.user_id
       FROM "#$schema".voided_label_validation
-      INNER JOIN "#$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
-      WHERE NOT user_stat.excluded;
+      WHERE #${CountedSql.userCounts(Some(schema), "voided_label_validation.user_id", Contributors.NotExcluded)};
     """.as[String]
 
   /**
@@ -332,15 +329,15 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     sql"""
       SELECT
         lt.label_type::text,
-        COUNT(DISTINCT l.label_id) AS label_count,
-        COUNT(DISTINCT CASE WHEN (l.agree_count + l.disagree_count + l.unsure_count) > 0 THEN l.label_id END) AS labels_validated,
-        COUNT(DISTINCT CASE WHEN l.agree_count > l.disagree_count THEN l.label_id END) AS labels_agreed,
-        COUNT(DISTINCT CASE WHEN l.disagree_count > l.agree_count THEN l.label_id END) AS labels_disagreed
+        COUNT(DISTINCT label.label_id) AS label_count,
+        COUNT(DISTINCT CASE WHEN (label.agree_count + label.disagree_count + label.unsure_count) > 0 THEN label.label_id END) AS labels_validated,
+        COUNT(DISTINCT CASE WHEN label.agree_count > label.disagree_count THEN label.label_id END) AS labels_agreed,
+        COUNT(DISTINCT CASE WHEN label.disagree_count > label.agree_count THEN label.label_id END) AS labels_disagreed
       FROM
         #${labelTypeSql.allTypesFrom}
       -- A LEFT JOIN so label types with no counted labels still get a row with a count of 0.
       LEFT JOIN
-        #${CountedSql.labels(Some(schema), as = "l")} ON #${labelTypeSql.allTypesJoinOnLabel}
+        #${CountedSql.labels(Some(schema))} ON #${labelTypeSql.allTypesJoinOnLabel}
       GROUP BY
         #${labelTypeSql.allTypesGroupBy};
     """
@@ -546,12 +543,12 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           -- are kept as study material and deliberately left out of the agreement signal.
           SELECT COUNT(*) AS cnt
           FROM "#$schema".voided_label_validation
-          INNER JOIN "#$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
-          WHERE NOT user_stat.excluded
+          WHERE #${CountedSql.userCounts(Some(schema), "voided_label_validation.user_id", Contributors.NotExcluded)}
       ) AS voided_val_counts, (
           SELECT COUNT(DISTINCT street_edge_id) FILTER (WHERE task_end >= NOW() - INTERVAL '7 days')  AS audits_7d,
                  COUNT(DISTINCT street_edge_id) FILTER (WHERE task_end >= NOW() - INTERVAL '30 days') AS audits_30d
           FROM #${CountedSql.completedAudits(Some(schema))}
+          WHERE audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
       ) AS audit_windows, (
           -- Distinct PEOPLE who labeled or validated: union of non-excluded, non-AI label authors and validators.
           SELECT COUNT(DISTINCT contributor_id) AS cnt FROM (
@@ -569,8 +566,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               UNION
               SELECT voided_label_validation.user_id AS contributor_id
               FROM "#$schema".voided_label_validation
-              INNER JOIN "#$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
-              WHERE NOT user_stat.excluded
+              WHERE #${CountedSql.userCounts(Some(schema), "voided_label_validation.user_id", Contributors.NotExcluded)}
           ) AS contributor_union
       ) AS active_contributors, (
           -- Distinct EXCLUDED (low-quality) users who placed a label — the data-quality "how much got filtered" signal.
@@ -580,7 +576,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
           WHERE user_stat.excluded
       ) AS low_quality, (
-          -- ORDER BY ... LIMIT 1 rather than MAX, so each arm reads its time index backwards and stops at the first hit.
+          -- ORDER BY ... LIMIT 1 rather than MAX, so the label and vote arms read their time indexes backwards.
           SELECT GREATEST(
               (SELECT label.time_created FROM #${CountedSql.labels(Some(schema))}
                ORDER BY label.time_created DESC LIMIT 1),

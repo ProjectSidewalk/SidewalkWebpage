@@ -2495,7 +2495,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label.disagree_count,
              label.unsure_count,
              vals.validations,
-             audit_task.audit_task_id,
+             label.audit_task_id,
              label.mission_id,
              pano_data.capture_date,
              label_point.heading,
@@ -2517,7 +2517,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       INNER JOIN osm_way_street_edge ON label.street_edge_id = osm_way_street_edge.street_edge_id
       INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
       INNER JOIN region ON street_edge_region.region_id = region.region_id
-      INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
       INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
       INNER JOIN user_stat ON label.user_id = user_stat.user_id
       LEFT JOIN (
@@ -2815,7 +2814,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               SELECT label.label_id, label.label_type::text,
                      #$validationVerdictCols
               FROM #${CountedSql.labels(contributors = contributors)}
-              INNER JOIN #${CountedSql.verdictVotes()} ON label.label_id = label_validation.label_id
+              INNER JOIN label_validation ON label.label_id = label_validation.label_id
+                  AND #${CountedSql.isVerdictVote()}
               INNER JOIN user_role ON label_validation.user_id = user_role.user_id
               GROUP BY label.label_id, label.label_type::text
           ) AS label_verdicts
@@ -2847,7 +2847,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                          END AS admin_mv
               -- The same labels and votes as val_counts above.
               FROM #${CountedSql.labels(contributors = contributors)}
-              INNER JOIN #${CountedSql.verdictVotes()} ON label.label_id = label_validation.label_id
+              INNER JOIN label_validation ON label.label_id = label_validation.label_id
+                  AND #${CountedSql.isVerdictVote()}
               INNER JOIN user_role ON label_validation.user_id = user_role.user_id
               GROUP BY label.label_id, label.label_type::text
               HAVING COUNT(CASE WHEN user_role.role = 'AI' THEN 1 END) > 0
@@ -3069,8 +3070,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Recounts agree/disagree/unsure counts and `correct` on labels from their validations.
    *
-   * Must match the live counting in `ValidationService`: only `CountedSql.verdictVotes` count, and a tie leaves
-   * `correct` empty. Only changed rows are written.
+   * Must match the live counting in `ValidationService`: only votes passing `CountedSql.isVerdictVote` count, and a
+   * tie leaves `correct` empty. Only changed rows are written.
    *
    * @param validatorId Only recount the labels this user validated; recount every label if None.
    * @return The number of labels whose counts changed.
@@ -3100,7 +3101,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                      COUNT(*) FILTER (WHERE label_validation.validation_result = 'Disagree') AS n_disagree,
                      COUNT(*) FILTER (WHERE label_validation.validation_result = 'Unsure') AS n_unsure
               FROM label
-              LEFT JOIN #${CountedSql.verdictVotes()} ON label.label_id = label_validation.label_id
+              LEFT JOIN label_validation ON label.label_id = label_validation.label_id
+                  AND #${CountedSql.isVerdictVote()}
       """
       .concat(scope)
       .concat(sql"""

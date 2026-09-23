@@ -177,6 +177,8 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
   /**
    * The labels a funnel counts as "placed a real label". Excluded users are kept, like everywhere else in the funnels:
    * dropping only their labels would show them quitting at that step rather than leaving them out.
+   *
+   * @return A subquery for a FROM clause.
    */
   private def realLabels(schema: String): String = CountedSql.labels(Some(schema), Contributors.Everyone)
 

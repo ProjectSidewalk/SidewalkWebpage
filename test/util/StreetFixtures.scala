@@ -35,23 +35,26 @@ trait StreetFixtures { this: GuiceOneAppPerSuite with RolledBackDb =>
   /** Timestamps are compared after a round trip through Postgres, whose timestamptz resolution is microseconds. */
   protected def now: OffsetDateTime = OffsetDateTime.now.truncatedTo(ChronoUnit.MILLIS)
 
-  /** A throwaway mapper, with no rows anywhere else, so their street set is exactly what a case seeds. */
+  /**
+   * A throwaway mapper with no work anywhere, so their street set is exactly what a case seeds. Gets the `user_stat`
+   * row every signed-in user gets on their first request to a city.
+   */
   protected def insertUser(): DBIO[String] = {
     val userId = UUID.randomUUID.toString
-    (sidewalkUsersForFixtures += SidewalkUser(userId, s"spec-$userId", s"spec-$userId@example.com")).map(_ => userId)
+    for {
+      _ <- sidewalkUsersForFixtures += SidewalkUser(userId, s"spec-$userId", s"spec-$userId@example.com")
+      _ <- sqlu"""INSERT INTO user_stat (user_stat_id, user_id)
+                  VALUES ((SELECT COALESCE(MAX(user_stat_id), 0) + 1 FROM user_stat), $userId)"""
+    } yield userId
   }
 
   /**
    * Flags a mapper as excluded, the way an admin does when their work turns out to be unreliable.
    *
-   * A [[insertUser]] mapper has no `user_stat` row at all, which is not a state prod reaches; queries that filter on
-   * `excluded` treat a missing row as not-excluded, so this seeds the row only when a case needs the flag set.
-   *
    * @return The number of rows written.
    */
   protected def excludeUser(userId: String): DBIO[Int] =
-    sqlu"""INSERT INTO user_stat (user_id, excluded) VALUES ($userId, TRUE)
-           ON CONFLICT (user_id) DO UPDATE SET excluded = TRUE"""
+    sqlu"UPDATE user_stat SET excluded = TRUE, high_quality = FALSE WHERE user_id = $userId"
 
   /**
    * A region of the spec's own, so the streets hung there are reachable only by the case that seeded them.

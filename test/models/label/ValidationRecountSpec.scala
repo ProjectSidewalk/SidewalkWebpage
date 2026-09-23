@@ -137,7 +137,7 @@ class ValidationRecountSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
 
         _                 <- userStatTable.updateAccuracyForLabelersValidatedBy(v1)
         storedValidated   <- sql"SELECT own_labels_validated FROM user_stat WHERE user_id = $labeler".as[Int].head
-        expectedValidated <- sql"""SELECT COUNT(*) FROM #${CountedSql.accuracyLabels()}
+        expectedValidated <- sql"""SELECT COUNT(*) FROM #${CountedSql.accuracyLabels}
                                    WHERE user_id = $labeler AND correct IS NOT NULL""".as[Int].head
 
         // A user none of whose labels v1 voted on; flipping their flag shows whether the update reached them.

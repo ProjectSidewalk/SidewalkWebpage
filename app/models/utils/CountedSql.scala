@@ -1,10 +1,6 @@
 package models.utils
 
-/**
- * Which contributors' work a [[CountedSql]] fragment keeps.
- *
- * Excluding a user also marks them low quality, so `HighQualityOnly` drops excluded users too.
- */
+/** Which contributors' work a [[CountedSql]] fragment keeps. */
 sealed trait Contributors
 
 object Contributors {
@@ -26,11 +22,12 @@ object Contributors {
  * after the table it stands in for, so a query swaps `FROM label` for `FROM #${CountedSql.labels()}` and keeps reading
  * `label.*` columns as before.
  *
- * Users are checked with EXISTS rather than a join, so a fragment never repeats a row, and a user with no `user_stat`
- * row counts as not excluded. `CountedSqlSpec` checks each fragment against its Slick twin.
+ * Users are checked with EXISTS rather than a join, so a fragment never repeats a row. `CountedSqlSpec` checks each
+ * fragment against its Slick twin.
  */
 object CountedSql {
 
+  /** A table in the given city's schema, or in the current one. */
   private def table(schema: Option[String], name: String): String = schema.fold(name)(s => s""""$s".$name""")
 
   /**
@@ -41,20 +38,22 @@ object CountedSql {
    */
   def contributorFilter(contributors: Contributors, userStat: String = "user_stat"): String = contributors match {
     case Contributors.NotExcluded     => s"NOT $userStat.excluded"
-    case Contributors.HighQualityOnly => s"$userStat.high_quality"
+    case Contributors.HighQualityOnly => s"$userStat.high_quality AND NOT $userStat.excluded"
     case Contributors.Everyone        => "TRUE"
   }
 
-  /** Whether a user's work counts, looked up by id so the query needs no `user_stat` join of its own. */
+  /**
+   * Whether a user's work counts, looked up by id so the query needs no `user_stat` join of its own.
+   *
+   * @param userIdColumn The column holding the user's id, e.g. `label.user_id`.
+   * @return             A boolean SQL expression.
+   */
   def userCounts(schema: Option[String], userIdColumn: String, contributors: Contributors): String =
     contributors match {
-      case Contributors.NotExcluded =>
-        s"NOT EXISTS (SELECT 1 FROM ${table(schema, "user_stat")} AS user_stat " +
-          s"WHERE user_stat.user_id = $userIdColumn AND user_stat.excluded)"
-      case Contributors.HighQualityOnly =>
-        s"EXISTS (SELECT 1 FROM ${table(schema, "user_stat")} AS user_stat " +
-          s"WHERE user_stat.user_id = $userIdColumn AND user_stat.high_quality)"
       case Contributors.Everyone => "TRUE"
+      case _                     =>
+        s"EXISTS (SELECT 1 FROM ${table(schema, "user_stat")} AS user_stat " +
+          s"WHERE user_stat.user_id = $userIdColumn AND ${contributorFilter(contributors)})"
     }
 
   /**
@@ -65,13 +64,11 @@ object CountedSql {
    * can be filed under a nearby real street.
    *
    * @param schema A city schema to read instead of the current one.
-   * @param as     The name the rows go by in the query.
    * @return       A subquery for a FROM or JOIN clause.
    */
   def labels(
       schema: Option[String] = None,
-      contributors: Contributors = Contributors.NotExcluded,
-      as: String = "label"
+      contributors: Contributors = Contributors.NotExcluded
   ): String = {
     val tutorialStreet = s"(SELECT tutorial_street_edge_id FROM ${table(schema, "config")})"
     s"""(
@@ -83,17 +80,16 @@ object CountedSql {
              AND label.street_edge_id <> $tutorialStreet
              AND audit_task.street_edge_id <> $tutorialStreet
              AND ${userCounts(schema, "label.user_id", contributors)}
-       ) AS $as"""
+       ) AS label"""
   }
 
   /**
    * The labels a labeler's accuracy is judged on: [[models.label.LabelTable.countsTowardAccuracySql]] (#3591), minus
    * tutorial labels and the tutorial street. Everyone's, since accuracy describes each user, excluded or not.
    *
-   * @param as The name the rows go by in the query.
    * @return   A subquery for a FROM or JOIN clause.
    */
-  def accuracyLabels(as: String = "label"): String =
+  def accuracyLabels: String =
     s"""(
          SELECT label.*
          FROM label
@@ -102,70 +98,75 @@ object CountedSql {
              AND label.tutorial = FALSE
              AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
              AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-       ) AS $as"""
+       ) AS label"""
 
   /**
    * Completed audits by users who count. The raw SQL twin of `StreetEdgeTable.completedAuditTasks`, minus its street
    * filter: callers pick which streets they report on.
    *
    * @param schema A city schema to read instead of the current one.
-   * @param as     The name the rows go by in the query.
    * @return       A subquery for a FROM or JOIN clause.
    */
   def completedAudits(
       schema: Option[String] = None,
-      contributors: Contributors = Contributors.NotExcluded,
-      as: String = "audit_task"
+      contributors: Contributors = Contributors.NotExcluded
   ): String =
     s"""(
          SELECT audit_task.*
          FROM ${table(schema, "audit_task")} AS audit_task
          WHERE audit_task.completed = TRUE
              AND ${userCounts(schema, "audit_task.user_id", contributors)}
-       ) AS $as"""
+       ) AS audit_task"""
 
   /**
-   * Votes that count toward a label's verdict: cast on the label's current type, not by the label's own author, and
-   * not by an excluded user. The same rule `ValidationService` uses to keep each label's agree/disagree counts.
+   * Whether a vote counts toward its label's verdict: cast on the label's current type, not by the label's own author,
+   * and not by an excluded user. The same rule `ValidationService` uses to keep each label's agree/disagree counts.
+   * For queries that already join the label; [[verdictVotes]] is the standalone form.
    *
-   * @param schema       A city schema to read instead of the current one.
    * @param voteTypeKnown False for a city schema from before evolution 395, whose votes don't record the type they
    *                      judged; the type check is then skipped.
-   * @param as           The name the rows go by in the query.
-   * @return             A subquery for a FROM or JOIN clause.
+   * @return              A boolean SQL expression.
+   */
+  def isVerdictVote(
+      schema: Option[String] = None,
+      voteTypeKnown: Boolean = true
+  ): String = {
+    val typeCheck = if (voteTypeKnown) "AND label_validation.label_type = label.label_type" else ""
+    s"label_validation.user_id <> label.user_id $typeCheck AND " +
+      userCounts(schema, "label_validation.user_id", Contributors.NotExcluded)
+  }
+
+  /**
+   * The votes that count toward their label's verdict ([[isVerdictVote]]).
+   *
+   * @param schema A city schema to read instead of the current one.
+   * @return       A subquery for a FROM or JOIN clause.
    */
   def verdictVotes(
       schema: Option[String] = None,
-      voteTypeKnown: Boolean = true,
-      as: String = "label_validation"
-  ): String = {
-    val typeCheck = if (voteTypeKnown) "AND label_validation.label_type = label.label_type" else ""
+      voteTypeKnown: Boolean = true
+  ): String =
     s"""(
          SELECT label_validation.*
          FROM ${table(schema, "label_validation")} AS label_validation
          INNER JOIN ${table(schema, "label")} AS label ON label_validation.label_id = label.label_id
-         WHERE label_validation.user_id <> label.user_id
-             $typeCheck
-             AND ${userCounts(schema, "label_validation.user_id", Contributors.NotExcluded)}
-       ) AS $as"""
-  }
+         WHERE ${isVerdictVote(schema, voteTypeKnown)}
+       ) AS label_validation"""
 
   /**
    * Every vote cast by a user who counts, on any label. For work-credit totals ("how many validations happened"),
    * which count a vote even if the label was later deleted or retyped.
    *
    * @param schema A city schema to read instead of the current one.
-   * @param as     The name the rows go by in the query.
    * @return       A subquery for a FROM or JOIN clause.
    */
   def votesCast(
       schema: Option[String] = None,
-      contributors: Contributors = Contributors.NotExcluded,
-      as: String = "label_validation"
+      contributors: Contributors = Contributors.NotExcluded
   ): String =
     s"""(
          SELECT label_validation.*
          FROM ${table(schema, "label_validation")} AS label_validation
          WHERE ${userCounts(schema, "label_validation.user_id", contributors)}
-       ) AS $as"""
+       ) AS label_validation"""
 }
