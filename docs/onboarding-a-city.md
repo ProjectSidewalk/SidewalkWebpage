@@ -30,7 +30,8 @@ Run the three from the **main checkout**: `db/` is the bind mount the db contain
   3. what the tool finds on its own: OSM neighbourhood polygons (used only when they cover ≥ 75% of the city), then
      US census tracts, then the whole city as one region (fine for a small town).
   Whatever you use, record where it came from with `--regions-source` (a URL, or the collaborator's email); it is
-  stored in `region.data_source`.
+  stored in `region.data_source`. Overlapping polygons are fine to hand in: the build gives each overlap to the
+  smaller region and says so, which stops a street in the overlap being imported once per region (#3067).
   A town small enough to come out as **one region** is named after the city, not after whatever source it landed in
   — Laurens, IA would otherwise be the neighbourhood "Census Tract 7801" everywhere a region name shows (missions,
   the dashboard, LabelMap's filters, the API's `region_name`). The name comes from `--place`; pass
@@ -79,9 +80,10 @@ flagged region. Two ways back:
   applied are skipped. A repeated source name is kept as separate regions, `"X (2)"` (logged, not in the report).
 - *Hand edits:* delete a street, reassign its `region_id`, move a boundary — in the GeoPackage — then
   `make build-city-data id=<city-id> args="--from-gpkg"`, which validates the layers (unique ids, region references,
-  geometry types, non-empty names, at least one OSM way id per street) and rewrites the SQL, report, and endpoints
-  CSV so the load matches what you QA'd. Region edits big enough that streets should re-split go back in as the
-  region source instead: `--regions-file <the QA gpkg> --regions-source "..."`.
+  geometry types, non-empty names, at least one OSM way id per street, no two streets drawn on top of each other)
+  and rewrites the SQL, report, and endpoints CSV so the load matches what you QA'd. Region edits big enough that
+  streets should re-split go back in as the region source instead:
+  `--regions-file <the QA gpkg> --regions-source "..."`.
 
 Never load a stale SQL over hand edits.
 

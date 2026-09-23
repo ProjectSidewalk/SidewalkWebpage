@@ -440,6 +440,15 @@ def test_validate_staging_rejects_one_way_drawn_twice():
                for error in errors)
 
 
+def test_validate_staging_only_warns_about_same_way_overlaps_on_the_build_path(caplog):
+    # The build path writes the QA GeoPackage after validating, so an overlap there is reported, not fatal.
+    with caplog.at_level(logging.WARNING):
+        errors = oc.validate_staging(_overlap_roads([OVERLAP_STREET, OVERLAP_STREET], [[11], [11]]), _region_set(),
+                                     overlaps_are_fatal=False)
+    assert errors == []
+    assert 'cut from the same OSM way lie on top of each other' in caplog.text
+
+
 def test_validate_staging_only_warns_about_overlapping_different_ways(caplog):
     with caplog.at_level(logging.WARNING):
         errors = oc.validate_staging(_overlap_roads([OVERLAP_STREET, OVERLAP_STREET], [[11], [22]]), _region_set())
@@ -745,11 +754,44 @@ def test_prepare_regions_absorbs_small_parts_into_longest_border_neighbor():
     assert west_area == pytest.approx(oc.geodesic_area_m2(_W) + oc.geodesic_area_m2(nib), rel=0.01)
 
 
-def test_prepare_regions_warns_on_overlapping_regions(caplog):
+def test_prepare_regions_drops_a_region_duplicated_outright(caplog):
     raw = gpd.GeoDataFrame({'name': ['a', 'b']}, geometry=[_W, _W], crs='EPSG:4326')
     with caplog.at_level(logging.WARNING):
-        oc.prepare_regions(raw, _CITY_GDF, min_part_m2=10_000)
-    assert any('DUPLICATED' in record.message for record in caplog.records)
+        regions = oc.prepare_regions(raw, _CITY_GDF, min_part_m2=10_000)
+    assert list(regions['name']) == ['a']
+    assert any('dropped' in record.message for record in caplog.records)
+
+
+def test_prepare_regions_gives_an_overlap_to_the_smaller_region():
+    # A small region drawn inside a wider one: the small one keeps its ground, the wide one gets a hole.
+    inner = Polygon([(0.002, 0.002), (0.006, 0.002), (0.006, 0.006), (0.002, 0.006)])
+    raw = gpd.GeoDataFrame({'name': ['wide', 'inner']}, geometry=[_W, inner], crs='EPSG:4326')
+    regions = oc.prepare_regions(raw, _CITY_GDF, min_part_m2=1)
+    assert sorted(regions['name']) == ['inner', 'wide']
+    by_name = dict(zip(regions['name'], regions.geometry))
+    assert oc.geodesic_area_m2(by_name['inner']) == pytest.approx(oc.geodesic_area_m2(inner), rel=0.01)
+    assert not by_name['wide'].intersection(by_name['inner']).area
+    assert (oc.geodesic_area_m2(by_name['wide'])
+            == pytest.approx(oc.geodesic_area_m2(_W) - oc.geodesic_area_m2(inner), rel=0.01))
+
+
+def test_prepare_regions_leaves_regions_that_only_touch_alone():
+    raw = gpd.GeoDataFrame({'name': ['west', 'east']}, geometry=[_W, _E], crs='EPSG:4326')
+    regions = oc.prepare_regions(raw, _CITY_GDF, min_part_m2=10_000)
+    assert sorted(regions['name']) == ['east', 'west']
+    total = sum(oc.geodesic_area_m2(geom) for geom in regions.geometry)
+    assert total == pytest.approx(oc.geodesic_area_m2(_CITY), rel=0.01)
+
+
+def test_resolve_region_overlaps_keeps_one_region_untouched():
+    raw = gpd.GeoDataFrame({'name': ['only']}, geometry=[_W], crs='EPSG:4326')
+    assert oc.resolve_region_overlaps(raw).geometry.iloc[0].equals(_W)
+
+
+def test_polygonal_parts_drops_stray_lines():
+    collection = shapely.geometry.GeometryCollection([_W, LineString([(0, 0), (0.01, 0)])])
+    assert oc.polygonal_parts(collection).equals(_W)
+    assert oc.polygonal_parts(shapely.geometry.GeometryCollection([])).is_empty
 
 
 def _streets_gdf(lines):
@@ -1167,7 +1209,7 @@ def test_parse_args_rejects_merges_on_reexport_runs():
 
 def test_main_aborts_when_generated_data_fails_validation(tmp_path, monkeypatch):
     _patch_pipeline(monkeypatch, _two_hoods())
-    monkeypatch.setattr(oc, 'validate_staging', lambda roads, regions: ['boom'])
+    monkeypatch.setattr(oc, 'validate_staging', lambda roads, regions, **kwargs: ['boom'])
     with pytest.raises(SystemExit):
         oc.main(['--city-id', 'testville', '--place', 'Testville, USA', '--out-dir', str(tmp_path)])
 
