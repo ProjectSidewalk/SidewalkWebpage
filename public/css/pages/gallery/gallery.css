@@ -124,7 +124,7 @@
 
 /* Link-styled, underlined only on hover/focus: it must read as somewhere to go, not as an action on the list. */
 .gallery-list-bar__browse-all {
-  font: var(--text-body-regular);
+  font: var(--text-small-regular);
   line-height: 24px;
   color: var(--color-link-200);
   text-decoration: none;
@@ -146,17 +146,17 @@
   margin-right: 6px;
 }
 
+/* A pill, so the count reads as a status of the list rather than as a sentence continuing the link beside it. Same
+   radius as the cards' tag pills; the neutral fill keeps it quieter than those. */
 .gallery-list-bar__count {
   margin: 0;
-  font: var(--text-body-medium);
-  color: var(--color-neutral-black);
-
-  /* Matches the link and the disclosure summary beside it, so the strip reads as one line of text. */
-  line-height: 24px;
-
-  /* Divider drawn on the following item, so no element exists only to be a line; padding mirrors the flex gap. */
-  border-left: 1px solid var(--color-neutral-300);
-  padding-left: 12px;
+  padding: 0 calc(10px * var(--ui-scale, 1));
+  font: var(--text-small-medium);
+  line-height: 24px; /* Matches the link and the disclosure summary beside it, so the strip reads as one line. */
+  color: var(--color-asphalt-500);
+  background: var(--color-neutral-100);
+  border-radius: 200px;
+  white-space: nowrap;
 }
 
 /* The live region is always in the DOM so a screen reader is already watching it when the disclosure appears, but
@@ -263,10 +263,9 @@ We should allow the pointer events to pass through and behave the same way as th
     align-items: stretch;
   }
 
-  /* Stacked, a left rule reads as a quote bar rather than as a divider between two things on one line. */
+  /* Stacked, a full-width pill would read as a bar; keep it to its own text. */
   .gallery-list-bar__count {
-    border-left: none;
-    padding-left: 0;
+    align-self: flex-start;
   }
 
   /* Full-screen sheet below the navbar (and test banner). dvh tracks the visible viewport under mobile
