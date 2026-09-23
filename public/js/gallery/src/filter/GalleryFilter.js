@@ -153,7 +153,8 @@ class GalleryFilter {
     // Review-list mode (#5444): the list is the whole selection and no filter controls are rendered, so reading the
     // sidebar here would write `severities=&validationOptions=` — claiming filters that aren't being applied — and
     // leaving the list out would scrub it from the address bar on the constructor's first pass. The `!#sidebar`
-    // half is what makes this safe to reach with nothing to read: below this point every line needs one.
+    // half is belt and braces — the view renders the sidebar exactly when the list is empty, so the first half
+    // already covers it — but every line below here needs a sidebar, so it stays.
     const listLabelIds = this.#listLabelIds();
     if (listLabelIds.length > 0 || !this.#sidebar) {
       if (listLabelIds.length > 0) params.set('labelIds', listLabelIds.join());

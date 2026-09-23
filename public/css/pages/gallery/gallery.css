@@ -159,6 +159,14 @@
   padding-left: 12px;
 }
 
+/* The live region is always in the DOM so a screen reader is already watching it when the disclosure appears, but
+   an empty box still takes a flex gap of its own — 16px of nothing on the line, and a dead row when the strip
+   stacks. `display: contents` drops the box and keeps the element, so the disclosure inside it becomes the flex
+   item and the region still exists to announce into. */
+.gallery-list-bar__unavailable-wrap {
+  display: contents;
+}
+
 .gallery-list-bar__summary {
   font: var(--text-body-regular);
   line-height: 24px;

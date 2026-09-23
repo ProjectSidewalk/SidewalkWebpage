@@ -488,6 +488,12 @@ class CardContainer {
           this.#expandedView.restoreFromUrl();
         }
       });
+    } else if (this.#listMode) {
+      // "No matches. Start exploring to contribute more data!" answers a filtered search that found nothing; it
+      // answers nothing about a list whose ids this city doesn't have, and with no sidebar to sit beside it, it is
+      // absolutely positioned straight over the strip that does explain it.
+      sg.pageLoading.hide();
+      sg.cardFilter.enable();
     } else {
       // TODO: figure out how to better do the toggling of this element.
       sg.labelsNotFound.show();

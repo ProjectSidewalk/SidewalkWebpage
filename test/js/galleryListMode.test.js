@@ -208,8 +208,15 @@ describe('the Gallery in review-list mode', () => {
             const expandedHost = el();
             expandedHost[0] = document.querySelector('.gallery-expanded-view');
             window.sg = {
+                // The whole of the interface GalleryFilter offers the container, since the filtered path reads more
+                // of it than list mode does.
                 cardFilter: {
-                    getStatus: () => ({ currentLabelTypes: [] }), disable: jest.fn(), enable: jest.fn(),
+                    getStatus: () => ({ currentLabelTypes: [] }),
+                    getAppliedValidationOptions: () => [],
+                    getAppliedSeverities: () => [],
+                    getAppliedTagsByType: () => ({}),
+                    disable: jest.fn(),
+                    enable: jest.fn(),
                 },
                 ui: {
                     pageControl: el(),
@@ -308,6 +315,23 @@ describe('the Gallery in review-list mode', () => {
             expect(document.getElementById('gallery-list-unavailable').hidden).toBe(true);
         });
 
+        it('lets the strip explain an empty grid, rather than the filtered gallery\'s copy', async () => {
+            // Every id belongs to another city, so nothing comes back. "No matches. Start exploring to contribute
+            // more data!" answers a filtered search, not this, and with no sidebar it lands on top of the strip.
+            await listContainer([], LIST_IDS);
+
+            expect(sg.labelsNotFound.show).not.toHaveBeenCalled();
+            expect(document.getElementById('gallery-list-count').textContent)
+                .toBe('gallery:list-count-partial:{"shown":0,"count":3}');
+            const unavailable = document.getElementById('gallery-list-unavailable');
+            expect(unavailable.hidden).toBe(false);
+            expect([...unavailable.querySelectorAll('li')].map((li) => li.textContent))
+                .toEqual(['#42', '#7', '#19']);
+            // The disclosure sits inside the live region, so its appearance is announced (see gallery.css, which
+            // gives the wrapper `display: contents` so it holds no layout box of its own).
+            expect(unavailable.parentElement.getAttribute('aria-live')).toBe('polite');
+        });
+
         it('says the list could not be loaded, rather than showing an empty queue', async () => {
             const created = window.CardContainer.create(
                 sg.ui.cardContainer, { regionIds: [], aiValidationOptions: [], labelIds: LIST_IDS }, null, null, null,
@@ -321,6 +345,17 @@ describe('the Gallery in review-list mode', () => {
             expect(sg.labelsNotFound.show).not.toHaveBeenCalled();
             // The count the server rendered still stands, rather than being rewritten to "0 labels in this list".
             expect(document.getElementById('gallery-list-count').textContent).toBe('3 labels in this list');
+        });
+
+        it('leaves the filtered grid on nine, which is the other half of the same contract', async () => {
+            // Asserting only the list's twelve would pass just as well if getCardsPerPage() returned twelve
+            // unconditionally, which would quietly repage the ordinary Gallery. The same container also still
+            // shows the grid's "no matches" copy, so the list-mode suppression above is scoped to list mode.
+            const filtered = await listContainer(LIST_IDS, [], []);
+
+            expect(filtered.isListMode()).toBe(false);
+            expect(filtered.getCardsPerPage()).toBe(9);
+            expect(sg.labelsNotFound.show).toHaveBeenCalled();
         });
 
         describe('paging a list longer than one page', () => {
