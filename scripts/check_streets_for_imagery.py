@@ -1320,8 +1320,8 @@ def prepare_point_log(point_log_file: str, processed: Collection[int], search_ra
 
     Raises:
         CheckpointMismatchError: If a resumed run has no log (it was started without ``--point-log``, so the streets
-                                 already settled were never logged), or the log was written with other columns or
-                                 settings.
+                                 already settled were never logged), the log was written with other columns or
+                                 settings, or it lacks rows for a settled street (a resume ran without the flag).
     """
     if not processed:
         with contextlib.suppress(FileNotFoundError):
@@ -1340,7 +1340,17 @@ def prepare_point_log(point_log_file: str, processed: Collection[int], search_ra
         raise CheckpointMismatchError(
             '%s was written by another version of this scan or with other settings, so it cannot be resumed into. '
             'Move it and the checkpoint aside to rescan.' % point_log_file)
-    log[log['street_edge_id'].isin(processed)].to_csv(point_log_file, index=False)
+    # Every settled street logs at least its two endpoint rows, so a settled street with none was settled by a resume
+    # run without --point-log, and the log is missing its evidence.
+    unlogged = set(processed) - set(log['street_edge_id'])
+    if unlogged:
+        raise CheckpointMismatchError(
+            '%s has no rows for %d streets this scan has already settled (a resume ran without --point-log), so it is '
+            'incomplete. Move it and the checkpoint aside to rescan.' % (point_log_file, len(unlogged)))
+    # Written aside and swapped in, so a crash mid-write cannot take the settled streets' rows with it.
+    tmp_file = point_log_file + '.tmp'
+    log[log['street_edge_id'].isin(processed)].to_csv(tmp_file, index=False)
+    os.replace(tmp_file, point_log_file)
 
 
 def append_checkpoint(result: StreetResult, checkpoint_file: str) -> None:

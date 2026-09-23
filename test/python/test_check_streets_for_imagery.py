@@ -1887,6 +1887,18 @@ def test_main_refuses_to_resume_into_a_point_log_it_never_started(monkeypatch, t
     assert 'has to be on from the start of a scan' in capsys.readouterr().out
 
 
+def test_main_refuses_a_point_log_with_a_gap_from_a_resume_without_the_flag(monkeypatch, tmp_path, capsys):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61)])
+    monkeypatch.setattr(cs, '_get_json', lambda url: _gsv_pano_north_of_query(url, 2))
+    assert cs.main(['--city-id', _CITY, '--gsv', '--point-log', '--max-qps', '1000']) == 0
+    # Drop street 200's rows, as if an interrupted logged run had been resumed without --point-log.
+    log = pd.read_csv(_point_log(tmp_path))
+    log[log['street_edge_id'] == 100].to_csv(_point_log(tmp_path), index=False)
+    assert cs.main(['--city-id', _CITY, '--gsv', '--point-log', '--max-qps', '1000']) == 1
+    assert 'has no rows for 1 streets' in capsys.readouterr().out
+    assert not os.path.exists(str(_point_log(tmp_path)) + '.tmp')
+
+
 def test_prepare_point_log_refuses_a_log_from_other_settings(tmp_path):
     log = str(tmp_path / 'points.csv')
     record = cs.PointRecord(1, 47.6, -122.3, False, True, 47.6001, -122.3, 11.1, 11.1, None, True, '2021-07-15', 25.0,

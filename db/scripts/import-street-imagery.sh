@@ -25,10 +25,25 @@ if [[ ! -f "$CSV_FILENAME" ]]; then
     exit 1
 fi
 
+# The summary has grown diagnostic columns over time (6 before #5460, 7 after it, 8 with the cross-track limit), and
+# summaries of every vintage are still on disk. Naming the columns from the file's own header lets \copy take any of
+# them; the header is checked against a plain column-name pattern first, since it is spliced into the SQL.
+HEADER_COLUMNS=$(head -1 "$CSV_FILENAME" | tr -d '\r')
+if [[ ! "$HEADER_COLUMNS" =~ ^[a-z_]+(,[a-z_]+)*$ ]]; then
+    echo "Error: unexpected header in $CSV_FILENAME: $HEADER_COLUMNS" >&2
+    exit 1
+fi
+for required in street_edge_id has_imagery oldest_capture newest_capture n_panos; do
+    if [[ ",$HEADER_COLUMNS," != *",$required,"* ]]; then
+        echo "Error: $CSV_FILENAME has no $required column. Is it a street_imagery_summary.csv?" >&2
+        exit 1
+    fi
+done
+
 # Stage the CSV in a temp table (all text so empty date fields survive as ''), then upsert only the streets that have
 # imagery. Empty oldest/newest fields become NULL; a street with imagery but no parseable capture date still gets a row
-# (NULL dates) so it is distinguishable from a street that was never scanned. \copy needs a column for every field in
-# the file, so the staging table lists the scan's diagnostic columns (SUMMARY_COLUMNS in the script) too, unused.
+# (NULL dates) so it is distinguishable from a street that was never scanned. The staging table carries every column any
+# summary version has written (SUMMARY_COLUMNS in the script); the diagnostic ones are unused here.
 psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
     BEGIN;
 
@@ -43,7 +58,7 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
         cross_track_limit_m TEXT
     ) ON COMMIT DROP;
 
-    \copy street_imagery_import FROM '$CSV_FILENAME' WITH (FORMAT csv, HEADER true)
+    \copy street_imagery_import ($HEADER_COLUMNS) FROM '$CSV_FILENAME' WITH (FORMAT csv, HEADER true)
 
     INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, n_panos, data_source, updated_at)
     SELECT street_edge_id,
