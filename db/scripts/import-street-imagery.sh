@@ -27,7 +27,8 @@ fi
 
 # Stage the CSV in a temp table (all text so empty date fields survive as ''), then upsert only the streets that have
 # imagery. Empty oldest/newest fields become NULL; a street with imagery but no parseable capture date still gets a row
-# (NULL dates) so it is distinguishable from a street that was never scanned.
+# (NULL dates) so it is distinguishable from a street that was never scanned. \copy needs a column for every field in
+# the file, so the staging table lists the scan's diagnostic columns (SUMMARY_COLUMNS in the script) too, unused.
 psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
     BEGIN;
 
@@ -37,7 +38,9 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
         has_imagery    TEXT,
         oldest_capture TEXT,
         newest_capture TEXT,
-        n_panos        INTEGER
+        n_panos        INTEGER,
+        max_cross_track_m   TEXT,
+        cross_track_limit_m TEXT
     ) ON COMMIT DROP;
 
     \copy street_imagery_import FROM '$CSV_FILENAME' WITH (FORMAT csv, HEADER true)
